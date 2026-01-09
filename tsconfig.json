@@ -1,6 +1,5 @@
 {
     "compilerOptions": {
-      "composite": true,
       "target": "ESNext",
       "module": "ESNext",
       "moduleResolution": "Bundler",
@@ -8,9 +7,8 @@
       "rootDir": "./src",
       "baseUrl": ".",
       "declaration": true,
-      "declarationMap": true,
-      "sourceMap": true,
-      "inlineSources": true,
+      "declarationMap": false,
+      "sourceMap": false,
       "esModuleInterop": true,
       "strict": true,
       "skipLibCheck": true,

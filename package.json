@@ -13,10 +13,13 @@
     },
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
+    "sideEffects": [
+        "*.css",
+        "src/react/styles.css"
+    ],
     "files": [
         "lib",
         "src/react/styles.css",
-        "README.md",
         "LICENSE"
     ],
     "scripts": {
