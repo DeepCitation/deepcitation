@@ -2,6 +2,7 @@
 node_modules
 # Ignore built ts files
 lib/**/*
+*.tsbuildinfo
 
 
 /playwright/.cache/
