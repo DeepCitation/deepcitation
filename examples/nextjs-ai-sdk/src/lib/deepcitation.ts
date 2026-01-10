@@ -22,16 +22,16 @@ export function getDeepCitationClient(): DeepCitation {
 
 // In-memory store for file data (use Redis/DB in production)
 const fileStore = new Map<string, FileDataPart[]>();
-const fileDeepTextsStore = new Map<string, string[]>();
+const deepTextPromptPortionStore = new Map<string, string[]>();
 
 export async function uploadDocument(
   sessionId: string,
   file: Buffer,
   filename: string
-): Promise<{ fileId: string; fileDeepText: string }> {
+): Promise<{ fileId: string; deepTextPromptPortion: string }> {
   const dc = getDeepCitationClient();
 
-  const { fileDataParts, fileDeepTexts } = await dc.prepareFiles([
+  const { fileDataParts, deepTextPromptPortion } = await dc.prepareFiles([
     { file, filename },
   ]);
 
@@ -39,12 +39,15 @@ export async function uploadDocument(
   const existing = fileStore.get(sessionId) || [];
   fileStore.set(sessionId, [...existing, ...fileDataParts]);
 
-  const existingTexts = fileDeepTextsStore.get(sessionId) || [];
-  fileDeepTextsStore.set(sessionId, [...existingTexts, ...fileDeepTexts]);
+  const existingTexts = deepTextPromptPortionStore.get(sessionId) || [];
+  deepTextPromptPortionStore.set(sessionId, [
+    ...existingTexts,
+    ...deepTextPromptPortion,
+  ]);
 
   return {
     fileId: fileDataParts[0].fileId,
-    fileDeepText: fileDeepTexts[0],
+    deepTextPromptPortion: deepTextPromptPortion[0],
   };
 }
 
@@ -52,8 +55,8 @@ export function getSessionFiles(sessionId: string): FileDataPart[] {
   return fileStore.get(sessionId) || [];
 }
 
-export function getSessionFileDeepTexts(sessionId: string): string[] {
-  return fileDeepTextsStore.get(sessionId) || [];
+export function getSessiondeepTextPromptPortion(sessionId: string): string[] {
+  return deepTextPromptPortionStore.get(sessionId) || [];
 }
 
 export async function verifyCitations(
@@ -80,12 +83,13 @@ export function enhancePrompts(
   userPrompt: string,
   sessionId: string
 ): { enhancedSystemPrompt: string; enhancedUserPrompt: string } {
-  const fileDeepTexts = getSessionFileDeepTexts(sessionId);
+  const deepTextPromptPortion = getSessiondeepTextPromptPortion(sessionId);
 
   return wrapCitationPrompt({
     systemPrompt,
     userPrompt,
-    fileDeepText: fileDeepTexts.length > 0 ? fileDeepTexts : undefined,
+    deepTextPromptPortion:
+      deepTextPromptPortion.length > 0 ? deepTextPromptPortion : undefined,
   });
 }
 

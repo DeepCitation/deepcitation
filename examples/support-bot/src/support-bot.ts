@@ -44,7 +44,7 @@ export class SupportBot {
   private openai: OpenAI;
   private minConfidenceThreshold: number;
   private fileDataParts: FileDataPart[] = [];
-  private fileDeepTexts: string[] = [];
+  private deepTextPromptPortion: string[] = [];
   private isLoaded = false;
 
   constructor(config: SupportBotConfig) {
@@ -62,13 +62,16 @@ export class SupportBot {
    * - Policy documents
    * - Help center articles
    */
-  async loadKnowledgeBase(content: string | Buffer, filename: string): Promise<void> {
+  async loadKnowledgeBase(
+    content: string | Buffer,
+    filename: string
+  ): Promise<void> {
     const buffer = typeof content === "string" ? Buffer.from(content) : content;
 
     const result = await this.dc.prepareFiles([{ file: buffer, filename }]);
 
     this.fileDataParts = result.fileDataParts;
-    this.fileDeepTexts = result.fileDeepTexts;
+    this.deepTextPromptPortion = result.deepTextPromptPortion;
     this.isLoaded = true;
   }
 
@@ -79,14 +82,17 @@ export class SupportBot {
     documents: Array<{ content: string | Buffer; filename: string }>
   ): Promise<void> {
     const files = documents.map((doc) => ({
-      file: typeof doc.content === "string" ? Buffer.from(doc.content) : doc.content,
+      file:
+        typeof doc.content === "string"
+          ? Buffer.from(doc.content)
+          : doc.content,
       filename: doc.filename,
     }));
 
     const result = await this.dc.prepareFiles(files);
 
     this.fileDataParts = result.fileDataParts;
-    this.fileDeepTexts = result.fileDeepTexts;
+    this.deepTextPromptPortion = result.deepTextPromptPortion;
     this.isLoaded = true;
   }
 
@@ -99,7 +105,9 @@ export class SupportBot {
    */
   async answer(question: string): Promise<SupportBotResponse> {
     if (!this.isLoaded) {
-      throw new Error("Knowledge base not loaded. Call loadKnowledgeBase() first.");
+      throw new Error(
+        "Knowledge base not loaded. Call loadKnowledgeBase() first."
+      );
     }
 
     // Step 1: Prepare citation-enhanced prompts
@@ -110,7 +118,7 @@ If information is not available in the knowledge base, say so honestly.`;
     const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
       systemPrompt,
       userPrompt: question,
-      fileDeepText: this.fileDeepTexts, // Pass file content directly
+      deepTextPromptPortion: this.deepTextPromptPortion,
     });
 
     // Step 2: Get response from LLM
@@ -167,9 +175,15 @@ If information is not available in the knowledge base, say so honestly.`;
   ): Promise<SupportBotResponse> {
     let response = await this.answer(question);
 
-    for (let attempt = 0; attempt < maxRetries && response.needsReview; attempt++) {
+    for (
+      let attempt = 0;
+      attempt < maxRetries && response.needsReview;
+      attempt++
+    ) {
       console.log(
-        `Retry ${attempt + 1}: Confidence ${(response.confidence * 100).toFixed(0)}% below threshold`
+        `Retry ${attempt + 1}: Confidence ${(response.confidence * 100).toFixed(
+          0
+        )}% below threshold`
       );
 
       // Try again with stricter prompt

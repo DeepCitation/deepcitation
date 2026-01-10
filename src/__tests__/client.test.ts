@@ -12,7 +12,9 @@ describe("DeepCitation Client", () => {
 
   describe("constructor", () => {
     it("throws error when no API key provided", () => {
-      expect(() => new DeepCitation({ apiKey: "" })).toThrow("DeepCitation API key is required");
+      expect(() => new DeepCitation({ apiKey: "" })).toThrow(
+        "DeepCitation API key is required"
+      );
     });
 
     it("creates client with valid API key", () => {
@@ -52,7 +54,7 @@ describe("DeepCitation Client", () => {
         json: async () => ({
           fileId: "file_abc123",
           attachmentId: "att_123", // Internal field returned by API
-          fileDeepText: "[Page 1]\n[L1] Test content",
+          deepTextPromptPortion: "[Page 1]\n[L1] Test content",
           metadata: {
             filename: "test.pdf",
             mimeType: "application/pdf",
@@ -68,8 +70,10 @@ describe("DeepCitation Client", () => {
 
       expect(result.fileId).toBe("file_abc123");
       // attachmentId is hidden from public API
-      expect((result as { attachmentId?: string }).attachmentId).toBeUndefined();
-      expect(result.fileDeepText).toContain("[Page 1]");
+      expect(
+        (result as { attachmentId?: string }).attachmentId
+      ).toBeUndefined();
+      expect(result.deepTextPromptPortion).toContain("[Page 1]");
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -83,7 +87,9 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["test content"]);
-      await expect(client.uploadFile(blob)).rejects.toThrow("Invalid file format");
+      await expect(client.uploadFile(blob)).rejects.toThrow(
+        "Invalid file format"
+      );
     });
 
     it("handles custom fileId option", async () => {
@@ -94,8 +100,13 @@ describe("DeepCitation Client", () => {
         json: async () => ({
           fileId: "custom_id",
           attachmentId: "att_custom",
-          fileDeepText: "content",
-          metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          deepTextPromptPortion: "content",
+          metadata: {
+            filename: "test.pdf",
+            mimeType: "application/pdf",
+            pageCount: 1,
+            textByteSize: 50,
+          },
           status: "ready",
         }),
       } as Response);
@@ -110,7 +121,9 @@ describe("DeepCitation Client", () => {
       const client = new DeepCitation({ apiKey: "dc_test_123" });
 
       // @ts-expect-error - testing invalid input
-      await expect(client.uploadFile("not a file")).rejects.toThrow("Invalid file type");
+      await expect(client.uploadFile("not a file")).rejects.toThrow(
+        "Invalid file type"
+      );
     });
   });
 
@@ -125,8 +138,13 @@ describe("DeepCitation Client", () => {
           json: async () => ({
             fileId: "file_1",
             attachmentId: "att_1",
-            fileDeepText: "[Page 1]\n[L1] Content from file 1",
-            metadata: { filename: "doc1.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 100 },
+            deepTextPromptPortion: "[Page 1]\n[L1] Content from file 1",
+            metadata: {
+              filename: "doc1.pdf",
+              mimeType: "application/pdf",
+              pageCount: 1,
+              textByteSize: 100,
+            },
             status: "ready",
           }),
         } as Response)
@@ -135,8 +153,13 @@ describe("DeepCitation Client", () => {
           json: async () => ({
             fileId: "file_2",
             attachmentId: "att_2",
-            fileDeepText: "[Page 1]\n[L1] Content from file 2",
-            metadata: { filename: "doc2.pdf", mimeType: "application/pdf", pageCount: 2, textByteSize: 200 },
+            deepTextPromptPortion: "[Page 1]\n[L1] Content from file 2",
+            metadata: {
+              filename: "doc2.pdf",
+              mimeType: "application/pdf",
+              pageCount: 2,
+              textByteSize: 200,
+            },
             status: "ready",
           }),
         } as Response);
@@ -150,14 +173,14 @@ describe("DeepCitation Client", () => {
       ]);
 
       expect(result.fileDataParts).toHaveLength(2);
-      expect(result.fileDeepTexts).toHaveLength(2);
+      expect(result.deepTextPromptPortion).toHaveLength(2);
 
       expect(result.fileDataParts[0].fileId).toBe("file_1");
       // attachmentId is not exposed in FileDataPart
       expect(result.fileDataParts[1].fileId).toBe("file_2");
 
-      expect(result.fileDeepTexts[0]).toContain("Content from file 1");
-      expect(result.fileDeepTexts[1]).toContain("Content from file 2");
+      expect(result.deepTextPromptPortion[0]).toContain("Content from file 1");
+      expect(result.deepTextPromptPortion[1]).toContain("Content from file 2");
     });
 
     it("handles single file", async () => {
@@ -168,17 +191,24 @@ describe("DeepCitation Client", () => {
         json: async () => ({
           fileId: "single_file",
           attachmentId: "att_single",
-          fileDeepText: "[Page 1]\n[L1] Single content",
-          metadata: { filename: "single.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          deepTextPromptPortion: "[Page 1]\n[L1] Single content",
+          metadata: {
+            filename: "single.pdf",
+            mimeType: "application/pdf",
+            pageCount: 1,
+            textByteSize: 50,
+          },
           status: "ready",
         }),
       } as Response);
 
       const blob = new Blob(["single content"]);
-      const result = await client.prepareFiles([{ file: blob, filename: "single.pdf" }]);
+      const result = await client.prepareFiles([
+        { file: blob, filename: "single.pdf" },
+      ]);
 
       expect(result.fileDataParts).toHaveLength(1);
-      expect(result.fileDeepTexts).toHaveLength(1);
+      expect(result.deepTextPromptPortion).toHaveLength(1);
     });
 
     it("handles empty files array", async () => {
@@ -187,7 +217,7 @@ describe("DeepCitation Client", () => {
       const result = await client.prepareFiles([]);
 
       expect(result.fileDataParts).toHaveLength(0);
-      expect(result.fileDeepTexts).toHaveLength(0);
+      expect(result.deepTextPromptPortion).toHaveLength(0);
     });
 
     it("propagates upload errors", async () => {
@@ -200,7 +230,9 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["content"]);
-      await expect(client.prepareFiles([{ file: blob, filename: "test.pdf" }])).rejects.toThrow("Server error");
+      await expect(
+        client.prepareFiles([{ file: blob, filename: "test.pdf" }])
+      ).rejects.toThrow("Server error");
     });
 
     it("supports custom fileId per file", async () => {
@@ -211,14 +243,21 @@ describe("DeepCitation Client", () => {
         json: async () => ({
           fileId: "my_custom_id",
           attachmentId: "att_custom",
-          fileDeepText: "content",
-          metadata: { filename: "custom.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          deepTextPromptPortion: "content",
+          metadata: {
+            filename: "custom.pdf",
+            mimeType: "application/pdf",
+            pageCount: 1,
+            textByteSize: 50,
+          },
           status: "ready",
         }),
       } as Response);
 
       const blob = new Blob(["content"]);
-      const result = await client.prepareFiles([{ file: blob, filename: "custom.pdf", fileId: "my_custom_id" }]);
+      const result = await client.prepareFiles([
+        { file: blob, filename: "custom.pdf", fileId: "my_custom_id" },
+      ]);
 
       expect(result.fileDataParts[0].fileId).toBe("my_custom_id");
     });
@@ -234,8 +273,13 @@ describe("DeepCitation Client", () => {
         json: async () => ({
           fileId: "file_123",
           attachmentId: "att_123",
-          fileDeepText: "[Page 1]\n[L1] Revenue grew 15%",
-          metadata: { filename: "report.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 100 },
+          deepTextPromptPortion: "[Page 1]\n[L1] Revenue grew 15%",
+          metadata: {
+            filename: "report.pdf",
+            mimeType: "application/pdf",
+            pageCount: 1,
+            textByteSize: 100,
+          },
           status: "ready",
         }),
       } as Response);
@@ -259,14 +303,16 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const llmOutput =
-        "The company showed strong growth. <cite file_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Revenue grew 15%' line_ids='1' />";
+        "The company showed strong growth. <cite file_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Revenue grew 15%' key_span='15%' line_ids='1' />";
 
       const result = await client.verifyCitationsFromLlmOutput({
         llmOutput,
       });
 
       expect(result.foundHighlights).toBeDefined();
-      expect(Object.keys(result.foundHighlights).length).toBeGreaterThanOrEqual(1);
+      expect(Object.keys(result.foundHighlights).length).toBeGreaterThanOrEqual(
+        1
+      );
     });
 
     it("verifies citations with explicit fileDataParts", async () => {
@@ -290,7 +336,7 @@ describe("DeepCitation Client", () => {
 
       const result = await client.verifyCitationsFromLlmOutput({
         llmOutput:
-          "<cite file_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test content' line_ids='1' />",
+          "<cite file_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test content' key_span='Test' line_ids='1' />",
       });
 
       expect(result.foundHighlights).toBeDefined();
@@ -317,8 +363,13 @@ describe("DeepCitation Client", () => {
         json: async () => ({
           fileId: "file_abc",
           attachmentId: "att_abc",
-          fileDeepText: "content",
-          metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          deepTextPromptPortion: "content",
+          metadata: {
+            filename: "test.pdf",
+            mimeType: "application/pdf",
+            pageCount: 1,
+            textByteSize: 50,
+          },
           status: "ready",
         }),
       } as Response);
@@ -349,7 +400,7 @@ describe("DeepCitation Client", () => {
       await expect(
         client.verifyCitations("unknown_file", {
           "1": { fullPhrase: "test" },
-        }),
+        })
       ).rejects.toThrow('File ID "unknown_file" not found');
     });
   });
@@ -387,7 +438,7 @@ describe("DeepCitation Client", () => {
       await expect(
         client.verifyCitations("file_1", {
           "1": { fullPhrase: "test" },
-        }),
+        })
       ).rejects.toThrow('File ID "file_1" not found');
     });
   });

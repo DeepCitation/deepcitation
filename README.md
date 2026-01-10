@@ -60,7 +60,7 @@ import { DeepCitation, wrapCitationPrompt } from "@deepcitation/deepcitation-js"
 const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
 // Upload source files
-const { fileDataParts, fileDeepTexts } = await dc.prepareFiles([
+const { fileDataParts, deepTextPromptPortion } = await dc.prepareFiles([
   { file: pdfBuffer, filename: "report.pdf" },
 ]);
 
@@ -68,7 +68,7 @@ const { fileDataParts, fileDeepTexts } = await dc.prepareFiles([
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a helpful assistant...",
   userPrompt: "Analyze this document",
-  fileDeepText: fileDeepTexts,
+  deepTextPromptPortion,
 });
 
 // Call your LLM

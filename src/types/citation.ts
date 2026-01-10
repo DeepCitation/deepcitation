@@ -1,8 +1,6 @@
 import { type ScreenBox } from "./boxes";
 import { type FoundHighlightLocation } from "./foundHighlight";
 
-export const VERIFICATION_VERSION_NUMBER = "0.4.37";
-
 export type OutputImageFormat = "jpeg" | "png" | "avif" | undefined | null;
 
 export const DEFAULT_OUTPUT_IMAGE_FORMAT = "avif" as const;
@@ -21,6 +19,7 @@ export interface Citation {
   //should be populated automatically via getCitationPageNumber
   fileId?: string;
   fullPhrase?: string | null;
+  keySpan?: string | null;
   value?: string | null;
   startPageKey?: string | null;
   pageNumber?: number | null;
@@ -38,9 +37,6 @@ export interface Citation {
   fragmentContext?: string | null;
   rawCitationMd?: string;
   beforeCite?: string;
-
-  formFieldName?: string | null;
-  formFieldValue?: string | null;
 }
 
 export interface CitationStatus {

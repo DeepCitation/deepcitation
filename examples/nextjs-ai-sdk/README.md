@@ -77,7 +77,7 @@ When a user uploads a document, it's sent to DeepCitation for processing:
 
 ```typescript
 // src/app/api/upload/route.ts
-const { fileId, fileDeepText } = await uploadDocument(
+const { fileId, deepTextPromptPortion } = await uploadDocument(
   sessionId,
   buffer,
   file.name
@@ -93,7 +93,7 @@ Before calling the LLM, prompts are enhanced with citation instructions:
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt,
   userPrompt: question,
-  fileDeepText: fileDeepTexts, // Pass file content directly
+  deepTextPromptPortion, 
 });
 ```
 

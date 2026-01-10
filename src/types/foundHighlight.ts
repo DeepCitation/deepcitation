@@ -1,5 +1,5 @@
 import { sha1Hash } from "../utils/sha.js";
-import { VERIFICATION_VERSION_NUMBER, type Citation } from "./citation";
+import { type Citation } from "./citation";
 import { type SearchState } from "./search";
 import { type PdfSpaceItem } from "./boxes";
 
@@ -23,15 +23,17 @@ export const BLANK_HIGHLIGHT_LOCATION: FoundHighlightLocation = {
   },
 };
 
-export function deterministicIdFromHighlightLocation(highlightLocation: FoundHighlightLocation): string {
+export function deterministicIdFromHighlightLocation(
+  highlightLocation: FoundHighlightLocation
+): string {
   return sha1Hash(
-    `${highlightLocation.lowerCaseSearchTerm}-${highlightLocation.attachmentId}-${highlightLocation.pageNumber}-${highlightLocation.hitIndexWithinPage}-${highlightLocation.matchSnippet}-${highlightLocation?.hitIndexWithinPage}`,
+    `${highlightLocation.lowerCaseSearchTerm}-${highlightLocation.attachmentId}-${highlightLocation.pageNumber}-${highlightLocation.hitIndexWithinPage}-${highlightLocation.matchSnippet}-${highlightLocation?.hitIndexWithinPage}`
   );
 }
 
 export interface FoundHighlightLocation {
   regex?: RegExp | null;
-  lowerCaseSearchTerm: string | null; // e.g. "CA013C03-0001"
+  lowerCaseSearchTerm: string | null; // e.g. "ca013c03-0001"
   label?: string | null; //e.g. "Invoice"
   attachmentId?: string | null;
   pageNumber?: number | null;
@@ -48,6 +50,6 @@ export interface FoundHighlightLocation {
   pdfSpaceItem?: PdfSpaceItem;
 
   verificationImageBase64?: string | null;
-  source?: typeof VERIFICATION_VERSION_NUMBER | string | null;
+  source?: string | null;
   verifiedAt?: Date;
 }

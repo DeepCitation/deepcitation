@@ -1,16 +1,22 @@
-export const removeCitations = (pageText: string, leaveValueBehind?: boolean): string => {
+export const removeCitations = (
+  pageText: string,
+  leaveValueBehind?: boolean
+): string => {
   const citationRegex =
     /<cite\s+fileId='(\w{0,25})'\s+start_page[\_a-zA-Z]*='page[\_a-zA-Z]*(\d+)_index_(\d+)'\s+full_phrase='((?:[^'\\]|\\.)*)'\s+line(?:_ids|Ids)='([^']+)'(?:\s+(value|reasoning)='((?:[^'\\]|\\.)*)')?\s*\/>/g;
 
-  return pageText.replace(citationRegex, (match, fileId, pageNumber, index, fullPhrase, lineIds, value) => {
-    //it is still value= so we need to remove the value=
+  return pageText.replace(
+    citationRegex,
+    (match, fileId, pageNumber, index, fullPhrase, lineIds, value) => {
+      //it is still value= so we need to remove the value=
 
-    if (leaveValueBehind) {
-      return value?.replace(/value=['"]|['"]/g, "") || "";
-    } else {
-      return "";
+      if (leaveValueBehind) {
+        return value?.replace(/value=['"]|['"]/g, "") || "";
+      } else {
+        return "";
+      }
     }
-  });
+  );
 };
 
 export const removePageNumberMetadata = (pageText: string): string => {
@@ -25,7 +31,9 @@ export const removeLineIdMetadata = (pageText: string): string => {
   return pageText.replace(lineIdRegex, "");
 };
 
-export const getCitationPageNumber = (startPageKey?: string | null): number | null => {
+export const getCitationPageNumber = (
+  startPageKey?: string | null
+): number | null => {
   //page_number_{page_number}_index_{page_index} or page_number_{page_number} or page_key_{page_number}_index_{page_index}
   if (!startPageKey) return null;
 
@@ -37,13 +45,17 @@ export const getCitationPageNumber = (startPageKey?: string | null): number | nu
 export const normalizeCitations = (response: string): string => {
   let trimmedResponse = response?.trim() || "";
 
-  const citationParts = trimmedResponse.split(/(<cite[\s\S]*?(?:\/>|<\/cite>))/gm);
+  const citationParts = trimmedResponse.split(
+    /(<cite[\s\S]*?(?:\/>|<\/cite>))/gm
+  );
   if (citationParts.length <= 1) {
     return normalizeCitationContent(trimmedResponse);
   }
 
   trimmedResponse = citationParts
-    .map(part => (part.startsWith("<cite") ? normalizeCitationContent(part) : part))
+    .map((part) =>
+      part.startsWith("<cite") ? normalizeCitationContent(part) : part
+    )
     .join("");
 
   return trimmedResponse;
@@ -59,8 +71,15 @@ const normalizeCitationContent = (input: string): string => {
   const canonicalizeCiteAttributeKey = (key: string): string => {
     if (key === "fullPhrase" || key === "full_phrase") return "full_phrase";
     if (key === "lineIds" || key === "line_ids") return "line_ids";
-    if (key === "startPageKey" || key === "start_pageKey" || key === "start_page_key") return "start_page_key";
-    if (key === "fileID" || key === "fileId" || key === "file_id") return "file_id";
+    if (
+      key === "startPageKey" ||
+      key === "start_pageKey" ||
+      key === "start_page_key"
+    )
+      return "start_page_key";
+    if (key === "fileID" || key === "fileId" || key === "file_id")
+      return "file_id";
+    if (key === "keySpan" || key === "key_span") return "key_span";
     return key;
   };
 
@@ -78,41 +97,44 @@ const normalizeCitationContent = (input: string): string => {
   // This regex matches: Key = Quote -> Content (lazy) -> Lookahead for (Next Attribute OR End of Tag)
   // It effectively ignores quotes inside the content during the initial capture.
   const textAttributeRegex =
-    /(fullPhrase|full_phrase|reasoning|value)\s*=\s*(['"])([\s\S]*?)(?=\s+(?:line_ids|lineIds|timestamps|fileId|file_id|start_page_key|start_pageKey|startPageKey|reasoning|value|full_phrase)|\s*\/?>)/gm;
+    /(fullPhrase|full_phrase|keySpan|key_span|reasoning|value)\s*=\s*(['"])([\s\S]*?)(?=\s+(?:line_ids|lineIds|timestamps|fileId|file_id|start_page_key|start_pageKey|startPageKey|keySpan|key_span|reasoning|value|full_phrase)|\s*\/?>)/gm;
 
-  normalized = normalized.replace(textAttributeRegex, (_match, key, openQuote, rawContent) => {
-    let content = rawContent;
+  normalized = normalized.replace(
+    textAttributeRegex,
+    (_match, key, openQuote, rawContent) => {
+      let content = rawContent;
 
-    // The lazy match usually captures the closing quote because the lookahead
-    // starts at the space *after* the attribute. We must strip it.
-    if (content.endsWith(openQuote)) {
-      content = content.slice(0, -1);
+      // The lazy match usually captures the closing quote because the lookahead
+      // starts at the space *after* the attribute. We must strip it.
+      if (content.endsWith(openQuote)) {
+        content = content.slice(0, -1);
+      }
+
+      // 1. Normalization: Flatten newlines to spaces
+      content = content.replace(/(\r?\n)+/g, " ");
+
+      // 2. Decode entities to get raw text (e.g., &apos; -> ')
+      content = decodeHtmlEntities(content);
+
+      // 3. Remove Markdown bold/italic markers often hallucinated by LLMs inside attributes
+      content = content.replace(/(\*|_){2,}/g, "");
+
+      // 4. Sanitize Quotes:
+      // First, unescape existing backslashed quotes to avoid double escaping (e.g. \\' -> ')
+      content = content.replace(/\\\\'/g, "'");
+      content = content.replace(/\\'/g, "'");
+      content = content.replace(/'/g, "\\'");
+
+      content = content.replace(/\\\\"/g, '"');
+      content = content.replace(/\\"/g, '"');
+      content = content.replace(/"/g, '\\"');
+
+      // 5. Remove * from the content, sometimes a md list will really mess things up here so we remove it
+      content = content.replace(/\*/g, ""); //this is a hack to remove the * from the content
+
+      return `${canonicalizeCiteAttributeKey(key)}='${content}'`;
     }
-
-    // 1. Normalization: Flatten newlines to spaces
-    content = content.replace(/(\r?\n)+/g, " ");
-
-    // 2. Decode entities to get raw text (e.g., &apos; -> ')
-    content = decodeHtmlEntities(content);
-
-    // 3. Remove Markdown bold/italic markers often hallucinated by LLMs inside attributes
-    content = content.replace(/(\*|_){2,}/g, "");
-
-    // 4. Sanitize Quotes:
-    // First, unescape existing backslashed quotes to avoid double escaping (e.g. \\' -> ')
-    content = content.replace(/\\\\'/g, "'");
-    content = content.replace(/\\'/g, "'");
-    content = content.replace(/'/g, "\\'");
-
-    content = content.replace(/\\\\"/g, '"');
-    content = content.replace(/\\"/g, '"');
-    content = content.replace(/"/g, '\\"');
-
-    // 5. Remove * from the content, sometimes a md list will really mess things up here so we remove it
-    content = content.replace(/\*/g, ""); //this is a hack to remove the * from the content
-
-    return `${canonicalizeCiteAttributeKey(key)}='${content}'`;
-  });
+  );
 
   // 3. ROBUST LINE_ID / TIMESTAMP PARSING
   // Handles unquoted, single quoted, or double quoted numbers/ranges.
@@ -124,36 +146,42 @@ const normalizeCitationContent = (input: string): string => {
       let cleanedValue = rawValue.replace(/[A-Za-z\[\]\(\){}]/g, "");
 
       // Expand ranges (e.g., "1-3" -> "1,2,3")
-      cleanedValue = cleanedValue.replace(/(\d+)-(\d+)/g, (_rangeMatch: string, start: string, end: string) => {
-        const startNum = parseInt(start, 10);
-        const endNum = parseInt(end, 10);
-        const range = [];
+      cleanedValue = cleanedValue.replace(
+        /(\d+)-(\d+)/g,
+        (_rangeMatch: string, start: string, end: string) => {
+          const startNum = parseInt(start, 10);
+          const endNum = parseInt(end, 10);
+          const range = [];
 
-        // Handle ascending range
-        if (startNum <= endNum) {
-          for (let i = startNum; i <= endNum; i++) {
-            range.push(i);
+          // Handle ascending range
+          if (startNum <= endNum) {
+            for (let i = startNum; i <= endNum; i++) {
+              range.push(i);
+            }
+          } else {
+            // Fallback for weird descending ranges or just return start
+            range.push(startNum);
           }
-        } else {
-          // Fallback for weird descending ranges or just return start
-          range.push(startNum);
+          return range.join(",");
         }
-        return range.join(",");
-      });
+      );
 
       // Normalize commas
       cleanedValue = cleanedValue.replace(/,+/g, ",").replace(/^,|,$/g, "");
 
       // Return standardized format: key='value' + preserved trailing characters (space or />)
-      return `${canonicalizeCiteAttributeKey(key)}='${cleanedValue}'${trailingChars}`;
-    },
+      return `${canonicalizeCiteAttributeKey(
+        key
+      )}='${cleanedValue}'${trailingChars}`;
+    }
   );
 
   // 4. Re-order <cite ... /> attributes to match the strict parsing expectations in `citationParser.ts`
   // (the parser uses regexes that assume a canonical attribute order).
   const reorderCiteTagAttributes = (tag: string): string => {
     // Match both single-quoted and double-quoted attributes
-    const attrRegex = /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(['"])((?:[^'"\\\n]|\\.)*)(?:\2)/g;
+    const attrRegex =
+      /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(['"])((?:[^'"\\\n]|\\.)*)(?:\2)/g;
     const attrs: Record<string, string> = {};
     let match: RegExpExecArray | null;
 
@@ -168,8 +196,9 @@ const normalizeCitationContent = (input: string): string => {
     const keys = Object.keys(attrs);
     if (keys.length === 0) return tag;
 
-    const hasTimestamps = typeof attrs.timestamps === "string" && attrs.timestamps.length > 0;
-    const startPageKeys = keys.filter(k => k.startsWith("start_page"));
+    const hasTimestamps =
+      typeof attrs.timestamps === "string" && attrs.timestamps.length > 0;
+    const startPageKeys = keys.filter((k) => k.startsWith("start_page"));
 
     const ordered: string[] = [];
 
@@ -181,14 +210,16 @@ const normalizeCitationContent = (input: string): string => {
       if (attrs.full_phrase) ordered.push("full_phrase");
       ordered.push("timestamps");
     } else {
-      // Document citations: fileId, start_page*, full_phrase, line_ids, (optional reasoning/value), then any extras
-      if (startPageKeys.includes("start_page_key")) ordered.push("start_page_key");
+      // Document citations: fileId, start_page*, full_phrase, key_span, line_ids, (optional reasoning/value), then any extras
+      if (startPageKeys.includes("start_page_key"))
+        ordered.push("start_page_key");
       startPageKeys
-        .filter(k => k !== "start_page_key")
+        .filter((k) => k !== "start_page_key")
         .sort()
-        .forEach(k => ordered.push(k));
+        .forEach((k) => ordered.push(k));
 
       if (attrs.full_phrase) ordered.push("full_phrase");
+      if (attrs.key_span) ordered.push("key_span");
       if (attrs.line_ids) ordered.push("line_ids");
     }
 
@@ -199,15 +230,17 @@ const normalizeCitationContent = (input: string): string => {
     // Any remaining attributes, stable + deterministic (alpha)
     const used = new Set(ordered);
     keys
-      .filter(k => !used.has(k))
+      .filter((k) => !used.has(k))
       .sort()
-      .forEach(k => ordered.push(k));
+      .forEach((k) => ordered.push(k));
 
-    const rebuiltAttrs = ordered.map(k => `${k}='${attrs[k]}'`).join(" ");
+    const rebuiltAttrs = ordered.map((k) => `${k}='${attrs[k]}'`).join(" ");
     return `<cite ${rebuiltAttrs} />`;
   };
 
-  normalized = normalized.replace(/<cite\b[\s\S]*?\/>/gm, tag => reorderCiteTagAttributes(tag));
+  normalized = normalized.replace(/<cite\b[\s\S]*?\/>/gm, (tag) =>
+    reorderCiteTagAttributes(tag)
+  );
 
   return normalized;
 };

@@ -21,6 +21,7 @@ describe("citation prompts", () => {
       "startPageKey",
       "reasoning",
       "fullPhrase",
+      "keySpan",
       "lineIds",
     ]);
   });
@@ -158,5 +159,81 @@ More content.`;
     expect(result.enhancedSystemPrompt).toContain("analyze documents carefully");
     expect(result.enhancedUserPrompt).toContain("Page 1:");
     expect(result.enhancedUserPrompt).toContain("Page 2:");
+  });
+
+  describe("deepTextPromptPortion handling", () => {
+    it("includes single string deepTextPromptPortion in user prompt", () => {
+      const deepTextPromptPortion = "<file_text>\n[L1] This is the document content.\n[L2] Second line here.\n</file_text>";
+      const result = wrapCitationPrompt({
+        systemPrompt: "You are a helpful assistant.",
+        userPrompt: "Summarize this document.",
+        deepTextPromptPortion,
+      });
+
+      expect(result.enhancedUserPrompt).toContain("This is the document content.");
+      expect(result.enhancedUserPrompt).toContain("Second line here.");
+      expect(result.enhancedUserPrompt).toContain("Summarize this document.");
+    });
+
+    it("includes array of deepTextPromptPortion strings in user prompt", () => {
+      const deepTextPromptPortion = [
+        "<file_text file_id='file1'>\n[L1] Content from first file.\n</file_text>",
+        "<file_text file_id='file2'>\n[L1] Content from second file.\n</file_text>",
+      ];
+      const result = wrapCitationPrompt({
+        systemPrompt: "You are a helpful assistant.",
+        userPrompt: "Compare these documents.",
+        deepTextPromptPortion,
+      });
+
+      expect(result.enhancedUserPrompt).toContain("Content from first file.");
+      expect(result.enhancedUserPrompt).toContain("Content from second file.");
+      expect(result.enhancedUserPrompt).toContain("Compare these documents.");
+    });
+
+    it("places deepTextPromptPortion before user prompt", () => {
+      const deepTextPromptPortion = "[FILE CONTENT HERE]";
+      const result = wrapCitationPrompt({
+        systemPrompt: "System",
+        userPrompt: "User question",
+        deepTextPromptPortion,
+      });
+
+      const fileContentIndex = result.enhancedUserPrompt.indexOf("[FILE CONTENT HERE]");
+      const userPromptIndex = result.enhancedUserPrompt.indexOf("User question");
+      expect(fileContentIndex).toBeLessThan(userPromptIndex);
+    });
+
+    it("handles empty string deepTextPromptPortion", () => {
+      const result = wrapCitationPrompt({
+        systemPrompt: "System",
+        userPrompt: "User",
+        deepTextPromptPortion: "",
+      });
+
+      // Empty string is falsy, so user prompt should be unchanged
+      expect(result.enhancedUserPrompt).toBe("User");
+    });
+
+    it("handles empty array deepTextPromptPortion", () => {
+      const result = wrapCitationPrompt({
+        systemPrompt: "System",
+        userPrompt: "User",
+        deepTextPromptPortion: [],
+      });
+
+      // Empty array produces empty content, user prompt should have some separator
+      expect(result.enhancedUserPrompt).toContain("User");
+    });
+
+    it("handles undefined deepTextPromptPortion", () => {
+      const result = wrapCitationPrompt({
+        systemPrompt: "System",
+        userPrompt: "User",
+        deepTextPromptPortion: undefined,
+      });
+
+      expect(result.enhancedUserPrompt).toBe("User");
+    });
   });
 });

@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
-    "@deepcitation/deepcitation-js": "file:../..",
+    "@deepcitation/deepcitation-js": "latest",
     "ai": "^3.0.0",
     "next": "^14.0.0",
     "openai": "^4.0.0",

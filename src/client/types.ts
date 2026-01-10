@@ -17,7 +17,7 @@ export interface UploadFileResponse {
   /** The file ID assigned by DeepCitation (custom or auto-generated) */
   fileId: string;
   /** The full text content formatted for LLM prompts with page markers and line IDs. Use this in your user prompts. */
-  fileDeepText: string;
+  deepTextPromptPortion: string;
   /** Form fields extracted from PDF forms */
   formFields?: Array<{
     name: string;
@@ -98,7 +98,7 @@ export interface PrepareFilesResult {
   /** Array of file references for verification */
   fileDataParts: FileDataPart[];
   /** Array of formatted text content for LLM prompts (with page markers and line IDs) */
-  fileDeepTexts: string[];
+  deepTextPromptPortion: string[];
 }
 
 /**

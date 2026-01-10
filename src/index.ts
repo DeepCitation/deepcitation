@@ -44,10 +44,7 @@ export type {
   OutputImageFormat,
 } from "./types/citation.js";
 
-export {
-  VERIFICATION_VERSION_NUMBER,
-  DEFAULT_OUTPUT_IMAGE_FORMAT,
-} from "./types/citation.js";
+export { DEFAULT_OUTPUT_IMAGE_FORMAT } from "./types/citation.js";
 
 export type { FoundHighlightLocation } from "./types/foundHighlight.js";
 
