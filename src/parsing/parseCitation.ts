@@ -10,12 +10,16 @@ import { generateCitationKey } from "../react/utils.js";
  * @param foundHighlight - The found highlight location, or null/undefined if not found
  * @returns An object containing boolean flags for verification status
  */
-export function getCitationStatus(foundHighlight: FoundHighlightLocation | null | undefined): CitationStatus {
+export function getCitationStatus(
+  foundHighlight: FoundHighlightLocation | null | undefined
+): CitationStatus {
   const searchState = foundHighlight?.searchState;
 
   const isMiss = searchState?.status === "not_found";
-  const isFullMatchWithMissedValue = searchState?.status === "found_phrase_missed_value";
-  const isFoundValueMissedFullMatch = searchState?.status === "found_value_only";
+  const isFullMatchWithMissedValue =
+    searchState?.status === "found_phrase_missed_value";
+  const isFoundValueMissedFullMatch =
+    searchState?.status === "found_value_only";
 
   const isPartialMatch =
     searchState?.status === "partial_text_found" ||
@@ -24,9 +28,15 @@ export function getCitationStatus(foundHighlight: FoundHighlightLocation | null 
     searchState?.status === "first_word_found";
 
   const isVerified =
-    searchState?.status === "found" || isFoundValueMissedFullMatch || isPartialMatch || isFullMatchWithMissedValue;
+    searchState?.status === "found" ||
+    isFoundValueMissedFullMatch ||
+    isPartialMatch ||
+    isFullMatchWithMissedValue;
 
-  const isPending = searchState?.status === "pending" || searchState?.status === "loading" || !searchState;
+  const isPending =
+    searchState?.status === "pending" ||
+    searchState?.status === "loading" ||
+    !searchState;
 
   return { isVerified, isMiss, isPartialMatch, isPending };
 }
@@ -35,7 +45,7 @@ export const parseCitation = (
   fragment: string,
   mdAttachmentId?: string | null,
   citationCounterRef?: any | null,
-  isVerbose?: boolean,
+  isVerbose?: boolean
 ) => {
   // Helper: Remove wrapper quotes and unescape internal single quotes (e.g. It\'s -> It's)
   const cleanAndUnescape = (str?: string) => {
@@ -46,22 +56,30 @@ export const parseCitation = (
     return trimmed.replace(/\\'/g, "'");
   };
 
-  const citationNumber = citationCounterRef?.current ? citationCounterRef.current++ : undefined;
+  const citationNumber = citationCounterRef?.current
+    ? citationCounterRef.current++
+    : undefined;
 
   const beforeCite = fragment.substring(0, fragment.indexOf("<cite"));
-  const afterCite = fragment.includes("/>") ? fragment.slice(fragment.indexOf("/>") + 2) : "";
-  const middleCite = fragment.substring(fragment.indexOf("<cite"), fragment.indexOf("/>") + 2);
+  const afterCite = fragment.includes("/>")
+    ? fragment.slice(fragment.indexOf("/>") + 2)
+    : "";
+  const middleCite = fragment.substring(
+    fragment.indexOf("<cite"),
+    fragment.indexOf("/>") + 2
+  );
 
   // GROUPS:
   // 1: fileId
   // 2: start_page number
   // 3: index number
   // 4: full_phrase content (escaped)
-  // 5: line_ids content
+  // 5: key_span content (escaped)
+  // 6: line_ids content
   // 6: Optional Key (value|reasoning)
   // 7: Optional Value content (escaped)
   const citationRegex =
-    /<cite\s+file(?:_id|Id)='(\w{0,25})'\s+start_page[\_a-zA-Z]*='page[\_a-zA-Z]*(\d+)_index_(\d+)'\s+full_phrase='((?:[^'\\]|\\.)*)'\s+line(?:_ids|Ids)='([^']+)'(?:\s+(value|reasoning)='((?:[^'\\]|\\.)*)')?\s*\/>/g;
+    /<cite\s+file(?:_id|Id)='(\w{0,25})'\s+start_page[\_a-zA-Z]*='page[\_a-zA-Z]*(\d+)_index_(\d+)'\s+full_phrase='((?:[^'\\]|\\.)*)'\s+key_span='((?:[^'\\]|\\.)*)'\s+line(?:_ids|Ids)='([^']+)'(?:\s+(value|reasoning)='((?:[^'\\]|\\.)*)')?\s*\/>/g;
 
   const citationMatches = [...middleCite.matchAll(citationRegex)];
   const match = citationMatches?.[0];
@@ -70,17 +88,19 @@ export const parseCitation = (
   const pageNumber = match?.[2] ? parseInt(match?.[2]) : undefined;
 
   let fileId = match?.[1];
-  let attachmentId = fileId?.length === 20 ? fileId : mdAttachmentId || match?.[1];
+  let attachmentId =
+    fileId?.length === 20 ? fileId : mdAttachmentId || match?.[1];
 
   // Use helper to handle escaped quotes inside the phrase
   let fullPhrase = cleanAndUnescape(match?.[4]);
+  let keySpan = cleanAndUnescape(match?.[5]);
 
   // Handle the optional attribute (value or reasoning)
   let value: string | undefined;
   let reasoning: string | undefined;
 
-  const optionalKey = match?.[6]; // "value" or "reasoning"
-  const optionalContent = cleanAndUnescape(match?.[7]);
+  const optionalKey = match?.[7]; // "value" or "reasoning"
+  const optionalContent = cleanAndUnescape(match?.[8]);
 
   if (optionalKey === "value") {
     value = optionalContent;
@@ -91,13 +111,13 @@ export const parseCitation = (
   let lineIds: number[] | undefined;
   try {
     // match[5] is line_ids
-    const lineIdsString = match?.[5]?.replace(/[A-Za-z_[\](){}:]/g, "");
+    const lineIdsString = match?.[6]?.replace(/[A-Za-z_[\](){}:]/g, "");
 
     lineIds = lineIdsString
       ? lineIdsString
           .split(",")
-          .map(id => (isNaN(parseInt(id)) ? undefined : parseInt(id)))
-          .filter(id => id !== undefined)
+          .map((id) => (isNaN(parseInt(id)) ? undefined : parseInt(id)))
+          .filter((id) => id !== undefined)
           .sort((a, b) => a - b)
       : undefined;
   } catch (e) {
@@ -119,7 +139,8 @@ export const parseCitation = (
 
   if (avMatch) {
     fileId = avMatch?.[1];
-    attachmentId = fileId?.length === 20 ? fileId : mdAttachmentId || avMatch?.[1];
+    attachmentId =
+      fileId?.length === 20 ? fileId : mdAttachmentId || avMatch?.[1];
     fullPhrase = cleanAndUnescape(avMatch?.[2]);
 
     const timestampsString = avMatch?.[3]?.replace(/timestamps=['"]|['"]/g, "");
@@ -144,6 +165,7 @@ export const parseCitation = (
     fileId: attachmentId,
     pageNumber,
     fullPhrase,
+    keySpan,
     citationNumber,
     lineIds,
     rawCitationMd,
@@ -168,7 +190,10 @@ export const parseCitation = (
  * @param citationNumber - Optional citation number for ordering
  * @returns Parsed Citation object
  */
-const parseJsonCitation = (jsonCitation: any, citationNumber?: number): Citation | null => {
+const parseJsonCitation = (
+  jsonCitation: any,
+  citationNumber?: number
+): Citation | null => {
   if (!jsonCitation) {
     return null;
   }
@@ -176,6 +201,8 @@ const parseJsonCitation = (jsonCitation: any, citationNumber?: number): Citation
   // Support both camelCase and snake_case property names
   const fullPhrase = jsonCitation.fullPhrase ?? jsonCitation.full_phrase;
   const startPageKey = jsonCitation.startPageKey ?? jsonCitation.start_page_key;
+  const keySpan =
+    jsonCitation.keySpan ?? jsonCitation.key_span;
   const rawLineIds = jsonCitation.lineIds ?? jsonCitation.line_ids;
   const fileId = jsonCitation.fileId ?? jsonCitation.file_id;
   const reasoning = jsonCitation.reasoning;
@@ -195,7 +222,9 @@ const parseJsonCitation = (jsonCitation: any, citationNumber?: number): Citation
   }
 
   // Sort lineIds if present
-  const lineIds = rawLineIds?.length ? [...rawLineIds].sort((a: number, b: number) => a - b) : undefined;
+  const lineIds = rawLineIds?.length
+    ? [...rawLineIds].sort((a: number, b: number) => a - b)
+    : undefined;
 
   const citation: Citation = {
     fileId,
@@ -203,6 +232,7 @@ const parseJsonCitation = (jsonCitation: any, citationNumber?: number): Citation
     fullPhrase,
     citationNumber,
     lineIds,
+    keySpan,
     reasoning,
     value,
   };
@@ -220,6 +250,8 @@ const hasCitationProperties = (item: any): boolean =>
     "full_phrase" in item ||
     "startPageKey" in item ||
     "start_page_key" in item ||
+    "keySpan" in item ||
+    "key_span" in item ||
     "lineIds" in item ||
     "line_ids" in item);
 
@@ -240,7 +272,9 @@ const isJsonCitationFormat = (data: any): data is Citation[] | Citation => {
 /**
  * Extracts citations from JSON format (array or single object).
  */
-const extractJsonCitations = (data: Citation[] | Citation): { [key: string]: Citation } => {
+const extractJsonCitations = (
+  data: Citation[] | Citation
+): { [key: string]: Citation } => {
   const citations: { [key: string]: Citation } = {};
   const items = Array.isArray(data) ? data : [data];
 
@@ -269,7 +303,9 @@ const findJsonCitationsInObject = (obj: any, found: Citation[]): void => {
     found.push(...items);
   }
   if (obj.citations && isJsonCitationFormat(obj.citations)) {
-    const items = Array.isArray(obj.citations) ? obj.citations : [obj.citations];
+    const items = Array.isArray(obj.citations)
+      ? obj.citations
+      : [obj.citations];
     found.push(...items);
   }
 
@@ -324,7 +360,9 @@ const extractXmlCitations = (text: string): { [key: string]: Citation } => {
  * @param llmOutput - The LLM output (string or object)
  * @returns Dictionary of parsed Citation objects keyed by citation key
  */
-export const getAllCitationsFromLlmOutput = (llmOutput: any): { [key: string]: Citation } => {
+export const getAllCitationsFromLlmOutput = (
+  llmOutput: any
+): { [key: string]: Citation } => {
   if (!llmOutput) return {};
 
   const citations: { [key: string]: Citation } = {};
@@ -379,7 +417,7 @@ export const getAllCitationsFromLlmOutput = (llmOutput: any): { [key: string]: C
  * ```
  */
 export function groupCitationsByFileId(
-  citations: Citation[] | { [key: string]: Citation },
+  citations: Citation[] | { [key: string]: Citation }
 ): Map<string, { [key: string]: Citation }> {
   const grouped = new Map<string, { [key: string]: Citation }>();
 
@@ -421,7 +459,7 @@ export function groupCitationsByFileId(
  * ```
  */
 export function groupCitationsByFileIdObject(
-  citations: Citation[] | { [key: string]: Citation },
+  citations: Citation[] | { [key: string]: Citation }
 ): { [fileId: string]: { [key: string]: Citation } } {
   const grouped: { [fileId: string]: { [key: string]: Citation } } = {};
 

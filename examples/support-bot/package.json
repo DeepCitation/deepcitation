@@ -8,7 +8,7 @@
     "demo": "bun run src/demo.ts"
   },
   "dependencies": {
-    "@deepcitation/deepcitation-js": "file:../..",
+    "@deepcitation/deepcitation-js": "latest",
     "openai": "^4.0.0",
     "express": "^4.18.0"
   },

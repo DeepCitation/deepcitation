@@ -55,7 +55,7 @@ import type { Citation, FoundHighlightLocation } from "@deepcitation/deepcitatio
 
 ### Prompt Utilities
 
-- `wrapCitationPrompt({ systemPrompt, userPrompt, fileDeepText? })` - Wrap prompts with citation instructions and optionally include file content
+- `wrapCitationPrompt({ systemPrompt, userPrompt, deepTextPromptPortion? })` - Wrap prompts with citation instructions and optionally include file content
 - `wrapSystemCitationPrompt({ systemPrompt })` - Wrap only system prompt (for more control)
 - `getAllCitationsFromLlmOutput(text)` - Extract citations from LLM response
 - `removeCitations(text)` - Remove citation tags from text
@@ -109,11 +109,11 @@ const result = await dc.convertToPdf({
 });
 
 // Then prepare for citation verification
-const { fileDeepText, fileId } = await dc.prepareConvertedFile({
+const { deepTextPromptPortion, fileId } = await dc.prepareConvertedFile({
   fileId: result.fileId
 });
 
-// Use fileDeepText in LLM prompt, then verify citations
+// Use deepTextPromptPortion in LLM prompt, then verify citations
 const verified = await dc.verifyCitations(fileId, citations);
 ```
 
@@ -123,7 +123,7 @@ const verified = await dc.verifyCitations(fileId, citations);
 
 ### `prepareConvertedFile(options)`
 - Input: `{ fileId }`
-- Returns: Same as `uploadFile()` - `{ fileDeepText, fileId, ... }`
+- Returns: Same as `uploadFile()` - `{ deepTextPromptPortion, fileId, ... }`
 
 ## Optional
 

@@ -21,6 +21,7 @@ describe("citation prompts", () => {
       "startPageKey",
       "reasoning",
       "fullPhrase",
+      "keySpan",
       "lineIds",
     ]);
   });

@@ -9,7 +9,7 @@
     "start:anthropic": "bun run src/anthropic.ts"
   },
   "dependencies": {
-    "@deepcitation/deepcitation-js": "file:../..",
+    "@deepcitation/deepcitation-js": "latest",
     "openai": "^4.0.0",
     "@anthropic-ai/sdk": "^0.30.0"
   },

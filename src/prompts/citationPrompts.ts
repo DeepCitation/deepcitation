@@ -1,7 +1,7 @@
 export const CITATION_MARKDOWN_SYNTAX_PROMPT = `
 Citation syntax to use within Markdown:
 • To support any ideas or information that requires a citation from the provided content, use the following citation syntax:
-<cite file_id='file_id' start_page_key='page_number_PAGE_index_INDEX' full_phrase='the verbatim text of the terse phrase inside <file_text /> (remember to escape quotes and newlines inside the full_phrase to remain as valid JSON)' line_ids='2-6' reasoning='the terse logic used to conclude the citation' />
+<cite file_id='file_id' start_page_key='page_number_PAGE_index_INDEX' full_phrase='the verbatim text of the terse phrase inside <file_text />; remember to escape quotes and newlines inside the full_phrase to remain as valid JSON' key_span='the verbatim value or words within full_phrase that best support the citation' line_ids='2-6' reasoning='the terse logic used to conclude the citation' />
 
 • Very important: for page numbers, only use the page number and page index info from the page_number_PAGE_index_INDEX format (e.g. <page_number_1_index_0>) and never from the contents inside the page.
 • start_page_key, full_phrase, and line_ids are required for each citation.
@@ -14,7 +14,7 @@ Citation syntax to use within Markdown:
 
 export const AV_CITATION_MARKDOWN_SYNTAX_PROMPT = `
 • To support any ideas or information that requires a citation from the provided content, use the following citation syntax:
-<cite file_id='file_id' full_phrase='the verbatim text of the phrase (remember to escape quotes and newlines inside the full_phrase to remain as valid JSON)' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' reasoning='the logic connecting the form section requirements to the supporting source citation' />
+<cite file_id='file_id' full_phrase='the verbatim text of the phrase; remember to escape quotes and newlines inside the full_phrase to remain as valid JSON' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' reasoning='the logic connecting the form section requirements to the supporting source citation' />
 • These citations are displayed in-line or in the relevant list item, and are not grouped at the end of the document.
 `;
 
@@ -33,7 +33,7 @@ export interface WrapCitationPromptOptions {
   /** The original user prompt */
   userPrompt: string;
   /** The extracted file text with metadata (from uploadFile response). Can be a single string or array for multiple files. */
-  fileDeepText?: string | string[];
+  deepTextPromptPortion?: string | string[];
   /** Whether to use audio/video citation format (with timestamps) instead of text-based (with line IDs) */
   isAudioVideo?: boolean;
 }
@@ -63,10 +63,18 @@ export interface WrapCitationPromptResult {
  * });
  * ```
  */
-export function wrapSystemCitationPrompt(options: WrapSystemPromptOptions): string {
-  const { systemPrompt, isAudioVideo = false, prependCitationInstructions = false } = options;
+export function wrapSystemCitationPrompt(
+  options: WrapSystemPromptOptions
+): string {
+  const {
+    systemPrompt,
+    isAudioVideo = false,
+    prependCitationInstructions = false,
+  } = options;
 
-  const citationPrompt = isAudioVideo ? AV_CITATION_MARKDOWN_SYNTAX_PROMPT : CITATION_MARKDOWN_SYNTAX_PROMPT;
+  const citationPrompt = isAudioVideo
+    ? AV_CITATION_MARKDOWN_SYNTAX_PROMPT
+    : CITATION_MARKDOWN_SYNTAX_PROMPT;
 
   if (prependCitationInstructions) {
     return `${citationPrompt.trim()}
@@ -92,14 +100,14 @@ ${citationPrompt.trim()}`;
  * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
  *   systemPrompt: "You are a helpful assistant.",
  *   userPrompt: "Analyze this document and summarize it.",
- *   fileDeepText, // from uploadFile response
+ *   deepTextPromptPortion, // from uploadFile response
  * });
  *
  * // Multiple files
  * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
  *   systemPrompt: "You are a helpful assistant.",
  *   userPrompt: "Compare these documents.",
- *   fileDeepText: [fileDeepText1, fileDeepText2], // array of file texts
+ *   deepTextPromptPortion: [deepTextPromptPortion1, deepTextPromptPortion2], // array of file texts
  * });
  *
  * // Use enhanced prompts with your LLM
@@ -111,8 +119,15 @@ ${citationPrompt.trim()}`;
  * });
  * ```
  */
-export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCitationPromptResult {
-  const { systemPrompt, userPrompt, fileDeepText, isAudioVideo = false } = options;
+export function wrapCitationPrompt(
+  options: WrapCitationPromptOptions
+): WrapCitationPromptResult {
+  const {
+    systemPrompt,
+    userPrompt,
+    deepTextPromptPortion,
+    isAudioVideo = false,
+  } = options;
 
   const enhancedSystemPrompt = wrapSystemCitationPrompt({
     systemPrompt,
@@ -122,14 +137,16 @@ export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCita
   // Build enhanced user prompt with file content if provided
   let enhancedUserPrompt = userPrompt;
 
-  if (fileDeepText) {
-    const fileTexts = Array.isArray(fileDeepText) ? fileDeepText : [fileDeepText];
+  if (deepTextPromptPortion) {
+    const fileTexts = Array.isArray(deepTextPromptPortion)
+      ? deepTextPromptPortion
+      : [deepTextPromptPortion];
     const fileContent = fileTexts
       .map((text, index) => {
         if (fileTexts.length === 1) {
-          return `<file_text>\n${text}\n</file_text>`;
+          return `\n${text}`;
         }
-        return `<file_text file_index="${index + 1}">\n${text}\n</file_text>`;
+        return `\n${text}`;
       })
       .join("\n\n");
 
@@ -153,12 +170,18 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     },
     reasoning: {
       type: "string",
-      description: "The logic connecting the form section requirements to the supporting source citation",
+      description:
+        "The logic connecting the form section requirements to the supporting source citation",
     },
     fullPhrase: {
       type: "string",
       description:
         "The verbatim text of the terse phrase inside <file_text /> to support the value description (if there is a detected OCR correction, use the corrected text)",
+    },
+    keySpan: {
+      type: "string",
+      description:
+        "the verbatim value or words within fullPhrase that best support the citation",
     },
     lineIds: {
       type: "array",
@@ -167,7 +190,14 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
         "Infer lineIds, as we only provide the first, last, and every 5th line. Provide inclusive lineIds for the fullPhrase.",
     },
   },
-  required: ["fileId", "startPageKey", "reasoning", "fullPhrase", "lineIds"],
+  required: [
+    "fileId",
+    "startPageKey",
+    "reasoning",
+    "fullPhrase",
+    "keySpan",
+    "lineIds",
+  ],
 };
 
 export const CITATION_AV_BASED_JSON_OUTPUT_FORMAT = {
@@ -191,7 +221,8 @@ export const CITATION_AV_BASED_JSON_OUTPUT_FORMAT = {
         endTime: { type: "string" },
       },
       required: ["startTime", "endTime"],
-      description: "The timestamp of the audio or video frame including milliseconds formatted as: HH:MM:SS.SSS",
+      description:
+        "The timestamp of the audio or video frame including milliseconds formatted as: HH:MM:SS.SSS",
     },
   },
 };

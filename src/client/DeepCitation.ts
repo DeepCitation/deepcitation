@@ -62,7 +62,9 @@ export class DeepCitation {
    */
   constructor(config: DeepCitationConfig) {
     if (!config.apiKey) {
-      throw new Error("DeepCitation API key is required. Get one at https://deepcitation.com/dashboard");
+      throw new Error(
+        "DeepCitation API key is required. Get one at https://deepcitation.com/dashboard"
+      );
     }
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl?.replace(/\/$/, "") || DEFAULT_API_URL;
@@ -91,7 +93,10 @@ export class DeepCitation {
    * const result = await dc.uploadFile(buffer, { filename: 'document.pdf' });
    * ```
    */
-  async uploadFile(file: File | Blob | Buffer, options?: UploadFileOptions): Promise<UploadFileResponse> {
+  async uploadFile(
+    file: File | Blob | Buffer,
+    options?: UploadFileOptions
+  ): Promise<UploadFileResponse> {
     const formData = new FormData();
 
     // Handle different input types
@@ -104,7 +109,8 @@ export class DeepCitation {
       formData.append("file", blob, filename);
     } else if (file instanceof Blob) {
       // File or Blob
-      const filename = options?.filename || (file instanceof File ? file.name : "document");
+      const filename =
+        options?.filename || (file instanceof File ? file.name : "document");
       formData.append("file", file, filename);
     } else {
       throw new Error("Invalid file type. Expected File, Blob, or Buffer.");
@@ -128,11 +134,15 @@ export class DeepCitation {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error?.error?.message || `Upload failed with status ${response.status}`);
+      throw new Error(
+        error?.error?.message || `Upload failed with status ${response.status}`
+      );
     }
 
     // Internal response includes attachmentId which we need for verification
-    const apiResponse = (await response.json()) as UploadFileResponse & { attachmentId: string };
+    const apiResponse = (await response.json()) as UploadFileResponse & {
+      attachmentId: string;
+    };
 
     // Store the mapping for later verification calls
     this.fileIdMap.set(apiResponse.fileId, {
@@ -171,14 +181,17 @@ export class DeepCitation {
    * });
    *
    * // Then prepare the file for verification
-   * const { fileDeepText, fileId } = await dc.prepareConvertedFile({
+   * const { deepTextPromptPortion, fileId } = await dc.prepareConvertedFile({
    *   fileId: result.fileId
    * });
    * ```
    */
-  async convertToPdf(input: ConvertFileInput | string): Promise<ConvertFileResponse> {
+  async convertToPdf(
+    input: ConvertFileInput | string
+  ): Promise<ConvertFileResponse> {
     // Handle string URL shorthand
-    const inputObj: ConvertFileInput = typeof input === "string" ? { url: input } : input;
+    const inputObj: ConvertFileInput =
+      typeof input === "string" ? { url: input } : input;
     const { url, file, filename, fileId, singlePage } = inputObj;
 
     if (!url && !file) {
@@ -212,7 +225,8 @@ export class DeepCitation {
         const blob = new Blob([uint8]);
         formData.append("file", blob, fname);
       } else if (file instanceof Blob) {
-        const fname = filename || (file instanceof File ? file.name : "document");
+        const fname =
+          filename || (file instanceof File ? file.name : "document");
         formData.append("file", file, fname);
       } else {
         throw new Error("Invalid file type. Expected File, Blob, or Buffer.");
@@ -238,11 +252,16 @@ export class DeepCitation {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error?.error?.message || `Conversion failed with status ${response.status}`);
+      throw new Error(
+        error?.error?.message ||
+          `Conversion failed with status ${response.status}`
+      );
     }
 
     // Internal response includes attachmentId which we need for the two-step flow
-    const apiResponse = (await response.json()) as ConvertFileResponse & { attachmentId: string };
+    const apiResponse = (await response.json()) as ConvertFileResponse & {
+      attachmentId: string;
+    };
 
     // Store the mapping for later verification and prepareConvertedFile calls
     this.fileIdMap.set(apiResponse.fileId, {
@@ -256,7 +275,7 @@ export class DeepCitation {
 
   /**
    * Prepare a previously converted file for citation verification.
-   * Use this after calling convertToPdf() to extract text and get fileDeepText.
+   * Use this after calling convertToPdf() to extract text and get deepTextPromptPortion.
    *
    * @param options - Options with fileId from convertFile
    * @returns Upload response with fileId and extracted text
@@ -267,18 +286,22 @@ export class DeepCitation {
    * const converted = await dc.convertToPdf({ url: "https://example.com/article" });
    *
    * // Then prepare it for verification
-   * const { fileDeepText, fileId } = await dc.prepareConvertedFile({
+   * const { deepTextPromptPortion, fileId } = await dc.prepareConvertedFile({
    *   fileId: converted.fileId
    * });
    *
-   * // Use fileDeepText in your LLM prompt...
+   * // Use deepTextPromptPortion in your LLM prompt...
    * ```
    */
-  async prepareConvertedFile(options: PrepareConvertedFileOptions): Promise<UploadFileResponse> {
+  async prepareConvertedFile(
+    options: PrepareConvertedFileOptions
+  ): Promise<UploadFileResponse> {
     // Look up the internal attachmentId from the fileId
     const fileInfo = this.fileIdMap.get(options.fileId);
     if (!fileInfo) {
-      throw new Error(`File ID "${options.fileId}" not found. Make sure to call convertToPdf() first.`);
+      throw new Error(
+        `File ID "${options.fileId}" not found. Make sure to call convertToPdf() first.`
+      );
     }
 
     const response = await fetch(`${this.apiUrl}/prepareFile`, {
@@ -295,11 +318,15 @@ export class DeepCitation {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error?.error?.message || `Prepare failed with status ${response.status}`);
+      throw new Error(
+        error?.error?.message || `Prepare failed with status ${response.status}`
+      );
     }
 
     // Internal response includes attachmentId
-    const apiResponse = (await response.json()) as UploadFileResponse & { attachmentId: string };
+    const apiResponse = (await response.json()) as UploadFileResponse & {
+      attachmentId: string;
+    };
 
     // Update the mapping (attachmentId should remain the same)
     this.fileIdMap.set(apiResponse.fileId, {
@@ -316,20 +343,20 @@ export class DeepCitation {
    * This is the recommended way to prepare files for LLM prompts.
    *
    * @param files - Array of files to upload with optional filenames and fileIds
-   * @returns Object containing fileDataParts for verification and fileDeepTexts for LLM
+   * @returns Object containing fileDataParts for verification and deepTextPromptPortion for LLM
    *
    * @example
    * ```typescript
-   * const { fileDataParts, fileDeepTexts } = await dc.prepareFiles([
+   * const { fileDataParts, deepTextPromptPortion } = await dc.prepareFiles([
    *   { file: pdfBuffer, filename: "report.pdf" },
    *   { file: invoiceBuffer, filename: "invoice.pdf" },
    * ]);
    *
-   * // Use fileDeepTexts in wrapCitationPrompt
+   * // Use deepTextPromptPortion in wrapCitationPrompt
    * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
    *   systemPrompt,
    *   userPrompt,
-   *   fileDeepText: fileDeepTexts
+   *   deepTextPromptPortion: deepTextPromptPortion
    * });
    *
    * // Use fileDataParts later for verification
@@ -338,22 +365,26 @@ export class DeepCitation {
    */
   async prepareFiles(files: FileInput[]): Promise<PrepareFilesResult> {
     if (files.length === 0) {
-      return { fileDataParts: [], fileDeepTexts: [] };
+      return { fileDataParts: [], deepTextPromptPortion: [] };
     }
 
     // Upload all files in parallel
-    const uploadPromises = files.map(({ file, filename, fileId }) => this.uploadFile(file, { filename, fileId }));
+    const uploadPromises = files.map(({ file, filename, fileId }) =>
+      this.uploadFile(file, { filename, fileId })
+    );
 
     const results = await Promise.all(uploadPromises);
 
     // Extract file data parts and file deep texts
-    const fileDataParts: FileDataPart[] = results.map(result => ({
+    const fileDataParts: FileDataPart[] = results.map((result) => ({
       fileId: result.fileId,
     }));
 
-    const fileDeepTexts: string[] = results.map(result => result.fileDeepText);
+    const deepTextPromptPortion: string[] = results.map(
+      (result) => result.deepTextPromptPortion
+    );
 
-    return { fileDataParts, fileDeepTexts };
+    return { fileDataParts, deepTextPromptPortion };
   }
 
   /**
@@ -380,13 +411,15 @@ export class DeepCitation {
   async verifyCitations(
     fileId: string,
     citations: CitationInput,
-    options?: VerifyCitationsOptions,
+    options?: VerifyCitationsOptions
   ): Promise<VerifyCitationsResponse> {
     // Look up the internal IDs from our map
     const fileInfo = this.fileIdMap.get(fileId);
 
     if (!fileInfo) {
-      throw new Error(`File ID "${fileId}" not found. Make sure to upload the file first with uploadFile().`);
+      throw new Error(
+        `File ID "${fileId}" not found. Make sure to upload the file first with uploadFile().`
+      );
     }
 
     // Normalize citations to a map with citation keys
@@ -429,7 +462,10 @@ export class DeepCitation {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error?.error?.message || `Verification failed with status ${response.status}`);
+      throw new Error(
+        error?.error?.message ||
+          `Verification failed with status ${response.status}`
+      );
     }
 
     return (await response.json()) as VerifyCitationsResponse;
@@ -456,7 +492,7 @@ export class DeepCitation {
    */
   async verifyCitationsFromLlmOutput(
     input: VerifyCitationsFromLlmOutputInput,
-    citations?: { [key: string]: Citation },
+    citations?: { [key: string]: Citation }
   ): Promise<VerifyCitationsResponse> {
     const { llmOutput, outputImageFormat = "avif" } = input;
 
@@ -511,7 +547,10 @@ export class DeepCitation {
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error?.error?.message || `Verification failed with status ${response.status}`);
+        throw new Error(
+          error?.error?.message ||
+            `Verification failed with status ${response.status}`
+        );
       }
 
       const result = (await response.json()) as VerifyCitationsResponse;

@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to DeepCitation
-    const { fileId, fileDeepText } = await uploadDocument(
+    const { fileId, deepTextPromptPortion } = await uploadDocument(
       sessionId,
       buffer,
       file.name
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       success: true,
       fileId,
       filename: file.name,
-      fileDeepTextLength: fileDeepText.length,
+      deepTextPromptPortionLength: deepTextPromptPortion.length,
     });
   } catch (error) {
     console.error("Upload error:", error);

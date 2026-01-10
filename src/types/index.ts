@@ -13,7 +13,7 @@ export type {
   OutputImageFormat,
 } from "./citation.js";
 
-export { VERIFICATION_VERSION_NUMBER, DEFAULT_OUTPUT_IMAGE_FORMAT } from "./citation.js";
+export { DEFAULT_OUTPUT_IMAGE_FORMAT } from "./citation.js";
 
 // Found highlight types
 export type { FoundHighlightLocation } from "./foundHighlight.js";

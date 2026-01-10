@@ -44,12 +44,15 @@ async function main() {
   console.log("📄 Step 1: Uploading document and preparing prompts...\n");
 
   // Load the sample chart image from shared assets
-  const sampleDocument = readFileSync(resolve(__dirname, "../../assets/john-doe-50-m-chart.jpg"));
+  const sampleDocument = readFileSync(
+    resolve(__dirname, "../../assets/john-doe-50-m-chart.jpg")
+  );
 
   // Upload documents to DeepCitation
-  const { fileDataParts, fileDeepTexts } = await deepcitation.prepareFiles([
-    { file: sampleDocument, filename: "john-doe-50-m-chart.jpg" },
-  ]);
+  const { fileDataParts, deepTextPromptPortion } =
+    await deepcitation.prepareFiles([
+      { file: sampleDocument, filename: "john-doe-50-m-chart.jpg" },
+    ]);
 
   console.log("✅ Document uploaded successfully");
   console.log(`   File ID: ${fileDataParts[0].fileId}\n`);
@@ -63,7 +66,7 @@ provided documents accurately and cite your sources.`;
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt,
     userPrompt: userQuestion,
-    fileDeepText: fileDeepTexts, // Pass file content directly
+    deepTextPromptPortion: deepTextPromptPortion, // Pass file content directly
   });
 
   // ============================================
@@ -115,8 +118,8 @@ provided documents accurately and cite your sources.`;
           ? "⚠️ "
           : "✅"
         : status.isPending
-          ? "⏳"
-          : "❌";
+        ? "⏳"
+        : "❌";
 
       console.log(`Citation [${key}]: ${statusIcon}`);
       console.log(`  Status: ${highlight.searchState?.status}`);
@@ -134,13 +137,22 @@ provided documents accurately and cite your sources.`;
   console.log("─".repeat(50) + "\n");
 
   // Summary statistics
-  const verified = highlights.filter(([, h]) => getCitationStatus(h).isVerified).length;
-  const missed = highlights.filter(([, h]) => getCitationStatus(h).isMiss).length;
+  const verified = highlights.filter(
+    ([, h]) => getCitationStatus(h).isVerified
+  ).length;
+  const missed = highlights.filter(
+    ([, h]) => getCitationStatus(h).isMiss
+  ).length;
 
   console.log("📊 Summary:");
   console.log(`   Total citations: ${highlights.length}`);
   if (highlights.length > 0) {
-    console.log(`   Verified: ${verified} (${((verified / highlights.length) * 100).toFixed(0)}%)`);
+    console.log(
+      `   Verified: ${verified} (${(
+        (verified / highlights.length) *
+        100
+      ).toFixed(0)}%)`
+    );
     console.log(`   Not found: ${missed}`);
   }
 }

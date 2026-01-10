@@ -83,7 +83,7 @@ import { readFileSync } from "fs";
 
 const myDocument = readFileSync("./path/to/your/document.pdf");
 
-const { fileDataParts, fileDeepTexts } = await deepcitation.prepareFiles([
+const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareFiles([
   { file: myDocument, filename: "my-document.pdf" },
 ]);
 ```

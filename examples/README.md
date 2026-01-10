@@ -39,13 +39,13 @@ The simplest integration showing the complete workflow:
 
 ```typescript
 // 1. Upload documents
-const { fileDataParts, fileDeepTexts } = await dc.prepareFiles([...]);
+const { fileDataParts, deepTextPromptPortion } = await dc.prepareFiles([...]);
 
 // 2. Wrap prompts with citation instructions
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt,
   userPrompt: question,
-  fileDeepText: fileDeepTexts, // Pass file content directly
+  deepTextPromptPortion: deepTextPromptPortion, // Pass file content directly
 });
 
 // 3. Call LLM with enhanced prompts
