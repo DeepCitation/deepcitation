@@ -1,6 +1,6 @@
 {
     "name": "@deepcitation/deepcitation-js",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "DeepCitation JavaScript SDK for deterministic AI citation verification",
     "type": "module",
     "private": false,
@@ -14,16 +14,14 @@
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
     "sideEffects": [
-        "*.css",
-        "src/react/styles.css"
+        "*.css"
     ],
     "files": [
         "lib",
-        "src/react/styles.css",
         "LICENSE"
     ],
     "scripts": {
-        "build": "rimraf lib && tsc",
+        "build": "rimraf lib && tsc && cp src/react/styles.css lib/react/styles.css",
         "build:watch": "rimraf lib && tsc --watch",
         "test": "bun test ./src/__tests__/*.test.ts ./src/__tests__/*.test.tsx",
         "test:jest": "jest",
@@ -79,7 +77,7 @@
             "import": "./lib/react/index.js",
             "require": "./lib/react/index.js"
         },
-        "./react/styles.css": "./src/react/styles.css"
+        "./react/styles.css": "./lib/react/styles.css"
     },
     "keywords": [
         "citation",
