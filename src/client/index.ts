@@ -9,7 +9,7 @@ export type {
   FileInput,
   FileDataPart,
   PrepareFilesResult,
-  VerifyCitationsFromLlmOutputInput,
+  VerifyCitationsFromLlmOutput,
   ConvertFileInput,
   ConvertFileResponse,
   PrepareConvertedFileOptions,

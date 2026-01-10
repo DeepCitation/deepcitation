@@ -18,19 +18,19 @@ describe("DeepCitation Client", () => {
     });
 
     it("creates client with valid API key", () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
       expect(client).toBeInstanceOf(DeepCitation);
     });
 
     it("uses default API URL when not specified", () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
       // Client should work without custom URL
       expect(client).toBeInstanceOf(DeepCitation);
     });
 
     it("uses custom API URL when provided", () => {
       const client = new DeepCitation({
-        apiKey: "dc_test_123",
+        apiKey: "sk-dc-123",
         apiUrl: "https://custom.api.com/",
       });
       expect(client).toBeInstanceOf(DeepCitation);
@@ -38,7 +38,7 @@ describe("DeepCitation Client", () => {
 
     it("strips trailing slash from custom API URL", () => {
       const client = new DeepCitation({
-        apiKey: "dc_test_123",
+        apiKey: "sk-dc-123",
         apiUrl: "https://custom.api.com/",
       });
       expect(client).toBeInstanceOf(DeepCitation);
@@ -47,7 +47,7 @@ describe("DeepCitation Client", () => {
 
   describe("uploadFile", () => {
     it("uploads a file and returns response", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -78,7 +78,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("throws error on upload failure", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -93,7 +93,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("handles custom fileId option", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -118,7 +118,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("throws error for invalid file type", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       // @ts-expect-error - testing invalid input
       await expect(client.uploadFile("not a file")).rejects.toThrow(
@@ -129,7 +129,7 @@ describe("DeepCitation Client", () => {
 
   describe("prepareFiles", () => {
     it("uploads multiple files and returns aggregated response", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       // Mock two successful uploads
       mockFetch
@@ -184,7 +184,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("handles single file", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -212,7 +212,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("handles empty files array", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       const result = await client.prepareFiles([]);
 
@@ -221,7 +221,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("propagates upload errors", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -236,7 +236,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("supports custom fileId per file", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -265,7 +265,7 @@ describe("DeepCitation Client", () => {
 
   describe("verifyCitations with object input", () => {
     it("verifies citations from LLM output automatically", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       // First upload a file
       mockFetch.mockResolvedValueOnce({
@@ -316,7 +316,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("verifies citations with explicit fileDataParts", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       // Register file manually
       client.registerFile("file_123", "att_123");
@@ -343,7 +343,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("returns empty foundHighlights when no citations in output", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       const result = await client.verifyCitationsFromLlmOutput({
         llmOutput: "Just plain text with no citations.",
@@ -355,7 +355,7 @@ describe("DeepCitation Client", () => {
 
   describe("verifyCitations (legacy signature)", () => {
     it("verifies citations with fileId and citation map", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       // Upload file first
       mockFetch.mockResolvedValueOnce({
@@ -395,7 +395,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("throws error for unknown fileId", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       await expect(
         client.verifyCitations("unknown_file", {
@@ -407,7 +407,7 @@ describe("DeepCitation Client", () => {
 
   describe("registerFile", () => {
     it("allows verification after manual registration", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       client.registerFile("my_file", "my_attachment");
 
@@ -430,7 +430,7 @@ describe("DeepCitation Client", () => {
 
   describe("clearFileMap", () => {
     it("clears registered files", async () => {
-      const client = new DeepCitation({ apiKey: "dc_test_123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       client.registerFile("file_1", "att_1");
       client.clearFileMap();

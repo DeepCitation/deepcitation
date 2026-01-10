@@ -15,7 +15,7 @@ export type {
   FileInput,
   FileDataPart,
   PrepareFilesResult,
-  VerifyCitationsFromLlmOutputInput,
+  VerifyCitationsFromLlmOutput,
 } from "./client/index.js";
 
 // Parsing

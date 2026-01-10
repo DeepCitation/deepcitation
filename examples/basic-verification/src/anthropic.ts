@@ -1,10 +1,11 @@
 /**
  * DeepCitation Basic Example - Anthropic Claude
  *
- * This example demonstrates the complete 3-step workflow:
+ * This example demonstrates the complete 4-step workflow:
  * 1. Pre-Prompt: Upload documents and enhance prompts
- * 2. Post-Prompt: Verify citations against source documents
- * 3. Display: Show verification results
+ * 2. Call LLM: Get response from Claude with citations
+ * 3. Verify: Verify citations against source documents
+ * 4. Display: Show verification results
  *
  * Run: npm run start:anthropic
  */
@@ -19,6 +20,7 @@ import {
   wrapCitationPrompt,
   getCitationStatus,
   removeCitations,
+  getAllCitationsFromLlmOutput,
 } from "@deepcitation/deepcitation-js";
 
 // Get current directory for loading sample file
@@ -70,17 +72,40 @@ provided documents accurately and cite your sources.`;
   });
 
   // ============================================
-  // STEP 2: CALL LLM & VERIFY
-  // Get response from Claude and verify all citations
+  // STEP 2: CALL LLM
+  // Get response from Claude with citations
   // ============================================
 
-  console.log("🤖 Step 2: Calling Claude and verifying citations...\n");
+  console.log("🤖 Step 2: Calling Claude...\n");
+
+  // Convert image to base64 for Claude vision API
+  const imageBase64 = sampleDocument.toString("base64");
 
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 1024,
     system: enhancedSystemPrompt,
-    messages: [{ role: "user", content: enhancedUserPrompt }],
+    messages: [
+      {
+        role: "user",
+        content: [
+          // Include the original file for the LLM to see
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/jpeg",
+              data: imageBase64,
+            },
+          },
+          // Include the enhanced user prompt with deepTextPromptPortion
+          {
+            type: "text",
+            text: enhancedUserPrompt,
+          },
+        ],
+      },
+    ],
   });
 
   const llmResponse =
@@ -91,18 +116,45 @@ provided documents accurately and cite your sources.`;
   console.log(llmResponse);
   console.log("─".repeat(50) + "\n");
 
-  // Verify all citations against the source document
-  const verificationResult = await deepcitation.verifyCitationsFromLlmOutput({
-    llmOutput: llmResponse,
-    fileDataParts,
-  });
+  // ============================================
+  // STEP 3: VERIFY CITATIONS
+  // Verify all citations against source documents
+  // ============================================
+
+  console.log("🔍 Step 3: Verifying citations against source document...\n");
+
+  // Option A: Let DeepCitation parse citations automatically (simplest)
+  // const verificationResult = await deepcitation.verifyCitationsFromLlmOutput({
+  //   llmOutput: llmResponse,
+  //   fileDataParts,
+  // });
+
+  // Option B: Parse citations yourself first (more control, privacy-conscious)
+  // This allows you to inspect/filter citations before sending to DeepCitation
+  const parsedCitations = getAllCitationsFromLlmOutput(llmResponse);
+
+  console.log(
+    `📋 Parsed ${
+      Object.keys(parsedCitations).length
+    } citation(s) from LLM output`
+  );
+  for (const [key, citation] of Object.entries(parsedCitations)) {
+    console.log(`   [${key}]: "${citation.fullPhrase?.slice(0, 50)}..."`);
+  }
+  console.log();
+
+  // Now verify only the parsed citations (raw LLM output is not sent)
+  const verificationResult = await deepcitation.verifyCitationsFromLlmOutput(
+    { llmOutput: llmResponse, fileDataParts },
+    parsedCitations
+  );
 
   // ============================================
-  // STEP 3: DISPLAY RESULTS
+  // STEP 4: DISPLAY RESULTS
   // Show verification status for each citation
   // ============================================
 
-  console.log("✨ Step 3: Verification Results\n");
+  console.log("✨ Step 4: Verification Results\n");
 
   const highlights = Object.entries(verificationResult.foundHighlights);
 

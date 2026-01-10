@@ -55,7 +55,7 @@ import type { Citation, FoundHighlightLocation } from "@deepcitation/deepcitatio
 
 ### Prompt Utilities
 
-- `wrapCitationPrompt({ systemPrompt, userPrompt, deepTextPromptPortion? })` - Wrap prompts with citation instructions and optionally include file content
+- `wrapCitationPrompt({ systemPrompt, userPrompt, deepTextPromptPortion })` - Wrap prompts with citation instructions and optionally include file content
 - `wrapSystemCitationPrompt({ systemPrompt })` - Wrap only system prompt (for more control)
 - `getAllCitationsFromLlmOutput(text)` - Extract citations from LLM response
 - `removeCitations(text)` - Remove citation tags from text
@@ -118,7 +118,7 @@ const verified = await dc.verifyCitations(fileId, citations);
 ```
 
 ### `convertToPdf(input)`
-- Input: URL string, or object with `{ url?, file?, filename?, fileId?, singlePage? }`
+- Input: URL string, or object with `{ url?, file?, filename?, fileId? }`
 - Returns: `{ fileId, metadata, status }`
 
 ### `prepareConvertedFile(options)`

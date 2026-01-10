@@ -12,12 +12,33 @@ import type {
   PrepareFilesResult,
   UploadFileOptions,
   UploadFileResponse,
-  VerifyCitationsFromLlmOutputInput,
+  VerifyCitationsFromLlmOutput,
   VerifyCitationsOptions,
   VerifyCitationsResponse,
 } from "./types";
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
+
+/** Convert File/Blob/Buffer to a Blob suitable for FormData */
+function toBlob(file: File | Blob | Buffer, filename?: string): { blob: Blob; name: string } {
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(file)) {
+    const uint8 = Uint8Array.from(file);
+    return { blob: new Blob([uint8]), name: filename || "document" };
+  }
+  if (file instanceof Blob) {
+    return {
+      blob: file,
+      name: filename || (file instanceof File ? file.name : "document"),
+    };
+  }
+  throw new Error("Invalid file type. Expected File, Blob, or Buffer.");
+}
+
+/** Extract error message from API response */
+async function extractErrorMessage(response: Response, fallbackAction: string): Promise<string> {
+  const error = await response.json().catch(() => ({}));
+  return error?.error?.message || `${fallbackAction} failed with status ${response.status}`;
+}
 
 /**
  * DeepCitation client for file upload and citation verification.
@@ -53,6 +74,15 @@ export class DeepCitation {
    * This allows users to reference files by their own IDs
    */
   private fileIdMap: Map<string, { attachmentId: string }> = new Map();
+
+  /** Store file mapping and return public response */
+  private storeAndReturnResponse(
+    apiResponse: UploadFileResponse & { attachmentId: string }
+  ): UploadFileResponse {
+    this.fileIdMap.set(apiResponse.fileId, { attachmentId: apiResponse.attachmentId });
+    const { attachmentId: _, ...publicResponse } = apiResponse;
+    return publicResponse;
+  }
 
   /**
    * Create a new DeepCitation client instance.
@@ -97,61 +127,24 @@ export class DeepCitation {
     file: File | Blob | Buffer,
     options?: UploadFileOptions
   ): Promise<UploadFileResponse> {
+    const { blob, name } = toBlob(file, options?.filename);
     const formData = new FormData();
+    formData.append("file", blob, name);
 
-    // Handle different input types
-    if (typeof Buffer !== "undefined" && Buffer.isBuffer(file)) {
-      // Node.js Buffer - copy to a new ArrayBuffer for Blob compatibility
-      const filename = options?.filename || "document";
-      // Use Uint8Array.from to create a copy that's definitely backed by ArrayBuffer (not SharedArrayBuffer)
-      const uint8 = Uint8Array.from(file);
-      const blob = new Blob([uint8]);
-      formData.append("file", blob, filename);
-    } else if (file instanceof Blob) {
-      // File or Blob
-      const filename =
-        options?.filename || (file instanceof File ? file.name : "document");
-      formData.append("file", file, filename);
-    } else {
-      throw new Error("Invalid file type. Expected File, Blob, or Buffer.");
-    }
-
-    // Add optional fields
-    if (options?.fileId) {
-      formData.append("fileId", options.fileId);
-    }
-    if (options?.filename) {
-      formData.append("filename", options.filename);
-    }
+    if (options?.fileId) formData.append("fileId", options.fileId);
+    if (options?.filename) formData.append("filename", options.filename);
 
     const response = await fetch(`${this.apiUrl}/prepareFile`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-      },
+      headers: { Authorization: `Bearer ${this.apiKey}` },
       body: formData,
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(
-        error?.error?.message || `Upload failed with status ${response.status}`
-      );
+      throw new Error(await extractErrorMessage(response, "Upload"));
     }
 
-    // Internal response includes attachmentId which we need for verification
-    const apiResponse = (await response.json()) as UploadFileResponse & {
-      attachmentId: string;
-    };
-
-    // Store the mapping for later verification calls
-    this.fileIdMap.set(apiResponse.fileId, {
-      attachmentId: apiResponse.attachmentId,
-    });
-
-    // Return public response without internal fields
-    const { attachmentId: _attachmentId, ...publicResponse } = apiResponse;
-    return publicResponse;
+    return this.storeAndReturnResponse(await response.json());
   }
 
   /**
@@ -189,10 +182,9 @@ export class DeepCitation {
   async convertToPdf(
     input: ConvertFileInput | string
   ): Promise<ConvertFileResponse> {
-    // Handle string URL shorthand
     const inputObj: ConvertFileInput =
       typeof input === "string" ? { url: input } : input;
-    const { url, file, filename, fileId, singlePage } = inputObj;
+    const { url, file, filename, fileId } = inputObj;
 
     if (!url && !file) {
       throw new Error("Either url or file must be provided");
@@ -201,75 +193,37 @@ export class DeepCitation {
     let response: Response;
 
     if (url) {
-      // URL conversion - send as JSON
       response = await fetch(`${this.apiUrl}/convertFile`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          url,
-          filename,
-          fileId,
-          singlePage,
-        }),
+        body: JSON.stringify({ url, filename, fileId }),
       });
-    } else if (file) {
-      // Office file conversion - send as multipart
+    } else {
+      const { blob, name } = toBlob(file!, filename);
       const formData = new FormData();
-
-      if (typeof Buffer !== "undefined" && Buffer.isBuffer(file)) {
-        const fname = filename || "document";
-        const uint8 = Uint8Array.from(file);
-        const blob = new Blob([uint8]);
-        formData.append("file", blob, fname);
-      } else if (file instanceof Blob) {
-        const fname =
-          filename || (file instanceof File ? file.name : "document");
-        formData.append("file", file, fname);
-      } else {
-        throw new Error("Invalid file type. Expected File, Blob, or Buffer.");
-      }
-
-      if (fileId) {
-        formData.append("fileId", fileId);
-      }
-      if (filename) {
-        formData.append("filename", filename);
-      }
+      formData.append("file", blob, name);
+      if (fileId) formData.append("fileId", fileId);
+      if (filename) formData.append("filename", filename);
 
       response = await fetch(`${this.apiUrl}/convertFile`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
+        headers: { Authorization: `Bearer ${this.apiKey}` },
         body: formData,
       });
-    } else {
-      throw new Error("Either url or file must be provided");
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(
-        error?.error?.message ||
-          `Conversion failed with status ${response.status}`
-      );
+      throw new Error(await extractErrorMessage(response, "Conversion"));
     }
 
-    // Internal response includes attachmentId which we need for the two-step flow
     const apiResponse = (await response.json()) as ConvertFileResponse & {
       attachmentId: string;
     };
-
-    // Store the mapping for later verification and prepareConvertedFile calls
-    this.fileIdMap.set(apiResponse.fileId, {
-      attachmentId: apiResponse.attachmentId,
-    });
-
-    // Return public response without internal fields
-    const { attachmentId: _attachmentId, ...publicResponse } = apiResponse;
+    this.fileIdMap.set(apiResponse.fileId, { attachmentId: apiResponse.attachmentId });
+    const { attachmentId: _, ...publicResponse } = apiResponse;
     return publicResponse;
   }
 
@@ -296,7 +250,6 @@ export class DeepCitation {
   async prepareConvertedFile(
     options: PrepareConvertedFileOptions
   ): Promise<UploadFileResponse> {
-    // Look up the internal attachmentId from the fileId
     const fileInfo = this.fileIdMap.get(options.fileId);
     if (!fileInfo) {
       throw new Error(
@@ -317,25 +270,10 @@ export class DeepCitation {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(
-        error?.error?.message || `Prepare failed with status ${response.status}`
-      );
+      throw new Error(await extractErrorMessage(response, "Prepare"));
     }
 
-    // Internal response includes attachmentId
-    const apiResponse = (await response.json()) as UploadFileResponse & {
-      attachmentId: string;
-    };
-
-    // Update the mapping (attachmentId should remain the same)
-    this.fileIdMap.set(apiResponse.fileId, {
-      attachmentId: apiResponse.attachmentId,
-    });
-
-    // Return public response without internal fields
-    const { attachmentId: _attachmentId, ...publicResponse } = apiResponse;
-    return publicResponse;
+    return this.storeAndReturnResponse(await response.json());
   }
 
   /**
@@ -461,11 +399,7 @@ export class DeepCitation {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(
-        error?.error?.message ||
-          `Verification failed with status ${response.status}`
-      );
+      throw new Error(await extractErrorMessage(response, "Verification"));
     }
 
     return (await response.json()) as VerifyCitationsResponse;
@@ -491,7 +425,7 @@ export class DeepCitation {
    * ```
    */
   async verifyCitationsFromLlmOutput(
-    input: VerifyCitationsFromLlmOutputInput,
+    input: VerifyCitationsFromLlmOutput,
     citations?: { [key: string]: Citation }
   ): Promise<VerifyCitationsResponse> {
     const { llmOutput, outputImageFormat = "avif" } = input;
@@ -508,9 +442,8 @@ export class DeepCitation {
     // The mapping from fileId to attachmentId must be registered via uploadFile() or prepareFiles()
     // in the same session. For Zero Data Retention scenarios, use verifyCitations() directly.
 
-    // Group citations by fileId and verify each group
+    // Group citations by fileId
     const citationsByFile = new Map<string, Record<string, Citation>>();
-
     for (const [key, citation] of Object.entries(citations)) {
       const fileId = citation.fileId || "";
       if (!citationsByFile.has(fileId)) {
@@ -519,41 +452,19 @@ export class DeepCitation {
       citationsByFile.get(fileId)![key] = citation;
     }
 
-    // Verify citations for each file
-    const allHighlights: VerifyCitationsResponse["foundHighlights"] = {};
-
+    // Filter to only registered files and verify in parallel
+    const verificationPromises: Promise<VerifyCitationsResponse>[] = [];
     for (const [fileId, fileCitations] of citationsByFile) {
-      // Check if we have the file registered
-      const fileInfo = this.fileIdMap.get(fileId);
-      if (!fileInfo) {
-        // Skip citations for unregistered files
-        continue;
-      }
-
-      const response = await fetch(`${this.apiUrl}/verifyCitation`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          data: {
-            attachmentId: fileInfo.attachmentId,
-            citations: fileCitations,
-            outputImageFormat,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(
-          error?.error?.message ||
-            `Verification failed with status ${response.status}`
+      if (this.fileIdMap.has(fileId)) {
+        verificationPromises.push(
+          this.verifyCitations(fileId, fileCitations, { outputImageFormat })
         );
       }
+    }
 
-      const result = (await response.json()) as VerifyCitationsResponse;
+    const results = await Promise.all(verificationPromises);
+    const allHighlights: VerifyCitationsResponse["foundHighlights"] = {};
+    for (const result of results) {
       Object.assign(allHighlights, result.foundHighlights);
     }
 

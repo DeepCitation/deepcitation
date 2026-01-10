@@ -19,7 +19,7 @@
   "packages": {
     "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.30.1", "", { "dependencies": { "@types/node": "^18.11.18", "@types/node-fetch": "^2.6.4", "abort-controller": "^3.0.0", "agentkeepalive": "^4.2.1", "form-data-encoder": "1.7.2", "formdata-node": "^4.3.2", "node-fetch": "^2.6.7" } }, "sha512-nuKvp7wOIz6BFei8WrTdhmSsx5mwnArYyJgh4+vYu3V4J0Ltb8Xm3odPm51n1aSI0XxNCrDl7O88cxCtUdAkaw=="],
 
-    "@deepcitation/deepcitation-js": ["@deepcitation/deepcitation-js@1.0.4", "", { "dependencies": { "diff": "^8.0.2" }, "peerDependencies": { "react": ">=17.0.0" }, "optionalPeers": ["react"] }, "sha512-CYEY+oju7h5HydxRNg7+9bTQrB17fuMgwES6E8IShrQrWyoLeyVtfjcf6+P9tq2/ix+f1hJ4KKcM5QxqLnfUFQ=="],
+    "@deepcitation/deepcitation-js": ["@deepcitation/deepcitation-js@1.0.5", "", { "dependencies": { "diff": "^8.0.2" }, "peerDependencies": { "react": ">=17.0.0" }, "optionalPeers": ["react"] }, "sha512-n5VXkfTGxLf1V7zhbo0b5h2iWMk3jf5cXG/cxW0wTBzrKEHV8OjUwi5xT+PkSvMjdG3wHv816y8r+VGh4GCmkA=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.27.2", "", { "os": "aix", "cpu": "ppc64" }, "sha512-GZMB+a0mOMZs4MpDbj8RJp4cw+w1WV5NYD6xzgvzUJ5Ek2jerwfO2eADyI6ExDSUED+1X8aMbegahsJi+8mgpw=="],
 

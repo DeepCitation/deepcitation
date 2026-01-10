@@ -1,10 +1,11 @@
 /**
  * DeepCitation Basic Example - OpenAI
  *
- * This example demonstrates the complete 3-step workflow:
+ * This example demonstrates the complete 4-step workflow:
  * 1. Pre-Prompt: Upload documents and enhance prompts
- * 2. Post-Prompt: Verify citations against source documents
- * 3. Display: Show verification results
+ * 2. Call LLM: Get response from OpenAI with citations
+ * 3. Verify: Verify citations against source documents
+ * 4. Display: Show verification results
  *
  * Run: npm run start:openai
  */
@@ -19,6 +20,7 @@ import {
   wrapCitationPrompt,
   getCitationStatus,
   removeCitations,
+  getAllCitationsFromLlmOutput,
 } from "@deepcitation/deepcitation-js";
 
 // Get current directory for loading sample file
@@ -48,14 +50,18 @@ async function main() {
     resolve(__dirname, "../../assets/john-doe-50-m-chart.jpg")
   );
 
+  let fileId: string | null = null; //this can be set to preserve your fileId or we will assign one for you
+
   // Upload documents to DeepCitation
   const { fileDataParts, deepTextPromptPortion } =
     await deepcitation.prepareFiles([
       { file: sampleDocument, filename: "john-doe-50-m-chart.jpg" },
     ]);
 
+  fileId = fileDataParts[0].fileId;
+
   console.log("✅ Document uploaded successfully");
-  console.log(`   File ID: ${fileDataParts[0].fileId}\n`);
+  console.log(`   File ID: ${fileId}\n`);
 
   // Wrap your prompts with citation instructions
   const systemPrompt = `You are a helpful assistant. Answer questions about the
@@ -92,17 +98,36 @@ provided documents accurately and cite your sources.`;
   console.log("─".repeat(50) + "\n");
 
   // ============================================
-  // STEP 2: CALL LLM & VERIFY
-  // Get response from LLM and verify all citations
+  // STEP 2: CALL LLM
+  // Get response from OpenAI with citations
   // ============================================
 
-  console.log("🤖 Step 2: Calling OpenAI and verifying citations...\n");
+  console.log("🤖 Step 2: Calling OpenAI...\n");
+
+  // Convert image to base64 for OpenAI vision API
+  const imageBase64 = sampleDocument.toString("base64");
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-5-mini",
     messages: [
       { role: "system", content: enhancedSystemPrompt },
-      { role: "user", content: enhancedUserPrompt },
+      {
+        role: "user",
+        content: [
+          // Include the original file for the LLM to see
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:image/jpeg;base64,${imageBase64}`,
+            },
+          },
+          // Include the enhanced user prompt with deepTextPromptPortion
+          {
+            type: "text",
+            text: enhancedUserPrompt,
+          },
+        ],
+      },
     ],
   });
 
@@ -112,18 +137,47 @@ provided documents accurately and cite your sources.`;
   console.log(llmResponse);
   console.log("─".repeat(50) + "\n");
 
-  // Verify all citations against the source document
-  const verificationResult = await deepcitation.verifyCitationsFromLlmOutput({
-    llmOutput: llmResponse,
-    fileDataParts,
-  });
+  // ============================================
+  // STEP 3: VERIFY CITATIONS
+  // Verify all citations against source documents
+  // ============================================
+
+  console.log("🔍 Step 3: Verifying citations against source document...\n");
+
+  // Option A: Let DeepCitation parse citations automatically (simplest)
+  // const verificationResult = await deepcitation.verifyCitationsFromLlmOutput({
+  //   llmOutput: llmResponse,
+  //   fileDataParts,
+  // });
+
+  // Option B: Parse citations yourself first (more control, privacy-conscious)
+  // This allows you to inspect/filter citations before sending to DeepCitation
+  const parsedCitations = getAllCitationsFromLlmOutput(llmResponse);
+
+  console.log(
+    `📋 Parsed ${
+      Object.keys(parsedCitations).length
+    } citation(s) from LLM output`
+  );
+  for (const [key, citation] of Object.entries(parsedCitations)) {
+    console.log(`   [${key}]: "${citation.fullPhrase?.slice(0, 50)}..."`);
+  }
+  console.log();
+
+  // Now verify only the parsed citations (raw LLM output is not sent)
+  const verificationResult = await deepcitation.verifyCitations(
+    fileId,
+    parsedCitations
+  );
 
   // ============================================
-  // STEP 3: DISPLAY RESULTS
+  // STEP 4: DISPLAY RESULTS
   // Show verification status for each citation
   // ============================================
 
-  console.log("✨ Step 3: Verification Results\n");
+  console.log("✨ Step 4: Verification Results\n");
+
+  console.log(verificationResult);
 
   const highlights = Object.entries(verificationResult.foundHighlights);
 

@@ -41,7 +41,7 @@ Get a free API key at [deepcitation.com](https://deepcitation.com/signup) — no
 
 ```bash
 # .env
-DEEPCITATION_API_KEY=dc_live_your_api_key_here
+DEEPCITATION_API_KEY=sk-dc-your_api_key_here
 ```
 
 ---
@@ -123,7 +123,7 @@ function Response({ citations, verifications }) {
 
 ```typescript
 const dc = new DeepCitation({
-  apiKey: string,      // Your API key (dc_live_* or dc_test_*)
+  apiKey: string,      // Your API key (sk-dc-*)
   apiUrl?: string,     // Optional: Custom API URL
 });
 

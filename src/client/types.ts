@@ -4,7 +4,7 @@ import type { Citation, FoundHighlightLocation } from "../types/index";
  * Configuration options for the DeepCitation client
  */
 export interface DeepCitationConfig {
-  /** Your DeepCitation API key (starts with dc_live_ or dc_test_) */
+  /** Your DeepCitation API key (starts with sk-dc-) */
   apiKey: string;
   /** Optional custom API base URL. Defaults to https://api.deepcitation.com */
   apiUrl?: string;
@@ -104,7 +104,7 @@ export interface PrepareFilesResult {
 /**
  * Input for verifyCitationsFromLlmOutput
  */
-export interface VerifyCitationsFromLlmOutputInput {
+export interface VerifyCitationsFromLlmOutput {
   /** The LLM response containing citations */
   llmOutput: string;
   /** Optional file references (required for Zero Data Retention or after storage expires) */
@@ -125,8 +125,6 @@ export interface ConvertFileInput {
   filename?: string;
   /** Optional custom file ID */
   fileId?: string;
-  /** For URLs: render as single long page instead of paginated */
-  singlePage?: boolean;
 }
 
 /**
@@ -158,14 +156,4 @@ export interface ConvertFileResponse {
 export interface PrepareConvertedFileOptions {
   /** The file ID from a previous convertFile call */
   fileId: string;
-}
-
-/**
- * @deprecated Use PrepareConvertedFileOptions instead
- */
-export interface PrepareFileFromAttachmentOptions {
-  /** The attachment ID from a previous convertFile call */
-  attachmentId: string;
-  /** Optional custom file ID */
-  fileId?: string;
 }
