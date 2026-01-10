@@ -10,6 +10,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.0.0",
+    "@ai-sdk/openai": "^1.0.0",
     "@anthropic-ai/sdk": "^0.30.0",
     "@deepcitation/deepcitation-js": "latest",
     "ai": "^3.0.0",
@@ -17,7 +19,8 @@
     "openai": "^4.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-markdown": "^9.0.0"
+    "react-markdown": "^9.0.0",
+    "remark-gfm": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

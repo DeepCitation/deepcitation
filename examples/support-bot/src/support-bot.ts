@@ -121,9 +121,9 @@ If information is not available in the knowledge base, say so honestly.`;
       deepTextPromptPortion: this.deepTextPromptPortion,
     });
 
-    // Step 2: Get response from LLM
+    // Step 2: Get response from LLM (using fast/cheap model)
     const completion = await this.openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: enhancedSystemPrompt },
         { role: "user", content: enhancedUserPrompt },

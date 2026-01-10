@@ -6,16 +6,33 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { FileUpload } from "@/components/FileUpload";
 import { VerificationPanel } from "@/components/VerificationPanel";
 
+type ModelProvider = "openai" | "gemini";
+type CitationDisplayMode = "inline" | "superscript" | "footnotes" | "clean";
+
+const MODEL_OPTIONS: { value: ModelProvider; label: string; description: string }[] = [
+  { value: "openai", label: "OpenAI", description: "gpt-5-mini" },
+  { value: "gemini", label: "Gemini", description: "gemini-2.0-flash" },
+];
+
+const CITATION_DISPLAY_OPTIONS: { value: CitationDisplayMode; label: string; description: string }[] = [
+  { value: "inline", label: "Inline Badges", description: "Show verification badges inline" },
+  { value: "superscript", label: "Superscript", description: "Color-coded superscript numbers" },
+  { value: "footnotes", label: "Footnotes", description: "References at the bottom" },
+  { value: "clean", label: "Clean", description: "No citation markers" },
+];
+
 export default function Home() {
   const sessionId = useId();
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [verifications, setVerifications] = useState<Record<string, any>>({});
   const [isVerifying, setIsVerifying] = useState(false);
+  const [provider, setProvider] = useState<ModelProvider>("openai");
+  const [citationDisplay, setCitationDisplay] = useState<CitationDisplayMode>("inline");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } =
     useChat({
-      body: { sessionId },
+      body: { sessionId, provider },
       onFinish: async (message) => {
         // Verify citations after message is complete
         if (uploadedFiles.length > 0 && message.role === "assistant") {
@@ -79,19 +96,58 @@ export default function Home() {
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <header className="bg-white border-b px-6 py-4">
-          <h1 className="text-xl font-semibold text-gray-900">
-            DeepCitation Chat
-          </h1>
-          <p className="text-sm text-gray-500">
-            Upload documents and ask questions with verified citations
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">
+                DeepCitation Chat
+              </h1>
+              <p className="text-sm text-gray-500">
+                Upload documents and ask questions with verified citations
+              </p>
+            </div>
+
+            {/* Settings */}
+            <div className="flex items-center gap-4">
+              {/* Model Provider Selection */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-gray-500">Model:</label>
+                <select
+                  value={provider}
+                  onChange={(e) => setProvider(e.target.value as ModelProvider)}
+                  className="text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {MODEL_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} ({option.description})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Citation Display Mode */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-gray-500">Display:</label>
+                <select
+                  value={citationDisplay}
+                  onChange={(e) => setCitationDisplay(e.target.value as CitationDisplayMode)}
+                  className="text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {CITATION_DISPLAY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
         </header>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="bg-white rounded-xl p-8 shadow-sm max-w-md">
+              <div className="bg-white rounded-xl p-8 shadow-sm max-w-lg">
                 <h2 className="text-lg font-medium text-gray-900 mb-2">
                   Welcome to DeepCitation Chat
                 </h2>
@@ -99,13 +155,37 @@ export default function Home() {
                   Upload a document to get started, then ask questions. Every AI
                   response will be verified against your source documents.
                 </p>
-                <div className="text-left text-sm text-gray-500">
+
+                <div className="text-left text-sm text-gray-500 mb-4">
                   <p className="font-medium mb-1">How it works:</p>
                   <ol className="list-decimal list-inside space-y-1">
                     <li>Upload a PDF or document</li>
                     <li>Ask questions about its content</li>
                     <li>See verified citations with proof</li>
                   </ol>
+                </div>
+
+                {/* Citation Display Modes Explanation */}
+                <div className="text-left text-sm bg-gray-50 rounded-lg p-4">
+                  <p className="font-medium text-gray-700 mb-2">Citation Display Modes:</p>
+                  <ul className="space-y-2 text-gray-600">
+                    <li>
+                      <span className="font-medium text-gray-700">Inline Badges:</span>{" "}
+                      Shows [1]<span className="text-green-600">✓</span> badges with hover tooltips
+                    </li>
+                    <li>
+                      <span className="font-medium text-gray-700">Superscript:</span>{" "}
+                      Shows <sup className="text-green-600">[1]</sup> with color-coded status
+                    </li>
+                    <li>
+                      <span className="font-medium text-gray-700">Footnotes:</span>{" "}
+                      Shows <sup className="text-blue-600">[1]</sup> with references at bottom
+                    </li>
+                    <li>
+                      <span className="font-medium text-gray-700">Clean:</span>{" "}
+                      No citation markers for clean reading
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -116,6 +196,7 @@ export default function Home() {
                   key={message.id}
                   message={message}
                   verification={verifications[message.id]}
+                  citationDisplay={citationDisplay}
                 />
               ))}
               {isLoading && (

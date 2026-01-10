@@ -1,4 +1,5 @@
 import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
 import {
   enhancePrompts,
@@ -10,8 +11,20 @@ import {
 
 export const maxDuration = 60;
 
+// Available models - using fast/cheap models for examples
+const MODELS = {
+  openai: openai("gpt-5-mini"),
+  gemini: google("gemini-2.0-flash"),
+} as const;
+
+type ModelProvider = keyof typeof MODELS;
+
 export async function POST(req: Request) {
-  const { messages, sessionId = "default" } = await req.json();
+  const {
+    messages,
+    sessionId = "default",
+    provider = "openai", // Default to OpenAI, can be "openai" or "gemini"
+  } = await req.json();
 
   const hasDocuments = getSessionFiles(sessionId).length > 0;
 
@@ -37,9 +50,12 @@ ${hasDocuments ? "When referencing information from the provided documents, cite
     return m;
   });
 
+  // Select model based on provider
+  const selectedModel = MODELS[provider as ModelProvider] || MODELS.openai;
+
   // Stream the response
   const result = streamText({
-    model: openai("gpt-4o"),
+    model: selectedModel,
     system: enhancedSystemPrompt,
     messages: enhancedMessages,
     async onFinish({ text }) {
@@ -57,7 +73,7 @@ ${hasDocuments ? "When referencing information from the provided documents, cite
           const totalCount = Object.keys(citations).length;
 
           console.log(
-            `[${sessionId}] Verified ${verifiedCount}/${totalCount} citations`
+            `[${sessionId}] Verified ${verifiedCount}/${totalCount} citations (${provider})`
           );
         } catch (error) {
           console.error("Citation verification failed:", error);
