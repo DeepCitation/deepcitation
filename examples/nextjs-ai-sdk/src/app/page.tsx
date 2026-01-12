@@ -9,15 +9,35 @@ import { VerificationPanel } from "@/components/VerificationPanel";
 type ModelProvider = "openai" | "gemini";
 type CitationDisplayMode = "inline" | "superscript" | "footnotes" | "clean";
 
-const MODEL_OPTIONS: { value: ModelProvider; label: string; description: string }[] = [
+const MODEL_OPTIONS: {
+  value: ModelProvider;
+  label: string;
+  description: string;
+}[] = [
   { value: "openai", label: "OpenAI", description: "gpt-5-mini" },
-  { value: "gemini", label: "Gemini", description: "gemini-2.0-flash" },
+  { value: "gemini", label: "Gemini", description: "gemini-2.0-flash-lite" },
 ];
 
-const CITATION_DISPLAY_OPTIONS: { value: CitationDisplayMode; label: string; description: string }[] = [
-  { value: "inline", label: "Inline Badges", description: "Show verification badges inline" },
-  { value: "superscript", label: "Superscript", description: "Color-coded superscript numbers" },
-  { value: "footnotes", label: "Footnotes", description: "References at the bottom" },
+const CITATION_DISPLAY_OPTIONS: {
+  value: CitationDisplayMode;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "inline",
+    label: "Inline Badges",
+    description: "Show verification badges inline",
+  },
+  {
+    value: "superscript",
+    label: "Superscript",
+    description: "Color-coded superscript numbers",
+  },
+  {
+    value: "footnotes",
+    label: "Footnotes",
+    description: "References at the bottom",
+  },
   { value: "clean", label: "Clean", description: "No citation markers" },
 ];
 
@@ -27,7 +47,8 @@ export default function Home() {
   const [verifications, setVerifications] = useState<Record<string, any>>({});
   const [isVerifying, setIsVerifying] = useState(false);
   const [provider, setProvider] = useState<ModelProvider>("openai");
-  const [citationDisplay, setCitationDisplay] = useState<CitationDisplayMode>("inline");
+  const [citationDisplay, setCitationDisplay] =
+    useState<CitationDisplayMode>("inline");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } =
@@ -110,7 +131,9 @@ export default function Home() {
             <div className="flex items-center gap-4">
               {/* Model Provider Selection */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-gray-500">Model:</label>
+                <label className="text-xs font-medium text-gray-500">
+                  Model:
+                </label>
                 <select
                   value={provider}
                   onChange={(e) => setProvider(e.target.value as ModelProvider)}
@@ -126,10 +149,14 @@ export default function Home() {
 
               {/* Citation Display Mode */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-gray-500">Display:</label>
+                <label className="text-xs font-medium text-gray-500">
+                  Display:
+                </label>
                 <select
                   value={citationDisplay}
-                  onChange={(e) => setCitationDisplay(e.target.value as CitationDisplayMode)}
+                  onChange={(e) =>
+                    setCitationDisplay(e.target.value as CitationDisplayMode)
+                  }
                   className="text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {CITATION_DISPLAY_OPTIONS.map((option) => (
@@ -167,19 +194,30 @@ export default function Home() {
 
                 {/* Citation Display Modes Explanation */}
                 <div className="text-left text-sm bg-gray-50 rounded-lg p-4">
-                  <p className="font-medium text-gray-700 mb-2">Citation Display Modes:</p>
+                  <p className="font-medium text-gray-700 mb-2">
+                    Citation Display Modes:
+                  </p>
                   <ul className="space-y-2 text-gray-600">
                     <li>
-                      <span className="font-medium text-gray-700">Inline Badges:</span>{" "}
-                      Shows [1]<span className="text-green-600">✓</span> badges with hover tooltips
+                      <span className="font-medium text-gray-700">
+                        Inline Badges:
+                      </span>{" "}
+                      Shows [1]<span className="text-green-600">✓</span> badges
+                      with hover tooltips
                     </li>
                     <li>
-                      <span className="font-medium text-gray-700">Superscript:</span>{" "}
-                      Shows <sup className="text-green-600">[1]</sup> with color-coded status
+                      <span className="font-medium text-gray-700">
+                        Superscript:
+                      </span>{" "}
+                      Shows <sup className="text-green-600">[1]</sup> with
+                      color-coded status
                     </li>
                     <li>
-                      <span className="font-medium text-gray-700">Footnotes:</span>{" "}
-                      Shows <sup className="text-blue-600">[1]</sup> with references at bottom
+                      <span className="font-medium text-gray-700">
+                        Footnotes:
+                      </span>{" "}
+                      Shows <sup className="text-blue-600">[1]</sup> with
+                      references at bottom
                     </li>
                     <li>
                       <span className="font-medium text-gray-700">Clean:</span>{" "}

@@ -33,7 +33,7 @@ const deepcitation = new DeepCitation({
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
 
-const model = "gemini-2.0-flash";
+const model = "gemini-2.0-flash-lite";
 
 async function main() {
   console.log(`🔍 DeepCitation Basic Example - Google Gemini (${model})\n`);
