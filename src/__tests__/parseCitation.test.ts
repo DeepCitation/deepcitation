@@ -1,5 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-import { getCitationStatus, parseCitation, getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
+import {
+  getCitationStatus,
+  parseCitation,
+  getAllCitationsFromLlmOutput,
+} from "../parsing/parseCitation.js";
 import { NOT_FOUND_HIGHLIGHT_INDEX } from "../types/foundHighlight.js";
 import type { FoundHighlightLocation } from "../types/foundHighlight.js";
 import type { Citation } from "../types/citation.js";
@@ -192,8 +196,6 @@ describe("parseCitation", () => {
     expect(citation.keySpan).toBe("world");
     expect(citation.value).toBe("USD 12");
     expect(citation.lineIds).toEqual([1, 3]);
-    expect(citation.rawCitationMd).toContain("start_page_key");
-    expect(citation.fragmentContext).toHaveLength(8);
   });
 
   it("parses key_span attribute correctly", () => {
@@ -202,7 +204,9 @@ describe("parseCitation", () => {
     const parsed = parseCitation(fragment);
     const { citation } = parsed;
 
-    expect(citation.fullPhrase).toBe("The quick brown fox jumps over the lazy dog");
+    expect(citation.fullPhrase).toBe(
+      "The quick brown fox jumps over the lazy dog"
+    );
     expect(citation.keySpan).toBe("quick brown fox");
   });
 
@@ -224,7 +228,10 @@ describe("parseCitation", () => {
 
     expect(citation.fileId).toBe("av123");
     expect(citation.fullPhrase).toBe("Audio clip");
-    expect(citation.timestamps).toEqual({ startTime: "00:00:01.000", endTime: "00:00:03.000" });
+    expect(citation.timestamps).toEqual({
+      startTime: "00:00:01.000",
+      endTime: "00:00:03.000",
+    });
     expect(citation.reasoning).toBe("Because");
   });
 
@@ -234,7 +241,6 @@ describe("parseCitation", () => {
       const parsed = parseCitation(fragment);
       expect(parsed.beforeCite).toBe("");
       expect(parsed.afterCite).toBe("");
-      expect(parsed.citation.rawCitationMd).toBeUndefined();
       expect(parsed.citation.fullPhrase).toBeUndefined();
     });
 
@@ -242,19 +248,16 @@ describe("parseCitation", () => {
       const parsed = parseCitation("");
       expect(parsed.beforeCite).toBe("");
       expect(parsed.afterCite).toBe("");
-      expect(parsed.citation.rawCitationMd).toBeUndefined();
     });
 
     it("handles malformed cite tag", () => {
       const fragment = "Text with <cite but no closing";
       const parsed = parseCitation(fragment);
-      expect(parsed.citation.rawCitationMd).toBeUndefined();
     });
 
     it("handles cite tag without required attributes", () => {
       const fragment = "Text <cite /> more text";
       const parsed = parseCitation(fragment);
-      expect(parsed.citation.rawCitationMd).toBeUndefined();
       expect(parsed.citation.pageNumber).toBeUndefined();
     });
   });
@@ -390,24 +393,26 @@ describe("parseCitation", () => {
       const parsed = parseCitation(fragment);
       expect(parsed.citation.lineIds).toBeUndefined();
     });
-  });
 
-  describe("fragmentContext generation", () => {
-    it("generates 8-character fragmentContext hash", () => {
+    it("handles single line range format like '20-20'", () => {
       const fragment =
-        "<cite file_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1' />";
+        "<cite file_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='20-20' />";
       const parsed = parseCitation(fragment);
-      expect(parsed.citation.fragmentContext).toHaveLength(8);
+      expect(parsed.citation.lineIds).toEqual([20]);
     });
 
-    it("generates different fragmentContext for different fragments", () => {
-      const fragment1 =
-        "Text A <cite file_id='f1234567890123456789' start_page_key='page_number_1_index_0' full_phrase='a' key_span='a' line_ids='1' />";
-      const fragment2 =
-        "Text B <cite file_id='f1234567890123456789' start_page_key='page_number_1_index_0' full_phrase='b' key_span='b' line_ids='1' />";
-      const parsed1 = parseCitation(fragment1);
-      const parsed2 = parseCitation(fragment2);
-      expect(parsed1.citation.fragmentContext).not.toBe(parsed2.citation.fragmentContext);
+    it("handles multi-line range format like '5-10'", () => {
+      const fragment =
+        "<cite file_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='5-10' />";
+      const parsed = parseCitation(fragment);
+      expect(parsed.citation.lineIds).toEqual([5, 6, 7, 8, 9, 10]);
+    });
+
+    it("handles mixed comma and range format like '1,5-7,10'", () => {
+      const fragment =
+        "<cite file_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1,5-7,10' />";
+      const parsed = parseCitation(fragment);
+      expect(parsed.citation.lineIds).toEqual([1, 5, 6, 7, 10]);
     });
   });
 });
@@ -430,7 +435,9 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("returns empty object for string without citations", () => {
-      const result = getAllCitationsFromLlmOutput("Just some plain text without any citations");
+      const result = getAllCitationsFromLlmOutput(
+        "Just some plain text without any citations"
+      );
       expect(result).toEqual({});
     });
 
@@ -469,7 +476,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result).length).toBeGreaterThanOrEqual(3);
       const citations = Object.values(result);
-      const phrases = citations.map(c => c.fullPhrase);
+      const phrases = citations.map((c) => c.fullPhrase);
       expect(phrases).toContain("first phrase");
       expect(phrases).toContain("second phrase");
       expect(phrases).toContain("third phrase");
@@ -495,7 +502,10 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("audio transcript");
-      expect(citation.timestamps).toEqual({ startTime: "00:01:30", endTime: "00:02:45" });
+      expect(citation.timestamps).toEqual({
+        startTime: "00:01:30",
+        endTime: "00:02:45",
+      });
     });
   });
 
@@ -524,7 +534,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBe(2);
-      const phrases = Object.values(result).map(c => c.fullPhrase);
+      const phrases = Object.values(result).map((c) => c.fullPhrase);
       expect(phrases).toContain("first phrase");
       expect(phrases).toContain("second phrase");
     });
@@ -555,7 +565,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBe(2);
-      const phrases = Object.values(result).map(c => c.fullPhrase);
+      const phrases = Object.values(result).map((c) => c.fullPhrase);
       expect(phrases).toContain("citation one");
       expect(phrases).toContain("citation two");
     });
@@ -661,7 +671,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBeGreaterThanOrEqual(2);
-      const phrases = Object.values(result).map(c => c.fullPhrase);
+      const phrases = Object.values(result).map((c) => c.fullPhrase);
       expect(phrases).toContain("xml phrase");
       expect(phrases).toContain("json phrase");
     });
@@ -692,7 +702,11 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("skips null items in citation array", () => {
-      const input = [{ fullPhrase: "valid", fileId: "f1" }, null, { fullPhrase: "also valid", fileId: "f2" }];
+      const input = [
+        { fullPhrase: "valid", fileId: "f1" },
+        null,
+        { fullPhrase: "also valid", fileId: "f2" },
+      ];
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(2);
@@ -788,7 +802,10 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("detects object with startPageKey as citation format", () => {
-      const input = { startPageKey: "page_number_1_index_0", fullPhrase: "test" };
+      const input = {
+        startPageKey: "page_number_1_index_0",
+        fullPhrase: "test",
+      };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
     });
@@ -800,7 +817,10 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("detects array with at least one citation-like object", () => {
-      const input = [{ notACitation: true }, { fullPhrase: "this is a citation" }];
+      const input = [
+        { notACitation: true },
+        { fullPhrase: "this is a citation" },
+      ];
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
     });
@@ -821,7 +841,10 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("detects object with start_page_key (snake_case) as citation format", () => {
-      const input = { start_page_key: "page_number_3_index_0", full_phrase: "test" };
+      const input = {
+        start_page_key: "page_number_3_index_0",
+        full_phrase: "test",
+      };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
       expect(Object.values(result)[0].pageNumber).toBe(3);
@@ -868,7 +891,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(2);
-      const phrases = Object.values(result).map(c => c.fullPhrase);
+      const phrases = Object.values(result).map((c) => c.fullPhrase);
       expect(phrases).toContain("first citation");
       expect(phrases).toContain("second citation");
     });
@@ -876,7 +899,9 @@ describe("getAllCitationsFromLlmOutput", () => {
     it("extracts snake_case citations from nested citations property", () => {
       const input = {
         response: "Some text",
-        citations: [{ full_phrase: "nested snake", file_id: "n1", line_ids: [1, 2] }],
+        citations: [
+          { full_phrase: "nested snake", file_id: "n1", line_ids: [1, 2] },
+        ],
       };
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -929,7 +954,9 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("The quick brown fox jumps over the lazy dog");
+      expect(citation.fullPhrase).toBe(
+        "The quick brown fox jumps over the lazy dog"
+      );
       expect(citation.keySpan).toBe("quick brown fox");
     });
 
@@ -943,7 +970,9 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("The quick brown fox jumps over the lazy dog");
+      expect(citation.fullPhrase).toBe(
+        "The quick brown fox jumps over the lazy dog"
+      );
       expect(citation.keySpan).toBe("quick brown fox");
     });
 
@@ -960,14 +989,20 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("detects object with keySpan as citation format", () => {
-      const input = { keySpan: "key words", fullPhrase: "full sentence with key words" };
+      const input = {
+        keySpan: "key words",
+        fullPhrase: "full sentence with key words",
+      };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
       expect(Object.values(result)[0].keySpan).toBe("key words");
     });
 
     it("detects object with key_span as citation format", () => {
-      const input = { key_span: "key words", full_phrase: "full sentence with key words" };
+      const input = {
+        key_span: "key words",
+        full_phrase: "full sentence with key words",
+      };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
       expect(Object.values(result)[0].keySpan).toBe("key words");
@@ -1007,7 +1042,9 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
       const citations = Object.values(result);
 
-      const numbers = citations.map(c => c.citationNumber).sort((a, b) => (a || 0) - (b || 0));
+      const numbers = citations
+        .map((c) => c.citationNumber)
+        .sort((a, b) => (a || 0) - (b || 0));
       expect(numbers).toEqual([1, 2, 3]);
     });
   });

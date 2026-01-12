@@ -5,6 +5,53 @@ import { normalizeCitations } from "./normalizeCitation.js";
 import { generateCitationKey } from "../react/utils.js";
 
 /**
+ * Parses a line_ids string that may contain individual numbers, ranges, or both.
+ * Examples: "1,2,3", "5-10", "1,5-7,10", "20-20"
+ *
+ * @param lineIdsString - The raw line_ids string (e.g., "1,5-7,10")
+ * @returns Sorted array of unique line IDs, or undefined if empty/invalid
+ */
+function parseLineIds(lineIdsString: string): number[] | undefined {
+  if (!lineIdsString) return undefined;
+
+  const lineIds: number[] = [];
+  const parts = lineIdsString.split(",");
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+
+    // Check if this part is a range (e.g., "5-10")
+    if (trimmed.includes("-")) {
+      const [startStr, endStr] = trimmed.split("-");
+      const start = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+
+      if (!isNaN(start) && !isNaN(end) && start <= end) {
+        // Expand the range
+        for (let i = start; i <= end; i++) {
+          lineIds.push(i);
+        }
+      } else if (!isNaN(start)) {
+        // If only start is valid, just use it
+        lineIds.push(start);
+      }
+    } else {
+      // Single number
+      const num = parseInt(trimmed, 10);
+      if (!isNaN(num)) {
+        lineIds.push(num);
+      }
+    }
+  }
+
+  if (lineIds.length === 0) return undefined;
+
+  // Sort and deduplicate
+  return [...new Set(lineIds)].sort((a, b) => a - b);
+}
+
+/**
  * Calculates the verification status of a citation based on the found highlight and search state.
  *
  * @param foundHighlight - The found highlight location, or null/undefined if not found
@@ -84,7 +131,6 @@ export const parseCitation = (
   const citationMatches = [...middleCite.matchAll(citationRegex)];
   const match = citationMatches?.[0];
 
-  const rawCitationMd = match?.[0];
   const pageNumber = match?.[2] ? parseInt(match?.[2]) : undefined;
 
   let fileId = match?.[1];
@@ -110,16 +156,10 @@ export const parseCitation = (
 
   let lineIds: number[] | undefined;
   try {
-    // match[5] is line_ids
+    // match[6] is line_ids
     const lineIdsString = match?.[6]?.replace(/[A-Za-z_[\](){}:]/g, "");
 
-    lineIds = lineIdsString
-      ? lineIdsString
-          .split(",")
-          .map((id) => (isNaN(parseInt(id)) ? undefined : parseInt(id)))
-          .filter((id) => id !== undefined)
-          .sort((a, b) => a - b)
-      : undefined;
+    lineIds = lineIdsString ? parseLineIds(lineIdsString) : undefined;
   } catch (e) {
     if (isVerbose) console.error("Error parsing lineIds", e);
   }
@@ -158,17 +198,13 @@ export const parseCitation = (
     timestamps = { startTime, endTime };
   }
 
-  const fragmentContext = sha1Hash(fragment).toString().slice(0, 8);
-
   const citation: Citation = {
-    fragmentContext,
     fileId: attachmentId,
     pageNumber,
     fullPhrase,
     keySpan,
     citationNumber,
     lineIds,
-    rawCitationMd,
     beforeCite,
     value,
     timestamps,
@@ -201,8 +237,7 @@ const parseJsonCitation = (
   // Support both camelCase and snake_case property names
   const fullPhrase = jsonCitation.fullPhrase ?? jsonCitation.full_phrase;
   const startPageKey = jsonCitation.startPageKey ?? jsonCitation.start_page_key;
-  const keySpan =
-    jsonCitation.keySpan ?? jsonCitation.key_span;
+  const keySpan = jsonCitation.keySpan ?? jsonCitation.key_span;
   const rawLineIds = jsonCitation.lineIds ?? jsonCitation.line_ids;
   const fileId = jsonCitation.fileId ?? jsonCitation.file_id;
   const reasoning = jsonCitation.reasoning;

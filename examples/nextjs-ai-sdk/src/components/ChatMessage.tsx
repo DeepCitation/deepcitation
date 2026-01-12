@@ -9,8 +9,9 @@ import type { FoundHighlightLocation, Citation } from "@deepcitation/deepcitatio
 interface ChatMessageProps {
   message: {
     id: string;
-    role: "user" | "assistant" | "system";
-    content: string;
+    role: "user" | "assistant" | "system" | "data";
+    content?: string;
+    parts?: Array<{ type: string; text?: string }>;
   };
   verification?: {
     citations: Record<string, Citation>;
@@ -43,15 +44,25 @@ export function ChatMessage({
   const isUser = message.role === "user";
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null);
 
+  // Debug: log message structure
+  console.log("[ChatMessage] message:", JSON.stringify(message, null, 2));
+
+  // AI SDK v6 uses parts array, fall back to content for compatibility
+  const messageContent = message.content ||
+    message.parts?.filter(p => p.type === "text").map(p => p.text).join("") ||
+    "";
+
+  console.log("[ChatMessage] extracted content:", messageContent);
+
   // Process content based on display mode
   const { processedContent, footnotes } = useMemo(() => {
     return processContentWithCitations(
-      message.content,
+      messageContent,
       verification,
       citationDisplay,
       setHoveredCitation
     );
-  }, [message.content, verification, citationDisplay]);
+  }, [messageContent, verification, citationDisplay]);
 
   return (
     <div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
@@ -67,7 +78,7 @@ export function ChatMessage({
         }`}
       >
         {isUser ? (
-          <p className="whitespace-pre-wrap">{message.content}</p>
+          <p className="whitespace-pre-wrap">{messageContent}</p>
         ) : (
           <div className="prose prose-sm max-w-none">
             {processedContent}
@@ -290,8 +301,8 @@ function processContentWithCitations(
             key={`citation-${part.key}`}
             citationNumber={parseInt(part.key)}
             status={status}
-            matchSnippet={verificationData?.matchSnippet}
-            pageNumber={verificationData?.pageNumber}
+            matchSnippet={verificationData?.matchSnippet ?? undefined}
+            pageNumber={verificationData?.pageNumber ?? undefined}
             onHover={() => onHoverCitation?.(part.key!)}
           />
         );

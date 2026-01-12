@@ -15,7 +15,6 @@ export function generateCitationKey(citation: Citation): string {
     citation.lineIds?.join(",") || "",
     citation.timestamps?.startTime || "",
     citation.timestamps?.endTime || "",
-    citation.fragmentContext || "",
   ];
 
   return sha1Hash(keyParts.join("|")).slice(0, 16);
@@ -38,12 +37,17 @@ export function getCitationDisplayText(
   options: {
     displayCitationValue?: boolean;
     fallbackDisplay?: string | null;
-  } = {},
+  } = {}
 ): string {
   const { displayCitationValue = false, fallbackDisplay } = options;
 
   if (displayCitationValue) {
-    return citation.value || citation.citationNumber?.toString() || fallbackDisplay || "";
+    return (
+      citation.value ||
+      citation.citationNumber?.toString() ||
+      fallbackDisplay ||
+      ""
+    );
   }
 
   return citation.citationNumber?.toString() || "";
@@ -56,7 +60,7 @@ export function getCitationValueText(
   citation: Citation,
   options: {
     displayCitationValue?: boolean;
-  } = {},
+  } = {}
 ): string {
   const { displayCitationValue = false } = options;
 
@@ -71,7 +75,9 @@ export function getCitationValueText(
  * Joins class names, filtering out falsy values.
  * This is a minimal implementation for the base component.
  */
-export function classNames(...classes: (string | undefined | null | false)[]): string {
+export function classNames(
+  ...classes: (string | undefined | null | false)[]
+): string {
   return classes.filter(Boolean).join(" ");
 }
 

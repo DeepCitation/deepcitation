@@ -10,7 +10,15 @@
       "Bash(bun run demo:*)",
       "Bash(npm test:*)",
       "Bash(bun run:*)",
-      "Bash(bun test:*)"
+      "Bash(bun test:*)",
+      "WebFetch(domain:ai-sdk.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(bun pm:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run start:openai:*)",
+      "Bash(curl:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_install"
     ]
   }
 }

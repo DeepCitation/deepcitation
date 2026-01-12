@@ -34,8 +34,6 @@ export interface Citation {
     startTime?: string;
   };
 
-  fragmentContext?: string | null;
-  rawCitationMd?: string;
   beforeCite?: string;
 }
 

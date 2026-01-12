@@ -1,7 +1,7 @@
 "use client";
 
-import { useChat } from "ai/react";
-import { useState, useRef, useEffect, useId } from "react";
+import { useChat } from "@ai-sdk/react";
+import { useState, useRef, useEffect } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { FileUpload } from "@/components/FileUpload";
 import { VerificationPanel } from "@/components/VerificationPanel";
@@ -42,8 +42,21 @@ const CITATION_DISPLAY_OPTIONS: {
 ];
 
 export default function Home() {
-  const sessionId = useId();
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  // Use a stable sessionId that persists in sessionStorage
+  const [sessionId, setSessionId] = useState<string>("default");
+  const [uploadedFiles, setUploadedFiles] = useState<
+    { name: string; fileId: string; deepTextPromptPortion: string }[]
+  >([]);
+
+  // Initialize sessionId on client only to avoid hydration mismatch
+  useEffect(() => {
+    let id = sessionStorage.getItem("deepcitation-session-id");
+    if (!id) {
+      id = `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem("deepcitation-session-id", id);
+    }
+    setSessionId(id);
+  }, []);
   const [verifications, setVerifications] = useState<Record<string, any>>({});
   const [isVerifying, setIsVerifying] = useState(false);
   const [provider, setProvider] = useState<ModelProvider>("openai");
@@ -51,20 +64,35 @@ export default function Home() {
     useState<CitationDisplayMode>("inline");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error } =
     useChat({
-      body: { sessionId, provider },
+      streamProtocol: "text",
+      body: {
+        sessionId,
+        provider,
+        fileDataParts: uploadedFiles.map((f) => ({ fileId: f.fileId })),
+        deepTextPromptPortion: uploadedFiles.map((f) => f.deepTextPromptPortion),
+      },
+      onError: (error) => {
+        console.error("[useChat] Error:", error);
+      },
       onFinish: async (message) => {
         // Verify citations after message is complete
         if (uploadedFiles.length > 0 && message.role === "assistant") {
           setIsVerifying(true);
           try {
+            // AI SDK v6 uses parts array, fall back to content for compatibility
+            const messageContent = (message as any).content ||
+              (message as any).parts?.filter((p: any) => p.type === "text").map((p: any) => p.text).join("") ||
+              "";
             const res = await fetch("/api/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 sessionId,
-                content: message.content,
+                content: messageContent,
+                // Pass file data directly to avoid server-side store issues
+                fileDataParts: uploadedFiles.map((f) => ({ fileId: f.fileId })),
               }),
             });
             const data = await res.json();
@@ -81,10 +109,13 @@ export default function Home() {
       },
     });
 
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const handleFileUpload = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("sessionId", sessionId);
+    setUploadError(null);
 
     try {
       const res = await fetch("/api/upload", {
@@ -92,13 +123,33 @@ export default function Home() {
         body: formData,
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        setUploadedFiles((prev) => [...prev, file.name]);
+        setUploadedFiles((prev) => [
+          ...prev,
+          {
+            name: file.name,
+            fileId: data.fileId,
+            deepTextPromptPortion: data.deepTextPromptPortion,
+          },
+        ]);
+      } else {
+        // Show error to user
+        const errorMsg = data.details || data.error || "Upload failed";
+        setUploadError(errorMsg);
+        console.error("Upload failed:", errorMsg);
       }
     } catch (error) {
+      setUploadError("Network error - check if the server is running");
       console.error("Upload failed:", error);
     }
   };
+
+  // Debug: log messages
+  useEffect(() => {
+    console.log("[Page] messages:", JSON.stringify(messages, null, 2));
+  }, [messages]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -319,9 +370,21 @@ export default function Home() {
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  {file}
+                  {file.name}
                 </span>
               ))}
+            </div>
+          )}
+
+          {uploadError && (
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <strong>Upload Error:</strong> {uploadError}
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <strong>Chat Error:</strong> {error.message}
             </div>
           )}
         </div>

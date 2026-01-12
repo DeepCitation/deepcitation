@@ -2,9 +2,15 @@
 
 import { useRef, useState } from "react";
 
+interface UploadedFile {
+  name: string;
+  fileId: string;
+  deepTextPromptPortion: string;
+}
+
 interface FileUploadProps {
   onUpload: (file: File) => Promise<void>;
-  uploadedFiles: string[];
+  uploadedFiles: UploadedFile[];
 }
 
 export function FileUpload({ onUpload, uploadedFiles }: FileUploadProps) {

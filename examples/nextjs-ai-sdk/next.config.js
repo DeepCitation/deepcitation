@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ["@deepcitation/deepcitation-js"],
+  serverExternalPackages: ["@deepcitation/deepcitation-js"],
+  devIndicators: {
+    position: "bottom-left",
   },
 };
 
