@@ -1,6 +1,5 @@
-import { type FoundHighlightLocation } from "../types/foundHighlight.js";
+import { type Verification } from "../types/verification.js";
 import { type Citation, type CitationStatus } from "../types/citation.js";
-import { sha1Hash } from "../utils/sha.js";
 import { normalizeCitations } from "./normalizeCitation.js";
 import { generateCitationKey } from "../react/utils.js";
 
@@ -54,13 +53,13 @@ function parseLineIds(lineIdsString: string): number[] | undefined {
 /**
  * Calculates the verification status of a citation based on the found highlight and search state.
  *
- * @param foundHighlight - The found highlight location, or null/undefined if not found
+ * @param verification - The found highlight location, or null/undefined if not found
  * @returns An object containing boolean flags for verification status
  */
 export function getCitationStatus(
-  foundHighlight: FoundHighlightLocation | null | undefined
+  verification: Verification | null | undefined
 ): CitationStatus {
-  const searchState = foundHighlight?.searchState;
+  const searchState = verification?.searchState;
 
   const isMiss = searchState?.status === "not_found";
   const isFullMatchWithMissedValue =

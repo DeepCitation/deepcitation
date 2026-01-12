@@ -6,8 +6,8 @@ import {
   wrapCitationPrompt,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
+  type FileDataPart,
 } from "@deepcitation/deepcitation-js";
-import { getSessionFiles, getSessionPromptPortions } from "@/lib/store";
 
 export const maxDuration = 60;
 
@@ -16,7 +16,7 @@ const apiKey = process.env.DEEPCITATION_API_KEY;
 if (!apiKey) {
   console.error(
     "\n⚠️  DEEPCITATION_API_KEY is not set!\n" +
-    "   Get your API key from https://deepcitation.com/dashboard\n"
+      "   Get your API key from https://deepcitation.com/dashboard\n"
   );
 }
 
@@ -33,26 +33,26 @@ type ModelProvider = keyof typeof MODELS;
 export async function POST(req: Request) {
   const {
     messages,
-    sessionId = "default",
     provider = "openai",
     fileDataParts: clientFileDataParts = [],
-    deepTextPromptPortion: clientDeepTextPromptPortion = [],
   } = await req.json();
 
-  console.log("[Chat API] Received messages:", JSON.stringify(messages?.slice(-1), null, 2));
+  console.log(
+    "[Chat API] Received messages:",
+    JSON.stringify(messages?.slice(-1), null, 2)
+  );
 
-  // Prefer client-provided data, fall back to server-side store
-  const fileDataParts =
-    clientFileDataParts.length > 0
-      ? clientFileDataParts
-      : getSessionFiles(sessionId);
-  const deepTextPromptPortion =
-    clientDeepTextPromptPortion.length > 0
-      ? clientDeepTextPromptPortion
-      : getSessionPromptPortions(sessionId);
+  // fileDataParts now contains deepTextPromptPortion - single source of truth
+  const fileDataParts: FileDataPart[] = clientFileDataParts;
+
+  // Extract deepTextPromptPortion from fileDataParts
+  const deepTextPromptPortion = fileDataParts
+    .map((f: FileDataPart) => f.deepTextPromptPortion)
+    .filter(Boolean);
+
   const hasDocuments = fileDataParts.length > 0;
 
-  console.log(`[${sessionId}] Chat: ${fileDataParts.length} files, provider=${provider}`);
+  console.log(`[Chat API] ${fileDataParts.length} files, provider=${provider}`);
 
   // Helper to extract text content from UI message parts
   const getMessageContent = (msg: UIMessage): string => {
@@ -67,7 +67,9 @@ export async function POST(req: Request) {
   const lastUserMessage = (messages as UIMessage[]).findLast(
     (m) => m.role === "user"
   );
-  const lastUserContent = lastUserMessage ? getMessageContent(lastUserMessage) : "";
+  const lastUserContent = lastUserMessage
+    ? getMessageContent(lastUserMessage)
+    : "";
 
   // Prepare system prompt
   const baseSystemPrompt = `You are a helpful assistant that answers questions accurately.`;
@@ -100,7 +102,10 @@ export async function POST(req: Request) {
   // Convert to model messages (async in AI SDK v6)
   const modelMessages = await convertToModelMessages(enhancedUIMessages);
 
-  console.log("[Chat API] Model messages:", JSON.stringify(modelMessages, null, 2));
+  console.log(
+    "[Chat API] Model messages:",
+    JSON.stringify(modelMessages, null, 2)
+  );
 
   // Select model based on provider
   const selectedModel = MODELS[provider as ModelProvider] || MODELS.openai;
@@ -114,22 +119,25 @@ export async function POST(req: Request) {
       console.log("[Chat API] Finished streaming, text length:", text.length);
       if (hasDocuments && dc) {
         try {
-          const { foundHighlights } = await dc.verifyCitationsFromLlmOutput({
+          const { verifications } = await dc.verifyCitationsFromLlmOutput({
             llmOutput: text,
             fileDataParts,
           });
 
           const citations = getAllCitationsFromLlmOutput(text);
-          const verifiedCount = Object.values(foundHighlights).filter(
+          const verifiedCount = Object.values(verifications).filter(
             (v) => getCitationStatus(v).isVerified
           ).length;
           const totalCount = Object.keys(citations).length;
 
           console.log(
-            `[${sessionId}] Verified ${verifiedCount}/${totalCount} citations (${provider})`
+            `[Chat API] Verified ${verifiedCount}/${totalCount} citations (${provider})`
           );
         } catch (error: any) {
-          console.error("Citation verification failed:", error?.message || error);
+          console.error(
+            "Citation verification failed:",
+            error?.message || error
+          );
         }
       }
     },

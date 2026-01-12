@@ -8,7 +8,7 @@ import {
   CitationVariantFactory,
 } from "../../react/CitationVariants";
 import type { Citation } from "../../types/citation";
-import type { FoundHighlightLocation } from "../../types/foundHighlight";
+import type { Verification } from "../../types/verification";
 
 // =============================================================================
 // TEST FIXTURES
@@ -21,25 +21,25 @@ const baseCitation: Citation = {
   pageNumber: 5,
 };
 
-const verifiedFoundCitation: FoundHighlightLocation = {
+const verification: Verification = {
   lowerCaseSearchTerm: "test",
   pageNumber: 5,
   searchState: { status: "found" },
 };
 
-const missFoundCitation: FoundHighlightLocation = {
+const missFoundCitation: Verification = {
   lowerCaseSearchTerm: "test",
-  pageNumber: -1, // NOT_FOUND_HIGHLIGHT_INDEX
+  pageNumber: -1, // NOT_FOUND_VERIFICATION_INDEX
   searchState: { status: "not_found" },
 };
 
-const partialFoundCitation: FoundHighlightLocation = {
+const partialFoundCitation: Verification = {
   lowerCaseSearchTerm: "test",
   pageNumber: 5,
   searchState: { status: "partial_text_found" },
 };
 
-const pendingFoundCitation: FoundHighlightLocation = {
+const pendingFoundCitation: Verification = {
   lowerCaseSearchTerm: "test",
   pageNumber: null,
   searchState: { status: "pending" },
@@ -60,7 +60,9 @@ test.describe("ChipCitation", () => {
   });
 
   test("renders with verified state", async ({ mount, page }) => {
-    await mount(<ChipCitation citation={baseCitation} foundCitation={verifiedFoundCitation} />);
+    await mount(
+      <ChipCitation citation={baseCitation} foundCitation={verification} />
+    );
     const chip = page.locator(".citation-chip");
 
     await expect(chip).toHaveClass(/citation-chip--verified/);
@@ -68,14 +70,21 @@ test.describe("ChipCitation", () => {
   });
 
   test("renders with miss state", async ({ mount, page }) => {
-    await mount(<ChipCitation citation={baseCitation} foundCitation={missFoundCitation} />);
+    await mount(
+      <ChipCitation citation={baseCitation} foundCitation={missFoundCitation} />
+    );
     const chip = page.locator(".citation-chip");
 
     await expect(chip).toHaveClass(/citation-chip--miss/);
   });
 
   test("renders with partial match state", async ({ mount, page }) => {
-    await mount(<ChipCitation citation={baseCitation} foundCitation={partialFoundCitation} />);
+    await mount(
+      <ChipCitation
+        citation={baseCitation}
+        foundCitation={partialFoundCitation}
+      />
+    );
     const chip = page.locator(".citation-chip");
 
     await expect(chip).toHaveClass(/citation-chip--partial/);
@@ -83,7 +92,12 @@ test.describe("ChipCitation", () => {
   });
 
   test("renders with pending state", async ({ mount, page }) => {
-    await mount(<ChipCitation citation={baseCitation} foundCitation={pendingFoundCitation} />);
+    await mount(
+      <ChipCitation
+        citation={baseCitation}
+        foundCitation={pendingFoundCitation}
+      />
+    );
     const chip = page.locator(".citation-chip");
 
     await expect(chip).toHaveClass(/citation-chip--pending/);
@@ -112,7 +126,9 @@ test.describe("ChipCitation", () => {
   });
 
   test("renders with merged value", async ({ mount, page }) => {
-    await mount(<ChipCitation citation={baseCitation} displayCitationValue={true} />);
+    await mount(
+      <ChipCitation citation={baseCitation} displayCitationValue={true} />
+    );
     const chip = page.locator(".citation-chip");
 
     await expect(chip).toContainText("Test Value");
@@ -122,11 +138,13 @@ test.describe("ChipCitation", () => {
     await mount(
       <ChipCitation citation={baseCitation}>
         <span data-testid="child">Before text</span>
-      </ChipCitation>,
+      </ChipCitation>
     );
 
     await expect(page.locator('[data-testid="child"]')).toBeVisible();
-    await expect(page.locator('[data-testid="child"]')).toContainText("Before text");
+    await expect(page.locator('[data-testid="child"]')).toContainText(
+      "Before text"
+    );
   });
 });
 
@@ -141,20 +159,32 @@ test.describe("SuperscriptCitation", () => {
 
     await expect(sup).toBeVisible();
     await expect(sup).toHaveAttribute("data-variant", "superscript");
-    const tagName = await sup.evaluate(el => el.tagName.toLowerCase());
+    const tagName = await sup.evaluate((el) => el.tagName.toLowerCase());
     expect(tagName).toBe("sup");
   });
 
   test("renders with verified state", async ({ mount, page }) => {
-    await mount(<SuperscriptCitation citation={baseCitation} foundCitation={verifiedFoundCitation} />);
+    await mount(
+      <SuperscriptCitation
+        citation={baseCitation}
+        foundCitation={verification}
+      />
+    );
     const sup = page.locator(".citation-superscript");
 
     await expect(sup).toHaveClass(/citation-superscript--verified/);
   });
 
-  test("renders with brackets when showBrackets is true", async ({ mount, page }) => {
+  test("renders with brackets when showBrackets is true", async ({
+    mount,
+    page,
+  }) => {
     await mount(
-      <SuperscriptCitation citation={baseCitation} showBrackets={true} foundCitation={verifiedFoundCitation} />,
+      <SuperscriptCitation
+        citation={baseCitation}
+        showBrackets={true}
+        foundCitation={verification}
+      />
     );
     const sup = page.locator(".citation-superscript");
 
@@ -173,7 +203,12 @@ test.describe("SuperscriptCitation", () => {
   });
 
   test("renders with miss state", async ({ mount, page }) => {
-    await mount(<SuperscriptCitation citation={baseCitation} foundCitation={missFoundCitation} />);
+    await mount(
+      <SuperscriptCitation
+        citation={baseCitation}
+        foundCitation={missFoundCitation}
+      />
+    );
     const sup = page.locator(".citation-superscript");
 
     await expect(sup).toHaveClass(/citation-superscript--miss/);
@@ -191,33 +226,45 @@ test.describe("FootnoteCitation", () => {
 
     await expect(footnote).toBeVisible();
     await expect(footnote).toHaveAttribute("data-variant", "footnote");
-    const tagName = await footnote.evaluate(el => el.tagName.toLowerCase());
+    const tagName = await footnote.evaluate((el) => el.tagName.toLowerCase());
     expect(tagName).toBe("sup");
   });
 
   test("renders number by default", async ({ mount, page }) => {
-    await mount(<FootnoteCitation citation={baseCitation} symbolStyle="number" />);
+    await mount(
+      <FootnoteCitation citation={baseCitation} symbolStyle="number" />
+    );
     const footnote = page.locator(".citation-footnote");
 
     await expect(footnote).toContainText("1");
   });
 
   test("renders asterisk symbol", async ({ mount, page }) => {
-    await mount(<FootnoteCitation citation={baseCitation} symbolStyle="asterisk" />);
+    await mount(
+      <FootnoteCitation citation={baseCitation} symbolStyle="asterisk" />
+    );
     const footnote = page.locator(".citation-footnote");
 
     await expect(footnote).toContainText("*");
   });
 
   test("renders custom symbol", async ({ mount, page }) => {
-    await mount(<FootnoteCitation citation={baseCitation} symbolStyle="custom" customSymbol="§" />);
+    await mount(
+      <FootnoteCitation
+        citation={baseCitation}
+        symbolStyle="custom"
+        customSymbol="§"
+      />
+    );
     const footnote = page.locator(".citation-footnote");
 
     await expect(footnote).toContainText("§");
   });
 
   test("renders with verified state", async ({ mount, page }) => {
-    await mount(<FootnoteCitation citation={baseCitation} foundCitation={verifiedFoundCitation} />);
+    await mount(
+      <FootnoteCitation citation={baseCitation} foundCitation={verification} />
+    );
     const footnote = page.locator(".citation-footnote");
 
     await expect(footnote).toHaveClass(/citation-footnote--verified/);
@@ -245,14 +292,18 @@ test.describe("InlineCitation", () => {
   });
 
   test("renders with solid underline", async ({ mount, page }) => {
-    await mount(<InlineCitation citation={baseCitation} underlineStyle="solid" />);
+    await mount(
+      <InlineCitation citation={baseCitation} underlineStyle="solid" />
+    );
     const inline = page.locator(".citation-inline");
 
     await expect(inline).toHaveClass(/citation-inline--underline-solid/);
   });
 
   test("renders with dashed underline", async ({ mount, page }) => {
-    await mount(<InlineCitation citation={baseCitation} underlineStyle="dashed" />);
+    await mount(
+      <InlineCitation citation={baseCitation} underlineStyle="dashed" />
+    );
     const inline = page.locator(".citation-inline");
 
     await expect(inline).toHaveClass(/citation-inline--underline-dashed/);
@@ -267,14 +318,21 @@ test.describe("InlineCitation", () => {
   });
 
   test("renders with verified state", async ({ mount, page }) => {
-    await mount(<InlineCitation citation={baseCitation} foundCitation={verifiedFoundCitation} />);
+    await mount(
+      <InlineCitation citation={baseCitation} foundCitation={verification} />
+    );
     const inline = page.locator(".citation-inline");
 
     await expect(inline).toHaveClass(/citation-inline--verified/);
   });
 
   test("renders with pending indicator", async ({ mount, page }) => {
-    await mount(<InlineCitation citation={baseCitation} foundCitation={pendingFoundCitation} />);
+    await mount(
+      <InlineCitation
+        citation={baseCitation}
+        foundCitation={pendingFoundCitation}
+      />
+    );
     const inline = page.locator(".citation-inline");
 
     await expect(inline).toHaveClass(/citation-inline--pending/);
@@ -297,22 +355,33 @@ test.describe("MinimalCitation", () => {
   });
 
   test("renders with verified state", async ({ mount, page }) => {
-    await mount(<MinimalCitation citation={baseCitation} foundCitation={verifiedFoundCitation} />);
+    await mount(
+      <MinimalCitation citation={baseCitation} foundCitation={verification} />
+    );
     const minimal = page.locator(".citation-minimal");
 
     await expect(minimal).toHaveClass(/citation-minimal--verified/);
   });
 
   test("shows status indicator by default", async ({ mount, page }) => {
-    await mount(<MinimalCitation citation={baseCitation} foundCitation={verifiedFoundCitation} />);
+    await mount(
+      <MinimalCitation citation={baseCitation} foundCitation={verification} />
+    );
     const minimal = page.locator(".citation-minimal");
 
     await expect(minimal.locator(".citation-verified-icon")).toBeVisible();
   });
 
-  test("hides status indicator when showStatusIndicator is false", async ({ mount, page }) => {
+  test("hides status indicator when showStatusIndicator is false", async ({
+    mount,
+    page,
+  }) => {
     await mount(
-      <MinimalCitation citation={baseCitation} foundCitation={verifiedFoundCitation} showStatusIndicator={false} />,
+      <MinimalCitation
+        citation={baseCitation}
+        foundCitation={verification}
+        showStatusIndicator={false}
+      />
     );
     const minimal = page.locator(".citation-minimal");
 
@@ -320,7 +389,12 @@ test.describe("MinimalCitation", () => {
   });
 
   test("renders with miss state", async ({ mount, page }) => {
-    await mount(<MinimalCitation citation={baseCitation} foundCitation={missFoundCitation} />);
+    await mount(
+      <MinimalCitation
+        citation={baseCitation}
+        foundCitation={missFoundCitation}
+      />
+    );
     const minimal = page.locator(".citation-minimal");
 
     await expect(minimal).toHaveClass(/citation-minimal--miss/);
@@ -333,42 +407,58 @@ test.describe("MinimalCitation", () => {
 
 test.describe("CitationVariantFactory", () => {
   test("renders chip variant", async ({ mount, page }) => {
-    await mount(<CitationVariantFactory variant="chip" citation={baseCitation} />);
+    await mount(
+      <CitationVariantFactory variant="chip" citation={baseCitation} />
+    );
     const chip = page.locator(".citation-chip");
 
     await expect(chip).toHaveClass(/citation-chip/);
   });
 
   test("renders superscript variant", async ({ mount, page }) => {
-    await mount(<CitationVariantFactory variant="superscript" citation={baseCitation} />);
+    await mount(
+      <CitationVariantFactory variant="superscript" citation={baseCitation} />
+    );
     const sup = page.locator(".citation-superscript");
 
     await expect(sup).toHaveAttribute("data-variant", "superscript");
   });
 
   test("renders footnote variant", async ({ mount, page }) => {
-    await mount(<CitationVariantFactory variant="footnote" citation={baseCitation} />);
+    await mount(
+      <CitationVariantFactory variant="footnote" citation={baseCitation} />
+    );
     const footnote = page.locator(".citation-footnote");
 
     await expect(footnote).toHaveAttribute("data-variant", "footnote");
   });
 
   test("renders inline variant", async ({ mount, page }) => {
-    await mount(<CitationVariantFactory variant="inline" citation={baseCitation} />);
+    await mount(
+      <CitationVariantFactory variant="inline" citation={baseCitation} />
+    );
     const inline = page.locator(".citation-inline");
 
     await expect(inline).toHaveAttribute("data-variant", "inline");
   });
 
   test("renders minimal variant", async ({ mount, page }) => {
-    await mount(<CitationVariantFactory variant="minimal" citation={baseCitation} />);
+    await mount(
+      <CitationVariantFactory variant="minimal" citation={baseCitation} />
+    );
     const minimal = page.locator(".citation-minimal");
 
     await expect(minimal).toHaveAttribute("data-variant", "minimal");
   });
 
   test("passes variant-specific props", async ({ mount, page }) => {
-    await mount(<CitationVariantFactory variant="chip" citation={baseCitation} chipProps={{ size: "lg" }} />);
+    await mount(
+      <CitationVariantFactory
+        variant="chip"
+        citation={baseCitation}
+        chipProps={{ size: "lg" }}
+      />
+    );
     const chip = page.locator(".citation-chip");
 
     await expect(chip).toHaveClass(/citation-chip--lg/);
@@ -416,10 +506,15 @@ test.describe("Accessibility", () => {
   });
 
   test("verified icon is aria-hidden", async ({ mount, page }) => {
-    await mount(<ChipCitation citation={baseCitation} foundCitation={verifiedFoundCitation} />);
+    await mount(
+      <ChipCitation citation={baseCitation} foundCitation={verification} />
+    );
     const chip = page.locator(".citation-chip");
 
-    await expect(chip.locator(".citation-verified-icon")).toHaveAttribute("aria-hidden", "true");
+    await expect(chip.locator(".citation-verified-icon")).toHaveAttribute(
+      "aria-hidden",
+      "true"
+    );
   });
 });
 
@@ -428,14 +523,20 @@ test.describe("Accessibility", () => {
 // =============================================================================
 
 test.describe("Data Attributes", () => {
-  test("chip citation has citation-id data attribute", async ({ mount, page }) => {
+  test("chip citation has citation-id data attribute", async ({
+    mount,
+    page,
+  }) => {
     await mount(<ChipCitation citation={baseCitation} />);
     const chip = page.locator(".citation-chip");
 
     await expect(chip).toHaveAttribute("data-citation-id");
   });
 
-  test("chip citation has citation-instance data attribute", async ({ mount, page }) => {
+  test("chip citation has citation-instance data attribute", async ({
+    mount,
+    page,
+  }) => {
     await mount(<ChipCitation citation={baseCitation} />);
     const chip = page.locator(".citation-chip");
 
@@ -447,11 +548,15 @@ test.describe("Data Attributes", () => {
       <>
         <ChipCitation citation={baseCitation} className="citation-1" />
         <ChipCitation citation={baseCitation} className="citation-2" />
-      </>,
+      </>
     );
 
-    const instance1 = await page.locator(".citation-1").getAttribute("data-citation-instance");
-    const instance2 = await page.locator(".citation-2").getAttribute("data-citation-instance");
+    const instance1 = await page
+      .locator(".citation-1")
+      .getAttribute("data-citation-instance");
+    const instance2 = await page
+      .locator(".citation-2")
+      .getAttribute("data-citation-instance");
 
     expect(instance1).not.toEqual(instance2);
   });
@@ -461,11 +566,15 @@ test.describe("Data Attributes", () => {
       <>
         <ChipCitation citation={baseCitation} className="citation-1" />
         <ChipCitation citation={baseCitation} className="citation-2" />
-      </>,
+      </>
     );
 
-    const id1 = await page.locator(".citation-1").getAttribute("data-citation-id");
-    const id2 = await page.locator(".citation-2").getAttribute("data-citation-id");
+    const id1 = await page
+      .locator(".citation-1")
+      .getAttribute("data-citation-id");
+    const id2 = await page
+      .locator(".citation-2")
+      .getAttribute("data-citation-id");
 
     expect(id1).toEqual(id2);
   });

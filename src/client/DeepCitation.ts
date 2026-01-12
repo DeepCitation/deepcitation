@@ -289,18 +289,26 @@ export class DeepCitation {
 
     // Upload all files in parallel
     const uploadPromises = files.map(({ file, filename, fileId }) =>
-      this.uploadFile(file, { filename, fileId })
+      this.uploadFile(file, { filename, fileId }).then((result) => ({
+        result,
+        filename,
+      }))
     );
 
-    const results = await Promise.all(uploadPromises);
+    const uploadResults = await Promise.all(uploadPromises);
 
-    // Extract file data parts and file deep texts
-    const fileDataParts: FileDataPart[] = results.map((result) => ({
-      fileId: result.fileId,
-    }));
+    // Extract file data parts with deepTextPromptPortion included (single source of truth)
+    const fileDataParts: FileDataPart[] = uploadResults.map(
+      ({ result, filename }) => ({
+        fileId: result.fileId,
+        deepTextPromptPortion: result.deepTextPromptPortion,
+        filename: filename || result.metadata?.filename,
+      })
+    );
 
-    const deepTextPromptPortion: string[] = results.map(
-      (result) => result.deepTextPromptPortion
+    // Also return separate array for backwards compatibility (deprecated)
+    const deepTextPromptPortion: string[] = fileDataParts.map(
+      (part) => part.deepTextPromptPortion
     );
 
     return { fileDataParts, deepTextPromptPortion };
@@ -321,7 +329,7 @@ export class DeepCitation {
    * const citations = getAllCitationsFromLlmOutput(llmResponse);
    * const verified = await dc.verifyCitations(fileId, citations);
    *
-   * for (const [key, result] of Object.entries(verified.foundHighlights)) {
+   * for (const [key, result] of Object.entries(verified.verifications)) {
    *   console.log(key, result.searchState?.status);
    *   // "found", "partial_text_found", "not_found", etc.
    * }
@@ -395,7 +403,7 @@ export class DeepCitation {
    *   fileDataParts, // From prepareFiles()
    * });
    *
-   * for (const [key, result] of Object.entries(result.foundHighlights)) {
+   * for (const [key, result] of Object.entries(result.verifications)) {
    *   console.log(key, result.searchState?.status);
    * }
    * ```
@@ -411,7 +419,7 @@ export class DeepCitation {
 
     // If no citations found, return empty result
     if (Object.keys(citations).length === 0) {
-      return { foundHighlights: {} };
+      return { verifications: {} };
     }
 
     // Group citations by fileId
@@ -435,11 +443,11 @@ export class DeepCitation {
     }
 
     const results = await Promise.all(verificationPromises);
-    const allHighlights: VerifyCitationsResponse["foundHighlights"] = {};
+    const allHighlights: VerifyCitationsResponse["verifications"] = {};
     for (const result of results) {
-      Object.assign(allHighlights, result.foundHighlights);
+      Object.assign(allHighlights, result.verifications);
     }
 
-    return { foundHighlights: allHighlights };
+    return { verifications: allHighlights };
   }
 }

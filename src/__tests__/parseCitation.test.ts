@@ -4,13 +4,13 @@ import {
   parseCitation,
   getAllCitationsFromLlmOutput,
 } from "../parsing/parseCitation.js";
-import { NOT_FOUND_HIGHLIGHT_INDEX } from "../types/foundHighlight.js";
-import type { FoundHighlightLocation } from "../types/foundHighlight.js";
+import { NOT_FOUND_VERIFICATION_INDEX } from "../types/verification.js";
+import type { Verification } from "../types/verification.js";
 import type { Citation } from "../types/citation.js";
 
 describe("getCitationStatus", () => {
   it("marks verified citations", () => {
-    const found: FoundHighlightLocation = {
+    const found: Verification = {
       lowerCaseSearchTerm: "term",
       attachmentId: "file",
       pageNumber: 2,
@@ -23,10 +23,10 @@ describe("getCitationStatus", () => {
   });
 
   it("marks misses and pending states", () => {
-    const miss: FoundHighlightLocation = {
+    const miss: Verification = {
       lowerCaseSearchTerm: "term",
       attachmentId: "file",
-      pageNumber: NOT_FOUND_HIGHLIGHT_INDEX,
+      pageNumber: NOT_FOUND_VERIFICATION_INDEX,
       searchState: { status: "not_found" },
       matchSnippet: "snippet",
     };
@@ -40,14 +40,14 @@ describe("getCitationStatus", () => {
 
   describe("explicit status coverage", () => {
     it("treats found_on_other_page as partial match and verified", () => {
-      const highlight: FoundHighlightLocation = {
+      const verification: Verification = {
         lowerCaseSearchTerm: "term",
         attachmentId: "file",
         pageNumber: 5,
         searchState: { status: "found_on_other_page" },
         matchSnippet: "snippet",
       };
-      const status = getCitationStatus(highlight);
+      const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
       expect(status.isVerified).toBe(true);
       expect(status.isMiss).toBe(false);
@@ -55,123 +55,123 @@ describe("getCitationStatus", () => {
     });
 
     it("treats found_on_other_line as partial match and verified", () => {
-      const highlight: FoundHighlightLocation = {
+      const verification: Verification = {
         lowerCaseSearchTerm: "term",
         attachmentId: "file",
         pageNumber: 3,
         searchState: { status: "found_on_other_line" },
         matchSnippet: "snippet",
       };
-      const status = getCitationStatus(highlight);
+      const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
       expect(status.isVerified).toBe(true);
     });
 
     it("treats first_word_found as partial match and verified", () => {
-      const highlight: FoundHighlightLocation = {
+      const verification: Verification = {
         lowerCaseSearchTerm: "term",
         attachmentId: "file",
         pageNumber: 1,
         searchState: { status: "first_word_found" },
         matchSnippet: "snippet",
       };
-      const status = getCitationStatus(highlight);
+      const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
       expect(status.isVerified).toBe(true);
     });
 
     it("treats partial_text_found as partial match and verified", () => {
-      const highlight: FoundHighlightLocation = {
+      const verification: Verification = {
         lowerCaseSearchTerm: "term",
         attachmentId: "file",
         pageNumber: 2,
         searchState: { status: "partial_text_found" },
         matchSnippet: "snippet",
       };
-      const status = getCitationStatus(highlight);
+      const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
       expect(status.isVerified).toBe(true);
     });
 
     it("treats found_value_only as verified but not partial", () => {
-      const highlight: FoundHighlightLocation = {
+      const verification: Verification = {
         lowerCaseSearchTerm: "term",
         attachmentId: "file",
         pageNumber: 2,
         searchState: { status: "found_value_only" },
         matchSnippet: "snippet",
       };
-      const status = getCitationStatus(highlight);
+      const status = getCitationStatus(verification);
       expect(status.isVerified).toBe(true);
       expect(status.isPartialMatch).toBe(false);
     });
 
     it("treats found_phrase_missed_value as verified but not partial", () => {
-      const highlight: FoundHighlightLocation = {
+      const verification: Verification = {
         lowerCaseSearchTerm: "term",
         attachmentId: "file",
         pageNumber: 2,
         searchState: { status: "found_phrase_missed_value" },
         matchSnippet: "snippet",
       };
-      const status = getCitationStatus(highlight);
+      const status = getCitationStatus(verification);
       expect(status.isVerified).toBe(true);
       expect(status.isPartialMatch).toBe(false);
     });
 
     it("treats loading status as pending", () => {
-      const highlight: FoundHighlightLocation = {
+      const verification: Verification = {
         lowerCaseSearchTerm: "term",
         attachmentId: "file",
         pageNumber: 2,
         searchState: { status: "loading" },
         matchSnippet: "snippet",
       };
-      const status = getCitationStatus(highlight);
+      const status = getCitationStatus(verification);
       expect(status.isPending).toBe(true);
       expect(status.isVerified).toBe(false);
     });
 
     it("treats pending status as pending", () => {
-      const highlight: FoundHighlightLocation = {
+      const verification: Verification = {
         lowerCaseSearchTerm: "term",
         attachmentId: "file",
         pageNumber: 2,
         searchState: { status: "pending" },
         matchSnippet: "snippet",
       };
-      const status = getCitationStatus(highlight);
+      const status = getCitationStatus(verification);
       expect(status.isPending).toBe(true);
       expect(status.isVerified).toBe(false);
     });
 
     it("treats not_found as miss but not verified", () => {
-      const highlight: FoundHighlightLocation = {
+      const verification: Verification = {
         lowerCaseSearchTerm: "term",
         attachmentId: "file",
-        pageNumber: NOT_FOUND_HIGHLIGHT_INDEX,
+        pageNumber: NOT_FOUND_VERIFICATION_INDEX,
         searchState: { status: "not_found" },
         matchSnippet: "snippet",
       };
-      const status = getCitationStatus(highlight);
+      const status = getCitationStatus(verification);
       expect(status.isMiss).toBe(true);
       expect(status.isVerified).toBe(false);
       expect(status.isPartialMatch).toBe(false);
     });
 
     it("treats null searchState as pending", () => {
-      const highlight: FoundHighlightLocation = {
+      const verification: Verification = {
         lowerCaseSearchTerm: "term",
         attachmentId: "file",
         pageNumber: 2,
         searchState: null,
         matchSnippet: "snippet",
       };
-      const status = getCitationStatus(highlight);
+      const status = getCitationStatus(verification);
       expect(status.isPending).toBe(true);
     });
 
-    it("treats null foundHighlight as pending", () => {
+    it("treats null verification as pending", () => {
       const status = getCitationStatus(null);
       expect(status.isPending).toBe(true);
       expect(status.isVerified).toBe(false);

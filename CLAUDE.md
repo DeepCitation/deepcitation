@@ -41,7 +41,7 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 ### Types
 ```typescript
-import type { Citation, FoundHighlightLocation } from "@deepcitation/deepcitation-js";
+import type { Citation, Verification } from "@deepcitation/deepcitation-js";
 ```
 
 ## Integration Workflow
@@ -105,7 +105,7 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 <CitationComponent
   citation={citation}
-  foundCitation={foundHighlight}
+  foundCitation={verification}
   displayCitationValue={true}
 />
 ```
@@ -136,7 +136,7 @@ src/
 │   └── UrlCitationComponent.tsx
 ├── types/                # TypeScript types
 │   ├── citation.ts
-│   ├── foundHighlight.ts
+│   ├── verification.ts
 │   ├── boxes.ts
 │   └── search.ts
 └── utils/                # Utilities

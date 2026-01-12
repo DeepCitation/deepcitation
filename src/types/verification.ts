@@ -3,35 +3,36 @@ import { type Citation } from "./citation.js";
 import { type SearchState } from "./search.js";
 import { type PdfSpaceItem } from "./boxes.js";
 
-export const NOT_FOUND_HIGHLIGHT_INDEX = -1;
-export const PENDING_HIGHLIGHT_INDEX = -2;
+export const NOT_FOUND_VERIFICATION_INDEX = -1;
+export const PENDING_VERIFICATION_INDEX = -2;
 
-export const BLANK_HIGHLIGHT_LOCATION: FoundHighlightLocation = {
-  pageNumber: NOT_FOUND_HIGHLIGHT_INDEX,
+export const BLANK_VERIFICATION: Verification = {
+  pageNumber: NOT_FOUND_VERIFICATION_INDEX,
   regex: null,
   lowerCaseSearchTerm: null,
   attachmentId: null,
   matchSnippet: null,
   source: null,
   citation: {
-    startPageKey: null,
-    lineIds: null,
-    pageNumber: NOT_FOUND_HIGHLIGHT_INDEX,
     fileId: undefined,
+    startPageKey: null,
     fullPhrase: null,
-    value: null,
+    keySpan: null,
+    lineIds: null,
+    reasoning: null,
+    pageNumber: NOT_FOUND_VERIFICATION_INDEX,
   },
 };
 
-export function deterministicIdFromHighlightLocation(
-  highlightLocation: FoundHighlightLocation
+export function deterministicIdFromVerification(
+  verification: Verification
 ): string {
   return sha1Hash(
-    `${highlightLocation.lowerCaseSearchTerm}-${highlightLocation.attachmentId}-${highlightLocation.pageNumber}-${highlightLocation.hitIndexWithinPage}-${highlightLocation.matchSnippet}-${highlightLocation?.hitIndexWithinPage}`
+    `${verification.lowerCaseSearchTerm}-${verification.attachmentId}-${verification.pageNumber}-${verification.hitIndexWithinPage}-${verification.matchSnippet}-${verification?.hitIndexWithinPage}`
   );
 }
 
-export interface FoundHighlightLocation {
+export interface Verification {
   regex?: RegExp | null;
   lowerCaseSearchTerm: string | null; // e.g. "ca013c03-0001"
   label?: string | null; //e.g. "Invoice"

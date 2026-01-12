@@ -58,8 +58,8 @@ const result = await dc.verifyCitations({
 });
 
 // 5. Check status
-for (const [key, highlight] of Object.entries(result.citations)) {
-  const status = getCitationStatus(highlight);
+for (const [key, verification] of Object.entries(result.citations)) {
+  const status = getCitationStatus(verification);
   console.log(`Citation ${key}: ${status.isVerified ? "✅" : "❌"}`);
 }
 ```

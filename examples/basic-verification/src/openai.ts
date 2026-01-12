@@ -187,15 +187,15 @@ provided documents accurately and cite your sources.`;
 
   console.log(verificationResult);
 
-  const highlights = Object.entries(verificationResult.foundHighlights);
+  const verifications = Object.entries(verificationResult.verifications);
 
-  if (highlights.length === 0) {
+  if (verifications.length === 0) {
     console.log("⚠️  No citations found in the response.\n");
   } else {
-    console.log(`Found ${highlights.length} citation(s):\n`);
+    console.log(`Found ${verifications.length} citation(s):\n`);
 
-    for (const [key, highlight] of highlights) {
-      const status = getCitationStatus(highlight);
+    for (const [key, verification] of verifications) {
+      const status = getCitationStatus(verification);
       const statusIcon = status.isVerified
         ? status.isPartialMatch
           ? "⚠️ "
@@ -205,10 +205,12 @@ provided documents accurately and cite your sources.`;
         : "❌";
 
       console.log(`Citation [${key}]: ${statusIcon}`);
-      console.log(`  Status: ${highlight.searchState?.status}`);
-      console.log(`  Page: ${highlight.pageNumber ?? "N/A"}`);
-      console.log(`  Match: "${highlight.matchSnippet?.slice(0, 80)}..."`);
-      console.log(`  Has proof image: ${!!highlight.verificationImageBase64}`);
+      console.log(`  Status: ${verification.searchState?.status}`);
+      console.log(`  Page: ${verification.pageNumber ?? "N/A"}`);
+      console.log(`  Match: "${verification.matchSnippet?.slice(0, 80)}..."`);
+      console.log(
+        `  Has proof image: ${!!verification.verificationImageBase64}`
+      );
       console.log();
     }
   }
@@ -220,19 +222,19 @@ provided documents accurately and cite your sources.`;
   console.log("─".repeat(50) + "\n");
 
   // Summary statistics
-  const verified = highlights.filter(
+  const verified = verifications.filter(
     ([, h]) => getCitationStatus(h).isVerified
   ).length;
-  const missed = highlights.filter(
+  const missed = verifications.filter(
     ([, h]) => getCitationStatus(h).isMiss
   ).length;
 
   console.log("📊 Summary:");
-  console.log(`   Total citations: ${highlights.length}`);
-  if (highlights.length > 0) {
+  console.log(`   Total citations: ${verifications.length}`);
+  if (verifications.length > 0) {
     console.log(
       `   Verified: ${verified} (${(
-        (verified / highlights.length) *
+        (verified / verifications.length) *
         100
       ).toFixed(0)}%)`
     );

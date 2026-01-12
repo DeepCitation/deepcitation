@@ -42,7 +42,7 @@ import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "
 import { CitationComponent, ChipCitation, SuperscriptCitation } from "@deepcitation/deepcitation-js/react";
 
 // Types
-import type { Citation, FoundHighlightLocation } from "@deepcitation/deepcitation-js";
+import type { Citation, Verification } from "@deepcitation/deepcitation-js";
 ```
 
 ## API Reference

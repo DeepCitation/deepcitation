@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DeepCitation } from "@deepcitation/deepcitation-js";
-import { addSessionFiles } from "@/lib/store";
+import { DeepCitation, type FileDataPart } from "@deepcitation/deepcitation-js";
 
 // Check for API key at startup
 const apiKey = process.env.DEEPCITATION_API_KEY;
@@ -30,7 +29,6 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const sessionId = (formData.get("sessionId") as string) || "default";
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -40,21 +38,18 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload to DeepCitation
-    const { fileDataParts, deepTextPromptPortion } = await dc.prepareFiles([
+    // Upload to DeepCitation - fileDataParts now includes deepTextPromptPortion
+    const { fileDataParts } = await dc.prepareFiles([
       { file: buffer, filename: file.name },
     ]);
 
-    // Store for later verification
-    addSessionFiles(sessionId, fileDataParts, deepTextPromptPortion);
+    const fileDataPart = fileDataParts[0];
+    console.log(`Uploaded: ${file.name} (${fileDataPart.fileId})`);
 
-    console.log(`[${sessionId}] Uploaded: ${file.name} (${fileDataParts[0].fileId})`);
-
+    // Return the complete FileDataPart - client stores this as single source of truth
     return NextResponse.json({
       success: true,
-      fileId: fileDataParts[0].fileId,
-      filename: file.name,
-      deepTextPromptPortion: deepTextPromptPortion[0],
+      fileDataPart,
     });
   } catch (error: any) {
     const message = error?.message || "Unknown error";

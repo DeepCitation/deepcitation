@@ -16,14 +16,14 @@ export type {
 export { DEFAULT_OUTPUT_IMAGE_FORMAT } from "./citation.js";
 
 // Found highlight types
-export type { FoundHighlightLocation } from "./foundHighlight.js";
+export type { Verification } from "./verification.js";
 
 export {
-  NOT_FOUND_HIGHLIGHT_INDEX,
-  PENDING_HIGHLIGHT_INDEX,
-  BLANK_HIGHLIGHT_LOCATION,
-  deterministicIdFromHighlightLocation,
-} from "./foundHighlight.js";
+  NOT_FOUND_VERIFICATION_INDEX,
+  PENDING_VERIFICATION_INDEX,
+  BLANK_VERIFICATION,
+  deterministicIdFromVerification,
+} from "./verification.js";
 
 // Search state types
 export type { SearchState, SearchStatus } from "./search.js";

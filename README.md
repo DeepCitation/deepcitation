@@ -163,7 +163,7 @@ import {
 ```typescript
 import type {
   Citation,
-  FoundHighlightLocation,
+  Verification,
   SearchState,
   SearchStatus,
 } from "@deepcitation/deepcitation-js";

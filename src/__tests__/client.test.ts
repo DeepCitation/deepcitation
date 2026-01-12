@@ -287,7 +287,7 @@ describe("DeepCitation Client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          foundHighlights: {
+          verifications: {
             citation_key_1: {
               pageNumber: 1,
               searchState: { status: "found" },
@@ -305,8 +305,8 @@ describe("DeepCitation Client", () => {
         llmOutput,
       });
 
-      expect(result.foundHighlights).toBeDefined();
-      expect(Object.keys(result.foundHighlights).length).toBeGreaterThanOrEqual(
+      expect(result.verifications).toBeDefined();
+      expect(Object.keys(result.verifications).length).toBeGreaterThanOrEqual(
         1
       );
     });
@@ -317,7 +317,7 @@ describe("DeepCitation Client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          foundHighlights: {
+          verifications: {
             key1: {
               pageNumber: 1,
               searchState: { status: "found" },
@@ -332,17 +332,17 @@ describe("DeepCitation Client", () => {
           "<cite file_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test content' key_span='Test' line_ids='1' />",
       });
 
-      expect(result.foundHighlights).toBeDefined();
+      expect(result.verifications).toBeDefined();
     });
 
-    it("returns empty foundHighlights when no citations in output", async () => {
+    it("returns empty verifications when no citations in output", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       const result = await client.verifyCitationsFromLlmOutput({
         llmOutput: "Just plain text with no citations.",
       });
 
-      expect(result.foundHighlights).toEqual({});
+      expect(result.verifications).toEqual({});
     });
   });
 
@@ -354,7 +354,7 @@ describe("DeepCitation Client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          foundHighlights: {
+          verifications: {
             "1": { pageNumber: 1, searchState: { status: "found" } },
           },
         }),
@@ -364,7 +364,7 @@ describe("DeepCitation Client", () => {
         "1": { pageNumber: 1, fullPhrase: "test phrase", fileId: "file_abc" },
       });
 
-      expect(result.foundHighlights["1"].searchState.status).toBe("found");
+      expect(result.verifications["1"].searchState.status).toBe("found");
     });
 
     it("handles API error gracefully", async () => {

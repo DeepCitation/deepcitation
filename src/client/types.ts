@@ -1,4 +1,4 @@
-import type { Citation, FoundHighlightLocation } from "../types/index.js";
+import type { Citation, Verification } from "../types/index.js";
 
 /**
  * Configuration options for the DeepCitation client
@@ -55,7 +55,7 @@ export interface UploadFileOptions {
  */
 export interface VerifyCitationsResponse {
   /** Map of citation keys to their verification results */
-  foundHighlights: Record<string, FoundHighlightLocation>;
+  verifications: Record<string, Verification>;
 }
 
 /**
@@ -89,15 +89,23 @@ export interface FileInput {
 export interface FileDataPart {
   /** The file ID assigned by DeepCitation */
   fileId: string;
+  /** The formatted text content for LLM prompts (with page markers and line IDs) */
+  deepTextPromptPortion: string;
+  /** Optional filename for display purposes */
+  filename?: string;
 }
 
 /**
  * Result from prepareFiles
  */
 export interface PrepareFilesResult {
-  /** Array of file references for verification */
+  /** Array of file references for verification (includes deepTextPromptPortion for each file) */
   fileDataParts: FileDataPart[];
-  /** Array of formatted text content for LLM prompts (with page markers and line IDs) */
+  /**
+   * Array of formatted text content for LLM prompts (with page markers and line IDs).
+   * @deprecated Use fileDataParts[].deepTextPromptPortion instead for single source of truth.
+   * This is kept for backwards compatibility but will be removed in a future version.
+   */
   deepTextPromptPortion: string[];
 }
 

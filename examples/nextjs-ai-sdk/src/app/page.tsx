@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { FileUpload } from "@/components/FileUpload";
 import { VerificationPanel } from "@/components/VerificationPanel";
+import type { FileDataPart } from "@deepcitation/deepcitation-js";
 
 type ModelProvider = "openai" | "gemini";
 type CitationDisplayMode = "inline" | "superscript" | "footnotes" | "clean";
@@ -42,21 +43,9 @@ const CITATION_DISPLAY_OPTIONS: {
 ];
 
 export default function Home() {
-  // Use a stable sessionId that persists in sessionStorage
-  const [sessionId, setSessionId] = useState<string>("default");
-  const [uploadedFiles, setUploadedFiles] = useState<
-    { name: string; fileId: string; deepTextPromptPortion: string }[]
-  >([]);
+  // FileDataPart is now the single source of truth (includes deepTextPromptPortion)
+  const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
 
-  // Initialize sessionId on client only to avoid hydration mismatch
-  useEffect(() => {
-    let id = sessionStorage.getItem("deepcitation-session-id");
-    if (!id) {
-      id = `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      sessionStorage.setItem("deepcitation-session-id", id);
-    }
-    setSessionId(id);
-  }, []);
   const [verifications, setVerifications] = useState<Record<string, any>>({});
   const [isVerifying, setIsVerifying] = useState(false);
   const [provider, setProvider] = useState<ModelProvider>("openai");
@@ -68,17 +57,16 @@ export default function Home() {
     useChat({
       streamProtocol: "text",
       body: {
-        sessionId,
         provider,
-        fileDataParts: uploadedFiles.map((f) => ({ fileId: f.fileId })),
-        deepTextPromptPortion: uploadedFiles.map((f) => f.deepTextPromptPortion),
+        // Pass complete fileDataParts - includes deepTextPromptPortion
+        fileDataParts,
       },
       onError: (error) => {
         console.error("[useChat] Error:", error);
       },
       onFinish: async (message) => {
         // Verify citations after message is complete
-        if (uploadedFiles.length > 0 && message.role === "assistant") {
+        if (fileDataParts.length > 0 && message.role === "assistant") {
           setIsVerifying(true);
           try {
             // AI SDK v6 uses parts array, fall back to content for compatibility
@@ -89,10 +77,9 @@ export default function Home() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                sessionId,
                 content: messageContent,
-                // Pass file data directly to avoid server-side store issues
-                fileDataParts: uploadedFiles.map((f) => ({ fileId: f.fileId })),
+                // Pass complete fileDataParts - single source of truth
+                fileDataParts,
               }),
             });
             const data = await res.json();
@@ -114,7 +101,6 @@ export default function Home() {
   const handleFileUpload = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("sessionId", sessionId);
     setUploadError(null);
 
     try {
@@ -125,15 +111,9 @@ export default function Home() {
 
       const data = await res.json();
 
-      if (res.ok) {
-        setUploadedFiles((prev) => [
-          ...prev,
-          {
-            name: file.name,
-            fileId: data.fileId,
-            deepTextPromptPortion: data.deepTextPromptPortion,
-          },
-        ]);
+      if (res.ok && data.fileDataPart) {
+        // Store the complete FileDataPart as single source of truth
+        setFileDataParts((prev) => [...prev, data.fileDataPart]);
       } else {
         // Show error to user
         const errorMsg = data.details || data.error || "Upload failed";
@@ -327,14 +307,14 @@ export default function Home() {
           <form onSubmit={handleSubmit} className="flex gap-3">
             <FileUpload
               onUpload={handleFileUpload}
-              uploadedFiles={uploadedFiles}
+              uploadedFiles={fileDataParts.map(f => ({ name: f.filename || 'Document', fileId: f.fileId }))}
             />
             <input
               type="text"
               value={input}
               onChange={handleInputChange}
               placeholder={
-                uploadedFiles.length > 0
+                fileDataParts.length > 0
                   ? "Ask a question about your documents..."
                   : "Upload a document first, then ask questions..."
               }
@@ -350,9 +330,9 @@ export default function Home() {
             </button>
           </form>
 
-          {uploadedFiles.length > 0 && (
+          {fileDataParts.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {uploadedFiles.map((file, i) => (
+              {fileDataParts.map((file, i) => (
                 <span
                   key={i}
                   className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm text-gray-700"
@@ -370,7 +350,7 @@ export default function Home() {
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  {file.name}
+                  {file.filename || 'Document'}
                 </span>
               ))}
             </div>

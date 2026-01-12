@@ -1,5 +1,5 @@
 import type { Citation, CitationStatus } from "../types/citation.js";
-import type { FoundHighlightLocation } from "../types/foundHighlight.js";
+import type { Verification } from "../types/verification.js";
 import type { SearchState } from "../types/search.js";
 
 /**
@@ -139,7 +139,10 @@ export interface UrlCitationProps extends Omit<BaseCitationProps, "citation"> {
   /** Maximum characters for truncated display */
   maxDisplayLength?: number;
   /** Custom render for the blocked status indicator */
-  renderBlockedIndicator?: (status: UrlFetchStatus, errorMessage?: string) => React.ReactNode;
+  renderBlockedIndicator?: (
+    status: UrlFetchStatus,
+    errorMessage?: string
+  ) => React.ReactNode;
   /** Click handler for the URL */
   onUrlClick?: (url: string, event: React.MouseEvent) => void;
   /** Event handlers for citation interactions */
@@ -157,7 +160,7 @@ export interface CitationContentProps extends BaseCitationProps {
   /** Unique instance ID for this citation render */
   citationInstanceId: string;
   /** Found citation highlight data */
-  foundCitation: FoundHighlightLocation | null | undefined;
+  foundCitation: Verification | null | undefined;
   /** Current search state */
   searchState: SearchState | undefined | null;
   /** Actual page number where citation was found */
@@ -205,9 +208,17 @@ export interface CitationEventHandlers {
   /** Called when mouse leaves citation */
   onMouseLeave?: (citation: Citation, citationKey: string) => void;
   /** Called when citation is clicked */
-  onClick?: (citation: Citation, citationKey: string, event: React.MouseEvent | React.TouchEvent) => void;
+  onClick?: (
+    citation: Citation,
+    citationKey: string,
+    event: React.MouseEvent | React.TouchEvent
+  ) => void;
   /** Called on touch end (mobile) */
-  onTouchEnd?: (citation: Citation, citationKey: string, event: React.TouchEvent) => void;
+  onTouchEnd?: (
+    citation: Citation,
+    citationKey: string,
+    event: React.TouchEvent
+  ) => void;
 }
 
 /**
@@ -216,7 +227,7 @@ export interface CitationEventHandlers {
 export interface CitationTooltipProps {
   children: React.ReactNode;
   citation: Citation;
-  foundHighlight?: FoundHighlightLocation | null;
+  verification?: Verification | null;
   searchState?: SearchState | null;
   shouldShowTooltip: boolean;
 }

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   DeepCitation,
-  FoundHighlightLocation,
+  Verification,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
+  type FileDataPart,
 } from "@deepcitation/deepcitation-js";
-import { getSessionFiles } from "@/lib/store";
 
 // Check for API key at startup
 const apiKey = process.env.DEEPCITATION_API_KEY;
@@ -31,9 +31,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const {
-      sessionId = "default",
       content,
-      // Accept file data directly from client
+      // fileDataParts now contains deepTextPromptPortion - single source of truth
       fileDataParts: clientFileDataParts = [],
     } = await req.json();
 
@@ -45,14 +44,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Extract citations from the content
-    console.log(`[${sessionId}] Raw content to parse:`, content?.substring(0, 500));
+    console.log(
+      "[Verify API] Raw content to parse:",
+      content?.substring(0, 500)
+    );
     const citations = getAllCitationsFromLlmOutput(content);
     const citationCount = Object.keys(citations).length;
 
-    console.log(`[${sessionId}] Parsed ${citationCount} citations:`, JSON.stringify(citations, null, 2));
+    console.log(
+      `[Verify API] Parsed ${citationCount} citations:`,
+      JSON.stringify(citations, null, 2)
+    );
 
     if (citationCount === 0) {
-      console.log(`[${sessionId}] No citations found in content. Check if LLM is outputting <cite .../> tags.`);
+      console.log(
+        "[Verify API] No citations found in content. Check if LLM is outputting <cite .../> tags."
+      );
       return NextResponse.json({
         citations: {},
         verifications: {},
@@ -60,16 +67,20 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Prefer client-provided data, fall back to server-side store
-    const fileDataParts =
-      clientFileDataParts.length > 0
-        ? clientFileDataParts
-        : getSessionFiles(sessionId);
+    // fileDataParts from client is the single source of truth
+    const fileDataParts: FileDataPart[] = clientFileDataParts;
 
-    console.log(`[${sessionId}] File data parts:`, JSON.stringify(fileDataParts, null, 2));
+    console.log(
+      "[Verify API] File data parts:",
+      JSON.stringify(
+        fileDataParts.map((f) => ({ fileId: f.fileId, filename: f.filename })),
+        null,
+        2
+      )
+    );
 
     if (fileDataParts.length === 0) {
-      console.log(`[${sessionId}] No file data parts - cannot verify`);
+      console.log("[Verify API] No file data parts - cannot verify");
       return NextResponse.json({
         citations,
         verifications: {},
@@ -82,35 +93,35 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const allHighlights: Record<string, FoundHighlightLocation> = {};
+    const allHighlights: Record<string, Verification> = {};
 
     for (const filePart of fileDataParts) {
       try {
         console.log(
-          `[${sessionId}] Verifying citations for file ${filePart.fileId}:`,
+          `[Verify API] Verifying citations for file ${filePart.fileId}:`,
           JSON.stringify(citations, null, 2)
         );
 
         const result = await dc.verifyCitations(filePart.fileId, citations);
-        const { foundHighlights } = result;
+        const { verifications } = result;
 
         console.log(
-          `[${sessionId}] Verification result:`,
-          JSON.stringify(foundHighlights, null, 2)
+          "[Verify API] Verification result:",
+          JSON.stringify(verifications, null, 2)
         );
 
         // Log each highlight's details
-        for (const [key, highlight] of Object.entries(foundHighlights)) {
+        for (const [key, verification] of Object.entries(verifications)) {
           console.log(
-            `[${sessionId}] Citation [${key}]:`,
-            JSON.stringify(highlight, null, 2)
+            `[Verify API] Citation [${key}]:`,
+            JSON.stringify(verification, null, 2)
           );
         }
 
-        Object.assign(allHighlights, foundHighlights);
+        Object.assign(allHighlights, verifications);
       } catch (err) {
         console.error(
-          `[${sessionId}] Verification failed for file ${filePart.fileId}:`,
+          `[Verify API] Verification failed for file ${filePart.fileId}:`,
           err
         );
       }
@@ -128,7 +139,7 @@ export async function POST(req: NextRequest) {
     ).length;
 
     console.log(
-      `[${sessionId}] Summary: ${verified} verified, ${missed} missed, ${pending} pending`
+      `[Verify API] Summary: ${verified} verified, ${missed} missed, ${pending} pending`
     );
 
     return NextResponse.json({

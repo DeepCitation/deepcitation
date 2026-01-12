@@ -12,7 +12,7 @@ import {
   wrapCitationPrompt,
   getCitationStatus,
   removeCitations,
-  type FoundHighlightLocation,
+  type Verification,
   type FileDataPart,
 } from "@deepcitation/deepcitation-js";
 
@@ -36,7 +36,7 @@ export interface SupportBotResponse {
   /** Number of successfully verified citations */
   verifiedCitations: number;
   /** Full verification details for each citation */
-  verificationDetails: Record<string, FoundHighlightLocation>;
+  verificationDetails: Record<string, Verification>;
 }
 
 export class SupportBot {
@@ -140,7 +140,7 @@ If information is not available in the knowledge base, say so honestly.`;
     });
 
     // Step 4: Calculate confidence score
-    const citations = Object.values(verificationResult.foundHighlights);
+    const citations = Object.values(verificationResult.verifications);
     const totalCitations = citations.length;
     const verifiedCitations = citations.filter(
       (c) => getCitationStatus(c).isVerified
@@ -159,7 +159,7 @@ If information is not available in the knowledge base, say so honestly.`;
       needsReview: confidence < this.minConfidenceThreshold,
       totalCitations,
       verifiedCitations,
-      verificationDetails: verificationResult.foundHighlights,
+      verificationDetails: verificationResult.verifications,
     };
   }
 

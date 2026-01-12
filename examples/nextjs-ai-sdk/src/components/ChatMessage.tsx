@@ -3,8 +3,13 @@
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { CitationBadge } from "./CitationBadge";
-import type { FoundHighlightLocation, Citation } from "@deepcitation/deepcitation-js";
+import {
+  getCitationStatus,
+  type Verification,
+  type Citation,
+} from "@deepcitation/deepcitation-js";
+import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import "@deepcitation/deepcitation-js/react/styles.css";
 
 interface ChatMessageProps {
   message: {
@@ -15,7 +20,7 @@ interface ChatMessageProps {
   };
   verification?: {
     citations: Record<string, Citation>;
-    verifications: Record<string, FoundHighlightLocation>;
+    verifications: Record<string, Verification>;
     summary: {
       total: number;
       verified: number;
@@ -39,7 +44,7 @@ interface ChatMessageProps {
 export function ChatMessage({
   message,
   verification,
-  citationDisplay = "inline"
+  citationDisplay = "inline",
 }: ChatMessageProps) {
   const isUser = message.role === "user";
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null);
@@ -48,8 +53,12 @@ export function ChatMessage({
   console.log("[ChatMessage] message:", JSON.stringify(message, null, 2));
 
   // AI SDK v6 uses parts array, fall back to content for compatibility
-  const messageContent = message.content ||
-    message.parts?.filter(p => p.type === "text").map(p => p.text).join("") ||
+  const messageContent =
+    message.content ||
+    message.parts
+      ?.filter((p) => p.type === "text")
+      .map((p) => p.text)
+      .join("") ||
     "";
 
   console.log("[ChatMessage] extracted content:", messageContent);
@@ -86,7 +95,9 @@ export function ChatMessage({
             {/* Footnotes section (only for footnotes mode) */}
             {citationDisplay === "footnotes" && footnotes.length > 0 && (
               <div className="mt-4 pt-3 border-t border-gray-200">
-                <p className="text-xs font-semibold text-gray-500 mb-2">References:</p>
+                <p className="text-xs font-semibold text-gray-500 mb-2">
+                  References:
+                </p>
                 <ol className="list-decimal list-inside text-xs text-gray-600 space-y-1">
                   {footnotes.map((footnote, index) => (
                     <li key={index} className="leading-relaxed">
@@ -122,8 +133,10 @@ export function ChatMessage({
 /**
  * Verification summary badge component
  */
-function VerificationSummaryBadge({ summary }: {
-  summary: { total: number; verified: number; missed: number; pending: number }
+function VerificationSummaryBadge({
+  summary,
+}: {
+  summary: { total: number; verified: number; missed: number; pending: number };
 }) {
   const allVerified = summary.verified === summary.total;
   const someVerified = summary.verified > 0;
@@ -149,30 +162,47 @@ function VerificationSummaryBadge({ summary }: {
  */
 function CitationFootnote({
   citation,
-  verification
+  verification,
 }: {
   citation: Citation;
-  verification?: FoundHighlightLocation;
+  verification?: Verification;
 }) {
   const status = getVerificationStatus(verification);
 
   return (
     <span className="inline-flex items-start gap-2">
-      <span className={`inline-flex items-center shrink-0 ${
-        status === "verified" ? "text-green-600" :
-        status === "partial" ? "text-yellow-600" :
-        status === "miss" ? "text-red-600" : "text-gray-400"
-      }`}>
-        {status === "verified" ? "✓" : status === "partial" ? "◐" : status === "miss" ? "✗" : "○"}
+      <span
+        className={`inline-flex items-center shrink-0 ${
+          status === "verified"
+            ? "text-green-600"
+            : status === "partial"
+            ? "text-yellow-600"
+            : status === "miss"
+            ? "text-red-600"
+            : "text-gray-400"
+        }`}
+      >
+        {status === "verified"
+          ? "✓"
+          : status === "partial"
+          ? "◐"
+          : status === "miss"
+          ? "✗"
+          : "○"}
       </span>
       <span>
         {citation.fullPhrase ? (
-          <span className="italic">"{citation.fullPhrase.slice(0, 100)}{citation.fullPhrase.length > 100 ? "..." : ""}"</span>
+          <span className="italic">
+            "{citation.fullPhrase.slice(0, 100)}
+            {citation.fullPhrase.length > 100 ? "..." : ""}"
+          </span>
         ) : (
           <span className="text-gray-400">No phrase captured</span>
         )}
         {verification?.pageNumber && (
-          <span className="text-gray-400 ml-1">(Page {verification.pageNumber})</span>
+          <span className="text-gray-400 ml-1">
+            (Page {verification.pageNumber})
+          </span>
         )}
       </span>
     </span>
@@ -180,21 +210,24 @@ function CitationFootnote({
 }
 
 /**
- * Get verification status from a FoundHighlightLocation
+ * Get verification status from a Verification
+ * Wraps the library's getCitationStatus for simpler string returns
  */
-function getVerificationStatus(verification?: FoundHighlightLocation): "verified" | "partial" | "miss" | "pending" {
+function getVerificationStatus(
+  verification?: Verification
+): "verified" | "partial" | "miss" | "pending" {
   if (!verification) return "pending";
 
-  const status = verification.searchState?.status;
-  if (status === "found") return "verified";
-  if (["partial_text_found", "found_on_other_page", "found_on_other_line"].includes(status || "")) return "partial";
-  if (status === "not_found") return "miss";
+  const status = getCitationStatus(verification);
+  if (status.isVerified && !status.isPartialMatch) return "verified";
+  if (status.isPartialMatch) return "partial";
+  if (status.isMiss) return "miss";
   return "pending";
 }
 
 interface FootnoteData {
   citation: Citation;
-  verification?: FoundHighlightLocation;
+  verification?: Verification;
 }
 
 /**
@@ -209,10 +242,10 @@ function processContentWithCitations(
   content: string,
   verification?: {
     citations: Record<string, Citation>;
-    verifications: Record<string, FoundHighlightLocation>;
+    verifications: Record<string, Verification>;
   },
   displayMode: "inline" | "superscript" | "footnotes" | "clean" = "inline",
-  onHoverCitation?: (key: string | null) => void,
+  onHoverCitation?: (key: string | null) => void
 ): { processedContent: React.ReactNode; footnotes: FootnoteData[] } {
   const footnotes: FootnoteData[] = [];
 
@@ -232,7 +265,11 @@ function processContentWithCitations(
   // Parse citation tags and build replacement map
   // Citation format: <cite pageNumber="X" lineId="Y">quoted text</cite> or <cite pageNumber="X" lineId="Y" />
   const citationRegex = /<cite\s+([^>]*?)(?:\/>|>(.*?)<\/cite>)/gs;
-  const parts: Array<{ type: "text" | "citation"; content: string; key?: string }> = [];
+  const parts: Array<{
+    type: "text" | "citation";
+    content: string;
+    key?: string;
+  }> = [];
 
   let lastIndex = 0;
   let match;
@@ -243,7 +280,7 @@ function processContentWithCitations(
     if (match.index > lastIndex) {
       parts.push({
         type: "text",
-        content: content.slice(lastIndex, match.index)
+        content: content.slice(lastIndex, match.index),
       });
     }
 
@@ -260,7 +297,7 @@ function processContentWithCitations(
     parts.push({
       type: "citation",
       content: match[2] || "", // The quoted text inside the tag
-      key
+      key,
     });
 
     lastIndex = match.index + match[0].length;
@@ -295,15 +332,19 @@ function processContentWithCitations(
       const status = getVerificationStatus(verificationData);
 
       if (displayMode === "inline") {
-        // Inline badge with full verification status
+        // Use the official CitationComponent from the library
         elements.push(
-          <CitationBadge
+          <CitationComponent
             key={`citation-${part.key}`}
-            citationNumber={parseInt(part.key)}
-            status={status}
-            matchSnippet={verificationData?.matchSnippet ?? undefined}
-            pageNumber={verificationData?.pageNumber ?? undefined}
-            onHover={() => onHoverCitation?.(part.key!)}
+            citation={{
+              citationNumber: parseInt(part.key),
+              fullPhrase: citation?.fullPhrase,
+              value: citation?.value,
+              pageNumber: citation?.pageNumber,
+            }}
+            foundCitation={verificationData}
+            variant="brackets"
+            popoverPosition="top"
           />
         );
       } else if (displayMode === "superscript") {
@@ -312,9 +353,13 @@ function processContentWithCitations(
           <sup
             key={`citation-${part.key}`}
             className={`cursor-help font-semibold ${
-              status === "verified" ? "text-green-600" :
-              status === "partial" ? "text-yellow-600" :
-              status === "miss" ? "text-red-600" : "text-gray-400"
+              status === "verified"
+                ? "text-green-600"
+                : status === "partial"
+                ? "text-yellow-600"
+                : status === "miss"
+                ? "text-red-600"
+                : "text-gray-400"
             }`}
             title={verificationData?.matchSnippet || citation?.fullPhrase || ""}
           >

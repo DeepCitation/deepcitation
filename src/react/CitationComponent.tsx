@@ -1,10 +1,29 @@
-import React, { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import React, {
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { type CitationStatus } from "../types/citation.js";
-import type { FoundHighlightLocation } from "../types/foundHighlight.js";
+import type { Verification } from "../types/verification.js";
 import { CheckIcon, WarningIcon } from "./icons.js";
-import type { BaseCitationProps, CitationEventHandlers, CitationRenderProps, CitationVariant } from "./types.js";
-import { classNames, generateCitationInstanceId, generateCitationKey, getCitationDisplayText } from "./utils.js";
+import type {
+  BaseCitationProps,
+  CitationEventHandlers,
+  CitationRenderProps,
+  CitationVariant,
+} from "./types.js";
+import {
+  classNames,
+  generateCitationInstanceId,
+  generateCitationKey,
+  getCitationDisplayText,
+} from "./utils.js";
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import "./styles.css";
 
@@ -79,7 +98,7 @@ export interface CitationComponentProps extends BaseCitationProps {
    * Verification result from the DeepCitation API.
    * Contains match snippet, page number, and verification image.
    */
-  foundCitation?: FoundHighlightLocation | null;
+  foundCitation?: Verification | null;
 
   /**
    * Display variant for the citation.
@@ -126,7 +145,7 @@ export interface CitationComponentProps extends BaseCitationProps {
    */
   renderPopoverContent?: (props: {
     citation: BaseCitationProps["citation"];
-    foundCitation: FoundHighlightLocation | null;
+    foundCitation: Verification | null;
     status: CitationStatus;
   }) => ReactNode;
 }
@@ -174,7 +193,8 @@ function getStatusLabel(status: CitationStatus): string {
  * Get popover status CSS class.
  */
 function getPopoverStatusClass(status: CitationStatus): string {
-  if (status.isVerified && !status.isPartialMatch) return "dc-popover-status--verified";
+  if (status.isVerified && !status.isPartialMatch)
+    return "dc-popover-status--verified";
   if (status.isPartialMatch) return "dc-popover-status--partial";
   if (status.isMiss) return "dc-popover-status--miss";
   if (status.isPending) return "dc-popover-status--pending";
@@ -190,7 +210,8 @@ function getPopoverStatusClass(status: CitationStatus): string {
  */
 function getFoundStatusClass(status: CitationStatus): string {
   // Both verified AND partial are "found" - they get the same text styling
-  if (status.isVerified || status.isPartialMatch) return "dc-citation--verified";
+  if (status.isVerified || status.isPartialMatch)
+    return "dc-citation--verified";
   if (status.isMiss) return "dc-citation--miss";
   if (status.isPending) return "dc-citation--pending";
   return "";
@@ -213,7 +234,7 @@ const StatusTooltipContent = ({
 }: {
   citation: BaseCitationProps["citation"];
   status: CitationStatus;
-  foundCitation: FoundHighlightLocation | null;
+  foundCitation: Verification | null;
   isExpanded: boolean;
   onToggleExpand: () => void;
 }) => {
@@ -223,7 +244,7 @@ const StatusTooltipContent = ({
 
   // Get search attempts from foundCitation
   const searchAttempts = foundCitation?.searchState?.searchAttempts;
-  const failedAttempts = searchAttempts?.filter(a => !a.success) || [];
+  const failedAttempts = searchAttempts?.filter((a) => !a.success) || [];
 
   // Collect all unique phrases tried
   const allPhrases: string[] = [];
@@ -258,20 +279,27 @@ const StatusTooltipContent = ({
           <span className="dc-search-phrases">
             <span className="dc-search-phrases-header">
               {hiddenCount > 0 && (
-                <button type="button" className="dc-search-phrases-toggle" onClick={onToggleExpand}>
+                <button
+                  type="button"
+                  className="dc-search-phrases-toggle"
+                  onClick={onToggleExpand}
+                >
                   {isExpanded ? "collapse" : `+${hiddenCount} more`}
                 </button>
               )}
               <span className="dc-status-label">
-                Searched {allPhrases.length} phrase{allPhrases.length > 1 ? "s" : ""}
+                Searched {allPhrases.length} phrase
+                {allPhrases.length > 1 ? "s" : ""}
               </span>
             </span>
             <span className="dc-search-phrases-list">
-              {(isExpanded ? allPhrases : allPhrases.slice(0, 1)).map((phrase, idx) => (
-                <span key={idx} className="dc-search-phrase-item">
-                  "{phrase.length > 80 ? phrase.slice(0, 80) + "…" : phrase}"
-                </span>
-              ))}
+              {(isExpanded ? allPhrases : allPhrases.slice(0, 1)).map(
+                (phrase, idx) => (
+                  <span key={idx} className="dc-search-phrase-item">
+                    "{phrase.length > 80 ? phrase.slice(0, 80) + "…" : phrase}"
+                  </span>
+                )
+              )}
             </span>
           </span>
         )}
@@ -282,8 +310,12 @@ const StatusTooltipContent = ({
   if (isPartialMatch) {
     const expectedText = citation.fullPhrase || citation.value || "";
     const actualText = foundCitation?.matchSnippet || "";
-    const truncatedExpected = expectedText.length > 100 ? expectedText.slice(0, 100) + "…" : expectedText;
-    const truncatedActual = actualText.length > 100 ? actualText.slice(0, 100) + "…" : actualText;
+    const truncatedExpected =
+      expectedText.length > 100
+        ? expectedText.slice(0, 100) + "…"
+        : expectedText;
+    const truncatedActual =
+      actualText.length > 100 ? actualText.slice(0, 100) + "…" : actualText;
 
     return (
       <span className="dc-status-tooltip" role="tooltip">
@@ -291,7 +323,9 @@ const StatusTooltipContent = ({
           <WarningIcon />
           <span>Partial match</span>
         </span>
-        <span className="dc-status-description">Text differs from citation.</span>
+        <span className="dc-status-description">
+          Text differs from citation.
+        </span>
         {truncatedExpected && (
           <span className="dc-status-searched">
             <span className="dc-status-label">Expected</span>
@@ -315,14 +349,22 @@ const StatusTooltipContent = ({
  * Full-size image overlay component.
  * Uses portal to render at document body level.
  */
-const ImageOverlay = ({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) => {
+const ImageOverlay = ({
+  src,
+  alt,
+  onClose,
+}: {
+  src: string;
+  alt: string;
+  onClose: () => void;
+}) => {
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent) => {
       if (e.target === e.currentTarget) {
         onClose();
       }
     },
-    [onClose],
+    [onClose]
   );
 
   useEffect(() => {
@@ -345,10 +387,15 @@ const ImageOverlay = ({ src, alt, onClose }: { src: string; alt: string; onClose
       aria-label="Full size verification image"
     >
       <div className="dc-overlay-content" onClick={onClose}>
-        <img src={src} alt={alt} className="dc-overlay-image" draggable={false} />
+        <img
+          src={src}
+          alt={alt}
+          className="dc-overlay-image"
+          draggable={false}
+        />
       </div>
     </div>,
-    document.body,
+    document.body
   );
 };
 
@@ -362,7 +409,7 @@ const DefaultPopoverContent = ({
   onImageClick,
 }: {
   citation: BaseCitationProps["citation"];
-  foundCitation: FoundHighlightLocation | null;
+  foundCitation: Verification | null;
   status: CitationStatus;
   onImageClick?: (imageSrc: string) => void;
 }) => {
@@ -376,7 +423,7 @@ const DefaultPopoverContent = ({
         onImageClick(foundCitation.verificationImageBase64 as string);
       }
     },
-    [hasImage, foundCitation?.verificationImageBase64, onImageClick],
+    [hasImage, foundCitation?.verificationImageBase64, onImageClick]
   );
 
   // If we have a verification image, show only the image
@@ -410,9 +457,19 @@ const DefaultPopoverContent = ({
 
   return (
     <>
-      {statusLabel && <span className={classNames("dc-popover-status", statusClass)}>{statusLabel}</span>}
-      {hasSnippet && <span className="dc-popover-snippet">"{foundCitation.matchSnippet}"</span>}
-      {pageNumber && pageNumber > 0 && <span className="dc-popover-page">Page {pageNumber}</span>}
+      {statusLabel && (
+        <span className={classNames("dc-popover-status", statusClass)}>
+          {statusLabel}
+        </span>
+      )}
+      {hasSnippet && (
+        <span className="dc-popover-snippet">
+          "{foundCitation.matchSnippet}"
+        </span>
+      )}
+      {pageNumber && pageNumber > 0 && (
+        <span className="dc-popover-page">Page {pageNumber}</span>
+      )}
     </>
   );
 };
@@ -437,7 +494,10 @@ const DefaultPopoverContent = ({
  * This means partial matches have blue text (because they were found) but
  * an orange indicator (because they didn't match exactly).
  */
-export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentProps>(
+export const CitationComponent = forwardRef<
+  HTMLSpanElement,
+  CitationComponentProps
+>(
   (
     {
       citation,
@@ -454,11 +514,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       popoverPosition = "top",
       renderPopoverContent,
     },
-    ref,
+    ref
   ) => {
     const containerRef = useRef<HTMLSpanElement>(null);
     const wrapperRef = useRef<HTMLSpanElement>(null);
-    const [expandedImageSrc, setExpandedImageSrc] = useState<string | null>(null);
+    const [expandedImageSrc, setExpandedImageSrc] = useState<string | null>(
+      null
+    );
     const [isTooltipExpanded, setIsTooltipExpanded] = useState(false);
     const [isPhrasesExpanded, setIsPhrasesExpanded] = useState(false);
 
@@ -473,7 +535,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const handleTogglePhrases = useCallback((e?: React.MouseEvent) => {
       e?.preventDefault();
       e?.stopPropagation();
-      setIsPhrasesExpanded(prev => !prev);
+      setIsPhrasesExpanded((prev) => !prev);
     }, []);
 
     // Handle click outside to close expanded tooltip
@@ -481,7 +543,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       if (!isTooltipExpanded) return;
 
       const handleClickOutside = (event: MouseEvent) => {
-        if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        if (
+          wrapperRef.current &&
+          !wrapperRef.current.contains(event.target as Node)
+        ) {
           setIsTooltipExpanded(false);
         }
       };
@@ -509,8 +574,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       };
     }, [isTooltipExpanded]);
 
-    const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
-    const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
+    const citationKey = useMemo(
+      () => generateCitationKey(citation),
+      [citation]
+    );
+    const citationInstanceId = useMemo(
+      () => generateCitationInstanceId(citationKey),
+      [citationKey]
+    );
 
     const handleToggleTooltip = useCallback(
       (e: React.MouseEvent<HTMLSpanElement>) => {
@@ -532,8 +603,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           }
         } else {
           // No image - toggle phrases expansion for miss/partial tooltips
-          setIsTooltipExpanded(prev => !prev);
-          setIsPhrasesExpanded(prev => !prev);
+          setIsTooltipExpanded((prev) => !prev);
+          setIsPhrasesExpanded((prev) => !prev);
         }
 
         eventHandlers?.onClick?.(citation, citationKey, e);
@@ -545,7 +616,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         foundCitation?.verificationImageBase64,
         expandedImageSrc,
         isTooltipExpanded,
-      ],
+      ]
     );
 
     const status = getCitationStatus(foundCitation ?? null);
@@ -560,13 +631,19 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       // For text/minimal/brackets, show the value or fullPhrase
       return getCitationDisplayText(citation, {
         displayCitationValue:
-          variant === "text" || variant === "minimal" || variant === "brackets" || displayCitationValue,
+          variant === "text" ||
+          variant === "minimal" ||
+          variant === "brackets" ||
+          displayCitationValue,
         fallbackDisplay,
       });
     }, [citation, variant, displayCitationValue, fallbackDisplay]);
 
     // Found status class for text styling (blue for found, gray for miss)
-    const foundStatusClass = useMemo(() => getFoundStatusClass(status), [status]);
+    const foundStatusClass = useMemo(
+      () => getFoundStatusClass(status),
+      [status]
+    );
 
     // Event handlers
     const handleMouseEnter = useCallback(() => {
@@ -585,12 +662,21 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           eventHandlers?.onTouchEnd?.(citation, citationKey, e);
         }
       },
-      [eventHandlers, citation, citationKey, isMobile],
+      [eventHandlers, citation, citationKey, isMobile]
     );
 
     // Early return for miss with fallback display
-    if (fallbackDisplay !== null && fallbackDisplay !== undefined && displayCitationValue && isMiss) {
-      return <span className={classNames("dc-citation-fallback", className)}>{fallbackDisplay}</span>;
+    if (
+      fallbackDisplay !== null &&
+      fallbackDisplay !== undefined &&
+      displayCitationValue &&
+      isMiss
+    ) {
+      return (
+        <span className={classNames("dc-citation-fallback", className)}>
+          {fallbackDisplay}
+        </span>
+      );
     }
 
     // Render the appropriate indicator based on match quality
@@ -605,7 +691,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         return <DefaultPartialIndicator />;
       } else if (isPending) {
         return (
-          <span className="dc-indicator dc-indicator--pending" aria-hidden="true">
+          <span
+            className="dc-indicator dc-indicator--pending"
+            aria-hidden="true"
+          >
             {TWO_DOTS_THINKING_CONTENT}
           </span>
         );
@@ -624,13 +713,18 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           status,
           citationKey,
           displayText,
-          isMergedDisplay: variant === "text" || variant === "brackets" || displayCitationValue,
+          isMergedDisplay:
+            variant === "text" ||
+            variant === "brackets" ||
+            displayCitationValue,
         });
       }
 
       // Indicator-only variant - just the checkmark/warning
       if (variant === "indicator") {
-        return <span className="dc-citation-text">{renderStatusIndicator()}</span>;
+        return (
+          <span className="dc-citation-text">{renderStatusIndicator()}</span>
+        );
       }
 
       // Text variant - no special styling, shows value with indicator
@@ -665,7 +759,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
       // Brackets variant (default) - value/number in brackets with styling
       return (
-        <span className="dc-citation-bracket" aria-hidden="true" role="presentation">
+        <span
+          className="dc-citation-bracket"
+          aria-hidden="true"
+          role="presentation"
+        >
           [
           <span className="dc-citation-text">
             {displayText}
@@ -679,16 +777,24 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Determine if popover should be shown
     const isPopoverHidden = popoverPosition === "hidden";
     const shouldShowPopover =
-      !isPopoverHidden && foundCitation && (foundCitation.verificationImageBase64 || foundCitation.matchSnippet);
+      !isPopoverHidden &&
+      foundCitation &&
+      (foundCitation.verificationImageBase64 || foundCitation.matchSnippet);
     // Determine if status tooltip should be shown (miss/partial without full verification)
-    const shouldShowStatusTooltip = !isPopoverHidden && (isMiss || isPartialMatch) && !shouldShowPopover;
+    const shouldShowStatusTooltip =
+      !isPopoverHidden && (isMiss || isPartialMatch) && !shouldShowPopover;
 
     // Popover content - determine position class (only "top" or "bottom" add classes)
-    const popoverPositionClass = popoverPosition === "bottom" ? "dc-popover--bottom" : "";
+    const popoverPositionClass =
+      popoverPosition === "bottom" ? "dc-popover--bottom" : "";
     const popoverContent = shouldShowPopover ? (
       <span className={classNames("dc-popover", popoverPositionClass)}>
         {renderPopoverContent ? (
-          renderPopoverContent({ citation, foundCitation: foundCitation ?? null, status })
+          renderPopoverContent({
+            citation,
+            foundCitation: foundCitation ?? null,
+            status,
+          })
         ) : (
           <DefaultPopoverContent
             citation={citation}
@@ -713,8 +819,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     const citationTrigger = (
       <span
-        ref={node => {
-          (containerRef as React.RefObject<HTMLSpanElement | null>).current = node;
+        ref={(node) => {
+          (containerRef as React.RefObject<HTMLSpanElement | null>).current =
+            node;
           if (typeof ref === "function") {
             ref(node);
           } else if (ref) {
@@ -725,7 +832,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         data-citation-instance={citationInstanceId}
         data-tooltip-expanded={isTooltipExpanded}
         data-has-image={!!foundCitation?.verificationImageBase64}
-        className={classNames("dc-citation", `dc-citation--${variant}`, foundStatusClass, className)}
+        className={classNames(
+          "dc-citation",
+          `dc-citation--${variant}`,
+          foundStatusClass,
+          className
+        )}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleToggleTooltip}
@@ -739,7 +851,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // Image overlay for full-size view
     const imageOverlay = expandedImageSrc ? (
-      <ImageOverlay src={expandedImageSrc} alt="Citation verification - full size" onClose={handleCloseOverlay} />
+      <ImageOverlay
+        src={expandedImageSrc}
+        alt="Citation verification - full size"
+        onClose={handleCloseOverlay}
+      />
     ) : null;
 
     // Wrap with popover or status tooltip if needed
@@ -747,7 +863,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return (
         <>
           {children}
-          <span className="dc-popover-wrapper" ref={wrapperRef} data-expanded={isTooltipExpanded}>
+          <span
+            className="dc-popover-wrapper"
+            ref={wrapperRef}
+            data-expanded={isTooltipExpanded}
+          >
             {citationTrigger}
             {popoverContent}
             {statusTooltipContent}
@@ -764,7 +884,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         {imageOverlay}
       </>
     );
-  },
+  }
 );
 
 CitationComponent.displayName = "CitationComponent";
