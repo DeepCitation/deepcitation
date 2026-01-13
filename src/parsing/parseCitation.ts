@@ -65,7 +65,7 @@ export function getCitationStatus(
   const isFullMatchWithMissedValue =
     searchState?.status === "found_phrase_missed_value";
   const isFoundValueMissedFullMatch =
-    searchState?.status === "found_value_only";
+    searchState?.status === "found_key_span_only";
 
   const isPartialMatch =
     searchState?.status === "partial_text_found" ||

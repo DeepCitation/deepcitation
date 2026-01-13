@@ -11,8 +11,11 @@ import type { Citation } from "../types/citation.js";
 describe("getCitationStatus", () => {
   it("marks verified citations", () => {
     const found: Verification = {
-      lowerCaseSearchTerm: "term",
-      attachmentId: "file",
+      citation: {
+        keySpan: "term",
+        fullPhrase: "term",
+        fileId: "file",
+      },
       pageNumber: 2,
       searchState: { status: "found" },
       matchSnippet: "snippet",
@@ -24,8 +27,11 @@ describe("getCitationStatus", () => {
 
   it("marks misses and pending states", () => {
     const miss: Verification = {
-      lowerCaseSearchTerm: "term",
-      attachmentId: "file",
+      citation: {
+        keySpan: "term",
+        fullPhrase: "term",
+        fileId: "file",
+      },
       pageNumber: NOT_FOUND_VERIFICATION_INDEX,
       searchState: { status: "not_found" },
       matchSnippet: "snippet",
@@ -41,8 +47,12 @@ describe("getCitationStatus", () => {
   describe("explicit status coverage", () => {
     it("treats found_on_other_page as partial match and verified", () => {
       const verification: Verification = {
-        lowerCaseSearchTerm: "term",
-        attachmentId: "file",
+        citation: {
+          keySpan: "term",
+          fullPhrase: "term",
+          fileId: "file",
+          pageNumber: 4,
+        },
         pageNumber: 5,
         searchState: { status: "found_on_other_page" },
         matchSnippet: "snippet",
@@ -56,10 +66,20 @@ describe("getCitationStatus", () => {
 
     it("treats found_on_other_line as partial match and verified", () => {
       const verification: Verification = {
-        lowerCaseSearchTerm: "term",
-        attachmentId: "file",
+        citation: {
+          keySpan: "term",
+          fullPhrase: "term",
+          fileId: "file",
+          pageNumber: 3,
+          lineIds: [1, 2, 3],
+        },
         pageNumber: 3,
-        searchState: { status: "found_on_other_line" },
+
+        searchState: {
+          status: "found_on_other_line",
+          actualLineIds: [2, 3],
+          expectedLineIds: [1, 2, 3],
+        },
         matchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
@@ -69,8 +89,12 @@ describe("getCitationStatus", () => {
 
     it("treats first_word_found as partial match and verified", () => {
       const verification: Verification = {
-        lowerCaseSearchTerm: "term",
-        attachmentId: "file",
+        citation: {
+          keySpan: "term",
+          fullPhrase: "term",
+          fileId: "file",
+          pageNumber: 1,
+        },
         pageNumber: 1,
         searchState: { status: "first_word_found" },
         matchSnippet: "snippet",
@@ -82,8 +106,11 @@ describe("getCitationStatus", () => {
 
     it("treats partial_text_found as partial match and verified", () => {
       const verification: Verification = {
-        lowerCaseSearchTerm: "term",
-        attachmentId: "file",
+        citation: {
+          keySpan: "term",
+          fullPhrase: "term",
+          fileId: "file",
+        },
         pageNumber: 2,
         searchState: { status: "partial_text_found" },
         matchSnippet: "snippet",
@@ -93,12 +120,15 @@ describe("getCitationStatus", () => {
       expect(status.isVerified).toBe(true);
     });
 
-    it("treats found_value_only as verified but not partial", () => {
+    it("treats found_key_span_only as verified but not partial", () => {
       const verification: Verification = {
-        lowerCaseSearchTerm: "term",
-        attachmentId: "file",
+        citation: {
+          keySpan: "term",
+          fullPhrase: "term",
+          fileId: "file",
+        },
         pageNumber: 2,
-        searchState: { status: "found_value_only" },
+        searchState: { status: "found_key_span_only" },
         matchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
@@ -108,8 +138,11 @@ describe("getCitationStatus", () => {
 
     it("treats found_phrase_missed_value as verified but not partial", () => {
       const verification: Verification = {
-        lowerCaseSearchTerm: "term",
-        attachmentId: "file",
+        citation: {
+          keySpan: "term",
+          fullPhrase: "term",
+          fileId: "file",
+        },
         pageNumber: 2,
         searchState: { status: "found_phrase_missed_value" },
         matchSnippet: "snippet",
@@ -121,8 +154,11 @@ describe("getCitationStatus", () => {
 
     it("treats loading status as pending", () => {
       const verification: Verification = {
-        lowerCaseSearchTerm: "term",
-        attachmentId: "file",
+        citation: {
+          keySpan: "term",
+          fullPhrase: "term",
+          fileId: "file",
+        },
         pageNumber: 2,
         searchState: { status: "loading" },
         matchSnippet: "snippet",
@@ -134,8 +170,12 @@ describe("getCitationStatus", () => {
 
     it("treats pending status as pending", () => {
       const verification: Verification = {
-        lowerCaseSearchTerm: "term",
-        attachmentId: "file",
+        citation: {
+          keySpan: "term",
+          fullPhrase: "term",
+          fileId: "file",
+          pageNumber: 2,
+        },
         pageNumber: 2,
         searchState: { status: "pending" },
         matchSnippet: "snippet",
@@ -147,8 +187,11 @@ describe("getCitationStatus", () => {
 
     it("treats not_found as miss but not verified", () => {
       const verification: Verification = {
-        lowerCaseSearchTerm: "term",
-        attachmentId: "file",
+        citation: {
+          keySpan: "term",
+          fullPhrase: "term",
+          fileId: "file",
+        },
         pageNumber: NOT_FOUND_VERIFICATION_INDEX,
         searchState: { status: "not_found" },
         matchSnippet: "snippet",
@@ -161,8 +204,12 @@ describe("getCitationStatus", () => {
 
     it("treats null searchState as pending", () => {
       const verification: Verification = {
-        lowerCaseSearchTerm: "term",
-        attachmentId: "file",
+        citation: {
+          keySpan: "term",
+          fullPhrase: "term",
+          fileId: "file",
+          pageNumber: 2,
+        },
         pageNumber: 2,
         searchState: null,
         matchSnippet: "snippet",
@@ -194,7 +241,6 @@ describe("parseCitation", () => {
     expect(citation.fileId).toBe("override-attachment");
     expect(citation.fullPhrase).toBe("Hello's world");
     expect(citation.keySpan).toBe("world");
-    expect(citation.value).toBe("USD 12");
     expect(citation.lineIds).toEqual([1, 3]);
   });
 
@@ -320,7 +366,7 @@ describe("parseCitation", () => {
       const fragment =
         "<cite file_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1' value='$100' />";
       const parsed = parseCitation(fragment);
-      expect(parsed.citation.value).toBe("$100");
+      expect(parsed.citation.keySpan).toBe("phrase");
       expect(parsed.citation.reasoning).toBeUndefined();
     });
 
@@ -329,14 +375,14 @@ describe("parseCitation", () => {
         "<cite file_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1' reasoning='This is because...' />";
       const parsed = parseCitation(fragment);
       expect(parsed.citation.reasoning).toBe("This is because...");
-      expect(parsed.citation.value).toBeUndefined();
+      expect(parsed.citation.keySpan).toBe("phrase");
     });
 
     it("parses AV citation with value attribute", () => {
       const fragment =
         "<cite file_id='av12345678901234567' full_phrase='audio' timestamps='00:01-00:02' value='transcript' />";
       const parsed = parseCitation(fragment);
-      expect(parsed.citation.value).toBe("transcript");
+      expect(parsed.citation.keySpan).toBe("transcript");
       expect(parsed.citation.reasoning).toBeUndefined();
     });
 
@@ -345,7 +391,7 @@ describe("parseCitation", () => {
         "<cite file_id='av12345678901234567' full_phrase='audio' timestamps='00:01-00:02' reasoning='Speaker said this' />";
       const parsed = parseCitation(fragment);
       expect(parsed.citation.reasoning).toBe("Speaker said this");
-      expect(parsed.citation.value).toBeUndefined();
+      expect(parsed.citation.keySpan).toBeUndefined();
     });
   });
 
@@ -491,7 +537,6 @@ describe("getAllCitationsFromLlmOutput", () => {
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("price line");
       expect(citation.keySpan).toBe("price");
-      expect(citation.value).toBe("$100.00");
     });
 
     it("extracts AV citation with timestamps", () => {
@@ -784,13 +829,13 @@ describe("getAllCitationsFromLlmOutput", () => {
       const input: Citation = {
         fullPhrase: "test phrase",
         fileId: "f1",
-        value: "$500",
+        keySpan: "$500",
         reasoning: "This is the reasoning",
       };
       const result = getAllCitationsFromLlmOutput(input);
       const citation = Object.values(result)[0];
 
-      expect(citation.value).toBe("$500");
+      expect(citation.keySpan).toBe("$500");
       expect(citation.reasoning).toBe("This is the reasoning");
     });
 
@@ -880,7 +925,7 @@ describe("getAllCitationsFromLlmOutput", () => {
         full_phrase: "The quick brown fox",
         start_page_key: "page_number_7_index_2",
         line_ids: [10, 5, 15],
-        value: "$100.00",
+        keySpan: "$100.00",
       };
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -890,7 +935,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.fullPhrase).toBe("The quick brown fox");
       expect(citation.pageNumber).toBe(7);
       expect(citation.lineIds).toEqual([5, 10, 15]);
-      expect(citation.value).toBe("$100.00");
+      expect(citation.keySpan).toBe("$100.00");
     });
 
     it("parses array of snake_case citations", () => {

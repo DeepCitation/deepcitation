@@ -4,7 +4,7 @@ export type SearchStatus =
   | "not_found"
   | "partial_text_found"
   | "found"
-  | "found_value_only"
+  | "found_key_span_only"
   | "found_phrase_missed_value"
   | "found_on_other_page"
   | "found_on_other_line"
