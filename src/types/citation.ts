@@ -19,7 +19,6 @@ export interface Citation {
   fileId?: string;
   fullPhrase?: string | null;
   keySpan?: string | null;
-  value?: string | null;
 
   startPageKey?: string | null;
 
