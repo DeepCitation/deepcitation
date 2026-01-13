@@ -46,6 +46,8 @@ export interface Verification {
 
   hitIndexWithinPage?: number | null;
 
+  highlightColor?: string | null;
+
   matchSnippet?: string | null;
 
   pdfSpaceItem?: PdfSpaceItem;

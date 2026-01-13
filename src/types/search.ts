@@ -15,6 +15,7 @@ export type SearchMethod =
   | "exact_line_match"
   | "line_with_buffer"
   | "current_page"
+  | "keyspan_fallback"
   | "adjacent_pages"
   | "expanded_window"
   | "regex_search"
@@ -27,12 +28,21 @@ export interface SearchAttempt {
   success: boolean;
   searchPhrases: string[]; // The actual phrase(s) searched for (e.g., ["$4.89", "4.89"])
   pageSearched?: number;
+
+  matchedPhrases?: string[];
+  matchedVariation?: string; // 'fullPhrase' | 'keySpan' | 'value'
+  phraseVariations?: string[];
+  matchQuality?: string; // 'exact' | 'partial_keyspan' | 'value_only' | 'fuzzy'
+  isPartialMatch?: boolean; // true when keySpan < 50% of fullPhrase
+
   matchScore?: number; // For BM25 and other scoring methods
   matchSnippet?: string;
   notes?: string; // Additional context about why it failed/succeeded
-  durationMs?: number; // Time taken in milliseconds
+
   startTime?: number; // Timestamp when search started
   endTime?: number; // Timestamp when search ended
+
+  durationMs?: number; // Time taken in milliseconds
 }
 
 export interface SearchState {
