@@ -1,14 +1,17 @@
 import { sha1Hash } from "../utils/sha.js";
 import type { Citation } from "../types/citation.js";
+import { getCitationPageNumber } from "@/parsing/normalizeCitation.js";
 
 /**
  * Generates a unique, deterministic key for a citation based on its content.
  * Uses a hash of the citation's identifying properties.
  */
 export function generateCitationKey(citation: Citation): string {
+  const pageNumber =
+    citation.pageNumber || getCitationPageNumber(citation.startPageKey);
   const keyParts = [
     citation.fileId || "",
-    citation.pageNumber?.toString() || "",
+    pageNumber?.toString() || "",
     citation.fullPhrase || "",
     citation.keySpan?.toString() || "",
     citation.lineIds?.join(",") || "",
