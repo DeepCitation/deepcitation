@@ -1,6 +1,6 @@
 import { sha1Hash } from "../utils/sha.js";
 import type { Citation } from "../types/citation.js";
-import { getCitationPageNumber } from "@/parsing/normalizeCitation.js";
+import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
 
 /**
  * Generates a unique, deterministic key for a citation based on its content.
