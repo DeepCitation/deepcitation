@@ -7,7 +7,7 @@ Complete, runnable examples demonstrating DeepCitation integration patterns.
 | Example | Description | Best For |
 |---------|-------------|----------|
 | [**basic-verification**](./basic-verification) | Core 3-step workflow with OpenAI/Anthropic | Learning the basics, quick integration |
-| [**support-bot**](./support-bot) | Customer support bot with invisible citations | Production apps, customer-facing AI |
+| [**intercom-bot**](./intercom-bot) | Intercom integration with invisible citations | Customer support, Intercom users |
 | [**nextjs-ai-sdk**](./nextjs-ai-sdk) | Next.js chat app with Vercel AI SDK | Full-stack apps, streaming UI |
 
 ## Quick Start
@@ -17,7 +17,7 @@ Complete, runnable examples demonstrating DeepCitation integration patterns.
 cd packages/deepcitation/examples
 
 # Choose an example
-cd basic-verification  # or support-bot
+cd basic-verification  # or intercom-bot
 
 # Install and run
 npm install
@@ -64,27 +64,27 @@ for (const [key, verification] of Object.entries(result.citations)) {
 }
 ```
 
-### Support Bot
+### Intercom Bot
 
-Production-ready pattern for customer-facing apps:
+Intercom integration with invisible citation verification:
 
 ```typescript
-const bot = new SupportBot({
+const bot = new IntercomBot({
   deepcitationApiKey: "...",
   openaiApiKey: "...",
+  intercomAccessToken: "...",
   minConfidenceThreshold: 0.8,
 });
 
-await bot.loadKnowledgeBase(faqDocument, "faq.pdf");
+await bot.loadKnowledgeBase([
+  { content: faqContent, filename: "faq.txt" },
+]);
 
-const response = await bot.answer("What is your refund policy?");
+// Handle incoming Intercom webhook
+await bot.handleIncomingMessage(conversationId, userMessage, adminId);
 
 // Customer sees clean response (no citations)
-console.log(response.cleanResponse);
-
-// You track confidence internally
-console.log(`Confidence: ${response.confidence}`);
-console.log(`Needs review: ${response.needsReview}`);
+// Admin sees internal note with confidence score
 ```
 
 ### Next.js AI SDK

@@ -24,14 +24,6 @@ export const BLANK_VERIFICATION: Verification = {
   },
 };
 
-export function deterministicIdFromVerification(
-  verification: Verification
-): string {
-  return sha1Hash(
-    `${verification.lowerCaseSearchTerm}-${verification.attachmentId}-${verification.pageNumber}-${verification.hitIndexWithinPage}-${verification.matchSnippet}-${verification?.hitIndexWithinPage}`
-  );
-}
-
 export interface Verification {
   regex?: RegExp | null;
   lowerCaseSearchTerm: string | null; // e.g. "ca013c03-0001"

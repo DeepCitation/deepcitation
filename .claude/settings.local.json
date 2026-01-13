@@ -24,7 +24,8 @@
       "Bash(npx playwright install:*)",
       "Bash(find:*)",
       "Bash(node -e:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "WebFetch(domain:developers.intercom.com)"
     ]
   }
 }

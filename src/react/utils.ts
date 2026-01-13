@@ -11,7 +11,6 @@ export function generateCitationKey(citation: Citation): string {
     citation.pageNumber?.toString() || "",
     citation.fullPhrase || "",
     citation.keySpan?.toString() || "",
-    citation.value || "",
     citation.lineIds?.join(",") || "",
     citation.timestamps?.startTime || "",
     citation.timestamps?.endTime || "",

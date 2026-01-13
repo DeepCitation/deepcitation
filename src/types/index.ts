@@ -22,7 +22,6 @@ export {
   NOT_FOUND_VERIFICATION_INDEX,
   PENDING_VERIFICATION_INDEX,
   BLANK_VERIFICATION,
-  deterministicIdFromVerification,
 } from "./verification.js";
 
 // Search state types
