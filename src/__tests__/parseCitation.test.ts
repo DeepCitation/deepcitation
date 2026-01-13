@@ -627,6 +627,16 @@ describe("getAllCitationsFromLlmOutput", () => {
       const citation = Object.values(result)[0];
       expect(citation.pageNumber).toBeUndefined();
     });
+
+    it("parses page number from n_m format (e.g., '5_4' for page 5, index 4)", () => {
+      const input: Citation = {
+        fullPhrase: "test",
+        startPageKey: "5_4",
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+      const citation = Object.values(result)[0];
+      expect(citation.pageNumber).toBe(5);
+    });
   });
 
   describe("JSON citation lineIds handling", () => {

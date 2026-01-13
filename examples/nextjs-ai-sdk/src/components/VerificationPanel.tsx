@@ -41,8 +41,8 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
               verificationRate >= 80
                 ? "text-green-600"
                 : verificationRate >= 50
-                  ? "text-yellow-600"
-                  : "text-red-600"
+                ? "text-yellow-600"
+                : "text-red-600"
             }`}
           >
             {verificationRate.toFixed(0)}%
@@ -56,8 +56,8 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
               verificationRate >= 80
                 ? "bg-green-500"
                 : verificationRate >= 50
-                  ? "bg-yellow-500"
-                  : "bg-red-500"
+                ? "bg-yellow-500"
+                : "bg-red-500"
             }`}
             style={{ width: `${verificationRate}%` }}
           />
@@ -99,14 +99,9 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
           const isExpanded = expandedCitation === key;
 
           return (
-            <div
-              key={key}
-              className="border-b last:border-b-0"
-            >
+            <div key={key} className="border-b last:border-b-0">
               <button
-                onClick={() =>
-                  setExpandedCitation(isExpanded ? null : key)
-                }
+                onClick={() => setExpandedCitation(isExpanded ? null : key)}
                 className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 text-left"
               >
                 {/* Status icon */}
@@ -115,10 +110,10 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                     isVerified
                       ? "bg-green-100 text-green-600"
                       : isPartial
-                        ? "bg-yellow-100 text-yellow-600"
-                        : isMiss
-                          ? "bg-red-100 text-red-600"
-                          : "bg-gray-100 text-gray-600"
+                      ? "bg-yellow-100 text-yellow-600"
+                      : isMiss
+                      ? "bg-red-100 text-red-600"
+                      : "bg-gray-100 text-gray-600"
                   }`}
                 >
                   {isVerified ? "✓" : isPartial ? "◐" : isMiss ? "✗" : "○"}
@@ -172,14 +167,15 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                         Visual Proof
                       </div>
                       <img
-                        src={`data:image/png;base64,${v.verificationImageBase64}`}
+                        src={v.verificationImageBase64}
                         alt="Verification proof"
                         className="w-full rounded border"
                       />
                     </div>
                   )}
 
-                  {v.searchState?.actualPage !== v.searchState?.expectedPage && (
+                  {v.searchState?.actualPage !==
+                    v.searchState?.expectedPage && (
                     <div className="text-xs text-yellow-600">
                       Found on page {v.searchState?.actualPage} (expected{" "}
                       {v.searchState?.expectedPage})
