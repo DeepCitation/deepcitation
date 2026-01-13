@@ -1,57 +1,51 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useEffectEvent } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { FileUpload } from "@/components/FileUpload";
 import { VerificationPanel } from "@/components/VerificationPanel";
-import type { FileDataPart } from "@deepcitation/deepcitation-js";
+import type {
+  FileDataPart,
+  Verification,
+  Citation,
+} from "@deepcitation/deepcitation-js";
 
 type ModelProvider = "openai" | "gemini";
-type CitationDisplayMode = "inline" | "superscript" | "footnotes" | "clean";
+
+// Type for the verify API response (per message)
+interface MessageVerificationResult {
+  citations: Record<string, Citation>;
+  verifications: Record<string, Verification>;
+  summary: {
+    total: number;
+    verified: number;
+    missed: number;
+    pending: number;
+  };
+}
 
 const MODEL_OPTIONS: {
   value: ModelProvider;
   label: string;
   description: string;
 }[] = [
-  { value: "openai", label: "OpenAI", description: "gpt-5-mini" },
   { value: "gemini", label: "Gemini", description: "gemini-2.0-flash-lite" },
-];
-
-const CITATION_DISPLAY_OPTIONS: {
-  value: CitationDisplayMode;
-  label: string;
-  description: string;
-}[] = [
-  {
-    value: "inline",
-    label: "Inline Badges",
-    description: "Show verification badges inline",
-  },
-  {
-    value: "superscript",
-    label: "Superscript",
-    description: "Color-coded superscript numbers",
-  },
-  {
-    value: "footnotes",
-    label: "Footnotes",
-    description: "References at the bottom",
-  },
-  { value: "clean", label: "Clean", description: "No citation markers" },
+  { value: "openai", label: "OpenAI", description: "gpt-5-mini" },
 ];
 
 export default function Home() {
   // FileDataPart is now the single source of truth (includes deepTextPromptPortion)
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
 
-  const [verifications, setVerifications] = useState<Record<string, any>>({});
+  // Map of message ID to its full verification result (citations + verifications + summary)
+  const [messageVerifications, setMessageVerifications] = useState<
+    Record<string, MessageVerificationResult>
+  >({});
   const [isVerifying, setIsVerifying] = useState(false);
-  const [provider, setProvider] = useState<ModelProvider>("openai");
-  const [citationDisplay, setCitationDisplay] =
-    useState<CitationDisplayMode>("inline");
+  const [provider, setProvider] = useState<ModelProvider>("gemini");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wasLoadingRef = useRef(false);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } =
     useChat({
@@ -64,37 +58,64 @@ export default function Home() {
       onError: (error) => {
         console.error("[useChat] Error:", error);
       },
-      onFinish: async (message) => {
-        // Verify citations after message is complete
-        if (fileDataParts.length > 0 && message.role === "assistant") {
-          setIsVerifying(true);
-          try {
-            // AI SDK v6 uses parts array, fall back to content for compatibility
-            const messageContent = (message as any).content ||
-              (message as any).parts?.filter((p: any) => p.type === "text").map((p: any) => p.text).join("") ||
-              "";
-            const res = await fetch("/api/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                content: messageContent,
-                // Pass complete fileDataParts - single source of truth
-                fileDataParts,
-              }),
-            });
-            const data = await res.json();
-            setVerifications((prev) => ({
-              ...prev,
-              [message.id]: data,
-            }));
-          } catch (error) {
-            console.error("Verification failed:", error);
-          } finally {
-            setIsVerifying(false);
-          }
-        }
-      },
     });
+
+  // Stable event handler for verification - doesn't need to be in deps
+  const onVerifyMessage = useEffectEvent(
+    (messageId: string, messageContent: string) => {
+      if (!messageContent || fileDataParts.length === 0) return;
+
+      // Send llmOutput to verify API - citation extraction happens server-side
+      fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          llmOutput: messageContent,
+          fileId: fileDataParts[0].fileId,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data: MessageVerificationResult) => {
+          // Store the full verification result keyed by message ID
+          setMessageVerifications((prev) => ({
+            ...prev,
+            [messageId]: data,
+          }));
+        })
+        .catch((err) => console.error("Verification failed:", err))
+        .finally(() => setIsVerifying(false));
+    }
+  );
+
+  // Detect when streaming completes (isLoading: true -> false) and verify
+  useEffect(() => {
+    const wasLoading = wasLoadingRef.current;
+    wasLoadingRef.current = isLoading;
+
+    // When loading just finished
+    if (wasLoading && !isLoading) {
+      const lastMessage = messages[messages.length - 1];
+      // Only verify if this message hasn't been verified yet
+      if (
+        lastMessage?.role === "assistant" &&
+        !messageVerifications[lastMessage.id]
+      ) {
+        console.log("[useEffect] Stream finished, verifying...");
+        setIsVerifying(true);
+
+        // Get message content from either content or parts
+        const messageContent =
+          (lastMessage as any).content ||
+          (lastMessage as any).parts
+            ?.filter((p: any) => p.type === "text")
+            .map((p: any) => p.text)
+            .join("") ||
+          "";
+
+        onVerifyMessage(lastMessage.id, messageContent);
+      }
+    }
+  }, [isLoading, messages, messageVerifications]);
 
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -126,20 +147,15 @@ export default function Home() {
     }
   };
 
-  // Debug: log messages
-  useEffect(() => {
-    console.log("[Page] messages:", JSON.stringify(messages, null, 2));
-  }, [messages]);
-
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Get latest verification summary
+  // Get latest message's verification result
   const latestVerification =
     messages.length > 0
-      ? verifications[messages[messages.length - 1]?.id]
+      ? messageVerifications[messages[messages.length - 1]?.id]
       : null;
 
   return (
@@ -177,26 +193,6 @@ export default function Home() {
                   ))}
                 </select>
               </div>
-
-              {/* Citation Display Mode */}
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-gray-500">
-                  Display:
-                </label>
-                <select
-                  value={citationDisplay}
-                  onChange={(e) =>
-                    setCitationDisplay(e.target.value as CitationDisplayMode)
-                  }
-                  className="text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {CITATION_DISPLAY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
           </div>
         </header>
@@ -214,47 +210,13 @@ export default function Home() {
                   response will be verified against your source documents.
                 </p>
 
-                <div className="text-left text-sm text-gray-500 mb-4">
+                <div className="text-left text-sm text-gray-500">
                   <p className="font-medium mb-1">How it works:</p>
                   <ol className="list-decimal list-inside space-y-1">
                     <li>Upload a PDF or document</li>
                     <li>Ask questions about its content</li>
                     <li>See verified citations with proof</li>
                   </ol>
-                </div>
-
-                {/* Citation Display Modes Explanation */}
-                <div className="text-left text-sm bg-gray-50 rounded-lg p-4">
-                  <p className="font-medium text-gray-700 mb-2">
-                    Citation Display Modes:
-                  </p>
-                  <ul className="space-y-2 text-gray-600">
-                    <li>
-                      <span className="font-medium text-gray-700">
-                        Inline Badges:
-                      </span>{" "}
-                      Shows [1]<span className="text-green-600">✓</span> badges
-                      with hover tooltips
-                    </li>
-                    <li>
-                      <span className="font-medium text-gray-700">
-                        Superscript:
-                      </span>{" "}
-                      Shows <sup className="text-green-600">[1]</sup> with
-                      color-coded status
-                    </li>
-                    <li>
-                      <span className="font-medium text-gray-700">
-                        Footnotes:
-                      </span>{" "}
-                      Shows <sup className="text-blue-600">[1]</sup> with
-                      references at bottom
-                    </li>
-                    <li>
-                      <span className="font-medium text-gray-700">Clean:</span>{" "}
-                      No citation markers for clean reading
-                    </li>
-                  </ul>
                 </div>
               </div>
             </div>
@@ -264,8 +226,11 @@ export default function Home() {
                 <ChatMessage
                   key={message.id}
                   message={message}
-                  verification={verifications[message.id]}
-                  citationDisplay={citationDisplay}
+                  citations={messageVerifications[message.id]?.citations}
+                  verifications={
+                    messageVerifications[message.id]?.verifications
+                  }
+                  summary={messageVerifications[message.id]?.summary}
                 />
               ))}
               {isLoading && (
@@ -307,7 +272,10 @@ export default function Home() {
           <form onSubmit={handleSubmit} className="flex gap-3">
             <FileUpload
               onUpload={handleFileUpload}
-              uploadedFiles={fileDataParts.map(f => ({ name: f.filename || 'Document', fileId: f.fileId }))}
+              uploadedFiles={fileDataParts.map((f) => ({
+                name: f.filename || "Document",
+                fileId: f.fileId,
+              }))}
             />
             <input
               type="text"
@@ -350,7 +318,7 @@ export default function Home() {
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  {file.filename || 'Document'}
+                  {file.filename || "Document"}
                 </span>
               ))}
             </div>

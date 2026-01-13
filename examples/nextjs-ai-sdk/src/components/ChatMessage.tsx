@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
-  getCitationStatus,
   type Verification,
   type Citation,
+  parseCitation,
 } from "@deepcitation/deepcitation-js";
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 import "@deepcitation/deepcitation-js/react/styles.css";
@@ -18,39 +18,28 @@ interface ChatMessageProps {
     content?: string;
     parts?: Array<{ type: string; text?: string }>;
   };
-  verification?: {
-    citations: Record<string, Citation>;
-    verifications: Record<string, Verification>;
-    summary: {
-      total: number;
-      verified: number;
-      missed: number;
-      pending: number;
-    };
+  citations?: Record<string, Citation>;
+  verifications?: Record<string, Verification>;
+  summary?: {
+    total: number;
+    verified: number;
+    missed: number;
+    pending: number;
   };
-  /** Display mode for citations */
-  citationDisplay?: "inline" | "superscript" | "footnotes" | "clean";
 }
 
 /**
  * ChatMessage Component
  *
- * Demonstrates multiple ways to display citation verifications in markdown:
- * - inline: Shows citation badges inline with verification status
- * - superscript: Renders citations as superscript numbers
- * - footnotes: Removes inline citations, shows as footnotes at bottom
- * - clean: Removes all citation markers for clean reading
+ * Displays chat messages with inline citation verification.
+ * Replaces <cite> tags with CitationComponent using verification data.
  */
 export function ChatMessage({
   message,
-  verification,
-  citationDisplay = "inline",
+  citations,
+  verifications,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
-  const [hoveredCitation, setHoveredCitation] = useState<string | null>(null);
-
-  // Debug: log message structure
-  console.log("[ChatMessage] message:", JSON.stringify(message, null, 2));
 
   // AI SDK v6 uses parts array, fall back to content for compatibility
   const messageContent =
@@ -61,17 +50,13 @@ export function ChatMessage({
       .join("") ||
     "";
 
-  console.log("[ChatMessage] extracted content:", messageContent);
-
-  // Process content based on display mode
-  const { processedContent, footnotes } = useMemo(() => {
+  const processedContent = useMemo(() => {
     return processContentWithCitations(
       messageContent,
-      verification,
-      citationDisplay,
-      setHoveredCitation
+      citations ?? {},
+      verifications ?? {}
     );
-  }, [messageContent, verification, citationDisplay]);
+  }, [messageContent, citations, verifications]);
 
   return (
     <div className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
@@ -89,35 +74,7 @@ export function ChatMessage({
         {isUser ? (
           <p className="whitespace-pre-wrap">{messageContent}</p>
         ) : (
-          <div className="prose prose-sm max-w-none">
-            {processedContent}
-
-            {/* Footnotes section (only for footnotes mode) */}
-            {citationDisplay === "footnotes" && footnotes.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-gray-200">
-                <p className="text-xs font-semibold text-gray-500 mb-2">
-                  References:
-                </p>
-                <ol className="list-decimal list-inside text-xs text-gray-600 space-y-1">
-                  {footnotes.map((footnote, index) => (
-                    <li key={index} className="leading-relaxed">
-                      <CitationFootnote
-                        citation={footnote.citation}
-                        verification={footnote.verification}
-                      />
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-
-            {/* Verification summary badge */}
-            {verification && verification.summary.total > 0 && (
-              <div className="mt-3 pt-3 border-t flex items-center gap-2 text-xs text-gray-500">
-                <VerificationSummaryBadge summary={verification.summary} />
-              </div>
-            )}
-          </div>
+          <div className="prose prose-sm max-w-none">{processedContent}</div>
         )}
       </div>
 
@@ -158,122 +115,21 @@ function VerificationSummaryBadge({
 }
 
 /**
- * Citation footnote component for footnotes mode
- */
-function CitationFootnote({
-  citation,
-  verification,
-}: {
-  citation: Citation;
-  verification?: Verification;
-}) {
-  const status = getVerificationStatus(verification);
-
-  return (
-    <span className="inline-flex items-start gap-2">
-      <span
-        className={`inline-flex items-center shrink-0 ${
-          status === "verified"
-            ? "text-green-600"
-            : status === "partial"
-            ? "text-yellow-600"
-            : status === "miss"
-            ? "text-red-600"
-            : "text-gray-400"
-        }`}
-      >
-        {status === "verified"
-          ? "✓"
-          : status === "partial"
-          ? "◐"
-          : status === "miss"
-          ? "✗"
-          : "○"}
-      </span>
-      <span>
-        {citation.fullPhrase ? (
-          <span className="italic">
-            "{citation.fullPhrase.slice(0, 100)}
-            {citation.fullPhrase.length > 100 ? "..." : ""}"
-          </span>
-        ) : (
-          <span className="text-gray-400">No phrase captured</span>
-        )}
-        {verification?.pageNumber && (
-          <span className="text-gray-400 ml-1">
-            (Page {verification.pageNumber})
-          </span>
-        )}
-      </span>
-    </span>
-  );
-}
-
-/**
- * Get verification status from a Verification
- * Wraps the library's getCitationStatus for simpler string returns
- */
-function getVerificationStatus(
-  verification?: Verification
-): "verified" | "partial" | "miss" | "pending" {
-  if (!verification) return "pending";
-
-  const status = getCitationStatus(verification);
-  if (status.isVerified && !status.isPartialMatch) return "verified";
-  if (status.isPartialMatch) return "partial";
-  if (status.isMiss) return "miss";
-  return "pending";
-}
-
-interface FootnoteData {
-  citation: Citation;
-  verification?: Verification;
-}
-
-/**
- * Process content and replace citation tags based on display mode
- *
- * This function demonstrates the core pattern for handling DeepCitation output:
- * 1. Parse <cite> tags from LLM response
- * 2. Match with verification results
- * 3. Render in desired format
+ * Process content and replace <cite> tags with CitationComponent inline.
+ * Uses the pre-extracted citations from the verification response to ensure
+ * keys match (since getAllCitationsFromLlmOutput normalizes content before parsing).
  */
 function processContentWithCitations(
   content: string,
-  verification?: {
-    citations: Record<string, Citation>;
-    verifications: Record<string, Verification>;
-  },
-  displayMode: "inline" | "superscript" | "footnotes" | "clean" = "inline",
-  onHoverCitation?: (key: string | null) => void
-): { processedContent: React.ReactNode; footnotes: FootnoteData[] } {
-  const footnotes: FootnoteData[] = [];
-
-  // If clean mode, just strip all citation tags
-  if (displayMode === "clean") {
-    const cleanContent = removeCitationTags(content);
-    return {
-      processedContent: (
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {cleanContent}
-        </ReactMarkdown>
-      ),
-      footnotes: [],
-    };
-  }
-
-  // Parse citation tags and build replacement map
-  // Citation format: <cite pageNumber="X" lineId="Y">quoted text</cite> or <cite pageNumber="X" lineId="Y" />
-  const citationRegex = /<cite\s+([^>]*?)(?:\/>|>(.*?)<\/cite>)/gs;
-  const parts: Array<{
-    type: "text" | "citation";
-    content: string;
-    key?: string;
-  }> = [];
+  citations: Record<string, Citation>,
+  verifications: Record<string, Verification>
+): React.ReactNode {
+  // Match <cite ... /> tags
+  const citationRegex = /<cite\s+[^>]*\/>/g;
+  const parts: Array<{ type: "text" | "citation"; content: string }> = [];
 
   let lastIndex = 0;
   let match;
-  let citationIndex = 0;
 
   while ((match = citationRegex.exec(content)) !== null) {
     // Add text before this citation
@@ -284,20 +140,9 @@ function processContentWithCitations(
       });
     }
 
-    citationIndex++;
-    const key = String(citationIndex);
-    const citation = verification?.citations[key];
-    const verificationData = verification?.verifications[key];
-
-    // Collect footnotes for footnotes mode
-    if (displayMode === "footnotes" && citation) {
-      footnotes.push({ citation, verification: verificationData });
-    }
-
     parts.push({
       type: "citation",
-      content: match[2] || "", // The quoted text inside the tag
-      key,
+      content: match[0], // The full <cite ... /> tag
     });
 
     lastIndex = match.index + match[0].length;
@@ -307,6 +152,11 @@ function processContentWithCitations(
   if (lastIndex < content.length) {
     parts.push({ type: "text", content: content.slice(lastIndex) });
   }
+
+  // Get citations and verifications as arrays (preserving order)
+  const citationEntries = Object.entries(citations);
+  const verificationEntries = Object.entries(verifications);
+  let citationIndex = 0;
 
   // Build the rendered content
   const elements: React.ReactNode[] = [];
@@ -326,74 +176,45 @@ function processContentWithCitations(
           {part.content}
         </ReactMarkdown>
       );
-    } else if (part.type === "citation" && part.key) {
-      const citation = verification?.citations[part.key];
-      const verificationData = verification?.verifications[part.key];
-      const status = getVerificationStatus(verificationData);
+    } else if (part.type === "citation") {
+      // Match by index - citations and verifications should be in same order
+      const citationEntry = citationEntries[citationIndex];
+      const verificationEntry = verificationEntries[citationIndex];
+      citationIndex++;
 
-      if (displayMode === "inline") {
-        // Use the official CitationComponent from the library
+      if (citationEntry && verificationEntry) {
+        const [, citation] = citationEntry;
+        const [, verificationData] = verificationEntry;
         elements.push(
           <CitationComponent
-            key={`citation-${part.key}`}
-            citation={{
-              citationNumber: parseInt(part.key),
-              fullPhrase: citation?.fullPhrase,
-              value: citation?.value,
-              pageNumber: citation?.pageNumber,
-            }}
+            key={`citation-${index}`}
+            citation={citation}
             verification={verificationData}
-            variant="brackets"
-            popoverPosition="top"
           />
         );
-      } else if (displayMode === "superscript") {
-        // Superscript number with color-coded status
+      } else if (citationEntry) {
+        // Have citation but no verification yet
+        const [, citation] = citationEntry;
         elements.push(
-          <sup
-            key={`citation-${part.key}`}
-            className={`cursor-help font-semibold ${
-              status === "verified"
-                ? "text-green-600"
-                : status === "partial"
-                ? "text-yellow-600"
-                : status === "miss"
-                ? "text-red-600"
-                : "text-gray-400"
-            }`}
-            title={verificationData?.matchSnippet || citation?.fullPhrase || ""}
-          >
-            [{part.key}]
-          </sup>
+          <CitationComponent
+            key={`citation-${index}`}
+            citation={citation}
+            verification={undefined}
+          />
         );
-      } else if (displayMode === "footnotes") {
-        // Just a numbered reference
+      } else {
+        // Fallback: parse the citation without verification
+        const { citation } = parseCitation(part.content);
         elements.push(
-          <sup
-            key={`citation-${part.key}`}
-            className="text-blue-600 cursor-help font-semibold"
-            title="See references below"
-          >
-            [{part.key}]
-          </sup>
+          <CitationComponent
+            key={`citation-${index}`}
+            citation={citation}
+            verification={undefined}
+          />
         );
       }
     }
   });
 
-  return {
-    processedContent: <>{elements}</>,
-    footnotes,
-  };
-}
-
-/**
- * Remove all citation tags from content
- */
-function removeCitationTags(content: string): string {
-  return content
-    .replace(/<cite[^>]*\/>/g, "") // Self-closing tags
-    .replace(/<cite[^>]*>.*?<\/cite>/gs, "") // Tags with content
-    .replace(/\s+/g, " ") // Normalize whitespace
-    .trim();
+  return <>{elements}</>;
 }

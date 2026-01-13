@@ -131,10 +131,10 @@ export const parseCitation = (
   const match = citationMatches?.[0];
 
   const pageNumber = match?.[2] ? parseInt(match?.[2]) : undefined;
+  const pageIndex = match?.[3] ? parseInt(match?.[3]) : undefined;
 
   let fileId = match?.[1];
-  let attachmentId =
-    fileId?.length === 20 ? fileId : mdAttachmentId || match?.[1];
+  let attachmentId = fileId?.length === 20 ? fileId : mdAttachmentId || fileId;
 
   // Use helper to handle escaped quotes inside the phrase
   let fullPhrase = cleanAndUnescape(match?.[4]);
@@ -178,8 +178,7 @@ export const parseCitation = (
 
   if (avMatch) {
     fileId = avMatch?.[1];
-    attachmentId =
-      fileId?.length === 20 ? fileId : mdAttachmentId || avMatch?.[1];
+    attachmentId = fileId?.length === 20 ? fileId : mdAttachmentId || fileId;
     fullPhrase = cleanAndUnescape(avMatch?.[2]);
 
     const timestampsString = avMatch?.[3]?.replace(/timestamps=['"]|['"]/g, "");
@@ -200,6 +199,7 @@ export const parseCitation = (
   const citation: Citation = {
     fileId: attachmentId,
     pageNumber,
+    startPageKey: `page_number_${pageNumber || 1}_index_${pageIndex || 0}`,
     fullPhrase,
     keySpan,
     citationNumber,
@@ -246,12 +246,19 @@ const parseJsonCitation = (
     return null;
   }
 
-  // Parse startPageKey format: "page_number_PAGE_index_INDEX"
+  // Parse startPageKey format: "page_number_PAGE_index_INDEX" or simple "PAGE_INDEX"
   let pageNumber: number | undefined;
   if (startPageKey) {
+    // Try full format first: page_number_5_index_2 or pageKey_5_index_2
     const pageMatch = startPageKey.match(/page[_a-zA-Z]*(\d+)_index_(\d+)/i);
     if (pageMatch) {
       pageNumber = parseInt(pageMatch[1], 10);
+    } else {
+      // Try simple n_m format: 5_4 (page 5, index 4)
+      const simpleMatch = startPageKey.match(/^(\d+)_(\d+)$/);
+      if (simpleMatch) {
+        pageNumber = parseInt(simpleMatch[1], 10);
+      }
     }
   }
 

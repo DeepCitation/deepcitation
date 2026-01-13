@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   DeepCitation,
-  Verification,
-  getAllCitationsFromLlmOutput,
   getCitationStatus,
-  type FileDataPart,
+  getAllCitationsFromLlmOutput,
 } from "@deepcitation/deepcitation-js";
 
 // Check for API key at startup
@@ -19,6 +17,7 @@ if (!apiKey) {
 const dc = apiKey ? new DeepCitation({ apiKey }) : null;
 
 export async function POST(req: NextRequest) {
+  console.log("🚀 /api/verify called");
   if (!dc) {
     return NextResponse.json(
       {
@@ -30,36 +29,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const {
-      content,
-      // fileDataParts now contains deepTextPromptPortion - single source of truth
-      fileDataParts: clientFileDataParts = [],
-    } = await req.json();
+    const body = await req.json();
+    const { llmOutput, fileId } = body;
 
-    if (!content) {
-      return NextResponse.json(
-        { error: "No content provided" },
-        { status: 400 }
-      );
-    }
-
-    // Extract citations from the content
-    console.log(
-      "[Verify API] Raw content to parse:",
-      content?.substring(0, 500)
-    );
-    const citations = getAllCitationsFromLlmOutput(content);
+    // Extract citations from LLM output
+    const citations = getAllCitationsFromLlmOutput(llmOutput);
     const citationCount = Object.keys(citations).length;
 
-    console.log(
-      `[Verify API] Parsed ${citationCount} citations:`,
-      JSON.stringify(citations, null, 2)
-    );
+    console.log(`📥 Found ${citationCount} citations in LLM output`);
 
     if (citationCount === 0) {
-      console.log(
-        "[Verify API] No citations found in content. Check if LLM is outputting <cite .../> tags."
-      );
       return NextResponse.json({
         citations: {},
         verifications: {},
@@ -67,20 +46,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // fileDataParts from client is the single source of truth
-    const fileDataParts: FileDataPart[] = clientFileDataParts;
-
-    console.log(
-      "[Verify API] File data parts:",
-      JSON.stringify(
-        fileDataParts.map((f) => ({ fileId: f.fileId, filename: f.filename })),
-        null,
-        2
-      )
-    );
-
-    if (fileDataParts.length === 0) {
-      console.log("[Verify API] No file data parts - cannot verify");
+    if (!fileId) {
+      // No fileId - return citations without verification
       return NextResponse.json({
         citations,
         verifications: {},
@@ -93,58 +60,51 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const allHighlights: Record<string, Verification> = {};
+    console.log("[verify] citations", citations);
 
-    for (const filePart of fileDataParts) {
-      try {
-        console.log(
-          `[Verify API] Verifying citations for file ${filePart.fileId}:`,
-          JSON.stringify(citations, null, 2)
-        );
+    // Verify citations against the source document
+    const result = await dc.verifyCitations(fileId, citations, {
+      outputImageFormat: "avif",
+    });
 
-        const result = await dc.verifyCitations(filePart.fileId, citations);
-        const { verifications } = result;
+    const { verifications } = result;
 
-        console.log(
-          "[Verify API] Verification result:",
-          JSON.stringify(verifications, null, 2)
-        );
+    console.log("[verify] verifications", verifications);
 
-        // Log each highlight's details
-        for (const [key, verification] of Object.entries(verifications)) {
-          console.log(
-            `[Verify API] Citation [${key}]:`,
-            JSON.stringify(verification, null, 2)
-          );
-        }
+    // Log verification results
+    console.log("✨ Verification Results\n");
 
-        Object.assign(allHighlights, verifications);
-      } catch (err) {
-        console.error(
-          `[Verify API] Verification failed for file ${filePart.fileId}:`,
-          err
-        );
-      }
+    for (const [key, verification] of Object.entries(verifications)) {
+      const status = getCitationStatus(verification);
+      const statusIcon = status.isVerified
+        ? status.isPartialMatch
+          ? "⚠️ "
+          : "✅"
+        : status.isPending
+        ? "⏳"
+        : "❌";
+
+      console.log(`Citation [${key}]: ${statusIcon}`);
     }
 
-    // Calculate summary using getCitationStatus (like playground page)
-    const verified = Object.values(allHighlights).filter(
-      (v) => getCitationStatus(v as any).isVerified
+    // Calculate summary
+    const verified = Object.values(verifications).filter(
+      (v) => getCitationStatus(v).isVerified
     ).length;
-    const missed = Object.values(allHighlights).filter(
-      (v) => getCitationStatus(v as any).isMiss
+    const missed = Object.values(verifications).filter(
+      (v) => getCitationStatus(v).isMiss
     ).length;
-    const pending = Object.values(allHighlights).filter(
-      (v) => getCitationStatus(v as any).isPending
+    const pending = Object.values(verifications).filter(
+      (v) => getCitationStatus(v).isPending
     ).length;
 
     console.log(
-      `[Verify API] Summary: ${verified} verified, ${missed} missed, ${pending} pending`
+      `📊 Summary: ${verified} verified, ${missed} missed, ${pending} pending`
     );
 
     return NextResponse.json({
       citations,
-      verifications: allHighlights,
+      verifications,
       summary: {
         total: citationCount,
         verified,

@@ -5,7 +5,6 @@ import { useRef, useState } from "react";
 interface UploadedFile {
   name: string;
   fileId: string;
-  deepTextPromptPortion: string;
 }
 
 interface FileUploadProps {

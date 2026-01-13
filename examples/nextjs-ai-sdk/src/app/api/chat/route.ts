@@ -2,25 +2,11 @@ import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
 import { streamText, convertToModelMessages, type UIMessage } from "ai";
 import {
-  DeepCitation,
   wrapCitationPrompt,
-  getAllCitationsFromLlmOutput,
-  getCitationStatus,
   type FileDataPart,
 } from "@deepcitation/deepcitation-js";
 
 export const maxDuration = 60;
-
-// Check for API key at startup
-const apiKey = process.env.DEEPCITATION_API_KEY;
-if (!apiKey) {
-  console.error(
-    "\n⚠️  DEEPCITATION_API_KEY is not set!\n" +
-      "   Get your API key from https://deepcitation.com/dashboard\n"
-  );
-}
-
-const dc = apiKey ? new DeepCitation({ apiKey }) : null;
 
 // Available models - using fast/cheap models for examples
 const MODELS = {
@@ -102,11 +88,6 @@ export async function POST(req: Request) {
   // Convert to model messages (async in AI SDK v6)
   const modelMessages = await convertToModelMessages(enhancedUIMessages);
 
-  console.log(
-    "[Chat API] Model messages:",
-    JSON.stringify(modelMessages, null, 2)
-  );
-
   // Select model based on provider
   const selectedModel = MODELS[provider as ModelProvider] || MODELS.openai;
 
@@ -115,32 +96,6 @@ export async function POST(req: Request) {
     model: selectedModel,
     system: enhancedSystemPrompt,
     messages: modelMessages,
-    onFinish: async ({ text }) => {
-      console.log("[Chat API] Finished streaming, text length:", text.length);
-      if (hasDocuments && dc) {
-        try {
-          const { verifications } = await dc.verifyCitationsFromLlmOutput({
-            llmOutput: text,
-            fileDataParts,
-          });
-
-          const citations = getAllCitationsFromLlmOutput(text);
-          const verifiedCount = Object.values(verifications).filter(
-            (v) => getCitationStatus(v).isVerified
-          ).length;
-          const totalCount = Object.keys(citations).length;
-
-          console.log(
-            `[Chat API] Verified ${verifiedCount}/${totalCount} citations (${provider})`
-          );
-        } catch (error: any) {
-          console.error(
-            "Citation verification failed:",
-            error?.message || error
-          );
-        }
-      }
-    },
   });
 
   return result.toTextStreamResponse();

@@ -18,6 +18,12 @@
 
 LLMs hallucinate. Even when given source documents, they make up quotes, invent statistics, and cite pages that don't exist. DeepCitation solves this by **deterministically verifying every citation** against your source documents—and generating visual proof.
 
+<div align="center">
+<img src="./examples/assets/deepcitation-medical-demo.gif" alt="DeepCitation medical documentation demo showing verified inline citations" width="700" />
+<br />
+<em>Medical documentation with verified inline citations — certainty at a glance</em>
+</div>
+
 ```
 Before: "Revenue grew 45% [1]"  →  ❓ Did the LLM make this up?
 After:  "Revenue grew 45% [1]"  →  ✅ Verified on page 3, line 12 (with screenshot)
@@ -59,7 +65,7 @@ import { DeepCitation, wrapCitationPrompt } from "@deepcitation/deepcitation-js"
 
 const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
-// Upload source files
+// Upload source files, this can be done before the user types their prompt
 const { fileDataParts, deepTextPromptPortion } = await dc.prepareFiles([
   { file: pdfBuffer, filename: "report.pdf" },
 ]);
@@ -87,31 +93,49 @@ Verify citations against the source documents.
 ```typescript
 const result = await dc.verifyCitations({
   llmOutput: response.content,
-  fileDataParts,
+  fileDataParts, //optional 
 });
 
-// result.citations contains verification status + visual proof
+// result.verifications contains verification status + visual proof
+const { citations, verifications } = result;
+
 ```
 
 ### Step 3: Display
 
-Render verified citations with React components.
+Parse the LLM output and render verified citations inline with React components.
 
 ```tsx
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import {
+  parseCitation,
+  generateCitationKey,
+} from "@deepcitation/deepcitation-js";
 import "@deepcitation/deepcitation-js/react/styles.css";
 
-function Response({ citations, verifications }) {
-  return (
-    <p>
-      Revenue grew by
-      <CitationComponent
-        citation={citations["1"]}
-        verification={verifications["1"]}
-      />
-      this quarter.
-    </p>
-  );
+function Response({ llmOutput, verifications }) {
+  // Split LLM output by citation tags and render inline
+  const renderWithCitations = (text: string) => {
+    const parts = text.split(/(<cite\s+[^>]*\/>)/g);
+
+    return parts.map((part, index) => {
+      if (part.startsWith("<cite")) {
+        const { citation } = parseCitation(part);
+        const citationKey = generateCitationKey(citation);
+
+        return (
+          <CitationComponent
+            key={index}
+            citation={citation}
+            verification={verifications[citationKey]}
+          />
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
+  return <div>{renderWithCitations(llmOutput)}</div>;
 }
 ```
 
@@ -123,8 +147,7 @@ function Response({ citations, verifications }) {
 
 ```typescript
 const dc = new DeepCitation({
-  apiKey: string,      // Your API key (sk-dc-*)
-  apiUrl?: string,     // Optional: Custom API URL
+  apiKey: string      // Your API key (sk-dc-*)
 });
 
 // Upload and prepare source files

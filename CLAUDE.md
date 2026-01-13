@@ -143,6 +143,12 @@ src/
     └── sha.ts
 ```
 
+## Example App Models
+
+The Next.js example uses these models (DO NOT CHANGE):
+- **OpenAI**: `gpt-5-mini`
+- **Google**: `gemini-2.0-flash-lite`
+
 ## Common Issues & Solutions
 
 ### API Key Issues
