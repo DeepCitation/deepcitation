@@ -57,6 +57,27 @@
   text-overflow: ellipsis;
 }
 
+/* Text variant - plain styling that inherits from parent */
+.dc-citation-text--plain {
+  max-width: none;
+  overflow: visible;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+/* Text variant container - inherit all styling from parent */
+.dc-citation--text {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.dc-citation--text .dc-citation-text--plain {
+  color: inherit;
+}
+
 /* Status-specific styles */
 .dc-citation--verified .dc-citation-text {
   color: var(--dc-color-verified, #2563eb);
@@ -421,6 +442,23 @@
   max-height: 4rem;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.dc-status-text--miss {
+  color: var(--dc-color-warning, #d97706);
+  font-style: italic;
+}
+
+/* Diff details container in popover */
+.dc-diff-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--dc-border-color, #e2e8f0);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 0.75rem;
 }
 
 /* Dark mode support */

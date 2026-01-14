@@ -35,33 +35,43 @@ export type { CitationVariant } from "./types.js";
 /**
  * Props for the CitationComponent.
  *
- * @example Brackets variant (default) - shows keySpan/number in brackets with blue styling
+ * @example Brackets variant (default) - shows keySpan in brackets with blue styling
  * ```tsx
  * <CitationComponent
- *   citation={{ citationNumber: 1, fullPhrase: "Revenue grew by 25%" }}
+ *   citation={{ citationNumber: 1, keySpan: "Revenue grew by 25%" }}
  *   verification={verificationResult}
  * />
- * // Renders: [1✓] with blue text
+ * // Renders: [Revenue grew by 25%✓] with blue text
  * ```
  *
- * @example Numeric variant - shows just the citation number with indicator
+ * @example Numeric only - use displayKeySpan=false with brackets variant
  * ```tsx
  * <CitationComponent
  *   citation={{ citationNumber: 1, keySpan: "25% growth" }}
  *   verification={verificationResult}
- *   variant="numeric"
+ *   displayKeySpan={false}
  * />
- * // Renders: 1✓
+ * // Renders: [1✓]
  * ```
  *
- * @example Text variant - shows the keySpan without styling
+ * @example Without brackets - use displayBrackets=false
+ * ```tsx
+ * <CitationComponent
+ *   citation={{ citationNumber: 1, keySpan: "25% growth" }}
+ *   verification={verificationResult}
+ *   displayBrackets={false}
+ * />
+ * // Renders: 25% growth✓ (no brackets)
+ * ```
+ *
+ * @example Text variant - inherits parent text styling, no truncation
  * ```tsx
  * <CitationComponent
  *   citation={{ citationNumber: 1, keySpan: "25% growth" }}
  *   verification={verificationResult}
  *   variant="text"
  * />
- * // Renders: 25% growth✓
+ * // Renders: 25% growth✓ (inherits parent styling)
  * ```
  *
  * @example Minimal variant - no brackets, just text and indicator
@@ -103,12 +113,18 @@ export interface CitationComponentProps extends BaseCitationProps {
   /**
    * Display variant for the citation.
    * - `brackets`: Shows keySpan/number in brackets, blue text styling (default)
-   * - `numeric`: Shows citation number with indicator, no brackets
-   * - `text`: Shows the keySpan, no text styling, no truncate, shows indicator
+   * - `text`: Shows the keySpan, inherits parent text styling, no truncation, shows indicator
    * - `minimal`: No brackets, just display text with indicator
    * - `indicator`: Only the status indicator (checkmark/warning), no text
    */
   variant?: CitationVariant;
+
+  /**
+   * Whether to show square brackets around the citation.
+   * Only applies to the `brackets` variant.
+   * @default true
+   */
+  displayBrackets?: boolean;
 
   /**
    * Event handlers for citation interactions.
@@ -402,10 +418,64 @@ const ImageOverlay = ({
 };
 
 /**
+ * Diff details for partial/miss verification states.
+ * Shows expected vs found text.
+ */
+const DiffDetails = ({
+  citation,
+  verification,
+  status,
+}: {
+  citation: BaseCitationProps["citation"];
+  verification: Verification | null;
+  status: CitationStatus;
+}) => {
+  const { isMiss, isPartialMatch } = status;
+
+  if (!isMiss && !isPartialMatch) return null;
+
+  const expectedText =
+    citation.fullPhrase || citation.keySpan?.toString() || "";
+  const actualText = verification?.matchSnippet || "";
+
+  const truncatedExpected =
+    expectedText.length > 100 ? expectedText.slice(0, 100) + "…" : expectedText;
+  const truncatedActual =
+    actualText.length > 100 ? actualText.slice(0, 100) + "…" : actualText;
+
+  return (
+    <span className="dc-diff-details">
+      {truncatedExpected && (
+        <span className="dc-status-searched">
+          <span className="dc-status-label">Expected</span>
+          <span className="dc-status-text">{truncatedExpected}</span>
+        </span>
+      )}
+      {isPartialMatch && truncatedActual && (
+        <span className="dc-status-searched">
+          <span className="dc-status-label">Found</span>
+          <span className="dc-status-text">{truncatedActual}</span>
+        </span>
+      )}
+      {isMiss && (
+        <span className="dc-status-searched">
+          <span className="dc-status-label">Found</span>
+          <span className="dc-status-text dc-status-text--miss">
+            Not found in source
+          </span>
+        </span>
+      )}
+    </span>
+  );
+};
+
+/**
  * Default popover content component.
  * Shows verification image if available, otherwise shows text info.
+ * For partial/miss states, also displays expected vs found details.
  */
 const DefaultPopoverContent = ({
+  citation,
   verification,
   status,
   onImageClick,
@@ -416,6 +486,7 @@ const DefaultPopoverContent = ({
   onImageClick?: (imageSrc: string) => void;
 }) => {
   const hasImage = verification?.verificationImageBase64;
+  const { isMiss, isPartialMatch } = status;
 
   const handleImageClick = useCallback(
     (e: React.MouseEvent) => {
@@ -428,22 +499,31 @@ const DefaultPopoverContent = ({
     [hasImage, verification?.verificationImageBase64, onImageClick]
   );
 
-  // If we have a verification image, show only the image
+  // If we have a verification image, show image + diff details for partial/miss
   if (hasImage) {
     return (
-      <button
-        type="button"
-        className="dc-popover-image-button"
-        onClick={handleImageClick}
-        aria-label="Click to view full size"
-      >
-        <img
-          src={verification.verificationImageBase64 as string}
-          alt="Citation verification"
-          className="dc-popover-image"
-          loading="lazy"
-        />
-      </button>
+      <>
+        <button
+          type="button"
+          className="dc-popover-image-button"
+          onClick={handleImageClick}
+          aria-label="Click to view full size"
+        >
+          <img
+            src={verification.verificationImageBase64 as string}
+            alt="Citation verification"
+            className="dc-popover-image"
+            loading="lazy"
+          />
+        </button>
+        {(isMiss || isPartialMatch) && (
+          <DiffDetails
+            citation={citation}
+            verification={verification}
+            status={status}
+          />
+        )}
+      </>
     );
   }
 
@@ -471,6 +551,13 @@ const DefaultPopoverContent = ({
       )}
       {pageNumber && pageNumber > 0 && (
         <span className="dc-popover-page">Page {pageNumber}</span>
+      )}
+      {(isMiss || isPartialMatch) && (
+        <DiffDetails
+          citation={citation}
+          verification={verification}
+          status={status}
+        />
       )}
     </>
   );
@@ -505,7 +592,8 @@ export const CitationComponent = forwardRef<
       citation,
       children,
       className,
-      displayKeySpan = false,
+      displayKeySpan = true,
+      displayBrackets = true,
       fallbackDisplay,
       verification,
       variant = "brackets",
@@ -626,12 +714,8 @@ export const CitationComponent = forwardRef<
     const { isMiss, isPartialMatch, isVerified, isPending } = status;
 
     const displayText = useMemo(() => {
-      // For numeric variant, always show the citation number
-      if (variant === "numeric") {
-        return citation.citationNumber?.toString() ?? "";
-      }
       // For text/minimal variants, always show keySpan
-      // For brackets variant, show keySpan only if displayKeySpan prop is true
+      // For brackets variant, show keySpan based on displayKeySpan prop
       return getCitationDisplayText(citation, {
         displayKeySpan:
           variant === "text" ||
@@ -748,16 +832,6 @@ export const CitationComponent = forwardRef<
         );
       }
 
-      // Numeric variant - shows citation number with indicator, no brackets
-      if (variant === "numeric") {
-        return (
-          <span className="dc-citation-text">
-            {displayText}
-            {renderStatusIndicator()}
-          </span>
-        );
-      }
-
       // Brackets variant (default) - keySpan/number in brackets with styling
       return (
         <span
@@ -765,12 +839,12 @@ export const CitationComponent = forwardRef<
           aria-hidden="true"
           role="presentation"
         >
-          [
+          {displayBrackets && "["}
           <span className="dc-citation-text">
             {displayText}
             {renderStatusIndicator()}
           </span>
-          ]
+          {displayBrackets && "]"}
         </span>
       );
     };

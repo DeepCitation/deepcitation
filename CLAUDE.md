@@ -103,10 +103,24 @@ curl -X POST https://api.deepcitation.com/verifyCitations \
 ```tsx
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
+// Default: shows keySpan in brackets [keySpan✓]
 <CitationComponent
   citation={citation}
   verification={verification}
-  displayKeySpan={true}
+/>
+
+// Numeric only: shows just citation number [1✓]
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  displayKeySpan={false}
+/>
+
+// Without brackets: shows keySpan without brackets
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  displayBrackets={false}
 />
 ```
 

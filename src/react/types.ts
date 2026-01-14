@@ -5,16 +5,16 @@ import type { SearchState } from "../types/search.js";
 /**
  * Available citation display variants.
  *
- * - `brackets`: Shows keySpan/number in brackets with blue text styling (default)
- * - `numeric`: Shows citation number with indicator, no brackets
- * - `text`: Shows the keySpan, no text styling, no truncate, shows indicator
+ * - `brackets`: Shows keySpan/number in brackets with blue text styling (default).
+ *               Use displayKeySpan=false for numeric-only display.
+ *               Use displayBrackets=false to hide the square brackets.
+ * - `text`: Shows the keySpan, inherits parent text styling, no truncation, shows indicator
  * - `minimal`: No brackets, just display text with indicator
  * - `indicator`: Only the status indicator (checkmark/warning), no text
  */
 export type CitationVariant =
   | "brackets" // [keySpan✓] with blue text styling
-  | "numeric" // 1✓ - citation number with indicator
-  | "text" // keySpan✓ - no special styling
+  | "text" // keySpan✓ - inherits parent styling
   | "minimal" // text✓ - just text with indicator
   | "indicator"; // ✓ - only the indicator
 
@@ -114,7 +114,10 @@ export interface BaseCitationProps {
   className?: string;
   /** Class name for controlling inner content width */
   innerWidthClassName?: string;
-  /** When true, displays keySpan/citationNumber merged in the bracket */
+  /**
+   * When true, displays keySpan text. When false, displays citation number only.
+   * @default true
+   */
   displayKeySpan?: boolean;
   /** Fallback display text when citation keySpan is empty */
   fallbackDisplay?: string | null;
