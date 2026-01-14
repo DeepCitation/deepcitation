@@ -62,7 +62,7 @@
 .citation-number { font-weight: var(--citation-font-weight); }
 .citation-number--pending { opacity: 0.6; }
 
-.citation-value { font-style: italic; }
+.citation-key-span { font-style: italic; }
 
 .citation-indicator {
   display: inline;
@@ -240,7 +240,7 @@
 .citation--pending { color: var(--citation-color-pending); }
 
 .citation-fallback {}
-.citation-value { font-style: italic; }
+.citation-key-span { font-style: italic; }
 
 .cursor-pointer { cursor: pointer; }
 .cursor-zoom-in { cursor: zoom-in; }

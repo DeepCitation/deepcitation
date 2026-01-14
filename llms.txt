@@ -72,7 +72,7 @@ import type { Citation, Verification } from "@deepcitation/deepcitation-js";
 
 ### Composable Primitives
 
-Build custom citation components with `Citation.Root`, `Citation.Trigger`, `Citation.Bracket`, `Citation.Number`, `Citation.Value`, `Citation.Indicator`, `Citation.Status`, `Citation.Phrase`, and `Citation.Page`.
+Build custom citation components with `Citation.Root`, `Citation.Trigger`, `Citation.Bracket`, `Citation.Number`, `Citation.KeySpan`, `Citation.Indicator`, `Citation.Status`, `Citation.Phrase`, and `Citation.Page`.
 
 ## Supported File Types
 

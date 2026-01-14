@@ -1,7 +1,7 @@
 export const CITATION_MARKDOWN_SYNTAX_PROMPT = `
 Citation syntax to use within Markdown:
 • To support any ideas or information that requires a citation from the provided content, use the following citation syntax:
-<cite file_id='file_id' start_page_key='page_number_PAGE_index_INDEX' full_phrase='the verbatim text of the terse phrase inside <file_text />; remember to escape quotes and newlines inside the full_phrase to remain as valid JSON' key_span='the verbatim value or 1-3 words within full_phrase that best support the citation' line_ids='2-6' reasoning='the terse logic used to conclude the citation' />
+<cite file_id='file_id' start_page_key='page_number_PAGE_index_INDEX' full_phrase='the verbatim text of the terse phrase inside <file_text />; remember to escape quotes and newlines inside the full_phrase to remain as valid JSON' key_span='the verbatim 1-3 words within full_phrase that best support the citation' line_ids='2-6' reasoning='the terse logic used to conclude the citation' />
 
 • Very important: for page numbers, only use the page number and page index info from the page_number_PAGE_index_INDEX format (e.g. <page_number_1_index_0>) and never from the contents inside the page.
 • start_page_key, full_phrase, and line_ids are required for each citation.
@@ -176,12 +176,12 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     fullPhrase: {
       type: "string",
       description:
-        "The verbatim text of the terse phrase inside <file_text /> to support the value description (if there is a detected OCR correction, use the corrected text)",
+        "The verbatim text of the terse phrase inside <file_text /> to support the citation (if there is a detected OCR correction, use the corrected text)",
     },
     keySpan: {
       type: "string",
       description:
-        "the verbatim value or 1-3 words within fullPhrase that best support the citation",
+        "the verbatim 1-3 words within fullPhrase that best support the citation",
     },
     lineIds: {
       type: "array",
@@ -212,7 +212,7 @@ export const CITATION_AV_BASED_JSON_OUTPUT_FORMAT = {
     fullPhrase: {
       type: "string",
       description:
-        "The exact verbatim text of the phrase or paragraph from the source document to support the value description (if there is a detected OCR correction, use the verbatim corrected text)",
+        "The exact verbatim text of the phrase or paragraph from the source document to support the citation (if there is a detected OCR correction, use the verbatim corrected text)",
     },
     timestamps: {
       type: "object",

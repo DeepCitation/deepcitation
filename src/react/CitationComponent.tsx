@@ -35,7 +35,7 @@ export type { CitationVariant } from "./types.js";
 /**
  * Props for the CitationComponent.
  *
- * @example Brackets variant (default) - shows value/number in brackets with blue styling
+ * @example Brackets variant (default) - shows keySpan/number in brackets with blue styling
  * ```tsx
  * <CitationComponent
  *   citation={{ citationNumber: 1, fullPhrase: "Revenue grew by 25%" }}
@@ -47,17 +47,17 @@ export type { CitationVariant } from "./types.js";
  * @example Numeric variant - shows just the citation number with indicator
  * ```tsx
  * <CitationComponent
- *   citation={{ citationNumber: 1, value: "25% growth" }}
+ *   citation={{ citationNumber: 1, keySpan: "25% growth" }}
  *   verification={verificationResult}
  *   variant="numeric"
  * />
  * // Renders: 1✓
  * ```
  *
- * @example Text variant - shows the value without styling
+ * @example Text variant - shows the keySpan without styling
  * ```tsx
  * <CitationComponent
- *   citation={{ citationNumber: 1, value: "25% growth" }}
+ *   citation={{ citationNumber: 1, keySpan: "25% growth" }}
  *   verification={verificationResult}
  *   variant="text"
  * />
@@ -102,9 +102,9 @@ export interface CitationComponentProps extends BaseCitationProps {
 
   /**
    * Display variant for the citation.
-   * - `brackets`: Shows value/number in brackets, blue text styling (default)
+   * - `brackets`: Shows keySpan/number in brackets, blue text styling (default)
    * - `numeric`: Shows citation number with indicator, no brackets
-   * - `text`: Shows the value, no text styling, no truncate, shows indicator
+   * - `text`: Shows the keySpan, no text styling, no truncate, shows indicator
    * - `minimal`: No brackets, just display text with indicator
    * - `indicator`: Only the status indicator (checkmark/warning), no text
    */
@@ -630,7 +630,7 @@ export const CitationComponent = forwardRef<
       if (variant === "numeric") {
         return citation.citationNumber?.toString() ?? "";
       }
-      // For text/minimal/brackets, show the value or fullPhrase
+      // For text/minimal/brackets, show the keySpan or fullPhrase
       return getCitationDisplayText(citation, {
         displayKeySpan:
           variant === "text" ||
@@ -727,7 +727,7 @@ export const CitationComponent = forwardRef<
         );
       }
 
-      // Text variant - no special styling, shows value with indicator
+      // Text variant - no special styling, shows keySpan with indicator
       if (variant === "text") {
         return (
           <span className="dc-citation-text dc-citation-text--plain">
@@ -757,7 +757,7 @@ export const CitationComponent = forwardRef<
         );
       }
 
-      // Brackets variant (default) - value/number in brackets with styling
+      // Brackets variant (default) - keySpan/number in brackets with styling
       return (
         <span
           className="dc-citation-bracket"

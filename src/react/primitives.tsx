@@ -343,38 +343,38 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
 
 CitationNumber.displayName = "Citation.Number";
 
-export interface CitationValueProps extends HTMLAttributes<HTMLSpanElement> {
-  value?: string;
+export interface CitationKeySpanProps extends HTMLAttributes<HTMLSpanElement> {
+  keySpan?: string;
   separator?: string;
 }
 
-/** Displays the citation value (summary text). */
-export const CitationValue = forwardRef<HTMLSpanElement, CitationValueProps>(
-  ({ className, value, separator = " ", ...props }, ref) => {
+/** Displays the citation keySpan (summary text). */
+export const CitationKeySpan = forwardRef<HTMLSpanElement, CitationKeySpanProps>(
+  ({ className, keySpan, separator = " ", ...props }, ref) => {
     const { citation, config } = useCitationContext();
 
-    const displayValue = useMemo(() => {
-      if (value !== undefined) return value;
+    const displayKeySpan = useMemo(() => {
+      if (keySpan !== undefined) return keySpan;
       if (!config.displayKeySpan) return "";
       return citation.keySpan?.toString() || "";
-    }, [value, citation, config]);
+    }, [keySpan, citation, config]);
 
-    if (!displayValue) return null;
+    if (!displayKeySpan) return null;
 
     return (
       <span
         ref={ref}
-        className={classNames("citation-value", className)}
+        className={classNames("citation-key-span", className)}
         {...props}
       >
-        {displayValue}
+        {displayKeySpan}
         {separator}
       </span>
     );
   }
 );
 
-CitationValue.displayName = "Citation.Value";
+CitationKeySpan.displayName = "Citation.KeySpan";
 
 export interface CitationIndicatorProps
   extends HTMLAttributes<HTMLSpanElement> {
@@ -560,7 +560,7 @@ export const Citation = {
   Trigger: CitationTrigger,
   Bracket: CitationBracket,
   Number: CitationNumber,
-  Value: CitationValue,
+  KeySpan: CitationKeySpan,
   Indicator: CitationIndicator,
   Status: CitationStatusComponent,
   Phrase: CitationPhrase,
