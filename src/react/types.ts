@@ -225,6 +225,159 @@ export interface CitationEventHandlers {
 }
 
 /**
+ * Context provided to behavior handlers for making decisions.
+ */
+export interface CitationBehaviorContext {
+  /** The citation data */
+  citation: Citation;
+  /** Unique key for this citation */
+  citationKey: string;
+  /** Verification result if available */
+  verification: Verification | null;
+  /** Whether the popover is currently pinned open */
+  isTooltipExpanded: boolean;
+  /** Whether the full-size image overlay is currently open */
+  isImageExpanded: boolean;
+  /** Whether a verification image is available */
+  hasImage: boolean;
+}
+
+/**
+ * Actions that can be performed by the citation component.
+ * These are returned by behavior handlers to control component state.
+ */
+export interface CitationBehaviorActions {
+  /** Pin or unpin the popover (keeps it visible without hover) */
+  setTooltipExpanded?: boolean;
+  /** Open or close the full-size image overlay */
+  setImageExpanded?: boolean | string;
+  /** Expand or collapse the search phrases list (for miss/partial states) */
+  setPhrasesExpanded?: boolean;
+}
+
+/**
+ * Configuration for click behavior.
+ * Return actions to perform, or `false` to prevent default behavior.
+ */
+export type CitationClickBehavior = (
+  context: CitationBehaviorContext,
+  event: React.MouseEvent | React.TouchEvent
+) => CitationBehaviorActions | false | void;
+
+/**
+ * Configuration for hover behavior.
+ */
+export interface CitationHoverBehavior {
+  /** Called when mouse enters the citation */
+  onEnter?: (context: CitationBehaviorContext) => void;
+  /** Called when mouse leaves the citation */
+  onLeave?: (context: CitationBehaviorContext) => void;
+}
+
+/**
+ * Configuration for customizing default citation behaviors.
+ *
+ * @example Use defaults (no config needed)
+ * ```tsx
+ * <CitationComponent citation={citation} verification={verification} />
+ * ```
+ *
+ * @example Disable click-to-expand image (popover still pins on click)
+ * ```tsx
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verification}
+ *   behaviorConfig={{ disableImageExpand: true }}
+ * />
+ * ```
+ *
+ * @example Disable all click behavior
+ * ```tsx
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verification}
+ *   behaviorConfig={{ disableClickBehavior: true }}
+ * />
+ * ```
+ *
+ * @example Custom click behavior (extend defaults)
+ * ```tsx
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verification}
+ *   behaviorConfig={{
+ *     onClick: (context, event) => {
+ *       // Log analytics
+ *       analytics.track('citation_clicked', { key: context.citationKey });
+ *       // Return nothing to use default behavior
+ *     }
+ *   }}
+ * />
+ * ```
+ *
+ * @example Override click behavior completely
+ * ```tsx
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verification}
+ *   behaviorConfig={{
+ *     onClick: (context, event) => {
+ *       // Custom behavior: always open image immediately
+ *       if (context.hasImage) {
+ *         return { setImageExpanded: true };
+ *       }
+ *       return false; // Prevent default behavior
+ *     }
+ *   }}
+ * />
+ * ```
+ */
+export interface CitationBehaviorConfig {
+  /**
+   * Disable the default click behavior entirely.
+   * When true, clicks won't pin popovers or expand images.
+   * Your eventHandlers.onClick will still be called.
+   * @default false
+   */
+  disableClickBehavior?: boolean;
+
+  /**
+   * Disable the click-to-expand image behavior.
+   * First click still pins the popover, but second click won't expand the image.
+   * @default false
+   */
+  disableImageExpand?: boolean;
+
+  /**
+   * Disable the popover pinning behavior.
+   * Clicks won't pin the popover open; it will only show on hover.
+   * @default false
+   */
+  disablePopoverPin?: boolean;
+
+  /**
+   * Custom click behavior handler.
+   *
+   * - Return `CitationBehaviorActions` to override default behavior with specific actions
+   * - Return `false` to prevent default behavior entirely
+   * - Return `void`/`undefined` to let default behavior proceed
+   *
+   * This is called BEFORE the default behavior, allowing you to:
+   * 1. Add side effects (analytics, etc.) and let defaults proceed (return void)
+   * 2. Completely override behavior (return actions or false)
+   *
+   * Note: eventHandlers.onClick is always called regardless of this handler's return value.
+   */
+  onClick?: CitationClickBehavior;
+
+  /**
+   * Custom hover behavior handlers.
+   * These are called in addition to (not instead of) eventHandlers.onMouseEnter/Leave.
+   */
+  onHover?: CitationHoverBehavior;
+}
+
+/**
  * Props for the tooltip wrapper component
  */
 export interface CitationTooltipProps {

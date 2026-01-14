@@ -124,6 +124,125 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 />
 ```
 
+### 5. Customizing Click/Hover Behavior
+
+The CitationComponent has built-in default behaviors:
+- **Hover**: Shows popover with verification image/details; cursor changes to `zoom-in` when pinned with image
+- **Click 1**: Pins the popover open (stays visible without hover)
+- **Click 2**: Opens full-size image overlay (if image available)
+- **Click 3**: Closes image and unpins popover
+
+You can customize or disable these behaviors using `behaviorConfig`:
+
+```tsx
+import {
+  CitationComponent,
+  type CitationBehaviorConfig
+} from "@deepcitation/deepcitation-js/react";
+
+// Disable image expand on second click (popover still pins)
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  behaviorConfig={{ disableImageExpand: true }}
+/>
+
+// Disable all click behavior (popover only shows on hover)
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  behaviorConfig={{ disableClickBehavior: true }}
+/>
+
+// Disable popover pinning (never stays open on click)
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  behaviorConfig={{ disablePopoverPin: true }}
+/>
+
+// Add analytics while keeping default behavior
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  behaviorConfig={{
+    onClick: (context, event) => {
+      analytics.track('citation_clicked', {
+        key: context.citationKey,
+        hasImage: context.hasImage
+      });
+      // Return nothing to use default behavior
+    }
+  }}
+/>
+
+// Custom click behavior: open image immediately on first click
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  behaviorConfig={{
+    onClick: (context, event) => {
+      if (context.hasImage && !context.isImageExpanded) {
+        // Return actions to apply
+        return { setImageExpanded: true };
+      }
+      // Return false to prevent default, or nothing to use default
+    }
+  }}
+/>
+
+// Custom hover behavior
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  behaviorConfig={{
+    onHover: {
+      onEnter: (context) => {
+        console.log('Hovering citation:', context.citationKey);
+      },
+      onLeave: (context) => {
+        console.log('Left citation:', context.citationKey);
+      }
+    }
+  }}
+/>
+```
+
+#### Behavior Types
+
+```typescript
+// Context provided to behavior handlers
+interface CitationBehaviorContext {
+  citation: Citation;
+  citationKey: string;
+  verification: Verification | null;
+  isTooltipExpanded: boolean;  // Is popover pinned open?
+  isImageExpanded: boolean;    // Is full-size image showing?
+  hasImage: boolean;           // Is verification image available?
+}
+
+// Actions you can return from onClick
+interface CitationBehaviorActions {
+  setTooltipExpanded?: boolean;        // Pin/unpin popover
+  setImageExpanded?: boolean | string; // Open/close image (or provide src)
+  setPhrasesExpanded?: boolean;        // Expand/collapse search phrases
+}
+
+// Full config interface
+interface CitationBehaviorConfig {
+  disableClickBehavior?: boolean;  // Disable all click behavior
+  disableImageExpand?: boolean;    // Disable click-to-expand image
+  disablePopoverPin?: boolean;     // Disable click-to-pin popover
+  onClick?: (context, event) => CitationBehaviorActions | false | void;
+  onHover?: {
+    onEnter?: (context) => void;
+    onLeave?: (context) => void;
+  };
+}
+```
+
+Note: `eventHandlers.onClick/onMouseEnter/onMouseLeave` are always called regardless of `behaviorConfig` settings, so you can use both together.
+
 ## API Endpoints
 
 - `POST https://api.deepcitation.com/prepareFile` - Upload and process source documents

@@ -24,6 +24,12 @@ export type {
   UrlFetchStatus,
   UrlCitationMeta,
   UrlCitationProps,
+  // Behavior configuration types
+  CitationBehaviorConfig,
+  CitationBehaviorContext,
+  CitationBehaviorActions,
+  CitationClickBehavior,
+  CitationHoverBehavior,
 } from "./types.js";
 
 // URL Utilities - For handling URL citation metadata

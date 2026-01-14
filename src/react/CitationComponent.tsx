@@ -14,6 +14,9 @@ import type { Verification } from "../types/verification.js";
 import { CheckIcon, WarningIcon } from "./icons.js";
 import type {
   BaseCitationProps,
+  CitationBehaviorActions,
+  CitationBehaviorConfig,
+  CitationBehaviorContext,
   CitationEventHandlers,
   CitationRenderProps,
   CitationVariant,
@@ -102,6 +105,29 @@ export type { CitationVariant } from "./types.js";
  *   popoverPosition="hidden"
  * />
  * ```
+ *
+ * @example Customize click behavior - disable image expand
+ * ```tsx
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verificationResult}
+ *   behaviorConfig={{ disableImageExpand: true }}
+ * />
+ * ```
+ *
+ * @example Custom click handler with default behavior
+ * ```tsx
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verificationResult}
+ *   behaviorConfig={{
+ *     onClick: (context, event) => {
+ *       // Log analytics, then let default behavior proceed
+ *       analytics.track('citation_clicked', { key: context.citationKey });
+ *     }
+ *   }}
+ * />
+ * ```
  */
 export interface CitationComponentProps extends BaseCitationProps {
   /**
@@ -128,8 +154,23 @@ export interface CitationComponentProps extends BaseCitationProps {
 
   /**
    * Event handlers for citation interactions.
+   * These are always called regardless of behaviorConfig settings.
    */
   eventHandlers?: CitationEventHandlers;
+
+  /**
+   * Configuration for customizing default click/hover behaviors.
+   * Use this to disable or extend the built-in behaviors.
+   *
+   * Default behaviors:
+   * - Hover: Shows zoom-in cursor when popover is pinned and has image
+   * - Click 1: Pins the popover open (stays visible without hover)
+   * - Click 2: Opens full-size image overlay (if image available)
+   * - Click 3: Closes image and unpins popover
+   *
+   * @see CitationBehaviorConfig for all options
+   */
+  behaviorConfig?: CitationBehaviorConfig;
 
   /**
    * Enable mobile touch handlers.
@@ -598,6 +639,7 @@ export const CitationComponent = forwardRef<
       verification,
       variant = "brackets",
       eventHandlers,
+      behaviorConfig,
       isMobile = false,
       renderIndicator,
       renderContent,
@@ -673,11 +715,71 @@ export const CitationComponent = forwardRef<
       [citationKey]
     );
 
+    // Create behavior context for custom handlers
+    const getBehaviorContext = useCallback((): CitationBehaviorContext => ({
+      citation,
+      citationKey,
+      verification: verification ?? null,
+      isTooltipExpanded,
+      isImageExpanded: !!expandedImageSrc,
+      hasImage: !!verification?.verificationImageBase64,
+    }), [citation, citationKey, verification, isTooltipExpanded, expandedImageSrc]);
+
+    // Apply behavior actions from custom handler
+    const applyBehaviorActions = useCallback((actions: CitationBehaviorActions) => {
+      if (actions.setTooltipExpanded !== undefined) {
+        setIsTooltipExpanded(actions.setTooltipExpanded);
+      }
+      if (actions.setImageExpanded !== undefined) {
+        if (typeof actions.setImageExpanded === "string") {
+          setExpandedImageSrc(actions.setImageExpanded);
+        } else if (actions.setImageExpanded === true && verification?.verificationImageBase64) {
+          setExpandedImageSrc(verification.verificationImageBase64);
+        } else if (actions.setImageExpanded === false) {
+          setExpandedImageSrc(null);
+        }
+      }
+      if (actions.setPhrasesExpanded !== undefined) {
+        setIsPhrasesExpanded(actions.setPhrasesExpanded);
+      }
+    }, [verification?.verificationImageBase64]);
+
     const handleToggleTooltip = useCallback(
       (e: React.MouseEvent<HTMLSpanElement>) => {
         e.preventDefault();
         e.stopPropagation();
 
+        const context = getBehaviorContext();
+
+        // Call custom onClick handler first (if provided)
+        if (behaviorConfig?.onClick) {
+          const result = behaviorConfig.onClick(context, e);
+
+          // If custom handler returns actions, apply them and skip default behavior
+          if (result && typeof result === "object") {
+            applyBehaviorActions(result);
+            // Always call eventHandlers.onClick regardless of custom behavior
+            eventHandlers?.onClick?.(citation, citationKey, e);
+            return;
+          }
+
+          // If custom handler returns false, skip default behavior entirely
+          if (result === false) {
+            // Always call eventHandlers.onClick regardless of custom behavior
+            eventHandlers?.onClick?.(citation, citationKey, e);
+            return;
+          }
+
+          // Otherwise (undefined/void), proceed with default behavior
+        }
+
+        // Check if click behavior is completely disabled
+        if (behaviorConfig?.disableClickBehavior) {
+          eventHandlers?.onClick?.(citation, citationKey, e);
+          return;
+        }
+
+        // Default click behavior
         // If we have a verification image
         if (verification?.verificationImageBase64) {
           if (expandedImageSrc) {
@@ -685,27 +787,36 @@ export const CitationComponent = forwardRef<
             setExpandedImageSrc(null);
             setIsTooltipExpanded(false);
           } else if (isTooltipExpanded) {
-            // Already pinned - second click expands image
-            setExpandedImageSrc(verification.verificationImageBase64);
+            // Already pinned - second click expands image (unless disabled)
+            if (!behaviorConfig?.disableImageExpand) {
+              setExpandedImageSrc(verification.verificationImageBase64);
+            }
           } else {
-            // First click - just pin the popover open
-            setIsTooltipExpanded(true);
+            // First click - just pin the popover open (unless disabled)
+            if (!behaviorConfig?.disablePopoverPin) {
+              setIsTooltipExpanded(true);
+            }
           }
         } else {
           // No image - toggle phrases expansion for miss/partial tooltips
-          setIsTooltipExpanded((prev) => !prev);
-          setIsPhrasesExpanded((prev) => !prev);
+          if (!behaviorConfig?.disablePopoverPin) {
+            setIsTooltipExpanded((prev) => !prev);
+            setIsPhrasesExpanded((prev) => !prev);
+          }
         }
 
         eventHandlers?.onClick?.(citation, citationKey, e);
       },
       [
         eventHandlers,
+        behaviorConfig,
         citation,
         citationKey,
         verification?.verificationImageBase64,
         expandedImageSrc,
         isTooltipExpanded,
+        getBehaviorContext,
+        applyBehaviorActions,
       ]
     );
 
@@ -733,12 +844,20 @@ export const CitationComponent = forwardRef<
 
     // Event handlers
     const handleMouseEnter = useCallback(() => {
+      // Call custom onHover.onEnter handler (if provided)
+      if (behaviorConfig?.onHover?.onEnter) {
+        behaviorConfig.onHover.onEnter(getBehaviorContext());
+      }
       eventHandlers?.onMouseEnter?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey]);
+    }, [eventHandlers, behaviorConfig, citation, citationKey, getBehaviorContext]);
 
     const handleMouseLeave = useCallback(() => {
+      // Call custom onHover.onLeave handler (if provided)
+      if (behaviorConfig?.onHover?.onLeave) {
+        behaviorConfig.onHover.onLeave(getBehaviorContext());
+      }
       eventHandlers?.onMouseLeave?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey]);
+    }, [eventHandlers, behaviorConfig, citation, citationKey, getBehaviorContext]);
 
     const handleTouchEnd = useCallback(
       (e: React.TouchEvent<HTMLSpanElement>) => {
