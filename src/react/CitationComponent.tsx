@@ -106,16 +106,7 @@ export type { CitationVariant } from "./types.js";
  * />
  * ```
  *
- * @example Customize click behavior - disable image expand
- * ```tsx
- * <CitationComponent
- *   citation={citation}
- *   verification={verificationResult}
- *   behaviorConfig={{ disableImageExpand: true }}
- * />
- * ```
- *
- * @example Custom click handler (replaces default behavior)
+ * @example Custom click behavior (replaces default)
  * ```tsx
  * <CitationComponent
  *   citation={citation}
@@ -131,16 +122,25 @@ export type { CitationVariant } from "./types.js";
  * />
  * ```
  *
- * @example Add analytics while keeping default behavior
+ * @example Disable all click behavior
  * ```tsx
  * <CitationComponent
  *   citation={citation}
  *   verification={verificationResult}
- *   behaviorConfig={{
- *     onClick: (context, event) => {
- *       analytics.track('citation_clicked', { key: context.citationKey });
- *     },
- *     extendDefaultClickBehavior: true
+ *   behaviorConfig={{ onClick: () => false }}
+ * />
+ * ```
+ *
+ * @example Add analytics while keeping default behavior
+ * ```tsx
+ * // Use eventHandlers for side effects - defaults still run
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verificationResult}
+ *   eventHandlers={{
+ *     onClick: (citation, key, event) => {
+ *       analytics.track('citation_clicked', { key });
+ *     }
  *   }}
  * />
  * ```
@@ -767,57 +767,38 @@ export const CitationComponent = forwardRef<
 
         const context = getBehaviorContext();
 
-        // Call custom onClick handler first (if provided)
+        // If custom onClick handler is provided, it REPLACES default behavior
         if (behaviorConfig?.onClick) {
           const result = behaviorConfig.onClick(context, e);
 
           // If custom handler returns actions, apply them
           if (result && typeof result === "object") {
             applyBehaviorActions(result);
-            // Always call eventHandlers.onClick regardless of custom behavior
-            eventHandlers?.onClick?.(citation, citationKey, e);
-            return;
           }
+          // If returns false or void, no state changes
 
-          // If custom handler returns false, skip any behavior
-          if (result === false) {
-            // Always call eventHandlers.onClick regardless of custom behavior
-            eventHandlers?.onClick?.(citation, citationKey, e);
-            return;
-          }
-
-          // Custom onClick was provided but returned void/undefined
-          // Only proceed with default behavior if extendDefaultClickBehavior is true
-          if (!behaviorConfig.extendDefaultClickBehavior) {
-            eventHandlers?.onClick?.(citation, citationKey, e);
-            return;
-          }
+          // Always call eventHandlers.onClick regardless of custom behavior
+          eventHandlers?.onClick?.(citation, citationKey, e);
+          return;
         }
 
-        // Default click behavior
-        // If we have a verification image
+        // Default click behavior (only runs when no custom onClick is provided)
         if (verification?.verificationImageBase64) {
           if (expandedImageSrc) {
             // Image is open - close it and unpin
             setExpandedImageSrc(null);
             setIsTooltipExpanded(false);
           } else if (isTooltipExpanded) {
-            // Already pinned - second click expands image (unless disabled)
-            if (!behaviorConfig?.disableImageExpand) {
-              setExpandedImageSrc(verification.verificationImageBase64);
-            }
+            // Already pinned - second click expands image
+            setExpandedImageSrc(verification.verificationImageBase64);
           } else {
-            // First click - just pin the popover open (unless disabled)
-            if (!behaviorConfig?.disablePopoverPin) {
-              setIsTooltipExpanded(true);
-            }
+            // First click - pin the popover open
+            setIsTooltipExpanded(true);
           }
         } else {
           // No image - toggle phrases expansion for miss/partial tooltips
-          if (!behaviorConfig?.disablePopoverPin) {
-            setIsTooltipExpanded((prev) => !prev);
-            setIsPhrasesExpanded((prev) => !prev);
-          }
+          setIsTooltipExpanded((prev) => !prev);
+          setIsPhrasesExpanded((prev) => !prev);
         }
 
         eventHandlers?.onClick?.(citation, citationKey, e);
