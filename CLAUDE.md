@@ -132,66 +132,34 @@ The CitationComponent has built-in default behaviors:
 - **Click 2**: Opens full-size image overlay (if image available)
 - **Click 3**: Closes image and unpins popover
 
-You can customize or disable these behaviors using `behaviorConfig`:
+**Key principle**: When you provide `onClick` or `onHover` in `behaviorConfig`, they REPLACE the defaults. Use `eventHandlers` for side effects (analytics, logging) that should run alongside defaults.
 
 ```tsx
-import {
-  CitationComponent,
-  type CitationBehaviorConfig
-} from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
-// Disable image expand on second click (popover still pins)
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  behaviorConfig={{ disableImageExpand: true }}
-/>
-
-// Disable all click behavior (popover only shows on hover)
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  behaviorConfig={{ disableClickBehavior: true }}
-/>
-
-// Disable popover pinning (never stays open on click)
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  behaviorConfig={{ disablePopoverPin: true }}
-/>
-
-// Add analytics while keeping default behavior
+// Custom click behavior (replaces default)
 <CitationComponent
   citation={citation}
   verification={verification}
   behaviorConfig={{
     onClick: (context, event) => {
-      analytics.track('citation_clicked', {
-        key: context.citationKey,
-        hasImage: context.hasImage
-      });
-      // Return nothing to use default behavior
-    }
-  }}
-/>
-
-// Custom click behavior: open image immediately on first click
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  behaviorConfig={{
-    onClick: (context, event) => {
+      // Open image immediately on first click
       if (context.hasImage && !context.isImageExpanded) {
-        // Return actions to apply
         return { setImageExpanded: true };
       }
-      // Return false to prevent default, or nothing to use default
+      // Return false to prevent any action, or return actions object
     }
   }}
 />
 
-// Custom hover behavior
+// Disable all click behavior
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  behaviorConfig={{ onClick: () => false }}
+/>
+
+// Custom hover behavior (replaces default)
 <CitationComponent
   citation={citation}
   verification={verification}
@@ -228,11 +196,8 @@ interface CitationBehaviorActions {
   setPhrasesExpanded?: boolean;        // Expand/collapse search phrases
 }
 
-// Full config interface
+// Config interface - provide onClick/onHover to REPLACE defaults
 interface CitationBehaviorConfig {
-  disableClickBehavior?: boolean;  // Disable all click behavior
-  disableImageExpand?: boolean;    // Disable click-to-expand image
-  disablePopoverPin?: boolean;     // Disable click-to-pin popover
   onClick?: (context, event) => CitationBehaviorActions | false | void;
   onHover?: {
     onEnter?: (context) => void;
@@ -241,7 +206,7 @@ interface CitationBehaviorConfig {
 }
 ```
 
-Note: `eventHandlers.onClick/onMouseEnter/onMouseLeave` are always called regardless of `behaviorConfig` settings, so you can use both together.
+Note: `eventHandlers.onClick/onMouseEnter/onMouseLeave` always run regardless of `behaviorConfig`, so use them for side effects alongside defaults.
 
 ## API Endpoints
 

@@ -106,26 +106,27 @@ export type { CitationVariant } from "./types.js";
  * />
  * ```
  *
- * @example Customize click behavior - disable image expand
- * ```tsx
- * <CitationComponent
- *   citation={citation}
- *   verification={verificationResult}
- *   behaviorConfig={{ disableImageExpand: true }}
- * />
- * ```
- *
- * @example Custom click handler with default behavior
+ * @example Custom click behavior (replaces default)
  * ```tsx
  * <CitationComponent
  *   citation={citation}
  *   verification={verificationResult}
  *   behaviorConfig={{
  *     onClick: (context, event) => {
- *       // Log analytics, then let default behavior proceed
- *       analytics.track('citation_clicked', { key: context.citationKey });
+ *       if (context.hasImage) {
+ *         return { setImageExpanded: true };
+ *       }
  *     }
  *   }}
+ * />
+ * ```
+ *
+ * @example Disable all click behavior
+ * ```tsx
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verificationResult}
+ *   behaviorConfig={{ onClick: () => false }}
  * />
  * ```
  */
@@ -751,58 +752,38 @@ export const CitationComponent = forwardRef<
 
         const context = getBehaviorContext();
 
-        // Call custom onClick handler first (if provided)
+        // If custom onClick handler is provided, it REPLACES default behavior
         if (behaviorConfig?.onClick) {
           const result = behaviorConfig.onClick(context, e);
 
-          // If custom handler returns actions, apply them and skip default behavior
+          // If custom handler returns actions, apply them
           if (result && typeof result === "object") {
             applyBehaviorActions(result);
-            // Always call eventHandlers.onClick regardless of custom behavior
-            eventHandlers?.onClick?.(citation, citationKey, e);
-            return;
           }
+          // If returns false or void, no state changes
 
-          // If custom handler returns false, skip default behavior entirely
-          if (result === false) {
-            // Always call eventHandlers.onClick regardless of custom behavior
-            eventHandlers?.onClick?.(citation, citationKey, e);
-            return;
-          }
-
-          // Otherwise (undefined/void), proceed with default behavior
-        }
-
-        // Check if click behavior is completely disabled
-        if (behaviorConfig?.disableClickBehavior) {
+          // Always call eventHandlers.onClick regardless of custom behavior
           eventHandlers?.onClick?.(citation, citationKey, e);
           return;
         }
 
-        // Default click behavior
-        // If we have a verification image
+        // Default click behavior (only runs when no custom onClick is provided)
         if (verification?.verificationImageBase64) {
           if (expandedImageSrc) {
             // Image is open - close it and unpin
             setExpandedImageSrc(null);
             setIsTooltipExpanded(false);
           } else if (isTooltipExpanded) {
-            // Already pinned - second click expands image (unless disabled)
-            if (!behaviorConfig?.disableImageExpand) {
-              setExpandedImageSrc(verification.verificationImageBase64);
-            }
+            // Already pinned - second click expands image
+            setExpandedImageSrc(verification.verificationImageBase64);
           } else {
-            // First click - just pin the popover open (unless disabled)
-            if (!behaviorConfig?.disablePopoverPin) {
-              setIsTooltipExpanded(true);
-            }
+            // First click - pin the popover open
+            setIsTooltipExpanded(true);
           }
         } else {
           // No image - toggle phrases expansion for miss/partial tooltips
-          if (!behaviorConfig?.disablePopoverPin) {
-            setIsTooltipExpanded((prev) => !prev);
-            setIsPhrasesExpanded((prev) => !prev);
-          }
+          setIsTooltipExpanded((prev) => !prev);
+          setIsPhrasesExpanded((prev) => !prev);
         }
 
         eventHandlers?.onClick?.(citation, citationKey, e);

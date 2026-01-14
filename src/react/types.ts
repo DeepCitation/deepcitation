@@ -277,102 +277,46 @@ export interface CitationHoverBehavior {
 /**
  * Configuration for customizing default citation behaviors.
  *
- * @example Use defaults (no config needed)
- * ```tsx
- * <CitationComponent citation={citation} verification={verification} />
- * ```
+ * When you provide `onClick` or `onHover`, they REPLACE the corresponding default behaviors.
+ * Use `eventHandlers` for side effects that should run alongside defaults.
  *
- * @example Disable click-to-expand image (popover still pins on click)
- * ```tsx
- * <CitationComponent
- *   citation={citation}
- *   verification={verification}
- *   behaviorConfig={{ disableImageExpand: true }}
- * />
- * ```
- *
- * @example Disable all click behavior
- * ```tsx
- * <CitationComponent
- *   citation={citation}
- *   verification={verification}
- *   behaviorConfig={{ disableClickBehavior: true }}
- * />
- * ```
- *
- * @example Custom click behavior (extend defaults)
+ * @example Custom click behavior (replaces default)
  * ```tsx
  * <CitationComponent
  *   citation={citation}
  *   verification={verification}
  *   behaviorConfig={{
  *     onClick: (context, event) => {
- *       // Log analytics
- *       analytics.track('citation_clicked', { key: context.citationKey });
- *       // Return nothing to use default behavior
- *     }
- *   }}
- * />
- * ```
- *
- * @example Override click behavior completely
- * ```tsx
- * <CitationComponent
- *   citation={citation}
- *   verification={verification}
- *   behaviorConfig={{
- *     onClick: (context, event) => {
- *       // Custom behavior: always open image immediately
  *       if (context.hasImage) {
  *         return { setImageExpanded: true };
  *       }
- *       return false; // Prevent default behavior
  *     }
  *   }}
+ * />
+ * ```
+ *
+ * @example Disable click behavior entirely
+ * ```tsx
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verification}
+ *   behaviorConfig={{ onClick: () => false }}
  * />
  * ```
  */
 export interface CitationBehaviorConfig {
   /**
-   * Disable the default click behavior entirely.
-   * When true, clicks won't pin popovers or expand images.
-   * Your eventHandlers.onClick will still be called.
-   * @default false
-   */
-  disableClickBehavior?: boolean;
-
-  /**
-   * Disable the click-to-expand image behavior.
-   * First click still pins the popover, but second click won't expand the image.
-   * @default false
-   */
-  disableImageExpand?: boolean;
-
-  /**
-   * Disable the popover pinning behavior.
-   * Clicks won't pin the popover open; it will only show on hover.
-   * @default false
-   */
-  disablePopoverPin?: boolean;
-
-  /**
-   * Custom click behavior handler.
+   * Custom click behavior handler. When provided, REPLACES the default click behavior.
    *
-   * - Return `CitationBehaviorActions` to override default behavior with specific actions
-   * - Return `false` to prevent default behavior entirely
-   * - Return `void`/`undefined` to let default behavior proceed
-   *
-   * This is called BEFORE the default behavior, allowing you to:
-   * 1. Add side effects (analytics, etc.) and let defaults proceed (return void)
-   * 2. Completely override behavior (return actions or false)
-   *
-   * Note: eventHandlers.onClick is always called regardless of this handler's return value.
+   * Return values:
+   * - `CitationBehaviorActions`: Apply specific state changes
+   * - `false`: Prevent any state changes
+   * - `void`/`undefined`: No state changes
    */
   onClick?: CitationClickBehavior;
 
   /**
-   * Custom hover behavior handlers.
-   * These are called in addition to (not instead of) eventHandlers.onMouseEnter/Leave.
+   * Custom hover behavior handlers. When provided, REPLACE the default hover behavior.
    */
   onHover?: CitationHoverBehavior;
 }
