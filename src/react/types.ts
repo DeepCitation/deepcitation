@@ -291,31 +291,7 @@ export interface CitationHoverBehavior {
  * />
  * ```
  *
- * @example Disable all click behavior
- * ```tsx
- * <CitationComponent
- *   citation={citation}
- *   verification={verification}
- *   behaviorConfig={{ disableClickBehavior: true }}
- * />
- * ```
- *
- * @example Custom click behavior (extend defaults)
- * ```tsx
- * <CitationComponent
- *   citation={citation}
- *   verification={verification}
- *   behaviorConfig={{
- *     onClick: (context, event) => {
- *       // Log analytics
- *       analytics.track('citation_clicked', { key: context.citationKey });
- *       // Return nothing to use default behavior
- *     }
- *   }}
- * />
- * ```
- *
- * @example Override click behavior completely
+ * @example Custom click behavior (replaces defaults)
  * ```tsx
  * <CitationComponent
  *   citation={citation}
@@ -326,21 +302,29 @@ export interface CitationHoverBehavior {
  *       if (context.hasImage) {
  *         return { setImageExpanded: true };
  *       }
- *       return false; // Prevent default behavior
+ *       return false; // Prevent any action
  *     }
+ *   }}
+ * />
+ * ```
+ *
+ * @example Add analytics while keeping default behavior
+ * ```tsx
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verification}
+ *   behaviorConfig={{
+ *     onClick: (context, event) => {
+ *       // Log analytics
+ *       analytics.track('citation_clicked', { key: context.citationKey });
+ *     },
+ *     // Explicitly opt-in to default behavior alongside custom handler
+ *     extendDefaultClickBehavior: true
  *   }}
  * />
  * ```
  */
 export interface CitationBehaviorConfig {
-  /**
-   * Disable the default click behavior entirely.
-   * When true, clicks won't pin popovers or expand images.
-   * Your eventHandlers.onClick will still be called.
-   * @default false
-   */
-  disableClickBehavior?: boolean;
-
   /**
    * Disable the click-to-expand image behavior.
    * First click still pins the popover, but second click won't expand the image.
@@ -358,17 +342,28 @@ export interface CitationBehaviorConfig {
   /**
    * Custom click behavior handler.
    *
-   * - Return `CitationBehaviorActions` to override default behavior with specific actions
-   * - Return `false` to prevent default behavior entirely
-   * - Return `void`/`undefined` to let default behavior proceed
+   * When provided, this REPLACES the default click behavior by default.
+   * Use `extendDefaultClickBehavior: true` to run both your handler AND defaults.
    *
-   * This is called BEFORE the default behavior, allowing you to:
-   * 1. Add side effects (analytics, etc.) and let defaults proceed (return void)
-   * 2. Completely override behavior (return actions or false)
+   * Return values:
+   * - `CitationBehaviorActions`: Apply specific state changes
+   * - `false`: Prevent any state changes
+   * - `void`/`undefined`: No state changes (or default behavior if extendDefaultClickBehavior is true)
    *
    * Note: eventHandlers.onClick is always called regardless of this handler's return value.
    */
   onClick?: CitationClickBehavior;
+
+  /**
+   * When true, the default click behavior runs AFTER your custom onClick handler.
+   * Only relevant when onClick is provided.
+   *
+   * - `false` (default when onClick provided): onClick replaces default behavior
+   * - `true`: onClick runs first, then default behavior runs
+   *
+   * @default false (when onClick is provided)
+   */
+  extendDefaultClickBehavior?: boolean;
 
   /**
    * Custom hover behavior handlers.

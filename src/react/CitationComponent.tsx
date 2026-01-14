@@ -115,16 +115,32 @@ export type { CitationVariant } from "./types.js";
  * />
  * ```
  *
- * @example Custom click handler with default behavior
+ * @example Custom click handler (replaces default behavior)
  * ```tsx
  * <CitationComponent
  *   citation={citation}
  *   verification={verificationResult}
  *   behaviorConfig={{
  *     onClick: (context, event) => {
- *       // Log analytics, then let default behavior proceed
- *       analytics.track('citation_clicked', { key: context.citationKey });
+ *       // Custom behavior - this replaces the default
+ *       if (context.hasImage) {
+ *         return { setImageExpanded: true };
+ *       }
  *     }
+ *   }}
+ * />
+ * ```
+ *
+ * @example Add analytics while keeping default behavior
+ * ```tsx
+ * <CitationComponent
+ *   citation={citation}
+ *   verification={verificationResult}
+ *   behaviorConfig={{
+ *     onClick: (context, event) => {
+ *       analytics.track('citation_clicked', { key: context.citationKey });
+ *     },
+ *     extendDefaultClickBehavior: true
  *   }}
  * />
  * ```
@@ -755,7 +771,7 @@ export const CitationComponent = forwardRef<
         if (behaviorConfig?.onClick) {
           const result = behaviorConfig.onClick(context, e);
 
-          // If custom handler returns actions, apply them and skip default behavior
+          // If custom handler returns actions, apply them
           if (result && typeof result === "object") {
             applyBehaviorActions(result);
             // Always call eventHandlers.onClick regardless of custom behavior
@@ -763,20 +779,19 @@ export const CitationComponent = forwardRef<
             return;
           }
 
-          // If custom handler returns false, skip default behavior entirely
+          // If custom handler returns false, skip any behavior
           if (result === false) {
             // Always call eventHandlers.onClick regardless of custom behavior
             eventHandlers?.onClick?.(citation, citationKey, e);
             return;
           }
 
-          // Otherwise (undefined/void), proceed with default behavior
-        }
-
-        // Check if click behavior is completely disabled
-        if (behaviorConfig?.disableClickBehavior) {
-          eventHandlers?.onClick?.(citation, citationKey, e);
-          return;
+          // Custom onClick was provided but returned void/undefined
+          // Only proceed with default behavior if extendDefaultClickBehavior is true
+          if (!behaviorConfig.extendDefaultClickBehavior) {
+            eventHandlers?.onClick?.(citation, citationKey, e);
+            return;
+          }
         }
 
         // Default click behavior

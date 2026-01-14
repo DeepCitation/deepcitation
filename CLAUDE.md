@@ -147,18 +147,26 @@ import {
   behaviorConfig={{ disableImageExpand: true }}
 />
 
-// Disable all click behavior (popover only shows on hover)
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  behaviorConfig={{ disableClickBehavior: true }}
-/>
-
 // Disable popover pinning (never stays open on click)
 <CitationComponent
   citation={citation}
   verification={verification}
   behaviorConfig={{ disablePopoverPin: true }}
+/>
+
+// Custom click behavior (replaces default behavior)
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  behaviorConfig={{
+    onClick: (context, event) => {
+      // Open image immediately on first click
+      if (context.hasImage && !context.isImageExpanded) {
+        return { setImageExpanded: true };
+      }
+      // Return false to prevent any action, or return actions object
+    }
+  }}
 />
 
 // Add analytics while keeping default behavior
@@ -171,23 +179,9 @@ import {
         key: context.citationKey,
         hasImage: context.hasImage
       });
-      // Return nothing to use default behavior
-    }
-  }}
-/>
-
-// Custom click behavior: open image immediately on first click
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  behaviorConfig={{
-    onClick: (context, event) => {
-      if (context.hasImage && !context.isImageExpanded) {
-        // Return actions to apply
-        return { setImageExpanded: true };
-      }
-      // Return false to prevent default, or nothing to use default
-    }
+      // Return nothing - default behavior runs because extendDefaultClickBehavior is true
+    },
+    extendDefaultClickBehavior: true
   }}
 />
 
@@ -230,10 +224,10 @@ interface CitationBehaviorActions {
 
 // Full config interface
 interface CitationBehaviorConfig {
-  disableClickBehavior?: boolean;  // Disable all click behavior
-  disableImageExpand?: boolean;    // Disable click-to-expand image
-  disablePopoverPin?: boolean;     // Disable click-to-pin popover
+  disableImageExpand?: boolean;        // Disable click-to-expand image
+  disablePopoverPin?: boolean;         // Disable click-to-pin popover
   onClick?: (context, event) => CitationBehaviorActions | false | void;
+  extendDefaultClickBehavior?: boolean; // When true with onClick, run defaults after custom handler
   onHover?: {
     onEnter?: (context) => void;
     onLeave?: (context) => void;
