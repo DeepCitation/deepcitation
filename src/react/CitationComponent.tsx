@@ -630,12 +630,12 @@ export const CitationComponent = forwardRef<
       if (variant === "numeric") {
         return citation.citationNumber?.toString() ?? "";
       }
-      // For text/minimal/brackets, show the keySpan or fullPhrase
+      // For text/minimal variants, always show keySpan
+      // For brackets variant, show keySpan only if displayKeySpan prop is true
       return getCitationDisplayText(citation, {
         displayKeySpan:
           variant === "text" ||
           variant === "minimal" ||
-          variant === "brackets" ||
           displayKeySpan,
         fallbackDisplay,
       });
@@ -687,10 +687,11 @@ export const CitationComponent = forwardRef<
         return renderIndicator(status);
       }
 
-      if (isVerified) {
-        return <DefaultVerifiedIndicator />;
-      } else if (isPartialMatch) {
+      // Check partial match first since isVerified includes isPartialMatch
+      if (isPartialMatch) {
         return <DefaultPartialIndicator />;
+      } else if (isVerified) {
+        return <DefaultVerifiedIndicator />;
       } else if (isPending) {
         return (
           <span
