@@ -37,13 +37,13 @@ export function generateCitationInstanceId(citationKey: string): string {
 export function getCitationDisplayText(
   citation: Citation,
   options: {
-    showKeySpan?: boolean;
+    hideKeySpan?: boolean;
     fallbackDisplay?: string | null;
   } = {}
 ): string {
-  const { showKeySpan = false, fallbackDisplay } = options;
+  const { hideKeySpan = false, fallbackDisplay } = options;
 
-  if (showKeySpan) {
+  if (!hideKeySpan) {
     return (
       citation.keySpan?.toString() ||
       citation.citationNumber?.toString() ||
@@ -61,12 +61,12 @@ export function getCitationDisplayText(
 export function getCitationKeySpanText(
   citation: Citation,
   options: {
-    showKeySpan?: boolean;
+    hideKeySpan?: boolean;
   } = {}
 ): string {
-  const { showKeySpan = false } = options;
+  const { hideKeySpan = false } = options;
 
-  if (showKeySpan) {
+  if (!hideKeySpan) {
     return "";
   }
 

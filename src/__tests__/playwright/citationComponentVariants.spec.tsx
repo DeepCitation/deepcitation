@@ -64,18 +64,18 @@ test.describe("CitationComponent - Brackets Variant", () => {
     await expect(citation).toContainText("]");
   });
 
-  test("shows keySpan when showKeySpan is true", async ({ mount, page }) => {
+  test("hides keySpan when hideKeySpan is true", async ({ mount, page }) => {
     await mount(
       <CitationComponent
         citation={baseCitation}
         variant="brackets"
-        showKeySpan={true}
+        hideKeySpan={true}
       />
     );
     const citation = page.locator(".dc-citation");
 
-    await expect(citation).toContainText("25% revenue growth");
-    await expect(citation).not.toContainText("42");
+    await expect(citation).toContainText("42");
+    await expect(citation).not.toContainText("25% revenue growth");
   });
 
   test("shows verified indicator when verified", async ({ mount, page }) => {
@@ -155,7 +155,7 @@ test.describe("CitationComponent - Numeric Variant", () => {
     await expect(citation).not.toContainText("]");
   });
 
-  test("always shows citation number, ignoring showKeySpan", async ({
+  test("always shows citation number, ignoring hideKeySpan", async ({
     mount,
     page,
   }) => {
@@ -163,12 +163,12 @@ test.describe("CitationComponent - Numeric Variant", () => {
       <CitationComponent
         citation={baseCitation}
         variant="numeric"
-        showKeySpan={true}
+        hideKeySpan={false}
       />
     );
     const citation = page.locator(".dc-citation");
 
-    // Numeric variant always shows citation number regardless of showKeySpan
+    // Numeric variant always shows citation number regardless of hideKeySpan
     await expect(citation).toContainText("42");
     await expect(citation).not.toContainText("25% revenue growth");
   });
@@ -399,7 +399,7 @@ test.describe("CitationComponent - All Variants Visual", () => {
           <CitationComponent
             citation={baseCitation}
             variant="brackets"
-            showKeySpan={true}
+            hideKeySpan={false}
             verification={verifiedVerification}
           />
         </div>

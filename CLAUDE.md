@@ -113,14 +113,14 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 <CitationComponent
   citation={citation}
   verification={verification}
-  showKeySpan={false}
+  hideKeySpan={true}
 />
 
 // Without brackets: shows keySpan without brackets
 <CitationComponent
   citation={citation}
   verification={verification}
-  showBrackets={false}
+  hideBrackets={true}
 />
 ```
 

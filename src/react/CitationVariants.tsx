@@ -111,7 +111,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       citation,
       children,
       className,
-      showKeySpan = false,
+      hideKeySpan = false,
       fallbackDisplay,
       verification,
       eventHandlers,
@@ -135,18 +135,18 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
     const displayText = useMemo(
       () =>
         getCitationDisplayText(citation, {
-          showKeySpan,
+          hideKeySpan,
           fallbackDisplay,
         }),
-      [citation, showKeySpan, fallbackDisplay]
+      [citation, hideKeySpan, fallbackDisplay]
     );
 
     const keySpanText = useMemo(
       () =>
         getCitationKeySpanText(citation, {
-          showKeySpan,
+          hideKeySpan,
         }),
-      [citation, showKeySpan]
+      [citation, hideKeySpan]
     );
 
     const handleClick = useCallback(
@@ -224,8 +224,8 @@ ChipCitation.displayName = "ChipCitation";
 // =============================================================================
 
 export interface SuperscriptCitationProps extends CitationVariantProps {
-  /** Whether to show brackets around the superscript */
-  showBrackets?: boolean;
+  /** Whether to hide brackets around the superscript */
+  hideBrackets?: boolean;
 }
 
 /**
@@ -247,7 +247,7 @@ export const SuperscriptCitation = forwardRef<
       citation,
       children,
       className,
-      showKeySpan = false,
+      hideKeySpan = false,
       fallbackDisplay,
       verification,
       eventHandlers,
@@ -256,7 +256,7 @@ export const SuperscriptCitation = forwardRef<
       pendingContent = TWO_DOTS_THINKING_CONTENT,
       renderVerifiedIndicator = () => <DefaultVerifiedIndicator />,
       renderPartialIndicator = () => <DefaultPartialIndicator />,
-      showBrackets = false,
+      hideBrackets = false,
     },
     ref
   ) => {
@@ -269,10 +269,10 @@ export const SuperscriptCitation = forwardRef<
     const displayText = useMemo(
       () =>
         getCitationDisplayText(citation, {
-          showKeySpan,
+          hideKeySpan,
           fallbackDisplay,
         }),
-      [citation, showKeySpan, fallbackDisplay]
+      [citation, hideKeySpan, fallbackDisplay]
     );
 
     const handleClick = useCallback(
@@ -318,12 +318,12 @@ export const SuperscriptCitation = forwardRef<
           onClick={(e) => e.stopPropagation()}
           aria-label={`Citation ${displayText}`}
         >
-          {showBrackets && "["}
+          {!hideBrackets && "["}
           {displayText}
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isPending && pendingContent}
-          {showBrackets && "]"}
+          {!hideBrackets && "]"}
         </sup>
       </>
     );
@@ -474,7 +474,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
       citation,
       children,
       className,
-      showKeySpan = true, // Default to merged for inline
+      hideKeySpan = false, // Default to showing keySpan for inline
       fallbackDisplay,
       verification,
       eventHandlers,
@@ -495,10 +495,10 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
     const displayText = useMemo(
       () =>
         getCitationDisplayText(citation, {
-          showKeySpan,
+          hideKeySpan,
           fallbackDisplay,
         }),
-      [citation, showKeySpan, fallbackDisplay]
+      [citation, hideKeySpan, fallbackDisplay]
     );
 
     const handleClick = useCallback(
@@ -593,7 +593,7 @@ export const MinimalCitation = forwardRef<
       citation,
       children,
       className,
-      showKeySpan = false,
+      hideKeySpan = false,
       fallbackDisplay,
       verification,
       eventHandlers,
@@ -614,10 +614,10 @@ export const MinimalCitation = forwardRef<
     const displayText = useMemo(
       () =>
         getCitationDisplayText(citation, {
-          showKeySpan,
+          hideKeySpan,
           fallbackDisplay,
         }),
-      [citation, showKeySpan, fallbackDisplay]
+      [citation, hideKeySpan, fallbackDisplay]
     );
 
     const handleClick = useCallback(

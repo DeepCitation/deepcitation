@@ -126,7 +126,7 @@ test.describe("ChipCitation", () => {
   });
 
   test("renders with merged value", async ({ mount, page }) => {
-    await mount(<ChipCitation citation={baseCitation} showKeySpan={true} />);
+    await mount(<ChipCitation citation={baseCitation} hideKeySpan={false} />);
     const chip = page.locator(".citation-chip");
 
     await expect(chip).toContainText("Test Value");
@@ -173,14 +173,14 @@ test.describe("SuperscriptCitation", () => {
     await expect(sup).toHaveClass(/citation-superscript--verified/);
   });
 
-  test("renders with brackets when showBrackets is true", async ({
+  test("renders with brackets when hideBrackets is false", async ({
     mount,
     page,
   }) => {
     await mount(
       <SuperscriptCitation
         citation={baseCitation}
-        showBrackets={true}
+        hideBrackets={false}
         verification={verification}
       />
     );
@@ -311,7 +311,7 @@ test.describe("InlineCitation", () => {
     await mount(<InlineCitation citation={baseCitation} />);
     const inline = page.locator(".citation-inline");
 
-    // InlineCitation defaults to showKeySpan=true
+    // InlineCitation defaults to hideKeySpan=false (show keySpan)
     await expect(inline).toContainText("Test Value");
   });
 
