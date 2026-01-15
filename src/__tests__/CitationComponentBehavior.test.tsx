@@ -538,8 +538,8 @@ describe("CitationComponent behaviorConfig", () => {
   // ANALYTICS USE CASE - eventHandlers for side effects
   // ==========================================================================
 
-  describe("eventHandlers for analytics (side effects alongside defaults)", () => {
-    it("eventHandlers.onClick runs alongside default behavior", () => {
+  describe("eventHandlers for analytics", () => {
+    it("eventHandlers.onClick disables default behavior (no popover pinning)", () => {
       const trackingData: string[] = [];
 
       const { container } = render(
@@ -556,15 +556,17 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector(".dc-citation");
 
-      // First click - analytics tracked AND default behavior runs
+      // First click - analytics tracked but default behavior is disabled
       fireEvent.click(citation!);
       expect(trackingData).toHaveLength(1);
-      expect(citation?.getAttribute("data-tooltip-expanded")).toBe("true");
+      // Default behavior (tooltip expansion) should NOT happen
+      expect(citation?.getAttribute("data-tooltip-expanded")).toBe("false");
 
-      // Second click - analytics tracked AND image expands
+      // Second click - analytics tracked, still no default behavior
       fireEvent.click(citation!);
       expect(trackingData).toHaveLength(2);
-      expect(container.querySelector(".dc-overlay")).toBeInTheDocument();
+      // Image overlay should NOT appear since defaults are disabled
+      expect(container.querySelector(".dc-overlay")).not.toBeInTheDocument();
     });
 
     it("eventHandlers.onClick runs even when behaviorConfig.onClick is provided", () => {
