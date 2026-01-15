@@ -17,30 +17,30 @@ import type { Verification } from "../../types/verification";
 const baseCitation: Citation = {
   citationNumber: 1,
   fullPhrase: "This is a test citation",
-  value: "Test Value",
+  keySpan: "Test Value",
   pageNumber: 5,
 };
 
 const verification: Verification = {
-  lowerCaseSearchTerm: "test",
+  label: "test",
   pageNumber: 5,
   searchState: { status: "found" },
 };
 
 const missFoundCitation: Verification = {
-  lowerCaseSearchTerm: "test",
+  label: "test",
   pageNumber: -1, // NOT_FOUND_VERIFICATION_INDEX
   searchState: { status: "not_found" },
 };
 
 const partialFoundCitation: Verification = {
-  lowerCaseSearchTerm: "test",
+  label: "test",
   pageNumber: 5,
   searchState: { status: "partial_text_found" },
 };
 
 const pendingFoundCitation: Verification = {
-  lowerCaseSearchTerm: "test",
+  label: "test",
   pageNumber: null,
   searchState: { status: "pending" },
 };

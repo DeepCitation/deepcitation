@@ -10,15 +10,11 @@ export const BLANK_VERIFICATION: Verification = {
   attachmentId: null,
   pageNumber: NOT_FOUND_VERIFICATION_INDEX,
   matchSnippet: null,
-  source: null,
   citation: {
-    attachmentId: undefined,
-    startPageKey: null,
-    fullPhrase: null,
-    keySpan: null,
-    lineIds: null,
-    reasoning: null,
     pageNumber: NOT_FOUND_VERIFICATION_INDEX,
+  },
+  searchState: {
+    status: "not_found",
   },
 };
 
@@ -33,22 +29,27 @@ export interface Verification {
   attachmentId?: string | null;
 
   label?: string | null; //e.g. "Invoice"
-  pageNumber?: number | null;
-  timestamp?: number | null;
 
   citation?: Citation;
 
   searchState?: SearchState | null;
 
-  hitIndexWithinPage?: number | null;
-
   highlightColor?: string | null;
+
+  //actual (i.e. not expected)
+  pageNumber?: number | null;
+
+  lineIds?: number[] | null;
+
+  timestamps?: { startTime?: string; endTime?: string } | null;
+
+  hitIndexWithinPage?: number | null;
 
   matchSnippet?: string | null;
 
   pdfSpaceItem?: PdfSpaceItem;
 
   verificationImageBase64?: string | null;
-  source?: string | null;
+
   verifiedAt?: Date;
 }
