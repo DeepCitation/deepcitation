@@ -79,7 +79,8 @@
 }
 
 /* Status-specific styles */
-.dc-citation--verified .dc-citation-text {
+/* Only brackets variant gets verified blue text color */
+.dc-citation--brackets.dc-citation--verified .dc-citation-text {
   color: var(--dc-color-verified, #2563eb);
 }
 
@@ -87,7 +88,8 @@
   background-color: var(--dc-verified-hover-bg, rgba(37, 99, 235, 0.08));
 }
 
-.dc-citation--verified:hover .dc-citation-text {
+/* Only brackets variant gets verified blue text on hover */
+.dc-citation--brackets.dc-citation--verified:hover .dc-citation-text {
   text-decoration: underline;
   color: var(--dc-color-verified-hover, #1d4ed8);
 }
