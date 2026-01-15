@@ -52,8 +52,7 @@ describe("DeepCitation Client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          fileId: "file_abc123",
-          attachmentId: "att_123", // Internal field returned by API
+          attachmentId: "file_abc123",
           deepTextPromptPortion: "[Page 1]\n[L1] Test content",
           metadata: {
             filename: "test.pdf",
@@ -68,7 +67,7 @@ describe("DeepCitation Client", () => {
       const blob = new Blob(["test content"], { type: "application/pdf" });
       const result = await client.uploadFile(blob, { filename: "test.pdf" });
 
-      expect(result.fileId).toBe("file_abc123");
+      expect(result.attachmentId).toBe("file_abc123");
       expect(result.deepTextPromptPortion).toContain("[Page 1]");
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
@@ -88,14 +87,13 @@ describe("DeepCitation Client", () => {
       );
     });
 
-    it("handles custom fileId option", async () => {
+    it("handles custom attachmentId option", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          fileId: "custom_id",
-          attachmentId: "att_custom",
+          attachmentId: "custom_id",
           deepTextPromptPortion: "content",
           metadata: {
             filename: "test.pdf",
@@ -108,9 +106,9 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["content"]);
-      const result = await client.uploadFile(blob, { fileId: "custom_id" });
+      const result = await client.uploadFile(blob, { attachmentId: "custom_id" });
 
-      expect(result.fileId).toBe("custom_id");
+      expect(result.attachmentId).toBe("custom_id");
     });
 
     it("throws error for invalid file type", async () => {
@@ -132,8 +130,7 @@ describe("DeepCitation Client", () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
-            fileId: "file_1",
-            attachmentId: "att_1",
+            attachmentId: "file_1",
             deepTextPromptPortion: "[Page 1]\n[L1] Content from file 1",
             metadata: {
               filename: "doc1.pdf",
@@ -147,8 +144,7 @@ describe("DeepCitation Client", () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({
-            fileId: "file_2",
-            attachmentId: "att_2",
+            attachmentId: "file_2",
             deepTextPromptPortion: "[Page 1]\n[L1] Content from file 2",
             metadata: {
               filename: "doc2.pdf",
@@ -171,9 +167,8 @@ describe("DeepCitation Client", () => {
       expect(result.fileDataParts).toHaveLength(2);
       expect(result.deepTextPromptPortion).toHaveLength(2);
 
-      expect(result.fileDataParts[0].fileId).toBe("file_1");
-      // attachmentId is not exposed in FileDataPart
-      expect(result.fileDataParts[1].fileId).toBe("file_2");
+      expect(result.fileDataParts[0].attachmentId).toBe("file_1");
+      expect(result.fileDataParts[1].attachmentId).toBe("file_2");
 
       expect(result.deepTextPromptPortion[0]).toContain("Content from file 1");
       expect(result.deepTextPromptPortion[1]).toContain("Content from file 2");
@@ -185,8 +180,7 @@ describe("DeepCitation Client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          fileId: "single_file",
-          attachmentId: "att_single",
+          attachmentId: "single_file",
           deepTextPromptPortion: "[Page 1]\n[L1] Single content",
           metadata: {
             filename: "single.pdf",
@@ -231,14 +225,13 @@ describe("DeepCitation Client", () => {
       ).rejects.toThrow("Server error");
     });
 
-    it("supports custom fileId per file", async () => {
+    it("supports custom attachmentId per file", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          fileId: "my_custom_id",
-          attachmentId: "att_custom",
+          attachmentId: "my_custom_id",
           deepTextPromptPortion: "content",
           metadata: {
             filename: "custom.pdf",
@@ -252,10 +245,10 @@ describe("DeepCitation Client", () => {
 
       const blob = new Blob(["content"]);
       const result = await client.prepareFiles([
-        { file: blob, filename: "custom.pdf", fileId: "my_custom_id" },
+        { file: blob, filename: "custom.pdf", attachmentId: "my_custom_id" },
       ]);
 
-      expect(result.fileDataParts[0].fileId).toBe("my_custom_id");
+      expect(result.fileDataParts[0].attachmentId).toBe("my_custom_id");
     });
   });
 
@@ -267,8 +260,7 @@ describe("DeepCitation Client", () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          fileId: "file_123",
-          attachmentId: "att_123",
+          attachmentId: "file_123",
           deepTextPromptPortion: "[Page 1]\n[L1] Revenue grew 15%",
           metadata: {
             filename: "report.pdf",
@@ -281,7 +273,7 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["content"]);
-      await client.uploadFile(blob, { fileId: "file_123" });
+      await client.uploadFile(blob, { attachmentId: "file_123" });
 
       // Then verify citations
       mockFetch.mockResolvedValueOnce({
@@ -311,7 +303,7 @@ describe("DeepCitation Client", () => {
       );
     });
 
-    it("verifies citations with fileId in citation", async () => {
+    it("verifies citations with attachmentId in citation", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       mockFetch.mockResolvedValueOnce({
@@ -347,10 +339,10 @@ describe("DeepCitation Client", () => {
   });
 
   describe("verifyCitations", () => {
-    it("verifies citations with fileId and citation map", async () => {
+    it("verifies citations with attachmentId and citation map", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
-      // Verify citations directly with fileId
+      // Verify citations directly with attachmentId
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -361,7 +353,7 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const result = await client.verifyCitations("file_abc", {
-        "1": { pageNumber: 1, fullPhrase: "test phrase", fileId: "file_abc" },
+        "1": { pageNumber: 1, fullPhrase: "test phrase", attachmentId: "file_abc" },
       });
 
       expect(result.verifications["1"].searchState.status).toBe("found");

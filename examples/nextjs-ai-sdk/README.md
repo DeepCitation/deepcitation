@@ -77,7 +77,7 @@ When a user uploads a document, it's sent to DeepCitation for processing:
 
 ```typescript
 // src/app/api/upload/route.ts
-const { fileId, deepTextPromptPortion } = await uploadDocument(
+const { attachmentId, deepTextPromptPortion } = await uploadDocument(
   sessionId,
   buffer,
   file.name

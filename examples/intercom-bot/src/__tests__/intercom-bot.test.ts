@@ -16,7 +16,7 @@ const mockPrepareFiles = mock(() =>
   Promise.resolve({
     fileDataParts: [
       {
-        fileId: "file_123",
+        attachmentId: "file_123",
         metadata: { filename: "test.txt", pageCount: 1 },
       },
     ],

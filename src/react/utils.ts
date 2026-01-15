@@ -10,7 +10,7 @@ export function generateCitationKey(citation: Citation): string {
   const pageNumber =
     citation.pageNumber || getCitationPageNumber(citation.startPageKey);
   const keyParts = [
-    citation.fileId || "",
+    citation.attachmentId || "",
     pageNumber?.toString() || "",
     citation.fullPhrase || "",
     citation.keySpan?.toString() || "",

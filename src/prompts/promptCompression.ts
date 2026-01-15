@@ -117,13 +117,16 @@ export function decompressPromptIds<T>(compressed: T | string, prefixMap: Record
     text = text.replace(new RegExp(escPrefix, "g"), full);
   }
 
-  //this is for citation fileId or file_id
+  //this is for citation attachmentId, file_id, or fileId
   if (entries.length === 1 && (text.includes("file_id='") || text.includes('file_id="'))) {
     const fullId = entries[0][1];
     text = text.replace(/file_id='[^']*'|file_id="[^"]*"/g, `file_id='${fullId}'`);
   } else if (entries.length === 1 && (text.includes("fileId='") || text.includes('fileId="'))) {
     const fullId = entries[0][1];
     text = text.replace(/fileId='[^']*'|fileId="[^"]*"/g, `fileId='${fullId}'`);
+  } else if (entries.length === 1 && (text.includes("attachmentId='") || text.includes('attachmentId="'))) {
+    const fullId = entries[0][1];
+    text = text.replace(/attachmentId='[^']*'|attachmentId="[^"]*"/g, `attachmentId='${fullId}'`);
   }
   const newLength = text?.length;
 

@@ -23,8 +23,8 @@ export {
   parseCitation,
   getCitationStatus,
   getAllCitationsFromLlmOutput,
-  groupCitationsByFileId,
-  groupCitationsByFileIdObject,
+  groupCitationsByAttachmentId,
+  groupCitationsByAttachmentIdObject,
 } from "./parsing/parseCitation.js";
 export {
   normalizeCitations,

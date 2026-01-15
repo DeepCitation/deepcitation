@@ -59,7 +59,7 @@ async function extractErrorMessage(
  * const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
  *
  * // Upload a file
- * const { fileId, promptContent } = await dc.uploadFile(file);
+ * const { attachmentId, promptContent } = await dc.uploadFile(file);
  *
  * // Include promptContent in your LLM messages
  * const response = await llm.chat({
@@ -71,7 +71,7 @@ async function extractErrorMessage(
  *
  * // Verify citations in the LLM output
  * const citations = getAllCitationsFromLlmOutput(response);
- * const verified = await dc.verifyCitations(fileId, citations);
+ * const verified = await dc.verifyCitations(attachmentId, citations);
  * ```
  */
 export class DeepCitation {
@@ -104,7 +104,7 @@ export class DeepCitation {
    *
    * @param file - The file to upload (File, Blob, or Buffer)
    * @param options - Optional upload options
-   * @returns Upload response with fileId and extracted text
+   * @returns Upload response with attachmentId and extracted text
    *
    * @example
    * ```typescript
@@ -125,7 +125,7 @@ export class DeepCitation {
     const formData = new FormData();
     formData.append("file", blob, name);
 
-    if (options?.fileId) formData.append("fileId", options.fileId);
+    if (options?.attachmentId) formData.append("attachmentId", options.attachmentId);
     if (options?.filename) formData.append("filename", options.filename);
 
     const response = await fetch(`${this.apiUrl}/prepareFile`, {
@@ -168,8 +168,8 @@ export class DeepCitation {
    * });
    *
    * // Then prepare the file for verification
-   * const { deepTextPromptPortion, fileId } = await dc.prepareConvertedFile({
-   *   fileId: result.fileId
+   * const { deepTextPromptPortion, attachmentId } = await dc.prepareConvertedFile({
+   *   attachmentId: result.attachmentId
    * });
    * ```
    */
@@ -178,7 +178,7 @@ export class DeepCitation {
   ): Promise<ConvertFileResponse> {
     const inputObj: ConvertFileInput =
       typeof input === "string" ? { url: input } : input;
-    const { url, file, filename, fileId } = inputObj;
+    const { url, file, filename, attachmentId } = inputObj;
 
     if (!url && !file) {
       throw new Error("Either url or file must be provided");
@@ -193,13 +193,13 @@ export class DeepCitation {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url, filename, fileId }),
+        body: JSON.stringify({ url, filename, attachmentId }),
       });
     } else {
       const { blob, name } = toBlob(file!, filename);
       const formData = new FormData();
       formData.append("file", blob, name);
-      if (fileId) formData.append("fileId", fileId);
+      if (attachmentId) formData.append("attachmentId", attachmentId);
       if (filename) formData.append("filename", filename);
 
       response = await fetch(`${this.apiUrl}/convertFile`, {
@@ -220,8 +220,8 @@ export class DeepCitation {
    * Prepare a previously converted file for citation verification.
    * Use this after calling convertToPdf() to extract text and get deepTextPromptPortion.
    *
-   * @param options - Options with fileId from convertFile
-   * @returns Upload response with fileId and extracted text
+   * @param options - Options with attachmentId from convertFile
+   * @returns Upload response with attachmentId and extracted text
    *
    * @example
    * ```typescript
@@ -229,8 +229,8 @@ export class DeepCitation {
    * const converted = await dc.convertToPdf({ url: "https://example.com/article" });
    *
    * // Then prepare it for verification
-   * const { deepTextPromptPortion, fileId } = await dc.prepareConvertedFile({
-   *   fileId: converted.fileId
+   * const { deepTextPromptPortion, attachmentId } = await dc.prepareConvertedFile({
+   *   attachmentId: converted.attachmentId
    * });
    *
    * // Use deepTextPromptPortion in your LLM prompt...
@@ -246,7 +246,7 @@ export class DeepCitation {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        fileId: options.fileId,
+        attachmentId: options.attachmentId,
       }),
     });
 
@@ -261,7 +261,7 @@ export class DeepCitation {
    * Upload multiple files for citation verification and get structured content.
    * This is the recommended way to prepare files for LLM prompts.
    *
-   * @param files - Array of files to upload with optional filenames and fileIds
+   * @param files - Array of files to upload with optional filenames and attachmentIds
    * @returns Object containing fileDataParts for verification and deepTextPromptPortion for LLM
    *
    * @example
@@ -288,8 +288,8 @@ export class DeepCitation {
     }
 
     // Upload all files in parallel
-    const uploadPromises = files.map(({ file, filename, fileId }) =>
-      this.uploadFile(file, { filename, fileId }).then((result) => ({
+    const uploadPromises = files.map(({ file, filename, attachmentId }) =>
+      this.uploadFile(file, { filename, attachmentId }).then((result) => ({
         result,
         filename,
       }))
@@ -300,7 +300,7 @@ export class DeepCitation {
     // Extract file data parts with deepTextPromptPortion included (single source of truth)
     const fileDataParts: FileDataPart[] = uploadResults.map(
       ({ result, filename }) => ({
-        fileId: result.fileId,
+        attachmentId: result.attachmentId,
         deepTextPromptPortion: result.deepTextPromptPortion,
         filename: filename || result.metadata?.filename,
       })
@@ -317,7 +317,7 @@ export class DeepCitation {
   /**
    * Verify citations against a previously uploaded file.
    *
-   * @param fileId - The file ID returned from uploadFile
+   * @param attachmentId - The attachment ID returned from uploadFile
    * @param citations - Citations to verify (from getAllCitationsFromLlmOutput)
    * @param options - Optional verification options
    * @returns Verification results with status and proof images
@@ -327,7 +327,7 @@ export class DeepCitation {
    * import { getAllCitationsFromLlmOutput } from '@deepcitation/deepcitation-js';
    *
    * const citations = getAllCitationsFromLlmOutput(llmResponse);
-   * const verified = await dc.verifyCitations(fileId, citations);
+   * const verified = await dc.verifyCitations(attachmentId, citations);
    *
    * for (const [key, result] of Object.entries(verified.verifications)) {
    *   console.log(key, result.searchState?.status);
@@ -336,7 +336,7 @@ export class DeepCitation {
    * ```
    */
   async verifyCitations(
-    fileId: string,
+    attachmentId: string,
     citations: CitationInput,
     options?: VerifyCitationsOptions
   ): Promise<VerifyCitationsResponse> {
@@ -366,7 +366,7 @@ export class DeepCitation {
     const requestUrl = `${this.apiUrl}/verifyCitations`;
     const requestBody = {
       data: {
-        fileId,
+        attachmentId,
         citations: citationMap,
         outputImageFormat: options?.outputImageFormat || "avif",
       },
@@ -422,22 +422,22 @@ export class DeepCitation {
       return { verifications: {} };
     }
 
-    // Group citations by fileId
-    const citationsByFile = new Map<string, Record<string, Citation>>();
+    // Group citations by attachmentId
+    const citationsByAttachment = new Map<string, Record<string, Citation>>();
     for (const [key, citation] of Object.entries(citations)) {
-      const fileId = citation.fileId || "";
-      if (!citationsByFile.has(fileId)) {
-        citationsByFile.set(fileId, {});
+      const attachmentId = citation.attachmentId || "";
+      if (!citationsByAttachment.has(attachmentId)) {
+        citationsByAttachment.set(attachmentId, {});
       }
-      citationsByFile.get(fileId)![key] = citation;
+      citationsByAttachment.get(attachmentId)![key] = citation;
     }
 
     // Verify all files in parallel
     const verificationPromises: Promise<VerifyCitationsResponse>[] = [];
-    for (const [fileId, fileCitations] of citationsByFile) {
-      if (fileId) {
+    for (const [attachmentId, fileCitations] of citationsByAttachment) {
+      if (attachmentId) {
         verificationPromises.push(
-          this.verifyCitations(fileId, fileCitations, { outputImageFormat })
+          this.verifyCitations(attachmentId, fileCitations, { outputImageFormat })
         );
       }
     }

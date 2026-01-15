@@ -59,7 +59,7 @@ import type { Citation, Verification } from "@deepcitation/deepcitation-js";
 - `wrapSystemCitationPrompt({ systemPrompt })` - Wrap only system prompt (for more control)
 - `getAllCitationsFromLlmOutput(text)` - Extract citations from LLM response
 - `removeCitations(text)` - Remove citation tags from text
-- `groupCitationsByFileId(citations)` - Group citations by fileId for multi-file verification
+- `groupCitationsByAttachmentId(citations)` - Group citations by attachmentId for multi-file verification
 
 ### React Components
 
@@ -109,21 +109,21 @@ const result = await dc.convertToPdf({
 });
 
 // Then prepare for citation verification
-const { deepTextPromptPortion, fileId } = await dc.prepareConvertedFile({
-  fileId: result.fileId
+const { deepTextPromptPortion, attachmentId } = await dc.prepareConvertedFile({
+  attachmentId: result.attachmentId
 });
 
 // Use deepTextPromptPortion in LLM prompt, then verify citations
-const verified = await dc.verifyCitations(fileId, citations);
+const verified = await dc.verifyCitations(attachmentId, citations);
 ```
 
 ### `convertToPdf(input)`
-- Input: URL string, or object with `{ url?, file?, filename?, fileId? }`
-- Returns: `{ fileId, metadata, status }`
+- Input: URL string, or object with `{ url?, file?, filename?, attachmentId? }`
+- Returns: `{ attachmentId, metadata, status }`
 
 ### `prepareConvertedFile(options)`
-- Input: `{ fileId }`
-- Returns: Same as `uploadFile()` - `{ deepTextPromptPortion, fileId, ... }`
+- Input: `{ attachmentId }`
+- Returns: Same as `uploadFile()` - `{ deepTextPromptPortion, attachmentId, ... }`
 
 ## Optional
 

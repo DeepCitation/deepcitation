@@ -116,7 +116,7 @@ export const parseCitation = (
   );
 
   // GROUPS:
-  // 1: fileId
+  // 1: attachmentId
   // 2: start_page number
   // 3: index number
   // 4: full_phrase content (escaped)
@@ -133,8 +133,8 @@ export const parseCitation = (
   const pageNumber = match?.[2] ? parseInt(match?.[2]) : undefined;
   const pageIndex = match?.[3] ? parseInt(match?.[3]) : undefined;
 
-  let fileId = match?.[1];
-  let attachmentId = fileId?.length === 20 ? fileId : mdAttachmentId || fileId;
+  let rawAttachmentId = match?.[1];
+  let attachmentId = rawAttachmentId?.length === 20 ? rawAttachmentId : mdAttachmentId || rawAttachmentId;
 
   // Use helper to handle escaped quotes inside the phrase
   let fullPhrase = cleanAndUnescape(match?.[4]);
@@ -164,7 +164,7 @@ export const parseCitation = (
   }
 
   // GROUPS for AV:
-  // 1: fileId
+  // 1: attachmentId
   // 2: full_phrase content (escaped)
   // 3: timestamps content
   // 4: Optional Key (value|reasoning)
@@ -177,8 +177,8 @@ export const parseCitation = (
   let timestamps: { startTime?: string; endTime?: string } | undefined;
 
   if (avMatch) {
-    fileId = avMatch?.[1];
-    attachmentId = fileId?.length === 20 ? fileId : mdAttachmentId || fileId;
+    rawAttachmentId = avMatch?.[1];
+    attachmentId = rawAttachmentId?.length === 20 ? rawAttachmentId : mdAttachmentId || rawAttachmentId;
     fullPhrase = cleanAndUnescape(avMatch?.[2]);
 
     const timestampsString = avMatch?.[3]?.replace(/timestamps=['"]|['"]/g, "");
@@ -197,7 +197,7 @@ export const parseCitation = (
   }
 
   const citation: Citation = {
-    fileId: attachmentId,
+    attachmentId: attachmentId,
     pageNumber,
     startPageKey: `page_number_${pageNumber || 1}_index_${pageIndex || 0}`,
     fullPhrase,
@@ -237,7 +237,7 @@ const parseJsonCitation = (
   const startPageKey = jsonCitation.startPageKey ?? jsonCitation.start_page_key;
   const keySpan = jsonCitation.keySpan ?? jsonCitation.key_span;
   const rawLineIds = jsonCitation.lineIds ?? jsonCitation.line_ids;
-  const fileId = jsonCitation.fileId ?? jsonCitation.file_id;
+  const attachmentId = jsonCitation.attachmentId ?? jsonCitation.attachment_id ?? jsonCitation.fileId ?? jsonCitation.file_id;
   const reasoning = jsonCitation.reasoning;
   const value = jsonCitation.value;
 
@@ -267,7 +267,7 @@ const parseJsonCitation = (
     : undefined;
 
   const citation: Citation = {
-    fileId,
+    attachmentId,
     pageNumber,
     fullPhrase,
     citationNumber,
@@ -436,26 +436,26 @@ export const getAllCitationsFromLlmOutput = (
 };
 
 /**
- * Groups citations by their fileId for multi-file verification scenarios.
+ * Groups citations by their attachmentId for multi-file verification scenarios.
  * This is useful when you have citations from multiple files and need to
  * verify them against their respective source documents.
  *
  * @param citations - Array of Citation objects or a dictionary of citations
- * @returns Map of fileId to dictionary of citations from that file
+ * @returns Map of attachmentId to dictionary of citations from that file
  *
  * @example
  * ```typescript
  * const citations = getAllCitationsFromLlmOutput(response.content);
- * const citationsByFile = groupCitationsByFileId(citations);
+ * const citationsByAttachment = groupCitationsByAttachmentId(citations);
  *
  * // Verify citations for each file
- * for (const [fileId, fileCitations] of citationsByFile) {
- *   const verified = await dc.verifyCitations(fileId, fileCitations);
+ * for (const [attachmentId, fileCitations] of citationsByAttachment) {
+ *   const verified = await dc.verifyCitations(attachmentId, fileCitations);
  *   // Process verification results...
  * }
  * ```
  */
-export function groupCitationsByFileId(
+export function groupCitationsByAttachmentId(
   citations: Citation[] | { [key: string]: Citation }
 ): Map<string, { [key: string]: Citation }> {
   const grouped = new Map<string, { [key: string]: Citation }>();
@@ -466,41 +466,41 @@ export function groupCitationsByFileId(
     : Object.entries(citations);
 
   for (const [key, citation] of entries) {
-    const fileId = citation.fileId || "";
+    const attachmentId = citation.attachmentId || "";
 
-    if (!grouped.has(fileId)) {
-      grouped.set(fileId, {});
+    if (!grouped.has(attachmentId)) {
+      grouped.set(attachmentId, {});
     }
 
-    grouped.get(fileId)![key] = citation;
+    grouped.get(attachmentId)![key] = citation;
   }
 
   return grouped;
 }
 
 /**
- * Groups citations by their fileId and returns as a plain object.
- * Alternative to groupCitationsByFileId that returns a plain object instead of a Map.
+ * Groups citations by their attachmentId and returns as a plain object.
+ * Alternative to groupCitationsByAttachmentId that returns a plain object instead of a Map.
  *
  * @param citations - Array of Citation objects or a dictionary of citations
- * @returns Object with fileId keys mapping to citation dictionaries
+ * @returns Object with attachmentId keys mapping to citation dictionaries
  *
  * @example
  * ```typescript
  * const citations = getAllCitationsFromLlmOutput(response.content);
- * const citationsByFile = groupCitationsByFileIdObject(citations);
+ * const citationsByAttachment = groupCitationsByAttachmentIdObject(citations);
  *
  * // Verify citations for each file using Promise.all
- * const verificationPromises = Object.entries(citationsByFile).map(
- *   ([fileId, fileCitations]) => dc.verifyCitations(fileId, fileCitations)
+ * const verificationPromises = Object.entries(citationsByAttachment).map(
+ *   ([attachmentId, fileCitations]) => dc.verifyCitations(attachmentId, fileCitations)
  * );
  * const results = await Promise.all(verificationPromises);
  * ```
  */
-export function groupCitationsByFileIdObject(
+export function groupCitationsByAttachmentIdObject(
   citations: Citation[] | { [key: string]: Citation }
-): { [fileId: string]: { [key: string]: Citation } } {
-  const grouped: { [fileId: string]: { [key: string]: Citation } } = {};
+): { [attachmentId: string]: { [key: string]: Citation } } {
+  const grouped: { [attachmentId: string]: { [key: string]: Citation } } = {};
 
   // Normalize input to entries
   const entries: [string, Citation][] = Array.isArray(citations)
@@ -508,13 +508,13 @@ export function groupCitationsByFileIdObject(
     : Object.entries(citations);
 
   for (const [key, citation] of entries) {
-    const fileId = citation.fileId || "";
+    const attachmentId = citation.attachmentId || "";
 
-    if (!grouped[fileId]) {
-      grouped[fileId] = {};
+    if (!grouped[attachmentId]) {
+      grouped[attachmentId] = {};
     }
 
-    grouped[fileId][key] = citation;
+    grouped[attachmentId][key] = citation;
   }
 
   return grouped;

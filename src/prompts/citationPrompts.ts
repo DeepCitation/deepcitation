@@ -1,7 +1,7 @@
 export const CITATION_MARKDOWN_SYNTAX_PROMPT = `
 Citation syntax to use within Markdown:
 • To support any ideas or information that requires a citation from the provided content, use the following citation syntax:
-<cite file_id='file_id' start_page_key='page_number_PAGE_index_INDEX' full_phrase='the verbatim text of the terse phrase inside <file_text />; remember to escape quotes and newlines inside the full_phrase to remain as valid JSON' key_span='the verbatim 1-3 words within full_phrase that best support the citation' line_ids='2-6' reasoning='the terse logic used to conclude the citation' />
+<cite file_id='attachment_id' start_page_key='page_number_PAGE_index_INDEX' full_phrase='the verbatim text of the terse phrase inside <file_text />; remember to escape quotes and newlines inside the full_phrase to remain as valid JSON' key_span='the verbatim 1-3 words within full_phrase that best support the citation' line_ids='2-6' reasoning='the terse logic used to conclude the citation' />
 
 • Very important: for page numbers, only use the page number and page index info from the page_number_PAGE_index_INDEX format (e.g. <page_number_1_index_0>) and never from the contents inside the page.
 • start_page_key, full_phrase, and line_ids are required for each citation.
@@ -14,7 +14,7 @@ Citation syntax to use within Markdown:
 
 export const AV_CITATION_MARKDOWN_SYNTAX_PROMPT = `
 • To support any ideas or information that requires a citation from the provided content, use the following citation syntax:
-<cite file_id='file_id' full_phrase='the verbatim text of the phrase; remember to escape quotes and newlines inside the full_phrase to remain as valid JSON' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' reasoning='the logic connecting the form section requirements to the supporting source citation' />
+<cite file_id='attachment_id' full_phrase='the verbatim text of the phrase; remember to escape quotes and newlines inside the full_phrase to remain as valid JSON' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' reasoning='the logic connecting the form section requirements to the supporting source citation' />
 • These citations are displayed in-line or in the relevant list item, and are not grouped at the end of the document.
 `;
 
@@ -162,7 +162,7 @@ export function wrapCitationPrompt(
 export const CITATION_JSON_OUTPUT_FORMAT = {
   type: "object",
   properties: {
-    fileId: { type: "string" },
+    attachmentId: { type: "string" },
     startPageKey: {
       type: "string",
       description:
@@ -191,7 +191,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     },
   },
   required: [
-    "fileId",
+    "attachmentId",
     "startPageKey",
     "reasoning",
     "fullPhrase",
@@ -203,7 +203,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
 export const CITATION_AV_BASED_JSON_OUTPUT_FORMAT = {
   type: "object",
   properties: {
-    fileId: { type: "string" },
+    attachmentId: { type: "string" },
     startPageKey: {
       type: "string",
       description:

@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { llmOutput, fileId } = body;
+    const { llmOutput, attachmentId } = body;
 
     // Extract citations from LLM output
     const citations = getAllCitationsFromLlmOutput(llmOutput);
@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (!fileId) {
-      // No fileId - return citations without verification
+    if (!attachmentId) {
+      // No attachmentId - return citations without verification
       return NextResponse.json({
         citations,
         verifications: {},
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     console.log("[verify] citations", citations);
 
     // Verify citations against the source document
-    const result = await dc.verifyCitations(fileId, citations, {
+    const result = await dc.verifyCitations(attachmentId, citations, {
       outputImageFormat: "avif",
     });
 

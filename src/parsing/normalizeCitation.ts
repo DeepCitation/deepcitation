@@ -3,11 +3,11 @@ export const removeCitations = (
   leaveValueBehind?: boolean
 ): string => {
   const citationRegex =
-    /<cite\s+fileId='(\w{0,25})'\s+start_page[\_a-zA-Z]*='page[\_a-zA-Z]*(\d+)_index_(\d+)'\s+full_phrase='((?:[^'\\]|\\.)*)'\s+line(?:_ids|Ids)='([^']+)'(?:\s+(value|reasoning)='((?:[^'\\]|\\.)*)')?\s*\/>/g;
+    /<cite\s+(?:fileId|attachmentId)='(\w{0,25})'\s+start_page[\_a-zA-Z]*='page[\_a-zA-Z]*(\d+)_index_(\d+)'\s+full_phrase='((?:[^'\\]|\\.)*)'\s+line(?:_ids|Ids)='([^']+)'(?:\s+(value|reasoning)='((?:[^'\\]|\\.)*)')?\s*\/>/g;
 
   return pageText.replace(
     citationRegex,
-    (match, fileId, pageNumber, index, fullPhrase, lineIds, value) => {
+    (match, attachmentId, pageNumber, index, fullPhrase, lineIds, value) => {
       //it is still value= so we need to remove the value=
 
       if (leaveValueBehind) {
@@ -77,7 +77,7 @@ const normalizeCitationContent = (input: string): string => {
       key === "start_page_key"
     )
       return "start_page_key";
-    if (key === "fileID" || key === "fileId" || key === "file_id")
+    if (key === "fileID" || key === "fileId" || key === "file_id" || key === "attachmentId" || key === "attachment_id")
       return "file_id";
     if (key === "keySpan" || key === "key_span") return "key_span";
     return key;
@@ -97,7 +97,7 @@ const normalizeCitationContent = (input: string): string => {
   // This regex matches: Key = Quote -> Content (lazy) -> Lookahead for (Next Attribute OR End of Tag)
   // It effectively ignores quotes inside the content during the initial capture.
   const textAttributeRegex =
-    /(fullPhrase|full_phrase|keySpan|key_span|reasoning|value)\s*=\s*(['"])([\s\S]*?)(?=\s+(?:line_ids|lineIds|timestamps|fileId|file_id|start_page_key|start_pageKey|startPageKey|keySpan|key_span|reasoning|value|full_phrase)|\s*\/?>)/gm;
+    /(fullPhrase|full_phrase|keySpan|key_span|reasoning|value)\s*=\s*(['"])([\s\S]*?)(?=\s+(?:line_ids|lineIds|timestamps|fileId|file_id|attachmentId|attachment_id|start_page_key|start_pageKey|startPageKey|keySpan|key_span|reasoning|value|full_phrase)|\s*\/?>)/gm;
 
   normalized = normalized.replace(
     textAttributeRegex,

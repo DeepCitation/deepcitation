@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 interface UploadedFile {
   name: string;
-  fileId: string;
+  attachmentId: string;
 }
 
 interface FileUploadProps {

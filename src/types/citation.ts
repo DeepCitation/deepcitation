@@ -9,14 +9,14 @@ export interface VerifyCitationResponse {
 }
 
 export interface VerifyCitationRequest {
-  fileId: string;
+  attachmentId: string;
   citations: { [key: string]: Citation };
   outputImageFormat?: OutputImageFormat;
   apiKey?: string; // Optional API key for authentication
 }
 
 export interface Citation {
-  fileId?: string;
+  attachmentId?: string;
   fullPhrase?: string | null;
   keySpan?: string | null;
 

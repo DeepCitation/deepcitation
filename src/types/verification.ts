@@ -7,12 +7,12 @@ export const NOT_FOUND_VERIFICATION_INDEX = -1;
 export const PENDING_VERIFICATION_INDEX = -2;
 
 export const BLANK_VERIFICATION: Verification = {
-  fileId: null,
+  attachmentId: null,
   pageNumber: NOT_FOUND_VERIFICATION_INDEX,
   matchSnippet: null,
   source: null,
   citation: {
-    fileId: undefined,
+    attachmentId: undefined,
     startPageKey: null,
     fullPhrase: null,
     keySpan: null,
@@ -26,11 +26,11 @@ export function deterministicIdFromVerification(
   verification: Verification
 ): string {
   return sha1Hash(
-    `${verification.label}-${verification.fileId}-${verification.pageNumber}-${verification.hitIndexWithinPage}-${verification.matchSnippet}-${verification?.hitIndexWithinPage}`
+    `${verification.label}-${verification.attachmentId}-${verification.pageNumber}-${verification.hitIndexWithinPage}-${verification.matchSnippet}-${verification?.hitIndexWithinPage}`
   );
 }
 export interface Verification {
-  fileId?: string | null;
+  attachmentId?: string | null;
 
   label?: string | null; //e.g. "Invoice"
   pageNumber?: number | null;

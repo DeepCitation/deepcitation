@@ -12,7 +12,7 @@ import type { Citation } from "../types/citation.js";
 
 describe("react utils", () => {
   const citation: Citation = {
-    fileId: "file-1",
+    attachmentId: "file-1",
     pageNumber: 4,
     fullPhrase: "Hello",
     keySpan: "$10",

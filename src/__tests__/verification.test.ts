@@ -20,7 +20,7 @@ describe("verification helpers", () => {
   it("builds deterministic ids from verification attributes", () => {
     const verification: Verification = {
       label: "phrase",
-      fileId: "file-1",
+      attachmentId: "file-1",
       pageNumber: 3,
       hitIndexWithinPage: 2,
       matchSnippet: "snippet",

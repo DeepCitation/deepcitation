@@ -14,8 +14,8 @@ export interface DeepCitationConfig {
  * Response from uploading a file for citation verification
  */
 export interface UploadFileResponse {
-  /** The file ID assigned by DeepCitation (custom or auto-generated) */
-  fileId: string;
+  /** The attachment ID assigned by DeepCitation (custom or auto-generated) */
+  attachmentId: string;
   /** The full text content formatted for LLM prompts with page markers and line IDs. Use this in your user prompts. */
   deepTextPromptPortion: string;
   /** Form fields extracted from PDF forms */
@@ -44,8 +44,8 @@ export interface UploadFileResponse {
  * Options for file upload
  */
 export interface UploadFileOptions {
-  /** Optional custom file ID to use instead of auto-generated one */
-  fileId?: string;
+  /** Optional custom attachment ID to use instead of auto-generated one */
+  attachmentId?: string;
   /** Optional custom filename (uses File.name if not provided) */
   filename?: string;
 }
@@ -79,16 +79,16 @@ export interface FileInput {
   file: File | Blob | Buffer;
   /** Optional filename */
   filename?: string;
-  /** Optional custom file ID */
-  fileId?: string;
+  /** Optional custom attachment ID */
+  attachmentId?: string;
 }
 
 /**
  * File reference returned from prepareFiles
  */
 export interface FileDataPart {
-  /** The file ID assigned by DeepCitation */
-  fileId: string;
+  /** The attachment ID assigned by DeepCitation */
+  attachmentId: string;
   /** The formatted text content for LLM prompts (with page markers and line IDs) */
   deepTextPromptPortion: string;
   /** Optional filename for display purposes */
@@ -131,16 +131,16 @@ export interface ConvertFileInput {
   file?: File | Blob | Buffer;
   /** Optional custom filename for the converted PDF */
   filename?: string;
-  /** Optional custom file ID */
-  fileId?: string;
+  /** Optional custom attachment ID */
+  attachmentId?: string;
 }
 
 /**
  * Response from convertFile
  */
 export interface ConvertFileResponse {
-  /** The file ID assigned by DeepCitation. Pass this to prepareConvertedFile(). */
-  fileId: string;
+  /** The attachment ID assigned by DeepCitation. Pass this to prepareConvertedFile(). */
+  attachmentId: string;
   /** Metadata about the conversion */
   metadata: {
     /** Original filename before conversion */
@@ -162,6 +162,6 @@ export interface ConvertFileResponse {
  * Options for processing a converted file
  */
 export interface PrepareConvertedFileOptions {
-  /** The file ID from a previous convertFile call */
-  fileId: string;
+  /** The attachment ID from a previous convertFile call */
+  attachmentId: string;
 }

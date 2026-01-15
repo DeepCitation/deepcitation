@@ -52,7 +52,7 @@ curl -X POST https://api.deepcitation.com/prepareFile \
   -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
   -F "file=@document.pdf"
 ```
-Returns: `fileId`, `promptContent` with page/line IDs.
+Returns: `attachmentId`, `promptContent` with page/line IDs.
 
 ### 2. Wrap System Prompt
 ```typescript
@@ -92,7 +92,7 @@ curl -X POST https://api.deepcitation.com/verifyCitations \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
-      "fileId": "...",
+      "attachmentId": "...",
       "citations": { ... },
       "outputImageFormat": "avif"
     }

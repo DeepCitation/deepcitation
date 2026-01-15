@@ -71,7 +71,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           llmOutput: messageContent,
-          fileId: fileDataParts[0].fileId,
+          attachmentId: fileDataParts[0].attachmentId,
         }),
       })
         .then((res) => res.json())
@@ -274,7 +274,7 @@ export default function Home() {
               onUpload={handleFileUpload}
               uploadedFiles={fileDataParts.map((f) => ({
                 name: f.filename || "Document",
-                fileId: f.fileId,
+                attachmentId: f.attachmentId,
               }))}
             />
             <input
