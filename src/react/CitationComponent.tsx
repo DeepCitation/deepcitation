@@ -370,6 +370,7 @@ const StatusTooltipContent = ({
     const expectedText =
       citation.fullPhrase || citation.keySpan?.toString() || "";
     const actualText = verification?.matchSnippet || "";
+    const textMatches = expectedText === actualText;
     const truncatedExpected =
       expectedText.length > 100
         ? expectedText.slice(0, 100) + "…"
@@ -377,25 +378,73 @@ const StatusTooltipContent = ({
     const truncatedActual =
       actualText.length > 100 ? actualText.slice(0, 100) + "…" : actualText;
 
+    // Check for line ID and page number differences
+    const expectedLineIds = citation.lineIds;
+    const actualLineIds = verification?.lineIds;
+    const lineIdDiffers =
+      expectedLineIds &&
+      actualLineIds &&
+      JSON.stringify(expectedLineIds) !== JSON.stringify(actualLineIds);
+
+    const expectedPage = citation.pageNumber;
+    const actualPage = verification?.pageNumber;
+    const pageDiffers =
+      expectedPage != null &&
+      actualPage != null &&
+      expectedPage !== actualPage;
+
     return (
       <span className="dc-status-tooltip" role="tooltip">
         <span className="dc-status-header dc-status-header--partial">
           <WarningIcon />
           <span>Partial match</span>
         </span>
-        <span className="dc-status-description">
-          Text differs from citation.
-        </span>
-        {truncatedExpected && (
+        {textMatches ? (
+          <>
+            <span className="dc-status-description">
+              Text matches, but location differs.
+            </span>
+            {truncatedExpected && (
+              <span className="dc-status-searched">
+                <span className="dc-status-label">Text</span>
+                <span className="dc-status-text">{truncatedExpected}</span>
+              </span>
+            )}
+          </>
+        ) : (
+          <>
+            <span className="dc-status-description">
+              Text differs from citation.
+            </span>
+            {truncatedExpected && (
+              <span className="dc-status-searched">
+                <span className="dc-status-label">Expected</span>
+                <span className="dc-status-text">{truncatedExpected}</span>
+              </span>
+            )}
+            {truncatedActual && (
+              <span className="dc-status-searched">
+                <span className="dc-status-label">Found</span>
+                <span className="dc-status-text">{truncatedActual}</span>
+              </span>
+            )}
+          </>
+        )}
+        {pageDiffers && (
           <span className="dc-status-searched">
-            <span className="dc-status-label">Expected</span>
-            <span className="dc-status-text">{truncatedExpected}</span>
+            <span className="dc-status-label">Page</span>
+            <span className="dc-status-text">
+              Expected {expectedPage}, found {actualPage}
+            </span>
           </span>
         )}
-        {truncatedActual && (
+        {lineIdDiffers && (
           <span className="dc-status-searched">
-            <span className="dc-status-label">Found</span>
-            <span className="dc-status-text">{truncatedActual}</span>
+            <span className="dc-status-label">Line</span>
+            <span className="dc-status-text">
+              Expected {expectedLineIds?.join(", ")}, found{" "}
+              {actualLineIds?.join(", ")}
+            </span>
           </span>
         )}
       </span>
@@ -461,7 +510,7 @@ const ImageOverlay = ({
 
 /**
  * Diff details for partial/miss verification states.
- * Shows expected vs found text.
+ * Shows expected vs found text, and location differences when applicable.
  */
 const DiffDetails = ({
   citation,
@@ -479,31 +528,77 @@ const DiffDetails = ({
   const expectedText =
     citation.fullPhrase || citation.keySpan?.toString() || "";
   const actualText = verification?.matchSnippet || "";
+  const textMatches = expectedText === actualText;
 
   const truncatedExpected =
     expectedText.length > 100 ? expectedText.slice(0, 100) + "…" : expectedText;
   const truncatedActual =
     actualText.length > 100 ? actualText.slice(0, 100) + "…" : actualText;
 
+  // Check for line ID and page number differences
+  const expectedLineIds = citation.lineIds;
+  const actualLineIds = verification?.lineIds;
+  const lineIdDiffers =
+    expectedLineIds &&
+    actualLineIds &&
+    JSON.stringify(expectedLineIds) !== JSON.stringify(actualLineIds);
+
+  const expectedPage = citation.pageNumber;
+  const actualPage = verification?.pageNumber;
+  const pageDiffers =
+    expectedPage != null &&
+    actualPage != null &&
+    expectedPage !== actualPage;
+
   return (
     <span className="dc-diff-details">
-      {truncatedExpected && (
-        <span className="dc-status-searched">
-          <span className="dc-status-label">Expected</span>
-          <span className="dc-status-text">{truncatedExpected}</span>
-        </span>
-      )}
-      {isPartialMatch && truncatedActual && (
-        <span className="dc-status-searched">
-          <span className="dc-status-label">Found</span>
-          <span className="dc-status-text">{truncatedActual}</span>
-        </span>
+      {isPartialMatch && textMatches ? (
+        // Text matches but location differs - show text once
+        truncatedExpected && (
+          <span className="dc-status-searched">
+            <span className="dc-status-label">Text</span>
+            <span className="dc-status-text">{truncatedExpected}</span>
+          </span>
+        )
+      ) : (
+        // Text differs - show expected and found
+        <>
+          {truncatedExpected && (
+            <span className="dc-status-searched">
+              <span className="dc-status-label">Expected</span>
+              <span className="dc-status-text">{truncatedExpected}</span>
+            </span>
+          )}
+          {isPartialMatch && truncatedActual && (
+            <span className="dc-status-searched">
+              <span className="dc-status-label">Found</span>
+              <span className="dc-status-text">{truncatedActual}</span>
+            </span>
+          )}
+        </>
       )}
       {isMiss && (
         <span className="dc-status-searched">
           <span className="dc-status-label">Found</span>
           <span className="dc-status-text dc-status-text--miss">
             Not found in source
+          </span>
+        </span>
+      )}
+      {pageDiffers && (
+        <span className="dc-status-searched">
+          <span className="dc-status-label">Page</span>
+          <span className="dc-status-text">
+            Expected {expectedPage}, found {actualPage}
+          </span>
+        </span>
+      )}
+      {lineIdDiffers && (
+        <span className="dc-status-searched">
+          <span className="dc-status-label">Line</span>
+          <span className="dc-status-text">
+            Expected {expectedLineIds?.join(", ")}, found{" "}
+            {actualLineIds?.join(", ")}
           </span>
         </span>
       )}
