@@ -1,4 +1,4 @@
-import * as Diff from "diff";
+import { diffLines, diffWordsWithSpace } from "../utils/diff.js";
 import { useMemo } from "react";
 
 export type DiffBlockType = "modified" | "added" | "removed" | "unchanged";
@@ -23,7 +23,7 @@ export const useSmartDiff = (expected: string = "", actual: string = "") => {
     // 2. First Pass: Diff by LINES.
     // This isolates the "extra line" issue. The extra line becomes one "added" chunk,
     // and it prevents the tokenizer from getting confused on the rest of the text.
-    const lineDiffs = Diff.diffLines(cleanExpected, cleanActual);
+    const lineDiffs = diffLines(cleanExpected, cleanActual);
 
     // 3. Second Pass: Process the line results to find "Modifications"
     const processedDiffs: DiffBlock[] = [];
@@ -39,7 +39,7 @@ export const useSmartDiff = (expected: string = "", actual: string = "") => {
       // it means this specific line changed. We should DIFF WORDS inside this line.
       if (part.removed && nextPart && nextPart.added) {
         // Run word diff ONLY on this pair of lines
-        const wordDiffs = Diff.diffWordsWithSpace(part.value, nextPart.value);
+        const wordDiffs = diffWordsWithSpace(part.value, nextPart.value);
 
         processedDiffs.push({
           type: "modified",

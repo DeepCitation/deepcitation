@@ -34,8 +34,7 @@
     "peerDependencies": {
         "react": ">=17.0.0",
         "react-dom": ">=17.0.0",
-        "@radix-ui/react-popover": "^1.0.0",
-        "diff": "^8.0.0"
+        "@radix-ui/react-popover": "^1.0.0"
     },
     "peerDependenciesMeta": {
         "react": {
@@ -46,13 +45,9 @@
         },
         "@radix-ui/react-popover": {
             "optional": true
-        },
-        "diff": {
-            "optional": true
         }
     },
     "devDependencies": {
-        "diff": "^8.0.2",
         "@happy-dom/global-registrator": "^20.0.11",
         "@playwright/experimental-ct-react": "^1.57.0",
         "@playwright/test": "^1.57.0",
