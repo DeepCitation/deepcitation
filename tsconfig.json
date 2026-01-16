@@ -14,7 +14,7 @@
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true,
       "jsx": "react-jsx",
-      "types": ["node"],
+      "types": ["node", "react", "react-dom"],
       "paths": {
         "@/*": ["src/*"]
       }

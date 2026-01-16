@@ -817,8 +817,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             </PopoverTrigger>
             <PopoverContent
               side={popoverPosition === "bottom" ? "bottom" : "top"}
-              onPointerDownOutside={(e) => e.preventDefault()}
-              onInteractOutside={(e) => e.preventDefault()}
+              onPointerDownOutside={(e: Event) => e.preventDefault()}
+              onInteractOutside={(e: Event) => e.preventDefault()}
             >
               {popoverContentElement}
             </PopoverContent>
