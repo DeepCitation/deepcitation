@@ -21,6 +21,7 @@ import type {
   CitationVariant,
 } from "./types.js";
 import {
+  cn,
   generateCitationInstanceId,
   generateCitationKey,
   getCitationDisplayText,
