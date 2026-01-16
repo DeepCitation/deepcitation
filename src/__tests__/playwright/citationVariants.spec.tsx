@@ -23,25 +23,25 @@ const baseCitation: Citation = {
 
 const verification: Verification = {
   label: "test",
-  pageNumber: 5,
+  verifiedPageNumber: 5,
   status: "found",
 };
 
 const missFoundCitation: Verification = {
   label: "test",
-  pageNumber: -1, // NOT_FOUND_VERIFICATION_INDEX
+  verifiedPageNumber: -1, // NOT_FOUND_VERIFICATION_INDEX
   status: "not_found",
 };
 
 const partialFoundCitation: Verification = {
   label: "test",
-  pageNumber: 5,
+  verifiedPageNumber: 5,
   status: "partial_text_found",
 };
 
 const pendingFoundCitation: Verification = {
   label: "test",
-  pageNumber: null,
+  verifiedPageNumber: null,
   status: "pending",
 };
 

@@ -727,7 +727,7 @@ const DefaultPopoverContent = ({
       )}
       {hasSnippet && (
         <span className="dc-popover-snippet">
-          "{verification.matchSnippet}"
+          "{verification.verifiedMatchSnippet}"
         </span>
       )}
       {pageNumber && pageNumber > 0 && (
@@ -1098,7 +1098,7 @@ export const CitationComponent = forwardRef<
     const shouldShowPopover =
       !isPopoverHidden &&
       verification &&
-      (verification.verificationImageBase64 || verification.matchSnippet);
+      (verification.verificationImageBase64 || verification.verifiedMatchSnippet);
     // Determine if status tooltip should be shown (miss/partial without full verification)
     const shouldShowStatusTooltip =
       !isPopoverHidden && (isMiss || isPartialMatch) && !shouldShowPopover;

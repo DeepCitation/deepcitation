@@ -1,10 +1,12 @@
-import { sha1Hash } from "../utils/sha.js";
 import type { Citation } from "../types/citation.js";
+import type { Verification } from "../types/verification.js";
+import { sha1Hash } from "../utils/sha.js";
 import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
 
 /**
  * Generates a unique, deterministic key for a citation based on its content.
- * Uses a hash of the citation's identifying properties.
+ *  @param citation - The citation to generate a key for
+ * @returns A unique, deterministic key for the citation
  */
 export function generateCitationKey(citation: Citation): string {
   const pageNumber =
@@ -17,6 +19,30 @@ export function generateCitationKey(citation: Citation): string {
     citation.lineIds?.join(",") || "",
     citation.timestamps?.startTime || "",
     citation.timestamps?.endTime || "",
+  ];
+
+  return sha1Hash(keyParts.join("|")).slice(0, 16);
+}
+
+/**
+ * Generates a unique, deterministic key for a verification based on its content.
+ * @param verification - The verification to generate a key for
+ * @returns
+ */
+export function generateVerificationKey(verification: Verification): string {
+  const keyParts = [
+    verification.attachmentId || "",
+    verification.label || "",
+    verification.verifiedFullPhrase || "",
+    verification.verifiedKeySpan || "",
+    verification.verifiedLineIds?.join(",") || "",
+    verification.verifiedPageNumber?.toString() || "",
+
+    verification.verifiedTimestamps?.startTime || "",
+    verification.verifiedTimestamps?.endTime || "",
+
+    verification.verifiedMatchSnippet || "",
+    verification.hitIndexWithinPage?.toString() || "",
   ];
 
   return sha1Hash(keyParts.join("|")).slice(0, 16);

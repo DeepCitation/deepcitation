@@ -16,9 +16,9 @@ describe("getCitationStatus", () => {
         fullPhrase: "term",
         attachmentId: "file",
       },
-      pageNumber: 2,
+      verifiedPageNumber: 2,
       status: "found",
-      matchSnippet: "snippet",
+      verifiedMatchSnippet: "snippet",
     };
     const status = getCitationStatus(found);
     expect(status.isVerified).toBe(true);
@@ -32,9 +32,9 @@ describe("getCitationStatus", () => {
         fullPhrase: "term",
         attachmentId: "file",
       },
-      pageNumber: NOT_FOUND_VERIFICATION_INDEX,
+      verifiedPageNumber: NOT_FOUND_VERIFICATION_INDEX,
       status: "not_found",
-      matchSnippet: "snippet",
+      verifiedMatchSnippet: "snippet",
     };
     const status = getCitationStatus(miss);
     expect(status.isMiss).toBe(true);
@@ -53,9 +53,9 @@ describe("getCitationStatus", () => {
           attachmentId: "file",
           pageNumber: 4,
         },
-        pageNumber: 5,
+        verifiedPageNumber: 5,
         status: "found_on_other_page",
-        matchSnippet: "snippet",
+        verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
@@ -73,10 +73,10 @@ describe("getCitationStatus", () => {
           pageNumber: 3,
           lineIds: [1, 2, 3],
         },
-        pageNumber: 3,
+        verifiedPageNumber: 3,
         status: "found_on_other_line",
-        lineIds: [2, 3],
-        matchSnippet: "snippet",
+        verifiedLineIds: [2, 3],
+        verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
@@ -91,9 +91,9 @@ describe("getCitationStatus", () => {
           attachmentId: "file",
           pageNumber: 1,
         },
-        pageNumber: 1,
+        verifiedPageNumber: 1,
         status: "first_word_found",
-        matchSnippet: "snippet",
+        verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
@@ -107,9 +107,9 @@ describe("getCitationStatus", () => {
           fullPhrase: "term",
           attachmentId: "file",
         },
-        pageNumber: 2,
+        verifiedPageNumber: 2,
         status: "partial_text_found",
-        matchSnippet: "snippet",
+        verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPartialMatch).toBe(true);
@@ -123,9 +123,9 @@ describe("getCitationStatus", () => {
           fullPhrase: "term",
           attachmentId: "file",
         },
-        pageNumber: 2,
+        verifiedPageNumber: 2,
         status: "found_key_span_only",
-        matchSnippet: "snippet",
+        verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isVerified).toBe(true);
@@ -139,9 +139,9 @@ describe("getCitationStatus", () => {
           fullPhrase: "term",
           attachmentId: "file",
         },
-        pageNumber: 2,
+        verifiedPageNumber: 2,
         status: "found_phrase_missed_value",
-        matchSnippet: "snippet",
+        verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isVerified).toBe(true);
@@ -155,9 +155,9 @@ describe("getCitationStatus", () => {
           fullPhrase: "term",
           attachmentId: "file",
         },
-        pageNumber: 2,
+        verifiedPageNumber: 2,
         status: "loading",
-        matchSnippet: "snippet",
+        verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPending).toBe(true);
@@ -172,9 +172,9 @@ describe("getCitationStatus", () => {
           attachmentId: "file",
           pageNumber: 2,
         },
-        pageNumber: 2,
+        verifiedPageNumber: 2,
         status: "pending",
-        matchSnippet: "snippet",
+        verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPending).toBe(true);
@@ -188,9 +188,9 @@ describe("getCitationStatus", () => {
           fullPhrase: "term",
           attachmentId: "file",
         },
-        pageNumber: NOT_FOUND_VERIFICATION_INDEX,
+        verifiedPageNumber: NOT_FOUND_VERIFICATION_INDEX,
         status: "not_found",
-        matchSnippet: "snippet",
+        verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isMiss).toBe(true);
@@ -206,9 +206,9 @@ describe("getCitationStatus", () => {
           attachmentId: "file",
           pageNumber: 2,
         },
-        pageNumber: 2,
+        verifiedPageNumber: 2,
         status: null,
-        matchSnippet: "snippet",
+        verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
       expect(status.isPending).toBe(true);

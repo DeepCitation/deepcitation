@@ -28,9 +28,9 @@ const mockVerifyCitationsFromLlmOutput = mock(() =>
   Promise.resolve({
     verifications: {
       "1": {
-        pageNumber: 1,
+        verifiedPageNumber: 1,
         status: "found",
-        matchSnippet: "Test content",
+        verifiedMatchSnippet: "Test content",
       },
     },
   })
@@ -225,7 +225,7 @@ describe("IntercomBot", () => {
         Promise.resolve({
           verifications: {
             "1": {
-              pageNumber: 1,
+              verifiedPageNumber: 1,
               status: "not_found",
             },
           },
@@ -337,8 +337,8 @@ describe("IntercomBot", () => {
         totalCitations: 2,
         verifiedCitations: 2,
         verificationDetails: {
-          "1": { pageNumber: 1, status: "found" },
-          "2": { pageNumber: 1, status: "found" },
+          "1": { verifiedPageNumber: 1, status: "found" },
+          "2": { verifiedPageNumber: 1, status: "found" },
         },
       };
 
@@ -361,8 +361,8 @@ describe("IntercomBot", () => {
         totalCitations: 2,
         verifiedCitations: 1,
         verificationDetails: {
-          "1": { pageNumber: 1, status: "found" },
-          "2": { pageNumber: 1, status: "not_found" },
+          "1": { verifiedPageNumber: 1, status: "found" },
+          "2": { verifiedPageNumber: 1, status: "not_found" },
         },
       };
 
@@ -498,9 +498,9 @@ describe("IntercomBot edge cases", () => {
     mockVerifyCitationsFromLlmOutput.mockImplementationOnce(() =>
       Promise.resolve({
         verifications: {
-          "1": { pageNumber: 1, status: "found" },
-          "2": { pageNumber: 1, status: "not_found" },
-          "3": { pageNumber: 2, status: "found" },
+          "1": { verifiedPageNumber: 1, status: "found" },
+          "2": { verifiedPageNumber: 1, status: "not_found" },
+          "3": { verifiedPageNumber: 2, status: "found" },
         },
       })
     );

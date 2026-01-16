@@ -205,8 +205,8 @@ provided documents accurately and cite your sources.`;
 
       console.log(`Citation [${key}]: ${statusIcon}`);
       console.log(`  Status: ${verification.status}`);
-      console.log(`  Page: ${verification.pageNumber ?? "N/A"}`);
-      console.log(`  Match: "${verification.matchSnippet?.slice(0, 80)}..."`);
+      console.log(`  Page: ${verification.verifiedPageNumber ?? "N/A"}`);
+      console.log(`  Match: "${verification.verifiedMatchSnippet?.slice(0, 80)}..."`);
       console.log(
         `  Has proof image: ${!!verification.verificationImageBase64}`
       );

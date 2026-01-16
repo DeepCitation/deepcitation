@@ -21,23 +21,23 @@ const citationWithoutKeySpan: Citation = {
 };
 
 const verifiedVerification: Verification = {
-  pageNumber: 5,
+  verifiedPageNumber: 5,
   status: "found",
 };
 
 const partialVerification: Verification = {
-  pageNumber: 5,
+  verifiedPageNumber: 5,
   status: "partial_text_found",
-  matchSnippet: "25% revenue increase",
+  verifiedMatchSnippet: "25% revenue increase",
 };
 
 const missVerification: Verification = {
-  pageNumber: -1,
+  verifiedPageNumber: -1,
   status: "not_found",
 };
 
 const pendingVerification: Verification = {
-  pageNumber: null,
+  verifiedPageNumber: null,
   status: "pending",
 };
 

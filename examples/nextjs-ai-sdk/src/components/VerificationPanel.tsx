@@ -125,7 +125,7 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                   </div>
                   <div className="text-xs text-gray-500 truncate">
                     {v.status || "pending"}
-                    {v.pageNumber && ` • Page ${v.pageNumber}`}
+                    {v.verifiedPageNumber && ` • Page ${v.verifiedPageNumber}`}
                   </div>
                 </div>
 
@@ -150,13 +150,13 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
               {/* Expanded details */}
               {isExpanded && (
                 <div className="px-4 pb-3 space-y-2">
-                  {v.matchSnippet && (
+                  {v.verifiedMatchSnippet && (
                     <div className="bg-gray-50 rounded p-2">
                       <div className="text-xs font-medium text-gray-500 mb-1">
                         Matched Text
                       </div>
                       <div className="text-sm text-gray-700 line-clamp-3">
-                        "{v.matchSnippet}"
+                        "{v.verifiedMatchSnippet}"
                       </div>
                     </div>
                   )}
@@ -174,10 +174,10 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                     </div>
                   )}
 
-                  {v.pageNumber !== v.citation?.pageNumber &&
+                  {v.verifiedPageNumber !== v.citation?.pageNumber &&
                     v.citation?.pageNumber && (
                       <div className="text-xs text-yellow-600">
-                        Found on page {v.pageNumber} (expected{" "}
+                        Found on page {v.verifiedPageNumber} (expected{" "}
                         {v.citation?.pageNumber})
                       </div>
                     )}
