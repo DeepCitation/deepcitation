@@ -14,7 +14,8 @@
         "type": "git",
         "url": "git+https://github.com/deepcitation/deepcitation-js.git"
     },
-    "main": "./lib/index.js",
+    "main": "./lib/index.cjs",
+    "module": "./lib/index.js",
     "types": "./lib/index.d.ts",
     "sideEffects": false,
     "files": [
@@ -22,17 +23,20 @@
         "LICENSE"
     ],
     "scripts": {
-        "build": "rimraf lib && tsc",
-        "build:watch": "rimraf lib && tsc --watch",
+        "build": "tsup",
+        "build:watch": "tsup --watch",
+        "build:tsc": "rimraf lib && tsc",
         "test": "bun test ./src/__tests__/*.test.ts ./src/__tests__/*.test.tsx",
         "test:jest": "jest",
         "test:watch": "jest --watch",
         "test:ct": "playwright test -c playwright-ct.config.ts",
         "test:ct:ui": "playwright test -c playwright-ct.config.ts --ui",
+        "size": "size-limit",
+        "analyze": "size-limit --why",
         "prepublishOnly": "npm run build"
     },
     "engines": {
-        "node": ">=22"
+        "node": ">=18"
     },
     "peerDependencies": {
         "react": ">=17.0.0",
@@ -51,6 +55,7 @@
         }
     },
     "devDependencies": {
+        "@size-limit/preset-small-lib": "^11.0.0",
         "@happy-dom/global-registrator": "^20.0.11",
         "@playwright/experimental-ct-react": "^1.57.0",
         "@playwright/test": "^1.57.0",
@@ -69,34 +74,55 @@
         "react": "19.2.3",
         "react-dom": "19.2.3",
         "rimraf": "^5.0.5",
+        "size-limit": "^11.0.0",
         "ts-jest": "^29.4.6",
+        "tsup": "^8.0.0",
         "typescript": "^5.9.3",
         "vite": "^7.3.0"
     },
+    "size-limit": [
+        {
+            "path": "lib/index.js",
+            "limit": "25 KB"
+        },
+        {
+            "path": "lib/client/index.js",
+            "limit": "10 KB"
+        },
+        {
+            "path": "lib/prompts/index.js",
+            "limit": "15 KB"
+        },
+        {
+            "path": "lib/react/index.js",
+            "limit": "15 KB"
+        }
+    ],
     "exports": {
         ".": {
             "types": "./lib/index.d.ts",
             "import": "./lib/index.js",
-            "require": "./lib/index.js"
+            "require": "./lib/index.cjs"
         },
         "./client": {
             "types": "./lib/client/index.d.ts",
             "import": "./lib/client/index.js",
-            "require": "./lib/client/index.js"
+            "require": "./lib/client/index.cjs"
         },
         "./prompts": {
             "types": "./lib/prompts/index.d.ts",
             "import": "./lib/prompts/index.js",
-            "require": "./lib/prompts/index.js"
+            "require": "./lib/prompts/index.cjs"
         },
         "./react": {
             "types": "./lib/react/index.d.ts",
             "import": "./lib/react/index.js",
-            "require": "./lib/react/index.js"
+            "require": "./lib/react/index.cjs"
         },
         "./types": {
             "types": "./lib/types/index.d.ts",
-            "import": "./lib/types/index.js"
+            "import": "./lib/types/index.js",
+            "require": "./lib/types/index.cjs"
         }
     },
     "keywords": [
@@ -106,6 +132,15 @@
         "llm",
         "hallucination",
         "react",
-        "typescript"
+        "typescript",
+        "openai",
+        "anthropic",
+        "claude",
+        "gpt",
+        "rag",
+        "reference",
+        "source-verification",
+        "fact-checking",
+        "grounding"
     ]
 }
