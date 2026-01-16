@@ -36,9 +36,8 @@ interface CitationComponentProps {
   verification?: Verification | null;
 
   // Display
-  variant?: "brackets" | "text" | "minimal" | "indicator";
-  hideBrackets?: boolean;
-  hideKeySpan?: boolean;
+  variant?: "chip" | "brackets" | "text" | "superscript" | "minimal";
+  content?: "keySpan" | "number" | "indicator";
   fallbackDisplay?: React.ReactNode;
   className?: string;
 
@@ -321,13 +320,13 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 />
 ```
 
-### Numeric Only
+### Number Only
 
 ```tsx
 <CitationComponent
   citation={{ citationNumber: 1, keySpan: "25% growth" }}
   verification={verificationResult}
-  hideKeySpan={true}
+  content="number"
 />
 // Renders: [1✓]
 ```

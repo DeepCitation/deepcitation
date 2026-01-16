@@ -92,7 +92,7 @@ const unknownStatusMeta: UrlCitationMeta = {
 test.describe("URL Citation - Basic Rendering", () => {
   test("renders with verified URL", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
     await expect(url).toBeVisible();
     await expect(url).toContainText("example.com");
@@ -101,51 +101,53 @@ test.describe("URL Citation - Basic Rendering", () => {
 
   test("renders with chip variant by default", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator('[data-variant="chip"]');
 
-    await expect(url).toHaveClass(/url-citation--chip/);
+    await expect(url).toBeVisible();
+    await expect(url).toHaveClass(/rounded-full/);
   });
 
   test("renders with inline variant", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} variant="inline" />);
-    const url = page.locator(".url-citation");
+    const url = page.locator('[data-variant="inline"]');
 
-    await expect(url).toHaveClass(/url-citation--inline/);
+    await expect(url).toBeVisible();
+    await expect(url).toHaveClass(/border-dotted/);
   });
 
   test("renders with bracket variant", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} variant="bracket" />);
-    const url = page.locator(".url-citation");
+    const url = page.locator('[data-variant="bracket"]');
 
-    await expect(url).toHaveClass(/url-citation--bracket/);
+    await expect(url).toBeVisible();
     await expect(url).toContainText("[");
     await expect(url).toContainText("]");
   });
 
   test("renders favicon by default", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url.locator(".url-citation__favicon")).toBeVisible();
+    await expect(url.locator("img")).toBeVisible();
   });
 
   test("hides favicon when showFavicon is false", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} showFavicon={false} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url.locator(".url-citation__favicon")).not.toBeVisible();
+    await expect(url.locator("img")).not.toBeVisible();
   });
 
   test("shows title when showTitle is true", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} showTitle={true} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
     await expect(url).toContainText("Test Article Title");
   });
 
   test("shows full URL on hover", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} showFullUrlOnHover={true} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
     await expect(url).toHaveAttribute("title", verifiedUrlMeta.url);
   });
@@ -158,26 +160,25 @@ test.describe("URL Citation - Basic Rendering", () => {
 test.describe("URL Citation - Verification Status", () => {
   test("shows verified indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--verified/);
-    await expect(url.locator(".url-citation__verified-icon")).toBeVisible();
-    await expect(url.locator(".url-citation__verified-icon")).toContainText("✓");
+    await expect(url).toHaveClass(/text-green-/);
+    await expect(url.locator("text=✓")).toBeVisible();
   });
 
   test("shows partial match indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={partialUrlMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--partial/);
-    await expect(url.locator(".url-citation__partial-icon")).toBeVisible();
+    await expect(url).toHaveClass(/text-amber-/);
+    await expect(url.locator("text=~")).toBeVisible();
   });
 
   test("shows pending indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={pendingUrlMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--pending/);
+    await expect(url).toHaveClass(/text-gray-/);
   });
 });
 
@@ -188,43 +189,43 @@ test.describe("URL Citation - Verification Status", () => {
 test.describe("URL Citation - Blocked Status", () => {
   test("shows blocked_antibot indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedAntibotMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--blocked/);
-    await expect(url.locator(".url-citation__blocked-indicator")).toBeVisible();
+    await expect(url).toHaveClass(/text-amber-/);
+    await expect(url.locator("text=🛡")).toBeVisible();
   });
 
   test("shows blocked_login indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedLoginMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--blocked/);
+    await expect(url).toHaveClass(/text-amber-/);
   });
 
   test("shows blocked_paywall indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedPaywallMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--blocked/);
+    await expect(url).toHaveClass(/text-amber-/);
   });
 
   test("shows blocked_geo indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedGeoMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--blocked/);
+    await expect(url).toHaveClass(/text-amber-/);
   });
 
   test("shows blocked_rate_limit indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedRateLimitMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--blocked/);
+    await expect(url).toHaveClass(/text-amber-/);
   });
 
   test("blocked indicator has tooltip with error message", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedLoginMeta} />);
-    const blocked = page.locator(".url-citation__blocked-indicator");
+    const blocked = page.locator('[aria-label="Login required"]');
 
     await expect(blocked).toHaveAttribute("title", "Login required");
   });
@@ -252,37 +253,37 @@ test.describe("URL Citation - Blocked Status", () => {
 test.describe("URL Citation - Error Status", () => {
   test("shows error_timeout indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={errorTimeoutMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--error/);
+    await expect(url).toHaveClass(/text-red-/);
   });
 
   test("shows error_not_found indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={errorNotFoundMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--error/);
+    await expect(url).toHaveClass(/text-red-/);
   });
 
   test("shows error_server indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={errorServerMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--error/);
+    await expect(url).toHaveClass(/text-red-/);
   });
 
   test("shows error_network indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={errorNetworkMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--error/);
+    await expect(url).toHaveClass(/text-red-/);
   });
 
   test("shows unknown status indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={unknownStatusMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/url-citation--unknown/);
+    await expect(url).toHaveClass(/text-gray-/);
   });
 });
 
@@ -293,14 +294,14 @@ test.describe("URL Citation - Error Status", () => {
 test.describe("URL Citation - Interactions", () => {
   test("has link role for accessibility", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
     await expect(url).toHaveAttribute("role", "link");
   });
 
   test("has aria-label with domain and status", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
     const ariaLabel = await url.getAttribute("aria-label");
     expect(ariaLabel).toContain("example.com");
@@ -315,21 +316,21 @@ test.describe("URL Citation - Interactions", () => {
 test.describe("URL Citation - Data Attributes", () => {
   test("has data-url attribute", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
     await expect(url).toHaveAttribute("data-url", verifiedUrlMeta.url);
   });
 
   test("has data-fetch-status attribute", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedLoginMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
     await expect(url).toHaveAttribute("data-fetch-status", "blocked_login");
   });
 
   test("has data-citation-id attribute", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
     await expect(url).toHaveAttribute("data-citation-id");
   });
@@ -353,7 +354,7 @@ test.describe("URL Citation - Composition", () => {
 
   test("applies custom className", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} className="my-custom-class" />);
-    const url = page.locator(".url-citation");
+    const url = page.locator("[data-fetch-status]");
 
     await expect(url).toHaveClass(/my-custom-class/);
   });
@@ -388,7 +389,7 @@ test.describe("URL Citation - All Status Variations", () => {
       };
 
       await mount(<UrlCitationComponent urlMeta={meta} />);
-      const url = page.locator(".url-citation");
+      const url = page.locator("[data-fetch-status]");
 
       await expect(url).toBeVisible();
       await expect(url).toHaveAttribute("data-fetch-status", status);

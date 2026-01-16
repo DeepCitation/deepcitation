@@ -3,6 +3,7 @@ import {
   generateCitationKey,
   generateCitationInstanceId,
   getCitationDisplayText,
+  getCitationNumber,
   getCitationKeySpanText,
   classNames,
   CITATION_X_PADDING,
@@ -34,19 +35,27 @@ describe("react utils", () => {
     randomSpy.mockRestore();
   });
 
-  it("returns display and value text based on merge option", () => {
+  it("returns display text (keySpan with fallback to number)", () => {
+    // keySpan is preferred
     expect(getCitationDisplayText(citation)).toBe("$10");
-    expect(getCitationDisplayText(citation, { hideKeySpan: true })).toBe(
-      "2"
-    );
-    expect(
-      getCitationDisplayText(
-        { ...citation, keySpan: null },
-        { hideKeySpan: false }
-      )
-    ).toBe("2");
-    expect(getCitationKeySpanText(citation)).toBe("");
-    expect(getCitationKeySpanText(citation, { hideKeySpan: true })).toBe("$10");
+    // Falls back to citationNumber when no keySpan
+    expect(getCitationDisplayText({ ...citation, keySpan: null })).toBe("2");
+    // Falls back to "1" when neither keySpan nor citationNumber
+    expect(getCitationDisplayText({ ...citation, keySpan: null, citationNumber: undefined })).toBe("1");
+    // Can use custom fallback
+    expect(getCitationDisplayText({ ...citation, keySpan: null, citationNumber: undefined }, { fallbackDisplay: "N/A" })).toBe("N/A");
+  });
+
+  it("returns citation number", () => {
+    expect(getCitationNumber(citation)).toBe("2");
+    // Falls back to "1" when no citationNumber
+    expect(getCitationNumber({ ...citation, citationNumber: undefined })).toBe("1");
+  });
+
+  it("returns keySpan text", () => {
+    expect(getCitationKeySpanText(citation)).toBe("$10");
+    // Returns empty string when no keySpan
+    expect(getCitationKeySpanText({ ...citation, keySpan: null })).toBe("");
   });
 
   it("joins class names safely", () => {

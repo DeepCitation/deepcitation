@@ -21,9 +21,11 @@ export type {
   CitationCursorClasses,
   CitationEventHandlers,
   CitationVariant as CitationVariantType,
+  CitationContent,
   UrlFetchStatus,
   UrlCitationMeta,
   UrlCitationProps,
+  UrlCitationVariant,
   // Behavior configuration types
   CitationBehaviorConfig,
   CitationBehaviorContext,
@@ -45,6 +47,7 @@ export {
   generateCitationKey,
   generateCitationInstanceId,
   getCitationDisplayText,
+  getCitationNumber,
   getCitationKeySpanText,
   classNames,
   CITATION_X_PADDING,
@@ -58,3 +61,11 @@ export {
   type CitationVariant,
   type CitationComponentProps,
 } from "./CitationComponent.js";
+
+// Icons
+export {
+  DeepCitationIcon,
+  CheckIcon,
+  SpinnerIcon,
+  WarningIcon,
+} from "./icons.js";

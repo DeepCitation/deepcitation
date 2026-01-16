@@ -41,19 +41,19 @@ function getUrlPath(url: string): string {
  * Status indicator icons for URL fetch states.
  */
 const STATUS_ICONS: Record<UrlFetchStatus, { icon: string; label: string; className: string }> = {
-  verified: { icon: "✓", label: "Verified", className: "url-citation--verified" },
-  partial: { icon: "~", label: "Partial match", className: "url-citation--partial" },
-  pending: { icon: "…", label: "Verifying", className: "url-citation--pending" },
-  blocked_antibot: { icon: "🛡", label: "Blocked by anti-bot", className: "url-citation--blocked" },
-  blocked_login: { icon: "🔒", label: "Login required", className: "url-citation--blocked" },
-  blocked_paywall: { icon: "💳", label: "Paywall", className: "url-citation--blocked" },
-  blocked_geo: { icon: "🌍", label: "Geo-restricted", className: "url-citation--blocked" },
-  blocked_rate_limit: { icon: "⏱", label: "Rate limited", className: "url-citation--blocked" },
-  error_timeout: { icon: "⏰", label: "Timed out", className: "url-citation--error" },
-  error_not_found: { icon: "404", label: "Not found", className: "url-citation--error" },
-  error_server: { icon: "⚠", label: "Server error", className: "url-citation--error" },
-  error_network: { icon: "⚡", label: "Network error", className: "url-citation--error" },
-  unknown: { icon: "?", label: "Unknown status", className: "url-citation--unknown" },
+  verified: { icon: "✓", label: "Verified", className: "text-green-600 dark:text-green-500" },
+  partial: { icon: "~", label: "Partial match", className: "text-amber-600 dark:text-amber-500" },
+  pending: { icon: "…", label: "Verifying", className: "text-gray-400 dark:text-gray-500" },
+  blocked_antibot: { icon: "🛡", label: "Blocked by anti-bot", className: "text-amber-600 dark:text-amber-500" },
+  blocked_login: { icon: "🔒", label: "Login required", className: "text-amber-600 dark:text-amber-500" },
+  blocked_paywall: { icon: "💳", label: "Paywall", className: "text-amber-600 dark:text-amber-500" },
+  blocked_geo: { icon: "🌍", label: "Geo-restricted", className: "text-amber-600 dark:text-amber-500" },
+  blocked_rate_limit: { icon: "⏱", label: "Rate limited", className: "text-amber-600 dark:text-amber-500" },
+  error_timeout: { icon: "⏰", label: "Timed out", className: "text-red-500 dark:text-red-400" },
+  error_not_found: { icon: "404", label: "Not found", className: "text-red-500 dark:text-red-400" },
+  error_server: { icon: "⚠", label: "Server error", className: "text-red-500 dark:text-red-400" },
+  error_network: { icon: "⚡", label: "Network error", className: "text-red-500 dark:text-red-400" },
+  unknown: { icon: "?", label: "Unknown status", className: "text-gray-400 dark:text-gray-500" },
 };
 
 /**
@@ -84,11 +84,11 @@ const DefaultBlockedIndicator = ({ status, errorMessage }: { status: UrlFetchSta
   const statusInfo = STATUS_ICONS[status];
   return (
     <span
-      className={classNames("url-citation__blocked-indicator", statusInfo.className)}
+      className={classNames("inline-flex items-center gap-1", statusInfo.className)}
       title={errorMessage || statusInfo.label}
       aria-label={statusInfo.label}
     >
-      <span className="url-citation__blocked-icon" aria-hidden="true">
+      <span className="text-[0.9em]" aria-hidden="true">
         {statusInfo.icon}
       </span>
     </span>
@@ -106,7 +106,7 @@ const DefaultFavicon = ({ url, faviconUrl }: { url: string; faviconUrl?: string 
     <img
       src={src}
       alt=""
-      className="url-citation__favicon"
+      className="w-3.5 h-3.5 rounded-sm"
       width={14}
       height={14}
       loading="lazy"
@@ -230,7 +230,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
 
       if (isVerified) {
         return (
-          <span className="url-citation__verified-icon" aria-hidden="true" title="Verified">
+          <span className="text-[0.85em] text-green-600 dark:text-green-500" aria-hidden="true" title="Verified">
             ✓
           </span>
         );
@@ -238,7 +238,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
 
       if (isPartial) {
         return (
-          <span className="url-citation__partial-icon" aria-hidden="true" title="Partial match">
+          <span className="text-[0.85em] text-amber-600 dark:text-amber-500" aria-hidden="true" title="Partial match">
             ~
           </span>
         );
@@ -246,7 +246,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
 
       if (isPending) {
         return (
-          <span className="url-citation__pending" aria-hidden="true">
+          <span className="opacity-70" aria-hidden="true">
             …
           </span>
         );
@@ -266,7 +266,13 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             data-citation-instance={citationInstanceId}
             data-url={url}
             data-fetch-status={fetchStatus}
-            className={classNames("url-citation", "url-citation--chip", statusInfo.className, className)}
+            data-variant="chip"
+            className={classNames(
+              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm cursor-pointer transition-colors no-underline",
+              "bg-blue-100 dark:bg-blue-900/30",
+              statusInfo.className,
+              className
+            )}
             title={showFullUrlOnHover ? url : undefined}
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
             onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
@@ -276,7 +282,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             aria-label={`Link to ${domain}: ${statusInfo.label}`}
           >
             {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
-            <span className="url-citation__domain">{displayText}</span>
+            <span className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">{displayText}</span>
             {renderStatusIndicator()}
           </span>
         </>
@@ -294,7 +300,12 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             data-citation-id={citationKey}
             data-citation-instance={citationInstanceId}
             data-fetch-status={fetchStatus}
-            className={classNames("url-citation", "url-citation--inline", statusInfo.className, className)}
+            data-variant="inline"
+            className={classNames(
+              "inline-flex items-center gap-1 cursor-pointer transition-colors no-underline border-b border-dotted border-current",
+              statusInfo.className,
+              className
+            )}
             title={showFullUrlOnHover ? url : undefined}
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
             onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
@@ -307,7 +318,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             aria-label={`Link to ${domain}: ${statusInfo.label}`}
           >
             {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
-            <span className="url-citation__text">{displayText}</span>
+            <span>{displayText}</span>
             {renderStatusIndicator()}
           </a>
         </>
@@ -324,7 +335,12 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           data-citation-instance={citationInstanceId}
           data-url={url}
           data-fetch-status={fetchStatus}
-          className={classNames("url-citation", "url-citation--bracket", statusInfo.className, className)}
+          data-variant="bracket"
+          className={classNames(
+            "cursor-pointer transition-colors",
+            statusInfo.className,
+            className
+          )}
           title={showFullUrlOnHover ? url : undefined}
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
@@ -334,7 +350,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           aria-label={`Link to ${domain}: ${statusInfo.label}`}
         >
           [{showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
-          <span className="url-citation__domain">{displayText}</span>
+          <span className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">{displayText}</span>
           {renderStatusIndicator()}]
         </span>
       </>

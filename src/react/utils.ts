@@ -3,6 +3,14 @@ import type { Verification } from "../types/verification.js";
 import { sha1Hash } from "../utils/sha.js";
 import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
 
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+export function cn(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(" ");
+}
+
 /**
  * Generates a unique, deterministic key for a citation based on its content.
  *  @param citation - The citation to generate a key for
@@ -58,44 +66,34 @@ export function generateCitationInstanceId(citationKey: string): string {
 }
 
 /**
- * Gets the display text for a citation based on configuration.
+ * Gets the display text for a citation (keySpan with fallback to number).
  */
 export function getCitationDisplayText(
   citation: Citation,
   options: {
-    hideKeySpan?: boolean;
     fallbackDisplay?: string | null;
   } = {}
 ): string {
-  const { hideKeySpan = false, fallbackDisplay } = options;
-
-  if (!hideKeySpan) {
-    return (
-      citation.keySpan?.toString() ||
-      citation.citationNumber?.toString() ||
-      fallbackDisplay ||
-      ""
-    );
-  }
-
-  return citation.citationNumber?.toString() || "";
+  const { fallbackDisplay } = options;
+  return (
+    citation.keySpan?.toString() ||
+    citation.citationNumber?.toString() ||
+    fallbackDisplay ||
+    "1"
+  );
 }
 
 /**
- * Gets the keySpan text to display before the citation bracket.
+ * Gets the citation number as a string.
  */
-export function getCitationKeySpanText(
-  citation: Citation,
-  options: {
-    hideKeySpan?: boolean;
-  } = {}
-): string {
-  const { hideKeySpan = false } = options;
+export function getCitationNumber(citation: Citation): string {
+  return citation.citationNumber?.toString() || "1";
+}
 
-  if (!hideKeySpan) {
-    return "";
-  }
-
+/**
+ * Gets the keySpan text from a citation.
+ */
+export function getCitationKeySpanText(citation: Citation): string {
   return citation.keySpan?.toString() || "";
 }
 

@@ -3,20 +3,43 @@ import type { Verification } from "../types/verification.js";
 import type { SearchStatus } from "../types/search.js";
 
 /**
- * Available citation display variants.
+ * Visual style variants for citations.
  *
- * - `brackets`: Shows keySpan/number in brackets with blue text styling (default).
- *               Use hideKeySpan=true for numeric-only display.
- *               Use hideBrackets=true to hide the square brackets.
- * - `text`: Shows the keySpan, inherits parent text styling, no truncation, shows indicator
- * - `minimal`: No brackets, just display text with indicator
- * - `indicator`: Only the status indicator (checkmark/warning), no text
+ * | Variant       | Description                                    |
+ * |---------------|------------------------------------------------|
+ * | `chip`        | Pill/badge style with background color         |
+ * | `brackets`    | [text✓] with square brackets (default)         |
+ * | `text`        | Plain text, inherits parent styling            |
+ * | `superscript` | Small raised text like footnotes¹              |
+ * | `minimal`     | Compact text with indicator, truncated         |
  */
 export type CitationVariant =
-  | "brackets" // [keySpan✓] with blue text styling
-  | "text" // keySpan✓ - inherits parent styling
-  | "minimal" // text✓ - just text with indicator
-  | "indicator"; // ✓ - only the indicator
+  | "chip" // Pill/badge with background
+  | "brackets" // [text✓] with brackets (default)
+  | "text" // Plain text, inherits styling
+  | "superscript" // Small raised footnote style
+  | "minimal"; // Compact with truncation
+
+/**
+ * Content to display in the citation.
+ *
+ * | Content       | Description                                    |
+ * |---------------|------------------------------------------------|
+ * | `keySpan`     | Descriptive text (e.g., "Revenue Growth")      |
+ * | `number`      | Citation number (e.g., "1", "2", "3")          |
+ * | `indicator`   | Only the status icon (✓/⚠), no text            |
+ *
+ * Default content per variant:
+ * - `chip` → `keySpan`
+ * - `brackets` → `number`
+ * - `text` → `keySpan`
+ * - `superscript` → `number`
+ * - `minimal` → `number`
+ */
+export type CitationContent =
+  | "keySpan" // Show keySpan text
+  | "number" // Show citation number
+  | "indicator"; // Only show status icon
 
 /**
  * URL fetch status for URL citations.
@@ -115,20 +138,35 @@ export interface BaseCitationProps {
   /** Class name for controlling inner content width */
   innerWidthClassName?: string;
   /**
-   * When true, hides keySpan and displays citation number only. When false, displays keySpan text.
-   * @default false
+   * Visual style variant for the citation.
+   * @default "brackets"
    */
-  hideKeySpan?: boolean;
+  variant?: CitationVariant;
+  /**
+   * What content to display in the citation.
+   * If not specified, defaults based on variant:
+   * - `chip` → `keySpan`
+   * - `brackets` → `number`
+   * - `text` → `keySpan`
+   * - `superscript` → `number`
+   * - `minimal` → `number`
+   */
+  content?: CitationContent;
   /** Fallback display text when citation keySpan is empty */
   fallbackDisplay?: string | null;
-  /** Display variant for the citation */
-  variant?: CitationVariant;
 }
+
+/**
+ * Visual style variants for URL citations.
+ */
+export type UrlCitationVariant = "chip" | "inline" | "bracket";
 
 /**
  * Props for URL citation component
  */
-export interface UrlCitationProps extends Omit<BaseCitationProps, "citation"> {
+export interface UrlCitationProps extends Omit<BaseCitationProps, "citation" | "variant"> {
+  /** Visual style variant for the URL citation */
+  variant?: UrlCitationVariant;
   /** URL metadata including fetch status */
   urlMeta: UrlCitationMeta;
   /** The citation data (optional, will be derived from urlMeta if not provided) */

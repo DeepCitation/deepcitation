@@ -100,29 +100,58 @@ curl -X POST https://api.deepcitation.com/verifyCitations \
 ```
 
 ### 4. Display Results
+
+The CitationComponent uses two orthogonal props:
+
+- **`variant`**: Visual style (how it looks)
+- **`content`**: What text to display
+
 ```tsx
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
-// Default: shows keySpan in brackets [keySpan✓]
-<CitationComponent
-  citation={citation}
-  verification={verification}
-/>
+// Default: brackets variant with number content → [1✓]
+<CitationComponent citation={citation} verification={verification} />
 
-// Numeric only: shows just citation number [1✓]
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  hideKeySpan={true}
-/>
+// Chip with keySpan (the default content for chip) → pill badge with "Revenue Growth✓"
+<CitationComponent citation={citation} verification={verification} variant="chip" />
 
-// Without brackets: shows keySpan without brackets
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  hideBrackets={true}
-/>
+// Chip with number → pill badge with "1✓"
+<CitationComponent citation={citation} verification={verification} variant="chip" content="number" />
+
+// Brackets with keySpan → [Revenue Growth✓]
+<CitationComponent citation={citation} verification={verification} variant="brackets" content="keySpan" />
+
+// Superscript footnote style → ¹✓
+<CitationComponent citation={citation} verification={verification} variant="superscript" />
+
+// Just the indicator → ✓
+<CitationComponent citation={citation} verification={verification} content="indicator" />
 ```
+
+#### Variant (Visual Style)
+
+| Variant       | Output Example          | Description                                    |
+|---------------|-------------------------|------------------------------------------------|
+| `"brackets"`  | `[1✓]`                  | Square brackets, monospace (default)           |
+| `"chip"`      | `Revenue Growth✓`       | Pill/badge with background color               |
+| `"text"`      | `Revenue Growth✓`       | Plain text, inherits parent styling            |
+| `"superscript"` | `¹✓`                  | Small raised footnote style                    |
+| `"minimal"`   | `1✓`                    | Compact text with truncation                   |
+
+#### Content (What's Displayed)
+
+| Content       | Output Example     | Description                                    |
+|---------------|--------------------|------------------------------------------------|
+| `"keySpan"`   | `Revenue Growth`   | Descriptive text from citation                 |
+| `"number"`    | `1`                | Citation number (defaults to "1" if missing)   |
+| `"indicator"` | `✓`                | Only the status icon, no text                  |
+
+**Default content per variant:**
+- `chip` → `keySpan`
+- `brackets` → `number`
+- `text` → `keySpan`
+- `superscript` → `number`
+- `minimal` → `number`
 
 ### 5. Status Indicators
 
@@ -150,21 +179,9 @@ The component displays different indicators based on `verification.status`:
 <CitationComponent citation={citation} verification={{ status: "not_found" }} />
 ```
 
-#### Display Variants
-
-Control how the citation text and indicator are displayed:
-
-| Variant       | Output Example    | Description                                    |
-|---------------|-------------------|------------------------------------------------|
-| `"brackets"`  | `[keySpan✓]`      | Default. Brackets with indicator inside.       |
-| `"text"`      | `keySpan✓`        | No brackets, inherits parent styling.          |
-| `"minimal"`   | `keySpan✓`        | No brackets, truncated with ellipsis.          |
-| `"indicator"` | `✓`               | Only the status indicator, no text.            |
+#### Custom Indicator Rendering
 
 ```tsx
-// Show only the indicator (no text)
-<CitationComponent citation={citation} verification={verification} variant="indicator" />
-
 // Custom indicator rendering
 <CitationComponent
   citation={citation}

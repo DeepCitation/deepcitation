@@ -33,7 +33,6 @@ interface CitationContextValue {
   status: CitationStatus;
   verification: Verification | null;
   config: {
-    hideKeySpan: boolean;
     fallbackDisplay: string | null;
     pendingContent: ReactNode;
   };
@@ -59,7 +58,6 @@ export interface CitationRootProps {
   citation: CitationType;
   verification?: Verification | null;
   children: ReactNode;
-  hideKeySpan?: boolean;
   fallbackDisplay?: string | null;
   pendingContent?: ReactNode;
 }
@@ -74,7 +72,6 @@ export const CitationRoot = forwardRef<
       citation,
       verification = null,
       children,
-      hideKeySpan = false,
       fallbackDisplay = null,
       pendingContent = "..",
       className,
@@ -100,7 +97,6 @@ export const CitationRoot = forwardRef<
         status,
         verification,
         config: {
-          hideKeySpan,
           fallbackDisplay,
           pendingContent,
         },
@@ -111,7 +107,6 @@ export const CitationRoot = forwardRef<
         citationInstanceId,
         status,
         verification,
-        hideKeySpan,
         fallbackDisplay,
         pendingContent,
       ]
@@ -123,7 +118,7 @@ export const CitationRoot = forwardRef<
           ref={ref}
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
-          className={classNames("citation-root", className)}
+          className={classNames("inline", className)}
           {...props}
         >
           {children}
@@ -231,10 +226,10 @@ export const CitationTrigger = forwardRef<
     const statusClasses = classNames(
       status.isVerified &&
         !status.isPartialMatch &&
-        "citation-trigger--verified",
-      status.isPartialMatch && "citation-trigger--partial",
-      status.isMiss && "citation-trigger--miss",
-      status.isPending && "citation-trigger--pending"
+        "text-green-600 dark:text-green-500",
+      status.isPartialMatch && "text-amber-600 dark:text-amber-500",
+      status.isMiss && "text-red-500 dark:text-red-400 line-through",
+      status.isPending && "text-gray-400 dark:text-gray-500"
     );
 
     return (
@@ -242,7 +237,11 @@ export const CitationTrigger = forwardRef<
         ref={ref}
         role="button"
         tabIndex={0}
-        className={classNames("citation-trigger", statusClasses, className)}
+        className={classNames(
+          "cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2 focus-visible:rounded-sm",
+          statusClasses,
+          className
+        )}
         onClick={handleClick}
         onMouseDown={handleMouseDown}
         onMouseEnter={handleMouseEnter}
@@ -271,13 +270,13 @@ export const CitationBracket = forwardRef<
   return (
     <span
       ref={ref}
-      className={classNames("citation-bracket", className)}
+      className={classNames("inline", className)}
       aria-hidden="true"
       {...props}
     >
-      <span className="citation-bracket__open">{open}</span>
-      <span className="citation-bracket__content">{children}</span>
-      <span className="citation-bracket__close">{close}</span>
+      <span className="inline">{open}</span>
+      <span className="inline">{children}</span>
+      <span className="inline">{close}</span>
     </span>
   );
 });
@@ -295,17 +294,12 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
 
     const displayNumber = useMemo(() => {
       if (number !== undefined) return String(number);
-
-      if (!config.hideKeySpan) {
-        return (
-          citation.keySpan?.toString() ||
-          citation.citationNumber?.toString() ||
-          config.fallbackDisplay ||
-          ""
-        );
-      }
-
-      return citation.citationNumber?.toString() || "";
+      return (
+        citation.keySpan?.toString() ||
+        citation.citationNumber?.toString() ||
+        config.fallbackDisplay ||
+        "1"
+      );
     }, [number, citation, config]);
 
     if (status.isPending) {
@@ -313,7 +307,7 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
         <span
           ref={ref}
           className={classNames(
-            "citation-number citation-number--pending",
+            "font-medium opacity-60",
             className
           )}
           {...props}
@@ -326,7 +320,7 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
     return (
       <span
         ref={ref}
-        className={classNames("citation-number", className)}
+        className={classNames("font-medium", className)}
         {...props}
       >
         {displayNumber}
@@ -345,20 +339,19 @@ export interface CitationKeySpanProps extends HTMLAttributes<HTMLSpanElement> {
 /** Displays the citation keySpan (summary text). */
 export const CitationKeySpan = forwardRef<HTMLSpanElement, CitationKeySpanProps>(
   ({ className, keySpan, separator = " ", ...props }, ref) => {
-    const { citation, config } = useCitationContext();
+    const { citation } = useCitationContext();
 
     const displayKeySpan = useMemo(() => {
       if (keySpan !== undefined) return keySpan;
-      if (config.hideKeySpan) return "";
       return citation.keySpan?.toString() || "";
-    }, [keySpan, citation, config]);
+    }, [keySpan, citation]);
 
     if (!displayKeySpan) return null;
 
     return (
       <span
         ref={ref}
-        className={classNames("citation-key-span", className)}
+        className={classNames("italic", className)}
         {...props}
       >
         {displayKeySpan}
@@ -406,12 +399,15 @@ export const CitationIndicator = forwardRef<
       [showFor]
     );
 
+    const baseClasses = "inline ml-0.5 text-[0.85em]";
+
     if (status.isPartialMatch && shouldShow("partial")) {
       return (
         <span
           ref={ref}
           className={classNames(
-            "citation-indicator citation-indicator--partial",
+            baseClasses,
+            "text-amber-600 dark:text-amber-500",
             className
           )}
           aria-label="Partial match"
@@ -427,7 +423,8 @@ export const CitationIndicator = forwardRef<
         <span
           ref={ref}
           className={classNames(
-            "citation-indicator citation-indicator--verified",
+            baseClasses,
+            "text-green-600 dark:text-green-500",
             className
           )}
           aria-label="Verified"
@@ -443,7 +440,8 @@ export const CitationIndicator = forwardRef<
         <span
           ref={ref}
           className={classNames(
-            "citation-indicator citation-indicator--miss",
+            baseClasses,
+            "text-red-500 dark:text-red-400",
             className
           )}
           aria-label="Not found"
@@ -459,7 +457,8 @@ export const CitationIndicator = forwardRef<
         <span
           ref={ref}
           className={classNames(
-            "citation-indicator citation-indicator--pending",
+            baseClasses,
+            "text-gray-400 dark:text-gray-500",
             className
           )}
           aria-label="Pending"
@@ -509,7 +508,7 @@ export const CitationPhrase = forwardRef<HTMLSpanElement, CitationPhraseProps>(
     return (
       <span
         ref={ref}
-        className={classNames("citation-phrase", className)}
+        className={classNames("italic", className)}
         {...props}
       >
         {displayPhrase}
@@ -536,7 +535,7 @@ export const CitationPage = forwardRef<HTMLSpanElement, CitationPageProps>(
     return (
       <span
         ref={ref}
-        className={classNames("citation-page", className)}
+        className={classNames("text-xs text-gray-400 dark:text-gray-500", className)}
         {...props}
       >
         {prefix}

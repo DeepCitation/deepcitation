@@ -60,12 +60,12 @@ test.describe("CitationComponent - Brackets Variant", () => {
     await expect(citation).toContainText("]");
   });
 
-  test("hides keySpan when hideKeySpan is true", async ({ mount, page }) => {
+  test("shows number when content is number", async ({ mount, page }) => {
     await mount(
       <CitationComponent
         citation={baseCitation}
         variant="brackets"
-        hideKeySpan={true}
+        content="number"
       />
     );
     const citation = page.locator(".dc-citation");
@@ -151,20 +151,20 @@ test.describe("CitationComponent - Numeric Variant", () => {
     await expect(citation).not.toContainText("]");
   });
 
-  test("always shows citation number, ignoring hideKeySpan", async ({
+  test("shows citation number with content number", async ({
     mount,
     page,
   }) => {
     await mount(
       <CitationComponent
         citation={baseCitation}
-        variant="numeric"
-        hideKeySpan={false}
+        variant="superscript"
+        content="number"
       />
     );
     const citation = page.locator(".dc-citation");
 
-    // Numeric variant always shows citation number regardless of hideKeySpan
+    // content="number" shows citation number
     await expect(citation).toContainText("42");
     await expect(citation).not.toContainText("25% revenue growth");
   });
@@ -395,7 +395,7 @@ test.describe("CitationComponent - All Variants Visual", () => {
           <CitationComponent
             citation={baseCitation}
             variant="brackets"
-            hideKeySpan={false}
+            content="keySpan"
             verification={verifiedVerification}
           />
         </div>

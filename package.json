@@ -1,15 +1,18 @@
 {
     "name": "@deepcitation/deepcitation-js",
-    "version": "1.1.23",
+    "version": "1.1.27",
     "description": "DeepCitation JavaScript SDK for deterministic AI citation verification",
     "type": "module",
     "private": false,
     "license": "MIT",
     "author": "DeepCitation <opensource@deepcitation.com>",
+    "homepage": "https://deepcitation.com",
+    "bugs": {
+        "url": "https://github.com/deepcitation/deepcitation-js/issues"
+    },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/deepcitation/deepcitation-js.git",
-        "directory": "packages/deepcitation"
+        "url": "git+https://github.com/deepcitation/deepcitation-js.git"
     },
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
@@ -76,10 +79,24 @@
             "import": "./lib/index.js",
             "require": "./lib/index.js"
         },
+        "./client": {
+            "types": "./lib/client/index.d.ts",
+            "import": "./lib/client/index.js",
+            "require": "./lib/client/index.js"
+        },
+        "./prompts": {
+            "types": "./lib/prompts/index.d.ts",
+            "import": "./lib/prompts/index.js",
+            "require": "./lib/prompts/index.js"
+        },
         "./react": {
             "types": "./lib/react/index.d.ts",
             "import": "./lib/react/index.js",
             "require": "./lib/react/index.js"
+        },
+        "./types": {
+            "types": "./lib/types/index.d.ts",
+            "import": "./lib/types/index.js"
         }
     },
     "keywords": [

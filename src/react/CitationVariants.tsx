@@ -12,7 +12,7 @@ import {
   generateCitationKey,
   generateCitationInstanceId,
   getCitationDisplayText,
-  getCitationKeySpanText,
+  getCitationNumber,
   classNames,
 } from "./utils.js";
 import type {
@@ -66,7 +66,7 @@ function useCitationData(
  * Default verified indicator (checkmark)
  */
 const DefaultVerifiedIndicator = () => (
-  <span className="citation-verified-icon" aria-hidden="true">
+  <span className="text-green-600 dark:text-green-500 ml-0.5" aria-hidden="true">
     ✓
   </span>
 );
@@ -75,7 +75,7 @@ const DefaultVerifiedIndicator = () => (
  * Default partial match indicator (asterisk)
  */
 const DefaultPartialIndicator = () => (
-  <span className="citation-partial-icon" aria-hidden="true">
+  <span className="text-amber-600 dark:text-amber-500 ml-0.5" aria-hidden="true">
     *
   </span>
 );
@@ -108,7 +108,6 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       citation,
       children,
       className,
-      hideKeySpan = false,
       fallbackDisplay,
       verification,
       eventHandlers,
@@ -129,21 +128,10 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
     );
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
+    // ChipCitation shows keySpan by default
     const displayText = useMemo(
-      () =>
-        getCitationDisplayText(citation, {
-          hideKeySpan,
-          fallbackDisplay,
-        }),
-      [citation, hideKeySpan, fallbackDisplay]
-    );
-
-    const keySpanText = useMemo(
-      () =>
-        getCitationKeySpanText(citation, {
-          hideKeySpan,
-        }),
-      [citation, hideKeySpan]
+      () => getCitationDisplayText(citation, { fallbackDisplay }),
+      [citation, fallbackDisplay]
     );
 
     const handleClick = useCallback(
@@ -164,21 +152,21 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
     }, [eventHandlers, citation, citationKey]);
 
     const sizeClasses = {
-      sm: "citation-chip--sm",
-      md: "citation-chip--md",
-      lg: "citation-chip--lg",
+      sm: "text-xs px-1.5 py-px",
+      md: "text-sm px-2 py-0.5",
+      lg: "text-base px-3 py-1",
     };
 
     // Check partial first since isVerified is true when isPartialMatch is true
     const statusClass = isPartialMatch
-      ? "citation-chip--partial"
+      ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-500"
       : isMiss
-      ? "citation-chip--miss"
+      ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 line-through"
       : isVerified
-      ? "citation-chip--verified"
+      ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-500"
       : isPending
-      ? "citation-chip--pending"
-      : "";
+      ? "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+      : "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400";
 
     return (
       <>
@@ -189,7 +177,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="chip"
           className={classNames(
-            "citation-chip",
+            "inline-flex items-center gap-1 rounded-full font-medium cursor-pointer transition-colors hover:brightness-95",
             sizeClasses[size],
             statusClass,
             className
@@ -201,12 +189,12 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           aria-label={displayText ? `Citation: ${displayText}` : undefined}
         >
           {showIcon &&
-            (icon || <span className="citation-chip__icon">📄</span>)}
-          <span className="citation-chip__text">{displayText}</span>
+            (icon || <span className="text-[0.9em]">📄</span>)}
+          <span className="font-medium">{displayText}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isPending && (
-            <span className="citation-chip__pending">{pendingContent}</span>
+            <span className="opacity-70">{pendingContent}</span>
           )}
         </span>
       </>
@@ -244,7 +232,6 @@ export const SuperscriptCitation = forwardRef<
       citation,
       children,
       className,
-      hideKeySpan = false,
       fallbackDisplay,
       verification,
       eventHandlers,
@@ -263,13 +250,10 @@ export const SuperscriptCitation = forwardRef<
     );
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
+    // SuperscriptCitation shows number by default
     const displayText = useMemo(
-      () =>
-        getCitationDisplayText(citation, {
-          hideKeySpan,
-          fallbackDisplay,
-        }),
-      [citation, hideKeySpan, fallbackDisplay]
+      () => getCitationNumber(citation),
+      [citation]
     );
 
     const handleClick = useCallback(
@@ -291,14 +275,14 @@ export const SuperscriptCitation = forwardRef<
 
     // Check partial first since isVerified is true when isPartialMatch is true
     const statusClass = isPartialMatch
-      ? "citation-superscript--partial"
+      ? "text-amber-600 dark:text-amber-500"
       : isMiss
-      ? "citation-superscript--miss"
+      ? "text-red-500 dark:text-red-400 line-through"
       : isVerified
-      ? "citation-superscript--verified"
+      ? "text-green-600 dark:text-green-500"
       : isPending
-      ? "citation-superscript--pending"
-      : "";
+      ? "text-gray-400 dark:text-gray-500"
+      : "text-blue-600 dark:text-blue-400";
 
     return (
       <>
@@ -308,7 +292,11 @@ export const SuperscriptCitation = forwardRef<
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="superscript"
-          className={classNames("citation-superscript", statusClass, className)}
+          className={classNames(
+            "text-xs cursor-pointer font-medium transition-colors hover:underline",
+            statusClass,
+            className
+          )}
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
@@ -410,14 +398,14 @@ export const FootnoteCitation = forwardRef<
 
     // Check partial first since isVerified is true when isPartialMatch is true
     const statusClass = isPartialMatch
-      ? "citation-footnote--partial"
+      ? "text-amber-600 dark:text-amber-500"
       : isMiss
-      ? "citation-footnote--miss"
+      ? "text-red-500 dark:text-red-400 line-through"
       : isVerified
-      ? "citation-footnote--verified"
+      ? "text-green-600 dark:text-green-500"
       : isPending
-      ? "citation-footnote--pending"
-      : "";
+      ? "text-gray-400 dark:text-gray-500"
+      : "text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400";
 
     return (
       <>
@@ -427,7 +415,11 @@ export const FootnoteCitation = forwardRef<
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="footnote"
-          className={classNames("citation-footnote", statusClass, className)}
+          className={classNames(
+            "text-xs cursor-pointer font-normal transition-colors",
+            statusClass,
+            className
+          )}
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
@@ -471,7 +463,6 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
       citation,
       children,
       className,
-      hideKeySpan = false, // Default to showing keySpan for inline
       fallbackDisplay,
       verification,
       eventHandlers,
@@ -489,13 +480,10 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
     );
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
+    // InlineCitation shows keySpan by default
     const displayText = useMemo(
-      () =>
-        getCitationDisplayText(citation, {
-          hideKeySpan,
-          fallbackDisplay,
-        }),
-      [citation, hideKeySpan, fallbackDisplay]
+      () => getCitationDisplayText(citation, { fallbackDisplay }),
+      [citation, fallbackDisplay]
     );
 
     const handleClick = useCallback(
@@ -517,16 +505,21 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
 
     // Check partial first since isVerified is true when isPartialMatch is true
     const statusClass = isPartialMatch
-      ? "citation-inline--partial"
+      ? "text-amber-600 dark:text-amber-500"
       : isMiss
-      ? "citation-inline--miss"
+      ? "text-red-500 dark:text-red-400 line-through"
       : isVerified
-      ? "citation-inline--verified"
+      ? "text-green-600 dark:text-green-500"
       : isPending
-      ? "citation-inline--pending"
+      ? "text-gray-400 dark:text-gray-500"
       : "";
 
-    const underlineClass = `citation-inline--underline-${underlineStyle}`;
+    const underlineClasses = {
+      solid: "border-b border-current",
+      dotted: "border-b border-dotted border-current",
+      dashed: "border-b border-dashed border-current",
+      none: "",
+    };
 
     return (
       <>
@@ -537,8 +530,8 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="inline"
           className={classNames(
-            "citation-inline",
-            underlineClass,
+            "cursor-pointer transition-colors hover:bg-blue-500/5",
+            underlineClasses[underlineStyle],
             statusClass,
             className
           )}
@@ -552,7 +545,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isPending && (
-            <span className="citation-inline__pending">{pendingContent}</span>
+            <span className="opacity-70 ml-1">{pendingContent}</span>
           )}
         </span>
       </>
@@ -590,7 +583,6 @@ export const MinimalCitation = forwardRef<
       citation,
       children,
       className,
-      hideKeySpan = false,
       fallbackDisplay,
       verification,
       eventHandlers,
@@ -608,13 +600,10 @@ export const MinimalCitation = forwardRef<
     );
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
+    // MinimalCitation shows number by default
     const displayText = useMemo(
-      () =>
-        getCitationDisplayText(citation, {
-          hideKeySpan,
-          fallbackDisplay,
-        }),
-      [citation, hideKeySpan, fallbackDisplay]
+      () => getCitationNumber(citation),
+      [citation]
     );
 
     const handleClick = useCallback(
@@ -636,14 +625,14 @@ export const MinimalCitation = forwardRef<
 
     // Check partial first since isVerified is true when isPartialMatch is true
     const statusClass = isPartialMatch
-      ? "citation-minimal--partial"
+      ? "text-amber-600 dark:text-amber-500"
       : isMiss
-      ? "citation-minimal--miss"
+      ? "text-red-500 dark:text-red-400 line-through"
       : isVerified
-      ? "citation-minimal--verified"
+      ? "text-green-600 dark:text-green-500"
       : isPending
-      ? "citation-minimal--pending"
-      : "";
+      ? "text-gray-400 dark:text-gray-500"
+      : "text-blue-600 dark:text-blue-400";
 
     return (
       <>
@@ -653,7 +642,11 @@ export const MinimalCitation = forwardRef<
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="minimal"
-          className={classNames("citation-minimal", statusClass, className)}
+          className={classNames(
+            "cursor-pointer transition-colors hover:underline",
+            statusClass,
+            className
+          )}
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
