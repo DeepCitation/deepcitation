@@ -8,7 +8,6 @@ import React, {
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import type { SearchState } from "../types/search.js";
 import {
   generateCitationKey,
   generateCitationInstanceId,
@@ -30,8 +29,6 @@ const TWO_DOTS_THINKING_CONTENT = "..";
 export interface CitationVariantProps extends BaseCitationProps {
   /** Found citation highlight location data */
   verification?: Verification | null;
-  /** Current search state for the citation */
-  searchState?: SearchState | null;
   /** Event handlers */
   eventHandlers?: CitationEventHandlers;
   /** Whether on mobile device */

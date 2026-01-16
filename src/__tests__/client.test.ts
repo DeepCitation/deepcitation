@@ -283,10 +283,10 @@ describe("DeepCitation Client", () => {
         json: async () => ({
           verifications: {
             citation_key_1: {
-              pageNumber: 1,
-              searchState: { status: "found" },
+              verifiedPageNumber: 1,
+              status: "found",
               verificationImageBase64: "base64data",
-              matchSnippet: "Revenue grew 15%",
+              verifiedMatchSnippet: "Revenue grew 15%",
             },
           },
         }),
@@ -313,9 +313,9 @@ describe("DeepCitation Client", () => {
         json: async () => ({
           verifications: {
             key1: {
-              pageNumber: 1,
-              searchState: { status: "found" },
-              matchSnippet: "Test content",
+              verifiedPageNumber: 1,
+              status: "found",
+              verifiedMatchSnippet: "Test content",
             },
           },
         }),
@@ -349,7 +349,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           verifications: {
-            "1": { pageNumber: 1, searchState: { status: "found" } },
+            "1": { verifiedPageNumber: 1, status: "found" },
           },
         }),
       } as Response);
@@ -362,7 +362,7 @@ describe("DeepCitation Client", () => {
         },
       });
 
-      expect(result.verifications["1"].searchState.status).toBe("found");
+      expect(result.verifications["1"].status).toBe("found");
     });
 
     it("handles API error gracefully", async () => {

@@ -1,6 +1,6 @@
 import { sha1Hash } from "../utils/sha.js";
 import { type Citation } from "./citation.js";
-import { type SearchState } from "./search.js";
+import { type SearchStatus, type SearchAttempt } from "./search.js";
 import { type PdfSpaceItem } from "./boxes.js";
 
 export const NOT_FOUND_VERIFICATION_INDEX = -1;
@@ -8,23 +8,13 @@ export const PENDING_VERIFICATION_INDEX = -2;
 
 export const BLANK_VERIFICATION: Verification = {
   attachmentId: null,
-  pageNumber: NOT_FOUND_VERIFICATION_INDEX,
-  matchSnippet: null,
+  verifiedPageNumber: NOT_FOUND_VERIFICATION_INDEX,
+  verifiedMatchSnippet: null,
   citation: {
     pageNumber: NOT_FOUND_VERIFICATION_INDEX,
   },
-  searchState: {
-    status: "not_found",
-  },
+  status: "not_found",
 };
-
-export function deterministicIdFromVerification(
-  verification: Verification
-): string {
-  return sha1Hash(
-    `${verification.label}-${verification.attachmentId}-${verification.pageNumber}-${verification.hitIndexWithinPage}-${verification.matchSnippet}-${verification?.hitIndexWithinPage}`
-  );
-}
 
 export interface Verification {
   attachmentId?: string | null;
@@ -33,20 +23,28 @@ export interface Verification {
 
   citation?: Citation;
 
-  searchState?: SearchState | null;
+  // Search status
+  status?: SearchStatus | null;
+
+  // Search attempts
+  searchAttempts?: SearchAttempt[];
 
   highlightColor?: string | null;
 
-  //actual (i.e. not expected)
-  pageNumber?: number | null;
+  // Verified results (actual values found - expected values are in citation)
+  verifiedPageNumber?: number | null;
 
-  lineIds?: number[] | null;
+  verifiedLineIds?: number[] | null;
 
-  timestamps?: { startTime?: string; endTime?: string } | null;
+  verifiedTimestamps?: { startTime?: string; endTime?: string } | null;
+
+  verifiedFullPhrase?: string | null;
+
+  verifiedKeySpan?: string | null;
+
+  verifiedMatchSnippet?: string | null;
 
   hitIndexWithinPage?: number | null;
-
-  matchSnippet?: string | null;
 
   pdfSpaceItem?: PdfSpaceItem;
 

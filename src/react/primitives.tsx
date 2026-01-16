@@ -20,7 +20,6 @@ import type {
   CitationStatus,
 } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import type { SearchState } from "../types/search.js";
 import {
   generateCitationKey,
   generateCitationInstanceId,
@@ -33,7 +32,6 @@ interface CitationContextValue {
   citationInstanceId: string;
   status: CitationStatus;
   verification: Verification | null;
-  searchState: SearchState | null;
   config: {
     hideKeySpan: boolean;
     fallbackDisplay: string | null;
@@ -60,7 +58,6 @@ export function useCitationContextSafe(): CitationContextValue | null {
 export interface CitationRootProps {
   citation: CitationType;
   verification?: Verification | null;
-  searchState?: SearchState | null;
   children: ReactNode;
   hideKeySpan?: boolean;
   fallbackDisplay?: string | null;
@@ -76,7 +73,6 @@ export const CitationRoot = forwardRef<
     {
       citation,
       verification = null,
-      searchState = null,
       children,
       hideKeySpan = false,
       fallbackDisplay = null,
@@ -103,7 +99,6 @@ export const CitationRoot = forwardRef<
         citationInstanceId,
         status,
         verification,
-        searchState,
         config: {
           hideKeySpan,
           fallbackDisplay,
@@ -116,7 +111,6 @@ export const CitationRoot = forwardRef<
         citationInstanceId,
         status,
         verification,
-        searchState,
         hideKeySpan,
         fallbackDisplay,
         pendingContent,

@@ -79,7 +79,7 @@ describe("ChatMessage", () => {
     };
     const verifications = {
       "1": {
-        searchState: { status: "found" },
+        status: "found",
         pageNumber: 1,
       },
     };

@@ -29,24 +29,25 @@ describe("CitationComponent behaviorConfig", () => {
 
   const verificationWithImage: Verification = {
     verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
-    matchSnippet: "test citation phrase",
-    pageNumber: 1,
-    isVerified: true,
-    isPartialMatch: false,
+    verifiedMatchSnippet: "test citation phrase",
+    verifiedPageNumber: 1,
+    status: "found",
   };
 
   const verificationWithoutImage: Verification = {
-    matchSnippet: "test citation phrase",
-    pageNumber: 1,
-    isVerified: true,
-    isPartialMatch: false,
+    verifiedMatchSnippet: "test citation phrase",
+    verifiedPageNumber: 1,
+    status: "found",
   };
 
   const missVerification: Verification = {
-    matchSnippet: "",
-    pageNumber: 0,
-    isVerified: false,
-    isPartialMatch: false,
+    verifiedMatchSnippet: "",
+    verifiedPageNumber: 0,
+    status: "not_found",
+  };
+
+  const pendingVerification: Verification = {
+    status: "pending",
   };
 
   // ==========================================================================

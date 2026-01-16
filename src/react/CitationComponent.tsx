@@ -248,6 +248,36 @@ function getStatusLabel(status: CitationStatus): string {
 }
 
 /**
+ * Derive citation status from a Verification object.
+ * The status comes from verification.status.
+ */
+function getStatusFromVerification(verification: Verification | null | undefined): CitationStatus {
+  const status = verification?.status;
+
+  // No verification or no status = pending
+  if (!verification || !status) {
+    return { isVerified: false, isMiss: false, isPartialMatch: false, isPending: true };
+  }
+
+  const isMiss = status === "not_found";
+  const isPending = status === "pending" || status === "loading";
+
+  const isPartialMatch =
+    status === "partial_text_found" ||
+    status === "found_on_other_page" ||
+    status === "found_on_other_line" ||
+    status === "first_word_found";
+
+  const isVerified =
+    status === "found" ||
+    status === "found_key_span_only" ||
+    status === "found_phrase_missed_value" ||
+    isPartialMatch;
+
+  return { isVerified, isMiss, isPartialMatch, isPending };
+}
+
+/**
  * Get popover status CSS class.
  */
 function getPopoverStatusClass(status: CitationStatus): string {
@@ -301,7 +331,7 @@ const StatusTooltipContent = ({
   if (!isMiss && !isPartialMatch) return null;
 
   // Get search attempts from verification
-  const searchAttempts = verification?.searchState?.searchAttempts;
+  const searchAttempts = verification?.searchAttempts;
   const failedAttempts = searchAttempts?.filter((a) => !a.success) || [];
 
   // Collect all unique phrases tried
@@ -697,7 +727,7 @@ const DefaultPopoverContent = ({
       )}
       {hasSnippet && (
         <span className="dc-popover-snippet">
-          "{verification.matchSnippet}"
+          "{verification.verifiedMatchSnippet}"
         </span>
       )}
       {pageNumber && pageNumber > 0 && (
@@ -1068,7 +1098,7 @@ export const CitationComponent = forwardRef<
     const shouldShowPopover =
       !isPopoverHidden &&
       verification &&
-      (verification.verificationImageBase64 || verification.matchSnippet);
+      (verification.verificationImageBase64 || verification.verifiedMatchSnippet);
     // Determine if status tooltip should be shown (miss/partial without full verification)
     const shouldShowStatusTooltip =
       !isPopoverHidden && (isMiss || isPartialMatch) && !shouldShowPopover;

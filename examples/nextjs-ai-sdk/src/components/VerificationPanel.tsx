@@ -89,13 +89,13 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
       {/* Citation List */}
       <div className="flex-1 overflow-y-auto">
         {Object.entries(verifications).map(([key, v]: [string, any]) => {
-          const isVerified = v.searchState?.status === "found";
+          const isVerified = v.status === "found";
           const isPartial = [
             "partial_text_found",
             "found_on_other_page",
             "found_on_other_line",
-          ].includes(v.searchState?.status);
-          const isMiss = v.searchState?.status === "not_found";
+          ].includes(v.status);
+          const isMiss = v.status === "not_found";
           const isExpanded = expandedCitation === key;
 
           return (
@@ -124,8 +124,8 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                     Citation [{key}]
                   </div>
                   <div className="text-xs text-gray-500 truncate">
-                    {v.searchState?.status || "pending"}
-                    {v.pageNumber && ` • Page ${v.pageNumber}`}
+                    {v.status || "pending"}
+                    {v.verifiedPageNumber && ` • Page ${v.verifiedPageNumber}`}
                   </div>
                 </div>
 
@@ -150,13 +150,13 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
               {/* Expanded details */}
               {isExpanded && (
                 <div className="px-4 pb-3 space-y-2">
-                  {v.matchSnippet && (
+                  {v.verifiedMatchSnippet && (
                     <div className="bg-gray-50 rounded p-2">
                       <div className="text-xs font-medium text-gray-500 mb-1">
                         Matched Text
                       </div>
                       <div className="text-sm text-gray-700 line-clamp-3">
-                        "{v.matchSnippet}"
+                        "{v.verifiedMatchSnippet}"
                       </div>
                     </div>
                   )}
@@ -174,13 +174,13 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                     </div>
                   )}
 
-                  {v.searchState?.actualPage !==
-                    v.searchState?.expectedPage && (
-                    <div className="text-xs text-yellow-600">
-                      Found on page {v.searchState?.actualPage} (expected{" "}
-                      {v.searchState?.expectedPage})
-                    </div>
-                  )}
+                  {v.verifiedPageNumber !== v.citation?.pageNumber &&
+                    v.citation?.pageNumber && (
+                      <div className="text-xs text-yellow-600">
+                        Found on page {v.verifiedPageNumber} (expected{" "}
+                        {v.citation?.pageNumber})
+                      </div>
+                    )}
                 </div>
               )}
             </div>

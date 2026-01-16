@@ -45,22 +45,3 @@ export interface SearchAttempt {
   durationMs?: number; // Time taken in milliseconds
 }
 
-export interface SearchState {
-  status: SearchStatus;
-
-  expectedPage?: number | null;
-  actualPage?: number | null;
-  expectedLineIds?: number[] | null;
-  actualLineIds?: number[] | null;
-
-  actualTimestamps?: {
-    startTime?: string;
-    endTime?: string;
-  };
-  expectedTimestamps?: {
-    startTime?: string;
-    endTime?: string;
-  };
-
-  searchAttempts?: SearchAttempt[]; // Track all search attempts
-}

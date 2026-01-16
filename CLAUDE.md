@@ -124,13 +124,70 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 />
 ```
 
-### 5. Customizing Click/Hover Behavior
+### 5. Status Indicators
+
+The component displays different indicators based on `verification.status`:
+
+| Status        | Indicator          | Color  | `status` values                                          |
+|---------------|--------------------| -------|----------------------------------------------------------|
+| **Pending**   | Spinner ◌          | Gray   | `"pending"`, `"loading"`, or `null`/`undefined`          |
+| **Verified**  | Checkmark ✓        | Green  | `"found"`, `"found_key_span_only"`, `"found_phrase_missed_value"` |
+| **Partial**   | Checkmark ✓        | Amber  | `"found_on_other_page"`, `"found_on_other_line"`, `"partial_text_found"`, `"first_word_found"` |
+| **Not Found** | Warning △          | Red    | `"not_found"`                                            |
+
+```tsx
+// Pending state (spinner)
+<CitationComponent citation={citation} verification={null} />
+<CitationComponent citation={citation} verification={{ status: "pending" }} />
+
+// Verified state (green check)
+<CitationComponent citation={citation} verification={{ status: "found" }} />
+
+// Partial match (amber check)
+<CitationComponent citation={citation} verification={{ status: "found_on_other_page" }} />
+
+// Not found (red warning)
+<CitationComponent citation={citation} verification={{ status: "not_found" }} />
+```
+
+#### Display Variants
+
+Control how the citation text and indicator are displayed:
+
+| Variant       | Output Example    | Description                                    |
+|---------------|-------------------|------------------------------------------------|
+| `"brackets"`  | `[keySpan✓]`      | Default. Brackets with indicator inside.       |
+| `"text"`      | `keySpan✓`        | No brackets, inherits parent styling.          |
+| `"minimal"`   | `keySpan✓`        | No brackets, truncated with ellipsis.          |
+| `"indicator"` | `✓`               | Only the status indicator, no text.            |
+
+```tsx
+// Show only the indicator (no text)
+<CitationComponent citation={citation} verification={verification} variant="indicator" />
+
+// Custom indicator rendering
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  renderIndicator={(status) => status.isVerified ? <MyCheckIcon /> : null}
+/>
+```
+
+### 6. Interaction Behavior
 
 The CitationComponent has built-in default behaviors:
 - **Hover**: Shows popover with verification image/details; cursor changes to `zoom-in` when pinned with image
 - **Click 1**: Pins the popover open (stays visible without hover)
 - **Click 2**: Opens full-size image overlay (if image available)
 - **Click 3**: Closes image and unpins popover
+
+The popover uses a portal to render at the document body level, so it won't be clipped by parent `overflow:hidden` containers.
+
+### 7. Styling
+
+The component uses **Tailwind CSS** classes. Make sure your project has Tailwind configured. The component is designed to be copy/paste friendly - you can copy the component source into your project and customize as needed.
+
+### 8. Customizing Click/Hover Behavior
 
 **Key principle**: When you provide `onClick` in `eventHandlers` OR `behaviorConfig`, the default click behavior is disabled (no popover pinning, no image expansion). Use `behaviorConfig.onClick` to implement custom click actions, or `eventHandlers.onClick` for simple handlers that disable defaults.
 

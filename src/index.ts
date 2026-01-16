@@ -52,11 +52,9 @@ export {
   NOT_FOUND_VERIFICATION_INDEX,
   PENDING_VERIFICATION_INDEX,
   BLANK_VERIFICATION,
-  deterministicIdFromVerification,
 } from "./types/verification.js";
 
 export type {
-  SearchState,
   SearchStatus,
   SearchMethod,
   SearchAttempt,
@@ -66,8 +64,11 @@ export type { ScreenBox, PdfSpaceItem, IVertex } from "./types/boxes.js";
 
 // Utilities
 export { sha1Hash } from "./utils/sha.js";
-export { generateCitationKey } from "./react/utils.js";
-export { generateCitationInstanceId } from "./react/utils.js";
+export {
+  generateCitationKey,
+  generateVerificationKey,
+  generateCitationInstanceId,
+} from "./react/utils.js";
 export { CITATION_X_PADDING, CITATION_Y_PADDING } from "./react/utils.js";
 
 // Prompts

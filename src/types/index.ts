@@ -24,8 +24,8 @@ export {
   BLANK_VERIFICATION,
 } from "./verification.js";
 
-// Search state types
-export type { SearchState, SearchStatus } from "./search.js";
+// Search status types
+export type { SearchStatus, SearchMethod, SearchAttempt } from "./search.js";
 
 // Box/geometry types
 export type { ScreenBox, PdfSpaceItem, IVertex } from "./boxes.js";

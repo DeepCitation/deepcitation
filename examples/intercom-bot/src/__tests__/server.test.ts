@@ -24,7 +24,7 @@ const mockPrepareFiles = mock(() =>
 const mockVerifyCitationsFromLlmOutput = mock(() =>
   Promise.resolve({
     verifications: {
-      "1": { pageNumber: 1, searchState: { status: "found" } },
+      "1": { verifiedPageNumber: 1, status: "found" },
     },
   })
 );

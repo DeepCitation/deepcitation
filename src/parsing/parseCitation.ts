@@ -59,30 +59,26 @@ function parseLineIds(lineIdsString: string): number[] | undefined {
 export function getCitationStatus(
   verification: Verification | null | undefined
 ): CitationStatus {
-  const searchState = verification?.searchState;
+  const status = verification?.status;
 
-  const isMiss = searchState?.status === "not_found";
-  const isFullMatchWithMissedValue =
-    searchState?.status === "found_phrase_missed_value";
-  const isFoundValueMissedFullMatch =
-    searchState?.status === "found_key_span_only";
+  const isMiss = status === "not_found";
+  const isFullMatchWithMissedValue = status === "found_phrase_missed_value";
+  const isFoundValueMissedFullMatch = status === "found_key_span_only";
 
   const isPartialMatch =
-    searchState?.status === "partial_text_found" ||
-    searchState?.status === "found_on_other_page" ||
-    searchState?.status === "found_on_other_line" ||
-    searchState?.status === "first_word_found";
+    status === "partial_text_found" ||
+    status === "found_on_other_page" ||
+    status === "found_on_other_line" ||
+    status === "first_word_found";
 
   const isVerified =
-    searchState?.status === "found" ||
+    status === "found" ||
     isFoundValueMissedFullMatch ||
     isPartialMatch ||
     isFullMatchWithMissedValue;
 
   const isPending =
-    searchState?.status === "pending" ||
-    searchState?.status === "loading" ||
-    !searchState;
+    status === "pending" || status === "loading" || !status;
 
   return { isVerified, isMiss, isPartialMatch, isPending };
 }

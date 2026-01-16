@@ -1,6 +1,6 @@
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import type { SearchState } from "../types/search.js";
+import type { SearchStatus } from "../types/search.js";
 
 /**
  * Available citation display variants.
@@ -164,8 +164,8 @@ export interface CitationContentProps extends BaseCitationProps {
   citationInstanceId: string;
   /** Found citation highlight data */
   verification: Verification | null | undefined;
-  /** Current search state */
-  searchState: SearchState | undefined | null;
+  /** Search status */
+  searchStatus: SearchStatus | undefined | null;
   /** Actual page number where citation was found */
   actualPageNumber?: number | null;
   /** Page number from citation data */
@@ -328,6 +328,5 @@ export interface CitationTooltipProps {
   children: React.ReactNode;
   citation: Citation;
   verification?: Verification | null;
-  searchState?: SearchState | null;
   shouldShowTooltip: boolean;
 }

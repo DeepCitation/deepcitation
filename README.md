@@ -187,8 +187,8 @@ import {
 import type {
   Citation,
   Verification,
-  SearchState,
   SearchStatus,
+  SearchAttempt,
 } from "@deepcitation/deepcitation-js";
 ```
 
