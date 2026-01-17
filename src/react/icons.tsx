@@ -26,7 +26,7 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
  */
 export const CheckIcon = ({ className }: { className?: string }) => (
   <svg
-    className={cn("w-[0.7em] h-[0.7em]", className)}
+    className={cn("w-[10px] h-[10px]", className)}
     viewBox="0 0 256 256"
     fill="currentColor"
     aria-hidden="true"
@@ -40,7 +40,7 @@ export const CheckIcon = ({ className }: { className?: string }) => (
  */
 export const WarningIcon = ({ className }: { className?: string }) => (
   <svg
-    className={cn("w-[0.7em] h-[0.7em]", className)}
+    className={cn("w-[10px] h-[10px]", className)}
     viewBox="0 0 256 256"
     fill="currentColor"
     aria-hidden="true"
@@ -52,7 +52,7 @@ export const WarningIcon = ({ className }: { className?: string }) => (
 /** Spinner component for loading/pending state */
 export const SpinnerIcon = ({ className }: { className?: string }) => (
   <svg
-    className={cn("w-[0.7em] h-[0.7em] animate-spin", className)}
+    className={cn("w-[10px] h-[10px] animate-spin", className)}
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"

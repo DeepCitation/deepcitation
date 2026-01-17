@@ -934,15 +934,15 @@ export const CitationComponent = forwardRef<
     // Render indicator based on status priority:
     // 1. Custom renderIndicator (if provided)
     // 2. shouldShowSpinner → Spinner (respects timeout and definitive results)
-    // 3. Miss → Warning triangle
+    // 3. Verified (not partial) → Green checkmark
     // 4. Partial match → Amber checkmark
-    // 5. Verified → Green checkmark
+    // 5. Miss → Warning triangle
     const renderStatusIndicator = () => {
       if (renderIndicator) return renderIndicator(status);
       if (shouldShowSpinner) return <PendingIndicator />;
-      if (isMiss) return <MissIndicator />;
+      if (isVerified && !isPartialMatch) return <VerifiedIndicator />;
       if (isPartialMatch) return <PartialIndicator />;
-      if (isVerified) return <VerifiedIndicator />;
+      if (isMiss) return <MissIndicator />;
       return null;
     };
 
