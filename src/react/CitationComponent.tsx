@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -676,6 +677,55 @@ export const CitationComponent = forwardRef<
     );
     const { isMiss, isPartialMatch, isVerified, isPending } = status;
 
+    // Spinner timeout: auto-hide after ~5s if still pending
+    const SPINNER_TIMEOUT_MS = 5000;
+    const [spinnerTimedOut, setSpinnerTimedOut] = useState(false);
+    const spinnerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Determine if we should show spinner:
+    // - explicit isLoading prop OR isPending status
+    // - BUT NOT if we have a verification image or definitive status
+    // - AND NOT if spinner has timed out
+    const hasDefinitiveResult =
+      verification?.verificationImageBase64 ||
+      verification?.status === "found" ||
+      verification?.status === "found_key_span_only" ||
+      verification?.status === "found_phrase_missed_value" ||
+      verification?.status === "not_found" ||
+      verification?.status === "partial_text_found" ||
+      verification?.status === "found_on_other_page" ||
+      verification?.status === "found_on_other_line" ||
+      verification?.status === "first_word_found";
+
+    const shouldShowSpinner =
+      (isLoading || isPending) && !hasDefinitiveResult && !spinnerTimedOut;
+
+    // Reset spinner timeout when loading state changes
+    useEffect(() => {
+      // Clear any existing timeout
+      if (spinnerTimeoutRef.current) {
+        clearTimeout(spinnerTimeoutRef.current);
+        spinnerTimeoutRef.current = null;
+      }
+
+      // If we should show spinner, start timeout
+      if ((isLoading || isPending) && !hasDefinitiveResult) {
+        setSpinnerTimedOut(false);
+        spinnerTimeoutRef.current = setTimeout(() => {
+          setSpinnerTimedOut(true);
+        }, SPINNER_TIMEOUT_MS);
+      } else {
+        // Reset timed out state when we get a result
+        setSpinnerTimedOut(false);
+      }
+
+      return () => {
+        if (spinnerTimeoutRef.current) {
+          clearTimeout(spinnerTimeoutRef.current);
+        }
+      };
+    }, [isLoading, isPending, hasDefinitiveResult]);
+
     const displayText = useMemo(() => {
       return getDisplayText(citation, resolvedContent, fallbackDisplay);
     }, [citation, resolvedContent, fallbackDisplay]);
@@ -752,8 +802,21 @@ export const CitationComponent = forwardRef<
       ]
     );
 
-    // Hover handlers
+    // Hover handlers with delay for popover accessibility
+    // Use a timeout to allow user to move mouse from trigger to popover
+    const HOVER_CLOSE_DELAY_MS = 150;
+    const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isOverPopoverRef = useRef(false);
+
+    const cancelHoverCloseTimeout = useCallback(() => {
+      if (hoverCloseTimeoutRef.current) {
+        clearTimeout(hoverCloseTimeoutRef.current);
+        hoverCloseTimeoutRef.current = null;
+      }
+    }, []);
+
     const handleMouseEnter = useCallback(() => {
+      cancelHoverCloseTimeout();
       setIsHovering(true);
       if (behaviorConfig?.onHover?.onEnter) {
         behaviorConfig.onHover.onEnter(getBehaviorContext());
@@ -765,21 +828,64 @@ export const CitationComponent = forwardRef<
       citation,
       citationKey,
       getBehaviorContext,
+      cancelHoverCloseTimeout,
     ]);
 
     const handleMouseLeave = useCallback(() => {
-      setIsHovering(false);
-      if (behaviorConfig?.onHover?.onLeave) {
-        behaviorConfig.onHover.onLeave(getBehaviorContext());
-      }
-      eventHandlers?.onMouseLeave?.(citation, citationKey);
+      // Delay closing to allow mouse to move to popover
+      cancelHoverCloseTimeout();
+      hoverCloseTimeoutRef.current = setTimeout(() => {
+        if (!isOverPopoverRef.current) {
+          setIsHovering(false);
+          if (behaviorConfig?.onHover?.onLeave) {
+            behaviorConfig.onHover.onLeave(getBehaviorContext());
+          }
+          eventHandlers?.onMouseLeave?.(citation, citationKey);
+        }
+      }, HOVER_CLOSE_DELAY_MS);
     }, [
       eventHandlers,
       behaviorConfig,
       citation,
       citationKey,
       getBehaviorContext,
+      cancelHoverCloseTimeout,
     ]);
+
+    // Popover content hover handlers
+    const handlePopoverMouseEnter = useCallback(() => {
+      cancelHoverCloseTimeout();
+      isOverPopoverRef.current = true;
+    }, [cancelHoverCloseTimeout]);
+
+    const handlePopoverMouseLeave = useCallback(() => {
+      isOverPopoverRef.current = false;
+      // Delay closing to allow mouse to move back to trigger
+      cancelHoverCloseTimeout();
+      hoverCloseTimeoutRef.current = setTimeout(() => {
+        setIsHovering(false);
+        if (behaviorConfig?.onHover?.onLeave) {
+          behaviorConfig.onHover.onLeave(getBehaviorContext());
+        }
+        eventHandlers?.onMouseLeave?.(citation, citationKey);
+      }, HOVER_CLOSE_DELAY_MS);
+    }, [
+      eventHandlers,
+      behaviorConfig,
+      citation,
+      citationKey,
+      getBehaviorContext,
+      cancelHoverCloseTimeout,
+    ]);
+
+    // Cleanup hover timeout on unmount
+    useEffect(() => {
+      return () => {
+        if (hoverCloseTimeoutRef.current) {
+          clearTimeout(hoverCloseTimeoutRef.current);
+        }
+      };
+    }, []);
 
     // Touch handler for mobile
     const handleTouchEnd = useCallback(
@@ -814,18 +920,18 @@ export const CitationComponent = forwardRef<
         variant === "brackets" &&
         "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline",
       isMiss && "opacity-70 line-through text-gray-400 dark:text-gray-500",
-      (isLoading || isPending) && "text-gray-500 dark:text-gray-400"
+      shouldShowSpinner && "text-gray-500 dark:text-gray-400"
     );
 
     // Render indicator based on status priority:
     // 1. Custom renderIndicator (if provided)
-    // 2. isLoading prop or isPending status → Spinner
+    // 2. shouldShowSpinner → Spinner (respects timeout and definitive results)
     // 3. Miss → Warning triangle
     // 4. Partial match → Amber checkmark
     // 5. Verified → Green checkmark
     const renderStatusIndicator = () => {
       if (renderIndicator) return renderIndicator(status);
-      if (isLoading || isPending) return <PendingIndicator />;
+      if (shouldShowSpinner) return <PendingIndicator />;
       if (isMiss) return <MissIndicator />;
       if (isPartialMatch) return <PartialIndicator />;
       if (isVerified) return <VerifiedIndicator />;
@@ -854,20 +960,19 @@ export const CitationComponent = forwardRef<
         const chipStatusClasses = cn(
           isVerified &&
             !isPartialMatch &&
-            !isLoading &&
+            !shouldShowSpinner &&
             "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
           isPartialMatch &&
-            !isLoading &&
+            !shouldShowSpinner &&
             "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
           isMiss &&
-            !isLoading &&
+            !shouldShowSpinner &&
             "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 line-through",
-          (isLoading || isPending) &&
+          shouldShowSpinner &&
             "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
           !isVerified &&
             !isMiss &&
-            !isLoading &&
-            !isPending &&
+            !shouldShowSpinner &&
             "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
         );
         return (
@@ -888,14 +993,13 @@ export const CitationComponent = forwardRef<
       // Variant: superscript (footnote style)
       if (variant === "superscript") {
         const supStatusClasses = cn(
-          isVerified && !isPartialMatch && !isLoading && "text-green-600 dark:text-green-500",
-          isPartialMatch && !isLoading && "text-amber-600 dark:text-amber-500",
-          isMiss && !isLoading && "text-red-500 dark:text-red-400 line-through",
-          (isLoading || isPending) && "text-gray-400 dark:text-gray-500",
+          isVerified && !isPartialMatch && !shouldShowSpinner && "text-green-600 dark:text-green-500",
+          isPartialMatch && !shouldShowSpinner && "text-amber-600 dark:text-amber-500",
+          isMiss && !shouldShowSpinner && "text-red-500 dark:text-red-400 line-through",
+          shouldShowSpinner && "text-gray-400 dark:text-gray-500",
           !isVerified &&
             !isMiss &&
-            !isLoading &&
-            !isPending &&
+            !shouldShowSpinner &&
             "text-blue-600 dark:text-blue-400"
         );
         return (
@@ -1034,6 +1138,8 @@ export const CitationComponent = forwardRef<
               side={popoverPosition === "bottom" ? "bottom" : "top"}
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
+              onMouseEnter={handlePopoverMouseEnter}
+              onMouseLeave={handlePopoverMouseLeave}
             >
               {popoverContentElement}
             </PopoverContent>

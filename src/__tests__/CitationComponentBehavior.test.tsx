@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import React from "react";
 import { CitationComponent } from "../react/CitationComponent";
 import type { Citation } from "../types/citation";
@@ -14,6 +14,13 @@ import type {
 mock.module("react-dom", () => ({
   createPortal: (node: React.ReactNode) => node,
 }));
+
+// Hover close delay must match HOVER_CLOSE_DELAY_MS in CitationComponent
+const HOVER_CLOSE_DELAY_MS = 150;
+
+// Helper to wait for hover close delay
+const waitForHoverCloseDelay = () =>
+  new Promise((resolve) => setTimeout(resolve, HOVER_CLOSE_DELAY_MS + 50));
 
 describe("CitationComponent behaviorConfig", () => {
   afterEach(() => {
@@ -109,7 +116,7 @@ describe("CitationComponent behaviorConfig", () => {
       expect(spinner).toBeInTheDocument();
     });
 
-    it("shows spinner with isLoading even when verification is found", () => {
+    it("does NOT show spinner with isLoading when verification has definitive status", () => {
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
@@ -118,9 +125,14 @@ describe("CitationComponent behaviorConfig", () => {
         />
       );
 
-      // isLoading overrides the found status to show spinner
+      // A definitive verification status should override isLoading
+      // This prevents stuck spinners when we already have a result
       const spinner = container.querySelector("svg.animate-spin");
-      expect(spinner).toBeInTheDocument();
+      expect(spinner).not.toBeInTheDocument();
+
+      // Should show the verified indicator instead
+      const greenCheck = container.querySelector(".text-green-600");
+      expect(greenCheck).toBeInTheDocument();
     });
 
     it("shows check icon for found status", () => {
@@ -596,7 +608,7 @@ describe("CitationComponent behaviorConfig", () => {
       expect(onEnter).toHaveBeenCalledTimes(1);
     });
 
-    it("calls onHover.onLeave on mouse leave", () => {
+    it("calls onHover.onLeave on mouse leave", async () => {
       const onLeave = jest.fn();
 
       const { container } = render(
@@ -609,6 +621,11 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       fireEvent.mouseLeave(citation!);
+
+      // Wait for hover close delay
+      await act(async () => {
+        await waitForHoverCloseDelay();
+      });
 
       expect(onLeave).toHaveBeenCalledTimes(1);
     });
@@ -634,7 +651,7 @@ describe("CitationComponent behaviorConfig", () => {
       expect(context.hasImage).toBe(true);
     });
 
-    it("provides correct context to onHover.onLeave", () => {
+    it("provides correct context to onHover.onLeave", async () => {
       const onLeave = jest.fn();
 
       const { container } = render(
@@ -647,6 +664,11 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       fireEvent.mouseLeave(citation!);
+
+      // Wait for hover close delay
+      await act(async () => {
+        await waitForHoverCloseDelay();
+      });
 
       const context = onLeave.mock.calls[0][0] as CitationBehaviorContext;
       expect(context.citation).toEqual(baseCitation);
@@ -673,7 +695,7 @@ describe("CitationComponent behaviorConfig", () => {
       expect(eventHandlerOnEnter).toHaveBeenCalledTimes(1);
     });
 
-    it("still calls eventHandlers.onMouseLeave", () => {
+    it("still calls eventHandlers.onMouseLeave", async () => {
       const behaviorOnLeave = jest.fn();
       const eventHandlerOnLeave = jest.fn();
 
@@ -688,6 +710,11 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       fireEvent.mouseLeave(citation!);
+
+      // Wait for hover close delay
+      await act(async () => {
+        await waitForHoverCloseDelay();
+      });
 
       expect(behaviorOnLeave).toHaveBeenCalledTimes(1);
       expect(eventHandlerOnLeave).toHaveBeenCalledTimes(1);
@@ -713,7 +740,7 @@ describe("CitationComponent behaviorConfig", () => {
       expect(onEnter).toHaveBeenCalledTimes(1);
     });
 
-    it("works with only onLeave provided", () => {
+    it("works with only onLeave provided", async () => {
       const onLeave = jest.fn();
 
       const { container } = render(
@@ -729,6 +756,11 @@ describe("CitationComponent behaviorConfig", () => {
       // Should not throw when entering without onEnter handler
       fireEvent.mouseEnter(citation!);
       fireEvent.mouseLeave(citation!);
+
+      // Wait for hover close delay
+      await act(async () => {
+        await waitForHoverCloseDelay();
+      });
 
       expect(onLeave).toHaveBeenCalledTimes(1);
     });
@@ -763,7 +795,7 @@ describe("CitationComponent behaviorConfig", () => {
       expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
     });
 
-    it("onHover works independently of click configuration", () => {
+    it("onHover works independently of click configuration", async () => {
       const onEnter = jest.fn();
       const onLeave = jest.fn();
       const customOnClick = jest.fn(); // onClick provided, so default click behavior is replaced
@@ -785,6 +817,12 @@ describe("CitationComponent behaviorConfig", () => {
       expect(onEnter).toHaveBeenCalledTimes(1);
 
       fireEvent.mouseLeave(citation!);
+
+      // Wait for hover close delay
+      await act(async () => {
+        await waitForHoverCloseDelay();
+      });
+
       expect(onLeave).toHaveBeenCalledTimes(1);
 
       // Click behavior is replaced by custom onClick (which does nothing)
