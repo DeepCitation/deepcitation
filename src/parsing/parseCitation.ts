@@ -111,84 +111,55 @@ export const parseCitation = (
     fragment.indexOf("/>") + 2
   );
 
-  // GROUPS:
-  // 1: attachmentId
-  // 2: start_page number
-  // 3: index number
-  // 4: full_phrase content (escaped)
-  // 5: key_span content (escaped)
-  // 6: line_ids content
-  // 7: Optional Key (value|reasoning)
-  // 8: Optional Value content (escaped)
-  const citationRegex =
-    /<cite\s+(?:attachment_id|attachmentId|file_id|fileId)='(\w{0,25})'\s+start_page[\_a-zA-Z]*='page[\_a-zA-Z]*(\d+)_index_(\d+)'\s+full_phrase='((?:[^'\\]|\\.)*)'\s+key_span='((?:[^'\\]|\\.)*)'\s+line(?:_ids|Ids)='([^']+)'(?:\s+(value|reasoning)='((?:[^'\\]|\\.)*)')?\s*\/>/g;
+  // Helper function to extract attribute value by name (handles any order)
+  const extractAttribute = (tag: string, attrNames: string[]): string | undefined => {
+    for (const name of attrNames) {
+      // Match attribute with escaped quotes support: name='value' where value can contain \'
+      const regex = new RegExp(`${name}='((?:[^'\\\\]|\\\\.)*)'`);
+      const match = tag.match(regex);
+      if (match) {
+        return match[1];
+      }
+    }
+    return undefined;
+  };
 
-  const citationMatches = [...middleCite.matchAll(citationRegex)];
-  const match = citationMatches?.[0];
-
-  const pageNumber = match?.[2] ? parseInt(match?.[2]) : undefined;
-  const pageIndex = match?.[3] ? parseInt(match?.[3]) : undefined;
-
-  let rawAttachmentId = match?.[1];
+  // Extract all attributes by name (order-independent)
+  let rawAttachmentId = extractAttribute(middleCite, ['attachment_id', 'attachmentId', 'file_id', 'fileId']);
   let attachmentId = rawAttachmentId?.length === 20 ? rawAttachmentId : mdAttachmentId || rawAttachmentId;
 
-  // Use helper to handle escaped quotes inside the phrase
-  let fullPhrase = cleanAndUnescape(match?.[4]);
-  let keySpan = cleanAndUnescape(match?.[5]);
-
-  // Handle the optional attribute (value or reasoning)
-  let value: string | undefined;
-  let reasoning: string | undefined;
-
-  const optionalKey = match?.[7]; // "value" or "reasoning"
-  const optionalContent = cleanAndUnescape(match?.[8]);
-
-  if (optionalKey === "value") {
-    value = optionalContent;
-  } else if (optionalKey === "reasoning") {
-    reasoning = optionalContent;
+  const startPageKeyRaw = extractAttribute(middleCite, ['start_page_key', 'startPageKey', 'start_page']);
+  let pageNumber: number | undefined;
+  let pageIndex: number | undefined;
+  if (startPageKeyRaw) {
+    const pageMatch = startPageKeyRaw.match(/page[\_a-zA-Z]*(\d+)_index_(\d+)/);
+    if (pageMatch) {
+      pageNumber = parseInt(pageMatch[1]);
+      pageIndex = parseInt(pageMatch[2]);
+    }
   }
+
+  // Use helper to handle escaped quotes inside the phrase
+  let fullPhrase = cleanAndUnescape(extractAttribute(middleCite, ['full_phrase', 'fullPhrase']));
+  let keySpan = cleanAndUnescape(extractAttribute(middleCite, ['key_span', 'keySpan']));
+  let reasoning = cleanAndUnescape(extractAttribute(middleCite, ['reasoning']));
+  let value = cleanAndUnescape(extractAttribute(middleCite, ['value']));
 
   let lineIds: number[] | undefined;
   try {
-    // match[6] is line_ids
-    const lineIdsString = match?.[6]?.replace(/[A-Za-z_[\](){}:]/g, "");
-
+    const lineIdsRaw = extractAttribute(middleCite, ['line_ids', 'lineIds']);
+    const lineIdsString = lineIdsRaw?.replace(/[A-Za-z_[\](){}:]/g, "");
     lineIds = lineIdsString ? parseLineIds(lineIdsString) : undefined;
   } catch (e) {
     if (isVerbose) console.error("Error parsing lineIds", e);
   }
 
-  // GROUPS for AV:
-  // 1: attachmentId
-  // 2: full_phrase content (escaped)
-  // 3: timestamps content
-  // 4: Optional Key (value|reasoning)
-  // 5: Optional Value content (escaped)
-  const avCitationRegex =
-    /<cite\s+(?:attachment_id|attachmentId|file_id|fileId)='(\w{0,25})'\s+full_phrase='((?:[^'\\]|\\.)*)'\s+timestamps='([^']+)'(?:\s+(value|reasoning)='((?:[^'\\]|\\.)*)')?\s*\/>/g;
-
-  const avCitationMatches = [...middleCite.matchAll(avCitationRegex)];
-  const avMatch = avCitationMatches?.[0];
+  // Check for AV citation (has timestamps instead of line_ids)
+  const timestampsRaw = extractAttribute(middleCite, ['timestamps']);
   let timestamps: { startTime?: string; endTime?: string } | undefined;
 
-  if (avMatch) {
-    rawAttachmentId = avMatch?.[1];
-    attachmentId = rawAttachmentId?.length === 20 ? rawAttachmentId : mdAttachmentId || rawAttachmentId;
-    fullPhrase = cleanAndUnescape(avMatch?.[2]);
-
-    const timestampsString = avMatch?.[3]?.replace(/timestamps=['"]|['"]/g, "");
-    const [startTime, endTime] = timestampsString?.split("-") || [];
-
-    const avOptionalKey = avMatch?.[4];
-    const avOptionalContent = cleanAndUnescape(avMatch?.[5]);
-
-    if (avOptionalKey === "value") {
-      value = avOptionalContent;
-    } else if (avOptionalKey === "reasoning") {
-      reasoning = avOptionalContent;
-    }
-
+  if (timestampsRaw) {
+    const [startTime, endTime] = timestampsRaw.split("-") || [];
     timestamps = { startTime, endTime };
   }
 

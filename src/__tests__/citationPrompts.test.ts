@@ -22,10 +22,10 @@ describe("citation prompts", () => {
   it("defines required fields for text-based citations", () => {
     expect(CITATION_JSON_OUTPUT_FORMAT.required).toEqual([
       "attachmentId",
-      "startPageKey",
       "reasoning",
-      "fullPhrase",
       "keySpan",
+      "fullPhrase",
+      "startPageKey",
       "lineIds",
     ]);
   });
@@ -38,31 +38,21 @@ describe("citation prompts", () => {
 });
 
 describe("wrapSystemCitationPrompt", () => {
-  it("appends citation instructions to system prompt by default", () => {
+  it("wraps system prompt with citation instructions at start and reminder at end", () => {
     const systemPrompt = "You are a helpful assistant.";
     const result = wrapSystemCitationPrompt({ systemPrompt });
 
     expect(result).toContain("You are a helpful assistant.");
     expect(result).toContain("<cite attachment_id='");
     expect(result).toContain("line_ids");
-    // By default, system prompt comes first
-    expect(result.indexOf("You are a helpful assistant.")).toBeLessThan(
-      result.indexOf("<cite")
-    );
-  });
-
-  it("prepends citation instructions when prependCitationInstructions is true", () => {
-    const systemPrompt = "You are a helpful assistant.";
-    const result = wrapSystemCitationPrompt({
-      systemPrompt,
-      prependCitationInstructions: true,
-    });
-
-    expect(result).toContain("You are a helpful assistant.");
-    expect(result).toContain("<cite attachment_id='");
-    // Citation instructions come first
+    expect(result).toContain("<citation-reminder>");
+    // Citation instructions come first (wrap mode)
     expect(result.indexOf("<cite")).toBeLessThan(
       result.indexOf("You are a helpful assistant.")
+    );
+    // Reminder comes after system prompt
+    expect(result.indexOf("You are a helpful assistant.")).toBeLessThan(
+      result.indexOf("<citation-reminder>")
     );
   });
 

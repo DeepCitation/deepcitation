@@ -84,7 +84,6 @@ export {
 } from "./prompts/citationPrompts.js";
 
 export type {
-  CitationPosition,
   WrapSystemPromptOptions,
   WrapCitationPromptOptions,
   WrapCitationPromptResult,
