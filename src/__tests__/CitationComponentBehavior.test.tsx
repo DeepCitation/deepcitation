@@ -164,8 +164,8 @@ describe("CitationComponent behaviorConfig", () => {
       const spinner = container.querySelector(".animate-spin svg");
       expect(spinner).not.toBeInTheDocument();
 
-      // Should have red warning (text-red-500 class)
-      const warningIcon = container.querySelector(".text-red-500");
+      // Should have amber warning (text-amber-500 class)
+      const warningIcon = container.querySelector(".text-amber-500");
       expect(warningIcon).toBeInTheDocument();
     });
 

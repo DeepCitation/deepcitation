@@ -20,7 +20,7 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
 
 /**
  * Check icon SVG (no dependencies)
- * Size is controlled by parent container - use w-[10px] h-[10px] or similar on wrapper
+ * Size is controlled by parent container - use size-2.5 or similar on wrapper
  */
 export const CheckIcon = ({ className }: { className?: string }) => (
   <svg
@@ -40,7 +40,7 @@ export const CheckIcon = ({ className }: { className?: string }) => (
 
 /**
  * Warning icon SVG (no dependencies)
- * Size is controlled by parent container - use w-[10px] h-[10px] or similar on wrapper
+ * Size is controlled by parent container - use size-2.5 or similar on wrapper
  */
 export const WarningIcon = ({ className }: { className?: string }) => (
   <svg
@@ -56,7 +56,7 @@ export const WarningIcon = ({ className }: { className?: string }) => (
 
 /**
  * Spinner component for loading/pending state
- * Size is controlled by parent container - use w-[10px] h-[10px] or similar on wrapper
+ * Size is controlled by parent container - use size-2.5 or similar on wrapper
  * Animation (animate-spin) should be applied to the wrapper
  */
 export const SpinnerIcon = ({ className }: { className?: string }) => (

@@ -290,7 +290,7 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
 /** Verified indicator - green checkmark for exact matches */
 const VerifiedIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 w-[10px] h-[10px] text-green-600 dark:text-green-500"
+    className="inline-flex relative ml-0.5 size-2.5 text-green-600 dark:text-green-500"
     aria-hidden="true"
   >
     <CheckIcon />
@@ -300,7 +300,7 @@ const VerifiedIndicator = () => (
 /** Partial match indicator - amber checkmark for partial/relocated matches */
 const PartialIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 w-[10px] h-[10px] text-amber-600 dark:text-amber-500"
+    className="inline-flex relative ml-0.5 size-2.5 text-amber-600 dark:text-amber-500"
     aria-hidden="true"
   >
     <CheckIcon />
@@ -310,17 +310,17 @@ const PartialIndicator = () => (
 /** Pending indicator - spinner for loading state */
 const PendingIndicator = () => (
   <span
-    className="inline-flex ml-1 w-[10px] h-[10px] animate-spin text-gray-400 dark:text-gray-500"
+    className="inline-flex ml-1 size-2.5 animate-spin text-gray-400 dark:text-gray-500"
     aria-hidden="true"
   >
     <SpinnerIcon />
   </span>
 );
 
-/** Miss indicator - red warning triangle for not found */
+/** Miss indicator - amber warning triangle for not found */
 const MissIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 w-[10px] h-[10px] text-red-500 dark:text-red-400"
+    className="inline-flex relative ml-0.5 size-2.5 text-amber-500 dark:text-amber-400"
     aria-hidden="true"
   >
     <WarningIcon />
@@ -337,6 +337,8 @@ interface PopoverContentProps {
   status: CitationStatus;
   onImageClick?: () => void;
   isLoading?: boolean;
+  isPhrasesExpanded?: boolean;
+  onPhrasesExpandChange?: (expanded: boolean) => void;
 }
 
 /**
@@ -345,9 +347,13 @@ interface PopoverContentProps {
 function SearchedPhrasesInfo({
   citation,
   verification,
+  isExpanded: externalIsExpanded,
+  onExpandChange,
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
+  isExpanded?: boolean;
+  onExpandChange?: (expanded: boolean) => void;
 }) {
   // Collect all unique searched phrases from search attempts
   const searchedPhrases = useMemo(() => {
@@ -373,7 +379,17 @@ function SearchedPhrasesInfo({
     return Array.from(phrases);
   }, [citation, verification]);
 
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [internalIsExpanded, setInternalIsExpanded] = useState(false);
+
+  // Use external state if provided, otherwise internal
+  const isExpanded = externalIsExpanded ?? internalIsExpanded;
+  const setIsExpanded = useCallback((expanded: boolean) => {
+    if (onExpandChange) {
+      onExpandChange(expanded);
+    } else {
+      setInternalIsExpanded(expanded);
+    }
+  }, [onExpandChange]);
 
   if (searchedPhrases.length === 0) return null;
 
@@ -407,7 +423,7 @@ function SearchedPhrasesInfo({
         {searchedPhrases.slice(0, displayCount).map((phrase, index) => (
           <p
             key={index}
-            className="p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300 border-l-2 border-red-400 dark:border-red-500"
+            className="pl-2 py-1 font-mono text-[11px] break-words text-gray-700 dark:text-gray-300 border-l-2 border-red-400 dark:border-red-500"
           >
             "{phrase.length > 80 ? phrase.slice(0, 80) + '…' : phrase}"
           </p>
@@ -423,6 +439,8 @@ function DefaultPopoverContent({
   status,
   onImageClick,
   isLoading = false,
+  isPhrasesExpanded,
+  onPhrasesExpandChange,
 }: PopoverContentProps) {
   const hasImage = verification?.verificationImageBase64;
   const { isMiss, isPartialMatch, isPending } = status;
@@ -473,7 +491,7 @@ function DefaultPopoverContent({
     return (
       <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px]">
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-          <span className="inline-block relative top-[0.1em] mr-1.5 w-[10px] h-[10px] animate-spin">
+          <span className="inline-block relative top-[0.1em] mr-1.5 size-2.5 animate-spin">
             <SpinnerIcon />
           </span>
           Searching...
@@ -497,12 +515,17 @@ function DefaultPopoverContent({
     return (
       <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px]">
         <span className="text-xs font-medium text-red-600 dark:text-red-500">
-          <span className="inline-block relative top-[0.1em] mr-1.5 w-[10px] h-[10px]">
+          <span className="inline-block relative top-[0.1em] mr-1.5 size-3 text-amber-500 dark:text-amber-400">
             <WarningIcon />
           </span>
           Not found in source
         </span>
-        <SearchedPhrasesInfo citation={citation} verification={verification} />
+        <SearchedPhrasesInfo
+          citation={citation}
+          verification={verification}
+          isExpanded={isPhrasesExpanded}
+          onExpandChange={onPhrasesExpandChange}
+        />
       </div>
     );
   }
@@ -788,6 +811,7 @@ export const CitationComponent = forwardRef<
     const [expandedImageSrc, setExpandedImageSrc] = useState<string | null>(
       null
     );
+    const [isPhrasesExpanded, setIsPhrasesExpanded] = useState(false);
 
     const citationKey = useMemo(
       () => generateCitationKey(citation),
@@ -914,9 +938,12 @@ export const CitationComponent = forwardRef<
           return;
         }
 
-        // Default: click opens image if available
+        // Default: click opens image if available, or toggles phrases expansion for miss state
         if (verification?.verificationImageBase64) {
           setExpandedImageSrc(verification.verificationImageBase64);
+        } else if (isMiss) {
+          // For miss state without image, toggle phrases expansion
+          setIsPhrasesExpanded((prev) => !prev);
         }
       },
       [
@@ -925,6 +952,7 @@ export const CitationComponent = forwardRef<
         citation,
         citationKey,
         verification?.verificationImageBase64,
+        isMiss,
         getBehaviorContext,
         applyBehaviorActions,
       ]
@@ -1257,6 +1285,8 @@ export const CitationComponent = forwardRef<
           verification={verification ?? null}
           status={status}
           isLoading={isLoading || shouldShowSpinner}
+          isPhrasesExpanded={isPhrasesExpanded}
+          onPhrasesExpandChange={setIsPhrasesExpanded}
           onImageClick={() => {
             if (verification?.verificationImageBase64) {
               setExpandedImageSrc(verification.verificationImageBase64);
