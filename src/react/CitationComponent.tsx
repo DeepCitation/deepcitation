@@ -39,13 +39,21 @@ function getDefaultContent(variant: CitationVariant): CitationContent {
   switch (variant) {
     case "chip":
     case "text":
-      return "keySpan";
     case "brackets":
+      return "keySpan";
     case "superscript":
     case "minimal":
     default:
       return "number";
   }
+}
+
+/**
+ * Strip leading/trailing brackets from text.
+ * Handles cases where LLM output includes brackets in keySpan.
+ */
+function stripBrackets(text: string): string {
+  return text.replace(/^\[+\s*/, "").replace(/\s*\]+$/, "");
 }
 
 /**
@@ -62,12 +70,12 @@ function getDisplayText(
   }
 
   if (content === "keySpan") {
-    return (
+    const raw =
       citation.keySpan?.toString() ||
       citation.citationNumber?.toString() ||
       fallbackDisplay ||
-      "1"
-    );
+      "1";
+    return stripBrackets(raw);
   }
 
   // content === "number"
@@ -119,6 +127,11 @@ export interface CitationComponentProps extends BaseCitationProps {
   /** Verification result from the DeepCitation API */
   verification?: Verification | null;
   /**
+   * Explicitly show loading spinner. When true, displays spinner regardless
+   * of verification status. Use this when verification is in-flight.
+   */
+  isLoading?: boolean;
+  /**
    * Visual style variant for the citation.
    * - `chip`: Pill/badge style with background color
    * - `brackets`: [text✓] with square brackets (default)
@@ -135,7 +148,7 @@ export interface CitationComponentProps extends BaseCitationProps {
    *
    * Defaults based on variant:
    * - `chip` → `keySpan`
-   * - `brackets` → `number`
+   * - `brackets` → `keySpan`
    * - `text` → `keySpan`
    * - `superscript` → `number`
    * - `minimal` → `number`
@@ -175,19 +188,23 @@ function getStatusLabel(status: CitationStatus): string {
 /**
  * Derive citation status from a Verification object.
  * The status comes from verification.status.
+ *
+ * Note: isPending is only true when status is explicitly "pending" or "loading".
+ * Use the isLoading prop to show spinner when verification is in-flight.
  */
 function getStatusFromVerification(
   verification: Verification | null | undefined
 ): CitationStatus {
   const status = verification?.status;
 
-  // No verification or no status = pending
+  // No verification or no status = no status flags set
+  // (use isLoading prop to explicitly show loading state)
   if (!verification || !status) {
     return {
       isVerified: false,
       isMiss: false,
       isPartialMatch: false,
-      isPending: true,
+      isPending: false,
     };
   }
 
@@ -620,6 +637,7 @@ export const CitationComponent = forwardRef<
       className,
       fallbackDisplay,
       verification,
+      isLoading = false,
       variant = "brackets",
       content: contentProp,
       eventHandlers,
@@ -796,18 +814,18 @@ export const CitationComponent = forwardRef<
         variant === "brackets" &&
         "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline",
       isMiss && "opacity-70 line-through text-gray-400 dark:text-gray-500",
-      isPending && "text-gray-500 dark:text-gray-400"
+      (isLoading || isPending) && "text-gray-500 dark:text-gray-400"
     );
 
     // Render indicator based on status priority:
     // 1. Custom renderIndicator (if provided)
-    // 2. Pending → Spinner
+    // 2. isLoading prop or isPending status → Spinner
     // 3. Miss → Warning triangle
     // 4. Partial match → Amber checkmark
     // 5. Verified → Green checkmark
     const renderStatusIndicator = () => {
       if (renderIndicator) return renderIndicator(status);
-      if (isPending) return <PendingIndicator />;
+      if (isLoading || isPending) return <PendingIndicator />;
       if (isMiss) return <MissIndicator />;
       if (isPartialMatch) return <PartialIndicator />;
       if (isVerified) return <VerifiedIndicator />;
@@ -834,11 +852,23 @@ export const CitationComponent = forwardRef<
       // Variant: chip (pill/badge style)
       if (variant === "chip") {
         const chipStatusClasses = cn(
-          isVerified && !isPartialMatch && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-          isPartialMatch && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-          isMiss && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 line-through",
-          isPending && "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-          !isVerified && !isMiss && !isPending && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+          isVerified &&
+            !isPartialMatch &&
+            !isLoading &&
+            "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+          isPartialMatch &&
+            !isLoading &&
+            "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+          isMiss &&
+            !isLoading &&
+            "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 line-through",
+          (isLoading || isPending) &&
+            "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+          !isVerified &&
+            !isMiss &&
+            !isLoading &&
+            !isPending &&
+            "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
         );
         return (
           <span
@@ -858,11 +888,15 @@ export const CitationComponent = forwardRef<
       // Variant: superscript (footnote style)
       if (variant === "superscript") {
         const supStatusClasses = cn(
-          isVerified && !isPartialMatch && "text-green-600 dark:text-green-500",
-          isPartialMatch && "text-amber-600 dark:text-amber-500",
-          isMiss && "text-red-500 dark:text-red-400 line-through",
-          isPending && "text-gray-400 dark:text-gray-500",
-          !isVerified && !isMiss && !isPending && "text-blue-600 dark:text-blue-400"
+          isVerified && !isPartialMatch && !isLoading && "text-green-600 dark:text-green-500",
+          isPartialMatch && !isLoading && "text-amber-600 dark:text-amber-500",
+          isMiss && !isLoading && "text-red-500 dark:text-red-400 line-through",
+          (isLoading || isPending) && "text-gray-400 dark:text-gray-500",
+          !isVerified &&
+            !isMiss &&
+            !isLoading &&
+            !isPending &&
+            "text-blue-600 dark:text-blue-400"
         );
         return (
           <sup
@@ -913,7 +947,8 @@ export const CitationComponent = forwardRef<
           )}
           aria-hidden="true"
         >
-          [<span
+          [
+          <span
             className={cn(
               "max-w-80 overflow-hidden text-ellipsis",
               statusClasses
@@ -921,7 +956,8 @@ export const CitationComponent = forwardRef<
           >
             {displayText}
             {renderStatusIndicator()}
-          </span>]
+          </span>
+          ]
         </span>
       );
     };

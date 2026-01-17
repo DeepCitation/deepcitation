@@ -69,7 +69,7 @@ describe("CitationComponent behaviorConfig", () => {
       expect(spinner).toBeInTheDocument();
     });
 
-    it("shows spinner when verification is null", () => {
+    it("does not show spinner when verification is null (use isLoading prop)", () => {
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
@@ -77,12 +77,12 @@ describe("CitationComponent behaviorConfig", () => {
         />
       );
 
-      // Should have a spinner for pending state
+      // Should NOT have a spinner by default - use isLoading prop to show spinner
       const spinner = container.querySelector("svg.animate-spin");
-      expect(spinner).toBeInTheDocument();
+      expect(spinner).not.toBeInTheDocument();
     });
 
-    it("shows spinner when verification has no status", () => {
+    it("does not show spinner when verification has no status (use isLoading prop)", () => {
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
@@ -90,7 +90,35 @@ describe("CitationComponent behaviorConfig", () => {
         />
       );
 
-      // Should have a spinner for pending state
+      // Should NOT have a spinner by default - use isLoading prop to show spinner
+      const spinner = container.querySelector("svg.animate-spin");
+      expect(spinner).not.toBeInTheDocument();
+    });
+
+    it("shows spinner when isLoading prop is true", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={null}
+          isLoading={true}
+        />
+      );
+
+      // Should have a spinner when isLoading is true
+      const spinner = container.querySelector("svg.animate-spin");
+      expect(spinner).toBeInTheDocument();
+    });
+
+    it("shows spinner with isLoading even when verification is found", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithoutImage}
+          isLoading={true}
+        />
+      );
+
+      // isLoading overrides the found status to show spinner
       const spinner = container.querySelector("svg.animate-spin");
       expect(spinner).toBeInTheDocument();
     });

@@ -31,11 +31,7 @@ export const CheckIcon = ({ className }: { className?: string }) => (
     fill="currentColor"
     aria-hidden="true"
   >
-    <path
-      d="M229.66,66.34 L96,200 L34.34,138.34 L51,121.66 L96,166.69 L213,50 Z"
-      stroke="currentColor"
-      strokeWidth="12"
-    />
+    <path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z" />
   </svg>
 );
 
