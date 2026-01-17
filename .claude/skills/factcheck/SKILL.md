@@ -55,7 +55,7 @@ For each claim, note the exact text and extract a key span (1-3 important words)
 ### Step 2: Verify Claims
 For each claim, use DeepCitation to verify against the sources:
 ```typescript
-const result = await dc.verifyCitations(attachmentId, {
+const result = await dc.verify(attachmentId, {
   "claim-1": { fullPhrase: "exact claim text", keySpan: "key words" }
 });
 const status = getCitationStatus(result.verifications["claim-1"]);
@@ -71,7 +71,7 @@ For each claim, think adversarially and generate 2-3 counter-arguments:
 ### Step 4: Search for Counter-Evidence
 For each counter-argument search phrase, verify against sources:
 ```typescript
-const counterResult = await dc.verifyCitations(attachmentId, {
+const counterResult = await dc.verify(attachmentId, {
   "counter-1": { fullPhrase: searchPhrase, keySpan: searchPhrase.split(" ").slice(0,2).join(" ") }
 });
 ```
@@ -144,7 +144,7 @@ Counter-Evidence Found: 2 claims
 
 Uses DeepCitation library exports:
 - `DeepCitation.prepareFiles(files)` - Upload source files, returns attachmentIds
-- `DeepCitation.verifyCitations(attachmentId, citations)` - Verify claims against sources
+- `DeepCitation.verify(attachmentId, citations)` - Verify claims against sources
 - `getAllCitationsFromLlmOutput(text)` - Parse existing citations from LLM output
 - `getCitationStatus(verification)` - Interpret verification results
 

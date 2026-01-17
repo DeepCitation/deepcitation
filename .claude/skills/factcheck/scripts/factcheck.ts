@@ -84,7 +84,7 @@ async function verifyCitations(
     `Verifying ${Object.keys(citations).length} citation(s) against ${attachmentId.slice(0, 8)}...`
   );
 
-  const result = await dc.verifyCitations(attachmentId, citations);
+  const result = await dc.verify(attachmentId, citations);
 
   const output: Record<
     string,
