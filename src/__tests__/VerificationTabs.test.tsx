@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
 import React from "react";
 import { VerificationTabs } from "../react/VerificationTabs";
@@ -18,8 +18,8 @@ describe("VerificationTabs", () => {
     it("shows check icon for exact match", () => {
       const { container } = render(<VerificationTabs expected="Test" actual="Test" />);
 
-      // CheckIcon is rendered inside .dc-exact-match-badge as an svg
-      const exactMatchBadge = container.querySelector(".dc-exact-match-badge");
+      // CheckIcon is rendered inside the exact match badge as an svg
+      const exactMatchBadge = container.querySelector('[data-testid="exact-match-badge"]');
       expect(exactMatchBadge).toBeInTheDocument();
       const checkIcon = exactMatchBadge?.querySelector("svg");
       expect(checkIcon).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe("VerificationTabs", () => {
     it("does not show tabs for exact match", () => {
       const { container } = render(<VerificationTabs expected="Same" actual="Same" />);
 
-      const tabsNav = container.querySelector(".dc-tabs-nav");
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]');
       expect(tabsNav).not.toBeInTheDocument();
     });
 
@@ -44,7 +44,7 @@ describe("VerificationTabs", () => {
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" />);
 
       // Query within the tabs navigation to avoid matching diff content
-      const tabsNav = container.querySelector(".dc-tabs-nav");
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]');
       expect(tabsNav).toBeInTheDocument();
       expect(within(tabsNav as HTMLElement).getByText("Expected")).toBeInTheDocument();
       expect(within(tabsNav as HTMLElement).getByText("Diff")).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe("VerificationTabs", () => {
     it("defaults to Diff tab for low variance", () => {
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" />);
 
-      const diffTab = container.querySelector(".dc-tab-button--active");
+      const diffTab = container.querySelector('button[data-active="true"]');
       expect(diffTab?.textContent).toBe("Diff");
     });
 
@@ -66,7 +66,7 @@ describe("VerificationTabs", () => {
       const { container } = render(<VerificationTabs expected={expected} actual={actual} />);
 
       await waitFor(() => {
-        const activeTab = container.querySelector(".dc-tab-button--active");
+        const activeTab = container.querySelector('button[data-active="true"]');
         expect(activeTab?.textContent).toBe("Found");
       });
     });
@@ -75,21 +75,21 @@ describe("VerificationTabs", () => {
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" />);
 
       // Get the Expected tab button from the navigation
-      const tabsNav = container.querySelector(".dc-tabs-nav") as HTMLElement;
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]') as HTMLElement;
       const expectedTab = within(tabsNav).getByText("Expected");
       fireEvent.click(expectedTab);
 
-      expect(expectedTab.closest(".dc-tab-button")).toHaveClass("dc-tab-button--active");
+      expect(expectedTab).toHaveAttribute("data-active", "true");
     });
 
     it("switches to Found tab when clicked", () => {
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" />);
 
-      const tabsNav = container.querySelector(".dc-tabs-nav") as HTMLElement;
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]') as HTMLElement;
       const foundTab = within(tabsNav).getByText("Found");
       fireEvent.click(foundTab);
 
-      expect(foundTab.closest(".dc-tab-button")).toHaveClass("dc-tab-button--active");
+      expect(foundTab).toHaveAttribute("data-active", "true");
     });
 
     it("stops event propagation on tab click", () => {
@@ -100,7 +100,7 @@ describe("VerificationTabs", () => {
         </div>,
       );
 
-      const tabsNav = container.querySelector(".dc-tabs-nav") as HTMLElement;
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]') as HTMLElement;
       const expectedTab = within(tabsNav).getByText("Expected");
       fireEvent.click(expectedTab);
 
@@ -112,11 +112,11 @@ describe("VerificationTabs", () => {
     it("displays expected text when Expected tab is active", () => {
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" />);
 
-      const tabsNav = container.querySelector(".dc-tabs-nav") as HTMLElement;
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]') as HTMLElement;
       const expectedTab = within(tabsNav).getByText("Expected");
       fireEvent.click(expectedTab);
 
-      const tabContent = container.querySelector(".dc-tab-content--expected");
+      const tabContent = container.querySelector('[data-testid="tab-content-expected"]');
       expect(tabContent).toBeInTheDocument();
       expect(tabContent?.textContent).toContain("Hello world");
     });
@@ -126,7 +126,7 @@ describe("VerificationTabs", () => {
 
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" renderCopyButton={renderCopyButton} />);
 
-      const tabsNav = container.querySelector(".dc-tabs-nav") as HTMLElement;
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]') as HTMLElement;
       const expectedTab = within(tabsNav).getByText("Expected");
       fireEvent.click(expectedTab);
 
@@ -139,15 +139,15 @@ describe("VerificationTabs", () => {
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" />);
 
       // Diff tab should be active by default for low variance
-      const diffResult = container.querySelector(".dc-diff-result");
+      const diffResult = container.querySelector('[data-testid="diff-result"]');
       expect(diffResult).toBeInTheDocument();
     });
 
     it("shows removed and added text in diff", () => {
       const { container } = render(<VerificationTabs expected="old text" actual="new text" />);
 
-      const removedParts = container.querySelectorAll(".dc-diff-part--removed");
-      const addedParts = container.querySelectorAll(".dc-diff-part--added");
+      const removedParts = container.querySelectorAll('[data-diff-type="removed"]');
+      const addedParts = container.querySelectorAll('[data-diff-type="added"]');
 
       expect(removedParts.length).toBeGreaterThan(0);
       expect(addedParts.length).toBeGreaterThan(0);
@@ -177,7 +177,7 @@ describe("VerificationTabs", () => {
       const foundTab = within(container).getByText("Found");
       fireEvent.click(foundTab);
 
-      const tabContent = container.querySelector(".dc-tab-content--found");
+      const tabContent = container.querySelector('[data-testid="tab-content-found"]');
       expect(tabContent).toBeInTheDocument();
       expect(tabContent?.textContent).toContain("Found content");
     });
@@ -197,7 +197,7 @@ describe("VerificationTabs", () => {
       const foundTab = within(container).getByText("Found");
       fireEvent.click(foundTab);
 
-      const emptyElement = container.querySelector(".dc-tab-empty");
+      const emptyElement = container.querySelector('[data-testid="empty-text"]');
       expect(emptyElement).toBeInTheDocument();
       expect(emptyElement?.textContent).toBe("No text found");
     });
@@ -224,7 +224,7 @@ describe("VerificationTabs", () => {
     it("does not display label when not provided", () => {
       const { container } = render(<VerificationTabs expected="Expected" actual="Actual" />);
 
-      const label = container.querySelector(".dc-verification-label");
+      const label = container.querySelector('[data-testid="verification-label"]');
       expect(label).not.toBeInTheDocument();
     });
   });
@@ -234,12 +234,14 @@ describe("VerificationTabs", () => {
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" />);
 
       // Need to click a tab to see if copy button would appear
-      const tabsNav = container.querySelector(".dc-tabs-nav") as HTMLElement;
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]') as HTMLElement;
       const expectedTab = within(tabsNav).getByText("Expected");
       fireEvent.click(expectedTab);
 
-      const copyButtonWrapper = container.querySelector(".dc-copy-button-wrapper");
-      expect(copyButtonWrapper).not.toBeInTheDocument();
+      // Copy button wrapper shouldn't exist since renderCopyButton wasn't provided
+      const copyButtons = container.querySelectorAll("button");
+      // Only tab buttons should exist (Expected, Diff, Found)
+      expect(copyButtons.length).toBe(3);
     });
 
     it("renders custom copy button for expected tab", () => {
@@ -247,7 +249,7 @@ describe("VerificationTabs", () => {
 
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" renderCopyButton={renderCopyButton} />);
 
-      const tabsNav = container.querySelector(".dc-tabs-nav") as HTMLElement;
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]') as HTMLElement;
       const expectedTab = within(tabsNav).getByText("Expected");
       fireEvent.click(expectedTab);
 
@@ -259,7 +261,7 @@ describe("VerificationTabs", () => {
 
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" renderCopyButton={renderCopyButton} />);
 
-      const tabsNav = container.querySelector(".dc-tabs-nav") as HTMLElement;
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]') as HTMLElement;
       const foundTab = within(tabsNav).getByText("Found");
       fireEvent.click(foundTab);
 
@@ -272,18 +274,18 @@ describe("VerificationTabs", () => {
       const { container } = render(<VerificationTabs expected="Hello world" actual="Hello universe" />);
 
       // Initially on Diff tab
-      expect(container.querySelector(".dc-tab-content--diff")).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="tab-content-diff"]')).toBeInTheDocument();
 
       // Switch to Expected tab
-      const tabsNav = container.querySelector(".dc-tabs-nav") as HTMLElement;
+      const tabsNav = container.querySelector('[data-testid="tabs-nav"]') as HTMLElement;
       const expectedTab = within(tabsNav).getByText("Expected");
       fireEvent.click(expectedTab);
-      expect(container.querySelector(".dc-tab-content--expected")).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="tab-content-expected"]')).toBeInTheDocument();
 
       // Switch to Found tab
       const foundTab = within(tabsNav).getByText("Found");
       fireEvent.click(foundTab);
-      expect(container.querySelector(".dc-tab-content--found")).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="tab-content-found"]')).toBeInTheDocument();
     });
   });
 
@@ -291,7 +293,7 @@ describe("VerificationTabs", () => {
     it("handles empty expected text", () => {
       const { container } = render(<VerificationTabs expected="" actual="Some text" />);
 
-      expect(container.querySelector(".dc-verification-tabs")).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="verification-tabs"]')).toBeInTheDocument();
     });
 
     it("handles empty actual text", () => {
@@ -300,7 +302,7 @@ describe("VerificationTabs", () => {
       const foundTab = within(container).getByText("Found");
       fireEvent.click(foundTab);
 
-      expect(container.querySelector(".dc-tab-empty")).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="empty-text"]')).toBeInTheDocument();
     });
 
     it("handles both texts empty", () => {
@@ -308,7 +310,7 @@ describe("VerificationTabs", () => {
 
       // Empty strings with no content - check that component renders
       // The isExactMatch condition requires both actual and expected to be truthy
-      expect(container.querySelector(".dc-verification-tabs")).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="verification-tabs"]')).toBeInTheDocument();
     });
 
     it("handles very long texts", () => {
@@ -324,7 +326,7 @@ describe("VerificationTabs", () => {
 
       const { container } = render(<VerificationTabs expected={expected} actual={actual} />);
 
-      expect(container.querySelector(".dc-verification-tabs")).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="verification-tabs"]')).toBeInTheDocument();
     });
 
     it("handles special characters", () => {
@@ -333,27 +335,27 @@ describe("VerificationTabs", () => {
 
       const { container } = render(<VerificationTabs expected={expected} actual={actual} />);
 
-      expect(container.querySelector(".dc-verification-tabs")).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="verification-tabs"]')).toBeInTheDocument();
     });
   });
 
-  describe("CSS classes", () => {
-    it("applies correct classes to tab wrapper", () => {
+  describe("data attributes", () => {
+    it("applies correct data-testid to tab wrapper", () => {
       const { container } = render(<VerificationTabs expected="A" actual="B" />);
 
-      expect(container.querySelector(".dc-verification-tabs")).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="verification-tabs"]')).toBeInTheDocument();
     });
 
-    it("applies exact match modifier class", () => {
+    it("applies exact match data attribute", () => {
       const { container } = render(<VerificationTabs expected="Same" actual="Same" />);
 
-      expect(container.querySelector(".dc-verification-tabs--exact")).toBeInTheDocument();
+      expect(container.querySelector('[data-exact-match="true"]')).toBeInTheDocument();
     });
 
-    it("applies active class to selected tab", () => {
+    it("applies active data attribute to selected tab", () => {
       const { container } = render(<VerificationTabs expected="A" actual="B" />);
 
-      const diffTab = container.querySelector(".dc-tab-button--active");
+      const diffTab = container.querySelector('button[data-active="true"]');
       expect(diffTab?.textContent).toBe("Diff");
     });
   });
@@ -362,7 +364,7 @@ describe("VerificationTabs", () => {
     it("renders buttons with type='button'", () => {
       const { container } = render(<VerificationTabs expected="A" actual="B" />);
 
-      const buttons = container.querySelectorAll(".dc-tab-button");
+      const buttons = container.querySelectorAll("button");
       buttons.forEach((button) => {
         expect(button.getAttribute("type")).toBe("button");
       });
@@ -371,9 +373,9 @@ describe("VerificationTabs", () => {
     it("provides semantic structure with proper nesting", () => {
       const { container } = render(<VerificationTabs expected="A" actual="B" />);
 
-      expect(container.querySelector(".dc-tabs-container")).toBeInTheDocument();
-      expect(container.querySelector(".dc-tabs-nav")).toBeInTheDocument();
-      expect(container.querySelector(".dc-tabs-content")).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="tabs-container"]')).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="tabs-nav"]')).toBeInTheDocument();
+      expect(container.querySelector('[data-testid="tabs-content"]')).toBeInTheDocument();
     });
   });
 });
