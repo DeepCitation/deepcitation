@@ -23,15 +23,19 @@ const PopoverPortal = PopoverPrimitive.Portal;
 const PopoverContent = React.forwardRef<
   React.ComponentRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 4, ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 8, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 max-w-sm rounded-md border bg-white p-1 shadow-md outline-none",
+        // Base styling: auto width, viewport-aware max, larger shadow for image preview
+        // Width is generous (600px) to keep wide document images legible
+        "z-50 w-auto rounded-lg border bg-white shadow-xl outline-none",
+        "max-w-[min(600px,calc(100vw-2rem))]",
         "border-gray-200 dark:border-gray-700 dark:bg-gray-900",
+        // Animations
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",

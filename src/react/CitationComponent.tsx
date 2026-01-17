@@ -427,13 +427,15 @@ function DefaultPopoverContent({
   const hasImage = verification?.verificationImageBase64;
   const { isMiss, isPartialMatch, isPending } = status;
 
-  // Image view
+  // Image view - sized for quick preview, click to expand
+  // Images display at natural size up to container max (600px from Popover)
+  // Small images stay small; wide images scale down to fit
   if (hasImage) {
     return (
-      <div className="p-1">
+      <div className="p-2">
         <button
           type="button"
-          className="block cursor-zoom-in"
+          className="group block cursor-zoom-in relative"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -444,9 +446,15 @@ function DefaultPopoverContent({
           <img
             src={verification.verificationImageBase64 as string}
             alt="Citation verification"
-            className="max-w-[700px] max-h-[500px] w-auto h-auto object-contain rounded bg-gray-50 dark:bg-gray-800"
+            className="max-w-full h-auto object-contain rounded-md bg-gray-50 dark:bg-gray-800"
             loading="lazy"
           />
+          {/* Subtle zoom hint on hover */}
+          <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors rounded-md">
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-600 dark:text-gray-300 bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded shadow-sm">
+              Click to expand
+            </span>
+          </span>
         </button>
         {(isMiss || isPartialMatch) && (
           <DiffDetails
@@ -503,7 +511,7 @@ function DefaultPopoverContent({
   if (!hasSnippet && !statusLabel) return null;
 
   return (
-    <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px]">
+    <div className="p-3 flex flex-col gap-2 min-w-[180px] max-w-full">
       {statusLabel && (
         <span
           className={cn(
@@ -1042,15 +1050,15 @@ export const CitationComponent = forwardRef<
     // Render indicator based on status priority:
     // 1. Custom renderIndicator (if provided)
     // 2. shouldShowSpinner → Spinner (respects timeout and definitive results)
-    // 3. Miss → Warning triangle
+    // 3. Verified (not partial) → Green checkmark
     // 4. Partial match → Amber checkmark
-    // 5. Verified → Green checkmark
+    // 5. Miss → Warning triangle
     const renderStatusIndicator = () => {
       if (renderIndicator) return renderIndicator(status);
       if (shouldShowSpinner) return <PendingIndicator />;
-      if (isMiss) return <MissIndicator />;
+      if (isVerified && !isPartialMatch) return <VerifiedIndicator />;
       if (isPartialMatch) return <PartialIndicator />;
-      if (isVerified) return <VerifiedIndicator />;
+      if (isMiss) return <MissIndicator />;
       return null;
     };
 
