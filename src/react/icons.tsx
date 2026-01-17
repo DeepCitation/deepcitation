@@ -27,11 +27,15 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
 export const CheckIcon = ({ className }: { className?: string }) => (
   <svg
     className={cn("w-[10px] h-[10px]", className)}
-    viewBox="0 0 256 256"
-    fill="currentColor"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     aria-hidden="true"
   >
-    <path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z" />
+    <polyline points="20 6 9 17 4 12" />
   </svg>
 );
 
