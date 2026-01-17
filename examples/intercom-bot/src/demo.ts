@@ -12,7 +12,7 @@ import {
   DeepCitation,
   wrapCitationPrompt,
   getCitationStatus,
-  removeCitations,
+  replaceCitations,
 } from "@deepcitation/deepcitation-js";
 import OpenAI from "openai";
 import { SAMPLE_KNOWLEDGE_BASE } from "./knowledge-base.js";
@@ -88,9 +88,8 @@ If information is not available in the knowledge base, say so honestly.`;
     const rawResponse = completion.choices[0].message.content!;
 
     // Verify citations
-    const verificationResult = await dc.verifyCitationsFromLlmOutput({
+    const verificationResult = await dc.verifyAll({
       llmOutput: rawResponse,
-      fileDataParts,
     });
 
     // Calculate confidence
@@ -104,7 +103,7 @@ If information is not available in the knowledge base, say so honestly.`;
     const needsReview = confidence < minConfidenceThreshold;
 
     // Display clean response
-    const cleanResponse = removeCitations(rawResponse, false);
+    const cleanResponse = replaceCitations(rawResponse);
     console.log(`💬 Bot: ${cleanResponse}\n`);
 
     // Display verification status

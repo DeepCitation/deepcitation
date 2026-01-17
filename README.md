@@ -91,14 +91,12 @@ const response = await llm.chat({
 Verify citations against the source documents.
 
 ```typescript
-const result = await dc.verifyCitations({
+const result = await dc.verifyAll({
   llmOutput: response.content,
-  fileDataParts, //optional 
 });
 
 // result.verifications contains verification status + visual proof
-const { citations, verifications } = result;
-
+const { verifications } = result;
 ```
 
 ### Step 3: Display
@@ -156,8 +154,11 @@ await dc.prepareFiles(files: FileInput[])
 // Convert URLs/Office docs to PDF
 await dc.convertToPdf(urlOrOptions: string | ConvertOptions)
 
-// Verify LLM citations
-await dc.verifyCitations({ llmOutput, fileDataParts?, outputImageFormat? })
+// Verify LLM citations (parse and verify all)
+await dc.verifyAll({ llmOutput, outputImageFormat? })
+
+// Verify pre-parsed citations against a specific file
+await dc.verify(attachmentId, citations, options?)
 ```
 
 ### Prompt Utilities

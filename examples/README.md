@@ -52,13 +52,10 @@ const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
 const response = await llm.chat({ messages: [...] });
 
 // 4. Verify citations
-const result = await dc.verifyCitations({
-  llmOutput: response,
-  fileDataParts, // Optional: pass if Zero Data Retention is enabled
-});
+const result = await dc.verifyAll({ llmOutput: response });
 
 // 5. Check status
-for (const [key, verification] of Object.entries(result.citations)) {
+for (const [key, verification] of Object.entries(result.verifications)) {
   const status = getCitationStatus(verification);
   console.log(`Citation ${key}: ${status.isVerified ? "✅" : "❌"}`);
 }

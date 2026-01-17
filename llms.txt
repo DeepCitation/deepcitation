@@ -16,7 +16,7 @@ DeepCitation is an open-source library and API that enables AI applications to i
 DeepCitation works in three steps:
 
 1. **Pre-Prompt**: Upload source documents and enhance your LLM prompt with citation instructions using `prepareFiles()` and `wrapCitationPrompt()`.
-2. **Post-Prompt**: After receiving the LLM response, verify citations against source documents using `verifyCitations()`.
+2. **Post-Prompt**: After receiving the LLM response, verify citations against source documents using `verify()` or `verifyAll()`.
 3. **Display**: Render verified citations with React components like `CitationComponent`.
 
 ## Documentation
@@ -51,14 +51,15 @@ import type { Citation, Verification } from "@deepcitation/deepcitation-js";
 
 - `new DeepCitation({ apiKey })` - Initialize the client with your API key
 - `prepareFiles(files)` - Upload source documents and get structured content for LLM prompts
-- `verifyCitations({ llmOutput, fileDataParts })` - Verify citations from LLM output against sources
+- `verify(attachmentId, citations)` - Verify pre-parsed citations against a specific file
+- `verifyAll({ llmOutput })` - Parse LLM output and verify all citations automatically
 
 ### Prompt Utilities
 
 - `wrapCitationPrompt({ systemPrompt, userPrompt, deepTextPromptPortion })` - Wrap prompts with citation instructions and optionally include file content
 - `wrapSystemCitationPrompt({ systemPrompt })` - Wrap only system prompt (for more control)
 - `getAllCitationsFromLlmOutput(text)` - Extract citations from LLM response
-- `removeCitations(text)` - Remove citation tags from text
+- `replaceCitations(text, options)` - Replace citation tags with optional verification status indicators
 - `groupCitationsByAttachmentId(citations)` - Group citations by attachmentId for multi-file verification
 
 ### React Components

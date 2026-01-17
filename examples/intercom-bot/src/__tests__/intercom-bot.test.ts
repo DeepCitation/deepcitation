@@ -24,7 +24,7 @@ const mockPrepareFiles = mock(() =>
   })
 );
 
-const mockVerifyCitationsFromLlmOutput = mock(() =>
+const mockVerifyAll = mock(() =>
   Promise.resolve({
     verifications: {
       "1": {
@@ -55,7 +55,7 @@ const mockIntercomReply = mock(() => Promise.resolve({}));
 mock.module("@deepcitation/deepcitation-js", () => ({
   DeepCitation: class {
     prepareFiles = mockPrepareFiles;
-    verifyCitationsFromLlmOutput = mockVerifyCitationsFromLlmOutput;
+    verifyAll = mockVerifyAll;
   },
   wrapCitationPrompt: () => ({
     enhancedSystemPrompt: "Enhanced system prompt",
@@ -64,7 +64,7 @@ mock.module("@deepcitation/deepcitation-js", () => ({
   getCitationStatus: (verification: { status: string }) => ({
     isVerified: verification.status === "found",
   }),
-  removeCitations: (text: string) => text.replace(/<cite[^>]*\/>/g, "").trim(),
+  replaceCitations: (text: string) => text.replace(/<cite[^>]*\/>/g, "").trim(),
 }));
 
 mock.module("openai", () => ({

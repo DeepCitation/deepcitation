@@ -327,15 +327,15 @@ export class DeepCitation {
    * import { getAllCitationsFromLlmOutput } from '@deepcitation/deepcitation-js';
    *
    * const citations = getAllCitationsFromLlmOutput(llmResponse);
-   * const verified = await dc.verifyCitations(attachmentId, citations);
+   * const verified = await dc.verify(attachmentId, citations);
    *
    * for (const [key, result] of Object.entries(verified.verifications)) {
-   *   console.log(key, result.searchState?.status);
+   *   console.log(key, result.status);
    *   // "found", "partial_text_found", "not_found", etc.
    * }
    * ```
    */
-  async verifyCitations(
+  async verify(
     attachmentId: string,
     citations: CitationInput,
     options?: VerifyCitationsOptions
@@ -361,6 +361,11 @@ export class DeepCitation {
       }
     } else {
       throw new Error("Invalid citations format");
+    }
+
+    // If no citations to verify, return empty result
+    if (Object.keys(citationMap).length === 0) {
+      return { verifications: {} };
     }
 
     const requestUrl = `${this.apiUrl}/verifyCitations`;
@@ -390,25 +395,24 @@ export class DeepCitation {
   }
 
   /**
-   * Verify citations from LLM output with automatic parsing.
+   * Parse and verify all citations from LLM output.
    * This is the recommended way to verify citations for new integrations.
    *
-   * @param input - Object containing llmOutput and optional fileDataParts
+   * @param input - Object containing llmOutput and optional outputImageFormat
    * @returns Verification results with status and proof images
    *
    * @example
    * ```typescript
-   * const result = await dc.verifyCitationsFromLlmOutput({
+   * const result = await dc.verifyAll({
    *   llmOutput: response.content,
-   *   fileDataParts, // From prepareFiles()
    * });
    *
-   * for (const [key, result] of Object.entries(result.verifications)) {
-   *   console.log(key, result.searchState?.status);
+   * for (const [key, verification] of Object.entries(result.verifications)) {
+   *   console.log(key, verification.status);
    * }
    * ```
    */
-  async verifyCitationsFromLlmOutput(
+  async verifyAll(
     input: VerifyCitationsFromLlmOutput,
     citations?: { [key: string]: Citation }
   ): Promise<VerifyCitationsResponse> {
@@ -437,17 +441,17 @@ export class DeepCitation {
     for (const [attachmentId, fileCitations] of citationsByAttachment) {
       if (attachmentId) {
         verificationPromises.push(
-          this.verifyCitations(attachmentId, fileCitations, { outputImageFormat })
+          this.verify(attachmentId, fileCitations, { outputImageFormat })
         );
       }
     }
 
     const results = await Promise.all(verificationPromises);
-    const allHighlights: VerifyCitationsResponse["verifications"] = {};
+    const allVerifications: VerifyCitationsResponse["verifications"] = {};
     for (const result of results) {
-      Object.assign(allHighlights, result.verifications);
+      Object.assign(allVerifications, result.verifications);
     }
 
-    return { verifications: allHighlights };
+    return { verifications: allVerifications };
   }
 }

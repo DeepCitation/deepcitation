@@ -19,7 +19,7 @@ import {
   DeepCitation,
   wrapCitationPrompt,
   getCitationStatus,
-  removeCitations,
+  replaceCitations,
   getAllCitationsFromLlmOutput,
 } from "@deepcitation/deepcitation-js";
 
@@ -65,10 +65,11 @@ async function main() {
   console.log(`   Attachment ID: ${attachmentId}\n`);
 
   // Wrap your prompts with citation instructions
-  const systemPrompt = `You are a helpful assistant. Answer questions about the
+  // These can be overridden via environment variables
+  const systemPrompt = process.env.SYSTEM_PROMPT || `You are a helpful assistant. Answer questions about the
 provided documents accurately and cite your sources.`;
 
-  const userQuestion = "Summarize the key information shown in this document.";
+  const userQuestion = process.env.USER_PROMPT || "Summarize the key information shown in this document.";
 
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt,
@@ -136,29 +137,35 @@ provided documents accurately and cite your sources.`;
 
   console.log("🔍 Step 3: Verifying citations against source document...\n");
 
-  // Option A: Let DeepCitation parse citations automatically (simplest)
-  // const verificationResult = await deepcitation.verifyCitationsFromLlmOutput({
+  // Option A: Let DeepCitation parse and verify automatically (simplest)
+  // const verificationResult = await deepcitation.verifyAll({
   //   llmOutput: llmResponse,
-  //   fileDataParts,
   // });
 
   // Option B: Parse citations yourself first (more control, privacy-conscious)
   // This allows you to inspect/filter citations before sending to DeepCitation
   const parsedCitations = getAllCitationsFromLlmOutput(llmResponse);
+  const citationCount = Object.keys(parsedCitations).length;
 
-  console.log(
-    `📋 Parsed ${
-      Object.keys(parsedCitations).length
-    } citation(s) from LLM output`
-  );
+  console.log(`📋 Parsed ${citationCount} citation(s) from LLM output`);
   for (const [key, citation] of Object.entries(parsedCitations)) {
     console.log(`   [${key}]: "${citation.fullPhrase?.slice(0, 50)}..."`);
   }
   console.log();
 
-  // Now verify only the parsed citations (raw LLM output is not sent)
-  const verificationResult = await deepcitation.verifyCitationsFromLlmOutput(
-    { llmOutput: llmResponse, fileDataParts },
+  // Skip verification if no citations were parsed
+  if (citationCount === 0) {
+    console.log("⚠️  No citations found in the LLM response.\n");
+    console.log("📖 Clean Response:");
+    console.log("─".repeat(50));
+    console.log(llmResponse);
+    console.log("─".repeat(50) + "\n");
+    return;
+  }
+
+  // Verify citations against the source document
+  const verificationResult = await deepcitation.verify(
+    attachmentId,
     parsedCitations
   );
 
@@ -186,21 +193,54 @@ provided documents accurately and cite your sources.`;
         ? "⏳"
         : "❌";
 
-      console.log(`Citation [${key}]: ${statusIcon}`);
-      console.log(`  Status: ${verification.status}`);
-      console.log(`  Page: ${verification.verifiedPageNumber ?? "N/A"}`);
-      console.log(`  Match: "${verification.verifiedMatchSnippet?.slice(0, 80)}..."`);
-      console.log(
-        `  Has proof image: ${!!verification.verificationImageBase64}`
-      );
+      const statusLabel = status.isVerified
+        ? status.isPartialMatch
+          ? "PARTIAL MATCH"
+          : "VERIFIED"
+        : status.isPending
+        ? "PENDING"
+        : "NOT FOUND";
+
+      console.log(`${"═".repeat(60)}`);
+      console.log(`Citation [${key}]: ${statusIcon} ${statusLabel}`);
+      console.log(`${"─".repeat(60)}`);
+
+      // Original citation from LLM
+      const originalCitation = parsedCitations[key];
+      if (originalCitation?.fullPhrase) {
+        console.log(`  📝 Claimed: "${originalCitation.fullPhrase.slice(0, 100)}${originalCitation.fullPhrase.length > 100 ? "..." : ""}"`);
+      }
+
+      // Verification details
+      console.log(`  📊 Status: ${verification.status}`);
+      console.log(`  📄 Page: ${verification.verifiedPageNumber ?? "N/A"}`);
+
+      if (verification.verifiedMatchSnippet) {
+        console.log(`  🔍 Found: "${verification.verifiedMatchSnippet.slice(0, 100)}${verification.verifiedMatchSnippet.length > 100 ? "..." : ""}"`);
+      }
+
+      if (verification.verificationImageBase64) {
+        const imgSize = Math.round(verification.verificationImageBase64.length / 1024);
+        console.log(`  🖼️  Proof image: Yes (${imgSize}KB)`);
+      } else {
+        console.log(`  🖼️  Proof image: No`);
+      }
+
       console.log();
     }
+    console.log(`${"═".repeat(60)}\n`);
   }
 
-  // Show clean response (without citation tags)
-  console.log("📖 Clean Response (for display):");
+  // Show clean response (without citation tags, with verification status)
+  console.log("📖 Clean Response (for display, with verification status):");
   console.log("─".repeat(50));
-  console.log(removeCitations(llmResponse));
+  console.log(
+    replaceCitations(llmResponse, {
+      leaveKeySpanBehind: true,
+      verifications: verificationResult.verifications,
+      showVerificationStatus: true,
+    })
+  );
   console.log("─".repeat(50) + "\n");
 
   // Summary statistics

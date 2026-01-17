@@ -12,7 +12,7 @@ import {
   DeepCitation,
   wrapCitationPrompt,
   getCitationStatus,
-  removeCitations,
+  replaceCitations,
   type Verification,
   type FileDataPart,
 } from "@deepcitation/deepcitation-js";
@@ -134,9 +134,8 @@ Do not make up information that isn't in the source documents.`;
     const rawResponse = completion.choices[0].message.content!;
 
     // Step 3: Verify citations against knowledge base
-    const verificationResult = await this.dc.verifyCitationsFromLlmOutput({
+    const verificationResult = await this.dc.verifyAll({
       llmOutput: rawResponse,
-      fileDataParts: this.fileDataParts,
     });
 
     // Step 4: Calculate confidence score
@@ -153,7 +152,7 @@ Do not make up information that isn't in the source documents.`;
 
     // Step 5: Return clean response with verification metadata
     return {
-      cleanResponse: removeCitations(rawResponse, false),
+      cleanResponse: replaceCitations(rawResponse),
       rawResponse,
       confidence,
       needsReview: confidence < this.minConfidenceThreshold,

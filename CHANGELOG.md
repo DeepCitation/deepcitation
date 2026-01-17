@@ -14,19 +14,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Granular package exports: `/client`, `/prompts`, `/types` for better tree-shaking
 - `UrlCitationVariant` type for URL citation components
 - Icons now exported from `/react`: `DeepCitationIcon`, `CheckIcon`, `SpinnerIcon`, `WarningIcon`
+- New `replaceCitations()` function with verification status support
+  - `leaveKeySpanBehind` option to keep key_span text
+  - `verifications` option to pass verification results
+  - `showVerificationStatus` option to display status indicators (✓, ⚠, ✗, ◌)
+- Environment variable overrides for `SYSTEM_PROMPT` and `USER_PROMPT` in basic-verification examples
 
 ### Changed
 - **Breaking**: Removed `citation.css` - components now use Tailwind CSS exclusively
 - **Breaking**: `CitationVariant` type updated: removed `"indicator"` variant (use `content="indicator"` instead)
+- **Breaking**: Renamed `verifyCitations()` to `verify()` for cleaner API
+- **Breaking**: Renamed `verifyCitationsFromLlmOutput()` to `verifyAll()` for cleaner API
 - Separated visual style (`variant`) from content display (`content`) in CitationComponent API
 - Default content per variant: `chip`→`keySpan`, `brackets`→`number`, `text`→`keySpan`, `superscript`→`number`, `minimal`→`number`
 - Missing citation numbers now default to `"1"` instead of empty string
 - Moved `DeepCitationIcon` from main export to `/react` only (prevents React in non-React builds)
 - Updated Playwright tests to use data attributes instead of CSS class selectors
+- `replaceCitations()` now handles any attribute ordering in cite tags (flexible parsing)
 
 ### Fixed
 - Package.json: removed incorrect `directory` field from repository config
 - Package.json: added `homepage` and `bugs` fields for npm discoverability
+- `verify()` and `verifyAll()` now return empty `{ verifications: {} }` when no citations provided (avoids unnecessary API calls)
+
+### Deprecated
+- `removeCitations()` - use `replaceCitations()` instead (still works for backward compatibility)
 
 ## [1.1.26] - 2025-01-15
 
