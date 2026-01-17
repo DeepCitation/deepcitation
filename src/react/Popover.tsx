@@ -31,8 +31,9 @@ const PopoverContent = React.forwardRef<
       sideOffset={sideOffset}
       className={cn(
         // Base styling: auto width, viewport-aware max, larger shadow for image preview
+        // Width is generous (600px) to keep wide document images legible
         "z-50 w-auto rounded-lg border bg-white shadow-xl outline-none",
-        "max-w-[min(420px,calc(100vw-2rem))]",
+        "max-w-[min(600px,calc(100vw-2rem))]",
         "border-gray-200 dark:border-gray-700 dark:bg-gray-900",
         // Animations
         "data-[state=open]:animate-in data-[state=closed]:animate-out",

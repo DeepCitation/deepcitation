@@ -348,6 +348,8 @@ function DefaultPopoverContent({
   const { isMiss, isPartialMatch } = status;
 
   // Image view - sized for quick preview, click to expand
+  // For wide document images, we prioritize legibility over compactness
+  // The image will fill the popover width and scale naturally
   if (hasImage) {
     return (
       <div className="p-2">
@@ -364,7 +366,7 @@ function DefaultPopoverContent({
           <img
             src={verification.verificationImageBase64 as string}
             alt="Citation verification"
-            className="max-w-full max-h-[260px] w-auto h-auto object-contain rounded-md bg-gray-50 dark:bg-gray-800"
+            className="w-full h-auto object-contain rounded-md bg-gray-50 dark:bg-gray-800"
             loading="lazy"
           />
           {/* Subtle zoom hint on hover */}
