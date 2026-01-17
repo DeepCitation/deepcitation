@@ -35,14 +35,15 @@ export const AV_CITATION_MARKDOWN_SYNTAX_PROMPT = `
 
 You MUST cite sources using this exact syntax:
 
-<cite attachment_id='ID' reasoning='why this supports the claim' full_phrase='verbatim transcript quote' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' />
+<cite attachment_id='ID' reasoning='why this supports the claim' key_span='1-3 key words' full_phrase='verbatim transcript quote' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' />
 
 ### Syntax Rules (MUST follow)
 
 1. **attachment_id**: Use the exact ID from the source
 2. **reasoning**: Brief explanation of why this citation supports your claim (think first!)
-3. **full_phrase**: Copy transcript text VERBATIM. Escape quotes (\\') and newlines (\\n).
-4. **timestamps**: Start and end time with milliseconds (e.g., '00:01:23.456-00:01:45.789')
+3. **key_span**: The 1-3 most important words from full_phrase
+4. **full_phrase**: Copy transcript text VERBATIM. Escape quotes (\\') and newlines (\\n).
+5. **timestamps**: Start and end time with milliseconds (e.g., '00:01:23.456-00:01:45.789')
 
 ### Placement Rules
 
@@ -100,8 +101,28 @@ export interface WrapCitationPromptResult {
  * Wraps your existing system prompt with DeepCitation's citation syntax instructions.
  * This enables LLMs to output verifiable citations that can be checked against source documents.
  *
- * Citation instructions are placed at the start of the prompt (highest priority) with a
- * brief reminder at the end for maximum reliability.
+ * ## Why We Wrap (Instructions at Start + Reminder at End)
+ *
+ * This function places full citation instructions at the **start** of your system prompt
+ * and a brief reminder at the **end**. This "wrap" strategy is intentional and based on
+ * two key principles:
+ *
+ * ### 1. Recency Effect (RE2)
+ * LLMs exhibit a "recency bias" where instructions closer to the end of the context
+ * window have stronger influence on output. The reminder at the end reinforces citation
+ * requirements right before generation begins.
+ *
+ * ### 2. Chain-of-Thought (CoT) Attribute Ordering
+ * The citation attributes are ordered to encourage the model to "think first":
+ * `attachment_id` → `reasoning` → `key_span` → `full_phrase` → `start_page_key` → `line_ids`
+ *
+ * By placing `reasoning` early, the model must articulate WHY it's citing before
+ * specifying WHAT it's citing, leading to more accurate and relevant citations.
+ *
+ * ### Why Not Just Append?
+ * In large system prompts, appended instructions can get "lost" in the middle of the
+ * effective context. Prepending ensures citation instructions have high priority,
+ * while the reminder leverages recency for reinforcement.
  *
  * @example
  * ```typescript
@@ -128,7 +149,7 @@ export function wrapSystemCitationPrompt(
 
   const reminder = isAudioVideo ? CITATION_AV_REMINDER : CITATION_REMINDER;
 
-  // Full instructions at start, brief reminder at end for maximum reliability
+  // Full instructions at start (high priority), brief reminder at end (recency effect)
   return `${citationPrompt.trim()}\n\n${systemPrompt.trim()}\n\n${reminder}`;
 }
 

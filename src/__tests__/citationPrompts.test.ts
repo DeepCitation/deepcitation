@@ -17,6 +17,7 @@ describe("citation prompts", () => {
     expect(AV_CITATION_MARKDOWN_SYNTAX_PROMPT).toContain(
       "timestamps='HH:MM:SS.SSS"
     );
+    expect(AV_CITATION_MARKDOWN_SYNTAX_PROMPT).toContain("key_span");
   });
 
   it("defines required fields for text-based citations", () => {
