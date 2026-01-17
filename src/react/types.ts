@@ -12,13 +12,15 @@ import type { SearchStatus } from "../types/search.js";
  * | `text`        | Plain text, inherits parent styling            |
  * | `superscript` | Small raised text like footnotes¹              |
  * | `minimal`     | Compact text with indicator, truncated         |
+ * | `source`      | Source chip showing name + count (ChatGPT-style) |
  */
 export type CitationVariant =
   | "chip" // Pill/badge with background
   | "brackets" // [text✓] with brackets (default)
   | "text" // Plain text, inherits styling
   | "superscript" // Small raised footnote style
-  | "minimal"; // Compact with truncation
+  | "minimal" // Compact with truncation
+  | "source"; // Source name chip with count (ChatGPT-style)
 
 /**
  * Content to display in the citation.
@@ -28,6 +30,7 @@ export type CitationVariant =
  * | `keySpan`     | Descriptive text (e.g., "Revenue Growth")      |
  * | `number`      | Citation number (e.g., "1", "2", "3")          |
  * | `indicator`   | Only the status icon (✓/⚠), no text            |
+ * | `source`      | Source name with count (e.g., "Wikipedia +2")  |
  *
  * Default content per variant:
  * - `chip` → `keySpan`
@@ -35,11 +38,13 @@ export type CitationVariant =
  * - `text` → `keySpan`
  * - `superscript` → `number`
  * - `minimal` → `number`
+ * - `source` → `source`
  */
 export type CitationContent =
   | "keySpan" // Show keySpan text
   | "number" // Show citation number
-  | "indicator"; // Only show status icon
+  | "indicator" // Only show status icon
+  | "source"; // Show source name with count (ChatGPT-style)
 
 /**
  * URL fetch/access status for URL citations.
@@ -542,3 +547,103 @@ export interface SourcesTriggerProps {
   /** Whether the sources list is currently open */
   isOpen?: boolean;
 }
+
+// ============================================================================
+// ChatGPT-style Citation Drawer Types
+// ============================================================================
+
+/**
+ * A single citation item with its verification result for the drawer.
+ */
+export interface CitationDrawerItem {
+  /** Unique key for this citation */
+  citationKey: string;
+  /** The citation data */
+  citation: Citation;
+  /** Verification result if available */
+  verification: Verification | null;
+}
+
+/**
+ * Group of citations from the same source (for "+N" display).
+ * Used when multiple citations reference the same source domain.
+ */
+export interface SourceCitationGroup {
+  /** Primary source name to display (e.g., "Delaware Corporations") */
+  sourceName: string;
+  /** Source domain (e.g., "delaware.gov") */
+  sourceDomain?: string;
+  /** Favicon URL for the source */
+  sourceFavicon?: string;
+  /** All citations in this group */
+  citations: CitationDrawerItem[];
+  /** Count of additional citations beyond the first */
+  additionalCount: number;
+}
+
+/**
+ * Props for the source chip variant (ChatGPT-style inline citation).
+ */
+export interface SourceChipProps {
+  /** Primary citation to display */
+  citation: Citation;
+  /** Verification result */
+  verification?: Verification | null;
+  /** Additional citations grouped with this one */
+  additionalCitations?: CitationDrawerItem[];
+  /** Callback when chip is clicked (typically opens drawer) */
+  onClick?: (group: SourceCitationGroup, event: React.MouseEvent) => void;
+  /** Additional class name */
+  className?: string;
+}
+
+/**
+ * Props for the CitationDrawer component.
+ */
+export interface CitationDrawerProps {
+  /** Whether the drawer is open */
+  isOpen: boolean;
+  /** Callback to close the drawer */
+  onClose: () => void;
+  /** Citation groups to display */
+  citationGroups: SourceCitationGroup[];
+  /** Title for the drawer header */
+  title?: string;
+  /** Whether to show "More" section for additional sources */
+  showMoreSection?: boolean;
+  /** Maximum items to show before "More" section */
+  maxVisibleItems?: number;
+  /** Callback when a citation item is clicked */
+  onCitationClick?: (item: CitationDrawerItem) => void;
+  /** Callback when "Read more" is clicked for a citation */
+  onReadMore?: (item: CitationDrawerItem) => void;
+  /** Additional class name for the drawer container */
+  className?: string;
+  /** Render position: 'bottom' for mobile sheet, 'right' for side panel */
+  position?: "bottom" | "right";
+  /** Custom render for citation items */
+  renderCitationItem?: (item: CitationDrawerItem) => React.ReactNode;
+}
+
+/**
+ * Props for the CitationDrawerItem component.
+ */
+export interface CitationDrawerItemProps {
+  /** The citation item to display */
+  item: CitationDrawerItem;
+  /** Whether this is the last item (no bottom border) */
+  isLast?: boolean;
+  /** Callback when item is clicked */
+  onClick?: (item: CitationDrawerItem) => void;
+  /** Callback when "Read more" is clicked */
+  onReadMore?: (item: CitationDrawerItem) => void;
+  /** Additional class name */
+  className?: string;
+}
+
+/**
+ * Helper function type for grouping citations by source.
+ */
+export type GroupCitationsBySource = (
+  citations: CitationDrawerItem[]
+) => SourceCitationGroup[];

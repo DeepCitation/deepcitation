@@ -42,6 +42,13 @@ export type {
   SourcesListHeaderConfig,
   SourcesListProps,
   SourcesTriggerProps,
+  // ChatGPT-style drawer types
+  CitationDrawerItem,
+  CitationDrawerItemProps,
+  CitationDrawerProps,
+  SourceCitationGroup,
+  SourceChipProps,
+  GroupCitationsBySource,
 } from "./types.js";
 
 // URL Utilities - For handling URL citation metadata
@@ -100,3 +107,11 @@ export {
   detectSourceType,
   getPlatformName,
 } from "./SourcesListComponent.js";
+
+// Citation Drawer (ChatGPT-style bottom sheet)
+export {
+  CitationDrawer,
+  CitationDrawerItemComponent,
+  groupCitationsBySource,
+  useCitationDrawer,
+} from "./CitationDrawer.js";

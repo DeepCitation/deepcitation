@@ -42,6 +42,8 @@ function getDefaultContent(variant: CitationVariant): CitationContent {
     case "text":
     case "brackets":
       return "keySpan";
+    case "source":
+      return "source";
     case "superscript":
     case "minimal":
     default:
@@ -77,6 +79,11 @@ function getDisplayText(
       fallbackDisplay ||
       "1";
     return stripBrackets(raw);
+  }
+
+  if (content === "source") {
+    // Source content: show siteName or domain (using main's field names)
+    return citation.siteName || citation.domain || citation.keySpan?.toString() || "Source";
   }
 
   // content === "number"
@@ -139,6 +146,7 @@ export interface CitationComponentProps extends BaseCitationProps {
    * - `text`: Plain text, inherits parent styling
    * - `superscript`: Small raised text like footnotes¹
    * - `minimal`: Compact text with indicator, truncated
+   * - `source`: ChatGPT-style source chip with name + count
    */
   variant?: CitationVariant;
   /**
@@ -146,6 +154,7 @@ export interface CitationComponentProps extends BaseCitationProps {
    * - `keySpan`: Descriptive text (e.g., "Revenue Growth")
    * - `number`: Citation number (e.g., "1", "2", "3")
    * - `indicator`: Only the status icon, no text
+   * - `source`: Source name (e.g., "Wikipedia")
    *
    * Defaults based on variant:
    * - `chip` → `keySpan`
@@ -153,6 +162,7 @@ export interface CitationComponentProps extends BaseCitationProps {
    * - `text` → `keySpan`
    * - `superscript` → `number`
    * - `minimal` → `number`
+   * - `source` → `source`
    */
   content?: CitationContent;
   /** Event handlers for citation interactions */
@@ -176,6 +186,16 @@ export interface CitationComponentProps extends BaseCitationProps {
     verification: Verification | null;
     status: CitationStatus;
   }) => React.ReactNode;
+  /**
+   * Number of additional citations grouped with this one (for source variant).
+   * Shows as "+N" suffix (e.g., "Wikipedia +2")
+   */
+  additionalCount?: number;
+  /**
+   * Favicon URL to display (for source variant).
+   * Falls back to citation.faviconUrl if not provided.
+   */
+  faviconUrl?: string;
 }
 
 function getStatusLabel(status: CitationStatus): string {
@@ -799,6 +819,8 @@ export const CitationComponent = forwardRef<
       renderContent,
       popoverPosition = "top",
       renderPopoverContent,
+      additionalCount,
+      faviconUrl,
     },
     ref
   ) => {
@@ -1192,6 +1214,42 @@ export const CitationComponent = forwardRef<
           >
             {displayText}
             {renderStatusIndicator()}
+          </span>
+        );
+      }
+
+      // Variant: source (ChatGPT-style source chip)
+      if (variant === "source") {
+        const faviconSrc = faviconUrl || citation.faviconUrl;
+        return (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
+              "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+              "hover:bg-gray-200 dark:hover:bg-gray-700",
+              "transition-colors cursor-pointer"
+            )}
+          >
+            {faviconSrc && (
+              <img
+                src={faviconSrc}
+                alt=""
+                className="w-4 h-4 rounded-sm object-contain"
+                loading="lazy"
+                onError={(e) => {
+                  // Hide broken favicon images
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            )}
+            <span className="max-w-40 overflow-hidden text-ellipsis whitespace-nowrap">
+              {displayText}
+            </span>
+            {additionalCount !== undefined && additionalCount > 0 && (
+              <span className="text-gray-500 dark:text-gray-400">
+                +{additionalCount}
+              </span>
+            )}
           </span>
         );
       }

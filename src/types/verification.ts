@@ -80,7 +80,7 @@ export interface Verification {
 
   verifiedAt?: Date;
 
-// ==========================================================================
+  // ==========================================================================
   // URL/Web Content Verification Fields
   // Used when verifying AI-generated URL claims (e.g., "According to example.com...")
   // ==========================================================================
