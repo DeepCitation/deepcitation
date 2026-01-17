@@ -464,12 +464,10 @@ function DefaultPopoverContent({
     const searchingPhrase = citation.fullPhrase || citation.keySpan?.toString();
     return (
       <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px]">
-        <div className="flex items-center gap-2">
-          <SpinnerIcon />
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-            Searching...
-          </span>
-        </div>
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+          <SpinnerIcon className="inline-block align-baseline mr-1.5" />
+          Searching...
+        </span>
         {searchingPhrase && (
           <p className="p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-gray-600 dark:text-gray-400 italic">
             "{searchingPhrase.length > 80 ? searchingPhrase.slice(0, 80) + '…' : searchingPhrase}"
@@ -488,12 +486,10 @@ function DefaultPopoverContent({
   if (isMiss) {
     return (
       <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px]">
-        <div className="flex items-center gap-2">
-          <WarningIcon />
-          <span className="text-xs font-medium text-red-600 dark:text-red-500">
-            Not found in source
-          </span>
-        </div>
+        <span className="text-xs font-medium text-red-600 dark:text-red-500">
+          <WarningIcon className="inline-block align-baseline mr-1.5" />
+          Not found in source
+        </span>
         <SearchedPhrasesInfo citation={citation} verification={verification} />
       </div>
     );
