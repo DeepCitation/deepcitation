@@ -1112,6 +1112,35 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
   });
 
+  describe("escaped underscores in attribute names (Markdown artifact)", () => {
+    it("extracts citations with backslash-escaped underscores from Markdown output", () => {
+      const input = `The key findings in this report are:
+* **Positive for 5 Pathogenic Bacteria**: The report indicates the presence<cite attachment\\_id='D8bv8mItwv6VOmIBo2nr' reasoning='states that the report shows 5 bacteria' full\\_phrase='Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD' key\\_span='5 PATHOGENIC BACTERIA' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='7-8' />.`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.attachmentId).toBe("D8bv8mItwv6VOmIBo2nr");
+      expect(citation.fullPhrase).toBe(
+        "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD"
+      );
+      expect(citation.keySpan).toBe("5 PATHOGENIC BACTERIA");
+      expect(citation.pageNumber).toBe(1);
+      expect(citation.lineIds).toEqual([7, 8]);
+    });
+
+    it("extracts multiple citations with escaped underscores", () => {
+      const input = `First finding<cite attachment\\_id='file1' full\\_phrase='first phrase' key\\_span='first' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='1-2' /> and second<cite attachment\\_id='file2' full\\_phrase='second phrase' key\\_span='second' start\\_page\\_key='page\\_number\\_2\\_index\\_0' line\\_ids='5' />.`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBeGreaterThanOrEqual(2);
+      const citations = Object.values(result);
+      const phrases = citations.map((c) => c.fullPhrase);
+      expect(phrases).toContain("first phrase");
+      expect(phrases).toContain("second phrase");
+    });
+  });
+
   describe("backwards compatibility with fileId/file_id", () => {
     it("extracts XML citation with fileId attribute", () => {
       const input =

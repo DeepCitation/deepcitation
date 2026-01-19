@@ -215,6 +215,10 @@ export const normalizeCitations = (response: string): string => {
 const normalizeCitationContent = (input: string): string => {
   let normalized = input;
 
+  // 0. Unescape all backslash-escaped underscores
+  // This handles Markdown-processed output where underscores get escaped (e.g., attachment\_id -> attachment_id, page\_number\_1 -> page_number_1)
+  normalized = normalized.replace(/\\_/g, "_");
+
   // 1. Standardize self-closing tags
   // Replace ></cite> with /> for consistency
   normalized = normalized.replace(/><\/cite>/g, "/>");

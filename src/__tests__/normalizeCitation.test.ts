@@ -200,6 +200,26 @@ describe("normalizeCitations", () => {
       const result = normalizeCitations(input);
       expect(result).toContain("attachment_id='file1'");
     });
+
+    it("unescapes backslash-escaped underscores in attribute names (Markdown artifact)", () => {
+      const input = `<cite attachment\\_id='D8bv8mItwv6VOmIBo2nr' reasoning='states that the report shows 5 bacteria above the threshold' full\\_phrase='Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD' key\\_span='5 PATHOGENIC BACTERIA' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='7-8' />`;
+      const result = normalizeCitations(input);
+      expect(result).toContain("attachment_id='D8bv8mItwv6VOmIBo2nr'");
+      expect(result).toContain("full_phrase=");
+      expect(result).toContain("key_span='5 PATHOGENIC BACTERIA'");
+      expect(result).toContain("start_page_key='page_number_1_index_0'");
+      expect(result).toContain("line_ids='7,8'");
+    });
+
+    it("handles multiple citations with escaped underscores", () => {
+      const input = `First <cite attachment\\_id='file1' full\\_phrase='first phrase' key\\_span='first' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='1' /> and second <cite attachment\\_id='file2' full\\_phrase='second phrase' key\\_span='second' start\\_page\\_key='page\\_number\\_2\\_index\\_1' line\\_ids='5-7' />.`;
+      const result = normalizeCitations(input);
+      expect(result).toContain("attachment_id='file1'");
+      expect(result).toContain("attachment_id='file2'");
+      expect(result).toContain("start_page_key='page_number_1_index_0'");
+      expect(result).toContain("start_page_key='page_number_2_index_1'");
+      expect(result).toContain("line_ids='5,6,7'");
+    });
   });
 
   describe("newline handling", () => {
