@@ -2,7 +2,7 @@ export const CITATION_MARKDOWN_SYNTAX_PROMPT = `
 <citation-instructions priority="critical">
 ## REQUIRED: Citation Format
 
-You MUST cite sources using this exact syntax:
+For every claim, value, or fact; you MUST cite sources using this exact syntax:
 
 <cite attachment_id='ID' reasoning='why this supports the claim' key_span='1-3 key words' full_phrase='verbatim quote' start_page_key='page_number_N_index_I' line_ids='X-Y' />
 
@@ -37,7 +37,7 @@ export const AV_CITATION_MARKDOWN_SYNTAX_PROMPT = `
 <citation-instructions priority="critical">
 ## REQUIRED: Audio/Video Citation Format
 
-You MUST cite sources using this exact syntax:
+For every claim, value, or fact; you MUST cite sources using this exact syntax:
 
 <cite attachment_id='ID' reasoning='why this supports the claim' key_span='1-3 key words' full_phrase='verbatim transcript quote' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' />
 
@@ -63,12 +63,12 @@ You MUST cite sources using this exact syntax:
  * A brief reminder to reinforce citation requirements in user messages.
  * Use this when you want to add emphasis without repeating full instructions.
  */
-export const CITATION_REMINDER = `<citation-reminder>Remember: You MUST use <cite /> tags with all required attributes for every claim from source documents.</citation-reminder>`;
+export const CITATION_REMINDER = `<citation-reminder>Remember: You MUST use <cite /> tags with all required attributes for every claim, value, or fact from source documents.</citation-reminder>`;
 
 /**
  * Audio/video version of the citation reminder.
  */
-export const CITATION_AV_REMINDER = `<citation-reminder>Remember: You MUST use <cite /> tags with timestamps for every claim from source media.</citation-reminder>`;
+export const CITATION_AV_REMINDER = `<citation-reminder>Remember: You MUST use <cite /> tags with timestamps for every claim, value, or fact from source media.</citation-reminder>`;
 
 export interface WrapSystemPromptOptions {
   /** The original system prompt to wrap with citation instructions */
