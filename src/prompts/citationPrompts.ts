@@ -10,7 +10,7 @@ You MUST cite sources using this exact syntax:
 
 1. **attachment_id**: Use the exact ID from the source document
 2. **reasoning**: Brief explanation of why this citation supports your claim (think first!)
-3. **key_span**: The 1-3 most important words from full_phrase
+3. **key_span**: The 1-3 most important words or value from full_phrase
 4. **full_phrase**: Copy text VERBATIM from source. Escape quotes (\\') and newlines (\\n).
 5. **start_page_key**: ONLY use format \`page_number_N_index_I\` from page tags (e.g., \`<page_number_1_index_0>\`). Never extract page numbers from document content.
 6. **line_ids**: Inclusive range (e.g., '2-6' or '4'). Infer intermediate lines since only every 5th line is shown.
@@ -22,9 +22,13 @@ You MUST cite sources using this exact syntax:
 - Do NOT group citations at the end of the document
 - The <cite /> tag is self-closing - never use <cite>...</cite>
 
-### Example
+### Example Citation 1
 
 The company reported strong growth<cite attachment_id='abc123' reasoning='directly states revenue growth percentage' key_span='increased 45%' full_phrase='Revenue increased 45% year-over-year to $2.3 billion' start_page_key='page_number_2_index_1' line_ids='12-14' />
+
+### Example Citation 2
+
+The total amount is $500 USD <cite attachment_id='abc123' reasoning='directly states the total amount' key_span='$500 USD' full_phrase='The total amount is $500 USD' start_page_key='page_number_2_index_1' line_ids='12-14' />
 
 </citation-instructions>
 `;
@@ -41,7 +45,7 @@ You MUST cite sources using this exact syntax:
 
 1. **attachment_id**: Use the exact ID from the source
 2. **reasoning**: Brief explanation of why this citation supports your claim (think first!)
-3. **key_span**: The 1-3 most important words from full_phrase
+3. **key_span**: The 1-3 most important words or value from full_phrase
 4. **full_phrase**: Copy transcript text VERBATIM. Escape quotes (\\') and newlines (\\n).
 5. **timestamps**: Start and end time with milliseconds (e.g., '00:01:23.456-00:01:45.789')
 
@@ -82,12 +86,6 @@ export interface WrapCitationPromptOptions {
   deepTextPromptPortion?: string | string[];
   /** Whether to use audio/video citation format (with timestamps) instead of text-based (with line IDs) */
   isAudioVideo?: boolean;
-  /**
-   * Whether to add a citation reminder to the user prompt.
-   * Useful for reinforcing citation requirements.
-   * @default false
-   */
-  addUserReminder?: boolean;
 }
 
 export interface WrapCitationPromptResult {
@@ -192,7 +190,6 @@ export function wrapCitationPrompt(
     userPrompt,
     deepTextPromptPortion,
     isAudioVideo = false,
-    addUserReminder = false,
   } = options;
 
   const enhancedSystemPrompt = wrapSystemCitationPrompt({
@@ -216,14 +213,10 @@ export function wrapCitationPrompt(
       })
       .join("\n\n");
 
-    enhancedUserPrompt = `${fileContent}\n\n${userPrompt}`;
+    enhancedUserPrompt = `${fileContent}\n\n${CITATION_REMINDER}\n\n${userPrompt}`;
   }
 
-  // Add reminder to user prompt if requested
-  if (addUserReminder) {
-    const reminder = isAudioVideo ? CITATION_AV_REMINDER : CITATION_REMINDER;
-    enhancedUserPrompt = `${enhancedUserPrompt}\n\n${reminder}`;
-  }
+
 
   return {
     enhancedSystemPrompt,

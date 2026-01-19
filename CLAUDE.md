@@ -99,12 +99,10 @@ For additional reinforcement, you can add reminders to user prompts:
 ```typescript
 import { wrapCitationPrompt, CITATION_REMINDER } from "@deepcitation/deepcitation-js";
 
-// Using wrapCitationPrompt with addUserReminder
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt,
   userPrompt,
   position: 'prepend',           // Instructions at start of system prompt
-  addUserReminder: true,         // Add reminder to end of user prompt
 });
 
 // Or manually add CITATION_REMINDER where needed
