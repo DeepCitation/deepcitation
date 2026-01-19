@@ -503,28 +503,14 @@ function DefaultPopoverContent({
               status.isMiss ? 'text-red-400' : 'text-gray-400'
             }`}>
               {showCheckmark && (
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  className="w-3 h-3"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <span className="w-3 h-3">
+                  <CheckIcon />
+                </span>
               )}
               {status.isMiss && (
-                <svg
-                  viewBox="0 0 256 256"
-                  fill="currentColor"
-                  aria-hidden="true"
-                  className="w-3 h-3"
-                >
-                  <path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z" />
-                </svg>
+                <span className="w-3 h-3">
+                  <WarningIcon />
+                </span>
               )}
             </span>
             {/* Expand hint on hover */}
