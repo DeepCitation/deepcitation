@@ -78,7 +78,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
         {label && <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>}
 
         <div data-testid="exact-match-badge" className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">
-          <span className="size-2.5">
+          <span className="size-2">
             <CheckIcon />
           </span>
           <span>Exact match</span>
@@ -121,7 +121,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
           <div data-testid="tab-content-diff" className="mt-3">
             {!hasDiff ? (
               <div data-testid="exact-match-indicator" className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-500 text-sm">
-                <span className="size-2.5">
+                <span className="size-2">
                   <CheckIcon />
                 </span>
                 <span>Exact Match</span>

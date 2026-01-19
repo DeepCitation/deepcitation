@@ -1,5 +1,6 @@
 /**
  * DeepCitation icon SVG (no dependencies)
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const DeepCitationIcon = ({ className }: { className?: string }) => (
   <svg
@@ -11,7 +12,8 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
     strokeLinecap="square"
     shapeRendering="crispEdges"
     className={className}
-    style={{ width: "100%", height: "100%" }}
+    width="1em"
+    height="1em"
   >
     <path d="M7 3 L3 3 L3 21 L7 21" />
     <path d="M17 3 L21 3 L21 21 L17 21" />
@@ -20,7 +22,7 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
 
 /**
  * Check icon SVG (no dependencies)
- * Size is controlled by parent container - use size-2.5 or similar on wrapper
+ * Size is controlled by parent container - use size-2 or similar on wrapper
  */
 export const CheckIcon = ({ className }: { className?: string }) => (
   <svg
@@ -40,7 +42,7 @@ export const CheckIcon = ({ className }: { className?: string }) => (
 
 /**
  * Warning icon SVG (no dependencies)
- * Size is controlled by parent container - use size-2.5 or similar on wrapper
+ * Size is controlled by parent container - use size-2 or similar on wrapper
  */
 export const WarningIcon = ({ className }: { className?: string }) => (
   <svg
@@ -56,7 +58,7 @@ export const WarningIcon = ({ className }: { className?: string }) => (
 
 /**
  * Spinner component for loading/pending state
- * Size is controlled by parent container - use size-2.5 or similar on wrapper
+ * Size is controlled by parent container - use size-2 or similar on wrapper
  * Animation (animate-spin) should be applied to the wrapper
  */
 export const SpinnerIcon = ({ className }: { className?: string }) => (

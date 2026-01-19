@@ -290,7 +290,7 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
 /** Verified indicator - green checkmark for exact matches */
 const VerifiedIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 size-2.5 text-green-600 dark:text-green-500"
+    className="inline-flex relative ml-0.5 size-2 text-green-600 dark:text-green-500"
     aria-hidden="true"
   >
     <CheckIcon />
@@ -300,7 +300,7 @@ const VerifiedIndicator = () => (
 /** Partial match indicator - amber checkmark for partial/relocated matches */
 const PartialIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 size-2.5 text-amber-600 dark:text-amber-500"
+    className="inline-flex relative ml-0.5 size-2 text-amber-600 dark:text-amber-500"
     aria-hidden="true"
   >
     <CheckIcon />
@@ -310,7 +310,7 @@ const PartialIndicator = () => (
 /** Pending indicator - spinner for loading state */
 const PendingIndicator = () => (
   <span
-    className="inline-flex ml-1 size-2.5 animate-spin text-gray-400 dark:text-gray-500"
+    className="inline-flex ml-1 size-2 animate-spin text-gray-400 dark:text-gray-500"
     aria-hidden="true"
   >
     <SpinnerIcon />
@@ -320,7 +320,7 @@ const PendingIndicator = () => (
 /** Miss indicator - amber warning triangle for not found */
 const MissIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 size-2.5 text-amber-500 dark:text-amber-400"
+    className="inline-flex relative ml-0.5 size-2 text-amber-500 dark:text-amber-400"
     aria-hidden="true"
   >
     <WarningIcon />
@@ -491,7 +491,7 @@ function DefaultPopoverContent({
     return (
       <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px]">
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-          <span className="inline-block relative top-[0.1em] mr-1.5 size-2.5 animate-spin">
+          <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
             <SpinnerIcon />
           </span>
           Searching...
@@ -518,7 +518,7 @@ function DefaultPopoverContent({
           <span className="inline-block relative top-[0.1em] mr-1.5 size-3 text-amber-500 dark:text-amber-400">
             <WarningIcon />
           </span>
-          Not found in source
+          Not found: {citation.keySpan || citation.fullPhrase}
         </span>
         <SearchedPhrasesInfo
           citation={citation}
@@ -639,7 +639,7 @@ function DiffDetails({
             Found
           </span>
           <p className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] text-amber-600 dark:text-amber-500 italic">
-            Not found in source
+            Not found: "{citation.keySpan || citation.fullPhrase}"
           </p>
         </div>
       </div>
