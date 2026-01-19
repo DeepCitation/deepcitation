@@ -52,8 +52,9 @@ import {
 ```typescript
 import type {
   Citation,
+  CitationType,
   Verification,
-  WebSource,
+  SourceType,
 } from "@deepcitation/deepcitation-js";
 ```
 
@@ -320,54 +321,75 @@ interface CitationBehaviorConfig {
 }
 ```
 
-### 9. Web Sources (URL-Based Citations)
+### 9. URL-Based Citations
 
-For URL-based citations, use the `WebSource` type to attach source metadata:
+The Citation interface uses a `type` field to discriminate between document and URL citations:
 
 ```typescript
-import type { Citation, WebSource } from "@deepcitation/deepcitation-js";
+import type { Citation, CitationType } from "@deepcitation/deepcitation-js";
 
-// Citation with web source metadata
-// Note: keySpan should be a substring of fullPhrase
-const citation: Citation = {
+// Document citation (type: "document" or omitted - default)
+const docCitation: Citation = {
+  type: "document",
+  attachmentId: "abc123",
+  pageNumber: 5,
+  lineIds: [12, 13],
+  fullPhrase: "Revenue increased by 15% in Q4.",
+  keySpan: "increased by 15%",
   citationNumber: 1,
+};
+
+// URL citation (type: "url")
+// Note: keySpan should be a substring of fullPhrase
+const urlCitation: Citation = {
+  type: "url",
+  url: "https://www.fitandwell.com/features/kettlebell-moves",
+  domain: "fitandwell.com",
+  title: "Build muscular arms and a strong upper body with these seven kettlebell moves",
+  siteName: "Fit&Well",
+  description: "Targets Shoulders, triceps, upper back, core...",
+  faviconUrl: "https://www.fitandwell.com/favicon.ico",
   fullPhrase: "The TGU transitions and Halos require control, not brute strength.",
   keySpan: "require control, not brute strength",
-  webSource: {
-    url: "https://www.fitandwell.com/features/kettlebell-moves",
-    domain: "fitandwell.com",
-    title: "Build muscular arms and a strong upper body with these seven kettlebell moves",
-    siteName: "Fit&Well",
-    description: "Targets Shoulders, triceps, upper back, core...",
-    faviconUrl: "https://www.fitandwell.com/favicon.ico",
-  }
+  citationNumber: 1,
 };
 
 // Display with minimal variant for compact inline display
 <CitationComponent
-  citation={citation}
+  citation={urlCitation}
   verification={verification}
   variant="minimal"
   content="indicator"
 />
 ```
 
-#### WebSource Interface
+#### Citation Fields by Type
 
-```typescript
-interface WebSource {
-  url: string;              // Full URL
-  domain?: string;          // Display domain (e.g., "fitandwell.com")
-  title?: string;           // Page title
-  description?: string;     // Brief description/snippet
-  faviconUrl?: string;      // Favicon URL
-  platform?: string;        // Platform name (e.g., "Twitch", "YouTube")
-  siteName?: string;        // Site name (e.g., "Fit&Well")
-  author?: string;          // Author name
-  publishedAt?: Date | string;  // Publication date
-  imageUrl?: string;        // OG/social image URL
-}
-```
+**Common fields (both types):**
+- `fullPhrase` - The full context/excerpt containing the cited information
+- `keySpan` - The specific key phrase (must be substring of fullPhrase)
+- `citationNumber` - Citation number for display
+- `reasoning` - Why this citation was included
+
+**Document fields (`type: "document"`):**
+- `attachmentId` - Attachment ID from prepareFile
+- `pageNumber` - Page number in the document
+- `lineIds` - Line IDs within the page
+- `selection` - Selection box coordinates
+
+**URL fields (`type: "url"`):**
+- `url` - The source URL
+- `domain` - Display domain (e.g., "fitandwell.com")
+- `title` - Page/article title
+- `description` - Brief description/snippet
+- `faviconUrl` - Favicon URL
+- `sourceType` - Platform type ("video", "news", "social", etc.)
+- `platform` - Platform name (e.g., "Twitch", "YouTube")
+- `siteName` - Site name (e.g., "Fit&Well")
+- `author` - Author name
+- `publishedAt` - Publication date
+- `imageUrl` - OG/social image URL
+- `accessedAt` - When the source was accessed
 
 ### 10. SourcesListComponent
 

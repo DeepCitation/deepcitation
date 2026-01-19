@@ -118,9 +118,37 @@ export interface Verification {
   /** Error message if URL verification failed */
   urlVerificationError?: string | null;
 
+  // ==========================================================================
+  // Verified URL metadata (fetched from the actual page)
+  // ==========================================================================
+
+  /** Verified domain from the URL */
+  verifiedDomain?: string | null;
+
+  /** Verified description/meta description from the page */
+  verifiedDescription?: string | null;
+
+  /** Verified favicon URL */
+  verifiedFaviconUrl?: string | null;
+
+  /** Verified site name (from og:site_name or similar) */
+  verifiedSiteName?: string | null;
+
+  /** Verified author (from meta tags) */
+  verifiedAuthor?: string | null;
+
+  /** Verified publication date */
+  verifiedPublishedAt?: Date | string | null;
+
+  /** Verified OG image URL */
+  verifiedImageUrl?: string | null;
+
+  /** Content type of the fetched URL (e.g., "text/html", "application/pdf") */
+  contentType?: string | null;
+
   /**
-   * Web source metadata fetched from the URL (for URL-based citations).
-   * Contains display metadata like title, description, favicon for UI display.
+   * @deprecated Use top-level verified fields (verifiedTitle, verifiedDomain, etc.) instead.
+   * Will be removed in a future version.
    */
   verifiedWebSource?: {
     url: string;
@@ -133,7 +161,6 @@ export interface Verification {
     author?: string;
     publishedAt?: Date | string;
     imageUrl?: string;
-    /** Content type of the fetched URL */
     contentType?: string;
   };
 }

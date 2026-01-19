@@ -38,15 +38,16 @@ export {
 // Types
 export type {
   Citation,
+  CitationType,
   CitationStatus,
   VerifyCitationRequest,
   VerifyCitationResponse,
   OutputImageFormat,
-  // Anthropic-style source citations
-  SourceCitation,
+  // Source types for categorization
   SourceType,
   SourceMeta,
-  // Web source metadata for URL citations
+  // Deprecated (use Citation with type: "url" instead)
+  SourceCitation,
   WebSource,
 } from "./types/citation.js";
 
