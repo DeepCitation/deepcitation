@@ -466,14 +466,17 @@ function DefaultPopoverContent({
   const { isMiss, isPartialMatch, isPending } = status;
 
   // Image view - sized for quick preview, click to expand
-  // Images display at natural size up to container max (600px from Popover)
-  // Small images stay small; wide images scale down to fit
+  // Constrained to readable snippet size:
+  // - Max height 200px to show a focused excerpt without overwhelming
+  // - Max width 400px to prevent overly wide popovers
+  // - Maintains aspect ratio with object-cover to show most relevant content
+  // - Click to expand shows full image at natural size
   if (hasImage) {
     return (
       <div className="p-2">
         <button
           type="button"
-          className="group block cursor-zoom-in relative"
+          className="group block cursor-zoom-in relative overflow-hidden rounded-md"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -484,7 +487,7 @@ function DefaultPopoverContent({
           <img
             src={verification.verificationImageBase64 as string}
             alt="Citation verification"
-            className="max-w-full h-auto object-contain rounded-md bg-gray-50 dark:bg-gray-800"
+            className="max-w-[400px] max-h-[200px] w-auto h-auto object-contain rounded-md bg-gray-50 dark:bg-gray-800"
             loading="lazy"
           />
           {/* Subtle zoom hint on hover */}
