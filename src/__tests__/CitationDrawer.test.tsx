@@ -33,11 +33,11 @@ describe("CitationComponent source variant", () => {
     citationNumber: 1,
     keySpan: "test citation",
     fullPhrase: "This is a test citation phrase",
-    sourceName: "Delaware Corporations",
-    sourceDomain: "delaware.gov",
-    sourceFavicon: "https://delaware.gov/favicon.ico",
-    articleTitle: "How to Calculate Franchise Taxes",
-    snippet: "The minimum tax is $175.00 for corporations...",
+    siteName: "Delaware Corporations",
+    domain: "delaware.gov",
+    faviconUrl: "https://delaware.gov/favicon.ico",
+    title: "How to Calculate Franchise Taxes",
+    description: "The minimum tax is $175.00 for corporations...",
   };
 
   const verification: Verification = {
@@ -71,7 +71,7 @@ describe("CitationComponent source variant", () => {
       expect(favicon).toBeInTheDocument();
     });
 
-    it("renders favicon from faviconUrl prop over citation.sourceFavicon", () => {
+    it("renders favicon from faviconUrl prop over citation.faviconUrl", () => {
       const customFavicon = "https://custom.com/favicon.png";
       const { container } = render(
         <CitationComponent
@@ -112,10 +112,10 @@ describe("CitationComponent source variant", () => {
       expect(queryByText("+0")).not.toBeInTheDocument();
     });
 
-    it("falls back to sourceDomain when sourceName is not provided", () => {
+    it("falls back to domain when siteName is not provided", () => {
       const citationWithoutName: Citation = {
         ...baseCitation,
-        sourceName: undefined,
+        siteName: undefined,
       };
 
       const { getByText } = render(
@@ -205,7 +205,7 @@ describe("CitationComponent source variant", () => {
         />
       );
 
-      // Should show sourceName, not keySpan or number
+      // Should show siteName, not keySpan or number
       expect(getByText("Delaware Corporations")).toBeInTheDocument();
     });
 
@@ -228,14 +228,14 @@ describe("CitationComponent source variant", () => {
 describe("groupCitationsBySource", () => {
   const createCitationItem = (
     key: string,
-    sourceName: string,
-    sourceDomain?: string
+    siteName: string,
+    domain?: string
   ): CitationDrawerItem => ({
     citationKey: key,
     citation: {
       citationNumber: parseInt(key),
-      sourceName,
-      sourceDomain,
+      siteName,
+      domain,
       keySpan: `Citation ${key}`,
     },
     verification: null,
@@ -280,17 +280,17 @@ describe("groupCitationsBySource", () => {
       {
         citationKey: "1",
         citation: {
-          sourceName: "Test",
-          sourceDomain: "test.com",
-          sourceFavicon: "https://test.com/favicon.ico",
+          siteName: "Test",
+          domain: "test.com",
+          faviconUrl: "https://test.com/favicon.ico",
         },
         verification: null,
       },
       {
         citationKey: "2",
         citation: {
-          sourceName: "Test",
-          sourceDomain: "test.com",
+          siteName: "Test",
+          domain: "test.com",
         },
         verification: null,
       },
@@ -310,11 +310,11 @@ describe("CitationDrawerItemComponent", () => {
   const createItem = (overrides: Partial<CitationDrawerItem> = {}): CitationDrawerItem => ({
     citationKey: "1",
     citation: {
-      sourceName: "Delaware Corporations",
-      sourceDomain: "delaware.gov",
-      sourceFavicon: "https://delaware.gov/favicon.ico",
-      articleTitle: "How to Calculate Franchise Taxes",
-      snippet: "The minimum tax is $175.00 for corporations...",
+      siteName: "Delaware Corporations",
+      domain: "delaware.gov",
+      faviconUrl: "https://delaware.gov/favicon.ico",
+      title: "How to Calculate Franchise Taxes",
+      description: "The minimum tax is $175.00 for corporations...",
     },
     verification: { status: "found" },
     ...overrides,
@@ -358,8 +358,8 @@ describe("CitationDrawerItemComponent", () => {
   it("renders placeholder when no favicon", () => {
     const item = createItem({
       citation: {
-        sourceName: "Test",
-        sourceDomain: "test.com",
+        siteName: "Test",
+        domain: "test.com",
       },
     });
 
@@ -465,9 +465,9 @@ describe("CitationDrawer", () => {
     citations: Array.from({ length: count }, (_, i) => ({
       citationKey: `${name}-${i}`,
       citation: {
-        sourceName: name,
-        articleTitle: `Article ${i + 1}`,
-        snippet: `Snippet for article ${i + 1}`,
+        siteName: name,
+        title: `Article ${i + 1}`,
+        description: `Snippet for article ${i + 1}`,
       },
       verification: { status: "found" as const },
     })),
@@ -700,7 +700,7 @@ describe("CitationDrawer", () => {
         onClose={() => {}}
         citationGroups={groups}
         renderCitationItem={(item) => (
-          <div key={item.citationKey}>Custom: {item.citation.articleTitle}</div>
+          <div key={item.citationKey}>Custom: {item.citation.title}</div>
         )}
       />
     );
@@ -760,7 +760,7 @@ describe("useCitationDrawer", () => {
 
     const item: CitationDrawerItem = {
       citationKey: "1",
-      citation: { sourceName: "Test" },
+      citation: { siteName: "Test" },
       verification: null,
     };
 
@@ -777,7 +777,7 @@ describe("useCitationDrawer", () => {
 
     const item: CitationDrawerItem = {
       citationKey: "1",
-      citation: { sourceName: "Test" },
+      citation: { siteName: "Test" },
       verification: null,
     };
 
@@ -794,7 +794,7 @@ describe("useCitationDrawer", () => {
 
     const item: CitationDrawerItem = {
       citationKey: "1",
-      citation: { sourceName: "Test" },
+      citation: { siteName: "Test" },
       verification: null,
     };
 
@@ -815,12 +815,12 @@ describe("useCitationDrawer", () => {
     act(() => {
       result.current.addCitation({
         citationKey: "1",
-        citation: { sourceName: "Test 1" },
+        citation: { siteName: "Test 1" },
         verification: null,
       });
       result.current.addCitation({
         citationKey: "2",
-        citation: { sourceName: "Test 2" },
+        citation: { siteName: "Test 2" },
         verification: null,
       });
     });
@@ -836,8 +836,8 @@ describe("useCitationDrawer", () => {
     const { result } = renderHook(() => useCitationDrawer());
 
     const items: CitationDrawerItem[] = [
-      { citationKey: "1", citation: { sourceName: "Test 1" }, verification: null },
-      { citationKey: "2", citation: { sourceName: "Test 2" }, verification: null },
+      { citationKey: "1", citation: { siteName: "Test 1" }, verification: null },
+      { citationKey: "2", citation: { siteName: "Test 2" }, verification: null },
     ];
 
     act(() => {
@@ -853,17 +853,17 @@ describe("useCitationDrawer", () => {
     act(() => {
       result.current.addCitation({
         citationKey: "1",
-        citation: { sourceName: "Source A", sourceDomain: "a.com" },
+        citation: { siteName: "Source A", domain: "a.com" },
         verification: null,
       });
       result.current.addCitation({
         citationKey: "2",
-        citation: { sourceName: "Source A", sourceDomain: "a.com" },
+        citation: { siteName: "Source A", domain: "a.com" },
         verification: null,
       });
       result.current.addCitation({
         citationKey: "3",
-        citation: { sourceName: "Source B", sourceDomain: "b.com" },
+        citation: { siteName: "Source B", domain: "b.com" },
         verification: null,
       });
     });
