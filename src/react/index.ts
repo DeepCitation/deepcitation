@@ -62,6 +62,7 @@ export {
   getCitationNumber,
   getCitationKeySpanText,
   classNames,
+  isUrlCitation,
   CITATION_X_PADDING,
   CITATION_Y_PADDING,
 } from "./utils.js";
@@ -80,6 +81,9 @@ export {
   CheckIcon,
   SpinnerIcon,
   WarningIcon,
+  LinkIcon,
+  ExternalLinkIcon,
+  CloseIcon,
 } from "./icons.js";
 
 // Sources List Components (Anthropic-style aggregated citations)

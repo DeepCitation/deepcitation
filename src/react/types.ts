@@ -31,7 +31,7 @@ export type CitationVariant =
  *
  * Default content per variant:
  * - `chip` → `keySpan`
- * - `brackets` → `number`
+ * - `brackets` → `keySpan`
  * - `text` → `keySpan`
  * - `superscript` → `number`
  * - `minimal` → `number`

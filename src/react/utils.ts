@@ -1,4 +1,4 @@
-import type { Citation, SourceCitation } from "../types/citation.js";
+import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { sha1Hash } from "../utils/sha.js";
 import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
@@ -12,22 +12,22 @@ export function cn(...classes: (string | undefined | null | false)[]): string {
 }
 
 /**
- * Type guard to check if a citation is a SourceCitation (has URL).
+ * Type guard to check if a citation is a URL citation (type: "url" or has url field).
  */
-export function isSourceCitation(citation: Citation): citation is SourceCitation {
-  return "url" in citation && typeof (citation as SourceCitation).url === "string";
+export function isUrlCitation(citation: Citation): boolean {
+  return citation.type === "url" || (typeof citation.url === "string" && citation.url.length > 0);
 }
 
 /**
  * Generates a unique, deterministic key for a citation based on its content.
- * Works with both regular Citation and SourceCitation types.
+ * Works with both document and URL citation types.
  *
- * For SourceCitation, the URL is included in the key generation for uniqueness.
+ * For URL citations, the URL is included in the key generation for uniqueness.
  *
  * @param citation - The citation to generate a key for
  * @returns A unique, deterministic key for the citation
  */
-export function generateCitationKey(citation: Citation | SourceCitation): string {
+export function generateCitationKey(citation: Citation): string {
   const pageNumber =
     citation.pageNumber || getCitationPageNumber(citation.startPageKey);
 
@@ -42,8 +42,8 @@ export function generateCitationKey(citation: Citation | SourceCitation): string
     citation.timestamps?.endTime || "",
   ];
 
-  // Add SourceCitation-specific fields if present
-  if (isSourceCitation(citation)) {
+  // Add URL-specific fields if present
+  if (isUrlCitation(citation)) {
     keyParts.push(
       citation.url || "",
       citation.title || "",

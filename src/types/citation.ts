@@ -15,59 +15,12 @@ export interface VerifyCitationRequest {
   apiKey?: string; // Optional API key for authentication
 }
 
-export interface Citation {
-  attachmentId?: string;
-  fullPhrase?: string | null;
-  keySpan?: string | null;
-
-  startPageKey?: string | null;
-
-  lineIds?: number[] | null;
-  reasoning?: string | null;
-  selection?: ScreenBox | null;
-  citationNumber?: number;
-
-  //should be populated automatically via getCitationPageNumber
-  pageNumber?: number | null;
-
-  // for audio/video citations
-  timestamps?: {
-    endTime?: string;
-    startTime?: string;
-  };
-
-  beforeCite?: string;
-}
-
-export interface CitationStatus {
-  isVerified: boolean;
-  isMiss: boolean;
-  isPartialMatch: boolean;
-  isPending: boolean;
-}
-
 /**
- * Extended citation type for Anthropic-style web search citations.
- * Includes URL, title, and source metadata for aggregated sources display.
- *
- * Maps to existing Citation fields:
- * - `fullPhrase` = the context/excerpt from the source
- * - `keySpan` = the specific cited text (the key phrase being referenced)
+ * Citation type discriminator.
+ * - `"document"`: PDF or uploaded document citation (uses attachmentId, pageNumber, lineIds)
+ * - `"url"`: URL/web citation (uses url, domain, title, etc.)
  */
-export interface SourceCitation extends Citation {
-  /** The source URL */
-  url?: string;
-  /** Page/document title (e.g., "Q4 Financial Report") */
-  title?: string;
-  /** Display domain (e.g., "example.com") */
-  domain?: string;
-  /** Platform/source type for grouping and display */
-  sourceType?: SourceType;
-  /** Favicon URL if available */
-  faviconUrl?: string;
-  /** When the source was accessed/verified */
-  accessedAt?: Date | string;
-}
+export type CitationType = "document" | "url";
 
 /**
  * Source/platform type for categorization and display.
@@ -86,6 +39,148 @@ export type SourceType =
   | "commerce" // E-commerce sites
   | "reference" // Reference sites (Wikipedia, etc.)
   | "unknown"; // Unknown/other
+
+/**
+ * Unified citation interface for both document and URL-based citations.
+ *
+ * Use `type` to discriminate:
+ * - `type: "document"` - Uses attachmentId, pageNumber, lineIds for document citations
+ * - `type: "url"` - Uses url, domain, title, etc. for web citations
+ *
+ * Common fields (used by both types):
+ * - `fullPhrase`: The full context/excerpt containing the cited information
+ * - `keySpan`: The specific key phrase being cited (must be substring of fullPhrase)
+ * - `citationNumber`: Citation number for display (e.g., [1], [2])
+ *
+ * @example Document citation
+ * ```typescript
+ * const docCitation: Citation = {
+ *   type: "document",
+ *   attachmentId: "abc123",
+ *   pageNumber: 5,
+ *   lineIds: [12, 13],
+ *   fullPhrase: "Revenue increased by 15% in Q4.",
+ *   keySpan: "increased by 15%",
+ *   citationNumber: 1,
+ * };
+ * ```
+ *
+ * @example URL citation
+ * ```typescript
+ * const urlCitation: Citation = {
+ *   type: "url",
+ *   url: "https://example.com/article",
+ *   domain: "example.com",
+ *   title: "Q4 Financial Report",
+ *   fullPhrase: "The TGU transitions require control, not brute strength.",
+ *   keySpan: "require control, not brute strength",
+ *   citationNumber: 1,
+ * };
+ * ```
+ */
+export interface Citation {
+  /**
+   * Citation type discriminator.
+   * - `"document"`: PDF/uploaded document (default if not specified)
+   * - `"url"`: Web URL citation
+   */
+  type?: CitationType;
+
+  // ==========================================================================
+  // Common fields (used by both document and URL citations)
+  // ==========================================================================
+
+  /** The full context/excerpt containing the cited information */
+  fullPhrase?: string | null;
+
+  /** The specific key phrase being cited (should be substring of fullPhrase) */
+  keySpan?: string | null;
+
+  /** Citation number for display (e.g., [1], [2], [3]) */
+  citationNumber?: number;
+
+  /** Reasoning for why this citation was included */
+  reasoning?: string | null;
+
+  /** Text that appears before the citation marker */
+  beforeCite?: string;
+
+  // ==========================================================================
+  // Document citation fields (type: "document")
+  // ==========================================================================
+
+  /** Attachment ID for document citations */
+  attachmentId?: string;
+
+  /** Page number in the document */
+  pageNumber?: number | null;
+
+  /** Line IDs within the page */
+  lineIds?: number[] | null;
+
+  /** Start page key for multi-page citations */
+  startPageKey?: string | null;
+
+  /** Selection box coordinates in the document */
+  selection?: ScreenBox | null;
+
+  // ==========================================================================
+  // URL citation fields (type: "url")
+  // ==========================================================================
+
+  /** The source URL */
+  url?: string;
+
+  /** Display domain (e.g., "example.com", "fitandwell.com") */
+  domain?: string;
+
+  /** Page/article title */
+  title?: string;
+
+  /** Brief description or snippet from the page */
+  description?: string;
+
+  /** Favicon URL for the source */
+  faviconUrl?: string;
+
+  /** Platform/source type for categorization (e.g., "video", "news", "social") */
+  sourceType?: SourceType;
+
+  /** Platform name (e.g., "Twitch", "YouTube", "Reddit") */
+  platform?: string;
+
+  /** Site name (e.g., "Fit&Well", "Garage Gym Reviews") */
+  siteName?: string;
+
+  /** Author name if available */
+  author?: string;
+
+  /** Publication date */
+  publishedAt?: Date | string;
+
+  /** Open Graph or social media image URL */
+  imageUrl?: string;
+
+  /** When the source was accessed/verified */
+  accessedAt?: Date | string;
+
+  // ==========================================================================
+  // Audio/Video citation fields (can be used with both types)
+  // ==========================================================================
+
+  /** Timestamps for audio/video citations */
+  timestamps?: {
+    startTime?: string;
+    endTime?: string;
+  };
+}
+
+export interface CitationStatus {
+  isVerified: boolean;
+  isMiss: boolean;
+  isPartialMatch: boolean;
+  isPending: boolean;
+}
 
 /**
  * Metadata for a source in an aggregated sources list.

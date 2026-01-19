@@ -80,12 +80,12 @@ export interface Verification {
 
   verifiedAt?: Date;
 
-  // ==========================================================================
+// ==========================================================================
   // URL/Web Content Verification Fields
   // Used when verifying AI-generated URL claims (e.g., "According to example.com...")
   // ==========================================================================
 
-  /** The URL that was verified (from SourceCitation.url) */
+  /** The URL that was verified (from Citation.url when type: "url") */
   verifiedUrl?: string | null;
 
   /** The actual URL after following redirects */
@@ -117,4 +117,32 @@ export interface Verification {
 
   /** Error message if URL verification failed */
   urlVerificationError?: string | null;
+
+  // ==========================================================================
+  // Verified URL metadata (fetched from the actual page)
+  // ==========================================================================
+
+  /** Verified domain from the URL */
+  verifiedDomain?: string | null;
+
+  /** Verified description/meta description from the page */
+  verifiedDescription?: string | null;
+
+  /** Verified favicon URL */
+  verifiedFaviconUrl?: string | null;
+
+  /** Verified site name (from og:site_name or similar) */
+  verifiedSiteName?: string | null;
+
+  /** Verified author (from meta tags) */
+  verifiedAuthor?: string | null;
+
+  /** Verified publication date */
+  verifiedPublishedAt?: Date | string | null;
+
+  /** Verified OG image URL */
+  verifiedImageUrl?: string | null;
+
+  /** Content type of the fetched URL (e.g., "text/html", "application/pdf") */
+  contentType?: string | null;
 }

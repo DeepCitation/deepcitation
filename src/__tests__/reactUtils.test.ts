@@ -6,11 +6,11 @@ import {
   getCitationNumber,
   getCitationKeySpanText,
   classNames,
-  isSourceCitation,
+  isUrlCitation,
   CITATION_X_PADDING,
   CITATION_Y_PADDING,
 } from "../react/utils.js";
-import type { Citation, SourceCitation } from "../types/citation.js";
+import type { Citation } from "../types/citation.js";
 
 describe("react utils", () => {
   const citation: Citation = {
@@ -68,13 +68,14 @@ describe("react utils", () => {
     expect(CITATION_Y_PADDING).toBe(1);
   });
 
-  describe("isSourceCitation", () => {
+  describe("isUrlCitation", () => {
     it("returns true when citation has a URL string", () => {
-      const sourceCitation: SourceCitation = {
+      const urlCitation: Citation = {
+        type: "url",
         fullPhrase: "Test",
         url: "https://example.com",
       };
-      expect(isSourceCitation(sourceCitation)).toBe(true);
+      expect(isUrlCitation(urlCitation)).toBe(true);
     });
 
     it("returns false when citation has no URL", () => {
@@ -82,43 +83,45 @@ describe("react utils", () => {
         fullPhrase: "Test",
         pageNumber: 1,
       };
-      expect(isSourceCitation(citation)).toBe(false);
+      expect(isUrlCitation(citation)).toBe(false);
     });
 
     it("returns false when URL is undefined", () => {
       const citation = { fullPhrase: "Test" } as Citation;
-      expect(isSourceCitation(citation)).toBe(false);
+      expect(isUrlCitation(citation)).toBe(false);
     });
   });
 
-  describe("generateCitationKey with SourceCitation", () => {
-    it("includes URL fields in key generation for SourceCitation", () => {
-      const sourceCitation: SourceCitation = {
+  describe("generateCitationKey with URL citation", () => {
+    it("includes URL fields in key generation for URL citation", () => {
+      const urlCitation: Citation = {
+        type: "url",
         fullPhrase: "Test phrase",
         url: "https://example.com/page",
         title: "Example Page",
         domain: "example.com",
       };
 
-      const key = generateCitationKey(sourceCitation);
+      const key = generateCitationKey(urlCitation);
       expect(key).toHaveLength(16);
 
       // Different URL should produce different key
-      const differentUrl: SourceCitation = {
-        ...sourceCitation,
+      const differentUrl: Citation = {
+        ...urlCitation,
         url: "https://other.com/page",
       };
       expect(generateCitationKey(differentUrl)).not.toBe(key);
     });
 
-    it("generates same key for identical SourceCitation", () => {
-      const sourceCitation: SourceCitation = {
+    it("generates same key for identical URL citation", () => {
+      const urlCitation: Citation = {
+        type: "url",
         fullPhrase: "Revenue grew",
         url: "https://example.com/report",
         title: "Q4 Report",
       };
 
-      expect(generateCitationKey(sourceCitation)).toBe(generateCitationKey(sourceCitation));
+      expect(generateCitationKey(urlCitation)).toBe(generateCitationKey(urlCitation));
     });
   });
 });
