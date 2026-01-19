@@ -20,12 +20,12 @@ describe("citation prompts", () => {
     expect(AV_CITATION_MARKDOWN_SYNTAX_PROMPT).toContain("key_span");
   });
 
-  it("defines required fields for text-based citations", () => {
+  it("defines required fields for text-based citations in CoT order (fullPhrase before keySpan)", () => {
     expect(CITATION_JSON_OUTPUT_FORMAT.required).toEqual([
       "attachmentId",
       "reasoning",
-      "keySpan",
       "fullPhrase",
+      "keySpan",
       "startPageKey",
       "lineIds",
     ]);

@@ -372,8 +372,9 @@ const normalizeCitationContent = (input: string): string => {
     if (attrs.attachment_id) ordered.push("attachment_id");
 
     if (hasTimestamps) {
-      // AV citations: attachment_id, full_phrase, timestamps, (optional reasoning/value), then any extras
+      // AV citations: attachment_id, full_phrase, key_span, timestamps, (optional reasoning/value), then any extras
       if (attrs.full_phrase) ordered.push("full_phrase");
+      if (attrs.key_span) ordered.push("key_span");
       ordered.push("timestamps");
     } else {
       // Document citations: attachment_id, start_page*, full_phrase, key_span, line_ids, (optional reasoning/value), then any extras

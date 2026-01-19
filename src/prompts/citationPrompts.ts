@@ -4,14 +4,14 @@ export const CITATION_MARKDOWN_SYNTAX_PROMPT = `
 
 For every claim, value, or fact; you MUST cite sources using this exact syntax:
 
-<cite attachment_id='ID' reasoning='why this supports the claim' key_span='1-3 key words' full_phrase='verbatim quote' start_page_key='page_number_N_index_I' line_ids='X-Y' />
+<cite attachment_id='ID' reasoning='why this supports the claim' full_phrase='verbatim quote' key_span='1-3 key words' start_page_key='page_number_N_index_I' line_ids='X-Y' />
 
 ### Syntax Rules (MUST follow)
 
 1. **attachment_id**: Use the exact ID from the source document
 2. **reasoning**: Brief explanation of why this citation supports your claim (think first!)
-3. **key_span**: The 1-3 most important words or value from full_phrase
-4. **full_phrase**: Copy text VERBATIM from source. Escape quotes (\\') and newlines (\\n).
+3. **full_phrase**: Copy text VERBATIM from source. Escape quotes (\\') and newlines (\\n).
+4. **key_span**: The 1-3 most important words or value from full_phrase
 5. **start_page_key**: ONLY use format \`page_number_N_index_I\` from page tags (e.g., \`<page_number_1_index_0>\`). Never extract page numbers from document content.
 6. **line_ids**: Inclusive range (e.g., '2-6' or '4'). Infer intermediate lines since only every 5th line is shown.
 
@@ -24,11 +24,11 @@ For every claim, value, or fact; you MUST cite sources using this exact syntax:
 
 ### Example Citation 1
 
-The company reported strong growth<cite attachment_id='abc123' reasoning='directly states revenue growth percentage' key_span='increased 45%' full_phrase='Revenue increased 45% year-over-year to $2.3 billion' start_page_key='page_number_2_index_1' line_ids='12-14' />
+The company reported strong growth<cite attachment_id='abc123' reasoning='directly states revenue growth percentage' full_phrase='Revenue increased 45% year-over-year to $2.3 billion' key_span='increased 45%' start_page_key='page_number_2_index_1' line_ids='12-14' />
 
 ### Example Citation 2
 
-The total amount is $500 USD <cite attachment_id='abc123' reasoning='directly states the total amount' key_span='$500 USD' full_phrase='The total amount is $500 USD' start_page_key='page_number_2_index_1' line_ids='12-14' />
+The total amount is $500 USD <cite attachment_id='abc123' reasoning='directly states the total amount' full_phrase='The total amount is $500 USD' key_span='$500 USD' start_page_key='page_number_2_index_1' line_ids='12-14' />
 
 </citation-instructions>
 `;
@@ -39,14 +39,14 @@ export const AV_CITATION_MARKDOWN_SYNTAX_PROMPT = `
 
 For every claim, value, or fact; you MUST cite sources using this exact syntax:
 
-<cite attachment_id='ID' reasoning='why this supports the claim' key_span='1-3 key words' full_phrase='verbatim transcript quote' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' />
+<cite attachment_id='ID' reasoning='why this supports the claim' full_phrase='verbatim transcript quote' key_span='1-3 key words' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' />
 
 ### Syntax Rules (MUST follow)
 
 1. **attachment_id**: Use the exact ID from the source
 2. **reasoning**: Brief explanation of why this citation supports your claim (think first!)
-3. **key_span**: The 1-3 most important words or value from full_phrase
-4. **full_phrase**: Copy transcript text VERBATIM. Escape quotes (\\') and newlines (\\n).
+3. **full_phrase**: Copy transcript text VERBATIM. Escape quotes (\\') and newlines (\\n).
+4. **key_span**: The 1-3 most important words or value from full_phrase
 5. **timestamps**: Start and end time with milliseconds (e.g., '00:01:23.456-00:01:45.789')
 
 ### Placement Rules
@@ -112,10 +112,12 @@ export interface WrapCitationPromptResult {
  *
  * ### 2. Chain-of-Thought (CoT) Attribute Ordering
  * The citation attributes are ordered to encourage the model to "think first":
- * `attachment_id` → `reasoning` → `key_span` → `full_phrase` → `start_page_key` → `line_ids`
+ * `attachment_id` → `reasoning` → `full_phrase` → `key_span` → `start_page_key` → `line_ids`
  *
  * By placing `reasoning` early, the model must articulate WHY it's citing before
- * specifying WHAT it's citing, leading to more accurate and relevant citations.
+ * specifying WHAT it's citing. Then `full_phrase` comes before `key_span` so the model
+ * first produces the complete verbatim quote, then extracts the key span from it,
+ * ensuring `key_span` is always a valid substring of `full_phrase`.
  *
  * ### Why Not Just Append?
  * In large system prompts, appended instructions can get "lost" in the middle of the
@@ -233,15 +235,15 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
       description:
         "The logic connecting the form section requirements to the supporting source citation (think first!)",
     },
-    keySpan: {
-      type: "string",
-      description:
-        "The verbatim 1-3 words within fullPhrase that best support the citation",
-    },
     fullPhrase: {
       type: "string",
       description:
         "The verbatim text of the terse phrase inside <attachment_text /> to support the citation (if there is a detected OCR correction, use the corrected text)",
+    },
+    keySpan: {
+      type: "string",
+      description:
+        "The verbatim 1-3 words within fullPhrase that best support the citation",
     },
     startPageKey: {
       type: "string",
@@ -258,8 +260,8 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
   required: [
     "attachmentId",
     "reasoning",
-    "keySpan",
     "fullPhrase",
+    "keySpan",
     "startPageKey",
     "lineIds",
   ],
@@ -279,6 +281,11 @@ export const CITATION_AV_BASED_JSON_OUTPUT_FORMAT = {
       description:
         "The exact verbatim text of the phrase or paragraph from the source document to support the citation (if there is a detected OCR correction, use the verbatim corrected text)",
     },
+    keySpan: {
+      type: "string",
+      description:
+        "The verbatim 1-3 words within fullPhrase that best support the citation",
+    },
     timestamps: {
       type: "object",
       properties: {
@@ -290,5 +297,5 @@ export const CITATION_AV_BASED_JSON_OUTPUT_FORMAT = {
         "The timestamp of the audio or video frame including milliseconds formatted as: HH:MM:SS.SSS",
     },
   },
-  required: ["attachmentId", "startPageKey", "fullPhrase", "timestamps"],
+  required: ["attachmentId", "startPageKey", "fullPhrase", "keySpan", "timestamps"],
 };
