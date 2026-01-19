@@ -24,7 +24,8 @@
         "LICENSE"
     ],
     "scripts": {
-        "build": "tsup",
+        "build": "tsup && npm run build:css",
+        "build:css": "tailwindcss -i ./src/styles.css -o ./lib/styles.css --minify",
         "build:watch": "tsup --watch",
         "build:tsc": "rimraf lib && tsc",
         "test": "bun test ./src/__tests__/*.test.ts ./src/__tests__/*.test.tsx",
@@ -40,9 +41,9 @@
         "node": ">=18"
     },
     "peerDependencies": {
+        "@radix-ui/react-popover": "^1.0.0",
         "react": ">=17.0.0",
-        "react-dom": ">=17.0.0",
-        "@radix-ui/react-popover": "^1.0.0"
+        "react-dom": ">=17.0.0"
     },
     "peerDependenciesMeta": {
         "react": {
@@ -56,10 +57,12 @@
         }
     },
     "devDependencies": {
-        "@size-limit/preset-small-lib": "^11.0.0",
         "@happy-dom/global-registrator": "^20.0.11",
         "@playwright/experimental-ct-react": "^1.57.0",
         "@playwright/test": "^1.57.0",
+        "@radix-ui/react-popover": "^1.1.14",
+        "@size-limit/preset-small-lib": "^11.0.0",
+        "@tailwindcss/cli": "^4.1.18",
         "@testing-library/jest-dom": "^6.8.0",
         "@testing-library/react": "^16.3.0",
         "@types/jest": "^29.5.14",
@@ -71,11 +74,11 @@
         "happy-dom": "^20.0.11",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^29.7.0",
-        "@radix-ui/react-popover": "^1.1.14",
         "react": "19.2.3",
         "react-dom": "19.2.3",
         "rimraf": "^5.0.5",
         "size-limit": "^11.0.0",
+        "tailwindcss": "^4.1.18",
         "ts-jest": "^29.4.6",
         "tsup": "^8.0.0",
         "typescript": "^5.9.3",
@@ -125,7 +128,8 @@
             "import": "./lib/types/index.js",
             "require": "./lib/types/index.cjs"
         },
-        "./tailwind.css": "./src/tailwind.css"
+        "./tailwind.css": "./src/tailwind.css",
+        "./styles.css": "./lib/styles.css"
     },
     "keywords": [
         "citation",
