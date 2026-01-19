@@ -28,7 +28,7 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
       <div className="px-4 py-3 border-b">
         <h2 className="font-semibold text-gray-900">Citation Verification</h2>
         <p className="text-xs text-gray-500">
-          Real-time verification against source documents
+          Real-time verification against attachments
         </p>
       </div>
 

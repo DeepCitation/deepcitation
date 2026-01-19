@@ -405,7 +405,7 @@ export const getAllCitationsFromLlmOutput = (
 /**
  * Groups citations by their attachmentId for multi-file verification scenarios.
  * This is useful when you have citations from multiple files and need to
- * verify them against their respective source documents.
+ * verify them against their respective attachments.
  *
  * @param citations - Array of Citation objects or a dictionary of citations
  * @returns Map of attachmentId to dictionary of citations from that file

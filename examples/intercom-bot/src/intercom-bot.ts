@@ -2,7 +2,7 @@
  * Intercom Bot with Invisible Citation Verification
  *
  * This class demonstrates how to build an Intercom-integrated AI assistant
- * that internally verifies all responses against source documents,
+ * that internally verifies all responses against attachments,
  * without showing citation markers to end users.
  */
 
@@ -97,7 +97,7 @@ export class IntercomBot {
   /**
    * Generate a response with citation verification
    *
-   * The response is verified against source documents, but the customer
+   * The response is verified against attachments, but the customer
    * sees a clean response without citation markers. Verification data
    * is returned separately for monitoring and audit purposes.
    */
@@ -113,7 +113,7 @@ export class IntercomBot {
 Answer questions accurately based on the provided knowledge base.
 Be friendly, professional, and concise.
 If information is not available in the knowledge base, say so honestly.
-Do not make up information that isn't in the source documents.`;
+Do not make up information that isn't in the attachments.`;
 
     const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
       systemPrompt,

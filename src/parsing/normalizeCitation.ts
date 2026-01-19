@@ -1,5 +1,7 @@
 import type { Verification } from "../types/verification.js";
+import type { Citation } from "../types/citation.js";
 import { getCitationStatus } from "./parseCitation.js";
+import { generateCitationKey } from "../react/utils.js";
 
 export interface ReplaceCitationsOptions {
   /**
@@ -145,18 +147,35 @@ export const replaceCitations = (
       // Try to find verification by various key strategies
       let verification: Verification | undefined;
 
-      // Strategy 1: Try numbered keys (1, 2, 3, etc.) - most common
-      const numericKey = String(citationIndex);
-      verification = verifications[numericKey];
+      // Build a Citation object from parsed attributes to generate the key
+      const parsePageNumber = (startPageKey?: string): number | undefined => {
+        if (!startPageKey) return undefined;
+        const match = startPageKey.match(/page[_a-zA-Z]*(\d+)/);
+        return match ? parseInt(match[1], 10) : undefined;
+      };
 
-      // Strategy 2: Match by attachment_id
-      if (!verification && attrs.attachment_id) {
-        for (const [, v] of Object.entries(verifications)) {
-          if (v.attachmentId === attrs.attachment_id) {
-            verification = v;
-            break;
-          }
-        }
+      const parseLineIds = (lineIdsStr?: string): number[] | undefined => {
+        if (!lineIdsStr) return undefined;
+        const nums = lineIdsStr.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n));
+        return nums.length > 0 ? nums : undefined;
+      };
+
+      const citation: Citation = {
+        attachmentId: attrs.attachment_id,
+        pageNumber: parsePageNumber(attrs.start_page_key),
+        fullPhrase: attrs.full_phrase?.replace(/\\'/g, "'").replace(/\\"/g, '"'),
+        keySpan: attrs.key_span?.replace(/\\'/g, "'").replace(/\\"/g, '"'),
+        lineIds: parseLineIds(attrs.line_ids),
+      };
+
+      // Strategy 1: Match by citationKey (hash) - most reliable
+      const citationKey = generateCitationKey(citation);
+      verification = verifications[citationKey];
+
+      // Strategy 2: Fall back to numbered keys (1, 2, 3, etc.)
+      if (!verification) {
+        const numericKey = String(citationIndex);
+        verification = verifications[numericKey];
       }
 
       const indicator = getVerificationIndicator(verification);

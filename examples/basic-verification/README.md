@@ -1,6 +1,6 @@
 # Basic Verification Example
 
-A minimal example demonstrating the DeepCitation 3-step workflow for verifying AI citations against source documents.
+A minimal example demonstrating the DeepCitation 3-step workflow for verifying AI citations against attachments.
 
 ## What This Example Does
 

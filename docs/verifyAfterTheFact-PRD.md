@@ -399,7 +399,7 @@ Validation runs early with clear, actionable messages:
 ## Your Role
 
 You are a citation specialist. Analyze text and insert <cite /> tags where
-claims can be verified against the provided source documents.
+claims can be verified against the provided attachments.
 
 ## Critical Rules
 

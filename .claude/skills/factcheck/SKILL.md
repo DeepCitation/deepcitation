@@ -1,6 +1,6 @@
 ---
 name: factcheck
-description: Adversarial fact-checking and verification of LLM output against uploaded source documents using DeepCitation. Use when you need to verify claims, find contradictions, or perform devil's advocate analysis on AI-generated content.
+description: Adversarial fact-checking and verification of LLM output against uploaded attachments using DeepCitation. Use when you need to verify claims, find contradictions, or perform devil's advocate analysis on AI-generated content.
 allowed-tools:
   - Read
   - Grep
@@ -10,11 +10,11 @@ allowed-tools:
 
 # Fact-Check Skill
 
-Perform adversarial verification of LLM-generated content against uploaded source documents using DeepCitation.
+Perform adversarial verification of LLM-generated content against uploaded attachments using DeepCitation.
 
 ## When to Use
 
-- Verify claims in an AI response against source documents
+- Verify claims in an AI response against attachments
 - Find potential contradictions or unsupported statements
 - Perform devil's advocate analysis
 - Generate counter-arguments and check their evidence

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with the DeepCitation np
 
 ## Package Overview
 
-DeepCitation is a citation verification and parsing library that enables AI-generated content to include verifiable references. It provides citation extraction, normalization, verification against source documents, and visual proof generation.
+DeepCitation is a citation verification and parsing library that enables AI-generated content to include verifiable references. It provides citation extraction, normalization, verification against attachments, and visual proof generation.
 
 ## NPM Package
 
@@ -455,7 +455,7 @@ interface SourcesListItemProps {
 
 ## API Endpoints
 
-- `POST https://api.deepcitation.com/prepareFile` - Upload and process source documents
+- `POST https://api.deepcitation.com/prepareFile` - Upload and process attachments
 - `POST https://api.deepcitation.com/verifyCitations` - Verify citations against source
 
 

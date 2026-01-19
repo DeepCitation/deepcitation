@@ -6,7 +6,7 @@ The `CitationComponent` is a React component that displays verifiable citations 
 
 ## Goals
 
-1. **Verification transparency** - Show users whether AI-generated citations are verified against source documents
+1. **Verification transparency** - Show users whether AI-generated citations are verified against attachments
 2. **Copy/paste friendly** - Follow shadcn patterns so developers can easily customize the component
 3. **Minimal dependencies** - Use optional peer dependencies so consumers only install what they need
 4. **Dark mode support** - Work seamlessly in light and dark themes via Tailwind CSS

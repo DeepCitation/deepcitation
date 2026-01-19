@@ -4,7 +4,7 @@
  * This example demonstrates the complete 4-step workflow:
  * 1. Pre-Prompt: Upload documents and enhance prompts
  * 2. Call LLM: Get response from OpenAI with citations
- * 3. Verify: Verify citations against source documents
+ * 3. Verify: Verify citations against attachments
  * 4. Display: Show verification results
  *
  * Run: npm run start:openai
@@ -21,6 +21,7 @@ import {
   getCitationStatus,
   replaceCitations,
   getAllCitationsFromLlmOutput,
+  getVerificationTextIndicator,
 } from "@deepcitation/deepcitation-js";
 
 // Get current directory for loading sample file
@@ -148,7 +149,7 @@ provided documents accurately and cite your sources.`;
 
   // ============================================
   // STEP 3: VERIFY CITATIONS
-  // Verify all citations against source documents
+  // Verify all citations against attachments
   // ============================================
 
   console.log("🔍 Step 3: Verifying citations against source document...\n");
@@ -200,24 +201,10 @@ provided documents accurately and cite your sources.`;
 
     for (const [key, verification] of verifications) {
       const status = getCitationStatus(verification);
-      const statusIcon = status.isVerified
-        ? status.isPartialMatch
-          ? "⚠️ "
-          : "✅"
-        : status.isPending
-        ? "⏳"
-        : "❌";
-
-      const statusLabel = status.isVerified
-        ? status.isPartialMatch
-          ? "PARTIAL MATCH"
-          : "VERIFIED"
-        : status.isPending
-        ? "PENDING"
-        : "NOT FOUND";
+      const statusIndicator = getVerificationTextIndicator(verification);
 
       console.log(`${"═".repeat(60)}`);
-      console.log(`Citation [${key}]: ${statusIcon} ${statusLabel}`);
+      console.log(`Citation [${key}]: ${statusIndicator} ${status}`);
       console.log(`${"─".repeat(60)}`);
 
       // Original citation from LLM
@@ -251,7 +238,6 @@ provided documents accurately and cite your sources.`;
   console.log("─".repeat(50));
   console.log(
     replaceCitations(llmResponse, {
-      leaveKeySpanBehind: true,
       verifications: verificationResult.verifications,
       showVerificationStatus: true,
     })

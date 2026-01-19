@@ -2,7 +2,7 @@ export const CITATION_MARKDOWN_SYNTAX_PROMPT = `
 <citation-instructions priority="critical">
 ## REQUIRED: Citation Format
 
-For every claim, value, or fact; you MUST cite sources using this exact syntax:
+For every claim, value, or fact; you MUST cite the attachment using this exact syntax:
 
 <cite attachment_id='ID' reasoning='why this supports the claim' full_phrase='verbatim quote' key_span='1-3 key words' start_page_key='page_number_N_index_I' line_ids='X-Y' />
 
@@ -37,7 +37,7 @@ export const AV_CITATION_MARKDOWN_SYNTAX_PROMPT = `
 <citation-instructions priority="critical">
 ## REQUIRED: Audio/Video Citation Format
 
-For every claim, value, or fact; you MUST cite sources using this exact syntax:
+For every claim, value, or fact; you MUST cite the attachment using this exact syntax:
 
 <cite attachment_id='ID' reasoning='why this supports the claim' full_phrase='verbatim transcript quote' key_span='1-3 key words' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' />
 
@@ -63,7 +63,7 @@ For every claim, value, or fact; you MUST cite sources using this exact syntax:
  * A brief reminder to reinforce citation requirements in user messages.
  * Use this when you want to add emphasis without repeating full instructions.
  */
-export const CITATION_REMINDER = `<citation-reminder>Remember: You MUST use <cite /> tags with all required attributes for every claim, value, or fact from source documents.</citation-reminder>`;
+export const CITATION_REMINDER = `<citation-reminder>Remember: You MUST use <cite /> tags with all required attributes for every claim, value, or fact from attachments.</citation-reminder>`;
 
 /**
  * Audio/video version of the citation reminder.
@@ -97,7 +97,7 @@ export interface WrapCitationPromptResult {
 
 /**
  * Wraps your existing system prompt with DeepCitation's citation syntax instructions.
- * This enables LLMs to output verifiable citations that can be checked against source documents.
+ * This enables LLMs to output verifiable citations that can be checked against attachments.
  *
  * ## Why We Wrap (Instructions at Start + Reminder at End)
  *

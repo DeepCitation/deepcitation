@@ -4,7 +4,7 @@
  * This example demonstrates the complete 4-step workflow:
  * 1. Pre-Prompt: Upload documents and enhance prompts
  * 2. Call LLM: Get response from Claude with citations
- * 3. Verify: Verify citations against source documents
+ * 3. Verify: Verify citations against attachments
  * 4. Display: Show verification results
  *
  * Run: npm run start:anthropic
@@ -132,7 +132,7 @@ provided documents accurately and cite your sources.`;
 
   // ============================================
   // STEP 3: VERIFY CITATIONS
-  // Verify all citations against source documents
+  // Verify all citations against attachments
   // ============================================
 
   console.log("🔍 Step 3: Verifying citations against source document...\n");

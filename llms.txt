@@ -1,12 +1,12 @@
 # DeepCitation
 
-> Deterministic AI citation verification. Eliminate hallucination risk by proving every AI citation against source documents.
+> Deterministic AI citation verification. Eliminate hallucination risk by proving every AI citation against attachments.
 
-DeepCitation is an open-source library and API that enables AI applications to include verifiable, traceable citations. Every citation is deterministically matched to its exact location in source documents with visual proof generation.
+DeepCitation is an open-source library and API that enables AI applications to include verifiable, traceable citations. Every citation is deterministically matched to its exact location in attachments with visual proof generation.
 
 ## Core Concepts
 
-- **Deterministic Matching**: Citations are traced to exact locations in source documents. No fuzzy matching or guessing—just deterministic proof.
+- **Deterministic Matching**: Citations are traced to exact locations in attachments. No fuzzy matching or guessing—just deterministic proof.
 - **Visual Proof**: Automated screenshots with highlighted text show exactly where each citation comes from.
 - **LLM Agnostic**: Works with any LLM provider—OpenAI, Anthropic, Google, or custom models.
 - **React Components**: Pre-built and composable components for rendering citations with verification status.
@@ -15,8 +15,8 @@ DeepCitation is an open-source library and API that enables AI applications to i
 
 DeepCitation works in three steps:
 
-1. **Pre-Prompt**: Upload source documents and enhance your LLM prompt with citation instructions using `prepareFiles()` and `wrapCitationPrompt()`.
-2. **Post-Prompt**: After receiving the LLM response, verify citations against source documents using `verify()` or `verifyAll()`.
+1. **Pre-Prompt**: Upload attachments and enhance your LLM prompt with citation instructions using `prepareFiles()` and `wrapCitationPrompt()`.
+2. **Post-Prompt**: After receiving the LLM response, verify citations against attachments using `verify()` or `verifyAll()`.
 3. **Display**: Render verified citations with React components like `CitationComponent`.
 
 ## Documentation
@@ -50,7 +50,7 @@ import type { Citation, Verification } from "@deepcitation/deepcitation-js";
 ### DeepCitation Client
 
 - `new DeepCitation({ apiKey })` - Initialize the client with your API key
-- `prepareFiles(files)` - Upload source documents and get structured content for LLM prompts
+- `prepareFiles(files)` - Upload attachments and get structured content for LLM prompts
 - `verify(attachmentId, citations)` - Verify pre-parsed citations against a specific file
 - `verifyAll({ llmOutput })` - Parse LLM output and verify all citations automatically
 

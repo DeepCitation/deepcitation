@@ -6,6 +6,8 @@ import {
   removeCitations,
 } from "../parsing/normalizeCitation.js";
 import type { Verification } from "../types/verification.js";
+import type { Citation } from "../types/citation.js";
+import { generateCitationKey } from "../react/utils.js";
 
 describe("getCitationPageNumber", () => {
   it("parses page numbers from standard keys", () => {
@@ -433,5 +435,174 @@ describe("removeCitations (backward compatibility)", () => {
   it("supports leaveKeySpanBehind parameter", () => {
     const input = `Text<cite attachment_id='abc' key_span='test' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' />.`;
     expect(removeCitations(input, true)).toBe("Texttest.");
+  });
+});
+
+describe("replaceCitations with citationKey matching", () => {
+  it("matches verifications by citationKey when multiple citations share same attachmentId", () => {
+    // This is the critical test: multiple citations from the same document
+    // should each match their own verification, not all match the first one
+    const attachmentId = "D8bv8mItwv6VOmIBo2nr";
+
+    // Create citations that would be in the LLM output
+    const citation1: Citation = {
+      attachmentId,
+      pageNumber: 1,
+      fullPhrase: "Patient John Doe is a 50 year old male",
+      keySpan: "John Doe",
+      lineIds: [1, 2],
+    };
+
+    const citation2: Citation = {
+      attachmentId,
+      pageNumber: 1,
+      fullPhrase: "Allergies: No Known Drug Allergies (NKDA)",
+      keySpan: "NKDA",
+      lineIds: [3],
+    };
+
+    const citation3: Citation = {
+      attachmentId,
+      pageNumber: 1,
+      fullPhrase: "Blood pressure reading was elevated at 150/95",
+      keySpan: "elevated",
+      lineIds: [5, 6],
+    };
+
+    // Generate the keys that the verification system would use
+    const key1 = generateCitationKey(citation1);
+    const key2 = generateCitationKey(citation2);
+    const key3 = generateCitationKey(citation3);
+
+    // Ensure keys are unique
+    expect(key1).not.toBe(key2);
+    expect(key2).not.toBe(key3);
+    expect(key1).not.toBe(key3);
+
+    // Set up verifications with different statuses keyed by citationKey
+    const verifications: Record<string, Verification> = {
+      [key1]: { status: "found", attachmentId },
+      [key2]: { status: "not_found", attachmentId },
+      [key3]: { status: "partial_text_found", attachmentId },
+    };
+
+    // Build input with citations in the exact same format
+    const input = `${citation1.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${citation1.fullPhrase}' key_span='${citation1.keySpan}' line_ids='1,2' /> and ${citation2.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${citation2.fullPhrase}' key_span='${citation2.keySpan}' line_ids='3' /> and ${citation3.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${citation3.fullPhrase}' key_span='${citation3.keySpan}' line_ids='5,6' />.`;
+
+    const result = replaceCitations(input, {
+      verifications,
+      showVerificationStatus: true,
+    });
+
+    // Each citation should have its own correct indicator
+    // citation1 = found (✓), citation2 = not_found (✗), citation3 = partial (⚠)
+    expect(result).toBe(
+      `${citation1.fullPhrase}✓ and ${citation2.fullPhrase}✗ and ${citation3.fullPhrase}⚠.`
+    );
+  });
+
+  it("matches by citationKey even when citations have escaped quotes", () => {
+    const attachmentId = "TestAttachment12345678";
+
+    const citation: Citation = {
+      attachmentId,
+      pageNumber: 2,
+      fullPhrase: "The doctor said \"rest is important\" for recovery",
+      keySpan: "rest is important",
+      lineIds: [10],
+    };
+
+    const key = generateCitationKey(citation);
+    const verifications: Record<string, Verification> = {
+      [key]: { status: "found", attachmentId },
+    };
+
+    // In cite tags, quotes are escaped
+    const input = `Quote<cite attachment_id='${attachmentId}' start_page_key='page_number_2_index_0' full_phrase='The doctor said \\"rest is important\\" for recovery' key_span='rest is important' line_ids='10' />.`;
+
+    const result = replaceCitations(input, {
+      verifications,
+      showVerificationStatus: true,
+    });
+
+    expect(result).toBe("Quote✓.");
+  });
+
+  it("falls back to numeric key when citationKey does not match", () => {
+    // Test backward compatibility with numeric keys
+    const verifications: Record<string, Verification> = {
+      "1": { status: "found", attachmentId: "abc" },
+      "2": { status: "not_found", attachmentId: "abc" },
+    };
+
+    const input = `First<cite attachment_id='abc' start_page_key='page_number_1_index_0' full_phrase='first phrase' key_span='first' line_ids='1' /> second<cite attachment_id='abc' start_page_key='page_number_1_index_0' full_phrase='second phrase' key_span='second' line_ids='2' />.`;
+
+    const result = replaceCitations(input, {
+      verifications,
+      showVerificationStatus: true,
+    });
+
+    expect(result).toBe("First✓ second✗.");
+  });
+
+  it("shows pending indicator when neither citationKey nor numeric key matches", () => {
+    const verifications: Record<string, Verification> = {
+      "wrong-key": { status: "found", attachmentId: "abc" },
+    };
+
+    const input = `Claim<cite attachment_id='abc' start_page_key='page_number_1_index_0' full_phrase='test phrase' key_span='test' line_ids='1' />.`;
+
+    const result = replaceCitations(input, {
+      verifications,
+      showVerificationStatus: true,
+    });
+
+    expect(result).toBe("Claim◌.");
+  });
+
+  it("correctly handles real-world medical chart scenario with 5+ citations", () => {
+    const attachmentId = "MedicalChart2024Test";
+
+    // Simulate a medical chart with multiple facts
+    const citations: Citation[] = [
+      { attachmentId, pageNumber: 1, fullPhrase: "Patient: John Doe, 50/M", keySpan: "John Doe", lineIds: [1] },
+      { attachmentId, pageNumber: 1, fullPhrase: "Allergies: NKDA", keySpan: "NKDA", lineIds: [2] },
+      { attachmentId, pageNumber: 1, fullPhrase: "Heparin 12 u/hr", keySpan: "Heparin", lineIds: [5] },
+      { attachmentId, pageNumber: 1, fullPhrase: "Dobutamine 2.5 mcg/kg", keySpan: "Dobutamine", lineIds: [6] },
+      { attachmentId, pageNumber: 1, fullPhrase: "Na+ 138", keySpan: "Na+ 138", lineIds: [10] },
+    ];
+
+    // Create verifications: some found, some not, some partial
+    const verifications: Record<string, Verification> = {};
+    const statuses: Array<Verification["status"]> = [
+      "found",
+      "found",
+      "not_found",
+      "partial_text_found",
+      "found",
+    ];
+
+    citations.forEach((c, i) => {
+      const key = generateCitationKey(c);
+      verifications[key] = { status: statuses[i], attachmentId };
+    });
+
+    // Build input
+    let input = "";
+    citations.forEach((c, i) => {
+      input += `${c.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${c.fullPhrase}' key_span='${c.keySpan}' line_ids='${c.lineIds![0]}' />`;
+      if (i < citations.length - 1) input += " ";
+    });
+
+    const result = replaceCitations(input, {
+      verifications,
+      showVerificationStatus: true,
+    });
+
+    // Verify each citation gets its correct indicator
+    // found=✓, not_found=✗, partial=⚠
+    expect(result).toBe(
+      "Patient: John Doe, 50/M✓ Allergies: NKDA✓ Heparin 12 u/hr✗ Dobutamine 2.5 mcg/kg⚠ Na+ 138✓"
+    );
   });
 });

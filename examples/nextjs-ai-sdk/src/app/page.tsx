@@ -207,7 +207,7 @@ export default function Home() {
                 </h2>
                 <p className="text-gray-600 mb-4">
                   Upload a document to get started, then ask questions. Every AI
-                  response will be verified against your source documents.
+                  response will be verified against your attachments.
                 </p>
 
                 <div className="text-left text-sm text-gray-500">

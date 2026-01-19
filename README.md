@@ -2,7 +2,7 @@
 
 # @deepcitation/deepcitation-js
 
-**Deterministic AI citation verification. Eliminate hallucination risk by proving every AI citation against source documents.**
+**Deterministic AI citation verification. Eliminate hallucination risk by proving every AI citation against attachments.**
 
 [![npm version](https://img.shields.io/npm/v/@deepcitation/deepcitation-js.svg)](https://www.npmjs.com/package/@deepcitation/deepcitation-js)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -16,7 +16,7 @@
 
 ## Why DeepCitation?
 
-LLMs hallucinate. Even when given source documents, they make up quotes, invent statistics, and cite pages that don't exist. DeepCitation solves this by **deterministically verifying every citation** against your source documents—and generating visual proof.
+LLMs hallucinate. Even when given attachments, they make up quotes, invent statistics, and cite pages that don't exist. DeepCitation solves this by **deterministically verifying every citation** against your attachments—and generating visual proof.
 
 <div align="center">
 <img src="./examples/assets/deepcitation-medical-demo.gif" alt="DeepCitation medical documentation demo showing verified inline citations" width="700" />
@@ -58,7 +58,7 @@ DeepCitation works in three steps: **Pre-Prompt**, **Post-Prompt**, and **Displa
 
 ### Step 1: Pre-Prompt
 
-Upload source documents and enhance your prompt with citation instructions.
+Upload attachments and enhance your prompt with citation instructions.
 
 ```typescript
 import { DeepCitation, wrapCitationPrompt } from "@deepcitation/deepcitation-js";
@@ -88,7 +88,7 @@ const response = await llm.chat({
 
 ### Step 2: Post-Prompt
 
-Verify citations against the source documents.
+Verify citations against the attachments.
 
 ```typescript
 const result = await deepcitation.verify({
