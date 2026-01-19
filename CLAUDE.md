@@ -42,9 +42,9 @@ import type { CitationPosition } from "@deepcitation/deepcitation-js";
 ```typescript
 import {
   CitationComponent,
-  SourcesPanel,
-  SourceItem,
-  createSourcesFromCitations,
+  SourcesListComponent,
+  SourcesTrigger,
+  SourcesListItem,
 } from "@deepcitation/deepcitation-js/react";
 ```
 
@@ -185,7 +185,6 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 | `"text"`      | `Revenue Growth✓`       | Plain text, inherits parent styling            |
 | `"superscript"` | `¹✓`                  | Small raised footnote style                    |
 | `"minimal"`   | `1✓`                    | Compact text with truncation                   |
-| `"link"`      | `🔗`                    | Small link icon, inline (Gemini-style)         |
 
 #### Content (What's Displayed)
 
@@ -201,7 +200,6 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 - `text` → `keySpan`
 - `superscript` → `number`
 - `minimal` → `number`
-- `link` → `indicator` (shows only the link icon)
 
 ### 5. Status Indicators
 
@@ -322,18 +320,19 @@ interface CitationBehaviorConfig {
 }
 ```
 
-### 9. Web Sources (Gemini-Style Citations)
+### 9. Web Sources (URL-Based Citations)
 
-For URL-based citations (like Gemini's inline link icons), use the `link` variant and `WebSource` type:
+For URL-based citations, use the `WebSource` type to attach source metadata:
 
 ```typescript
 import type { Citation, WebSource } from "@deepcitation/deepcitation-js";
 
 // Citation with web source metadata
+// Note: keySpan should be a substring of fullPhrase
 const citation: Citation = {
   citationNumber: 1,
-  keySpan: "kettlebell exercises",
   fullPhrase: "The TGU transitions and Halos require control, not brute strength.",
+  keySpan: "require control, not brute strength",
   webSource: {
     url: "https://www.fitandwell.com/features/kettlebell-moves",
     domain: "fitandwell.com",
@@ -344,70 +343,13 @@ const citation: Citation = {
   }
 };
 
-// Display as inline link icon
+// Display with minimal variant for compact inline display
 <CitationComponent
   citation={citation}
   verification={verification}
-  variant="link"
+  variant="minimal"
+  content="indicator"
 />
-```
-
-### 10. SourcesPanel Component
-
-Display all sources in a panel/drawer at the end of content (like Gemini's "Sources" section):
-
-```tsx
-import {
-  SourcesPanel,
-  createSourcesFromCitations,
-  type SourceItemData,
-} from "@deepcitation/deepcitation-js/react";
-
-// Create sources from your citation/verification maps
-const sources = createSourcesFromCitations(citations, verifications);
-
-// Inline list variant
-<SourcesPanel
-  sources={sources}
-  title="Sources"
-  variant="inline"
-  onSourceClick={(source) => console.log('Selected:', source.key)}
-/>
-
-// Bottom drawer variant (Gemini-style)
-<SourcesPanel
-  sources={sources}
-  isOpen={showSources}
-  onClose={() => setShowSources(false)}
-  variant="drawer"
-  onExternalClick={(source, url) => window.open(url, '_blank')}
-/>
-
-// Fixed panel at bottom
-<SourcesPanel
-  sources={sources}
-  isOpen={showSources}
-  onClose={() => setShowSources(false)}
-  variant="panel"
-/>
-```
-
-#### SourcesPanel Variants
-
-| Variant   | Description                                    |
-|-----------|------------------------------------------------|
-| `"inline"`| Inline list within content flow (default)      |
-| `"panel"` | Fixed panel at bottom of screen                |
-| `"drawer"`| Slide-up drawer overlay with backdrop          |
-
-#### SourceItemData Interface
-
-```typescript
-interface SourceItemData {
-  key: string;           // Unique identifier
-  citation: Citation;    // Citation data
-  verification?: Verification | null;  // Verification result
-}
 ```
 
 #### WebSource Interface
@@ -424,6 +366,70 @@ interface WebSource {
   author?: string;          // Author name
   publishedAt?: Date | string;  // Publication date
   imageUrl?: string;        // OG/social image URL
+}
+```
+
+### 10. SourcesListComponent
+
+Display all sources in a panel/drawer at the end of content (like Gemini's "Sources" section):
+
+```tsx
+import {
+  SourcesListComponent,
+  SourcesTrigger,
+  useSourcesList,
+  sourceCitationsToListItems,
+} from "@deepcitation/deepcitation-js/react";
+
+// Basic usage with drawer (mobile-friendly)
+const { sources, isOpen, setIsOpen } = useSourcesList([
+  { id: "1", url: "https://twitch.tv/theo", title: "Theo - Twitch", domain: "twitch.tv" },
+  { id: "2", url: "https://fitandwell.com/article", title: "Kettlebell Guide", domain: "fitandwell.com" },
+]);
+
+// Trigger button (shows stacked favicons)
+<SourcesTrigger
+  sources={sources}
+  onClick={() => setIsOpen(true)}
+  label="Sources"
+/>
+
+// Sources list drawer
+<SourcesListComponent
+  sources={sources}
+  variant="drawer"
+  isOpen={isOpen}
+  onOpenChange={setIsOpen}
+/>
+
+// Or inline list
+<SourcesListComponent
+  sources={sources}
+  variant="inline"
+/>
+```
+
+#### SourcesListComponent Variants
+
+| Variant   | Description                                    |
+|-----------|------------------------------------------------|
+| `"drawer"`| Bottom sheet modal (mobile-friendly, default)  |
+| `"modal"` | Centered modal overlay                         |
+| `"panel"` | Collapsible panel inline with content          |
+| `"inline"`| Inline list without modal/container styling    |
+
+#### SourcesListItemProps Interface
+
+```typescript
+interface SourcesListItemProps {
+  id: string;           // Unique identifier
+  url: string;          // Source URL
+  title: string;        // Page/document title
+  domain: string;       // Display domain (e.g., "Twitch", "LinkedIn")
+  sourceType?: SourceType;     // Platform type for icon selection
+  faviconUrl?: string;         // Custom favicon URL
+  citationNumbers?: number[];  // Which citations reference this source
+  verificationStatus?: "verified" | "partial" | "pending" | "failed" | "unknown";
 }
 ```
 
@@ -449,7 +455,7 @@ src/
 ├── react/                # React components
 │   ├── index.ts
 │   ├── CitationComponent.tsx
-│   ├── SourcesPanel.tsx      # Gemini-style sources panel/drawer
+│   ├── SourcesListComponent.tsx  # Aggregated sources list/drawer
 │   ├── CitationVariants.tsx
 │   └── UrlCitationComponent.tsx
 ├── types/                # TypeScript types
