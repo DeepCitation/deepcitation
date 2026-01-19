@@ -77,13 +77,29 @@ export const parseCitation = (
   citationCounterRef?: any | null,
   isVerbose?: boolean
 ) => {
-  // Helper: Remove wrapper quotes and unescape internal single quotes (e.g. It\'s -> It's)
+  // Helper: Remove wrapper quotes and fully unescape content
+  // Handles: \' -> ', \" -> ", \n -> space, \\ -> \
   const cleanAndUnescape = (str?: string) => {
     if (!str) return undefined;
-    // Remove surrounding quotes if present (regex usually handles this, but safety first)
-    const trimmed = str.replace(/^['"]|['"]$/g, "");
+    let result = str;
+    // Remove surrounding quotes if present, but only if not escaped
+    // Check start: remove leading quote only if it exists
+    if (result.startsWith("'") || result.startsWith('"')) {
+      result = result.slice(1);
+    }
+    // Check end: remove trailing quote only if it's not escaped (not preceded by \)
+    if ((result.endsWith("'") || result.endsWith('"')) && !result.endsWith("\\'") && !result.endsWith('\\"')) {
+      result = result.slice(0, -1);
+    }
+    // Replace escaped double quotes with actual double quotes
+    result = result.replace(/\\"/g, '"');
     // Replace escaped single quotes with actual single quotes
-    return trimmed.replace(/\\'/g, "'");
+    result = result.replace(/\\'/g, "'");
+    // Replace literal \n sequences with spaces (newlines in attribute values)
+    result = result.replace(/\\n/g, " ");
+    // Replace double backslashes with single backslash
+    result = result.replace(/\\\\/g, "\\");
+    return result;
   };
 
   const citationNumber = citationCounterRef?.current
@@ -324,7 +340,12 @@ const extractXmlCitations = (text: string): { [key: string]: Citation } => {
   const normalizedText = normalizeCitations(text);
 
   // Find all <cite ... /> tags
-  const citeRegex = /<cite\s+[^>]*\/>/g;
+  // This regex handles > characters inside quoted attribute values:
+  // - '[^']*' matches single-quoted strings (any chars except ')
+  // - "[^"]*" matches double-quoted strings (any chars except ")
+  // - [^'">/] matches any char that's not a quote, >, or /
+  // - The whole pattern repeats until we hit />
+  const citeRegex = /<cite\s+(?:'[^']*'|"[^"]*"|[^'">/])*\/>/g;
   const matches = normalizedText.match(citeRegex);
 
   if (!matches || matches.length === 0) return {};

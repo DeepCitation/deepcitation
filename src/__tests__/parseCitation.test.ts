@@ -1224,4 +1224,266 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(phrases).toContain("second phrase");
     });
   });
+
+  describe("complex legal document citations with escaped quotes and newlines", () => {
+    it("parses citation with escaped double quotes inside double-quoted attributes", () => {
+      // Real-world example: legal document with quoted terms
+      const input = String.raw`<cite attachment_id="kYtgMlok4yauewjI730z" reasoning="The document states it is made by 'The Exchange Inc. (the \"Declarant\")'" full_phrase="THIS DECLARATION (the \"Declaration\") is made BY: The Exchange Inc. (the \"Declarant\")" key_span="The Exchange Inc." start_page_key="page_number_2_index_1" line_ids="5, 43-47" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.attachmentId).toBe("kYtgMlok4yauewjI730z");
+      // Escaped quotes should be unescaped in the final output
+      expect(citation.fullPhrase).toBe(
+        'THIS DECLARATION (the "Declaration") is made BY: The Exchange Inc. (the "Declarant")'
+      );
+      expect(citation.reasoning).toBe(
+        "The document states it is made by 'The Exchange Inc. (the \"Declarant\")'"
+      );
+      expect(citation.keySpan).toBe("The Exchange Inc.");
+      expect(citation.pageNumber).toBe(2);
+      expect(citation.lineIds).toEqual([5, 43, 44, 45, 46, 47]);
+    });
+
+    it("parses citation with literal newlines (\\n) in full_phrase", () => {
+      const input = String.raw`<cite attachment_id="abc123" full_phrase="Line 1\nLine 2\nLine 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      // Newlines should be normalized to spaces
+      expect(citation.fullPhrase).toBe("Line 1 Line 2 Line 3");
+    });
+
+    it("parses citation with real newlines in full_phrase", () => {
+      const input = `<cite attachment_id="abc123" full_phrase="Line 1
+Line 2
+Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      // Real newlines should be normalized to spaces
+      expect(citation.fullPhrase).toBe("Line 1 Line 2 Line 3");
+    });
+
+    it("parses the full complex legal document example from user", () => {
+      // This is the exact problematic citation from the user
+      const input = String.raw`This document is between The Exchange Inc. (the "Declarant") and the future owners, tenants, and residents of the units. <cite attachment\_id="kYtgMlok4yauewjI730z" reasoning="The document explicitly states it is made by 'The Exchange Inc. (the \"Declarant\")' and that 'All present and future owners, tenants, and residents of units... shall be subject to and shall comply with the provisions of this Declaration'." full\_phrase="THIS DECLARATION (the \"Declaration\") is made and executed pursuant to the\nprovisions of the Condominium Act, 1998 and applicable Regulations (the \"Act\"), BY:\nThe Exchange Inc.\n(the \"Declarant\")\n... All present and future owners, tenants, and residents of units, their families,\nguests, invitees, agents, employees and licensees shall be subject to and shall\ncomply with the provisions of this Declaration, the By-laws and Rules of the\nCorporation." key\_span="The Exchange Inc." start\_page\_key="page\_number\_2\_index\_1" line\_ids="5, 43-47" />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.attachmentId).toBe("kYtgMlok4yauewjI730z");
+      expect(citation.keySpan).toBe("The Exchange Inc.");
+      expect(citation.pageNumber).toBe(2);
+      expect(citation.lineIds).toEqual([5, 43, 44, 45, 46, 47]);
+      // The fullPhrase should have quotes unescaped and newlines normalized
+      expect(citation.fullPhrase).toContain("THIS DECLARATION");
+      expect(citation.fullPhrase).toContain('"Declaration"');
+      expect(citation.fullPhrase).not.toContain('\\"');
+      expect(citation.fullPhrase).not.toContain("\\n");
+    });
+
+    it("parses citation with mixed single and double quotes in reasoning", () => {
+      const input = `<cite attachment_id="test123" reasoning="The user said 'hello' and then \\"goodbye\\"" full_phrase="Some phrase here" key_span="phrase" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.reasoning).toContain("hello");
+      expect(citation.reasoning).toContain("goodbye");
+      // Both types of quotes should be properly unescaped
+      expect(citation.reasoning).not.toContain('\\"');
+    });
+
+    it("handles unescaped double quotes inside double-quoted attribute gracefully", () => {
+      // LLMs sometimes output malformed XML - we should handle it gracefully
+      const input = `<cite attachment_id="abc123" full_phrase="He said "hello" to me" key_span="hello" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toContain("hello");
+    });
+
+    it("handles unescaped single quotes inside single-quoted attribute gracefully", () => {
+      const input = `<cite attachment_id='abc123' full_phrase='He said 'hello' to me' key_span='hello' start_page_key='page_number_1_index_0' line_ids='1' />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toContain("hello");
+    });
+
+    it("handles nested quotes with proper escaping", () => {
+      const input = `<cite attachment_id="abc123" full_phrase="The 'quoted' text" key_span="quoted" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("The 'quoted' text");
+    });
+  });
+
+  describe("HTML entity handling in citations", () => {
+    it("decodes HTML entities in full_phrase", () => {
+      const input = `<cite attachment_id="test123" full_phrase="Price is &lt;$100 &amp; &gt;$50" key_span="$100" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("Price is <$100 & >$50");
+    });
+
+    it("decodes &quot; and &apos; entities", () => {
+      const input = `<cite attachment_id="test123" full_phrase="He said &quot;hello&quot; and &apos;goodbye&apos;" key_span="hello" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("He said \"hello\" and 'goodbye'");
+    });
+  });
+
+  describe("markdown formatting artifacts in citations", () => {
+    it("removes markdown bold markers from full_phrase", () => {
+      const input = `<cite attachment_id="test123" full_phrase="This is **bold** and __also bold__" key_span="bold" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).not.toContain("**");
+      expect(citation.fullPhrase).not.toContain("__");
+    });
+
+    it("removes markdown italic markers from full_phrase", () => {
+      const input = `<cite attachment_id="test123" full_phrase="This is *italic* text" key_span="italic" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).not.toContain("*");
+    });
+  });
+
+  describe("attribute order independence", () => {
+    it("parses citation with attributes in non-standard order", () => {
+      // Put attributes in unexpected order
+      const input = `<cite line_ids="1,2,3" key_span="test" full_phrase="test phrase" start_page_key="page_number_5_index_0" attachment_id="file123456789012345" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("test phrase");
+      expect(citation.keySpan).toBe("test");
+      expect(citation.pageNumber).toBe(5);
+      expect(citation.lineIds).toEqual([1, 2, 3]);
+      expect(citation.attachmentId).toBe("file123456789012345");
+    });
+
+    it("parses citation with reasoning attribute before full_phrase", () => {
+      const input = `<cite attachment_id="file123" reasoning="This is the reason" full_phrase="The actual phrase" key_span="phrase" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.reasoning).toBe("This is the reason");
+      expect(citation.fullPhrase).toBe("The actual phrase");
+    });
+  });
+
+  describe("edge cases with special characters", () => {
+    it("handles dollar signs in full_phrase", () => {
+      const input = `<cite attachment_id="test123" full_phrase="The total is $1,234.56 USD" key_span="$1,234.56" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("The total is $1,234.56 USD");
+      expect(citation.keySpan).toBe("$1,234.56");
+    });
+
+    it("handles percentage signs in full_phrase", () => {
+      const input = `<cite attachment_id="test123" full_phrase="Growth was 15.5% YoY" key_span="15.5%" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("Growth was 15.5% YoY");
+      expect(citation.keySpan).toBe("15.5%");
+    });
+
+    it("handles parentheses in full_phrase", () => {
+      const input = `<cite attachment_id="test123" full_phrase="The company (NYSE: ABC) reported earnings" key_span="(NYSE: ABC)" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("The company (NYSE: ABC) reported earnings");
+      expect(citation.keySpan).toBe("(NYSE: ABC)");
+    });
+
+    it("handles colons in full_phrase", () => {
+      const input = `<cite attachment_id="test123" full_phrase="Section 4.2: Definitions and Terms" key_span="Section 4.2" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("Section 4.2: Definitions and Terms");
+    });
+
+    it("handles brackets in full_phrase", () => {
+      const input = `<cite attachment_id="test123" full_phrase="See [Appendix A] for details" key_span="[Appendix A]" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("See [Appendix A] for details");
+    });
+  });
+
+  describe("whitespace handling", () => {
+    it("preserves meaningful whitespace in full_phrase", () => {
+      const input = `<cite attachment_id="test123" full_phrase="First sentence.  Second sentence." key_span="Second" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      // At minimum, the content should be preserved
+      expect(citation.fullPhrase).toContain("First sentence");
+      expect(citation.fullPhrase).toContain("Second sentence");
+    });
+
+    it("handles leading/trailing whitespace in attribute values", () => {
+      const input = `<cite attachment_id="test123" full_phrase="  trimmed phrase  " key_span="trimmed" start_page_key="page_number_1_index_0" line_ids="1" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toContain("trimmed phrase");
+    });
+  });
+
+  describe("line_ids with spaces after commas", () => {
+    it("parses line_ids with spaces after commas", () => {
+      const input = `<cite attachment_id="test123" full_phrase="test" key_span="test" start_page_key="page_number_1_index_0" line_ids="5, 43-47" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.lineIds).toEqual([5, 43, 44, 45, 46, 47]);
+    });
+
+    it("parses line_ids with inconsistent spacing", () => {
+      const input = `<cite attachment_id="test123" full_phrase="test" key_span="test" start_page_key="page_number_1_index_0" line_ids="1,  2, 3  , 4" />`;
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.lineIds).toEqual([1, 2, 3, 4]);
+    });
+  });
 });
