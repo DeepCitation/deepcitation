@@ -1,0 +1,875 @@
+import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  renderHook,
+  waitFor,
+} from "@testing-library/react";
+import React from "react";
+import {
+  CitationDrawer,
+  CitationDrawerItemComponent,
+  groupCitationsBySource,
+  useCitationDrawer,
+} from "../react/CitationDrawer";
+import { CitationComponent } from "../react/CitationComponent";
+import type { Citation } from "../types/citation";
+import type { Verification } from "../types/verification";
+import type { CitationDrawerItem, SourceCitationGroup } from "../react/types";
+
+// Mock createPortal to render content in place instead of portal
+mock.module("react-dom", () => ({
+  createPortal: (node: React.ReactNode) => node,
+}));
+
+describe("CitationComponent source variant", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const baseCitation: Citation = {
+    citationNumber: 1,
+    keySpan: "test citation",
+    fullPhrase: "This is a test citation phrase",
+    siteName: "Delaware Corporations",
+    domain: "delaware.gov",
+    faviconUrl: "https://delaware.gov/favicon.ico",
+    title: "How to Calculate Franchise Taxes",
+    description: "The minimum tax is $175.00 for corporations...",
+  };
+
+  const verification: Verification = {
+    status: "found",
+    verifiedMatchSnippet: "test citation phrase",
+  };
+
+  describe("source variant rendering", () => {
+    it("renders source name from citation", () => {
+      const { container, getByText } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verification}
+          variant="source"
+        />
+      );
+
+      expect(getByText("Delaware Corporations")).toBeInTheDocument();
+    });
+
+    it("renders favicon when provided", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verification}
+          variant="source"
+        />
+      );
+
+      const favicon = container.querySelector('img[src="https://delaware.gov/favicon.ico"]');
+      expect(favicon).toBeInTheDocument();
+    });
+
+    it("renders favicon from faviconUrl prop over citation.faviconUrl", () => {
+      const customFavicon = "https://custom.com/favicon.png";
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verification}
+          variant="source"
+          faviconUrl={customFavicon}
+        />
+      );
+
+      const favicon = container.querySelector(`img[src="${customFavicon}"]`);
+      expect(favicon).toBeInTheDocument();
+    });
+
+    it("renders additional count when provided", () => {
+      const { getByText } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verification}
+          variant="source"
+          additionalCount={2}
+        />
+      );
+
+      expect(getByText("+2")).toBeInTheDocument();
+    });
+
+    it("does not render additional count when 0", () => {
+      const { queryByText } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verification}
+          variant="source"
+          additionalCount={0}
+        />
+      );
+
+      expect(queryByText("+0")).not.toBeInTheDocument();
+    });
+
+    it("falls back to domain when siteName is not provided", () => {
+      const citationWithoutName: Citation = {
+        ...baseCitation,
+        siteName: undefined,
+      };
+
+      const { getByText } = render(
+        <CitationComponent
+          citation={citationWithoutName}
+          verification={verification}
+          variant="source"
+        />
+      );
+
+      expect(getByText("delaware.gov")).toBeInTheDocument();
+    });
+
+    it("falls back to keySpan when no source fields are provided", () => {
+      const citationNoSource: Citation = {
+        citationNumber: 1,
+        keySpan: "Fallback Text",
+      };
+
+      const { getByText } = render(
+        <CitationComponent
+          citation={citationNoSource}
+          verification={verification}
+          variant="source"
+        />
+      );
+
+      expect(getByText("Fallback Text")).toBeInTheDocument();
+    });
+
+    it("falls back to 'Source' when no text fields available", () => {
+      const citationEmpty: Citation = {
+        citationNumber: 1,
+      };
+
+      const { getByText } = render(
+        <CitationComponent
+          citation={citationEmpty}
+          verification={verification}
+          variant="source"
+        />
+      );
+
+      expect(getByText("Source")).toBeInTheDocument();
+    });
+
+    it("applies correct styling classes for source variant", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verification}
+          variant="source"
+        />
+      );
+
+      const chip = container.querySelector(".rounded-full");
+      expect(chip).toBeInTheDocument();
+      expect(chip).toHaveClass("bg-gray-100");
+    });
+
+    it("hides broken favicon images on error", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verification}
+          variant="source"
+        />
+      );
+
+      const favicon = container.querySelector("img") as HTMLImageElement;
+      expect(favicon).toBeInTheDocument();
+
+      // Simulate error event
+      fireEvent.error(favicon);
+
+      expect(favicon.style.display).toBe("none");
+    });
+  });
+
+  describe("source content type", () => {
+    it("uses source content type by default for source variant", () => {
+      const { getByText } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verification}
+          variant="source"
+        />
+      );
+
+      // Should show siteName, not keySpan or number
+      expect(getByText("Delaware Corporations")).toBeInTheDocument();
+    });
+
+    it("can override content type for source variant", () => {
+      const { getByText } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verification}
+          variant="source"
+          content="keySpan"
+        />
+      );
+
+      // Should show keySpan when explicitly set
+      expect(getByText("test citation")).toBeInTheDocument();
+    });
+  });
+});
+
+describe("groupCitationsBySource", () => {
+  const createCitationItem = (
+    key: string,
+    siteName: string,
+    domain?: string
+  ): CitationDrawerItem => ({
+    citationKey: key,
+    citation: {
+      citationNumber: parseInt(key),
+      siteName,
+      domain,
+      keySpan: `Citation ${key}`,
+    },
+    verification: null,
+  });
+
+  it("groups citations by source domain", () => {
+    const citations: CitationDrawerItem[] = [
+      createCitationItem("1", "Delaware", "delaware.gov"),
+      createCitationItem("2", "Delaware", "delaware.gov"),
+      createCitationItem("3", "Wikipedia", "wikipedia.org"),
+    ];
+
+    const groups = groupCitationsBySource(citations);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0].sourceName).toBe("Delaware");
+    expect(groups[0].citations).toHaveLength(2);
+    expect(groups[0].additionalCount).toBe(1);
+    expect(groups[1].sourceName).toBe("Wikipedia");
+    expect(groups[1].citations).toHaveLength(1);
+    expect(groups[1].additionalCount).toBe(0);
+  });
+
+  it("handles citations without source domain", () => {
+    const citations: CitationDrawerItem[] = [
+      createCitationItem("1", "Source A", undefined),
+      createCitationItem("2", "Source B", undefined),
+    ];
+
+    const groups = groupCitationsBySource(citations);
+
+    expect(groups).toHaveLength(2);
+  });
+
+  it("returns empty array for empty input", () => {
+    const groups = groupCitationsBySource([]);
+    expect(groups).toHaveLength(0);
+  });
+
+  it("preserves source favicon from first citation in group", () => {
+    const citations: CitationDrawerItem[] = [
+      {
+        citationKey: "1",
+        citation: {
+          siteName: "Test",
+          domain: "test.com",
+          faviconUrl: "https://test.com/favicon.ico",
+        },
+        verification: null,
+      },
+      {
+        citationKey: "2",
+        citation: {
+          siteName: "Test",
+          domain: "test.com",
+        },
+        verification: null,
+      },
+    ];
+
+    const groups = groupCitationsBySource(citations);
+
+    expect(groups[0].sourceFavicon).toBe("https://test.com/favicon.ico");
+  });
+});
+
+describe("CitationDrawerItemComponent", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const createItem = (overrides: Partial<CitationDrawerItem> = {}): CitationDrawerItem => ({
+    citationKey: "1",
+    citation: {
+      siteName: "Delaware Corporations",
+      domain: "delaware.gov",
+      faviconUrl: "https://delaware.gov/favicon.ico",
+      title: "How to Calculate Franchise Taxes",
+      description: "The minimum tax is $175.00 for corporations...",
+    },
+    verification: { status: "found" },
+    ...overrides,
+  });
+
+  it("renders source name", () => {
+    const { getByText } = render(
+      <CitationDrawerItemComponent item={createItem()} />
+    );
+
+    expect(getByText("Delaware Corporations")).toBeInTheDocument();
+  });
+
+  it("renders article title", () => {
+    const { getByText } = render(
+      <CitationDrawerItemComponent item={createItem()} />
+    );
+
+    expect(getByText("How to Calculate Franchise Taxes")).toBeInTheDocument();
+  });
+
+  it("renders snippet", () => {
+    const { getByText } = render(
+      <CitationDrawerItemComponent item={createItem()} />
+    );
+
+    expect(
+      getByText("The minimum tax is $175.00 for corporations...")
+    ).toBeInTheDocument();
+  });
+
+  it("renders favicon when available", () => {
+    const { container } = render(
+      <CitationDrawerItemComponent item={createItem()} />
+    );
+
+    const favicon = container.querySelector('img[src="https://delaware.gov/favicon.ico"]');
+    expect(favicon).toBeInTheDocument();
+  });
+
+  it("renders placeholder when no favicon", () => {
+    const item = createItem({
+      citation: {
+        siteName: "Test",
+        domain: "test.com",
+      },
+    });
+
+    const { getByText } = render(
+      <CitationDrawerItemComponent item={item} />
+    );
+
+    // Should show first letter as placeholder
+    expect(getByText("T")).toBeInTheDocument();
+  });
+
+  it("calls onClick when clicked", () => {
+    const onClick = jest.fn();
+    const item = createItem();
+
+    const { container } = render(
+      <CitationDrawerItemComponent item={item} onClick={onClick} />
+    );
+
+    const itemElement = container.querySelector("[role='button']");
+    fireEvent.click(itemElement!);
+
+    expect(onClick).toHaveBeenCalledWith(item);
+  });
+
+  it("shows status indicator for verified citations", () => {
+    const { container } = render(
+      <CitationDrawerItemComponent
+        item={createItem({ verification: { status: "found" } })}
+      />
+    );
+
+    const indicator = container.querySelector(".text-green-500");
+    expect(indicator).toBeInTheDocument();
+  });
+
+  it("shows warning indicator for not found citations", () => {
+    const { container } = render(
+      <CitationDrawerItemComponent
+        item={createItem({ verification: { status: "not_found" } })}
+      />
+    );
+
+    const indicator = container.querySelector(".text-amber-500");
+    expect(indicator).toBeInTheDocument();
+  });
+
+  it("shows spinner for pending citations", () => {
+    const { container } = render(
+      <CitationDrawerItemComponent
+        item={createItem({ verification: { status: "pending" } })}
+      />
+    );
+
+    const spinner = container.querySelector(".animate-spin");
+    expect(spinner).toBeInTheDocument();
+  });
+
+  it("applies border when not last item", () => {
+    const { container } = render(
+      <CitationDrawerItemComponent item={createItem()} isLast={false} />
+    );
+
+    const itemElement = container.firstChild;
+    expect(itemElement).toHaveClass("border-b");
+  });
+
+  it("does not apply border when last item", () => {
+    const { container } = render(
+      <CitationDrawerItemComponent item={createItem()} isLast={true} />
+    );
+
+    const itemElement = container.firstChild;
+    expect(itemElement).not.toHaveClass("border-b");
+  });
+
+  it("handles keyboard navigation", () => {
+    const onClick = jest.fn();
+    const item = createItem();
+
+    const { container } = render(
+      <CitationDrawerItemComponent item={item} onClick={onClick} />
+    );
+
+    const itemElement = container.querySelector("[role='button']");
+    fireEvent.keyDown(itemElement!, { key: "Enter" });
+
+    expect(onClick).toHaveBeenCalledWith(item);
+  });
+});
+
+describe("CitationDrawer", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const createGroup = (
+    name: string,
+    count: number
+  ): SourceCitationGroup => ({
+    sourceName: name,
+    sourceDomain: `${name.toLowerCase()}.com`,
+    citations: Array.from({ length: count }, (_, i) => ({
+      citationKey: `${name}-${i}`,
+      citation: {
+        siteName: name,
+        title: `Article ${i + 1}`,
+        description: `Snippet for article ${i + 1}`,
+      },
+      verification: { status: "found" as const },
+    })),
+    additionalCount: count - 1,
+  });
+
+  it("renders when open", () => {
+    const { getByRole } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={[createGroup("Test", 1)]}
+      />
+    );
+
+    expect(getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("does not render when closed", () => {
+    const { queryByRole } = render(
+      <CitationDrawer
+        isOpen={false}
+        onClose={() => {}}
+        citationGroups={[createGroup("Test", 1)]}
+      />
+    );
+
+    expect(queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("renders title", () => {
+    const { getByText } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={[createGroup("Test", 1)]}
+        title="My Citations"
+      />
+    );
+
+    expect(getByText("My Citations")).toBeInTheDocument();
+  });
+
+  it("renders default title", () => {
+    const { getByText } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={[createGroup("Test", 1)]}
+      />
+    );
+
+    expect(getByText("Citations")).toBeInTheDocument();
+  });
+
+  it("calls onClose when close button clicked", () => {
+    const onClose = jest.fn();
+
+    const { getByLabelText } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={onClose}
+        citationGroups={[createGroup("Test", 1)]}
+      />
+    );
+
+    const closeButton = getByLabelText("Close");
+    fireEvent.click(closeButton);
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("calls onClose when backdrop clicked", () => {
+    const onClose = jest.fn();
+
+    const { container } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={onClose}
+        citationGroups={[createGroup("Test", 1)]}
+      />
+    );
+
+    const backdrop = container.querySelector("[aria-hidden='true']");
+    fireEvent.click(backdrop!);
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("calls onClose on Escape key", () => {
+    const onClose = jest.fn();
+
+    render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={onClose}
+        citationGroups={[createGroup("Test", 1)]}
+      />
+    );
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("renders all citation items", () => {
+    const groups = [createGroup("Source A", 2), createGroup("Source B", 1)];
+
+    const { getAllByText } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={groups}
+        showMoreSection={false}
+      />
+    );
+
+    // Source A has Article 1 and Article 2, Source B has Article 1
+    // So we should have 2 "Article 1" and 1 "Article 2"
+    expect(getAllByText("Article 1")).toHaveLength(2);
+    expect(getAllByText("Article 2")).toHaveLength(1);
+  });
+
+  it("shows 'More' section when there are more items", () => {
+    const groups = [createGroup("Test", 5)];
+
+    const { getByText } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={groups}
+        showMoreSection={true}
+        maxVisibleItems={3}
+      />
+    );
+
+    expect(getByText("More (2)")).toBeInTheDocument();
+  });
+
+  it("expands More section when clicked", () => {
+    const groups = [createGroup("Test", 5)];
+
+    const { getByText, queryByText } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={groups}
+        showMoreSection={true}
+        maxVisibleItems={3}
+      />
+    );
+
+    // Initially, items 4 and 5 should not be visible
+    expect(queryByText("Article 4")).not.toBeInTheDocument();
+
+    // Click More
+    fireEvent.click(getByText("More (2)"));
+
+    // Now items 4 and 5 should be visible
+    expect(getByText("Article 4")).toBeInTheDocument();
+    expect(getByText("Article 5")).toBeInTheDocument();
+  });
+
+  it("calls onCitationClick when item clicked", () => {
+    const onCitationClick = jest.fn();
+    const groups = [createGroup("Test", 1)];
+
+    const { getByText } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={groups}
+        onCitationClick={onCitationClick}
+      />
+    );
+
+    fireEvent.click(getByText("Article 1"));
+
+    expect(onCitationClick).toHaveBeenCalled();
+  });
+
+  it("shows empty state when no citations", () => {
+    const { getByText } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={[]}
+      />
+    );
+
+    expect(getByText("No citations to display")).toBeInTheDocument();
+  });
+
+  it("renders handle bar for bottom position", () => {
+    const { container } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={[createGroup("Test", 1)]}
+        position="bottom"
+      />
+    );
+
+    // Handle bar is a rounded div
+    const handleBar = container.querySelector(".rounded-full.bg-gray-300");
+    expect(handleBar).toBeInTheDocument();
+  });
+
+  it("does not render handle bar for right position", () => {
+    const { container } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={[createGroup("Test", 1)]}
+        position="right"
+      />
+    );
+
+    // Handle bar should not exist
+    const handleBar = container.querySelector(".rounded-full.bg-gray-300");
+    expect(handleBar).not.toBeInTheDocument();
+  });
+
+  it("uses custom renderCitationItem when provided", () => {
+    const groups = [createGroup("Test", 1)];
+
+    const { getByText } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={groups}
+        renderCitationItem={(item) => (
+          <div key={item.citationKey}>Custom: {item.citation.title}</div>
+        )}
+      />
+    );
+
+    expect(getByText("Custom: Article 1")).toBeInTheDocument();
+  });
+});
+
+describe("useCitationDrawer", () => {
+  it("initializes with closed state", () => {
+    const { result } = renderHook(() => useCitationDrawer());
+
+    expect(result.current.isOpen).toBe(false);
+    expect(result.current.citations).toHaveLength(0);
+  });
+
+  it("opens drawer", () => {
+    const { result } = renderHook(() => useCitationDrawer());
+
+    act(() => {
+      result.current.openDrawer();
+    });
+
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it("closes drawer", () => {
+    const { result } = renderHook(() => useCitationDrawer());
+
+    act(() => {
+      result.current.openDrawer();
+    });
+
+    act(() => {
+      result.current.closeDrawer();
+    });
+
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("toggles drawer", () => {
+    const { result } = renderHook(() => useCitationDrawer());
+
+    act(() => {
+      result.current.toggleDrawer();
+    });
+    expect(result.current.isOpen).toBe(true);
+
+    act(() => {
+      result.current.toggleDrawer();
+    });
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("adds citation", () => {
+    const { result } = renderHook(() => useCitationDrawer());
+
+    const item: CitationDrawerItem = {
+      citationKey: "1",
+      citation: { siteName: "Test" },
+      verification: null,
+    };
+
+    act(() => {
+      result.current.addCitation(item);
+    });
+
+    expect(result.current.citations).toHaveLength(1);
+    expect(result.current.citations[0]).toEqual(item);
+  });
+
+  it("does not add duplicate citations", () => {
+    const { result } = renderHook(() => useCitationDrawer());
+
+    const item: CitationDrawerItem = {
+      citationKey: "1",
+      citation: { siteName: "Test" },
+      verification: null,
+    };
+
+    act(() => {
+      result.current.addCitation(item);
+      result.current.addCitation(item);
+    });
+
+    expect(result.current.citations).toHaveLength(1);
+  });
+
+  it("removes citation", () => {
+    const { result } = renderHook(() => useCitationDrawer());
+
+    const item: CitationDrawerItem = {
+      citationKey: "1",
+      citation: { siteName: "Test" },
+      verification: null,
+    };
+
+    act(() => {
+      result.current.addCitation(item);
+    });
+
+    act(() => {
+      result.current.removeCitation("1");
+    });
+
+    expect(result.current.citations).toHaveLength(0);
+  });
+
+  it("clears all citations", () => {
+    const { result } = renderHook(() => useCitationDrawer());
+
+    act(() => {
+      result.current.addCitation({
+        citationKey: "1",
+        citation: { siteName: "Test 1" },
+        verification: null,
+      });
+      result.current.addCitation({
+        citationKey: "2",
+        citation: { siteName: "Test 2" },
+        verification: null,
+      });
+    });
+
+    act(() => {
+      result.current.clearCitations();
+    });
+
+    expect(result.current.citations).toHaveLength(0);
+  });
+
+  it("sets citations list", () => {
+    const { result } = renderHook(() => useCitationDrawer());
+
+    const items: CitationDrawerItem[] = [
+      { citationKey: "1", citation: { siteName: "Test 1" }, verification: null },
+      { citationKey: "2", citation: { siteName: "Test 2" }, verification: null },
+    ];
+
+    act(() => {
+      result.current.setCitations(items);
+    });
+
+    expect(result.current.citations).toHaveLength(2);
+  });
+
+  it("computes citation groups", () => {
+    const { result } = renderHook(() => useCitationDrawer());
+
+    act(() => {
+      result.current.addCitation({
+        citationKey: "1",
+        citation: { siteName: "Source A", domain: "a.com" },
+        verification: null,
+      });
+      result.current.addCitation({
+        citationKey: "2",
+        citation: { siteName: "Source A", domain: "a.com" },
+        verification: null,
+      });
+      result.current.addCitation({
+        citationKey: "3",
+        citation: { siteName: "Source B", domain: "b.com" },
+        verification: null,
+      });
+    });
+
+    expect(result.current.citationGroups).toHaveLength(2);
+    expect(result.current.citationGroups[0].citations).toHaveLength(2);
+    expect(result.current.citationGroups[1].citations).toHaveLength(1);
+  });
+});
