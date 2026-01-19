@@ -9,7 +9,6 @@ import {
   parseCitation,
 } from "@deepcitation/deepcitation-js";
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
-import "@deepcitation/deepcitation-js/react/styles.css";
 
 interface ChatMessageProps {
   message: {
