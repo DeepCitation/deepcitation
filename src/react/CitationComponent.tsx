@@ -490,9 +490,9 @@ function DefaultPopoverContent({
             className="max-w-[400px] max-h-[200px] w-auto h-auto object-contain rounded-md bg-gray-50 dark:bg-gray-800"
             loading="lazy"
           />
-          {/* Subtle zoom hint on hover */}
-          <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors rounded-md">
-            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-600 dark:text-gray-300 bg-white/90 dark:bg-gray-800/90 px-2 py-1 rounded shadow-sm">
+          {/* Subtle zoom hint at bottom on hover */}
+          <span className="absolute inset-x-0 bottom-0 flex justify-center pb-2 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-b-md">
+            <span className="text-xs text-white bg-black/60 px-2 py-1 rounded shadow-sm">
               Click to expand
             </span>
           </span>
