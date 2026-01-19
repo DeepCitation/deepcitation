@@ -1,5 +1,6 @@
 /**
  * DeepCitation icon SVG (no dependencies)
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const DeepCitationIcon = ({ className }: { className?: string }) => (
   <svg
@@ -11,7 +12,8 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
     strokeLinecap="square"
     shapeRendering="crispEdges"
     className={className}
-    style={{ width: "100%", height: "100%" }}
+    width="1em"
+    height="1em"
   >
     <path d="M7 3 L3 3 L3 21 L7 21" />
     <path d="M17 3 L21 3 L21 21 L17 21" />
