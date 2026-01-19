@@ -480,7 +480,7 @@ function DefaultPopoverContent({
       <div className="p-2">
         <button
           type="button"
-          className="group block cursor-zoom-in relative overflow-hidden rounded-md max-w-sm h-[200px] bg-gray-50 dark:bg-gray-800"
+          className="group block cursor-zoom-in relative overflow-hidden rounded-md w-[384px] max-w-full h-[200px] bg-gray-50 dark:bg-gray-800"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
