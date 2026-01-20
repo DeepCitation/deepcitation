@@ -96,8 +96,8 @@ interface Verification {
   verifiedMatchSnippet?: string | null;               // ← Shown in popover/diff
 
   hitIndexWithinPage?: number | null;
-  snippetPdfItem?: SnippetPdfItem;                     // Bounding box for snippet
-  underlinedPdfItem?: UnderlinedPdfItem;              // Bounding box for underlined text
+  phraseMatchDeepItem?: DeepTextItem;                  // Bounding box for phrase match
+  keySpanMatchDeepItem?: DeepTextItem;                // Bounding box for key span match
   verificationImageBase64?: string | null;            // ← Shown in popover
   verifiedAt?: Date;
 }

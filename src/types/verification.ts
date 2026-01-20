@@ -1,10 +1,7 @@
 import { sha1Hash } from "../utils/sha.js";
 import { type Citation } from "./citation.js";
 import { type SearchStatus, type SearchAttempt } from "./search.js";
-import {
-  type SnippetPdfItem,
-  type UnderlinedPdfItem,
-} from "./boxes.js";
+import { type DeepTextItem } from "./boxes.js";
 
 export const NOT_FOUND_VERIFICATION_INDEX = -1;
 export const PENDING_VERIFICATION_INDEX = -2;
@@ -77,9 +74,9 @@ export interface Verification {
 
   hitIndexWithinPage?: number | null;
 
-  snippetPdfItem?: SnippetPdfItem;
+  phraseMatchDeepItem?: DeepTextItem;
 
-  underlinedPdfItem?: UnderlinedPdfItem;
+  keySpanMatchDeepItem?: DeepTextItem;
 
   verificationImageBase64?: string | null;
 

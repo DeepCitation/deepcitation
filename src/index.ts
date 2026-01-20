@@ -68,12 +68,7 @@ export type {
   SearchAttempt,
 } from "./types/search.js";
 
-export type {
-  ScreenBox,
-  SnippetPdfItem,
-  UnderlinedPdfItem,
-  IVertex,
-} from "./types/boxes.js";
+export type { ScreenBox, DeepTextItem, IVertex } from "./types/boxes.js";
 
 // Utilities
 export { sha1Hash } from "./utils/sha.js";
