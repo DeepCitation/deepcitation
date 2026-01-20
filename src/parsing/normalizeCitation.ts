@@ -240,6 +240,47 @@ export const getCitationPageNumber = (
   return pageNumber ? parseInt(pageNumber) : null;
 };
 
+/**
+ * Extracts content from a non-self-closing citation tag and moves it before the citation.
+ * Converts <cite ...>content</cite> to: content<cite ... />
+ *
+ * @param citePart - The citation part that may contain inner content
+ * @returns The normalized citation with content moved before it
+ */
+const extractAndRelocateCitationContent = (citePart: string): string => {
+  // Check if this is a non-self-closing citation: <cite ...>content</cite>
+  // Match: <cite with attributes> then content then </cite>
+  const nonSelfClosingMatch = citePart.match(
+    /^(<cite\s+(?:'[^']*'|"[^"]*"|[^'">/])*>)([\s\S]*?)<\/cite>$/
+  );
+
+  if (!nonSelfClosingMatch) {
+    // Already self-closing or doesn't match pattern, normalize as-is
+    return normalizeCitationContent(citePart);
+  }
+
+  const [, openingTag, innerContent] = nonSelfClosingMatch;
+
+  // If there's no inner content, just normalize the citation
+  if (!innerContent || !innerContent.trim()) {
+    return normalizeCitationContent(citePart);
+  }
+
+  // Extract the attributes from the opening tag
+  // Convert <cite attributes> to <cite attributes />
+  const selfClosingTag = openingTag.replace(/>$/, " />");
+
+  // Move inner content before the citation and normalize
+  // The inner content is trimmed to avoid extra whitespace issues
+  const relocatedContent = innerContent.trim();
+
+  // Normalize the self-closing citation tag
+  const normalizedCitation = normalizeCitationContent(selfClosingTag);
+
+  // Return content followed by the citation
+  return relocatedContent + normalizedCitation;
+};
+
 export const normalizeCitations = (response: string): string => {
   let trimmedResponse = response?.trim() || "";
 
@@ -261,7 +302,9 @@ export const normalizeCitations = (response: string): string => {
 
   trimmedResponse = citationParts
     .map((part) =>
-      part.startsWith("<cite") ? normalizeCitationContent(part) : part
+      part.startsWith("<cite")
+        ? extractAndRelocateCitationContent(part)
+        : part
     )
     .join("");
 

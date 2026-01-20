@@ -35,6 +35,146 @@ describe("normalizeCitations", () => {
     expect(normalizeCitations("  Hello world  ")).toBe("Hello world");
   });
 
+  describe("content inside citations (non-self-closing)", () => {
+    it("moves simple content from inside citation to before it", () => {
+      const input = `<cite attachment_id='abc123' full_phrase='John Doe' key_span='John Doe' start_page_key='page_number_1_index_0' line_ids='1-5'>
+- Name: John Doe
+- Age: 50 years old
+</cite>`;
+      const result = normalizeCitations(input);
+      // Content should be moved before the citation
+      expect(result).toContain("- Name: John Doe");
+      expect(result).toContain("- Age: 50 years old");
+      // Citation should be self-closing and come after the content
+      expect(result).toMatch(/years old[\s\S]*<cite.*\/>/);
+      expect(result).not.toContain("</cite>");
+    });
+
+    it("handles multiple non-self-closing citations with content", () => {
+      const input = `Patient Profile:
+
+<cite attachment_id='abc' full_phrase='John Doe 50/M' key_span='John Doe' start_page_key='page_number_1_index_0' line_ids='1-5'>
+
+- Name: John Doe
+- Age: 50
+
+</cite>
+
+Medical History:
+
+<cite attachment_id='abc' full_phrase='HTN, CAD' key_span='HTN' start_page_key='page_number_1_index_0' line_ids='20-25'>
+
+- HTN
+- CAD
+
+</cite>`;
+      const result = normalizeCitations(input);
+
+      // Content should appear before each citation
+      expect(result).toContain("- Name: John Doe");
+      expect(result).toContain("- HTN");
+
+      // No closing </cite> tags should remain
+      expect(result).not.toContain("</cite>");
+
+      // Both citations should be self-closing
+      const citeMatches = result.match(/<cite[^>]*\/>/g);
+      expect(citeMatches).toHaveLength(2);
+    });
+
+    it("preserves empty non-self-closing citations", () => {
+      const input = `Text <cite attachment_id='abc' full_phrase='test' key_span='test' start_page_key='page_number_1_index_0' line_ids='1'></cite> more text`;
+      const result = normalizeCitations(input);
+      // Empty citation should just normalize to self-closing
+      expect(result).toContain("<cite");
+      expect(result).toContain("/>");
+      expect(result).not.toContain("</cite>");
+    });
+
+    it("handles content with special characters inside citation", () => {
+      const input = `<cite attachment_id='abc' full_phrase='test' key_span='test' start_page_key='page_number_1_index_0' line_ids='1'>
+
+* Bullet item with *asterisks*
+* Another **bold** item
+
+</cite>`;
+      const result = normalizeCitations(input);
+      // Content should be preserved (asterisks remain in content, not in citation attrs)
+      expect(result).toContain("Bullet item");
+      expect(result).toMatch(/<cite.*\/>/);
+    });
+
+    it("handles real-world medical chart example", () => {
+      const input = `Patient Profile:
+
+<cite attachment_id='VVoEl2eWxfWbvZu0qajw' reasoning='Patient identification details' full_phrase='John Doe 50/M' key_span='John Doe' start_page_key='page_number_1_index_0' line_ids='1-5'>
+
+- Name: John Doe
+- Age: 50 years old
+- Gender: Male
+- Allergies: NKDA (No Known Drug Allergies)
+
+</cite>
+
+Medical History:
+
+<cite attachment_id='VVoEl2eWxfWbvZu0qajw' reasoning='Patient medical background' full_phrase='HTN, CAD, HFEF' key_span='HTN, CAD, HFEF' start_page_key='page_number_1_index_0' line_ids='20-25'>
+
+- Conditions:
+  * Hypertension (HTN)
+  * Coronary Artery Disease (CAD)
+
+</cite>`;
+      const result = normalizeCitations(input);
+
+      // Content should be moved before citations
+      expect(result).toContain("Patient Profile:");
+      expect(result).toContain("- Name: John Doe");
+      expect(result).toContain("- Age: 50 years old");
+      expect(result).toContain("Medical History:");
+      expect(result).toContain("- Conditions:");
+      expect(result).toContain("Hypertension (HTN)");
+
+      // Citations should be self-closing
+      expect(result).not.toContain("</cite>");
+
+      // Verify structure: content appears before each citation
+      const patientProfileIdx = result.indexOf("Patient Profile:");
+      const nameIdx = result.indexOf("- Name: John Doe");
+      const firstCiteIdx = result.indexOf("<cite attachment_id='VVoEl2eWxfWbvZu0qajw'");
+
+      expect(patientProfileIdx).toBeLessThan(nameIdx);
+      expect(nameIdx).toBeLessThan(firstCiteIdx);
+    });
+
+    it("preserves whitespace structure in extracted content", () => {
+      const input = `<cite attachment_id='abc' full_phrase='test' key_span='test' start_page_key='page_number_1_index_0' line_ids='1'>
+Line 1
+Line 2
+Line 3
+</cite>`;
+      const result = normalizeCitations(input);
+      // Content should maintain line structure (trimmed)
+      expect(result).toContain("Line 1");
+      expect(result).toContain("Line 2");
+      expect(result).toContain("Line 3");
+    });
+
+    it("handles mix of self-closing and non-self-closing citations", () => {
+      const input = `First <cite attachment_id='a' full_phrase='first' key_span='first' start_page_key='page_number_1_index_0' line_ids='1' /> then <cite attachment_id='b' full_phrase='second' key_span='second' start_page_key='page_number_1_index_0' line_ids='2'>Content inside</cite> end`;
+      const result = normalizeCitations(input);
+
+      // Self-closing citation should remain as-is
+      // Non-self-closing should have content moved
+      expect(result).toContain("Content inside");
+      expect(result).not.toContain("</cite>");
+
+      // Both should be self-closing in output
+      const citeMatches = result.match(/<cite[^>]*\/>/g);
+      expect(citeMatches).toHaveLength(2);
+    });
+  });
+
   describe("AV citations ordering (timestamps)", () => {
     it("orders AV citation attributes: attachment_id, full_phrase, timestamps, optional attrs", () => {
       const input = `<cite timestamps='1-3' full_phrase='test phrase' fileId='video123' value='some value' />`;
