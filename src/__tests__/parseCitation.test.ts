@@ -1531,4 +1531,150 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(Object.keys(result)).toHaveLength(0);
     });
   });
+
+  describe("non-self-closing citation tags with content", () => {
+    it("extracts citations from non-self-closing tags with content inside", () => {
+      // This is the exact format from the user's failing scenario
+      // The LLM outputs <cite ...>content</cite> instead of self-closing <cite ... />
+      const input = `Patient Information:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Patient demographics at top of document' full\\_phrase='John Doe 50/M' key\\_span='John Doe' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='1-5'>
+
+- Name: John Doe
+- Age: 50 years old
+- Gender: Male
+- Allergies: NKDA (No Known Drug Allergies)</cite>
+
+Medical History:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Lists patient\\'s medical conditions' full\\_phrase='HTN, CAD, HFEF, Hypothyroid, HLD, (R) Sided PICC on home milrinone, chronic back pain' key\\_span='HTN, CAD, HFEF' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='20-25'>
+
+- Hypertension (HTN)
+- Coronary Artery Disease (CAD)
+- Heart Failure with Reduced Ejection Fraction (HFEF)
+- Hypothyroidism
+- High Lipid Disorder (HLD)
+- Chronic back pain
+- On home milrinone therapy
+- Right-sided PICC line</cite>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBeGreaterThanOrEqual(2);
+      const citations = Object.values(result);
+      const keySpans = citations.map((c) => c.keySpan);
+      expect(keySpans).toContain("John Doe");
+      expect(keySpans).toContain("HTN, CAD, HFEF");
+    });
+
+    it("extracts all 6 citations from medical document summary", () => {
+      // Full example from user's failing scenario
+      const input = `I'll provide a summary of the key information from this medical document:
+
+Patient Information:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Patient demographics at top of document' full\\_phrase='John Doe 50/M' key\\_span='John Doe' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='1-5'>
+
+- Name: John Doe
+- Age: 50 years old
+- Gender: Male
+- Allergies: NKDA (No Known Drug Allergies)</cite>
+
+Medical History:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Lists patient\\'s medical conditions' full\\_phrase='HTN, CAD, HFEF, Hypothyroid, HLD, (R) Sided PICC on home milrinone, chronic back pain' key\\_span='HTN, CAD, HFEF' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='20-25'>
+
+- Hypertension (HTN)
+- Coronary Artery Disease (CAD)
+- Heart Failure with Reduced Ejection Fraction (HFEF)
+- Hypothyroidism
+- High Lipid Disorder (HLD)
+- Chronic back pain
+- On home milrinone therapy
+- Right-sided PICC line</cite>
+
+Hospital Course:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Tracks patient\\'s admission and transfer' full\\_phrase='5/15-worsening soB at home
+
+5/17-admitted at outside hospital; cardiac cath Showing 1 pulm HTN, low Cl, low SVO2
+
+5/18-transferred to CVICU IABP placed and placed on transplant list
+
+5/19-dobutamine started' key\\_span='worsening soB admitted transferred' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='10-19'>
+
+- 5/15: Worsening shortness of breath at home
+- 5/17: Admitted to outside hospital
+- Cardiac catheterization showed:
+- Pulmonary Hypertension
+- Low Cardiac Index
+- Low Mixed Venous Oxygen Saturation
+- 5/18: Transferred to Cardiovascular Intensive Care Unit (CVICU)
+- Intra-Aortic Balloon Pump (IABP) placed
+- Added to transplant list
+- 5/19: Dobutamine therapy initiated</cite>
+
+Current Status:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Summary of patient\\'s current condition' full\\_phrase='AxOx4 afebrile' key\\_span='AxOx4 afebrile' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='30-40'>
+
+- Alert and Oriented × 4
+- Afebrile
+- Pain managed with Tylenol PRN</cite>
+
+Medications:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Lists current IV medication infusions' full\\_phrase='Gtts: Heparin 12 uhr, Bumex 5mg/hr, Dobutamine 2.5mcg/kg, Milrinone 0.25mg/kg, Nicardipine 2.5mg/hr' key\\_span='Heparin Bumex Dobutamine' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='25-40'>
+
+- Heparin
+- Bumex
+- Dobutamine
+- Milrinone
+- Nicardipine</cite>
+
+Family:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Patient\\'s family information' full\\_phrase='July-wife Pon Chris-Son' key\\_span='July-wife Chris-Son' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='65-70'>
+
+-`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      // Should extract all 6 citations
+      expect(Object.keys(result).length).toBe(6);
+      const citations = Object.values(result);
+      const keySpans = citations.map((c) => c.keySpan);
+      expect(keySpans).toContain("John Doe");
+      expect(keySpans).toContain("HTN, CAD, HFEF");
+      expect(keySpans).toContain("worsening soB admitted transferred");
+      expect(keySpans).toContain("AxOx4 afebrile");
+      expect(keySpans).toContain("Heparin Bumex Dobutamine");
+      expect(keySpans).toContain("July-wife Chris-Son");
+    });
+
+    it("handles non-self-closing citation without closing tag", () => {
+      // Sometimes LLMs output <cite ...> without any closing, just followed by content
+      const input = `Some text <cite attachment_id='test123' full_phrase='test phrase' key_span='test' start_page_key='page_number_1_index_0' line_ids='1'>
+
+- Some list content
+- More content`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("test phrase");
+      expect(citation.keySpan).toBe("test");
+    });
+
+    it("handles citation with > ending instead of />", () => {
+      const input = `Text <cite attachment_id='test123' full_phrase='phrase' key_span='span' start_page_key='page_number_1_index_0' line_ids='1'>Content</cite> more text`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("phrase");
+    });
+  });
 });

@@ -250,11 +250,22 @@ export const getCitationPageNumber = (
 const extractAndRelocateCitationContent = (citePart: string): string => {
   // Check if this is a non-self-closing citation: <cite ...>content</cite>
   // Match: <cite with attributes> then content then </cite>
+  // The attribute regex handles escaped quotes: (?:[^'\\]|\\.)* matches non-quote/non-backslash OR backslash+any
   const nonSelfClosingMatch = citePart.match(
-    /^(<cite\s+(?:'[^']*'|"[^"]*"|[^'">/])*>)([\s\S]*?)<\/cite>$/
+    /^(<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>)([\s\S]*?)<\/cite>$/
   );
 
   if (!nonSelfClosingMatch) {
+    // Check if this is an unclosed citation ending with just >
+    // Pattern: <cite attributes> (no closing tag)
+    const unclosedMatch = citePart.match(
+      /^(<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>)$/
+    );
+    if (unclosedMatch) {
+      // Convert <cite ... > to self-closing <cite ... />
+      const selfClosingTag = unclosedMatch[1].replace(/>$/, " />");
+      return normalizeCitationContent(selfClosingTag);
+    }
     // Already self-closing or doesn't match pattern, normalize as-is
     return normalizeCitationContent(citePart);
   }
@@ -293,10 +304,28 @@ export const normalizeCitations = (response: string): string => {
     "<cite $1="
   );
 
+  // Split on citation tags - captures three patterns:
+  // 1. Self-closing: <cite ... />
+  // 2. With closing tag: <cite ...>content</cite>
+  // 3. Unclosed (ends with >): <cite ...> (no closing tag)
+  // The third pattern is for incomplete citations at end of content
   const citationParts = trimmedResponse.split(
-    /(<cite[\s\S]*?(?:\/>|<\/cite>))/gm
+    /(<cite[\s\S]*?(?:\/>|<\/cite>|>(?=\s*$|[\r\n])))/gm
   );
   if (citationParts.length <= 1) {
+    // Try a more aggressive pattern for unclosed citations
+    // This captures <cite ... > even when followed by content
+    const unclosedMatch = trimmedResponse.match(/<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>/g);
+    if (unclosedMatch && unclosedMatch.length > 0) {
+      // Handle unclosed citations by converting them to self-closing
+      let result = trimmedResponse;
+      for (const match of unclosedMatch) {
+        // Convert <cite ... > to <cite ... />
+        const selfClosing = match.replace(/>$/, ' />');
+        result = result.replace(match, selfClosing);
+      }
+      return normalizeCitationContent(result);
+    }
     return normalizeCitationContent(trimmedResponse);
   }
 
