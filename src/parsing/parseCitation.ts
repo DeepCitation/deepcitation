@@ -340,12 +340,12 @@ const extractXmlCitations = (text: string): { [key: string]: Citation } => {
   const normalizedText = normalizeCitations(text);
 
   // Find all <cite ... /> tags
-  // This regex handles > characters inside quoted attribute values:
-  // - '[^']*' matches single-quoted strings (any chars except ')
-  // - "[^"]*" matches double-quoted strings (any chars except ")
+  // This regex handles > characters inside quoted attribute values and escaped quotes:
+  // - '(?:[^'\\]|\\.)*' matches single-quoted strings with escaped chars
+  // - "(?:[^"\\]|\\.)*" matches double-quoted strings with escaped chars
   // - [^'">/] matches any char that's not a quote, >, or /
   // - The whole pattern repeats until we hit />
-  const citeRegex = /<cite\s+(?:'[^']*'|"[^"]*"|[^'">/])*\/>/g;
+  const citeRegex = /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*\/>/g;
   const matches = normalizedText.match(citeRegex);
 
   if (!matches || matches.length === 0) return {};

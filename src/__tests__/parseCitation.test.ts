@@ -1531,4 +1531,462 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(Object.keys(result)).toHaveLength(0);
     });
   });
+
+  describe("non-self-closing citation tags with content", () => {
+    it("extracts citations from non-self-closing tags with content inside", () => {
+      // This is the exact format from the user's failing scenario
+      // The LLM outputs <cite ...>content</cite> instead of self-closing <cite ... />
+      const input = `Patient Information:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Patient demographics at top of document' full\\_phrase='John Doe 50/M' key\\_span='John Doe' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='1-5'>
+
+- Name: John Doe
+- Age: 50 years old
+- Gender: Male
+- Allergies: NKDA (No Known Drug Allergies)</cite>
+
+Medical History:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Lists patient\\'s medical conditions' full\\_phrase='HTN, CAD, HFEF, Hypothyroid, HLD, (R) Sided PICC on home milrinone, chronic back pain' key\\_span='HTN, CAD, HFEF' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='20-25'>
+
+- Hypertension (HTN)
+- Coronary Artery Disease (CAD)
+- Heart Failure with Reduced Ejection Fraction (HFEF)
+- Hypothyroidism
+- High Lipid Disorder (HLD)
+- Chronic back pain
+- On home milrinone therapy
+- Right-sided PICC line</cite>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBeGreaterThanOrEqual(2);
+      const citations = Object.values(result);
+      const keySpans = citations.map((c) => c.keySpan);
+      expect(keySpans).toContain("John Doe");
+      expect(keySpans).toContain("HTN, CAD, HFEF");
+    });
+
+    it("extracts all 6 citations from medical document summary", () => {
+      // Full example from user's failing scenario
+      const input = `I'll provide a summary of the key information from this medical document:
+
+Patient Information:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Patient demographics at top of document' full\\_phrase='John Doe 50/M' key\\_span='John Doe' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='1-5'>
+
+- Name: John Doe
+- Age: 50 years old
+- Gender: Male
+- Allergies: NKDA (No Known Drug Allergies)</cite>
+
+Medical History:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Lists patient\\'s medical conditions' full\\_phrase='HTN, CAD, HFEF, Hypothyroid, HLD, (R) Sided PICC on home milrinone, chronic back pain' key\\_span='HTN, CAD, HFEF' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='20-25'>
+
+- Hypertension (HTN)
+- Coronary Artery Disease (CAD)
+- Heart Failure with Reduced Ejection Fraction (HFEF)
+- Hypothyroidism
+- High Lipid Disorder (HLD)
+- Chronic back pain
+- On home milrinone therapy
+- Right-sided PICC line</cite>
+
+Hospital Course:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Tracks patient\\'s admission and transfer' full\\_phrase='5/15-worsening soB at home
+
+5/17-admitted at outside hospital; cardiac cath Showing 1 pulm HTN, low Cl, low SVO2
+
+5/18-transferred to CVICU IABP placed and placed on transplant list
+
+5/19-dobutamine started' key\\_span='worsening soB admitted transferred' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='10-19'>
+
+- 5/15: Worsening shortness of breath at home
+- 5/17: Admitted to outside hospital
+- Cardiac catheterization showed:
+- Pulmonary Hypertension
+- Low Cardiac Index
+- Low Mixed Venous Oxygen Saturation
+- 5/18: Transferred to Cardiovascular Intensive Care Unit (CVICU)
+- Intra-Aortic Balloon Pump (IABP) placed
+- Added to transplant list
+- 5/19: Dobutamine therapy initiated</cite>
+
+Current Status:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Summary of patient\\'s current condition' full\\_phrase='AxOx4 afebrile' key\\_span='AxOx4 afebrile' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='30-40'>
+
+- Alert and Oriented × 4
+- Afebrile
+- Pain managed with Tylenol PRN</cite>
+
+Medications:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Lists current IV medication infusions' full\\_phrase='Gtts: Heparin 12 uhr, Bumex 5mg/hr, Dobutamine 2.5mcg/kg, Milrinone 0.25mg/kg, Nicardipine 2.5mg/hr' key\\_span='Heparin Bumex Dobutamine' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='25-40'>
+
+- Heparin
+- Bumex
+- Dobutamine
+- Milrinone
+- Nicardipine</cite>
+
+Family:
+
+<cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Patient\\'s family information' full\\_phrase='July-wife Pon Chris-Son' key\\_span='July-wife Chris-Son' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='65-70'>
+
+-`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      // Should extract all 6 citations
+      expect(Object.keys(result).length).toBe(6);
+      const citations = Object.values(result);
+      const keySpans = citations.map((c) => c.keySpan);
+      expect(keySpans).toContain("John Doe");
+      expect(keySpans).toContain("HTN, CAD, HFEF");
+      expect(keySpans).toContain("worsening soB admitted transferred");
+      expect(keySpans).toContain("AxOx4 afebrile");
+      expect(keySpans).toContain("Heparin Bumex Dobutamine");
+      expect(keySpans).toContain("July-wife Chris-Son");
+    });
+
+    it("handles non-self-closing citation without closing tag", () => {
+      // Sometimes LLMs output <cite ...> without any closing, just followed by content
+      const input = `Some text <cite attachment_id='test123' full_phrase='test phrase' key_span='test' start_page_key='page_number_1_index_0' line_ids='1'>
+
+- Some list content
+- More content`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("test phrase");
+      expect(citation.keySpan).toBe("test");
+    });
+
+    it("handles citation with > ending instead of />", () => {
+      const input = `Text <cite attachment_id='test123' full_phrase='phrase' key_span='span' start_page_key='page_number_1_index_0' line_ids='1'>Content</cite> more text`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("phrase");
+    });
+
+    it("handles multiple consecutive non-self-closing citations", () => {
+      const input = `<cite attachment_id='file1' full_phrase='first' key_span='first' start_page_key='page_number_1_index_0' line_ids='1'>A</cite><cite attachment_id='file2' full_phrase='second' key_span='second' start_page_key='page_number_2_index_0' line_ids='2'>B</cite>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(2);
+      const keySpans = Object.values(result).map((c) => c.keySpan);
+      expect(keySpans).toContain("first");
+      expect(keySpans).toContain("second");
+    });
+
+    it("handles nested markdown inside citation content", () => {
+      const input = `<cite attachment_id='test123' full_phrase='important fact' key_span='fact' start_page_key='page_number_1_index_0' line_ids='1'>
+
+**Bold text** and *italic* and \`code\`
+
+- List item 1
+- List item 2
+</cite>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("important fact");
+    });
+  });
+
+  describe("escaped quotes in attributes", () => {
+    it("handles escaped single quotes in reasoning attribute", () => {
+      const input = `<cite attachment_id='test123' reasoning='The patient\\'s condition improved' full_phrase='condition improved' key_span='improved' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.reasoning).toContain("patient");
+      expect(citation.reasoning).toContain("condition improved");
+    });
+
+    it("handles escaped double quotes in full_phrase", () => {
+      const input = `<cite attachment_id="test123" full_phrase="He said \\"hello\\" to everyone" key_span="hello" start_page_key="page_number_1_index_0" line_ids="1" />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toContain("hello");
+    });
+
+    it("handles multiple escaped quotes in same attribute", () => {
+      const input = `<cite attachment_id='test123' reasoning='The \\'first\\' and \\'second\\' items' full_phrase='first and second' key_span='first' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+    });
+
+    it("handles mixed escaped and unescaped quotes across attributes", () => {
+      const input = `<cite attachment_id='test123' reasoning='Patient\\'s notes' full_phrase="The \"quoted\" text" key_span='quoted' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+    });
+  });
+
+  describe("multiline full_phrase handling", () => {
+    it("handles full_phrase with literal newlines", () => {
+      const input = `<cite attachment_id='test123' full_phrase='Line one
+Line two
+Line three' key_span='Line two' start_page_key='page_number_1_index_0' line_ids='1-3' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      // Newlines should be normalized to spaces
+      expect(citation.fullPhrase).toContain("Line one");
+      expect(citation.fullPhrase).toContain("Line two");
+    });
+
+    it("handles full_phrase with escaped newlines (\\n)", () => {
+      const input = `<cite attachment_id='test123' full_phrase='Line one\\nLine two\\nLine three' key_span='Line two' start_page_key='page_number_1_index_0' line_ids='1-3' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).not.toContain("\\n");
+    });
+
+    it("handles full_phrase spanning multiple lines in non-self-closing tag", () => {
+      const input = `<cite attachment_id='test123' full_phrase='First paragraph.
+
+Second paragraph with more details.
+
+Third paragraph concluding.' key_span='Second paragraph' start_page_key='page_number_1_index_0' line_ids='1-10'>Content here</cite>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toContain("First paragraph");
+      expect(citation.fullPhrase).toContain("Second paragraph");
+    });
+  });
+
+  describe("special characters in attributes", () => {
+    it("handles angle brackets in full_phrase (HTML-like content)", () => {
+      const input = `<cite attachment_id='test123' full_phrase='The value was &lt;100 and &gt;50' key_span='100' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toContain("<100");
+      expect(citation.fullPhrase).toContain(">50");
+    });
+
+    it("handles ampersands in full_phrase", () => {
+      const input = `<cite attachment_id='test123' full_phrase='Smith &amp; Jones LLC' key_span='Smith' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toContain("&");
+    });
+
+    it("handles unicode characters in full_phrase", () => {
+      const input = `<cite attachment_id='test123' full_phrase='Temperature: 98.6°F • Heart rate: 72 bpm' key_span='98.6°F' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toContain("°");
+      expect(citation.fullPhrase).toContain("•");
+    });
+
+    it("handles forward slashes in attribute values", () => {
+      const input = `<cite attachment_id='test123' full_phrase='Date: 01/15/2024' key_span='01/15/2024' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("Date: 01/15/2024");
+    });
+
+    it("handles equals signs in attribute values", () => {
+      const input = `<cite attachment_id='test123' full_phrase='Formula: E=mc²' key_span='E=mc²' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toContain("E=mc");
+    });
+  });
+
+  describe("mixed citation formats in same response", () => {
+    it("handles mix of self-closing and non-self-closing citations", () => {
+      const input = `First: <cite attachment_id='file1' full_phrase='phrase one' key_span='one' start_page_key='page_number_1_index_0' line_ids='1' />
+Second: <cite attachment_id='file2' full_phrase='phrase two' key_span='two' start_page_key='page_number_2_index_0' line_ids='2'>content</cite>
+Third: <cite attachment_id='file3' full_phrase='phrase three' key_span='three' start_page_key='page_number_3_index_0' line_ids='3' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(3);
+      const keySpans = Object.values(result).map((c) => c.keySpan);
+      expect(keySpans).toContain("one");
+      expect(keySpans).toContain("two");
+      expect(keySpans).toContain("three");
+    });
+
+    it("handles citations with and without escaped underscores", () => {
+      const input = `First: <cite attachment\\_id='file1' full\\_phrase='phrase one' key\\_span='one' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='1' />
+Second: <cite attachment_id='file2' full_phrase='phrase two' key_span='two' start_page_key='page_number_2_index_0' line_ids='2' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(2);
+    });
+
+    it("handles citations interspersed with markdown", () => {
+      const input = `# Summary
+
+The report shows **important findings**<cite attachment_id='file1' full_phrase='important findings in Q4' key_span='important findings' start_page_key='page_number_1_index_0' line_ids='1' />.
+
+## Details
+
+- Revenue increased by 15%<cite attachment_id='file2' full_phrase='revenue growth of 15 percent' key_span='15%' start_page_key='page_number_2_index_0' line_ids='5' />
+- Costs decreased<cite attachment_id='file3' full_phrase='operational costs down' key_span='costs' start_page_key='page_number_3_index_0' line_ids='10' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(3);
+    });
+  });
+
+  describe("edge cases with incomplete/malformed citations", () => {
+    it("handles citation with empty key_span", () => {
+      const input = `<cite attachment_id='test123' full_phrase='some phrase' key_span='' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("some phrase");
+    });
+
+    it("handles citation with very long full_phrase", () => {
+      const longPhrase = "A".repeat(500) + " important " + "B".repeat(500);
+      const input = `<cite attachment_id='test123' full_phrase='${longPhrase}' key_span='important' start_page_key='page_number_1_index_0' line_ids='1-50' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toContain("important");
+    });
+
+    it("handles citation at very end of string without trailing content", () => {
+      const input = `Some text <cite attachment_id='test123' full_phrase='phrase' key_span='phrase' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+    });
+
+    it("handles citation at very beginning of string", () => {
+      const input = `<cite attachment_id='test123' full_phrase='phrase' key_span='phrase' start_page_key='page_number_1_index_0' line_ids='1' /> followed by text`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+    });
+
+    it("handles citation that is the entire string", () => {
+      const input = `<cite attachment_id='test123' full_phrase='phrase' key_span='phrase' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+    });
+  });
+
+  describe("line_ids edge cases", () => {
+    it("handles line_ids with large range", () => {
+      const input = `<cite attachment_id='test123' full_phrase='phrase' key_span='phrase' start_page_key='page_number_1_index_0' line_ids='1-100' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.lineIds).toHaveLength(100);
+      expect(citation.lineIds?.[0]).toBe(1);
+      expect(citation.lineIds?.[99]).toBe(100);
+    });
+
+    it("handles line_ids with multiple ranges", () => {
+      const input = `<cite attachment_id='test123' full_phrase='phrase' key_span='phrase' start_page_key='page_number_1_index_0' line_ids='1-3, 10-12, 20' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.lineIds).toContain(1);
+      expect(citation.lineIds).toContain(2);
+      expect(citation.lineIds).toContain(3);
+      expect(citation.lineIds).toContain(10);
+      expect(citation.lineIds).toContain(11);
+      expect(citation.lineIds).toContain(12);
+      expect(citation.lineIds).toContain(20);
+    });
+
+    it("handles line_ids with descending values (should sort ascending)", () => {
+      const input = `<cite attachment_id='test123' full_phrase='phrase' key_span='phrase' start_page_key='page_number_1_index_0' line_ids='50, 30, 10, 40, 20' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.lineIds).toEqual([10, 20, 30, 40, 50]);
+    });
+  });
+
+  describe("reasoning attribute variations", () => {
+    it("handles reasoning with complex explanation", () => {
+      const input = `<cite attachment_id='test123' reasoning='This citation references the section where the author discusses: (1) methodology, (2) results, and (3) conclusions - all of which support the claim.' full_phrase='methodology results conclusions' key_span='methodology' start_page_key='page_number_1_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.reasoning).toContain("methodology");
+      expect(citation.reasoning).toContain("conclusions");
+    });
+
+    it("handles reasoning with numbers and symbols", () => {
+      const input = `<cite attachment_id='test123' reasoning='Page 42, Section 3.1.2 shows 95% confidence interval (p<0.05)' full_phrase='95% confidence' key_span='95%' start_page_key='page_number_42_index_0' line_ids='1' />`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.reasoning).toContain("95%");
+      expect(citation.reasoning).toContain("p<0.05");
+    });
+  });
 });
