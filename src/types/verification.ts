@@ -1,7 +1,10 @@
 import { sha1Hash } from "../utils/sha.js";
 import { type Citation } from "./citation.js";
 import { type SearchStatus, type SearchAttempt } from "./search.js";
-import { type PdfSpaceItem } from "./boxes.js";
+import {
+  type MatchSnippetPdfItem,
+  type UnderlinedPdfItem,
+} from "./boxes.js";
 
 export const NOT_FOUND_VERIFICATION_INDEX = -1;
 export const PENDING_VERIFICATION_INDEX = -2;
@@ -74,7 +77,9 @@ export interface Verification {
 
   hitIndexWithinPage?: number | null;
 
-  pdfSpaceItem?: PdfSpaceItem;
+  matchSnippetPdfItem?: MatchSnippetPdfItem;
+
+  underlinedPdfItem?: UnderlinedPdfItem;
 
   verificationImageBase64?: string | null;
 

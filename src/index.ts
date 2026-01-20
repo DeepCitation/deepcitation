@@ -68,7 +68,14 @@ export type {
   SearchAttempt,
 } from "./types/search.js";
 
-export type { ScreenBox, PdfSpaceItem, IVertex } from "./types/boxes.js";
+export type {
+  ScreenBox,
+  MatchSnippetPdfItem,
+  UnderlinedPdfItem,
+  IVertex,
+  /** @deprecated Use MatchSnippetPdfItem instead */
+  PdfSpaceItem,
+} from "./types/boxes.js";
 
 // Utilities
 export { sha1Hash } from "./utils/sha.js";
