@@ -1989,4 +1989,376 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       expect(citation.reasoning).toContain("p<0.05");
     });
   });
+
+  describe("CITATION_JSON_OUTPUT_FORMAT compatibility", () => {
+    // Tests for JSON results matching CITATION_JSON_OUTPUT_FORMAT structure
+    // from citationPrompts.ts - these test the extractJsonCitations and
+    // findJsonCitationsInObject functions
+
+    it("extracts citation matching CITATION_JSON_OUTPUT_FORMAT schema", () => {
+      // Exact structure matching CITATION_JSON_OUTPUT_FORMAT
+      const input = {
+        attachmentId: "file123456789012345",
+        reasoning: "This citation directly supports the claim about revenue",
+        fullPhrase: "Revenue increased 45% year-over-year to $2.3 billion",
+        keySpan: "increased 45%",
+        startPageKey: "page_number_2_index_1",
+        lineIds: [12, 13, 14],
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.attachmentId).toBe("file123456789012345");
+      expect(citation.reasoning).toBe(
+        "This citation directly supports the claim about revenue"
+      );
+      expect(citation.fullPhrase).toBe(
+        "Revenue increased 45% year-over-year to $2.3 billion"
+      );
+      expect(citation.keySpan).toBe("increased 45%");
+      expect(citation.pageNumber).toBe(2);
+      expect(citation.lineIds).toEqual([12, 13, 14]);
+    });
+
+    it("extracts citation from object with single 'citation' property", () => {
+      const input = {
+        response: "The company showed strong growth in Q4.",
+        citation: {
+          attachmentId: "doc123",
+          reasoning: "Supports the growth claim",
+          fullPhrase: "Q4 earnings exceeded expectations by 20%",
+          keySpan: "exceeded expectations",
+          startPageKey: "page_number_5_index_0",
+          lineIds: [10, 11],
+        },
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("Q4 earnings exceeded expectations by 20%");
+      expect(citation.keySpan).toBe("exceeded expectations");
+      expect(citation.reasoning).toBe("Supports the growth claim");
+    });
+
+    it("extracts citations from object with 'citations' array property", () => {
+      const input = {
+        answer: "Multiple data points support this conclusion.",
+        citations: [
+          {
+            attachmentId: "doc1",
+            reasoning: "First supporting evidence",
+            fullPhrase: "Market share increased to 35%",
+            keySpan: "35%",
+            startPageKey: "page_number_1_index_0",
+            lineIds: [5],
+          },
+          {
+            attachmentId: "doc2",
+            reasoning: "Second supporting evidence",
+            fullPhrase: "Customer retention improved by 15%",
+            keySpan: "15%",
+            startPageKey: "page_number_3_index_0",
+            lineIds: [20, 21],
+          },
+        ],
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(2);
+      const citations = Object.values(result);
+      expect(citations.map((c) => c.keySpan)).toContain("35%");
+      expect(citations.map((c) => c.keySpan)).toContain("15%");
+    });
+
+    it("extracts single citation from 'citations' property (non-array)", () => {
+      const input = {
+        summary: "Key finding from the report",
+        citations: {
+          attachmentId: "report123",
+          reasoning: "Direct quote from conclusion",
+          fullPhrase: "The study conclusively demonstrates improvement",
+          keySpan: "conclusively demonstrates",
+          startPageKey: "page_number_10_index_0",
+          lineIds: [1, 2, 3],
+        },
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe(
+        "The study conclusively demonstrates improvement"
+      );
+    });
+
+    it("extracts citations from deeply nested structure with 'citation' property", () => {
+      const input = {
+        analysis: {
+          findings: {
+            primary: {
+              citation: {
+                attachmentId: "nested123",
+                reasoning: "Deeply nested citation",
+                fullPhrase: "Nested finding in complex structure",
+                keySpan: "Nested finding",
+                startPageKey: "page_number_7_index_2",
+                lineIds: [15],
+              },
+            },
+          },
+        },
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("Nested finding in complex structure");
+      expect(citation.pageNumber).toBe(7);
+    });
+
+    it("extracts citations from array of objects each with 'citation' property", () => {
+      const input = {
+        results: [
+          {
+            section: "Introduction",
+            citation: {
+              attachmentId: "intro1",
+              fullPhrase: "First section citation",
+              keySpan: "First",
+              startPageKey: "page_number_1_index_0",
+              lineIds: [1],
+            },
+          },
+          {
+            section: "Methodology",
+            citation: {
+              attachmentId: "method1",
+              fullPhrase: "Second section citation",
+              keySpan: "Second",
+              startPageKey: "page_number_2_index_0",
+              lineIds: [10],
+            },
+          },
+        ],
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(2);
+      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      expect(phrases).toContain("First section citation");
+      expect(phrases).toContain("Second section citation");
+    });
+
+    it("extracts citations from mixed 'citation' and 'citations' properties", () => {
+      const input = {
+        mainClaim: {
+          citation: {
+            attachmentId: "main1",
+            fullPhrase: "Main citation phrase",
+            keySpan: "Main",
+            startPageKey: "page_number_1_index_0",
+            lineIds: [1],
+          },
+        },
+        supportingEvidence: {
+          citations: [
+            {
+              attachmentId: "support1",
+              fullPhrase: "Supporting citation one",
+              keySpan: "one",
+              startPageKey: "page_number_2_index_0",
+              lineIds: [5],
+            },
+            {
+              attachmentId: "support2",
+              fullPhrase: "Supporting citation two",
+              keySpan: "two",
+              startPageKey: "page_number_3_index_0",
+              lineIds: [10],
+            },
+          ],
+        },
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(3);
+      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      expect(phrases).toContain("Main citation phrase");
+      expect(phrases).toContain("Supporting citation one");
+      expect(phrases).toContain("Supporting citation two");
+    });
+
+    it("extracts citations with snake_case format matching CITATION_JSON_OUTPUT_FORMAT", () => {
+      const input = {
+        citation: {
+          attachment_id: "snake123",
+          reasoning: "Using snake_case properties",
+          full_phrase: "Snake case formatted citation",
+          key_span: "Snake case",
+          start_page_key: "page_number_4_index_0",
+          line_ids: [8, 9],
+        },
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.attachmentId).toBe("snake123");
+      expect(citation.fullPhrase).toBe("Snake case formatted citation");
+      expect(citation.keySpan).toBe("Snake case");
+      expect(citation.pageNumber).toBe(4);
+      expect(citation.lineIds).toEqual([8, 9]);
+    });
+
+    it("handles LLM response with structured output containing citations", () => {
+      // Simulates a structured output response from GPT/Claude with JSON mode
+      const input = {
+        type: "analysis",
+        content: "Based on the document analysis...",
+        citations: [
+          {
+            attachmentId: "gpt-response-1",
+            reasoning: "This directly answers the user question",
+            fullPhrase: "The quarterly revenue was $5.2 million",
+            keySpan: "$5.2 million",
+            startPageKey: "page_number_1_index_0",
+            lineIds: [25, 26, 27],
+          },
+        ],
+        confidence: 0.95,
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(1);
+      const citation = Object.values(result)[0];
+      expect(citation.keySpan).toBe("$5.2 million");
+      expect(citation.lineIds).toEqual([25, 26, 27]);
+    });
+
+    it("ignores properties named 'citation' or 'citations' that don't match format", () => {
+      const input = {
+        citation: "Just a string, not a citation object",
+        citations: [1, 2, 3], // Array of numbers, not citation objects
+        actualCitation: {
+          fullPhrase: "Real citation here",
+          attachmentId: "real123",
+        },
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      // Should only find the root-level citation since actualCitation is not
+      // a recognized property name (only 'citation' and 'citations' are searched)
+      expect(Object.keys(result)).toHaveLength(0);
+    });
+
+    it("extracts citation from response with both JSON citation and embedded XML", () => {
+      const input = {
+        markdown:
+          "The report shows growth <cite attachment_id='xml123' full_phrase='XML embedded citation' key_span='XML' start_page_key='page_number_1_index_0' line_ids='1' />",
+        citation: {
+          attachmentId: "json456",
+          fullPhrase: "JSON structured citation",
+          keySpan: "JSON",
+          startPageKey: "page_number_2_index_0",
+          lineIds: [5],
+        },
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBeGreaterThanOrEqual(2);
+      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      expect(phrases).toContain("XML embedded citation");
+      expect(phrases).toContain("JSON structured citation");
+    });
+
+    it("handles empty citations array gracefully", () => {
+      const input = {
+        response: "No citations for this response",
+        citations: [],
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(0);
+    });
+
+    it("handles null citation property gracefully", () => {
+      const input = {
+        response: "Citation not available",
+        citation: null,
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(0);
+    });
+
+    it("handles undefined citations property gracefully", () => {
+      const input = {
+        response: "No citations defined",
+        citations: undefined,
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(0);
+    });
+
+    it("extracts citations from array at root level with nested citations property", () => {
+      const input = [
+        {
+          question: "Q1",
+          citations: [
+            {
+              fullPhrase: "Answer to Q1",
+              attachmentId: "q1-doc",
+              keySpan: "Q1",
+              lineIds: [1],
+            },
+          ],
+        },
+        {
+          question: "Q2",
+          citations: [
+            {
+              fullPhrase: "Answer to Q2",
+              attachmentId: "q2-doc",
+              keySpan: "Q2",
+              lineIds: [5],
+            },
+          ],
+        },
+      ];
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result)).toHaveLength(2);
+      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      expect(phrases).toContain("Answer to Q1");
+      expect(phrases).toContain("Answer to Q2");
+    });
+
+    it("correctly assigns citation numbers sequentially for nested citations", () => {
+      const input = {
+        level1: {
+          citation: {
+            fullPhrase: "First nested",
+            attachmentId: "f1",
+          },
+        },
+        level2: {
+          citations: [
+            { fullPhrase: "Second nested", attachmentId: "f2" },
+            { fullPhrase: "Third nested", attachmentId: "f3" },
+          ],
+        },
+      };
+      const result = getAllCitationsFromLlmOutput(input);
+      const citations = Object.values(result);
+
+      // All citations should have sequential numbers
+      const numbers = citations
+        .map((c) => c.citationNumber)
+        .sort((a, b) => (a || 0) - (b || 0));
+      expect(numbers).toEqual([1, 2, 3]);
+    });
+  });
 });
