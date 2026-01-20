@@ -82,6 +82,13 @@ export {
   type CitationComponentProps,
 } from "./CitationComponent.js";
 
+// Citation Overlay Context (for blocking hover when image is expanded)
+export {
+  CitationOverlayProvider,
+  useCitationOverlay,
+  useHasCitationOverlayProvider,
+} from "./CitationOverlayContext.js";
+
 // Icons
 export {
   DeepCitationIcon,

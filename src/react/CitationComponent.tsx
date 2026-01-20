@@ -29,29 +29,10 @@ import {
   getCitationDisplayText,
 } from "./utils.js";
 import { useSmartDiff } from "./useSmartDiff.js";
+import { useCitationOverlay } from "./CitationOverlayContext.js";
 
 // Re-export types for convenience
 export type { CitationVariant, CitationContent } from "./types.js";
-
-// =============================================================================
-// GLOBAL IMAGE OVERLAY STATE
-// =============================================================================
-// Track if any citation has an image overlay open. This prevents hover popovers
-// from triggering on other citations while viewing an expanded image.
-// Using a module-level counter to handle multiple overlays (edge case).
-let globalImageOverlayCount = 0;
-
-function incrementGlobalOverlay() {
-  globalImageOverlayCount++;
-}
-
-function decrementGlobalOverlay() {
-  globalImageOverlayCount = Math.max(0, globalImageOverlayCount - 1);
-}
-
-function isAnyImageOverlayOpen() {
-  return globalImageOverlayCount > 0;
-}
 
 /**
  * Get the default content type based on variant.
@@ -282,11 +263,13 @@ interface ImageOverlayProps {
  * Click anywhere or press Escape to close.
  */
 function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
+  const { registerOverlay, unregisterOverlay } = useCitationOverlay();
+
   // Register this overlay as open globally (blocks hover on other citations)
   useEffect(() => {
-    incrementGlobalOverlay();
-    return () => decrementGlobalOverlay();
-  }, []);
+    registerOverlay();
+    return () => unregisterOverlay();
+  }, [registerOverlay, unregisterOverlay]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -885,6 +868,9 @@ export const CitationComponent = forwardRef<
     },
     ref
   ) => {
+    // Get overlay context for blocking hover when any image overlay is open
+    const { isAnyOverlayOpen } = useCitationOverlay();
+
     // Resolve content: explicit content prop or default for variant
     const resolvedContent: CitationContent = useMemo(() => {
       if (contentProp) return contentProp;
@@ -1056,7 +1042,7 @@ export const CitationComponent = forwardRef<
 
     const handleMouseEnter = useCallback(() => {
       // Don't trigger hover popover if any image overlay is expanded
-      if (isAnyImageOverlayOpen()) return;
+      if (isAnyOverlayOpen) return;
 
       cancelHoverCloseTimeout();
       setIsHovering(true);
@@ -1071,6 +1057,7 @@ export const CitationComponent = forwardRef<
       citationKey,
       getBehaviorContext,
       cancelHoverCloseTimeout,
+      isAnyOverlayOpen,
     ]);
 
     const handleMouseLeave = useCallback(() => {
