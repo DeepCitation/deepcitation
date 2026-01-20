@@ -560,6 +560,169 @@ describe("replaceCitations with citationKey matching", () => {
     expect(result).toBe("Claim⌛.");
   });
 
+  describe("citationKey matching with escaped quotes in attributes", () => {
+    it("matches citationKey when fullPhrase has escaped single quotes", () => {
+      const attachmentId = "gM5nhodOx1d12bVIiYvH";
+
+      // Citation as it would be parsed from normalized output (unescaped)
+      const citation: Citation = {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "It's a test phrase with apostrophe",
+        keySpan: "It's a test",
+        lineIds: [21, 22, 23],
+      };
+
+      const key = generateCitationKey(citation);
+      const verifications: Record<string, Verification> = {
+        [key]: { status: "found", attachmentId },
+      };
+
+      // In cite tags after normalization, quotes are escaped with backslash
+      const input = `Text<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='It\\'s a test phrase with apostrophe' key_span='It\\'s a test' line_ids='21,22,23' />.`;
+
+      const result = replaceCitations(input, {
+        verifications,
+        showVerificationStatus: true,
+      });
+
+      expect(result).toBe("Text☑️.");
+    });
+
+    it("matches citationKey when fullPhrase has escaped double quotes", () => {
+      const attachmentId = "gM5nhodOx1d12bVIiYvH";
+
+      // Citation as it would be parsed from normalized output (unescaped)
+      const citation: Citation = {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: 'He said "hello" to the patient',
+        keySpan: 'said "hello"',
+        lineIds: [10],
+      };
+
+      const key = generateCitationKey(citation);
+      const verifications: Record<string, Verification> = {
+        [key]: { status: "found", attachmentId },
+      };
+
+      // In cite tags, double quotes are escaped
+      const input = `Text<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='He said \\"hello\\" to the patient' key_span='said \\"hello\\"' line_ids='10' />.`;
+
+      const result = replaceCitations(input, {
+        verifications,
+        showVerificationStatus: true,
+      });
+
+      expect(result).toBe("Text☑️.");
+    });
+
+    it("matches citationKey with real medical chart data containing commas and special characters", () => {
+      const attachmentId = "gM5nhodOx1d12bVIiYvH";
+
+      // This mimics the exact scenario from the user's output
+      const citation: Citation = {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "HTN, CAD, HFrEF, Hypothyroid, HLD,",
+        keySpan: "HTN, CAD, HFrEF, Hypothyroid",
+        lineIds: [21, 22, 23],
+      };
+
+      const key = generateCitationKey(citation);
+      const verifications: Record<string, Verification> = {
+        [key]: { status: "found", attachmentId },
+      };
+
+      // Input with escaped quotes and attributes in any order
+      const input = `He has a history of HTN, CAD, HFrEF, Hypothyroid, and HLD <cite attachment_id='gM5nhodOx1d12bVIiYvH' reasoning='patient medical history' full_phrase='HTN, CAD, HFrEF, Hypothyroid, HLD,' key_span='HTN, CAD, HFrEF, Hypothyroid' start_page_key='page_number_1_index_0' line_ids='21,22,23' />.`;
+
+      const result = replaceCitations(input, {
+        verifications,
+        showVerificationStatus: true,
+      });
+
+      expect(result).toBe("He has a history of HTN, CAD, HFrEF, Hypothyroid, and HLD ☑️.");
+    });
+
+    it("matches citationKey when line_ids are specified as ranges in the cite tag", () => {
+      const attachmentId = "gM5nhodOx1d12bVIiYvH";
+
+      // Citation with expanded line_ids
+      const citation: Citation = {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "5/17-admitted at outside hospital",
+        keySpan: "5/17-admitted",
+        lineIds: [11, 12, 13, 14, 15, 16],
+      };
+
+      const key = generateCitationKey(citation);
+      const verifications: Record<string, Verification> = {
+        [key]: { status: "found", attachmentId },
+      };
+
+      // Input with line_ids as a range (11-16) which should be expanded
+      const input = `The patient was admitted <cite attachment_id='gM5nhodOx1d12bVIiYvH' full_phrase='5/17-admitted at outside hospital' key_span='5/17-admitted' start_page_key='page_number_1_index_0' line_ids='11-16' />.`;
+
+      const result = replaceCitations(input, {
+        verifications,
+        showVerificationStatus: true,
+      });
+
+      expect(result).toBe("The patient was admitted ☑️.");
+    });
+
+    it("matches multiple citations from same document with different verification statuses", () => {
+      const attachmentId = "gM5nhodOx1d12bVIiYvH";
+
+      // Multiple citations as they would be parsed
+      const citation1: Citation = {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "HTN, CAD, HFrEF, Hypothyroid, HLD,",
+        keySpan: "HTN, CAD, HFrEF, Hypothyroid",
+        lineIds: [21, 22, 23],
+      };
+
+      const citation2: Citation = {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "5/17-admitted at outside hospital",
+        keySpan: "5/17-admitted",
+        lineIds: [11, 12, 13, 14, 15, 16],
+      };
+
+      const citation3: Citation = {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "Heparin 12 u/hr, Bumex 5mg/hr",
+        keySpan: "Heparin, Bumex",
+        lineIds: [28, 29, 30],
+      };
+
+      const key1 = generateCitationKey(citation1);
+      const key2 = generateCitationKey(citation2);
+      const key3 = generateCitationKey(citation3);
+
+      const verifications: Record<string, Verification> = {
+        [key1]: { status: "found", attachmentId },
+        [key2]: { status: "found", attachmentId },
+        [key3]: { status: "partial_text_found", attachmentId },
+      };
+
+      const input = `History: <cite attachment_id='gM5nhodOx1d12bVIiYvH' full_phrase='HTN, CAD, HFrEF, Hypothyroid, HLD,' key_span='HTN, CAD, HFrEF, Hypothyroid' start_page_key='page_number_1_index_0' line_ids='21-23' />. Admitted <cite attachment_id='gM5nhodOx1d12bVIiYvH' full_phrase='5/17-admitted at outside hospital' key_span='5/17-admitted' start_page_key='page_number_1_index_0' line_ids='11-16' />. Meds: <cite attachment_id='gM5nhodOx1d12bVIiYvH' full_phrase='Heparin 12 u/hr, Bumex 5mg/hr' key_span='Heparin, Bumex' start_page_key='page_number_1_index_0' line_ids='28-30' />.`;
+
+      const result = replaceCitations(input, {
+        verifications,
+        showVerificationStatus: true,
+      });
+
+      // First two should be ☑️ (found), third should be ✅ (partial)
+      expect(result).toBe("History: ☑️. Admitted ☑️. Meds: ✅.");
+    });
+  });
+
   it("correctly handles real-world medical chart scenario with 5+ citations", () => {
     const attachmentId = "MedicalChart2024Test";
 

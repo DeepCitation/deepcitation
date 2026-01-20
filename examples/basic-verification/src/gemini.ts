@@ -198,11 +198,10 @@ provided documents accurately and cite your sources.`;
     console.log(`Found ${verifications.length} citation(s):\n`);
 
     for (const [key, verification] of verifications) {
-      const status = getCitationStatus(verification);
       const statusIndicator = getVerificationTextIndicator(verification);
 
       console.log(`${"═".repeat(60)}`);
-      console.log(`Citation [${key}]: ${statusIndicator} ${status}`);
+      console.log(`Citation [${key}]: ${statusIndicator} ${verification.status}`);
       console.log(`${"─".repeat(60)}`);
 
       // Original citation from LLM
@@ -212,7 +211,7 @@ provided documents accurately and cite your sources.`;
       }
 
       // Verification details
-      console.log(`  📊 Status: ${verification.status}`);
+      console.log(`  📊 Status: ${statusIndicator} ${verification.status}`);
       console.log(`  📄 Page: ${verification.verifiedPageNumber ?? "N/A"}`);
 
       if (verification.verifiedMatchSnippet) {
