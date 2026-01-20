@@ -188,13 +188,6 @@ function myersDiff(
   return backtrack(trace, oldTokens, newTokens);
 }
 
-/**
- * Backtrack through the trace to build the diff result.
- *
- * PERF FIX: Build array backwards with push() then reverse once at the end.
- * Using unshift() in a loop is O(n²) because it shifts all existing elements
- * right on each call. Push + reverse is O(n).
- */
 function backtrack(
   trace: Array<Record<number, number>>,
   oldTokens: string[],
@@ -268,14 +261,6 @@ function mergeConsecutiveChanges(changes: Change[]): Change[] {
   return result;
 }
 
-/**
- * Split text into lines, preserving line endings.
- * Handles both Unix (\n) and Windows (\r\n) line endings.
- *
- * PERF FIX: Uses substring slicing instead of character-by-character
- * string concatenation. String += in a loop forces O(n²) reallocation
- * of the entire string on each iteration.
- */
 function splitLines(text: string): string[] {
   if (!text) return [];
 

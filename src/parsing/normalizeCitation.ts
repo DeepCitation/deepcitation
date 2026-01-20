@@ -313,13 +313,9 @@ export const normalizeCitations = (response: string): string => {
     /(<cite[\s\S]*?(?:\/>|<\/cite>|>(?=\s*$|[\r\n])(?![\s\S]*<\/cite>)))/gm
   );
   if (citationParts.length <= 1) {
-    // Try a more aggressive pattern for unclosed citations
-    // This captures <cite ... > even when followed by content
+    // Handle unclosed citations by converting to self-closing
     const unclosedMatch = trimmedResponse.match(/<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>/g);
     if (unclosedMatch && unclosedMatch.length > 0) {
-      // PERF FIX: Use callback-based replace to handle all occurrences at once.
-      // The previous approach used a for loop with .replace() which only replaces
-      // the first occurrence, causing duplicate citations to be missed.
       const result = trimmedResponse.replace(
         /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>/g,
         (match) => match.replace(/>$/, ' />')
@@ -381,8 +377,6 @@ const normalizeCitationContent = (input: string): string => {
     return lowerKey;
   };
 
-  // PERF FIX: Combined regex for HTML entity decoding.
-  // Replaces 5 separate .replace() calls with a single pass.
   const htmlEntityMap: Record<string, string> = {
     '&quot;': '"',
     '&apos;': "'",
@@ -395,14 +389,6 @@ const normalizeCitationContent = (input: string): string => {
     return str.replace(htmlEntityRegex, (match) => htmlEntityMap[match] || match);
   };
 
-  // 2. ROBUST TEXT ATTRIBUTE PARSING (reasoning, value, full_phrase)
-  // This regex matches: Key = Quote -> Content (lazy) -> Lookahead for (Next Attribute OR End of Tag)
-  // It effectively ignores quotes inside the content during the initial capture.
-  // IMPORTANT:
-  // - The lookahead requires \s*= after attribute names to avoid matching words in content
-  //   (e.g., "The value was" should not stop at "value" thinking it's an attribute)
-  // - For tag end: matches />, '>, or "> (quote followed by >) to distinguish from &gt;
-  //   (In &gt;, the > is preceded by 't', not a quote or slash)
   const textAttributeRegex =
     /(fullPhrase|full_phrase|keySpan|key_span|reasoning|value)\s*=\s*(['"])([\s\S]*?)(?=\s+(?:line_ids|lineIds|timestamps|fileId|file_id|attachmentId|attachment_id|start_page_key|start_pageKey|startPageKey|keySpan|key_span|reasoning|value|full_phrase)\s*=|\s*\/>|['"]>)/gm;
 
@@ -411,40 +397,25 @@ const normalizeCitationContent = (input: string): string => {
     (_match, key, openQuote, rawContent) => {
       let content = rawContent;
 
-      // The lazy match usually captures the closing quote because the lookahead
-      // starts at the space *after* the attribute. We must strip it.
       if (content.endsWith(openQuote)) {
         content = content.slice(0, -1);
       }
 
-      // PERF FIX: Combined normalization in fewer regex passes.
-      // Original code had 9 separate .replace() calls; now reduced to 4 passes.
-
-      // Pass 1: Flatten newlines and remove markdown markers (* and ** / _ and __)
-      // Combined: newlines -> space, asterisks removed, double underscores removed
+      // Flatten newlines and remove markdown markers
       content = content.replace(/(\r?\n)+|(\*|_){2,}|\*/g, (match: string) => {
         if (match.includes('\n') || match.includes('\r')) return ' ';
-        return ''; // Remove asterisks and markdown markers
+        return '';
       });
 
-      // Pass 2: Decode HTML entities
       content = decodeHtmlEntities(content);
 
-      // Pass 3: Normalize single quotes (unescape then escape)
-      // \\' -> ', \' -> ', then ' -> \'
+      // Normalize quotes
       content = content.replace(/\\\\'/g, "'").replace(/\\'/g, "'").replace(/'/g, "\\'");
-
-      // Pass 4: Normalize double quotes (unescape then escape)
-      // \\" -> ", \" -> ", then " -> \"
       content = content.replace(/\\\\"/g, '"').replace(/\\"/g, '"').replace(/"/g, '\\"');
 
       return `${canonicalizeCiteAttributeKey(key)}='${content}'`;
     }
   );
-
-  // 3. ROBUST LINE_ID / TIMESTAMP PARSING
-  // Handles unquoted, single quoted, or double quoted numbers/ranges.
-  // Can handle line_ids appearing anywhere in the tag, not just at the end.
   normalized = normalized.replace(
     /(line_ids|lineIds|timestamps)=['"]?([\[\]\(\){}A-Za-z0-9_\-, ]+)['"]?(\s*\/?>|\s+)/gm,
     (_match, key, rawValue, trailingChars) => {

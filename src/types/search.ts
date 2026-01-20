@@ -1,6 +1,6 @@
 export type SearchStatus =
   | "loading"
-  | "pending" // Page not ready, still retrying
+  | "pending"
   | "not_found"
   | "partial_text_found"
   | "found"
@@ -9,7 +9,8 @@ export type SearchStatus =
   | "found_on_other_page"
   | "found_on_other_line"
   | "first_word_found"
-  | "timestamp_wip";
+  | "timestamp_wip"
+  | "skipped";
 
 export type SearchMethod =
   | "exact_line_match"
