@@ -307,10 +307,10 @@ export const normalizeCitations = (response: string): string => {
   // Split on citation tags - captures three patterns:
   // 1. Self-closing: <cite ... />
   // 2. With closing tag: <cite ...>content</cite>
-  // 3. Unclosed (ends with >): <cite ...> (no closing tag)
-  // The third pattern is for incomplete citations at end of content
+  // 3. Unclosed (ends with >): <cite ...> (no closing tag, no </cite> anywhere after)
+  // Pattern 3 uses negative lookahead to avoid matching when </cite> follows
   const citationParts = trimmedResponse.split(
-    /(<cite[\s\S]*?(?:\/>|<\/cite>|>(?=\s*$|[\r\n])))/gm
+    /(<cite[\s\S]*?(?:\/>|<\/cite>|>(?=\s*$|[\r\n])(?![\s\S]*<\/cite>)))/gm
   );
   if (citationParts.length <= 1) {
     // Try a more aggressive pattern for unclosed citations
@@ -382,6 +382,8 @@ const normalizeCitationContent = (input: string): string => {
   };
 
   // Helper to decode HTML entities (simple implementation, expand if needed)
+  // Note: We decode &lt; and &gt; to their actual characters so they're preserved
+  // in the final output for display purposes
   const decodeHtmlEntities = (str: string) => {
     return str
       .replace(/&quot;/g, '"')
@@ -394,8 +396,13 @@ const normalizeCitationContent = (input: string): string => {
   // 2. ROBUST TEXT ATTRIBUTE PARSING (reasoning, value, full_phrase)
   // This regex matches: Key = Quote -> Content (lazy) -> Lookahead for (Next Attribute OR End of Tag)
   // It effectively ignores quotes inside the content during the initial capture.
+  // IMPORTANT:
+  // - The lookahead requires \s*= after attribute names to avoid matching words in content
+  //   (e.g., "The value was" should not stop at "value" thinking it's an attribute)
+  // - For tag end: matches />, '>, or "> (quote followed by >) to distinguish from &gt;
+  //   (In &gt;, the > is preceded by 't', not a quote or slash)
   const textAttributeRegex =
-    /(fullPhrase|full_phrase|keySpan|key_span|reasoning|value)\s*=\s*(['"])([\s\S]*?)(?=\s+(?:line_ids|lineIds|timestamps|fileId|file_id|attachmentId|attachment_id|start_page_key|start_pageKey|startPageKey|keySpan|key_span|reasoning|value|full_phrase)|\s*\/?>)/gm;
+    /(fullPhrase|full_phrase|keySpan|key_span|reasoning|value)\s*=\s*(['"])([\s\S]*?)(?=\s+(?:line_ids|lineIds|timestamps|fileId|file_id|attachmentId|attachment_id|start_page_key|start_pageKey|startPageKey|keySpan|key_span|reasoning|value|full_phrase)\s*=|\s*\/>|['"]>)/gm;
 
   normalized = normalized.replace(
     textAttributeRegex,
