@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
-[Documentation](https://deepcitation.com/docs) · [New API Key](https://deepcitation.com/signup) · [Examples](./examples) 
+[Documentation](https://deepcitation.com/docs) · [New API Key](https://deepcitation.com/signup) · [Examples](./examples) · [Agent Guide](./AGENTS.md)
 
 </div>
 
@@ -152,6 +152,7 @@ npm run start:openai
 ## Documentation & Examples
 *   **[Full Documentation](https://deepcitation.com/docs)** - API reference and advanced usage.
 *   **[Examples Directory](./examples)** - Runnable Next.js and Node.js examples.
+*   **[Agent Implementation Guide](./AGENTS.md)** - Step-by-step guide for AI code agents (Claude, Cursor, Copilot).
 
 ## License
 MIT License - see [LICENSE](./LICENSE) for details.
