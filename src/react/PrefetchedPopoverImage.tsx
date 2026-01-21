@@ -10,9 +10,16 @@
  * - Instantly reveal the already-rendered content when switching to "visible"
  * - Defer updates to hidden content so they don't block visible UI
  *
+ * Falls back to a simple Fragment wrapper if Activity is not available (React < 19.2).
+ *
  * @see https://react.dev/blog/2025/10/01/react-19-2
  */
-import React, { Activity, memo } from "react";
+import React, { memo } from "react";
+
+// React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
+const Activity =
+  (React as { Activity?: React.ComponentType<{ mode: "visible" | "hidden"; children: React.ReactNode }> }).Activity ??
+  (({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>);
 
 interface PrefetchedPopoverImageProps {
   /** Whether the popover (and image) should be visible */

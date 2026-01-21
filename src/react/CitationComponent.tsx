@@ -1,5 +1,4 @@
 import React, {
-  Activity,
   forwardRef,
   memo,
   useCallback,
@@ -9,6 +8,11 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+
+// React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
+const Activity =
+  (React as { Activity?: React.ComponentType<{ mode: "visible" | "hidden"; children: React.ReactNode }> }).Activity ??
+  (({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>);
 import { type CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { CheckIcon, SpinnerIcon, WarningIcon } from "./icons.js";
