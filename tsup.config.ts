@@ -16,7 +16,7 @@ export default defineConfig({
   minify: true,
   treeshake: true,
   splitting: true,
-  sourcemap: false,
+  sourcemap: true,
   outDir: "lib",
   target: "es2020",
   external: ["react", "react-dom", "@radix-ui/react-popover"],
