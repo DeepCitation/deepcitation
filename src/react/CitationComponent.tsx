@@ -320,7 +320,7 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
 /** Verified indicator - green checkmark for exact matches (subscript-positioned) */
 const VerifiedIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.15em] size-2 text-green-600 dark:text-green-500"
+    className="inline-flex relative ml-0.5 top-[0.15em] size-2.5 text-green-600 dark:text-green-500"
     aria-hidden="true"
   >
     <CheckIcon />
@@ -330,7 +330,7 @@ const VerifiedIndicator = () => (
 /** Partial match indicator - amber checkmark for partial/relocated matches (subscript-positioned) */
 const PartialIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.15em] size-2 text-amber-600 dark:text-amber-500"
+    className="inline-flex relative ml-0.5 top-[0.15em] size-2.5 text-amber-600 dark:text-amber-500"
     aria-hidden="true"
   >
     <CheckIcon />
@@ -340,7 +340,7 @@ const PartialIndicator = () => (
 /** Pending indicator - spinner for loading state (subscript-positioned) */
 const PendingIndicator = () => (
   <span
-    className="inline-flex relative ml-1 top-[0.15em] size-2 animate-spin text-gray-400 dark:text-gray-500"
+    className="inline-flex relative ml-1 top-[0.15em] size-2.5 animate-spin text-gray-400 dark:text-gray-500"
     aria-hidden="true"
   >
     <SpinnerIcon />
@@ -350,7 +350,7 @@ const PendingIndicator = () => (
 /** Miss indicator - amber warning triangle for not found (subscript-positioned) */
 const MissIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.15em] size-2 text-amber-500 dark:text-amber-400"
+    className="inline-flex relative ml-0.5 top-[0.15em] size-2.5 text-amber-500 dark:text-amber-400"
     aria-hidden="true"
   >
     <WarningIcon />
