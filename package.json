@@ -14,14 +14,17 @@
         "type": "git",
         "url": "git+https://github.com/deepcitation/deepcitation-js.git"
     },
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    },
     "main": "./lib/index.cjs",
     "module": "./lib/index.js",
     "types": "./lib/index.d.ts",
     "sideEffects": false,
     "files": [
         "lib",
-        "src/tailwind.css",
-        "LICENSE"
+        "src/tailwind.css"
     ],
     "scripts": {
         "build": "tsup && npm run build:css",
@@ -106,30 +109,36 @@
         ".": {
             "types": "./lib/index.d.ts",
             "import": "./lib/index.js",
-            "require": "./lib/index.cjs"
+            "require": "./lib/index.cjs",
+            "default": "./lib/index.js"
         },
         "./client": {
             "types": "./lib/client/index.d.ts",
             "import": "./lib/client/index.js",
-            "require": "./lib/client/index.cjs"
+            "require": "./lib/client/index.cjs",
+            "default": "./lib/client/index.js"
         },
         "./prompts": {
             "types": "./lib/prompts/index.d.ts",
             "import": "./lib/prompts/index.js",
-            "require": "./lib/prompts/index.cjs"
+            "require": "./lib/prompts/index.cjs",
+            "default": "./lib/prompts/index.js"
         },
         "./react": {
             "types": "./lib/react/index.d.ts",
             "import": "./lib/react/index.js",
-            "require": "./lib/react/index.cjs"
+            "require": "./lib/react/index.cjs",
+            "default": "./lib/react/index.js"
         },
         "./types": {
             "types": "./lib/types/index.d.ts",
             "import": "./lib/types/index.js",
-            "require": "./lib/types/index.cjs"
+            "require": "./lib/types/index.cjs",
+            "default": "./lib/types/index.js"
         },
         "./tailwind.css": "./src/tailwind.css",
-        "./styles.css": "./lib/styles.css"
+        "./styles.css": "./lib/styles.css",
+        "./package.json": "./package.json"
     },
     "keywords": [
         "citation",
