@@ -475,11 +475,11 @@ function DefaultPopoverContent({
   const { isMiss, isPartialMatch, isPending } = status;
 
   // Image view - sized for quick preview, click to expand
-  // Uses a fixed container with object-cover to show a readable crop:
-  // - Container is 400x200px max
-  // - Wide images are cropped (not shrunk) to show readable content
-  // - object-position: left top to show the relevant highlighted area
-  // - Click to expand shows full image at natural size
+  // Uses responsive sizing that adapts to actual image dimensions:
+  // - Small images (e.g. document snippets): show at natural size, constrained to viewport
+  // - Large images: constrain to max dimensions while preserving aspect ratio
+  // - Max dimensions: 70vw width, 50vh height to leave room for positioning
+  // - Min dimensions: none - small images stay small
   if (hasImage) {
     // Determine status indicator for the image overlay
     const isVerified = status.isVerified && !status.isPartialMatch;
@@ -493,7 +493,6 @@ function DefaultPopoverContent({
         <button
           type="button"
           className="group block cursor-zoom-in relative overflow-hidden rounded-md bg-gray-50 dark:bg-gray-800"
-          style={{ width: "100%", maxWidth: "384px", height: "200px" }}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -506,10 +505,11 @@ function DefaultPopoverContent({
             alt="Citation verification"
             className="block rounded-md"
             style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "left top",
+              maxWidth: "min(70vw, 384px)",
+              maxHeight: "min(50vh, 300px)",
+              width: "auto",
+              height: "auto",
+              objectFit: "contain",
             }}
             loading="lazy"
           />

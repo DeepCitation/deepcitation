@@ -30,10 +30,11 @@ const PopoverContent = React.forwardRef<
       align={align}
       sideOffset={sideOffset}
       className={cn(
-        // Base styling: fit-content width, viewport-aware max, larger shadow for image preview
-        // Max width accommodates image preview (max-w-sm = 384px) plus padding, capped at viewport
+        // Base styling: fit-content dimensions, viewport-aware max for both width and height
+        // Ensures popover never exceeds screen bounds, leaving room for positioning
         "z-[9998] rounded-lg border bg-white shadow-xl outline-none",
-        "w-fit max-w-[min(400px,calc(100vw-2rem))]",
+        "w-fit max-w-[min(400px,calc(100vw-2rem))] max-h-[calc(100vh-4rem)]",
+        "overflow-auto",
         "border-gray-200 dark:border-gray-700 dark:bg-gray-900",
         // Animations
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
