@@ -7,35 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- New `content` prop for CitationComponent to control what text is displayed (`keySpan`, `number`, `indicator`)
-- New `chip` variant for pill/badge style citations with background colors
-- New `superscript` variant for footnote-style citations
-- Granular package exports: `/client`, `/prompts`, `/types` for better tree-shaking
-- `UrlCitationVariant` type for URL citation components
-- Icons now exported from `/react`: `DeepCitationIcon`, `CheckIcon`, `SpinnerIcon`, `WarningIcon`
-- New `replaceCitations()` function with verification status support
-  - `leaveKeySpanBehind` option to keep key_span text
-  - `verifications` option to pass verification results
-  - `showVerificationStatus` option to display status indicators (✓, ⚠, ✗, ◌)
-- Environment variable overrides for `SYSTEM_PROMPT` and `USER_PROMPT` in basic-verification examples
+## [1.1.50] - 2025-01-21
 
-### Changed
-- **Breaking**: Removed `citation.css` - components now use Tailwind CSS exclusively
-- **Breaking**: `CitationVariant` type updated: removed `"indicator"` variant (use `content="indicator"` instead)
-- **Breaking**: Renamed `verifyCitations()` to `verify()` for cleaner API
-- **Breaking**: Renamed `verifyCitationsFromLlmOutput()` to `verifyAll()` for cleaner API
-- Separated visual style (`variant`) from content display (`content`) in CitationComponent API
-- Default content per variant: `chip`→`keySpan`, `brackets`→`number`, `text`→`keySpan`, `superscript`→`number`, `minimal`→`number`
-- Missing citation numbers now default to `"1"` instead of empty string
-- Moved `DeepCitationIcon` from main export to `/react` only (prevents React in non-React builds)
-- Updated Playwright tests to use data attributes instead of CSS class selectors
-- `replaceCitations()` now handles any attribute ordering in cite tags (flexible parsing)
+This release marks the first comprehensive public release of DeepCitation, consolidating all features developed since the initial v1.0.0 release.
 
-### Fixed
-- Package.json: removed incorrect `directory` field from repository config
-- Package.json: added `homepage` and `bugs` fields for npm discoverability
-- `verify()` and `verifyAll()` now return empty `{ verifications: {} }` when no citations provided (avoids unnecessary API calls)
+### Core Features
+
+#### Citation Verification System
+- **DeepCitation API Client** - Upload documents and verify AI-generated citations against source materials
+- **Visual Proof Generation** - Get verification images showing exactly where citations match in source documents
+- **Multi-Format Support** - PDF (text & scanned), DOCX, XLSX, PPTX, HTML, images (JPG, PNG, TIFF, WebP, HEIC), and public URLs
+
+#### LLM Prompt Utilities
+- **`wrapSystemCitationPrompt()`** - Enhance system prompts with citation instructions
+- **`wrapCitationPrompt()`** - Wrap both system and user prompts with citation guidance
+- **`CITATION_JSON_OUTPUT_FORMAT`** - JSON schema for structured output LLMs (OpenAI, etc.)
+- **`CITATION_REMINDER`** - Short reminder for reinforcement in user prompts
+- **Position options**: `append`, `prepend`, `wrap` for optimal instruction placement
+
+#### Citation Parsing
+- **`getAllCitationsFromLlmOutput()`** - Extract citations from LLM response text
+- **`parseCitation()`** - Parse individual citation tags
+- **`normalizeCitation()`** - Normalize citation formats
+- **`replaceCitations()`** - Replace or remove citations from text with verification status support
+  - `leaveKeySpanBehind` option to keep descriptive text
+  - `showVerificationStatus` option for TUI status indicators (✓, ⚠, ✗, ◌)
+
+### React Components
+
+#### CitationComponent
+- **5 Visual Variants**: `brackets` (default), `chip`, `text`, `superscript`, `minimal`
+- **3 Content Modes**: `keySpan`, `number`, `indicator`
+- **Status Indicators**: Pending (spinner), Verified (green ✓), Partial (amber ✓), Not Found (red △)
+- **Interactive Popover**: Hover shows verification image, click expands to full-size
+- **Customizable Behavior**: `behaviorConfig` prop for custom click/hover handlers
+
+#### URL Citations
+- **Unified Citation Model** - Support for both document and URL-based citations
+- **URL Citation Fields** - `url`, `domain`, `title`, `description`, `faviconUrl`, `sourceType`, `platform`, `author`, `publishedAt`
+
+#### SourcesListComponent
+- **Aggregated Sources Display** - Show all sources in a panel/drawer (like Gemini's "Sources")
+- **4 Variants**: `drawer` (mobile-friendly), `modal`, `panel`, `inline`
+- **SourcesTrigger** - Button with stacked favicons to open sources list
+
+#### Icons
+- `DeepCitationIcon`, `CheckIcon`, `SpinnerIcon`, `WarningIcon` exported from `/react`
+
+### Styling
+- **Tailwind CSS v4 Support** - Standalone `styles.css` for non-Tailwind users
+- **Tailwind Presets** - Easy integration with existing Tailwind projects
+- **shadcn/Radix Popover** - Modern, accessible popover implementation
+
+### Package Structure
+- **Granular Exports** - Import only what you need:
+  - `@deepcitation/deepcitation-js` - Main entry (parsing, prompts)
+  - `@deepcitation/deepcitation-js/client` - API client only
+  - `@deepcitation/deepcitation-js/prompts` - Prompt utilities only
+  - `@deepcitation/deepcitation-js/react` - React components
+  - `@deepcitation/deepcitation-js/types` - TypeScript types only
+- **Tree-Shakeable** - ESM and CJS builds with proper exports
+
+### Performance & Reliability
+- **Optimized Diff Algorithm** - Custom implementation replacing `diff` npm dependency for Firebase Functions compatibility
+- **Robust Citation Parsing** - Handles escaped quotes, HTML entities, Markdown-escaped underscores, unclosed tags
+- **Comprehensive Test Suite** - 500+ tests covering parsing, normalization, and component behavior
+
+### Examples
+- **basic-verification** - Core 3-step workflow with OpenAI/Gemini
+- **nextjs-ai-sdk** - Full-stack Next.js chat application
+- **Raw API/curl** - Direct API usage without SDK
+
+### Breaking Changes (from earlier 1.x versions)
+- Removed `citation.css` - components now use Tailwind CSS exclusively
+- Renamed `verifyCitations()` to `verify()` for cleaner API
+- Renamed `verifyCitationsFromLlmOutput()` to `verifyAll()`
+- Renamed `fileId` to `attachmentId` throughout
+- Renamed `PdfSpaceItem` to `SnippetPdfItem`
+- `CitationVariant` type: removed `"indicator"` variant (use `content="indicator"` instead)
 
 ### Deprecated
 - `removeCitations()` - use `replaceCitations()` instead (still works for backward compatibility)
@@ -163,7 +212,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.26...HEAD
+[Unreleased]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.50...HEAD
+[1.1.50]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.26...v1.1.50
 [1.1.26]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.25...v1.1.26
 [1.1.25]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.24...v1.1.25
 [1.1.24]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.22...v1.1.24

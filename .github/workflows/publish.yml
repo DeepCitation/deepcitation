@@ -31,13 +31,19 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name || inputs.tag_name }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install
+        run: npm install
 
       - name: Build package
         run: bun run build
