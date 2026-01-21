@@ -151,33 +151,6 @@ npm run start:openai
 
 We welcome contributions! Please start a discussion in [GitHub Discussions](https://github.com/deepcitation/deepcitation-js/discussions) before submitting a pull request.
 
-## Development
-
-### Prerequisites
-
-- Node.js >= 18
-- Bun (recommended) or npm
-
-### Setup
-
-```bash
-git clone https://github.com/deepcitation/deepcitation-js.git
-cd deepcitation-js
-bun install
-```
-
-### Running Tests
-
-```bash
-bun run test
-```
-
-### Building
-
-```bash
-bun run build
-```
-
 ## License
 
 MIT License - see [LICENSE](./LICENSE) for details.
