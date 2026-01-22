@@ -404,6 +404,236 @@ src/react/
 └── useSmartDiff.ts         # Diff hook using diff library
 ```
 
+## Enhancement: Improved Diff Display for Partial Matches
+
+### Problem Statement
+
+The current diff display has usability issues:
+
+1. **"Fruit Salad" Problem**: When expected and found text differ significantly, the interleaved red/green word-level diff becomes visually overwhelming and hard to parse. Users struggle to understand what was expected vs. what was found.
+
+2. **Lack of Context**: The inline diff doesn't clearly communicate the relationship between "what the AI claimed" and "what the source actually says."
+
+3. **Partial Match Ambiguity**: For statuses like `found_key_span_only`, `partial_text_found`, or `found_on_other_page`, users need clearer visual guidance about *what* matched and *what* didn't.
+
+### Current Behavior
+
+The diff display uses a single inline view with:
+- Red background + strikethrough for removed/expected text
+- Green background for added/found text
+- Word-level diffing that can create many small alternating spans
+
+When `similarity < 0.6` (high variance), it defaults to the "Found" tab, but users must manually switch tabs to compare.
+
+### Proposed Enhancements
+
+#### 1. Split View Mode for Partial Matches
+
+For partial matches and high-variance diffs, show a **two-row layout** instead of inline diff:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Expected: a Change of Control, a Direct Listing or an  │
+│           Initial Public Offering                       │
+├─────────────────────────────────────────────────────────┤
+│ Found:    Change of Control                             │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Design specifications:**
+- "Expected" row: Light red/pink background (`bg-red-50 dark:bg-red-900/20`)
+- "Found" row: Light green background (`bg-green-50 dark:bg-green-900/20`)
+- Clear labels: "Expected:" and "Found:" prefixes in muted text
+- Monospace font for text comparison
+- Optional: highlight the matching substring within both rows
+
+#### 2. Smart Display Mode Selection
+
+Auto-select the best display mode based on match characteristics:
+
+| Condition | Display Mode | Rationale |
+|-----------|--------------|-----------|
+| `similarity >= 0.8` | Inline diff | Minor differences are clear inline |
+| `similarity >= 0.6` | Inline diff with toggle | Moderate differences, offer split view |
+| `similarity < 0.6` | Split view default | High variance makes inline unreadable |
+| `status === 'found_key_span_only'` | Split view with keySpan highlight | Show what matched vs full phrase |
+| `status === 'partial_text_found'` | Split view | Clear comparison needed |
+
+#### 3. KeySpan Highlighting in Split View
+
+When the verification status is `found_key_span_only` or similar partial matches:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Expected: a Change of Control, a Direct Listing or an  │
+│           Initial Public Offering                       │
+│           ─────────────────────                         │
+│           [keySpan highlighted]                         │
+├─────────────────────────────────────────────────────────┤
+│ Found:    Change of Control                             │
+│           ─────────────────                             │
+│           [matching portion underlined]                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+- Underline or highlight the `keySpan` within the expected text
+- Underline or highlight the `verifiedKeySpan` or matching portion in found text
+- Use a subtle blue underline or background to indicate the "key" portion
+
+#### 4. Diff Legend
+
+Add a collapsible legend explaining the diff colors (shown on first use or hover):
+
+```
+┌─────────────────────────────────────────┐
+│ ℹ️ Diff Legend                          │
+│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│ Expected  Text the AI claimed           │
+│ Found     Text actually in source       │
+│ strikethrough  Not found in source      │
+│ highlighted    Found in source          │
+└─────────────────────────────────────────┘
+```
+
+#### 5. Match Quality Indicator
+
+Add a visual indicator showing match quality:
+
+```tsx
+// In the popover header area
+<MatchQualityBar similarity={0.65} />
+
+// Renders:
+// ████████░░ 65% match
+```
+
+**Design:**
+- Green fill for high match (>80%)
+- Amber fill for partial match (40-80%)
+- Red fill for poor match (<40%)
+- Optional: show as a small horizontal progress bar under the status badge
+
+#### 6. Contextual Status Messages
+
+Improve status messages to be more descriptive:
+
+| Status | Current Message | Proposed Message |
+|--------|-----------------|------------------|
+| `found_key_span_only` | "Partial Match" | "Key phrase found, full context differs" |
+| `partial_text_found` | "Partial Match" | "Partial text match found" |
+| `found_on_other_page` | "Partial Match" | "Found on page X (expected page Y)" |
+| `found_on_other_line` | "Partial Match" | "Found on different line" |
+| `first_word_found` | "Partial Match" | "Only first word matched" |
+
+#### 7. Collapsed Diff for Long Text
+
+When expected or found text exceeds 200 characters:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Expected: "Dissolution" means (i) a voluntary terminat…│
+│           [Show full text ▼]                            │
+├─────────────────────────────────────────────────────────┤
+│ Found:    "Dissolution" means (i) a voluntary terminat…│
+│           [Show full text ▼]                            │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Behavior:**
+- Truncate at ~150 characters with ellipsis
+- "Show full text" expands inline
+- Diff highlighting still applies to visible portion
+
+### Component API Changes
+
+```typescript
+interface DiffDisplayProps {
+  expected: string;
+  actual: string;
+  label?: string;
+  className?: string;
+  sanitize?: (text: string) => string;
+
+  // NEW PROPS
+  mode?: "auto" | "inline" | "split";  // Default: "auto"
+  showLegend?: boolean;                // Default: false
+  showMatchQuality?: boolean;          // Default: true for partial matches
+  maxCollapsedLength?: number;         // Default: 200
+  keySpanExpected?: string;            // Highlight this substring in expected
+  keySpanFound?: string;               // Highlight this substring in found
+}
+
+interface VerificationTabsProps {
+  expected: string;
+  actual: string;
+  label?: string;
+  renderCopyButton?: (text: string, position: "expected" | "found") => React.ReactNode;
+  emptyText?: string;
+
+  // NEW PROPS
+  status?: SearchStatus;               // For contextual status messages
+  keySpan?: string;                    // Expected keySpan for highlighting
+  verifiedKeySpan?: string;            // Found keySpan for highlighting
+  defaultMode?: "auto" | "inline" | "split";
+}
+```
+
+### Visual Design Specifications
+
+#### Split View Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ DIFF                                                    [≡] │
+├──────────────────────────────────────────────────────────────┤
+│ ┌──────────────────────────────────────────────────────────┐ │
+│ │ Expected:                                                │ │
+│ │ ┌────────────────────────────────────────────────────┐   │ │
+│ │ │ a Change of Control, a Direct Listing or an        │   │ │
+│ │ │ Initial Public Offering                             │   │ │
+│ │ └────────────────────────────────────────────────────┘   │ │
+│ └──────────────────────────────────────────────────────────┘ │
+│ ┌──────────────────────────────────────────────────────────┐ │
+│ │ Found:    ✓                                              │ │
+│ │ ┌────────────────────────────────────────────────────┐   │ │
+│ │ │ Change of Control                                   │   │ │
+│ │ └────────────────────────────────────────────────────┘   │ │
+│ └──────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────┘
+```
+
+#### Color Scheme
+
+| Element | Light Mode | Dark Mode |
+|---------|------------|-----------|
+| Expected row bg | `bg-red-50` | `bg-red-900/20` |
+| Expected label | `text-red-600` | `text-red-400` |
+| Found row bg | `bg-green-50` | `bg-green-900/20` |
+| Found label | `text-green-600` | `text-green-400` |
+| KeySpan underline | `border-b-2 border-blue-400` | `border-blue-500` |
+| Match bar (good) | `bg-green-500` | `bg-green-400` |
+| Match bar (partial) | `bg-amber-500` | `bg-amber-400` |
+| Match bar (poor) | `bg-red-500` | `bg-red-400` |
+
+### Implementation Priority
+
+1. **P0 - Split View Mode**: Implement the two-row Expected/Found layout
+2. **P0 - Auto Mode Selection**: Smart switching based on similarity score
+3. **P1 - KeySpan Highlighting**: Underline matching portions
+4. **P1 - Contextual Status Messages**: Better descriptions for each status
+5. **P2 - Match Quality Indicator**: Visual similarity bar
+6. **P2 - Collapsed Long Text**: Truncation with expand
+7. **P3 - Diff Legend**: Help tooltip for first-time users
+
+### Success Metrics
+
+- Reduced user confusion (measured via user feedback)
+- Faster comprehension of partial matches
+- Decreased support questions about "what does this diff mean"
+
+---
+
 ## Testing
 
 - Unit tests with `@testing-library/react`
