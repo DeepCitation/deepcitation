@@ -130,3 +130,19 @@ export {
   usePrefetchImage,
   prefetchImages,
 } from "./PrefetchedPopoverImage.js";
+
+// Diff Display Components (Enhanced diff visualization)
+export {
+  SplitDiffDisplay,
+  MatchQualityBar,
+  CollapsibleText,
+  getContextualStatusMessage,
+  type DiffDisplayMode,
+  type SplitDiffDisplayProps,
+} from "./SplitDiffDisplay.js";
+
+// Verification Tabs Component
+export { VerificationTabs } from "./VerificationTabs.js";
+
+// Smart Diff Hook
+export { useSmartDiff, type DiffBlock, type DiffPart, type DiffBlockType } from "./useSmartDiff.js";

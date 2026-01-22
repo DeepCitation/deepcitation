@@ -58,8 +58,9 @@ describe("VerificationTabs", () => {
       expect(diffTab?.textContent).toBe("Diff");
     });
 
-    it("defaults to Found tab for high variance", async () => {
+    it("stays on Diff tab with split view for high variance", async () => {
       // Use texts with very different lengths to trigger high variance
+      // New behavior: stays on Diff tab but uses split view mode
       const expected = "A";
       const actual = "Something entirely different and much longer text here";
 
@@ -67,7 +68,10 @@ describe("VerificationTabs", () => {
 
       await waitFor(() => {
         const activeTab = container.querySelector('button[data-active="true"]');
-        expect(activeTab?.textContent).toBe("Found");
+        expect(activeTab?.textContent).toBe("Diff");
+        // Should use split view mode (indicated by the split view button being active)
+        const splitViewButton = container.querySelector('button[aria-label="Split view"]');
+        expect(splitViewButton).toHaveClass("bg-gray-200");
       });
     });
 

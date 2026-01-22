@@ -35,6 +35,7 @@ import {
 } from "./utils.js";
 import { useSmartDiff } from "./useSmartDiff.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
+import { SplitDiffDisplay, MatchQualityBar, getContextualStatusMessage } from "./SplitDiffDisplay.js";
 
 // Re-export types for convenience
 export type { CitationVariant, CitationContent } from "./types.js";
@@ -638,7 +639,7 @@ function DefaultPopoverContent({
 
 /**
  * Renders diff highlighting between expected citation text and actual found text.
- * Uses the `diff` library via useSmartDiff hook for word-level highlighting.
+ * Uses split view for high-variance diffs and inline diff for low-variance.
  */
 function DiffDetails({
   citation,
@@ -656,7 +657,7 @@ function DiffDetails({
   const actualText = verification?.verifiedMatchSnippet || "";
 
   // Use the diff library for smart word-level diffing
-  const { diffResult, hasDiff, isHighVariance } = useSmartDiff(
+  const { hasDiff, similarity } = useSmartDiff(
     expectedText,
     actualText
   );
@@ -675,142 +676,109 @@ function DiffDetails({
   const pageDiffers =
     expectedPage != null && actualPage != null && expectedPage !== actualPage;
 
+  // Get contextual status message
+  const searchStatus = verification?.status;
+  const statusMessage = getContextualStatusMessage(searchStatus, expectedPage, actualPage);
+
   // For "not_found" status, show expected text and "Not found" message
   if (isMiss) {
     return (
       <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs space-y-2">
         {expectedText && (
-          <div>
-            <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">
-              Expected
-            </span>
-            <p className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-red-600 dark:text-red-400 line-through opacity-70">
-              {expectedText.length > 100
-                ? expectedText.slice(0, 100) + "…"
-                : expectedText}
-            </p>
-          </div>
+          <SplitDiffDisplay
+            expected={expectedText}
+            actual=""
+            mode="split"
+            showMatchQuality={false}
+            maxCollapsedLength={150}
+            keySpanExpected={citation.keySpan?.toString()}
+            status={searchStatus}
+          />
         )}
-        <div>
-          <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">
-            Found
-          </span>
-          <p className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] text-amber-600 dark:text-amber-500 italic">
-            Not found: "{citation.keySpan || citation.fullPhrase}"
-          </p>
-        </div>
       </div>
     );
   }
 
-  // For partial matches, show word-level diff
+  // For partial matches, show enhanced diff with split view
   return (
     <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs space-y-2">
-      {expectedText && actualText && hasDiff ? (
-        <div>
-          <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">
-            Diff
+      {/* Contextual status message */}
+      {statusMessage && searchStatus !== "found" && (
+        <div className={cn(
+          "text-[10px] font-medium px-1.5 py-0.5 rounded inline-flex items-center gap-1",
+          "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+        )}>
+          <span className="size-2">
+            <CheckIcon />
           </span>
-          <div className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
-            {/* If high variance, show side-by-side instead of inline diff */}
-            {isHighVariance ? (
-              <div className="space-y-2">
-                <div>
-                  <span className="text-gray-500 dark:text-gray-400 text-[10px]">
-                    Expected:{" "}
-                  </span>
-                  <span className="text-red-600 dark:text-red-400 line-through opacity-70">
-                    {expectedText.length > 100
-                      ? expectedText.slice(0, 100) + "…"
-                      : expectedText}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500 dark:text-gray-400 text-[10px]">
-                    Found:{" "}
-                  </span>
-                  <span className="text-green-600 dark:text-green-400">
-                    {actualText.length > 100
-                      ? actualText.slice(0, 100) + "…"
-                      : actualText}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              // Inline word-level diff
-              diffResult.map((block, blockIndex) => (
-                <span key={`block-${blockIndex}`}>
-                  {block.parts.map((part, partIndex) => {
-                    const key = `p-${blockIndex}-${partIndex}`;
-                    if (part.removed) {
-                      return (
-                        <span
-                          key={key}
-                          className="bg-red-200 dark:bg-red-900/50 text-red-700 dark:text-red-300 line-through"
-                          title="Expected text"
-                        >
-                          {part.value}
-                        </span>
-                      );
-                    }
-                    if (part.added) {
-                      return (
-                        <span
-                          key={key}
-                          className="bg-green-200 dark:bg-green-900/50 text-green-700 dark:text-green-300"
-                          title="Actual text found"
-                        >
-                          {part.value}
-                        </span>
-                      );
-                    }
-                    // Unchanged text
-                    return <span key={key}>{part.value}</span>;
-                  })}
-                </span>
-              ))
-            )}
-          </div>
+          {statusMessage}
         </div>
+      )}
+
+      {expectedText && actualText && hasDiff ? (
+        <SplitDiffDisplay
+          expected={expectedText}
+          actual={actualText}
+          mode="split"
+          showMatchQuality={true}
+          maxCollapsedLength={150}
+          keySpanExpected={citation.keySpan?.toString()}
+          keySpanFound={verification?.verifiedKeySpan ?? undefined}
+          status={searchStatus}
+          similarity={similarity}
+        />
       ) : expectedText && !hasDiff ? (
         // Text matches exactly (partial match is due to location difference)
         <div>
-          <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">
-            Text
-          </span>
-          <p className="mt-1 p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
-            {expectedText.length > 100
-              ? expectedText.slice(0, 100) + "…"
+          <div className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-500 text-[10px] font-medium mb-1">
+            <span className="size-2">
+              <CheckIcon />
+            </span>
+            <span>Text matches</span>
+          </div>
+          <p className="p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
+            {expectedText.length > 150
+              ? expectedText.slice(0, 150) + "…"
               : expectedText}
           </p>
         </div>
       ) : null}
-      {pageDiffers && (
-        <div>
-          <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">
-            Page
-          </span>
-          <p className="mt-1 font-mono text-[11px] text-gray-700 dark:text-gray-300">
-            <span className="text-red-600 dark:text-red-400 line-through opacity-70">
-              {expectedPage}
-            </span>
-            {" → "}
-            {actualPage}
-          </p>
-        </div>
-      )}
-      {lineIdDiffers && (
-        <div>
-          <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">
-            Line
-          </span>
-          <p className="mt-1 font-mono text-[11px] text-gray-700 dark:text-gray-300">
-            <span className="text-red-600 dark:text-red-400 line-through opacity-70">
-              {expectedLineIds?.join(", ")}
-            </span>
-            {" → "}
-            {actualLineIds?.join(", ")}
-          </p>
+
+      {/* Location differences */}
+      {(pageDiffers || lineIdDiffers) && (
+        <div className="flex flex-wrap gap-3 pt-1">
+          {pageDiffers && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">
+                Page:
+              </span>
+              <span className="font-mono text-[11px]">
+                <span className="text-red-600 dark:text-red-400 line-through opacity-70">
+                  {expectedPage}
+                </span>
+                <span className="text-gray-400 mx-1">→</span>
+                <span className="text-green-600 dark:text-green-400">
+                  {actualPage}
+                </span>
+              </span>
+            </div>
+          )}
+          {lineIdDiffers && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">
+                Line:
+              </span>
+              <span className="font-mono text-[11px]">
+                <span className="text-red-600 dark:text-red-400 line-through opacity-70">
+                  {expectedLineIds?.join(", ")}
+                </span>
+                <span className="text-gray-400 mx-1">→</span>
+                <span className="text-green-600 dark:text-green-400">
+                  {actualLineIds?.join(", ")}
+                </span>
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
