@@ -26,6 +26,17 @@ export {
   groupCitationsByAttachmentId,
   groupCitationsByAttachmentIdObject,
 } from "./parsing/parseCitation.js";
+
+// Deferred JSON Parsing
+export {
+  parseDeferredCitationResponse,
+  getAllCitationsFromDeferredResponse,
+  deferredCitationToCitation,
+  hasDeferredCitations,
+  extractVisibleText,
+  replaceDeferredMarkers,
+  getCitationMarkerIds,
+} from "./parsing/deferredCitationParser.js";
 export {
   normalizeCitations,
   getCitationPageNumber,
@@ -92,10 +103,28 @@ export {
 } from "./prompts/citationPrompts.js";
 
 export type {
+  CitationMode,
   WrapSystemPromptOptions,
   WrapCitationPromptOptions,
   WrapCitationPromptResult,
 } from "./prompts/citationPrompts.js";
+
+// Deferred JSON Prompts
+export {
+  CITATION_DATA_START_DELIMITER,
+  CITATION_DATA_END_DELIMITER,
+  DEFERRED_CITATION_PROMPT,
+  DEFERRED_AV_CITATION_PROMPT,
+  DEFERRED_CITATION_REMINDER,
+  DEFERRED_AV_CITATION_REMINDER,
+  DEFERRED_CITATION_JSON_SCHEMA,
+  DEFERRED_AV_CITATION_JSON_SCHEMA,
+} from "./prompts/deferredCitationPrompt.js";
+
+export type {
+  DeferredCitationData,
+  ParsedDeferredResponse,
+} from "./prompts/deferredCitationPrompt.js";
 
 export {
   removeLineIdMetadata,

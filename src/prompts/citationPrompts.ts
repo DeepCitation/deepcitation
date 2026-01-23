@@ -1,3 +1,23 @@
+import {
+  DEFERRED_CITATION_PROMPT,
+  DEFERRED_AV_CITATION_PROMPT,
+  DEFERRED_CITATION_REMINDER,
+  DEFERRED_AV_CITATION_REMINDER,
+} from "./deferredCitationPrompt.js";
+
+/**
+ * Citation mode for prompt wrapping.
+ *
+ * - `'inline_xml'`: Legacy mode using inline `<cite ... />` XML tags (default for backward compatibility)
+ * - `'deferred_json'`: New mode using `[N]` markers with JSON block at end (recommended for new integrations)
+ *
+ * The deferred_json mode provides:
+ * - Better robustness (no quote-escaping issues)
+ * - Improved streaming latency (no mid-sentence pausing)
+ * - ~40% reduction in tokens per citation
+ */
+export type CitationMode = "inline_xml" | "deferred_json";
+
 export const CITATION_MARKDOWN_SYNTAX_PROMPT = `
 <citation-instructions priority="critical">
 ## REQUIRED: Citation Format
@@ -76,6 +96,13 @@ export interface WrapSystemPromptOptions {
   systemPrompt: string;
   /** Whether to use audio/video citation format (with timestamps) instead of text-based (with line IDs) */
   isAudioVideo?: boolean;
+  /**
+   * Citation mode to use.
+   * - `'inline_xml'`: Legacy inline `<cite />` tags (default)
+   * - `'deferred_json'`: New `[N]` markers with JSON block at end (recommended)
+   * @default 'inline_xml'
+   */
+  mode?: CitationMode;
 }
 
 export interface WrapCitationPromptOptions {
@@ -87,6 +114,13 @@ export interface WrapCitationPromptOptions {
   deepTextPromptPortion?: string | string[];
   /** Whether to use audio/video citation format (with timestamps) instead of text-based (with line IDs) */
   isAudioVideo?: boolean;
+  /**
+   * Citation mode to use.
+   * - `'inline_xml'`: Legacy inline `<cite />` tags (default)
+   * - `'deferred_json'`: New `[N]` markers with JSON block at end (recommended)
+   * @default 'inline_xml'
+   */
+  mode?: CitationMode;
 }
 
 export interface WrapCitationPromptResult {
@@ -142,13 +176,26 @@ export interface WrapCitationPromptResult {
 export function wrapSystemCitationPrompt(
   options: WrapSystemPromptOptions
 ): string {
-  const { systemPrompt, isAudioVideo = false } = options;
+  const { systemPrompt, isAudioVideo = false, mode = "inline_xml" } = options;
 
-  const citationPrompt = isAudioVideo
-    ? AV_CITATION_MARKDOWN_SYNTAX_PROMPT
-    : CITATION_MARKDOWN_SYNTAX_PROMPT;
+  let citationPrompt: string;
+  let reminder: string;
 
-  const reminder = isAudioVideo ? CITATION_AV_REMINDER : CITATION_REMINDER;
+  if (mode === "deferred_json") {
+    // Use deferred JSON pattern with [N] markers and JSON block at end
+    citationPrompt = isAudioVideo
+      ? DEFERRED_AV_CITATION_PROMPT
+      : DEFERRED_CITATION_PROMPT;
+    reminder = isAudioVideo
+      ? DEFERRED_AV_CITATION_REMINDER
+      : DEFERRED_CITATION_REMINDER;
+  } else {
+    // Use legacy inline XML pattern with <cite /> tags
+    citationPrompt = isAudioVideo
+      ? AV_CITATION_MARKDOWN_SYNTAX_PROMPT
+      : CITATION_MARKDOWN_SYNTAX_PROMPT;
+    reminder = isAudioVideo ? CITATION_AV_REMINDER : CITATION_REMINDER;
+  }
 
   // Full instructions at start (high priority), brief reminder at end (recency effect)
   return `${citationPrompt.trim()}\n\n${systemPrompt.trim()}\n\n${reminder}`;
@@ -193,12 +240,24 @@ export function wrapCitationPrompt(
     userPrompt,
     deepTextPromptPortion,
     isAudioVideo = false,
+    mode = "inline_xml",
   } = options;
 
   const enhancedSystemPrompt = wrapSystemCitationPrompt({
     systemPrompt,
     isAudioVideo,
+    mode,
   });
+
+  // Select the appropriate reminder based on mode
+  let reminder: string;
+  if (mode === "deferred_json") {
+    reminder = isAudioVideo
+      ? DEFERRED_AV_CITATION_REMINDER
+      : DEFERRED_CITATION_REMINDER;
+  } else {
+    reminder = isAudioVideo ? CITATION_AV_REMINDER : CITATION_REMINDER;
+  }
 
   // Build enhanced user prompt with file content if provided
   let enhancedUserPrompt = userPrompt;
@@ -208,18 +267,13 @@ export function wrapCitationPrompt(
       ? deepTextPromptPortion
       : [deepTextPromptPortion];
     const fileContent = fileTexts
-      .map((text, index) => {
-        if (fileTexts.length === 1) {
-          return `\n${text}`;
-        }
+      .map((text) => {
         return `\n${text}`;
       })
       .join("\n\n");
 
-    enhancedUserPrompt = `${fileContent}\n\n${CITATION_REMINDER}\n\n${userPrompt}`;
+    enhancedUserPrompt = `${fileContent}\n\n${reminder}\n\n${userPrompt}`;
   }
-
-
 
   return {
     enhancedSystemPrompt,

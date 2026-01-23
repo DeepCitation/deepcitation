@@ -7,6 +7,11 @@ import {
   wrapSystemCitationPrompt,
   wrapCitationPrompt,
 } from "../prompts/citationPrompts.js";
+import {
+  DEFERRED_CITATION_PROMPT,
+  DEFERRED_AV_CITATION_PROMPT,
+  CITATION_DATA_START_DELIMITER,
+} from "../prompts/deferredCitationPrompt.js";
 
 describe("citation prompts", () => {
   it("includes guidance for citation markdown syntax", () => {
@@ -249,5 +254,153 @@ More content.`;
 
       expect(result.enhancedUserPrompt).toBe("User");
     });
+  });
+
+  describe("mode parameter", () => {
+    it("defaults to inline_xml mode", () => {
+      const result = wrapCitationPrompt({
+        systemPrompt: "You are a helpful assistant.",
+        userPrompt: "Analyze this.",
+      });
+
+      expect(result.enhancedSystemPrompt).toContain("<cite attachment_id='");
+      expect(result.enhancedSystemPrompt).not.toContain(
+        CITATION_DATA_START_DELIMITER
+      );
+    });
+
+    it("uses inline_xml mode when explicitly set", () => {
+      const result = wrapCitationPrompt({
+        systemPrompt: "You are a helpful assistant.",
+        userPrompt: "Analyze this.",
+        mode: "inline_xml",
+      });
+
+      expect(result.enhancedSystemPrompt).toContain("<cite attachment_id='");
+      expect(result.enhancedSystemPrompt).not.toContain(
+        CITATION_DATA_START_DELIMITER
+      );
+    });
+
+    it("uses deferred_json mode when set", () => {
+      const result = wrapCitationPrompt({
+        systemPrompt: "You are a helpful assistant.",
+        userPrompt: "Analyze this.",
+        mode: "deferred_json",
+      });
+
+      expect(result.enhancedSystemPrompt).toContain(
+        CITATION_DATA_START_DELIMITER
+      );
+      expect(result.enhancedSystemPrompt).toContain("[1]");
+      expect(result.enhancedSystemPrompt).not.toContain("<cite attachment_id='");
+    });
+
+    it("uses deferred AV format for audio/video with deferred_json mode", () => {
+      const result = wrapCitationPrompt({
+        systemPrompt: "You are an audio assistant.",
+        userPrompt: "Transcribe this.",
+        mode: "deferred_json",
+        isAudioVideo: true,
+      });
+
+      expect(result.enhancedSystemPrompt).toContain(
+        CITATION_DATA_START_DELIMITER
+      );
+      expect(result.enhancedSystemPrompt).toContain("timestamps");
+      expect(result.enhancedSystemPrompt).toContain("start_time");
+    });
+
+    it("uses appropriate reminder in user prompt for deferred_json mode", () => {
+      const result = wrapCitationPrompt({
+        systemPrompt: "System",
+        userPrompt: "Question",
+        deepTextPromptPortion: "File content here",
+        mode: "deferred_json",
+      });
+
+      expect(result.enhancedUserPrompt).toContain(
+        "<<<CITATION_DATA>>>"
+      );
+    });
+  });
+});
+
+describe("wrapSystemCitationPrompt mode parameter", () => {
+  it("defaults to inline_xml mode", () => {
+    const result = wrapSystemCitationPrompt({
+      systemPrompt: "You are a helpful assistant.",
+    });
+
+    expect(result).toContain("<cite attachment_id='");
+    expect(result).not.toContain(CITATION_DATA_START_DELIMITER);
+  });
+
+  it("uses deferred_json mode when set", () => {
+    const result = wrapSystemCitationPrompt({
+      systemPrompt: "You are a helpful assistant.",
+      mode: "deferred_json",
+    });
+
+    expect(result).toContain(CITATION_DATA_START_DELIMITER);
+    expect(result).toContain("[1]");
+    expect(result).not.toContain("<cite attachment_id='");
+  });
+
+  it("uses deferred AV format for audio/video with deferred_json mode", () => {
+    const result = wrapSystemCitationPrompt({
+      systemPrompt: "Audio assistant",
+      mode: "deferred_json",
+      isAudioVideo: true,
+    });
+
+    expect(result).toContain(CITATION_DATA_START_DELIMITER);
+    expect(result).toContain("timestamps");
+    expect(result).toContain("HH:MM:SS.SSS");
+  });
+
+  it("maintains wrap strategy for both modes (instructions at start, reminder at end)", () => {
+    // Test inline_xml mode
+    const inlineResult = wrapSystemCitationPrompt({
+      systemPrompt: "My system prompt here",
+      mode: "inline_xml",
+    });
+    expect(inlineResult.indexOf("<cite")).toBeLessThan(
+      inlineResult.indexOf("My system prompt here")
+    );
+    expect(inlineResult.indexOf("My system prompt here")).toBeLessThan(
+      inlineResult.indexOf("<citation-reminder>")
+    );
+
+    // Test deferred_json mode
+    const deferredResult = wrapSystemCitationPrompt({
+      systemPrompt: "My system prompt here",
+      mode: "deferred_json",
+    });
+    expect(deferredResult.indexOf(CITATION_DATA_START_DELIMITER)).toBeLessThan(
+      deferredResult.indexOf("My system prompt here")
+    );
+    expect(deferredResult.indexOf("My system prompt here")).toBeLessThan(
+      deferredResult.lastIndexOf("<citation-reminder>")
+    );
+  });
+});
+
+describe("deferred citation prompts", () => {
+  it("includes correct structure in DEFERRED_CITATION_PROMPT", () => {
+    expect(DEFERRED_CITATION_PROMPT).toContain(CITATION_DATA_START_DELIMITER);
+    expect(DEFERRED_CITATION_PROMPT).toContain("[1]");
+    expect(DEFERRED_CITATION_PROMPT).toContain('"attachment_id"');
+    expect(DEFERRED_CITATION_PROMPT).toContain('"full_phrase"');
+    expect(DEFERRED_CITATION_PROMPT).toContain('"key_span"');
+    expect(DEFERRED_CITATION_PROMPT).toContain('"page_key"');
+    expect(DEFERRED_CITATION_PROMPT).toContain('"line_ids"');
+  });
+
+  it("includes timestamps in DEFERRED_AV_CITATION_PROMPT", () => {
+    expect(DEFERRED_AV_CITATION_PROMPT).toContain(CITATION_DATA_START_DELIMITER);
+    expect(DEFERRED_AV_CITATION_PROMPT).toContain('"timestamps"');
+    expect(DEFERRED_AV_CITATION_PROMPT).toContain('"start_time"');
+    expect(DEFERRED_AV_CITATION_PROMPT).toContain('"end_time"');
   });
 });
