@@ -21,7 +21,7 @@ LLMs hallucinate citations and cite pages that don't exist. **Citations alone ar
 DeepCitation solves this by deterministically verifying every citation against your sources. We provide visual proof for every claim, making content instantly trustworthy and safer to present to users.
 
 <div align="center">
-<img src="./examples/assets/deepcitation-medical-demo.gif" alt="DeepCitation demo showing instant certainty with verified inline citations" width="700" />
+<img src="./examples/assets/deepcitation-financial-demo.avif" alt="DeepCitation demo showing instant certainty with verified inline citations" width="700" />
 <br />
 <em>DeepCitation demo showing instant certainty with verified inline citations</em>
 </div>
