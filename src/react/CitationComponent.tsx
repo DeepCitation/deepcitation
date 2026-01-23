@@ -525,8 +525,8 @@ function DefaultPopoverContent({
               decoding="async"
             />
             {/* Bottom bar with expand hint on hover */}
-            <span className="absolute left-0 right-0 bottom-0 flex items-center justify-end px-2 pb-1.5 pt-4 bg-gradient-to-t from-black/30 to-transparent rounded-b-md">
-              <span className="text-xs text-white/80 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="absolute left-0 right-0 bottom-0 flex items-center justify-end px-2 pb-1.5 pt-4 bg-gradient-to-t from-black/50 to-transparent rounded-b-md">
+              <span className="text-xs text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] opacity-0 group-hover:opacity-100 transition-opacity">
                 Click to expand
               </span>
             </span>
