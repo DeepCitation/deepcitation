@@ -20,29 +20,69 @@ export type SearchMethod =
   | "adjacent_pages"
   | "expanded_window"
   | "regex_search"
-  | "bm25_search"
-  | "fuzzy_regex"
   | "first_word_fallback";
 
+/**
+ * Indicates which variation of the citation was matched.
+ * Trust decreases as we fall back from fullPhrase to keySpan to partial matches.
+ *
+ * HIGH TRUST (green indicator):
+ * - exact_full_phrase: Exact match on the full phrase
+ * - normalized_full_phrase: Full phrase matched with whitespace/case normalization
+ *
+ * MEDIUM TRUST (green indicator, shows context in popover):
+ * - exact_key_span: keySpan matched exactly, but fullPhrase was not found
+ * - normalized_key_span: keySpan matched with normalization
+ *
+ * LOW TRUST (amber indicator):
+ * - partial_full_phrase: Only part of fullPhrase matched (tables, columns, line breaks)
+ * - partial_key_span: Only part of keySpan matched
+ * - first_word_only: Only first word matched (lowest trust)
+ */
+export type MatchedVariation =
+  | "exact_full_phrase"
+  | "normalized_full_phrase"
+  | "exact_key_span"
+  | "normalized_key_span"
+  | "partial_full_phrase"
+  | "partial_key_span"
+  | "first_word_only";
+
 export interface SearchAttempt {
+  // Core required fields
   method: SearchMethod;
   success: boolean;
-  searchPhrases: string[]; // The actual phrase(s) searched for (e.g., ["$4.89", "4.89"])
+
+  // What was searched (clear separation)
+  /** The primary phrase searched for */
+  searchPhrase: string;
+  /** Additional variations tried (e.g., ["$4.89", "4.89"]) */
+  searchVariations?: string[];
+  /** What searchPhrase contains: "full_phrase" or "key_span" */
+  searchPhraseType?: "full_phrase" | "key_span";
+
+  // Where it was searched
   pageSearched?: number;
 
-  matchedPhrases?: string[];
-  matchedVariation?: string; // 'fullPhrase' | 'keySpan' | 'value'
-  phraseVariations?: string[];
-  matchQuality?: string; // 'exact' | 'partial_keyspan' | 'value_only' | 'fuzzy'
-  isPartialMatch?: boolean; // true when keySpan < 50% of fullPhrase
+  // Match details (only if success: true)
+  /** Which variation matched + trust level */
+  matchedVariation?: MatchedVariation;
+  /** The actual text found in document */
+  matchedText?: string;
 
-  matchScore?: number; // For BM25 and other scoring methods
-  matchSnippet?: string;
-  notes?: string; // Additional context about why it failed/succeeded
+  // Human-readable note (API-generated)
+  /** e.g., "not found on expected page (2)" */
+  note?: string;
 
-  startTime?: number; // Timestamp when search started
-  endTime?: number; // Timestamp when search ended
+  // Performance tracking
+  durationMs?: number;
 
-  durationMs?: number; // Time taken in milliseconds
+  // ----- DEPRECATED: Backwards compatibility fields -----
+  // These are kept for backwards compatibility with older API responses.
+  // Prefer the new fields above.
+  /** @deprecated Use searchPhrase instead */
+  searchPhrases?: string[];
+  /** @deprecated Use note instead */
+  notes?: string;
 }
 

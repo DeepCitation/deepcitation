@@ -121,10 +121,67 @@ type SearchStatus =
 | Property | Purpose |
 |----------|---------|
 | `status` | Determines which indicator to show (spinner/check/warning) |
+| `searchAttempts` | Array of search attempts with phrases, notes, and trust levels |
 | `verifiedMatchSnippet` | Displayed in popover, used for diff comparison |
 | `verifiedPageNumber` | Shown in popover, compared with expected page |
 | `verifiedLineIds` | Compared with expected line IDs for diff display |
 | `verificationImageBase64` | Displayed in popover, click to zoom |
+
+### SearchAttempt Interface
+
+Each `SearchAttempt` in `verification.searchAttempts` contains:
+
+```typescript
+interface SearchAttempt {
+  method: SearchMethod;           // The search method used
+  success: boolean;               // Whether this attempt succeeded
+
+  // What was searched
+  searchPhrase: string;           // The primary phrase searched for
+  searchVariations?: string[];    // Alternative forms tried (e.g., ["$4.89", "4.89"])
+  searchPhraseType?: "full_phrase" | "key_span";
+
+  // Where it was searched
+  pageSearched?: number;
+
+  // Match details (if success: true)
+  matchedVariation?: MatchedVariation;  // Trust level indicator
+  matchedText?: string;                  // Actual text found
+
+  // Human-readable note (API-generated)
+  note?: string;                  // e.g., "not found on expected page (2)"
+
+  durationMs?: number;            // Performance tracking
+}
+```
+
+### MatchedVariation and Trust Levels
+
+The `matchedVariation` field indicates which variation matched and determines the trust level:
+
+| MatchedVariation | Trust Level | Indicator Color | Description |
+|------------------|-------------|-----------------|-------------|
+| `exact_full_phrase` | High | Green | Exact match on fullPhrase |
+| `normalized_full_phrase` | High | Green | fullPhrase with whitespace/case normalization |
+| `exact_key_span` | Medium | Green | keySpan matched, fullPhrase missed |
+| `normalized_key_span` | Medium | Green | keySpan with normalization |
+| `partial_full_phrase` | Low | **Amber** | Partial fullPhrase (tables/columns) |
+| `partial_key_span` | Low | **Amber** | Partial keySpan match |
+| `first_word_only` | Lowest | **Amber** | Only first word matched |
+
+**Important**: Low-trust matches (partial_full_phrase, partial_key_span, first_word_only) show amber indicators instead of green, even when `success: true`.
+
+### SearchAttempt Display
+
+In the popover, search attempts are displayed with:
+- **Search phrase** in monospace with colored left border
+- **Note** explaining the result (if available)
+- **Matched text** if different from searched phrase
+
+Border colors:
+- **Green**: Successful match with high/medium trust
+- **Amber**: Successful match with low trust
+- **Red**: Failed search attempt
 
 ## Display Variants
 

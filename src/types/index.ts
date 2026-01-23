@@ -25,7 +25,12 @@ export {
 } from "./verification.js";
 
 // Search status types
-export type { SearchStatus, SearchMethod, SearchAttempt } from "./search.js";
+export type {
+  SearchStatus,
+  SearchMethod,
+  SearchAttempt,
+  MatchedVariation,
+} from "./search.js";
 
 // Box/geometry types
 export type { ScreenBox, DeepTextItem, IVertex } from "./boxes.js";

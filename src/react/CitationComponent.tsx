@@ -15,6 +15,7 @@ const Activity =
   (({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>);
 import { type CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import type { MatchedVariation, SearchAttempt } from "../types/search.js";
 import { CheckIcon, SpinnerIcon, WarningIcon } from "./icons.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover.js";
 import type {
@@ -213,9 +214,62 @@ function getStatusLabel(status: CitationStatus): string {
   return "";
 }
 
+// =============================================================================
+// TRUST LEVEL HELPERS
+// =============================================================================
+
+/**
+ * Get the trust level from a MatchedVariation.
+ * Trust levels determine indicator colors:
+ * - high: Green checkmark (exact or normalized full phrase)
+ * - medium: Green checkmark (keySpan matches)
+ * - low: Amber checkmark (partial matches)
+ */
+function getTrustLevel(matchedVariation?: MatchedVariation): "high" | "medium" | "low" {
+  if (!matchedVariation) return "medium";
+  switch (matchedVariation) {
+    case "exact_full_phrase":
+    case "normalized_full_phrase":
+      return "high";
+    case "exact_key_span":
+    case "normalized_key_span":
+      return "medium";
+    case "partial_full_phrase":
+    case "partial_key_span":
+    case "first_word_only":
+      return "low";
+    default:
+      return "medium";
+  }
+}
+
+/**
+ * Check if a match has low trust (should show amber indicator).
+ */
+function isLowTrustMatch(matchedVariation?: MatchedVariation): boolean {
+  return getTrustLevel(matchedVariation) === "low";
+}
+
+/**
+ * Get the search phrase from a SearchAttempt, supporting both old and new formats.
+ */
+function getSearchPhrase(attempt: SearchAttempt): string {
+  return attempt.searchPhrase || attempt.searchPhrases?.[0] || "";
+}
+
+/**
+ * Get the note from a SearchAttempt, supporting both old and new formats.
+ */
+function getSearchNote(attempt: SearchAttempt): string | undefined {
+  return attempt.note || attempt.notes;
+}
+
 /**
  * Derive citation status from a Verification object.
  * The status comes from verification.status.
+ *
+ * Low-trust matches (from matchedVariation) are also treated as partial matches
+ * and show amber indicator instead of green.
  *
  * Note: isPending is only true when status is explicitly "pending" or "loading".
  * Use the isLoading prop to show spinner when verification is in-flight.
@@ -239,11 +293,17 @@ function getStatusFromVerification(
   const isMiss = status === "not_found";
   const isPending = status === "pending" || status === "loading";
 
+  // Check if any successful search attempt has low trust
+  const hasLowTrustMatch = verification.searchAttempts?.some(
+    (a) => a.success && isLowTrustMatch(a.matchedVariation)
+  );
+
   const isPartialMatch =
     status === "partial_text_found" ||
     status === "found_on_other_page" ||
     status === "found_on_other_line" ||
-    status === "first_word_found";
+    status === "first_word_found" ||
+    hasLowTrustMatch; // Low-trust matches also show as partial (amber)
 
   const isVerified =
     status === "found" ||
@@ -379,7 +439,27 @@ interface PopoverContentProps {
 }
 
 /**
- * Component to display searched phrases from search attempts
+ * Get border color class based on search attempt success and trust level.
+ * - Green: Successful match with high/medium trust
+ * - Amber: Successful match with low trust
+ * - Red: Failed search attempt
+ */
+function getSearchAttemptBorderClass(attempt: SearchAttempt): string {
+  if (!attempt.success) {
+    return "border-red-400 dark:border-red-500";
+  }
+  if (isLowTrustMatch(attempt.matchedVariation)) {
+    return "border-amber-400 dark:border-amber-500";
+  }
+  return "border-green-400 dark:border-green-500";
+}
+
+/**
+ * Component to display searched phrases from search attempts.
+ * Each attempt shows:
+ * - The search phrase in monospace with colored left border
+ * - A note explaining the result (if available)
+ * - What was actually found (if different from searched)
  */
 function SearchedPhrasesInfo({
   citation,
@@ -392,28 +472,30 @@ function SearchedPhrasesInfo({
   isExpanded?: boolean;
   onExpandChange?: (expanded: boolean) => void;
 }) {
-  // Collect all unique searched phrases from search attempts
-  const searchedPhrases = useMemo(() => {
-    const phrases = new Set<string>();
-
-    // Add phrases from search attempts
-    if (verification?.searchAttempts) {
-      for (const attempt of verification.searchAttempts) {
-        if (attempt.searchPhrases) {
-          for (const phrase of attempt.searchPhrases) {
-            if (phrase) phrases.add(phrase);
-          }
-        }
-      }
+  // Get search attempts from verification, or create fallback from citation
+  const searchAttempts = useMemo(() => {
+    if (verification?.searchAttempts && verification.searchAttempts.length > 0) {
+      return verification.searchAttempts;
     }
 
-    // Fallback to citation phrases if no search attempts
-    if (phrases.size === 0) {
-      if (citation.fullPhrase) phrases.add(citation.fullPhrase);
-      if (citation.keySpan) phrases.add(citation.keySpan.toString());
+    // Fallback: create a synthetic attempt from citation data
+    const fallbackAttempts: SearchAttempt[] = [];
+    if (citation.fullPhrase) {
+      fallbackAttempts.push({
+        method: "current_page",
+        success: false,
+        searchPhrase: citation.fullPhrase,
+        searchPhraseType: "full_phrase",
+      });
+    } else if (citation.keySpan) {
+      fallbackAttempts.push({
+        method: "current_page",
+        success: false,
+        searchPhrase: citation.keySpan.toString(),
+        searchPhraseType: "key_span",
+      });
     }
-
-    return Array.from(phrases);
+    return fallbackAttempts;
   }, [citation, verification]);
 
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
@@ -428,15 +510,15 @@ function SearchedPhrasesInfo({
     }
   }, [onExpandChange]);
 
-  if (searchedPhrases.length === 0) return null;
+  if (searchAttempts.length === 0) return null;
 
-  const displayCount = isExpanded ? searchedPhrases.length : 1;
-  const hiddenCount = searchedPhrases.length - 1;
+  const displayCount = isExpanded ? searchAttempts.length : 1;
+  const hiddenCount = searchAttempts.length - 1;
 
   return (
     <div className="mt-2">
       <div className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">
-        <span>Searched {searchedPhrases.length} phrase{searchedPhrases.length !== 1 ? 's' : ''}</span>
+        <span>Searched {searchAttempts.length} phrase{searchAttempts.length !== 1 ? 's' : ''}</span>
         {hiddenCount > 0 && !isExpanded && (
           <button
             type="button"
@@ -456,15 +538,33 @@ function SearchedPhrasesInfo({
           </button>
         )}
       </div>
-      <div className="mt-1 space-y-1">
-        {searchedPhrases.slice(0, displayCount).map((phrase, index) => (
-          <p
-            key={index}
-            className="pl-2 py-1 font-mono text-[11px] break-words text-gray-700 dark:text-gray-300 border-l-2 border-red-400 dark:border-red-500"
-          >
-            "{phrase.length > 80 ? phrase.slice(0, 80) + '…' : phrase}"
-          </p>
-        ))}
+      <div className="mt-1 space-y-2">
+        {searchAttempts.slice(0, displayCount).map((attempt, index) => {
+          const phrase = getSearchPhrase(attempt);
+          const note = getSearchNote(attempt);
+          const borderClass = getSearchAttemptBorderClass(attempt);
+
+          return (
+            <div key={index} className={cn("pl-2 py-1 border-l-2", borderClass)}>
+              {/* Search phrase */}
+              <p className="font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
+                "{phrase.length > 80 ? phrase.slice(0, 80) + '…' : phrase}"
+              </p>
+              {/* Note (if available) */}
+              {note && (
+                <p className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 italic">
+                  {note}
+                </p>
+              )}
+              {/* Matched text (if different from searched) */}
+              {attempt.success && attempt.matchedText && attempt.matchedText !== phrase && (
+                <p className="mt-0.5 text-[10px] text-green-600 dark:text-green-400">
+                  Found: "{attempt.matchedText.length > 60 ? attempt.matchedText.slice(0, 60) + '…' : attempt.matchedText}"
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
