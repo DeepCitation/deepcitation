@@ -294,9 +294,10 @@ function getStatusFromVerification(
   const isPending = status === "pending" || status === "loading";
 
   // Check if any successful search attempt has low trust
-  const hasLowTrustMatch = verification.searchAttempts?.some(
-    (a) => a.success && isLowTrustMatch(a.matchedVariation)
-  );
+  const hasLowTrustMatch =
+    verification.searchAttempts?.some(
+      (a) => a.success && isLowTrustMatch(a.matchedVariation)
+    ) ?? false;
 
   const isPartialMatch =
     status === "partial_text_found" ||
