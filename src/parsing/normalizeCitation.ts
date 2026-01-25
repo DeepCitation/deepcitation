@@ -55,7 +55,7 @@ const parseCiteAttributes = (
             ? "full_phrase"
             : key === "lineids"
               ? "line_ids"
-              : key === "startpageid" || key === "start_pageid" || key === "start_page_id" || key === "startpagekey" || key === "start_pagekey" || key === "start_page_key"
+              : key === "pageid" || key === "page_id" || key === "startpageid" || key === "start_pageid" || key === "start_page_id" || key === "startpagekey" || key === "start_pagekey" || key === "start_page_key" || key === "pagekey" || key === "page_key"
                 ? "start_page_id"
                 : key;
 

@@ -4,7 +4,7 @@ import {
   generateCitationKey,
   generateCitationInstanceId,
   getCitationDisplayText,
-  getCitationKeySpanText,
+  getCitationAnchorText,
   classNames,
   CITATION_X_PADDING,
   CITATION_Y_PADDING,
@@ -30,7 +30,7 @@ describe("react index exports", () => {
     expect(typeof generateCitationKey).toBe("function");
     expect(typeof generateCitationInstanceId).toBe("function");
     expect(typeof getCitationDisplayText).toBe("function");
-    expect(typeof getCitationKeySpanText).toBe("function");
+    expect(typeof getCitationAnchorText).toBe("function");
     expect(typeof classNames).toBe("function");
   });
 
