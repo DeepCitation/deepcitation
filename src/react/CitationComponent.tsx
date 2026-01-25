@@ -439,10 +439,10 @@ function getKeySpanBoundingBox(verification: Verification | null): {
 } | null {
   if (!verification) return null;
 
-  // Prefer keySpanMatchDeepItems for multi-box spans
-  const boxes = verification.keySpanMatchDeepItems;
+  // Prefer anchorTextMatchDeepItems for multi-box spans
+  const boxes = verification.anchorTextMatchDeepItems;
   if (boxes && boxes.length > 0) {
-    // Calculate bounding box encompassing all keySpan boxes
+    // Calculate bounding box encompassing all anchorText boxes
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -479,10 +479,10 @@ function getKeySpanBoundingBox(verification: Verification | null): {
 
 /**
  * Displays a verification image in a scrollable container that initially
- * focuses on the keySpan position. Uses the keySpanMatchDeepItems or
+ * focuses on the anchorText position. Uses the anchorTextMatchDeepItems or
  * phraseMatchDeepItem coordinates to calculate the initial scroll position.
  */
-function KeySpanFocusedImage({
+function AnchorTextFocusedImage({
   verification,
   onImageClick,
   maxWidth = "min(70vw, 384px)",
@@ -755,10 +755,10 @@ function DefaultPopoverContent({
   const hasImage = verification?.verificationImageBase64;
   const { isMiss, isPartialMatch, isPending } = status;
 
-  // Check if we have keySpan position data for focused scrolling
-  const hasKeySpanPosition = !!(
+  // Check if we have anchorText position data for focused scrolling
+  const hasAnchorTextPosition = !!(
     verification &&
-    (verification.keySpanMatchDeepItems?.length ||
+    (verification.anchorTextMatchDeepItems?.length ||
       verification.phraseMatchDeepItem)
   );
 
@@ -769,8 +769,8 @@ function DefaultPopoverContent({
   // - Max dimensions: 70vw width, 50vh height to leave room for positioning
   // - Min dimensions: none - small images stay small
   //
-  // When keySpan position data is available, use KeySpanFocusedImage to
-  // initially scroll the image to show the keySpan area instead of the top-left.
+  // When anchorText position data is available, use AnchorTextFocusedImage to
+  // initially scroll the image to show the anchorText area instead of the top-left.
   //
   // React 19.2 Activity component is used to pre-render the image in "hidden" mode
   // before the user hovers, eliminating the empty popover flash when first displayed.
@@ -781,8 +781,8 @@ function DefaultPopoverContent({
           className="p-2"
           style={{ maxWidth: "100%", overflow: "hidden" }}
         >
-          {hasKeySpanPosition ? (
-            <KeySpanFocusedImage
+          {hasAnchorTextPosition ? (
+            <AnchorTextFocusedImage
               verification={verification}
               onImageClick={onImageClick}
             />
@@ -1012,7 +1012,7 @@ function DiffDetails({
           showMatchQuality={true}
           maxCollapsedLength={150}
           anchorTextExpected={citation.anchorText?.toString()}
-          anchorTextFound={verification?.verifiedKeySpan ?? undefined}
+          anchorTextFound={verification?.verifiedAnchorText ?? undefined}
           status={searchStatus}
           similarity={similarity}
         />
