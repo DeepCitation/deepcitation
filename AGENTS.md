@@ -272,7 +272,7 @@ import "@deepcitation/deepcitation-js/react/styles.css";
   citation={citation}
   verification={verification}
   variant="chip"        // "brackets" | "chip" | "text" | "superscript" | "minimal"
-  content="keySpan"     // "keySpan" | "number" | "indicator"
+  content="anchorText"     // "anchorText" | "number" | "indicator"
 />
 ```
 
@@ -522,7 +522,7 @@ import type {
 | Status Value                | `isVerified` | `isPartialMatch` | `isMiss` |
 |-----------------------------|--------------|------------------|----------|
 | `"found"`                   | ✅ true      | false            | false    |
-| `"found_key_span_only"`     | ✅ true      | false            | false    |
+| `"found_anchor_text_only"`     | ✅ true      | false            | false    |
 | `"found_phrase_missed_value"`| ✅ true     | false            | false    |
 | `"found_on_other_page"`     | ✅ true      | ⚠️ true          | false    |
 | `"found_on_other_line"`     | ✅ true      | ⚠️ true          | false    |

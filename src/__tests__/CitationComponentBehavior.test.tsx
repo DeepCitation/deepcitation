@@ -30,7 +30,7 @@ describe("CitationComponent behaviorConfig", () => {
   // Test fixtures
   const baseCitation: Citation = {
     citationNumber: 1,
-    keySpan: "test citation",
+    anchorText: "test citation",
     fullPhrase: "This is a test citation phrase",
   };
 

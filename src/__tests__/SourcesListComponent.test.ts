@@ -215,7 +215,7 @@ describe("SourcesListComponent utilities", () => {
       const urlCitation: Citation = {
         type: "url",
         fullPhrase: "Revenue grew by 15%",  // context/excerpt from source
-        keySpan: "revenue growth",           // specific cited text
+        anchorText: "revenue growth",        // specific cited text
         url: "https://example.com/report",
         title: "Q4 Report",
         domain: "example.com",
@@ -266,7 +266,7 @@ describe("SourcesListComponent utilities", () => {
         attachmentId: "file-1",
         pageNumber: 4,
         fullPhrase: "Hello",
-        keySpan: "$10",
+        anchorText: "$10",
       };
 
       const key = generateCitationKey(citation);

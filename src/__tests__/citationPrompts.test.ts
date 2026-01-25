@@ -15,8 +15,8 @@ describe("citation prompts", () => {
     expect(CITATION_PROMPT).toContain("[1]");
     expect(CITATION_PROMPT).toContain('"attachment_id"');
     expect(CITATION_PROMPT).toContain('"full_phrase"');
-    expect(CITATION_PROMPT).toContain('"key_span"');
-    expect(CITATION_PROMPT).toContain('"page_key"');
+    expect(CITATION_PROMPT).toContain('"anchor_text"');
+    expect(CITATION_PROMPT).toContain('"page_id"');
     expect(CITATION_PROMPT).toContain('"line_ids"');
   });
 
@@ -32,7 +32,7 @@ describe("citation prompts", () => {
       "id",
       "attachmentId",
       "fullPhrase",
-      "keySpan",
+      "anchorText",
     ]);
   });
 

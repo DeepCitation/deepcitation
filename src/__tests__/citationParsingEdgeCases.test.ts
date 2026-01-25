@@ -6,10 +6,11 @@ describe("Citation Parsing Edge Cases", () => {
     it("parses multiple consecutive non-self-closing citations", () => {
       const input = `<cite attachment_id='file1' full_phrase='first' key_span='first' start_page_key='page_number_1_index_0' line_ids='1'>A</cite><cite attachment_id='file2' full_phrase='second' key_span='second' start_page_key='page_number_2_index_0' line_ids='2'>B</cite>`;
       const result = getAllCitationsFromLlmOutput(input);
+      // backward compat: key_span in input is parsed to anchorText
       expect(Object.keys(result).length).toBe(2);
-      const keySpans = Object.values(result).map((c) => c.keySpan);
-      expect(keySpans).toContain("first");
-      expect(keySpans).toContain("second");
+      const anchorTexts = Object.values(result).map((c) => c.anchorText);
+      expect(anchorTexts).toContain("first");
+      expect(anchorTexts).toContain("second");
     });
 
     it("parses nested markdown inside citation content", () => {
@@ -118,12 +119,13 @@ Third paragraph concluding.' key_span='Second paragraph' start_page_key='page_nu
       const input = `First: <cite attachment_id='file1' full_phrase='phrase one' key_span='one' start_page_key='page_number_1_index_0' line_ids='1' />
 Second: <cite attachment_id='file2' full_phrase='phrase two' key_span='two' start_page_key='page_number_2_index_0' line_ids='2'>content</cite>
 Third: <cite attachment_id='file3' full_phrase='phrase three' key_span='three' start_page_key='page_number_3_index_0' line_ids='3' />`;
+      // backward compat: key_span in input is parsed to anchorText
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result).length).toBe(3);
-      const keySpans = Object.values(result).map((c) => c.keySpan);
-      expect(keySpans).toContain("one");
-      expect(keySpans).toContain("two");
-      expect(keySpans).toContain("three");
+      const anchorTexts = Object.values(result).map((c) => c.anchorText);
+      expect(anchorTexts).toContain("one");
+      expect(anchorTexts).toContain("two");
+      expect(anchorTexts).toContain("three");
     });
 
     it("parses citations with and without escaped underscores", () => {

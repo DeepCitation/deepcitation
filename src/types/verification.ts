@@ -68,7 +68,7 @@ export interface Verification {
 
   verifiedFullPhrase?: string | null;
 
-  verifiedKeySpan?: string | null;
+  verifiedAnchorText?: string | null;
 
   verifiedMatchSnippet?: string | null;
 
@@ -76,8 +76,8 @@ export interface Verification {
 
   phraseMatchDeepItem?: DeepTextItem;
 
-  /** Multiple boxes for keySpan highlighting when the keySpan spans multiple PDF items/words */
-  keySpanMatchDeepItems?: DeepTextItem[];
+  /** Multiple boxes for anchorText highlighting when the anchorText spans multiple PDF items/words */
+  anchorTextMatchDeepItems?: DeepTextItem[];
 
   verificationImageBase64?: string | null;
 

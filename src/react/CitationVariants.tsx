@@ -128,7 +128,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
     );
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
-    // ChipCitation shows keySpan by default
+    // ChipCitation shows anchorText by default
     const displayText = useMemo(
       () => getCitationDisplayText(citation, { fallbackDisplay }),
       [citation, fallbackDisplay]
@@ -480,7 +480,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
     );
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
-    // InlineCitation shows keySpan by default
+    // InlineCitation shows anchorText by default
     const displayText = useMemo(
       () => getCitationDisplayText(citation, { fallbackDisplay }),
       [citation, fallbackDisplay]

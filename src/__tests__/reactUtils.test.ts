@@ -4,7 +4,7 @@ import {
   generateCitationInstanceId,
   getCitationDisplayText,
   getCitationNumber,
-  getCitationKeySpanText,
+  getCitationAnchorText,
   classNames,
   isUrlCitation,
   CITATION_X_PADDING,
@@ -17,7 +17,7 @@ describe("react utils", () => {
     attachmentId: "file-1",
     pageNumber: 4,
     fullPhrase: "Hello",
-    keySpan: "$10",
+    anchorText: "$10",
     citationNumber: 2,
     lineIds: [1, 2],
   };
@@ -25,7 +25,7 @@ describe("react utils", () => {
   it("generates deterministic keys", () => {
     const key = generateCitationKey(citation);
     expect(key).toHaveLength(16);
-    expect(generateCitationKey({ ...citation, keySpan: "$11" })).not.toBe(key);
+    expect(generateCitationKey({ ...citation, anchorText: "$11" })).not.toBe(key);
   });
 
   it("creates unique instance ids with a random suffix", () => {
@@ -36,15 +36,15 @@ describe("react utils", () => {
     randomSpy.mockRestore();
   });
 
-  it("returns display text (keySpan with fallback to number)", () => {
-    // keySpan is preferred
+  it("returns display text (anchorText with fallback to number)", () => {
+    // anchorText is preferred
     expect(getCitationDisplayText(citation)).toBe("$10");
-    // Falls back to citationNumber when no keySpan
-    expect(getCitationDisplayText({ ...citation, keySpan: null })).toBe("2");
-    // Falls back to "1" when neither keySpan nor citationNumber
-    expect(getCitationDisplayText({ ...citation, keySpan: null, citationNumber: undefined })).toBe("1");
+    // Falls back to citationNumber when no anchorText
+    expect(getCitationDisplayText({ ...citation, anchorText: null })).toBe("2");
+    // Falls back to "1" when neither anchorText nor citationNumber
+    expect(getCitationDisplayText({ ...citation, anchorText: null, citationNumber: undefined })).toBe("1");
     // Can use custom fallback
-    expect(getCitationDisplayText({ ...citation, keySpan: null, citationNumber: undefined }, { fallbackDisplay: "N/A" })).toBe("N/A");
+    expect(getCitationDisplayText({ ...citation, anchorText: null, citationNumber: undefined }, { fallbackDisplay: "N/A" })).toBe("N/A");
   });
 
   it("returns citation number", () => {
@@ -53,10 +53,10 @@ describe("react utils", () => {
     expect(getCitationNumber({ ...citation, citationNumber: undefined })).toBe("1");
   });
 
-  it("returns keySpan text", () => {
-    expect(getCitationKeySpanText(citation)).toBe("$10");
-    // Returns empty string when no keySpan
-    expect(getCitationKeySpanText({ ...citation, keySpan: null })).toBe("");
+  it("returns anchorText text", () => {
+    expect(getCitationAnchorText(citation)).toBe("$10");
+    // Returns empty string when no anchorText
+    expect(getCitationAnchorText({ ...citation, anchorText: null })).toBe("");
   });
 
   it("joins class names safely", () => {

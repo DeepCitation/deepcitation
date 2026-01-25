@@ -67,7 +67,7 @@ export {
   generateCitationInstanceId,
   getCitationDisplayText,
   getCitationNumber,
-  getCitationKeySpanText,
+  getCitationAnchorText,
   classNames,
   isUrlCitation,
   CITATION_X_PADDING,

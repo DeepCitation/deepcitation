@@ -24,8 +24,8 @@ ${CITATION_DATA_START_DELIMITER}
     "attachment_id": "abc123",
     "reasoning": "directly states growth metrics",
     "full_phrase": "The company achieved 45% year-over-year growth",
-    "key_span": "45% year-over-year growth",
-    "page_key": "page_number_2_index_1",
+    "anchor_text": "45% year-over-year growth",
+    "page_id": "page_number_2_index_1",
     "line_ids": [12, 13]
   },
   {
@@ -33,8 +33,8 @@ ${CITATION_DATA_START_DELIMITER}
     "attachment_id": "abc123",
     "reasoning": "states Q4 revenue figure",
     "full_phrase": "Q4 revenue reached $2.3 billion",
-    "key_span": "$2.3 billion",
-    "page_key": "page_number_3_index_2",
+    "anchor_text": "$2.3 billion",
+    "page_id": "page_number_3_index_2",
     "line_ids": [5, 6, 7]
   }
 ]
@@ -48,7 +48,7 @@ ${CITATION_DATA_END_DELIMITER}`;
     );
     expect(result.citations.length).toBe(2);
     expect(result.citationMap.get(1)?.attachment_id).toBe("abc123");
-    expect(result.citationMap.get(2)?.key_span).toBe("$2.3 billion");
+    expect(result.citationMap.get(2)?.anchor_text).toBe("$2.3 billion");
   });
 
   it("handles response without citation block", () => {
@@ -81,8 +81,8 @@ ${CITATION_DATA_START_DELIMITER}
     "id": 1,
     "attachment_id": "doc456",
     "full_phrase": "The user's liability shall be limited to \\"no liability\\" as stated",
-    "key_span": "no liability",
-    "page_key": "page_number_5_index_0",
+    "anchor_text": "no liability",
+    "page_id": "page_number_5_index_0",
     "line_ids": [20, 21]
   }
 ]
@@ -103,8 +103,8 @@ ${CITATION_DATA_START_DELIMITER}
     "id": 1,
     "attachment_id": "doc789",
     "full_phrase": "Line one\\nLine two\\nLine three",
-    "key_span": "Line two",
-    "page_key": "page_number_1_index_0"
+    "anchor_text": "Line two",
+    "page_id": "page_number_1_index_0"
   }
 ]
 ${CITATION_DATA_END_DELIMITER}`;
@@ -120,9 +120,9 @@ ${CITATION_DATA_END_DELIMITER}`;
 
 ${CITATION_DATA_START_DELIMITER}
 [
-  {"id": 1, "attachment_id": "a", "full_phrase": "$1B", "key_span": "$1B"},
-  {"id": 2, "attachment_id": "a", "full_phrase": "$100M", "key_span": "$100M"},
-  {"id": 3, "attachment_id": "a", "full_phrase": "Q4", "key_span": "Q4"}
+  {"id": 1, "attachment_id": "a", "full_phrase": "$1B", "anchor_text": "$1B"},
+  {"id": 2, "attachment_id": "a", "full_phrase": "$100M", "anchor_text": "$100M"},
+  {"id": 3, "attachment_id": "a", "full_phrase": "Q4", "anchor_text": "Q4"}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
@@ -140,7 +140,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 
 ${CITATION_DATA_START_DELIMITER}
 [
-  {"id": 1, "attachment_id": "a", "full_phrase": "test", "key_span": "test",},
+  {"id": 1, "attachment_id": "a", "full_phrase": "test", "anchor_text": "test",},
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
@@ -154,7 +154,7 @@ ${CITATION_DATA_END_DELIMITER}`;
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "a", "full_phrase": "test", "key_span": "test"}]`;
+[{"id": 1, "attachment_id": "a", "full_phrase": "test", "anchor_text": "test"}]`;
 
     const result = parseDeferredCitationResponse(response);
 
@@ -184,7 +184,7 @@ ${CITATION_DATA_START_DELIMITER}
     "id": 1,
     "attachment_id": "video123",
     "full_phrase": "This is important",
-    "key_span": "important",
+    "anchor_text": "important",
     "timestamps": {
       "start_time": "00:05:23.000",
       "end_time": "00:05:45.500"
@@ -205,7 +205,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 
 ${CITATION_DATA_START_DELIMITER}
 \`\`\`json
-[{"id": 1, "attachment_id": "a", "full_phrase": "test", "key_span": "test"}]
+[{"id": 1, "attachment_id": "a", "full_phrase": "test", "anchor_text": "test"}]
 \`\`\`
 ${CITATION_DATA_END_DELIMITER}`;
 
@@ -222,8 +222,8 @@ describe("getAllCitationsFromDeferredResponse", () => {
 
 ${CITATION_DATA_START_DELIMITER}
 [
-  {"id": 1, "attachment_id": "abc", "full_phrase": "phrase one", "key_span": "one", "page_key": "page_number_1_index_0", "line_ids": [1]},
-  {"id": 2, "attachment_id": "abc", "full_phrase": "phrase two", "key_span": "two", "page_key": "page_number_2_index_0", "line_ids": [5]}
+  {"id": 1, "attachment_id": "abc", "full_phrase": "phrase one", "anchor_text": "one", "page_id": "page_number_1_index_0", "line_ids": [1]},
+  {"id": 2, "attachment_id": "abc", "full_phrase": "phrase two", "anchor_text": "two", "page_id": "page_number_2_index_0", "line_ids": [5]}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
@@ -248,7 +248,7 @@ ${CITATION_DATA_END_DELIMITER}`;
     const response = `Test [1].
 
 ${CITATION_DATA_START_DELIMITER}
-[{"id": 1, "attachment_id": "abc", "key_span": "test"}]
+[{"id": 1, "attachment_id": "abc", "anchor_text": "test"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
     const citations = getAllCitationsFromDeferredResponse(response);
@@ -263,8 +263,8 @@ describe("deferredCitationToCitation", () => {
       attachment_id: "doc123",
       reasoning: "test reasoning",
       full_phrase: "The full phrase here",
-      key_span: "key phrase",
-      page_key: "page_number_3_index_2",
+      anchor_text: "key phrase",
+      page_id: "page_number_3_index_2",
       line_ids: [10, 11, 12],
     };
 
@@ -273,9 +273,9 @@ describe("deferredCitationToCitation", () => {
     expect(citation.attachmentId).toBe("doc123");
     expect(citation.reasoning).toBe("test reasoning");
     expect(citation.fullPhrase).toBe("The full phrase here");
-    expect(citation.keySpan).toBe("key phrase");
+    expect(citation.anchorText).toBe("key phrase");
     expect(citation.pageNumber).toBe(3);
-    expect(citation.startPageKey).toBe("page_number_3_index_2");
+    expect(citation.startPageId).toBe("page_number_3_index_2");
     expect(citation.lineIds).toEqual([10, 11, 12]);
     expect(citation.citationNumber).toBe(1);
   });
@@ -362,13 +362,13 @@ describe("replaceDeferredMarkers", () => {
   it("replaces markers with key spans", () => {
     const text = "Revenue grew 45% [1] in Q4 [2].";
     const citationMap = new Map([
-      [1, { id: 1, key_span: "45%" }],
-      [2, { id: 2, key_span: "Q4 2024" }],
+      [1, { id: 1, anchor_text: "45%" }],
+      [2, { id: 2, anchor_text: "Q4 2024" }],
     ]);
 
     const result = replaceDeferredMarkers(text, {
       citationMap,
-      showKeySpan: true,
+      showAnchorText: true,
     });
     expect(result).toBe("Revenue grew 45% 45% in Q4 Q4 2024.");
   });
@@ -383,11 +383,11 @@ describe("replaceDeferredMarkers", () => {
 
   it("handles missing citations gracefully", () => {
     const text = "Test [1] and [99].";
-    const citationMap = new Map([[1, { id: 1, key_span: "found" }]]);
+    const citationMap = new Map([[1, { id: 1, anchor_text: "found" }]]);
 
     const result = replaceDeferredMarkers(text, {
       citationMap,
-      showKeySpan: true,
+      showAnchorText: true,
     });
     expect(result).toBe("Test found and .");
   });

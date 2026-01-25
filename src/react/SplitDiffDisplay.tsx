@@ -26,10 +26,10 @@ export interface SplitDiffDisplayProps {
   showMatchQuality?: boolean;
   /** Maximum characters before collapsing with "Show more" */
   maxCollapsedLength?: number;
-  /** Expected keySpan to highlight within expected text */
-  keySpanExpected?: string;
-  /** Found keySpan to highlight within actual text */
-  keySpanFound?: string;
+  /** Expected anchorText to highlight within expected text */
+  anchorTextExpected?: string;
+  /** Found anchorText to highlight within actual text */
+  anchorTextFound?: string;
   /** Verification status for contextual messages */
   status?: SearchStatus | null;
   /** Similarity score (0-1), calculated if not provided */
@@ -53,7 +53,7 @@ export function getContextualStatusMessage(
   switch (status) {
     case "found":
       return "Exact match found";
-    case "found_key_span_only":
+    case "found_anchor_text_only":
       return "Key phrase found, full context differs";
     case "found_phrase_missed_value":
       return "Phrase found, value differs";
@@ -183,16 +183,16 @@ interface CollapsibleTextProps {
   text: string;
   maxLength: number;
   className?: string;
-  keySpan?: string;
-  keySpanClass?: string;
+  anchorText?: string;
+  anchorTextClass?: string;
 }
 
 const CollapsibleText: React.FC<CollapsibleTextProps> = memo(({
   text,
   maxLength,
   className,
-  keySpan,
-  keySpanClass = "border-b-2 border-blue-400 dark:border-blue-500",
+  anchorText,
+  anchorTextClass = "border-b-2 border-blue-400 dark:border-blue-500",
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const shouldCollapse = text.length > maxLength;
@@ -201,8 +201,8 @@ const CollapsibleText: React.FC<CollapsibleTextProps> = memo(({
     ? text.slice(0, maxLength) + "…"
     : text;
 
-  const content = keySpan
-    ? highlightSubstring(displayText, keySpan, keySpanClass)
+  const content = anchorText
+    ? highlightSubstring(displayText, anchorText, anchorTextClass)
     : displayText;
 
   return (
@@ -234,8 +234,8 @@ interface SplitViewProps {
   expected: string;
   actual: string;
   maxCollapsedLength: number;
-  keySpanExpected?: string;
-  keySpanFound?: string;
+  anchorTextExpected?: string;
+  anchorTextFound?: string;
   showMatchQuality?: boolean;
   similarity: number;
 }
@@ -244,8 +244,8 @@ const SplitView: React.FC<SplitViewProps> = memo(({
   expected,
   actual,
   maxCollapsedLength,
-  keySpanExpected,
-  keySpanFound,
+  anchorTextExpected,
+  anchorTextFound,
   showMatchQuality,
   similarity,
 }) => {
@@ -265,8 +265,8 @@ const SplitView: React.FC<SplitViewProps> = memo(({
             text={expected}
             maxLength={maxCollapsedLength}
             className="flex-1 font-mono text-[11px] text-red-700 dark:text-red-300"
-            keySpan={keySpanExpected}
-            keySpanClass="bg-red-200 dark:bg-red-800/50 px-0.5 rounded"
+            anchorText={anchorTextExpected}
+            anchorTextClass="bg-red-200 dark:bg-red-800/50 px-0.5 rounded"
           />
         </div>
       </div>
@@ -285,8 +285,8 @@ const SplitView: React.FC<SplitViewProps> = memo(({
               text={actual}
               maxLength={maxCollapsedLength}
               className="flex-1 font-mono text-[11px] text-green-700 dark:text-green-300"
-              keySpan={keySpanFound}
-              keySpanClass="bg-green-200 dark:bg-green-800/50 px-0.5 rounded"
+              anchorText={anchorTextFound}
+              anchorTextClass="bg-green-200 dark:bg-green-800/50 px-0.5 rounded"
             />
           ) : (
             <span className="flex-1 font-mono text-[11px] text-gray-500 dark:text-gray-400 italic">
@@ -324,8 +324,8 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(({
   mode = "auto",
   showMatchQuality = false,
   maxCollapsedLength = 200,
-  keySpanExpected,
-  keySpanFound,
+  anchorTextExpected,
+  anchorTextFound,
   status,
   similarity: providedSimilarity,
 }) => {
@@ -355,7 +355,7 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(({
     if (similarity < 0.6) return "split";
 
     // For status-based decisions
-    if (status === "found_key_span_only" || status === "partial_text_found") {
+    if (status === "found_anchor_text_only" || status === "partial_text_found") {
       return "split";
     }
 
@@ -399,8 +399,8 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(({
         expected={sanitizedExpected}
         actual={sanitizedActual}
         maxCollapsedLength={maxCollapsedLength}
-        keySpanExpected={keySpanExpected}
-        keySpanFound={keySpanFound}
+        anchorTextExpected={anchorTextExpected}
+        anchorTextFound={anchorTextFound}
         showMatchQuality={showMatchQuality}
         similarity={similarity}
       />

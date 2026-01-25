@@ -5,10 +5,10 @@ import { generateCitationKey } from "../react/utils.js";
 
 export interface ReplaceCitationsOptions {
   /**
-   * If true, leaves the key_span text behind when removing citations.
+   * If true, leaves the anchor_text text behind when removing citations.
    * @default false
    */
-  leaveKeySpanBehind?: boolean;
+  leaveAnchorTextBehind?: boolean;
 
   /**
    * Map of citation keys to verification results.
@@ -49,14 +49,14 @@ const parseCiteAttributes = (
     const normalizedKey =
       key === "fileid" || key === "file_id" || key === "attachmentid"
         ? "attachment_id"
-        : key === "keyspan"
-          ? "key_span"
+        : key === "anchortext" || key === "anchor_text" || key === "keyspan" || key === "key_span"
+          ? "anchor_text"
           : key === "fullphrase"
             ? "full_phrase"
             : key === "lineids"
               ? "line_ids"
-              : key === "startpagekey" || key === "start_pagekey"
-                ? "start_page_key"
+              : key === "pageid" || key === "page_id" || key === "startpageid" || key === "start_pageid" || key === "start_page_id" || key === "startpagekey" || key === "start_pagekey" || key === "start_page_key" || key === "pagekey" || key === "page_key"
+                ? "start_page_id"
                 : key;
 
     attrs[normalizedKey] = value;
@@ -100,12 +100,12 @@ export const getVerificationTextIndicator = (
  * // Remove all citations
  * const clean = replaceCitations(llmOutput);
  *
- * // Leave key_span text behind
- * const withKeySpans = replaceCitations(llmOutput, { leaveKeySpanBehind: true });
+ * // Leave anchor_text text behind
+ * const withAnchorTexts = replaceCitations(llmOutput, { leaveAnchorTextBehind: true });
  *
  * // Show verification status indicators
  * const withStatus = replaceCitations(llmOutput, {
- *   leaveKeySpanBehind: true,
+ *   leaveAnchorTextBehind: true,
  *   verifications: verificationMap,
  *   showVerificationStatus: true,
  * });
@@ -117,7 +117,7 @@ export const replaceCitations = (
   options: ReplaceCitationsOptions = {}
 ): string => {
   const {
-    leaveKeySpanBehind = false,
+    leaveAnchorTextBehind = false,
     verifications,
     showVerificationStatus = false,
   } = options;
@@ -135,9 +135,9 @@ export const replaceCitations = (
     // Determine what to output
     let output = "";
 
-    if (leaveKeySpanBehind && attrs.key_span) {
-      // Unescape the key_span value
-      output = attrs.key_span.replace(/\\'/g, "'").replace(/\\"/g, '"');
+    if (leaveAnchorTextBehind && attrs.anchor_text) {
+      // Unescape the anchor_text value
+      output = attrs.anchor_text.replace(/\\'/g, "'").replace(/\\"/g, '"');
     }
 
     // Add verification status if requested
@@ -146,9 +146,9 @@ export const replaceCitations = (
       let verification: Verification | undefined;
 
       // Build a Citation object from parsed attributes to generate the key
-      const parsePageNumber = (startPageKey?: string): number | undefined => {
-        if (!startPageKey) return undefined;
-        const match = startPageKey.match(/page[_a-zA-Z]*(\d+)/);
+      const parsePageNumber = (startPageId?: string): number | undefined => {
+        if (!startPageId) return undefined;
+        const match = startPageId.match(/page[_a-zA-Z]*(\d+)/);
         return match ? parseInt(match[1], 10) : undefined;
       };
 
@@ -176,16 +176,16 @@ export const replaceCitations = (
         return nums.length > 0 ? nums : undefined;
       };
 
-      // Unescape quotes in fullPhrase and keySpan to match how citations are parsed
+      // Unescape quotes in fullPhrase and anchorText to match how citations are parsed
       // by getAllCitationsFromLlmOutput (which returns unescaped values)
       const unescapeQuotes = (str: string | undefined): string | undefined =>
         str?.replace(/\\'/g, "'").replace(/\\"/g, '"');
 
       const citation: Citation = {
         attachmentId: attrs.attachment_id,
-        pageNumber: parsePageNumber(attrs.start_page_key),
+        pageNumber: parsePageNumber(attrs.start_page_id),
         fullPhrase: unescapeQuotes(attrs.full_phrase),
-        keySpan: unescapeQuotes(attrs.key_span),
+        anchorText: unescapeQuotes(attrs.anchor_text),
         lineIds: parseLineIds(attrs.line_ids),
       };
 
@@ -212,9 +212,9 @@ export const replaceCitations = (
  */
 export const removeCitations = (
   markdownWithCitations: string,
-  leaveKeySpanBehind?: boolean
+  leaveAnchorTextBehind?: boolean
 ): string => {
-  return replaceCitations(markdownWithCitations, { leaveKeySpanBehind });
+  return replaceCitations(markdownWithCitations, { leaveAnchorTextBehind });
 };
 
 export const removePageNumberMetadata = (pageText: string): string => {
@@ -230,13 +230,13 @@ export const removeLineIdMetadata = (pageText: string): string => {
 };
 
 export const getCitationPageNumber = (
-  startPageKey?: string | null
+  startPageId?: string | null
 ): number | null => {
-  //page_number_{page_number}_index_{page_index} or page_number_{page_number} or page_key_{page_number}_index_{page_index}
-  if (!startPageKey) return null;
+  //page_number_{page_number}_index_{page_index} or page_number_{page_number} or page_id_{page_number}_index_{page_index}
+  if (!startPageId) return null;
 
   //regex first \d+ is the page number
-  const pageNumber = startPageKey.match(/\d+/)?.[0];
+  const pageNumber = startPageId.match(/\d+/)?.[0];
   return pageNumber ? parseInt(pageNumber) : null;
 };
 
@@ -353,11 +353,14 @@ const normalizeCitationContent = (input: string): string => {
       return "full_phrase";
     if (lowerKey === "lineids" || lowerKey === "line_ids") return "line_ids";
     if (
+      lowerKey === "startpageid" ||
+      lowerKey === "start_pageid" ||
+      lowerKey === "start_page_id" ||
       lowerKey === "startpagekey" ||
       lowerKey === "start_pagekey" ||
       lowerKey === "start_page_key"
     )
-      return "start_page_key";
+      return "start_page_id";
     if (
       lowerKey === "fileid" ||
       lowerKey === "file_id" ||
@@ -365,7 +368,7 @@ const normalizeCitationContent = (input: string): string => {
       lowerKey === "attachment_id"
     )
       return "attachment_id";
-    if (lowerKey === "keyspan" || lowerKey === "key_span") return "key_span";
+    if (lowerKey === "anchortext" || lowerKey === "anchor_text" || lowerKey === "keyspan" || lowerKey === "key_span") return "anchor_text";
     if (lowerKey === "reasoning" || lowerKey === "value") return lowerKey;
     if (
       lowerKey === "timestamps" ||
@@ -390,7 +393,7 @@ const normalizeCitationContent = (input: string): string => {
   };
 
   const textAttributeRegex =
-    /(fullPhrase|full_phrase|keySpan|key_span|reasoning|value)\s*=\s*(['"])([\s\S]*?)(?=\s+(?:line_ids|lineIds|timestamps|fileId|file_id|attachmentId|attachment_id|start_page_key|start_pageKey|startPageKey|keySpan|key_span|reasoning|value|full_phrase)\s*=|\s*\/>|['"]>)/gm;
+    /(fullPhrase|full_phrase|anchorText|anchor_text|keySpan|key_span|reasoning|value)\s*=\s*(['"])([\s\S]*?)(?=\s+(?:line_ids|lineIds|timestamps|fileId|file_id|attachmentId|attachment_id|start_page_id|start_pageId|startPageId|start_page_key|start_pageKey|startPageKey|anchorText|anchor_text|keySpan|key_span|reasoning|value|full_phrase)\s*=|\s*\/>|['"]>)/gm;
 
   normalized = normalized.replace(
     textAttributeRegex,
@@ -475,7 +478,7 @@ const normalizeCitationContent = (input: string): string => {
 
     const hasTimestamps =
       typeof attrs.timestamps === "string" && attrs.timestamps.length > 0;
-    const startPageKeys = keys.filter((k) => k.startsWith("start_page"));
+    const startPageIds = keys.filter((k) => k.startsWith("start_page"));
 
     const ordered: string[] = [];
 
@@ -483,21 +486,21 @@ const normalizeCitationContent = (input: string): string => {
     if (attrs.attachment_id) ordered.push("attachment_id");
 
     if (hasTimestamps) {
-      // AV citations: attachment_id, full_phrase, key_span, timestamps, (optional reasoning/value), then any extras
+      // AV citations: attachment_id, full_phrase, anchor_text, timestamps, (optional reasoning/value), then any extras
       if (attrs.full_phrase) ordered.push("full_phrase");
-      if (attrs.key_span) ordered.push("key_span");
+      if (attrs.anchor_text) ordered.push("anchor_text");
       ordered.push("timestamps");
     } else {
-      // Document citations: attachment_id, start_page*, full_phrase, key_span, line_ids, (optional reasoning/value), then any extras
-      if (startPageKeys.includes("start_page_key"))
-        ordered.push("start_page_key");
-      startPageKeys
-        .filter((k) => k !== "start_page_key")
+      // Document citations: attachment_id, start_page*, full_phrase, anchor_text, line_ids, (optional reasoning/value), then any extras
+      if (startPageIds.includes("start_page_id"))
+        ordered.push("start_page_id");
+      startPageIds
+        .filter((k) => k !== "start_page_id")
         .sort()
         .forEach((k) => ordered.push(k));
 
       if (attrs.full_phrase) ordered.push("full_phrase");
-      if (attrs.key_span) ordered.push("key_span");
+      if (attrs.anchor_text) ordered.push("anchor_text");
       if (attrs.line_ids) ordered.push("line_ids");
     }
 

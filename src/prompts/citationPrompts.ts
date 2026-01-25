@@ -40,8 +40,8 @@ At the END of your response, you MUST append a citation verification block conta
     "attachment_id": "exact_attachment_id",
     "reasoning": "why this supports the claim",
     "full_phrase": "verbatim quote from source",
-    "key_span": "1-3 key words from full_phrase",
-    "page_key": "page_number_N_index_I",
+    "anchor_text": "1-3 key words from full_phrase",
+    "page_id": "page_number_N_index_I",
     "line_ids": [X, Y, Z]
   }
 ]
@@ -54,8 +54,8 @@ At the END of your response, you MUST append a citation verification block conta
 2. **attachment_id**: Exact ID from the source document
 3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
 4. **full_phrase**: Copy text VERBATIM from source. Use proper JSON escaping for quotes and special characters.
-5. **key_span**: The 1-3 most important words from full_phrase
-6. **page_key**: ONLY use format \`page_number_N_index_I\` from page tags (e.g., \`<page_number_1_index_0>\`)
+5. **anchor_text**: The 1-3 most important words from full_phrase
+6. **page_id**: ONLY use format \`page_number_N_index_I\` from page tags (e.g., \`<page_number_1_index_0>\`)
 7. **line_ids**: Array of line numbers (e.g., [12, 13, 14]). Infer intermediate lines since only every 5th line is shown.
 
 ### Placement Rules
@@ -77,8 +77,8 @@ The company reported strong growth [1]. Revenue increased significantly in Q4 [2
     "attachment_id": "abc123",
     "reasoning": "directly states growth metrics",
     "full_phrase": "The company achieved 45% year-over-year growth",
-    "key_span": "45% year-over-year growth",
-    "page_key": "page_number_2_index_1",
+    "anchor_text": "45% year-over-year growth",
+    "page_id": "page_number_2_index_1",
     "line_ids": [12, 13]
   },
   {
@@ -86,8 +86,8 @@ The company reported strong growth [1]. Revenue increased significantly in Q4 [2
     "attachment_id": "abc123",
     "reasoning": "states Q4 revenue figure",
     "full_phrase": "Q4 revenue reached $2.3 billion, up from $1.8 billion",
-    "key_span": "$2.3 billion",
-    "page_key": "page_number_3_index_2",
+    "anchor_text": "$2.3 billion",
+    "page_id": "page_number_3_index_2",
     "line_ids": [5, 6, 7]
   }
 ]
@@ -119,7 +119,7 @@ At the END of your response, you MUST append a citation verification block conta
     "attachment_id": "exact_attachment_id",
     "reasoning": "why this supports the claim",
     "full_phrase": "verbatim transcript quote",
-    "key_span": "1-3 key words from full_phrase",
+    "anchor_text": "1-3 key words from full_phrase",
     "timestamps": {
       "start_time": "HH:MM:SS.SSS",
       "end_time": "HH:MM:SS.SSS"
@@ -135,7 +135,7 @@ At the END of your response, you MUST append a citation verification block conta
 2. **attachment_id**: Exact ID from the source media
 3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
 4. **full_phrase**: Copy transcript text VERBATIM. Use proper JSON escaping.
-5. **key_span**: The 1-3 most important words from full_phrase
+5. **anchor_text**: The 1-3 most important words from full_phrase
 6. **timestamps**: Object with start_time and end_time in HH:MM:SS.SSS format
 
 ### Example Response
@@ -149,7 +149,7 @@ The speaker discussed exercise benefits [1]. They recommended specific technique
     "attachment_id": "video123",
     "reasoning": "speaker directly states health benefits",
     "full_phrase": "Regular exercise improves cardiovascular health by 30%",
-    "key_span": "cardiovascular health",
+    "anchor_text": "cardiovascular health",
     "timestamps": {
       "start_time": "00:05:23.000",
       "end_time": "00:05:45.500"
@@ -160,7 +160,7 @@ The speaker discussed exercise benefits [1]. They recommended specific technique
     "attachment_id": "video123",
     "reasoning": "demonstrates proper form",
     "full_phrase": "Keep your back straight and engage your core",
-    "key_span": "engage your core",
+    "anchor_text": "engage your core",
     "timestamps": {
       "start_time": "00:12:10.200",
       "end_time": "00:12:25.800"
@@ -225,12 +225,12 @@ export interface WrapCitationPromptResult {
  *
  * ### 2. Chain-of-Thought (CoT) Attribute Ordering
  * The citation attributes are ordered to encourage the model to "think first":
- * `attachment_id` → `reasoning` → `full_phrase` → `key_span` → `page_key` → `line_ids`
+ * `attachment_id` → `reasoning` → `full_phrase` → `anchor_text` → `page_id` → `line_ids`
  *
  * By placing `reasoning` early, the model must articulate WHY it's citing before
- * specifying WHAT it's citing. Then `full_phrase` comes before `key_span` so the model
- * first produces the complete verbatim quote, then extracts the key span from it,
- * ensuring `key_span` is always a valid substring of `full_phrase`.
+ * specifying WHAT it's citing. Then `full_phrase` comes before `anchor_text` so the model
+ * first produces the complete verbatim quote, then extracts the anchor text from it,
+ * ensuring `anchor_text` is always a valid substring of `full_phrase`.
  *
  * ### Why Not Just Append?
  * In large system prompts, appended instructions can get "lost" in the middle of the
@@ -356,11 +356,11 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
       type: "string",
       description: "Verbatim quote from source document",
     },
-    keySpan: {
+    anchorText: {
       type: "string",
       description: "1-3 key words from fullPhrase",
     },
-    pageKey: {
+    pageId: {
       type: "string",
       description: "Page key in format page_number_N_index_I",
     },
@@ -370,7 +370,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
       description: "Array of line numbers for the citation",
     },
   },
-  required: ["id", "attachmentId", "fullPhrase", "keySpan"],
+  required: ["id", "attachmentId", "fullPhrase", "anchorText"],
 } as const;
 
 /**
@@ -395,7 +395,7 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
       type: "string",
       description: "Verbatim transcript quote",
     },
-    keySpan: {
+    anchorText: {
       type: "string",
       description: "1-3 key words from fullPhrase",
     },
@@ -414,7 +414,7 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
       required: ["startTime", "endTime"],
     },
   },
-  required: ["id", "attachmentId", "fullPhrase", "keySpan", "timestamps"],
+  required: ["id", "attachmentId", "fullPhrase", "anchorText", "timestamps"],
 } as const;
 
 /**
@@ -430,10 +430,10 @@ export interface CitationData {
   reasoning?: string;
   /** Verbatim quote from source */
   full_phrase?: string;
-  /** Key span (1-3 words) */
-  key_span?: string;
-  /** Page key in format page_number_N_index_I */
-  page_key?: string;
+  /** Anchor text (1-3 words) */
+  anchor_text?: string;
+  /** Page ID in format page_number_N_index_I */
+  page_id?: string;
   /** Line IDs array */
   line_ids?: number[];
   /** Timestamps for AV citations */

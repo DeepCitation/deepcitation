@@ -295,7 +295,7 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
     const displayNumber = useMemo(() => {
       if (number !== undefined) return String(number);
       return (
-        citation.keySpan?.toString() ||
+        citation.anchorText?.toString() ||
         citation.citationNumber?.toString() ||
         config.fallbackDisplay ||
         "1"
@@ -331,20 +331,20 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
 
 CitationNumber.displayName = "Citation.Number";
 
-export interface CitationKeySpanProps extends HTMLAttributes<HTMLSpanElement> {
-  keySpan?: string;
+export interface CitationAnchorTextProps extends HTMLAttributes<HTMLSpanElement> {
+  anchorText?: string;
   separator?: string;
 }
 
-/** Displays the citation keySpan (summary text). */
-export const CitationKeySpan = forwardRef<HTMLSpanElement, CitationKeySpanProps>(
-  ({ className, keySpan, separator = " ", ...props }, ref) => {
+/** Displays the citation anchorText (summary text). */
+export const CitationAnchorText = forwardRef<HTMLSpanElement, CitationAnchorTextProps>(
+  ({ className, anchorText, separator = " ", ...props }, ref) => {
     const { citation } = useCitationContext();
 
     const displayKeySpan = useMemo(() => {
-      if (keySpan !== undefined) return keySpan;
-      return citation.keySpan?.toString() || "";
-    }, [keySpan, citation]);
+      if (anchorText !== undefined) return anchorText;
+      return citation.anchorText?.toString() || "";
+    }, [anchorText, citation]);
 
     if (!displayKeySpan) return null;
 
@@ -361,7 +361,7 @@ export const CitationKeySpan = forwardRef<HTMLSpanElement, CitationKeySpanProps>
   }
 );
 
-CitationKeySpan.displayName = "Citation.KeySpan";
+CitationAnchorText.displayName = "Citation.KeySpan";
 
 export interface CitationIndicatorProps
   extends HTMLAttributes<HTMLSpanElement> {
@@ -553,7 +553,7 @@ export const Citation = {
   Trigger: CitationTrigger,
   Bracket: CitationBracket,
   Number: CitationNumber,
-  KeySpan: CitationKeySpan,
+  AnchorText: CitationAnchorText,
   Indicator: CitationIndicator,
   Status: CitationStatusComponent,
   Phrase: CitationPhrase,

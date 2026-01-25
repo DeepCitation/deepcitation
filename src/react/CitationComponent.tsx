@@ -49,7 +49,7 @@ function getDefaultContent(variant: CitationVariant): CitationContent {
     case "chip":
     case "text":
     case "brackets":
-      return "keySpan";
+      return "anchorText";
     case "source":
       return "source";
     case "superscript":
@@ -61,7 +61,7 @@ function getDefaultContent(variant: CitationVariant): CitationContent {
 
 /**
  * Strip leading/trailing brackets from text.
- * Handles cases where LLM output includes brackets in keySpan.
+ * Handles cases where LLM output includes brackets in anchorText.
  */
 function stripBrackets(text: string): string {
   return text.replace(/^\[+\s*/, "").replace(/\s*\]+$/, "");
@@ -80,9 +80,9 @@ function getDisplayText(
     return "";
   }
 
-  if (content === "keySpan") {
+  if (content === "anchorText") {
     const raw =
-      citation.keySpan?.toString() ||
+      citation.anchorText?.toString() ||
       citation.citationNumber?.toString() ||
       fallbackDisplay ||
       "1";
@@ -91,7 +91,7 @@ function getDisplayText(
 
   if (content === "source") {
     // Source content: show siteName or domain (using main's field names)
-    return citation.siteName || citation.domain || citation.keySpan?.toString() || "Source";
+    return citation.siteName || citation.domain || citation.anchorText?.toString() || "Source";
   }
 
   // content === "number"
@@ -159,15 +159,15 @@ export interface CitationComponentProps extends BaseCitationProps {
   variant?: CitationVariant;
   /**
    * What content to display in the citation.
-   * - `keySpan`: Descriptive text (e.g., "Revenue Growth")
+   * - `anchorText`: Descriptive text (e.g., "Revenue Growth")
    * - `number`: Citation number (e.g., "1", "2", "3")
    * - `indicator`: Only the status icon, no text
    * - `source`: Source name (e.g., "Wikipedia")
    *
    * Defaults based on variant:
-   * - `chip` → `keySpan`
-   * - `brackets` → `keySpan`
-   * - `text` → `keySpan`
+   * - `chip` → `anchorText`
+   * - `brackets` → `anchorText`
+   * - `text` → `anchorText`
    * - `superscript` → `number`
    * - `minimal` → `number`
    * - `source` → `source`
@@ -222,7 +222,7 @@ function getStatusLabel(status: CitationStatus): string {
  * Get the trust level from a MatchedVariation.
  * Trust levels determine indicator colors:
  * - high: Green checkmark (exact or normalized full phrase)
- * - medium: Green checkmark (keySpan matches)
+ * - medium: Green checkmark (anchorText matches)
  * - low: Amber checkmark (partial matches)
  */
 function getTrustLevel(matchedVariation?: MatchedVariation): "high" | "medium" | "low" {
@@ -231,11 +231,11 @@ function getTrustLevel(matchedVariation?: MatchedVariation): "high" | "medium" |
     case "exact_full_phrase":
     case "normalized_full_phrase":
       return "high";
-    case "exact_key_span":
-    case "normalized_key_span":
+    case "exact_anchor_text":
+    case "normalized_anchor_text":
       return "medium";
     case "partial_full_phrase":
-    case "partial_key_span":
+    case "partial_anchor_text":
     case "first_word_only":
       return "low";
     default:
@@ -308,7 +308,7 @@ function getStatusFromVerification(
 
   const isVerified =
     status === "found" ||
-    status === "found_key_span_only" ||
+    status === "found_anchor_text_only" ||
     status === "found_phrase_missed_value" ||
     isPartialMatch;
 
@@ -376,7 +376,7 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
 // | Status        | Indicator          | Color  | searchState.status values                    |
 // |---------------|--------------------| -------|----------------------------------------------|
 // | Pending       | Spinner            | Gray   | "pending", "loading", null/undefined         |
-// | Verified      | Checkmark (✓)      | Green  | "found", "found_key_span_only", etc.         |
+// | Verified      | Checkmark (✓)      | Green  | "found", "found_anchor_text_only", etc.         |
 // | Partial Match | Checkmark (✓)      | Amber  | "found_on_other_page", "partial_text_found"  |
 // | Not Found     | Warning triangle   | Red    | "not_found"                                  |
 //
@@ -439,10 +439,10 @@ function getKeySpanBoundingBox(verification: Verification | null): {
 } | null {
   if (!verification) return null;
 
-  // Prefer keySpanMatchDeepItems for multi-box spans
-  const boxes = verification.keySpanMatchDeepItems;
+  // Prefer anchorTextMatchDeepItems for multi-box spans
+  const boxes = verification.anchorTextMatchDeepItems;
   if (boxes && boxes.length > 0) {
-    // Calculate bounding box encompassing all keySpan boxes
+    // Calculate bounding box encompassing all anchorText boxes
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -479,10 +479,10 @@ function getKeySpanBoundingBox(verification: Verification | null): {
 
 /**
  * Displays a verification image in a scrollable container that initially
- * focuses on the keySpan position. Uses the keySpanMatchDeepItems or
+ * focuses on the anchorText position. Uses the anchorTextMatchDeepItems or
  * phraseMatchDeepItem coordinates to calculate the initial scroll position.
  */
-function KeySpanFocusedImage({
+function AnchorTextFocusedImage({
   verification,
   onImageClick,
   maxWidth = "min(70vw, 384px)",
@@ -659,12 +659,12 @@ function SearchedPhrasesInfo({
         searchPhrase: citation.fullPhrase,
         searchPhraseType: "full_phrase",
       });
-    } else if (citation.keySpan) {
+    } else if (citation.anchorText) {
       fallbackAttempts.push({
         method: "current_page",
         success: false,
-        searchPhrase: citation.keySpan.toString(),
-        searchPhraseType: "key_span",
+        searchPhrase: citation.anchorText.toString(),
+        searchPhraseType: "anchor_text",
       });
     }
     return fallbackAttempts;
@@ -755,10 +755,10 @@ function DefaultPopoverContent({
   const hasImage = verification?.verificationImageBase64;
   const { isMiss, isPartialMatch, isPending } = status;
 
-  // Check if we have keySpan position data for focused scrolling
-  const hasKeySpanPosition = !!(
+  // Check if we have anchorText position data for focused scrolling
+  const hasAnchorTextPosition = !!(
     verification &&
-    (verification.keySpanMatchDeepItems?.length ||
+    (verification.anchorTextMatchDeepItems?.length ||
       verification.phraseMatchDeepItem)
   );
 
@@ -769,8 +769,8 @@ function DefaultPopoverContent({
   // - Max dimensions: 70vw width, 50vh height to leave room for positioning
   // - Min dimensions: none - small images stay small
   //
-  // When keySpan position data is available, use KeySpanFocusedImage to
-  // initially scroll the image to show the keySpan area instead of the top-left.
+  // When anchorText position data is available, use AnchorTextFocusedImage to
+  // initially scroll the image to show the anchorText area instead of the top-left.
   //
   // React 19.2 Activity component is used to pre-render the image in "hidden" mode
   // before the user hovers, eliminating the empty popover flash when first displayed.
@@ -781,8 +781,8 @@ function DefaultPopoverContent({
           className="p-2"
           style={{ maxWidth: "100%", overflow: "hidden" }}
         >
-          {hasKeySpanPosition ? (
-            <KeySpanFocusedImage
+          {hasAnchorTextPosition ? (
+            <AnchorTextFocusedImage
               verification={verification}
               onImageClick={onImageClick}
             />
@@ -834,7 +834,7 @@ function DefaultPopoverContent({
 
   // Loading/pending state view
   if (isLoading || isPending) {
-    const searchingPhrase = citation.fullPhrase || citation.keySpan?.toString();
+    const searchingPhrase = citation.fullPhrase || citation.anchorText?.toString();
     return (
       <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px]">
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -865,7 +865,7 @@ function DefaultPopoverContent({
           <span className="inline-block relative top-[0.1em] mr-1.5 size-3 text-amber-500 dark:text-amber-400">
             <WarningIcon />
           </span>
-          Not found: {citation.keySpan || citation.fullPhrase}
+          Not found: {citation.anchorText || citation.fullPhrase}
         </span>
         <SearchedPhrasesInfo
           citation={citation}
@@ -942,7 +942,7 @@ function DiffDetails({
   const { isMiss, isPartialMatch } = status;
 
   const expectedText =
-    citation.fullPhrase || citation.keySpan?.toString() || "";
+    citation.fullPhrase || citation.anchorText?.toString() || "";
   const actualText = verification?.verifiedMatchSnippet || "";
 
   // Use the diff library for smart word-level diffing
@@ -980,7 +980,7 @@ function DiffDetails({
             mode="split"
             showMatchQuality={false}
             maxCollapsedLength={150}
-            keySpanExpected={citation.keySpan?.toString()}
+            anchorTextExpected={citation.anchorText?.toString()}
             status={searchStatus}
           />
         )}
@@ -1011,8 +1011,8 @@ function DiffDetails({
           mode="split"
           showMatchQuality={true}
           maxCollapsedLength={150}
-          keySpanExpected={citation.keySpan?.toString()}
-          keySpanFound={verification?.verifiedKeySpan ?? undefined}
+          anchorTextExpected={citation.anchorText?.toString()}
+          anchorTextFound={verification?.verifiedAnchorText ?? undefined}
           status={searchStatus}
           similarity={similarity}
         />
@@ -1162,7 +1162,7 @@ export const CitationComponent = forwardRef<
     const hasDefinitiveResult =
       verification?.verificationImageBase64 ||
       verification?.status === "found" ||
-      verification?.status === "found_key_span_only" ||
+      verification?.status === "found_anchor_text_only" ||
       verification?.status === "found_phrase_missed_value" ||
       verification?.status === "not_found" ||
       verification?.status === "partial_text_found" ||
@@ -1402,11 +1402,11 @@ export const CitationComponent = forwardRef<
       [eventHandlers, citation, citationKey, isMobile]
     );
 
-    // Early return for miss with fallback display (only when showing keySpan)
+    // Early return for miss with fallback display (only when showing anchorText)
     if (
       fallbackDisplay !== null &&
       fallbackDisplay !== undefined &&
-      resolvedContent === "keySpan" &&
+      resolvedContent === "anchorText" &&
       isMiss
     ) {
       return (
@@ -1449,7 +1449,7 @@ export const CitationComponent = forwardRef<
           status,
           citationKey,
           displayText,
-          isMergedDisplay: resolvedContent === "keySpan",
+          isMergedDisplay: resolvedContent === "anchorText",
         });
       }
 

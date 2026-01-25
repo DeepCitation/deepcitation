@@ -49,7 +49,7 @@ export type SourceType =
  *
  * Common fields (used by both types):
  * - `fullPhrase`: The full context/excerpt containing the cited information
- * - `keySpan`: The specific key phrase being cited (must be substring of fullPhrase)
+ * - `anchorText`: The specific key phrase being cited (must be substring of fullPhrase)
  * - `citationNumber`: Citation number for display (e.g., [1], [2])
  *
  * @example Document citation
@@ -60,7 +60,7 @@ export type SourceType =
  *   pageNumber: 5,
  *   lineIds: [12, 13],
  *   fullPhrase: "Revenue increased by 15% in Q4.",
- *   keySpan: "increased by 15%",
+ *   anchorText: "increased by 15%",
  *   citationNumber: 1,
  * };
  * ```
@@ -73,7 +73,7 @@ export type SourceType =
  *   domain: "example.com",
  *   title: "Q4 Financial Report",
  *   fullPhrase: "The TGU transitions require control, not brute strength.",
- *   keySpan: "require control, not brute strength",
+ *   anchorText: "require control, not brute strength",
  *   citationNumber: 1,
  * };
  * ```
@@ -94,7 +94,7 @@ export interface Citation {
   fullPhrase?: string | null;
 
   /** The specific key phrase being cited (should be substring of fullPhrase) */
-  keySpan?: string | null;
+  anchorText?: string | null;
 
   /** Citation number for display (e.g., [1], [2], [3]) */
   citationNumber?: number;
@@ -118,8 +118,8 @@ export interface Citation {
   /** Line IDs within the page */
   lineIds?: number[] | null;
 
-  /** Start page key for multi-page citations */
-  startPageKey?: string | null;
+  /** Start page ID for multi-page citations */
+  startPageId?: string | null;
 
   /** Selection box coordinates in the document */
   selection?: ScreenBox | null;

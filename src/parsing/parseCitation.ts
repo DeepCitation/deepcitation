@@ -73,8 +73,8 @@ export function getCitationStatus(
   const status = verification?.status;
 
   const isMiss = ["not_found"].includes(status || "");
-  
-  const isVerified =  ["found", "found_key_span_only", "found_phrase_missed_value"].includes(status || "");
+
+  const isVerified =  ["found", "found_anchor_text_only", "found_phrase_missed_value"].includes(status || "");
   const isPartialMatch = ["partial_text_found", "found_on_other_page", "found_on_other_line", "first_word_found"].includes(status || "");
 
   const isPending = ["pending", "loading", null, undefined].includes(status);
@@ -141,11 +141,11 @@ export const parseCitation = (
   let rawAttachmentId = extractAttribute(middleCite, ['attachment_id', 'attachmentId', 'file_id', 'fileId']);
   let attachmentId = rawAttachmentId?.length === 20 ? rawAttachmentId : mdAttachmentId || rawAttachmentId;
 
-  const startPageKeyRaw = extractAttribute(middleCite, ['start_page_key', 'startPageKey', 'start_page']);
+  const startPageIdRaw = extractAttribute(middleCite, ['start_page_id', 'startPageId', 'start_page_key', 'startPageKey', 'start_page']);
   let pageNumber: number | undefined;
   let pageIndex: number | undefined;
-  if (startPageKeyRaw) {
-    const pageMatch = startPageKeyRaw.match(/page[\_a-zA-Z]*(\d+)_index_(\d+)/);
+  if (startPageIdRaw) {
+    const pageMatch = startPageIdRaw.match(/page[\_a-zA-Z]*(\d+)_index_(\d+)/);
     if (pageMatch) {
       pageNumber = parseInt(pageMatch[1]);
       pageIndex = parseInt(pageMatch[2]);
@@ -154,7 +154,7 @@ export const parseCitation = (
 
   // Use helper to handle escaped quotes inside the phrase
   let fullPhrase = cleanAndUnescape(extractAttribute(middleCite, ['full_phrase', 'fullPhrase']));
-  let keySpan = cleanAndUnescape(extractAttribute(middleCite, ['key_span', 'keySpan']));
+  let anchorText = cleanAndUnescape(extractAttribute(middleCite, ['anchor_text', 'anchorText', 'key_span', 'keySpan']));
   let reasoning = cleanAndUnescape(extractAttribute(middleCite, ['reasoning']));
   let value = cleanAndUnescape(extractAttribute(middleCite, ['value']));
 
@@ -179,9 +179,9 @@ export const parseCitation = (
   const citation: Citation = {
     attachmentId: attachmentId,
     pageNumber,
-    startPageKey: `page_number_${pageNumber || 1}_index_${pageIndex || 0}`,
+    startPageId: `page_number_${pageNumber || 1}_index_${pageIndex || 0}`,
     fullPhrase,
-    keySpan: keySpan || value,
+    anchorText: anchorText || value,
     citationNumber,
     lineIds,
     beforeCite,
@@ -212,10 +212,10 @@ const parseJsonCitation = (
     return null;
   }
 
-  // Support both camelCase and snake_case property names
+  // Support both camelCase and snake_case property names (with backward compatibility)
   const fullPhrase = jsonCitation.fullPhrase ?? jsonCitation.full_phrase;
-  const startPageKey = jsonCitation.startPageKey ?? jsonCitation.start_page_key;
-  const keySpan = jsonCitation.keySpan ?? jsonCitation.key_span;
+  const startPageId = jsonCitation.startPageId ?? jsonCitation.start_page_id ?? jsonCitation.startPageKey ?? jsonCitation.start_page_key;
+  const anchorText = jsonCitation.anchorText ?? jsonCitation.anchor_text ?? jsonCitation.keySpan ?? jsonCitation.key_span;
   const rawLineIds = jsonCitation.lineIds ?? jsonCitation.line_ids;
   const attachmentId = jsonCitation.attachmentId ?? jsonCitation.attachment_id ?? jsonCitation.fileId ?? jsonCitation.file_id;
   const reasoning = jsonCitation.reasoning;
@@ -225,16 +225,16 @@ const parseJsonCitation = (
     return null;
   }
 
-  // Parse startPageKey format: "page_number_PAGE_index_INDEX" or simple "PAGE_INDEX"
+  // Parse startPageId format: "page_number_PAGE_index_INDEX" or simple "PAGE_INDEX"
   let pageNumber: number | undefined;
-  if (startPageKey) {
-    // Try full format first: page_number_5_index_2 or pageKey_5_index_2
-    const pageMatch = startPageKey.match(/page[_a-zA-Z]*(\d+)_index_(\d+)/i);
+  if (startPageId) {
+    // Try full format first: page_number_5_index_2 or pageId_5_index_2
+    const pageMatch = startPageId.match(/page[_a-zA-Z]*(\d+)_index_(\d+)/i);
     if (pageMatch) {
       pageNumber = parseInt(pageMatch[1], 10);
     } else {
       // Try simple n_m format: 5_4 (page 5, index 4)
-      const simpleMatch = startPageKey.match(/^(\d+)_(\d+)$/);
+      const simpleMatch = startPageId.match(/^(\d+)_(\d+)$/);
       if (simpleMatch) {
         pageNumber = parseInt(simpleMatch[1], 10);
       }
@@ -252,7 +252,7 @@ const parseJsonCitation = (
     fullPhrase,
     citationNumber,
     lineIds,
-    keySpan: keySpan || value,
+    anchorText: anchorText || value,
     reasoning,
   };
 
@@ -267,8 +267,12 @@ const hasCitationProperties = (item: any): boolean =>
   item !== null &&
   ("fullPhrase" in item ||
     "full_phrase" in item ||
+    "startPageId" in item ||
+    "start_page_id" in item ||
     "startPageKey" in item ||
     "start_page_key" in item ||
+    "anchorText" in item ||
+    "anchor_text" in item ||
     "keySpan" in item ||
     "key_span" in item ||
     "lineIds" in item ||

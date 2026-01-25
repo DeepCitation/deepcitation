@@ -93,7 +93,7 @@ function repairJson(jsonString: string): string {
  *   The company grew 45% [1].
  *
  *   <<<CITATION_DATA>>>
- *   [{"id": 1, "attachment_id": "abc", "full_phrase": "grew 45%", "key_span": "45%"}]
+ *   [{"id": 1, "attachment_id": "abc", "full_phrase": "grew 45%", "anchor_text": "45%"}]
  *   <<<END_CITATION_DATA>>>
  * `;
  *
@@ -196,15 +196,15 @@ export function deferredCitationToCitation(
   data: CitationData,
   citationNumber?: number
 ): Citation {
-  // Parse page number from page_key
+  // Parse page number from page_id
   let pageNumber: number | undefined;
-  let startPageKey: string | undefined;
-  const pageKey = data.page_key;
-  if (pageKey) {
-    const pageMatch = pageKey.match(/page[_a-zA-Z]*(\d+)_index_(\d+)/i);
+  let startPageId: string | undefined;
+  const pageId = data.page_id;
+  if (pageId) {
+    const pageMatch = pageId.match(/page[_a-zA-Z]*(\d+)_index_(\d+)/i);
     if (pageMatch) {
       pageNumber = parseInt(pageMatch[1], 10);
-      startPageKey = `page_number_${pageMatch[1]}_index_${pageMatch[2]}`;
+      startPageId = `page_number_${pageMatch[1]}_index_${pageMatch[2]}`;
     }
   }
 
@@ -225,9 +225,9 @@ export function deferredCitationToCitation(
   return {
     attachmentId: data.attachment_id,
     pageNumber,
-    startPageKey,
+    startPageId,
     fullPhrase: data.full_phrase,
-    keySpan: data.key_span,
+    anchorText: data.anchor_text,
     citationNumber: citationNumber ?? data.id,
     lineIds,
     reasoning: data.reasoning,
@@ -313,10 +313,10 @@ export function extractVisibleText(llmResponse: string): string {
  * replaceDeferredMarkers(text);
  * // Returns: "Revenue grew 45% in Q4."
  *
- * // Replace with key spans
+ * // Replace with anchor texts
  * replaceDeferredMarkers(text, {
- *   citationMap: new Map([[1, { key_span: "45%" }], [2, { key_span: "Q4" }]]),
- *   showKeySpan: true,
+ *   citationMap: new Map([[1, { anchor_text: "45%" }], [2, { anchor_text: "Q4" }]]),
+ *   showAnchorText: true,
  * });
  * // Returns: "Revenue grew 45% 45% in Q4 Q4."
  * ```
@@ -326,13 +326,13 @@ export function replaceDeferredMarkers(
   options?: {
     /** Map of citation IDs to their data */
     citationMap?: Map<number, CitationData>;
-    /** Whether to show the key span after the marker */
-    showKeySpan?: boolean;
+    /** Whether to show the anchor text after the marker */
+    showAnchorText?: boolean;
     /** Custom replacement function */
     replacer?: (id: number, data?: CitationData) => string;
   }
 ): string {
-  const { citationMap, showKeySpan, replacer } = options || {};
+  const { citationMap, showAnchorText, replacer } = options || {};
 
   // Match [N] patterns where N is one or more digits
   return text.replace(/\[(\d+)\]/g, (match, idStr) => {
@@ -344,9 +344,9 @@ export function replaceDeferredMarkers(
       return replacer(id, data);
     }
 
-    // Show key span if requested
-    if (showKeySpan && data?.key_span) {
-      return data.key_span;
+    // Show anchor text if requested
+    if (showAnchorText && data?.anchor_text) {
+      return data.anchor_text;
     }
 
     // Default: remove marker

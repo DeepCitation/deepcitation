@@ -140,7 +140,7 @@ export function CitationDrawerItemComponent({
     citation.domain ||
     extractDomain(citation.url) ||
     "Source";
-  const articleTitle = citation.title || citation.keySpan || citation.fullPhrase;
+  const articleTitle = citation.title || citation.anchorText || citation.fullPhrase;
   const snippet =
     citation.description ||
     verification?.actualContentSnippet ||

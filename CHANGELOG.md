@@ -30,14 +30,14 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - **`parseCitation()`** - Parse individual citation tags
 - **`normalizeCitation()`** - Normalize citation formats
 - **`replaceCitations()`** - Replace or remove citations from text with verification status support
-  - `leaveKeySpanBehind` option to keep descriptive text
+  - `leaveAnchorTextBehind` option to keep descriptive text
   - `showVerificationStatus` option for TUI status indicators (✓, ⚠, ✗, ◌)
 
 ### React Components
 
 #### CitationComponent
 - **5 Visual Variants**: `brackets` (default), `chip`, `text`, `superscript`, `minimal`
-- **3 Content Modes**: `keySpan`, `number`, `indicator`
+- **3 Content Modes**: `anchorText`, `number`, `indicator`
 - **Status Indicators**: Pending (spinner), Verified (green ✓), Partial (amber ✓), Not Found (red △)
 - **Interactive Popover**: Hover shows verification image, click expands to full-size
 - **Customizable Behavior**: `behaviorConfig` prop for custom click/hover handlers
@@ -145,7 +145,7 @@ This release marks the first comprehensive public release of DeepCitation, conso
 ## [1.1.17] - 2025-01-07
 
 ### Changed
-- Renamed `displayKeySpan`/`displayBrackets` to `showKeySpan`/`showBrackets`
+- Renamed `displayAnchorText`/`displayBrackets` to `showAnchorText`/`showBrackets`
 
 ## [1.1.16] - 2025-01-06
 
@@ -162,7 +162,7 @@ This release marks the first comprehensive public release of DeepCitation, conso
 ## [1.1.14] - 2025-01-04
 
 ### Added
-- KeySpan support for descriptive citation text
+- AnchorText support for descriptive citation text
 
 ## [1.1.13] - 2025-01-03
 
@@ -188,7 +188,7 @@ This release marks the first comprehensive public release of DeepCitation, conso
 ## [1.1.9] - 2024-12-30
 
 ### Added
-- KeySpan feature for citation display
+- AnchorText feature for citation display
 
 ## [1.1.8] - 2024-12-29
 

@@ -56,7 +56,7 @@ Querying gpt-5-mini...
 
 Response:
 --------------------------------------------------
-TypeScript was first made public in October 2012 <cite attachment_id='abc123xyz' full_phrase='TypeScript was first made public in October 2012' key_span='October 2012' line_ids='42'/>
+TypeScript was first made public in October 2012 <cite attachment_id='abc123xyz' full_phrase='TypeScript was first made public in October 2012' anchor_text='October 2012' line_ids='42'/>
 --------------------------------------------------
 
 Verifying citations...

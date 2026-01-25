@@ -40,6 +40,6 @@ describe("index exports", () => {
     expect(CITATION_PROMPT).toContain(CITATION_DATA_START_DELIMITER);
     expect(CITATION_PROMPT).toContain("attachment_id");
     expect(CITATION_PROMPT).toContain("full_phrase");
-    expect(CITATION_PROMPT).toContain("key_span");
+    expect(CITATION_PROMPT).toContain("anchor_text");
   });
 });
