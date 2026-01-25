@@ -1979,10 +1979,11 @@ Third: <cite attachment_id='file3' full_phrase='phrase three' key_span='three' s
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBe(3);
-      const keySpans = Object.values(result).map((c) => c.keySpan);
-      expect(keySpans).toContain("one");
-      expect(keySpans).toContain("two");
-      expect(keySpans).toContain("three");
+      // Output uses new naming (anchorText)
+      const anchorTexts = Object.values(result).map((c) => c.anchorText);
+      expect(anchorTexts).toContain("one");
+      expect(anchorTexts).toContain("two");
+      expect(anchorTexts).toContain("three");
     });
 
     it("handles citations with and without escaped underscores", () => {
@@ -2128,6 +2129,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
 
     it("extracts citation matching CITATION_JSON_OUTPUT_FORMAT schema", () => {
       // Exact structure matching CITATION_JSON_OUTPUT_FORMAT
+      // Input uses old naming (keySpan, startPageKey) for backward compatibility testing
       const input = {
         attachmentId: "file123456789012345",
         reasoning: "This citation directly supports the claim about revenue",
@@ -2147,12 +2149,14 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       expect(citation.fullPhrase).toBe(
         "Revenue increased 45% year-over-year to $2.3 billion"
       );
-      expect(citation.keySpan).toBe("increased 45%");
+      // Output uses new naming (anchorText)
+      expect(citation.anchorText).toBe("increased 45%");
       expect(citation.pageNumber).toBe(2);
       expect(citation.lineIds).toEqual([12, 13, 14]);
     });
 
     it("extracts citation from object with single 'citation' property", () => {
+      // Input uses old naming (keySpan, startPageKey) for backward compatibility testing
       const input = {
         response: "The company showed strong growth in Q4.",
         citation: {
@@ -2169,11 +2173,13 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("Q4 earnings exceeded expectations by 20%");
-      expect(citation.keySpan).toBe("exceeded expectations");
+      // Output uses new naming (anchorText)
+      expect(citation.anchorText).toBe("exceeded expectations");
       expect(citation.reasoning).toBe("Supports the growth claim");
     });
 
     it("extracts citations from object with 'citations' array property", () => {
+      // Input uses old naming (keySpan, startPageKey) for backward compatibility testing
       const input = {
         answer: "Multiple data points support this conclusion.",
         citations: [
@@ -2199,8 +2205,9 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
 
       expect(Object.keys(result)).toHaveLength(2);
       const citations = Object.values(result);
-      expect(citations.map((c) => c.keySpan)).toContain("35%");
-      expect(citations.map((c) => c.keySpan)).toContain("15%");
+      // Output uses new naming (anchorText)
+      expect(citations.map((c) => c.anchorText)).toContain("35%");
+      expect(citations.map((c) => c.anchorText)).toContain("15%");
     });
 
     it("extracts single citation from 'citations' property (non-array)", () => {
@@ -2322,6 +2329,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
     });
 
     it("extracts citations with snake_case format matching CITATION_JSON_OUTPUT_FORMAT", () => {
+      // Input uses old naming (key_span, start_page_key) for backward compatibility testing
       const input = {
         citation: {
           attachment_id: "snake123",
@@ -2338,13 +2346,15 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       const citation = Object.values(result)[0];
       expect(citation.attachmentId).toBe("snake123");
       expect(citation.fullPhrase).toBe("Snake case formatted citation");
-      expect(citation.keySpan).toBe("Snake case");
+      // Output uses new naming (anchorText)
+      expect(citation.anchorText).toBe("Snake case");
       expect(citation.pageNumber).toBe(4);
       expect(citation.lineIds).toEqual([8, 9]);
     });
 
     it("handles LLM response with structured output containing citations", () => {
       // Simulates a structured output response from GPT/Claude with JSON mode
+      // Input uses old naming (keySpan, startPageKey) for backward compatibility testing
       const input = {
         type: "analysis",
         content: "Based on the document analysis...",
@@ -2364,7 +2374,8 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.keySpan).toBe("$5.2 million");
+      // Output uses new naming (anchorText)
+      expect(citation.anchorText).toBe("$5.2 million");
       expect(citation.lineIds).toEqual([25, 26, 27]);
     });
 

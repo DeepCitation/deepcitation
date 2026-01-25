@@ -49,13 +49,13 @@ const parseCiteAttributes = (
     const normalizedKey =
       key === "fileid" || key === "file_id" || key === "attachmentid"
         ? "attachment_id"
-        : key === "anchortext" || key === "keyspan"
+        : key === "anchortext" || key === "anchor_text" || key === "keyspan" || key === "key_span"
           ? "anchor_text"
           : key === "fullphrase"
             ? "full_phrase"
             : key === "lineids"
               ? "line_ids"
-              : key === "startpageid" || key === "start_pageid" || key === "startpagekey" || key === "start_pagekey"
+              : key === "startpageid" || key === "start_pageid" || key === "start_page_id" || key === "startpagekey" || key === "start_pagekey" || key === "start_page_key"
                 ? "start_page_id"
                 : key;
 
