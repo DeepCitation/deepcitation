@@ -31,7 +31,7 @@ describe("CitationComponent source variant", () => {
 
   const baseCitation: Citation = {
     citationNumber: 1,
-    keySpan: "test citation",
+    anchorText: "test citation",
     fullPhrase: "This is a test citation phrase",
     siteName: "Delaware Corporations",
     domain: "delaware.gov",
@@ -129,10 +129,10 @@ describe("CitationComponent source variant", () => {
       expect(getByText("delaware.gov")).toBeInTheDocument();
     });
 
-    it("falls back to keySpan when no source fields are provided", () => {
+    it("falls back to anchorText when no source fields are provided", () => {
       const citationNoSource: Citation = {
         citationNumber: 1,
-        keySpan: "Fallback Text",
+        anchorText: "Fallback Text",
       };
 
       const { getByText } = render(
@@ -215,11 +215,11 @@ describe("CitationComponent source variant", () => {
           citation={baseCitation}
           verification={verification}
           variant="source"
-          content="keySpan"
+          content="anchorText"
         />
       );
 
-      // Should show keySpan when explicitly set
+      // Should show anchorText when explicitly set
       expect(getByText("test citation")).toBeInTheDocument();
     });
   });
@@ -236,7 +236,7 @@ describe("groupCitationsBySource", () => {
       citationNumber: parseInt(key),
       siteName,
       domain,
-      keySpan: `Citation ${key}`,
+      anchorText: `Citation ${key}`,
     },
     verification: null,
   });

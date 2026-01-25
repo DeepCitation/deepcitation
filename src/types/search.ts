@@ -4,7 +4,7 @@ export type SearchStatus =
   | "not_found"
   | "partial_text_found"
   | "found"
-  | "found_key_span_only"
+  | "found_anchor_text_only"
   | "found_phrase_missed_value"
   | "found_on_other_page"
   | "found_on_other_line"
@@ -16,7 +16,7 @@ export type SearchMethod =
   | "exact_line_match"
   | "line_with_buffer"
   | "current_page"
-  | "keyspan_fallback"
+  | "anchor_text_fallback"
   | "adjacent_pages"
   | "expanded_window"
   | "regex_search"
@@ -24,28 +24,28 @@ export type SearchMethod =
 
 /**
  * Indicates which variation of the citation was matched.
- * Trust decreases as we fall back from fullPhrase to keySpan to partial matches.
+ * Trust decreases as we fall back from fullPhrase to anchorText to partial matches.
  *
  * HIGH TRUST (green indicator):
  * - exact_full_phrase: Exact match on the full phrase
  * - normalized_full_phrase: Full phrase matched with whitespace/case normalization
  *
  * MEDIUM TRUST (green indicator, shows context in popover):
- * - exact_key_span: keySpan matched exactly, but fullPhrase was not found
- * - normalized_key_span: keySpan matched with normalization
+ * - exact_anchor_text: anchorText matched exactly, but fullPhrase was not found
+ * - normalized_anchor_text: anchorText matched with normalization
  *
  * LOW TRUST (amber indicator):
  * - partial_full_phrase: Only part of fullPhrase matched (tables, columns, line breaks)
- * - partial_key_span: Only part of keySpan matched
+ * - partial_anchor_text: Only part of anchorText matched
  * - first_word_only: Only first word matched (lowest trust)
  */
 export type MatchedVariation =
   | "exact_full_phrase"
   | "normalized_full_phrase"
-  | "exact_key_span"
-  | "normalized_key_span"
+  | "exact_anchor_text"
+  | "normalized_anchor_text"
   | "partial_full_phrase"
-  | "partial_key_span"
+  | "partial_anchor_text"
   | "first_word_only";
 
 export interface SearchAttempt {
@@ -58,8 +58,8 @@ export interface SearchAttempt {
   searchPhrase: string;
   /** Additional variations tried (e.g., ["$4.89", "4.89"]) */
   searchVariations?: string[];
-  /** What searchPhrase contains: "full_phrase" or "key_span" */
-  searchPhraseType?: "full_phrase" | "key_span";
+  /** What searchPhrase contains: "full_phrase" or "anchor_text" */
+  searchPhraseType?: "full_phrase" | "anchor_text";
 
   // Where it was searched
   pageSearched?: number;

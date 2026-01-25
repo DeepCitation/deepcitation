@@ -9,7 +9,7 @@ import type { Verification } from "../../types/verification";
 
 const baseCitation: Citation = {
   citationNumber: 42,
-  keySpan: "25% revenue growth",
+  anchorText: "25% revenue growth",
   fullPhrase: "The company reported 25% revenue growth in Q4",
   pageNumber: 5,
 };
@@ -55,7 +55,7 @@ test.describe("CitationComponent - Brackets Variant", () => {
 
     await expect(citation).toBeVisible();
     await expect(citation).toHaveClass(/dc-citation--brackets/);
-    // Should show citation number (42) not keySpan
+    // Should show citation number (42) not anchorText
     await expect(citation).toContainText("[42");
     await expect(citation).toContainText("]");
   });
@@ -144,7 +144,7 @@ test.describe("CitationComponent - Numeric Variant", () => {
 
     await expect(citation).toBeVisible();
     await expect(citation).toHaveClass(/dc-citation--numeric/);
-    // Should show number 42, not keySpan
+    // Should show number 42, not anchorText
     await expect(citation).toContainText("42");
     // Should NOT have brackets
     await expect(citation).not.toContainText("[");
@@ -215,13 +215,13 @@ test.describe("CitationComponent - Numeric Variant", () => {
 // =============================================================================
 
 test.describe("CitationComponent - Text Variant", () => {
-  test("renders keySpan without special styling", async ({ mount, page }) => {
+  test("renders anchorText without special styling", async ({ mount, page }) => {
     await mount(<CitationComponent citation={baseCitation} variant="text" />);
     const citation = page.locator(".dc-citation");
 
     await expect(citation).toBeVisible();
     await expect(citation).toHaveClass(/dc-citation--text/);
-    // Should show keySpan
+    // Should show anchorText
     await expect(citation).toContainText("25% revenue growth");
     // Should NOT have brackets
     await expect(citation).not.toContainText("[");
@@ -248,7 +248,7 @@ test.describe("CitationComponent - Text Variant", () => {
     await expect(citation.locator(".dc-indicator--verified")).toBeVisible();
   });
 
-  test("falls back to citation number when no keySpan", async ({
+  test("falls back to citation number when no anchorText", async ({
     mount,
     page,
   }) => {
@@ -257,7 +257,7 @@ test.describe("CitationComponent - Text Variant", () => {
     );
     const citation = page.locator(".dc-citation");
 
-    // Should fall back to citation number since no keySpan
+    // Should fall back to citation number since no anchorText
     await expect(citation).toContainText("7");
   });
 });
@@ -267,13 +267,13 @@ test.describe("CitationComponent - Text Variant", () => {
 // =============================================================================
 
 test.describe("CitationComponent - Minimal Variant", () => {
-  test("renders keySpan without brackets", async ({ mount, page }) => {
+  test("renders anchorText without brackets", async ({ mount, page }) => {
     await mount(<CitationComponent citation={baseCitation} variant="minimal" />);
     const citation = page.locator(".dc-citation");
 
     await expect(citation).toBeVisible();
     await expect(citation).toHaveClass(/dc-citation--minimal/);
-    // Should show keySpan
+    // Should show anchorText
     await expect(citation).toContainText("25% revenue growth");
     // No brackets
     await expect(citation).not.toContainText("[");
@@ -324,7 +324,7 @@ test.describe("CitationComponent - Indicator Variant", () => {
 
     await expect(citation).toBeVisible();
     await expect(citation).toHaveClass(/dc-citation--indicator/);
-    // Should NOT show citation number or keySpan
+    // Should NOT show citation number or anchorText
     await expect(citation).not.toContainText("42");
     await expect(citation).not.toContainText("25% revenue growth");
     // Should show indicator
@@ -391,11 +391,11 @@ test.describe("CitationComponent - All Variants Visual", () => {
           />
         </div>
         <div>
-          <strong>Brackets with keySpan:</strong>{" "}
+          <strong>Brackets with anchorText:</strong>{" "}
           <CitationComponent
             citation={baseCitation}
             variant="brackets"
-            content="keySpan"
+            content="anchorText"
             verification={verifiedVerification}
           />
         </div>

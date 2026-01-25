@@ -9,7 +9,7 @@ import type { Verification } from "../../types/verification";
 
 const baseCitation: Citation = {
   citationNumber: 1,
-  keySpan: "Functional status",
+  anchorText: "Functional status",
   fullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   pageNumber: 5,
 };

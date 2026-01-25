@@ -414,9 +414,9 @@ claims can be verified against the provided attachments.
 <cite
   attachment_id='SOURCE_ID'
   reasoning='Why this source supports the claim'
-  key_span='1-3 key words from quote'
+  anchor_text='1-3 key words from quote'
   full_phrase='Exact verbatim quote from source'
-  start_page_key='page_number_N_index_I'
+  start_page_id='page_number_N_index_I'
   line_ids='X-Y'
 />
 
@@ -424,9 +424,9 @@ claims can be verified against the provided attachments.
 
 - **attachment_id**: Exact ID from <attachment_id='...'> in source
 - **reasoning**: 1 sentence explaining the connection
-- **key_span**: 1-3 words that directly support the claim
+- **anchor_text**: 1-3 words that directly support the claim
 - **full_phrase**: VERBATIM from source. Escape: \' for quotes, \n for newlines
-- **start_page_key**: Format page_number_N_index_I from page markers
+- **start_page_id**: Format page_number_N_index_I from page markers
 - **line_ids**: Range '5-8' or single '12'
 
 ## What to Cite
@@ -489,7 +489,7 @@ Uses timestamps instead of page/line:
 <cite
   attachment_id='video123'
   reasoning='Speaker states quarterly revenue'
-  key_span='45% growth'
+  anchor_text='45% growth'
   full_phrase='We achieved 45% growth this quarter'
   timestamps='00:05:23.100-00:05:28.500'
 />

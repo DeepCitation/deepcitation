@@ -207,14 +207,14 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 // Default: brackets variant with number content → [1✓]
 <CitationComponent citation={citation} verification={verification} />
 
-// Chip with keySpan (the default content for chip) → pill badge with "Revenue Growth✓"
+// Chip with anchorText (the default content for chip) → pill badge with "Revenue Growth✓"
 <CitationComponent citation={citation} verification={verification} variant="chip" />
 
 // Chip with number → pill badge with "1✓"
 <CitationComponent citation={citation} verification={verification} variant="chip" content="number" />
 
-// Brackets with keySpan → [Revenue Growth✓]
-<CitationComponent citation={citation} verification={verification} variant="brackets" content="keySpan" />
+// Brackets with anchorText → [Revenue Growth✓]
+<CitationComponent citation={citation} verification={verification} variant="brackets" content="anchorText" />
 
 // Superscript footnote style → ¹✓
 <CitationComponent citation={citation} verification={verification} variant="superscript" />
@@ -237,14 +237,14 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 | Content       | Output Example     | Description                                    |
 |---------------|--------------------|------------------------------------------------|
-| `"keySpan"`   | `Revenue Growth`   | Descriptive text from citation                 |
+| `"anchorText"`   | `Revenue Growth`   | Descriptive text from citation                 |
 | `"number"`    | `1`                | Citation number (defaults to "1" if missing)   |
 | `"indicator"` | `✓`                | Only the status icon, no text                  |
 
 **Default content per variant:**
-- `chip` → `keySpan`
-- `brackets` → `keySpan`
-- `text` → `keySpan`
+- `chip` → `anchorText`
+- `brackets` → `anchorText`
+- `text` → `anchorText`
 - `superscript` → `number`
 - `minimal` → `number`
 
@@ -255,7 +255,7 @@ The component displays different indicators based on `verification.status`:
 | Status        | Indicator          | Color  | `status` values                              |
 |---------------|--------------------| -------|----------------------------------------------|
 | **Pending**   | Spinner ◌          | Gray   | `"pending"`, `"loading"`, or `null`/`undefined`          |
-| **Verified**  | Checkmark ✓        | Green  | `"found"`, `"found_key_span_only"`, `"found_phrase_missed_value"` |
+| **Verified**  | Checkmark ✓        | Green  | `"found"`, `"found_anchor_text_only"`, `"found_phrase_missed_value"` |
 | **Partial**   | Checkmark ✓        | Amber  | `"found_on_other_page"`, `"found_on_other_line"`, `"partial_text_found"`, `"first_word_found"` |
 | **Not Found** | Warning △          | Red    | `"not_found"`                                            |
 
@@ -381,12 +381,12 @@ const docCitation: Citation = {
   pageNumber: 5,
   lineIds: [12, 13],
   fullPhrase: "Revenue increased by 15% in Q4.",
-  keySpan: "increased by 15%",
+  anchorText: "increased by 15%",
   citationNumber: 1,
 };
 
 // URL citation (type: "url")
-// Note: keySpan should be a substring of fullPhrase
+// Note: anchorText should be a substring of fullPhrase
 const urlCitation: Citation = {
   type: "url",
   url: "https://www.fitandwell.com/features/kettlebell-moves",
@@ -396,7 +396,7 @@ const urlCitation: Citation = {
   description: "Targets Shoulders, triceps, upper back, core...",
   faviconUrl: "https://www.fitandwell.com/favicon.ico",
   fullPhrase: "The TGU transitions and Halos require control, not brute strength.",
-  keySpan: "require control, not brute strength",
+  anchorText: "require control, not brute strength",
   citationNumber: 1,
 };
 
@@ -413,7 +413,7 @@ const urlCitation: Citation = {
 
 **Common fields (both types):**
 - `fullPhrase` - The full context/excerpt containing the cited information
-- `keySpan` - The specific key phrase (must be substring of fullPhrase)
+- `anchorText` - The specific key phrase (must be substring of fullPhrase)
 - `citationNumber` - Citation number for display
 - `reasoning` - Why this citation was included
 

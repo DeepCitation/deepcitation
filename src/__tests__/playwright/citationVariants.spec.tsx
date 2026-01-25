@@ -17,7 +17,7 @@ import type { Verification } from "../../types/verification";
 const baseCitation: Citation = {
   citationNumber: 1,
   fullPhrase: "This is a test citation",
-  keySpan: "Test Value",
+  anchorText: "Test Value",
   pageNumber: 5,
 };
 
@@ -126,7 +126,7 @@ test.describe("ChipCitation", () => {
     await expect(chip.locator("text=📄")).toBeVisible();
   });
 
-  test("renders keySpan text by default", async ({ mount, page }) => {
+  test("renders anchorText text by default", async ({ mount, page }) => {
     await mount(<ChipCitation citation={baseCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
@@ -311,11 +311,11 @@ test.describe("InlineCitation", () => {
     await expect(inline).toHaveClass(/border-dashed/);
   });
 
-  test("renders keySpan text by default", async ({ mount, page }) => {
+  test("renders anchorText text by default", async ({ mount, page }) => {
     await mount(<InlineCitation citation={baseCitation} />);
     const inline = page.locator('[data-variant="inline"]');
 
-    // InlineCitation shows keySpan by default
+    // InlineCitation shows anchorText by default
     await expect(inline).toContainText("Test Value");
   });
 

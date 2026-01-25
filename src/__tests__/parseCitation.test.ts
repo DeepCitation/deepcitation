@@ -12,7 +12,7 @@ describe("getCitationStatus", () => {
   it("marks verified citations", () => {
     const found: Verification = {
       citation: {
-        keySpan: "term",
+        anchorText: "term",
         fullPhrase: "term",
         attachmentId: "file",
       },
@@ -28,7 +28,7 @@ describe("getCitationStatus", () => {
   it("marks misses and pending states", () => {
     const miss: Verification = {
       citation: {
-        keySpan: "term",
+        anchorText: "term",
         fullPhrase: "term",
         attachmentId: "file",
       },
@@ -48,7 +48,7 @@ describe("getCitationStatus", () => {
     it("treats found_on_other_page as partial match but not verified", () => {
       const verification: Verification = {
         citation: {
-          keySpan: "term",
+          anchorText: "term",
           fullPhrase: "term",
           attachmentId: "file",
           pageNumber: 4,
@@ -67,7 +67,7 @@ describe("getCitationStatus", () => {
     it("treats found_on_other_line as partial match but not verified", () => {
       const verification: Verification = {
         citation: {
-          keySpan: "term",
+          anchorText: "term",
           fullPhrase: "term",
           attachmentId: "file",
           pageNumber: 3,
@@ -86,7 +86,7 @@ describe("getCitationStatus", () => {
     it("treats first_word_found as partial match but not verified", () => {
       const verification: Verification = {
         citation: {
-          keySpan: "term",
+          anchorText: "term",
           fullPhrase: "term",
           attachmentId: "file",
           pageNumber: 1,
@@ -103,7 +103,7 @@ describe("getCitationStatus", () => {
     it("treats partial_text_found as partial match but not verified", () => {
       const verification: Verification = {
         citation: {
-          keySpan: "term",
+          anchorText: "term",
           fullPhrase: "term",
           attachmentId: "file",
         },
@@ -116,15 +116,15 @@ describe("getCitationStatus", () => {
       expect(status.isVerified).toBe(false);
     });
 
-    it("treats found_key_span_only as verified but not partial", () => {
+    it("treats found_anchor_text_only as verified but not partial", () => {
       const verification: Verification = {
         citation: {
-          keySpan: "term",
+          anchorText: "term",
           fullPhrase: "term",
           attachmentId: "file",
         },
         verifiedPageNumber: 2,
-        status: "found_key_span_only",
+        status: "found_anchor_text_only",
         verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
@@ -135,7 +135,7 @@ describe("getCitationStatus", () => {
     it("treats found_phrase_missed_value as verified but not partial", () => {
       const verification: Verification = {
         citation: {
-          keySpan: "term",
+          anchorText: "term",
           fullPhrase: "term",
           attachmentId: "file",
         },
@@ -151,7 +151,7 @@ describe("getCitationStatus", () => {
     it("treats loading status as pending", () => {
       const verification: Verification = {
         citation: {
-          keySpan: "term",
+          anchorText: "term",
           fullPhrase: "term",
           attachmentId: "file",
         },
@@ -167,7 +167,7 @@ describe("getCitationStatus", () => {
     it("treats pending status as pending", () => {
       const verification: Verification = {
         citation: {
-          keySpan: "term",
+          anchorText: "term",
           fullPhrase: "term",
           attachmentId: "file",
           pageNumber: 2,
@@ -184,7 +184,7 @@ describe("getCitationStatus", () => {
     it("treats not_found as miss but not verified", () => {
       const verification: Verification = {
         citation: {
-          keySpan: "term",
+          anchorText: "term",
           fullPhrase: "term",
           attachmentId: "file",
         },
@@ -201,7 +201,7 @@ describe("getCitationStatus", () => {
     it("treats null status as pending", () => {
       const verification: Verification = {
         citation: {
-          keySpan: "term",
+          anchorText: "term",
           fullPhrase: "term",
           attachmentId: "file",
           pageNumber: 2,
@@ -225,7 +225,11 @@ describe("getCitationStatus", () => {
 });
 
 describe("parseCitation", () => {
-  it("parses document citations with optional values", () => {
+  // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+  // The parser accepts both old and new names but outputs the new names (anchorText, startPageId).
+
+  it("parses document citations with optional values (backward compat: key_span -> anchorText)", () => {
+    // Input uses old naming: key_span, start_page_key
     const fragment =
       "Before <cite attachment_id='short' start_page_key='page_number_5_index_0' full_phrase='Hello\\'s world' key_span='world' line_ids='3,1' value='USD 12' /> after";
     const parsed = parseCitation(fragment, "override-attachment");
@@ -236,11 +240,13 @@ describe("parseCitation", () => {
     expect(citation.pageNumber).toBe(5);
     expect(citation.attachmentId).toBe("override-attachment");
     expect(citation.fullPhrase).toBe("Hello's world");
-    expect(citation.keySpan).toBe("world");
+    // Output uses new naming: anchorText
+    expect(citation.anchorText).toBe("world");
     expect(citation.lineIds).toEqual([1, 3]);
   });
 
-  it("parses key_span attribute correctly", () => {
+  it("parses anchor_text attribute correctly (backward compat: key_span)", () => {
+    // Input uses old naming: key_span
     const fragment =
       "<cite attachment_id='file123456789012345' start_page_key='page_number_2_index_0' full_phrase='The quick brown fox jumps over the lazy dog' key_span='quick brown fox' line_ids='1,2' />";
     const parsed = parseCitation(fragment);
@@ -249,17 +255,20 @@ describe("parseCitation", () => {
     expect(citation.fullPhrase).toBe(
       "The quick brown fox jumps over the lazy dog"
     );
-    expect(citation.keySpan).toBe("quick brown fox");
+    // Output uses new naming: anchorText
+    expect(citation.anchorText).toBe("quick brown fox");
   });
 
-  it("parses key_span with special characters", () => {
+  it("parses anchor_text with special characters (backward compat: key_span)", () => {
+    // Input uses old naming: key_span
     const fragment =
       "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='The total is $500 USD' key_span='$500 USD' line_ids='1' />";
     const parsed = parseCitation(fragment);
     const { citation } = parsed;
 
     expect(citation.fullPhrase).toBe("The total is $500 USD");
-    expect(citation.keySpan).toBe("$500 USD");
+    // Output uses new naming: anchorText
+    expect(citation.anchorText).toBe("$500 USD");
   });
 
   it("parses AV citations with timestamps", () => {
@@ -358,27 +367,32 @@ describe("parseCitation", () => {
   });
 
   describe("value vs reasoning precedence", () => {
-    it("parses value attribute when present", () => {
+    it("parses value attribute when present (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span
       const fragment =
         "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1' value='$100' />";
       const parsed = parseCitation(fragment);
-      expect(parsed.citation.keySpan).toBe("phrase");
+      // Output uses new naming: anchorText
+      expect(parsed.citation.anchorText).toBe("phrase");
       expect(parsed.citation.reasoning).toBeUndefined();
     });
 
-    it("parses reasoning attribute when present", () => {
+    it("parses reasoning attribute when present (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span
       const fragment =
         "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1' reasoning='This is because...' />";
       const parsed = parseCitation(fragment);
       expect(parsed.citation.reasoning).toBe("This is because...");
-      expect(parsed.citation.keySpan).toBe("phrase");
+      // Output uses new naming: anchorText
+      expect(parsed.citation.anchorText).toBe("phrase");
     });
 
     it("parses AV citation with value attribute", () => {
       const fragment =
         "<cite attachment_id='av12345678901234567' full_phrase='audio' timestamps='00:01-00:02' value='transcript' />";
       const parsed = parseCitation(fragment);
-      expect(parsed.citation.keySpan).toBe("transcript");
+      // Output uses new naming: anchorText
+      expect(parsed.citation.anchorText).toBe("transcript");
       expect(parsed.citation.reasoning).toBeUndefined();
     });
 
@@ -387,7 +401,7 @@ describe("parseCitation", () => {
         "<cite attachment_id='av12345678901234567' full_phrase='audio' timestamps='00:01-00:02' reasoning='Speaker said this' />";
       const parsed = parseCitation(fragment);
       expect(parsed.citation.reasoning).toBe("Speaker said this");
-      expect(parsed.citation.keySpan).toBeUndefined();
+      expect(parsed.citation.anchorText).toBeUndefined();
     });
   });
 
@@ -495,7 +509,11 @@ describe("getAllCitationsFromLlmOutput", () => {
   });
 
   describe("XML citation extraction from strings", () => {
-    it("extracts single XML citation from string", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+    // The parser accepts both old and new names but outputs the new names (anchorText, startPageId).
+
+    it("extracts single XML citation from string (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input =
         "Here is text <cite attachment_id='file123456789012345' start_page_key='page_number_2_index_0' full_phrase='important text' key_span='important' line_ids='1,2' /> more text";
       const result = getAllCitationsFromLlmOutput(input);
@@ -503,12 +521,14 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("important text");
-      expect(citation.keySpan).toBe("important");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("important");
       expect(citation.pageNumber).toBe(2);
       expect(citation.lineIds).toEqual([1, 2]);
     });
 
-    it("extracts multiple XML citations from string", () => {
+    it("extracts multiple XML citations from string (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `
         First citation <cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='first phrase' key_span='first' line_ids='1' />
         Second citation <cite attachment_id='file123456789012345' start_page_key='page_number_3_index_0' full_phrase='second phrase' key_span='second' line_ids='5' />
@@ -524,7 +544,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(phrases).toContain("third phrase");
     });
 
-    it("extracts XML citation with value attribute", () => {
+    it("extracts XML citation with value attribute (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span
       const input =
         "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='price line' key_span='price' line_ids='1' value='$100.00' />";
       const result = getAllCitationsFromLlmOutput(input);
@@ -532,7 +553,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("price line");
-      expect(citation.keySpan).toBe("price");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("price");
     });
 
     it("extracts AV citation with timestamps", () => {
@@ -551,7 +573,8 @@ describe("getAllCitationsFromLlmOutput", () => {
   });
 
   describe("JSON citation extraction", () => {
-    it("extracts citation from single JSON object with fullPhrase", () => {
+    it("extracts citation from single JSON object with fullPhrase (backward compat: startPageKey -> startPageId)", () => {
+      // Input uses old naming: startPageKey
       const input: Citation = {
         fullPhrase: "test phrase",
         attachmentId: "file123456789012345",
@@ -641,8 +664,12 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
   });
 
-  describe("JSON citation with startPageKey parsing", () => {
+  describe("JSON citation with startPageId parsing (backward compat: startPageKey)", () => {
+    // NOTE: These tests use old field name (startPageKey) to verify backward compatibility.
+    // The parser accepts both old (startPageKey) and new (startPageId) names.
+
     it("parses page number from page_number_X_index_Y format", () => {
+      // Input uses old naming: startPageKey
       const input: Citation = {
         fullPhrase: "test",
         startPageKey: "page_number_5_index_2",
@@ -653,6 +680,7 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("parses page number from pageKey_X_index_Y format", () => {
+      // Input uses old naming: startPageKey
       const input: Citation = {
         fullPhrase: "test",
         startPageKey: "pageKey_10_index_0",
@@ -662,7 +690,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.pageNumber).toBe(10);
     });
 
-    it("handles missing startPageKey gracefully", () => {
+    it("handles missing startPageId gracefully", () => {
       const input: Citation = {
         fullPhrase: "test without page",
       };
@@ -672,6 +700,7 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("parses page number from n_m format (e.g., '5_4' for page 5, index 4)", () => {
+      // Input uses old naming: startPageKey
       const input: Citation = {
         fullPhrase: "test",
         startPageKey: "5_4",
@@ -833,13 +862,13 @@ describe("getAllCitationsFromLlmOutput", () => {
       const input: Citation = {
         fullPhrase: "test phrase",
         attachmentId: "f1",
-        keySpan: "$500",
+        anchorText: "$500",
         reasoning: "This is the reasoning",
       };
       const result = getAllCitationsFromLlmOutput(input);
       const citation = Object.values(result)[0];
 
-      expect(citation.keySpan).toBe("$500");
+      expect(citation.anchorText).toBe("$500");
       expect(citation.reasoning).toBe("This is the reasoning");
     });
 
@@ -860,7 +889,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(Object.keys(result)).toHaveLength(1);
     });
 
-    it("detects object with startPageKey as citation format", () => {
+    it("detects object with startPageId as citation format (backward compat: startPageKey)", () => {
+      // Input uses old naming: startPageKey
       const input = {
         startPageKey: "page_number_1_index_0",
         fullPhrase: "test",
@@ -891,7 +921,10 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
   });
 
-  describe("snake_case JSON citation support", () => {
+  describe("snake_case JSON citation support (backward compat: start_page_key -> startPageId, anchor_text)", () => {
+    // NOTE: These tests use old snake_case names (start_page_key, key_span) to verify backward compatibility.
+    // The parser accepts old names but outputs the new names (anchorText, startPageId).
+
     it("detects object with full_phrase (snake_case) as citation format", () => {
       const input = { full_phrase: "test snake case" };
       const result = getAllCitationsFromLlmOutput(input);
@@ -899,7 +932,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(Object.values(result)[0].fullPhrase).toBe("test snake case");
     });
 
-    it("detects object with start_page_key (snake_case) as citation format", () => {
+    it("detects object with start_page_key (snake_case) as citation format (backward compat)", () => {
+      // Input uses old naming: start_page_key
       const input = {
         start_page_key: "page_number_3_index_0",
         full_phrase: "test",
@@ -923,13 +957,14 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(Object.values(result)[0].attachmentId).toBe("my_file_123");
     });
 
-    it("parses full snake_case citation object", () => {
+    it("parses full snake_case citation object (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: start_page_key, key_span is mapped to anchorText
       const input = {
         attachment_id: "doc123",
         full_phrase: "The quick brown fox",
         start_page_key: "page_number_7_index_2",
         line_ids: [10, 5, 15],
-        keySpan: "$100.00",
+        anchorText: "$100.00",
       };
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -939,7 +974,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.fullPhrase).toBe("The quick brown fox");
       expect(citation.pageNumber).toBe(7);
       expect(citation.lineIds).toEqual([5, 10, 15]);
-      expect(citation.keySpan).toBe("$100.00");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("$100.00");
     });
 
     it("parses array of snake_case citations", () => {
@@ -974,7 +1010,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.lineIds).toEqual([1, 2]);
     });
 
-    it("handles mixed camelCase and snake_case in same object", () => {
+    it("handles mixed camelCase and snake_case in same object (backward compat: start_page_key)", () => {
+      // Input uses old naming: start_page_key
       const input = {
         fullPhrase: "mixed case test",
         attachment_id: "mixed123",
@@ -1006,8 +1043,12 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
   });
 
-  describe("keySpan JSON citation support", () => {
-    it("parses keySpan from camelCase JSON citation", () => {
+  describe("anchorText JSON citation support (backward compat: keySpan, key_span)", () => {
+    // NOTE: These tests use old names (keySpan, key_span) to verify backward compatibility.
+    // The parser accepts old names but outputs the new name (anchorText).
+
+    it("parses anchorText from camelCase JSON citation (backward compat: keySpan)", () => {
+      // Input uses old naming: keySpan
       const input = {
         fullPhrase: "The quick brown fox jumps over the lazy dog",
         keySpan: "quick brown fox",
@@ -1020,10 +1061,12 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.fullPhrase).toBe(
         "The quick brown fox jumps over the lazy dog"
       );
-      expect(citation.keySpan).toBe("quick brown fox");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("quick brown fox");
     });
 
-    it("parses key_span from snake_case JSON citation", () => {
+    it("parses anchor_text from snake_case JSON citation (backward compat: key_span)", () => {
+      // Input uses old naming: key_span
       const input = {
         full_phrase: "The quick brown fox jumps over the lazy dog",
         key_span: "quick brown fox",
@@ -1036,10 +1079,12 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.fullPhrase).toBe(
         "The quick brown fox jumps over the lazy dog"
       );
-      expect(citation.keySpan).toBe("quick brown fox");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("quick brown fox");
     });
 
-    it("prefers camelCase keySpan over snake_case key_span", () => {
+    it("prefers camelCase anchorText over snake_case anchor_text (backward compat: keySpan, key_span)", () => {
+      // Input uses old naming: keySpan, key_span
       const input = {
         fullPhrase: "test phrase",
         keySpan: "camelCase span",
@@ -1048,30 +1093,36 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       const citation = Object.values(result)[0];
-      expect(citation.keySpan).toBe("camelCase span");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("camelCase span");
     });
 
-    it("detects object with keySpan as citation format", () => {
+    it("detects object with anchorText as citation format (backward compat: keySpan)", () => {
+      // Input uses old naming: keySpan
       const input = {
         keySpan: "key words",
         fullPhrase: "full sentence with key words",
       };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
-      expect(Object.values(result)[0].keySpan).toBe("key words");
+      // Output uses new naming: anchorText
+      expect(Object.values(result)[0].anchorText).toBe("key words");
     });
 
-    it("detects object with key_span as citation format", () => {
+    it("detects object with anchor_text as citation format (backward compat: key_span)", () => {
+      // Input uses old naming: key_span
       const input = {
         key_span: "key words",
         full_phrase: "full sentence with key words",
       };
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
-      expect(Object.values(result)[0].keySpan).toBe("key words");
+      // Output uses new naming: anchorText
+      expect(Object.values(result)[0].anchorText).toBe("key words");
     });
 
-    it("parses full citation with keySpan from nested citations property", () => {
+    it("parses full citation with anchorText from nested citations property (backward compat: keySpan, startPageKey)", () => {
+      // Input uses old naming: keySpan, startPageKey
       const input = {
         response: "Some response",
         citations: [
@@ -1089,7 +1140,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("The total amount is $500.00");
-      expect(citation.keySpan).toBe("$500.00");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("$500.00");
       expect(citation.pageNumber).toBe(5);
       expect(citation.lineIds).toEqual([10, 11, 12]);
     });
@@ -1112,8 +1164,12 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
   });
 
-  describe("escaped underscores in attribute names (Markdown artifact)", () => {
-    it("extracts citations with backslash-escaped underscores from Markdown output", () => {
+  describe("escaped underscores in attribute names (Markdown artifact) - backward compat: key_span -> anchorText", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+    // The parser accepts old names but outputs new names (anchorText, startPageId).
+
+    it("extracts citations with backslash-escaped underscores from Markdown output (backward compat)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `The key findings in this report are:
 * **Positive for 5 Pathogenic Bacteria**: The report indicates the presence<cite attachment\\_id='D8bv8mItwv6VOmIBo2nr' reasoning='states that the report shows 5 bacteria' full\\_phrase='Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD' key\\_span='5 PATHOGENIC BACTERIA' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='7-8' />.`;
       const result = getAllCitationsFromLlmOutput(input);
@@ -1124,12 +1180,14 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.fullPhrase).toBe(
         "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD"
       );
-      expect(citation.keySpan).toBe("5 PATHOGENIC BACTERIA");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("5 PATHOGENIC BACTERIA");
       expect(citation.pageNumber).toBe(1);
       expect(citation.lineIds).toEqual([7, 8]);
     });
 
-    it("extracts multiple citations with escaped underscores", () => {
+    it("extracts multiple citations with escaped underscores (backward compat)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `First finding<cite attachment\\_id='file1' full\\_phrase='first phrase' key\\_span='first' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='1-2' /> and second<cite attachment\\_id='file2' full\\_phrase='second phrase' key\\_span='second' start\\_page\\_key='page\\_number\\_2\\_index\\_0' line\\_ids='5' />.`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1142,7 +1200,10 @@ describe("getAllCitationsFromLlmOutput", () => {
   });
 
   describe("backwards compatibility with fileId/file_id", () => {
-    it("extracts XML citation with fileId attribute", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+
+    it("extracts XML citation with fileId attribute (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input =
         "Here is text <cite fileId='file123456789012345' start_page_key='page_number_2_index_0' full_phrase='important text' key_span='important' line_ids='1,2' /> more text";
       const result = getAllCitationsFromLlmOutput(input);
@@ -1150,11 +1211,13 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("important text");
-      expect(citation.keySpan).toBe("important");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("important");
       expect(citation.pageNumber).toBe(2);
     });
 
-    it("extracts XML citation with file_id attribute", () => {
+    it("extracts XML citation with file_id attribute (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input =
         "<cite file_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='test phrase' key_span='test' line_ids='5' />";
       const result = getAllCitationsFromLlmOutput(input);
@@ -1179,7 +1242,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       });
     });
 
-    it("parses JSON citation with fileId property", () => {
+    it("parses JSON citation with fileId property (backward compat: startPageKey -> startPageId)", () => {
+      // Input uses old naming: startPageKey
       const input: Citation = {
         fullPhrase: "test phrase",
         fileId: "file123456789012345",
@@ -1195,7 +1259,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.pageNumber).toBe(3);
     });
 
-    it("parses JSON citation with file_id property (snake_case)", () => {
+    it("parses JSON citation with file_id property (snake_case, backward compat: start_page_key)", () => {
+      // Input uses old naming: start_page_key
       const input = {
         full_phrase: "snake case test",
         file_id: "file123456789012345",
@@ -1211,7 +1276,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.pageNumber).toBe(5);
     });
 
-    it("handles mixed fileId and attachmentId in same response", () => {
+    it("handles mixed fileId and attachmentId in same response (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `
         <cite fileId='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='first phrase' key_span='first' line_ids='1' />
         <cite attachment_id='att1234567890123456' start_page_key='page_number_2_index_0' full_phrase='second phrase' key_span='second' line_ids='2' />
@@ -1225,9 +1291,13 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
   });
 
-  describe("complex legal document citations with escaped quotes and newlines", () => {
+  describe("complex legal document citations with escaped quotes and newlines (backward compat: key_span -> anchorText)", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+    // The parser accepts old names but outputs new names (anchorText, startPageId).
+
     it("parses citation with escaped double quotes inside double-quoted attributes", () => {
       // Real-world example: legal document with quoted terms
+      // Input uses old naming: key_span, start_page_key
       const input = String.raw`<cite attachment_id="kYtgMlok4yauewjI730z" reasoning="The document states it is made by 'The Exchange Inc. (the \"Declarant\")'" full_phrase="THIS DECLARATION (the \"Declaration\") is made BY: The Exchange Inc. (the \"Declarant\")" key_span="The Exchange Inc." start_page_key="page_number_2_index_1" line_ids="5, 43-47" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1241,12 +1311,14 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.reasoning).toBe(
         "The document states it is made by 'The Exchange Inc. (the \"Declarant\")'"
       );
-      expect(citation.keySpan).toBe("The Exchange Inc.");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("The Exchange Inc.");
       expect(citation.pageNumber).toBe(2);
       expect(citation.lineIds).toEqual([5, 43, 44, 45, 46, 47]);
     });
 
-    it("parses citation with literal newlines (\\n) in full_phrase", () => {
+    it("parses citation with literal newlines (\\n) in full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = String.raw`<cite attachment_id="abc123" full_phrase="Line 1\nLine 2\nLine 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1256,7 +1328,8 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.fullPhrase).toBe("Line 1 Line 2 Line 3");
     });
 
-    it("parses citation with real newlines in full_phrase", () => {
+    it("parses citation with real newlines in full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="abc123" full_phrase="Line 1
 Line 2
 Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />`;
@@ -1268,8 +1341,9 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(citation.fullPhrase).toBe("Line 1 Line 2 Line 3");
     });
 
-    it("parses the full complex legal document example from user", () => {
+    it("parses the full complex legal document example from user (backward compat: key_span -> anchorText)", () => {
       // This is the exact problematic citation from the user
+      // Input uses old naming: key_span, start_page_key
       const input = String.raw`This document is between The Exchange Inc. (the "Declarant") and the future owners, tenants, and residents of the units. <cite attachment\_id="kYtgMlok4yauewjI730z" reasoning="The document explicitly states it is made by 'The Exchange Inc. (the \"Declarant\")' and that 'All present and future owners, tenants, and residents of units... shall be subject to and shall comply with the provisions of this Declaration'." full\_phrase="THIS DECLARATION (the \"Declaration\") is made and executed pursuant to the\nprovisions of the Condominium Act, 1998 and applicable Regulations (the \"Act\"), BY:\nThe Exchange Inc.\n(the \"Declarant\")\n... All present and future owners, tenants, and residents of units, their families,\nguests, invitees, agents, employees and licensees shall be subject to and shall\ncomply with the provisions of this Declaration, the By-laws and Rules of the\nCorporation." key\_span="The Exchange Inc." start\_page\_key="page\_number\_2\_index\_1" line\_ids="5, 43-47" />`;
 
       const result = getAllCitationsFromLlmOutput(input);
@@ -1277,7 +1351,8 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.attachmentId).toBe("kYtgMlok4yauewjI730z");
-      expect(citation.keySpan).toBe("The Exchange Inc.");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("The Exchange Inc.");
       expect(citation.pageNumber).toBe(2);
       expect(citation.lineIds).toEqual([5, 43, 44, 45, 46, 47]);
       // The fullPhrase should have quotes unescaped and newlines normalized
@@ -1287,7 +1362,8 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(citation.fullPhrase).not.toContain("\\n");
     });
 
-    it("parses citation with mixed single and double quotes in reasoning", () => {
+    it("parses citation with mixed single and double quotes in reasoning (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" reasoning="The user said 'hello' and then \\"goodbye\\"" full_phrase="Some phrase here" key_span="phrase" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1299,8 +1375,9 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(citation.reasoning).not.toContain('\\"');
     });
 
-    it("handles unescaped double quotes inside double-quoted attribute gracefully", () => {
+    it("handles unescaped double quotes inside double-quoted attribute gracefully (backward compat: key_span)", () => {
       // LLMs sometimes output malformed XML - we should handle it gracefully
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="abc123" full_phrase="He said "hello" to me" key_span="hello" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1309,7 +1386,8 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(citation.fullPhrase).toContain("hello");
     });
 
-    it("handles unescaped single quotes inside single-quoted attribute gracefully", () => {
+    it("handles unescaped single quotes inside single-quoted attribute gracefully (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id='abc123' full_phrase='He said 'hello' to me' key_span='hello' start_page_key='page_number_1_index_0' line_ids='1' />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1318,7 +1396,8 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(citation.fullPhrase).toContain("hello");
     });
 
-    it("handles nested quotes with proper escaping", () => {
+    it("handles nested quotes with proper escaping (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="abc123" full_phrase="The 'quoted' text" key_span="quoted" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1328,8 +1407,11 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
     });
   });
 
-  describe("HTML entity handling in citations", () => {
-    it("decodes HTML entities in full_phrase", () => {
+  describe("HTML entity handling in citations (backward compat: key_span -> anchorText)", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+
+    it("decodes HTML entities in full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="Price is &lt;$100 &amp; &gt;$50" key_span="$100" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1338,7 +1420,8 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(citation.fullPhrase).toBe("Price is <$100 & >$50");
     });
 
-    it("decodes &quot; and &apos; entities", () => {
+    it("decodes &quot; and &apos; entities (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="He said &quot;hello&quot; and &apos;goodbye&apos;" key_span="hello" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1348,8 +1431,11 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
     });
   });
 
-  describe("markdown formatting artifacts in citations", () => {
-    it("removes markdown bold markers from full_phrase", () => {
+  describe("markdown formatting artifacts in citations (backward compat: key_span -> anchorText)", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+
+    it("removes markdown bold markers from full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="This is **bold** and __also bold__" key_span="bold" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1359,7 +1445,8 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(citation.fullPhrase).not.toContain("__");
     });
 
-    it("removes markdown italic markers from full_phrase", () => {
+    it("removes markdown italic markers from full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="This is *italic* text" key_span="italic" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1369,22 +1456,27 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
     });
   });
 
-  describe("attribute order independence", () => {
-    it("parses citation with attributes in non-standard order", () => {
+  describe("attribute order independence (backward compat: key_span -> anchorText)", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+
+    it("parses citation with attributes in non-standard order (backward compat: key_span -> anchorText)", () => {
       // Put attributes in unexpected order
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite line_ids="1,2,3" key_span="test" full_phrase="test phrase" start_page_key="page_number_5_index_0" attachment_id="file123456789012345" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("test phrase");
-      expect(citation.keySpan).toBe("test");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("test");
       expect(citation.pageNumber).toBe(5);
       expect(citation.lineIds).toEqual([1, 2, 3]);
       expect(citation.attachmentId).toBe("file123456789012345");
     });
 
-    it("parses citation with reasoning attribute before full_phrase", () => {
+    it("parses citation with reasoning attribute before full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="file123" reasoning="This is the reason" full_phrase="The actual phrase" key_span="phrase" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1395,38 +1487,47 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
     });
   });
 
-  describe("edge cases with special characters", () => {
-    it("handles dollar signs in full_phrase", () => {
+  describe("edge cases with special characters (backward compat: key_span -> anchorText)", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+
+    it("handles dollar signs in full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="The total is $1,234.56 USD" key_span="$1,234.56" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("The total is $1,234.56 USD");
-      expect(citation.keySpan).toBe("$1,234.56");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("$1,234.56");
     });
 
-    it("handles percentage signs in full_phrase", () => {
+    it("handles percentage signs in full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="Growth was 15.5% YoY" key_span="15.5%" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("Growth was 15.5% YoY");
-      expect(citation.keySpan).toBe("15.5%");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("15.5%");
     });
 
-    it("handles parentheses in full_phrase", () => {
+    it("handles parentheses in full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="The company (NYSE: ABC) reported earnings" key_span="(NYSE: ABC)" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("The company (NYSE: ABC) reported earnings");
-      expect(citation.keySpan).toBe("(NYSE: ABC)");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("(NYSE: ABC)");
     });
 
-    it("handles colons in full_phrase", () => {
+    it("handles colons in full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="Section 4.2: Definitions and Terms" key_span="Section 4.2" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1435,7 +1536,8 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(citation.fullPhrase).toBe("Section 4.2: Definitions and Terms");
     });
 
-    it("handles brackets in full_phrase", () => {
+    it("handles brackets in full_phrase (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="See [Appendix A] for details" key_span="[Appendix A]" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1445,8 +1547,11 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
     });
   });
 
-  describe("whitespace handling", () => {
-    it("preserves meaningful whitespace in full_phrase", () => {
+  describe("whitespace handling (backward compat: key_span -> anchorText)", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+
+    it("preserves meaningful whitespace in full_phrase (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="First sentence.  Second sentence." key_span="Second" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1457,7 +1562,8 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(citation.fullPhrase).toContain("Second sentence");
     });
 
-    it("handles leading/trailing whitespace in attribute values", () => {
+    it("handles leading/trailing whitespace in attribute values (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="  trimmed phrase  " key_span="trimmed" start_page_key="page_number_1_index_0" line_ids="1" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1467,8 +1573,11 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
     });
   });
 
-  describe("line_ids with spaces after commas", () => {
-    it("parses line_ids with spaces after commas", () => {
+  describe("line_ids with spaces after commas (backward compat: key_span -> anchorText)", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+
+    it("parses line_ids with spaces after commas (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="test" key_span="test" start_page_key="page_number_1_index_0" line_ids="5, 43-47" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1477,7 +1586,8 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(citation.lineIds).toEqual([5, 43, 44, 45, 46, 47]);
     });
 
-    it("parses line_ids with inconsistent spacing", () => {
+    it("parses line_ids with inconsistent spacing (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="test" key_span="test" start_page_key="page_number_1_index_0" line_ids="1,  2, 3  , 4" />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1487,22 +1597,27 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
     });
   });
 
-  describe("malformed LLM output handling", () => {
-    it("handles missing < before cite tag", () => {
+  describe("malformed LLM output handling (backward compat: key_span -> anchorText)", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+
+    it("handles missing < before cite tag (backward compat: key_span -> anchorText)", () => {
       // LLMs sometimes output 'cite' without the leading '<'
+      // Input uses old naming: key_span, start_page_key
       const input = `- H&H: 7.5 / 25cite attachment_id='GTIkofJX4mpSVSwXzvTr' reasoning='shows values' full_phrase='H&H 7.5 25' key_span='7.5 25' start_page_key='page_number_1_index_0' line_ids='110-115' />`;
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.attachmentId).toBe("GTIkofJX4mpSVSwXzvTr");
-      expect(citation.keySpan).toBe("7.5 25");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("7.5 25");
       expect(citation.lineIds).toEqual([110, 111, 112, 113, 114, 115]);
     });
 
-    it("handles multiple citations with some missing < characters", () => {
+    it("handles multiple citations with some missing < characters (backward compat: key_span)", () => {
       // Real-world scenario: some citations have <, some don't
       // Note: cite must be preceded by non-letter to avoid matching words like "excite"
+      // Input uses old naming: key_span, start_page_key
       const input = `- Sodium: 138<cite attachment_id='test1' full_phrase='Na+ 138' key_span='138' start_page_key='page_number_1_index_0' line_ids='95' />
 - H&H: 7.5 / 25cite attachment_id='test2' full_phrase='H&H 7.5' key_span='7.5' start_page_key='page_number_1_index_0' line_ids='110' />
 - Device: IABP (in place)cite attachment_id='test3' full_phrase='IABP' key_span='IABP' start_page_key='page_number_1_index_0' line_ids='90' />`;
@@ -1516,7 +1631,8 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
       expect(attachmentIds).toContain("test3");
     });
 
-    it("handles cite tag with missing < but has space before it", () => {
+    it("handles cite tag with missing < but has space before it (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `Some text cite attachment_id='test' full_phrase='phrase' key_span='span' start_page_key='page_number_1_index_0' line_ids='1' />`;
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -1532,10 +1648,13 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
     });
   });
 
-  describe("non-self-closing citation tags with content", () => {
-    it("extracts citations from non-self-closing tags with content inside", () => {
+  describe("non-self-closing citation tags with content (backward compat: key_span -> anchorText)", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+
+    it("extracts citations from non-self-closing tags with content inside (backward compat: key_span -> anchorText)", () => {
       // This is the exact format from the user's failing scenario
       // The LLM outputs <cite ...>content</cite> instead of self-closing <cite ... />
+      // Input uses old naming: key_span, start_page_key
       const input = `Patient Information:
 
 <cite attachment\\_id='r7OKl2cBoeJVi2ttZ5pn' reasoning='Patient demographics at top of document' full\\_phrase='John Doe 50/M' key\\_span='John Doe' start\\_page\\_key='page\\_number\\_1\\_index\\_0' line\\_ids='1-5'>
@@ -1562,9 +1681,10 @@ Medical History:
 
       expect(Object.keys(result).length).toBeGreaterThanOrEqual(2);
       const citations = Object.values(result);
-      const keySpans = citations.map((c) => c.keySpan);
-      expect(keySpans).toContain("John Doe");
-      expect(keySpans).toContain("HTN, CAD, HFEF");
+      // Output uses new naming: anchorText
+      const anchorTexts = citations.map((c) => c.anchorText);
+      expect(anchorTexts).toContain("John Doe");
+      expect(anchorTexts).toContain("HTN, CAD, HFEF");
     });
 
     it("extracts all 6 citations from medical document summary", () => {
@@ -1643,17 +1763,19 @@ Family:
       // Should extract all 6 citations
       expect(Object.keys(result).length).toBe(6);
       const citations = Object.values(result);
-      const keySpans = citations.map((c) => c.keySpan);
-      expect(keySpans).toContain("John Doe");
-      expect(keySpans).toContain("HTN, CAD, HFEF");
-      expect(keySpans).toContain("worsening soB admitted transferred");
-      expect(keySpans).toContain("AxOx4 afebrile");
-      expect(keySpans).toContain("Heparin Bumex Dobutamine");
-      expect(keySpans).toContain("July-wife Chris-Son");
+      // Output uses new naming: anchorText
+      const anchorTexts = citations.map((c) => c.anchorText);
+      expect(anchorTexts).toContain("John Doe");
+      expect(anchorTexts).toContain("HTN, CAD, HFEF");
+      expect(anchorTexts).toContain("worsening soB admitted transferred");
+      expect(anchorTexts).toContain("AxOx4 afebrile");
+      expect(anchorTexts).toContain("Heparin Bumex Dobutamine");
+      expect(anchorTexts).toContain("July-wife Chris-Son");
     });
 
-    it("handles non-self-closing citation without closing tag", () => {
+    it("handles non-self-closing citation without closing tag (backward compat: key_span -> anchorText)", () => {
       // Sometimes LLMs output <cite ...> without any closing, just followed by content
+      // Input uses old naming: key_span, start_page_key
       const input = `Some text <cite attachment_id='test123' full_phrase='test phrase' key_span='test' start_page_key='page_number_1_index_0' line_ids='1'>
 
 - Some list content
@@ -1664,10 +1786,12 @@ Family:
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.fullPhrase).toBe("test phrase");
-      expect(citation.keySpan).toBe("test");
+      // Output uses new naming: anchorText
+      expect(citation.anchorText).toBe("test");
     });
 
-    it("handles citation with > ending instead of />", () => {
+    it("handles citation with > ending instead of /> (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `Text <cite attachment_id='test123' full_phrase='phrase' key_span='span' start_page_key='page_number_1_index_0' line_ids='1'>Content</cite> more text`;
 
       const result = getAllCitationsFromLlmOutput(input);
@@ -1677,18 +1801,21 @@ Family:
       expect(citation.fullPhrase).toBe("phrase");
     });
 
-    it("handles multiple consecutive non-self-closing citations", () => {
+    it("handles multiple consecutive non-self-closing citations (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id='file1' full_phrase='first' key_span='first' start_page_key='page_number_1_index_0' line_ids='1'>A</cite><cite attachment_id='file2' full_phrase='second' key_span='second' start_page_key='page_number_2_index_0' line_ids='2'>B</cite>`;
 
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBe(2);
-      const keySpans = Object.values(result).map((c) => c.keySpan);
-      expect(keySpans).toContain("first");
-      expect(keySpans).toContain("second");
+      // Output uses new naming: anchorText
+      const anchorTexts = Object.values(result).map((c) => c.anchorText);
+      expect(anchorTexts).toContain("first");
+      expect(anchorTexts).toContain("second");
     });
 
-    it("handles nested markdown inside citation content", () => {
+    it("handles nested markdown inside citation content (backward compat: key_span -> anchorText)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id='test123' full_phrase='important fact' key_span='fact' start_page_key='page_number_1_index_0' line_ids='1'>
 
 **Bold text** and *italic* and \`code\`
@@ -1705,8 +1832,11 @@ Family:
     });
   });
 
-  describe("escaped quotes in attributes", () => {
-    it("handles escaped single quotes in reasoning attribute", () => {
+  describe("escaped quotes in attributes (backward compat: key_span -> anchorText)", () => {
+    // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
+
+    it("handles escaped single quotes in reasoning attribute (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id='test123' reasoning='The patient\\'s condition improved' full_phrase='condition improved' key_span='improved' start_page_key='page_number_1_index_0' line_ids='1' />`;
 
       const result = getAllCitationsFromLlmOutput(input);
@@ -1717,7 +1847,8 @@ Family:
       expect(citation.reasoning).toContain("condition improved");
     });
 
-    it("handles escaped double quotes in full_phrase", () => {
+    it("handles escaped double quotes in full_phrase (backward compat: key_span)", () => {
+      // Input uses old naming: key_span, start_page_key
       const input = `<cite attachment_id="test123" full_phrase="He said \\"hello\\" to everyone" key_span="hello" start_page_key="page_number_1_index_0" line_ids="1" />`;
 
       const result = getAllCitationsFromLlmOutput(input);

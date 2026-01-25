@@ -29,14 +29,14 @@ export function isUrlCitation(citation: Citation): boolean {
  */
 export function generateCitationKey(citation: Citation): string {
   const pageNumber =
-    citation.pageNumber || getCitationPageNumber(citation.startPageKey);
+    citation.pageNumber || getCitationPageNumber(citation.startPageId);
 
   // Base key parts for all citations
   const keyParts = [
     citation.attachmentId || "",
     pageNumber?.toString() || "",
     citation.fullPhrase || "",
-    citation.keySpan?.toString() || "",
+    citation.anchorText?.toString() || "",
     citation.lineIds?.join(",") || "",
     citation.timestamps?.startTime || "",
     citation.timestamps?.endTime || "",
@@ -64,7 +64,7 @@ export function generateVerificationKey(verification: Verification): string {
     verification.attachmentId || "",
     verification.label || "",
     verification.verifiedFullPhrase || "",
-    verification.verifiedKeySpan || "",
+    verification.verifiedAnchorText || "",
     verification.verifiedLineIds?.join(",") || "",
     verification.verifiedPageNumber?.toString() || "",
 
@@ -88,7 +88,7 @@ export function generateCitationInstanceId(citationKey: string): string {
 }
 
 /**
- * Gets the display text for a citation (keySpan with fallback to number).
+ * Gets the display text for a citation (anchorText with fallback to number).
  */
 export function getCitationDisplayText(
   citation: Citation,
@@ -98,7 +98,7 @@ export function getCitationDisplayText(
 ): string {
   const { fallbackDisplay } = options;
   return (
-    citation.keySpan?.toString() ||
+    citation.anchorText?.toString() ||
     citation.citationNumber?.toString() ||
     fallbackDisplay ||
     "1"
@@ -113,10 +113,10 @@ export function getCitationNumber(citation: Citation): string {
 }
 
 /**
- * Gets the keySpan text from a citation.
+ * Gets the anchorText text from a citation.
  */
-export function getCitationKeySpanText(citation: Citation): string {
-  return citation.keySpan?.toString() || "";
+export function getCitationAnchorText(citation: Citation): string {
+  return citation.anchorText?.toString() || "";
 }
 
 /**

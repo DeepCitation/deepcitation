@@ -15,9 +15,9 @@ interface VerificationTabsProps {
   // NEW PROPS from PRD
   /** Verification status for contextual messages */
   status?: SearchStatus | null;
-  /** Expected keySpan to highlight */
-  keySpan?: string;
-  /** Found keySpan to highlight */
+  /** Expected anchorText to highlight */
+  anchorText?: string;
+  /** Found anchorText to highlight */
   verifiedKeySpan?: string;
   /** Default display mode */
   defaultMode?: DiffDisplayMode;
@@ -112,7 +112,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
   emptyText = "No text found",
   // New props
   status,
-  keySpan,
+  anchorText,
   verifiedKeySpan,
   defaultMode = "auto",
   expectedPage,
@@ -159,8 +159,8 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
             <CollapsibleText
               text={actual}
               maxLength={maxCollapsedLength}
-              keySpan={verifiedKeySpan}
-              keySpanClass="bg-green-200 dark:bg-green-800/50 px-0.5 rounded border-b-2 border-green-400 dark:border-green-500"
+              anchorText={verifiedKeySpan}
+              anchorTextClass="bg-green-200 dark:bg-green-800/50 px-0.5 rounded border-b-2 border-green-400 dark:border-green-500"
             />
           </div>
         </div>
@@ -236,8 +236,8 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                 <CollapsibleText
                   text={expected}
                   maxLength={maxCollapsedLength}
-                  keySpan={keySpan}
-                  keySpanClass="bg-blue-200 dark:bg-blue-800/50 px-0.5 rounded border-b-2 border-blue-400 dark:border-blue-500"
+                  anchorText={anchorText}
+                  anchorTextClass="bg-blue-200 dark:bg-blue-800/50 px-0.5 rounded border-b-2 border-blue-400 dark:border-blue-500"
                 />
               </div>
             </div>
@@ -261,8 +261,8 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                 mode="split"
                 showMatchQuality={showMatchQuality}
                 maxCollapsedLength={maxCollapsedLength}
-                keySpanExpected={keySpan}
-                keySpanFound={verifiedKeySpan}
+                anchorTextExpected={anchorText}
+                anchorTextFound={verifiedKeySpan}
                 status={status}
                 similarity={similarity}
               />

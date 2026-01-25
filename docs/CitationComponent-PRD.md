@@ -37,7 +37,7 @@ interface CitationComponentProps {
 
   // Display
   variant?: "chip" | "brackets" | "text" | "superscript" | "minimal";
-  content?: "keySpan" | "number" | "indicator";
+  content?: "anchorText" | "number" | "indicator";
   fallbackDisplay?: React.ReactNode;
   className?: string;
 
@@ -64,7 +64,7 @@ interface CitationComponentProps {
 ```typescript
 interface Citation {
   citationNumber?: number;
-  keySpan?: string | number;
+  anchorText?: string | number;
   fullPhrase?: string;
   pageNumber?: number;
   lineIds?: string[];
@@ -92,12 +92,12 @@ interface Verification {
   verifiedLineIds?: number[] | null;                  // ← Shown in diff details
   verifiedTimestamps?: { startTime?: string; endTime?: string } | null;
   verifiedFullPhrase?: string | null;
-  verifiedKeySpan?: string | null;
+  verifiedAnchorText?: string | null;
   verifiedMatchSnippet?: string | null;               // ← Shown in popover/diff
 
   hitIndexWithinPage?: number | null;
   phraseMatchDeepItem?: DeepTextItem;                  // Bounding box for phrase match
-  keySpanMatchDeepItems?: DeepTextItem[];             // Multiple boxes for keySpan (spans multiple items)
+  anchorTextMatchDeepItems?: DeepTextItem[];             // Multiple boxes for anchorText (spans multiple items)
   verificationImageBase64?: string | null;            // ← Shown in popover
   verifiedAt?: Date;
 }
@@ -108,7 +108,7 @@ type SearchStatus =
   | "not_found"
   | "partial_text_found"
   | "found"
-  | "found_key_span_only"
+  | "found_anchor_text_only"
   | "found_phrase_missed_value"
   | "found_on_other_page"
   | "found_on_other_line"
@@ -139,7 +139,7 @@ interface SearchAttempt {
   // What was searched
   searchPhrase: string;           // The primary phrase searched for
   searchVariations?: string[];    // Alternative forms tried (e.g., ["$4.89", "4.89"])
-  searchPhraseType?: "full_phrase" | "key_span";
+  searchPhraseType?: "full_phrase" | "anchor_text";
 
   // Where it was searched
   pageSearched?: number;
@@ -163,13 +163,13 @@ The `matchedVariation` field indicates which variation matched and determines th
 |------------------|-------------|-----------------|-------------|
 | `exact_full_phrase` | High | Green | Exact match on fullPhrase |
 | `normalized_full_phrase` | High | Green | fullPhrase with whitespace/case normalization |
-| `exact_key_span` | Medium | Green | keySpan matched, fullPhrase missed |
-| `normalized_key_span` | Medium | Green | keySpan with normalization |
+| `exact_anchor_text` | Medium | Green | anchorText matched, fullPhrase missed |
+| `normalized_anchor_text` | Medium | Green | anchorText with normalization |
 | `partial_full_phrase` | Low | **Amber** | Partial fullPhrase (tables/columns) |
-| `partial_key_span` | Low | **Amber** | Partial keySpan match |
+| `partial_anchor_text` | Low | **Amber** | Partial anchorText match |
 | `first_word_only` | Lowest | **Amber** | Only first word matched |
 
-**Important**: Low-trust matches (partial_full_phrase, partial_key_span, first_word_only) show amber indicators instead of green, even when `success: true`.
+**Important**: Low-trust matches (partial_full_phrase, partial_anchor_text, first_word_only) show amber indicators instead of green, even when `success: true`.
 
 ### SearchAttempt Display
 
@@ -187,9 +187,9 @@ Border colors:
 
 | Variant | Output | Description |
 |---------|--------|-------------|
-| `brackets` | `[keySpan✓]` | Default. Monospace font with brackets. |
-| `text` | `keySpan✓` | Inherits parent text styling. |
-| `minimal` | `keySpan✓` | No brackets, truncated with ellipsis. |
+| `brackets` | `[anchorText✓]` | Default. Monospace font with brackets. |
+| `text` | `anchorText✓` | Inherits parent text styling. |
+| `minimal` | `anchorText✓` | No brackets, truncated with ellipsis. |
 | `indicator` | `✓` | Only the status indicator icon. |
 
 ## Status Indicators
@@ -199,7 +199,7 @@ The component derives status from `verification.status`:
 | Status | Indicator | Color | Conditions |
 |--------|-----------|-------|------------|
 | **Pending** | Spinner `◌` | Gray | `null`, `undefined`, `"pending"`, `"loading"` |
-| **Verified** | Checkmark `✓` | Green | `"found"`, `"found_key_span_only"`, `"found_phrase_missed_value"` |
+| **Verified** | Checkmark `✓` | Green | `"found"`, `"found_anchor_text_only"`, `"found_phrase_missed_value"` |
 | **Partial** | Checkmark `✓` | Amber | `"found_on_other_page"`, `"found_on_other_line"`, `"partial_text_found"`, `"first_word_found"` |
 | **Not Found** | Warning `△` | Red | `"not_found"` |
 
@@ -225,7 +225,7 @@ function getStatusFromVerification(verification: Verification | null): CitationS
 
   const isVerified = [
     "found",
-    "found_key_span_only",
+    "found_anchor_text_only",
     "found_phrase_missed_value"
   ].includes(status) || isPartialMatch;
 
@@ -373,7 +373,7 @@ Full-screen overlay for zoomed verification images:
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 <CitationComponent
-  citation={{ citationNumber: 1, keySpan: "25% growth" }}
+  citation={{ citationNumber: 1, anchorText: "25% growth" }}
   verification={verificationResult}
 />
 ```
@@ -382,7 +382,7 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 ```tsx
 <CitationComponent
-  citation={{ citationNumber: 1, keySpan: "25% growth" }}
+  citation={{ citationNumber: 1, anchorText: "25% growth" }}
   verification={verificationResult}
   content="number"
 />
@@ -393,7 +393,7 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 ```tsx
 <CitationComponent
-  citation={{ citationNumber: 1, keySpan: "25% growth" }}
+  citation={{ citationNumber: 1, anchorText: "25% growth" }}
   verification={verificationResult}
   hideBrackets={true}
 />
@@ -471,7 +471,7 @@ The current diff display has usability issues:
 
 2. **Lack of Context**: The inline diff doesn't clearly communicate the relationship between "what the AI claimed" and "what the source actually says."
 
-3. **Partial Match Ambiguity**: For statuses like `found_key_span_only`, `partial_text_found`, or `found_on_other_page`, users need clearer visual guidance about *what* matched and *what* didn't.
+3. **Partial Match Ambiguity**: For statuses like `found_anchor_text_only`, `partial_text_found`, or `found_on_other_page`, users need clearer visual guidance about *what* matched and *what* didn't.
 
 ### Current Behavior
 
@@ -513,19 +513,19 @@ Auto-select the best display mode based on match characteristics:
 | `similarity >= 0.8` | Inline diff | Minor differences are clear inline |
 | `similarity >= 0.6` | Inline diff with toggle | Moderate differences, offer split view |
 | `similarity < 0.6` | Split view default | High variance makes inline unreadable |
-| `status === 'found_key_span_only'` | Split view with keySpan highlight | Show what matched vs full phrase |
+| `status === 'found_anchor_text_only'` | Split view with anchorText highlight | Show what matched vs full phrase |
 | `status === 'partial_text_found'` | Split view | Clear comparison needed |
 
-#### 3. KeySpan Highlighting in Split View
+#### 3. AnchorText Highlighting in Split View
 
-When the verification status is `found_key_span_only` or similar partial matches:
+When the verification status is `found_anchor_text_only` or similar partial matches:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Expected: a Change of Control, a Direct Listing or an  │
 │           Initial Public Offering                       │
 │           ─────────────────────                         │
-│           [keySpan highlighted]                         │
+│           [anchorText highlighted]                         │
 ├─────────────────────────────────────────────────────────┤
 │ Found:    Change of Control                             │
 │           ─────────────────                             │
@@ -534,8 +534,8 @@ When the verification status is `found_key_span_only` or similar partial matches
 ```
 
 **Implementation:**
-- Underline or highlight the `keySpan` within the expected text
-- Underline or highlight the `verifiedKeySpan` or matching portion in found text
+- Underline or highlight the `anchorText` within the expected text
+- Underline or highlight the `verifiedAnchorText` or matching portion in found text
 - Use a subtle blue underline or background to indicate the "key" portion
 
 #### 4. Diff Legend
@@ -577,7 +577,7 @@ Improve status messages to be more descriptive:
 
 | Status | Current Message | Proposed Message |
 |--------|-----------------|------------------|
-| `found_key_span_only` | "Partial Match" | "Key phrase found, full context differs" |
+| `found_anchor_text_only` | "Partial Match" | "Key phrase found, full context differs" |
 | `partial_text_found` | "Partial Match" | "Partial text match found" |
 | `found_on_other_page` | "Partial Match" | "Found on page X (expected page Y)" |
 | `found_on_other_line` | "Partial Match" | "Found on different line" |
@@ -617,8 +617,8 @@ interface DiffDisplayProps {
   showLegend?: boolean;                // Default: false
   showMatchQuality?: boolean;          // Default: true for partial matches
   maxCollapsedLength?: number;         // Default: 200
-  keySpanExpected?: string;            // Highlight this substring in expected
-  keySpanFound?: string;               // Highlight this substring in found
+  anchorTextExpected?: string;            // Highlight this substring in expected
+  anchorTextFound?: string;               // Highlight this substring in found
 }
 
 interface VerificationTabsProps {
@@ -630,8 +630,8 @@ interface VerificationTabsProps {
 
   // NEW PROPS
   status?: SearchStatus;               // For contextual status messages
-  keySpan?: string;                    // Expected keySpan for highlighting
-  verifiedKeySpan?: string;            // Found keySpan for highlighting
+  anchorText?: string;                    // Expected anchorText for highlighting
+  verifiedAnchorText?: string;            // Found anchorText for highlighting
   defaultMode?: "auto" | "inline" | "split";
 }
 ```
@@ -668,7 +668,7 @@ interface VerificationTabsProps {
 | Expected label | `text-red-600` | `text-red-400` |
 | Found row bg | `bg-green-50` | `bg-green-900/20` |
 | Found label | `text-green-600` | `text-green-400` |
-| KeySpan underline | `border-b-2 border-blue-400` | `border-blue-500` |
+| AnchorText underline | `border-b-2 border-blue-400` | `border-blue-500` |
 | Match bar (good) | `bg-green-500` | `bg-green-400` |
 | Match bar (partial) | `bg-amber-500` | `bg-amber-400` |
 | Match bar (poor) | `bg-red-500` | `bg-red-400` |
@@ -677,7 +677,7 @@ interface VerificationTabsProps {
 
 1. **P0 - Split View Mode**: Implement the two-row Expected/Found layout
 2. **P0 - Auto Mode Selection**: Smart switching based on similarity score
-3. **P1 - KeySpan Highlighting**: Underline matching portions
+3. **P1 - AnchorText Highlighting**: Underline matching portions
 4. **P1 - Contextual Status Messages**: Better descriptions for each status
 5. **P2 - Match Quality Indicator**: Visual similarity bar
 6. **P2 - Collapsed Long Text**: Truncation with expand

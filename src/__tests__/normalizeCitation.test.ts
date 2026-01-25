@@ -449,33 +449,40 @@ line three' line_ids='1' />`;
 });
 
 describe("replaceCitations", () => {
+  // NOTE: These tests use old attribute names (key_span) in XML strings to verify backward compatibility.
+
   describe("basic replacement", () => {
-    it("removes citations completely by default", () => {
+    it("removes citations completely by default (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Revenue grew 45%<cite attachment_id='abc123' key_span='Revenue Growth' full_phrase='Revenue grew 45%' start_page_key='page_1_index_0' line_ids='1-3' /> last year.`;
       const result = replaceCitations(input);
       expect(result).toBe("Revenue grew 45% last year.");
     });
 
-    it("removes citations with new attribute ordering (reasoning first)", () => {
+    it("removes citations with new attribute ordering (reasoning first) (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Revenue grew 45%<cite attachment_id='abc123' reasoning='supports claim' key_span='Revenue Growth' full_phrase='Revenue grew 45%' start_page_key='page_1_index_0' line_ids='1-3' /> last year.`;
       const result = replaceCitations(input);
       expect(result).toBe("Revenue grew 45% last year.");
     });
 
-    it("leaves key_span behind when requested", () => {
+    it("leaves anchor_text behind when requested (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Revenue grew 45%<cite attachment_id='abc123' key_span='Revenue Growth' full_phrase='Revenue grew 45%' start_page_key='page_1_index_0' line_ids='1-3' /> last year.`;
-      const result = replaceCitations(input, { leaveKeySpanBehind: true });
+      const result = replaceCitations(input, { leaveAnchorTextBehind: true });
       expect(result).toBe("Revenue grew 45%Revenue Growth last year.");
     });
 
-    it("handles multiple citations", () => {
+    it("handles multiple citations (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `First claim<cite attachment_id='a' key_span='first' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' /> and second<cite attachment_id='b' key_span='second' full_phrase='s' start_page_key='page_2_index_0' line_ids='2' />.`;
-      const result = replaceCitations(input, { leaveKeySpanBehind: true });
+      const result = replaceCitations(input, { leaveAnchorTextBehind: true });
       expect(result).toBe("First claimfirst and secondsecond.");
     });
   });
 
-  describe("with verification status", () => {
+  describe("with verification status (backward compat: key_span in XML)", () => {
+    // Input uses old naming: key_span
     const verifications: Record<string, Verification> = {
       "1": { status: "found", attachmentId: "abc123" },
       "2": { status: "partial_text_found", attachmentId: "def456" },
@@ -483,7 +490,8 @@ describe("replaceCitations", () => {
       "4": { status: "pending", attachmentId: "jkl012" },
     };
 
-    it("shows verification status indicators", () => {
+    it("shows verification status indicators (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Claim 1<cite attachment_id='abc123' key_span='claim1' full_phrase='f1' start_page_key='page_1_index_0' line_ids='1' /> and claim 2<cite attachment_id='def456' key_span='claim2' full_phrase='f2' start_page_key='page_2_index_0' line_ids='2' />.`;
       const result = replaceCitations(input, {
         verifications,
@@ -492,17 +500,19 @@ describe("replaceCitations", () => {
       expect(result).toBe("Claim 1☑️ and claim 2✅.");
     });
 
-    it("shows key_span with verification status", () => {
+    it("shows anchor_text with verification status (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Claim<cite attachment_id='abc123' key_span='Revenue Growth' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' />.`;
       const result = replaceCitations(input, {
-        leaveKeySpanBehind: true,
+        leaveAnchorTextBehind: true,
         verifications,
         showVerificationStatus: true,
       });
       expect(result).toBe("ClaimRevenue Growth☑️.");
     });
 
-    it("shows not found indicator", () => {
+    it("shows not found indicator (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Claim<cite attachment_id='ghi789' key_span='test' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' />.`;
       // This will match verification "3" (third citation)
       const result = replaceCitations(input, {
@@ -512,7 +522,8 @@ describe("replaceCitations", () => {
       expect(result).toBe("Claim❌.");
     });
 
-    it("shows pending indicator when no verification found", () => {
+    it("shows pending indicator when no verification found (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Claim<cite attachment_id='unknown' key_span='test' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' />.`;
       const result = replaceCitations(input, {
         verifications: {},
@@ -521,7 +532,8 @@ describe("replaceCitations", () => {
       expect(result).toBe("Claim⌛.");
     });
 
-    it("shows pending indicator for null status", () => {
+    it("shows pending indicator for null status (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Claim<cite attachment_id='abc' key_span='test' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' />.`;
       const result = replaceCitations(input, {
         verifications: { "1": { status: null } },
@@ -531,54 +543,70 @@ describe("replaceCitations", () => {
     });
   });
 
-  describe("attribute ordering flexibility", () => {
-    it("handles old ordering (attachment_id, start_page_key, full_phrase, key_span, line_ids)", () => {
+  describe("attribute ordering flexibility (backward compat: key_span in XML)", () => {
+    // Input uses old naming: key_span
+
+    it("handles old ordering (attachment_id, start_page_key, full_phrase, anchor_text, line_ids) (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Text<cite attachment_id='abc' start_page_key='page_1_index_0' full_phrase='test phrase' key_span='test' line_ids='1-3' />.`;
-      const result = replaceCitations(input, { leaveKeySpanBehind: true });
+      const result = replaceCitations(input, { leaveAnchorTextBehind: true });
       expect(result).toBe("Texttest.");
     });
 
-    it("handles new ordering (attachment_id, reasoning, key_span, full_phrase, start_page_key, line_ids)", () => {
+    it("handles new ordering (attachment_id, reasoning, anchor_text, full_phrase, start_page_key, line_ids) (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Text<cite attachment_id='abc' reasoning='supports claim' key_span='test' full_phrase='test phrase' start_page_key='page_1_index_0' line_ids='1-3' />.`;
-      const result = replaceCitations(input, { leaveKeySpanBehind: true });
+      const result = replaceCitations(input, { leaveAnchorTextBehind: true });
       expect(result).toBe("Texttest.");
     });
 
-    it("handles mixed orderings in same text", () => {
+    it("handles mixed orderings in same text (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `First<cite attachment_id='a' key_span='one' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' /> second<cite attachment_id='b' reasoning='r' key_span='two' full_phrase='f' start_page_key='page_2_index_0' line_ids='2' />.`;
-      const result = replaceCitations(input, { leaveKeySpanBehind: true });
+      const result = replaceCitations(input, { leaveAnchorTextBehind: true });
       expect(result).toBe("Firstone secondtwo.");
     });
   });
 
-  describe("escaped characters in key_span", () => {
-    it("unescapes single quotes in key_span", () => {
+  describe("escaped characters in anchor_text (backward compat: key_span in XML)", () => {
+    // Input uses old naming: key_span
+
+    it("unescapes single quotes in anchor_text (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Text<cite attachment_id='abc' key_span='it\\'s great' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' />.`;
-      const result = replaceCitations(input, { leaveKeySpanBehind: true });
+      const result = replaceCitations(input, { leaveAnchorTextBehind: true });
       expect(result).toBe("Textit's great.");
     });
 
-    it("unescapes double quotes in key_span", () => {
+    it("unescapes double quotes in anchor_text (backward compat: key_span in XML)", () => {
+      // Input uses old naming: key_span
       const input = `Text<cite attachment_id='abc' key_span='said \\"hello\\"' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' />.`;
-      const result = replaceCitations(input, { leaveKeySpanBehind: true });
+      const result = replaceCitations(input, { leaveAnchorTextBehind: true });
       expect(result).toBe(`Textsaid "hello".`);
     });
   });
 });
 
 describe("removeCitations (backward compatibility)", () => {
-  it("removes citations like replaceCitations", () => {
+  // NOTE: These tests use old attribute names (key_span) in XML strings to verify backward compatibility.
+
+  it("removes citations like replaceCitations (backward compat: key_span in XML)", () => {
+    // Input uses old naming: key_span
     const input = `Text<cite attachment_id='abc' key_span='test' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' />.`;
     expect(removeCitations(input)).toBe("Text.");
   });
 
-  it("supports leaveKeySpanBehind parameter", () => {
+  it("supports leaveAnchorTextBehind parameter (backward compat: key_span in XML)", () => {
+    // Input uses old naming: key_span
     const input = `Text<cite attachment_id='abc' key_span='test' full_phrase='f' start_page_key='page_1_index_0' line_ids='1' />.`;
     expect(removeCitations(input, true)).toBe("Texttest.");
   });
 });
 
 describe("replaceCitations with citationKey matching", () => {
+  // NOTE: These tests use old attribute names (key_span) in XML strings to verify backward compatibility.
+  // Citation object properties use new naming (anchorText).
+
   it("matches verifications by citationKey when multiple citations share same attachmentId", () => {
     // This is the critical test: multiple citations from the same document
     // should each match their own verification, not all match the first one
@@ -589,7 +617,7 @@ describe("replaceCitations with citationKey matching", () => {
       attachmentId,
       pageNumber: 1,
       fullPhrase: "Patient John Doe is a 50 year old male",
-      keySpan: "John Doe",
+      anchorText: "John Doe",
       lineIds: [1, 2],
     };
 
@@ -597,7 +625,7 @@ describe("replaceCitations with citationKey matching", () => {
       attachmentId,
       pageNumber: 1,
       fullPhrase: "Allergies: No Known Drug Allergies (NKDA)",
-      keySpan: "NKDA",
+      anchorText: "NKDA",
       lineIds: [3],
     };
 
@@ -605,7 +633,7 @@ describe("replaceCitations with citationKey matching", () => {
       attachmentId,
       pageNumber: 1,
       fullPhrase: "Blood pressure reading was elevated at 150/95",
-      keySpan: "elevated",
+      anchorText: "elevated",
       lineIds: [5, 6],
     };
 
@@ -626,8 +654,8 @@ describe("replaceCitations with citationKey matching", () => {
       [key3]: { status: "partial_text_found", attachmentId },
     };
 
-    // Build input with citations in the exact same format
-    const input = `${citation1.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${citation1.fullPhrase}' key_span='${citation1.keySpan}' line_ids='1,2' /> and ${citation2.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${citation2.fullPhrase}' key_span='${citation2.keySpan}' line_ids='3' /> and ${citation3.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${citation3.fullPhrase}' key_span='${citation3.keySpan}' line_ids='5,6' />.`;
+    // Build input with citations in the exact same format (XML uses old key_span attr for backward compat)
+    const input = `${citation1.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${citation1.fullPhrase}' key_span='${citation1.anchorText}' line_ids='1,2' /> and ${citation2.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${citation2.fullPhrase}' key_span='${citation2.anchorText}' line_ids='3' /> and ${citation3.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${citation3.fullPhrase}' key_span='${citation3.anchorText}' line_ids='5,6' />.`;
 
     const result = replaceCitations(input, {
       verifications,
@@ -648,7 +676,7 @@ describe("replaceCitations with citationKey matching", () => {
       attachmentId,
       pageNumber: 2,
       fullPhrase: "The doctor said \"rest is important\" for recovery",
-      keySpan: "rest is important",
+      anchorText: "rest is important",
       lineIds: [10],
     };
 
@@ -657,7 +685,7 @@ describe("replaceCitations with citationKey matching", () => {
       [key]: { status: "found", attachmentId },
     };
 
-    // In cite tags, quotes are escaped
+    // In cite tags, quotes are escaped (XML uses old key_span attr for backward compat)
     const input = `Quote<cite attachment_id='${attachmentId}' start_page_key='page_number_2_index_0' full_phrase='The doctor said \\"rest is important\\" for recovery' key_span='rest is important' line_ids='10' />.`;
 
     const result = replaceCitations(input, {
@@ -675,6 +703,7 @@ describe("replaceCitations with citationKey matching", () => {
       "2": { status: "not_found", attachmentId: "abc" },
     };
 
+    // XML uses old key_span attr for backward compat
     const input = `First<cite attachment_id='abc' start_page_key='page_number_1_index_0' full_phrase='first phrase' key_span='first' line_ids='1' /> second<cite attachment_id='abc' start_page_key='page_number_1_index_0' full_phrase='second phrase' key_span='second' line_ids='2' />.`;
 
     const result = replaceCitations(input, {
@@ -690,6 +719,7 @@ describe("replaceCitations with citationKey matching", () => {
       "wrong-key": { status: "found", attachmentId: "abc" },
     };
 
+    // XML uses old key_span attr for backward compat
     const input = `Claim<cite attachment_id='abc' start_page_key='page_number_1_index_0' full_phrase='test phrase' key_span='test' line_ids='1' />.`;
 
     const result = replaceCitations(input, {
@@ -709,7 +739,7 @@ describe("replaceCitations with citationKey matching", () => {
         attachmentId,
         pageNumber: 1,
         fullPhrase: "It's a test phrase with apostrophe",
-        keySpan: "It's a test",
+        anchorText: "It's a test",
         lineIds: [21, 22, 23],
       };
 
@@ -718,7 +748,7 @@ describe("replaceCitations with citationKey matching", () => {
         [key]: { status: "found", attachmentId },
       };
 
-      // In cite tags after normalization, quotes are escaped with backslash
+      // In cite tags after normalization, quotes are escaped with backslash (XML uses old key_span attr for backward compat)
       const input = `Text<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='It\\'s a test phrase with apostrophe' key_span='It\\'s a test' line_ids='21,22,23' />.`;
 
       const result = replaceCitations(input, {
@@ -737,7 +767,7 @@ describe("replaceCitations with citationKey matching", () => {
         attachmentId,
         pageNumber: 1,
         fullPhrase: 'He said "hello" to the patient',
-        keySpan: 'said "hello"',
+        anchorText: 'said "hello"',
         lineIds: [10],
       };
 
@@ -746,7 +776,7 @@ describe("replaceCitations with citationKey matching", () => {
         [key]: { status: "found", attachmentId },
       };
 
-      // In cite tags, double quotes are escaped
+      // In cite tags, double quotes are escaped (XML uses old key_span attr for backward compat)
       const input = `Text<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='He said \\"hello\\" to the patient' key_span='said \\"hello\\"' line_ids='10' />.`;
 
       const result = replaceCitations(input, {
@@ -765,7 +795,7 @@ describe("replaceCitations with citationKey matching", () => {
         attachmentId,
         pageNumber: 1,
         fullPhrase: "HTN, CAD, HFrEF, Hypothyroid, HLD,",
-        keySpan: "HTN, CAD, HFrEF, Hypothyroid",
+        anchorText: "HTN, CAD, HFrEF, Hypothyroid",
         lineIds: [21, 22, 23],
       };
 
@@ -774,7 +804,7 @@ describe("replaceCitations with citationKey matching", () => {
         [key]: { status: "found", attachmentId },
       };
 
-      // Input with escaped quotes and attributes in any order
+      // Input with escaped quotes and attributes in any order (XML uses old key_span attr for backward compat)
       const input = `He has a history of HTN, CAD, HFrEF, Hypothyroid, and HLD <cite attachment_id='gM5nhodOx1d12bVIiYvH' reasoning='patient medical history' full_phrase='HTN, CAD, HFrEF, Hypothyroid, HLD,' key_span='HTN, CAD, HFrEF, Hypothyroid' start_page_key='page_number_1_index_0' line_ids='21,22,23' />.`;
 
       const result = replaceCitations(input, {
@@ -793,7 +823,7 @@ describe("replaceCitations with citationKey matching", () => {
         attachmentId,
         pageNumber: 1,
         fullPhrase: "5/17-admitted at outside hospital",
-        keySpan: "5/17-admitted",
+        anchorText: "5/17-admitted",
         lineIds: [11, 12, 13, 14, 15, 16],
       };
 
@@ -802,7 +832,7 @@ describe("replaceCitations with citationKey matching", () => {
         [key]: { status: "found", attachmentId },
       };
 
-      // Input with line_ids as a range (11-16) which should be expanded
+      // Input with line_ids as a range (11-16) which should be expanded (XML uses old key_span attr for backward compat)
       const input = `The patient was admitted <cite attachment_id='gM5nhodOx1d12bVIiYvH' full_phrase='5/17-admitted at outside hospital' key_span='5/17-admitted' start_page_key='page_number_1_index_0' line_ids='11-16' />.`;
 
       const result = replaceCitations(input, {
@@ -821,7 +851,7 @@ describe("replaceCitations with citationKey matching", () => {
         attachmentId,
         pageNumber: 1,
         fullPhrase: "HTN, CAD, HFrEF, Hypothyroid, HLD,",
-        keySpan: "HTN, CAD, HFrEF, Hypothyroid",
+        anchorText: "HTN, CAD, HFrEF, Hypothyroid",
         lineIds: [21, 22, 23],
       };
 
@@ -829,7 +859,7 @@ describe("replaceCitations with citationKey matching", () => {
         attachmentId,
         pageNumber: 1,
         fullPhrase: "5/17-admitted at outside hospital",
-        keySpan: "5/17-admitted",
+        anchorText: "5/17-admitted",
         lineIds: [11, 12, 13, 14, 15, 16],
       };
 
@@ -837,7 +867,7 @@ describe("replaceCitations with citationKey matching", () => {
         attachmentId,
         pageNumber: 1,
         fullPhrase: "Heparin 12 u/hr, Bumex 5mg/hr",
-        keySpan: "Heparin, Bumex",
+        anchorText: "Heparin, Bumex",
         lineIds: [28, 29, 30],
       };
 
@@ -851,6 +881,7 @@ describe("replaceCitations with citationKey matching", () => {
         [key3]: { status: "partial_text_found", attachmentId },
       };
 
+      // XML uses old key_span attr for backward compat
       const input = `History: <cite attachment_id='gM5nhodOx1d12bVIiYvH' full_phrase='HTN, CAD, HFrEF, Hypothyroid, HLD,' key_span='HTN, CAD, HFrEF, Hypothyroid' start_page_key='page_number_1_index_0' line_ids='21-23' />. Admitted <cite attachment_id='gM5nhodOx1d12bVIiYvH' full_phrase='5/17-admitted at outside hospital' key_span='5/17-admitted' start_page_key='page_number_1_index_0' line_ids='11-16' />. Meds: <cite attachment_id='gM5nhodOx1d12bVIiYvH' full_phrase='Heparin 12 u/hr, Bumex 5mg/hr' key_span='Heparin, Bumex' start_page_key='page_number_1_index_0' line_ids='28-30' />.`;
 
       const result = replaceCitations(input, {
@@ -868,11 +899,11 @@ describe("replaceCitations with citationKey matching", () => {
 
     // Simulate a medical chart with multiple facts
     const citations: Citation[] = [
-      { attachmentId, pageNumber: 1, fullPhrase: "Patient: John Doe, 50/M", keySpan: "John Doe", lineIds: [1] },
-      { attachmentId, pageNumber: 1, fullPhrase: "Allergies: NKDA", keySpan: "NKDA", lineIds: [2] },
-      { attachmentId, pageNumber: 1, fullPhrase: "Heparin 12 u/hr", keySpan: "Heparin", lineIds: [5] },
-      { attachmentId, pageNumber: 1, fullPhrase: "Dobutamine 2.5 mcg/kg", keySpan: "Dobutamine", lineIds: [6] },
-      { attachmentId, pageNumber: 1, fullPhrase: "Na+ 138", keySpan: "Na+ 138", lineIds: [10] },
+      { attachmentId, pageNumber: 1, fullPhrase: "Patient: John Doe, 50/M", anchorText: "John Doe", lineIds: [1] },
+      { attachmentId, pageNumber: 1, fullPhrase: "Allergies: NKDA", anchorText: "NKDA", lineIds: [2] },
+      { attachmentId, pageNumber: 1, fullPhrase: "Heparin 12 u/hr", anchorText: "Heparin", lineIds: [5] },
+      { attachmentId, pageNumber: 1, fullPhrase: "Dobutamine 2.5 mcg/kg", anchorText: "Dobutamine", lineIds: [6] },
+      { attachmentId, pageNumber: 1, fullPhrase: "Na+ 138", anchorText: "Na+ 138", lineIds: [10] },
     ];
 
     // Create verifications: some found, some not, some partial
@@ -890,10 +921,10 @@ describe("replaceCitations with citationKey matching", () => {
       verifications[key] = { status: statuses[i], attachmentId };
     });
 
-    // Build input
+    // Build input (XML uses old key_span attr for backward compat)
     let input = "";
     citations.forEach((c, i) => {
-      input += `${c.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${c.fullPhrase}' key_span='${c.keySpan}' line_ids='${c.lineIds![0]}' />`;
+      input += `${c.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${c.fullPhrase}' key_span='${c.anchorText}' line_ids='${c.lineIds![0]}' />`;
       if (i < citations.length - 1) input += " ";
     });
 

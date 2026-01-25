@@ -34,7 +34,7 @@ bun run scripts/factcheck.ts upload ./report.pdf ./data.xlsx
 #   data.xlsx: def456uvw...
 
 # Verify claims against a source
-bun run scripts/factcheck.ts verify <attachmentId> '{"claim-1": {"fullPhrase": "revenue grew 45%", "keySpan": "45%"}}'
+bun run scripts/factcheck.ts verify <attachmentId> '{"claim-1": {"fullPhrase": "revenue grew 45%", "anchorText": "45%"}}'
 ```
 
 ## Step 0: Upload Source Files
@@ -57,12 +57,12 @@ Analyze the LLM output and identify factual claims. For each claim:
    - QUALITATIVE: descriptions, assessments
    - CAUSAL: cause-effect relationships
    - TEMPORAL: time-related assertions
-3. **Extract key span**: 1-3 most important words (numbers, proper nouns, key metrics)
+3. **Extract anchor text**: 1-3 most important words (numbers, proper nouns, key metrics)
 4. **Note existing citations** if present (e.g., `[1]`, `[2]`)
 
-### Key Span Selection
+### Anchor Text Selection
 
-Good key spans for verification:
+Good anchor text for verification:
 - Numbers and percentages: "45%", "2024", "$1.2B"
 - Proper nouns: "Microsoft", "Q3"
 - Specific metrics: "revenue", "market share"
@@ -77,8 +77,8 @@ Use the helper script to verify each claim:
 
 ```bash
 bun run scripts/factcheck.ts verify abc123xyz '{
-  "claim-1": {"fullPhrase": "Revenue grew 45% year-over-year in Q3 2024", "keySpan": "45% Q3"},
-  "claim-2": {"fullPhrase": "The company expanded into three new markets", "keySpan": "three new markets"}
+  "claim-1": {"fullPhrase": "Revenue grew 45% year-over-year in Q3 2024", "anchorText": "45% Q3"},
+  "claim-2": {"fullPhrase": "The company expanded into three new markets", "anchorText": "three new markets"}
 }'
 ```
 
@@ -87,7 +87,7 @@ bun run scripts/factcheck.ts verify abc123xyz '{
 | Status | Meaning |
 |--------|---------|
 | `found` | Exact text found in source |
-| `found_key_span_only` | Key phrase found |
+| `found_anchor_text_only` | Key phrase found |
 | `found_on_other_page` | Found but different location |
 | `partial_text_found` | Only part matched |
 | `not_found` | Text not in source |
@@ -125,8 +125,8 @@ Use the helper script to search for counter-argument evidence:
 
 ```bash
 bun run scripts/factcheck.ts verify abc123xyz '{
-  "counter-1a": {"fullPhrase": "acquisition acquired merger", "keySpan": "acquisition"},
-  "counter-1b": {"fullPhrase": "prior year decline challenges", "keySpan": "decline"}
+  "counter-1a": {"fullPhrase": "acquisition acquired merger", "anchorText": "acquisition"},
+  "counter-1b": {"fullPhrase": "prior year decline challenges", "anchorText": "decline"}
 }'
 ```
 
@@ -162,7 +162,7 @@ Calculate a confidence score for each claim:
 | DeepCitation Status | Category | Description |
 |---------------------|----------|-------------|
 | `found` | Fully Verified | Exact text found in source |
-| `found_key_span_only` | Fully Verified | Key phrase found |
+| `found_anchor_text_only` | Fully Verified | Key phrase found |
 | `found_phrase_missed_value` | Fully Verified | Phrase found, value differs |
 | `found_on_other_page` | Partial Match | Found on different page than claimed |
 | `found_on_other_line` | Partial Match | Found on different line than claimed |

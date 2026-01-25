@@ -27,21 +27,21 @@ export type CitationVariant =
  *
  * | Content       | Description                                    |
  * |---------------|------------------------------------------------|
- * | `keySpan`     | Descriptive text (e.g., "Revenue Growth")      |
+ * | `anchorText`  | Descriptive text (e.g., "Revenue Growth")      |
  * | `number`      | Citation number (e.g., "1", "2", "3")          |
  * | `indicator`   | Only the status icon (✓/⚠), no text            |
  * | `source`      | Source name with count (e.g., "Wikipedia +2")  |
  *
  * Default content per variant:
- * - `chip` → `keySpan`
- * - `brackets` → `keySpan`
- * - `text` → `keySpan`
+ * - `chip` → `anchorText`
+ * - `brackets` → `anchorText`
+ * - `text` → `anchorText`
  * - `superscript` → `number`
  * - `minimal` → `number`
  * - `source` → `source`
  */
 export type CitationContent =
-  | "keySpan" // Show keySpan text
+  | "anchorText" // Show anchorText text
   | "number" // Show citation number
   | "indicator" // Only show status icon
   | "source"; // Show source name with count (ChatGPT-style)
@@ -200,14 +200,14 @@ export interface BaseCitationProps {
   /**
    * What content to display in the citation.
    * If not specified, defaults based on variant:
-   * - `chip` → `keySpan`
+   * - `chip` → `anchorText`
    * - `brackets` → `number`
-   * - `text` → `keySpan`
+   * - `text` → `anchorText`
    * - `superscript` → `number`
    * - `minimal` → `number`
    */
   content?: CitationContent;
-  /** Fallback display text when citation keySpan is empty */
+  /** Fallback display text when citation anchorText is empty */
   fallbackDisplay?: string | null;
 }
 
@@ -291,7 +291,7 @@ export interface CitationRenderProps {
   citationKey: string;
   /** Display text for the citation */
   displayText: string;
-  /** Whether this is a merged keySpan display */
+  /** Whether this is a merged anchorText display */
   isMergedDisplay: boolean;
 }
 
