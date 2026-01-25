@@ -1,108 +1,193 @@
-import {
-  DEFERRED_CITATION_PROMPT,
-  DEFERRED_AV_CITATION_PROMPT,
-  DEFERRED_CITATION_REMINDER,
-  DEFERRED_AV_CITATION_REMINDER,
-} from "./deferredCitationPrompt.js";
+/**
+ * Citation Prompts
+ *
+ * This module provides the "Deferred JSON Pattern" for citation output.
+ * The LLM uses lightweight markers (e.g., [1], [2]) in the text and outputs
+ * a structured JSON block at the end of the response.
+ *
+ * Benefits:
+ * - **Robustness**: JSON.parse handles escaping naturally, avoiding quote-escaping issues
+ * - **Streaming Latency**: No mid-sentence pausing for hidden metadata generation
+ * - **Token Efficiency**: ~40% reduction in tokens per citation
+ */
+
+/** Start delimiter for the citation data block */
+export const CITATION_DATA_START_DELIMITER = "<<<CITATION_DATA>>>";
+
+/** End delimiter for the citation data block */
+export const CITATION_DATA_END_DELIMITER = "<<<END_CITATION_DATA>>>";
 
 /**
- * Citation mode for prompt wrapping.
- *
- * - `'inline_xml'`: Legacy mode using inline `<cite ... />` XML tags (default for backward compatibility)
- * - `'deferred_json'`: New mode using `[N]` markers with JSON block at end (recommended for new integrations)
- *
- * The deferred_json mode provides:
- * - Better robustness (no quote-escaping issues)
- * - Improved streaming latency (no mid-sentence pausing)
- * - ~40% reduction in tokens per citation
+ * Citation prompt for document-based citations.
+ * Uses [N] markers in text with JSON metadata at the end.
  */
-export type CitationMode = "inline_xml" | "deferred_json";
-
-export const CITATION_MARKDOWN_SYNTAX_PROMPT = `
+export const CITATION_PROMPT = `
 <citation-instructions priority="critical">
 ## REQUIRED: Citation Format
 
-### Scope (Where to use)
-For every claim, value, or fact in your chat response; you MUST cite the attachment using this exact syntax:
+### In-Text Markers
+For every claim, value, or fact from attachments, place a sequential integer marker like [1], [2], [3] at the end of the claim.
 
-<cite attachment_id='ID' reasoning='why this supports the claim' full_phrase='verbatim quote' key_span='1-3 key words' start_page_key='page_number_N_index_I' line_ids='X-Y' />
+### Citation Data Block
+At the END of your response, you MUST append a citation verification block containing JSON data for all citations used.
 
-### Syntax Rules (MUST follow)
+### Format
+\`\`\`
+<<<CITATION_DATA>>>
+[
+  {
+    "id": 1,
+    "attachment_id": "exact_attachment_id",
+    "reasoning": "why this supports the claim",
+    "full_phrase": "verbatim quote from source",
+    "key_span": "1-3 key words from full_phrase",
+    "page_key": "page_number_N_index_I",
+    "line_ids": [X, Y, Z]
+  }
+]
+<<<END_CITATION_DATA>>>
+\`\`\`
 
-1. **attachment_id**: Use the exact ID from the source document
-2. **reasoning**: Brief explanation of why this citation supports your claim (think first!)
-3. **full_phrase**: Copy text VERBATIM from source. Escape quotes (\\') and newlines (\\n).
-4. **key_span**: The 1-3 most important words or value from full_phrase
-5. **start_page_key**: ONLY use format \`page_number_N_index_I\` from page tags (e.g., \`<page_number_1_index_0>\`). Never extract page numbers from document content.
-6. **line_ids**: Inclusive range (e.g., '2-6' or '4'). Infer intermediate lines since only every 5th line is shown.
+### JSON Field Rules
+
+1. **id**: Must match the [N] marker in your text (integer)
+2. **attachment_id**: Exact ID from the source document
+3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
+4. **full_phrase**: Copy text VERBATIM from source. Use proper JSON escaping for quotes and special characters.
+5. **key_span**: The 1-3 most important words from full_phrase
+6. **page_key**: ONLY use format \`page_number_N_index_I\` from page tags (e.g., \`<page_number_1_index_0>\`)
+7. **line_ids**: Array of line numbers (e.g., [12, 13, 14]). Infer intermediate lines since only every 5th line is shown.
 
 ### Placement Rules
 
-- Place <cite /> inline, typically at the end of a claim
-- One citation per distinct idea, concept, or value (a sentence citing 3 different values needs 3 citations)
-- Do NOT group citations at the end of the document
-- The <cite /> tag is self-closing - never use <cite>...</cite>
+- Place [N] markers inline, typically at the end of a claim
+- One marker per distinct idea, concept, or value
+- Use sequential numbering starting from [1]
+- The JSON block MUST appear at the very end of your response
+- Do NOT include the JSON block markers in code blocks - they should appear as plain text
 
-### Example Citation 1
+### Example Response
 
-The company reported strong growth<cite attachment_id='abc123' reasoning='directly states revenue growth percentage' full_phrase='Revenue increased 45% year-over-year to $2.3 billion' key_span='increased 45%' start_page_key='page_number_2_index_1' line_ids='12-14' />
+The company reported strong growth [1]. Revenue increased significantly in Q4 [2].
 
-### Example Citation 2
-
-The total amount is $500 USD <cite attachment_id='abc123' reasoning='directly states the total amount' full_phrase='The total amount is $500 USD' key_span='$500 USD' start_page_key='page_number_2_index_1' line_ids='12-14' />
+<<<CITATION_DATA>>>
+[
+  {
+    "id": 1,
+    "attachment_id": "abc123",
+    "reasoning": "directly states growth metrics",
+    "full_phrase": "The company achieved 45% year-over-year growth",
+    "key_span": "45% year-over-year growth",
+    "page_key": "page_number_2_index_1",
+    "line_ids": [12, 13]
+  },
+  {
+    "id": 2,
+    "attachment_id": "abc123",
+    "reasoning": "states Q4 revenue figure",
+    "full_phrase": "Q4 revenue reached $2.3 billion, up from $1.8 billion",
+    "key_span": "$2.3 billion",
+    "page_key": "page_number_3_index_2",
+    "line_ids": [5, 6, 7]
+  }
+]
+<<<END_CITATION_DATA>>>
 </citation-instructions>
 
 `;
 
-export const AV_CITATION_MARKDOWN_SYNTAX_PROMPT = `
+/**
+ * Citation prompt for audio/video content.
+ * Uses timestamps instead of page/line references.
+ */
+export const AV_CITATION_PROMPT = `
 <citation-instructions priority="critical">
 ## REQUIRED: Audio/Video Citation Format
 
-For every claim, value, or fact; you MUST cite the attachment using this exact syntax:
+### In-Text Markers
+For every claim, value, or fact from media content, place a sequential integer marker like [1], [2], [3] at the end of the claim.
 
-<cite attachment_id='ID' reasoning='why this supports the claim' full_phrase='verbatim transcript quote' key_span='1-3 key words' timestamps='HH:MM:SS.SSS-HH:MM:SS.SSS' />
+### Citation Data Block
+At the END of your response, you MUST append a citation verification block containing JSON data for all citations used.
 
-### Syntax Rules (MUST follow)
+### Format
+\`\`\`
+<<<CITATION_DATA>>>
+[
+  {
+    "id": 1,
+    "attachment_id": "exact_attachment_id",
+    "reasoning": "why this supports the claim",
+    "full_phrase": "verbatim transcript quote",
+    "key_span": "1-3 key words from full_phrase",
+    "timestamps": {
+      "start_time": "HH:MM:SS.SSS",
+      "end_time": "HH:MM:SS.SSS"
+    }
+  }
+]
+<<<END_CITATION_DATA>>>
+\`\`\`
 
-1. **attachment_id**: Use the exact ID from the source
-2. **reasoning**: Brief explanation of why this citation supports your claim (think first!)
-3. **full_phrase**: Copy transcript text VERBATIM. Escape quotes (\\') and newlines (\\n).
-4. **key_span**: The 1-3 most important words or value from full_phrase
-5. **timestamps**: Start and end time with milliseconds (e.g., '00:01:23.456-00:01:45.789')
+### JSON Field Rules
 
-### Placement Rules
+1. **id**: Must match the [N] marker in your text (integer)
+2. **attachment_id**: Exact ID from the source media
+3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
+4. **full_phrase**: Copy transcript text VERBATIM. Use proper JSON escaping.
+5. **key_span**: The 1-3 most important words from full_phrase
+6. **timestamps**: Object with start_time and end_time in HH:MM:SS.SSS format
 
-- Place <cite /> inline, typically at the end of a claim
-- One citation per distinct idea, concept, or value (a sentence citing 3 different values needs 3 citations)
-- Do NOT group citations at the end of the document
-- The <cite /> tag is self-closing - never use <cite>...</cite>
+### Example Response
 
+The speaker discussed exercise benefits [1]. They recommended specific techniques [2].
+
+<<<CITATION_DATA>>>
+[
+  {
+    "id": 1,
+    "attachment_id": "video123",
+    "reasoning": "speaker directly states health benefits",
+    "full_phrase": "Regular exercise improves cardiovascular health by 30%",
+    "key_span": "cardiovascular health",
+    "timestamps": {
+      "start_time": "00:05:23.000",
+      "end_time": "00:05:45.500"
+    }
+  },
+  {
+    "id": 2,
+    "attachment_id": "video123",
+    "reasoning": "demonstrates proper form",
+    "full_phrase": "Keep your back straight and engage your core",
+    "key_span": "engage your core",
+    "timestamps": {
+      "start_time": "00:12:10.200",
+      "end_time": "00:12:25.800"
+    }
+  }
+]
+<<<END_CITATION_DATA>>>
 </citation-instructions>
+
 `;
 
 /**
  * A brief reminder to reinforce citation requirements in user messages.
  * Use this when you want to add emphasis without repeating full instructions.
  */
-export const CITATION_REMINDER = `<citation-reminder>STOP and CHECK: Did you use <cite /> tags with all required attributes for every claim, value, or fact from attachments?</citation-reminder>`;
+export const CITATION_REMINDER = `<citation-reminder>STOP and CHECK: Did you use [N] markers for every claim and include the <<<CITATION_DATA>>> JSON block at the end?</citation-reminder>`;
 
 /**
  * Audio/video version of the citation reminder.
  */
-export const CITATION_AV_REMINDER = `<citation-reminder>STOP and CHECK: Did you use <cite /> tags with timestamps for every claim, value, or fact from source media?</citation-reminder>`;
+export const CITATION_AV_REMINDER = `<citation-reminder>STOP and CHECK: Did you use [N] markers for every claim and include the <<<CITATION_DATA>>> JSON block with timestamps at the end?</citation-reminder>`;
 
 export interface WrapSystemPromptOptions {
   /** The original system prompt to wrap with citation instructions */
   systemPrompt: string;
   /** Whether to use audio/video citation format (with timestamps) instead of text-based (with line IDs) */
   isAudioVideo?: boolean;
-  /**
-   * Citation mode to use.
-   * - `'inline_xml'`: Legacy inline `<cite />` tags (default)
-   * - `'deferred_json'`: New `[N]` markers with JSON block at end (recommended)
-   * @default 'inline_xml'
-   */
-  mode?: CitationMode;
 }
 
 export interface WrapCitationPromptOptions {
@@ -114,13 +199,6 @@ export interface WrapCitationPromptOptions {
   deepTextPromptPortion?: string | string[];
   /** Whether to use audio/video citation format (with timestamps) instead of text-based (with line IDs) */
   isAudioVideo?: boolean;
-  /**
-   * Citation mode to use.
-   * - `'inline_xml'`: Legacy inline `<cite />` tags (default)
-   * - `'deferred_json'`: New `[N]` markers with JSON block at end (recommended)
-   * @default 'inline_xml'
-   */
-  mode?: CitationMode;
 }
 
 export interface WrapCitationPromptResult {
@@ -147,7 +225,7 @@ export interface WrapCitationPromptResult {
  *
  * ### 2. Chain-of-Thought (CoT) Attribute Ordering
  * The citation attributes are ordered to encourage the model to "think first":
- * `attachment_id` → `reasoning` → `full_phrase` → `key_span` → `start_page_key` → `line_ids`
+ * `attachment_id` → `reasoning` → `full_phrase` → `key_span` → `page_key` → `line_ids`
  *
  * By placing `reasoning` early, the model must articulate WHY it's citing before
  * specifying WHAT it's citing. Then `full_phrase` comes before `key_span` so the model
@@ -176,26 +254,10 @@ export interface WrapCitationPromptResult {
 export function wrapSystemCitationPrompt(
   options: WrapSystemPromptOptions
 ): string {
-  const { systemPrompt, isAudioVideo = false, mode = "inline_xml" } = options;
+  const { systemPrompt, isAudioVideo = false } = options;
 
-  let citationPrompt: string;
-  let reminder: string;
-
-  if (mode === "deferred_json") {
-    // Use deferred JSON pattern with [N] markers and JSON block at end
-    citationPrompt = isAudioVideo
-      ? DEFERRED_AV_CITATION_PROMPT
-      : DEFERRED_CITATION_PROMPT;
-    reminder = isAudioVideo
-      ? DEFERRED_AV_CITATION_REMINDER
-      : DEFERRED_CITATION_REMINDER;
-  } else {
-    // Use legacy inline XML pattern with <cite /> tags
-    citationPrompt = isAudioVideo
-      ? AV_CITATION_MARKDOWN_SYNTAX_PROMPT
-      : CITATION_MARKDOWN_SYNTAX_PROMPT;
-    reminder = isAudioVideo ? CITATION_AV_REMINDER : CITATION_REMINDER;
-  }
+  const citationPrompt = isAudioVideo ? AV_CITATION_PROMPT : CITATION_PROMPT;
+  const reminder = isAudioVideo ? CITATION_AV_REMINDER : CITATION_REMINDER;
 
   // Full instructions at start (high priority), brief reminder at end (recency effect)
   return `${citationPrompt.trim()}\n\n${systemPrompt.trim()}\n\n${reminder}`;
@@ -240,24 +302,14 @@ export function wrapCitationPrompt(
     userPrompt,
     deepTextPromptPortion,
     isAudioVideo = false,
-    mode = "inline_xml",
   } = options;
 
   const enhancedSystemPrompt = wrapSystemCitationPrompt({
     systemPrompt,
     isAudioVideo,
-    mode,
   });
 
-  // Select the appropriate reminder based on mode
-  let reminder: string;
-  if (mode === "deferred_json") {
-    reminder = isAudioVideo
-      ? DEFERRED_AV_CITATION_REMINDER
-      : DEFERRED_CITATION_REMINDER;
-  } else {
-    reminder = isAudioVideo ? CITATION_AV_REMINDER : CITATION_REMINDER;
-  }
+  const reminder = isAudioVideo ? CITATION_AV_REMINDER : CITATION_REMINDER;
 
   // Build enhanced user prompt with file content if provided
   let enhancedUserPrompt = userPrompt;
@@ -281,76 +333,173 @@ export function wrapCitationPrompt(
   };
 }
 
+/**
+ * JSON schema for citation data (for structured output LLMs).
+ * This can be used with OpenAI's response_format or similar features.
+ */
 export const CITATION_JSON_OUTPUT_FORMAT = {
   type: "object",
   properties: {
-    attachmentId: { type: "string" },
+    id: {
+      type: "integer",
+      description: "Citation marker number matching [N] in text",
+    },
+    attachmentId: {
+      type: "string",
+      description: "Exact attachment ID from source document",
+    },
     reasoning: {
       type: "string",
-      description:
-        "The logic connecting the form section requirements to the supporting source citation (think first!)",
+      description: "Brief explanation of why this supports the claim",
     },
     fullPhrase: {
       type: "string",
-      description:
-        "The verbatim text of the terse phrase inside <attachment_text /> to support the citation (if there is a detected OCR correction, use the corrected text)",
+      description: "Verbatim quote from source document",
     },
     keySpan: {
       type: "string",
-      description:
-        "The verbatim 1-3 words within fullPhrase that best support the citation",
+      description: "1-3 key words from fullPhrase",
     },
-    startPageKey: {
+    pageKey: {
       type: "string",
-      description:
-        'Only return a result like "page_number_PAGE_index_INDEX" from the provided page keys (e.g. <page_number_1_index_0>) and never from the contents inside the page.',
+      description: "Page key in format page_number_N_index_I",
     },
     lineIds: {
       type: "array",
-      items: { type: "number" },
-      description:
-        "Infer lineIds, as we only provide the first, last, and every 5th line. Provide inclusive lineIds for the fullPhrase.",
+      items: { type: "integer" },
+      description: "Array of line numbers for the citation",
     },
   },
-  required: [
-    "attachmentId",
-    "reasoning",
-    "fullPhrase",
-    "keySpan",
-    "startPageKey",
-    "lineIds",
-  ],
-};
+  required: ["id", "attachmentId", "fullPhrase", "keySpan"],
+} as const;
 
-export const CITATION_AV_BASED_JSON_OUTPUT_FORMAT = {
+/**
+ * JSON schema for AV citation data.
+ */
+export const CITATION_AV_JSON_OUTPUT_FORMAT = {
   type: "object",
   properties: {
-    attachmentId: { type: "string" },
-    startPageKey: {
+    id: {
+      type: "integer",
+      description: "Citation marker number matching [N] in text",
+    },
+    attachmentId: {
       type: "string",
-      description:
-        'Only return a result like "page_number_PAGE_index_INDEX" from the provided page keys (e.g. <page_number_1_index_0>) and never from the contents inside the page.',
+      description: "Exact attachment ID from source media",
+    },
+    reasoning: {
+      type: "string",
+      description: "Brief explanation of why this supports the claim",
     },
     fullPhrase: {
       type: "string",
-      description:
-        "The exact verbatim text of the phrase or paragraph from the source document to support the citation (if there is a detected OCR correction, use the verbatim corrected text)",
+      description: "Verbatim transcript quote",
     },
     keySpan: {
       type: "string",
-      description:
-        "The verbatim 1-3 words within fullPhrase that best support the citation",
+      description: "1-3 key words from fullPhrase",
     },
     timestamps: {
       type: "object",
       properties: {
-        startTime: { type: "string" },
-        endTime: { type: "string" },
+        startTime: {
+          type: "string",
+          description: "Start time in HH:MM:SS.SSS format",
+        },
+        endTime: {
+          type: "string",
+          description: "End time in HH:MM:SS.SSS format",
+        },
       },
       required: ["startTime", "endTime"],
-      description:
-        "The timestamp of the audio or video frame including milliseconds formatted as: HH:MM:SS.SSS",
     },
   },
-  required: ["attachmentId", "startPageKey", "fullPhrase", "keySpan", "timestamps"],
-};
+  required: ["id", "attachmentId", "fullPhrase", "keySpan", "timestamps"],
+} as const;
+
+/**
+ * Interface for citation data from JSON block.
+ * Uses snake_case field names as output by the LLM prompts.
+ */
+export interface CitationData {
+  /** Citation marker number (matches [N] in text) */
+  id: number;
+  /** Attachment ID from source document */
+  attachment_id?: string;
+  /** Reasoning for the citation */
+  reasoning?: string;
+  /** Verbatim quote from source */
+  full_phrase?: string;
+  /** Key span (1-3 words) */
+  key_span?: string;
+  /** Page key in format page_number_N_index_I */
+  page_key?: string;
+  /** Line IDs array */
+  line_ids?: number[];
+  /** Timestamps for AV citations */
+  timestamps?: {
+    start_time?: string;
+    end_time?: string;
+  };
+}
+
+/**
+ * Result of parsing a citation response.
+ */
+export interface ParsedCitationResponse {
+  /** The clean text meant for display (content before the delimiter) */
+  visibleText: string;
+  /** The structured citation data from the JSON block */
+  citations: CitationData[];
+  /** Helper map for O(1) lookups by ID */
+  citationMap: Map<number, CitationData>;
+  /** Whether parsing was successful */
+  success: boolean;
+  /** Error message if parsing failed */
+  error?: string;
+}
+
+// =============================================================================
+// Legacy exports for backward compatibility
+// These are deprecated and will be removed in a future version.
+// =============================================================================
+
+/**
+ * @deprecated Use CITATION_PROMPT instead
+ */
+export const DEFERRED_CITATION_PROMPT = CITATION_PROMPT;
+
+/**
+ * @deprecated Use AV_CITATION_PROMPT instead
+ */
+export const DEFERRED_AV_CITATION_PROMPT = AV_CITATION_PROMPT;
+
+/**
+ * @deprecated Use CITATION_REMINDER instead
+ */
+export const DEFERRED_CITATION_REMINDER = CITATION_REMINDER;
+
+/**
+ * @deprecated Use CITATION_AV_REMINDER instead
+ */
+export const DEFERRED_AV_CITATION_REMINDER = CITATION_AV_REMINDER;
+
+/**
+ * @deprecated Use CITATION_JSON_OUTPUT_FORMAT instead
+ */
+export const DEFERRED_CITATION_JSON_SCHEMA = CITATION_JSON_OUTPUT_FORMAT;
+
+/**
+ * @deprecated Use CITATION_AV_JSON_OUTPUT_FORMAT instead
+ */
+export const DEFERRED_AV_CITATION_JSON_SCHEMA = CITATION_AV_JSON_OUTPUT_FORMAT;
+
+/**
+ * @deprecated Use CitationData instead
+ */
+export type DeferredCitationData = CitationData;
+
+/**
+ * @deprecated Use ParsedCitationResponse instead
+ */
+export type ParsedDeferredResponse = ParsedCitationResponse;

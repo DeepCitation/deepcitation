@@ -11,7 +11,7 @@ import {
 import {
   CITATION_DATA_START_DELIMITER,
   CITATION_DATA_END_DELIMITER,
-} from "../prompts/deferredCitationPrompt.js";
+} from "../prompts/citationPrompts.js";
 
 describe("parseDeferredCitationResponse", () => {
   it("parses a basic deferred citation response", () => {

@@ -1,44 +1,43 @@
 import { describe, expect, it } from "@jest/globals";
 import {
-  CITATION_MARKDOWN_SYNTAX_PROMPT,
-  AV_CITATION_MARKDOWN_SYNTAX_PROMPT,
+  CITATION_PROMPT,
+  AV_CITATION_PROMPT,
   CITATION_JSON_OUTPUT_FORMAT,
-  CITATION_AV_BASED_JSON_OUTPUT_FORMAT,
+  CITATION_AV_JSON_OUTPUT_FORMAT,
+  CITATION_DATA_START_DELIMITER,
   wrapSystemCitationPrompt,
   wrapCitationPrompt,
 } from "../prompts/citationPrompts.js";
-import {
-  DEFERRED_CITATION_PROMPT,
-  DEFERRED_AV_CITATION_PROMPT,
-  CITATION_DATA_START_DELIMITER,
-} from "../prompts/deferredCitationPrompt.js";
 
 describe("citation prompts", () => {
-  it("includes guidance for citation markdown syntax", () => {
-    expect(CITATION_MARKDOWN_SYNTAX_PROMPT).toContain(
-      "<cite attachment_id='"
-    );
-    expect(CITATION_MARKDOWN_SYNTAX_PROMPT).toContain("line_ids");
-    expect(AV_CITATION_MARKDOWN_SYNTAX_PROMPT).toContain(
-      "timestamps='HH:MM:SS.SSS"
-    );
-    expect(AV_CITATION_MARKDOWN_SYNTAX_PROMPT).toContain("key_span");
+  it("includes deferred JSON citation structure", () => {
+    expect(CITATION_PROMPT).toContain(CITATION_DATA_START_DELIMITER);
+    expect(CITATION_PROMPT).toContain("[1]");
+    expect(CITATION_PROMPT).toContain('"attachment_id"');
+    expect(CITATION_PROMPT).toContain('"full_phrase"');
+    expect(CITATION_PROMPT).toContain('"key_span"');
+    expect(CITATION_PROMPT).toContain('"page_key"');
+    expect(CITATION_PROMPT).toContain('"line_ids"');
   });
 
-  it("defines required fields for text-based citations in CoT order (fullPhrase before keySpan)", () => {
+  it("includes timestamps in AV_CITATION_PROMPT", () => {
+    expect(AV_CITATION_PROMPT).toContain(CITATION_DATA_START_DELIMITER);
+    expect(AV_CITATION_PROMPT).toContain('"timestamps"');
+    expect(AV_CITATION_PROMPT).toContain('"start_time"');
+    expect(AV_CITATION_PROMPT).toContain('"end_time"');
+  });
+
+  it("defines required fields for citations in JSON schema", () => {
     expect(CITATION_JSON_OUTPUT_FORMAT.required).toEqual([
+      "id",
       "attachmentId",
-      "reasoning",
       "fullPhrase",
       "keySpan",
-      "startPageKey",
-      "lineIds",
     ]);
   });
 
-  it("defines timestamp requirements for AV citations", () => {
-    const timestamps =
-      CITATION_AV_BASED_JSON_OUTPUT_FORMAT.properties?.timestamps;
+  it("defines timestamp requirements for AV citations in JSON schema", () => {
+    const timestamps = CITATION_AV_JSON_OUTPUT_FORMAT.properties?.timestamps;
     expect(timestamps?.required).toEqual(["startTime", "endTime"]);
   });
 });
@@ -49,11 +48,11 @@ describe("wrapSystemCitationPrompt", () => {
     const result = wrapSystemCitationPrompt({ systemPrompt });
 
     expect(result).toContain("You are a helpful assistant.");
-    expect(result).toContain("<cite attachment_id='");
-    expect(result).toContain("line_ids");
+    expect(result).toContain(CITATION_DATA_START_DELIMITER);
+    expect(result).toContain("[1]");
     expect(result).toContain("<citation-reminder>");
     // Citation instructions come first (wrap mode)
-    expect(result.indexOf("<cite")).toBeLessThan(
+    expect(result.indexOf(CITATION_DATA_START_DELIMITER)).toBeLessThan(
       result.indexOf("You are a helpful assistant.")
     );
     // Reminder comes after system prompt
@@ -70,8 +69,9 @@ describe("wrapSystemCitationPrompt", () => {
     });
 
     expect(result).toContain("You are an audio transcription assistant.");
-    expect(result).toContain("timestamps='HH:MM:SS.SSS");
-    expect(result).not.toContain("line_ids");
+    expect(result).toContain(CITATION_DATA_START_DELIMITER);
+    expect(result).toContain("timestamps");
+    expect(result).toContain("HH:MM:SS.SSS");
   });
 
   it("trims whitespace from system prompt", () => {
@@ -85,7 +85,7 @@ describe("wrapSystemCitationPrompt", () => {
   it("handles empty system prompt", () => {
     const result = wrapSystemCitationPrompt({ systemPrompt: "" });
 
-    expect(result).toContain("<cite attachment_id='");
+    expect(result).toContain(CITATION_DATA_START_DELIMITER);
   });
 });
 
@@ -99,9 +99,7 @@ describe("wrapCitationPrompt", () => {
     expect(result.enhancedSystemPrompt).toContain(
       "You are a helpful assistant."
     );
-    expect(result.enhancedSystemPrompt).toContain(
-      "<cite attachment_id='"
-    );
+    expect(result.enhancedSystemPrompt).toContain(CITATION_DATA_START_DELIMITER);
     expect(result.enhancedUserPrompt).toContain("Analyze this document.");
   });
 
@@ -124,8 +122,9 @@ describe("wrapCitationPrompt", () => {
       isAudioVideo: true,
     });
 
-    expect(result.enhancedSystemPrompt).toContain("timestamps='HH:MM:SS.SSS");
-    expect(result.enhancedSystemPrompt).not.toContain("line_ids");
+    expect(result.enhancedSystemPrompt).toContain(CITATION_DATA_START_DELIMITER);
+    expect(result.enhancedSystemPrompt).toContain("timestamps");
+    expect(result.enhancedSystemPrompt).toContain("start_time");
   });
 
   it("passes through user prompt unchanged by default", () => {
@@ -147,7 +146,7 @@ describe("wrapCitationPrompt", () => {
       userPrompt: "",
     });
 
-    expect(result.enhancedSystemPrompt).toContain("<cite");
+    expect(result.enhancedSystemPrompt).toContain(CITATION_DATA_START_DELIMITER);
     expect(typeof result.enhancedUserPrompt).toBe("string");
   });
 
@@ -256,151 +255,27 @@ More content.`;
     });
   });
 
-  describe("mode parameter", () => {
-    it("defaults to inline_xml mode", () => {
-      const result = wrapCitationPrompt({
-        systemPrompt: "You are a helpful assistant.",
-        userPrompt: "Analyze this.",
-      });
-
-      expect(result.enhancedSystemPrompt).toContain("<cite attachment_id='");
-      expect(result.enhancedSystemPrompt).not.toContain(
-        CITATION_DATA_START_DELIMITER
-      );
+  it("includes reminder in user prompt when deepTextPromptPortion is provided", () => {
+    const result = wrapCitationPrompt({
+      systemPrompt: "System",
+      userPrompt: "Question",
+      deepTextPromptPortion: "File content here",
     });
 
-    it("uses inline_xml mode when explicitly set", () => {
-      const result = wrapCitationPrompt({
-        systemPrompt: "You are a helpful assistant.",
-        userPrompt: "Analyze this.",
-        mode: "inline_xml",
-      });
-
-      expect(result.enhancedSystemPrompt).toContain("<cite attachment_id='");
-      expect(result.enhancedSystemPrompt).not.toContain(
-        CITATION_DATA_START_DELIMITER
-      );
-    });
-
-    it("uses deferred_json mode when set", () => {
-      const result = wrapCitationPrompt({
-        systemPrompt: "You are a helpful assistant.",
-        userPrompt: "Analyze this.",
-        mode: "deferred_json",
-      });
-
-      expect(result.enhancedSystemPrompt).toContain(
-        CITATION_DATA_START_DELIMITER
-      );
-      expect(result.enhancedSystemPrompt).toContain("[1]");
-      expect(result.enhancedSystemPrompt).not.toContain("<cite attachment_id='");
-    });
-
-    it("uses deferred AV format for audio/video with deferred_json mode", () => {
-      const result = wrapCitationPrompt({
-        systemPrompt: "You are an audio assistant.",
-        userPrompt: "Transcribe this.",
-        mode: "deferred_json",
-        isAudioVideo: true,
-      });
-
-      expect(result.enhancedSystemPrompt).toContain(
-        CITATION_DATA_START_DELIMITER
-      );
-      expect(result.enhancedSystemPrompt).toContain("timestamps");
-      expect(result.enhancedSystemPrompt).toContain("start_time");
-    });
-
-    it("uses appropriate reminder in user prompt for deferred_json mode", () => {
-      const result = wrapCitationPrompt({
-        systemPrompt: "System",
-        userPrompt: "Question",
-        deepTextPromptPortion: "File content here",
-        mode: "deferred_json",
-      });
-
-      expect(result.enhancedUserPrompt).toContain(
-        "<<<CITATION_DATA>>>"
-      );
-    });
+    expect(result.enhancedUserPrompt).toContain("<<<CITATION_DATA>>>");
   });
 });
 
-describe("wrapSystemCitationPrompt mode parameter", () => {
-  it("defaults to inline_xml mode", () => {
+describe("wrapSystemCitationPrompt maintains wrap strategy", () => {
+  it("places instructions at start and reminder at end", () => {
     const result = wrapSystemCitationPrompt({
-      systemPrompt: "You are a helpful assistant.",
-    });
-
-    expect(result).toContain("<cite attachment_id='");
-    expect(result).not.toContain(CITATION_DATA_START_DELIMITER);
-  });
-
-  it("uses deferred_json mode when set", () => {
-    const result = wrapSystemCitationPrompt({
-      systemPrompt: "You are a helpful assistant.",
-      mode: "deferred_json",
-    });
-
-    expect(result).toContain(CITATION_DATA_START_DELIMITER);
-    expect(result).toContain("[1]");
-    expect(result).not.toContain("<cite attachment_id='");
-  });
-
-  it("uses deferred AV format for audio/video with deferred_json mode", () => {
-    const result = wrapSystemCitationPrompt({
-      systemPrompt: "Audio assistant",
-      mode: "deferred_json",
-      isAudioVideo: true,
-    });
-
-    expect(result).toContain(CITATION_DATA_START_DELIMITER);
-    expect(result).toContain("timestamps");
-    expect(result).toContain("HH:MM:SS.SSS");
-  });
-
-  it("maintains wrap strategy for both modes (instructions at start, reminder at end)", () => {
-    // Test inline_xml mode
-    const inlineResult = wrapSystemCitationPrompt({
       systemPrompt: "My system prompt here",
-      mode: "inline_xml",
     });
-    expect(inlineResult.indexOf("<cite")).toBeLessThan(
-      inlineResult.indexOf("My system prompt here")
+    expect(result.indexOf(CITATION_DATA_START_DELIMITER)).toBeLessThan(
+      result.indexOf("My system prompt here")
     );
-    expect(inlineResult.indexOf("My system prompt here")).toBeLessThan(
-      inlineResult.indexOf("<citation-reminder>")
+    expect(result.indexOf("My system prompt here")).toBeLessThan(
+      result.lastIndexOf("<citation-reminder>")
     );
-
-    // Test deferred_json mode
-    const deferredResult = wrapSystemCitationPrompt({
-      systemPrompt: "My system prompt here",
-      mode: "deferred_json",
-    });
-    expect(deferredResult.indexOf(CITATION_DATA_START_DELIMITER)).toBeLessThan(
-      deferredResult.indexOf("My system prompt here")
-    );
-    expect(deferredResult.indexOf("My system prompt here")).toBeLessThan(
-      deferredResult.lastIndexOf("<citation-reminder>")
-    );
-  });
-});
-
-describe("deferred citation prompts", () => {
-  it("includes correct structure in DEFERRED_CITATION_PROMPT", () => {
-    expect(DEFERRED_CITATION_PROMPT).toContain(CITATION_DATA_START_DELIMITER);
-    expect(DEFERRED_CITATION_PROMPT).toContain("[1]");
-    expect(DEFERRED_CITATION_PROMPT).toContain('"attachment_id"');
-    expect(DEFERRED_CITATION_PROMPT).toContain('"full_phrase"');
-    expect(DEFERRED_CITATION_PROMPT).toContain('"key_span"');
-    expect(DEFERRED_CITATION_PROMPT).toContain('"page_key"');
-    expect(DEFERRED_CITATION_PROMPT).toContain('"line_ids"');
-  });
-
-  it("includes timestamps in DEFERRED_AV_CITATION_PROMPT", () => {
-    expect(DEFERRED_AV_CITATION_PROMPT).toContain(CITATION_DATA_START_DELIMITER);
-    expect(DEFERRED_AV_CITATION_PROMPT).toContain('"timestamps"');
-    expect(DEFERRED_AV_CITATION_PROMPT).toContain('"start_time"');
-    expect(DEFERRED_AV_CITATION_PROMPT).toContain('"end_time"');
   });
 });

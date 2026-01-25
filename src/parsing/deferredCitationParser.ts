@@ -1,5 +1,5 @@
 /**
- * Deferred Citation Parser
+ * Citation Parser
  *
  * Implements the "Split & Parse" strategy for the deferred JSON citation pattern.
  * This parser extracts citations from LLM responses that use [N] markers in text
@@ -18,9 +18,22 @@ import { generateCitationKey } from "../react/utils.js";
 import {
   CITATION_DATA_START_DELIMITER,
   CITATION_DATA_END_DELIMITER,
-  type DeferredCitationData,
-  type ParsedDeferredResponse,
-} from "../prompts/deferredCitationPrompt.js";
+  type CitationData,
+  type ParsedCitationResponse,
+} from "../prompts/citationPrompts.js";
+
+// Re-export types for backward compatibility
+export type { CitationData, ParsedCitationResponse } from "../prompts/citationPrompts.js";
+
+/**
+ * @deprecated Use CitationData instead
+ */
+export type DeferredCitationData = CitationData;
+
+/**
+ * @deprecated Use ParsedCitationResponse instead
+ */
+export type ParsedDeferredResponse = ParsedCitationResponse;
 
 /**
  * Attempts to repair malformed JSON.
@@ -62,12 +75,37 @@ function repairJson(jsonString: string): string {
 }
 
 /**
- * Normalizes a DeferredCitationData object to use consistent field names.
+ * Raw citation data that may come from LLM in either snake_case or camelCase.
+ * Internal type used for parsing before normalization.
+ */
+interface RawCitationData {
+  id: number;
+  attachment_id?: string;
+  attachmentId?: string;
+  reasoning?: string;
+  full_phrase?: string;
+  fullPhrase?: string;
+  key_span?: string;
+  keySpan?: string;
+  page_key?: string;
+  pageKey?: string;
+  start_page_key?: string;
+  startPageKey?: string;
+  line_ids?: number[];
+  lineIds?: number[];
+  timestamps?: {
+    start_time?: string;
+    startTime?: string;
+    end_time?: string;
+    endTime?: string;
+  };
+}
+
+/**
+ * Normalizes raw LLM citation data to use consistent snake_case field names.
  * Handles both snake_case and camelCase variations from LLM output.
  */
-function normalizeCitationData(
-  raw: DeferredCitationData
-): DeferredCitationData {
+function normalizeCitationData(raw: RawCitationData): CitationData {
   return {
     id: raw.id,
     attachment_id: raw.attachment_id ?? raw.attachmentId,
@@ -88,7 +126,7 @@ function normalizeCitationData(
 }
 
 /**
- * Parses a deferred JSON response from an LLM.
+ * Parses a citation response from an LLM.
  *
  * This function:
  * 1. Finds the <<<CITATION_DATA>>> delimiter in the response
@@ -97,7 +135,7 @@ function normalizeCitationData(
  * 4. Returns a structured result with both
  *
  * @param llmResponse - The full LLM response text
- * @returns ParsedDeferredResponse with visible text and parsed citations
+ * @returns ParsedCitationResponse with visible text and parsed citations
  *
  * @example
  * ```typescript
@@ -116,7 +154,7 @@ function normalizeCitationData(
  */
 export function parseDeferredCitationResponse(
   llmResponse: string
-): ParsedDeferredResponse {
+): ParsedCitationResponse {
   if (!llmResponse || typeof llmResponse !== "string") {
     return {
       visibleText: "",
@@ -156,8 +194,8 @@ export function parseDeferredCitationResponse(
   const jsonString = llmResponse.substring(jsonStartIndex, jsonEndIndex).trim();
 
   // Parse the JSON
-  let citations: DeferredCitationData[] = [];
-  const citationMap = new Map<number, DeferredCitationData>();
+  let citations: CitationData[] = [];
+  const citationMap = new Map<number, CitationData>();
 
   if (jsonString) {
     try {
@@ -199,14 +237,14 @@ export function parseDeferredCitationResponse(
 }
 
 /**
- * Converts a DeferredCitationData object to the standard Citation format.
+ * Converts a CitationData object to the standard Citation format.
  *
- * @param data - The deferred citation data
+ * @param data - The citation data
  * @param citationNumber - Optional override for citation number (defaults to data.id)
  * @returns Standard Citation object
  */
 export function deferredCitationToCitation(
-  data: DeferredCitationData,
+  data: CitationData,
   citationNumber?: number
 ): Citation {
   // Parse page number from page_key
@@ -249,13 +287,13 @@ export function deferredCitationToCitation(
 }
 
 /**
- * Extracts all citations from a deferred JSON response and returns them
+ * Extracts all citations from a citation response and returns them
  * in the standard dictionary format used by the verification API.
  *
  * This function parses the response, converts each citation to the standard
  * Citation format, and generates deterministic keys for each.
  *
- * @param llmResponse - The full LLM response with deferred citation block
+ * @param llmResponse - The full LLM response with citation block
  * @returns Dictionary of parsed Citation objects keyed by citation key
  *
  * @example
@@ -287,7 +325,7 @@ export function getAllCitationsFromDeferredResponse(
 }
 
 /**
- * Checks if a response contains deferred citation markers.
+ * Checks if a response contains citation markers.
  *
  * @param response - The LLM response to check
  * @returns True if the response contains the citation data delimiter
@@ -300,7 +338,7 @@ export function hasDeferredCitations(response: string): boolean {
 }
 
 /**
- * Extracts just the visible text from a deferred response,
+ * Extracts just the visible text from a response,
  * removing the citation data block.
  *
  * @param llmResponse - The full LLM response
@@ -338,11 +376,11 @@ export function replaceDeferredMarkers(
   text: string,
   options?: {
     /** Map of citation IDs to their data */
-    citationMap?: Map<number, DeferredCitationData>;
+    citationMap?: Map<number, CitationData>;
     /** Whether to show the key span after the marker */
     showKeySpan?: boolean;
     /** Custom replacement function */
-    replacer?: (id: number, data?: DeferredCitationData) => string;
+    replacer?: (id: number, data?: CitationData) => string;
   }
 ): string {
   const { citationMap, showKeySpan, replacer } = options || {};
