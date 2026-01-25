@@ -26,6 +26,17 @@ export {
   groupCitationsByAttachmentId,
   groupCitationsByAttachmentIdObject,
 } from "./parsing/parseCitation.js";
+
+// Citation Parsing (deferred JSON pattern)
+export {
+  parseDeferredCitationResponse,
+  getAllCitationsFromDeferredResponse,
+  deferredCitationToCitation,
+  hasDeferredCitations,
+  extractVisibleText,
+  replaceDeferredMarkers,
+  getCitationMarkerIds,
+} from "./parsing/deferredCitationParser.js";
 export {
   normalizeCitations,
   getCitationPageNumber,
@@ -81,20 +92,36 @@ export { CITATION_X_PADDING, CITATION_Y_PADDING } from "./react/utils.js";
 
 // Prompts
 export {
-  CITATION_JSON_OUTPUT_FORMAT,
-  CITATION_MARKDOWN_SYNTAX_PROMPT,
-  AV_CITATION_MARKDOWN_SYNTAX_PROMPT,
-  CITATION_AV_BASED_JSON_OUTPUT_FORMAT,
+  // Primary exports (new names)
+  CITATION_PROMPT,
+  AV_CITATION_PROMPT,
   CITATION_REMINDER,
   CITATION_AV_REMINDER,
+  CITATION_JSON_OUTPUT_FORMAT,
+  CITATION_AV_JSON_OUTPUT_FORMAT,
+  CITATION_DATA_START_DELIMITER,
+  CITATION_DATA_END_DELIMITER,
   wrapSystemCitationPrompt,
   wrapCitationPrompt,
+  // Legacy exports for backward compatibility (deprecated)
+  DEFERRED_CITATION_PROMPT,
+  DEFERRED_AV_CITATION_PROMPT,
+  DEFERRED_CITATION_REMINDER,
+  DEFERRED_AV_CITATION_REMINDER,
+  DEFERRED_CITATION_JSON_SCHEMA,
+  DEFERRED_AV_CITATION_JSON_SCHEMA,
 } from "./prompts/citationPrompts.js";
 
 export type {
   WrapSystemPromptOptions,
   WrapCitationPromptOptions,
   WrapCitationPromptResult,
+  // Primary type exports (new names)
+  CitationData,
+  ParsedCitationResponse,
+  // Legacy type exports for backward compatibility (deprecated)
+  DeferredCitationData,
+  ParsedDeferredResponse,
 } from "./prompts/citationPrompts.js";
 
 export {
