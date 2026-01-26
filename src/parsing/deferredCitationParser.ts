@@ -19,8 +19,117 @@ import {
   CITATION_DATA_START_DELIMITER,
   CITATION_DATA_END_DELIMITER,
   type CitationData,
+  type CompactCitationData,
   type ParsedCitationResponse,
 } from "../prompts/citationPrompts.js";
+
+/**
+ * Map of compact keys to their full CitationData equivalents.
+ */
+const COMPACT_KEY_MAP: Record<string, keyof CitationData> = {
+  n: "id",
+  a: "attachment_id",
+  r: "reasoning",
+  f: "full_phrase",
+  k: "anchor_text",
+  p: "page_id",
+  l: "line_ids",
+  t: "timestamps",
+} as const;
+
+/**
+ * Map for timestamp sub-keys.
+ */
+const TIMESTAMP_KEY_MAP: Record<string, string> = {
+  s: "start_time",
+  e: "end_time",
+} as const;
+
+/**
+ * Expands compact citation data to the full CitationData format.
+ * Handles both compact keys (n, a, r, f, k, p, l, t) and full keys.
+ *
+ * @param data - Raw citation object (may have compact or full keys)
+ * @param attachmentId - Optional attachment_id to inject (for grouped format)
+ * @returns Normalized CitationData with full keys
+ */
+function expandCompactKeys(
+  data: CompactCitationData | CitationData | Record<string, unknown>,
+  attachmentId?: string
+): CitationData {
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    // Check if this is a compact key
+    const fullKey = COMPACT_KEY_MAP[key] || key;
+
+    // Handle timestamps specially (nested object with s/e keys)
+    if ((key === "t" || key === "timestamps") && value && typeof value === "object") {
+      const ts = value as Record<string, unknown>;
+      result.timestamps = {
+        start_time: ts.s ?? ts.start_time,
+        end_time: ts.e ?? ts.end_time,
+      };
+    } else {
+      result[fullKey] = value;
+    }
+  }
+
+  // Inject attachment_id if provided (from grouped format)
+  if (attachmentId && !result.attachment_id) {
+    result.attachment_id = attachmentId;
+  }
+
+  return result as CitationData;
+}
+
+/**
+ * Checks if the parsed JSON is in grouped format (object with attachment IDs as keys)
+ * vs flat format (array of citations).
+ */
+function isGroupedFormat(parsed: unknown): parsed is Record<string, unknown[]> {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return false;
+  }
+  // Check if all values are arrays (grouped format)
+  const values = Object.values(parsed);
+  return values.length > 0 && values.every(Array.isArray);
+}
+
+/**
+ * Flattens grouped citation format into a flat array.
+ * Grouped format: { "attachmentId": [citations...], ... }
+ * Flat format: [{ attachment_id: "...", ...citation }, ...]
+ */
+function flattenGroupedCitations(
+  grouped: Record<string, unknown[]>
+): CitationData[] {
+  const citations: CitationData[] = [];
+
+  for (const [attachmentId, citationArray] of Object.entries(grouped)) {
+    for (const citation of citationArray) {
+      if (typeof citation === "object" && citation !== null) {
+        citations.push(expandCompactKeys(citation as Record<string, unknown>, attachmentId));
+      }
+    }
+  }
+
+  return citations;
+}
+
+/**
+ * Helper to parse citations from JSON, handling both grouped and flat formats.
+ */
+function parseCitationsFromJson(parsed: unknown): CitationData[] {
+  // Check for grouped format: { "attachmentId": [citations...], ... }
+  if (isGroupedFormat(parsed)) {
+    return flattenGroupedCitations(parsed);
+  }
+
+  // Flat format: array of citations or single citation
+  const rawCitations = Array.isArray(parsed) ? parsed : [parsed];
+  return rawCitations.map((c) => expandCompactKeys(c as Record<string, unknown>));
+}
 
 // Re-export types for backward compatibility
 export type { CitationData, ParsedCitationResponse } from "../prompts/citationPrompts.js";
@@ -151,13 +260,13 @@ export function parseDeferredCitationResponse(
     try {
       // First attempt: direct JSON.parse
       const parsed = JSON.parse(jsonString);
-      citations = Array.isArray(parsed) ? parsed : [parsed];
+      citations = parseCitationsFromJson(parsed);
     } catch {
       // Second attempt: repair and retry
       try {
         const repaired = repairJson(jsonString);
         const parsed = JSON.parse(repaired);
-        citations = Array.isArray(parsed) ? parsed : [parsed];
+        citations = parseCitationsFromJson(parsed);
       } catch (repairError) {
         return {
           visibleText,
@@ -186,6 +295,39 @@ export function parseDeferredCitationResponse(
 }
 
 /**
+ * Parses a page_id string to extract page number and index.
+ * Supports both compact "N_I" format and legacy "page_number_N_index_I" format.
+ *
+ * @param pageId - The page ID string
+ * @returns Object with pageNumber and normalized startPageId, or undefined values
+ */
+function parsePageId(pageId: string): { pageNumber?: number; startPageId?: string } {
+  // Try compact format first: "N_I" (e.g., "2_1")
+  const compactMatch = pageId.match(/^(\d+)_(\d+)$/);
+  if (compactMatch) {
+    const pageNum = parseInt(compactMatch[1], 10);
+    const index = parseInt(compactMatch[2], 10);
+    return {
+      pageNumber: pageNum,
+      startPageId: `page_number_${pageNum}_index_${index}`,
+    };
+  }
+
+  // Try legacy format: "page_number_N_index_I" or variations
+  const legacyMatch = pageId.match(/page[_a-zA-Z]*(\d+)_index_(\d+)/i);
+  if (legacyMatch) {
+    const pageNum = parseInt(legacyMatch[1], 10);
+    const index = parseInt(legacyMatch[2], 10);
+    return {
+      pageNumber: pageNum,
+      startPageId: `page_number_${pageNum}_index_${index}`,
+    };
+  }
+
+  return { pageNumber: undefined, startPageId: undefined };
+}
+
+/**
  * Converts a CitationData object to the standard Citation format.
  *
  * @param data - The citation data
@@ -196,16 +338,14 @@ export function deferredCitationToCitation(
   data: CitationData,
   citationNumber?: number
 ): Citation {
-  // Parse page number from page_id
+  // Parse page number from page_id (supports both "N_I" and "page_number_N_index_I")
   let pageNumber: number | undefined;
   let startPageId: string | undefined;
   const pageId = data.page_id;
   if (pageId) {
-    const pageMatch = pageId.match(/page[_a-zA-Z]*(\d+)_index_(\d+)/i);
-    if (pageMatch) {
-      pageNumber = parseInt(pageMatch[1], 10);
-      startPageId = `page_number_${pageMatch[1]}_index_${pageMatch[2]}`;
-    }
+    const parsed = parsePageId(pageId);
+    pageNumber = parsed.pageNumber;
+    startPageId = parsed.startPageId;
   }
 
   // Parse timestamps for AV citations

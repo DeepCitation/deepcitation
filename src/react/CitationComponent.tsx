@@ -428,8 +428,8 @@ const MissIndicator = () => (
 // =============================================================================
 
 /**
- * Calculate the bounding box that encompasses all keySpan boxes.
- * Falls back to phraseMatchDeepItem if no keySpan boxes are available.
+ * Calculate the bounding box that encompasses all anchorText boxes.
+ * Falls back to phraseMatchDeepItem if no anchorText boxes are available.
  */
 function getKeySpanBoundingBox(verification: Verification | null): {
   x: number;
@@ -497,7 +497,7 @@ function AnchorTextFocusedImage({
   const imageRef = useRef<HTMLImageElement>(null);
   const hasInitializedScrollRef = useRef(false);
 
-  const keySpanBox = useMemo(
+  const anchorTextBox = useMemo(
     () => getKeySpanBoundingBox(verification),
     [verification]
   );
@@ -508,7 +508,7 @@ function AnchorTextFocusedImage({
       hasInitializedScrollRef.current ||
       !containerRef.current ||
       !imageRef.current ||
-      !keySpanBox
+      !anchorTextBox
     ) {
       return;
     }
@@ -528,19 +528,19 @@ function AnchorTextFocusedImage({
     const scaleX = image.clientWidth / originalWidth;
     const scaleY = image.clientHeight / originalHeight;
 
-    // Calculate the keySpan center in displayed image coordinates
-    const keySpanCenterX = (keySpanBox.x + keySpanBox.width / 2) * scaleX;
-    const keySpanCenterY = (keySpanBox.y + keySpanBox.height / 2) * scaleY;
+    // Calculate the anchorText center in displayed image coordinates
+    const anchorTextCenterX = (anchorTextBox.x + anchorTextBox.width / 2) * scaleX;
+    const anchorTextCenterY = (anchorTextBox.y + anchorTextBox.height / 2) * scaleY;
 
-    // Calculate scroll position to center the keySpan in the viewport
-    // with some vertical bias towards showing content above the keySpan
-    const scrollX = Math.max(0, keySpanCenterX - container.clientWidth / 2);
-    const scrollY = Math.max(0, keySpanCenterY - container.clientHeight * 0.4);
+    // Calculate scroll position to center the anchorText in the viewport
+    // with some vertical bias towards showing content above the anchorText
+    const scrollX = Math.max(0, anchorTextCenterX - container.clientWidth / 2);
+    const scrollY = Math.max(0, anchorTextCenterY - container.clientHeight * 0.4);
 
     container.scrollLeft = scrollX;
     container.scrollTop = scrollY;
     hasInitializedScrollRef.current = true;
-  }, [keySpanBox, verification.verificationImageDimensions]);
+  }, [anchorTextBox, verification.verificationImageDimensions]);
 
   // Reset scroll initialization when verification changes
   useEffect(() => {

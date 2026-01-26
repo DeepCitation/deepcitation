@@ -56,8 +56,8 @@ describe("Performance Fixes", () => {
       // This was failing when the same unclosed citation appeared multiple times
       // because .replace() only replaced the first occurrence
       const input = `
-        Some text <cite attachment_id='abc123' full_phrase='test1' key_span='test1' line_ids='1'> and more text
-        <cite attachment_id='abc123' full_phrase='test2' key_span='test2' line_ids='2'> end text
+        Some text <cite attachment_id='abc123' full_phrase='test1' anchor_text='test1' line_ids='1'> and more text
+        <cite attachment_id='abc123' full_phrase='test2' anchor_text='test2' line_ids='2'> end text
       `.trim();
 
       const result = normalizeCitations(input);
@@ -70,8 +70,8 @@ describe("Performance Fixes", () => {
     it("should handle identical citation tags", () => {
       // Test with identical citations (same content)
       const input = `
-        Text <cite attachment_id='abc123' full_phrase='same' key_span='same' line_ids='1'>
-        More <cite attachment_id='abc123' full_phrase='same' key_span='same' line_ids='1'>
+        Text <cite attachment_id='abc123' full_phrase='same' anchor_text='same' line_ids='1'>
+        More <cite attachment_id='abc123' full_phrase='same' anchor_text='same' line_ids='1'>
       `.trim();
 
       const result = normalizeCitations(input);
@@ -86,9 +86,9 @@ describe("Performance Fixes", () => {
     it("should correctly parse citations with all attribute variations", () => {
       // Test that the regex cache works correctly for different attribute names
       const citationText = `
-        <cite attachment_id='abc123' start_page_key='page_number_1_index_0' full_phrase='Test phrase' key_span='Test' line_ids='1' />
-        <cite attachmentId='def456' startPageKey='page_number_2_index_0' fullPhrase='Another phrase' keySpan='Another' lineIds='2' />
-        <cite file_id='ghi789' start_page_key='page_number_3_index_0' full_phrase='Third phrase' key_span='Third' line_ids='3' />
+        <cite attachment_id='abc123' start_page_key='page_number_1_index_0' full_phrase='Test phrase' anchor_text='Test' line_ids='1' />
+        <cite attachmentId='def456' startPageKey='page_number_2_index_0' fullPhrase='Another phrase' anchorText='Another' lineIds='2' />
+        <cite file_id='ghi789' start_page_key='page_number_3_index_0' full_phrase='Third phrase' anchor_text='Third' line_ids='3' />
       `;
 
       const citations = getAllCitationsFromLlmOutput(citationText);
@@ -102,7 +102,7 @@ describe("Performance Fixes", () => {
       const citations: string[] = [];
       for (let i = 0; i < 100; i++) {
         citations.push(
-          `<cite attachment_id='att${i}' start_page_key='page_number_${i}_index_0' full_phrase='Phrase ${i}' key_span='Key ${i}' line_ids='${i}' />`
+          `<cite attachment_id='att${i}' start_page_key='page_number_${i}_index_0' full_phrase='Phrase ${i}' anchor_text='Key ${i}' line_ids='${i}' />`
         );
       }
       const text = citations.join("\n");
@@ -212,7 +212,7 @@ describe("Performance Fixes", () => {
 
   describe("Sequential String Replacement Optimization (normalizeCitation.ts)", () => {
     it("should correctly decode HTML entities", () => {
-      const input = `<cite attachment_id='abc' full_phrase='Test &quot;quoted&quot; and &apos;apostrophe&apos; with &lt;tag&gt; and &amp;' key_span='Test' line_ids='1' />`;
+      const input = `<cite attachment_id='abc' full_phrase='Test &quot;quoted&quot; and &apos;apostrophe&apos; with &lt;tag&gt; and &amp;' anchor_text='Test' line_ids='1' />`;
 
       const result = normalizeCitations(input);
 
@@ -227,7 +227,7 @@ describe("Performance Fixes", () => {
     it("should handle newlines in attribute content", () => {
       const input = `<cite attachment_id='abc' full_phrase='Line1
 Line2
-Line3' key_span='Test' line_ids='1' />`;
+Line3' anchor_text='Test' line_ids='1' />`;
 
       const result = normalizeCitations(input);
 
@@ -236,7 +236,7 @@ Line3' key_span='Test' line_ids='1' />`;
     });
 
     it("should remove markdown markers from content", () => {
-      const input = `<cite attachment_id='abc' full_phrase='**bold** and __underline__ text' key_span='Test' line_ids='1' />`;
+      const input = `<cite attachment_id='abc' full_phrase='**bold** and __underline__ text' anchor_text='Test' line_ids='1' />`;
 
       const result = normalizeCitations(input);
 
@@ -246,7 +246,7 @@ Line3' key_span='Test' line_ids='1' />`;
     });
 
     it("should properly escape quotes", () => {
-      const input = `<cite attachment_id='abc' full_phrase='Text with "double" and single quotes' key_span='Test' line_ids='1' />`;
+      const input = `<cite attachment_id='abc' full_phrase='Text with "double" and single quotes' anchor_text='Test' line_ids='1' />`;
 
       const result = normalizeCitations(input);
 
@@ -269,7 +269,7 @@ describe("Data Loss Fix - Citations Without AttachmentId", () => {
 
   it("should parse citations without attachmentId", () => {
     // Citations without attachmentId should still be parsed
-    const text = `<cite full_phrase='Test phrase without attachment' key_span='Test' line_ids='1' />`;
+    const text = `<cite full_phrase='Test phrase without attachment' anchor_text='Test' line_ids='1' />`;
 
     const result = getAllCitationsFromLlmOutput(text);
 

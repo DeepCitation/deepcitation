@@ -13,7 +13,8 @@ describe("citation prompts", () => {
   it("includes deferred JSON citation structure", () => {
     expect(CITATION_PROMPT).toContain(CITATION_DATA_START_DELIMITER);
     expect(CITATION_PROMPT).toContain("[1]");
-    expect(CITATION_PROMPT).toContain('"attachment_id"');
+    // Grouped format uses attachment_id as object key, not field
+    expect(CITATION_PROMPT).toContain("attachment_id");
     expect(CITATION_PROMPT).toContain('"full_phrase"');
     expect(CITATION_PROMPT).toContain('"anchor_text"');
     expect(CITATION_PROMPT).toContain('"page_id"');
@@ -30,15 +31,15 @@ describe("citation prompts", () => {
   it("defines required fields for citations in JSON schema", () => {
     expect(CITATION_JSON_OUTPUT_FORMAT.required).toEqual([
       "id",
-      "attachmentId",
-      "fullPhrase",
-      "anchorText",
+      "attachment_id",
+      "full_phrase",
+      "anchor_text",
     ]);
   });
 
   it("defines timestamp requirements for AV citations in JSON schema", () => {
     const timestamps = CITATION_AV_JSON_OUTPUT_FORMAT.properties?.timestamps;
-    expect(timestamps?.required).toEqual(["startTime", "endTime"]);
+    expect(timestamps?.required).toEqual(["start_time", "end_time"]);
   });
 });
 

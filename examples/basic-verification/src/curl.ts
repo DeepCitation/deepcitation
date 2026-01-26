@@ -1,11 +1,14 @@
 /**
  * DeepCitation Basic Example - Raw API (curl/fetch)
  *
- * This example demonstrates the complete 4-step workflow using raw API calls
+ * This example demonstrates the complete 5-step workflow using raw API calls
  * instead of the DeepCitation client. This is useful for:
  * - Understanding the underlying API
  * - Integrating with other languages
  * - Custom implementations
+ *
+ * IMPORTANT: The LLM response contains a <<<CITATION_DATA>>>...<<<END_CITATION_DATA>>> block
+ * that must be stripped before showing to users. Use extractVisibleText() for this.
  *
  * Run: npm run start:curl
  */
@@ -20,6 +23,7 @@ import {
   getCitationStatus,
   replaceCitations,
   getAllCitationsFromLlmOutput,
+  extractVisibleText,
   getVerificationTextIndicator,
 } from "@deepcitation/deepcitation-js";
 
@@ -234,15 +238,19 @@ provided documents accurately and cite your sources.`;
   console.log("\n" + "─".repeat(50) + "\n");
 
   // ============================================
-  // STEP 3: VERIFY CITATIONS
-  // Verify via raw API call
+  // STEP 3: PARSE CITATIONS & EXTRACT VISIBLE TEXT
+  // The LLM response contains a <<<CITATION_DATA>>> block that must be stripped
   // ============================================
 
-  console.log("🔍 Step 3: Verifying citations via raw API call...\n");
+  console.log("🔍 Step 3: Parsing citations and extracting visible text...\n");
 
   // Parse citations from LLM output
   const parsedCitations = getAllCitationsFromLlmOutput(llmResponse);
   const citationCount = Object.keys(parsedCitations).length;
+
+  // IMPORTANT: Extract visible text to strip the <<<CITATION_DATA>>> block
+  // The citation data block is for parsing only - users should NEVER see it
+  const visibleText = extractVisibleText(llmResponse);
 
   console.log(`📋 Parsed ${citationCount} citation(s) from LLM output`);
   for (const [key, citation] of Object.entries(parsedCitations)) {
@@ -250,15 +258,23 @@ provided documents accurately and cite your sources.`;
   }
   console.log();
 
+  console.log("📖 Visible Text (citation data block stripped):");
+  console.log("─".repeat(50));
+  console.log(visibleText);
+  console.log("─".repeat(50) + "\n");
+
   // Skip verification if no citations were parsed
   if (citationCount === 0) {
     console.log("⚠️  No citations found in the LLM response.\n");
-    console.log("📖 Clean Response:");
-    console.log("─".repeat(50));
-    console.log(llmResponse);
-    console.log("─".repeat(50) + "\n");
     return;
   }
+
+  // ============================================
+  // STEP 4: VERIFY CITATIONS
+  // Verify via raw API call
+  // ============================================
+
+  console.log("🔍 Step 4: Verifying citations via raw API call...\n");
 
   // Show the raw API call being made
   console.log(`   POST ${DEEPCITATION_BASE_URL}/verifyCitations`);
@@ -268,11 +284,11 @@ provided documents accurately and cite your sources.`;
   const verificationResult = await verifyCitations(attachmentId, parsedCitations);
 
   // ============================================
-  // STEP 4: DISPLAY RESULTS
+  // STEP 5: DISPLAY RESULTS
   // Show verification status for each citation
   // ============================================
 
-  console.log("✨ Step 4: Verification Results\n");
+  console.log("✨ Step 5: Verification Results\n");
 
   const verifications = Object.entries(verificationResult.verifications);
 
@@ -321,10 +337,11 @@ provided documents accurately and cite your sources.`;
   }
 
   // Show clean response (without citation tags, with verification status)
+  // Note: We use visibleText (not llmResponse) because the citation data block is already stripped
   console.log("📖 Clean Response (for display, with verification status):");
   console.log("─".repeat(50));
   console.log(
-    replaceCitations(llmResponse, {
+    replaceCitations(visibleText, {
       verifications: verificationResult.verifications,
       showVerificationStatus: true,
     })

@@ -42,7 +42,7 @@ const mockOpenAICreate = mock(() =>
       {
         message: {
           content:
-            "Here is the answer. <cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test content' key_span='Test' line_ids='1' />",
+            "Here is the answer. <cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test content' anchor_text='Test' line_ids='1' />",
         },
       },
     ],

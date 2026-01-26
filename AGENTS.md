@@ -19,6 +19,7 @@ When implementing DeepCitation, complete these steps in order:
 - [ ] Implement file upload (Pre-Prompt)
 - [ ] Wrap prompts with citation instructions
 - [ ] Call your LLM with enhanced prompts
+- [ ] Parse citations and extract visible text (strip `<<<CITATION_DATA>>>` block)
 - [ ] Verify citations against source documents
 - [ ] Display results with CitationComponent (React) or text indicators
 
@@ -201,9 +202,28 @@ return result.toTextStreamResponse();
 
 ---
 
-## Step 4: Verify Citations
+## Step 4: Parse Citations & Extract Visible Text
 
-After receiving the LLM response, verify citations against the source documents.
+After receiving the LLM response, parse the citations and extract the visible text. **IMPORTANT**: The LLM response contains a `<<<CITATION_DATA>>>...<<<END_CITATION_DATA>>>` block that must be stripped before showing to users.
+
+```typescript
+import { getAllCitationsFromLlmOutput, extractVisibleText } from "@deepcitation/deepcitation-js";
+
+// Parse citations from LLM output
+const citations = getAllCitationsFromLlmOutput(llmOutput);
+
+// CRITICAL: Extract visible text to strip the citation data block
+// The citation data block is for parsing only - users should NEVER see it
+const visibleText = extractVisibleText(llmOutput);
+
+// Use visibleText for display, not the raw llmOutput
+```
+
+---
+
+## Step 5: Verify Citations
+
+Verify citations against the source documents.
 
 ### Option A: Automatic parsing (recommended)
 
@@ -218,11 +238,6 @@ const { verifications } = result;
 ### Option B: Manual parsing (more control)
 
 ```typescript
-import { getAllCitationsFromLlmOutput } from "@deepcitation/deepcitation-js";
-
-// Parse citations from LLM output
-const citations = getAllCitationsFromLlmOutput(llmOutput);
-
 // Verify against specific attachment
 const result = await deepcitation.verifyAttachment(attachmentId, citations, {
   outputImageFormat: "avif", // or "png", "jpeg"
@@ -253,7 +268,7 @@ for (const [key, verification] of Object.entries(verifications)) {
 
 ---
 
-## Step 5: Display Results
+## Step 6: Display Results
 
 ### React Components
 
@@ -341,6 +356,7 @@ import {
   DeepCitation,
   wrapCitationPrompt,
   getAllCitationsFromLlmOutput,
+  extractVisibleText,
   getCitationStatus,
   replaceCitations,
 } from "@deepcitation/deepcitation-js";
@@ -376,12 +392,16 @@ async function analyzeDocument(filePath: string, question: string) {
   });
   const llmOutput = response.choices[0].message.content!;
 
-  // 5. Verify citations
+  // 5. Parse citations and extract visible text
+  // IMPORTANT: Strip the <<<CITATION_DATA>>> block before showing to users
   const citations = getAllCitationsFromLlmOutput(llmOutput);
+  const visibleText = extractVisibleText(llmOutput);
+
+  // 6. Verify citations
   const result = await deepcitation.verifyAttachment(attachmentId, citations);
 
-  // 6. Display results
-  const cleanResponse = replaceCitations(llmOutput, {
+  // 7. Display results (use visibleText, not raw llmOutput)
+  const cleanResponse = replaceCitations(visibleText, {
     verifications: result.verifications,
     showVerificationStatus: true,
   });
@@ -490,6 +510,7 @@ import {
   wrapCitationPrompt,              // Wrap system + user prompts
   wrapSystemCitationPrompt,        // Wrap system prompt only
   getAllCitationsFromLlmOutput,    // Parse citations from LLM text
+  extractVisibleText,              // Strip <<<CITATION_DATA>>> block from response
   getCitationStatus,               // Get status flags from verification
   replaceCitations,                // Replace cite tags with text
   getVerificationTextIndicator,    // Get emoji indicator
@@ -552,9 +573,15 @@ for await (const chunk of stream) {
   // Stream to client...
 }
 
-// Verify after streaming completes
+// After streaming completes:
+// 1. Parse citations and extract visible text
 const citations = getAllCitationsFromLlmOutput(fullResponse);
+const visibleText = extractVisibleText(fullResponse);
+
+// 2. Verify citations
 const result = await deepcitation.verifyAttachment(attachmentId, citations);
+
+// 3. Display visibleText (not fullResponse) to users
 ```
 
 ### Multiple documents

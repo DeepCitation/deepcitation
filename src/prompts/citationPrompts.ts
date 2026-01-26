@@ -20,6 +20,11 @@ export const CITATION_DATA_END_DELIMITER = "<<<END_CITATION_DATA>>>";
 /**
  * Citation prompt for document-based citations.
  * Uses [N] markers in text with JSON metadata at the end.
+ * Citations are grouped by attachment_id to avoid repetition.
+ *
+ * Shorthand key mapping (optional):
+ * - n: id, r: reasoning, f: full_phrase
+ * - k: anchor_text, p: page_id, l: line_ids
  */
 export const CITATION_PROMPT = `
 <citation-instructions priority="critical">
@@ -29,34 +34,31 @@ export const CITATION_PROMPT = `
 For every claim, value, or fact from attachments, place a sequential integer marker like [1], [2], [3] at the end of the claim.
 
 ### Citation Data Block
-At the END of your response, you MUST append a citation verification block containing JSON data for all citations used.
+At the END of your response, append a citation block. Group citations by attachment_id to avoid repetition.
 
 ### Format
 \`\`\`
 <<<CITATION_DATA>>>
-[
-  {
-    "id": 1,
-    "attachment_id": "exact_attachment_id",
-    "reasoning": "why this supports the claim",
-    "full_phrase": "verbatim quote from source",
-    "anchor_text": "1-3 key words from full_phrase",
-    "page_id": "page_number_N_index_I",
-    "line_ids": [X, Y, Z]
-  }
-]
+{
+  "attachment_id_here": [
+    {"id": 1, "reasoning": "why", "full_phrase": "quote", "anchor_text": "key", "page_id": "2_1", "line_ids": [12]}
+  ]
+}
 <<<END_CITATION_DATA>>>
 \`\`\`
 
+### Shorthand (Optional)
+To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, p=page_id, l=line_ids
+
 ### JSON Field Rules
 
-1. **id**: Must match the [N] marker in your text (integer)
-2. **attachment_id**: Exact ID from the source document
-3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
-4. **full_phrase**: Copy text VERBATIM from source. Use proper JSON escaping for quotes and special characters.
-5. **anchor_text**: The 1-3 most important words from full_phrase
-6. **page_id**: ONLY use format \`page_number_N_index_I\` from page tags (e.g., \`<page_number_1_index_0>\`)
-7. **line_ids**: Array of line numbers (e.g., [12, 13, 14]). Infer intermediate lines since only every 5th line is shown.
+1. **Group key**: The attachment_id (exact ID from source document)
+2. **id** (or n): Must match the [N] marker in your text (integer)
+3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
+4. **full_phrase** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
+5. **anchor_text** (or k): The 1-3 most important words from full_phrase
+6. **page_id** (or p): Format "N_I" where N=page number, I=index (from \`<page_number_N_index_I>\` tags)
+7. **line_ids** (or l): Array of line numbers. Infer intermediate lines since only every 5th is shown.
 
 ### Placement Rules
 
@@ -64,33 +66,21 @@ At the END of your response, you MUST append a citation verification block conta
 - One marker per distinct idea, concept, or value
 - Use sequential numbering starting from [1]
 - The JSON block MUST appear at the very end of your response
-- Do NOT include the JSON block markers in code blocks - they should appear as plain text
 
 ### Example Response
 
-The company reported strong growth [1]. Revenue increased significantly in Q4 [2].
+The company reported strong growth [1]. Revenue increased significantly in Q4 [2]. The competitor also grew [3].
 
 <<<CITATION_DATA>>>
-[
-  {
-    "id": 1,
-    "attachment_id": "abc123",
-    "reasoning": "directly states growth metrics",
-    "full_phrase": "The company achieved 45% year-over-year growth",
-    "anchor_text": "45% year-over-year growth",
-    "page_id": "page_number_2_index_1",
-    "line_ids": [12, 13]
-  },
-  {
-    "id": 2,
-    "attachment_id": "abc123",
-    "reasoning": "states Q4 revenue figure",
-    "full_phrase": "Q4 revenue reached $2.3 billion, up from $1.8 billion",
-    "anchor_text": "$2.3 billion",
-    "page_id": "page_number_3_index_2",
-    "line_ids": [5, 6, 7]
-  }
-]
+{
+  "abc123": [
+    {"id": 1, "reasoning": "directly states growth metrics", "full_phrase": "The company achieved 45% year-over-year growth", "anchor_text": "45% year-over-year growth", "page_id": "2_1", "line_ids": [12, 13]},
+    {"id": 2, "reasoning": "states Q4 revenue figure", "full_phrase": "Q4 revenue reached $2.3 billion, up from $1.8 billion", "anchor_text": "$2.3 billion", "page_id": "3_2", "line_ids": [5, 6, 7]}
+  ],
+  "def456": [
+    {"id": 3, "reasoning": "competitor data", "full_phrase": "Competitor X reported 20% growth", "anchor_text": "20% growth", "page_id": "1_0", "line_ids": [8]}
+  ]
+}
 <<<END_CITATION_DATA>>>
 </citation-instructions>
 
@@ -99,6 +89,11 @@ The company reported strong growth [1]. Revenue increased significantly in Q4 [2
 /**
  * Citation prompt for audio/video content.
  * Uses timestamps instead of page/line references.
+ * Citations are grouped by attachment_id to avoid repetition.
+ *
+ * Shorthand key mapping (optional):
+ * - n: id, r: reasoning, f: full_phrase
+ * - k: anchor_text, t: timestamps (with s: start_time, e: end_time)
  */
 export const AV_CITATION_PROMPT = `
 <citation-instructions priority="critical">
@@ -108,65 +103,49 @@ export const AV_CITATION_PROMPT = `
 For every claim, value, or fact from media content, place a sequential integer marker like [1], [2], [3] at the end of the claim.
 
 ### Citation Data Block
-At the END of your response, you MUST append a citation verification block containing JSON data for all citations used.
+At the END of your response, append a citation block. Group citations by attachment_id to avoid repetition.
 
 ### Format
 \`\`\`
 <<<CITATION_DATA>>>
-[
-  {
-    "id": 1,
-    "attachment_id": "exact_attachment_id",
-    "reasoning": "why this supports the claim",
-    "full_phrase": "verbatim transcript quote",
-    "anchor_text": "1-3 key words from full_phrase",
-    "timestamps": {
-      "start_time": "HH:MM:SS.SSS",
-      "end_time": "HH:MM:SS.SSS"
-    }
-  }
-]
+{
+  "attachment_id_here": [
+    {"id": 1, "reasoning": "why", "full_phrase": "quote", "anchor_text": "key", "timestamps": {"start_time": "HH:MM:SS.SSS", "end_time": "HH:MM:SS.SSS"}}
+  ]
+}
 <<<END_CITATION_DATA>>>
 \`\`\`
 
+### Shorthand (Optional)
+To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, t=timestamps (with s=start_time, e=end_time)
+
 ### JSON Field Rules
 
-1. **id**: Must match the [N] marker in your text (integer)
-2. **attachment_id**: Exact ID from the source media
-3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
-4. **full_phrase**: Copy transcript text VERBATIM. Use proper JSON escaping.
-5. **anchor_text**: The 1-3 most important words from full_phrase
-6. **timestamps**: Object with start_time and end_time in HH:MM:SS.SSS format
+1. **Group key**: The attachment_id (exact ID from source media)
+2. **id** (or n): Must match the [N] marker in your text (integer)
+3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
+4. **full_phrase** (or f): Copy transcript text VERBATIM. Use proper JSON escaping.
+5. **anchor_text** (or k): The 1-3 most important words from full_phrase
+6. **timestamps** (or t): Object with start_time/s and end_time/e in HH:MM:SS.SSS format
+
+### Placement Rules
+
+- Place [N] markers inline, typically at the end of a claim
+- One marker per distinct idea, concept, or value
+- Use sequential numbering starting from [1]
+- The JSON block MUST appear at the very end of your response
 
 ### Example Response
 
 The speaker discussed exercise benefits [1]. They recommended specific techniques [2].
 
 <<<CITATION_DATA>>>
-[
-  {
-    "id": 1,
-    "attachment_id": "video123",
-    "reasoning": "speaker directly states health benefits",
-    "full_phrase": "Regular exercise improves cardiovascular health by 30%",
-    "anchor_text": "cardiovascular health",
-    "timestamps": {
-      "start_time": "00:05:23.000",
-      "end_time": "00:05:45.500"
-    }
-  },
-  {
-    "id": 2,
-    "attachment_id": "video123",
-    "reasoning": "demonstrates proper form",
-    "full_phrase": "Keep your back straight and engage your core",
-    "anchor_text": "engage your core",
-    "timestamps": {
-      "start_time": "00:12:10.200",
-      "end_time": "00:12:25.800"
-    }
-  }
-]
+{
+  "video123": [
+    {"id": 1, "reasoning": "speaker directly states health benefits", "full_phrase": "Regular exercise improves cardiovascular health by 30%", "anchor_text": "cardiovascular health", "timestamps": {"start_time": "00:05:23.000", "end_time": "00:05:45.500"}},
+    {"id": 2, "reasoning": "demonstrates proper form", "full_phrase": "Keep your back straight and engage your core", "anchor_text": "engage your core", "timestamps": {"start_time": "00:12:10.200", "end_time": "00:12:25.800"}}
+  ]
+}
 <<<END_CITATION_DATA>>>
 </citation-instructions>
 
@@ -344,7 +323,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
       type: "integer",
       description: "Citation marker number matching [N] in text",
     },
-    attachmentId: {
+    attachment_id: {
       type: "string",
       description: "Exact attachment ID from source document",
     },
@@ -352,25 +331,25 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
       type: "string",
       description: "Brief explanation of why this supports the claim",
     },
-    fullPhrase: {
+    full_phrase: {
       type: "string",
       description: "Verbatim quote from source document",
     },
-    anchorText: {
+    anchor_text: {
       type: "string",
-      description: "1-3 key words from fullPhrase",
+      description: "1-3 key words from full_phrase",
     },
-    pageId: {
+    page_id: {
       type: "string",
-      description: "Page key in format page_number_N_index_I",
+      description: "Page ID in format 'N_I' (pageNumber_index)",
     },
-    lineIds: {
+    line_ids: {
       type: "array",
       items: { type: "integer" },
       description: "Array of line numbers for the citation",
     },
   },
-  required: ["id", "attachmentId", "fullPhrase", "anchorText"],
+  required: ["id", "attachment_id", "full_phrase", "anchor_text"],
 } as const;
 
 /**
@@ -383,7 +362,7 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
       type: "integer",
       description: "Citation marker number matching [N] in text",
     },
-    attachmentId: {
+    attachment_id: {
       type: "string",
       description: "Exact attachment ID from source media",
     },
@@ -391,54 +370,85 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
       type: "string",
       description: "Brief explanation of why this supports the claim",
     },
-    fullPhrase: {
+    full_phrase: {
       type: "string",
       description: "Verbatim transcript quote",
     },
-    anchorText: {
+    anchor_text: {
       type: "string",
-      description: "1-3 key words from fullPhrase",
+      description: "1-3 key words from full_phrase",
     },
     timestamps: {
       type: "object",
       properties: {
-        startTime: {
+        start_time: {
           type: "string",
           description: "Start time in HH:MM:SS.SSS format",
         },
-        endTime: {
+        end_time: {
           type: "string",
           description: "End time in HH:MM:SS.SSS format",
         },
       },
-      required: ["startTime", "endTime"],
+      required: ["start_time", "end_time"],
     },
   },
-  required: ["id", "attachmentId", "fullPhrase", "anchorText", "timestamps"],
+  required: ["id", "attachment_id", "full_phrase", "anchor_text", "timestamps"],
 } as const;
 
 /**
+ * Compact citation data format from LLM output.
+ * Uses single-character keys for token efficiency.
+ */
+export interface CompactCitationData {
+  /** Citation number (n) - matches [N] marker */
+  n: number;
+  /** Attachment ID (a) */
+  a?: string;
+  /** Reasoning (r) */
+  r?: string;
+  /** Full phrase (f) - verbatim quote */
+  f?: string;
+  /** Key phrase (k) - anchor text */
+  k?: string;
+  /** Page ID (p) - format "N_I" */
+  p?: string;
+  /** Line IDs (l) */
+  l?: number[];
+  /** Timestamps (t) for AV citations */
+  t?: {
+    /** Start time (s) */
+    s?: string;
+    /** End time (e) */
+    e?: string;
+  };
+}
+
+/**
  * Interface for citation data from JSON block.
- * Uses snake_case field names as output by the LLM prompts.
+ * This is the normalized/expanded format used internally after parsing.
+ * The parser expands compact keys (n,a,r,f,k,p,l,t) to these full names.
  */
 export interface CitationData {
-  /** Citation marker number (matches [N] in text) */
+  /** Citation marker number (matches [N] in text). Compact key: n */
   id: number;
-  /** Attachment ID from source document */
+  /** Attachment ID from source document. Compact key: a */
   attachment_id?: string;
-  /** Reasoning for the citation */
+  /** Reasoning for the citation. Compact key: r */
   reasoning?: string;
-  /** Verbatim quote from source */
+  /** Verbatim quote from source. Compact key: f */
   full_phrase?: string;
-  /** Anchor text (1-3 words) */
+  /** Anchor text (1-3 words). Compact key: k */
   anchor_text?: string;
-  /** Page ID in format page_number_N_index_I */
+  /** Page ID in format "N_I" or legacy "page_number_N_index_I". Compact key: p */
   page_id?: string;
-  /** Line IDs array */
+  /** Line IDs array. Compact key: l */
   line_ids?: number[];
-  /** Timestamps for AV citations */
+  /** Timestamps for AV citations. Compact key: t */
   timestamps?: {
+    /** Start time. Compact key: s */
     start_time?: string;
+    /** End time. Compact key: e */
     end_time?: string;
   };
 }

@@ -1,11 +1,15 @@
 /**
  * DeepCitation Basic Example - Google Gemini
  *
- * This example demonstrates the complete 4-step workflow:
+ * This example demonstrates the complete 5-step workflow:
  * 1. Pre-Prompt: Upload documents and enhance prompts
  * 2. Call LLM: Get response from Gemini with citations
- * 3. Verify: Verify citations against attachments
- * 4. Display: Show verification results
+ * 3. Parse & Extract: Parse citations and extract visible text (strip citation data block)
+ * 4. Verify: Verify citations against attachments
+ * 5. Display: Show verification results
+ *
+ * IMPORTANT: The LLM response contains a <<<CITATION_DATA>>>...<<<END_CITATION_DATA>>> block
+ * that must be stripped before showing to users. Use extractVisibleText() for this.
  *
  * Run: npm run start:gemini
  */
@@ -21,6 +25,7 @@ import {
   getCitationStatus,
   replaceCitations,
   getAllCitationsFromLlmOutput,
+  extractVisibleText,
   getVerificationTextIndicator,
 } from "@deepcitation/deepcitation-js";
  
@@ -146,11 +151,11 @@ provided documents accurately and cite your sources.`;
   console.log("\n" + "─".repeat(50) + "\n");
 
   // ============================================
-  // STEP 3: VERIFY CITATIONS
-  // Verify all citations against source documents
+  // STEP 3: PARSE CITATIONS & EXTRACT VISIBLE TEXT
+  // The LLM response contains a <<<CITATION_DATA>>> block that must be stripped
   // ============================================
 
-  console.log("🔍 Step 3: Verifying citations against source document...\n");
+  console.log("🔍 Step 3: Parsing citations and extracting visible text...\n");
 
   // Option A: Let DeepCitation parse and verify automatically (recommended)
   // const verificationResult = await deepcitation.verify({
@@ -162,21 +167,33 @@ provided documents accurately and cite your sources.`;
   const parsedCitations = getAllCitationsFromLlmOutput(llmResponse);
   const citationCount = Object.keys(parsedCitations).length;
 
+  // IMPORTANT: Extract visible text to strip the <<<CITATION_DATA>>> block
+  // The citation data block is for parsing only - users should NEVER see it
+  const visibleText = extractVisibleText(llmResponse);
+
   console.log(`📋 Parsed ${citationCount} citation(s) from LLM output`);
   for (const [key, citation] of Object.entries(parsedCitations)) {
     console.log(`   [${key}]: "${citation.fullPhrase?.slice(0, 50)}..."`);
   }
   console.log();
 
+  console.log("📖 Visible Text (citation data block stripped):");
+  console.log("─".repeat(50));
+  console.log(visibleText);
+  console.log("─".repeat(50) + "\n");
+
   // Skip verification if no citations were parsed
   if (citationCount === 0) {
     console.log("⚠️  No citations found in the LLM response.\n");
-    console.log("📖 Clean Response:");
-    console.log("─".repeat(50));
-    console.log(llmResponse);
-    console.log("─".repeat(50) + "\n");
     return;
   }
+
+  // ============================================
+  // STEP 4: VERIFY CITATIONS
+  // Verify all citations against attachments
+  // ============================================
+
+  console.log("🔍 Step 4: Verifying citations against source document...\n");
 
   const verificationResult = await deepcitation.verifyAttachment(
     attachmentId,
@@ -184,11 +201,11 @@ provided documents accurately and cite your sources.`;
   );
 
   // ============================================
-  // STEP 4: DISPLAY RESULTS
+  // STEP 5: DISPLAY RESULTS
   // Show verification status for each citation
   // ============================================
 
-  console.log("✨ Step 4: Verification Results\n");
+  console.log("✨ Step 5: Verification Results\n");
 
   const verifications = Object.entries(verificationResult.verifications);
 
@@ -231,10 +248,11 @@ provided documents accurately and cite your sources.`;
   }
 
   // Show clean response (without citation tags, with verification status)
+  // Note: We use visibleText (not llmResponse) because the citation data block is already stripped
   console.log("📖 Clean Response (for display, with verification status):");
   console.log("─".repeat(50));
   console.log(
-    replaceCitations(llmResponse, {
+    replaceCitations(visibleText, {
       verifications: verificationResult.verifications,
       showVerificationStatus: true,
     })

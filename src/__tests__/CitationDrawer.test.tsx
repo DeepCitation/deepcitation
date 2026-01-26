@@ -205,7 +205,7 @@ describe("CitationComponent source variant", () => {
         />
       );
 
-      // Should show siteName, not keySpan or number
+      // Should show siteName, not anchorText or number
       expect(getByText("Delaware Corporations")).toBeInTheDocument();
     });
 

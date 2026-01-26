@@ -13,6 +13,7 @@ import {
   wrapCitationPrompt,
   getCitationStatus,
   replaceCitations,
+  extractVisibleText,
   type Verification,
   type FileDataPart,
 } from "@deepcitation/deepcitation-js";
@@ -151,8 +152,11 @@ Do not make up information that isn't in the attachments.`;
       totalCitations > 0 ? verifiedCitations / totalCitations : 0;
 
     // Step 5: Return clean response with verification metadata
+    // IMPORTANT: Use extractVisibleText to strip the <<<CITATION_DATA>>> block
+    // before showing to users, then replaceCitations to remove cite tags
+    const visibleText = extractVisibleText(rawResponse);
     return {
-      cleanResponse: replaceCitations(rawResponse),
+      cleanResponse: replaceCitations(visibleText),
       rawResponse,
       confidence,
       needsReview: confidence < this.minConfidenceThreshold,

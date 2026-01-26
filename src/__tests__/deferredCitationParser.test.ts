@@ -408,3 +408,272 @@ describe("getCitationMarkerIds", () => {
     expect(getCitationMarkerIds(text)).toEqual([123, 456]);
   });
 });
+
+describe("compact format support", () => {
+  it("parses compact short-key format", () => {
+    const response = `The company grew [1]. Revenue increased [2].
+
+${CITATION_DATA_START_DELIMITER}
+[
+  {"n":1,"a":"abc123","r":"states growth","f":"45% year-over-year growth","k":"45% growth","p":"2_1","l":[12,13]},
+  {"n":2,"a":"abc123","r":"states revenue","f":"Q4 revenue reached $2.3 billion","k":"$2.3 billion","p":"3_2","l":[5,6,7]}
+]
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseDeferredCitationResponse(response);
+
+    expect(result.success).toBe(true);
+    expect(result.citations.length).toBe(2);
+
+    // Verify keys are expanded to full names
+    expect(result.citations[0].id).toBe(1);
+    expect(result.citations[0].attachment_id).toBe("abc123");
+    expect(result.citations[0].reasoning).toBe("states growth");
+    expect(result.citations[0].full_phrase).toBe("45% year-over-year growth");
+    expect(result.citations[0].anchor_text).toBe("45% growth");
+    expect(result.citations[0].page_id).toBe("2_1");
+    expect(result.citations[0].line_ids).toEqual([12, 13]);
+
+    // Verify citation map uses expanded id
+    expect(result.citationMap.get(1)?.attachment_id).toBe("abc123");
+    expect(result.citationMap.get(2)?.anchor_text).toBe("$2.3 billion");
+  });
+
+  it("parses compact AV citations with short timestamp keys", () => {
+    const response = `The speaker said [1].
+
+${CITATION_DATA_START_DELIMITER}
+[
+  {"n":1,"a":"video123","r":"explains concept","f":"This is important","k":"important","t":{"s":"00:05:23.000","e":"00:05:45.500"}}
+]
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseDeferredCitationResponse(response);
+
+    expect(result.success).toBe(true);
+    expect(result.citations[0].id).toBe(1);
+    expect(result.citations[0].attachment_id).toBe("video123");
+    expect(result.citations[0].timestamps?.start_time).toBe("00:05:23.000");
+    expect(result.citations[0].timestamps?.end_time).toBe("00:05:45.500");
+  });
+
+  it("handles mixed compact and full key formats", () => {
+    const response = `Test [1] and [2].
+
+${CITATION_DATA_START_DELIMITER}
+[
+  {"n":1,"a":"doc1","f":"compact format","k":"compact"},
+  {"id":2,"attachment_id":"doc2","full_phrase":"full format","anchor_text":"full"}
+]
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseDeferredCitationResponse(response);
+
+    expect(result.success).toBe(true);
+    expect(result.citations.length).toBe(2);
+    expect(result.citations[0].id).toBe(1);
+    expect(result.citations[0].full_phrase).toBe("compact format");
+    expect(result.citations[1].id).toBe(2);
+    expect(result.citations[1].full_phrase).toBe("full format");
+  });
+});
+
+describe("grouped by attachment format", () => {
+  it("parses grouped format with multiple citations per attachment", () => {
+    const response = `The company grew [1]. Revenue increased [2].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "abc123": [
+    {"id": 1, "reasoning": "states growth", "full_phrase": "45% year-over-year growth", "anchor_text": "45% growth", "page_id": "2_1", "line_ids": [12, 13]},
+    {"id": 2, "reasoning": "states revenue", "full_phrase": "Q4 revenue reached $2.3 billion", "anchor_text": "$2.3 billion", "page_id": "3_2", "line_ids": [5, 6, 7]}
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseDeferredCitationResponse(response);
+
+    expect(result.success).toBe(true);
+    expect(result.citations.length).toBe(2);
+
+    // Verify attachment_id is injected from the group key
+    expect(result.citations[0].attachment_id).toBe("abc123");
+    expect(result.citations[1].attachment_id).toBe("abc123");
+
+    // Verify other fields
+    expect(result.citations[0].id).toBe(1);
+    expect(result.citations[0].full_phrase).toBe("45% year-over-year growth");
+    expect(result.citations[1].id).toBe(2);
+    expect(result.citations[1].anchor_text).toBe("$2.3 billion");
+  });
+
+  it("parses grouped format with multiple attachments", () => {
+    const response = `From doc1 [1] and doc2 [2].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "doc1": [
+    {"id": 1, "full_phrase": "content from doc1", "anchor_text": "doc1"}
+  ],
+  "doc2": [
+    {"id": 2, "full_phrase": "content from doc2", "anchor_text": "doc2"}
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseDeferredCitationResponse(response);
+
+    expect(result.success).toBe(true);
+    expect(result.citations.length).toBe(2);
+
+    expect(result.citations[0].attachment_id).toBe("doc1");
+    expect(result.citations[0].full_phrase).toBe("content from doc1");
+
+    expect(result.citations[1].attachment_id).toBe("doc2");
+    expect(result.citations[1].full_phrase).toBe("content from doc2");
+  });
+
+  it("parses grouped format with compact keys", () => {
+    const response = `Test [1].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "attachment123": [
+    {"n": 1, "r": "reason", "f": "full phrase here", "k": "phrase", "p": "1_0", "l": [5]}
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseDeferredCitationResponse(response);
+
+    expect(result.success).toBe(true);
+    expect(result.citations.length).toBe(1);
+    expect(result.citations[0].attachment_id).toBe("attachment123");
+    expect(result.citations[0].id).toBe(1);
+    expect(result.citations[0].reasoning).toBe("reason");
+    expect(result.citations[0].full_phrase).toBe("full phrase here");
+    expect(result.citations[0].anchor_text).toBe("phrase");
+    expect(result.citations[0].page_id).toBe("1_0");
+    expect(result.citations[0].line_ids).toEqual([5]);
+  });
+
+  it("parses grouped AV format with timestamps", () => {
+    const response = `The speaker said [1].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "video456": [
+    {"id": 1, "full_phrase": "transcript text", "anchor_text": "text", "timestamps": {"start_time": "00:01:00.000", "end_time": "00:01:30.000"}}
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseDeferredCitationResponse(response);
+
+    expect(result.success).toBe(true);
+    expect(result.citations[0].attachment_id).toBe("video456");
+    expect(result.citations[0].timestamps?.start_time).toBe("00:01:00.000");
+    expect(result.citations[0].timestamps?.end_time).toBe("00:01:30.000");
+  });
+
+  it("still supports flat array format for backward compatibility", () => {
+    const response = `Test [1].
+
+${CITATION_DATA_START_DELIMITER}
+[{"id": 1, "attachment_id": "abc", "full_phrase": "test", "anchor_text": "test"}]
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseDeferredCitationResponse(response);
+
+    expect(result.success).toBe(true);
+    expect(result.citations.length).toBe(1);
+    expect(result.citations[0].attachment_id).toBe("abc");
+  });
+
+  it("converts grouped format to standard Citation format correctly", () => {
+    const response = `Test [1].
+
+${CITATION_DATA_START_DELIMITER}
+{
+  "docXYZ": [
+    {"id": 1, "full_phrase": "the quote", "anchor_text": "quote", "page_id": "5_2", "line_ids": [10, 11]}
+  ]
+}
+${CITATION_DATA_END_DELIMITER}`;
+
+    const citations = getAllCitationsFromDeferredResponse(response);
+    const citationValues = Object.values(citations);
+
+    expect(citationValues.length).toBe(1);
+    expect(citationValues[0].attachmentId).toBe("docXYZ");
+    expect(citationValues[0].fullPhrase).toBe("the quote");
+    expect(citationValues[0].pageNumber).toBe(5);
+    expect(citationValues[0].startPageId).toBe("page_number_5_index_2");
+  });
+});
+
+describe("simplified page_id format", () => {
+  it("parses simplified N_I page format", () => {
+    const data = {
+      id: 1,
+      attachment_id: "doc",
+      full_phrase: "test phrase",
+      anchor_text: "test",
+      page_id: "3_2",
+      line_ids: [10],
+    };
+
+    const citation = deferredCitationToCitation(data);
+
+    expect(citation.pageNumber).toBe(3);
+    expect(citation.startPageId).toBe("page_number_3_index_2");
+  });
+
+  it("still parses legacy page_number_N_index_I format", () => {
+    const data = {
+      id: 1,
+      attachment_id: "doc",
+      full_phrase: "test phrase",
+      anchor_text: "test",
+      page_id: "page_number_5_index_3",
+      line_ids: [20],
+    };
+
+    const citation = deferredCitationToCitation(data);
+
+    expect(citation.pageNumber).toBe(5);
+    expect(citation.startPageId).toBe("page_number_5_index_3");
+  });
+
+  it("handles single-digit and multi-digit page numbers", () => {
+    const singleDigit = deferredCitationToCitation({
+      id: 1,
+      page_id: "1_0",
+      full_phrase: "test",
+    });
+    expect(singleDigit.pageNumber).toBe(1);
+    expect(singleDigit.startPageId).toBe("page_number_1_index_0");
+
+    const multiDigit = deferredCitationToCitation({
+      id: 2,
+      page_id: "123_45",
+      full_phrase: "test",
+    });
+    expect(multiDigit.pageNumber).toBe(123);
+    expect(multiDigit.startPageId).toBe("page_number_123_index_45");
+  });
+
+  it("returns undefined for invalid page_id format", () => {
+    const data = {
+      id: 1,
+      attachment_id: "doc",
+      full_phrase: "test",
+      page_id: "invalid_format",
+    };
+
+    const citation = deferredCitationToCitation(data);
+
+    expect(citation.pageNumber).toBeUndefined();
+    expect(citation.startPageId).toBeUndefined();
+  });
+});

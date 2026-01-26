@@ -21,6 +21,7 @@ import {
   getCitationStatus,
   replaceCitations,
   getAllCitationsFromLlmOutput,
+  extractVisibleText,
   getVerificationTextIndicator,
 } from "@deepcitation/deepcitation-js";
 
@@ -161,23 +162,31 @@ async function main() {
   console.log("\n" + "-".repeat(50));
 
   // ============================================
-  // STEP 4: Verify citations
+  // STEP 4: Parse citations and extract visible text
   // ============================================
 
-  console.log("\nVerifying citations...\n");
+  console.log("\nParsing citations and extracting visible text...\n");
 
   const parsedCitations = getAllCitationsFromLlmOutput(llmResponse);
   const citationCount = Object.keys(parsedCitations).length;
+
+  // IMPORTANT: Extract visible text to strip the <<<CITATION_DATA>>> block
+  // The citation data block is for parsing only - users should NEVER see it
+  const visibleText = extractVisibleText(llmResponse);
 
   if (citationCount === 0) {
     console.log("No citations found in the response.\n");
     console.log("Clean Response:");
     console.log("-".repeat(50));
-    console.log(llmResponse);
+    console.log(visibleText);
     console.log("-".repeat(50));
     rl.close();
     return;
   }
+
+  // ============================================
+  // STEP 5: Verify citations
+  // ============================================
 
   console.log(`Found ${citationCount} citation(s). Verifying...\n`);
 
@@ -187,7 +196,7 @@ async function main() {
   );
 
   // ============================================
-  // STEP 5: Display verification results
+  // STEP 6: Display verification results
   // ============================================
 
   console.log("Verification Results:");
@@ -224,10 +233,11 @@ async function main() {
   console.log("\n" + "=".repeat(60));
 
   // Show clean response with verification indicators
+  // Note: We use visibleText (not llmResponse) because the citation data block is already stripped
   console.log("\nClean Response (with verification status):");
   console.log("-".repeat(50));
   console.log(
-    replaceCitations(llmResponse, {
+    replaceCitations(visibleText, {
       verifications: verificationResult.verifications,
       showVerificationStatus: true,
     })

@@ -10,7 +10,7 @@
  *   bun run factcheck.ts upload ./report.pdf ./data.xlsx
  *
  *   # Verify claims (JSON input)
- *   bun run factcheck.ts verify <attachmentId> '{"claim-1": {"fullPhrase": "...", "keySpan": "..."}}'
+ *   bun run factcheck.ts verify <attachmentId> '{"claim-1": {"fullPhrase": "...", "anchorText": "..."}}'
  *
  *   # Verify from file
  *   bun run factcheck.ts verify <attachmentId> --file claims.json

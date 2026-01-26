@@ -293,7 +293,7 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const llmOutput =
-        "The company showed strong growth. <cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Revenue grew 15%' key_span='15%' line_ids='1' />";
+        "The company showed strong growth. <cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Revenue grew 15%' anchor_text='15%' line_ids='1' />";
 
       const result = await client.verify({
         llmOutput,
@@ -323,7 +323,7 @@ describe("DeepCitation Client", () => {
 
       const result = await client.verify({
         llmOutput:
-          "<cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test content' key_span='Test' line_ids='1' />",
+          "<cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test content' anchor_text='Test' line_ids='1' />",
       });
 
       expect(result.verifications).toBeDefined();
