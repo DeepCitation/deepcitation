@@ -1,6 +1,6 @@
 {
   "name": "deepcitation-basic-example",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Basic example showing DeepCitation verification workflow",
   "type": "module",
   "scripts": {
