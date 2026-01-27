@@ -40,6 +40,8 @@ jobs:
         run: npm run test:ct
         continue-on-error: true
         id: playwright
+        env:
+          PLAYWRIGHT_WORKERS: 2
 
       - name: Upload Playwright report artifact
         uses: actions/upload-artifact@v4
