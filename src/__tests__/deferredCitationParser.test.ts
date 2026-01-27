@@ -7,7 +7,7 @@ import {
   extractVisibleText,
   replaceDeferredMarkers,
   getCitationMarkerIds,
-} from "../parsing/deferredCitationParser.js";
+} from "../parsing/citationParser.js";
 import {
   CITATION_DATA_START_DELIMITER,
   CITATION_DATA_END_DELIMITER,

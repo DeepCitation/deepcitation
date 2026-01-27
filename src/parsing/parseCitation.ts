@@ -5,7 +5,7 @@ import { generateCitationKey } from "../react/utils.js";
 import {
   hasDeferredCitations,
   getAllCitationsFromDeferredResponse,
-} from "./deferredCitationParser.js";
+} from "./citationParser.js";
 
 const attributeRegexCache = new Map<string, RegExp>();
 

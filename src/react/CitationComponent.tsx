@@ -41,6 +41,13 @@ import { SplitDiffDisplay, MatchQualityBar, getContextualStatusMessage } from ".
 // Re-export types for convenience
 export type { CitationVariant, CitationContent } from "./types.js";
 
+// Constants
+/** Default number of search attempt groups to show before expanding */
+const DEFAULT_VISIBLE_GROUP_COUNT = 2;
+
+/** Maximum characters to show for truncated phrases */
+const MAX_PHRASE_LENGTH = 50;
+
 /**
  * Get the default content type based on variant.
  */
@@ -312,7 +319,15 @@ function getMethodLabel(method: string): string {
 
 /**
  * Format a list of page numbers into a readable string.
- * e.g., [1, 2, 3, 5, 6, 7] → "1-3, 5-7"
+ * Combines consecutive pages into ranges for compact display.
+ *
+ * @param pages - Array of page numbers to format
+ * @returns Formatted string like "pages 1-3, 5-7" or "page 2"
+ *
+ * @example
+ * formatPageList([1, 2, 3, 5, 6, 7]) // "pages 1-3, 5-7"
+ * formatPageList([2]) // "page 2"
+ * formatPageList([]) // ""
  */
 function formatPageList(pages: number[]): string {
   if (pages.length === 0) return "";
@@ -341,6 +356,15 @@ function formatPageList(pages: number[]): string {
  * Group search attempts by unique phrase for a cleaner display.
  * Attempts with the same phrase are combined into a single group showing
  * all pages searched, methods used, and variations tried.
+ *
+ * @param attempts - Array of search attempts from verification
+ * @returns Array of grouped attempts, sorted with successful matches first
+ *
+ * @example
+ * const grouped = groupSearchAttempts(verification.searchAttempts);
+ * grouped.forEach(group => {
+ *   console.log(`"${group.phrase}" - searched ${group.pagesSearched.length} pages`);
+ * });
  */
 function groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] {
   const groups = new Map<string, GroupedSearchAttempt>();
@@ -834,8 +858,8 @@ function SearchedPhrasesInfo({
   const totalAttempts = groupedAttempts.reduce((sum, g) => sum + g.attemptCount, 0);
   const uniquePhrases = groupedAttempts.length;
 
-  // Show first 2 groups by default (usually fullPhrase + anchorText), expand to show all
-  const defaultDisplayCount = Math.min(2, groupedAttempts.length);
+  // Show first DEFAULT_VISIBLE_GROUP_COUNT groups by default (usually fullPhrase + anchorText), expand to show all
+  const defaultDisplayCount = Math.min(DEFAULT_VISIBLE_GROUP_COUNT, groupedAttempts.length);
   const displayCount = isExpanded ? groupedAttempts.length : defaultDisplayCount;
   const hiddenGroupCount = groupedAttempts.length - defaultDisplayCount;
 
@@ -875,9 +899,8 @@ function SearchedPhrasesInfo({
  */
 function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
   // Truncate phrase more aggressively for compact display
-  const maxPhraseLen = 50;
-  const displayPhrase = group.phrase.length > maxPhraseLen
-    ? group.phrase.slice(0, maxPhraseLen) + "…"
+  const displayPhrase = group.phrase.length > MAX_PHRASE_LENGTH
+    ? group.phrase.slice(0, MAX_PHRASE_LENGTH) + "…"
     : group.phrase;
 
   // Status indicator
@@ -906,10 +929,16 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
 
   // Page info badge
   if (group.pagesSearched.length > 0) {
-    const pageText = group.pagesSearched.length === 1
-      ? `p${group.pagesSearched[0]}`
-      : `p${Math.min(...group.pagesSearched)}-${Math.max(...group.pagesSearched)}`;
-    badges.push({ text: pageText, variant: "default" });
+    // Filter out undefined/null values before Math operations
+    const validPages = group.pagesSearched.filter((p): p is number => p != null);
+    const pageText = validPages.length === 1
+      ? `p${validPages[0]}`
+      : validPages.length > 1
+      ? `p${Math.min(...validPages)}-${Math.max(...validPages)}`
+      : "";
+    if (pageText) {
+      badges.push({ text: pageText, variant: "default" });
+    }
   }
 
   // Variations count badge

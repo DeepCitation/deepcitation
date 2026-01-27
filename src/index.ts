@@ -36,7 +36,7 @@ export {
   extractVisibleText,
   replaceDeferredMarkers,
   getCitationMarkerIds,
-} from "./parsing/deferredCitationParser.js";
+} from "./parsing/citationParser.js";
 export {
   normalizeCitations,
   getCitationPageNumber,
