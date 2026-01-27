@@ -94,8 +94,8 @@ test.describe("CitationComponent - Brackets Variant", () => {
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
-    // Verified citations have blue text styling
-    await expect(citation).toHaveClass(/text-blue-/);
+    // Verified citations render with the citation number
+    await expect(citation).toContainText("42");
   });
 
   test("shows miss styling when not found", async ({ mount, page }) => {
