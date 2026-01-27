@@ -2503,4 +2503,263 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       expect(numbers).toEqual([1, 2, 3]);
     });
   });
+
+  describe("deferred JSON <<<CITATION_DATA>>> format", () => {
+    it("extracts citations from exact user failing scenario with 14 citations", () => {
+      // This is the EXACT failing scenario from the user
+      const input = `Here's a summary of the medical document for John Doe:
+
+Patient Profile:
+- Name: John Doe [1]
+- Age: 50 years old [1]
+- Gender: Male [1]
+- Allergies: NKDA (No Known Drug Allergies) [1]
+
+Medical History:
+- Chronic conditions include:
+  - Hypertension (HTN)
+  - Coronary Artery Disease (CAD)
+  - Heart Failure with Preserved Ejection Fraction (HFEF)
+  - Hypothyroidism
+  - High Lipid Disorder (HLD)
+  - Chronic back pain [2]
+
+Hospital Course:
+- 5/15: Worsening shortness of breath (SOB) at home [3]
+- 5/17: Admitted to outside hospital, cardiac catheterization performed [4]
+- 5/18: Transferred to Cardiovascular Intensive Care Unit (CVICU)
+  - Intra-Aortic Balloon Pump (IABP) placed
+  - Added to transplant list [5]
+- 5/19: Dobutamine treatment started [6]
+
+Current Status:
+- Vital Signs: Afebrile, Alert and Oriented [7]
+- Cardiovascular:
+  - Normal Sinus Rhythm (NSR)
+  - Pulses present with 1+ edema [8]
+- Respiratory: On 2L nasal cannula [9]
+- Mobility: Ambulates with 2+ assistance, short of breath with exertion [10]
+
+Medications/Treatments:
+- Ongoing IV medications:
+  - Heparin (12 units/hour)
+  - Bumex (5 mg/hour)
+  - Dobutamine (2.5 mcg/kg)
+  - Milrinone (0.25 mg/kg)
+  - Nicardipine (2.5 mg/hour) [11]
+
+Devices:
+- Right-sided PICC line
+- Intra-Aortic Balloon Pump (IABP)
+- Radial arterial line
+- Multiple IV access points [12]
+
+Consults Requested:
+- Critical Care
+- Palliative Care
+- Psychiatry
+- Infectious Disease [13]
+
+Family:
+- Wife (July)
+- Son (Chris) [14]
+
+<<<CITATION_DATA>>>
+{
+  "LOcZ46PdCNO1P62p0p9M": [
+    {"id": 1, "reasoning": "Patient identification details", "full_phrase": "John Doe 50/M Full NKDA", "anchor_text": "John Doe 50/M", "page_id": "1_0", "line_ids": [1, 5]},
+    {"id": 2, "reasoning": "Lists patient's medical history", "full_phrase": "HTN, CAD, HFEF, Hypothyroid, HLD, (R) Sided PICC on home milrinone, chronic back pain", "anchor_text": "medical history", "page_id": "1_0", "line_ids": [20, 25]},
+    {"id": 3, "reasoning": "Initial symptom onset", "full_phrase": "5/15-worsening soB at home", "anchor_text": "worsening soB", "page_id": "1_0", "line_ids": [10]},
+    {"id": 4, "reasoning": "Hospital admission details", "full_phrase": "5/17-admitted at outside hospital; cardiac cath Showing 1 pulm HTN, low Cl, low SVO2", "anchor_text": "admitted at outside hospital", "page_id": "1_0", "line_ids": [11, 12]},
+    {"id": 5, "reasoning": "Transfer and treatment details", "full_phrase": "5/18-transferred to CVICU IABP placed and placed on transplant list", "anchor_text": "transferred to CVICU", "page_id": "1_0", "line_ids": [15, 16]},
+    {"id": 6, "reasoning": "New treatment initiated", "full_phrase": "5/19-dobutamine started", "anchor_text": "dobutamine started", "page_id": "1_0", "line_ids": [17]},
+    {"id": 7, "reasoning": "Patient's current condition", "full_phrase": "AxOx4 afebrile", "anchor_text": "AxOx4 afebrile", "page_id": "1_0", "line_ids": [30, 35]},
+    {"id": 8, "reasoning": "Cardiovascular assessment", "full_phrase": "NSR w PVCS Pulses 2+ Edema 1+", "anchor_text": "Pulses 2+ Edema 1+", "page_id": "1_0", "line_ids": [40, 45, 50]},
+    {"id": 9, "reasoning": "Respiratory support", "full_phrase": "Fi0z 2L NC", "anchor_text": "2L NC", "page_id": "1_0", "line_ids": [80, 81]},
+    {"id": 10, "reasoning": "Patient mobility", "full_phrase": "ambulates 2+ assist SOB w/ exertion", "anchor_text": "ambulates 2+ assist", "page_id": "1_0", "line_ids": [110, 115]},
+    {"id": 11, "reasoning": "IV medication details", "full_phrase": "Gtts: Heparin 12 uhr, Bumex 5mg/hr, Dobutamine 2.5mcg/kg, Milrinone 0.25mg/kg, Nicardipine 2.5mg/hr", "anchor_text": "IV medications", "page_id": "1_0", "line_ids": [25, 30, 35]},
+    {"id": 12, "reasoning": "Medical devices and access points", "full_phrase": "(R) Sided PICC on home milrinone, IABP, radial art line, IT Mac w/swan 55, FA PIV, AC PIV, fem IABP, subclavian PICC", "anchor_text": "medical devices", "page_id": "1_0", "line_ids": [20, 75, 80]},
+    {"id": 13, "reasoning": "Requested medical consultations", "full_phrase": "CONSULTS: *Critical Care *Palliative *Psych ID", "anchor_text": "CONSULTS", "page_id": "1_0", "line_ids": [60, 65]},
+    {"id": 14, "reasoning": "Family information", "full_phrase": "FAMILY July-wife * Pon Chris-Son", "anchor_text": "FAMILY", "page_id": "1_0", "line_ids": [65, 70]}
+  ]
+}
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      // Should have all 14 citations
+      expect(Object.keys(result).length).toBe(14);
+
+      const citations = Object.values(result);
+
+      // All citations should have the same attachmentId
+      expect(citations.every((c) => c.attachmentId === "LOcZ46PdCNO1P62p0p9M")).toBe(true);
+
+      // Check a few specific citations
+      const citation1 = citations.find((c) => c.citationNumber === 1);
+      expect(citation1?.fullPhrase).toBe("John Doe 50/M Full NKDA");
+      expect(citation1?.pageNumber).toBe(1);
+
+      const citation14 = citations.find((c) => c.citationNumber === 14);
+      expect(citation14?.fullPhrase).toBe("FAMILY July-wife * Pon Chris-Son");
+    });
+
+    it("extracts citations from deferred JSON format (grouped by attachmentId)", () => {
+      const input = `Here's a summary of the patient document:
+
+Patient Profile:
+- Name: John Doe [1]
+- Age: 50 years old [2]
+- Gender: Male [3]
+- Allergies: NKDA (No Known Drug Allergies) [4]
+
+<<<CITATION_DATA>>>
+{
+  "bm8JG5cIv5uhhj1ViHNm": [
+    {"id": 1, "reasoning": "Patient name", "full_phrase": "John Doe", "anchor_text": "John Doe", "page_id": "1_0", "line_ids": [1]},
+    {"id": 2, "reasoning": "Patient age", "full_phrase": "50/M", "anchor_text": "50", "page_id": "1_0", "line_ids": [1]},
+    {"id": 3, "reasoning": "Patient gender", "full_phrase": "50/M", "anchor_text": "M", "page_id": "1_0", "line_ids": [1]},
+    {"id": 4, "reasoning": "No known drug allergies", "full_phrase": "NKDA", "anchor_text": "NKDA", "page_id": "1_0", "line_ids": [5]}
+  ]
+}
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(4);
+      const citations = Object.values(result);
+      const phrases = citations.map((c) => c.fullPhrase);
+      expect(phrases).toContain("John Doe");
+      expect(phrases).toContain("50/M");
+      expect(phrases).toContain("NKDA");
+
+      // Verify attachmentId is correctly injected from the group key
+      const johndoeCitation = citations.find((c) => c.fullPhrase === "John Doe");
+      expect(johndoeCitation?.attachmentId).toBe("bm8JG5cIv5uhhj1ViHNm");
+      expect(johndoeCitation?.pageNumber).toBe(1);
+    });
+
+    it("extracts citations from deferred JSON format (flat array)", () => {
+      const input = `The company grew 45% [1].
+
+<<<CITATION_DATA>>>
+[
+  {"id": 1, "attachment_id": "abc123", "reasoning": "growth metrics", "full_phrase": "The company achieved 45% year-over-year growth", "anchor_text": "45% growth", "page_id": "2_1", "line_ids": [12, 13]}
+]
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("The company achieved 45% year-over-year growth");
+      expect(citation.attachmentId).toBe("abc123");
+      expect(citation.anchorText).toBe("45% growth");
+      expect(citation.pageNumber).toBe(2);
+      expect(citation.lineIds).toEqual([12, 13]);
+    });
+
+    it("extracts citations from deferred JSON format with compact keys", () => {
+      const input = `Test [1].
+
+<<<CITATION_DATA>>>
+[
+  {"n": 1, "a": "doc123", "r": "reason", "f": "full phrase here", "k": "phrase", "p": "3_2", "l": [5, 6]}
+]
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("full phrase here");
+      expect(citation.attachmentId).toBe("doc123");
+      expect(citation.anchorText).toBe("phrase");
+      expect(citation.reasoning).toBe("reason");
+      expect(citation.pageNumber).toBe(3);
+      expect(citation.lineIds).toEqual([5, 6]);
+    });
+
+    it("extracts citations from deferred JSON format with multiple attachments", () => {
+      const input = `From doc1 [1] and doc2 [2].
+
+<<<CITATION_DATA>>>
+{
+  "doc1AttachmentId": [
+    {"id": 1, "full_phrase": "content from doc1", "anchor_text": "doc1", "page_id": "1_0", "line_ids": [1]}
+  ],
+  "doc2AttachmentId": [
+    {"id": 2, "full_phrase": "content from doc2", "anchor_text": "doc2", "page_id": "2_0", "line_ids": [5]}
+  ]
+}
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(2);
+      const citations = Object.values(result);
+
+      const doc1Citation = citations.find((c) => c.fullPhrase === "content from doc1");
+      expect(doc1Citation?.attachmentId).toBe("doc1AttachmentId");
+
+      const doc2Citation = citations.find((c) => c.fullPhrase === "content from doc2");
+      expect(doc2Citation?.attachmentId).toBe("doc2AttachmentId");
+    });
+
+    it("handles deferred JSON format without end delimiter", () => {
+      const input = `Test [1].
+
+<<<CITATION_DATA>>>
+[{"id": 1, "attachment_id": "abc", "full_phrase": "test phrase", "anchor_text": "test"}]`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(1);
+      const citation = Object.values(result)[0];
+      expect(citation.fullPhrase).toBe("test phrase");
+    });
+
+    it("handles AV citations with timestamps in deferred JSON format", () => {
+      const input = `The speaker said [1].
+
+<<<CITATION_DATA>>>
+{
+  "video456": [
+    {"id": 1, "full_phrase": "transcript text", "anchor_text": "text", "timestamps": {"start_time": "00:01:00.000", "end_time": "00:01:30.000"}}
+  ]
+}
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+
+      expect(Object.keys(result).length).toBe(1);
+      const citation = Object.values(result)[0];
+      expect(citation.attachmentId).toBe("video456");
+      expect(citation.timestamps?.startTime).toBe("00:01:00.000");
+      expect(citation.timestamps?.endTime).toBe("00:01:30.000");
+    });
+
+    it("extracts both deferred JSON and XML citations when both present", () => {
+      // This tests that both CITATION_DATA block AND embedded XML are extracted
+      const input = `Test [1] with <cite attachment_id='xmlAttachmentId' full_phrase='xml phrase' anchor_text='xml' />.
+
+<<<CITATION_DATA>>>
+[{"id": 1, "attachment_id": "deferredAttachmentId", "full_phrase": "deferred phrase", "anchor_text": "deferred"}]
+<<<END_CITATION_DATA>>>`;
+
+      const result = getAllCitationsFromLlmOutput(input);
+      const citations = Object.values(result);
+
+      // Should have citations from both formats
+      expect(citations.length).toBe(2);
+
+      const deferredCitation = citations.find((c) => c.fullPhrase === "deferred phrase");
+      expect(deferredCitation).toBeDefined();
+      expect(deferredCitation?.attachmentId).toBe("deferredAttachmentId");
+
+      const xmlCitation = citations.find((c) => c.fullPhrase === "xml phrase");
+      expect(xmlCitation).toBeDefined();
+      expect(xmlCitation?.attachmentId).toBe("xmlAttachmentId");
+    });
+  });
 });

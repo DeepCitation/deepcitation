@@ -27,7 +27,8 @@
       "Bash(python3:*)",
       "WebFetch(domain:developers.intercom.com)",
       "Bash(grep:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(ls:*)"
     ]
   }
 }

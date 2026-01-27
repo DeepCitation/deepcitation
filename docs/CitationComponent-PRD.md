@@ -173,15 +173,80 @@ The `matchedVariation` field indicates which variation matched and determines th
 
 ### SearchAttempt Display
 
-In the popover, search attempts are displayed with:
-- **Search phrase** in monospace with colored left border
-- **Note** explaining the result (if available)
-- **Matched text** if different from searched phrase
+Search attempts are **grouped by unique phrase** to provide a cleaner, more informative display. When the same phrase is searched multiple times (e.g., on different pages), it appears once with a summary instead of repeated identical entries.
 
-Border colors:
-- **Green**: Successful match with high/medium trust
-- **Amber**: Successful match with low trust
-- **Red**: Failed search attempt
+#### Grouped Display Format
+
+Search attempts use a **compact horizontal layout** optimized for scanning:
+
+1. **Status icon** (left) - Quick visual indicator of success/failure
+2. **Phrase** (truncated to ~50 chars) in monospace
+3. **Inline badges** showing:
+   - `anchor` - Anchor text fallback search
+   - `pN` or `pN-M` - Pages searched
+   - `+N var` - Number of variations tried
+4. **Result line** (optional, below) - Found text or error note
+
+**Default expansion:** Shows first 2 groups (usually fullPhrase + anchorText), with a "+N" button to show more.
+
+#### Example: Before vs After
+
+**Before (8 identical-looking entries):**
+```
+Searched 8 phrases
+"Junior to payment of outstanding indebtedness..." - Not found in any page
+"Junior to payment of outstanding indebtedness..." - Not found in any page
+"Junior to payment of outstanding indebtedness..." - Not found in any page
+... (5 more identical entries)
+```
+
+**After (compact grouped display):**
+```
+2 phrases · 16 attempts                              [+1]
+─────────────────────────────────────────────────────────
+⚠ "Junior to payment of outstanding indebt…" [p1-8]
+    Not found in any page
+
+⚠ "Junior to payment" [anchor] [p1-8] [+2 var]
+    Not found in any page
+```
+
+#### Compact Row Format
+
+Each search attempt group is displayed in a compact single-row format:
+
+```
+[icon] "phrase..." [badge] [badge] [badge]
+         optional result line (found text or error)
+```
+
+**Icons:**
+- ✓ (green) - Found with high/medium trust
+- ✓ (amber) - Found with low trust
+- △ (red) - Not found
+
+**Badges:**
+| Badge | Meaning |
+|-------|---------|
+| `anchor` | This was an anchor text fallback search |
+| `p3` | Searched page 3 |
+| `p1-8` | Searched pages 1 through 8 |
+| `+2 var` | Also tried 2 variations of the phrase |
+
+#### Status Icon Colors
+
+| Status | Icon | Color |
+|--------|------|-------|
+| Found (high/medium trust) | ✓ | Green |
+| Found (low trust) | ✓ | Amber |
+| Not found | △ | Red |
+
+#### Page Badge Formatting
+
+Pages are formatted into compact badges:
+- Single page: `p3`
+- Range: `p1-8` (min to max)
+- The component uses `formatPageList()` for readable ranges in expanded views
 
 ## Display Variants
 

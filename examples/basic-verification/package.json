@@ -1,5 +1,5 @@
 {
-  "name": "deepcitation-basic-example",
+  "name": "deepcitation-js-basic-example",
   "version": "1.0.0",
   "description": "Basic example showing DeepCitation verification workflow",
   "type": "module",
@@ -11,7 +11,7 @@
     "start:curl": "bun run src/curl.ts"
   },
   "dependencies": {
-    "@deepcitation/deepcitation-js": "latest",
+    "@deepcitation/deepcitation-js": "workspace:*",
     "@anthropic-ai/sdk": "^0.30.1",
     "@google/generative-ai": "^0.21.0",
     "openai": "^4.104.0"

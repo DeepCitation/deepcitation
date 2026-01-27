@@ -264,6 +264,146 @@ function getSearchNote(attempt: SearchAttempt): string | undefined {
   return attempt.note || attempt.notes;
 }
 
+// =============================================================================
+// GROUPED SEARCH ATTEMPTS DISPLAY
+// =============================================================================
+
+/**
+ * A grouped search attempt combines multiple attempts that searched the same phrase.
+ * This provides a cleaner display when the same phrase is searched on multiple pages.
+ */
+interface GroupedSearchAttempt {
+  /** The search phrase (normalized for grouping) */
+  phrase: string;
+  /** Type of phrase: full_phrase or anchor_text */
+  phraseType: "full_phrase" | "anchor_text" | undefined;
+  /** All pages that were searched */
+  pagesSearched: number[];
+  /** All methods used */
+  methodsUsed: Set<string>;
+  /** All variations tried (from searchVariations arrays) */
+  variationsTried: string[];
+  /** Whether any attempt succeeded */
+  anySuccess: boolean;
+  /** The successful attempt if any */
+  successfulAttempt?: SearchAttempt;
+  /** All notes from attempts (deduplicated) */
+  uniqueNotes: string[];
+  /** Total number of attempts in this group */
+  attemptCount: number;
+}
+
+/**
+ * Get a human-readable label for search methods.
+ */
+function getMethodLabel(method: string): string {
+  const labels: Record<string, string> = {
+    exact_line_match: "exact line",
+    line_with_buffer: "line buffer",
+    current_page: "expected page",
+    anchor_text_fallback: "anchor text",
+    adjacent_pages: "adjacent pages",
+    expanded_window: "expanded search",
+    regex_search: "regex",
+    first_word_fallback: "first word",
+  };
+  return labels[method] || method;
+}
+
+/**
+ * Format a list of page numbers into a readable string.
+ * e.g., [1, 2, 3, 5, 6, 7] → "1-3, 5-7"
+ */
+function formatPageList(pages: number[]): string {
+  if (pages.length === 0) return "";
+  const sorted = [...new Set(pages)].sort((a, b) => a - b);
+  if (sorted.length === 1) return `page ${sorted[0]}`;
+
+  const ranges: string[] = [];
+  let rangeStart = sorted[0];
+  let rangeEnd = sorted[0];
+
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === rangeEnd + 1) {
+      rangeEnd = sorted[i];
+    } else {
+      ranges.push(rangeStart === rangeEnd ? `${rangeStart}` : `${rangeStart}-${rangeEnd}`);
+      rangeStart = sorted[i];
+      rangeEnd = sorted[i];
+    }
+  }
+  ranges.push(rangeStart === rangeEnd ? `${rangeStart}` : `${rangeStart}-${rangeEnd}`);
+
+  return `pages ${ranges.join(", ")}`;
+}
+
+/**
+ * Group search attempts by unique phrase for a cleaner display.
+ * Attempts with the same phrase are combined into a single group showing
+ * all pages searched, methods used, and variations tried.
+ */
+function groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] {
+  const groups = new Map<string, GroupedSearchAttempt>();
+
+  for (const attempt of attempts) {
+    const phrase = getSearchPhrase(attempt);
+    // Create a key that includes phrase type to differentiate fullPhrase vs anchorText searches
+    const key = `${attempt.searchPhraseType || "unknown"}:${phrase}`;
+
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        phrase,
+        phraseType: attempt.searchPhraseType,
+        pagesSearched: [],
+        methodsUsed: new Set(),
+        variationsTried: [],
+        anySuccess: false,
+        uniqueNotes: [],
+        attemptCount: 0,
+      };
+      groups.set(key, group);
+    }
+
+    group.attemptCount++;
+    if (attempt.pageSearched != null) {
+      group.pagesSearched.push(attempt.pageSearched);
+    }
+    group.methodsUsed.add(attempt.method);
+
+    // Collect unique variations
+    if (attempt.searchVariations) {
+      for (const variation of attempt.searchVariations) {
+        if (variation !== phrase && !group.variationsTried.includes(variation)) {
+          group.variationsTried.push(variation);
+        }
+      }
+    }
+
+    // Track success
+    if (attempt.success) {
+      group.anySuccess = true;
+      group.successfulAttempt = attempt;
+    }
+
+    // Collect unique notes
+    const note = getSearchNote(attempt);
+    if (note && !group.uniqueNotes.includes(note)) {
+      group.uniqueNotes.push(note);
+    }
+  }
+
+  // Sort groups: successful first, then by phrase type (full_phrase before anchor_text)
+  return Array.from(groups.values()).sort((a, b) => {
+    if (a.anySuccess !== b.anySuccess) return a.anySuccess ? -1 : 1;
+    if (a.phraseType !== b.phraseType) {
+      if (a.phraseType === "full_phrase") return -1;
+      if (b.phraseType === "full_phrase") return 1;
+    }
+    return 0;
+  });
+}
+
 /**
  * Derive citation status from a Verification object.
  * The status comes from verification.status.
@@ -628,10 +768,10 @@ function getSearchAttemptBorderClass(attempt: SearchAttempt): string {
 
 /**
  * Component to display searched phrases from search attempts.
- * Each attempt shows:
- * - The search phrase in monospace with colored left border
- * - A note explaining the result (if available)
- * - What was actually found (if different from searched)
+ * Groups similar attempts together for a cleaner display:
+ * - Same phrase searched on multiple pages → shows once with page summary
+ * - Shows methods used and variations tried
+ * - Highlights successful vs failed attempts
  */
 function SearchedPhrasesInfo({
   citation,
@@ -670,6 +810,12 @@ function SearchedPhrasesInfo({
     return fallbackAttempts;
   }, [citation, verification]);
 
+  // Group attempts by unique phrase for cleaner display
+  const groupedAttempts = useMemo(
+    () => groupSearchAttempts(searchAttempts),
+    [searchAttempts]
+  );
+
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
 
   // Use external state if provided, otherwise internal
@@ -682,61 +828,135 @@ function SearchedPhrasesInfo({
     }
   }, [onExpandChange]);
 
-  if (searchAttempts.length === 0) return null;
+  if (groupedAttempts.length === 0) return null;
 
-  const displayCount = isExpanded ? searchAttempts.length : 1;
-  const hiddenCount = searchAttempts.length - 1;
+  // Calculate total attempts for header
+  const totalAttempts = groupedAttempts.reduce((sum, g) => sum + g.attemptCount, 0);
+  const uniquePhrases = groupedAttempts.length;
+
+  // Show first 2 groups by default (usually fullPhrase + anchorText), expand to show all
+  const defaultDisplayCount = Math.min(2, groupedAttempts.length);
+  const displayCount = isExpanded ? groupedAttempts.length : defaultDisplayCount;
+  const hiddenGroupCount = groupedAttempts.length - defaultDisplayCount;
 
   return (
     <div className="mt-2">
-      <div className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">
-        <span>Searched {searchAttempts.length} phrase{searchAttempts.length !== 1 ? 's' : ''}</span>
-        {hiddenCount > 0 && !isExpanded && (
+      {/* Compact header */}
+      <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
+        <span className="uppercase font-medium">
+          {totalAttempts === uniquePhrases
+            ? `${uniquePhrases} phrase${uniquePhrases !== 1 ? "s" : ""} searched`
+            : `${uniquePhrases} phrase${uniquePhrases !== 1 ? "s" : ""} · ${totalAttempts} attempts`}
+        </span>
+        {hiddenGroupCount > 0 && (
           <button
             type="button"
-            onClick={() => setIsExpanded(true)}
-            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 lowercase"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
           >
-            +{hiddenCount} more
-          </button>
-        )}
-        {isExpanded && hiddenCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setIsExpanded(false)}
-            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 lowercase"
-          >
-            collapse
+            {isExpanded ? "less" : `+${hiddenGroupCount}`}
           </button>
         )}
       </div>
-      <div className="mt-1 space-y-2">
-        {searchAttempts.slice(0, displayCount).map((attempt, index) => {
-          const phrase = getSearchPhrase(attempt);
-          const note = getSearchNote(attempt);
-          const borderClass = getSearchAttemptBorderClass(attempt);
 
-          return (
-            <div key={index} className={cn("pl-2 py-1 border-l-2", borderClass)}>
-              {/* Search phrase */}
-              <p className="font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
-                "{phrase.length > 80 ? phrase.slice(0, 80) + '…' : phrase}"
-              </p>
-              {/* Note (if available) */}
-              {note && (
-                <p className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 italic">
-                  {note}
-                </p>
+      {/* Compact stacked list */}
+      <div className="mt-1.5 space-y-1">
+        {groupedAttempts.slice(0, displayCount).map((group, index) => (
+          <SearchAttemptRow key={index} group={group} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Compact single-row display for a grouped search attempt.
+ * Shows phrase, metadata badges, and result on one or two lines.
+ */
+function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
+  // Truncate phrase more aggressively for compact display
+  const maxPhraseLen = 50;
+  const displayPhrase = group.phrase.length > maxPhraseLen
+    ? group.phrase.slice(0, maxPhraseLen) + "…"
+    : group.phrase;
+
+  // Status indicator
+  const statusIcon = group.anySuccess ? (
+    <span className={cn(
+      "size-3 flex-shrink-0",
+      isLowTrustMatch(group.successfulAttempt?.matchedVariation)
+        ? "text-amber-500 dark:text-amber-400"
+        : "text-green-500 dark:text-green-400"
+    )}>
+      <CheckIcon />
+    </span>
+  ) : (
+    <span className="size-3 flex-shrink-0 text-red-400 dark:text-red-500">
+      <WarningIcon />
+    </span>
+  );
+
+  // Build compact badges
+  const badges: Array<{ text: string; variant: "default" | "muted" | "success" | "error" }> = [];
+
+  // Phrase type badge (only for anchor text)
+  if (group.phraseType === "anchor_text") {
+    badges.push({ text: "anchor", variant: "muted" });
+  }
+
+  // Page info badge
+  if (group.pagesSearched.length > 0) {
+    const pageText = group.pagesSearched.length === 1
+      ? `p${group.pagesSearched[0]}`
+      : `p${Math.min(...group.pagesSearched)}-${Math.max(...group.pagesSearched)}`;
+    badges.push({ text: pageText, variant: "default" });
+  }
+
+  // Variations count badge
+  if (group.variationsTried.length > 0) {
+    badges.push({ text: `+${group.variationsTried.length} var`, variant: "muted" });
+  }
+
+  return (
+    <div className="flex items-start gap-1.5 py-0.5">
+      {/* Status icon */}
+      <div className="mt-0.5">{statusIcon}</div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        {/* Phrase + badges on same line */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="font-mono text-[11px] text-gray-700 dark:text-gray-300 break-all">
+            "{displayPhrase}"
+          </span>
+          {badges.map((badge, i) => (
+            <span
+              key={i}
+              className={cn(
+                "px-1 py-px rounded text-[9px] font-medium whitespace-nowrap",
+                badge.variant === "default" && "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400",
+                badge.variant === "muted" && "bg-gray-50 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500",
+                badge.variant === "success" && "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400",
+                badge.variant === "error" && "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
               )}
-              {/* Matched text (if different from searched) */}
-              {attempt.success && attempt.matchedText && attempt.matchedText !== phrase && (
-                <p className="mt-0.5 text-[10px] text-green-600 dark:text-green-400">
-                  Found: "{attempt.matchedText.length > 60 ? attempt.matchedText.slice(0, 60) + '…' : attempt.matchedText}"
-                </p>
-              )}
-            </div>
-          );
-        })}
+            >
+              {badge.text}
+            </span>
+          ))}
+        </div>
+
+        {/* Result line (compact) */}
+        {group.anySuccess && group.successfulAttempt?.matchedText &&
+          group.successfulAttempt.matchedText !== group.phrase && (
+          <p className="text-[10px] text-green-600 dark:text-green-400 truncate mt-0.5">
+            → "{group.successfulAttempt.matchedText.slice(0, 40)}{group.successfulAttempt.matchedText.length > 40 ? "…" : ""}"
+          </p>
+        )}
+        {!group.anySuccess && group.uniqueNotes.length > 0 && (
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 italic truncate mt-0.5">
+            {group.uniqueNotes[0]}
+          </p>
+        )}
       </div>
     </div>
   );

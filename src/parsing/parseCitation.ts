@@ -2,6 +2,10 @@ import { type Verification } from "../types/verification.js";
 import { type Citation, type CitationStatus } from "../types/citation.js";
 import { normalizeCitations } from "./normalizeCitation.js";
 import { generateCitationKey } from "../react/utils.js";
+import {
+  hasDeferredCitations,
+  getAllCitationsFromDeferredResponse,
+} from "./deferredCitationParser.js";
 
 const attributeRegexCache = new Map<string, RegExp>();
 
@@ -416,7 +420,12 @@ export const getAllCitationsFromLlmOutput = (
     const xmlCitations = extractXmlCitations(text);
     Object.assign(citations, xmlCitations);
   } else if (typeof llmOutput === "string") {
-    // String input - parse for XML citations
+    // Check for deferred JSON format (<<<CITATION_DATA>>>)
+    if (hasDeferredCitations(llmOutput)) {
+      const deferredCitations = getAllCitationsFromDeferredResponse(llmOutput);
+      Object.assign(citations, deferredCitations);
+    }
+    // Also parse for XML citations (both formats can coexist)
     const xmlCitations = extractXmlCitations(llmOutput);
     Object.assign(citations, xmlCitations);
   }
