@@ -74,14 +74,14 @@ test.describe("Popover Image Width Constraint", () => {
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
 
-    // Find the image
-    const image = popover.locator("img");
-    await expect(image).toBeVisible();
+    // Find the popover container - new layout uses a fixed-width container
+    // Implementation uses: style={{ width: "380px", maxWidth: "90vw" }}
+    const container = popover.locator(".overflow-hidden.rounded-lg");
+    await expect(container).toBeVisible();
 
-    // Check that image has max-width constraint via inline style
-    // Implementation uses: maxWidth: "min(70vw, 384px)"
-    const maxWidth = await image.evaluate((el) => (el as HTMLElement).style.maxWidth);
-    expect(maxWidth).toContain("384px");
+    // The container should have a constrained width (380px or 90vw max)
+    const containerWidth = await container.evaluate((el) => (el as HTMLElement).style.width);
+    expect(containerWidth).toBe("380px");
   });
 
   test("popover image has max height constraint", async ({ mount, page }) => {
@@ -138,7 +138,7 @@ test.describe("Popover Image Width Constraint", () => {
     expect(objectFit).toBe("contain");
   });
 
-  test("image has auto width and height", async ({ mount, page }) => {
+  test("image fills container width", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
         <CitationComponent
@@ -159,11 +159,10 @@ test.describe("Popover Image Width Constraint", () => {
     const image = popover.locator("img");
     await expect(image).toBeVisible();
 
-    // Check that image uses auto dimensions for natural sizing within constraints
-    const width = await image.evaluate((el) => (el as HTMLElement).style.width);
-    const height = await image.evaluate((el) => (el as HTMLElement).style.height);
-    expect(width).toBe("auto");
-    expect(height).toBe("auto");
+    // Check that image uses w-full class to fill container width
+    // Implementation uses: className="block rounded-md w-full"
+    const hasWFullClass = await image.evaluate((el) => el.classList.contains("w-full"));
+    expect(hasWFullClass).toBe(true);
   });
 });
 
@@ -309,7 +308,7 @@ test.describe("Image Click to Expand", () => {
     await expect(overlayImage).toBeVisible();
   });
 
-  test("clicking overlay closes it", async ({ mount, page }) => {
+  test("pressing Escape closes overlay", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "50px" }}>
         <CitationComponent
@@ -327,8 +326,8 @@ test.describe("Image Click to Expand", () => {
     const overlay = page.getByRole("dialog", { name: "Full size verification image" });
     await expect(overlay).toBeVisible();
 
-    // Click overlay to close
-    await overlay.click();
+    // Press Escape to close
+    await page.keyboard.press("Escape");
 
     // Overlay should be closed
     await expect(overlay).not.toBeVisible();
