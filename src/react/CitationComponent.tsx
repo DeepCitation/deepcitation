@@ -16,7 +16,7 @@ const Activity =
 import { type CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import type { MatchedVariation, SearchAttempt } from "../types/search.js";
-import { CheckIcon, SpinnerIcon, WarningIcon } from "./icons.js";
+import { CheckIcon, CloseIcon, SpinnerIcon, WarningIcon } from "./icons.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover.js";
 import type {
   BaseCitationProps,
@@ -50,6 +50,9 @@ const MAX_PHRASE_LENGTH = 50;
 
 /** Maximum characters to show for matched text display in search results */
 const MAX_MATCHED_TEXT_LENGTH = 40;
+
+/** Maximum number of search variations to show before collapsing */
+const MAX_VISIBLE_VARIATIONS = 3;
 
 // =============================================================================
 // ERROR BOUNDARY
