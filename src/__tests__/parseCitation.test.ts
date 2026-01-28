@@ -116,7 +116,7 @@ describe("getCitationStatus", () => {
       expect(status.isVerified).toBe(false);
     });
 
-    it("treats found_anchor_text_only as verified but not partial", () => {
+    it("treats found_phrase_missed_anchor_text as verified but not partial", () => {
       const verification: Verification = {
         citation: {
           anchorText: "term",
@@ -124,7 +124,7 @@ describe("getCitationStatus", () => {
           attachmentId: "file",
         },
         verifiedPageNumber: 2,
-        status: "found_anchor_text_only",
+        status: "found_phrase_missed_anchor_text",
         verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
@@ -132,20 +132,20 @@ describe("getCitationStatus", () => {
       expect(status.isPartialMatch).toBe(false);
     });
 
-    it("treats found_phrase_missed_value as verified but not partial", () => {
+    it("treats found_anchor_text_only as partial match", () => {
       const verification: Verification = {
         citation: {
           anchorText: "term",
-          fullPhrase: "term",
+          fullPhrase: "full phrase",
           attachmentId: "file",
         },
         verifiedPageNumber: 2,
-        status: "found_phrase_missed_value",
-        verifiedMatchSnippet: "snippet",
+        status: "found_anchor_text_only",
+        verifiedMatchSnippet: "term",
       };
       const status = getCitationStatus(verification);
       expect(status.isVerified).toBe(true);
-      expect(status.isPartialMatch).toBe(false);
+      expect(status.isPartialMatch).toBe(true);
     });
 
     it("treats loading status as pending", () => {

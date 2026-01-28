@@ -5,7 +5,7 @@ export type SearchStatus =
   | "partial_text_found"
   | "found"
   | "found_anchor_text_only"
-  | "found_phrase_missed_value"
+  | "found_phrase_missed_anchor_text"
   | "found_on_other_page"
   | "found_on_other_line"
   | "first_word_found"

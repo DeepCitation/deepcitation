@@ -55,8 +55,8 @@ export function getContextualStatusMessage(
       return "Exact match found";
     case "found_anchor_text_only":
       return "Key phrase found, full context differs";
-    case "found_phrase_missed_value":
-      return "Phrase found, value differs";
+    case "found_phrase_missed_anchor_text":
+      return "Full phrase found, anchor text highlight missed";
     case "partial_text_found":
       return "Partial text match found";
     case "found_on_other_page":

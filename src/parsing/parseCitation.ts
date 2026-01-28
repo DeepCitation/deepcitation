@@ -78,8 +78,17 @@ export function getCitationStatus(
 
   const isMiss = ["not_found"].includes(status || "");
 
-  const isVerified =  ["found", "found_anchor_text_only", "found_phrase_missed_value"].includes(status || "");
-  const isPartialMatch = ["partial_text_found", "found_on_other_page", "found_on_other_line", "first_word_found"].includes(status || "");
+  // Partial matches: something found but not ideal (amber indicator)
+  const isPartialMatch = [
+    "found_anchor_text_only", // Only anchor text found, not full phrase
+    "partial_text_found",
+    "found_on_other_page",
+    "found_on_other_line",
+    "first_word_found"
+  ].includes(status || "");
+
+  // Verified: exact match or partial match (green or amber indicator)
+  const isVerified = ["found", "found_phrase_missed_anchor_text"].includes(status || "") || isPartialMatch;
 
   const isPending = ["pending", "loading", null, undefined].includes(status);
 

@@ -491,8 +491,21 @@ function groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] 
  * Derive citation status from a Verification object.
  * The status comes from verification.status.
  *
- * Low-trust matches (from matchedVariation) are also treated as partial matches
- * and show amber indicator instead of green.
+ * Status classification:
+ * - GREEN (isVerified only): Full phrase found at expected location
+ *   - "found": Exact match
+ *   - "found_phrase_missed_anchor_text": Full phrase found, anchor text highlighting failed
+ *
+ * - AMBER (isVerified + isPartialMatch): Something found but not ideal
+ *   - "found_anchor_text_only": Only anchor text found, full phrase not matched
+ *   - "found_on_other_page": Found but on different page than expected
+ *   - "found_on_other_line": Found but on different line than expected
+ *   - "partial_text_found": Only part of the text was found
+ *   - "first_word_found": Only the first word matched (lowest confidence)
+ *   - Low-trust matches from matchedVariation also show amber
+ *
+ * - RED (isMiss): Not found
+ *   - "not_found": Text not found in document
  *
  * Note: isPending is only true when status is explicitly "pending" or "loading".
  * Use the isLoading prop to show spinner when verification is in-flight.
@@ -522,17 +535,19 @@ function getStatusFromVerification(
       (a) => a.success && isLowTrustMatch(a.matchedVariation)
     ) ?? false;
 
+  // Partial matches show amber indicator - something found but not ideal
   const isPartialMatch =
-    status === "partial_text_found" ||
+    status === "found_anchor_text_only" || // Only anchor text found, not full phrase
     status === "found_on_other_page" ||
     status === "found_on_other_line" ||
+    status === "partial_text_found" ||
     status === "first_word_found" ||
     hasLowTrustMatch; // Low-trust matches also show as partial (amber)
 
+  // Verified = we found something (either exact or partial)
   const isVerified =
     status === "found" ||
-    status === "found_anchor_text_only" ||
-    status === "found_phrase_missed_value" ||
+    status === "found_phrase_missed_anchor_text" || // Full phrase found, just missed anchor text highlight
     isPartialMatch;
 
   return { isVerified, isMiss, isPartialMatch, isPending };
@@ -1438,7 +1453,7 @@ export const CitationComponent = forwardRef<
       verification?.verificationImageBase64 ||
       verification?.status === "found" ||
       verification?.status === "found_anchor_text_only" ||
-      verification?.status === "found_phrase_missed_value" ||
+      verification?.status === "found_phrase_missed_anchor_text" ||
       verification?.status === "not_found" ||
       verification?.status === "partial_text_found" ||
       verification?.status === "found_on_other_page" ||
