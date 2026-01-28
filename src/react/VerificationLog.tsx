@@ -16,9 +16,9 @@ const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   exact_line_match: "Exact Line Match",
   line_with_buffer: "Line Buffer Search",
   current_page: "Page Scan",
-  anchor_text_fallback: "Anchor Text Fallback",
-  adjacent_pages: "Adjacent Pages",
-  expanded_window: "Expanded Window",
+  anchor_text_fallback: "Key Phrase Search",
+  adjacent_pages: "Nearby Pages",
+  expanded_window: "Wider Search",
   regex_search: "Full Document Search",
   first_word_fallback: "First Word Search",
 };
