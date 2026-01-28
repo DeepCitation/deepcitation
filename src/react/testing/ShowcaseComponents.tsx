@@ -1,10 +1,10 @@
 import React from "react";
-import { CitationComponent } from "../../react/CitationComponent";
-import { UrlCitationComponent } from "../../react/UrlCitationComponent";
+import { CitationComponent } from "../CitationComponent";
+import { UrlCitationComponent } from "../UrlCitationComponent";
 import type { Citation } from "../../types/citation";
 import type { Verification } from "../../types/verification";
 import type { SearchAttempt } from "../../types/search";
-import type { UrlCitationMeta, UrlFetchStatus } from "../../react/types";
+import type { UrlCitationMeta, UrlFetchStatus } from "../types";
 
 // =============================================================================
 // TEST FIXTURES - Citations

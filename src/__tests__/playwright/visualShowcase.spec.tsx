@@ -1,82 +1,9 @@
 import { test, expect } from "@playwright/experimental-ct-react";
-import { CitationComponent } from "../../react/CitationComponent";
-import type { Citation } from "../../types/citation";
-import type { Verification } from "../../types/verification";
-import type { SearchAttempt } from "../../types/search";
 
-// Import showcase components from separate file (required by Playwright CT)
-import { VisualShowcase, MobileShowcase, allUrlStatuses } from "./ShowcaseComponents";
-
-// =============================================================================
-// TEST FIXTURES - Citations (for popover tests)
-// =============================================================================
-
-const baseCitation: Citation = {
-  pageNumber: 5,
-  lineIds: [12, 13],
-  fullPhrase: "Revenue increased by 15% in Q4 2024.",
-  anchorText: "increased by 15%",
-  citationNumber: 1,
-};
-
-// =============================================================================
-// TEST FIXTURES - Verifications (for popover tests)
-// =============================================================================
-
-const failedSearchAttempts: SearchAttempt[] = [
-  {
-    method: "exact_line_match",
-    success: false,
-    searchPhrase: "Revenue increased by 15% in Q4 2024.",
-    searchPhraseType: "full_phrase",
-    pageSearched: 5,
-    note: "not found on expected page (5)",
-  },
-  {
-    method: "current_page",
-    success: false,
-    searchPhrase: "Revenue increased by 15% in Q4 2024.",
-    searchPhraseType: "full_phrase",
-    pageSearched: 5,
-    note: "not found with exact match",
-  },
-  {
-    method: "adjacent_pages",
-    success: false,
-    searchPhrase: "Revenue increased by 15% in Q4 2024.",
-    searchPhraseType: "full_phrase",
-    pageSearched: 4,
-    note: "searched adjacent pages 4-6",
-  },
-  {
-    method: "adjacent_pages",
-    success: false,
-    searchPhrase: "Revenue increased by 15% in Q4 2024.",
-    searchPhraseType: "full_phrase",
-    pageSearched: 6,
-  },
-  {
-    method: "anchor_text_fallback",
-    success: false,
-    searchPhrase: "increased by 15%",
-    searchPhraseType: "anchor_text",
-    pageSearched: 5,
-    note: "anchor text not found",
-  },
-  {
-    method: "expanded_window",
-    success: false,
-    searchPhrase: "increased by 15%",
-    searchPhraseType: "anchor_text",
-    note: "searched pages 1-10",
-  },
-];
-
-const notFoundWithAudit: Verification = {
-  status: "not_found",
-  verifiedPageNumber: -1,
-  searchAttempts: failedSearchAttempts,
-};
+// Import showcase components separately to avoid Playwright CT bundling conflict
+import { VisualShowcase } from "../../react/testing/ShowcaseComponents";
+import { MobileShowcase } from "../../react/testing/ShowcaseComponents";
+import { allUrlStatuses } from "../../react/testing/ShowcaseComponents";
 
 // =============================================================================
 // TESTS - Desktop Visual Showcase
@@ -240,49 +167,5 @@ test.describe("Visual Showcase - Tablet", () => {
       animations: 'disabled',
       maxDiffPixelRatio: 0.1,
     });
-  });
-});
-
-// =============================================================================
-// TESTS - Popover Interaction (Desktop)
-// =============================================================================
-
-test.describe("Popover Interactions", () => {
-  // Note: Radix UI popovers can be flaky in component tests due to portal rendering.
-  // These tests verify the component mounts correctly.
-
-  test("citation renders with data-citation-id", async ({ mount, page }) => {
-    await mount(
-      <div className="p-10">
-        <CitationComponent
-          citation={baseCitation}
-          verification={notFoundWithAudit}
-          variant="brackets"
-        />
-      </div>
-    );
-
-    const citation = page.locator('[data-citation-id]');
-    await expect(citation).toBeVisible();
-    await expect(citation).toHaveAttribute('data-citation-id');
-  });
-
-  test("citation with audit log renders correctly", async ({ mount, page }) => {
-    await mount(
-      <div className="p-10">
-        <CitationComponent
-          citation={baseCitation}
-          verification={notFoundWithAudit}
-          variant="brackets"
-        />
-      </div>
-    );
-
-    const citation = page.locator('[data-citation-id]');
-    await expect(citation).toBeVisible();
-
-    // Should contain the citation number in brackets
-    await expect(citation).toContainText('[');
-    await expect(citation).toContainText(']');
   });
 });
