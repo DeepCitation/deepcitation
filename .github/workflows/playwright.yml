@@ -5,6 +5,13 @@ on:
     branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: 'Update visual snapshots'
+        required: false
+        default: 'false'
+        type: boolean
 
 # Allow deployment to GitHub Pages
 permissions:
@@ -37,11 +44,25 @@ jobs:
         run: npm run build
 
       - name: Run Playwright tests
-        run: npm run test:ct
+        run: |
+          if [ "${{ inputs.update_snapshots }}" == "true" ]; then
+            npm run test:ct -- --update-snapshots
+          else
+            npm run test:ct
+          fi
         continue-on-error: true
         id: playwright
         env:
           PLAYWRIGHT_WORKERS: 2
+
+      - name: Commit updated snapshots
+        if: ${{ inputs.update_snapshots == 'true' }}
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add src/__tests__/playwright/__snapshots__/
+          git diff --staged --quiet || git commit -m "chore: Update Playwright visual snapshots"
+          git push
 
       - name: Upload Playwright report artifact
         uses: actions/upload-artifact@v4
