@@ -46,14 +46,13 @@ const pendingVerification: Verification = {
 // =============================================================================
 
 test.describe("CitationComponent - Brackets Variant", () => {
-  test("renders citation number in brackets by default", async ({ mount, page }) => {
+  test("renders anchorText in brackets by default", async ({ mount, page }) => {
     await mount(<CitationComponent citation={baseCitation} variant="brackets" />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
-    // Should show citation number (42) in brackets
-    await expect(citation).toContainText("[");
-    await expect(citation).toContainText("42");
+    // brackets variant defaults to anchorText content
+    await expect(citation).toContainText("[25% revenue growth");
     await expect(citation).toContainText("]");
   });
 
