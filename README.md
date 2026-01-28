@@ -142,6 +142,56 @@ npm run start:openai
 - **Images:** JPG, PNG, TIFF, WebP, HEIC
 - **Web:** Public URLs
 
+## Development & Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run Playwright component tests
+npm run test:ct
+
+# Run Playwright tests in UI mode (interactive)
+npm run test:ct:ui
+```
+
+### Visual Regression Testing
+
+This package includes comprehensive visual regression tests using Playwright component testing. The tests verify that citation components render correctly across different states, variants, and viewports.
+
+**First-time Setup:**
+
+Visual regression tests will fail on the first CI run because baseline snapshots don't exist yet. To generate baselines:
+
+1. Trigger a workflow run with the `UPDATE_SNAPSHOTS=1` environment variable
+2. The workflow will generate baseline snapshots for all viewports (desktop, mobile, tablet)
+3. Baseline images will be saved in `src/__tests__/playwright/__snapshots__/`
+4. Commit these baseline snapshots to the repository
+
+**Updating Snapshots:**
+
+If you intentionally change component styling and need to update the baselines:
+
+```bash
+# Update snapshots locally
+UPDATE_SNAPSHOTS=1 npm run test:ct
+
+# Commit the updated snapshots
+git add src/__tests__/playwright/__snapshots__/
+git commit -m "chore: Update visual regression baselines"
+```
+
+**What's Tested:**
+- All 5 citation variants (brackets, chip, text, superscript, minimal)
+- All verification states (verified, partial, not found, pending)
+- All 16 URL fetch status types
+- Responsive design (desktop 1280×720, mobile 375×667, tablet 768×1024)
+- Long text handling and truncation
+- Audit log display with failed search attempts
+- Inline usage in text contexts
+
 ## Support
 
 - **Feature requests:** [GitHub Discussions](https://github.com/deepcitation/deepcitation-js/discussions)

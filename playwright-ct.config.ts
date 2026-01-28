@@ -46,7 +46,12 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.PLAYWRIGHT_WORKERS
+    ? (() => {
+        const parsed = parseInt(process.env.PLAYWRIGHT_WORKERS, 10);
+        return !isNaN(parsed) && parsed > 0 ? parsed : undefined;
+      })()
+    : undefined,
   reporter: "html",
   use: {
     trace: "on-first-retry",

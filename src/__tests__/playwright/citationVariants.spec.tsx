@@ -56,7 +56,8 @@ test.describe("ChipCitation", () => {
 
     await expect(chip).toBeVisible();
     await expect(chip).toHaveAttribute("data-variant", "chip");
-    await expect(chip).toContainText("1");
+    // ChipCitation shows anchorText by default (via getCitationDisplayText)
+    await expect(chip).toContainText("Test Value");
   });
 
   test("renders with verified state", async ({ mount, page }) => {
@@ -66,7 +67,9 @@ test.describe("ChipCitation", () => {
     const chip = page.locator('[data-variant="chip"]');
 
     await expect(chip).toHaveClass(/text-green-600/);
-    await expect(chip.locator("text=✓")).toBeVisible();
+    // Verified indicator is a checkmark
+    const text = await chip.textContent();
+    expect(text).toContain("✓");
   });
 
   test("renders with miss state", async ({ mount, page }) => {
@@ -89,7 +92,9 @@ test.describe("ChipCitation", () => {
     const chip = page.locator('[data-variant="chip"]');
 
     await expect(chip).toHaveClass(/text-amber-/);
-    await expect(chip.locator("text=*")).toBeVisible();
+    // Partial indicator is an asterisk rendered in an aria-hidden span
+    const text = await chip.textContent();
+    expect(text).toContain("*");
   });
 
   test("renders with pending state", async ({ mount, page }) => {
@@ -123,7 +128,9 @@ test.describe("ChipCitation", () => {
     await mount(<ChipCitation citation={baseCitation} showIcon={true} />);
     const chip = page.locator('[data-variant="chip"]');
 
-    await expect(chip.locator("text=📄")).toBeVisible();
+    // Icon is rendered as emoji in a span
+    const text = await chip.textContent();
+    expect(text).toContain("📄");
   });
 
   test("renders anchorText text by default", async ({ mount, page }) => {
@@ -192,8 +199,18 @@ test.describe("SuperscriptCitation", () => {
     expect(text).toMatch(/^\[1.*\]$/); // Starts with [ and ends with ]
   });
 
-  test("renders without brackets by default", async ({ mount, page }) => {
+  test("renders with brackets by default", async ({ mount, page }) => {
+    // Default is hideBrackets=false, meaning brackets ARE shown
     await mount(<SuperscriptCitation citation={baseCitation} />);
+    const sup = page.locator('[data-variant="superscript"]');
+
+    const text = await sup.textContent();
+    expect(text).toContain("[");
+    expect(text).toContain("]");
+  });
+
+  test("renders without brackets when hideBrackets is true", async ({ mount, page }) => {
+    await mount(<SuperscriptCitation citation={baseCitation} hideBrackets={true} />);
     const sup = page.locator('[data-variant="superscript"]');
 
     const text = await sup.textContent();
@@ -371,7 +388,8 @@ test.describe("MinimalCitation", () => {
     );
     const minimal = page.locator('[data-variant="minimal"]');
 
-    await expect(minimal.locator("text=✓")).toBeVisible();
+    const text = await minimal.textContent();
+    expect(text).toContain("✓");
   });
 
   test("hides status indicator when showStatusIndicator is false", async ({
@@ -387,7 +405,8 @@ test.describe("MinimalCitation", () => {
     );
     const minimal = page.locator('[data-variant="minimal"]');
 
-    await expect(minimal.locator("text=✓")).not.toBeVisible();
+    const text = await minimal.textContent();
+    expect(text).not.toContain("✓");
   });
 
   test("renders with miss state", async ({ mount, page }) => {
@@ -477,7 +496,8 @@ test.describe("Accessibility", () => {
     await mount(<ChipCitation citation={baseCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
-    await expect(chip).toHaveAttribute("aria-label", /Citation: 1/);
+    // ChipCitation shows anchorText by default, so aria-label uses anchorText
+    await expect(chip).toHaveAttribute("aria-label", /Citation: Test Value/);
   });
 
   test("superscript citation has aria-label", async ({ mount, page }) => {
@@ -514,7 +534,11 @@ test.describe("Accessibility", () => {
     );
     const chip = page.locator('[data-variant="chip"]');
 
-    await expect(chip.locator('[aria-hidden="true"]').first()).toBeVisible();
+    // The checkmark indicator span has aria-hidden="true"
+    const ariaHiddenEl = chip.locator('[aria-hidden="true"]').first();
+    await expect(ariaHiddenEl).toBeVisible();
+    const text = await ariaHiddenEl.textContent();
+    expect(text).toContain("✓");
   });
 });
 

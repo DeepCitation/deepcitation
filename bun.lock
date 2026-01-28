@@ -5,6 +5,7 @@
       "name": "@deepcitation/deepcitation-js",
       "devDependencies": {
         "@happy-dom/global-registrator": "^20.3.3",
+        "@jest/globals": "^29.7.0",
         "@playwright/experimental-ct-react": "^1.57.0",
         "@playwright/test": "^1.57.0",
         "@radix-ui/react-popover": "^1.1.15",
