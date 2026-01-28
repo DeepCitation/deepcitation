@@ -49,7 +49,7 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report/
-          retention-days: 30
+          retention-days: 14
 
       - name: Upload visual snapshots artifact
         uses: actions/upload-artifact@v4
@@ -57,7 +57,7 @@ jobs:
         with:
           name: visual-snapshots
           path: src/__tests__/playwright/__snapshots__/
-          retention-days: 30
+          retention-days: 14
           if-no-files-found: ignore
 
       # Deploy report to GitHub Pages (optional - requires Pages to be enabled)
