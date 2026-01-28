@@ -873,7 +873,7 @@ function SearchedPhrasesInfo({
       return verification.searchAttempts;
     }
 
-    // Fallback: create a synthetic attempt from citation data
+    // Fallback: create synthetic attempts from citation data
     const fallbackAttempts: SearchAttempt[] = [];
     if (citation.fullPhrase) {
       fallbackAttempts.push({
@@ -882,9 +882,11 @@ function SearchedPhrasesInfo({
         searchPhrase: citation.fullPhrase,
         searchPhraseType: "full_phrase",
       });
-    } else if (citation.anchorText) {
+    }
+    // Also add anchorText as a separate fallback if it differs from fullPhrase
+    if (citation.anchorText && citation.anchorText !== citation.fullPhrase) {
       fallbackAttempts.push({
-        method: "current_page",
+        method: "anchor_text_fallback",
         success: false,
         searchPhrase: citation.anchorText.toString(),
         searchPhraseType: "anchor_text",
