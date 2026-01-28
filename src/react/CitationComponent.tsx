@@ -16,7 +16,7 @@ const Activity =
 import { type CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import type { MatchedVariation, SearchAttempt } from "../types/search.js";
-import { CheckIcon, SpinnerIcon, WarningIcon } from "./icons.js";
+import { CheckIcon, CloseIcon, SpinnerIcon, WarningIcon } from "./icons.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover.js";
 import type {
   BaseCitationProps,
@@ -50,6 +50,12 @@ const MAX_PHRASE_LENGTH = 50;
 
 /** Maximum characters to show for matched text display in search results */
 const MAX_MATCHED_TEXT_LENGTH = 40;
+
+/** Maximum number of search variations to show before collapsing */
+const MAX_VISIBLE_VARIATIONS = 3;
+
+/** Maximum characters to show for variation strings */
+const MAX_VARIATION_LENGTH = 30;
 
 // =============================================================================
 // ERROR BOUNDARY
@@ -973,6 +979,7 @@ function SearchedPhrasesInfo({
 /**
  * Compact single-row display for a grouped search attempt.
  * Shows phrase, metadata badges, and result on one or two lines.
+ * For failed attempts, shows detailed information about what was tried.
  */
 function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
   // Truncate phrase for display
@@ -986,7 +993,7 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
     ? formatPageList(validPages)
     : "all pages";
 
-  // Status indicator - only show check for successful attempts
+  // Status indicator - show check for success, X for failure
   const statusIndicator = group.anySuccess ? (
     <span className={cn(
       "inline-flex size-3 flex-shrink-0",
@@ -996,10 +1003,23 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
     )}>
       <CheckIcon />
     </span>
-  ) : null;
+  ) : (
+    <span className="inline-flex size-3 flex-shrink-0 text-red-500 dark:text-red-400">
+      <CloseIcon />
+    </span>
+  );
 
   // Phrase type label
   const phraseTypeLabel = group.phraseType === "anchor_text" ? "anchor text" : "full phrase";
+
+  // For failed attempts, build the methods tried string
+  const methodsTriedString = !group.anySuccess && group.methodsUsed.size > 0
+    ? Array.from(group.methodsUsed).map(getMethodLabel).join(", ")
+    : null;
+
+  // For failed attempts, show variations that were also searched
+  const visibleVariations = group.variationsTried.slice(0, MAX_VISIBLE_VARIATIONS);
+  const hiddenVariationsCount = group.variationsTried.length - MAX_VISIBLE_VARIATIONS;
 
   return (
     <div className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
@@ -1025,11 +1045,46 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
         </p>
       )}
 
-      {/* Notes for failed attempts */}
-      {!group.anySuccess && group.uniqueNotes.length > 0 && (
-        <p className="text-[10px] text-gray-400 dark:text-gray-500 italic mt-1">
-          {group.uniqueNotes[0]}
-        </p>
+      {/* Detailed info for failed attempts */}
+      {!group.anySuccess && (
+        <>
+          {/* Not found with methods tried */}
+          {methodsTriedString && (
+            <p className="text-[10px] text-red-500 dark:text-red-400 mt-1">
+              Not found — tried: {methodsTriedString}
+            </p>
+          )}
+
+          {/* Variations that were also searched */}
+          {visibleVariations.length > 0 && (
+            <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+              <span className="font-medium">Also searched: </span>
+              {visibleVariations.map((variation, index) => {
+                const truncatedVar = variation.length > MAX_VARIATION_LENGTH
+                  ? variation.slice(0, MAX_VARIATION_LENGTH) + "…"
+                  : variation;
+                return (
+                  <span key={index}>
+                    <span className="font-mono">"{truncatedVar}"</span>
+                    {index < visibleVariations.length - 1 && ", "}
+                  </span>
+                );
+              })}
+              {hiddenVariationsCount > 0 && (
+                <span className="text-gray-400 dark:text-gray-500">
+                  {" "}+{hiddenVariationsCount} more
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Notes (if any, for additional context) */}
+          {group.uniqueNotes.length > 0 && (
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 italic mt-1">
+              {group.uniqueNotes[0]}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
