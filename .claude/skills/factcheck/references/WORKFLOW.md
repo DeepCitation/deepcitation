@@ -163,7 +163,7 @@ Calculate a confidence score for each claim:
 |---------------------|----------|-------------|
 | `found` | Fully Verified | Exact text found in source |
 | `found_anchor_text_only` | Fully Verified | Key phrase found |
-| `found_phrase_missed_value` | Fully Verified | Phrase found, value differs |
+| `found_phrase_missed_anchor_text` | Fully Verified | Phrase found, value differs |
 | `found_on_other_page` | Partial Match | Found on different page than claimed |
 | `found_on_other_line` | Partial Match | Found on different line than claimed |
 | `partial_text_found` | Partial Match | Only part of text found |

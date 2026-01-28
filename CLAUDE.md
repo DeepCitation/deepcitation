@@ -255,7 +255,7 @@ The component displays different indicators based on `verification.status`:
 | Status        | Indicator          | Color  | `status` values                              |
 |---------------|--------------------| -------|----------------------------------------------|
 | **Pending**   | Spinner ◌          | Gray   | `"pending"`, `"loading"`, or `null`/`undefined`          |
-| **Verified**  | Checkmark ✓        | Green  | `"found"`, `"found_anchor_text_only"`, `"found_phrase_missed_value"` |
+| **Verified**  | Checkmark ✓        | Green  | `"found"`, `"found_anchor_text_only"`, `"found_phrase_missed_anchor_text"` |
 | **Partial**   | Checkmark ✓        | Amber  | `"found_on_other_page"`, `"found_on_other_line"`, `"partial_text_found"`, `"first_word_found"` |
 | **Not Found** | Warning △          | Red    | `"not_found"`                                            |
 
