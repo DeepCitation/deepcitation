@@ -1,15 +1,11 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import type { SearchAttempt, SearchStatus, SearchMethod } from "../types/search.js";
-import type { Citation } from "../types/citation.js";
 import { CheckIcon, CloseIcon, WarningIcon } from "./icons.js";
 import { cn } from "./utils.js";
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
-
-/** Maximum characters to show for truncated phrases */
-const MAX_PHRASE_LENGTH = 60;
 
 /** Human-readable method names for display */
 const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
@@ -44,8 +40,6 @@ export interface VerificationLogProps {
   isExpanded?: boolean;
   /** Callback when expansion state changes */
   onExpandChange?: (expanded: boolean) => void;
-  /** Citation for context (fullPhrase, anchorText) */
-  citation?: Citation;
 }
 
 export interface StatusHeaderProps {
@@ -407,9 +401,6 @@ function VerificationLogAttempt({ attempt, index, expectedPage, expectedLine }: 
     attempt.pageSearched === expectedPage &&
     (expectedLine == null || attempt.lineSearched === expectedLine);
 
-  // Determine if this is where the match was found (for success highlighting)
-  const isFoundLocation = isSuccess && attempt.foundLocation != null;
-
   // Badge color class
   const badgeColorClass = isSuccess
     ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
@@ -521,7 +512,6 @@ export function VerificationLog({
   foundLine,
   isExpanded: controlledIsExpanded,
   onExpandChange,
-  citation,
 }: VerificationLogProps) {
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
 
@@ -541,8 +531,9 @@ export function VerificationLog({
   }
 
   // Derive found location from successful attempt if not provided
-  const derivedFoundPage = foundPage ?? searchAttempts.find(a => a.success)?.foundLocation?.page ?? searchAttempts.find(a => a.success)?.pageSearched;
-  const derivedFoundLine = foundLine ?? searchAttempts.find(a => a.success)?.foundLocation?.line;
+  const successfulAttempt = searchAttempts.find(a => a.success);
+  const derivedFoundPage = foundPage ?? successfulAttempt?.foundLocation?.page ?? successfulAttempt?.pageSearched;
+  const derivedFoundLine = foundLine ?? successfulAttempt?.foundLocation?.line;
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30">
