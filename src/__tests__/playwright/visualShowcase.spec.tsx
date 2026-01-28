@@ -467,9 +467,6 @@ function MobileShowcase() {
 // =============================================================================
 
 test.describe("Visual Showcase - Desktop", () => {
-  // Skip visual regression tests in CI until baselines are generated
-  const skipScreenshots = !!process.env.CI && !process.env.UPDATE_SNAPSHOTS;
-
   test("renders complete showcase", async ({ mount, page }) => {
     await mount(<VisualShowcase />);
 
@@ -531,15 +528,17 @@ test.describe("Visual Showcase - Desktop", () => {
   });
 
   test("visual snapshot - full showcase", async ({ mount, page }) => {
-    test.skip(skipScreenshots, 'Skipping screenshot test - run with UPDATE_SNAPSHOTS=1 to generate baselines');
-
     await mount(<VisualShowcase />);
 
-    // Wait for all content to render
-    await page.waitForTimeout(500);
+    // Wait for the showcase to be visible and stable
+    const showcase = page.locator('[data-testid="visual-showcase"]');
+    await expect(showcase).toBeVisible();
+
+    // Wait for all citations to render
+    await expect(page.locator('[data-citation-id]').first()).toBeVisible();
 
     // Take screenshot of the showcase element
-    await expect(page.locator('[data-testid="visual-showcase"]')).toHaveScreenshot('desktop-showcase.png', {
+    await expect(showcase).toHaveScreenshot('desktop-showcase.png', {
       animations: 'disabled',
       maxDiffPixelRatio: 0.1, // Allow small differences across platforms
     });
@@ -552,7 +551,6 @@ test.describe("Visual Showcase - Desktop", () => {
 
 test.describe("Visual Showcase - Mobile", () => {
   test.use({ viewport: { width: 375, height: 667 } }); // iPhone SE
-  const skipScreenshots = !!process.env.CI && !process.env.UPDATE_SNAPSHOTS;
 
   test("renders mobile showcase", async ({ mount, page }) => {
     await mount(<MobileShowcase />);
@@ -589,13 +587,16 @@ test.describe("Visual Showcase - Mobile", () => {
   });
 
   test("visual snapshot - mobile showcase", async ({ mount, page }) => {
-    test.skip(skipScreenshots, 'Skipping screenshot test - run with UPDATE_SNAPSHOTS=1 to generate baselines');
-
     await mount(<MobileShowcase />);
 
-    await page.waitForTimeout(500);
+    // Wait for the mobile showcase to be visible and stable
+    const showcase = page.locator('[data-testid="mobile-showcase"]');
+    await expect(showcase).toBeVisible();
 
-    await expect(page.locator('[data-testid="mobile-showcase"]')).toHaveScreenshot('mobile-showcase.png', {
+    // Wait for citations to render
+    await expect(page.locator('[data-citation-id]').first()).toBeVisible();
+
+    await expect(showcase).toHaveScreenshot('mobile-showcase.png', {
       animations: 'disabled',
       maxDiffPixelRatio: 0.1,
     });
@@ -608,16 +609,18 @@ test.describe("Visual Showcase - Mobile", () => {
 
 test.describe("Visual Showcase - Tablet", () => {
   test.use({ viewport: { width: 768, height: 1024 } }); // iPad
-  const skipScreenshots = !!process.env.CI && !process.env.UPDATE_SNAPSHOTS;
 
   test("visual snapshot - tablet showcase", async ({ mount, page }) => {
-    test.skip(skipScreenshots, 'Skipping screenshot test - run with UPDATE_SNAPSHOTS=1 to generate baselines');
-
     await mount(<VisualShowcase />);
 
-    await page.waitForTimeout(500);
+    // Wait for the showcase to be visible and stable
+    const showcase = page.locator('[data-testid="visual-showcase"]');
+    await expect(showcase).toBeVisible();
 
-    await expect(page.locator('[data-testid="visual-showcase"]')).toHaveScreenshot('tablet-showcase.png', {
+    // Wait for citations to render
+    await expect(page.locator('[data-citation-id]').first()).toBeVisible();
+
+    await expect(showcase).toHaveScreenshot('tablet-showcase.png', {
       animations: 'disabled',
       maxDiffPixelRatio: 0.1,
     });

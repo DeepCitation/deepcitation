@@ -47,7 +47,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.PLAYWRIGHT_WORKERS
-    ? parseInt(process.env.PLAYWRIGHT_WORKERS, 10)
+    ? (() => {
+        const parsed = parseInt(process.env.PLAYWRIGHT_WORKERS, 10);
+        return !isNaN(parsed) && parsed > 0 ? parsed : undefined;
+      })()
     : undefined,
   reporter: "html",
   use: {
