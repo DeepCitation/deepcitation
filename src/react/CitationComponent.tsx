@@ -49,6 +49,12 @@ const DEFAULT_VISIBLE_GROUP_COUNT = 2;
 /** Maximum characters to show for truncated phrases in search attempts */
 const MAX_PHRASE_LENGTH = 50;
 
+/** Popover container width */
+const POPOVER_WIDTH = "380px";
+
+/** Popover container max width (viewport-relative) */
+const POPOVER_MAX_WIDTH = "90vw";
+
 /** Maximum characters to show for matched text display in search results */
 const MAX_MATCHED_TEXT_LENGTH = 40;
 
@@ -1155,7 +1161,7 @@ function DefaultPopoverContent({
   if (isCleanSuccess && hasImage && verification) {
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
-        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
+        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
           {/* Green status header */}
           <StatusHeader status={searchStatus} foundPage={foundPage} />
 
@@ -1210,7 +1216,7 @@ function DefaultPopoverContent({
 
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
-        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
+        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
           {/* Content area: Image with simple header, OR combined status header with quote */}
           {hasImage && verification ? (
             // Show simple header + image (for partial matches that have images)

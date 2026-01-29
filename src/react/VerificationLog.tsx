@@ -7,6 +7,15 @@ import { cn } from "./utils.js";
 // CONSTANTS
 // =============================================================================
 
+/** Maximum length for matched text display before truncation */
+const MAX_MATCHED_TEXT_LENGTH = 40;
+
+/** Maximum length for quote box phrase display */
+const MAX_QUOTE_BOX_LENGTH = 150;
+
+/** Maximum length for anchor text preview in headers */
+const MAX_ANCHOR_TEXT_PREVIEW_LENGTH = 50;
+
 /** Human-readable method names for display */
 const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   exact_line_match: "Exact Line Match",
@@ -152,8 +161,8 @@ function formatScopeBadge(attempt: SearchAttempt): string {
 function getAttemptResultText(attempt: SearchAttempt): string {
   if (attempt.success) {
     if (attempt.matchedText) {
-      const truncated = attempt.matchedText.length > 40
-        ? attempt.matchedText.slice(0, 40) + "..."
+      const truncated = attempt.matchedText.length > MAX_MATCHED_TEXT_LENGTH
+        ? attempt.matchedText.slice(0, MAX_MATCHED_TEXT_LENGTH) + "..."
         : attempt.matchedText;
       return `Found: "${truncated}"`;
     }
@@ -192,7 +201,7 @@ export function StatusHeader({ status, foundPage, compact = false, anchorText, f
   const hasCombinedContent = anchorText || fullPhrase;
 
   if (hasCombinedContent) {
-    const displayAnchorText = anchorText || fullPhrase?.slice(0, 50) || "";
+    const displayAnchorText = anchorText || fullPhrase?.slice(0, MAX_ANCHOR_TEXT_PREVIEW_LENGTH) || "";
     const displayPhrase = fullPhrase || anchorText || "";
 
     return (
@@ -271,7 +280,7 @@ export function StatusHeader({ status, foundPage, compact = false, anchorText, f
 /**
  * Styled quote box for displaying the phrase being verified.
  */
-export function QuoteBox({ phrase, maxLength = 150 }: QuoteBoxProps) {
+export function QuoteBox({ phrase, maxLength = MAX_QUOTE_BOX_LENGTH }: QuoteBoxProps) {
   const displayPhrase = phrase.length > maxLength
     ? phrase.slice(0, maxLength) + "..."
     : phrase;
@@ -537,13 +546,18 @@ export function VerificationLog({
     }
   };
 
+  // Memoize the successful attempt lookup
+  const successfulAttempt = useMemo(
+    () => searchAttempts.find(a => a.success),
+    [searchAttempts]
+  );
+
   // Don't render if no attempts
   if (!searchAttempts || searchAttempts.length === 0) {
     return null;
   }
 
   // Derive found location from successful attempt if not provided
-  const successfulAttempt = searchAttempts.find(a => a.success);
   const derivedFoundPage = foundPage ?? successfulAttempt?.foundLocation?.page ?? successfulAttempt?.pageSearched;
   const derivedFoundLine = foundLine ?? successfulAttempt?.foundLocation?.line;
 
@@ -586,7 +600,7 @@ export interface AttemptingToVerifyProps {
  * Displays "ATTEMPTING TO VERIFY:" label with the anchor text and quote box.
  */
 export function AttemptingToVerify({ anchorText, fullPhrase }: AttemptingToVerifyProps) {
-  const displayAnchorText = anchorText || fullPhrase?.slice(0, 50) || "Citation";
+  const displayAnchorText = anchorText || fullPhrase?.slice(0, MAX_ANCHOR_TEXT_PREVIEW_LENGTH) || "Citation";
   const displayPhrase = fullPhrase || anchorText || "";
 
   return (
