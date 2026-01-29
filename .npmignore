@@ -4,6 +4,7 @@ src/
 
 # Test files and directories
 tests/
+playwright/
 *.test.ts
 *.test.tsx
 *.spec.ts

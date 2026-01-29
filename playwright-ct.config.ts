@@ -43,7 +43,8 @@ function resolveJsToTs() {
 export default defineConfig({
   testDir: "./tests/playwright/specs",
   snapshotDir: "./tests/playwright/specs/__snapshots__",
-  ctTemplateDir: "./tests/playwright/harness",
+  // Note: ctTemplateDir has a known bug (https://github.com/microsoft/playwright/issues/18116)
+  // where non-default values don't work. The harness must remain in ./playwright/
   timeout: 30 * 1000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
