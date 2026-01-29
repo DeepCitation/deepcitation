@@ -190,6 +190,94 @@ describe("CitationComponent behaviorConfig", () => {
   });
 
   // ==========================================================================
+  // SHOW INDICATOR PROP TESTS
+  // ==========================================================================
+
+  describe("showIndicator prop", () => {
+    it("shows indicator by default (showIndicator=true)", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithoutImage}
+        />
+      );
+
+      // Should have green check indicator
+      const greenCheck = container.querySelector(".text-green-600");
+      expect(greenCheck).toBeInTheDocument();
+    });
+
+    it("hides indicator when showIndicator=false", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithoutImage}
+          showIndicator={false}
+        />
+      );
+
+      // Should NOT have any status indicators
+      const greenCheck = container.querySelector(".text-green-600");
+      const amberCheck = container.querySelector(".text-amber-600");
+      const spinner = container.querySelector(".animate-spin");
+      const warningIcon = container.querySelector(".text-amber-500");
+
+      expect(greenCheck).not.toBeInTheDocument();
+      expect(amberCheck).not.toBeInTheDocument();
+      expect(spinner).not.toBeInTheDocument();
+      expect(warningIcon).not.toBeInTheDocument();
+    });
+
+    it("hides spinner when showIndicator=false and isPending", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={pendingVerification}
+          showIndicator={false}
+        />
+      );
+
+      // Should NOT have spinner
+      const spinner = container.querySelector(".animate-spin");
+      expect(spinner).not.toBeInTheDocument();
+    });
+
+    it("custom renderIndicator takes precedence over showIndicator=false", () => {
+      const customIndicator = <span data-testid="custom-indicator">Custom</span>;
+
+      const { container, getByTestId } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithoutImage}
+          showIndicator={false}
+          renderIndicator={() => customIndicator}
+        />
+      );
+
+      // Custom indicator should still be rendered
+      expect(getByTestId("custom-indicator")).toBeInTheDocument();
+
+      // Default green check should NOT be rendered
+      const greenCheck = container.querySelector(".text-green-600");
+      expect(greenCheck).not.toBeInTheDocument();
+    });
+
+    it("hides warning indicator for not_found when showIndicator=false", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={missVerification}
+          showIndicator={false}
+        />
+      );
+
+      // Should NOT have warning indicator
+      const warningIcon = container.querySelector(".text-amber-500");
+      expect(warningIcon).not.toBeInTheDocument();
+    });
+  });
+
+  // ==========================================================================
   // DEFAULT BEHAVIOR TESTS
   // New simplified behavior:
   // - Hover: shows popover

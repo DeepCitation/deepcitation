@@ -268,6 +268,50 @@ export function VisualShowcase() {
         </div>
       </section>
 
+      {/* Section: showIndicator prop */}
+      <section className="mb-10" data-testid="show-indicator-section">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">showIndicator Prop</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Control whether the status indicator (checkmark, warning, spinner) is shown
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="default">
+            <p className="text-xs text-gray-500 mb-2 font-mono">showIndicator=true (default)</p>
+            <CitationComponent
+              citation={baseCitation}
+              verification={verifiedVerification}
+              variant="brackets"
+            />
+          </div>
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="false">
+            <p className="text-xs text-gray-500 mb-2 font-mono">showIndicator=false</p>
+            <CitationComponent
+              citation={baseCitation}
+              verification={verifiedVerification}
+              variant="brackets"
+              showIndicator={false}
+            />
+          </div>
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="chip-on">
+            <p className="text-xs text-gray-500 mb-2 font-mono">chip with indicator</p>
+            <CitationComponent
+              citation={baseCitation}
+              verification={verifiedVerification}
+              variant="chip"
+            />
+          </div>
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="chip-off">
+            <p className="text-xs text-gray-500 mb-2 font-mono">chip without indicator</p>
+            <CitationComponent
+              citation={baseCitation}
+              verification={verifiedVerification}
+              variant="chip"
+              showIndicator={false}
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Section: Long Text Handling */}
       <section className="mb-10" data-testid="long-text-section">
         <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Long Text Handling</h2>
@@ -548,24 +592,34 @@ export function PopoverShowcase() {
           Status Headers (All Verification Statuses)
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {allVerificationStatuses.map(({ status, label, description }) => (
-            <div
-              key={status}
-              className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
-              data-status-header={status}
-            >
-              <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
-                {status}
+          {allVerificationStatuses.map(({ status, label, description }) => {
+            // For "unexpected location" statuses, show different expected vs found pages
+            const isUnexpectedLocation = status === "found_on_other_page" || status === "found_on_other_line";
+            const foundPage = status !== "not_found" && status !== "pending" && status !== "loading"
+              ? (isUnexpectedLocation ? 7 : 5)
+              : undefined;
+            const expectedPage = 5;
+
+            return (
+              <div
+                key={status}
+                className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                data-status-header={status}
+              >
+                <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+                  {status}
+                </div>
+                <StatusHeader
+                  status={status}
+                  foundPage={foundPage}
+                  expectedPage={expectedPage}
+                />
+                <div className="p-2 text-xs text-gray-600 dark:text-gray-400">
+                  {description}
+                </div>
               </div>
-              <StatusHeader
-                status={status}
-                foundPage={status !== "not_found" && status !== "pending" && status !== "loading" ? 5 : undefined}
-              />
-              <div className="p-2 text-xs text-gray-600 dark:text-gray-400">
-                {description}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -584,6 +638,7 @@ export function PopoverShowcase() {
             </div>
             <StatusHeader
               status="not_found"
+              expectedPage={5}
               anchorText="increased by 15%"
               fullPhrase="Revenue increased by 15% in Q4 2024, marking a significant improvement over the previous quarter's performance."
             />
@@ -596,6 +651,7 @@ export function PopoverShowcase() {
             <StatusHeader
               status="found_on_other_page"
               foundPage={7}
+              expectedPage={5}
               anchorText="increased by 15%"
               fullPhrase="Revenue increased by 15% in Q4 2024."
             />
@@ -608,6 +664,7 @@ export function PopoverShowcase() {
             <StatusHeader
               status="first_word_found"
               foundPage={3}
+              expectedPage={5}
               anchorText="Revenue"
               fullPhrase="Revenue increased by 15% in Q4 2024."
             />
@@ -619,6 +676,7 @@ export function PopoverShowcase() {
             </div>
             <StatusHeader
               status="not_found"
+              expectedPage={5}
               anchorText="quarterly financial improvements"
               fullPhrase="The quarterly financial report indicates that revenue increased by 15% compared to the same period last year, driven primarily by strong performance in the enterprise segment and expansion into new markets across Asia-Pacific regions."
             />
@@ -769,9 +827,9 @@ export function PopoverShowcase() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Verified with image */}
           <div data-complete-popover="verified-with-image">
-            <div className="text-xs text-gray-500 font-mono mb-2">Verified (green) - with image</div>
+            <div className="text-xs text-gray-500 font-mono mb-2">Verified (green) - with image + expandable log</div>
             <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
-              <StatusHeader status="found" foundPage={5} />
+              <StatusHeader status="found" foundPage={5} expectedPage={5} />
               <div className="p-2">
                 <div className="group block relative overflow-hidden rounded-md bg-gray-50 dark:bg-gray-800 w-full">
                   <img
@@ -787,6 +845,25 @@ export function PopoverShowcase() {
                   </span>
                 </div>
               </div>
+              {/* Expandable search details for verified matches */}
+              <VerificationLog
+                searchAttempts={[
+                  {
+                    method: "exact_line_match",
+                    success: true,
+                    searchPhrase: "Revenue increased by 15% in Q4 2024.",
+                    searchPhraseType: "full_phrase",
+                    pageSearched: 5,
+                    lineSearched: 12,
+                    matchedText: "Revenue increased by 15% in Q4 2024.",
+                  },
+                ]}
+                status="found"
+                expectedPage={5}
+                expectedLine={12}
+                foundPage={5}
+                foundLine={12}
+              />
             </div>
           </div>
 
@@ -794,7 +871,7 @@ export function PopoverShowcase() {
           <div data-complete-popover="partial-with-image">
             <div className="text-xs text-gray-500 font-mono mb-2">Partial (amber) - with image + log</div>
             <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
-              <StatusHeader status="found_on_other_page" foundPage={7} />
+              <StatusHeader status="found_on_other_page" foundPage={7} expectedPage={5} />
               <div className="p-2">
                 <div className="group block relative overflow-hidden rounded-md bg-gray-50 dark:bg-gray-800 w-full">
                   <img
@@ -820,6 +897,7 @@ export function PopoverShowcase() {
             <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
               <StatusHeader
                 status="not_found"
+                expectedPage={5}
                 anchorText="increased by 15%"
                 fullPhrase="Revenue increased by 15% in Q4 2024."
               />

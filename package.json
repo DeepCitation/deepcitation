@@ -60,7 +60,7 @@
         }
     },
     "devDependencies": {
-        "@happy-dom/global-registrator": "^20.3.3",
+        "@happy-dom/global-registrator": "^20.4.0",
         "@jest/globals": "^29.7.0",
         "@playwright/experimental-ct-react": "^1.57.0",
         "@playwright/test": "^1.57.0",

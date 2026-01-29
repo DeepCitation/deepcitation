@@ -40,6 +40,19 @@ test.describe("Visual Showcase - Desktop", () => {
     }
   });
 
+  test("showIndicator prop section renders correctly", async ({ mount, page }) => {
+    await mount(<VisualShowcase />);
+
+    const section = page.locator('[data-testid="show-indicator-section"]');
+    await expect(section).toBeVisible();
+
+    // Check both on and off states
+    for (const indicator of ["default", "false", "chip-on", "chip-off"]) {
+      const indicatorSection = page.locator(`[data-show-indicator="${indicator}"]`);
+      await expect(indicatorSection).toBeVisible();
+    }
+  });
+
   test("audit log section shows failed search attempts", async ({ mount, page }) => {
     await mount(<VisualShowcase />);
 
