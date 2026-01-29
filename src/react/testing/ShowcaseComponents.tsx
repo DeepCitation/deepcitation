@@ -545,7 +545,7 @@ export function PopoverShowcase() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-popover-state="pending">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               pending (with phrase + page)
             </div>
             <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px]">
@@ -565,7 +565,7 @@ export function PopoverShowcase() {
           </div>
 
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-popover-state="loading-long">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               pending (long phrase, truncated)
             </div>
             <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px]">
@@ -606,7 +606,7 @@ export function PopoverShowcase() {
                 className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
                 data-status-header={status}
               >
-                <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+                <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
                   {status}
                 </div>
                 <StatusHeader
@@ -633,7 +633,7 @@ export function PopoverShowcase() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-combined-header="not-found">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               not_found - with anchor text and quote
             </div>
             <StatusHeader
@@ -645,7 +645,7 @@ export function PopoverShowcase() {
           </div>
 
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-combined-header="partial">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               found_on_other_page - with anchor text and quote
             </div>
             <StatusHeader
@@ -658,7 +658,7 @@ export function PopoverShowcase() {
           </div>
 
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-combined-header="first-word">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               first_word_found - low confidence match
             </div>
             <StatusHeader
@@ -671,7 +671,7 @@ export function PopoverShowcase() {
           </div>
 
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-combined-header="long-quote">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               not_found - with very long quote (truncated)
             </div>
             <StatusHeader
@@ -718,7 +718,7 @@ export function PopoverShowcase() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Not Found - All failed */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-verification-log="not-found">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               not_found - 6 failed attempts
             </div>
             <VerificationLog
@@ -731,7 +731,7 @@ export function PopoverShowcase() {
 
           {/* Partial - Found on different page */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-verification-log="partial-page">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               found_on_other_page - found on page 7
             </div>
             <VerificationLog
@@ -744,7 +744,7 @@ export function PopoverShowcase() {
 
           {/* Partial - Found on different line */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-verification-log="partial-line">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               found_on_other_line - expected line 12, found line 45
             </div>
             <VerificationLog
@@ -779,7 +779,7 @@ export function PopoverShowcase() {
 
           {/* Low trust - First word only */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-verification-log="low-trust">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               first_word_found - low confidence
             </div>
             <VerificationLog
@@ -802,7 +802,7 @@ export function PopoverShowcase() {
         </p>
         <div className="max-w-md">
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-verification-log="expanded">
-            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 font-mono">
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               not_found - expanded timeline
             </div>
             <VerificationLog
