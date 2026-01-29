@@ -2004,33 +2004,38 @@ export const CitationComponent = forwardRef<
         };
 
         // Apply status-specific decoration styles
+        // Using Tailwind color values to match the rest of the component:
+        // - green-600: #16a34a (verified)
+        // - amber-600: #d97706 (partial)
+        // - red-500: #ef4444 (miss)
+        // - gray-400: #9ca3af (pending)
         if (isMiss && !shouldShowSpinner) {
           linterStyles.textDecorationStyle = "wavy";
-          linterStyles.textDecorationColor = "var(--dc-linter-error, #ef4444)";
+          linterStyles.textDecorationColor = "var(--dc-linter-error, #ef4444)"; // red-500
         } else if (isPartialMatch && !shouldShowSpinner) {
           linterStyles.textDecorationStyle = "dashed";
-          linterStyles.textDecorationColor = "var(--dc-linter-warning, #f59e0b)";
+          linterStyles.textDecorationColor = "var(--dc-linter-warning, #d97706)"; // amber-600
         } else if (isVerified && !shouldShowSpinner) {
           linterStyles.textDecorationStyle = "solid";
-          linterStyles.textDecorationColor = "var(--dc-linter-success, #10b981)";
+          linterStyles.textDecorationColor = "var(--dc-linter-success, #16a34a)"; // green-600
         } else if (shouldShowSpinner) {
           linterStyles.textDecorationStyle = "dotted";
-          linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)";
+          linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)"; // gray-400
         } else {
           // Default/unknown state
           linterStyles.textDecorationStyle = "dotted";
-          linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)";
+          linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)"; // gray-400
         }
 
         const linterClasses = cn(
           "cursor-pointer",
-          // Verified: subtle green background wash
+          // Verified: subtle green background wash (using green-600 to match component)
           isVerified && !isPartialMatch && !shouldShowSpinner &&
-            "bg-green-500/[0.08] hover:bg-green-500/[0.15] dark:bg-green-400/[0.08] dark:hover:bg-green-400/[0.15]",
-          // Partial: subtle amber background on hover
+            "bg-green-600/[0.08] hover:bg-green-600/[0.15] dark:bg-green-500/[0.08] dark:hover:bg-green-500/[0.15]",
+          // Partial: subtle amber background on hover (using amber-600 to match component)
           isPartialMatch && !shouldShowSpinner &&
-            "hover:bg-amber-500/10 dark:hover:bg-amber-400/10",
-          // Miss: subtle red background on hover
+            "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
+          // Miss: subtle red background on hover (using red-500 to match component)
           isMiss && !shouldShowSpinner &&
             "hover:bg-red-500/10 dark:hover:bg-red-400/10",
           // Pending: subtle gray background

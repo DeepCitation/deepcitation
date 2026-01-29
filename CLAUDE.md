@@ -246,11 +246,11 @@ The `linter` variant displays citations as inline text with semantic underlines,
 // "The <span with wavy red underline>hiring freeze announcement</span> remains unverified."
 ```
 
-**CSS Custom Properties:** The linter variant uses CSS custom properties for colors that can be overridden:
-- `--dc-linter-success`: Green color for verified (default: `#10b981`)
-- `--dc-linter-warning`: Amber color for partial matches (default: `#f59e0b`)
-- `--dc-linter-error`: Red color for not found (default: `#ef4444`)
-- `--dc-linter-pending`: Gray color for pending (default: `#9ca3af`)
+**CSS Custom Properties:** The linter variant uses CSS custom properties for colors that can be overridden (defaults match Tailwind colors used elsewhere in the component):
+- `--dc-linter-success`: Green color for verified (default: `#16a34a` / green-600)
+- `--dc-linter-warning`: Amber color for partial matches (default: `#d97706` / amber-600)
+- `--dc-linter-error`: Red color for not found (default: `#ef4444` / red-500)
+- `--dc-linter-pending`: Gray color for pending (default: `#9ca3af` / gray-400)
 
 #### Variant (Visual Style)
 
