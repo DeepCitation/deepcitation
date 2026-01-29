@@ -256,7 +256,7 @@ export function VisualShowcase() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {(["number", "anchorText", "indicator"] as const).map(content => (
             <div key={content} className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-content-type={content}>
-              <p className="text-xs text-gray-500 mb-2 font-mono">{content}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">{content}</p>
               <CitationComponent
                 citation={baseCitation}
                 verification={verifiedVerification}
@@ -276,7 +276,7 @@ export function VisualShowcase() {
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="default">
-            <p className="text-xs text-gray-500 mb-2 font-mono">showIndicator=true (default)</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">showIndicator=true (default)</p>
             <CitationComponent
               citation={baseCitation}
               verification={verifiedVerification}
@@ -284,7 +284,7 @@ export function VisualShowcase() {
             />
           </div>
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="false">
-            <p className="text-xs text-gray-500 mb-2 font-mono">showIndicator=false</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">showIndicator=false</p>
             <CitationComponent
               citation={baseCitation}
               verification={verifiedVerification}
@@ -293,7 +293,7 @@ export function VisualShowcase() {
             />
           </div>
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="chip-on">
-            <p className="text-xs text-gray-500 mb-2 font-mono">chip with indicator</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">chip with indicator</p>
             <CitationComponent
               citation={baseCitation}
               verification={verifiedVerification}
@@ -301,7 +301,7 @@ export function VisualShowcase() {
             />
           </div>
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="chip-off">
-            <p className="text-xs text-gray-500 mb-2 font-mono">chip without indicator</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">chip without indicator</p>
             <CitationComponent
               citation={baseCitation}
               verification={verifiedVerification}
@@ -317,7 +317,7 @@ export function VisualShowcase() {
         <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Long Text Handling</h2>
         <div className="space-y-4">
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
-            <p className="text-xs text-gray-500 mb-2">Chip with long anchorText</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Chip with long anchorText</p>
             <CitationComponent
               citation={longCitation}
               verification={verifiedVerification}
@@ -326,7 +326,7 @@ export function VisualShowcase() {
             />
           </div>
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
-            <p className="text-xs text-gray-500 mb-2">Minimal with long anchorText</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Minimal with long anchorText</p>
             <CitationComponent
               citation={longCitation}
               verification={verifiedVerification}
@@ -381,7 +381,7 @@ export function VisualShowcase() {
             };
             return (
               <div key={status} className="p-2 bg-gray-50 dark:bg-gray-800 rounded" data-url-status={status}>
-                <p className="text-[10px] text-gray-500 mb-1 font-mono truncate">{status}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 font-mono truncate">{status}</p>
                 <UrlCitationComponent urlMeta={meta} />
               </div>
             );
@@ -402,7 +402,7 @@ export function VisualShowcase() {
             };
             return (
               <div key={variant} className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-url-variant={variant}>
-                <p className="text-xs text-gray-500 mb-2 font-mono">{variant}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">{variant}</p>
                 <UrlCitationComponent urlMeta={meta} variant={variant} />
               </div>
             );
@@ -456,7 +456,7 @@ export function MobileShowcase() {
         <div className="space-y-2">
           {(["brackets", "chip", "superscript", "minimal", "linter"] as const).map(variant => (
             <div key={variant} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded" data-mobile-variant={variant}>
-              <span className="text-xs text-gray-500 w-20 font-mono">{variant}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 w-20 font-mono">{variant}</span>
               <CitationComponent
                 citation={baseCitation}
                 verification={verifiedVerification}
@@ -691,17 +691,17 @@ export function PopoverShowcase() {
         </h2>
         <div className="space-y-4 max-w-md">
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden p-4" data-quotebox="short">
-            <div className="text-xs text-gray-500 font-mono mb-2">Short quote</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Short quote</div>
             <QuoteBox phrase="Revenue increased by 15%." />
           </div>
 
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden p-4" data-quotebox="medium">
-            <div className="text-xs text-gray-500 font-mono mb-2">Medium quote</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Medium quote</div>
             <QuoteBox phrase="Revenue increased by 15% in Q4 2024, marking a significant improvement over the previous quarter's performance." />
           </div>
 
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden p-4" data-quotebox="long">
-            <div className="text-xs text-gray-500 font-mono mb-2">Long quote (truncated at 150 chars)</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Long quote (truncated at 150 chars)</div>
             <QuoteBox phrase="The quarterly financial report indicates that revenue increased by 15% compared to the same period last year, driven primarily by strong performance in the enterprise segment and expansion into new markets across Asia-Pacific regions with additional growth expected in the coming fiscal year." />
           </div>
         </div>
@@ -827,7 +827,7 @@ export function PopoverShowcase() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Verified with image */}
           <div data-complete-popover="verified-with-image">
-            <div className="text-xs text-gray-500 font-mono mb-2">Verified (green) - with image + expandable log</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Verified (green) - with image + expandable log</div>
             <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
               <StatusHeader status="found" foundPage={5} expectedPage={5} />
               <div className="p-2">
@@ -869,7 +869,7 @@ export function PopoverShowcase() {
 
           {/* Partial match with image */}
           <div data-complete-popover="partial-with-image">
-            <div className="text-xs text-gray-500 font-mono mb-2">Partial (amber) - with image + log</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Partial (amber) - with image + log</div>
             <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
               <StatusHeader status="found_on_other_page" foundPage={7} expectedPage={5} />
               <div className="p-2">
@@ -893,7 +893,7 @@ export function PopoverShowcase() {
 
           {/* Not found without image */}
           <div data-complete-popover="not-found-no-image">
-            <div className="text-xs text-gray-500 font-mono mb-2">Not Found (red) - no image, combined header</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Not Found (red) - no image, combined header</div>
             <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
               <StatusHeader
                 status="not_found"
@@ -912,7 +912,7 @@ export function PopoverShowcase() {
 
           {/* Text-only fallback */}
           <div data-complete-popover="text-only">
-            <div className="text-xs text-gray-500 font-mono mb-2">Text-only fallback (no image)</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Text-only fallback (no image)</div>
             <div className="p-3 flex flex-col gap-2 min-w-[180px] max-w-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
               <span className="text-xs font-medium text-green-600 dark:text-green-500">
                 Verified Match

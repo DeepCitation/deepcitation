@@ -22,7 +22,7 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
 
 /**
  * Check icon SVG (no dependencies)
- * Size is controlled by parent container - use size-2 or similar on wrapper
+ * Size is controlled by parent container - use size-4 or similar on wrapper
  */
 export const CheckIcon = ({ className }: { className?: string }) => (
   <svg
@@ -34,8 +34,8 @@ export const CheckIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="1em"
-    height="1em"
+    width="100%"
+    height="100%"
   >
     <polyline points="20 6 9 17 4 12" />
   </svg>
@@ -43,7 +43,7 @@ export const CheckIcon = ({ className }: { className?: string }) => (
 
 /**
  * Warning icon SVG (no dependencies)
- * Size is controlled by parent container - use size-2 or similar on wrapper
+ * Size is controlled by parent container - use size-4 or similar on wrapper
  */
 export const WarningIcon = ({ className }: { className?: string }) => (
   <svg
@@ -51,8 +51,8 @@ export const WarningIcon = ({ className }: { className?: string }) => (
     viewBox="0 0 256 256"
     fill="currentColor"
     aria-hidden="true"
-    width="1em"
-    height="1em"
+    width="100%"
+    height="100%"
   >
     <path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z" />
   </svg>
@@ -60,7 +60,7 @@ export const WarningIcon = ({ className }: { className?: string }) => (
 
 /**
  * Spinner component for loading/pending state
- * Size is controlled by parent container - use size-2 or similar on wrapper
+ * Size is controlled by parent container - use size-4 or similar on wrapper
  * Animation (animate-spin) should be applied to the wrapper
  */
 export const SpinnerIcon = ({ className }: { className?: string }) => (
@@ -69,8 +69,8 @@ export const SpinnerIcon = ({ className }: { className?: string }) => (
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    width="100%"
+    height="100%"
   >
     <circle
       cx="12"
@@ -103,8 +103,8 @@ export const LinkIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="1em"
-    height="1em"
+    width="100%"
+    height="100%"
   >
     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
@@ -126,8 +126,8 @@ export const ExternalLinkIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="1em"
-    height="1em"
+    width="100%"
+    height="100%"
   >
     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
     <polyline points="15 3 21 3 21 9" />
@@ -150,8 +150,8 @@ export const CloseIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="1em"
-    height="1em"
+    width="100%"
+    height="100%"
   >
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
@@ -169,8 +169,8 @@ export const LockIcon = ({ className }: { className?: string }) => (
     viewBox="0 0 24 24"
     fill="currentColor"
     aria-hidden="true"
-    width="1em"
-    height="1em"
+    width="100%"
+    height="100%"
   >
     <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm3 8H9V7a3 3 0 0 1 6 0v3z" />
   </svg>

@@ -881,17 +881,17 @@ function getHumanizingMessage(
       return `We couldn't find ${displayText} in this document.`;
     case "found_on_other_page":
       if (expectedPage && foundPage) {
-        return `Found on page ${foundPage} instead of page ${expectedPage}.`;
+        return `Found ${displayText} on page ${foundPage} instead of page ${expectedPage}.`;
       }
-      return `Found on a different page than expected.`;
+      return `Found ${displayText} on a different page than expected.`;
     case "found_on_other_line":
-      return `Found at a different position than expected.`;
+      return `Found ${displayText} at a different position than expected.`;
     case "partial_text_found":
-      return `Only part of the text was found.`;
+      return `Only part of ${displayText} was found.`;
     case "first_word_found":
-      return `Only the beginning of the phrase was found.`;
+      return `Only the beginning of ${displayText} was found.`;
     case "found_anchor_text_only":
-      return `The key phrase was found, but not the full context.`;
+      return `Found ${displayText}, but not the full surrounding context.`;
     default:
       return null;
   }

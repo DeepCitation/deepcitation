@@ -320,7 +320,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
                   </span>
                 ))}
                 {citationNumbers.length > 3 && (
-                  <span className="text-xs text-gray-400">+{citationNumbers.length - 3}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">+{citationNumbers.length - 3}</span>
                 )}
               </div>
             )}
