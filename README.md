@@ -15,7 +15,7 @@
 ---
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/DeepCitation/deepcitation-js/main/src/__tests__/playwright/__snapshots__/visualShowcase.spec.tsx-snapshots/desktop-showcase-chromium-linux.png" alt="DeepCitation Component Showcase" width="700" />
+<img src="https://raw.githubusercontent.com/DeepCitation/deepcitation-js/main/tests/playwright/specs/__snapshots__/visualShowcase.spec.tsx-snapshots/desktop-showcase-chromium-linux.png" alt="DeepCitation Component Showcase" width="700" />
 </div>
 
 ## Install
