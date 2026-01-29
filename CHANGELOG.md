@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.52] - 2025-01-29
+## [1.1.51] - 2025-01-29
 
 ### Added
 - **Linter variant** for CitationComponent - displays citations as inline text with semantic underlines (solid for verified, dashed for partial, wavy for not found, dotted for pending) (#107)
@@ -233,8 +233,8 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.52...HEAD
-[1.1.52]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.50...v1.1.52
+[Unreleased]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.51...HEAD
+[1.1.51]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.50...v1.1.51
 [1.1.50]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.26...v1.1.50
 [1.1.26]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.25...v1.1.26
 [1.1.25]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.24...v1.1.25
