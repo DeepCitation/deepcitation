@@ -6,6 +6,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@deepcitation/deepcitation-js.svg)](https://www.npmjs.com/package/@deepcitation/deepcitation-js)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](https://www.npmjs.com/package/@deepcitation/deepcitation-js)
 
 [Documentation](https://deepcitation.com/docs) · [Get API Key](https://deepcitation.com/signup) · [Examples](./examples)
 
@@ -54,6 +55,8 @@ const { verifications } = await dc.verify({ llmOutput: response.content });
 | `CitationComponent` | Inline citations with 6 variants: `brackets`, `chip`, `text`, `superscript`, `minimal`, `linter` |
 | `UrlCitationComponent` | URL citations with favicon and status badges |
 | `SourcesListComponent` | Aggregated sources panel/drawer (like Gemini) |
+
+> Requires Tailwind CSS or import `@deepcitation/deepcitation-js/styles.css`
 
 ## Supported Formats
 
