@@ -258,8 +258,11 @@ test.describe("CitationComponent - Linter Variant", () => {
     // Linter variant defaults to anchorText content
     await expect(citation).toContainText("25% revenue growth");
 
+    // The linter styles are on a nested span inside the citation wrapper
+    const linterSpan = citation.locator("span").first();
+
     // Verify underline is applied
-    const textDecorationLine = await citation.evaluate(
+    const textDecorationLine = await linterSpan.evaluate(
       (el) => getComputedStyle(el).textDecorationLine
     );
     expect(textDecorationLine).toBe("underline");
@@ -278,8 +281,11 @@ test.describe("CitationComponent - Linter Variant", () => {
     await expect(citation).toBeVisible();
     await expect(citation).toContainText("25% revenue growth");
 
+    // The linter styles are on a nested span inside the citation wrapper
+    const linterSpan = citation.locator("span").first();
+
     // Verified state should have solid underline
-    const textDecorationStyle = await citation.evaluate(
+    const textDecorationStyle = await linterSpan.evaluate(
       (el) => getComputedStyle(el).textDecorationStyle
     );
     expect(textDecorationStyle).toBe("solid");
@@ -297,8 +303,11 @@ test.describe("CitationComponent - Linter Variant", () => {
 
     await expect(citation).toBeVisible();
 
+    // The linter styles are on a nested span inside the citation wrapper
+    const linterSpan = citation.locator("span").first();
+
     // Partial match should have dashed underline
-    const textDecorationStyle = await citation.evaluate(
+    const textDecorationStyle = await linterSpan.evaluate(
       (el) => getComputedStyle(el).textDecorationStyle
     );
     expect(textDecorationStyle).toBe("dashed");
@@ -316,8 +325,11 @@ test.describe("CitationComponent - Linter Variant", () => {
 
     await expect(citation).toBeVisible();
 
+    // The linter styles are on a nested span inside the citation wrapper
+    const linterSpan = citation.locator("span").first();
+
     // Not found should have wavy underline
-    const textDecorationStyle = await citation.evaluate(
+    const textDecorationStyle = await linterSpan.evaluate(
       (el) => getComputedStyle(el).textDecorationStyle
     );
     expect(textDecorationStyle).toBe("wavy");
@@ -335,8 +347,11 @@ test.describe("CitationComponent - Linter Variant", () => {
 
     await expect(citation).toBeVisible();
 
+    // The linter styles are on a nested span inside the citation wrapper
+    const linterSpan = citation.locator("span").first();
+
     // Pending should have dotted underline
-    const textDecorationStyle = await citation.evaluate(
+    const textDecorationStyle = await linterSpan.evaluate(
       (el) => getComputedStyle(el).textDecorationStyle
     );
     expect(textDecorationStyle).toBe("dotted");
