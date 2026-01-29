@@ -41,8 +41,9 @@ function resolveJsToTs() {
  * @see https://playwright.dev/docs/test-components
  */
 export default defineConfig({
-  testDir: "./src/__tests__/playwright",
-  snapshotDir: "./src/__tests__/playwright/__snapshots__",
+  testDir: "./tests/playwright/specs",
+  snapshotDir: "./tests/playwright/specs/__snapshots__",
+  ctTemplateDir: "./tests/playwright/harness",
   timeout: 30 * 1000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

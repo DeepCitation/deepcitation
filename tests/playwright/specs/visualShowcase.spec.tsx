@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/experimental-ct-react";
 
 // Import showcase components separately to avoid Playwright CT bundling conflict
-import { VisualShowcase } from "../../react/testing/ShowcaseComponents";
-import { MobileShowcase } from "../../react/testing/ShowcaseComponents";
-import { PopoverShowcase } from "../../react/testing/ShowcaseComponents";
-import { allUrlStatuses } from "../../react/testing/ShowcaseComponents";
-import { allVerificationStatuses } from "../../react/testing/ShowcaseComponents";
+import { VisualShowcase } from "../../../src/react/testing/ShowcaseComponents";
+import { MobileShowcase } from "../../../src/react/testing/ShowcaseComponents";
+import { PopoverShowcase } from "../../../src/react/testing/ShowcaseComponents";
+import { allUrlStatuses } from "../../../src/react/testing/ShowcaseComponents";
+import { allVerificationStatuses } from "../../../src/react/testing/ShowcaseComponents";
 
 // =============================================================================
 // TESTS - Desktop Visual Showcase

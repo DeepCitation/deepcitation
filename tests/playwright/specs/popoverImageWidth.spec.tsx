@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/experimental-ct-react";
-import { CitationComponent } from "../../react/CitationComponent";
-import type { Citation } from "../../types/citation";
-import type { Verification } from "../../types/verification";
+import { CitationComponent } from "../../../src/react/CitationComponent";
+import type { Citation } from "../../../src/types/citation";
+import type { Verification } from "../../../src/types/verification";
 
 // =============================================================================
 // TEST FIXTURES
