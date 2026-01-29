@@ -216,8 +216,15 @@ export interface BaseCitationProps {
 
 /**
  * Visual style variants for URL citations.
+ *
+ * | Variant   | Description                                              |
+ * |-----------|----------------------------------------------------------|
+ * | `badge`   | Clean bordered badge with favicon (default)              |
+ * | `chip`    | Pill/badge style with background color                   |
+ * | `inline`  | Underlined inline link                                   |
+ * | `bracket` | [text✓] with square brackets                             |
  */
-export type UrlCitationVariant = "chip" | "inline" | "bracket";
+export type UrlCitationVariant = "badge" | "chip" | "inline" | "bracket";
 
 /**
  * Props for URL citation component
