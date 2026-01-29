@@ -119,7 +119,7 @@ describe("StatusHeader", () => {
       expect(container.textContent).toContain("Revenue increased by 15% in Q4 2024.");
     });
 
-    it("shows strikethrough expected page in combined layout for partial match", () => {
+    it("shows arrow format page badge in combined layout for partial match", () => {
       const { container } = render(
         <StatusHeader
           status="found_on_other_page"
@@ -130,13 +130,10 @@ describe("StatusHeader", () => {
         />
       );
 
-      // Should have strikethrough for expected page
-      const strikethrough = container.querySelector(".line-through");
-      expect(strikethrough).toBeInTheDocument();
-      expect(strikethrough?.textContent).toContain("PG 5");
-
-      // Should show found page
-      expect(container.textContent).toContain("PG 7");
+      // Should show arrow format: Pg 5 → 7 (not strikethrough)
+      expect(container.textContent).toContain("Pg 5");
+      expect(container.textContent).toContain("→");
+      expect(container.textContent).toContain("7");
     });
   });
 
@@ -179,15 +176,15 @@ describe("StatusHeader", () => {
   // ==========================================================================
 
   describe("neutral background styling", () => {
-    it("uses neutral gray background for all statuses", () => {
+    it("uses clean neutral background for all statuses (no colored headers)", () => {
       const { container: verifiedContainer } = render(<StatusHeader status="found" foundPage={5} />);
       const { container: partialContainer } = render(<StatusHeader status="found_on_other_page" foundPage={7} />);
       const { container: notFoundContainer } = render(<StatusHeader status="not_found" />);
 
-      // All should have the neutral gray background class
-      expect(verifiedContainer.querySelector(".bg-gray-50")).toBeInTheDocument();
-      expect(partialContainer.querySelector(".bg-gray-50")).toBeInTheDocument();
-      expect(notFoundContainer.querySelector(".bg-gray-50")).toBeInTheDocument();
+      // All should NOT have colored backgrounds - headers are clean/neutral
+      expect(verifiedContainer.querySelector(".bg-green-50")).not.toBeInTheDocument();
+      expect(partialContainer.querySelector(".bg-amber-50")).not.toBeInTheDocument();
+      expect(notFoundContainer.querySelector(".bg-red-50")).not.toBeInTheDocument();
     });
 
     it("does NOT use fully colored backgrounds", () => {
