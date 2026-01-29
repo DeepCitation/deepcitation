@@ -167,13 +167,12 @@ describe("DeepCitation Client", () => {
       ]);
 
       expect(result.fileDataParts).toHaveLength(2);
-      expect(result.deepTextPromptPortion).toHaveLength(2);
 
       expect(result.fileDataParts[0].attachmentId).toBe("file_1");
       expect(result.fileDataParts[1].attachmentId).toBe("file_2");
 
-      expect(result.deepTextPromptPortion[0]).toContain("Content from file 1");
-      expect(result.deepTextPromptPortion[1]).toContain("Content from file 2");
+      expect(result.fileDataParts[0].deepTextPromptPortion).toContain("Content from file 1");
+      expect(result.fileDataParts[1].deepTextPromptPortion).toContain("Content from file 2");
     });
 
     it("handles single file", async () => {
@@ -200,7 +199,7 @@ describe("DeepCitation Client", () => {
       ]);
 
       expect(result.fileDataParts).toHaveLength(1);
-      expect(result.deepTextPromptPortion).toHaveLength(1);
+      expect(result.fileDataParts[0].deepTextPromptPortion).toContain("Single content");
     });
 
     it("handles empty files array", async () => {
@@ -209,7 +208,6 @@ describe("DeepCitation Client", () => {
       const result = await client.prepareFiles([]);
 
       expect(result.fileDataParts).toHaveLength(0);
-      expect(result.deepTextPromptPortion).toHaveLength(0);
     });
 
     it("propagates upload errors", async () => {
