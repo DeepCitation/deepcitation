@@ -286,6 +286,11 @@ export interface CitationComponentProps extends BaseCitationProps {
    * Falls back to citation.faviconUrl if not provided.
    */
   faviconUrl?: string;
+  /**
+   * Whether to show the status indicator (checkmark, warning, spinner).
+   * Defaults to true. Set to false to hide the indicator.
+   */
+  showIndicator?: boolean;
 }
 
 function getStatusLabel(status: CitationStatus): string {
@@ -1159,14 +1164,14 @@ function DefaultPopoverContent({
   }
 
   // ==========================================================================
-  // SUCCESS STATE (Green) - Header + Image only
+  // SUCCESS STATE (Green) - Header + Image + optional expandable search details
   // ==========================================================================
   if (isCleanSuccess && hasImage && verification) {
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
-          {/* Green status header */}
-          <StatusHeader status={searchStatus} foundPage={foundPage} />
+          {/* Green status header - show expected page */}
+          <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} />
 
           {/* Verification image */}
           <div className="p-2">
@@ -1205,6 +1210,20 @@ function DefaultPopoverContent({
               </button>
             )}
           </div>
+
+          {/* Expandable search details for verified matches */}
+          {verification.searchAttempts && verification.searchAttempts.length > 0 && (
+            <VerificationLog
+              searchAttempts={verification.searchAttempts}
+              status={searchStatus}
+              expectedPage={expectedPage ?? undefined}
+              expectedLine={expectedLine}
+              foundPage={foundPage}
+              foundLine={foundLine}
+              isExpanded={isPhrasesExpanded}
+              onExpandChange={onPhrasesExpandChange}
+            />
+          )}
         </div>
       </Activity>
     );
@@ -1224,7 +1243,7 @@ function DefaultPopoverContent({
           {hasImage && verification ? (
             // Show simple header + image (for partial matches that have images)
             <>
-              <StatusHeader status={searchStatus} foundPage={foundPage} />
+              <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} />
               <div className="p-2">
                 {hasAnchorTextPosition ? (
                   <AnchorTextFocusedImage
@@ -1267,6 +1286,7 @@ function DefaultPopoverContent({
             <StatusHeader
               status={searchStatus}
               foundPage={foundPage}
+              expectedPage={expectedPage ?? undefined}
               anchorText={anchorText}
               fullPhrase={fullPhrase ?? undefined}
             />
@@ -1523,6 +1543,7 @@ export const CitationComponent = forwardRef<
       renderPopoverContent,
       additionalCount,
       faviconUrl,
+      showIndicator = true,
     },
     ref
   ) => {
@@ -1835,13 +1856,15 @@ export const CitationComponent = forwardRef<
     );
 
     // Render indicator based on status priority:
-    // 1. Custom renderIndicator (if provided)
-    // 2. shouldShowSpinner → Spinner (respects timeout and definitive results)
-    // 3. Verified (not partial) → Green checkmark
-    // 4. Partial match → Amber checkmark
-    // 5. Miss → Warning triangle
+    // 1. If showIndicator is false, return null (unless custom renderIndicator provided)
+    // 2. Custom renderIndicator (if provided)
+    // 3. shouldShowSpinner → Spinner (respects timeout and definitive results)
+    // 4. Verified (not partial) → Green checkmark
+    // 5. Partial match → Amber checkmark
+    // 6. Miss → Warning triangle
     const renderStatusIndicator = () => {
       if (renderIndicator) return renderIndicator(status);
+      if (!showIndicator) return null;
       if (shouldShowSpinner) return <PendingIndicator />;
       if (isVerified && !isPartialMatch) return <VerifiedIndicator />;
       if (isPartialMatch) return <PartialIndicator />;
@@ -1902,16 +1925,11 @@ export const CitationComponent = forwardRef<
       }
 
       // Variant: superscript (footnote style)
+      // Uses inherited text color for dark mode compatibility - indicator shows status
       if (variant === "superscript") {
         const supStatusClasses = cn(
-          isVerified && !isPartialMatch && !shouldShowSpinner && "text-green-600 dark:text-green-500",
-          isPartialMatch && !shouldShowSpinner && "text-amber-600 dark:text-amber-500",
-          isMiss && !shouldShowSpinner && "text-red-500 dark:text-red-400 line-through",
-          shouldShowSpinner && "text-gray-400 dark:text-gray-500",
-          !isVerified &&
-            !isMiss &&
-            !shouldShowSpinner &&
-            "text-blue-600 dark:text-blue-400"
+          // Only apply line-through for miss state, otherwise inherit text color
+          isMiss && !shouldShowSpinner && "line-through opacity-60"
         );
         return (
           <sup

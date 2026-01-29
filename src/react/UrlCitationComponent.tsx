@@ -369,7 +369,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       );
     }
 
-    // Chip variant - pill style
+    // Chip variant - pill style with neutral colors
     if (variant === "chip") {
       return (
         <>
@@ -382,9 +382,10 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             data-fetch-status={fetchStatus}
             data-variant="chip"
             className={classNames(
-              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm cursor-pointer transition-colors no-underline",
-              "bg-blue-100 dark:bg-blue-900/30",
-              statusInfo.className,
+              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm cursor-pointer transition-colors no-underline mr-0.5",
+              "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+              "hover:bg-gray-200 dark:hover:bg-gray-700",
+              isBroken && "opacity-60",
               className
             )}
             title={showFullUrlOnHover ? url : undefined}
@@ -403,7 +404,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       );
     }
 
-    // Inline variant
+    // Inline variant - neutral underline style with spacing
     if (variant === "inline") {
       return (
         <>
@@ -416,8 +417,10 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             data-fetch-status={fetchStatus}
             data-variant="inline"
             className={classNames(
-              "inline-flex items-center gap-1 cursor-pointer transition-colors no-underline border-b border-dotted border-current",
-              statusInfo.className,
+              "inline-flex items-center gap-1 cursor-pointer transition-colors no-underline border-b border-dotted mr-0.5",
+              "text-inherit border-gray-400 dark:border-gray-500",
+              "hover:border-gray-600 dark:hover:border-gray-300",
+              isBroken && "opacity-60 line-through",
               className
             )}
             title={showFullUrlOnHover ? url : undefined}
@@ -439,7 +442,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       );
     }
 
-    // Bracket variant (default for non-URL citations)
+    // Bracket variant - neutral text color with brackets, spacing for inline context
     return (
       <>
         {children}
@@ -451,8 +454,10 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           data-fetch-status={fetchStatus}
           data-variant="bracket"
           className={classNames(
-            "cursor-pointer transition-colors",
-            statusInfo.className,
+            "inline-flex items-baseline gap-0.5 whitespace-nowrap cursor-pointer transition-colors mr-0.5",
+            "font-mono text-xs leading-tight",
+            "text-gray-500 dark:text-gray-400",
+            isBroken && "opacity-60",
             className
           )}
           title={showFullUrlOnHover ? url : undefined}
@@ -463,9 +468,14 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           role="link"
           aria-label={`Link to ${domain}: ${statusInfo.label}`}
         >
-          [{showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
-          <span className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">{displayText}</span>
-          {renderStatusIndicator()}]
+          [
+          {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
+          <span className={classNames(
+            "max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap",
+            isBroken && "line-through"
+          )}>{displayText}</span>
+          {renderStatusIndicator()}
+          ]
         </span>
       </>
     );

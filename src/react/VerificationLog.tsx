@@ -56,6 +56,8 @@ export interface StatusHeaderProps {
   status?: SearchStatus | null;
   /** Page where match was found */
   foundPage?: number;
+  /** Expected page from citation */
+  expectedPage?: number;
   /** Whether this is a compact header (for success states) */
   compact?: boolean;
   /** Anchor text to display in the header (for combined layout) */
@@ -181,21 +183,26 @@ function getAttemptResultText(attempt: SearchAttempt): string {
 
 /**
  * Header bar showing verification status with icon and text.
- * Green for success, amber for partial, red for failure.
+ * Uses muted colors with small colored icon for status indication.
  * Can optionally include anchor text and quote for a combined layout.
  */
-export function StatusHeader({ status, foundPage, compact = false, anchorText, fullPhrase }: StatusHeaderProps) {
+export function StatusHeader({ status, foundPage, expectedPage, compact = false, anchorText, fullPhrase }: StatusHeaderProps) {
   const colorScheme = getStatusColorScheme(status);
   const headerText = getStatusHeaderText(status);
 
-  const colorClasses = {
-    green: "bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300",
-    amber: "bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300",
-    red: "bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300",
-    gray: "bg-gray-50 border-gray-200 text-gray-600 dark:bg-gray-800/50 dark:border-gray-700 dark:text-gray-400",
+  // Icon colors - only the icon is colored, not the entire header
+  const iconColorClasses = {
+    green: "text-green-600 dark:text-green-500",
+    amber: "text-amber-600 dark:text-amber-500",
+    red: "text-red-500 dark:text-red-400",
+    gray: "text-gray-400 dark:text-gray-500",
   };
 
   const IconComponent = colorScheme === "green" ? CheckIcon : WarningIcon;
+
+  // Determine if we should show expected page (when location differs)
+  const showExpectedPage = expectedPage != null && expectedPage > 0 && foundPage != null && foundPage > 0 && expectedPage !== foundPage;
+  const isUnexpectedLocation = status === "found_on_other_page" || status === "found_on_other_line";
 
   // Combined layout: status + anchor text + quote in one header section
   const hasCombinedContent = anchorText || fullPhrase;
@@ -205,29 +212,33 @@ export function StatusHeader({ status, foundPage, compact = false, anchorText, f
     const displayPhrase = fullPhrase || anchorText || "";
 
     return (
-      <div className={cn("border-b", colorClasses[colorScheme])}>
-        {/* Status row */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        {/* Status row - muted background with colored icon */}
         <div className={cn(
-          "flex items-center justify-between gap-2 font-semibold text-sm",
+          "flex items-center justify-between gap-2 text-sm bg-gray-50 dark:bg-gray-800/50",
           compact ? "px-3 py-2" : "px-4 py-2.5"
         )}>
           <div className="flex items-center gap-2">
-            <span className="size-4">
+            <span className={cn("size-4", iconColorClasses[colorScheme])}>
               <IconComponent />
             </span>
-            <span>{headerText}</span>
+            <span className="font-medium text-gray-700 dark:text-gray-300">{headerText}</span>
           </div>
-          {foundPage != null && foundPage > 0 && (
-            <span className={cn(
-              "text-xs font-mono px-1.5 py-0.5 rounded",
-              colorScheme === "green" && "bg-green-100 dark:bg-green-800/30",
-              colorScheme === "amber" && "bg-amber-100 dark:bg-amber-800/30",
-              colorScheme === "red" && "bg-red-100 dark:bg-red-800/30",
-              colorScheme === "gray" && "bg-gray-100 dark:bg-gray-700/30"
-            )}>
-              PG {foundPage}
+          {/* Page location badge - show expected (strikethrough) + found for unexpected location */}
+          {(foundPage != null && foundPage > 0) || showExpectedPage ? (
+            <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+              {showExpectedPage && isUnexpectedLocation && (
+                <span className="line-through opacity-60 mr-1">PG {expectedPage}</span>
+              )}
+              {foundPage != null && foundPage > 0 && (
+                <span>PG {foundPage}</span>
+              )}
             </span>
-          )}
+          ) : expectedPage != null && expectedPage > 0 ? (
+            <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+              PG {expectedPage}
+            </span>
+          ) : null}
         </div>
 
         {/* Anchor text and quote */}
@@ -243,32 +254,35 @@ export function StatusHeader({ status, foundPage, compact = false, anchorText, f
     );
   }
 
-  // Simple header (no anchor text/quote)
+  // Simple header (no anchor text/quote) - muted colors
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-2 border-b font-semibold text-sm",
-        compact ? "px-3 py-2" : "px-4 py-2.5",
-        colorClasses[colorScheme]
+        "flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-700 text-sm bg-gray-50 dark:bg-gray-800/50",
+        compact ? "px-3 py-2" : "px-4 py-2.5"
       )}
     >
       <div className="flex items-center gap-2">
-        <span className="size-4">
+        <span className={cn("size-4", iconColorClasses[colorScheme])}>
           <IconComponent />
         </span>
-        <span>{headerText}</span>
+        <span className="font-medium text-gray-700 dark:text-gray-300">{headerText}</span>
       </div>
-      {foundPage != null && foundPage > 0 && (
-        <span className={cn(
-          "text-xs font-mono px-1.5 py-0.5 rounded",
-          colorScheme === "green" && "bg-green-100 dark:bg-green-800/30",
-          colorScheme === "amber" && "bg-amber-100 dark:bg-amber-800/30",
-          colorScheme === "red" && "bg-red-100 dark:bg-red-800/30",
-          colorScheme === "gray" && "bg-gray-100 dark:bg-gray-700/30"
-        )}>
-          PG {foundPage}
+      {/* Page location badge - show expected (strikethrough) + found for unexpected location */}
+      {(foundPage != null && foundPage > 0) || showExpectedPage ? (
+        <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+          {showExpectedPage && isUnexpectedLocation && (
+            <span className="line-through opacity-60 mr-1">PG {expectedPage}</span>
+          )}
+          {foundPage != null && foundPage > 0 && (
+            <span>PG {foundPage}</span>
+          )}
         </span>
-      )}
+      ) : expectedPage != null && expectedPage > 0 ? (
+        <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+          PG {expectedPage}
+        </span>
+      ) : null}
     </div>
   );
 }
