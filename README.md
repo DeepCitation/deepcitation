@@ -7,7 +7,6 @@
 [![npm version](https://img.shields.io/npm/v/@deepcitation/deepcitation-js.svg)](https://www.npmjs.com/package/@deepcitation/deepcitation-js)
 [![Playwright Tests](https://github.com/deepcitation/deepcitation-js/actions/workflows/playwright.yml/badge.svg)](https://github.com/deepcitation/deepcitation-js/actions/workflows/playwright.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
 [Documentation](https://deepcitation.com/docs) · [New API Key](https://deepcitation.com/signup) · [Examples](./examples) · [Agent Guide](./AGENTS.md)
 

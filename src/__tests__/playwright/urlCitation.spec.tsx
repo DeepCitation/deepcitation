@@ -192,7 +192,7 @@ test.describe("URL Citation - Blocked Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     await expect(url).toHaveClass(/text-amber-/);
-    await expect(url.locator("text=🛡")).toBeVisible();
+    await expect(url.locator("text=⊘")).toBeVisible();
   });
 
   test("shows blocked_login indicator", async ({ mount, page }) => {
