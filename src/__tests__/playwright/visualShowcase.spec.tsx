@@ -64,7 +64,7 @@ test.describe("Visual Showcase - Desktop", () => {
   test("URL variants section shows all variants", async ({ mount, page }) => {
     await mount(<VisualShowcase />);
 
-    for (const variant of ["chip", "inline", "bracket"]) {
+    for (const variant of ["badge", "chip", "inline", "bracket"]) {
       const urlVariant = page.locator(`[data-url-variant="${variant}"]`);
       await expect(urlVariant).toBeVisible();
     }

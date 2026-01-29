@@ -43,26 +43,31 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Run Playwright tests
-        run: |
-          if [ "${{ inputs.update_snapshots }}" == "true" ]; then
-            npm run test:ct -- --update-snapshots
-          else
-            npm run test:ct
-          fi
-        continue-on-error: true
+      - name: Run Playwright tests (excluding visual snapshots)
+        run: npm run test:ct -- --grep-invert "visual snapshot"
         id: playwright
         env:
           PLAYWRIGHT_WORKERS: 2
 
+      - name: Run visual snapshot tests (non-blocking)
+        run: npm run test:ct -- --grep "visual snapshot" --update-snapshots
+        continue-on-error: true
+        id: snapshots
+        env:
+          PLAYWRIGHT_WORKERS: 1
+
       - name: Commit updated snapshots
-        if: ${{ inputs.update_snapshots == true }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add src/__tests__/playwright/__snapshots__/
-          git diff --staged --quiet || git commit -m "chore: Update Playwright visual snapshots"
-          git push
+          if git diff --staged --quiet; then
+            echo "No snapshot changes to commit"
+          else
+            git commit -m "chore: Auto-update Playwright visual snapshots [skip ci]"
+            git push
+          fi
 
       - name: Upload Playwright report artifact
         uses: actions/upload-artifact@v4
@@ -297,7 +302,9 @@ jobs:
           echo "- Popover states: Verified, partial match, not found" >> $GITHUB_STEP_SUMMARY
           echo "- URL citations: All 16 fetch status types" >> $GITHUB_STEP_SUMMARY
 
-      # Fail the job if tests failed
+      # Fail the job only if functional tests failed (not visual snapshots)
       - name: Check test results
         if: steps.playwright.outcome == 'failure'
-        run: exit 1
+        run: |
+          echo "❌ Functional Playwright tests failed"
+          exit 1

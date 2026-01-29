@@ -51,8 +51,14 @@ export type {
   GroupCitationsBySource,
 } from "./types.js";
 
-// URL Utilities - For handling URL citation metadata
+// URL Citation Component - For displaying URL citations
 export {
+  UrlCitationComponent,
+  MemoizedUrlCitationComponent,
+  useUrlMeta,
+  urlDisplayUtils,
+  STATUS_ICONS as URL_STATUS_ICONS,
+  // Utilities
   extractDomain,
   isBlockedStatus,
   isErrorStatus,
@@ -98,6 +104,7 @@ export {
   LinkIcon,
   ExternalLinkIcon,
   CloseIcon,
+  LockIcon,
 } from "./icons.js";
 
 // Sources List Components (Anthropic-style aggregated citations)

@@ -2,6 +2,7 @@ import React, { forwardRef, memo, useCallback, useMemo } from "react";
 import type { Citation } from "../types/citation.js";
 import type { UrlCitationMeta, UrlCitationProps, UrlFetchStatus } from "./types.js";
 import { classNames, generateCitationInstanceId, generateCitationKey } from "./utils.js";
+import { CheckIcon, CloseIcon, LockIcon } from "./icons.js";
 
 /**
  * Extracts domain from URL for compact display.
@@ -95,35 +96,56 @@ export function isVerifiedStatus(status: UrlFetchStatus): boolean {
 }
 
 /**
- * Default blocked indicator component.
+ * Pulsing dot indicator for pending state.
  */
-const DefaultBlockedIndicator = ({ status, errorMessage }: { status: UrlFetchStatus; errorMessage?: string }) => {
-  const statusInfo = STATUS_ICONS[status];
-  return (
-    <span
-      className={classNames("inline-flex items-center gap-1", statusInfo.className)}
-      title={errorMessage || statusInfo.label}
-      aria-label={statusInfo.label}
-    >
-      <span className="text-[0.9em] align-baseline leading-none" aria-hidden="true">
-        {statusInfo.icon}
-      </span>
-    </span>
-  );
-};
+const PendingDot = () => (
+  <span
+    className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse"
+    aria-hidden="true"
+  />
+);
+
+/**
+ * Green verified checkmark indicator.
+ */
+const VerifiedCheck = () => (
+  <CheckIcon className="w-full h-full text-green-600 dark:text-green-500" />
+);
+
+/**
+ * Status icon wrapper for consistent sizing and alignment.
+ */
+const StatusIconWrapper = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <span
+    className={classNames(
+      "w-3 h-3 flex-shrink-0 flex items-center justify-center",
+      className
+    )}
+  >
+    {children}
+  </span>
+);
 
 /**
  * Default favicon component.
  */
-const DefaultFavicon = ({ url, faviconUrl }: { url: string; faviconUrl?: string }) => {
+const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl?: string; isBroken?: boolean }) => {
   const domain = extractDomain(url);
   const src = faviconUrl || `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
+
+  if (isBroken) {
+    return (
+      <span className="w-3.5 h-3.5 flex items-center justify-center text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+        🌐
+      </span>
+    );
+  }
 
   return (
     <img
       src={src}
       alt=""
-      className="w-3.5 h-3.5 rounded-sm"
+      className="w-3.5 h-3.5 rounded-sm flex-shrink-0"
       width={14}
       height={14}
       loading="lazy"
@@ -167,7 +189,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       citation: providedCitation,
       children,
       className,
-      variant = "chip", // Default to chip for URLs
+      variant = "badge", // Default to badge for URLs
       showFullUrlOnHover = true,
       showFavicon = true,
       showTitle = false,
@@ -213,6 +235,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
     const isVerified = fetchStatus === "verified";
     const isPartial = fetchStatus === "partial";
     const isPending = fetchStatus === "pending";
+    const isBroken = isError;
 
     const handleClick = useCallback(
       (e: React.MouseEvent<HTMLSpanElement>) => {
@@ -238,41 +261,115 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
     }, [eventHandlers, citation, citationKey]);
 
     const renderStatusIndicator = () => {
-      if (isBlocked || isError) {
+      // Verified: Green checkmark
+      if (isVerified) {
+        return (
+          <StatusIconWrapper>
+            <VerifiedCheck />
+          </StatusIconWrapper>
+        );
+      }
+
+      // Partial: Amber check
+      if (isPartial) {
+        return (
+          <StatusIconWrapper className="text-amber-600 dark:text-amber-500">
+            <CheckIcon className="w-full h-full" />
+          </StatusIconWrapper>
+        );
+      }
+
+      // Blocked: Lock icon
+      if (isBlocked) {
         if (renderBlockedIndicator) {
           return renderBlockedIndicator(fetchStatus, errorMessage);
         }
-        return <DefaultBlockedIndicator status={fetchStatus} errorMessage={errorMessage} />;
-      }
-
-      if (isVerified) {
         return (
-          <span className="text-[0.85em] text-green-600 dark:text-green-500 align-baseline leading-none" aria-hidden="true" title="Verified">
-            ✓
-          </span>
+          <StatusIconWrapper className="text-amber-600 dark:text-amber-500" aria-label={statusInfo.label}>
+            <LockIcon className="w-full h-full" />
+          </StatusIconWrapper>
         );
       }
 
-      if (isPartial) {
+      // Error: X icon
+      if (isError) {
+        if (renderBlockedIndicator) {
+          return renderBlockedIndicator(fetchStatus, errorMessage);
+        }
         return (
-          <span className="text-[0.85em] text-amber-600 dark:text-amber-500 align-baseline leading-none" aria-hidden="true" title="Partial match">
-            ~
-          </span>
+          <StatusIconWrapper className="text-red-500 dark:text-red-400" aria-label={statusInfo.label}>
+            <CloseIcon className="w-full h-full" />
+          </StatusIconWrapper>
         );
       }
 
+      // Pending: Pulsing dot
       if (isPending) {
         return (
-          <span className="opacity-70 align-baseline leading-none" aria-hidden="true">
-            …
-          </span>
+          <StatusIconWrapper>
+            <PendingDot />
+          </StatusIconWrapper>
         );
       }
 
       return null;
     };
 
-    // Choose variant-specific rendering
+    // Badge variant (default) - matches the HTML design
+    if (variant === "badge") {
+      return (
+        <>
+          {children}
+          <a
+            ref={ref as React.Ref<HTMLAnchorElement>}
+            href={url}
+            data-citation-id={citationKey}
+            data-citation-instance={citationInstanceId}
+            data-url={url}
+            data-fetch-status={fetchStatus}
+            data-variant="badge"
+            className={classNames(
+              // Base styles matching the HTML design
+              "inline-flex items-center gap-2 px-2 py-1",
+              "bg-white dark:bg-gray-900",
+              "border border-gray-200 dark:border-gray-700",
+              "rounded-md",
+              "text-gray-800 dark:text-gray-200",
+              "no-underline cursor-pointer",
+              "transition-all duration-150 ease-in-out",
+              "hover:border-gray-400 dark:hover:border-gray-500",
+              "hover:bg-gray-50 dark:hover:bg-gray-800",
+              // Broken state: muted styling
+              isBroken && "opacity-60",
+              className
+            )}
+            title={showFullUrlOnHover ? (errorMessage || url) : undefined}
+            onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
+            onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
+            onClick={e => {
+              e.preventDefault();
+              handleClick(e as unknown as React.MouseEvent<HTMLSpanElement>);
+            }}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Link to ${domain}: ${statusInfo.label}`}
+          >
+            {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} isBroken={isBroken} />}
+            <span
+              className={classNames(
+                "font-mono text-[11px] font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[140px]",
+                isBroken && "line-through"
+              )}
+            >
+              {displayText}
+            </span>
+            {renderStatusIndicator()}
+          </a>
+        </>
+      );
+    }
+
+    // Chip variant - pill style
     if (variant === "chip") {
       return (
         <>

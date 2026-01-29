@@ -157,3 +157,21 @@ export const CloseIcon = ({ className }: { className?: string }) => (
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
+
+/**
+ * Lock icon for restricted/paywall content
+ * Size is controlled by parent container
+ */
+export const LockIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+    width="1em"
+    height="1em"
+  >
+    <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm3 8H9V7a3 3 0 0 1 6 0v3z" />
+  </svg>
+);
