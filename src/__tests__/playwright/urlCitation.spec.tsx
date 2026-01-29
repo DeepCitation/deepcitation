@@ -99,8 +99,16 @@ test.describe("URL Citation - Basic Rendering", () => {
     await expect(url).toHaveAttribute("data-fetch-status", "verified");
   });
 
-  test("renders with chip variant by default", async ({ mount, page }) => {
+  test("renders with badge variant by default", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
+    const url = page.locator('[data-variant="badge"]');
+
+    await expect(url).toBeVisible();
+    await expect(url).toHaveClass(/rounded-md/);
+  });
+
+  test("renders with chip variant", async ({ mount, page }) => {
+    await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} variant="chip" />);
     const url = page.locator('[data-variant="chip"]');
 
     await expect(url).toBeVisible();
@@ -162,23 +170,26 @@ test.describe("URL Citation - Verification Status", () => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-green-/);
-    await expect(url.locator("text=✓")).toBeVisible();
+    // Badge variant uses SVG checkmark with green color
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-green-600, .text-green-500")).toBeVisible();
   });
 
   test("shows partial match indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={partialUrlMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-amber-/);
-    await expect(url.locator("text=~")).toBeVisible();
+    // Partial uses amber checkmark SVG
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
   test("shows pending indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={pendingUrlMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-gray-/);
+    // Pending uses pulsing dot
+    await expect(url.locator(".animate-pulse")).toBeVisible();
   });
 });
 
@@ -191,43 +202,49 @@ test.describe("URL Citation - Blocked Status", () => {
     await mount(<UrlCitationComponent urlMeta={blockedAntibotMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-amber-/);
-    await expect(url.locator("text=⊘")).toBeVisible();
+    // Blocked statuses use lock icon SVG with amber color
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
   test("shows blocked_login indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedLoginMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-amber-/);
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
   test("shows blocked_paywall indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedPaywallMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-amber-/);
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
   test("shows blocked_geo indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedGeoMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-amber-/);
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
   test("shows blocked_rate_limit indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedRateLimitMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-amber-/);
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
   test("blocked indicator has tooltip with error message", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={blockedLoginMeta} />);
-    const blocked = page.locator('[aria-label="Login required"]');
+    const url = page.locator("[data-fetch-status]");
 
-    await expect(blocked).toHaveAttribute("title", "Login required");
+    // The badge shows the error message in title attribute
+    await expect(url).toHaveAttribute("title", blockedLoginMeta.errorMessage);
   });
 
   // Note: Custom blocked indicator test skipped - Playwright CT has issues with inline render functions
@@ -255,28 +272,33 @@ test.describe("URL Citation - Error Status", () => {
     await mount(<UrlCitationComponent urlMeta={errorTimeoutMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-red-/);
+    // Error statuses use X icon SVG with red color
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
   });
 
   test("shows error_not_found indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={errorNotFoundMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-red-/);
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
   });
 
   test("shows error_server indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={errorServerMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-red-/);
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
   });
 
   test("shows error_network indicator", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={errorNetworkMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-red-/);
+    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
   });
 
   test("shows unknown status indicator", async ({ mount, page }) => {
@@ -292,11 +314,12 @@ test.describe("URL Citation - Error Status", () => {
 // =============================================================================
 
 test.describe("URL Citation - Interactions", () => {
-  test("has link role for accessibility", async ({ mount, page }) => {
+  test("is an anchor element for accessibility", async ({ mount, page }) => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveAttribute("role", "link");
+    // Badge variant renders as <a> element which has implicit link role
+    await expect(url).toHaveAttribute("href", verifiedUrlMeta.url);
   });
 
   test("has aria-label with domain and status", async ({ mount, page }) => {
