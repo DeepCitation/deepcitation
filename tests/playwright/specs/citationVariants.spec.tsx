@@ -6,9 +6,9 @@ import {
   InlineCitation,
   MinimalCitation,
   CitationVariantFactory,
-} from "../../react/CitationVariants";
-import type { Citation } from "../../types/citation";
-import type { Verification } from "../../types/verification";
+} from "../../../src/react/CitationVariants";
+import type { Citation } from "../../../src/types/citation";
+import type { Verification } from "../../../src/types/verification";
 
 // =============================================================================
 // TEST FIXTURES

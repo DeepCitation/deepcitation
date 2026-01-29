@@ -3,8 +3,8 @@ src/
 !src/react/styles.css
 
 # Test files and directories
-__tests__/
-__mocks__/
+tests/
+playwright/
 *.test.ts
 *.test.tsx
 *.spec.ts
@@ -32,9 +32,6 @@ bunfig.toml
 # Build artifacts
 node_modules/
 bun.lock
-
-# Playwright
-playwright/
 
 # Development files
 CLAUDE.md
