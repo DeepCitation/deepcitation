@@ -210,7 +210,7 @@ export function VisualShowcase() {
               </tr>
             </thead>
             <tbody>
-              {(["brackets", "chip", "text", "superscript", "minimal"] as const).map(variant => (
+              {(["brackets", "chip", "text", "superscript", "minimal", "linter"] as const).map(variant => (
                 <tr key={variant} className="border-b border-gray-100 dark:border-gray-800" data-variant-row={variant}>
                   <td className="p-2 font-mono text-gray-700 dark:text-gray-300">{variant}</td>
                   <td className="p-2">
@@ -408,7 +408,7 @@ export function MobileShowcase() {
       <section className="mb-6" data-testid="mobile-variants">
         <h2 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200">Citation Variants</h2>
         <div className="space-y-2">
-          {(["brackets", "chip", "superscript", "minimal"] as const).map(variant => (
+          {(["brackets", "chip", "superscript", "minimal", "linter"] as const).map(variant => (
             <div key={variant} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded" data-mobile-variant={variant}>
               <span className="text-xs text-gray-500 w-20 font-mono">{variant}</span>
               <CitationComponent
