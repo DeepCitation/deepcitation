@@ -870,10 +870,12 @@ function getHumanizingMessage(
   if (!status) return null;
 
   const MAX_ANCHOR_LENGTH = 30;
-  const displayText = anchorText
-    ? anchorText.length > MAX_ANCHOR_LENGTH
-      ? `"${anchorText.slice(0, MAX_ANCHOR_LENGTH)}…"`
-      : `"${anchorText}"`
+  // Type guard: ensure anchorText is a string before using string methods
+  const safeAnchorText = typeof anchorText === "string" ? anchorText : null;
+  const displayText = safeAnchorText
+    ? safeAnchorText.length > MAX_ANCHOR_LENGTH
+      ? `"${safeAnchorText.slice(0, MAX_ANCHOR_LENGTH)}…"`
+      : `"${safeAnchorText}"`
     : "this phrase";
 
   switch (status) {

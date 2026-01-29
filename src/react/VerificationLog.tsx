@@ -16,6 +16,17 @@ const MAX_QUOTE_BOX_LENGTH = 150;
 /** Maximum length for anchor text preview in headers */
 const MAX_ANCHOR_TEXT_PREVIEW_LENGTH = 50;
 
+/** Maximum height for the scrollable timeline */
+const MAX_TIMELINE_HEIGHT = "200px";
+
+/** Icon color classes by status - defined outside component to avoid recreation on every render */
+const ICON_COLOR_CLASSES = {
+  green: "text-green-600 dark:text-green-400",
+  amber: "text-amber-600 dark:text-amber-400",
+  red: "text-red-500 dark:text-red-400",
+  gray: "text-gray-400 dark:text-gray-500",
+} as const;
+
 /** User-friendly method names for display (Issue #10: simplified from technical jargon) */
 const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   exact_line_match: "Exact location",
@@ -221,6 +232,50 @@ function getAttemptDetailText(attempt: SearchAttempt): string {
 }
 
 // =============================================================================
+// PAGE BADGE COMPONENT
+// =============================================================================
+
+interface PageBadgeProps {
+  /** Expected page from citation */
+  expectedPage?: number;
+  /** Page where match was found */
+  foundPage?: number;
+}
+
+/**
+ * Displays page location information.
+ * Shows arrow format (Pg 5 → 7) when location differs from expected.
+ */
+function PageBadge({ expectedPage, foundPage }: PageBadgeProps) {
+  const hasExpected = expectedPage != null && expectedPage > 0;
+  const hasFound = foundPage != null && foundPage > 0;
+  const locationDiffers = hasExpected && hasFound && expectedPage !== foundPage;
+
+  // Show arrow format when location differs (Issue #8: Pg 5 → 7)
+  if (locationDiffers) {
+    return (
+      <span className="text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1">
+        <span className="text-gray-400 dark:text-gray-500">Pg {expectedPage}</span>
+        <span className="text-gray-400 dark:text-gray-500">→</span>
+        <span className="text-gray-700 dark:text-gray-300">{foundPage}</span>
+      </span>
+    );
+  }
+
+  // Show found page or expected page
+  const pageToShow = hasFound ? foundPage : expectedPage;
+  if (pageToShow != null && pageToShow > 0) {
+    return (
+      <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+        Pg {pageToShow}
+      </span>
+    );
+  }
+
+  return null;
+}
+
+// =============================================================================
 // STATUS HEADER COMPONENT
 // =============================================================================
 
@@ -237,48 +292,13 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
   const colorScheme = getStatusColorScheme(status);
   const headerText = getStatusHeaderText(status);
 
-  // Icon colors - only the icon is colored, keeping headers neutral
-  const iconColorClasses = {
-    green: "text-green-600 dark:text-green-400",
-    amber: "text-amber-600 dark:text-amber-400",
-    red: "text-red-500 dark:text-red-400",
-    gray: "text-gray-400 dark:text-gray-500",
-  };
-
   // Select appropriate icon based on status
   const IconComponent = colorScheme === "green" ? CheckIcon
     : colorScheme === "red" ? MissIcon
     : WarningIcon;
 
-  // Determine if location differs (for page badge)
-  const locationDiffers = expectedPage != null && expectedPage > 0 && foundPage != null && foundPage > 0 && expectedPage !== foundPage;
-
   // Combined layout: status + anchor text + quote in one header section
   const hasCombinedContent = anchorText || fullPhrase;
-
-  // Render page badge with proper format
-  const renderPageBadge = () => {
-    // Show arrow format when location differs (Issue #8: Pg 5 → 7)
-    if (locationDiffers) {
-      return (
-        <span className="text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1">
-          <span className="text-gray-400 dark:text-gray-500">Pg {expectedPage}</span>
-          <span className="text-gray-400 dark:text-gray-500">→</span>
-          <span className="text-gray-700 dark:text-gray-300">{foundPage}</span>
-        </span>
-      );
-    }
-    // Show found page or expected page
-    const pageToShow = (foundPage != null && foundPage > 0) ? foundPage : expectedPage;
-    if (pageToShow != null && pageToShow > 0) {
-      return (
-        <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-          Pg {pageToShow}
-        </span>
-      );
-    }
-    return null;
-  };
 
   if (hasCombinedContent) {
     const displayAnchorText = anchorText || fullPhrase?.slice(0, MAX_ANCHOR_TEXT_PREVIEW_LENGTH) || "";
@@ -292,12 +312,12 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
           compact ? "px-3 py-2" : "px-4 py-2.5"
         )}>
           <div className="flex items-center gap-2">
-            <span className={cn("size-4 flex-shrink-0", iconColorClasses[colorScheme])}>
+            <span className={cn("size-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
               <IconComponent />
             </span>
             <span className="font-medium text-gray-800 dark:text-gray-100">{headerText}</span>
           </div>
-          {renderPageBadge()}
+          <PageBadge expectedPage={expectedPage} foundPage={foundPage} />
         </div>
 
         {/* Anchor text and quote */}
@@ -322,12 +342,12 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
       )}
     >
       <div className="flex items-center gap-2">
-        <span className={cn("size-4 flex-shrink-0", iconColorClasses[colorScheme])}>
+        <span className={cn("size-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
           <IconComponent />
         </span>
         <span className="font-medium text-gray-800 dark:text-gray-100">{headerText}</span>
       </div>
-      {renderPageBadge()}
+      <PageBadge expectedPage={expectedPage} foundPage={foundPage} />
     </div>
   );
 }
@@ -479,10 +499,13 @@ function VerificationLogTimeline({ searchAttempts }: VerificationLogTimelineProp
   return (
     <div
       id="verification-log-timeline"
-      className="px-4 pb-3 max-h-[200px] overflow-y-auto"
+      className="px-4 pb-3 overflow-y-auto"
+      style={{ maxHeight: MAX_TIMELINE_HEIGHT }}
     >
       {searchAttempts.map((attempt, index) => {
-        // Generate a stable key from attempt properties
+        // Generate a stable key from attempt properties.
+        // Note: index is included because the same method/page/line combination
+        // can appear multiple times in search attempts (e.g., retries).
         const lineKey = Array.isArray(attempt.lineSearched)
           ? attempt.lineSearched.join("-")
           : attempt.lineSearched ?? "none";
