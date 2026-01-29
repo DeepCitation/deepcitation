@@ -1992,8 +1992,24 @@ export const CitationComponent = forwardRef<
       // - Verified: solid underline with subtle green background wash
       // - Partial: dashed underline (amber)
       // - Not Found: wavy underline (red) - familiar from spell-checkers
+      // - Pending: dotted underline (gray)
+      //
+      // NOTE: Unlike other variants, linter omits the status indicator (checkmark/warning icon)
+      // because the underline style itself conveys the verification status visually.
+      // This creates a cleaner inline appearance similar to grammar-check tools.
       if (variant === "linter") {
+        // Compute status states once to avoid repetition
+        const isVerifiedState = isVerified && !isPartialMatch && !shouldShowSpinner;
+        const isPartialState = isPartialMatch && !shouldShowSpinner;
+        const isMissState = isMiss && !shouldShowSpinner;
+        const isPendingState = shouldShowSpinner;
+
         // Build inline styles for text-decoration since Tailwind doesn't support all decoration styles
+        // Using Tailwind color values to match the rest of the component:
+        // - green-600: #16a34a (verified)
+        // - amber-600: #d97706 (partial)
+        // - red-500: #ef4444 (miss)
+        // - gray-400: #9ca3af (pending)
         const linterStyles: React.CSSProperties = {
           textDecoration: "underline",
           textDecorationThickness: "2px",
@@ -2004,25 +2020,17 @@ export const CitationComponent = forwardRef<
         };
 
         // Apply status-specific decoration styles
-        // Using Tailwind color values to match the rest of the component:
-        // - green-600: #16a34a (verified)
-        // - amber-600: #d97706 (partial)
-        // - red-500: #ef4444 (miss)
-        // - gray-400: #9ca3af (pending)
-        if (isMiss && !shouldShowSpinner) {
+        if (isMissState) {
           linterStyles.textDecorationStyle = "wavy";
           linterStyles.textDecorationColor = "var(--dc-linter-error, #ef4444)"; // red-500
-        } else if (isPartialMatch && !shouldShowSpinner) {
+        } else if (isPartialState) {
           linterStyles.textDecorationStyle = "dashed";
           linterStyles.textDecorationColor = "var(--dc-linter-warning, #d97706)"; // amber-600
-        } else if (isVerified && !shouldShowSpinner) {
+        } else if (isVerifiedState) {
           linterStyles.textDecorationStyle = "solid";
           linterStyles.textDecorationColor = "var(--dc-linter-success, #16a34a)"; // green-600
-        } else if (shouldShowSpinner) {
-          linterStyles.textDecorationStyle = "dotted";
-          linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)"; // gray-400
         } else {
-          // Default/unknown state
+          // Pending or unknown state
           linterStyles.textDecorationStyle = "dotted";
           linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)"; // gray-400
         }
@@ -2030,16 +2038,16 @@ export const CitationComponent = forwardRef<
         const linterClasses = cn(
           "cursor-pointer",
           // Verified: subtle green background wash (using green-600 to match component)
-          isVerified && !isPartialMatch && !shouldShowSpinner &&
+          isVerifiedState &&
             "bg-green-600/[0.08] hover:bg-green-600/[0.15] dark:bg-green-500/[0.08] dark:hover:bg-green-500/[0.15]",
           // Partial: subtle amber background on hover (using amber-600 to match component)
-          isPartialMatch && !shouldShowSpinner &&
+          isPartialState &&
             "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
           // Miss: subtle red background on hover (using red-500 to match component)
-          isMiss && !shouldShowSpinner &&
+          isMissState &&
             "hover:bg-red-500/10 dark:hover:bg-red-400/10",
           // Pending: subtle gray background
-          shouldShowSpinner &&
+          isPendingState &&
             "bg-gray-500/[0.05] hover:bg-gray-500/10 dark:bg-gray-400/[0.05] dark:hover:bg-gray-400/10"
         );
 
