@@ -5,5 +5,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
+// Import Tailwind CSS for proper styling in tests
+import "./styles.css";
+
 // Export for Playwright CT framework to detect React version
 export { React, ReactDOM };

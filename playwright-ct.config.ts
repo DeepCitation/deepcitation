@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/experimental-ct-react";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -57,7 +58,7 @@ export default defineConfig({
     trace: "on-first-retry",
     ctPort: 3100,
     ctViteConfig: {
-      plugins: [resolveJsToTs(), react()],
+      plugins: [resolveJsToTs(), react(), tailwindcss()],
       resolve: {
         extensions: [".tsx", ".ts", ".jsx", ".js", ".json"],
         alias: {

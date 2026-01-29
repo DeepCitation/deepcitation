@@ -47,15 +47,15 @@ const STATUS_ICONS: Record<UrlFetchStatus, { icon: string; label: string; classN
   accessible: { icon: "○", label: "Accessible", className: "text-blue-500 dark:text-blue-400" },
   redirected: { icon: "↪", label: "Redirected", className: "text-amber-600 dark:text-amber-500" },
   redirected_valid: { icon: "↪✓", label: "Redirected (valid)", className: "text-green-600 dark:text-green-500" },
-  blocked_antibot: { icon: "🛡", label: "Blocked by anti-bot", className: "text-amber-600 dark:text-amber-500" },
-  blocked_login: { icon: "🔒", label: "Login required", className: "text-amber-600 dark:text-amber-500" },
-  blocked_paywall: { icon: "💳", label: "Paywall", className: "text-amber-600 dark:text-amber-500" },
-  blocked_geo: { icon: "🌍", label: "Geo-restricted", className: "text-amber-600 dark:text-amber-500" },
-  blocked_rate_limit: { icon: "⏱", label: "Rate limited", className: "text-amber-600 dark:text-amber-500" },
-  error_timeout: { icon: "⏰", label: "Timed out", className: "text-red-500 dark:text-red-400" },
+  blocked_antibot: { icon: "⊘", label: "Blocked by anti-bot", className: "text-amber-600 dark:text-amber-500" },
+  blocked_login: { icon: "⊙", label: "Login required", className: "text-amber-600 dark:text-amber-500" },
+  blocked_paywall: { icon: "$", label: "Paywall", className: "text-amber-600 dark:text-amber-500" },
+  blocked_geo: { icon: "⊕", label: "Geo-restricted", className: "text-amber-600 dark:text-amber-500" },
+  blocked_rate_limit: { icon: "◔", label: "Rate limited", className: "text-amber-600 dark:text-amber-500" },
+  error_timeout: { icon: "◷", label: "Timed out", className: "text-red-500 dark:text-red-400" },
   error_not_found: { icon: "404", label: "Not found", className: "text-red-500 dark:text-red-400" },
   error_server: { icon: "⚠", label: "Server error", className: "text-red-500 dark:text-red-400" },
-  error_network: { icon: "⚡", label: "Network error", className: "text-red-500 dark:text-red-400" },
+  error_network: { icon: "↯", label: "Network error", className: "text-red-500 dark:text-red-400" },
   unknown: { icon: "?", label: "Unknown status", className: "text-gray-400 dark:text-gray-500" },
 };
 
@@ -105,7 +105,7 @@ const DefaultBlockedIndicator = ({ status, errorMessage }: { status: UrlFetchSta
       title={errorMessage || statusInfo.label}
       aria-label={statusInfo.label}
     >
-      <span className="text-[0.9em]" aria-hidden="true">
+      <span className="text-[0.9em] align-baseline leading-none" aria-hidden="true">
         {statusInfo.icon}
       </span>
     </span>
@@ -247,7 +247,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
 
       if (isVerified) {
         return (
-          <span className="text-[0.85em] text-green-600 dark:text-green-500" aria-hidden="true" title="Verified">
+          <span className="text-[0.85em] text-green-600 dark:text-green-500 align-baseline leading-none" aria-hidden="true" title="Verified">
             ✓
           </span>
         );
@@ -255,7 +255,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
 
       if (isPartial) {
         return (
-          <span className="text-[0.85em] text-amber-600 dark:text-amber-500" aria-hidden="true" title="Partial match">
+          <span className="text-[0.85em] text-amber-600 dark:text-amber-500 align-baseline leading-none" aria-hidden="true" title="Partial match">
             ~
           </span>
         );
@@ -263,7 +263,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
 
       if (isPending) {
         return (
-          <span className="opacity-70" aria-hidden="true">
+          <span className="opacity-70 align-baseline leading-none" aria-hidden="true">
             …
           </span>
         );

@@ -1,0 +1,3 @@
+/* Playwright CT Tailwind CSS - imports Tailwind with source detection */
+@import "tailwindcss";
+@source "../src/react";
