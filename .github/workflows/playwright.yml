@@ -13,9 +13,9 @@ on:
         default: 'false'
         type: boolean
 
-# Allow deployment to GitHub Pages
+# Allow deployment to GitHub Pages and snapshot updates
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
   pull-requests: write
