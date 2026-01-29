@@ -261,7 +261,7 @@ The `linter` variant displays citations as inline text with semantic underlines,
 | `"text"`      | `Revenue Growth✓`       | Plain text, inherits parent styling            |
 | `"superscript"` | `¹✓`                  | Small raised footnote style                    |
 | `"minimal"`   | `1✓`                    | Compact text with truncation                   |
-| `"linter"`    | `͟R͟e͟v͟e͟n͟u͟e͟ ͟G͟r͟o͟w͟t͟h`  | Inline with semantic underlines (grammar-check style) |
+| `"linter"`    | <u>Revenue Growth</u>   | Inline with semantic underlines (grammar-check style) |
 
 #### Content (What's Displayed)
 

@@ -257,6 +257,12 @@ test.describe("CitationComponent - Linter Variant", () => {
     await expect(citation).toBeVisible();
     // Linter variant defaults to anchorText content
     await expect(citation).toContainText("25% revenue growth");
+
+    // Verify underline is applied
+    const textDecorationLine = await citation.evaluate(
+      (el) => getComputedStyle(el).textDecorationLine
+    );
+    expect(textDecorationLine).toBe("underline");
   });
 
   test("shows verified state with solid underline", async ({ mount, page }) => {
@@ -271,6 +277,12 @@ test.describe("CitationComponent - Linter Variant", () => {
 
     await expect(citation).toBeVisible();
     await expect(citation).toContainText("25% revenue growth");
+
+    // Verified state should have solid underline
+    const textDecorationStyle = await citation.evaluate(
+      (el) => getComputedStyle(el).textDecorationStyle
+    );
+    expect(textDecorationStyle).toBe("solid");
   });
 
   test("shows partial match state with dashed underline", async ({ mount, page }) => {
@@ -284,6 +296,12 @@ test.describe("CitationComponent - Linter Variant", () => {
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
+
+    // Partial match should have dashed underline
+    const textDecorationStyle = await citation.evaluate(
+      (el) => getComputedStyle(el).textDecorationStyle
+    );
+    expect(textDecorationStyle).toBe("dashed");
   });
 
   test("shows not found state with wavy underline", async ({ mount, page }) => {
@@ -297,6 +315,12 @@ test.describe("CitationComponent - Linter Variant", () => {
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
+
+    // Not found should have wavy underline
+    const textDecorationStyle = await citation.evaluate(
+      (el) => getComputedStyle(el).textDecorationStyle
+    );
+    expect(textDecorationStyle).toBe("wavy");
   });
 
   test("shows pending state with dotted underline", async ({ mount, page }) => {
@@ -310,6 +334,12 @@ test.describe("CitationComponent - Linter Variant", () => {
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
+
+    // Pending should have dotted underline
+    const textDecorationStyle = await citation.evaluate(
+      (el) => getComputedStyle(el).textDecorationStyle
+    );
+    expect(textDecorationStyle).toBe("dotted");
   });
 });
 
