@@ -32,11 +32,10 @@ import {
   cn,
   generateCitationInstanceId,
   generateCitationKey,
-  getCitationDisplayText,
 } from "./utils.js";
 import { useSmartDiff } from "./useSmartDiff.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
-import { SplitDiffDisplay, MatchQualityBar, getContextualStatusMessage } from "./SplitDiffDisplay.js";
+import { SplitDiffDisplay, getContextualStatusMessage } from "./SplitDiffDisplay.js";
 import { StatusHeader, VerificationLog } from "./VerificationLog.js";
 
 // Re-export types for convenience
