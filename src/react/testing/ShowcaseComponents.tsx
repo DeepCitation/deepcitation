@@ -347,7 +347,7 @@ export function VisualShowcase() {
       <section className="mb-10" data-testid="url-variants-section">
         <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">URL Citation Variants</h2>
         <div className="space-y-4">
-          {(["chip", "inline", "bracket"] as const).map(variant => {
+          {(["badge", "chip", "inline", "bracket"] as const).map(variant => {
             const meta: UrlCitationMeta = {
               url: "https://docs.example.com/api/v2/citations",
               domain: "docs.example.com",
