@@ -361,6 +361,7 @@ function VerificationLogSummary({
           fill="none"
           stroke="currentColor"
           strokeWidth="2.5"
+          aria-hidden="true"
         >
           <path d="M9 6l6 6-6 6" />
         </svg>
@@ -404,7 +405,7 @@ function VerificationLogAttempt({ attempt, index, expectedPage, expectedLine }: 
   const IconComponent = isSuccess ? CheckIcon : CloseIcon;
   const iconColorClass = isSuccess
     ? "text-green-600 dark:text-green-400"
-    : "text-gray-400 dark:text-gray-500";
+    : "text-gray-500 dark:text-gray-400";
 
   return (
     <div className={cn(

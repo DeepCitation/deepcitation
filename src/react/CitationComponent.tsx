@@ -15,7 +15,7 @@ const Activity =
   (({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>);
 import { type CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import type { MatchedVariation, SearchAttempt } from "../types/search.js";
+import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
 import { CheckIcon, CloseIcon, SpinnerIcon, WarningIcon } from "./icons.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover.js";
 import type {
@@ -862,7 +862,7 @@ function AnchorTextFocusedImage({
  * Uses the actual anchor text for context, truncating if needed.
  */
 function getHumanizingMessage(
-  status: string | null | undefined,
+  status: SearchStatus | null | undefined,
   anchorText?: string,
   expectedPage?: number,
   foundPage?: number
@@ -1063,7 +1063,7 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
       <CheckIcon />
     </span>
   ) : (
-    <span className="inline-flex size-3 flex-shrink-0 text-gray-400 dark:text-gray-500">
+    <span className="inline-flex size-3 flex-shrink-0 text-gray-500 dark:text-gray-400">
       <CloseIcon />
     </span>
   );
@@ -1173,7 +1173,10 @@ function DefaultPopoverContent({
   // Get humanizing message for partial/not-found states
   const anchorText = citation.anchorText?.toString();
   const fullPhrase = citation.fullPhrase;
-  const humanizingMessage = getHumanizingMessage(searchStatus, anchorText, expectedPage ?? undefined, foundPage);
+  const humanizingMessage = useMemo(
+    () => getHumanizingMessage(searchStatus, anchorText, expectedPage ?? undefined, foundPage),
+    [searchStatus, anchorText, expectedPage, foundPage]
+  );
 
   // Loading/pending state view
   if (isLoading || isPending) {
