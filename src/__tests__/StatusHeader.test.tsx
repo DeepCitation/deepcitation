@@ -13,19 +13,19 @@ describe("StatusHeader", () => {
   // ==========================================================================
 
   describe("status display", () => {
-    it("renders 'Verified Match' text for found status", () => {
+    it("renders 'Verified' text for found status", () => {
       const { container } = render(<StatusHeader status="found" foundPage={5} />);
-      expect(container.textContent).toContain("Verified Match");
+      expect(container.textContent).toContain("Verified");
     });
 
-    it("renders 'Citation Found (Unexpected Location)' for found_on_other_page", () => {
+    it("renders 'Found on different page' for found_on_other_page", () => {
       const { container } = render(<StatusHeader status="found_on_other_page" foundPage={7} />);
-      expect(container.textContent).toContain("Citation Found (Unexpected Location)");
+      expect(container.textContent).toContain("Found on different page");
     });
 
-    it("renders 'Citation Unverified' for not_found status", () => {
+    it("renders 'Not found' for not_found status", () => {
       const { container } = render(<StatusHeader status="not_found" />);
-      expect(container.textContent).toContain("Citation Unverified");
+      expect(container.textContent).toContain("Not found");
     });
 
     it("renders 'Verifying...' for pending status", () => {
@@ -44,36 +44,32 @@ describe("StatusHeader", () => {
         <StatusHeader status="found" foundPage={5} expectedPage={5} />
       );
 
-      // Should show "PG 5" once
-      expect(container.textContent).toContain("PG 5");
-      // Should NOT have strikethrough (pages match)
-      const strikethrough = container.querySelector(".line-through");
-      expect(strikethrough).not.toBeInTheDocument();
+      // Should show "Pg 5" once (pages match, no arrow)
+      expect(container.textContent).toContain("Pg 5");
+      // Should NOT have arrow (pages match)
+      expect(container.textContent).not.toContain("→");
     });
 
-    it("shows expected page with strikethrough when found on different page", () => {
+    it("shows arrow format when found on different page", () => {
       const { container } = render(
         <StatusHeader status="found_on_other_page" foundPage={7} expectedPage={5} />
       );
 
-      // Should have strikethrough element with expected page
-      const strikethrough = container.querySelector(".line-through");
-      expect(strikethrough).toBeInTheDocument();
-      expect(strikethrough?.textContent).toContain("PG 5");
-
-      // Should also show found page
-      expect(container.textContent).toContain("PG 7");
+      // Should show arrow format: Pg 5 → 7
+      expect(container.textContent).toContain("Pg 5");
+      expect(container.textContent).toContain("→");
+      expect(container.textContent).toContain("7");
     });
 
-    it("shows expected page with strikethrough for found_on_other_line status", () => {
+    it("shows single page for found_on_other_line (same page)", () => {
       const { container } = render(
         <StatusHeader status="found_on_other_line" foundPage={5} expectedPage={5} />
       );
 
       // For same page but different line, foundPage === expectedPage,
-      // so no strikethrough should appear
-      const strikethrough = container.querySelector(".line-through");
-      expect(strikethrough).not.toBeInTheDocument();
+      // so no arrow should appear
+      expect(container.textContent).not.toContain("→");
+      expect(container.textContent).toContain("Pg 5");
     });
 
     it("shows only expectedPage when status is not_found (no foundPage)", () => {
@@ -82,14 +78,14 @@ describe("StatusHeader", () => {
       );
 
       // Should show expected page for not_found
-      expect(container.textContent).toContain("PG 5");
+      expect(container.textContent).toContain("Pg 5");
     });
 
     it("shows nothing when no page info provided", () => {
       const { container } = render(<StatusHeader status="pending" />);
 
-      // Should not contain any PG text
-      expect(container.textContent).not.toContain("PG");
+      // Should not contain any Pg text
+      expect(container.textContent).not.toContain("Pg");
     });
 
     it("handles undefined expectedPage gracefully", () => {
@@ -98,10 +94,9 @@ describe("StatusHeader", () => {
       );
 
       // Should show foundPage
-      expect(container.textContent).toContain("PG 5");
-      // No strikethrough (no expected page to compare)
-      const strikethrough = container.querySelector(".line-through");
-      expect(strikethrough).not.toBeInTheDocument();
+      expect(container.textContent).toContain("Pg 5");
+      // No arrow (no expected page to compare)
+      expect(container.textContent).not.toContain("→");
     });
   });
 

@@ -358,8 +358,8 @@ test.describe("Popover Showcase - Interactive Hover", () => {
     const popover = page.locator('[data-radix-popper-content-wrapper]');
     await expect(popover).toBeVisible();
 
-    // The popover should contain "Citation Unverified" text
-    await expect(popover).toContainText("Citation Unverified");
+    // The popover should contain "Not found" text
+    await expect(popover).toContainText("Not found");
   });
 
   test("hovering pending citation shows loading state", async ({ mount, page }) => {
@@ -603,7 +603,7 @@ test.describe("Popover Showcase - Interactive Hover Dark Mode", () => {
     const popover = page.locator('[data-radix-popper-content-wrapper]');
     await expect(popover).toBeVisible();
 
-    // The popover should contain "Citation Unverified" text
-    await expect(popover).toContainText("Citation Unverified");
+    // The popover should contain "Not found" text
+    await expect(popover).toContainText("Not found");
   });
 });

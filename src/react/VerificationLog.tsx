@@ -429,7 +429,7 @@ function VerificationLogAttempt({ attempt, index, expectedPage, expectedLine }: 
           )}>
             {methodName}
           </span>
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
             {scopeBadge}
           </span>
         </div>
