@@ -1985,11 +1985,14 @@ export const CitationComponent = forwardRef<
       }
 
       // Variant: superscript (footnote style)
-      // Uses inherited text color for dark mode compatibility - indicator shows status
       if (variant === "superscript") {
         const supStatusClasses = cn(
-          // Only apply line-through for miss state, otherwise inherit text color
-          isMiss && !shouldShowSpinner && "line-through opacity-60"
+          // Default text color for dark mode compatibility
+          !isMiss && !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
+          // Miss state
+          isMiss && !shouldShowSpinner && "text-gray-400 dark:text-gray-500 line-through opacity-60",
+          // Pending state
+          shouldShowSpinner && "text-gray-500 dark:text-gray-400"
         );
         return (
           <sup
@@ -2016,11 +2019,19 @@ export const CitationComponent = forwardRef<
 
       // Variant: minimal (compact with truncation)
       if (variant === "minimal") {
+        const minimalStatusClasses = cn(
+          // Default text color for dark mode compatibility
+          !isMiss && !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
+          // Miss state
+          isMiss && !shouldShowSpinner && "text-gray-400 dark:text-gray-500 opacity-70 line-through",
+          // Pending state
+          shouldShowSpinner && "text-gray-500 dark:text-gray-400"
+        );
         return (
           <span
             className={cn(
               "max-w-80 overflow-hidden text-ellipsis",
-              statusClasses
+              minimalStatusClasses
             )}
           >
             {displayText}
@@ -2119,6 +2130,12 @@ export const CitationComponent = forwardRef<
 
         const linterClasses = cn(
           "cursor-pointer",
+          // Default text color for dark mode compatibility (verified and partial states)
+          (isVerifiedState || isPartialState) && "text-gray-700 dark:text-gray-200",
+          // Miss state text color
+          isMissState && "text-gray-400 dark:text-gray-500",
+          // Pending state text color
+          isPendingState && "text-gray-500 dark:text-gray-400",
           // Verified: subtle green background wash (using green-600 to match component)
           isVerifiedState &&
             "bg-green-600/[0.08] hover:bg-green-600/[0.15] dark:bg-green-500/[0.08] dark:hover:bg-green-500/[0.15]",
