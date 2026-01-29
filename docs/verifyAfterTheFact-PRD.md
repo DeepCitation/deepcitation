@@ -26,7 +26,7 @@ This doesn't work when:
 1. **Progressive complexity** - Simple cases should be simple; advanced options available when needed
 2. **Flexible input** - Accept files in multiple formats without unnecessary wrapping
 3. **Fail fast with helpful errors** - Validate early, provide actionable error messages
-4. **Composable** - Works seamlessly with existing `prepareFiles()` and `verifyAll()` methods
+4. **Composable** - Works seamlessly with existing `prepareFiles()` and `verify()` methods
 
 ### Method Signatures
 
@@ -544,7 +544,7 @@ async verifyAfterTheFact(
     const { citations, parseErrors } = this.parseCitationsWithErrors(llmResponse);
 
     options.onProgress?.({ stage: "verifying", current: 0, total: Object.keys(citations).length });
-    const verified = await this.verifyAll({ llmOutput: llmResponse, outputImageFormat: options.outputImageFormat });
+    const verified = await this.verify({ llmOutput: llmResponse, outputImageFormat: options.outputImageFormat });
 
     options.onProgress?.({ stage: "complete" });
 

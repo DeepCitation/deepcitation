@@ -81,13 +81,13 @@ This release marks the first comprehensive public release of DeepCitation, conso
 ### Breaking Changes (from earlier 1.x versions)
 - Removed `citation.css` - components now use Tailwind CSS exclusively
 - Renamed `verifyCitations()` to `verify()` for cleaner API
-- Renamed `verifyCitationsFromLlmOutput()` to `verifyAll()`
+- Removed `verifyCitationsFromLlmOutput()` (briefly renamed to `verifyAll()`, now removed)
 - Renamed `fileId` to `attachmentId` throughout
 - Renamed `PdfSpaceItem` to `SnippetPdfItem`
 - `CitationVariant` type: removed `"indicator"` variant (use `content="indicator"` instead)
 
-### Deprecated
-- `removeCitations()` - use `replaceCitations()` instead (still works for backward compatibility)
+### Removed
+- `removeCitations()` - use `replaceCitations()` instead
 
 ## [1.1.26] - 2025-01-15
 
