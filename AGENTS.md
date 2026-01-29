@@ -307,7 +307,7 @@ import "@deepcitation/deepcitation-js/react/styles.css";
 <CitationComponent
   citation={citation}
   verification={verification}
-  variant="chip"        // "brackets" | "chip" | "text" | "superscript" | "minimal"
+  variant="chip"        // "brackets" | "chip" | "text" | "superscript" | "minimal" | "linter"
   content="anchorText"     // "anchorText" | "number" | "indicator"
 />
 ```
@@ -321,6 +321,7 @@ import "@deepcitation/deepcitation-js/react/styles.css";
 | `"superscript"` | `¹✓`       | Compact footnotes           |
 | `"minimal"`   | `1✓`         | Space-constrained UI        |
 | `"text"`      | plain text   | Inheriting parent styles    |
+| `"linter"`    | underlined   | Grammar-check style indicators |
 
 ### Parse and render inline citations
 

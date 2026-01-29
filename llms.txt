@@ -63,12 +63,22 @@ import type { Citation, Verification } from "@deepcitation/deepcitation-js";
 
 ### React Components
 
-- `CitationComponent` - Classic bracket style [1]
-- `ChipCitation` - Chip/badge style
-- `SuperscriptCitation` - Academic superscript style
-- `FootnoteCitation` - Footnote marker style
-- `InlineCitation` - Subtle underline style
-- `MinimalCitation` - Just the number
+`CitationComponent` is the main component for rendering citations. Use the `variant` prop to change visual style:
+
+| Variant       | Description                                              |
+|---------------|----------------------------------------------------------|
+| `brackets`    | Classic bracket style `[1✓]` (default)                   |
+| `chip`        | Pill/badge style with background color                   |
+| `text`        | Plain text, inherits parent styling                      |
+| `superscript` | Academic superscript style like footnotes¹               |
+| `minimal`     | Compact text with truncation                             |
+| `linter`      | Inline text with semantic underlines (grammar-check style) |
+
+The `linter` variant uses underline styles to convey verification status:
+- **Verified**: Solid underline with subtle green background
+- **Partial**: Dashed underline (amber)
+- **Not Found**: Wavy underline (red) - familiar from spell-checkers
+- **Pending**: Dotted underline (gray)
 
 ### Composable Primitives
 

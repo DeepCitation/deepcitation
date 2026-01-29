@@ -246,6 +246,119 @@ test.describe("CitationComponent - Chip Variant", () => {
 });
 
 // =============================================================================
+// LINTER VARIANT TESTS
+// =============================================================================
+
+test.describe("CitationComponent - Linter Variant", () => {
+  test("renders with linter styling (underlines)", async ({ mount, page }) => {
+    await mount(<CitationComponent citation={baseCitation} variant="linter" />);
+    const citation = page.locator("[data-citation-id]");
+
+    await expect(citation).toBeVisible();
+    // Linter variant defaults to anchorText content
+    await expect(citation).toContainText("25% revenue growth");
+
+    // The linter styles are on a nested span inside the citation wrapper
+    const linterSpan = citation.locator("span").first();
+
+    // Verify underline is applied
+    const textDecorationLine = await linterSpan.evaluate(
+      (el) => getComputedStyle(el).textDecorationLine
+    );
+    expect(textDecorationLine).toBe("underline");
+  });
+
+  test("shows verified state with solid underline", async ({ mount, page }) => {
+    await mount(
+      <CitationComponent
+        citation={baseCitation}
+        variant="linter"
+        verification={verifiedVerification}
+      />
+    );
+    const citation = page.locator("[data-citation-id]");
+
+    await expect(citation).toBeVisible();
+    await expect(citation).toContainText("25% revenue growth");
+
+    // The linter styles are on a nested span inside the citation wrapper
+    const linterSpan = citation.locator("span").first();
+
+    // Verified state should have solid underline
+    const textDecorationStyle = await linterSpan.evaluate(
+      (el) => getComputedStyle(el).textDecorationStyle
+    );
+    expect(textDecorationStyle).toBe("solid");
+  });
+
+  test("shows partial match state with dashed underline", async ({ mount, page }) => {
+    await mount(
+      <CitationComponent
+        citation={baseCitation}
+        variant="linter"
+        verification={partialVerification}
+      />
+    );
+    const citation = page.locator("[data-citation-id]");
+
+    await expect(citation).toBeVisible();
+
+    // The linter styles are on a nested span inside the citation wrapper
+    const linterSpan = citation.locator("span").first();
+
+    // Partial match should have dashed underline
+    const textDecorationStyle = await linterSpan.evaluate(
+      (el) => getComputedStyle(el).textDecorationStyle
+    );
+    expect(textDecorationStyle).toBe("dashed");
+  });
+
+  test("shows not found state with wavy underline", async ({ mount, page }) => {
+    await mount(
+      <CitationComponent
+        citation={baseCitation}
+        variant="linter"
+        verification={missVerification}
+      />
+    );
+    const citation = page.locator("[data-citation-id]");
+
+    await expect(citation).toBeVisible();
+
+    // The linter styles are on a nested span inside the citation wrapper
+    const linterSpan = citation.locator("span").first();
+
+    // Not found should have wavy underline
+    const textDecorationStyle = await linterSpan.evaluate(
+      (el) => getComputedStyle(el).textDecorationStyle
+    );
+    expect(textDecorationStyle).toBe("wavy");
+  });
+
+  test("shows pending state with dotted underline", async ({ mount, page }) => {
+    await mount(
+      <CitationComponent
+        citation={baseCitation}
+        variant="linter"
+        verification={pendingVerification}
+      />
+    );
+    const citation = page.locator("[data-citation-id]");
+
+    await expect(citation).toBeVisible();
+
+    // The linter styles are on a nested span inside the citation wrapper
+    const linterSpan = citation.locator("span").first();
+
+    // Pending should have dotted underline
+    const textDecorationStyle = await linterSpan.evaluate(
+      (el) => getComputedStyle(el).textDecorationStyle
+    );
+    expect(textDecorationStyle).toBe("dotted");
+  });
+});
+
+// =============================================================================
 // ALL VARIANTS VISUAL COMPARISON
 // =============================================================================
 
@@ -302,12 +415,20 @@ test.describe("CitationComponent - All Variants Visual", () => {
             verification={verifiedVerification}
           />
         </div>
+        <div>
+          <strong>Linter:</strong>{" "}
+          <CitationComponent
+            citation={baseCitation}
+            variant="linter"
+            verification={verifiedVerification}
+          />
+        </div>
       </div>
     );
 
     // Verify all variants are rendered
     const citations = page.locator("[data-citation-id]");
-    await expect(citations).toHaveCount(6);
+    await expect(citations).toHaveCount(7);
   });
 
   test("renders all variants with all verification states", async ({ mount, page }) => {
@@ -322,6 +443,7 @@ test.describe("CitationComponent - All Variants Visual", () => {
             <CitationComponent citation={baseCitation} variant="text" verification={verifiedVerification} />
             <CitationComponent citation={baseCitation} variant="minimal" verification={verifiedVerification} />
             <CitationComponent citation={baseCitation} variant="chip" verification={verifiedVerification} />
+            <CitationComponent citation={baseCitation} variant="linter" verification={verifiedVerification} />
           </div>
         </div>
 
@@ -334,6 +456,7 @@ test.describe("CitationComponent - All Variants Visual", () => {
             <CitationComponent citation={baseCitation} variant="text" verification={partialVerification} />
             <CitationComponent citation={baseCitation} variant="minimal" verification={partialVerification} />
             <CitationComponent citation={baseCitation} variant="chip" verification={partialVerification} />
+            <CitationComponent citation={baseCitation} variant="linter" verification={partialVerification} />
           </div>
         </div>
 
@@ -346,6 +469,7 @@ test.describe("CitationComponent - All Variants Visual", () => {
             <CitationComponent citation={baseCitation} variant="text" verification={missVerification} />
             <CitationComponent citation={baseCitation} variant="minimal" verification={missVerification} />
             <CitationComponent citation={baseCitation} variant="chip" verification={missVerification} />
+            <CitationComponent citation={baseCitation} variant="linter" verification={missVerification} />
           </div>
         </div>
 
@@ -358,6 +482,7 @@ test.describe("CitationComponent - All Variants Visual", () => {
             <CitationComponent citation={baseCitation} variant="text" verification={pendingVerification} />
             <CitationComponent citation={baseCitation} variant="minimal" verification={pendingVerification} />
             <CitationComponent citation={baseCitation} variant="chip" verification={pendingVerification} />
+            <CitationComponent citation={baseCitation} variant="linter" verification={pendingVerification} />
           </div>
         </div>
 
@@ -370,6 +495,7 @@ test.describe("CitationComponent - All Variants Visual", () => {
             <CitationComponent citation={baseCitation} variant="text" />
             <CitationComponent citation={baseCitation} variant="minimal" />
             <CitationComponent citation={baseCitation} variant="chip" />
+            <CitationComponent citation={baseCitation} variant="linter" />
           </div>
         </div>
       </div>
@@ -377,7 +503,7 @@ test.describe("CitationComponent - All Variants Visual", () => {
 
     // Just verify the page rendered successfully with multiple citations
     const citations = page.locator("[data-citation-id]");
-    await expect(citations).toHaveCount(25); // 5 variants × 5 states
+    await expect(citations).toHaveCount(30); // 6 variants × 5 states
   });
 });
 

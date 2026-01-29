@@ -221,7 +221,36 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 // Just the indicator → ✓
 <CitationComponent citation={citation} verification={verification} content="indicator" />
+
+// Linter variant → inline text with semantic underlines
+<CitationComponent citation={citation} verification={verification} variant="linter" />
 ```
+
+#### Linter Variant
+
+The `linter` variant displays citations as inline text with semantic underlines, similar to grammar/spell-check tools developers are familiar with. The underline style conveys verification status:
+
+| Status      | Underline Style | Background              | Familiar From                |
+|-------------|-----------------|-------------------------|------------------------------|
+| **Verified**| Solid           | Subtle green wash       | "Valid" indicator            |
+| **Partial** | Dashed          | Hover: subtle amber     | "Suggestion" style           |
+| **Not Found** | Wavy          | Hover: subtle red       | Spell-checker errors         |
+| **Pending** | Dotted          | Subtle gray             | Processing indicator         |
+
+```tsx
+// Linter variant displays inline text with underlines
+<CitationComponent citation={citation} verification={verification} variant="linter" />
+
+// Example output in paragraph context:
+// "The company's <span with solid green underline>valuation is $500M</span> as of Q4."
+// "The <span with wavy red underline>hiring freeze announcement</span> remains unverified."
+```
+
+**CSS Custom Properties:** The linter variant uses CSS custom properties for colors that can be overridden (defaults match Tailwind colors used elsewhere in the component):
+- `--dc-linter-success`: Green color for verified (default: `#16a34a` / green-600)
+- `--dc-linter-warning`: Amber color for partial matches (default: `#d97706` / amber-600)
+- `--dc-linter-error`: Red color for not found (default: `#ef4444` / red-500)
+- `--dc-linter-pending`: Gray color for pending (default: `#9ca3af` / gray-400)
 
 #### Variant (Visual Style)
 
@@ -232,6 +261,7 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 | `"text"`      | `Revenue Growth✓`       | Plain text, inherits parent styling            |
 | `"superscript"` | `¹✓`                  | Small raised footnote style                    |
 | `"minimal"`   | `1✓`                    | Compact text with truncation                   |
+| `"linter"`    | <u>Revenue Growth</u>   | Inline with semantic underlines (grammar-check style) |
 
 #### Content (What's Displayed)
 
@@ -245,6 +275,7 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 - `chip` → `anchorText`
 - `brackets` → `anchorText`
 - `text` → `anchorText`
+- `linter` → `anchorText`
 - `superscript` → `number`
 - `minimal` → `number`
 

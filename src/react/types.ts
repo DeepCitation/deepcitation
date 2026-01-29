@@ -13,6 +13,7 @@ import type { SearchStatus } from "../types/search.js";
  * | `superscript` | Small raised text like footnotes¹              |
  * | `minimal`     | Compact text with indicator, truncated         |
  * | `source`      | Source chip showing name + count (ChatGPT-style) |
+ * | `linter`      | Inline text with semantic underlines (solid/dashed/wavy) |
  */
 export type CitationVariant =
   | "chip" // Pill/badge with background
@@ -20,7 +21,8 @@ export type CitationVariant =
   | "text" // Plain text, inherits styling
   | "superscript" // Small raised footnote style
   | "minimal" // Compact with truncation
-  | "source"; // Source name chip with count (ChatGPT-style)
+  | "source" // Source name chip with count (ChatGPT-style)
+  | "linter"; // Inline text with semantic underlines (grammar-check style)
 
 /**
  * Content to display in the citation.
@@ -36,6 +38,7 @@ export type CitationVariant =
  * - `chip` → `anchorText`
  * - `brackets` → `anchorText`
  * - `text` → `anchorText`
+ * - `linter` → `anchorText`
  * - `superscript` → `number`
  * - `minimal` → `number`
  * - `source` → `source`

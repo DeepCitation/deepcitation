@@ -184,7 +184,7 @@ git commit -m "chore: Update visual regression baselines"
 ```
 
 **What's Tested:**
-- All 5 citation variants (brackets, chip, text, superscript, minimal)
+- All 6 citation variants (brackets, chip, text, superscript, minimal, linter)
 - All verification states (verified, partial, not found, pending)
 - All 16 URL fetch status types
 - Responsive design (desktop 1280×720, mobile 375×667, tablet 768×1024)

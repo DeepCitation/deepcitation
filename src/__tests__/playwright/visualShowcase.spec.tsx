@@ -20,7 +20,7 @@ test.describe("Visual Showcase - Desktop", () => {
   test("all variant rows render correctly", async ({ mount, page }) => {
     await mount(<VisualShowcase />);
 
-    for (const variant of ["brackets", "chip", "text", "superscript", "minimal"]) {
+    for (const variant of ["brackets", "chip", "text", "superscript", "minimal", "linter"]) {
       const row = page.locator(`[data-variant-row="${variant}"]`);
       await expect(row).toBeVisible();
       // Each row should have 4 citations (verified, partial, not found, pending)
@@ -105,7 +105,7 @@ test.describe("Visual Showcase - Mobile", () => {
   test("mobile variants render without overflow", async ({ mount, page }) => {
     await mount(<MobileShowcase />);
 
-    for (const variant of ["brackets", "chip", "superscript", "minimal"]) {
+    for (const variant of ["brackets", "chip", "superscript", "minimal", "linter"]) {
       const variantEl = page.locator(`[data-mobile-variant="${variant}"]`);
       await expect(variantEl).toBeVisible();
 
