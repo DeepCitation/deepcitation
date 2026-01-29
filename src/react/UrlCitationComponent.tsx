@@ -106,13 +106,10 @@ const PendingDot = () => (
 );
 
 /**
- * Green verified dot indicator.
+ * Green verified checkmark indicator.
  */
-const VerifiedDot = () => (
-  <span
-    className="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 flex-shrink-0"
-    aria-hidden="true"
-  />
+const VerifiedCheck = () => (
+  <CheckIcon className="w-full h-full text-green-600 dark:text-green-500" />
 );
 
 /**
@@ -264,11 +261,11 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
     }, [eventHandlers, citation, citationKey]);
 
     const renderStatusIndicator = () => {
-      // Verified: Green dot
+      // Verified: Green checkmark
       if (isVerified) {
         return (
           <StatusIconWrapper>
-            <VerifiedDot />
+            <VerifiedCheck />
           </StatusIconWrapper>
         );
       }

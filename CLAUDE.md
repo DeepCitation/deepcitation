@@ -468,7 +468,73 @@ const urlCitation: Citation = {
 - `imageUrl` - OG/social image URL
 - `accessedAt` - When the source was accessed
 
-### 10. SourcesListComponent
+### 10. UrlCitationComponent
+
+Display URL citations with a clean badge design, status indicators, and favicon:
+
+```tsx
+import { UrlCitationComponent } from "@deepcitation/deepcitation-js/react";
+
+// Default: badge variant with favicon and checkmark → stripe.com/docs ✓
+<UrlCitationComponent
+  urlMeta={{
+    url: "https://stripe.com/docs/api",
+    fetchStatus: "verified",
+  }}
+/>
+
+// Chip variant → pill style
+<UrlCitationComponent
+  urlMeta={{ url: "https://example.com", fetchStatus: "verified" }}
+  variant="chip"
+/>
+
+// Inline variant → underlined link
+<UrlCitationComponent
+  urlMeta={{ url: "https://example.com", fetchStatus: "pending" }}
+  variant="inline"
+/>
+```
+
+#### UrlCitationComponent Variants
+
+| Variant   | Description                                              |
+|-----------|----------------------------------------------------------|
+| `"badge"` | Clean bordered badge with favicon (default)              |
+| `"chip"`  | Pill/badge style with background color                   |
+| `"inline"`| Underlined inline link                                   |
+| `"bracket"`| [text✓] with square brackets                            |
+
+#### Status Indicators
+
+| Status      | Indicator        | Color  | Description                     |
+|-------------|------------------|--------|---------------------------------|
+| Verified    | Checkmark ✓      | Green  | URL content verified            |
+| Partial     | Checkmark ✓      | Amber  | Partial match found             |
+| Pending     | Pulsing dot ◌    | Gray   | Verification in progress        |
+| Blocked     | Lock icon 🔒     | Amber  | Paywall, login, or geo-blocked  |
+| Error       | X icon ✕         | Red    | Not found, timeout, or error    |
+
+#### UrlCitationMeta Interface
+
+```typescript
+interface UrlCitationMeta {
+  url: string;                    // The source URL
+  fetchStatus: UrlFetchStatus;    // Verification/fetch status
+  domain?: string;                // Display domain
+  title?: string;                 // Page title
+  faviconUrl?: string;            // Custom favicon URL
+  errorMessage?: string;          // Error details for display
+}
+
+type UrlFetchStatus =
+  | "verified" | "partial" | "pending"
+  | "blocked_paywall" | "blocked_login" | "blocked_geo"
+  | "error_not_found" | "error_timeout" | "error_server"
+  | "unknown";
+```
+
+### 11. SourcesListComponent
 
 Display all sources in a panel/drawer at the end of content (like Gemini's "Sources" section):
 
