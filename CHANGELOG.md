@@ -20,12 +20,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Expandable search details** for verified matches - see how matches were found even for successful verifications (#111)
 
 ### Changed
+- **Citation popover redesign** - shadcn HoverCard aesthetic with cleaner UI (#113):
+  - Neutral header backgrounds with colored status icons only
+  - GitHub CI/CD-style verification timeline with numbered steps
+  - Humanizing messages for failures (e.g., "We couldn't find..." instead of technical errors)
+  - User-friendly method names ("Exact location", "Nearby lines" instead of "Exact Line Match")
+  - Arrow format for page badges (`Pg 5 → 7`) instead of strikethrough
+  - Improved dark mode contrast throughout
 - Improved CitationTooltip UX with clearer status values and better visual feedback (#101)
 - Renamed `keySpan` to `anchorText` and `startPageKey` to `startPageId` for clarity (#89)
 - Optimized citation format: group citations by attachment with shorthand keys (#92)
 - **Dark mode improvements** - superscript variant now inherits text color, popover headers use neutral backgrounds with colored icons only (#111)
 - **URL citation variants** - chip/inline/bracket variants now use neutral gray colors instead of blue, better spacing with `mr-0.5` (#111)
-- **Unexpected location display** - shows strikethrough expected page next to actual found page (e.g., ~~PG 5~~ PG 7) (#111)
+- **Unexpected location display** - shows arrow format for page mismatch (e.g., `Pg 5 → 7`) (#111)
 
 ### Removed
 - All deprecated APIs and backwards compatibility shims have been removed (#105):
