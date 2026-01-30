@@ -583,10 +583,9 @@ interface GroupedAttemptCardProps {
 
 /**
  * Card displaying a grouped search attempt.
- * Shows phrase, type badge, all locations searched, and variations.
+ * Shows phrase, all locations searched, and variations.
  */
 function GroupedAttemptCard({ group }: GroupedAttemptCardProps) {
-  const phraseTypeLabel = group.phraseType === "full_phrase" ? "Full phrase" : "Key phrase";
   const hasDocumentScope = group.scopesUsed.includes("document");
 
   // Format the phrase for display
@@ -607,20 +606,8 @@ function GroupedAttemptCard({ group }: GroupedAttemptCardProps) {
   const remainingVariations = group.variationsTried.length - MAX_INLINE_VARIATIONS;
 
   return (
-    <div className="space-y-1">
-      {/* Header row: type badge + locations */}
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-          {phraseTypeLabel}
-        </span>
-        {locationText && (
-          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">
-            {locationText}
-          </span>
-        )}
-      </div>
-
-      {/* Phrase with icon */}
+    <div className="space-y-0.5">
+      {/* Phrase with icon and location */}
       <div className="flex items-start gap-2">
         <span className={cn(
           "size-3 max-w-3 max-h-3 mt-0.5 flex-shrink-0",
@@ -628,9 +615,18 @@ function GroupedAttemptCard({ group }: GroupedAttemptCardProps) {
         )}>
           {group.anySuccess ? <CheckIcon /> : <MissIcon />}
         </span>
-        <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">
-          "{displayPhrase}"
-        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">
+              "{displayPhrase}"
+            </span>
+            {locationText && (
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono flex-shrink-0">
+                {locationText}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Variations tried (if any) */}
