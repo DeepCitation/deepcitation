@@ -1263,6 +1263,8 @@ function DefaultPopoverContent({
               foundLine={foundLine}
               isExpanded={isPhrasesExpanded}
               onExpandChange={onPhrasesExpandChange}
+              fullPhrase={fullPhrase ?? undefined}
+              anchorText={anchorText}
             />
           )}
         </div>
@@ -1327,17 +1329,19 @@ function DefaultPopoverContent({
             </>
           ) : (
             // Combined header with anchor text and quote (for not_found or partial without image)
+            // When humanizingMessage exists, skip anchorText in header to avoid redundancy
+            // (humanizingMessage already contains the anchor text in quotes)
             <>
               <StatusHeader
                 status={searchStatus}
                 foundPage={foundPage}
                 expectedPage={expectedPage ?? undefined}
-                anchorText={anchorText}
-                fullPhrase={fullPhrase ?? undefined}
+                anchorText={humanizingMessage ? undefined : anchorText}
+                fullPhrase={humanizingMessage ? undefined : (fullPhrase ?? undefined)}
               />
-              {/* Humanizing message for not-found states (below the status header) */}
+              {/* Humanizing message replaces the anchor text display */}
               {humanizingMessage && (
-                <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">
+                <div className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                   {humanizingMessage}
                 </div>
               )}
@@ -1355,6 +1359,8 @@ function DefaultPopoverContent({
               foundLine={foundLine}
               isExpanded={isPhrasesExpanded}
               onExpandChange={onPhrasesExpandChange}
+              fullPhrase={fullPhrase ?? undefined}
+              anchorText={anchorText}
             />
           )}
         </div>
@@ -1910,7 +1916,7 @@ export const CitationComponent = forwardRef<
       (isVerified || isPartialMatch) &&
         variant === "brackets" &&
         "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline",
-      isMiss && "opacity-70 line-through text-gray-400 dark:text-gray-500",
+      isMiss && "opacity-70 line-through text-gray-700 dark:text-gray-200",
       shouldShowSpinner && "text-gray-500 dark:text-gray-400"
     );
 
@@ -1987,9 +1993,10 @@ export const CitationComponent = forwardRef<
       if (variant === "superscript") {
         const supStatusClasses = cn(
           // Default text color for dark mode compatibility
-          !isMiss && !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
-          // Miss state
-          isMiss && !shouldShowSpinner && "text-gray-400 dark:text-gray-500 line-through opacity-60",
+          // Miss state keeps readable text - line-through is the signal
+          (!shouldShowSpinner) && "text-gray-700 dark:text-gray-200",
+          // Miss state - keep line-through but text stays readable
+          isMiss && !shouldShowSpinner && "line-through opacity-60",
           // Pending state
           shouldShowSpinner && "text-gray-500 dark:text-gray-400"
         );
@@ -2020,9 +2027,10 @@ export const CitationComponent = forwardRef<
       if (variant === "minimal") {
         const minimalStatusClasses = cn(
           // Default text color for dark mode compatibility
-          !isMiss && !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
-          // Miss state
-          isMiss && !shouldShowSpinner && "text-gray-400 dark:text-gray-500 opacity-70 line-through",
+          // Miss state keeps readable text - line-through is the signal
+          (!shouldShowSpinner) && "text-gray-700 dark:text-gray-200",
+          // Miss state - keep line-through but text stays readable
+          isMiss && !shouldShowSpinner && "opacity-70 line-through",
           // Pending state
           shouldShowSpinner && "text-gray-500 dark:text-gray-400"
         );
@@ -2129,11 +2137,10 @@ export const CitationComponent = forwardRef<
 
         const linterClasses = cn(
           "cursor-pointer",
-          // Default text color for dark mode compatibility (verified and partial states)
-          (isVerifiedState || isPartialState) && "text-gray-700 dark:text-gray-200",
-          // Miss state text color
-          isMissState && "text-gray-400 dark:text-gray-500",
-          // Pending state text color
+          // Text color: let the underline convey status, keep text readable
+          // Miss state uses same color as verified/partial - wavy red underline is the signal
+          (isVerifiedState || isPartialState || isMissState) && "text-gray-700 dark:text-gray-200",
+          // Only pending is slightly muted
           isPendingState && "text-gray-500 dark:text-gray-400",
           // Verified: subtle green background wash (using green-600 to match component)
           isVerifiedState &&

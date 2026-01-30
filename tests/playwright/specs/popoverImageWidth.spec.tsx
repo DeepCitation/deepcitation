@@ -16,17 +16,28 @@ const baseCitation: Citation = {
 
 // Create a wide test image (800x100 pixels, solid gray)
 // This simulates a wide verification image that could overflow the popover
+// Using a proper PNG instead of SVG to avoid SVG scaling issues in tests
 const wideImageBase64 = (() => {
-  // Create a simple 800x100 gray PNG using a data URL
-  // This is a minimal valid PNG that's wider than the 384px constraint
-  return "data:image/svg+xml;base64," + btoa(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="800" height="100">
-      <rect width="800" height="100" fill="#cccccc"/>
-      <text x="400" y="55" font-family="Arial" font-size="14" fill="#333" text-anchor="middle">
-        Wide verification image (800px)
-      </text>
-    </svg>
-  `.trim());
+  // Generate a simple gray PNG programmatically using canvas
+  // This creates an 800x100 gray rectangle image
+  if (typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 100;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#cccccc';
+      ctx.fillRect(0, 0, 800, 100);
+      ctx.fillStyle = '#333333';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Wide verification image (800px)', 400, 55);
+      return canvas.toDataURL('image/png');
+    }
+  }
+  // Fallback: minimal 1x1 gray PNG for SSR/Node environments
+  // This is a valid PNG that won't cause scaling issues
+  return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mO8cuXKfwYGBgYGAAi7Av7W3NgAAAAASUVORK5CYII=";
 })();
 
 const verificationWithWideImage: Verification = {
