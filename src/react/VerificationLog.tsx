@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import type { SearchAttempt, SearchStatus, SearchMethod, GroupedSearchAttempt } from "../types/search.js";
+import type { SearchAttempt, SearchStatus, SearchMethod } from "../types/search.js";
 import { CheckIcon, MissIcon, SpinnerIcon } from "./icons.js";
 import { cn } from "./utils.js";
 
@@ -19,14 +19,8 @@ const MAX_ANCHOR_TEXT_PREVIEW_LENGTH = 50;
 /** Maximum height for the scrollable timeline */
 const MAX_TIMELINE_HEIGHT = "200px";
 
-/** Maximum number of pages to show inline before collapsing */
-const MAX_INLINE_PAGES = 5;
-
-/** Maximum number of variations to show before collapsing */
-const MAX_INLINE_VARIATIONS = 3;
-
-/** Maximum length for phrase display in grouped cards */
-const MAX_GROUPED_PHRASE_LENGTH = 80;
+/** Maximum length for phrase display in search attempt rows */
+const MAX_PHRASE_DISPLAY_LENGTH = 60;
 
 /** Icon color classes by status - defined outside component to avoid recreation on every render */
 const ICON_COLOR_CLASSES = {
@@ -242,132 +236,6 @@ function getAttemptDetailText(attempt: SearchAttempt): string {
   }
 
   return "";
-}
-
-/**
- * Group search attempts by phrase for audit display.
- * Shows all locations searched for each unique phrase.
- */
-function groupSearchAttemptsByPhrase(attempts: SearchAttempt[]): GroupedSearchAttempt[] {
-  const groupMap = new Map<string, GroupedSearchAttempt>();
-
-  for (const attempt of attempts) {
-    const phrase = attempt.searchPhrase;
-    if (!phrase) continue;
-
-    let group = groupMap.get(phrase);
-    if (!group) {
-      group = {
-        phrase,
-        phraseType: attempt.searchPhraseType,
-        attemptCount: 0,
-        pagesSearched: [],
-        scopesUsed: [],
-        methodsUsed: [],
-        variationsTried: [],
-        notes: [],
-        anySuccess: false,
-        rejectedMatches: [],
-      };
-      groupMap.set(phrase, group);
-    }
-
-    group.attemptCount++;
-
-    // Track pages searched
-    if (attempt.pageSearched != null && !group.pagesSearched.includes(attempt.pageSearched)) {
-      group.pagesSearched.push(attempt.pageSearched);
-    }
-
-    // Track scopes used
-    if (attempt.searchScope && !group.scopesUsed.includes(attempt.searchScope)) {
-      group.scopesUsed.push(attempt.searchScope);
-    }
-
-    // Track methods used (in order, allow duplicates to show progression)
-    if (attempt.method && !group.methodsUsed.includes(attempt.method)) {
-      group.methodsUsed.push(attempt.method);
-    }
-
-    // Track variations
-    if (attempt.searchVariations) {
-      for (const variation of attempt.searchVariations) {
-        if (!group.variationsTried.includes(variation)) {
-          group.variationsTried.push(variation);
-        }
-      }
-    }
-
-    // Track unique notes
-    if (attempt.note && !group.notes.includes(attempt.note)) {
-      group.notes.push(attempt.note);
-    }
-
-    // Track success
-    if (attempt.success) {
-      group.anySuccess = true;
-    }
-
-    // Track rejected matches (found but not accepted)
-    if (!attempt.success && attempt.matchedText) {
-      const existingMatch = group.rejectedMatches.find(m => m.text === attempt.matchedText);
-      if (!existingMatch) {
-        group.rejectedMatches.push({ text: attempt.matchedText });
-      }
-    }
-  }
-
-  // Sort pages for display
-  for (const group of groupMap.values()) {
-    group.pagesSearched.sort((a, b) => a - b);
-  }
-
-  return Array.from(groupMap.values());
-}
-
-/**
- * Format a page range as a string.
- */
-function formatRange(start: number, end: number): string {
-  if (start === end) return String(start);
-  if (end === start + 1) return `${start}, ${end}`;
-  return `${start}-${end}`;
-}
-
-/**
- * Format pages searched for display.
- * Collapses consecutive pages into ranges (e.g., "1, 2, 3" -> "1-3").
- */
-function formatPagesSearched(pages: number[], maxInline: number = MAX_INLINE_PAGES): string {
-  if (pages.length === 0) return "";
-  if (pages.length === 1) return `Pg ${pages[0]}`;
-
-  // Collapse consecutive pages into ranges
-  const ranges: string[] = [];
-  let rangeStart = pages[0];
-  let rangeEnd = pages[0];
-
-  for (let i = 1; i < pages.length; i++) {
-    if (pages[i] === rangeEnd + 1) {
-      rangeEnd = pages[i];
-    } else {
-      // Finalize current range and start new one
-      ranges.push(formatRange(rangeStart, rangeEnd));
-      rangeStart = pages[i];
-      rangeEnd = pages[i];
-    }
-  }
-  // Finalize the last range
-  ranges.push(formatRange(rangeStart, rangeEnd));
-
-  // Truncate if too many ranges
-  if (ranges.length > maxInline) {
-    const shown = ranges.slice(0, maxInline);
-    const remaining = ranges.length - maxInline;
-    return `Pg ${shown.join(", ")} +${remaining}`;
-  }
-
-  return `Pg ${ranges.join(", ")}`;
 }
 
 // =============================================================================
@@ -587,83 +455,68 @@ interface AuditSearchDisplayProps {
   anchorText?: string;
 }
 
-interface GroupedAttemptCardProps {
-  group: GroupedSearchAttempt;
+interface SearchAttemptRowProps {
+  attempt: SearchAttempt;
+  index: number;
+  totalCount: number;
 }
 
 /**
- * Card displaying a grouped search attempt.
- * Shows phrase, search methods used, locations searched, and variations.
+ * Single row showing one search attempt with its phrase, method, and location.
+ * Displays as: "1. "phrase..."   Method · Pg X"
  */
-function GroupedAttemptCard({ group }: GroupedAttemptCardProps) {
-  const hasDocumentScope = group.scopesUsed.includes("document");
+function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps) {
+  // Format the phrase for display (truncate if too long)
+  const displayPhrase = attempt.searchPhrase.length > MAX_PHRASE_DISPLAY_LENGTH
+    ? attempt.searchPhrase.slice(0, MAX_PHRASE_DISPLAY_LENGTH) + "..."
+    : attempt.searchPhrase;
 
-  // Format the phrase for display
-  const displayPhrase = group.phrase.length > MAX_GROUPED_PHRASE_LENGTH
-    ? group.phrase.slice(0, MAX_GROUPED_PHRASE_LENGTH) + "..."
-    : group.phrase;
-
-  // Format locations - show "Entire doc" if document scope was used
-  const locationText = hasDocumentScope
+  // Format location
+  const locationText = attempt.searchScope === "document"
     ? "Entire doc"
-    : group.pagesSearched.length > 0
-      ? formatPagesSearched(group.pagesSearched)
+    : attempt.pageSearched != null
+      ? `Pg ${attempt.pageSearched}`
       : "";
 
-  // Format search methods as a progression (e.g., "Exact location → Expected page → Nearby pages")
-  const methodsText = group.methodsUsed
-    .map(m => METHOD_DISPLAY_NAMES[m] || m)
-    .join(" → ");
+  // Get method display name
+  const methodName = METHOD_DISPLAY_NAMES[attempt.method] || attempt.method;
 
-  // Format variations for display
-  const hasVariations = group.variationsTried.length > 0;
-  const displayVariations = group.variationsTried.slice(0, MAX_INLINE_VARIATIONS);
-  const remainingVariations = group.variationsTried.length - MAX_INLINE_VARIATIONS;
+  // Calculate the width needed for the index number (for alignment)
+  const indexWidth = String(totalCount).length;
 
   return (
-    <div className="space-y-0.5">
-      {/* Phrase with icon */}
-      <div className="flex items-start gap-2">
-        <span
-          className={cn(
-            "size-3 max-w-3 max-h-3 mt-0.5 flex-shrink-0",
-            group.anySuccess ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"
-          )}
-          role="img"
-          aria-label={group.anySuccess ? "Phrase found" : "Phrase not found"}
-        >
-          {group.anySuccess ? <CheckIcon /> : <MissIcon />}
-        </span>
-        <div className="flex-1 min-w-0">
+    <div className="flex items-start gap-2 py-0.5">
+      {/* Index number */}
+      <span
+        className="text-[10px] text-gray-400 dark:text-gray-500 font-mono flex-shrink-0 tabular-nums"
+        style={{ minWidth: `${indexWidth + 1}ch` }}
+      >
+        {index}.
+      </span>
+
+      {/* Status icon */}
+      <span
+        className={cn(
+          "size-3 max-w-3 max-h-3 mt-0.5 flex-shrink-0",
+          attempt.success ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"
+        )}
+        role="img"
+        aria-label={attempt.success ? "Found" : "Not found"}
+      >
+        {attempt.success ? <CheckIcon /> : <MissIcon />}
+      </span>
+
+      {/* Phrase and details */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between gap-2">
           <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">
             "{displayPhrase}"
           </span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0 whitespace-nowrap">
+            {methodName}{locationText && ` · ${locationText}`}
+          </span>
         </div>
       </div>
-
-      {/* Search methods progression */}
-      {methodsText && (
-        <div className="pl-5 text-[10px] text-gray-500 dark:text-gray-400">
-          {methodsText}
-          {locationText && <span className="text-gray-400 dark:text-gray-500"> · {locationText}</span>}
-        </div>
-      )}
-
-      {/* Variations tried (if any) */}
-      {hasVariations && (
-        <div className="pl-5 text-[11px] text-gray-500 dark:text-gray-400">
-          <span className="italic">Also tried: </span>
-          {displayVariations.map((v, i) => (
-            <span key={i}>
-              {i > 0 && ", "}
-              <span className="font-mono">"{v}"</span>
-            </span>
-          ))}
-          {remainingVariations > 0 && (
-            <span className="text-gray-400 dark:text-gray-500"> +{remainingVariations} more</span>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -700,32 +553,25 @@ function RejectedMatchesSection({ rejectedMatches }: RejectedMatchesSectionProps
 
 /**
  * Audit-focused search display.
- * Shows WHAT was searched (phrases with locations) not just HOW (methods).
- * Answers: "What did you search for?", "Where?", and "Why wasn't X accepted?"
+ * Shows each search attempt in order with its phrase, method, and location.
+ * This makes it clear what was searched at each step of the progression.
  */
 function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSearchDisplayProps) {
-  const groupedAttempts = useMemo(
-    () => groupSearchAttemptsByPhrase(searchAttempts),
-    [searchAttempts]
-  );
-
-  // Collect all rejected matches across groups (use Set for O(n) instead of O(n²))
-  const allRejectedMatches = useMemo(() => {
+  // Collect rejected matches (found but not accepted)
+  const rejectedMatches = useMemo(() => {
     const seen = new Set<string>();
     const matches: Array<{ text: string; count?: number }> = [];
-    for (const group of groupedAttempts) {
-      for (const match of group.rejectedMatches) {
-        if (!seen.has(match.text)) {
-          seen.add(match.text);
-          matches.push(match);
-        }
+    for (const attempt of searchAttempts) {
+      if (!attempt.success && attempt.matchedText && !seen.has(attempt.matchedText)) {
+        seen.add(attempt.matchedText);
+        matches.push({ text: attempt.matchedText });
       }
     }
     return matches;
-  }, [groupedAttempts]);
+  }, [searchAttempts]);
 
-  // If no grouped attempts, fall back to citation data
-  if (groupedAttempts.length === 0) {
+  // If no search attempts, fall back to citation data
+  if (searchAttempts.length === 0) {
     const fallbackPhrases = [fullPhrase, anchorText].filter((p): p is string => Boolean(p));
     if (fallbackPhrases.length === 0) return null;
 
@@ -755,20 +601,25 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSea
 
   return (
     <div className="px-4 py-3 space-y-4 text-sm">
-      {/* Grouped search attempts */}
+      {/* Search attempts timeline */}
       <div>
         <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-          Searched for
+          Search attempts
         </div>
-        <div className="space-y-3">
-          {groupedAttempts.map((group, i) => (
-            <GroupedAttemptCard key={i} group={group} />
+        <div className="space-y-0.5">
+          {searchAttempts.map((attempt, i) => (
+            <SearchAttemptRow
+              key={i}
+              attempt={attempt}
+              index={i + 1}
+              totalCount={searchAttempts.length}
+            />
           ))}
         </div>
       </div>
 
       {/* Rejected matches section */}
-      <RejectedMatchesSection rejectedMatches={allRejectedMatches} />
+      <RejectedMatchesSection rejectedMatches={rejectedMatches} />
     </div>
   );
 }
