@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -62,6 +63,49 @@ const MAX_VISIBLE_VARIATIONS = 3;
 
 /** Maximum characters to show for variation strings */
 const MAX_VARIATION_LENGTH = 30;
+
+// =============================================================================
+// TOUCH DEVICE DETECTION
+// =============================================================================
+
+/**
+ * Detects if the device has touch capability.
+ * Uses useSyncExternalStore for SSR compatibility and reactive updates.
+ *
+ * This is used to auto-detect mobile/touch devices so the component can
+ * show the popover on first tap rather than immediately opening the image overlay.
+ */
+function subscribeToTouchChanges(callback: () => void): () => void {
+  // Listen for changes in touch capability (e.g., device orientation changes,
+  // connecting/disconnecting touch screens on hybrid devices)
+  if (typeof window !== "undefined" && window.matchMedia) {
+    const mediaQuery = window.matchMedia("(pointer: coarse)");
+    // Use addEventListener with 'change' event (modern API)
+    mediaQuery.addEventListener?.("change", callback);
+    return () => mediaQuery.removeEventListener?.("change", callback);
+  }
+  return () => {};
+}
+
+function getIsTouchDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  // Check for touch capability using multiple methods for better accuracy:
+  // 1. pointer: coarse media query (most reliable for touch-primary devices)
+  // 2. maxTouchPoints > 0 (detects touch capability)
+  // 3. ontouchstart in window (legacy detection)
+  const hasCoarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+  const hasTouchPoints = navigator.maxTouchPoints > 0;
+  const hasTouch = "ontouchstart" in window;
+  return hasCoarsePointer || hasTouchPoints || hasTouch;
+}
+
+function getServerSnapshot(): boolean {
+  return false; // SSR: assume non-touch
+}
+
+function useIsTouchDevice(): boolean {
+  return useSyncExternalStore(subscribeToTouchChanges, getIsTouchDevice, getServerSnapshot);
+}
 
 // =============================================================================
 // ERROR BOUNDARY
@@ -1594,7 +1638,7 @@ export const CitationComponent = forwardRef<
       content: contentProp,
       eventHandlers,
       behaviorConfig,
-      isMobile = false,
+      isMobile: isMobileProp,
       renderIndicator,
       renderContent,
       popoverPosition = "top",
@@ -1607,6 +1651,10 @@ export const CitationComponent = forwardRef<
   ) => {
     // Get overlay context for blocking hover when any image overlay is open
     const { isAnyOverlayOpen } = useCitationOverlay();
+
+    // Auto-detect touch device if isMobile prop not explicitly provided
+    const isTouchDevice = useIsTouchDevice();
+    const isMobile = isMobileProp ?? isTouchDevice;
 
     // Resolve content: explicit content prop or default for variant
     const resolvedContent: CitationContent = useMemo(() => {
