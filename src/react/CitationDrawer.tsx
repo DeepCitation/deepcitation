@@ -11,6 +11,14 @@ import type {
 } from "./types.js";
 import { cn } from "./utils.js";
 
+/**
+ * Module-level handler for hiding broken favicon images.
+ * Performance fix: avoids creating new function references on every render.
+ */
+const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
+  (e.target as HTMLImageElement).style.display = "none";
+};
+
 // =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
@@ -185,10 +193,8 @@ export function CitationDrawerItemComponent({
               alt=""
               className="w-5 h-5 rounded object-contain"
               loading="lazy"
-              onError={(e) => {
-                // Replace with default icon on error
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              // Performance fix: use module-level handler to avoid re-render overhead
+              onError={handleFaviconError}
             />
           ) : (
             <div className="w-5 h-5 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center">

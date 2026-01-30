@@ -7,6 +7,15 @@ import {
   getAllCitationsFromDeferredResponse,
 } from "./citationParser.js";
 
+/**
+ * Module-level compiled regexes for hot-path operations.
+ * Performance fix: avoids regex recompilation on every function call.
+ */
+const PAGE_ID_FULL_REGEX = /page[\_a-zA-Z]*(\d+)_index_(\d+)/;
+const PAGE_ID_SIMPLE_REGEX = /page[_a-zA-Z]*(\d+)_index_(\d+)/i;
+const SIMPLE_PAGE_INDEX_REGEX = /^(\d+)_(\d+)$/;
+const CITE_TAG_REGEX = /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*\/>/g;
+
 const attributeRegexCache = new Map<string, RegExp>();
 
 function getAttributeRegex(name: string): RegExp {
@@ -19,8 +28,17 @@ function getAttributeRegex(name: string): RegExp {
 }
 
 /**
+ * Maximum allowed range size for line ID expansion.
+ * Prevents memory exhaustion from malicious inputs like "1-1000000".
+ */
+const MAX_LINE_ID_RANGE_SIZE = 1000;
+
+/**
  * Parses a line_ids string that may contain individual numbers, ranges, or both.
  * Examples: "1,2,3", "5-10", "1,5-7,10", "20-20"
+ *
+ * Performance: Range expansion is limited to MAX_LINE_ID_RANGE_SIZE to prevent
+ * quadratic memory allocation from malicious inputs.
  *
  * @param lineIdsString - The raw line_ids string (e.g., "1,5-7,10")
  * @returns Sorted array of unique line IDs, or undefined if empty/invalid
@@ -42,9 +60,16 @@ function parseLineIds(lineIdsString: string): number[] | undefined {
       const end = parseInt(endStr, 10);
 
       if (!isNaN(start) && !isNaN(end) && start <= end) {
-        // Expand the range
-        for (let i = start; i <= end; i++) {
-          lineIds.push(i);
+        // Performance fix: limit range size to prevent memory exhaustion
+        const rangeSize = end - start + 1;
+        if (rangeSize > MAX_LINE_ID_RANGE_SIZE) {
+          // For large ranges, just use start and end values
+          lineIds.push(start, end);
+        } else {
+          // Expand the range
+          for (let i = start; i <= end; i++) {
+            lineIds.push(i);
+          }
         }
       } else if (!isNaN(start)) {
         // If only start is valid, just use it
@@ -158,7 +183,8 @@ export const parseCitation = (
   let pageNumber: number | undefined;
   let pageIndex: number | undefined;
   if (startPageIdRaw) {
-    const pageMatch = startPageIdRaw.match(/page[\_a-zA-Z]*(\d+)_index_(\d+)/);
+    // Performance fix: use module-level compiled regex
+    const pageMatch = startPageIdRaw.match(PAGE_ID_FULL_REGEX);
     if (pageMatch) {
       pageNumber = parseInt(pageMatch[1]);
       pageIndex = parseInt(pageMatch[2]);
@@ -242,12 +268,13 @@ const parseJsonCitation = (
   let pageNumber: number | undefined;
   if (startPageId) {
     // Try full format first: page_number_5_index_2 or pageId_5_index_2
-    const pageMatch = startPageId.match(/page[_a-zA-Z]*(\d+)_index_(\d+)/i);
+    // Performance fix: use module-level compiled regex
+    const pageMatch = startPageId.match(PAGE_ID_SIMPLE_REGEX);
     if (pageMatch) {
       pageNumber = parseInt(pageMatch[1], 10);
     } else {
       // Try simple n_m format: 5_4 (page 5, index 4)
-      const simpleMatch = startPageId.match(/^(\d+)_(\d+)$/);
+      const simpleMatch = startPageId.match(SIMPLE_PAGE_INDEX_REGEX);
       if (simpleMatch) {
         pageNumber = parseInt(simpleMatch[1], 10);
       }
@@ -327,11 +354,24 @@ const extractJsonCitations = (
 };
 
 /**
+ * Maximum recursion depth for JSON citation traversal.
+ * Prevents stack overflow from deeply nested or circular objects.
+ */
+const MAX_TRAVERSAL_DEPTH = 50;
+
+/**
  * Recursively traverses an object looking for `citation` or `citations` properties
  * that match our JSON citation format.
+ *
+ * Performance fix: Depth limit prevents stack overflow from malicious/circular objects.
+ *
+ * @param obj - Object to traverse
+ * @param found - Array to collect found citations
+ * @param depth - Current recursion depth (internal)
  */
-const findJsonCitationsInObject = (obj: any, found: Citation[]): void => {
-  if (!obj || typeof obj !== "object") return;
+const findJsonCitationsInObject = (obj: any, found: Citation[], depth = 0): void => {
+  // Performance fix: prevent stack overflow with depth limit
+  if (depth > MAX_TRAVERSAL_DEPTH || !obj || typeof obj !== "object") return;
 
   // Check for citation/citations properties
   if (obj.citation && isJsonCitationFormat(obj.citation)) {
@@ -348,12 +388,12 @@ const findJsonCitationsInObject = (obj: any, found: Citation[]): void => {
   // Recurse into object properties
   if (Array.isArray(obj)) {
     for (const item of obj) {
-      findJsonCitationsInObject(item, found);
+      findJsonCitationsInObject(item, found, depth + 1);
     }
   } else {
     for (const key of Object.keys(obj)) {
       if (key !== "citation" && key !== "citations") {
-        findJsonCitationsInObject(obj[key], found);
+        findJsonCitationsInObject(obj[key], found, depth + 1);
       }
     }
   }
@@ -366,12 +406,8 @@ const extractXmlCitations = (text: string): { [key: string]: Citation } => {
   const normalizedText = normalizeCitations(text);
 
   // Find all <cite ... /> tags
-  // This regex handles > characters inside quoted attribute values and escaped quotes:
-  // - '(?:[^'\\]|\\.)*' matches single-quoted strings with escaped chars
-  // - "(?:[^"\\]|\\.)*" matches double-quoted strings with escaped chars
-  // - [^'">/] matches any char that's not a quote, >, or /
-  // - The whole pattern repeats until we hit />
-  const citeRegex = /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*\/>/g;
+  // Performance fix: use module-level compiled regex (create fresh instance to reset lastIndex)
+  const citeRegex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
   const matches = normalizedText.match(citeRegex);
 
   if (!matches || matches.length === 0) return {};

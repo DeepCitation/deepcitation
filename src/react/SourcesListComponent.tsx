@@ -10,6 +10,18 @@ import type {
 import { classNames } from "./utils.js";
 import { extractDomain } from "./UrlCitationComponent.js";
 
+/**
+ * Module-level handlers for hiding broken favicon images.
+ * Performance fix: avoids creating new function references on every render.
+ */
+const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
+  (e.target as HTMLImageElement).style.display = "none";
+};
+
+const handleFaviconErrorOpacity = (e: React.SyntheticEvent<HTMLImageElement>): void => {
+  (e.target as HTMLImageElement).style.opacity = "0";
+};
+
 // ============================================================================
 // Utility Functions
 // ============================================================================
@@ -287,9 +299,8 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
               width={20}
               height={20}
               loading="lazy"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              // Performance fix: use module-level handler to avoid re-render overhead
+              onError={handleFaviconError}
             />
           )}
         </div>
@@ -382,9 +393,8 @@ export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>
               width={16}
               height={16}
               loading="lazy"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.opacity = "0";
-              }}
+              // Performance fix: use module-level handler to avoid re-render overhead
+              onError={handleFaviconErrorOpacity}
             />
           ))}
           {hasMore && (

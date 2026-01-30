@@ -136,8 +136,16 @@ export function usePrefetchImage() {
 }
 
 /**
- * Prefetches multiple images concurrently.
+ * Set to track already prefetched image sources.
+ * Performance fix: prevents duplicate prefetch requests for the same image.
+ */
+const prefetchedImages = new Set<string>();
+
+/**
+ * Prefetches multiple images concurrently with deduplication.
  * Useful for batch prefetching all verification images.
+ *
+ * Performance fix: Tracks already prefetched images to avoid redundant requests.
  *
  * @example
  * ```tsx
@@ -151,14 +159,31 @@ export function usePrefetchImage() {
  * ```
  */
 export async function prefetchImages(srcs: string[]): Promise<void[]> {
-  const promises = srcs.map(
+  // Filter out already prefetched images
+  const newSrcs = srcs.filter((src) => !prefetchedImages.has(src));
+
+  const promises = newSrcs.map(
     (src) =>
       new Promise<void>((resolve, reject) => {
+        // Mark as prefetched before starting to prevent concurrent duplicates
+        prefetchedImages.add(src);
+
         const img = new Image();
         img.onload = () => resolve();
-        img.onerror = reject;
+        img.onerror = () => {
+          // Remove from set on error so it can be retried
+          prefetchedImages.delete(src);
+          reject();
+        };
         img.src = src;
       })
   );
   return Promise.all(promises);
+}
+
+/**
+ * Clears the prefetch cache. Useful for testing or memory management.
+ */
+export function clearPrefetchCache(): void {
+  prefetchedImages.clear();
 }

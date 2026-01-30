@@ -20,6 +20,50 @@ import type {
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
 
+/**
+ * Default concurrency limit for parallel file uploads.
+ * Prevents overwhelming the network/server with too many simultaneous requests.
+ */
+const DEFAULT_UPLOAD_CONCURRENCY = 5;
+
+/**
+ * Simple promise-based concurrency limiter.
+ * Ensures only N promises run concurrently.
+ */
+function createConcurrencyLimiter(limit: number) {
+  let running = 0;
+  const queue: Array<() => void> = [];
+
+  const next = () => {
+    if (queue.length > 0 && running < limit) {
+      running++;
+      const fn = queue.shift()!;
+      fn();
+    }
+  };
+
+  return <T>(fn: () => Promise<T>): Promise<T> => {
+    return new Promise((resolve, reject) => {
+      const run = () => {
+        fn()
+          .then(resolve)
+          .catch(reject)
+          .finally(() => {
+            running--;
+            next();
+          });
+      };
+
+      if (running < limit) {
+        running++;
+        run();
+      } else {
+        queue.push(run);
+      }
+    });
+  };
+}
+
 /** Convert File/Blob/Buffer to a Blob suitable for FormData */
 function toBlob(
   file: File | Blob | Buffer,
@@ -80,6 +124,19 @@ export class DeepCitation {
   private readonly apiUrl: string;
 
   /**
+   * Request deduplication cache for verify calls.
+   * Prevents duplicate API calls when same verification is requested multiple times.
+   * Cache entries expire after 5 minutes.
+   */
+  private readonly verifyCache = new Map<string, { promise: Promise<VerifyCitationsResponse>; timestamp: number }>();
+  private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  /**
+   * Concurrency limiter for file uploads.
+   */
+  private readonly uploadLimiter = createConcurrencyLimiter(DEFAULT_UPLOAD_CONCURRENCY);
+
+  /**
    * Create a new DeepCitation client instance.
    *
    * @param config - Configuration options
@@ -93,6 +150,18 @@ export class DeepCitation {
     }
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl?.replace(/\/$/, "") || DEFAULT_API_URL;
+  }
+
+  /**
+   * Clean expired entries from the verify cache.
+   */
+  private cleanExpiredCache(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.verifyCache.entries()) {
+      if (now - entry.timestamp > this.CACHE_TTL_MS) {
+        this.verifyCache.delete(key);
+      }
+    }
   }
 
   /**
@@ -340,12 +409,15 @@ export class DeepCitation {
       return { fileDataParts: [] };
     }
 
-    // Upload all files in parallel
+    // Upload files with concurrency limit to prevent overwhelming network/server
+    // Performance fix: limits concurrent uploads to DEFAULT_UPLOAD_CONCURRENCY
     const uploadPromises = files.map(({ file, filename, attachmentId }) =>
-      this.uploadFile(file, { filename, attachmentId }).then((result) => ({
-        result,
-        filename,
-      }))
+      this.uploadLimiter(() =>
+        this.uploadFile(file, { filename, attachmentId }).then((result) => ({
+          result,
+          filename,
+        }))
+      )
     );
 
     const uploadResults = await Promise.all(uploadPromises);
@@ -420,6 +492,20 @@ export class DeepCitation {
       return { verifications: {} };
     }
 
+    // Performance fix: request deduplication
+    // Create cache key from attachmentId and sorted citation keys
+    const sortedCitationKeys = Object.keys(citationMap).sort().join(",");
+    const cacheKey = `${attachmentId}:${sortedCitationKeys}:${options?.outputImageFormat || "avif"}`;
+
+    // Clean expired cache entries periodically
+    this.cleanExpiredCache();
+
+    // Check if we have a cached request
+    const cached = this.verifyCache.get(cacheKey);
+    if (cached) {
+      return cached.promise;
+    }
+
     const requestUrl = `${this.apiUrl}/verifyCitations`;
     const requestBody = {
       data: {
@@ -429,21 +515,30 @@ export class DeepCitation {
       },
     };
 
-    const response = await fetch(requestUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // Create the fetch promise and cache it
+    const fetchPromise = (async (): Promise<VerifyCitationsResponse> => {
+      const response = await fetch(requestUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-    if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, "Verification"));
-    }
+      if (!response.ok) {
+        // Remove from cache on error so retry is possible
+        this.verifyCache.delete(cacheKey);
+        throw new Error(await extractErrorMessage(response, "Verification"));
+      }
 
-    const result = (await response.json()) as VerifyCitationsResponse;
-    return result;
+      return (await response.json()) as VerifyCitationsResponse;
+    })();
+
+    // Cache the promise
+    this.verifyCache.set(cacheKey, { promise: fetchPromise, timestamp: Date.now() });
+
+    return fetchPromise;
   }
 
   /**

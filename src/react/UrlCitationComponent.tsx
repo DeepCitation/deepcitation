@@ -5,6 +5,14 @@ import { classNames, generateCitationInstanceId, generateCitationKey } from "./u
 import { CheckIcon, CloseIcon, LockIcon } from "./icons.js";
 
 /**
+ * Module-level handler for hiding broken favicon images.
+ * Performance fix: avoids creating new function references on every render.
+ */
+const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
+  (e.target as HTMLImageElement).style.display = "none";
+};
+
+/**
  * Extracts domain from URL for compact display.
  */
 export function extractDomain(url: string): string {
@@ -149,10 +157,8 @@ const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl
       width={14}
       height={14}
       loading="lazy"
-      onError={e => {
-        // Hide broken favicon images
-        (e.target as HTMLImageElement).style.display = "none";
-      }}
+      // Performance fix: use module-level handler to avoid re-render overhead
+      onError={handleFaviconError}
     />
   );
 };
