@@ -971,6 +971,61 @@ export function PopoverShowcase() {
           </div>
         </div>
       </section>
+
+      {/* Section: Gray Background Test */}
+      <section className="mb-10" data-testid="gray-background-section">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+          Gray Background Test
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Verify text visibility on gray backgrounds (especially for not-found states)
+        </p>
+        <div className="p-6 bg-gray-200 dark:bg-gray-700 rounded-lg space-y-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-sm text-gray-700 dark:text-gray-200">Linter variants:</span>
+            <CitationComponent
+              citation={baseCitation}
+              verification={verifiedVerification}
+              variant="linter"
+            />
+            <CitationComponent
+              citation={baseCitation}
+              verification={partialVerification}
+              variant="linter"
+            />
+            <CitationComponent
+              citation={baseCitation}
+              verification={notFoundVerification}
+              variant="linter"
+            />
+            <CitationComponent
+              citation={baseCitation}
+              verification={pendingVerification}
+              variant="linter"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-sm text-gray-700 dark:text-gray-200">Superscript:</span>
+            <span className="text-gray-700 dark:text-gray-200">
+              Text with citation
+              <CitationComponent
+                citation={baseCitation}
+                verification={notFoundVerification}
+                variant="superscript"
+              />
+              continues here
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-sm text-gray-700 dark:text-gray-200">Minimal:</span>
+            <CitationComponent
+              citation={baseCitation}
+              verification={notFoundVerification}
+              variant="minimal"
+            />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

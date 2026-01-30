@@ -28,6 +28,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # For PRs, checkout the head ref to allow pushing snapshot updates
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+          # Need fetch-depth for pushing
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: useblacksmith/setup-node@v5
@@ -57,7 +62,10 @@ jobs:
           PLAYWRIGHT_WORKERS: 1
 
       - name: Commit updated snapshots
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        # Run on pushes and PRs from the same repo (not forks, which lack write access)
+        if: |
+          github.event_name == 'push' ||
+          (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
@@ -66,7 +74,12 @@ jobs:
             echo "No snapshot changes to commit"
           else
             git commit -m "chore: Auto-update Playwright visual snapshots [skip ci]"
-            git push
+            # For PRs, push to the PR branch; for pushes, push to the current branch
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              git push origin HEAD:${{ github.head_ref }}
+            else
+              git push
+            fi
           fi
 
       - name: Upload Playwright report artifact

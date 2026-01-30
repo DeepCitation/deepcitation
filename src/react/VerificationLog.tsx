@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import type { SearchAttempt, SearchStatus, SearchMethod } from "../types/search.js";
-import { CheckIcon, MissIcon, WarningIcon } from "./icons.js";
+import { CheckIcon, MissIcon, SpinnerIcon } from "./icons.js";
 import { cn } from "./utils.js";
 
 // =============================================================================
@@ -60,6 +60,10 @@ export interface VerificationLogProps {
   isExpanded?: boolean;
   /** Callback when expansion state changes */
   onExpandChange?: (expanded: boolean) => void;
+  /** Full phrase from citation (for audit display) */
+  fullPhrase?: string;
+  /** Anchor text from citation (for audit display) */
+  anchorText?: string;
 }
 
 export interface StatusHeaderProps {
@@ -293,9 +297,14 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
   const headerText = getStatusHeaderText(status);
 
   // Select appropriate icon based on status
+  // - Green (verified): CheckIcon
+  // - Amber (partial): CheckIcon (de-emphasized, not aggressive warning)
+  // - Red (not found): MissIcon (dash)
+  // - Gray (pending): SpinnerIcon (not aggressive warning)
   const IconComponent = colorScheme === "green" ? CheckIcon
+    : colorScheme === "amber" ? CheckIcon
     : colorScheme === "red" ? MissIcon
-    : WarningIcon;
+    : SpinnerIcon;
 
   // Combined layout: status + anchor text + quote in one header section
   const hasCombinedContent = anchorText || fullPhrase;
@@ -312,7 +321,7 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
           compact ? "px-3 py-2" : "px-4 py-2.5"
         )}>
           <div className="flex items-center gap-2">
-            <span className={cn("size-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
+            <span className={cn("size-4 max-w-4 max-h-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
               <IconComponent />
             </span>
             <span className="font-medium text-gray-800 dark:text-gray-100">{headerText}</span>
@@ -342,7 +351,7 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
       )}
     >
       <div className="flex items-center gap-2">
-        <span className={cn("size-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
+        <span className={cn("size-4 max-w-4 max-h-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
           <IconComponent />
         </span>
         <span className="font-medium text-gray-800 dark:text-gray-100">{headerText}</span>
@@ -367,7 +376,7 @@ export function QuoteBox({ phrase, maxLength = MAX_QUOTE_BOX_LENGTH }: QuoteBoxP
     : phrase;
 
   return (
-    <blockquote className="text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 p-3 rounded border-l-[3px] border-gray-300 dark:border-gray-600 leading-relaxed text-sm">
+    <blockquote className="text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 p-3 border-l-[3px] border-gray-300 dark:border-gray-600 leading-relaxed text-sm">
       "{displayPhrase}"
     </blockquote>
   );
@@ -432,53 +441,155 @@ function VerificationLogSummary({
 }
 
 // =============================================================================
-// VERIFICATION LOG ATTEMPT
+// AUDIT-FOCUSED SEARCH DISPLAY
+// =============================================================================
+
+interface AuditSearchDisplayProps {
+  searchAttempts: SearchAttempt[];
+  /** Citation's full phrase (for display) */
+  fullPhrase?: string;
+  /** Citation's anchor text (for display) */
+  anchorText?: string;
+}
+
+/**
+ * Extract unique searched phrases from attempts for audit display.
+ * Shows what was actually searched, not the methods used.
+ */
+function getUniqueSearchedPhrases(attempts: SearchAttempt[]): string[] {
+  const phrases = new Set<string>();
+  for (const attempt of attempts) {
+    if (attempt.searchPhrase) {
+      phrases.add(attempt.searchPhrase);
+    }
+    if (attempt.searchVariations) {
+      for (const variation of attempt.searchVariations) {
+        phrases.add(variation);
+      }
+    }
+  }
+  return Array.from(phrases);
+}
+
+/**
+ * Extract partial matches (text found but not accepted) from attempts.
+ * The count field is reserved for future API support (e.g., "$0.00" found 100 times).
+ */
+function getPartialMatches(attempts: SearchAttempt[]): Array<{ text: string; count?: number }> {
+  const matches: Array<{ text: string; count?: number }> = [];
+  for (const attempt of attempts) {
+    if (!attempt.success && attempt.matchedText) {
+      // Found text but didn't accept it as a match
+      matches.push({ text: attempt.matchedText });
+    }
+  }
+  return matches;
+}
+
+/**
+ * Audit-focused search display.
+ * Shows WHAT was searched (phrases) not HOW (methods).
+ * Answers: "What did you search for?" and "Why wasn't X accepted?"
+ */
+function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSearchDisplayProps) {
+  const searchedPhrases = getUniqueSearchedPhrases(searchAttempts);
+  const partialMatches = getPartialMatches(searchAttempts);
+
+  // If no searchPhrase data, fall back to citation data
+  // Use type guard to ensure type safety without assertion
+  const fallbackPhrases = [fullPhrase, anchorText].filter((p): p is string => Boolean(p));
+  const displayPhrases = searchedPhrases.length > 0 ? searchedPhrases : fallbackPhrases;
+
+  if (displayPhrases.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="px-4 py-3 space-y-3 text-sm">
+      {/* What was searched */}
+      <div>
+        <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+          Searched for
+        </div>
+        <div className="space-y-1">
+          {displayPhrases.map((phrase, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="size-3 max-w-3 max-h-3 mt-0.5 text-gray-400 dark:text-gray-500 flex-shrink-0">
+                <MissIcon />
+              </span>
+              <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">
+                "{phrase}"
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* What was found but rejected (if any) */}
+      {partialMatches.length > 0 && (
+        <div>
+          <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+            Found in document
+          </div>
+          <div className="space-y-1">
+            {partialMatches.map((match, i) => (
+              <div key={i} className="text-xs text-gray-600 dark:text-gray-300 font-mono">
+                "{match.text}"{match.count && ` (${match.count} occurrences)`}
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 italic">
+            Phrase context did not match
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// LEGACY VERIFICATION LOG ATTEMPT (kept for success states)
 // =============================================================================
 
 interface VerificationLogAttemptProps {
   attempt: SearchAttempt;
-  index: number;
+  expectedPage?: number;
 }
 
 /**
- * Single attempt row in the verification log timeline.
- * GitHub CI/CD style: numbered list with right-aligned status icon
- * and deemphasized detail text below.
+ * Single attempt row - simplified, only shows meaningful info.
+ * For success: shows where found (if different from expected).
  */
-function VerificationLogAttempt({ attempt, index }: VerificationLogAttemptProps) {
+function VerificationLogAttempt({ attempt, expectedPage }: VerificationLogAttemptProps) {
   const isSuccess = attempt.success;
   const methodName = getMethodDisplayName(attempt.method);
-  const detailText = getAttemptDetailText(attempt);
 
-  // Icon component and color - only icon is colored
+  // Only show location detail if found on different page than expected
+  const foundPage = attempt.foundLocation?.page;
+  const showLocationDetail = isSuccess && foundPage && expectedPage && foundPage !== expectedPage;
+
+  // Icon component and color
   const IconComponent = isSuccess ? CheckIcon : MissIcon;
   const iconColorClass = isSuccess
     ? "text-green-600 dark:text-green-400"
     : "text-gray-400 dark:text-gray-500";
 
   return (
-    <div className="flex items-start gap-3 py-1.5">
-      {/* Step number */}
-      <span className="text-xs text-gray-400 dark:text-gray-500 w-4 text-right flex-shrink-0 pt-px">
-        {index + 1}.
-      </span>
-
-      {/* Method name + detail */}
-      <div className="flex-1 min-w-0">
-        <span className="text-xs text-gray-700 dark:text-gray-300">
-          {methodName}
-        </span>
-        {detailText && (
-          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-            {detailText}
-          </p>
-        )}
-      </div>
-
-      {/* Status icon - right aligned */}
-      <span className={cn("size-3.5 flex-shrink-0 mt-0.5", iconColorClass)}>
+    <div className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+      {/* Leading icon */}
+      <span className={cn("size-3.5 max-w-3.5 max-h-3.5 flex-shrink-0", iconColorClass)}>
         <IconComponent />
       </span>
+      {/* Method name */}
+      <span className="flex-1 text-xs text-gray-700 dark:text-gray-300">
+        {methodName}
+      </span>
+      {/* Location detail - only when found on different page */}
+      {showLocationDetail && (
+        <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">
+          → Pg {foundPage}
+        </span>
+      )}
     </div>
   );
 }
@@ -489,13 +600,33 @@ function VerificationLogAttempt({ attempt, index }: VerificationLogAttemptProps)
 
 interface VerificationLogTimelineProps {
   searchAttempts: SearchAttempt[];
+  expectedPage?: number;
+  /** For miss states: show audit-focused phrase display instead of method list */
+  showAuditDisplay?: boolean;
+  fullPhrase?: string;
+  anchorText?: string;
 }
 
 /**
- * Scrollable timeline showing all search attempts.
- * GitHub CI/CD style: numbered list with clean spacing.
+ * Scrollable timeline showing search attempts.
+ * For miss states: shows audit-focused phrase display (what was searched).
+ * For success/partial states: shows simplified method list with location info.
  */
-function VerificationLogTimeline({ searchAttempts }: VerificationLogTimelineProps) {
+function VerificationLogTimeline({ searchAttempts, expectedPage, showAuditDisplay, fullPhrase, anchorText }: VerificationLogTimelineProps) {
+  // For miss states, show audit-focused display
+  if (showAuditDisplay) {
+    return (
+      <div id="verification-log-timeline" style={{ maxHeight: MAX_TIMELINE_HEIGHT }} className="overflow-y-auto">
+        <AuditSearchDisplay
+          searchAttempts={searchAttempts}
+          fullPhrase={fullPhrase}
+          anchorText={anchorText}
+        />
+      </div>
+    );
+  }
+
+  // For success/partial states, show simplified method list
   return (
     <div
       id="verification-log-timeline"
@@ -503,9 +634,6 @@ function VerificationLogTimeline({ searchAttempts }: VerificationLogTimelineProp
       style={{ maxHeight: MAX_TIMELINE_HEIGHT }}
     >
       {searchAttempts.map((attempt, index) => {
-        // Generate a stable key from attempt properties.
-        // Note: index is included because the same method/page/line combination
-        // can appear multiple times in search attempts (e.g., retries).
         const lineKey = Array.isArray(attempt.lineSearched)
           ? attempt.lineSearched.join("-")
           : attempt.lineSearched ?? "none";
@@ -514,7 +642,7 @@ function VerificationLogTimeline({ searchAttempts }: VerificationLogTimelineProp
           <VerificationLogAttempt
             key={key}
             attempt={attempt}
-            index={index}
+            expectedPage={expectedPage}
           />
         );
       })}
@@ -539,6 +667,8 @@ export function VerificationLog({
   foundLine,
   isExpanded: controlledIsExpanded,
   onExpandChange,
+  fullPhrase,
+  anchorText,
 }: VerificationLogProps) {
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
 
@@ -582,6 +712,10 @@ export function VerificationLog({
       {isExpanded && (
         <VerificationLogTimeline
           searchAttempts={searchAttempts}
+          expectedPage={expectedPage}
+          showAuditDisplay={status === "not_found"}
+          fullPhrase={fullPhrase}
+          anchorText={anchorText}
         />
       )}
     </div>
