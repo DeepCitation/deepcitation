@@ -268,6 +268,11 @@ const { attachmentId, deepTextPromptPortion, metadata } = await deepcitation.pre
 console.log(`Processed: ${metadata.filename}, ${metadata.pageCount} pages`);
 ```
 
+> **Security Warning**: If accepting user-provided URLs, validate them to prevent SSRF attacks:
+> - Block internal IPs: `localhost`, `127.0.0.1`, `192.168.*`, `10.*`, `172.16-31.*`
+> - Block private hostnames and cloud metadata endpoints
+> - Validate URL scheme is `http` or `https` only
+
 <details>
 <summary>⚠️ Unsafe Fast Mode for URLs (trusted sources only)</summary>
 
@@ -683,6 +688,20 @@ export async function POST(req: NextRequest) {
   try {
     const { llmOutput, attachmentId } = await req.json();
 
+    // Input validation
+    if (!attachmentId || typeof attachmentId !== "string") {
+      return NextResponse.json(
+        { error: "Invalid attachmentId", details: "attachmentId is required" },
+        { status: 400 }
+      );
+    }
+    if (!llmOutput || typeof llmOutput !== "string") {
+      return NextResponse.json(
+        { error: "Invalid llmOutput", details: "llmOutput is required" },
+        { status: 400 }
+      );
+    }
+
     const citations = getAllCitationsFromLlmOutput(llmOutput);
     const citationCount = Object.keys(citations).length;
 
@@ -728,7 +747,7 @@ export async function POST(req: NextRequest) {
 
 ### Streaming with Citations
 
-**Important**: During streaming, the `<<<CITATION_DATA>>>` block arrives at the end of the response.
+**Important**: During streaming, the `<<<CITATION_DATA>>>` block arrives at the end of the response. You must buffer the full response server-side, then extract visible text before sending to the client.
 
 ```typescript
 let fullResponse = "";
@@ -743,23 +762,30 @@ for await (const chunk of stream) {
   const content = chunk.choices[0]?.delta?.content || "";
   fullResponse += content;
 
-  // Stream visible content to client as it arrives
-  // The <<<CITATION_DATA>>> block arrives at the end
-  process.stdout.write(content);
+  // IMPORTANT: Don't stream raw content directly to users!
+  // The <<<CITATION_DATA>>> block arrives at the end and must be stripped.
+  //
+  // Option A: Buffer everything, send after complete (simpler)
+  // Option B: Stream chunks but filter out the citation block (complex)
+  //
+  // For Option B, you'd need to detect when <<<CITATION_DATA>>> starts
+  // and stop streaming at that point.
 }
 
 // After streaming completes:
 // 1. Parse citations from the full response
 const citations = getAllCitationsFromLlmOutput(fullResponse);
 
-// 2. Extract visible text (strips <<<CITATION_DATA>>> block)
+// 2. CRITICAL: Extract visible text (strips <<<CITATION_DATA>>> block)
 const visibleText = extractVisibleText(fullResponse);
 
-// 3. Verify citations (can run in background)
+// 3. Send visibleText to client (NOT fullResponse!)
+// The client should never see the <<<CITATION_DATA>>> block
+
+// 4. Verify citations (can run in background while user reads response)
 const result = await deepcitation.verifyAttachment(attachmentId, citations);
 
-// 4. Display final result with verification status
-// NEVER send the raw <<<CITATION_DATA>>> block to the client
+// 5. Update UI with verification status when ready
 ```
 
 ---
@@ -896,6 +922,46 @@ Before deploying to production:
 - [ ] Error handling for API failures (network, auth, invalid attachment)
 - [ ] Handling "no citations" case gracefully
 - [ ] Handling verification timeout/errors (show pending state)
+- [ ] Input validation for user-provided URLs (prevent SSRF)
+- [ ] Caching strategy for attachmentIds (valid for 24 hours)
+
+---
+
+## Rate Limiting & Caching
+
+### Caching attachmentIds
+
+`attachmentId` values are valid for **24 hours**. Cache them to avoid re-uploading the same document:
+
+```typescript
+// Simple cache example
+const attachmentCache = new Map<string, { attachmentId: string; expires: number }>();
+
+async function getAttachmentId(fileHash: string, file: Buffer, filename: string) {
+  const cached = attachmentCache.get(fileHash);
+  if (cached && cached.expires > Date.now()) {
+    return cached.attachmentId;
+  }
+
+  const { fileDataParts } = await deepcitation.prepareFiles([{ file, filename }]);
+  const attachmentId = fileDataParts[0].attachmentId;
+
+  // Cache for 23 hours (1 hour buffer before expiry)
+  attachmentCache.set(fileHash, {
+    attachmentId,
+    expires: Date.now() + 23 * 60 * 60 * 1000,
+  });
+
+  return attachmentId;
+}
+```
+
+### Rate Limits
+
+Check the [API documentation](https://deepcitation.com/docs/api) for current rate limits. For high-volume applications:
+- Implement exponential backoff on 429 errors
+- Queue verification requests to stay within limits
+- Consider batch verification for multiple citations
 
 ---
 
