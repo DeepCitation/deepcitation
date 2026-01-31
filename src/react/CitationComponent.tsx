@@ -64,6 +64,53 @@ const MAX_VISIBLE_VARIATIONS = 3;
 const MAX_VARIATION_LENGTH = 30;
 
 // =============================================================================
+// TOUCH DEVICE DETECTION
+// =============================================================================
+
+/**
+ * Detects if the device has touch capability.
+ * Uses useState + useEffect for React 17+ compatibility.
+ *
+ * This is used to auto-detect mobile/touch devices so the component can
+ * show the popover on first tap rather than immediately opening the image overlay.
+ *
+ * Detection uses pointer: coarse media query as primary method, which specifically
+ * identifies devices where the PRIMARY input is coarse (touch), avoiding false
+ * positives on Windows laptops with touchscreens but mouse as primary input.
+ */
+function getIsTouchDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  // Primary check: pointer: coarse media query
+  // This specifically checks if the PRIMARY pointing device is coarse (touch)
+  // Windows laptops with touchscreens typically report (pointer: fine) because
+  // the mouse/trackpad is the primary input device
+  const hasCoarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+  return hasCoarsePointer;
+}
+
+function useIsTouchDevice(): boolean {
+  // Initialize with current value (SSR-safe: defaults to false on server)
+  const [isTouchDevice, setIsTouchDevice] = useState(() => getIsTouchDevice());
+
+  useEffect(() => {
+    // Update state with current value on mount (handles SSR hydration)
+    setIsTouchDevice(getIsTouchDevice());
+
+    // Listen for changes in pointer capability (e.g., tablet mode changes)
+    if (typeof window !== "undefined" && window.matchMedia) {
+      const mediaQuery = window.matchMedia("(pointer: coarse)");
+      const handleChange = () => setIsTouchDevice(getIsTouchDevice());
+
+      // Use addEventListener with 'change' event (modern API)
+      mediaQuery.addEventListener?.("change", handleChange);
+      return () => mediaQuery.removeEventListener?.("change", handleChange);
+    }
+  }, []);
+
+  return isTouchDevice;
+}
+
+// =============================================================================
 // ERROR BOUNDARY
 // =============================================================================
 
@@ -1594,7 +1641,7 @@ export const CitationComponent = forwardRef<
       content: contentProp,
       eventHandlers,
       behaviorConfig,
-      isMobile = false,
+      isMobile: isMobileProp,
       renderIndicator,
       renderContent,
       popoverPosition = "top",
@@ -1607,6 +1654,10 @@ export const CitationComponent = forwardRef<
   ) => {
     // Get overlay context for blocking hover when any image overlay is open
     const { isAnyOverlayOpen } = useCitationOverlay();
+
+    // Auto-detect touch device if isMobile prop not explicitly provided
+    const isTouchDevice = useIsTouchDevice();
+    const isMobile = isMobileProp ?? isTouchDevice;
 
     // Resolve content: explicit content prop or default for variant
     const resolvedContent: CitationContent = useMemo(() => {

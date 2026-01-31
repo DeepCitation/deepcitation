@@ -1048,3 +1048,194 @@ describe("CitationComponent behaviorConfig", () => {
     });
   });
 });
+
+// =============================================================================
+// MOBILE/TOUCH DEVICE DETECTION TESTS
+// =============================================================================
+
+describe("CitationComponent mobile/touch detection", () => {
+  afterEach(() => {
+    cleanup();
+    // Reset mocked globals
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: undefined,
+    });
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      writable: true,
+      configurable: true,
+      value: 0,
+    });
+  });
+
+  const baseCitation: Citation = {
+    citationNumber: 1,
+    anchorText: "test citation",
+    fullPhrase: "This is a test citation phrase",
+  };
+
+  const verificationWithImage: Verification = {
+    verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
+    matchSnippet: "test citation phrase",
+    pageNumber: 1,
+    status: "found",
+  };
+
+  // Helper to mock touch device detection
+  function mockTouchDevice(isTouch: boolean) {
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      writable: true,
+      configurable: true,
+      value: isTouch ? 5 : 0,
+    });
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: jest.fn().mockImplementation((query: string) => ({
+        matches: isTouch && query === "(pointer: coarse)",
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      })),
+    });
+  }
+
+  describe("auto-detection of touch devices", () => {
+    it("auto-detects touch device when isMobile prop is not provided", () => {
+      mockTouchDevice(true);
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      expect(citation).toBeInTheDocument();
+
+      // On touch devices, first tap should show popover, not open image overlay
+      // Simulate touch sequence: touchStart then click
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // First tap should NOT open the full-screen image overlay
+      // (popover behavior is handled by hover state, not dialog)
+      // The key check is that image overlay dialog is NOT shown on first tap
+      const dialog = container.querySelector("[role='dialog']");
+      expect(dialog).not.toBeInTheDocument();
+    });
+
+    it("does not auto-enable mobile mode on non-touch devices", () => {
+      mockTouchDevice(false);
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // On non-touch devices, click should open image directly
+      fireEvent.click(citation!);
+
+      // Should open image overlay directly
+      const dialog = container.querySelector("[role='dialog']");
+      expect(dialog).toBeInTheDocument();
+    });
+  });
+
+  describe("explicit isMobile prop overrides auto-detection", () => {
+    it("isMobile={true} forces mobile behavior even on non-touch device", () => {
+      mockTouchDevice(false);
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          isMobile={true}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // Simulate touch sequence
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // First tap should NOT open image overlay (mobile behavior)
+      const dialog = container.querySelector("[role='dialog']");
+      expect(dialog).not.toBeInTheDocument();
+    });
+
+    it("isMobile={false} forces desktop behavior even on touch device", () => {
+      mockTouchDevice(true);
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          isMobile={false}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // Click should open image directly (desktop behavior forced)
+      fireEvent.click(citation!);
+
+      // Should open image overlay directly
+      const dialog = container.querySelector("[role='dialog']");
+      expect(dialog).toBeInTheDocument();
+    });
+  });
+
+  describe("mobile tap sequence", () => {
+    it("first tap shows popover, second tap opens image overlay", () => {
+      mockTouchDevice(true);
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // First tap - should show popover (not image overlay)
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // No image overlay yet
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+
+      // Second tap - now popover is already open, should open image overlay
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // Now image overlay should be visible
+      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+    });
+  });
+
+  describe("SSR handling", () => {
+    it("defaults to non-touch on server (window undefined)", () => {
+      // In happy-dom/jsdom, window is defined, but we can test the fallback
+      // by checking that the component renders without errors when detection runs
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+        />
+      );
+
+      expect(container.querySelector("[data-citation-id]")).toBeInTheDocument();
+    });
+  });
+});
