@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](https://www.npmjs.com/package/@deepcitation/deepcitation-js)
 
-[Documentation](https://deepcitation.com/docs) · [Get API Key](https://deepcitation.com/signup) · [Examples](./examples)
+[Documentation](https://docs.deepcitation.com) · [Get API Key](https://deepcitation.com/signup) · [Examples](./examples)
 
 </div>
 
@@ -64,9 +64,9 @@ PDF, DOCX, XLSX, PPTX, HTML, Images (JPG, PNG, TIFF, WebP, HEIC), URLs
 
 ## Resources
 
-- [Full Documentation](https://deepcitation.com/docs)
+- [Full Documentation](https://docs.deepcitation.com)
 - [Examples](./examples) – Basic verification, Next.js chat app
-- [Agent Guide](./AGENTS.md) – For AI coding assistants
+- [Integration Guide](./INTEGRATION.md) – For AI coding assistants
 
 ## License
 
