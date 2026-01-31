@@ -212,6 +212,16 @@ yarn add @deepcitation/deepcitation-js
 bun add @deepcitation/deepcitation-js
 ```
 
+**Note for agents**: When implementing DeepCitation in a project, add the dependency to `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@deepcitation/deepcitation-js": "latest"
+  }
+}
+```
+
 ### Environment variables
 
 ```bash
