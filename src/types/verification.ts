@@ -151,4 +151,21 @@ export interface Verification {
 
   /** Content type of the fetched URL (e.g., "text/html", "application/pdf") */
   contentType?: string | null;
+
+  // ==========================================================================
+  // Ambiguity Detection
+  // Used when the same text appears multiple times in the document
+  // ==========================================================================
+
+  /** Ambiguity information when multiple occurrences of the text exist */
+  ambiguity?: {
+    /** Total number of occurrences found in the document */
+    totalOccurrences: number;
+    /** Number of occurrences on the expected page */
+    occurrencesOnExpectedPage: number;
+    /** Confidence level in the matched occurrence */
+    confidence: "high" | "medium" | "low";
+    /** Human-readable note about the ambiguity */
+    note: string;
+  } | null;
 }

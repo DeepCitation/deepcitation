@@ -40,11 +40,35 @@ const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   expanded_window: "Wider area",
   regex_search: "Entire document",
   first_word_fallback: "First word",
+  keyspan_fallback: "Key phrase",
+};
+
+/** User-friendly labels for variation types */
+const VARIATION_TYPE_LABELS: Record<string, string> = {
+  exact: "Exact match",
+  normalized: "Normalized",
+  currency: "Price formats",
+  date: "Date formats",
+  numeric: "Number formats",
+  symbol: "Symbol variants",
+  accent: "Accent variants",
 };
 
 // =============================================================================
 // TYPES
 // =============================================================================
+
+/** Ambiguity information for when text appears multiple times */
+export interface AmbiguityInfo {
+  /** Total number of occurrences found in the document */
+  totalOccurrences: number;
+  /** Number of occurrences on the expected page */
+  occurrencesOnExpectedPage: number;
+  /** Confidence level in the matched occurrence */
+  confidence: "high" | "medium" | "low";
+  /** Human-readable note about the ambiguity */
+  note: string;
+}
 
 export interface VerificationLogProps {
   /** Array of search attempts from verification */
@@ -67,6 +91,8 @@ export interface VerificationLogProps {
   fullPhrase?: string;
   /** Anchor text from citation (for audit display) */
   anchorText?: string;
+  /** Ambiguity information when multiple occurrences exist */
+  ambiguity?: AmbiguityInfo | null;
 }
 
 export interface StatusHeaderProps {
@@ -283,6 +309,52 @@ function PageBadge({ expectedPage, foundPage }: PageBadgeProps) {
 }
 
 // =============================================================================
+// AMBIGUITY WARNING COMPONENT
+// =============================================================================
+
+interface AmbiguityWarningProps {
+  ambiguity: AmbiguityInfo;
+}
+
+/**
+ * Warning banner shown when text appears multiple times in the document.
+ * Helps auditors understand potential matching ambiguity.
+ */
+function AmbiguityWarning({ ambiguity }: AmbiguityWarningProps) {
+  if (ambiguity.totalOccurrences <= 1) return null;
+
+  return (
+    <div className="px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
+      <div className="flex items-start gap-2">
+        <svg
+          className="size-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden="true"
+        >
+          <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div className="text-xs text-amber-800 dark:text-amber-200">
+          <span className="font-medium">
+            Found {ambiguity.totalOccurrences} occurrences
+          </span>
+          {ambiguity.occurrencesOnExpectedPage > 0 && (
+            <span className="text-amber-700 dark:text-amber-300">
+              {" "}({ambiguity.occurrencesOnExpectedPage} on expected page)
+            </span>
+          )}
+          {ambiguity.note && (
+            <p className="mt-0.5 text-amber-700 dark:text-amber-300">{ambiguity.note}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // STATUS HEADER COMPONENT
 // =============================================================================
 
@@ -482,14 +554,25 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
       ? `Pg ${attempt.pageSearched}`
       : "";
 
-  // Get method display name
-  const methodName = METHOD_DISPLAY_NAMES[attempt.method] || attempt.method;
+  // Get method display name with safe fallback
+  // For first_word_fallback, show the actual word searched
+  let methodName = METHOD_DISPLAY_NAMES[attempt.method] ?? "Search";
+  if (attempt.method === "first_word_fallback" && phrase) {
+    const firstWord = phrase.split(/\s+/)[0];
+    if (firstWord) {
+      methodName = `First word: "${firstWord}"`;
+    }
+  }
 
   // Calculate the width needed for the index number (for alignment)
   const indexWidth = String(totalCount).length;
 
   // Get search variations (if any)
   const variations = attempt.searchVariations ?? [];
+
+  // Get variation type label if present
+  const variationType = (attempt as SearchAttempt & { variationType?: string }).variationType;
+  const variationTypeLabel = variationType ? VARIATION_TYPE_LABELS[variationType] : null;
 
   return (
     <div className="flex items-start gap-2 py-0.5">
@@ -526,7 +609,7 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
         {/* Show search variations if present */}
         {variations.length > 0 && (
           <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-            Also tried: {variations.slice(0, 3).map(v => `"${v}"`).join(", ")}
+            {variationTypeLabel ?? "Also tried"}: {variations.slice(0, 3).map(v => `"${v}"`).join(", ")}
             {variations.length > 3 && ` +${variations.length - 3} more`}
           </div>
         )}
@@ -561,6 +644,34 @@ function RejectedMatchesSection({ rejectedMatches }: RejectedMatchesSectionProps
       <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 italic">
         Context did not match citation
       </p>
+    </div>
+  );
+}
+
+/**
+ * "Looking for" section showing original citation text being searched.
+ */
+function LookingForSection({ anchorText, fullPhrase }: { anchorText?: string; fullPhrase?: string }) {
+  const hasAnchorText = anchorText && anchorText.trim().length > 0;
+  const hasFullPhrase = fullPhrase && fullPhrase.trim().length > 0 && fullPhrase !== anchorText;
+
+  if (!hasAnchorText && !hasFullPhrase) return null;
+
+  return (
+    <div>
+      <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+        Looking for
+      </div>
+      {hasAnchorText && (
+        <div className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1">
+          "{anchorText}"
+        </div>
+      )}
+      {hasFullPhrase && (
+        <div className="text-xs text-gray-600 dark:text-gray-300 font-mono break-all bg-gray-50 dark:bg-gray-800/50 p-2 rounded border-l-2 border-gray-300 dark:border-gray-600">
+          "{fullPhrase}"
+        </div>
+      )}
     </div>
   );
 }
@@ -615,6 +726,9 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSea
 
   return (
     <div className="px-4 py-3 space-y-4 text-sm">
+      {/* Looking for section - shows original citation text */}
+      <LookingForSection anchorText={anchorText} fullPhrase={fullPhrase} />
+
       {/* Search attempts timeline */}
       <div>
         <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
@@ -760,6 +874,7 @@ export function VerificationLog({
   onExpandChange,
   fullPhrase,
   anchorText,
+  ambiguity,
 }: VerificationLogProps) {
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
 
@@ -790,6 +905,10 @@ export function VerificationLog({
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700">
+      {/* Ambiguity warning when multiple occurrences exist */}
+      {ambiguity && ambiguity.totalOccurrences > 1 && (
+        <AmbiguityWarning ambiguity={ambiguity} />
+      )}
       <VerificationLogSummary
         status={status}
         searchAttempts={searchAttempts}
