@@ -26,6 +26,9 @@ const MAX_TIMELINE_HEIGHT = "200px";
 /** Maximum length for phrase display in search attempt rows */
 const MAX_PHRASE_DISPLAY_LENGTH = 60;
 
+/** Maximum length for URL display in popover header */
+const MAX_URL_DISPLAY_LENGTH = 35;
+
 /** Icon color classes by status - defined outside component to avoid recreation on every render */
 const ICON_COLOR_CLASSES = {
   green: "text-green-600 dark:text-green-400",
@@ -108,8 +111,13 @@ function mapSearchStatusToUrlFetchStatus(status: SearchStatus | null | undefined
     case "pending":
     case "timestamp_wip":
     case "skipped":
-    default:
       return "pending";
+    default: {
+      // Exhaustiveness check: TypeScript will error if a new SearchStatus value is added
+      // but not handled above. The 'never' type ensures all cases are covered.
+      const _exhaustiveCheck: never = status;
+      return _exhaustiveCheck;
+    }
   }
 }
 
@@ -193,7 +201,7 @@ export function SourceContextHeader({ citation, verification, status }: SourceCo
             fetchStatus: urlFetchStatus,
           }}
           variant="chip"
-          maxDisplayLength={35}
+          maxDisplayLength={MAX_URL_DISPLAY_LENGTH}
           preventTooltips={true}
         />
         {pageNumber && pageNumber > 0 && (

@@ -2087,10 +2087,10 @@ export const CitationComponent = forwardRef<
               "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
               "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
               "transition-colors cursor-pointer",
-              // Status-aware hover styling
-              isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/[0.08] dark:hover:bg-green-500/[0.08]",
-              isPartialMatch && !shouldShowSpinner && "hover:bg-amber-600/[0.08] dark:hover:bg-amber-500/[0.08]",
-              isMiss && !shouldShowSpinner && "hover:bg-red-500/[0.08] dark:hover:bg-red-400/[0.08]",
+              // Status-aware hover styling (10% opacity for all states)
+              isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
+              isPartialMatch && !shouldShowSpinner && "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
+              isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
               (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) && "hover:bg-gray-200 dark:hover:bg-gray-700",
               // Miss state: add line-through for visual distinction
               isMiss && !shouldShowSpinner && "line-through opacity-70"
@@ -2178,9 +2178,9 @@ export const CitationComponent = forwardRef<
           (isVerifiedState || isPartialState || isMissState) && "text-gray-700 dark:text-gray-200",
           // Only pending is slightly muted
           isPendingState && "text-gray-500 dark:text-gray-400",
-          // Verified: subtle green background wash on hover only (using green-600 to match component)
+          // Verified: subtle green background wash on hover only (10% opacity)
           isVerifiedState &&
-            "hover:bg-green-600/[0.12] dark:hover:bg-green-500/[0.12]",
+            "hover:bg-green-600/10 dark:hover:bg-green-500/10",
           // Partial: subtle amber background on hover (using amber-600 to match component)
           isPartialState &&
             "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
@@ -2265,8 +2265,8 @@ export const CitationComponent = forwardRef<
         "relative inline-flex items-baseline cursor-pointer",
         "px-0.5 -mx-0.5 rounded-sm",
         "transition-all duration-[50ms]",
-        // Status-aware hover for all variants (linter includes these in its own classes too)
-        variant !== "linter" && isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/[0.12] dark:hover:bg-green-500/[0.12]",
+        // Status-aware hover for all variants (10% opacity; linter includes these in its own classes too)
+        variant !== "linter" && isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
         variant !== "linter" && isPartialMatch && !shouldShowSpinner && "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
         variant !== "linter" && isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
         variant !== "linter" && (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) && "hover:bg-gray-500/10 dark:hover:bg-gray-400/10",
