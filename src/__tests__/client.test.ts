@@ -1,8 +1,8 @@
-import { describe, expect, it, beforeEach, jest } from "@jest/globals";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import { DeepCitation } from "../client/DeepCitation.js";
 
 // Mock global fetch
-const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+const mockFetch = vi.fn() as ReturnType<typeof vi.fn>;
 global.fetch = mockFetch;
 
 describe("DeepCitation Client", () => {
@@ -386,6 +386,280 @@ describe("DeepCitation Client", () => {
 
       expect(result.verifications).toEqual({});
       expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("deduplicates identical verification requests", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verifications: {
+            "1": { verifiedPageNumber: 1, status: "found" },
+          },
+        }),
+      } as Response);
+
+      const citations = {
+        "1": {
+          pageNumber: 1,
+          fullPhrase: "test phrase",
+          attachmentId: "file_abc",
+        },
+      };
+
+      // Make two identical requests concurrently
+      const [result1, result2] = await Promise.all([
+        client.verifyAttachment("file_abc", citations),
+        client.verifyAttachment("file_abc", citations),
+      ]);
+
+      // Both should return the same result
+      expect(result1.verifications["1"].status).toBe("found");
+      expect(result2.verifications["1"].status).toBe("found");
+
+      // But only one API call should have been made
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("makes separate calls for different citations", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            verifications: { "1": { status: "found" } },
+          }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            verifications: { "2": { status: "found" } },
+          }),
+        } as Response);
+
+      const citations1 = { "1": { fullPhrase: "phrase 1", attachmentId: "file_abc" } };
+      const citations2 = { "2": { fullPhrase: "phrase 2", attachmentId: "file_abc" } };
+
+      await Promise.all([
+        client.verifyAttachment("file_abc", citations1),
+        client.verifyAttachment("file_abc", citations2),
+      ]);
+
+      // Different citations should make separate calls
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("prepareFiles with concurrency limits", () => {
+    it("uploads files with concurrency limit", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      let concurrentCalls = 0;
+      let maxConcurrentCalls = 0;
+
+      mockFetch.mockImplementation(async () => {
+        concurrentCalls++;
+        maxConcurrentCalls = Math.max(maxConcurrentCalls, concurrentCalls);
+
+        // Simulate some async work
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        concurrentCalls--;
+        return {
+          ok: true,
+          json: async () => ({
+            attachmentId: `file_${Math.random()}`,
+            deepTextPromptPortion: "content",
+            metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+            status: "ready",
+          }),
+        } as Response;
+      });
+
+      // Create 10 files to upload
+      const files = Array(10)
+        .fill(null)
+        .map((_, i) => ({
+          file: new Blob([`content ${i}`]),
+          filename: `file${i}.pdf`,
+        }));
+
+      await client.prepareFiles(files);
+
+      // All files should be uploaded
+      expect(mockFetch).toHaveBeenCalledTimes(10);
+
+      // Max concurrent should be exactly 5 (DEFAULT_UPLOAD_CONCURRENCY)
+      // With 10 files and artificial delays, we should hit the limit
+      expect(maxConcurrentCalls).toBe(5);
+    });
+
+    it("respects custom concurrency limit from config", async () => {
+      const customLimit = 3;
+      const client = new DeepCitation({
+        apiKey: "sk-dc-123",
+        maxUploadConcurrency: customLimit,
+      });
+      let concurrentCalls = 0;
+      let maxConcurrentCalls = 0;
+
+      mockFetch.mockImplementation(async () => {
+        concurrentCalls++;
+        maxConcurrentCalls = Math.max(maxConcurrentCalls, concurrentCalls);
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        concurrentCalls--;
+        return {
+          ok: true,
+          json: async () => ({
+            attachmentId: `file_${Math.random()}`,
+            deepTextPromptPortion: "content",
+            metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+            status: "ready",
+          }),
+        } as Response;
+      });
+
+      const files = Array(10)
+        .fill(null)
+        .map((_, i) => ({
+          file: new Blob([`content ${i}`]),
+          filename: `file${i}.pdf`,
+        }));
+
+      await client.prepareFiles(files);
+
+      expect(mockFetch).toHaveBeenCalledTimes(10);
+      expect(maxConcurrentCalls).toBe(customLimit);
+    });
+  });
+
+  describe("cache key completeness", () => {
+    it("differentiates citations with same text but different lineIds", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            verifications: { "1": { status: "found" } },
+          }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            verifications: { "1": { status: "not_found" } },
+          }),
+        } as Response);
+
+      // Same text, different lineIds
+      const citations1 = {
+        "1": {
+          fullPhrase: "test phrase",
+          anchorText: "test",
+          pageNumber: 1,
+          lineIds: [1, 2, 3],
+          attachmentId: "file_abc",
+        },
+      };
+      const citations2 = {
+        "1": {
+          fullPhrase: "test phrase",
+          anchorText: "test",
+          pageNumber: 1,
+          lineIds: [4, 5, 6],
+          attachmentId: "file_abc",
+        },
+      };
+
+      await client.verifyAttachment("file_abc", citations1);
+      await client.verifyAttachment("file_abc", citations2);
+
+      // Different lineIds should result in separate API calls
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("differentiates citations with same text but different selection", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            verifications: { "1": { status: "found" } },
+          }),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            verifications: { "1": { status: "found" } },
+          }),
+        } as Response);
+
+      // Same text, different selection
+      const citations1 = {
+        "1": {
+          fullPhrase: "test phrase",
+          anchorText: "test",
+          pageNumber: 1,
+          selection: { x: 0, y: 0, width: 100, height: 20 },
+          attachmentId: "file_abc",
+        },
+      };
+      const citations2 = {
+        "1": {
+          fullPhrase: "test phrase",
+          anchorText: "test",
+          pageNumber: 1,
+          selection: { x: 50, y: 100, width: 100, height: 20 },
+          attachmentId: "file_abc",
+        },
+      };
+
+      await client.verifyAttachment("file_abc", citations1);
+      await client.verifyAttachment("file_abc", citations2);
+
+      // Different selection should result in separate API calls
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("uses same cache for identical citations with different numbering", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          verifications: { "1": { status: "found" } },
+        }),
+      } as Response);
+
+      // Same citation content, different map keys (numbering)
+      const citations1 = {
+        "1": {
+          fullPhrase: "test phrase",
+          anchorText: "test",
+          pageNumber: 1,
+          lineIds: [1, 2, 3],
+          attachmentId: "file_abc",
+        },
+      };
+      const citations2 = {
+        "42": {
+          fullPhrase: "test phrase",
+          anchorText: "test",
+          pageNumber: 1,
+          lineIds: [1, 2, 3],
+          attachmentId: "file_abc",
+        },
+      };
+
+      await client.verifyAttachment("file_abc", citations1);
+      await client.verifyAttachment("file_abc", citations2);
+
+      // Same content should hit cache - only one API call
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
 });

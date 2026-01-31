@@ -8,6 +8,12 @@ export interface DeepCitationConfig {
   apiKey: string;
   /** Optional custom API base URL. Defaults to https://api.deepcitation.com */
   apiUrl?: string;
+  /**
+   * Maximum number of concurrent file uploads.
+   * Prevents overwhelming the network/server with too many simultaneous requests.
+   * @default 5
+   */
+  maxUploadConcurrency?: number;
 }
 
 /**

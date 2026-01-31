@@ -9,6 +9,9 @@
  * 5. String concatenation fix (diff.ts splitLines)
  * 6. Unshift optimization (diff.ts backtrack)
  * 7. Sequential string replacement optimization (normalizeCitation.ts)
+ * 8. Range size limits for line ID parsing (prevents memory exhaustion)
+ * 9. Depth limit for recursive traversal (prevents stack overflow)
+ * 10. Image prefetch deduplication
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -278,5 +281,367 @@ describe("Data Loss Fix - Citations Without AttachmentId", () => {
     const citation = Object.values(result)[0];
     expect(citation.fullPhrase).toBe("Test phrase without attachment");
     expect(citation.attachmentId).toBeUndefined();
+  });
+});
+
+describe("Range Size Limits for Line ID Parsing", () => {
+  it("should handle small ranges normally", () => {
+    const text = `<cite attachment_id='abc' full_phrase='Test' anchor_text='Test' line_ids='1-5' />`;
+    const result = getAllCitationsFromLlmOutput(text);
+    const citation = Object.values(result)[0];
+
+    // Small range should be fully expanded
+    expect(citation.lineIds).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("should use sampling for large ranges to maintain accuracy", () => {
+    // This would previously create an array of 10000 elements
+    const text = `<cite attachment_id='abc' full_phrase='Test' anchor_text='Test' line_ids='1-10000' />`;
+    const result = getAllCitationsFromLlmOutput(text);
+    const citation = Object.values(result)[0];
+
+    // Large range should be sampled (50 points max: start + 48 samples + end)
+    expect(citation.lineIds).toBeDefined();
+    expect(citation.lineIds!.length).toBe(50); // Exactly 50 sampled points
+    expect(citation.lineIds!.length).toBeLessThan(1000);
+
+    // Should contain start and end values
+    expect(citation.lineIds![0]).toBe(1);
+    expect(citation.lineIds![citation.lineIds!.length - 1]).toBe(10000);
+
+    // Samples should be evenly distributed
+    const samples = citation.lineIds!;
+    for (let i = 1; i < samples.length; i++) {
+      // Each sample should be greater than the previous (sorted)
+      expect(samples[i]).toBeGreaterThan(samples[i - 1]);
+    }
+  });
+
+  it("should handle mixed ranges and individual numbers", () => {
+    const text = `<cite attachment_id='abc' full_phrase='Test' anchor_text='Test' line_ids='1,5-10,15' />`;
+    const result = getAllCitationsFromLlmOutput(text);
+    const citation = Object.values(result)[0];
+
+    // Should expand small ranges and keep individual numbers
+    expect(citation.lineIds).toEqual([1, 5, 6, 7, 8, 9, 10, 15]);
+  });
+
+  it("should complete quickly even with malicious large ranges", () => {
+    // This should NOT hang or cause memory issues
+    const text = `<cite attachment_id='abc' full_phrase='Test' anchor_text='Test' line_ids='1-1000000' />`;
+
+    const startTime = performance.now();
+    const result = getAllCitationsFromLlmOutput(text);
+    const endTime = performance.now();
+
+    // Should complete in under 100ms (not exponential time)
+    expect(endTime - startTime).toBeLessThan(100);
+    expect(Object.keys(result).length).toBe(1);
+  });
+});
+
+describe("Depth Limit for Recursive Traversal", () => {
+  it("should handle normal nested objects", () => {
+    const input = {
+      level1: {
+        level2: {
+          citations: [
+            { fullPhrase: "Test phrase", anchorText: "Test" }
+          ]
+        }
+      }
+    };
+
+    const result = getAllCitationsFromLlmOutput(input);
+    expect(Object.keys(result).length).toBe(1);
+  });
+
+  it("should handle deeply nested objects without stack overflow", () => {
+    // Create an object nested 100 levels deep
+    let deepObj: any = { citations: [{ fullPhrase: "Deep citation", anchorText: "Deep" }] };
+    for (let i = 0; i < 100; i++) {
+      deepObj = { nested: deepObj };
+    }
+
+    // Should not throw stack overflow error
+    const result = getAllCitationsFromLlmOutput(deepObj);
+
+    // May or may not find the citation depending on depth limit, but should not crash
+    expect(result).toBeDefined();
+  });
+
+  it("should handle circular reference-like structures gracefully", () => {
+    // Create a structure that would cause issues without depth limit
+    const obj: any = { level1: {} };
+    let current = obj.level1;
+    for (let i = 0; i < 200; i++) {
+      current.nested = { level: i };
+      current = current.nested;
+    }
+    // Add citation at the end
+    current.citations = [{ fullPhrase: "Final citation", anchorText: "Final" }];
+
+    const startTime = performance.now();
+    const result = getAllCitationsFromLlmOutput(obj);
+    const endTime = performance.now();
+
+    // Should complete quickly without infinite recursion
+    expect(endTime - startTime).toBeLessThan(1000);
+    expect(result).toBeDefined();
+  });
+});
+
+describe("Module-level Regex Compilation", () => {
+  it("should maintain correct regex behavior across multiple calls", () => {
+    // Test that module-level regexes work correctly for repeated calls
+    const citations = [
+      `<cite attachment_id='abc1' start_page_key='page_number_1_index_0' full_phrase='Test 1' anchor_text='T1' line_ids='1' />`,
+      `<cite attachment_id='abc2' start_page_key='page_number_2_index_1' full_phrase='Test 2' anchor_text='T2' line_ids='2' />`,
+      `<cite attachment_id='abc3' start_page_key='page_number_3_index_2' full_phrase='Test 3' anchor_text='T3' line_ids='3' />`,
+    ];
+
+    // Call multiple times to ensure regex lastIndex doesn't cause issues
+    for (const citationText of citations) {
+      const result = getAllCitationsFromLlmOutput(citationText);
+      expect(Object.keys(result).length).toBe(1);
+    }
+
+    // All at once should also work
+    const allResults = getAllCitationsFromLlmOutput(citations.join("\n"));
+    expect(Object.keys(allResults).length).toBe(3);
+  });
+
+  it("should parse page IDs correctly with module-level regex", () => {
+    const text = `<cite attachment_id='abc' start_page_key='page_number_5_index_2' full_phrase='Test' anchor_text='T' line_ids='1' />`;
+    const result = getAllCitationsFromLlmOutput(text);
+    const citation = Object.values(result)[0];
+
+    expect(citation.pageNumber).toBe(5);
+  });
+});
+
+describe("Range Sampling Behavior", () => {
+  it("should sample large ranges and produce exactly 50 points", () => {
+    // Verify that sampling produces the expected number of sample points
+    const text = `<cite attachment_id='abc' full_phrase='Test' anchor_text='Test' line_ids='1-5000' />`;
+    const result = getAllCitationsFromLlmOutput(text);
+    const citation = Object.values(result)[0];
+
+    // Should produce exactly 50 sample points
+    expect(citation.lineIds).toBeDefined();
+    expect(citation.lineIds!.length).toBe(50);
+
+    // First should be the range start, last should be the range end
+    expect(citation.lineIds![0]).toBe(1);
+    expect(citation.lineIds![49]).toBe(5000);
+  });
+
+  it("should not sample small ranges within the limit", () => {
+    const text = `<cite attachment_id='abc' full_phrase='Test' anchor_text='Test' line_ids='1-100' />`;
+    const result = getAllCitationsFromLlmOutput(text);
+    const citation = Object.values(result)[0];
+
+    // Should fully expand ranges within the limit
+    expect(citation.lineIds).toBeDefined();
+    expect(citation.lineIds!.length).toBe(100);
+    expect(citation.lineIds![0]).toBe(1);
+    expect(citation.lineIds![99]).toBe(100);
+  });
+
+  it("should handle edge case at exactly the limit", () => {
+    // MAX_LINE_ID_RANGE_SIZE is 1000
+    const text = `<cite attachment_id='abc' full_phrase='Test' anchor_text='Test' line_ids='1-1000' />`;
+    const result = getAllCitationsFromLlmOutput(text);
+    const citation = Object.values(result)[0];
+
+    // Range of exactly 1000 should be fully expanded (not sampled)
+    expect(citation.lineIds).toBeDefined();
+    expect(citation.lineIds!.length).toBe(1000);
+  });
+
+  it("should sample ranges just above the limit", () => {
+    // MAX_LINE_ID_RANGE_SIZE is 1000, so 1001 should be sampled
+    const text = `<cite attachment_id='abc' full_phrase='Test' anchor_text='Test' line_ids='1-1001' />`;
+    const result = getAllCitationsFromLlmOutput(text);
+    const citation = Object.values(result)[0];
+
+    // Range of 1001 should be sampled to 50 points
+    expect(citation.lineIds).toBeDefined();
+    expect(citation.lineIds!.length).toBe(50);
+  });
+});
+
+describe("Concurrency Limiter", () => {
+  /**
+   * Creates a concurrency limiter that ensures no more than `limit` tasks run simultaneously.
+   * This is a copy of the implementation in DeepCitation.ts for direct unit testing.
+   */
+  function createConcurrencyLimiter(limit: number) {
+    let running = 0;
+    const queue: Array<() => void> = [];
+
+    const next = () => {
+      if (queue.length > 0 && running < limit) {
+        const fn = queue.shift()!;
+        fn();
+      }
+    };
+
+    return <T>(fn: () => Promise<T>): Promise<T> => {
+      return new Promise((resolve, reject) => {
+        const run = () => {
+          running++;
+          let promise: Promise<T>;
+          try {
+            promise = fn();
+          } catch (err) {
+            running--;
+            next();
+            reject(err);
+            return;
+          }
+          promise
+            .then(resolve)
+            .catch(reject)
+            .finally(() => {
+              running--;
+              next();
+            });
+        };
+
+        if (running < limit) {
+          run();
+        } else {
+          queue.push(run);
+        }
+      });
+    };
+  }
+
+  it("should never exceed the configured concurrency limit under heavy load", async () => {
+    const limit = 3;
+    const limiter = createConcurrencyLimiter(limit);
+
+    let currentlyRunning = 0;
+    let maxObserved = 0;
+    const violations: number[] = [];
+
+    // Create many concurrent tasks to stress test the limiter
+    const tasks = Array.from({ length: 50 }, (_, i) =>
+      limiter(async () => {
+        currentlyRunning++;
+        if (currentlyRunning > limit) {
+          violations.push(currentlyRunning);
+        }
+        maxObserved = Math.max(maxObserved, currentlyRunning);
+
+        // Simulate async work with variable delays
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * 10 + 1));
+
+        currentlyRunning--;
+        return i;
+      })
+    );
+
+    const results = await Promise.all(tasks);
+
+    // Verify all tasks completed
+    expect(results.length).toBe(50);
+    expect(results).toEqual(expect.arrayContaining([...Array(50).keys()]));
+
+    // Critical assertion: concurrency limit was never exceeded
+    expect(violations).toEqual([]);
+    expect(maxObserved).toBeLessThanOrEqual(limit);
+  });
+
+  it("should handle synchronous throws without deadlocking", async () => {
+    const limit = 2;
+    const limiter = createConcurrencyLimiter(limit);
+    const completedTasks: number[] = [];
+
+    const tasks = [
+      // Task that throws synchronously
+      limiter(() => {
+        throw new Error("sync error");
+      }).catch(() => "caught-sync"),
+
+      // Normal tasks that should still complete
+      limiter(async () => {
+        await new Promise((r) => setTimeout(r, 5));
+        completedTasks.push(1);
+        return "task1";
+      }),
+      limiter(async () => {
+        await new Promise((r) => setTimeout(r, 5));
+        completedTasks.push(2);
+        return "task2";
+      }),
+      limiter(async () => {
+        await new Promise((r) => setTimeout(r, 5));
+        completedTasks.push(3);
+        return "task3";
+      }),
+    ];
+
+    const results = await Promise.all(tasks);
+
+    // Sync error should be caught
+    expect(results[0]).toBe("caught-sync");
+    // All other tasks should complete
+    expect(completedTasks.sort()).toEqual([1, 2, 3]);
+  });
+
+  it("should handle async rejections without deadlocking", async () => {
+    const limit = 2;
+    const limiter = createConcurrencyLimiter(limit);
+    const completedTasks: number[] = [];
+
+    const tasks = [
+      // Task that rejects asynchronously
+      limiter(async () => {
+        await new Promise((r) => setTimeout(r, 2));
+        throw new Error("async error");
+      }).catch(() => "caught-async"),
+
+      // Normal tasks that should still complete
+      limiter(async () => {
+        await new Promise((r) => setTimeout(r, 10));
+        completedTasks.push(1);
+        return "task1";
+      }),
+      limiter(async () => {
+        await new Promise((r) => setTimeout(r, 10));
+        completedTasks.push(2);
+        return "task2";
+      }),
+    ];
+
+    const results = await Promise.all(tasks);
+
+    // Async error should be caught
+    expect(results[0]).toBe("caught-async");
+    // All other tasks should complete
+    expect(completedTasks.sort()).toEqual([1, 2]);
+  });
+
+  it("should process all queued tasks even with limit of 1", async () => {
+    const limit = 1;
+    const limiter = createConcurrencyLimiter(limit);
+    const order: number[] = [];
+
+    const tasks = Array.from({ length: 10 }, (_, i) =>
+      limiter(async () => {
+        order.push(i);
+        await new Promise((r) => setTimeout(r, 1));
+        return i;
+      })
+    );
+
+    const results = await Promise.all(tasks);
+
+    // All tasks should complete
+    expect(results.length).toBe(10);
+    // Tasks should run in order (since limit is 1)
+    expect(order).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 });

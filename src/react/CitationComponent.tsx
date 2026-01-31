@@ -41,6 +41,14 @@ import { StatusHeader, VerificationLog } from "./VerificationLog.js";
 // Re-export types for convenience
 export type { CitationVariant, CitationContent } from "./types.js";
 
+/**
+ * Module-level handler for hiding broken images.
+ * Performance fix: avoids creating new function references on every render.
+ */
+const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
+  (e.target as HTMLImageElement).style.display = "none";
+};
+
 // Constants
 /** Default number of search attempt groups to show before expanding */
 const DEFAULT_VISIBLE_GROUP_COUNT = 2;
@@ -2116,10 +2124,8 @@ export const CitationComponent = forwardRef<
                 alt=""
                 className="w-4 h-4 rounded-sm object-contain"
                 loading="lazy"
-                onError={(e) => {
-                  // Hide broken favicon images
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
+                // Performance fix: use module-level handler to avoid re-render overhead
+                onError={handleImageError}
               />
             )}
             <span className="max-w-40 overflow-hidden text-ellipsis whitespace-nowrap">

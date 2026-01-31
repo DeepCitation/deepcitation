@@ -1,5 +1,6 @@
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import { generateCitationKey } from "../react/utils.js";
+import { sha1Hash } from "../utils/sha.js";
 import type { Citation } from "../types/index.js";
 import type {
   CitationInput,
@@ -19,6 +20,69 @@ import type {
 } from "./types.js";
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
+
+/**
+ * Default concurrency limit for parallel file uploads.
+ * Prevents overwhelming the network/server with too many simultaneous requests.
+ */
+const DEFAULT_UPLOAD_CONCURRENCY = 5;
+
+/**
+ * Simple promise-based concurrency limiter.
+ * Ensures only N promises run concurrently.
+ *
+ * The counter is managed as follows:
+ * - Incremented when a task starts running (either immediately or from queue)
+ * - Decremented when a task completes (in the finally block)
+ * - next() does NOT increment - it just dequeues and runs (run() handles the counter)
+ *
+ * Uses try-catch to safely handle synchronous throws from fn(), ensuring the
+ * running counter is always properly decremented without extra microtask overhead.
+ */
+function createConcurrencyLimiter(limit: number) {
+  let running = 0;
+  const queue: Array<() => void> = [];
+
+  const next = () => {
+    if (queue.length > 0 && running < limit) {
+      // Don't increment running here - the queued function's run() will handle it
+      const fn = queue.shift()!;
+      fn();
+    }
+  };
+
+  return <T>(fn: () => Promise<T>): Promise<T> => {
+    return new Promise((resolve, reject) => {
+      const run = () => {
+        running++;
+        let promise: Promise<T>;
+        try {
+          promise = fn();
+        } catch (err) {
+          // Handle synchronous throws
+          running--;
+          next();
+          reject(err);
+          return;
+        }
+        // Handle async resolution/rejection
+        promise
+          .then(resolve)
+          .catch(reject)
+          .finally(() => {
+            running--;
+            next();
+          });
+      };
+
+      if (running < limit) {
+        run();
+      } else {
+        queue.push(run);
+      }
+    });
+  };
+}
 
 /** Convert File/Blob/Buffer to a Blob suitable for FormData */
 function toBlob(
@@ -80,10 +144,39 @@ export class DeepCitation {
   private readonly apiUrl: string;
 
   /**
+   * Request deduplication cache for verify calls.
+   * Prevents duplicate API calls when same verification is requested multiple times.
+   * Cache entries expire after 5 minutes, and the cache is limited to 100 entries
+   * to prevent memory leaks in long-running sessions.
+   */
+  private readonly verifyCache = new Map<string, { promise: Promise<VerifyCitationsResponse>; timestamp: number }>();
+  private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly CACHE_CLEANUP_INTERVAL_MS = 60 * 1000; // 1 minute
+  private readonly MAX_CACHE_SIZE = 100; // Maximum cached entries to prevent memory leaks
+  private lastCacheCleanup = 0;
+
+  /**
+   * Concurrency limiter for file uploads.
+   */
+  private readonly uploadLimiter: ReturnType<typeof createConcurrencyLimiter>;
+
+  /**
    * Create a new DeepCitation client instance.
    *
    * @param config - Configuration options
    * @throws Error if apiKey is not provided
+   *
+   * @example
+   * ```typescript
+   * // With default settings
+   * const dc = new DeepCitation({ apiKey: 'sk-dc-...' });
+   *
+   * // With custom concurrency limit
+   * const dc = new DeepCitation({
+   *   apiKey: 'sk-dc-...',
+   *   maxUploadConcurrency: 10, // Allow more concurrent uploads
+   * });
+   * ```
    */
   constructor(config: DeepCitationConfig) {
     if (!config.apiKey) {
@@ -93,6 +186,48 @@ export class DeepCitation {
     }
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl?.replace(/\/$/, "") || DEFAULT_API_URL;
+    this.uploadLimiter = createConcurrencyLimiter(
+      config.maxUploadConcurrency ?? DEFAULT_UPLOAD_CONCURRENCY
+    );
+  }
+
+  /**
+   * Clean expired entries from the verify cache.
+   * Only runs periodically to avoid performance overhead on every call.
+   * Also enforces max cache size with LRU eviction to prevent memory leaks.
+   */
+  private cleanExpiredCache(): void {
+    try {
+      const now = Date.now();
+
+      // Only clean up periodically, not on every call
+      if (now - this.lastCacheCleanup < this.CACHE_CLEANUP_INTERVAL_MS) {
+        return;
+      }
+      this.lastCacheCleanup = now;
+
+      // Remove expired entries
+      for (const [key, entry] of this.verifyCache.entries()) {
+        if (now - entry.timestamp > this.CACHE_TTL_MS) {
+          this.verifyCache.delete(key);
+        }
+      }
+
+      // LRU eviction: if still too large, remove oldest entries
+      if (this.verifyCache.size > this.MAX_CACHE_SIZE) {
+        const entries = Array.from(this.verifyCache.entries())
+          .sort((a, b) => a[1].timestamp - b[1].timestamp);
+        const toRemove = entries.slice(0, this.verifyCache.size - this.MAX_CACHE_SIZE);
+        for (const [key] of toRemove) {
+          this.verifyCache.delete(key);
+        }
+      }
+    } catch (err) {
+      // Silently fail - do not break the main verification flow
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn("[DeepCitation] Cache cleanup failed:", err);
+      }
+    }
   }
 
   /**
@@ -340,12 +475,15 @@ export class DeepCitation {
       return { fileDataParts: [] };
     }
 
-    // Upload all files in parallel
+    // Upload files with concurrency limit to prevent overwhelming network/server
+    // Performance fix: limits concurrent uploads to DEFAULT_UPLOAD_CONCURRENCY
     const uploadPromises = files.map(({ file, filename, attachmentId }) =>
-      this.uploadFile(file, { filename, attachmentId }).then((result) => ({
-        result,
-        filename,
-      }))
+      this.uploadLimiter(() =>
+        this.uploadFile(file, { filename, attachmentId }).then((result) => ({
+          result,
+          filename,
+        }))
+      )
     );
 
     const uploadResults = await Promise.all(uploadPromises);
@@ -420,6 +558,33 @@ export class DeepCitation {
       return { verifications: {} };
     }
 
+    // Performance fix: request deduplication
+    // Use generateCitationKey for each citation to create a deterministic cache key
+    // Sorting ensures consistent ordering for equivalent content
+    // Selection is appended separately since generateCitationKey doesn't include it
+    // Final key is hashed to prevent collisions from delimiter characters in user data
+    // Note: We use Object.values, not Object.entries, because the map key (citation number)
+    // is just a display identifier - verification results depend only on citation content
+    const citationKeys = Object.values(citationMap)
+      .map((citation) => {
+        const baseKey = generateCitationKey(citation);
+        const selectionKey = citation.selection ? JSON.stringify(citation.selection) : "";
+        return `${baseKey}:${selectionKey}`;
+      })
+      .sort()
+      .join("|");
+    const rawKey = `${attachmentId}:${citationKeys}:${options?.outputImageFormat || "avif"}`;
+    const cacheKey = sha1Hash(rawKey).slice(0, 32); // Use first 32 chars of hash
+
+    // Clean expired cache entries periodically
+    this.cleanExpiredCache();
+
+    // Check if we have a cached request
+    const cached = this.verifyCache.get(cacheKey);
+    if (cached) {
+      return cached.promise;
+    }
+
     const requestUrl = `${this.apiUrl}/verifyCitations`;
     const requestBody = {
       data: {
@@ -429,21 +594,43 @@ export class DeepCitation {
       },
     };
 
-    const response = await fetch(requestUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // Create the fetch promise and cache it
+    const fetchPromise = (async (): Promise<VerifyCitationsResponse> => {
+      const response = await fetch(requestUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-    if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, "Verification"));
+      if (!response.ok) {
+        // Remove from cache on error so retry is possible
+        this.verifyCache.delete(cacheKey);
+        throw new Error(await extractErrorMessage(response, "Verification"));
+      }
+
+      return (await response.json()) as VerifyCitationsResponse;
+    })();
+
+    // Force cleanup if cache is at or approaching the limit to prevent memory leaks
+    // This ensures we never exceed MAX_CACHE_SIZE even under heavy concurrent load
+    if (this.verifyCache.size >= this.MAX_CACHE_SIZE) {
+      // Sort by timestamp and remove oldest entries to make room
+      const entries = Array.from(this.verifyCache.entries())
+        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      // Remove at least 10% of entries to avoid thrashing
+      const toRemove = Math.max(1, Math.floor(this.MAX_CACHE_SIZE * 0.1));
+      for (let i = 0; i < toRemove && i < entries.length; i++) {
+        this.verifyCache.delete(entries[i][0]);
+      }
     }
 
-    const result = (await response.json()) as VerifyCitationsResponse;
-    return result;
+    // Cache the promise
+    this.verifyCache.set(cacheKey, { promise: fetchPromise, timestamp: Date.now() });
+
+    return fetchPromise;
   }
 
   /**

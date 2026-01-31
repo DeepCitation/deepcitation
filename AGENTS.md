@@ -1,5 +1,7 @@
 # AGENTS.md - DeepCitation Implementation Guide for Code Agents
 
+> **Important**: The product name is **DeepCitation** (not "DeepCite"). Always use "DeepCitation" when referring to the product, package, or API.
+
 This guide provides step-by-step instructions for AI code agents (Claude, Cursor, GitHub Copilot, etc.) to implement DeepCitation in any codebase.
 
 ---
@@ -14,8 +16,8 @@ npm install @deepcitation/deepcitation-js
 import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput, extractVisibleText } from "@deepcitation/deepcitation-js";
 
 // 1. Upload document
-const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
-const { fileDataParts, deepTextPromptPortion } = await dc.prepareFiles([{ file: buffer, filename: "doc.pdf" }]);
+const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
+const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareFiles([{ file: buffer, filename: "doc.pdf" }]);
 
 // 2. Wrap prompts & call LLM
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({ systemPrompt, userPrompt, deepTextPromptPortion });
@@ -23,7 +25,7 @@ const llmOutput = await callYourLLM(enhancedSystemPrompt, enhancedUserPrompt);
 
 // 3. Parse & verify
 const citations = getAllCitationsFromLlmOutput(llmOutput);
-const { verifications } = await dc.verifyAttachment(fileDataParts[0].attachmentId, citations);
+const { verifications } = await deepcitation.verifyAttachment(fileDataParts[0].attachmentId, citations);
 
 // 4. Display (strip citation data block before showing to users!)
 const visibleText = extractVisibleText(llmOutput);
@@ -449,14 +451,14 @@ async function analyzeDocument(filePath: string, question: string) {
 import { NextRequest, NextResponse } from "next/server";
 import { DeepCitation } from "@deepcitation/deepcitation-js";
 
-const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
+const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File;
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const { fileDataParts } = await dc.prepareFiles([
+  const { fileDataParts } = await deepcitation.prepareFiles([
     { file: buffer, filename: file.name },
   ]);
 
@@ -500,13 +502,13 @@ export async function POST(req: Request) {
 import { NextRequest, NextResponse } from "next/server";
 import { DeepCitation, getAllCitationsFromLlmOutput, getCitationStatus } from "@deepcitation/deepcitation-js";
 
-const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
+const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
 
 export async function POST(req: NextRequest) {
   const { llmOutput, attachmentId } = await req.json();
 
   const citations = getAllCitationsFromLlmOutput(llmOutput);
-  const result = await dc.verifyAttachment(attachmentId, citations, {
+  const result = await deepcitation.verifyAttachment(attachmentId, citations, {
     outputImageFormat: "avif",
   });
 

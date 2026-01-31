@@ -14,11 +14,11 @@ if (!apiKey) {
   );
 }
 
-const dc = apiKey ? new DeepCitation({ apiKey }) : null;
+const deepcitation = apiKey ? new DeepCitation({ apiKey }) : null;
 
 export async function POST(req: NextRequest) {
   console.log("🚀 /api/verify called");
-  if (!dc) {
+  if (!deepcitation) {
     return NextResponse.json(
       {
         error: "DeepCitation API key not configured",
@@ -71,11 +71,23 @@ export async function POST(req: NextRequest) {
 
     console.log("[verify] verifications", verifications);
 
-    // Log verification results
+    // Log verification results and calculate summary in a single pass
+    // (Performance fix: avoid N+1 calls to getCitationStatus)
     console.log("✨ Verification Results\n");
+
+    let verified = 0;
+    let missed = 0;
+    let pending = 0;
 
     for (const [key, verification] of Object.entries(verifications)) {
       const status = getCitationStatus(verification);
+
+      // Count by status
+      if (status.isVerified) verified++;
+      if (status.isMiss) missed++;
+      if (status.isPending) pending++;
+
+      // Log with appropriate icon
       const statusIcon = status.isVerified
         ? status.isPartialMatch
           ? "⚠️ "
@@ -86,17 +98,6 @@ export async function POST(req: NextRequest) {
 
       console.log(`Citation [${key}]: ${statusIcon}`);
     }
-
-    // Calculate summary
-    const verified = Object.values(verifications).filter(
-      (v) => getCitationStatus(v).isVerified
-    ).length;
-    const missed = Object.values(verifications).filter(
-      (v) => getCitationStatus(v).isMiss
-    ).length;
-    const pending = Object.values(verifications).filter(
-      (v) => getCitationStatus(v).isPending
-    ).length;
 
     console.log(
       `📊 Summary: ${verified} verified, ${missed} missed, ${pending} pending`

@@ -3,6 +3,25 @@ import type { Citation } from "../types/citation.js";
 import { getCitationStatus } from "./parseCitation.js";
 import { generateCitationKey } from "../react/utils.js";
 
+/**
+ * Module-level compiled regexes for hot-path operations.
+ *
+ * IMPORTANT: These regexes are compiled once at module load time to avoid
+ * the overhead of regex compilation on every function call.
+ *
+ * Note on global flag (/g): Regexes with the global flag maintain internal
+ * state (lastIndex). To avoid state pollution across calls, we create fresh
+ * instances from these patterns when using methods that rely on lastIndex:
+ *
+ *   // SAFE: Create new instance from source pattern
+ *   const regex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
+ *
+ * Performance fix: avoids regex recompilation on every function call.
+ */
+const PAGE_NUMBER_REGEX = /page[_a-zA-Z]*(\d+)/;
+const RANGE_EXPANSION_REGEX = /(\d+)-(\d+)/g;
+const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
+
 export interface ReplaceCitationsOptions {
   /**
    * If true, leaves the anchor_text text behind when removing citations.
@@ -125,8 +144,8 @@ export const replaceCitations = (
   // Track citation index for matching with numbered verification keys
   let citationIndex = 0;
 
-  // Flexible regex that matches any <cite ... /> tag
-  const citationRegex = /<cite\s+[^>]*?\/>/g;
+  // Performance fix: use module-level compiled regex (create fresh instance to reset lastIndex)
+  const citationRegex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
 
   return markdownWithCitations.replace(citationRegex, (match) => {
     citationIndex++;
@@ -148,12 +167,17 @@ export const replaceCitations = (
       // Build a Citation object from parsed attributes to generate the key
       const parsePageNumber = (startPageId?: string): number | undefined => {
         if (!startPageId) return undefined;
-        const match = startPageId.match(/page[_a-zA-Z]*(\d+)/);
+        // Performance fix: use module-level compiled regex
+        const match = startPageId.match(PAGE_NUMBER_REGEX);
         return match ? parseInt(match[1], 10) : undefined;
       };
 
       const parseLineIds = (lineIdsStr?: string): number[] | undefined => {
         if (!lineIdsStr) return undefined;
+
+        // Performance fix: limit range expansion to prevent memory exhaustion
+        const MAX_RANGE_SIZE = 1000;
+        const SAMPLE_COUNT = 50;
 
         // First expand ranges (e.g., "62-63" -> "62,63")
         let expanded = lineIdsStr.replace(
@@ -162,6 +186,25 @@ export const replaceCitations = (
             const startNum = parseInt(start, 10);
             const endNum = parseInt(end, 10);
             if (startNum <= endNum) {
+              const rangeSize = endNum - startNum + 1;
+              // For large ranges, use sampling to maintain accuracy
+              if (rangeSize > MAX_RANGE_SIZE) {
+                const samples = [startNum];
+                const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
+                if (sampleCount > 0) {
+                  // Use Math.floor for predictable sampling, ensuring step >= 1
+                  const step = Math.max(1, Math.floor((endNum - startNum) / (sampleCount + 1)));
+                  for (let i = 1; i <= sampleCount; i++) {
+                    const sample = startNum + step * i;
+                    // Ensure we don't exceed the range end
+                    if (sample < endNum) {
+                      samples.push(sample);
+                    }
+                  }
+                }
+                samples.push(endNum);
+                return samples.join(",");
+              }
               const range = [];
               for (let i = startNum; i <= endNum; i++) {
                 range.push(i);
@@ -409,6 +452,10 @@ const normalizeCitationContent = (input: string): string => {
       return `${canonicalizeCiteAttributeKey(key)}='${content}'`;
     }
   );
+  // Performance fix: limit range expansion to prevent memory exhaustion
+  const MAX_RANGE_SIZE = 1000;
+  const SAMPLE_COUNT = 50;
+
   normalized = normalized.replace(
     /(line_ids|lineIds|timestamps)=['"]?([\[\]\(\){}A-Za-z0-9_\-, ]+)['"]?(\s*\/?>|\s+)/gm,
     (_match, key, rawValue, trailingChars) => {
@@ -421,18 +468,37 @@ const normalizeCitationContent = (input: string): string => {
         (_rangeMatch: string, start: string, end: string) => {
           const startNum = parseInt(start, 10);
           const endNum = parseInt(end, 10);
-          const range = [];
 
           // Handle ascending range
           if (startNum <= endNum) {
+            const rangeSize = endNum - startNum + 1;
+            // For large ranges, use sampling to maintain accuracy
+            if (rangeSize > MAX_RANGE_SIZE) {
+              const samples = [startNum];
+              const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
+              if (sampleCount > 0) {
+                // Use Math.floor for predictable sampling, ensuring step >= 1
+                const step = Math.max(1, Math.floor((endNum - startNum) / (sampleCount + 1)));
+                for (let i = 1; i <= sampleCount; i++) {
+                  const sample = startNum + step * i;
+                  // Ensure we don't exceed the range end
+                  if (sample < endNum) {
+                    samples.push(sample);
+                  }
+                }
+              }
+              samples.push(endNum);
+              return samples.join(",");
+            }
+            const range = [];
             for (let i = startNum; i <= endNum; i++) {
               range.push(i);
             }
+            return range.join(",");
           } else {
             // Fallback for weird descending ranges or just return start
-            range.push(startNum);
+            return String(startNum);
           }
-          return range.join(",");
         }
       );
 
