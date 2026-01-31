@@ -1,5 +1,6 @@
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import { generateCitationKey } from "../react/utils.js";
+import { sha1Hash } from "../utils/sha.js";
 import type { Citation } from "../types/index.js";
 import type {
   CitationInput,
@@ -35,8 +36,8 @@ const DEFAULT_UPLOAD_CONCURRENCY = 5;
  * - Decremented when a task completes (in the finally block)
  * - next() does NOT increment - it just dequeues and runs (run() handles the counter)
  *
- * Uses Promise.resolve().then() to safely handle synchronous throws from fn(),
- * ensuring the running counter is always properly decremented.
+ * Uses try-catch to safely handle synchronous throws from fn(), ensuring the
+ * running counter is always properly decremented without extra microtask overhead.
  */
 function createConcurrencyLimiter(limit: number) {
   let running = 0;
@@ -53,12 +54,19 @@ function createConcurrencyLimiter(limit: number) {
   return <T>(fn: () => Promise<T>): Promise<T> => {
     return new Promise((resolve, reject) => {
       const run = () => {
-        // Increment counter when task actually starts
         running++;
-        // Wrap in Promise.resolve().then() to safely handle synchronous throws
-        // This ensures finally() always runs even if fn() throws synchronously
-        Promise.resolve()
-          .then(() => fn())
+        let promise: Promise<T>;
+        try {
+          promise = fn();
+        } catch (err) {
+          // Handle synchronous throws
+          running--;
+          next();
+          reject(err);
+          return;
+        }
+        // Handle async resolution/rejection
+        promise
           .then(resolve)
           .catch(reject)
           .finally(() => {
@@ -554,6 +562,7 @@ export class DeepCitation {
     // Use generateCitationKey for each citation to create a deterministic cache key
     // Sorting ensures consistent ordering for equivalent content
     // Selection is appended separately since generateCitationKey doesn't include it
+    // Final key is hashed to prevent collisions from delimiter characters in user data
     const citationKeys = Object.entries(citationMap)
       .map(([mapKey, citation]) => {
         const baseKey = generateCitationKey(citation);
@@ -562,7 +571,8 @@ export class DeepCitation {
       })
       .sort()
       .join("|");
-    const cacheKey = `${attachmentId}:${citationKeys}:${options?.outputImageFormat || "avif"}`;
+    const rawKey = `${attachmentId}:${citationKeys}:${options?.outputImageFormat || "avif"}`;
+    const cacheKey = sha1Hash(rawKey).slice(0, 32); // Use first 32 chars of hash
 
     // Clean expired cache entries periodically
     this.cleanExpiredCache();

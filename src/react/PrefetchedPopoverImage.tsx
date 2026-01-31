@@ -126,8 +126,18 @@ export function usePrefetchImage() {
   const prefetchImage = React.useCallback((src: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.onload = () => resolve();
-      img.onerror = reject;
+      img.onload = () => {
+        // Clean up event handlers to prevent memory leaks
+        img.onload = null;
+        img.onerror = null;
+        resolve();
+      };
+      img.onerror = () => {
+        // Clean up event handlers to prevent memory leaks
+        img.onload = null;
+        img.onerror = null;
+        reject();
+      };
       img.src = src;
     });
   }, []);
@@ -154,6 +164,15 @@ interface PrefetchCacheEntry {
 }
 
 /**
+ * Complete cache state stored on window.
+ * Includes both the cache map and cleanup timestamp for SSR safety.
+ */
+interface PrefetchCacheState {
+  cache: Map<string, PrefetchCacheEntry>;
+  lastCleanup: number;
+}
+
+/**
  * Symbol key for the window cache property.
  * Using Symbol.for with a package-namespaced key ensures singleton behavior across
  * module reloads while avoiding collisions with other libraries.
@@ -166,14 +185,16 @@ const PREFETCH_CACHE_KEY = Symbol.for("@deepcitation/deepcitation-js:prefetchCac
  * Using a dedicated type avoids `any` casts throughout the code.
  */
 interface WindowWithPrefetchCache {
-  [key: symbol]: Map<string, PrefetchCacheEntry> | undefined;
+  [key: symbol]: PrefetchCacheState | undefined;
 }
 
+const CACHE_CLEANUP_INTERVAL_MS = 60 * 1000; // 1 minute
+
 /**
- * SSR-safe singleton getter for the prefetch cache.
- * Returns null during SSR (no window), returns the cache on client.
+ * SSR-safe singleton getter for the prefetch cache state.
+ * Returns null during SSR (no window), returns the cache state on client.
  */
-function getPrefetchCache(): Map<string, PrefetchCacheEntry> | null {
+function getPrefetchCacheState(): PrefetchCacheState | null {
   // SSR safety: only create cache on client
   if (typeof window === "undefined") {
     return null;
@@ -186,26 +207,36 @@ function getPrefetchCache(): Map<string, PrefetchCacheEntry> | null {
   // Use a Symbol property on window to ensure singleton across module reloads
   // Symbol.for ensures the same symbol is used even after hot module reload
   if (!win[PREFETCH_CACHE_KEY]) {
-    win[PREFETCH_CACHE_KEY] = new Map<string, PrefetchCacheEntry>();
+    win[PREFETCH_CACHE_KEY] = {
+      cache: new Map<string, PrefetchCacheEntry>(),
+      lastCleanup: 0,
+    };
   }
   return win[PREFETCH_CACHE_KEY]!;
+}
+
+/**
+ * SSR-safe getter for just the cache map (convenience wrapper).
+ */
+function getPrefetchCache(): Map<string, PrefetchCacheEntry> | null {
+  const state = getPrefetchCacheState();
+  return state?.cache ?? null;
 }
 
 /**
  * Cleans expired entries from the prefetch cache.
  * Only runs periodically to avoid performance overhead.
  */
-let lastCacheCleanup = 0;
-const CACHE_CLEANUP_INTERVAL_MS = 60 * 1000; // 1 minute
-
 function cleanPrefetchCache(): void {
   try {
-    const cache = getPrefetchCache();
-    if (!cache) return;
+    const state = getPrefetchCacheState();
+    if (!state) return;
 
     const now = Date.now();
-    if (now - lastCacheCleanup < CACHE_CLEANUP_INTERVAL_MS) return;
-    lastCacheCleanup = now;
+    if (now - state.lastCleanup < CACHE_CLEANUP_INTERVAL_MS) return;
+    state.lastCleanup = now;
+
+    const cache = state.cache;
 
     // Remove expired entries
     for (const [key, entry] of cache.entries()) {
@@ -276,8 +307,16 @@ export async function prefetchImages(srcs: string[]): Promise<void[]> {
     // Create new prefetch promise
     const promise = new Promise<void>((resolve, reject) => {
       const img = new Image();
-      img.onload = () => resolve();
+      img.onload = () => {
+        // Clean up event handlers to prevent memory leaks
+        img.onload = null;
+        img.onerror = null;
+        resolve();
+      };
       img.onerror = () => {
+        // Clean up event handlers to prevent memory leaks
+        img.onload = null;
+        img.onerror = null;
         // Remove from cache on error so it can be retried
         cache.delete(src);
         reject();
@@ -300,10 +339,10 @@ export async function prefetchImages(srcs: string[]): Promise<void[]> {
  * Also resets the cleanup timer so cleanup runs immediately on next cache access.
  */
 export function clearPrefetchCache(): void {
-  const cache = getPrefetchCache();
-  if (cache) {
-    cache.clear();
+  const state = getPrefetchCacheState();
+  if (state) {
+    state.cache.clear();
+    // Reset cleanup timer so cleanup runs on next access if cache starts filling
+    state.lastCleanup = 0;
   }
-  // Reset cleanup timer so cleanup runs on next access if cache starts filling
-  lastCacheCleanup = 0;
 }
