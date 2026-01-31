@@ -175,38 +175,58 @@ export function FaviconImage({
  * SourceContextHeader displays source information (favicon + source info) for citations.
  * Shown at the top of popovers to give auditors immediate visibility into citation sources.
  *
- * For URL citations: Shows UrlCitationComponent badge with favicon + domain + status indicator
+ * For URL citations: Shows status icon + UrlCitationComponent badge + page/line info (all in one row)
  * For Document citations: Shows document icon + label/attachmentId + page/line info
  */
 export function SourceContextHeader({ citation, verification, status }: SourceContextHeaderProps) {
   const isUrl = isUrlCitation(citation);
 
   if (isUrl) {
-    // URL citation: show UrlCitationComponent badge with favicon + domain + status
+    // URL citation: show status icon + UrlCitationComponent badge + page/line info in one row
     const faviconUrl = verification?.verifiedFaviconUrl || citation.faviconUrl;
     const domain = verification?.verifiedDomain || citation.domain;
     const url = citation.url || "";
     const pageNumber = verification?.verifiedPageNumber ?? citation.pageNumber;
+    const lineIds = verification?.verifiedLineIds ?? citation.lineIds;
 
     // Map the search status to URL fetch status for display
     const urlFetchStatus = mapSearchStatusToUrlFetchStatus(status);
 
+    // Get status color and icon
+    const colorScheme = getStatusColorScheme(status);
+    const IconComponent = colorScheme === "green" ? CheckIcon
+      : colorScheme === "amber" ? CheckIcon
+      : colorScheme === "red" ? XCircleIcon
+      : SpinnerIcon;
+
+    // Format page/line text
+    const pageLineText = formatPageLineText(pageNumber, lineIds);
+
     return (
-      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-        <UrlCitationComponent
-          urlMeta={{
-            url,
-            domain,
-            faviconUrl,
-            fetchStatus: urlFetchStatus,
-          }}
-          variant="chip"
-          maxDisplayLength={MAX_URL_DISPLAY_LENGTH}
-          preventTooltips={true}
-        />
-        {pageNumber && pageNumber > 0 && (
+      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+        {/* Status icon */}
+        <span className={cn("size-4 max-w-4 max-h-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
+          <IconComponent />
+        </span>
+        {/* URL citation component */}
+        <div className="flex-1 min-w-0">
+          <UrlCitationComponent
+            urlMeta={{
+              url,
+              domain,
+              faviconUrl,
+              fetchStatus: urlFetchStatus,
+            }}
+            variant="chip"
+            maxDisplayLength={MAX_URL_DISPLAY_LENGTH}
+            preventTooltips={true}
+            showStatusIndicator={false}
+          />
+        </div>
+        {/* Page/line info */}
+        {pageLineText && (
           <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0 uppercase tracking-wide">
-            Pg {pageNumber}
+            {pageLineText}
           </span>
         )}
       </div>

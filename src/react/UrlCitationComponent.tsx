@@ -204,6 +204,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       onUrlClick,
       eventHandlers,
       preventTooltips = false,
+      showStatusIndicator = true,
     },
     ref,
   ) => {
@@ -370,7 +371,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             >
               {displayText}
             </span>
-            {renderStatusIndicator()}
+            {showStatusIndicator && renderStatusIndicator()}
           </a>
         </>
       );
@@ -405,7 +406,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           >
             {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
             <span className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-700 dark:text-gray-300">{displayText}</span>
-            {renderStatusIndicator()}
+            {showStatusIndicator && renderStatusIndicator()}
           </span>
         </>
       );
@@ -443,7 +444,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           >
             {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
             <span>{displayText}</span>
-            {renderStatusIndicator()}
+            {showStatusIndicator && renderStatusIndicator()}
           </a>
         </>
       );
@@ -481,7 +482,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             "max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap",
             isBroken && "line-through"
           )}>{displayText}</span>
-          {renderStatusIndicator()}
+          {showStatusIndicator && renderStatusIndicator()}
           ]
         </span>
       </>

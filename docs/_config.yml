@@ -1,7 +1,7 @@
 title: DeepCitation Documentation
 description: Verify AI citations against source documents. Visual proof for every claim.
-baseurl: "/deepcitation-js"
-url: "https://deepcitation.github.io"
+baseurl: ""
+url: "https://docs.deepcitation.com"
 
 # Theme
 remote_theme: just-the-docs/just-the-docs@v0.8.2

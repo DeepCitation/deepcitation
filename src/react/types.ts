@@ -252,6 +252,8 @@ export interface UrlCitationProps extends Omit<BaseCitationProps, "citation" | "
   eventHandlers?: CitationEventHandlers;
   /** Whether tooltips should be prevented */
   preventTooltips?: boolean;
+  /** Whether to show the status indicator (checkmark, warning, spinner). Defaults to true. */
+  showStatusIndicator?: boolean;
 }
 
 /**

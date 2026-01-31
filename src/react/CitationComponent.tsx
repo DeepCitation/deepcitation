@@ -723,13 +723,16 @@ const PendingIndicator = () => (
   </span>
 );
 
-/** Miss indicator - red X in circle for not found (subscript-positioned) */
+/** Miss indicator - red X for not found (subscript-positioned)
+ * Uses a simple X mark instead of X-in-circle for better visibility at small sizes
+ */
 const MissIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.15em] size-2.5 text-red-500 dark:text-red-400"
+    className="inline-flex relative ml-0.5 top-[0.15em] size-2.5 text-red-500 dark:text-red-400 font-bold text-[0.7em]"
     aria-hidden="true"
+    aria-label="Not found"
   >
-    <XCircleIcon />
+    ✕
   </span>
 );
 
