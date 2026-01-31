@@ -34,7 +34,7 @@ Thank you for your interest in improving the DeepCitation documentation.
    bundle exec jekyll serve
    ```
 
-4. Open [http://localhost:4000/deepcitation-js/](http://localhost:4000/deepcitation-js/) in your browser.
+4. Open [http://localhost:4000/](http://localhost:4000/) in your browser.
 
 ## Documentation Structure
 
@@ -113,10 +113,10 @@ Link to other pages using the `site.baseurl` variable with trailing slashes:
 
 ## Deployment
 
-### GitHub Pages (Default)
+### GitHub Pages
 
 Documentation is automatically deployed to GitHub Pages when changes are pushed to `main`:
-- **URL:** `https://deepcitation.github.io/deepcitation-js/`
+- **URL:** `https://docs.deepcitation.com/`
 
 ### Custom Domain Setup
 
