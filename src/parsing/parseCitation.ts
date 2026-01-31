@@ -14,15 +14,27 @@ import {
  * the overhead of regex compilation on every function call. This is a
  * significant performance optimization for parsing-heavy workloads.
  *
- * Note on global flag (/g): Regexes with the global flag maintain internal
- * state (lastIndex). To avoid state pollution across calls, we create fresh
- * instances from these patterns when using methods like .match() with /g:
+ * ## Safe usage patterns for global (/g) regexes:
  *
- *   // SAFE: Create new instance from source pattern
- *   const regex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
+ * Regexes with the global flag maintain internal state (lastIndex).
+ * Here's when each usage pattern is safe:
  *
- *   // UNSAFE: Reusing global regex directly can cause issues
- *   const matches = text.match(CITE_TAG_REGEX); // May skip matches!
+ * ```typescript
+ * // SAFE: String.match() creates a new matcher internally
+ * const matches = text.match(CITE_TAG_REGEX);
+ *
+ * // SAFE: Non-global regexes don't have lastIndex issues
+ * const isMatch = PAGE_ID_FULL_REGEX.test(text);
+ * const match = PAGE_ID_FULL_REGEX.exec(text);
+ *
+ * // REQUIRED: Create fresh instance for .exec() loops with global regexes
+ * const regex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
+ * let match;
+ * while ((match = regex.exec(text)) !== null) { ... }
+ *
+ * // UNSAFE: Don't reuse global regex with .exec() in loops
+ * // while ((match = CITE_TAG_REGEX.exec(text)) !== null) // BUG!
+ * ```
  *
  * Performance fix: avoids regex recompilation on every function call.
  */
@@ -86,7 +98,8 @@ function parseLineIds(lineIdsString: string): number[] | undefined {
 
         if (rangeSize > MAX_LINE_ID_RANGE_SIZE) {
           // Performance fix: use sampling for large ranges to maintain accuracy
-          // Include start and end, plus evenly distributed samples
+          // Include start and end, plus evenly distributed samples using Math.floor
+          // for predictable behavior. Deduplication happens at the end via Set.
           if (typeof console !== "undefined" && console.warn) {
             console.warn(
               `[DeepCitation] Line ID range ${start}-${end} exceeds limit (${MAX_LINE_ID_RANGE_SIZE}), ` +
@@ -96,9 +109,14 @@ function parseLineIds(lineIdsString: string): number[] | undefined {
           lineIds.push(start);
           const sampleCount = Math.min(LARGE_RANGE_SAMPLE_COUNT - 2, rangeSize - 2);
           if (sampleCount > 0) {
-            const step = (end - start) / (sampleCount + 1);
+            // Use Math.floor for predictable sampling, ensuring step >= 1
+            const step = Math.max(1, Math.floor((end - start) / (sampleCount + 1)));
             for (let i = 1; i <= sampleCount; i++) {
-              lineIds.push(Math.round(start + step * i));
+              const sample = start + step * i;
+              // Ensure we don't exceed the range end
+              if (sample < end) {
+                lineIds.push(sample);
+              }
             }
           }
           lineIds.push(end);

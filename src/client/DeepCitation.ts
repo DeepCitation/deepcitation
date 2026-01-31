@@ -34,6 +34,9 @@ const DEFAULT_UPLOAD_CONCURRENCY = 5;
  * - Incremented when a task starts running (either immediately or from queue)
  * - Decremented when a task completes (in the finally block)
  * - next() does NOT increment - it just dequeues and runs (run() handles the counter)
+ *
+ * Uses Promise.resolve().then() to safely handle synchronous throws from fn(),
+ * ensuring the running counter is always properly decremented.
  */
 function createConcurrencyLimiter(limit: number) {
   let running = 0;
@@ -52,7 +55,10 @@ function createConcurrencyLimiter(limit: number) {
       const run = () => {
         // Increment counter when task actually starts
         running++;
-        fn()
+        // Wrap in Promise.resolve().then() to safely handle synchronous throws
+        // This ensures finally() always runs even if fn() throws synchronously
+        Promise.resolve()
+          .then(() => fn())
           .then(resolve)
           .catch(reject)
           .finally(() => {

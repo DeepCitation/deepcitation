@@ -155,10 +155,19 @@ interface PrefetchCacheEntry {
 
 /**
  * Symbol key for the window cache property.
- * Using Symbol.for ensures uniqueness while maintaining singleton behavior across module reloads.
- * This prevents potential conflicts with other libraries using string keys on window.
+ * Using Symbol.for with a package-namespaced key ensures singleton behavior across
+ * module reloads while avoiding collisions with other libraries.
+ * The version suffix allows cache invalidation on breaking changes.
  */
-const PREFETCH_CACHE_KEY = Symbol.for("deepcitation.prefetchCache");
+const PREFETCH_CACHE_KEY = Symbol.for("@deepcitation/deepcitation-js:prefetchCache:v1");
+
+/**
+ * Type-safe interface for window with prefetch cache.
+ * Using a dedicated type avoids `any` casts throughout the code.
+ */
+interface WindowWithPrefetchCache extends Window {
+  [key: symbol]: Map<string, PrefetchCacheEntry> | undefined;
+}
 
 /**
  * SSR-safe singleton getter for the prefetch cache.
@@ -170,12 +179,15 @@ function getPrefetchCache(): Map<string, PrefetchCacheEntry> | null {
     return null;
   }
 
+  // Type-safe access to window with symbol key
+  const win = window as WindowWithPrefetchCache;
+
   // Use a Symbol property on window to ensure singleton across module reloads
   // Symbol.for ensures the same symbol is used even after hot module reload
-  if (!(window as any)[PREFETCH_CACHE_KEY]) {
-    (window as any)[PREFETCH_CACHE_KEY] = new Map<string, PrefetchCacheEntry>();
+  if (!win[PREFETCH_CACHE_KEY]) {
+    win[PREFETCH_CACHE_KEY] = new Map<string, PrefetchCacheEntry>();
   }
-  return (window as any)[PREFETCH_CACHE_KEY];
+  return win[PREFETCH_CACHE_KEY]!;
 }
 
 /**
