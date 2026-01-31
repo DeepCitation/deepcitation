@@ -12,7 +12,7 @@ Verify AI citations against source documents. Visual proof for every claim.
 
 {: .fs-6 .fw-300 }
 
-[Get Started](getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Get Started]({{ site.baseurl }}/getting-started/){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/DeepCitation/deepcitation-js){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
@@ -21,15 +21,15 @@ Verify AI citations against source documents. Visual proof for every claim.
 
 | Section | Description |
 |:--------|:------------|
-| [Getting Started](getting-started) | Installation and quick start guide |
-| [API Reference](api-reference) | REST API endpoints for file preparation and verification |
-| [Curl Guide](curl-guide) | Direct API usage with curl examples |
-| [Types](types) | TypeScript interface definitions |
-| [Verification Statuses](verification-statuses) | Understanding verification result statuses |
-| [Code Examples](code-examples) | SDK usage examples and patterns |
-| [Components](components) | React CitationComponent documentation |
-| [Real-World Examples](real-world-examples) | Industry-specific integration examples |
-| [Styling](styling) | CSS customization options |
+| [Getting Started]({{ site.baseurl }}/getting-started/) | Installation and quick start guide |
+| [API Reference]({{ site.baseurl }}/api-reference/) | REST API endpoints for file preparation and verification |
+| [Curl Guide]({{ site.baseurl }}/curl-guide/) | Direct API usage with curl examples |
+| [Types]({{ site.baseurl }}/types/) | TypeScript interface definitions |
+| [Verification Statuses]({{ site.baseurl }}/verification-statuses/) | Understanding verification result statuses |
+| [Code Examples]({{ site.baseurl }}/code-examples/) | SDK usage examples and patterns |
+| [Components]({{ site.baseurl }}/components/) | React CitationComponent documentation |
+| [Real-World Examples]({{ site.baseurl }}/real-world-examples/) | Industry-specific integration examples |
+| [Styling]({{ site.baseurl }}/styling/) | CSS customization options |
 
 ---
 
@@ -46,9 +46,9 @@ Verify AI citations against source documents. Visual proof for every claim.
 
 Complete working examples are available on GitHub:
 
-- [Basic Verification](https://github.com/DeepCitation/deepcitation-js/tree/main/examples/basic) - Simple file upload and verification
+- [Basic Verification](https://github.com/DeepCitation/deepcitation-js/tree/main/examples/basic-verification) - Simple file upload and verification
 - [Next.js AI SDK](https://github.com/DeepCitation/deepcitation-js/tree/main/examples/nextjs-ai-sdk) - Integration with Vercel AI SDK
-- [Support Bot](https://github.com/DeepCitation/deepcitation-js/tree/main/examples/support-bot) - Customer support chatbot with citations
+- [Intercom Bot](https://github.com/DeepCitation/deepcitation-js/tree/main/examples/intercom-bot) - Customer support chatbot with citations
 
 ---
 

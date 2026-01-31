@@ -96,10 +96,10 @@ This is highlighted.
 
 ### Links
 
-Link to other pages without the `.md` extension:
+Link to other pages using the `site.baseurl` variable with trailing slashes:
 
 ```markdown
-[Getting Started](getting-started)
+[Getting Started]({{ site.baseurl }}/getting-started/)
 ```
 
 ## Submitting Changes

@@ -253,6 +253,6 @@ try {
 
 ## Next Steps
 
-- [Components](components) - Full CitationComponent documentation
-- [Types](types) - TypeScript interface definitions
-- [Real-World Examples](real-world-examples) - Industry-specific integrations
+- [Components]({{ site.baseurl }}/components/) - Full CitationComponent documentation
+- [Types]({{ site.baseurl }}/types/) - TypeScript interface definitions
+- [Real-World Examples]({{ site.baseurl }}/real-world-examples/) - Industry-specific integrations
