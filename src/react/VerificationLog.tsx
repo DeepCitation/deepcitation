@@ -556,9 +556,10 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
 
   // Get method display name with safe fallback
   // For first_word_fallback, show the actual word searched
-  let methodName = METHOD_DISPLAY_NAMES[attempt.method] ?? "Search";
+  let methodName = METHOD_DISPLAY_NAMES[attempt.method] ?? attempt.method ?? "Search";
   if (attempt.method === "first_word_fallback" && phrase) {
-    const firstWord = phrase.split(/\s+/)[0];
+    const trimmedPhrase = phrase.trim();
+    const firstWord = trimmedPhrase.length > 0 ? trimmedPhrase.split(/\s+/)[0] : null;
     if (firstWord) {
       methodName = `First word: "${firstWord}"`;
     }
@@ -571,7 +572,7 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
   const variations = attempt.searchVariations ?? [];
 
   // Get variation type label if present
-  const variationType = (attempt as SearchAttempt & { variationType?: string }).variationType;
+  const variationType = attempt.variationType;
   const variationTypeLabel = variationType ? VARIATION_TYPE_LABELS[variationType] : null;
 
   return (
@@ -906,9 +907,7 @@ export function VerificationLog({
   return (
     <div className="border-t border-gray-200 dark:border-gray-700">
       {/* Ambiguity warning when multiple occurrences exist */}
-      {ambiguity && ambiguity.totalOccurrences > 1 && (
-        <AmbiguityWarning ambiguity={ambiguity} />
-      )}
+      {ambiguity && <AmbiguityWarning ambiguity={ambiguity} />}
       <VerificationLogSummary
         status={status}
         searchAttempts={searchAttempts}
