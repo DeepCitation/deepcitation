@@ -64,7 +64,7 @@ const VARIATION_TYPE_LABELS: Record<VariationType, string> = {
  */
 export function getVariationLabel(variationType: VariationType | undefined): string | null {
   if (!variationType) return null;
-  return VARIATION_TYPE_LABELS[variationType] ?? null;
+  return VARIATION_TYPE_LABELS[variationType];
 }
 
 // =============================================================================
