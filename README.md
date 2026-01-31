@@ -31,8 +31,8 @@ import { DeepCitation, wrapCitationPrompt } from "@deepcitation/deepcitation-js"
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 // 1. Upload sources
-const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
-const { deepTextPromptPortion } = await dc.prepareFiles([{ file: pdfBuffer, filename: "report.pdf" }]);
+const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
+const { deepTextPromptPortion } = await deepcitation.prepareFiles([{ file: pdfBuffer, filename: "report.pdf" }]);
 
 // 2. Wrap prompts & call LLM
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
@@ -42,7 +42,7 @@ const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
 });
 
 // 3. Verify citations
-const { verifications } = await dc.verify({ llmOutput: response.content });
+const { verifications } = await deepcitation.verify({ llmOutput: response.content });
 
 // 4. Display with React
 <CitationComponent citation={citation} verification={verifications[key]} />

@@ -1,5 +1,7 @@
 # DeepCitation
 
+> **Note**: The product name is **DeepCitation** (not "DeepCite"). Always use "DeepCitation" when referring to the product, package, or API.
+
 > Deterministic AI citation verification. Eliminate hallucination risk by proving every AI citation against attachments.
 
 DeepCitation is an open-source library and API that enables AI applications to include verifiable, traceable citations. Every citation is deterministically matched to its exact location in attachments with visual proof generation.
@@ -107,7 +109,7 @@ Build custom citation components with `Citation.Root`, `Citation.Trigger`, `Cita
 For URLs or Office documents, use `convertToPdf()` followed by `prepareConvertedFile()`:
 
 ```typescript
-const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
+const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
 // Convert a URL to PDF
 const result = await deepcitation.convertToPdf("https://example.com/article");
