@@ -165,7 +165,7 @@ const PREFETCH_CACHE_KEY = Symbol.for("@deepcitation/deepcitation-js:prefetchCac
  * Type-safe interface for window with prefetch cache.
  * Using a dedicated type avoids `any` casts throughout the code.
  */
-interface WindowWithPrefetchCache extends Window {
+interface WindowWithPrefetchCache {
   [key: symbol]: Map<string, PrefetchCacheEntry> | undefined;
 }
 
@@ -180,7 +180,8 @@ function getPrefetchCache(): Map<string, PrefetchCacheEntry> | null {
   }
 
   // Type-safe access to window with symbol key
-  const win = window as WindowWithPrefetchCache;
+  // Cast through unknown since Window doesn't have a symbol index signature
+  const win = window as unknown as WindowWithPrefetchCache;
 
   // Use a Symbol property on window to ensure singleton across module reloads
   // Symbol.for ensures the same symbol is used even after hot module reload
