@@ -192,9 +192,14 @@ export const replaceCitations = (
                 const samples = [startNum];
                 const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
                 if (sampleCount > 0) {
-                  const step = (endNum - startNum) / (sampleCount + 1);
+                  // Use Math.floor for predictable sampling, ensuring step >= 1
+                  const step = Math.max(1, Math.floor((endNum - startNum) / (sampleCount + 1)));
                   for (let i = 1; i <= sampleCount; i++) {
-                    samples.push(Math.round(startNum + step * i));
+                    const sample = startNum + step * i;
+                    // Ensure we don't exceed the range end
+                    if (sample < endNum) {
+                      samples.push(sample);
+                    }
                   }
                 }
                 samples.push(endNum);
@@ -472,9 +477,14 @@ const normalizeCitationContent = (input: string): string => {
               const samples = [startNum];
               const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
               if (sampleCount > 0) {
-                const step = (endNum - startNum) / (sampleCount + 1);
+                // Use Math.floor for predictable sampling, ensuring step >= 1
+                const step = Math.max(1, Math.floor((endNum - startNum) / (sampleCount + 1)));
                 for (let i = 1; i <= sampleCount; i++) {
-                  samples.push(Math.round(startNum + step * i));
+                  const sample = startNum + step * i;
+                  // Ensure we don't exceed the range end
+                  if (sample < endNum) {
+                    samples.push(sample);
+                  }
                 }
               }
               samples.push(endNum);
