@@ -344,6 +344,6 @@ function MyComponent() {
 
 ## Next Steps
 
-- [Types](types) - Full TypeScript interface definitions
-- [Real-World Examples](real-world-examples) - Industry-specific integrations
-- [Styling](styling) - CSS customization
+- [Types]({{ site.baseurl }}/types/) - Full TypeScript interface definitions
+- [Real-World Examples]({{ site.baseurl }}/real-world-examples/) - Industry-specific integrations
+- [Styling]({{ site.baseurl }}/styling/) - CSS customization

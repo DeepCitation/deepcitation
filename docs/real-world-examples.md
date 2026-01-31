@@ -251,6 +251,6 @@ Override default styles using CSS class targeting:
 
 ## Next Steps
 
-- [Components](components) - Full component API reference
-- [Styling](styling) - CSS customization options
-- [Code Examples](code-examples) - More integration patterns
+- [Components]({{ site.baseurl }}/components/) - Full component API reference
+- [Styling]({{ site.baseurl }}/styling/) - CSS customization options
+- [Code Examples]({{ site.baseurl }}/code-examples/) - More integration patterns
