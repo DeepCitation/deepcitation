@@ -132,29 +132,29 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 />
 // Renders: ¹
 
-// Minimal variant - compact with truncation
+// Linter variant (default) - semantic underlines based on status
 <CitationComponent
-  citation={{ citationNumber: 1 }}
+  citation={{ citationNumber: 1, anchorText: "Revenue Growth" }}
   verification={verification}
-  variant="minimal"
+  variant="linter"
 />
-// Renders: 1
+// Renders: Revenue Growth with colored underline
 
-// Source variant - badge/pill style with name + count
+// Badge variant - badge/pill style with name + count
 <CitationComponent
   citation={{ citationNumber: 1, sourceName: "Wikipedia" }}
   verification={verification}
-  variant="source"
+  variant="badge"
   additionalCount={2}
 />
 // Renders: Wikipedia +2
 
 // Controlling content separately from variant
 // Use content prop to override what text is displayed:
-// - "anchorText": Descriptive text (default for chip, brackets, text)
-// - "number": Citation number (default for superscript, minimal)
+// - "anchorText": Descriptive text (default for linter, chip, brackets, text)
+// - "number": Citation number (default for superscript)
 // - "indicator": Only the status icon, no text
-// - "source": Source name (default for source variant)
+// - "source": Source name (default for badge variant)
 
 <CitationComponent
   citation={{ citationNumber: 1, anchorText: "Revenue Growth" }}

@@ -7,22 +7,20 @@ import type { SearchStatus } from "../types/search.js";
  *
  * | Variant       | Description                                    |
  * |---------------|------------------------------------------------|
- * | `chip`        | Pill/badge style with background color         |
- * | `brackets`    | [text✓] with square brackets (default)         |
+ * | `chip`        | Pill/badge style with neutral gray background  |
+ * | `brackets`    | [text✓] with square brackets                   |
  * | `text`        | Plain text, inherits parent styling            |
  * | `superscript` | Small raised text like footnotes¹              |
- * | `minimal`     | Compact text with indicator, truncated         |
- * | `source`      | Source chip showing name + count (ChatGPT-style) |
- * | `linter`      | Inline text with semantic underlines (solid/dashed/wavy) |
+ * | `badge`       | Source chip showing name + count (ChatGPT-style) |
+ * | `linter`      | Inline text with semantic underlines (default) |
  */
 export type CitationVariant =
-  | "chip" // Pill/badge with background
-  | "brackets" // [text✓] with brackets (default)
+  | "chip" // Pill/badge with neutral gray background
+  | "brackets" // [text✓] with brackets
   | "text" // Plain text, inherits styling
   | "superscript" // Small raised footnote style
-  | "minimal" // Compact with truncation
-  | "source" // Source name chip with count (ChatGPT-style)
-  | "linter"; // Inline text with semantic underlines (grammar-check style)
+  | "badge" // Source name chip with count (ChatGPT-style)
+  | "linter"; // Inline text with semantic underlines (default)
 
 /**
  * Content to display in the citation.
@@ -40,8 +38,7 @@ export type CitationVariant =
  * - `text` → `anchorText`
  * - `linter` → `anchorText`
  * - `superscript` → `number`
- * - `minimal` → `number`
- * - `source` → `source`
+ * - `badge` → `source`
  */
 export type CitationContent =
   | "anchorText" // Show anchorText text

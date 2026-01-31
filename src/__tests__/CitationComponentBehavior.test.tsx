@@ -152,7 +152,7 @@ describe("CitationComponent behaviorConfig", () => {
       expect(greenCheck).toBeInTheDocument();
     });
 
-    it("shows warning icon for not_found status", () => {
+    it("shows X circle icon for not_found status", () => {
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
@@ -164,9 +164,9 @@ describe("CitationComponent behaviorConfig", () => {
       const spinner = container.querySelector(".animate-spin svg");
       expect(spinner).not.toBeInTheDocument();
 
-      // Should have amber warning (text-amber-500 class)
-      const warningIcon = container.querySelector(".text-amber-500");
-      expect(warningIcon).toBeInTheDocument();
+      // Should have red X circle (text-red-500 class)
+      const redXIcon = container.querySelector(".text-red-500");
+      expect(redXIcon).toBeInTheDocument();
     });
 
     it("shows amber check for partial match status", () => {
@@ -249,6 +249,7 @@ describe("CitationComponent behaviorConfig", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithoutImage}
+          variant="brackets"
           showIndicator={false}
           renderIndicator={() => customIndicator}
         />
@@ -262,18 +263,19 @@ describe("CitationComponent behaviorConfig", () => {
       expect(greenCheck).not.toBeInTheDocument();
     });
 
-    it("hides warning indicator for not_found when showIndicator=false", () => {
+    it("hides X circle indicator for not_found when showIndicator=false", () => {
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
           verification={missVerification}
+          variant="brackets"
           showIndicator={false}
         />
       );
 
-      // Should NOT have warning indicator
-      const warningIcon = container.querySelector(".text-amber-500");
-      expect(warningIcon).not.toBeInTheDocument();
+      // Should NOT have red X circle indicator
+      const redXIcon = container.querySelector(".text-red-500");
+      expect(redXIcon).not.toBeInTheDocument();
     });
   });
 

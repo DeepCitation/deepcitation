@@ -47,11 +47,11 @@ Using the default `brackets` variant for formal legal documents:
 
 ## Medical SOAP Notes
 
-Using `minimal` and `text` variants for clinical documentation:
+Using `linter` and `text` variants for clinical documentation:
 
 {% raw %}
 ```tsx
-// Medical notes using minimal and text variants
+// Medical notes using linter and text variants
 <div>
   <h4>Subjective</h4>
   <p>
@@ -70,7 +70,7 @@ Using `minimal` and `text` variants for clinical documentation:
         verifiedPageNumber: 1,
         verifiedMatchSnippet: "3 day history of worsening lower extremity edema",
       }}
-      variant="minimal"
+      variant="linter"
     />{" "}
     of worsening edema.
   </p>
@@ -124,14 +124,14 @@ Showing how unverified citations (hallucinations) are visually distinct from ver
   verification={{
     status: "not_found",  // Citation not found in document
   }}
-  variant="minimal"
+  variant="linter"
 />
-// Renders with strikethrough styling to indicate hallucination
+// Renders with wavy red underline to indicate hallucination
 ```
 {% endraw %}
 
 {: .warning }
-The citation above was not found in the source document (hallucination). Notice the strikethrough styling indicating a miss.
+The citation above was not found in the source document (hallucination). Notice the wavy red underline indicating a miss.
 
 This visual differentiation helps users immediately identify when an AI has made a claim that cannot be verified against the source documents.
 
@@ -139,7 +139,7 @@ This visual differentiation helps users immediately identify when an AI has made
 
 ## Financial Analysis
 
-Using the `source` variant for source badge citations in financial reports:
+Using the `badge` variant for source badge citations in financial reports:
 
 {% raw %}
 ```tsx
@@ -160,7 +160,7 @@ Using the `source` variant for source badge citations in financial reports:
       status: "found",
       verifiedPageNumber: 1,
     }}
-    variant="source"
+    variant="badge"
     additionalCount={3}
   />
   , the insider plans to sell shares over the next quarter.
@@ -203,7 +203,7 @@ function ChatMessage({ message, citations, verifications }) {
             key={key}
             citation={citation}
             verification={verifications[key]}
-            variant="source"
+            variant="badge"
           />
         ))}
       </div>
@@ -224,7 +224,7 @@ Override default styles using CSS class targeting:
   citation={citation}
   verification={verification}
   className="my-custom-citation"
-  variant="minimal"
+  variant="linter"
 />
 ```
 

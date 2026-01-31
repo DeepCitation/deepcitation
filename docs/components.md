@@ -73,11 +73,28 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 The `variant` prop controls the visual style, and `content` controls what text to display.
 
-Available variants: `"chip"` | `"brackets"` | `"text"` | `"superscript"` | `"minimal"` | `"source"`
+Available variants: `"linter"` | `"chip"` | `"brackets"` | `"text"` | `"superscript"` | `"badge"`
+
+### Linter (Default)
+
+Inline text with semantic underlines based on verification status. Best for inline quotes, articles, natural reading flow.
+
+```tsx
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  variant="linter"
+/>
+// Renders: underlined text with color based on status
+// Verified = solid green underline
+// Partial = dashed amber underline
+// Not found = wavy red underline
+// Pending = dotted gray underline
+```
 
 ### Chip
 
-Pill/badge style with background color. Best for highlighted citations, visual emphasis.
+Neutral gray pill/badge style with status shown via indicator icon. Best for highlighted citations, visual emphasis.
 
 ```tsx
 <CitationComponent
@@ -87,7 +104,7 @@ Pill/badge style with background color. Best for highlighted citations, visual e
 />
 ```
 
-### Brackets (Default)
+### Brackets
 
 Shows anchorText in square brackets with blue styling. Best for academic papers, legal documents.
 
@@ -139,28 +156,16 @@ Small raised text like footnotes. Best for academic writing, traditional citatio
 // Renders: ¹
 ```
 
-### Minimal
+### Badge
 
-Compact text with indicator, truncated. Best for blog posts, news articles.
-
-```tsx
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  variant="minimal"
-/>
-```
-
-### Source
-
-Source badge/pill showing name + count. Best for chat interfaces, conversational AI.
+Source badge/pill showing name + count with status indicator. Best for chat interfaces, conversational AI.
 
 {% raw %}
 ```tsx
 <CitationComponent
   citation={{ ...citation, title: "YC SAFE Agreement", domain: "ycombinator.com" }}
   verification={verification}
-  variant="source"
+  variant="badge"
   additionalCount={2}  // Shows "+2" suffix
 />
 ```
@@ -318,7 +323,7 @@ function MyComponent() {
 |:-----|:-----|:---------|:------------|
 | `citation` | `Citation` | Yes | The citation data to display |
 | `verification` | `Verification \| null` | No | Verification result data from the API |
-| `variant` | `"chip" \| "brackets" \| "text" \| "superscript" \| "minimal" \| "source"` | No | Visual style variant (default: "brackets") |
+| `variant` | `"linter" \| "chip" \| "brackets" \| "text" \| "superscript" \| "badge"` | No | Visual style variant (default: "linter") |
 | `content` | `"anchorText" \| "number" \| "indicator" \| "source"` | No | What content to display. Defaults based on variant. |
 | `isLoading` | `boolean` | No | Explicitly show loading spinner |
 | `children` | `ReactNode` | No | Content to render before the citation |
@@ -332,8 +337,8 @@ function MyComponent() {
 | `renderContent` | `(props: CitationRenderProps) => ReactNode` | No | Full custom content renderer |
 | `popoverPosition` | `"top" \| "bottom" \| "hidden"` | No | Popover position (default: "top") |
 | `renderPopoverContent` | `(props) => ReactNode` | No | Custom popover content renderer |
-| `additionalCount` | `number` | No | Number of additional citations for source variant |
-| `faviconUrl` | `string` | No | Favicon URL for source variant |
+| `additionalCount` | `number` | No | Number of additional citations for badge variant |
+| `faviconUrl` | `string` | No | Favicon URL for badge variant |
 
 ---
 

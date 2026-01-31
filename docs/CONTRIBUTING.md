@@ -111,6 +111,56 @@ Link to other pages without the `.md` extension:
 5. Commit: `git commit -m "docs: Description of changes"`
 6. Push and create a pull request
 
+## Deployment
+
+### GitHub Pages (Default)
+
+Documentation is automatically deployed to GitHub Pages when changes are pushed to `main`:
+- **URL:** `https://deepcitation.github.io/deepcitation-js/`
+
+### Custom Domain Setup
+
+To use a custom domain (e.g., `docs.deepcitation.com`):
+
+1. **Add CNAME file** to `docs/` directory:
+   ```
+   docs.deepcitation.com
+   ```
+
+2. **Configure DNS** with your domain provider:
+   - For apex domain (`deepcitation.com`): Add `A` records pointing to GitHub's IPs:
+     ```
+     185.199.108.153
+     185.199.109.153
+     185.199.110.153
+     185.199.111.153
+     ```
+   - For subdomain (`docs.deepcitation.com`): Add a `CNAME` record:
+     ```
+     docs.deepcitation.com -> deepcitation.github.io
+     ```
+
+3. **Update `_config.yml`**:
+   ```yaml
+   baseurl: ""  # Remove /deepcitation-js for custom domain
+   url: "https://docs.deepcitation.com"
+   ```
+
+4. **Enable in GitHub Settings**:
+   - Go to Settings > Pages
+   - Enter your custom domain
+   - Check "Enforce HTTPS"
+
+### Preview PR Changes
+
+When you open a PR with documentation changes:
+1. The docs workflow builds and uploads an artifact
+2. Download the `github-pages` artifact from the workflow run
+3. Serve locally to preview:
+   ```bash
+   cd artifact && python -m http.server 8000
+   ```
+
 ## Questions?
 
 Open an issue or reach out at [support@deepcitation.com](mailto:support@deepcitation.com).

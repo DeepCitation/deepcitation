@@ -13,11 +13,9 @@ on:
         default: 'false'
         type: boolean
 
-# Allow deployment to GitHub Pages and snapshot updates
+# Permissions for snapshot updates and PR comments
 permissions:
   contents: write
-  pages: write
-  id-token: write
   pull-requests: write
 
 jobs:
@@ -99,123 +97,8 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      # Deploy report to GitHub Pages (optional - requires Pages to be enabled)
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        id: pages-setup
-
-      - name: Prepare report for Pages
-        if: ${{ !cancelled() && steps.pages-setup.outcome == 'success' }}
-        run: |
-          mkdir -p _site/playwright-reports/${{ github.run_id }}
-          cp -r playwright-report/* _site/playwright-reports/${{ github.run_id }}/
-
-          # Copy visual snapshots to Pages
-          mkdir -p _site/playwright-reports/${{ github.run_id }}/snapshots
-          if [ -d "tests/playwright/specs/__snapshots__" ]; then
-            cp -r tests/playwright/specs/__snapshots__/* _site/playwright-reports/${{ github.run_id }}/snapshots/ 2>/dev/null || true
-          fi
-
-          # Create a snapshots gallery page
-          cat > _site/playwright-reports/${{ github.run_id }}/snapshots/index.html << 'GALLERY_EOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Visual Snapshots Gallery</title>
-            <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-              h1 { color: #333; }
-              .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; }
-              .snapshot { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
-              .snapshot img { width: 100%; height: auto; display: block; cursor: zoom-in; }
-              .snapshot:hover img { transform: scale(1.02); transition: transform 0.2s; }
-              .snapshot-title { padding: 12px 16px; font-weight: 500; color: #333; border-top: 1px solid #eee; font-size: 14px; }
-              .back-link { display: inline-block; margin-bottom: 20px; color: #0066cc; text-decoration: none; }
-              .back-link:hover { text-decoration: underline; }
-              .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; }
-              .modal.active { display: flex; }
-              .modal img { max-width: 95vw; max-height: 95vh; object-fit: contain; }
-              .modal-close { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; }
-            </style>
-          </head>
-          <body>
-            <a href="../" class="back-link">← Back to Test Report</a>
-            <h1>📸 Visual Snapshots</h1>
-            <p>Click any image to view full size. These snapshots are generated from Playwright component tests.</p>
-            <div class="gallery" id="gallery"></div>
-            <div class="modal" id="modal" onclick="closeModal()">
-              <span class="modal-close">&times;</span>
-              <img id="modal-img" src="" alt="Full size snapshot">
-            </div>
-            <script>
-              const gallery = document.getElementById('gallery');
-              const extensions = ['png', 'jpg', 'jpeg'];
-
-              // Find all PNG files in the directory (we'll populate this from the file listing)
-              fetch('./')
-                .then(res => res.text())
-                .then(html => {
-                  const parser = new DOMParser();
-                  const doc = parser.parseFromString(html, 'text/html');
-                  const links = Array.from(doc.querySelectorAll('a'));
-                  const images = links
-                    .map(a => a.getAttribute('href'))
-                    .filter(href => href && extensions.some(ext => href.toLowerCase().endsWith('.' + ext)));
-
-                  if (images.length === 0) {
-                    gallery.innerHTML = '<p>No snapshots found in this directory.</p>';
-                    return;
-                  }
-
-                  images.forEach(img => {
-                    const name = img.replace(/\.(png|jpg|jpeg)$/i, '').replace(/-/g, ' ');
-                    const div = document.createElement('div');
-                    div.className = 'snapshot';
-                    div.innerHTML = `
-                      <img src="${img}" alt="${name}" onclick="openModal('${img}')" loading="lazy">
-                      <div class="snapshot-title">${name}</div>
-                    `;
-                    gallery.appendChild(div);
-                  });
-                })
-                .catch(() => {
-                  gallery.innerHTML = '<p>Could not load snapshot gallery. <a href="./">Browse files directly</a></p>';
-                });
-
-              function openModal(src) {
-                event.stopPropagation();
-                document.getElementById('modal-img').src = src;
-                document.getElementById('modal').classList.add('active');
-              }
-
-              function closeModal() {
-                document.getElementById('modal').classList.remove('active');
-              }
-
-              document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-            </script>
-          </body>
-          </html>
-          GALLERY_EOF
-
-          # Create an index with redirect to latest report
-          echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=playwright-reports/${{ github.run_id }}/"></head></html>' > _site/index.html
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        if: ${{ !cancelled() && steps.pages-setup.outcome == 'success' }}
-        with:
-          path: _site
-
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        if: ${{ !cancelled() && steps.pages-setup.outcome == 'success' }}
-        continue-on-error: true
-        id: deployment
+      # Note: Playwright reports are available as artifacts only.
+      # GitHub Pages is reserved for the Jekyll documentation site.
 
       # Comment on PR with report link
       - name: Comment PR with report link
@@ -225,25 +108,16 @@ jobs:
           script: |
             const runId = '${{ github.run_id }}';
             const testResult = '${{ steps.playwright.outcome }}';
-            const pagesEnabled = '${{ steps.pages-setup.outcome }}' === 'success';
             const icon = testResult === 'success' ? '✅' : '❌';
             const status = testResult === 'success' ? 'passed' : 'failed';
 
-            const baseUrl = `https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/playwright-reports/${runId}`;
-            const reportLink = pagesEnabled
-              ? `📊 **[View Full Report](${baseUrl}/)**`
-              : `📊 **[Download Report Artifact](https://github.com/${{ github.repository }}/actions/runs/${runId})**`;
-
-            const snapshotsLink = pagesEnabled
-              ? `📸 **[View Visual Snapshots Gallery](${baseUrl}/snapshots/)**`
-              : `📸 Visual snapshots available in artifacts`;
+            const artifactsUrl = `https://github.com/${{ github.repository }}/actions/runs/${runId}`;
 
             const body = `## ${icon} Playwright Test Report
 
             **Status:** Tests ${status}
 
-            ${reportLink}
-            ${snapshotsLink}
+            📊 **[Download Report & Snapshots](${artifactsUrl})** (see Artifacts section)
 
             <details>
             <summary>What's in the Visual Snapshots</summary>
@@ -258,7 +132,7 @@ jobs:
             </details>
 
             ---
-            *Run ID: ${runId} | [Download Artifacts](https://github.com/${{ github.repository }}/actions/runs/${runId})*`;
+            *Run ID: ${runId}*`;
 
             // Find existing comment
             const { data: comments } = await github.rest.issues.listComments({
@@ -292,7 +166,7 @@ jobs:
       - name: Add test summary
         if: ${{ !cancelled() }}
         run: |
-          BASE_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/playwright-reports/${{ github.run_id }}"
+          ARTIFACTS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           echo "## 🎭 Playwright Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -303,9 +177,7 @@ jobs:
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 Reports" >> $GITHUB_STEP_SUMMARY
-          echo "- [View HTML Report](${BASE_URL}/)" >> $GITHUB_STEP_SUMMARY
-          echo "- [📸 View Visual Snapshots Gallery](${BASE_URL}/snapshots/)" >> $GITHUB_STEP_SUMMARY
-          echo "- [Download Artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [Download Artifacts](${ARTIFACTS_URL}) (playwright-report, visual-snapshots)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📸 Visual Snapshots" >> $GITHUB_STEP_SUMMARY
           echo "The visual showcase tests render all citation component states:" >> $GITHUB_STEP_SUMMARY

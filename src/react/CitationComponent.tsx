@@ -16,7 +16,7 @@ const Activity =
 import { type CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
-import { CheckIcon, CloseIcon, SpinnerIcon, WarningIcon } from "./icons.js";
+import { CheckIcon, CloseIcon, SpinnerIcon, WarningIcon, XCircleIcon } from "./icons.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover.js";
 import type {
   BaseCitationProps,
@@ -184,10 +184,9 @@ function getDefaultContent(variant: CitationVariant): CitationContent {
     case "brackets":
     case "linter":
       return "anchorText";
-    case "source":
+    case "badge":
       return "source";
     case "superscript":
-    case "minimal":
     default:
       return "number";
   }
@@ -283,13 +282,12 @@ export interface CitationComponentProps extends BaseCitationProps {
   isLoading?: boolean;
   /**
    * Visual style variant for the citation.
-   * - `chip`: Pill/badge style with background color
-   * - `brackets`: [text✓] with square brackets (default)
+   * - `linter`: Inline text with semantic underlines (default)
+   * - `chip`: Pill/badge style with neutral gray background
+   * - `brackets`: [text✓] with square brackets
    * - `text`: Plain text, inherits parent styling
    * - `superscript`: Small raised text like footnotes¹
-   * - `minimal`: Compact text with indicator, truncated
-   * - `source`: ChatGPT-style source chip with name + count
-   * - `linter`: Inline text with semantic underlines (solid/dashed/wavy)
+   * - `badge`: ChatGPT-style source chip with favicon + count
    */
   variant?: CitationVariant;
   /**
@@ -300,13 +298,12 @@ export interface CitationComponentProps extends BaseCitationProps {
    * - `source`: Source name (e.g., "Wikipedia")
    *
    * Defaults based on variant:
+   * - `linter` → `anchorText`
    * - `chip` → `anchorText`
    * - `brackets` → `anchorText`
    * - `text` → `anchorText`
-   * - `linter` → `anchorText`
    * - `superscript` → `number`
-   * - `minimal` → `number`
-   * - `source` → `source`
+   * - `badge` → `source`
    */
   content?: CitationContent;
   /** Event handlers for citation interactions */
@@ -726,13 +723,13 @@ const PendingIndicator = () => (
   </span>
 );
 
-/** Miss indicator - amber warning triangle for not found (subscript-positioned) */
+/** Miss indicator - red X in circle for not found (subscript-positioned) */
 const MissIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.15em] size-2.5 text-amber-500 dark:text-amber-400"
+    className="inline-flex relative ml-0.5 top-[0.15em] size-2.5 text-red-500 dark:text-red-400"
     aria-hidden="true"
   >
-    <WarningIcon />
+    <XCircleIcon />
   </span>
 );
 
@@ -1240,7 +1237,7 @@ function DefaultPopoverContent({
     return (
       <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md min-w-[200px] max-w-[400px]">
         {/* Source context header */}
-        <SourceContextHeader citation={citation} verification={verification} />
+        <SourceContextHeader citation={citation} verification={verification} status={searchStatus} />
         <div className="p-3 flex flex-col gap-2">
           <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
             <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
@@ -1271,9 +1268,9 @@ function DefaultPopoverContent({
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md" style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
           {/* Source context header */}
-          <SourceContextHeader citation={citation} verification={verification} />
-          {/* Green status header - show expected page */}
-          <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} />
+          <SourceContextHeader citation={citation} verification={verification} status={searchStatus} />
+          {/* Green status header - hide page badge since SourceContextHeader shows it */}
+          <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} hidePageBadge />
 
           {/* Verification image */}
           <div className="p-2">
@@ -1341,12 +1338,12 @@ function DefaultPopoverContent({
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md" style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
           {/* Source context header */}
-          <SourceContextHeader citation={citation} verification={verification} />
+          <SourceContextHeader citation={citation} verification={verification} status={searchStatus} />
           {/* Content area: Image with simple header, OR combined status header with quote */}
           {hasImage && verification ? (
             // Show simple header + image (for partial matches that have images)
             <>
-              <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} />
+              <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} hidePageBadge />
               {/* Humanizing message for partial matches with images */}
               {humanizingMessage && (
                 <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
@@ -1401,6 +1398,7 @@ function DefaultPopoverContent({
                 expectedPage={expectedPage ?? undefined}
                 anchorText={humanizingMessage ? undefined : anchorText}
                 fullPhrase={humanizingMessage ? undefined : (fullPhrase ?? undefined)}
+                hidePageBadge
               />
               {/* Humanizing message replaces the anchor text display */}
               {humanizingMessage && (
@@ -1443,7 +1441,7 @@ function DefaultPopoverContent({
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md min-w-[180px] max-w-full">
       {/* Source context header */}
-      <SourceContextHeader citation={citation} verification={verification} />
+      <SourceContextHeader citation={citation} verification={verification} status={searchStatus} />
       <div className="p-3 flex flex-col gap-2">
         {statusLabel && (
           <span
@@ -1657,7 +1655,7 @@ export const CitationComponent = forwardRef<
       fallbackDisplay,
       verification,
       isLoading = false,
-      variant = "brackets",
+      variant = "linter",
       content: contentProp,
       eventHandlers,
       behaviorConfig,
@@ -1975,10 +1973,10 @@ export const CitationComponent = forwardRef<
     }
 
     // Status classes for text styling
-    // Variants that display inline text (text, minimal, superscript, linter) need
+    // Variants that display inline text (text, superscript, linter) need
     // a default text color that works in both light and dark modes
     const needsDefaultTextColor =
-      variant === "text" || variant === "minimal" || variant === "superscript" || variant === "linter";
+      variant === "text" || variant === "superscript" || variant === "linter";
 
     const statusClasses = cn(
       // Default text color for inline variants (ensures dark mode compatibility)
@@ -2025,31 +2023,17 @@ export const CitationComponent = forwardRef<
         return <span>{renderStatusIndicator()}</span>;
       }
 
-      // Variant: chip (pill/badge style)
+      // Variant: chip (pill/badge style with neutral gray background)
+      // Status is conveyed via the indicator icon color only
       if (variant === "chip") {
-        const chipStatusClasses = cn(
-          isVerified &&
-            !isPartialMatch &&
-            !shouldShowSpinner &&
-            "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-          isPartialMatch &&
-            !shouldShowSpinner &&
-            "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-          isMiss &&
-            !shouldShowSpinner &&
-            "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 line-through",
-          shouldShowSpinner &&
-            "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-          !isVerified &&
-            !isMiss &&
-            !shouldShowSpinner &&
-            "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-        );
         return (
           <span
             className={cn(
-              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm font-medium",
-              chipStatusClasses
+              "inline-flex items-center gap-1 px-2 py-px rounded-full text-sm font-medium",
+              // Neutral gray background - status shown via icon color only
+              "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+              // Miss state: add line-through for visual distinction
+              isMiss && !shouldShowSpinner && "line-through opacity-70"
             )}
           >
             <span className="max-w-60 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -2094,40 +2078,22 @@ export const CitationComponent = forwardRef<
         );
       }
 
-      // Variant: minimal (compact with truncation)
-      if (variant === "minimal") {
-        const minimalStatusClasses = cn(
-          // Default text color for dark mode compatibility
-          // Miss state keeps readable text - line-through is the signal
-          (!shouldShowSpinner) && "text-gray-700 dark:text-gray-200",
-          // Miss state - keep line-through but text stays readable
-          isMiss && !shouldShowSpinner && "opacity-70 line-through",
-          // Pending state
-          shouldShowSpinner && "text-gray-500 dark:text-gray-400"
-        );
-        return (
-          <span
-            className={cn(
-              "max-w-80 overflow-hidden text-ellipsis",
-              minimalStatusClasses
-            )}
-          >
-            {displayText}
-            {renderStatusIndicator()}
-          </span>
-        );
-      }
-
-      // Variant: source (ChatGPT-style source chip)
-      if (variant === "source") {
+      // Variant: badge (ChatGPT-style source chip with favicon + count + status indicator)
+      if (variant === "badge") {
         const faviconSrc = faviconUrl || citation.faviconUrl;
         return (
           <span
             className={cn(
               "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
               "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-              "hover:bg-gray-200 dark:hover:bg-gray-700",
-              "transition-colors cursor-pointer"
+              "transition-colors cursor-pointer",
+              // Status-aware hover styling (10% opacity for all states)
+              isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
+              isPartialMatch && !shouldShowSpinner && "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
+              isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
+              (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) && "hover:bg-gray-200 dark:hover:bg-gray-700",
+              // Miss state: add line-through for visual distinction
+              isMiss && !shouldShowSpinner && "line-through opacity-70"
             )}
           >
             {faviconSrc && (
@@ -2148,6 +2114,7 @@ export const CitationComponent = forwardRef<
                 +{additionalCount}
               </span>
             )}
+            {renderStatusIndicator()}
           </span>
         );
       }
@@ -2211,9 +2178,9 @@ export const CitationComponent = forwardRef<
           (isVerifiedState || isPartialState || isMissState) && "text-gray-700 dark:text-gray-200",
           // Only pending is slightly muted
           isPendingState && "text-gray-500 dark:text-gray-400",
-          // Verified: subtle green background wash on hover only (using green-600 to match component)
+          // Verified: subtle green background wash on hover only (10% opacity)
           isVerifiedState &&
-            "hover:bg-green-600/[0.12] dark:hover:bg-green-500/[0.12]",
+            "hover:bg-green-600/10 dark:hover:bg-green-500/10",
           // Partial: subtle amber background on hover (using amber-600 to match component)
           isPartialState &&
             "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
@@ -2290,7 +2257,7 @@ export const CitationComponent = forwardRef<
     ) : null;
 
     // Shared trigger element props
-    // Note: linter variant handles its own hover styles, so we skip the blue hover for it
+    // All variants use status-aware hover colors (green/amber/red/gray)
     const triggerProps = {
       "data-citation-id": citationKey,
       "data-citation-instance": citationInstanceId,
@@ -2298,8 +2265,11 @@ export const CitationComponent = forwardRef<
         "relative inline-flex items-baseline cursor-pointer",
         "px-0.5 -mx-0.5 rounded-sm",
         "transition-all duration-[50ms]",
-        // Only apply blue hover for non-linter variants (linter has its own status-colored hover)
-        variant !== "linter" && "hover:bg-blue-500/10 dark:hover:bg-blue-400/10",
+        // Status-aware hover for all variants (10% opacity; linter includes these in its own classes too)
+        variant !== "linter" && isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
+        variant !== "linter" && isPartialMatch && !shouldShowSpinner && "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
+        variant !== "linter" && isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
+        variant !== "linter" && (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) && "hover:bg-gray-500/10 dark:hover:bg-gray-400/10",
         hasImage && "cursor-zoom-in",
         className
       ),
