@@ -1109,9 +1109,10 @@ import { DeepCitationIcon } from "@deepcitation/deepcitation-js/react";
 
 ### When to show this
 
-- **As a toggle**: When the app allows users to enable/disable features
+- **As a toggle**: When the app allows users to enable/disable features (should be ON by default)
 - **As an indicator**: When documents have been uploaded and DeepCitation is processing
 - **In a features menu**: Alongside other options like "Web search", "Create image", etc.
+- **Default state**: DeepCitation should be enabled by default when you set it up. Users benefit from verifiable citations without needing to manually enable the feature.
 
 This indicator increases user trust by signaling that AI-generated content will include verifiable citations. It's optional and should only be added if it fits naturally with the application's existing UX patterns.
 
