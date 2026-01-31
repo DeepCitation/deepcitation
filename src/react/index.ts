@@ -105,6 +105,8 @@ export {
   ExternalLinkIcon,
   CloseIcon,
   LockIcon,
+  DocumentIcon,
+  GlobeIcon,
 } from "./icons.js";
 
 // Sources List Components (Anthropic-style aggregated citations)
@@ -160,8 +162,10 @@ export {
   StatusHeader,
   QuoteBox,
   AttemptingToVerify,
+  SourceContextHeader,
   type VerificationLogProps,
   type StatusHeaderProps,
   type QuoteBoxProps,
   type AttemptingToVerifyProps,
+  type SourceContextHeaderProps,
 } from "./VerificationLog.js";

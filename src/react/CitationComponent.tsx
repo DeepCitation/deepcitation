@@ -36,7 +36,7 @@ import {
 import { useSmartDiff } from "./useSmartDiff.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import { SplitDiffDisplay, getContextualStatusMessage } from "./SplitDiffDisplay.js";
-import { StatusHeader, VerificationLog } from "./VerificationLog.js";
+import { SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";
 
 // Re-export types for convenience
 export type { CitationVariant, CitationContent } from "./types.js";
@@ -1238,23 +1238,27 @@ function DefaultPopoverContent({
   if (isLoading || isPending) {
     const searchingPhrase = fullPhrase || anchorText;
     return (
-      <div className="p-3 flex flex-col gap-2 min-w-[200px] max-w-[400px]">
-        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-          <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
-            <SpinnerIcon />
+      <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md min-w-[200px] max-w-[400px]">
+        {/* Source context header */}
+        <SourceContextHeader citation={citation} verification={verification} />
+        <div className="p-3 flex flex-col gap-2">
+          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+            <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
+              <SpinnerIcon />
+            </span>
+            Searching...
           </span>
-          Searching...
-        </span>
-        {searchingPhrase && (
-          <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
-            "{searchingPhrase.length > 80 ? searchingPhrase.slice(0, 80) + '…' : searchingPhrase}"
-          </p>
-        )}
-        {citation.pageNumber && citation.pageNumber > 0 && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            Looking on page {citation.pageNumber}
-          </span>
-        )}
+          {searchingPhrase && (
+            <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
+              "{searchingPhrase.length > 80 ? searchingPhrase.slice(0, 80) + '…' : searchingPhrase}"
+            </p>
+          )}
+          {citation.pageNumber && citation.pageNumber > 0 && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Looking on page {citation.pageNumber}
+            </span>
+          )}
+        </div>
       </div>
     );
   }
@@ -1266,6 +1270,8 @@ function DefaultPopoverContent({
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md" style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
+          {/* Source context header */}
+          <SourceContextHeader citation={citation} verification={verification} />
           {/* Green status header - show expected page */}
           <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} />
 
@@ -1334,6 +1340,8 @@ function DefaultPopoverContent({
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md" style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
+          {/* Source context header */}
+          <SourceContextHeader citation={citation} verification={verification} />
           {/* Content area: Image with simple header, OR combined status header with quote */}
           {hasImage && verification ? (
             // Show simple header + image (for partial matches that have images)
@@ -1433,32 +1441,36 @@ function DefaultPopoverContent({
   if (!hasSnippet && !statusLabel) return null;
 
   return (
-    <div className="p-3 flex flex-col gap-2 min-w-[180px] max-w-full">
-      {statusLabel && (
-        <span
-          className={cn(
-            "text-xs font-medium",
-            status.isVerified &&
-              !status.isPartialMatch &&
-              "text-green-600 dark:text-green-400",
-            status.isPartialMatch && "text-amber-600 dark:text-amber-400",
-            status.isMiss && "text-red-500 dark:text-red-400",
-            status.isPending && "text-gray-500 dark:text-gray-400"
-          )}
-        >
-          {statusLabel}
-        </span>
-      )}
-      {hasSnippet && (
-        <span className="text-sm text-gray-700 dark:text-gray-200">
-          "{verification.verifiedMatchSnippet}"
-        </span>
-      )}
-      {pageNumber && pageNumber > 0 && (
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          Page {pageNumber}
-        </span>
-      )}
+    <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md min-w-[180px] max-w-full">
+      {/* Source context header */}
+      <SourceContextHeader citation={citation} verification={verification} />
+      <div className="p-3 flex flex-col gap-2">
+        {statusLabel && (
+          <span
+            className={cn(
+              "text-xs font-medium",
+              status.isVerified &&
+                !status.isPartialMatch &&
+                "text-green-600 dark:text-green-400",
+              status.isPartialMatch && "text-amber-600 dark:text-amber-400",
+              status.isMiss && "text-red-500 dark:text-red-400",
+              status.isPending && "text-gray-500 dark:text-gray-400"
+            )}
+          >
+            {statusLabel}
+          </span>
+        )}
+        {hasSnippet && (
+          <span className="text-sm text-gray-700 dark:text-gray-200">
+            "{verification.verifiedMatchSnippet}"
+          </span>
+        )}
+        {pageNumber && pageNumber > 0 && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Page {pageNumber}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
