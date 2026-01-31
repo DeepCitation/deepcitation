@@ -2,8 +2,10 @@ import React, { useState, useMemo } from "react";
 import type { SearchAttempt, SearchStatus, SearchMethod, VariationType } from "../types/search.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import { CheckIcon, MissIcon, SpinnerIcon, DocumentIcon, GlobeIcon } from "./icons.js";
+import { CheckIcon, MissIcon, SpinnerIcon, DocumentIcon, GlobeIcon, XCircleIcon } from "./icons.js";
 import { cn, isUrlCitation } from "./utils.js";
+import type { UrlFetchStatus } from "./types.js";
+import { UrlCitationComponent } from "./UrlCitationComponent.js";
 
 // =============================================================================
 // CONSTANTS
@@ -78,10 +80,38 @@ export interface SourceContextHeaderProps {
   citation: Citation;
   /** Verification data (optional, provides favicon for URL citations) */
   verification?: Verification | null;
+  /** Search status (used to derive URL fetch status for URL citations) */
+  status?: SearchStatus | null;
 }
 
 /** Maximum length for display name truncation in source headers */
-const MAX_SOURCE_DISPLAY_NAME_LENGTH = 40;
+const MAX_SOURCE_DISPLAY_NAME_LENGTH = 60;
+
+/**
+ * Maps document verification SearchStatus to UrlFetchStatus for display in UrlCitationComponent.
+ */
+function mapSearchStatusToUrlFetchStatus(status: SearchStatus | null | undefined): UrlFetchStatus {
+  if (!status) return "pending";
+  switch (status) {
+    case "found":
+    case "found_anchor_text_only":
+    case "found_phrase_missed_anchor_text":
+      return "verified";
+    case "found_on_other_page":
+    case "found_on_other_line":
+    case "partial_text_found":
+    case "first_word_found":
+      return "partial";
+    case "not_found":
+      return "error_not_found";
+    case "loading":
+    case "pending":
+    case "timestamp_wip":
+    case "skipped":
+    default:
+      return "pending";
+  }
+}
 
 /**
  * FaviconImage subcomponent with fallback handling.
@@ -137,85 +167,93 @@ export function FaviconImage({
  * SourceContextHeader displays source information (favicon + source info) for citations.
  * Shown at the top of popovers to give auditors immediate visibility into citation sources.
  *
- * For URL citations: Shows favicon + domain/siteName + optional title
- * For Document citations: Shows document icon + label/attachmentId
+ * For URL citations: Shows UrlCitationComponent badge with favicon + domain + status indicator
+ * For Document citations: Shows document icon + label/attachmentId + page/line info
  */
-export function SourceContextHeader({ citation, verification }: SourceContextHeaderProps) {
+export function SourceContextHeader({ citation, verification, status }: SourceContextHeaderProps) {
   const isUrl = isUrlCitation(citation);
 
   if (isUrl) {
-    // URL citation: show favicon + domain/site info
+    // URL citation: show UrlCitationComponent badge with favicon + domain + status
     const faviconUrl = verification?.verifiedFaviconUrl || citation.faviconUrl;
     const domain = verification?.verifiedDomain || citation.domain;
-    const siteName = verification?.verifiedSiteName || citation.siteName;
-    const title = verification?.verifiedTitle || citation.title;
+    const url = citation.url || "";
+    const pageNumber = verification?.verifiedPageNumber ?? citation.pageNumber;
 
-    // Display text: prefer siteName, fall back to domain
-    // Truncate to MAX_SOURCE_DISPLAY_NAME_LENGTH for consistency with document citations
-    const rawDisplayName = siteName || domain;
-    const displayName = rawDisplayName && rawDisplayName.length > MAX_SOURCE_DISPLAY_NAME_LENGTH
-      ? `${rawDisplayName.slice(0, MAX_SOURCE_DISPLAY_NAME_LENGTH)}...`
-      : rawDisplayName;
-    // Show title if it's different from displayName and adds value
-    const showTitle = title && title !== rawDisplayName && title.length <= 60;
+    // Map the search status to URL fetch status for display
+    const urlFetchStatus = mapSearchStatusToUrlFetchStatus(status);
 
     return (
-      <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-        <FaviconImage
-          faviconUrl={faviconUrl}
-          domain={domain}
-          alt={rawDisplayName?.trim() || "Source"}
+      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+        <UrlCitationComponent
+          urlMeta={{
+            url,
+            domain,
+            faviconUrl,
+            fetchStatus: urlFetchStatus,
+          }}
+          variant="chip"
+          maxDisplayLength={35}
+          preventTooltips={true}
         />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-1.5">
-            {displayName && (
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">
-                {displayName}
-              </span>
-            )}
-          </div>
-          {showTitle && (
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
-              {title}
-            </p>
-          )}
-        </div>
+        {pageNumber && pageNumber > 0 && (
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0 uppercase tracking-wide">
+            Pg {pageNumber}
+          </span>
+        )}
       </div>
     );
   }
 
-  // Document citation: show document icon + label/attachmentId
+  // Document citation: show document icon + label/attachmentId + page/line info (right-aligned)
   const label = verification?.label;
   const attachmentId = citation.attachmentId;
-  const pageNumber = citation.pageNumber;
+  const pageNumber = verification?.verifiedPageNumber ?? citation.pageNumber;
+  const lineIds = verification?.verifiedLineIds ?? citation.lineIds;
 
-  // Display text: prefer label, fall back to truncated attachmentId
-  const displayName = label || (attachmentId ? `${attachmentId.slice(0, 8)}...` : null);
+  // Display text: prefer label, fall back to longer truncated attachmentId
+  const displayName = label || (attachmentId ? `${attachmentId.slice(0, 16)}...` : null);
 
   // Only show if we have something meaningful to display
   if (!displayName && !pageNumber) {
     return null;
   }
 
+  // Format page/line text
+  const pageLineText = formatPageLineText(pageNumber, lineIds);
+
   return (
-    <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-      <span className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500">
-        <DocumentIcon />
-      </span>
-      <div className="flex items-baseline gap-1.5 min-w-0">
+    <div className="flex items-center justify-between gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500">
+          <DocumentIcon />
+        </span>
         {displayName && (
           <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">
             {displayName}
           </span>
         )}
-        {pageNumber && pageNumber > 0 && (
-          <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0">
-            Page {pageNumber}
-          </span>
-        )}
       </div>
+      {pageLineText && (
+        <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0 uppercase tracking-wide">
+          {pageLineText}
+        </span>
+      )}
     </div>
   );
+}
+
+/**
+ * Formats page and line info for display in headers.
+ * Returns "Pg X" or "Pg X, Ln Y" or null if no info available.
+ */
+function formatPageLineText(pageNumber: number | null | undefined, lineIds: number[] | null | undefined): string | null {
+  if (!pageNumber || pageNumber <= 0) return null;
+  const firstLine = lineIds?.[0];
+  if (firstLine && firstLine > 0) {
+    return `Pg ${pageNumber}, Ln ${firstLine}`;
+  }
+  return `Pg ${pageNumber}`;
 }
 
 // =============================================================================
@@ -272,6 +310,8 @@ export interface StatusHeaderProps {
   anchorText?: string;
   /** Full phrase for quote box (when using combined layout) */
   fullPhrase?: string;
+  /** Whether to hide the page badge (to avoid duplication when SourceContextHeader shows it) */
+  hidePageBadge?: boolean;
 }
 
 export interface QuoteBoxProps {
@@ -542,20 +582,20 @@ export function AmbiguityWarning({ ambiguity }: AmbiguityWarningProps) {
  * - Clean white/dark background (no colored header backgrounds)
  * - Colored icon only indicates status
  * - Subtle ring border for elevation
- * - Page badge uses arrow format for location differences (Pg 5 → 7)
+ * - Page badge is only shown if hidePageBadge is false (to avoid duplication with SourceContextHeader)
  */
-export function StatusHeader({ status, foundPage, expectedPage, compact = false, anchorText, fullPhrase }: StatusHeaderProps) {
+export function StatusHeader({ status, foundPage, expectedPage, compact = false, anchorText, fullPhrase, hidePageBadge = false }: StatusHeaderProps) {
   const colorScheme = getStatusColorScheme(status);
   const headerText = getStatusHeaderText(status);
 
   // Select appropriate icon based on status
   // - Green (verified): CheckIcon
   // - Amber (partial): CheckIcon (de-emphasized, not aggressive warning)
-  // - Red (not found): MissIcon (dash)
+  // - Red (not found): XCircleIcon (X in circle for clear "not found" indication)
   // - Gray (pending): SpinnerIcon (not aggressive warning)
   const IconComponent = colorScheme === "green" ? CheckIcon
     : colorScheme === "amber" ? CheckIcon
-    : colorScheme === "red" ? MissIcon
+    : colorScheme === "red" ? XCircleIcon
     : SpinnerIcon;
 
   // Combined layout: status + anchor text + quote in one header section
@@ -578,7 +618,7 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
             </span>
             <span className="font-medium text-gray-800 dark:text-gray-100">{headerText}</span>
           </div>
-          <PageBadge expectedPage={expectedPage} foundPage={foundPage} />
+          {!hidePageBadge && <PageBadge expectedPage={expectedPage} foundPage={foundPage} />}
         </div>
 
         {/* Anchor text and quote */}
@@ -608,7 +648,7 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
         </span>
         <span className="font-medium text-gray-800 dark:text-gray-100">{headerText}</span>
       </div>
-      <PageBadge expectedPage={expectedPage} foundPage={foundPage} />
+      {!hidePageBadge && <PageBadge expectedPage={expectedPage} foundPage={foundPage} />}
     </div>
   );
 }

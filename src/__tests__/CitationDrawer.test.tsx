@@ -51,7 +51,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verification}
-          variant="source"
+          variant="badge"
         />
       );
 
@@ -63,7 +63,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verification}
-          variant="source"
+          variant="badge"
         />
       );
 
@@ -77,7 +77,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verification}
-          variant="source"
+          variant="badge"
           faviconUrl={customFavicon}
         />
       );
@@ -91,7 +91,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verification}
-          variant="source"
+          variant="badge"
           additionalCount={2}
         />
       );
@@ -104,7 +104,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verification}
-          variant="source"
+          variant="badge"
           additionalCount={0}
         />
       );
@@ -122,7 +122,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={citationWithoutName}
           verification={verification}
-          variant="source"
+          variant="badge"
         />
       );
 
@@ -139,7 +139,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={citationNoSource}
           verification={verification}
-          variant="source"
+          variant="badge"
         />
       );
 
@@ -155,7 +155,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={citationEmpty}
           verification={verification}
-          variant="source"
+          variant="badge"
         />
       );
 
@@ -167,7 +167,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verification}
-          variant="source"
+          variant="badge"
         />
       );
 
@@ -181,7 +181,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verification}
-          variant="source"
+          variant="badge"
         />
       );
 
@@ -201,7 +201,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verification}
-          variant="source"
+          variant="badge"
         />
       );
 
@@ -214,7 +214,7 @@ describe("CitationComponent source variant", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verification}
-          variant="source"
+          variant="badge"
           content="anchorText"
         />
       );

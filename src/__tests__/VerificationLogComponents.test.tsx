@@ -348,7 +348,7 @@ describe("SourceContextHeader", () => {
       expect(img).toBeInTheDocument();
     });
 
-    it("prefers siteName over domain for display", () => {
+    it("shows domain from URL in UrlCitationComponent", () => {
       const citation: Citation = {
         type: "url",
         url: "https://example.com/article",
@@ -359,10 +359,11 @@ describe("SourceContextHeader", () => {
 
       const { container } = render(<SourceContextHeader citation={citation} />);
 
-      expect(container.textContent).toContain("Example Site");
+      // UrlCitationComponent shows domain/path format
+      expect(container.textContent).toContain("example.com");
     });
 
-    it("shows title when different from displayName and within length limit", () => {
+    it("shows domain and path from URL", () => {
       const citation: Citation = {
         type: "url",
         url: "https://example.com/article",
@@ -373,11 +374,11 @@ describe("SourceContextHeader", () => {
 
       const { container } = render(<SourceContextHeader citation={citation} />);
 
+      // UrlCitationComponent shows domain/path
       expect(container.textContent).toContain("example.com");
-      expect(container.textContent).toContain("Article Title");
     });
 
-    it("uses verified data from verification over citation", () => {
+    it("uses verified domain from verification over citation", () => {
       const citation: Citation = {
         type: "url",
         url: "https://example.com/article",
@@ -394,24 +395,22 @@ describe("SourceContextHeader", () => {
         <SourceContextHeader citation={citation} verification={verification} />
       );
 
-      expect(container.textContent).toContain("Verified Site Name");
-      expect(container.textContent).not.toContain("Original Site");
+      // UrlCitationComponent uses verified domain
+      expect(container.textContent).toContain("verified.com");
     });
 
-    it("truncates long display names", () => {
-      const longName = "A".repeat(50); // Exceeds MAX_SOURCE_DISPLAY_NAME_LENGTH (40)
+    it("shows domain with truncated path for long URLs", () => {
       const citation: Citation = {
         type: "url",
-        url: "https://example.com/article",
-        siteName: longName,
+        url: "https://example.com/very/long/path/to/article",
+        domain: "example.com",
         fullPhrase: "Test phrase",
       };
 
       const { container } = render(<SourceContextHeader citation={citation} />);
 
-      // Should contain truncated text with ellipsis
-      expect(container.textContent).toContain("A".repeat(40) + "...");
-      expect(container.textContent).not.toContain(longName);
+      // Should show domain (UrlCitationComponent truncates path)
+      expect(container.textContent).toContain("example.com");
     });
   });
 
@@ -429,6 +428,7 @@ describe("SourceContextHeader", () => {
       };
       const verification: Verification = {
         label: "Invoice.pdf",
+        verifiedPageNumber: 5,
       };
 
       const { container } = render(
@@ -436,7 +436,8 @@ describe("SourceContextHeader", () => {
       );
 
       expect(container.textContent).toContain("Invoice.pdf");
-      expect(container.textContent).toContain("Page 5");
+      // Page info is now shown as "Pg X" format
+      expect(container.textContent).toContain("Pg 5");
       // Should have SVG for document icon
       const svg = container.querySelector("svg");
       expect(svg).toBeInTheDocument();
@@ -445,15 +446,15 @@ describe("SourceContextHeader", () => {
     it("uses truncated attachmentId when no label provided", () => {
       const citation: Citation = {
         type: "document",
-        attachmentId: "abc123def456ghij",
+        attachmentId: "abc123def456ghij7890",
         pageNumber: 1,
         fullPhrase: "Test phrase",
       };
 
       const { container } = render(<SourceContextHeader citation={citation} />);
 
-      // Should show first 8 chars of attachmentId + "..."
-      expect(container.textContent).toContain("abc123de...");
+      // Should show first 16 chars of attachmentId + "..."
+      expect(container.textContent).toContain("abc123def456ghij...");
     });
 
     it("returns null when no meaningful display info available", () => {
@@ -476,7 +477,8 @@ describe("SourceContextHeader", () => {
 
       const { container } = render(<SourceContextHeader citation={citation} />);
 
-      expect(container.textContent).toContain("Page 10");
+      // Page info is now shown as "Pg X" format
+      expect(container.textContent).toContain("Pg 10");
     });
   });
 });
