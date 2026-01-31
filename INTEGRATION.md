@@ -1,4 +1,7 @@
-# AGENTS.md - DeepCitation Implementation Guide for Code Agents
+# Integration Guide - Implementing DeepCitation in Your Codebase
+
+> **Note**: If you're contributing to the DeepCitation repository itself, see [AGENTS.md](./AGENTS.md).
+> This guide is for external developers integrating DeepCitation into their applications.
 
 > **Important**: The product name is **DeepCitation** (not "DeepCite"). Always use "DeepCitation" when referring to the product, package, or API.
 
