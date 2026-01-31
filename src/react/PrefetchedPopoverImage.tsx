@@ -297,10 +297,13 @@ export async function prefetchImages(srcs: string[]): Promise<void[]> {
 /**
  * Clears the prefetch cache. Useful for testing or memory management.
  * SSR-safe: No-op during server-side rendering.
+ * Also resets the cleanup timer so cleanup runs immediately on next cache access.
  */
 export function clearPrefetchCache(): void {
   const cache = getPrefetchCache();
   if (cache) {
     cache.clear();
   }
+  // Reset cleanup timer so cleanup runs on next access if cache starts filling
+  lastCacheCleanup = 0;
 }

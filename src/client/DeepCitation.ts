@@ -551,23 +551,18 @@ export class DeepCitation {
     }
 
     // Performance fix: request deduplication
-    // Create cache key from attachmentId and a hash of the citation content
-    // Using JSON.stringify ensures different citation content = different cache key
-    // Sorting keys ensures consistent ordering for equivalent content
-    // Include all fields that affect verification results to avoid cache collisions
-    const citationContent = JSON.stringify(
-      Object.entries(citationMap)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([key, citation]) => [
-          key,
-          citation.fullPhrase,
-          citation.anchorText,
-          citation.pageNumber,
-          citation.lineIds,
-          citation.selection,
-        ])
-    );
-    const cacheKey = `${attachmentId}:${citationContent}:${options?.outputImageFormat || "avif"}`;
+    // Use generateCitationKey for each citation to create a deterministic cache key
+    // Sorting ensures consistent ordering for equivalent content
+    // Selection is appended separately since generateCitationKey doesn't include it
+    const citationKeys = Object.entries(citationMap)
+      .map(([mapKey, citation]) => {
+        const baseKey = generateCitationKey(citation);
+        const selectionKey = citation.selection ? JSON.stringify(citation.selection) : "";
+        return `${mapKey}:${baseKey}:${selectionKey}`;
+      })
+      .sort()
+      .join("|");
+    const cacheKey = `${attachmentId}:${citationKeys}:${options?.outputImageFormat || "avif"}`;
 
     // Clean expired cache entries periodically
     this.cleanExpiredCache();
