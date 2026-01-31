@@ -2089,6 +2089,11 @@ export const CitationComponent = forwardRef<
               "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
               "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
               "transition-colors cursor-pointer",
+              // Status-aware hover styling
+              isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/[0.08] dark:hover:bg-green-500/[0.08]",
+              isPartialMatch && !shouldShowSpinner && "hover:bg-amber-600/[0.08] dark:hover:bg-amber-500/[0.08]",
+              isMiss && !shouldShowSpinner && "hover:bg-red-500/[0.08] dark:hover:bg-red-400/[0.08]",
+              (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) && "hover:bg-gray-200 dark:hover:bg-gray-700",
               // Miss state: add line-through for visual distinction
               isMiss && !shouldShowSpinner && "line-through opacity-70"
             )}

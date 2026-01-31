@@ -204,10 +204,10 @@ The CitationComponent uses two orthogonal props:
 ```tsx
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
-// Default: brackets variant with number content → [1✓]
+// Default: linter variant with anchorText content → inline text with semantic underlines
 <CitationComponent citation={citation} verification={verification} />
 
-// Chip with anchorText (the default content for chip) → pill badge with "Revenue Growth✓"
+// Chip with anchorText (neutral gray background, status via icon) → pill badge with "Revenue Growth✓"
 <CitationComponent citation={citation} verification={verification} variant="chip" />
 
 // Chip with number → pill badge with "1✓"
@@ -222,8 +222,8 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 // Just the indicator → ✓
 <CitationComponent citation={citation} verification={verification} content="indicator" />
 
-// Linter variant → inline text with semantic underlines
-<CitationComponent citation={citation} verification={verification} variant="linter" />
+// Badge variant (ChatGPT-style) → source chip with favicon + count
+<CitationComponent citation={citation} verification={verification} variant="badge" />
 ```
 
 #### Linter Variant
@@ -256,12 +256,14 @@ The `linter` variant displays citations as inline text with semantic underlines,
 
 | Variant       | Output Example          | Description                                    |
 |---------------|-------------------------|------------------------------------------------|
-| `"brackets"`  | `[1✓]`                  | Square brackets, monospace (default)           |
-| `"chip"`      | `Revenue Growth✓`       | Pill/badge with background color               |
+| `"linter"`    | <u>Revenue Growth</u>   | Inline with semantic underlines (default)      |
+| `"brackets"`  | `[1✓]`                  | Square brackets, monospace                     |
+| `"chip"`      | `Revenue Growth✓`       | Pill/badge with neutral gray background        |
 | `"text"`      | `Revenue Growth✓`       | Plain text, inherits parent styling            |
 | `"superscript"` | `¹✓`                  | Small raised footnote style                    |
-| `"minimal"`   | `1✓`                    | Compact text with truncation                   |
-| `"linter"`    | <u>Revenue Growth</u>   | Inline with semantic underlines (grammar-check style) |
+| `"badge"`     | `[favicon] Source +2✓`  | Source chip with favicon + count (ChatGPT-style) |
+
+**Note:** All variants use status-aware hover colors (green for verified, amber for partial, red for not found, gray for pending).
 
 #### Content (What's Displayed)
 
@@ -270,14 +272,15 @@ The `linter` variant displays citations as inline text with semantic underlines,
 | `"anchorText"`   | `Revenue Growth`   | Descriptive text from citation                 |
 | `"number"`    | `1`                | Citation number (defaults to "1" if missing)   |
 | `"indicator"` | `✓`                | Only the status icon, no text                  |
+| `"source"`    | `Wikipedia +2`     | Source name with count (for badge variant)     |
 
 **Default content per variant:**
+- `linter` → `anchorText`
 - `chip` → `anchorText`
 - `brackets` → `anchorText`
 - `text` → `anchorText`
-- `linter` → `anchorText`
 - `superscript` → `number`
-- `minimal` → `number`
+- `badge` → `source`
 
 ### 5. Status Indicators
 
@@ -288,7 +291,7 @@ The component displays different indicators based on `verification.status`:
 | **Pending**   | Spinner ◌          | Gray   | `"pending"`, `"loading"`, or `null`/`undefined`          |
 | **Verified**  | Checkmark ✓        | Green  | `"found"`, `"found_anchor_text_only"`, `"found_phrase_missed_anchor_text"` |
 | **Partial**   | Checkmark ✓        | Amber  | `"found_on_other_page"`, `"found_on_other_line"`, `"partial_text_found"`, `"first_word_found"` |
-| **Not Found** | Warning △          | Red    | `"not_found"`                                            |
+| **Not Found** | X in circle ⊗      | Red    | `"not_found"`                                            |
 
 ```tsx
 // Pending state (spinner)
