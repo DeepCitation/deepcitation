@@ -266,14 +266,14 @@ export function SourceContextHeader({ citation, verification, status }: SourceCo
     );
   }
 
-  // Document citation: show document icon + label/attachmentId + page/line info (right-aligned)
+  // Document citation: show document icon + label + page/line info (right-aligned)
+  // Note: attachmentId should never be shown to users - only show the label if available
   const label = verification?.label;
-  const attachmentId = citation.attachmentId;
   const pageNumber = verification?.verifiedPageNumber ?? citation.pageNumber;
   const lineIds = verification?.verifiedLineIds ?? citation.lineIds;
 
-  // Display text: prefer label, fall back to longer truncated attachmentId (allow more chars)
-  const displayName = label || (attachmentId ? (attachmentId.length > 40 ? `${attachmentId.slice(0, 40)}...` : attachmentId) : null);
+  // Display text: only use label (never show attachmentId to users)
+  const displayName = label || null;
 
   // Only show if we have something meaningful to display
   if (!displayName && !pageNumber) {
