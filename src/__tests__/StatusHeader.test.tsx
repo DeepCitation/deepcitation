@@ -109,7 +109,23 @@ describe("StatusHeader", () => {
   // ==========================================================================
 
   describe("combined header with anchorText and fullPhrase", () => {
-    it("renders anchor text in combined layout", () => {
+    it("renders anchor text inline when status text is empty (icon is self-explanatory)", () => {
+      // When status is "found" or "not_found", headerText is empty
+      // The anchor text should be shown inline as: [icon] "increased by 15%" Pg 5
+      const { container } = render(
+        <StatusHeader
+          status="found"
+          foundPage={5}
+          anchorText="increased by 15%"
+        />
+      );
+
+      // Should show quoted anchor text inline (since "Verified" text is no longer shown)
+      expect(container.textContent).toContain('"increased by 15%"');
+      expect(container.textContent).toContain("Pg 5");
+    });
+
+    it("renders anchor text in combined layout with fullPhrase", () => {
       const { container } = render(
         <StatusHeader
           status="not_found"

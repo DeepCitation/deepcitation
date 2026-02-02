@@ -668,8 +668,11 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
     );
   }
 
-  // Simple header (no anchor text/quote)
-  // If headerText is empty (icon is self-explanatory), just show icon + page badge
+  // Simple header (no combined layout with quote box)
+  // When headerText is empty but we have anchorText, show it inline as the descriptive text
+  // This provides context like: [✓] "revenue increased by 15%"  Pg 3
+  const inlineText = headerText || (anchorText ? `"${anchorText}"` : null);
+
   return (
     <div
       className={cn(
@@ -677,11 +680,18 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
         compact ? "px-3 py-2" : "px-4 py-2.5"
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         <span className={cn("size-4 max-w-4 max-h-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
           <IconComponent />
         </span>
-        {headerText && <span className="font-medium text-gray-800 dark:text-gray-100">{headerText}</span>}
+        {inlineText && (
+          <span className={cn(
+            "font-medium truncate",
+            headerText ? "text-gray-800 dark:text-gray-100" : "text-gray-600 dark:text-gray-300"
+          )}>
+            {inlineText}
+          </span>
+        )}
       </div>
       {!hidePageBadge && <PageBadge expectedPage={expectedPage} foundPage={foundPage} />}
     </div>

@@ -1285,8 +1285,8 @@ function DefaultPopoverContent({
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md" style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
           {/* Source context header */}
           <SourceContextHeader citation={citation} verification={verification} status={searchStatus} />
-          {/* Green status header - hide page badge since SourceContextHeader shows it */}
-          <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} hidePageBadge />
+          {/* Green status header - hide page badge since SourceContextHeader shows it, show anchorText for context */}
+          <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} hidePageBadge anchorText={anchorText} />
 
           {/* Verification image */}
           <div className="p-2">
@@ -1360,7 +1360,7 @@ function DefaultPopoverContent({
           {hasImage && verification ? (
             // Show simple header + image (for partial matches that have images)
             <>
-              <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} hidePageBadge />
+              <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} hidePageBadge anchorText={anchorText} />
               {/* Humanizing message for partial matches with images */}
               {humanizingMessage && (
                 <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
