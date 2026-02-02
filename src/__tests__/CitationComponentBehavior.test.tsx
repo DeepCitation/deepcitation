@@ -1367,6 +1367,118 @@ describe("CitationComponent mobile/touch detection", () => {
       // Image overlay should be visible (proves citation B wasn't incorrectly debounced)
       expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
     });
+
+    it("second tap toggles phrase expansion for miss citations (no image)", () => {
+      mockTouchDevice(true);
+
+      const missCitation: Citation = {
+        citationNumber: 1,
+        anchorText: "unfound citation",
+        fullPhrase: "This citation was not found in the document",
+      };
+
+      const missVerification: Verification = {
+        status: "not_found",
+        searchAttempts: [
+          {
+            phrase: "unfound citation",
+            phraseType: "anchor_text",
+            pageNumber: 1,
+            lineIds: [1],
+            method: "exact",
+            searchVariations: ["unfound citation"],
+            foundMatch: false,
+          },
+        ],
+      };
+
+      const { container } = render(
+        <CitationComponent
+          citation={missCitation}
+          verification={missVerification}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // First tap - show popover
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // No image overlay (it's a miss, no image)
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
+
+      // Second tap - should toggle phrase expansion (not image overlay)
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // Still no image overlay (miss citation behavior toggles phrases, not image)
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
+    });
+
+    it("custom behaviorConfig.onClick receives TouchEvent on mobile", () => {
+      mockTouchDevice(true);
+
+      const onClickMock = jest.fn();
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          behaviorConfig={{
+            onClick: onClickMock,
+          }}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // Tap on mobile
+      fireEvent.touchStart(citation!);
+      fireEvent.touchEnd(citation!);
+
+      // behaviorConfig.onClick should have been called
+      expect(onClickMock).toHaveBeenCalledTimes(1);
+
+      // The event should be a TouchEvent (check event.type)
+      const [context, event] = onClickMock.mock.calls[0];
+      expect(event.type).toBe("touchend");
+      expect(context.citation).toEqual(baseCitation);
+    });
+
+    it("mobile overrides relaxed mode - uses two-tap behavior regardless", () => {
+      mockTouchDevice(true);
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // First tap - should show popover (mobile two-tap behavior)
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // No image overlay yet (first tap shows popover)
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
+
+      // Second tap - should open image
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // Image overlay should be visible
+      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+    });
   });
 
   describe("keyboard accessibility", () => {

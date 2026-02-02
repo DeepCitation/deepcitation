@@ -1881,7 +1881,12 @@ export const CitationComponent = forwardRef<
     );
     const [isPhrasesExpanded, setIsPhrasesExpanded] = useState(false);
 
-    // Track if popover was already open before current interaction (for mobile tap-to-expand)
+    // Track if popover was already open before current interaction (for mobile tap-to-expand).
+    // Lifecycle:
+    // 1. Set in handleTouchStart to capture isHovering state BEFORE the touch triggers any changes
+    // 2. Read in handleTouchEnd/handleClick to determine if this is a "first tap" or "second tap"
+    // 3. First tap (ref=false): Opens popover
+    // 4. Second tap (ref=true): Opens image overlay or toggles phrase expansion
     const wasPopoverOpenBeforeTap = useRef(false);
 
     // Track last touch time for touch-to-click debouncing (prevents double-firing).
@@ -1891,6 +1896,9 @@ export const CitationComponent = forwardRef<
     const lastTouchTimeRef = useRef(0);
 
     // Ref to track isHovering for touch handlers (avoids stale closure issues).
+    // This ref is kept in sync with isHovering state on every render, allowing
+    // handleTouchStart to read the current value without being recreated on every
+    // isHovering change (which would cause unnecessary callback churn).
     // Pattern explanation: Mutating refs during render is safe here because:
     // 1. Refs are explicitly designed to hold mutable values that don't affect rendering
     // 2. This is a standard React pattern for keeping refs in sync with state/props
@@ -2214,13 +2222,14 @@ export const CitationComponent = forwardRef<
       };
     }, []);
 
-    // Touch start handler for mobile - captures popover state before touch ends
-    // Uses isHoveringRef to read current value without stale closure issues
+    // Touch start handler for mobile - captures popover state before touch ends.
+    // Reads isHoveringRef.current (which is kept in sync with isHovering state above)
+    // to avoid stale closure issues without recreating the callback on every hover change.
     const handleTouchStart = useCallback(
       (e: React.TouchEvent<HTMLSpanElement>) => {
         if (isMobile) {
-          // Capture whether popover was already open before this tap
-          // This is used to determine first vs second tap behavior
+          // Capture whether popover was already open before this tap.
+          // This determines first vs second tap behavior in handleTouchEnd.
           wasPopoverOpenBeforeTap.current = isHoveringRef.current;
 
           // Call user-provided touch start handler (for analytics, etc.)
@@ -2230,7 +2239,8 @@ export const CitationComponent = forwardRef<
       [isMobile, eventHandlers, citation, citationKey]
     );
 
-    // Touch handler for mobile - handles tap-to-show-popover and tap-to-expand-image
+    // Touch handler for mobile - handles tap-to-show-popover and tap-to-expand-image.
+    // On second tap, opens image overlay (if available) or toggles phrase expansion (for miss).
     const handleTouchEnd = useCallback(
       (e: React.TouchEvent<HTMLSpanElement>) => {
         if (isMobile) {
@@ -2242,8 +2252,9 @@ export const CitationComponent = forwardRef<
 
           eventHandlers?.onTouchEnd?.(citation, citationKey, e);
 
-          // Use shared tap action handler
-          handleTapAction(e, !wasPopoverOpenBeforeTap.current);
+          // Determine if this is the first tap (popover was closed) or second tap (popover was open)
+          const isFirstTap = !wasPopoverOpenBeforeTap.current;
+          handleTapAction(e, isFirstTap);
         }
       },
       [isMobile, eventHandlers, citation, citationKey, handleTapAction]

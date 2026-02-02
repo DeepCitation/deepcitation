@@ -375,7 +375,13 @@ export interface CitationEventHandlers {
   onMouseEnter?: (citation: Citation, citationKey: string) => void;
   /** Called when mouse leaves citation */
   onMouseLeave?: (citation: Citation, citationKey: string) => void;
-  /** Called when citation is clicked or activated via keyboard */
+  /**
+   * Called when citation is clicked or activated via keyboard/touch.
+   * Event types:
+   * - `MouseEvent`: Desktop mouse clicks
+   * - `TouchEvent`: Mobile tap interactions (from handleTouchEnd)
+   * - `KeyboardEvent`: Keyboard activation (Enter/Space)
+   */
   onClick?: (
     citation: Citation,
     citationKey: string,
@@ -429,7 +435,14 @@ export interface CitationBehaviorActions {
 /**
  * Configuration for click behavior.
  * Return actions to perform, or `false` to prevent default behavior.
- * Includes keyboard events for accessibility (Enter/Space activation).
+ *
+ * Event types received:
+ * - `MouseEvent`: Desktop mouse clicks
+ * - `TouchEvent`: Mobile tap interactions (from handleTouchEnd)
+ * - `KeyboardEvent`: Keyboard activation (Enter/Space for accessibility)
+ *
+ * Note: On mobile touch devices, the event will be a TouchEvent, not MouseEvent.
+ * Use `event.type` to distinguish if needed.
  */
 export type CitationClickBehavior = (
   context: CitationBehaviorContext,
