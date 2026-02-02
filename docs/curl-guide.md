@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Curl Guide
-nav_order: 4
+parent: Getting Started
+nav_order: 1
 description: "Direct API usage with curl examples"
 ---
 

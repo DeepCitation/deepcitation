@@ -16,9 +16,11 @@ $slate-800: #1E293B;
 $slate-900: #0F172A;
 $slate-950: #020617;
 
-// Primary brand colors
+// Primary brand colors - DeepCitation Blue (NOT purple!)
 $brand-blue-light: #005595;
 $brand-blue-dark: #38BDF8;
+$brand-blue-hover-light: #004578;
+$brand-blue-hover-dark: #7DD3FC;
 
 
 // -----------------------------------------------------
@@ -28,8 +30,9 @@ $brand-blue-dark: #38BDF8;
   --body-background-color: #{$slate-950};
   --sidebar-color: #{$slate-900};
   --body-heading-color: #{$slate-100};
-  --body-text-color: #{$slate-400};
+  --body-text-color: #{$slate-300};
   --link-color: #{$brand-blue-dark};
+  --link-hover-color: #{$brand-blue-hover-dark};
   --code-background-color: #{$slate-900};
   --code-border-color: #{$slate-800};
   --border-color: #{$slate-800};
@@ -37,6 +40,10 @@ $brand-blue-dark: #38BDF8;
   --selection-bg: #{$brand-blue-dark};
   --selection-text: #{$slate-950};
   --focus-ring-color: rgba(56, 189, 248, 0.2); // #38BDF8 at 20%
+  --nav-active-bg: #{$slate-800};
+  --nav-active-text: #{$slate-50};
+  --inline-code-color: inherit;
+  --inline-code-bg: transparent;
 }
 
 // -----------------------------------------------------
@@ -49,10 +56,13 @@ $brand-blue-dark: #38BDF8;
   --body-heading-color: #{$slate-900};
   --body-text-color: #{$slate-600};
   --link-color: #{$brand-blue-light};
+  --link-hover-color: #{$brand-blue-hover-light};
 
   // Code
-  --code-background-color: #{$slate-50};
+  --code-background-color: #{$slate-100};
   --code-border-color: #{$slate-200};
+  --inline-code-color: inherit;
+  --inline-code-bg: transparent;
 
   // Borders & UI
   --border-color: #{$slate-200};
@@ -64,6 +74,10 @@ $brand-blue-dark: #38BDF8;
 
   // Focus ring (10% opacity of link color)
   --focus-ring-color: rgba(0, 85, 149, 0.15);
+
+  // Navigation
+  --nav-active-bg: #{$slate-200};
+  --nav-active-text: #{$slate-900};
 }
 
 // -----------------------------------------------------
@@ -76,12 +90,15 @@ $brand-blue-dark: #38BDF8;
 }
 
 // -----------------------------------------------------
-// Typography
+// Typography - Larger base sizes for accessibility
+// WCAG 2.1 recommends minimum 16px for body text
 // -----------------------------------------------------
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--body-text-color);
   background-color: var(--body-background-color);
+  font-size: 16px; // Base size for accessibility
+  line-height: 1.6;
 }
 
 h1, h2, h3, h4, h5, h6,
@@ -91,30 +108,53 @@ h1, h2, h3, h4, h5, h6,
   color: var(--body-heading-color);
 }
 
+// Main content typography - larger and more readable
+.main-content {
+  font-size: 1rem; // 16px base
+  line-height: 1.7;
+
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.5rem; margin-top: 2rem; }
+  h3 { font-size: 1.25rem; margin-top: 1.5rem; }
+  h4 { font-size: 1.125rem; }
+
+  p, li {
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+}
+
 code, pre, .highlight {
   font-family: 'Source Code Pro', 'SF Mono', 'Monaco', 'Inconsolata', monospace;
 }
 
 // -----------------------------------------------------
-// Sharp Corners (4px for interactive, 0 for containers)
+// Sharp Corners - DeepCitation uses sharper aesthetic
+// 2px radius for subtle rounding, 0 for containers
 // -----------------------------------------------------
 .main-content .btn,
-.main-content code,
 .main-content pre,
 .main-content table,
-.main-content th,
-.main-content td,
 .main-content blockquote {
-  border-radius: 4px;
+  border-radius: 2px;
+}
+
+.main-content code {
+  border-radius: 2px;
+}
+
+.main-content th,
+.main-content td {
+  border-radius: 0;
 }
 
 .side-bar .search-input,
 .side-bar .search-results {
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 .side-bar .nav-list-link {
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 // Fully sharp elements (list items)
@@ -160,7 +200,7 @@ a:focus-visible,
 }
 
 // -----------------------------------------------------
-// Links
+// Links - Brand blue, not purple!
 // -----------------------------------------------------
 a {
   color: var(--link-color);
@@ -169,6 +209,7 @@ a {
   text-underline-offset: 2px;
 
   &:hover {
+    color: var(--link-hover-color);
     text-decoration-thickness: 2px;
   }
 }
@@ -182,26 +223,45 @@ a {
 
   &:hover {
     text-decoration: none;
+    color: var(--link-hover-color);
   }
 }
 
 // -----------------------------------------------------
-// Code Blocks
+// Inline Code - Should inherit text color, no background
+// This fixes the gray background issue in paragraphs
 // -----------------------------------------------------
-code {
-  background-color: var(--code-background-color);
-  border: 1px solid var(--code-border-color);
-  padding: 0.125em 0.25em;
+p code,
+li code,
+td code,
+.main-content > code,
+a code {
+  background-color: var(--inline-code-bg);
+  border: none;
+  color: var(--inline-code-color);
+  padding: 0;
+  font-size: 0.9em;
+  font-weight: 500;
 }
 
+// Code blocks (pre > code) keep their background
 pre {
   background-color: var(--code-background-color);
   border: 1px solid var(--code-border-color);
+  padding: 1rem;
 
   code {
+    background-color: transparent;
     border: none;
     padding: 0;
+    color: inherit;
   }
+}
+
+// Standalone inline code (not in paragraph context) - subtle styling
+.main-content > p > code:only-child,
+code:not(pre code) {
+  // If needed for specific standalone code, add minimal styling
 }
 
 // Syntax highlighting adjustments for dark mode
@@ -225,15 +285,77 @@ pre {
 }
 
 // -----------------------------------------------------
-// Sidebar
+// Sidebar - Larger fonts for accessibility
 // -----------------------------------------------------
 .side-bar {
   background-color: var(--sidebar-color);
   border-right: 1px solid var(--border-color);
+  font-size: 0.9375rem; // 15px - larger than default
+
+  // Site title with logo
+  .site-title {
+    color: var(--body-heading-color);
+    font-size: 1.125rem; // 18px
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    // Logo styling
+    .site-logo {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+  }
 }
 
-.site-title {
-  color: var(--body-heading-color);
+// Navigation links in sidebar
+.nav-list-link {
+  font-size: 0.9375rem; // 15px
+  padding: 0.5rem 0.75rem;
+  color: var(--link-color);
+
+  &:hover {
+    background-color: var(--nav-active-bg);
+  }
+
+  &.active {
+    background-color: var(--nav-active-bg);
+    color: var(--nav-active-text);
+    font-weight: 500;
+  }
+}
+
+// Section headers in sidebar (for grouped navigation)
+.nav-category {
+  font-size: 0.75rem; // 12px
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--body-text-color);
+  padding: 1rem 0.75rem 0.5rem;
+  margin-top: 0.5rem;
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+// Parent nav items (sections)
+.nav-list-item.parent {
+  > .nav-list-link {
+    font-weight: 600;
+    color: var(--body-heading-color);
+  }
+}
+
+// Child items - slightly indented
+.nav-list .nav-list {
+  .nav-list-link {
+    padding-left: 1.5rem;
+    font-size: 0.875rem; // 14px for child items
+  }
 }
 
 // -----------------------------------------------------
@@ -242,6 +364,7 @@ pre {
 .search-input {
   background-color: var(--search-background-color);
   border: 1px solid var(--border-color);
+  font-size: 0.9375rem; // 15px
 
   &:focus {
     border-color: var(--link-color);
@@ -259,36 +382,47 @@ pre {
 // -----------------------------------------------------
 table {
   border: 1px solid var(--border-color);
+  font-size: 0.9375rem; // 15px
 }
 
 th, td {
   border: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
 }
 
 th {
   background-color: var(--sidebar-color);
+  font-weight: 600;
 }
 
 // -----------------------------------------------------
-// Blockquotes
+// Blockquotes - Used for notes/warnings
 // -----------------------------------------------------
 blockquote {
   border-left: 4px solid var(--link-color);
   background-color: var(--sidebar-color);
   color: var(--body-text-color);
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  border-radius: 0 2px 2px 0;
 }
 
 // -----------------------------------------------------
-// Buttons
+// Buttons - Sharp corners, brand colors
 // -----------------------------------------------------
 .btn {
   border: 1px solid var(--border-color);
   background-color: var(--body-background-color);
   color: var(--body-text-color);
+  border-radius: 2px; // Sharp, not rounded
+  padding: 0.625rem 1.25rem;
+  font-size: 0.9375rem; // 15px
+  font-weight: 500;
 
   &:hover {
     background-color: var(--sidebar-color);
     border-color: var(--link-color);
+    color: var(--link-color);
   }
 }
 
@@ -298,15 +432,94 @@ blockquote {
   color: #FFFFFF;
 
   &:hover {
-    // Darken background without affecting text opacity
-    background-color: #004578; // Darker shade of brand blue
+    background-color: var(--link-hover-color);
+    border-color: var(--link-hover-color);
+    color: #FFFFFF;
   }
 }
 
+// Hero buttons on homepage
+.fs-5 {
+  font-size: 1rem !important;
+}
+
 // -----------------------------------------------------
-// Footer
+// Footer - Remove Just the Docs attribution
 // -----------------------------------------------------
 .site-footer {
   border-top: 1px solid var(--border-color);
   color: var(--body-text-color);
+  font-size: 0.875rem; // 14px
+  padding: 1.5rem 0;
+
+  // Hide the "Built with Just the Docs" text
+  a[href*="just-the-docs"] {
+    display: none !important;
+  }
+}
+
+// If there's a specific footer text element, ensure it doesn't show JTD attribution
+.footer-text {
+  // Just the Docs attribution is handled by footer_content in _config.yml
+}
+
+// -----------------------------------------------------
+// Aux Navigation (top right links)
+// -----------------------------------------------------
+.aux-nav-list-item a {
+  color: var(--link-color);
+  font-size: 0.875rem; // 14px
+  font-weight: 500;
+
+  &:hover {
+    color: var(--link-hover-color);
+  }
+}
+
+// -----------------------------------------------------
+// Breadcrumbs
+// -----------------------------------------------------
+.breadcrumb-nav {
+  font-size: 0.875rem;
+
+  a {
+    color: var(--link-color);
+
+    &:hover {
+      color: var(--link-hover-color);
+    }
+  }
+}
+
+// -----------------------------------------------------
+// Back to top button
+// -----------------------------------------------------
+.back-to-top {
+  color: var(--link-color);
+  font-size: 0.875rem;
+
+  &:hover {
+    color: var(--link-hover-color);
+  }
+}
+
+// -----------------------------------------------------
+// Override any remaining purple from Just the Docs
+// This ensures brand blue is used everywhere
+// -----------------------------------------------------
+.label,
+.label-blue {
+  background-color: var(--link-color);
+}
+
+// Note/warning callouts
+.note,
+.warning,
+.important {
+  border-left-color: var(--link-color);
+}
+
+// Active states
+*:active {
+  outline-color: var(--link-color);
 }

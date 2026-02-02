@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Styling
-nav_order: 10
+parent: Code Examples
+nav_order: 2
 description: "CSS customization options for CitationComponent"
 ---
 

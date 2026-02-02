@@ -3,6 +3,7 @@ layout: default
 title: Getting Started
 nav_order: 2
 description: "Installation and quick start guide for DeepCitation"
+has_children: true
 ---
 
 # Getting Started
@@ -59,10 +60,10 @@ bun add @deepcitation/deepcitation-js
 ```typescript
 import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "@deepcitation/deepcitation-js";
 
-const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
+const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
 // 1. Upload your source document
-const { attachmentId, deepTextPromptPortion } = await dc.uploadFile(pdfBuffer, {
+const { attachmentId, deepTextPromptPortion } = await deepcitation.uploadFile(pdfBuffer, {
   filename: "report.pdf"
 });
 
@@ -85,7 +86,7 @@ const response = await yourLLM.chat({
 
 // 4. Extract and verify citations
 const citations = getAllCitationsFromLlmOutput(response.content);
-const verified = await dc.verify(attachmentId, citations);
+const verified = await deepcitation.verify(attachmentId, citations);
 
 // 5. Use verification results
 for (const [key, result] of Object.entries(verified.verifications)) {

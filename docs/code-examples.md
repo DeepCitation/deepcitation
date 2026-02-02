@@ -1,8 +1,9 @@
 ---
 layout: default
 title: Code Examples
-nav_order: 7
+nav_order: 4
 description: "SDK usage examples and integration patterns"
+has_children: true
 ---
 
 # Code Examples
@@ -23,13 +24,13 @@ import {
   groupCitationsByAttachmentId
 } from "@deepcitation/deepcitation-js";
 
-const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
+const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
 // 1. Upload multiple documents
-const file1 = await dc.uploadFile(contractPdf, {
+const file1 = await deepcitation.uploadFile(contractPdf, {
   filename: "contract.pdf"
 });
-const file2 = await dc.uploadFile(invoicePdf, {
+const file2 = await deepcitation.uploadFile(invoicePdf, {
   filename: "invoice.pdf"
 });
 
@@ -55,7 +56,7 @@ const citationsByAttachment = groupCitationsByAttachmentId(citations);
 // Verify in parallel for each attachment
 const verificationPromises = [];
 for (const [attachmentId, attachmentCitations] of citationsByAttachment) {
-  verificationPromises.push(dc.verifyAttachment(attachmentId, attachmentCitations));
+  verificationPromises.push(deepcitation.verifyAttachment(attachmentId, attachmentCitations));
 }
 const results = await Promise.all(verificationPromises);
 ```
@@ -234,7 +235,7 @@ Handle common API errors gracefully:
 
 ```typescript
 try {
-  const result = await dc.verifyAttachment(attachmentId, citations);
+  const result = await deepcitation.verifyAttachment(attachmentId, citations);
   // Handle success
 } catch (error) {
   if (error.message.includes("401")) {

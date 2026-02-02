@@ -75,7 +75,7 @@ Use fenced code blocks with language tags:
 
 ````markdown
 ```typescript
-const dc = new DeepCitation({ apiKey: "..." });
+const deepcitation = new DeepCitation({ apiKey: "..." });
 ```
 ````
 

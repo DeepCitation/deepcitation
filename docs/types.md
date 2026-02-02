@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Types
-nav_order: 5
+parent: API Reference
+nav_order: 1
 description: "TypeScript interface definitions for DeepCitation"
 ---
 

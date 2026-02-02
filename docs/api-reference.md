@@ -3,6 +3,7 @@ layout: default
 title: API Reference
 nav_order: 3
 description: "REST API endpoints for file preparation and citation verification"
+has_children: true
 ---
 
 # API Reference
@@ -76,7 +77,7 @@ Verify citations from LLM output against the source document. Returns verificati
 
 | Field | Type | Required | Description |
 |:------|:-----|:---------|:------------|
-| `data.attachmentId` | string | Yes | From prepareFile response. The SDK handles this automatically with `dc.verify()`. |
+| `data.attachmentId` | string | Yes | From prepareFile response. The SDK handles this automatically with `deepcitation.verify()`. |
 | `data.citations` | `Record<string, Citation>` | Yes | Map of citation keys to Citation objects |
 | `data.outputImageFormat` | `"jpeg"` \| `"png"` \| `"avif"` | No | Image format for proofs (default: "avif") |
 

@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Components
-nav_order: 8
+parent: Code Examples
+nav_order: 1
 description: "React CitationComponent documentation"
 ---
 

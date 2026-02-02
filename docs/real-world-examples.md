@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Real-World Examples
-nav_order: 9
+parent: Code Examples
+nav_order: 3
 description: "Industry-specific integration examples"
 ---
 

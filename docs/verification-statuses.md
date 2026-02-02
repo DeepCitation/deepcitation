@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Verification Statuses
-nav_order: 6
+parent: API Reference
+nav_order: 2
 description: "Understanding verification result statuses"
 ---
 

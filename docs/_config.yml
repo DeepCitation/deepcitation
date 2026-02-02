@@ -1,4 +1,4 @@
-title: DeepCitation Documentation
+title: DeepCitation
 description: Verify AI citations against source documents. Visual proof for every claim.
 baseurl: ""
 url: "https://docs.deepcitation.com"
@@ -6,6 +6,9 @@ url: "https://docs.deepcitation.com"
 # Theme
 remote_theme: just-the-docs/just-the-docs@v0.8.2
 color_scheme: light
+
+# Logo
+logo: "/assets/images/logo.svg"
 
 # Aux links (top right)
 aux_links:
@@ -52,3 +55,5 @@ exclude:
   - node_modules
   - vendor
   - CitationComponent-PRD.md
+  - verifyAfterTheFact-PRD.md
+  - skill.md
