@@ -106,6 +106,9 @@ const MAX_VISIBLE_VARIATIONS = 3;
 /** Maximum characters to show for variation strings */
 const MAX_VARIATION_LENGTH = 30;
 
+/** Debounce threshold for ignoring click events after touch (ms) */
+const TOUCH_CLICK_DEBOUNCE_MS = 100;
+
 // =============================================================================
 // TOUCH DEVICE DETECTION
 // =============================================================================
@@ -1881,8 +1884,6 @@ export const CitationComponent = forwardRef<
     const wasPopoverOpenBeforeTap = useRef(false);
     // Track last touch time for touch-to-click debouncing (prevents double-firing)
     const lastTouchTimeRef = useRef(0);
-    // Debounce threshold for ignoring click events after touch (ms)
-    const TOUCH_CLICK_DEBOUNCE_MS = 100;
     // Ref to track isHovering for touch handlers (avoids stale closure issues)
     const isHoveringRef = useRef(isHovering);
     isHoveringRef.current = isHovering;
@@ -2037,6 +2038,10 @@ export const CitationComponent = forwardRef<
         isMiss,
         getBehaviorContext,
         applyBehaviorActions,
+        // State setters are stable (React guarantees), but included for exhaustive-deps compliance
+        setIsHovering,
+        setExpandedImageSrc,
+        setIsPhrasesExpanded,
       ]
     );
 
@@ -2070,13 +2075,7 @@ export const CitationComponent = forwardRef<
         // Default (eager mode, or second click in relaxed mode)
         handleTapAction(e, false);
       },
-      [
-        isMobile,
-        isRelaxedMode,
-        isHovering,
-        handleTapAction,
-        TOUCH_CLICK_DEBOUNCE_MS,
-      ]
+      [isMobile, isRelaxedMode, isHovering, handleTapAction]
     );
 
     // Keyboard handler for accessibility - Enter/Space triggers tap action
