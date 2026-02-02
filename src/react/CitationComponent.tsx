@@ -1879,6 +1879,13 @@ export const CitationComponent = forwardRef<
     const [isPhrasesExpanded, setIsPhrasesExpanded] = useState(false);
     // Track if popover was already open before current interaction (for mobile tap-to-expand)
     const wasPopoverOpenBeforeTap = useRef(false);
+    // Track last touch time for touch-to-click debouncing (prevents double-firing)
+    const lastTouchTimeRef = useRef(0);
+    // Debounce threshold for ignoring click events after touch (ms)
+    const TOUCH_CLICK_DEBOUNCE_MS = 100;
+    // Ref to track isHovering for touch handlers (avoids stale closure issues)
+    const isHoveringRef = useRef(isHovering);
+    isHoveringRef.current = isHovering;
 
     const citationKey = useMemo(
       () => generateCitationKey(citation),
@@ -1983,12 +1990,13 @@ export const CitationComponent = forwardRef<
       [verification?.verificationImageBase64]
     );
 
-    // Click handler
-    const handleClick = useCallback(
-      (e: React.MouseEvent<HTMLSpanElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-
+    // Shared tap/click action handler - used by both click and touch handlers
+    // Extracts the common logic to avoid duplication
+    const handleTapAction = useCallback(
+      (
+        e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent,
+        isFirstTap: boolean
+      ): void => {
         const context = getBehaviorContext();
 
         // Custom onClick via behaviorConfig replaces default
@@ -2007,29 +2015,16 @@ export const CitationComponent = forwardRef<
           return;
         }
 
-        // On mobile: first tap shows popover, second tap (when popover already open) opens image
-        // wasPopoverOpenBeforeTap is set in handleTouchStart before the click fires
-        if (isMobile && !wasPopoverOpenBeforeTap.current) {
-          // First tap on mobile: just show popover (already triggered by touch events)
-          // Don't open the image overlay yet
+        // First tap/click: show popover
+        if (isFirstTap) {
           setIsHovering(true);
           return;
         }
 
-        // Relaxed mode: first click shows popover, second click opens image
-        // (similar to mobile behavior but for desktop)
-        if (isRelaxedMode && !isHovering) {
-          // First click in relaxed mode: open popover
-          setIsHovering(true);
-          return;
-        }
-
-        // Default (eager mode, or second click in relaxed mode):
-        // Click opens image if available, or toggles phrases expansion for miss state
+        // Second tap/click: open image or toggle phrases expansion
         if (verification?.verificationImageBase64) {
           setExpandedImageSrc(verification.verificationImageBase64);
         } else if (isMiss) {
-          // For miss state without image, toggle phrases expansion
           setIsPhrasesExpanded((prev) => !prev);
         }
       },
@@ -2040,12 +2035,68 @@ export const CitationComponent = forwardRef<
         citationKey,
         verification?.verificationImageBase64,
         isMiss,
-        isMobile,
-        isRelaxedMode,
-        isHovering,
         getBehaviorContext,
         applyBehaviorActions,
       ]
+    );
+
+    // Click handler
+    const handleClick = useCallback(
+      (e: React.MouseEvent<HTMLSpanElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Ignore click events that occur shortly after touch events (prevents double-firing)
+        if (
+          isMobile &&
+          Date.now() - lastTouchTimeRef.current < TOUCH_CLICK_DEBOUNCE_MS
+        ) {
+          return;
+        }
+
+        // On mobile: first tap shows popover, second tap opens image
+        // wasPopoverOpenBeforeTap is set in handleTouchStart before the click fires
+        if (isMobile) {
+          handleTapAction(e, !wasPopoverOpenBeforeTap.current);
+          return;
+        }
+
+        // Relaxed mode: first click shows popover, second click opens image
+        if (isRelaxedMode && !isHovering) {
+          handleTapAction(e, true);
+          return;
+        }
+
+        // Default (eager mode, or second click in relaxed mode)
+        handleTapAction(e, false);
+      },
+      [
+        isMobile,
+        isRelaxedMode,
+        isHovering,
+        handleTapAction,
+        TOUCH_CLICK_DEBOUNCE_MS,
+      ]
+    );
+
+    // Keyboard handler for accessibility - Enter/Space triggers tap action
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLSpanElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Relaxed mode or mobile: first activation shows popover, second opens image
+          if (isRelaxedMode && !isHovering) {
+            handleTapAction(e, true);
+            return;
+          }
+
+          // Default (eager mode, or popover already open)
+          handleTapAction(e, false);
+        }
+      },
+      [isRelaxedMode, isHovering, handleTapAction]
     );
 
     // Hover handlers with delay for popover accessibility
@@ -2143,16 +2194,17 @@ export const CitationComponent = forwardRef<
       };
     }, []);
 
-    // Touch start handler for mobile - captures popover state before click fires
+    // Touch start handler for mobile - captures popover state before touch ends
+    // Uses isHoveringRef to read current value without stale closure issues
     const handleTouchStart = useCallback(
       (e: React.TouchEvent<HTMLSpanElement>) => {
         if (isMobile) {
           // Capture whether popover was already open before this tap
-          // This is used in handleClick to determine first vs second tap behavior
-          wasPopoverOpenBeforeTap.current = isHovering;
+          // This is used to determine first vs second tap behavior
+          wasPopoverOpenBeforeTap.current = isHoveringRef.current;
         }
       },
-      [isMobile, isHovering]
+      [isMobile]
     );
 
     // Touch handler for mobile - handles tap-to-show-popover and tap-to-expand-image
@@ -2161,50 +2213,17 @@ export const CitationComponent = forwardRef<
         if (isMobile) {
           e.preventDefault();
           e.stopPropagation();
+
+          // Record touch time for click debouncing
+          lastTouchTimeRef.current = Date.now();
+
           eventHandlers?.onTouchEnd?.(citation, citationKey, e);
 
-          // Handle mobile tap logic here since preventDefault blocks the click event
-          // Custom onClick via behaviorConfig replaces default
-          if (behaviorConfig?.onClick) {
-            const context = getBehaviorContext();
-            const result = behaviorConfig.onClick(context, e);
-            if (result && typeof result === "object") {
-              applyBehaviorActions(result);
-            }
-            return;
-          }
-
-          // Custom eventHandlers.onClick disables default
-          if (eventHandlers?.onClick) {
-            eventHandlers.onClick(citation, citationKey, e);
-            return;
-          }
-
-          // First tap: show popover (popover wasn't open before this tap)
-          if (!wasPopoverOpenBeforeTap.current) {
-            setIsHovering(true);
-            return;
-          }
-
-          // Second tap (popover was already open): open image or toggle phrases
-          if (verification?.verificationImageBase64) {
-            setExpandedImageSrc(verification.verificationImageBase64);
-          } else if (isMiss) {
-            setIsPhrasesExpanded((prev) => !prev);
-          }
+          // Use shared tap action handler
+          handleTapAction(e, !wasPopoverOpenBeforeTap.current);
         }
       },
-      [
-        eventHandlers,
-        citation,
-        citationKey,
-        isMobile,
-        behaviorConfig,
-        getBehaviorContext,
-        applyBehaviorActions,
-        verification?.verificationImageBase64,
-        isMiss,
-      ]
+      [isMobile, eventHandlers, citation, citationKey, handleTapAction]
     );
 
     // Early return for miss with fallback display (only when showing anchorText)
@@ -2545,6 +2564,9 @@ export const CitationComponent = forwardRef<
         ? "cursor-zoom-in"
         : "cursor-pointer";
 
+    // Generate unique popover ID for ARIA attributes
+    const popoverId = `citation-popover-${citationInstanceId}`;
+
     const triggerProps = {
       "data-citation-id": citationKey,
       "data-citation-instance": citationInstanceId,
@@ -2553,6 +2575,9 @@ export const CitationComponent = forwardRef<
         "px-0.5 -mx-0.5 rounded-sm",
         "transition-all duration-[50ms]",
         cursorClass,
+        // Improved touch target size on mobile (minimum 44px recommended)
+        // Using py-1.5 for better touch accessibility without breaking layout
+        isMobile && "py-1.5 touch-manipulation",
         // Status-aware hover for all variants (10% opacity; linter includes these in its own classes too)
         variant !== "linter" &&
           isVerified &&
@@ -2570,14 +2595,23 @@ export const CitationComponent = forwardRef<
         variant !== "linter" &&
           (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
           "hover:bg-gray-500/10 dark:hover:bg-gray-400/10",
+        // Focus styles for keyboard accessibility
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
         className
       ),
+      // ARIA attributes for accessibility
+      role: "button" as const,
+      tabIndex: 0,
+      "aria-expanded": isHovering,
+      "aria-controls": shouldShowPopover ? popoverId : undefined,
+      "aria-label": displayText ? `Citation: ${displayText}` : "Citation",
+      // Event handlers
       onMouseEnter: handleMouseEnter,
       onMouseLeave: handleMouseLeave,
       onClick: handleClick,
+      onKeyDown: handleKeyDown,
       onTouchStart: isMobile ? handleTouchStart : undefined,
       onTouchEndCapture: isMobile ? handleTouchEnd : undefined,
-      "aria-label": displayText ? `[${displayText}]` : undefined,
     };
 
     // Render with Radix Popover
@@ -2640,6 +2674,7 @@ export const CitationComponent = forwardRef<
               </span>
             </PopoverTrigger>
             <PopoverContent
+              id={popoverId}
               side={popoverPosition === "bottom" ? "bottom" : "top"}
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
