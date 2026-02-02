@@ -330,8 +330,8 @@ pre {
     gap: 0.5rem;
     text-decoration: none;
 
+    // No hover color change - site title should stay as heading color
     &:hover {
-      color: var(--link-color);
       text-decoration: none;
     }
 
@@ -592,9 +592,4 @@ blockquote {
 // Anchor heading SVG (the link icon that appears on hover)
 .main-content .anchor-heading svg {
   color: var(--link-color);
-}
-
-// Site title should not change color on hover (keep heading color)
-.side-bar .site-title:hover {
-  color: var(--body-heading-color);
 }
