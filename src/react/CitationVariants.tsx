@@ -208,9 +208,12 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
-            <span className="size-3.5 max-w-3.5 max-h-3.5 text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" aria-hidden="true">
-              <XCircleIcon />
-            </span>
+            <>
+              <span className="size-3.5 max-w-3.5 max-h-3.5 text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" aria-hidden="true">
+                <XCircleIcon />
+              </span>
+              <span className="sr-only">not found</span>
+            </>
           )}
           {isPending && (
             <span className="opacity-70">{pendingContent}</span>
@@ -328,9 +331,12 @@ export const SuperscriptCitation = forwardRef<
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
-            <span className="size-2.5 max-w-2.5 max-h-2.5 ml-0.5 flex-shrink-0" aria-hidden="true">
-              <XCircleIcon />
-            </span>
+            <>
+              <span className="size-2.5 max-w-2.5 max-h-2.5 ml-0.5 flex-shrink-0" aria-hidden="true">
+                <XCircleIcon />
+              </span>
+              <span className="sr-only">not found</span>
+            </>
           )}
           {isPending && pendingContent}
           {!hideBrackets && "]"}
@@ -456,9 +462,12 @@ export const FootnoteCitation = forwardRef<
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
-            <span className="size-2.5 max-w-2.5 max-h-2.5 ml-0.5 flex-shrink-0" aria-hidden="true">
-              <XCircleIcon />
-            </span>
+            <>
+              <span className="size-2.5 max-w-2.5 max-h-2.5 ml-0.5 flex-shrink-0" aria-hidden="true">
+                <XCircleIcon />
+              </span>
+              <span className="sr-only">not found</span>
+            </>
           )}
           {isPending && pendingContent}
         </sup>
@@ -577,9 +586,12 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
-            <span className="size-3 max-w-3 max-h-3 ml-0.5 flex-shrink-0" aria-hidden="true">
-              <XCircleIcon />
-            </span>
+            <>
+              <span className="size-3 max-w-3 max-h-3 ml-0.5 flex-shrink-0" aria-hidden="true">
+                <XCircleIcon />
+              </span>
+              <span className="sr-only">not found</span>
+            </>
           )}
           {isPending && (
             <span className="opacity-70 ml-1">{pendingContent}</span>
@@ -697,9 +709,12 @@ export const MinimalCitation = forwardRef<
               {isPartialMatch && renderPartialIndicator(status)}
               {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
               {isMiss && (
-                <span className="size-2.5 max-w-2.5 max-h-2.5 ml-0.5 flex-shrink-0" aria-hidden="true">
-                  <XCircleIcon />
-                </span>
+                <>
+                  <span className="size-2.5 max-w-2.5 max-h-2.5 ml-0.5 flex-shrink-0" aria-hidden="true">
+                    <XCircleIcon />
+                  </span>
+                  <span className="sr-only">not found</span>
+                </>
               )}
               {isPending && pendingContent}
             </>
