@@ -200,13 +200,15 @@ Inserting citation markers into the output..."
 
 ### Insert Citation Markers
 
-Add `[N]` markers to the output text:
+Add `[N]` markers to the output text for display purposes:
 
 ```
 Patient DOB: 03/15/1985 [1]
 Diagnosis: Type 2 Diabetes [2]
 Last A1C: 7.2% [3]
 ```
+
+**Note:** The `[N]` markers are for display/user-facing output. The actual citation objects use descriptive keys (see below).
 
 ### Build Citation Objects
 
@@ -325,7 +327,7 @@ When the host can render DeepCitation components, return structured data:
 ```json
 {
   "type": "deepcitation-result",
-  "version": "1.0",
+  "version": "1.0.0",
   "sources": [
     {
       "attachmentId": "abc123-def456",

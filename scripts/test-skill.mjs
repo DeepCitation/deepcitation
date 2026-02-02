@@ -41,29 +41,27 @@ function expect(value) {
         throw new Error(`Expected to match ${regex}`);
       }
     },
+    toBeNull() {
+      if (value !== null) {
+        throw new Error(`Expected null but got ${value}`);
+      }
+    },
+    toBeGreaterThan(n) {
+      if (!(value > n)) {
+        throw new Error(`Expected ${value} > ${n}`);
+      }
+    },
     not: {
       toMatch(regex) {
         if (regex.test(value)) {
           throw new Error(`Expected NOT to match ${regex}`);
         }
       },
-    },
-    toBeNull() {
-      if (value !== null) {
-        throw new Error(`Expected null but got ${value}`);
-      }
-    },
-    not: {
       toBeNull() {
         if (value === null) {
           throw new Error(`Expected not null`);
         }
       },
-    },
-    toBeGreaterThan(n) {
-      if (!(value > n)) {
-        throw new Error(`Expected ${value} > ${n}`);
-      }
     },
   };
 }
