@@ -244,8 +244,8 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
             <UrlCitationComponent
               urlMeta={{
                 url,
-                // When sourceLabel is provided, use it as the title override for the URL display
-                domain: sourceLabel || domain,
+                domain,
+                // When sourceLabel is provided, use it as the title override for display
                 title: sourceLabel,
                 faviconUrl,
                 fetchStatus: urlFetchStatus,
