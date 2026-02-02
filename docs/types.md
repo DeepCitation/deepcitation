@@ -249,3 +249,35 @@ interface CitationRenderProps {
   isMergedDisplay: boolean;
 }
 ```
+
+### BaseCitationProps
+
+```typescript
+// Base props shared by citation components
+interface BaseCitationProps {
+  /** The citation data to display */
+  citation: Citation;
+  /** Child content to render before the citation */
+  children?: React.ReactNode;
+  /** Additional class name for the container */
+  className?: string;
+  /** Class name for controlling inner content width */
+  innerWidthClassName?: string;
+  /** Visual style variant */
+  variant?: "linter" | "chip" | "brackets" | "text" | "superscript" | "badge";
+  /** What content to display */
+  content?: "anchorText" | "number" | "indicator" | "source";
+  /** Fallback display text when anchorText is empty */
+  fallbackDisplay?: string | null;
+  /**
+   * Override label for the source displayed in popovers/headers.
+   *
+   * For document citations, overrides the filename shown in the popover header.
+   * For URL citations, overrides the URL/domain display.
+   *
+   * Important: Citations only store the *original* filename from upload time.
+   * Use this prop to display user-friendly names or updated filenames.
+   */
+  sourceLabel?: string;
+}
+```

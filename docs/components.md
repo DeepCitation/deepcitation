@@ -340,6 +340,64 @@ function MyComponent() {
 | `renderPopoverContent` | `(props) => ReactNode` | No | Custom popover content renderer |
 | `additionalCount` | `number` | No | Number of additional citations for badge variant |
 | `faviconUrl` | `string` | No | Favicon URL for badge variant |
+| `sourceLabel` | `string` | No | Override the source name displayed in popover headers (see below) |
+| `showIndicator` | `boolean` | No | Whether to show status indicator (default: true) |
+
+---
+
+## Custom Source Labels
+
+The `sourceLabel` prop allows you to override the filename or URL title displayed in the citation popover header.
+
+{: .important }
+**The citation and verification objects only store the *original* filename from when the document was uploaded.** If users rename files in your application, you must use `sourceLabel` to display the updated name—the verification system has no way to know about filename changes.
+
+### Document Citations
+
+{% raw %}
+```tsx
+// Shows "Q4 Financial Report" instead of "report_q4_2024_final.pdf"
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  sourceLabel="Q4 Financial Report"
+/>
+
+// Common pattern: Use your app's current filename
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  sourceLabel={attachment.displayName}
+/>
+```
+{% endraw %}
+
+### URL Citations
+
+{% raw %}
+```tsx
+// Shows "Official Documentation" instead of "developer.example.com/api/v2/reference"
+<CitationComponent
+  citation={urlCitation}
+  verification={verification}
+  sourceLabel="Official Documentation"
+/>
+```
+{% endraw %}
+
+### When to Use
+
+- User has renamed a file after uploading it
+- You want to show a friendly display name instead of technical filename
+- The original filename is cryptic (e.g., `doc_abc123.pdf`) but you have a better title
+- You're aggregating citations from multiple sources and want consistent naming
+
+### Behavior by Citation Type
+
+| Citation Type | Without `sourceLabel` | With `sourceLabel` |
+|:--------------|:----------------------|:-------------------|
+| Document | Shows `verification.label` (original filename) | Shows your custom label |
+| URL | Shows URL domain/path | Shows your custom label |
 
 ---
 
