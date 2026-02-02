@@ -291,6 +291,57 @@ describe("UrlCitationComponent", () => {
 
       windowOpenSpy.mockRestore();
     });
+
+    it("triggers click handler on Enter key press (keyboard accessibility)", () => {
+      const onUrlClick = jest.fn();
+
+      const { getByRole } = render(
+        <UrlCitationComponent urlMeta={createUrlMeta()} onUrlClick={onUrlClick} />
+      );
+
+      const button = getByRole("button");
+      fireEvent.keyDown(button, { key: "Enter" });
+
+      expect(onUrlClick).toHaveBeenCalledWith(
+        "https://stripe.com/docs/api/v2/citations",
+        expect.any(Object)
+      );
+    });
+
+    it("triggers click handler on Space key press (keyboard accessibility)", () => {
+      const onUrlClick = jest.fn();
+
+      const { getByRole } = render(
+        <UrlCitationComponent urlMeta={createUrlMeta()} onUrlClick={onUrlClick} />
+      );
+
+      const button = getByRole("button");
+      fireEvent.keyDown(button, { key: " " });
+
+      expect(onUrlClick).toHaveBeenCalledWith(
+        "https://stripe.com/docs/api/v2/citations",
+        expect.any(Object)
+      );
+    });
+
+    it("opens URL on Enter key when openUrlOnClick is true", () => {
+      const windowOpenSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+
+      const { getByRole } = render(
+        <UrlCitationComponent urlMeta={createUrlMeta()} openUrlOnClick={true} />
+      );
+
+      const button = getByRole("button");
+      fireEvent.keyDown(button, { key: "Enter" });
+
+      expect(windowOpenSpy).toHaveBeenCalledWith(
+        "https://stripe.com/docs/api/v2/citations",
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+      windowOpenSpy.mockRestore();
+    });
   });
 
   describe("display options", () => {

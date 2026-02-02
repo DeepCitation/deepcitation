@@ -287,6 +287,24 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       eventHandlers?.onMouseLeave?.(citation, citationKey);
     }, [eventHandlers, citation, citationKey, setIsHovered]);
 
+    // Keyboard handler for accessibility (WCAG 2.1.1 Keyboard)
+    // Since we use role="button", we need to handle Enter and Space keys
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLSpanElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          if (onUrlClick) {
+            onUrlClick(url, e as unknown as React.MouseEvent);
+          } else if (openUrlOnClick) {
+            window.open(url, "_blank", "noopener,noreferrer");
+          }
+          eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent);
+        }
+      },
+      [onUrlClick, url, eventHandlers, citation, citationKey, openUrlOnClick],
+    );
+
     // External link button that appears on hover
     const renderExternalLinkButton = () => {
       if (!shouldShowExternalLink || !isHovered) return null;
@@ -391,6 +409,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
             onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
             onClick={handleClick}
+            onKeyDown={handleKeyDown}
             role="button"
             tabIndex={0}
             aria-label={`Link to ${domain}: ${statusInfo.label}`}
@@ -435,6 +454,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
             onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
             onClick={handleClick}
+            onKeyDown={handleKeyDown}
             role="button"
             tabIndex={0}
             aria-label={`Link to ${domain}: ${statusInfo.label}`}
@@ -471,6 +491,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
             onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
             onClick={handleClick}
+            onKeyDown={handleKeyDown}
             role="button"
             tabIndex={0}
             aria-label={`Link to ${domain}: ${statusInfo.label}`}
@@ -506,6 +527,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onClick={handleClick}
+          onKeyDown={handleKeyDown}
           role="button"
           tabIndex={0}
           aria-label={`Link to ${domain}: ${statusInfo.label}`}
