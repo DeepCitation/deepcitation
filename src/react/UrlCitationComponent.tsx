@@ -205,8 +205,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       eventHandlers,
       preventTooltips = false,
       showStatusIndicator = true,
-      openUrlOnClick = false, // Default: don't open URL on click
-      showExternalLinkOnHover, // Default is derived below
+      openUrlOnClick: _openUrlOnClick, // Deprecated, clicking always opens URL now
+      showExternalLinkOnHover = true, // Show external link icon on hover by default
     },
     ref,
   ) => {
@@ -214,8 +214,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
     const [isHovered, setIsHovered] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
 
-    // Default showExternalLinkOnHover to true when openUrlOnClick is false
-    const shouldShowExternalLink = showExternalLinkOnHover ?? !openUrlOnClick;
+    // Show external link when either hovered or focused
+    const shouldShowExternalLink = showExternalLinkOnHover;
     // Show external link when either hovered or focused (keyboard accessibility)
     const showExternalLinkIndicator = shouldShowExternalLink && (isHovered || isFocused);
     const { url, domain: providedDomain, title, fetchStatus, faviconUrl, errorMessage } = urlMeta;
@@ -260,14 +260,15 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
         e.stopPropagation();
         if (onUrlClick) {
           onUrlClick(url, e);
-        } else if (openUrlOnClick) {
-          // Only open URL directly if explicitly enabled
+        } else {
+          // Always open the URL when clicking on the component
+          // The external link icon is just a visual hint, not a separate action
           window.open(url, "_blank", "noopener,noreferrer");
         }
         // Always call the event handler so parent can handle (e.g., show popover)
         eventHandlers?.onClick?.(citation, citationKey, e);
       },
-      [onUrlClick, url, eventHandlers, citation, citationKey, openUrlOnClick],
+      [onUrlClick, url, eventHandlers, citation, citationKey],
     );
 
     // Handler specifically for the external link icon
@@ -309,13 +310,14 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           e.stopPropagation();
           if (onUrlClick) {
             onUrlClick(url, e);
-          } else if (openUrlOnClick) {
+          } else {
+            // Always open the URL when activating via keyboard
             window.open(url, "_blank", "noopener,noreferrer");
           }
           eventHandlers?.onClick?.(citation, citationKey, e);
         }
       },
-      [onUrlClick, url, eventHandlers, citation, citationKey, openUrlOnClick],
+      [onUrlClick, url, eventHandlers, citation, citationKey],
     );
 
     // External link button that appears on hover or focus
