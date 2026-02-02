@@ -22,6 +22,10 @@ $brand-blue-dark: #38BDF8;
 $brand-blue-hover-light: #004578;
 $brand-blue-hover-dark: #7DD3FC;
 
+// Override Just the Docs color scheme variables
+$link-color: $brand-blue-light;
+$btn-primary-color: $brand-blue-light;
+
 
 // -----------------------------------------------------
 // Dark Mode Mixin (DRY)
@@ -44,6 +48,10 @@ $brand-blue-hover-dark: #7DD3FC;
   --nav-active-text: #{$slate-50};
   --inline-code-color: inherit;
   --inline-code-bg: transparent;
+  // Buttons
+  --btn-primary-bg: #{$brand-blue-dark};
+  --btn-primary-bg-hover: #{$brand-blue-hover-dark};
+  --btn-primary-text: #{$slate-950};
 }
 
 // -----------------------------------------------------
@@ -78,6 +86,11 @@ $brand-blue-hover-dark: #7DD3FC;
   // Navigation
   --nav-active-bg: #{$slate-200};
   --nav-active-text: #{$slate-900};
+
+  // Buttons
+  --btn-primary-bg: #{$brand-blue-light};
+  --btn-primary-bg-hover: #{$brand-blue-hover-light};
+  --btn-primary-text: #FFFFFF;
 }
 
 // -----------------------------------------------------
@@ -201,16 +214,27 @@ a:focus-visible,
 
 // -----------------------------------------------------
 // Links - Brand blue, not purple!
+// Using high specificity to override Just the Docs defaults
 // -----------------------------------------------------
-a {
+body a,
+.main-content a,
+.side-bar a {
   color: var(--link-color);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+  text-decoration-color: var(--link-color);
 
   &:hover {
     color: var(--link-hover-color);
     text-decoration-thickness: 2px;
+    text-decoration-color: var(--link-hover-color);
+  }
+
+  &:visited {
+    // Keep visited links same color for cleaner look
+    // but slightly different shade could be added here
+    color: var(--link-color);
   }
 }
 
@@ -284,40 +308,63 @@ pre {
 .side-bar {
   background-color: var(--sidebar-color);
   border-right: 1px solid var(--border-color);
-  font-size: 0.9375rem; // 15px - larger than default
+  font-size: 1rem; // 16px - larger for better readability
 
   // Site title with logo
   .site-title {
     color: var(--body-heading-color);
-    font-size: 1.125rem; // 18px
+    font-size: 1.25rem; // 20px
     font-weight: 600;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--link-color);
+      text-decoration: none;
+    }
 
     // Logo styling
     .site-logo {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       flex-shrink: 0;
+      color: var(--link-color);
     }
   }
 }
 
-// Navigation links in sidebar
-.nav-list-link {
-  font-size: 0.9375rem; // 15px
-  padding: 0.5rem 0.75rem;
+// Auto-expand all nav sections
+// Note: !important needed to override Just the Docs JS-injected styles
+.nav-list-expander {
+  display: none !important;
+}
+
+.nav-list .nav-list-item > .nav-list {
+  display: block !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+// Navigation links in sidebar - high specificity to override theme
+.side-bar .nav-list .nav-list-link {
+  font-size: 1rem; // 16px - bigger nav items
+  padding: 0.625rem 0.75rem;
   color: var(--link-color);
 
   &:hover {
     background-color: var(--nav-active-bg);
+    color: var(--link-hover-color);
   }
 
   &.active {
     background-color: var(--nav-active-bg);
     color: var(--nav-active-text);
-    font-weight: 500;
+    font-weight: 600;
+    border-left: 3px solid var(--link-color);
+    margin-left: 0;
+    padding-left: calc(0.75rem - 3px);
   }
 }
 
@@ -348,7 +395,7 @@ pre {
 .nav-list .nav-list {
   .nav-list-link {
     padding-left: 1.5rem;
-    font-size: 0.875rem; // 14px for child items
+    font-size: 0.9375rem; // 15px for child items
   }
 }
 
@@ -372,19 +419,23 @@ pre {
 }
 
 // -----------------------------------------------------
-// Tables
+// Tables - Clean single thin borders (no double borders)
+// border-collapse eliminates double borders between cells
 // -----------------------------------------------------
-table {
-  border: 1px solid var(--border-color);
-  font-size: 0.9375rem; // 15px
+.main-content table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 0.9375rem;
+  width: 100%;
 }
 
-th, td {
+.main-content th,
+.main-content td {
   border: 1px solid var(--border-color);
   padding: 0.75rem 1rem;
 }
 
-th {
+.main-content th {
   background-color: var(--sidebar-color);
   font-weight: 600;
 }
@@ -402,9 +453,10 @@ blockquote {
 }
 
 // -----------------------------------------------------
-// Buttons - Sharp corners, brand colors
+// Buttons - Sharp corners, brand colors (BLUE not purple!)
+// Button CSS variables defined in :root above
 // -----------------------------------------------------
-.btn {
+.main-content .btn {
   border: 1px solid var(--border-color);
   background-color: var(--body-background-color);
   color: var(--body-text-color);
@@ -412,29 +464,31 @@ blockquote {
   padding: 0.625rem 1.25rem;
   font-size: 0.9375rem; // 15px
   font-weight: 500;
+  text-decoration: none;
 
   &:hover {
     background-color: var(--sidebar-color);
     border-color: var(--link-color);
     color: var(--link-color);
+    text-decoration: none;
   }
 }
 
-.btn-primary {
-  background-color: var(--link-color);
-  border-color: var(--link-color);
-  color: #FFFFFF;
+.main-content .btn-primary {
+  background-color: var(--btn-primary-bg);
+  border-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
 
   &:hover {
-    background-color: var(--link-hover-color);
-    border-color: var(--link-hover-color);
-    color: #FFFFFF;
+    background-color: var(--btn-primary-bg-hover);
+    border-color: var(--btn-primary-bg-hover);
+    color: var(--btn-primary-text);
   }
 }
 
 // Hero buttons on homepage
-.fs-5 {
-  font-size: 1rem !important;
+.main-content .fs-5 {
+  font-size: 1rem;
 }
 
 // -----------------------------------------------------
@@ -448,7 +502,7 @@ blockquote {
 
   // Hide the "Built with Just the Docs" text
   a[href*="just-the-docs"] {
-    display: none !important;
+    display: none;
   }
 }
 
