@@ -246,8 +246,8 @@ export interface UrlCitationProps extends Omit<BaseCitationProps, "citation" | "
     status: UrlFetchStatus,
     errorMessage?: string
   ) => React.ReactNode;
-  /** Click handler for the URL */
-  onUrlClick?: (url: string, event: React.MouseEvent) => void;
+  /** Click handler for the URL (supports both mouse and keyboard activation) */
+  onUrlClick?: (url: string, event: React.MouseEvent | React.KeyboardEvent) => void;
   /** Event handlers for citation interactions */
   eventHandlers?: CitationEventHandlers;
   /** Whether tooltips should be prevented */
@@ -325,11 +325,11 @@ export interface CitationEventHandlers {
   onMouseEnter?: (citation: Citation, citationKey: string) => void;
   /** Called when mouse leaves citation */
   onMouseLeave?: (citation: Citation, citationKey: string) => void;
-  /** Called when citation is clicked */
+  /** Called when citation is clicked or activated via keyboard */
   onClick?: (
     citation: Citation,
     citationKey: string,
-    event: React.MouseEvent | React.TouchEvent
+    event: React.MouseEvent | React.TouchEvent | React.KeyboardEvent
   ) => void;
   /** Called on touch end (mobile) */
   onTouchEnd?: (

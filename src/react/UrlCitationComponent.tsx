@@ -210,11 +210,14 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
     },
     ref,
   ) => {
-    // Track hover state for external link indicator
+    // Track hover and focus state for external link indicator
     const [isHovered, setIsHovered] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
 
     // Default showExternalLinkOnHover to true when openUrlOnClick is false
     const shouldShowExternalLink = showExternalLinkOnHover ?? !openUrlOnClick;
+    // Show external link when either hovered or focused (keyboard accessibility)
+    const showExternalLinkIndicator = shouldShowExternalLink && (isHovered || isFocused);
     const { url, domain: providedDomain, title, fetchStatus, faviconUrl, errorMessage } = urlMeta;
 
     // Derive citation from URL meta if not provided
@@ -280,12 +283,22 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
       eventHandlers?.onMouseEnter?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey, setIsHovered]);
+    }, [eventHandlers, citation, citationKey]);
 
     const handleMouseLeave = useCallback(() => {
       setIsHovered(false);
       eventHandlers?.onMouseLeave?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey, setIsHovered]);
+    }, [eventHandlers, citation, citationKey]);
+
+    // Focus handlers for keyboard accessibility
+    // Shows external link button when component receives keyboard focus
+    const handleFocus = useCallback(() => {
+      setIsFocused(true);
+    }, []);
+
+    const handleBlur = useCallback(() => {
+      setIsFocused(false);
+    }, []);
 
     // Keyboard handler for accessibility (WCAG 2.1.1 Keyboard)
     // Since we use role="button", we need to handle Enter and Space keys
@@ -295,19 +308,19 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           e.preventDefault();
           e.stopPropagation();
           if (onUrlClick) {
-            onUrlClick(url, e as unknown as React.MouseEvent);
+            onUrlClick(url, e);
           } else if (openUrlOnClick) {
             window.open(url, "_blank", "noopener,noreferrer");
           }
-          eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent);
+          eventHandlers?.onClick?.(citation, citationKey, e);
         }
       },
       [onUrlClick, url, eventHandlers, citation, citationKey, openUrlOnClick],
     );
 
-    // External link button that appears on hover
+    // External link button that appears on hover or focus
     const renderExternalLinkButton = () => {
-      if (!shouldShowExternalLink || !isHovered) return null;
+      if (!showExternalLinkIndicator) return null;
       return (
         <button
           type="button"
@@ -408,6 +421,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             title={showFullUrlOnHover ? (errorMessage || url) : undefined}
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
             onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             onClick={handleClick}
             onKeyDown={handleKeyDown}
             role="button"
@@ -453,6 +468,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             title={showFullUrlOnHover ? url : undefined}
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
             onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             onClick={handleClick}
             onKeyDown={handleKeyDown}
             role="button"
@@ -490,6 +507,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             title={showFullUrlOnHover ? url : undefined}
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
             onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             onClick={handleClick}
             onKeyDown={handleKeyDown}
             role="button"
@@ -526,6 +545,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           title={showFullUrlOnHover ? url : undefined}
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           onClick={handleClick}
           onKeyDown={handleKeyDown}
           role="button"

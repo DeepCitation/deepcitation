@@ -342,6 +342,25 @@ describe("UrlCitationComponent", () => {
 
       windowOpenSpy.mockRestore();
     });
+
+    it("shows external link icon on keyboard focus (accessibility)", () => {
+      const { getByRole, queryByLabelText } = render(
+        <UrlCitationComponent urlMeta={createUrlMeta()} />
+      );
+
+      const button = getByRole("button");
+
+      // No external link icon initially
+      expect(queryByLabelText("Open in new tab")).not.toBeInTheDocument();
+
+      // Shows on focus (keyboard navigation)
+      fireEvent.focus(button);
+      expect(queryByLabelText("Open in new tab")).toBeInTheDocument();
+
+      // Hides on blur
+      fireEvent.blur(button);
+      expect(queryByLabelText("Open in new tab")).not.toBeInTheDocument();
+    });
   });
 
   describe("display options", () => {
