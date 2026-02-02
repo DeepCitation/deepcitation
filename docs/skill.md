@@ -469,7 +469,17 @@ Make separate `/verifyCitations` calls per `attachmentId`, then combine results 
 | 404 | `not-found` | Attachment expired (30-day retention) |
 | 429 | `resource-exhausted` | Rate limit exceeded |
 
-If attachment not found, re-upload the source file.
+**Example error response:**
+```json
+{
+  "error": {
+    "code": "unauthenticated",
+    "message": "Invalid or missing API key"
+  }
+}
+```
+
+If attachment not found (404), re-upload the source file. For rate limits (429), wait and retry with exponential backoff.
 
 ---
 
@@ -506,6 +516,8 @@ For generating new content with citations (not just verifying existing output), 
 **Pattern:**
 1. Place `[N]` markers inline in text
 2. Append citation data block at end with delimiters
+
+**Note:** The Deferred JSON Pattern uses numeric `id` fields that correspond to `[N]` markers in text. This is different from the verification API which uses descriptive citation keys. The parser handles this conversion automatically.
 
 ```
 The patient was born on March 15, 1985 [1]. They were diagnosed with Type 2 Diabetes [2].

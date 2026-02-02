@@ -85,6 +85,17 @@ test("has metadata section with api_base", () => {
   expect(frontmatter).toContain("https://api.deepcitation.com");
 });
 
+test("version follows semantic versioning", () => {
+  const frontmatterMatch = skillContent.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatter = frontmatterMatch[1];
+  const versionMatch = frontmatter.match(/version:\s*(\S+)/);
+  if (!versionMatch) throw new Error("No version found in frontmatter");
+  const version = versionMatch[1];
+  if (!/^\d+\.\d+\.\d+$/.test(version)) {
+    throw new Error(`Version "${version}" does not follow semver (expected X.Y.Z)`);
+  }
+});
+
 console.log("\n=== Required Sections ===\n");
 
 const requiredSections = [
@@ -137,8 +148,12 @@ test("has valid JSON blocks", () => {
     try {
       JSON.parse(jsonContent);
     } catch (e) {
+      // Show more context for debugging - first 500 chars or full content if shorter
+      const preview = jsonContent.length > 500
+        ? jsonContent.slice(0, 500) + "\n... (truncated)"
+        : jsonContent;
       throw new Error(
-        `Invalid JSON in block ${index + 1}: ${e.message}\n${jsonContent.slice(0, 100)}...`
+        `Invalid JSON in block ${index + 1}: ${e.message}\n\nContent:\n${preview}`
       );
     }
   });
