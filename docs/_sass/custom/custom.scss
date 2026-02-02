@@ -579,3 +579,22 @@ blockquote {
 *:active {
   outline-color: var(--link-color);
 }
+
+// -----------------------------------------------------
+// Override Just the Docs purple (#7253ed) in specific places
+// -----------------------------------------------------
+
+// Search icon color when input is focused
+.search-input:focus + .search-label .search-icon {
+  color: var(--link-color);
+}
+
+// Anchor heading SVG (the link icon that appears on hover)
+.main-content .anchor-heading svg {
+  color: var(--link-color);
+}
+
+// Site title should not change color on hover (keep heading color)
+.side-bar .site-title:hover {
+  color: var(--body-heading-color);
+}
