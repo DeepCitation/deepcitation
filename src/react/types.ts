@@ -367,7 +367,8 @@ export interface CitationRenderProps {
 }
 
 /**
- * Event handlers for citation interactions
+ * Event handlers for citation interactions.
+ * Provides symmetric handlers for mouse and touch events.
  */
 export interface CitationEventHandlers {
   /** Called when mouse enters citation */
@@ -379,6 +380,12 @@ export interface CitationEventHandlers {
     citation: Citation,
     citationKey: string,
     event: React.MouseEvent | React.TouchEvent | React.KeyboardEvent
+  ) => void;
+  /** Called on touch start (mobile) - useful for analytics or custom interactions */
+  onTouchStart?: (
+    citation: Citation,
+    citationKey: string,
+    event: React.TouchEvent
   ) => void;
   /** Called on touch end (mobile) */
   onTouchEnd?: (

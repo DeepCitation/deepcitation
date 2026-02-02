@@ -1312,6 +1312,61 @@ describe("CitationComponent mobile/touch detection", () => {
         container.querySelector("[role='dialog']")
       ).not.toBeInTheDocument();
     });
+
+    it("cross-citation tapping is not incorrectly debounced (each citation has its own timer)", () => {
+      mockTouchDevice(true);
+
+      const citation1: Citation = {
+        citationNumber: 1,
+        anchorText: "first citation",
+        fullPhrase: "This is the first citation",
+      };
+
+      const citation2: Citation = {
+        citationNumber: 2,
+        anchorText: "second citation",
+        fullPhrase: "This is the second citation",
+      };
+
+      const { container } = render(
+        <>
+          <CitationComponent
+            citation={citation1}
+            verification={verificationWithImage}
+          />
+          <CitationComponent
+            citation={citation2}
+            verification={verificationWithImage}
+          />
+        </>
+      );
+
+      const citations = container.querySelectorAll("[data-citation-id]");
+      const citationA = citations[0];
+      const citationB = citations[1];
+
+      // Tap citation A
+      fireEvent.touchStart(citationA!);
+      fireEvent.click(citationA!);
+
+      // Immediately tap citation B (within debounce window if it were global)
+      // This should NOT be debounced because each citation has its own timer
+      fireEvent.touchStart(citationB!);
+      fireEvent.click(citationB!);
+
+      // Both citations should have responded to their first tap
+      // (no image overlay since it's first tap for each)
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
+
+      // Now second tap on citation B should open image
+      fireEvent.touchStart(citationB!);
+      fireEvent.click(citationB!);
+
+      // Image overlay should be visible (proves citation B wasn't incorrectly debounced)
+      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+    });
   });
 
   describe("keyboard accessibility", () => {

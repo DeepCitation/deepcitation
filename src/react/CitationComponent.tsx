@@ -1880,11 +1880,22 @@ export const CitationComponent = forwardRef<
       null
     );
     const [isPhrasesExpanded, setIsPhrasesExpanded] = useState(false);
+
     // Track if popover was already open before current interaction (for mobile tap-to-expand)
     const wasPopoverOpenBeforeTap = useRef(false);
-    // Track last touch time for touch-to-click debouncing (prevents double-firing)
+
+    // Track last touch time for touch-to-click debouncing (prevents double-firing).
+    // Note: This ref is per-component-instance, so debouncing is citation-specific.
+    // Tapping Citation A then quickly tapping Citation B will NOT incorrectly debounce B,
+    // because each CitationComponent instance has its own lastTouchTimeRef.
     const lastTouchTimeRef = useRef(0);
-    // Ref to track isHovering for touch handlers (avoids stale closure issues)
+
+    // Ref to track isHovering for touch handlers (avoids stale closure issues).
+    // Pattern explanation: Mutating refs during render is safe here because:
+    // 1. Refs are explicitly designed to hold mutable values that don't affect rendering
+    // 2. This is a standard React pattern for keeping refs in sync with state/props
+    // 3. The mutation has no side effects - it just mirrors the state value
+    // See: https://react.dev/reference/react/useRef#referencing-a-value-with-a-ref
     const isHoveringRef = useRef(isHovering);
     isHoveringRef.current = isHovering;
 
@@ -1991,8 +2002,18 @@ export const CitationComponent = forwardRef<
       [verification?.verificationImageBase64]
     );
 
-    // Shared tap/click action handler - used by both click and touch handlers
-    // Extracts the common logic to avoid duplication
+    // Shared tap/click action handler - used by both click and touch handlers.
+    // Extracts the common logic to avoid duplication.
+    //
+    // Dependency chain explanation:
+    // - getBehaviorContext: Captures current state (citation, verification, isHovering, expandedImageSrc)
+    //   and is itself a useCallback that updates when those values change
+    // - applyBehaviorActions: Handles setExpandedImageSrc based on custom behavior results
+    // - behaviorConfig/eventHandlers: User-provided callbacks that may change
+    // - citation/citationKey: Core data passed to callbacks
+    // - verification?.verificationImageBase64: Used for image expansion on second tap
+    // - isMiss: Determines whether to toggle phrases instead of image
+    // - State setters (setIsHovering, etc.): Stable references included for exhaustive-deps
     const handleTapAction = useCallback(
       (
         e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent,
@@ -2201,9 +2222,12 @@ export const CitationComponent = forwardRef<
           // Capture whether popover was already open before this tap
           // This is used to determine first vs second tap behavior
           wasPopoverOpenBeforeTap.current = isHoveringRef.current;
+
+          // Call user-provided touch start handler (for analytics, etc.)
+          eventHandlers?.onTouchStart?.(citation, citationKey, e);
         }
       },
-      [isMobile]
+      [isMobile, eventHandlers, citation, citationKey]
     );
 
     // Touch handler for mobile - handles tap-to-show-popover and tap-to-expand-image
