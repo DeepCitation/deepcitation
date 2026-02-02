@@ -186,6 +186,44 @@ Shows only the verification status indicator. Best for space-constrained UIs, ta
 
 ---
 
+## Interaction Modes
+
+Control how eagerly citations respond to user interactions:
+
+### Eager Mode (Default)
+
+Hover shows popover immediately, click opens full-size image. Best for sparse citations where users want quick access to verification details.
+
+```tsx
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  interactionMode="eager"
+/>
+```
+
+### Relaxed Mode
+
+Hover only applies style effects (no popover). First click shows popover, second click opens image. Best for dense citation layouts where hover popovers would be distracting.
+
+```tsx
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  interactionMode="relaxed"
+/>
+```
+
+| Mode | Hover | First Click | Second Click | Best For |
+|:-----|:------|:------------|:-------------|:---------|
+| `"eager"` | Shows popover | Opens image | - | Sparse citations, detailed review |
+| `"relaxed"` | Style effects only | Shows popover | Opens image | Dense citations, less intrusive UX |
+
+{: .note }
+The cursor changes based on mode and state: `cursor-zoom-in` when clicking will zoom the image, `cursor-pointer` otherwise.
+
+---
+
 ## Event Handlers
 
 Add interactivity with mouse and touch event handlers:
@@ -326,6 +364,7 @@ function MyComponent() {
 | `verification` | `Verification \| null` | No | Verification result data from the API |
 | `variant` | `"linter" \| "chip" \| "brackets" \| "text" \| "superscript" \| "badge"` | No | Visual style variant (default: "linter") |
 | `content` | `"anchorText" \| "number" \| "indicator" \| "source"` | No | What content to display. Defaults based on variant. |
+| `interactionMode` | `"eager" \| "relaxed"` | No | How eagerly to respond to interactions (default: "eager") |
 | `isLoading` | `boolean` | No | Explicitly show loading spinner |
 | `children` | `ReactNode` | No | Content to render before the citation |
 | `className` | `string` | No | Additional CSS classes |

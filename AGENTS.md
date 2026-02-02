@@ -50,6 +50,15 @@ examples/             # Usage examples (nextjs-ai-sdk, basic-verification)
 - Always use `extractVisibleText()` before displaying LLM output to users
 - The `<<<CITATION_DATA>>>` block must be stripped before showing to users
 
+## React Component Notes
+
+- **CitationComponent** supports `interactionMode` prop: `"eager"` (default) or `"relaxed"`
+  - Eager: hover shows popover, click zooms image
+  - Relaxed: hover only styles, click shows popover, second click zooms
+  - Use relaxed mode for dense citation layouts
+- **UrlCitationComponent** always opens URL on click (no config needed)
+- Status indicators use `XCircleIcon` SVG for not-found states (centered, not subscript)
+
 ## API Endpoints
 
 - `POST https://api.deepcitation.com/prepareFile` — Upload attachments

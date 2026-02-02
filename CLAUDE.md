@@ -328,6 +328,42 @@ The CitationComponent has simple, predictable default behaviors:
 
 The popover uses a portal to render at the document body level, so it won't be clipped by parent `overflow:hidden` containers.
 
+#### Interaction Modes
+
+Control how eagerly citations respond to user interactions with the `interactionMode` prop:
+
+```tsx
+import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+
+// Eager mode (default): hover shows popover, click zooms image
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  interactionMode="eager"
+/>
+
+// Relaxed mode: hover only styles, click shows popover, second click zooms
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  interactionMode="relaxed"
+/>
+```
+
+| Mode | Hover | First Click | Second Click | Best For |
+|------|-------|-------------|--------------|----------|
+| `"eager"` (default) | Shows popover | Opens image | - | Sparse citations, detailed review |
+| `"relaxed"` | Style effects only | Shows popover | Opens image | Dense citations, less intrusive UX |
+
+**Use `relaxed` mode when:**
+- Citations are densely packed and hover popovers would be distracting
+- You want a less intrusive interaction pattern
+- Mobile-like behavior on desktop is preferred
+
+The cursor also changes based on mode:
+- **Eager mode**: `cursor-zoom-in` (indicates click will zoom)
+- **Relaxed mode**: `cursor-pointer` initially, then `cursor-zoom-in` when popover is open
+
 ### 7. Styling
 
 The component uses **Tailwind CSS** classes. Make sure your project has Tailwind configured. The component is designed to be copy/paste friendly - you can copy the component source into your project and customize as needed.
