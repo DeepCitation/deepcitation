@@ -87,7 +87,7 @@ bun run scripts/factcheck.ts verify abc123xyz '{
 | Status | Meaning |
 |--------|---------|
 | `found` | Exact text found in source |
-| `found_anchor_text_only` | Key phrase found |
+| `found_anchor_text_only` | Anchor text found |
 | `found_on_other_page` | Found but different location |
 | `partial_text_found` | Only part matched |
 | `not_found` | Text not in source |
@@ -162,7 +162,7 @@ Calculate a confidence score for each claim:
 | DeepCitation Status | Category | Description |
 |---------------------|----------|-------------|
 | `found` | Fully Verified | Exact text found in source |
-| `found_anchor_text_only` | Fully Verified | Key phrase found |
+| `found_anchor_text_only` | Fully Verified | Anchor text found |
 | `found_phrase_missed_anchor_text` | Fully Verified | Phrase found, value differs |
 | `found_on_other_page` | Partial Match | Found on different page than claimed |
 | `found_on_other_line` | Partial Match | Found on different line than claimed |

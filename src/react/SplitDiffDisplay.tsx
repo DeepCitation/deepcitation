@@ -46,7 +46,7 @@ export interface SplitDiffDisplayProps {
 export function getContextualStatusMessage(
   status: SearchStatus | null | undefined,
   expectedPage?: number | null,
-  actualPage?: number | null
+  actualPage?: number | null,
 ): string {
   if (!status) return "";
 
@@ -54,7 +54,7 @@ export function getContextualStatusMessage(
     case "found":
       return "Exact match found";
     case "found_anchor_text_only":
-      return "Key phrase found, full context differs";
+      return "Anchor text found, full context differs";
     case "found_phrase_missed_anchor_text":
       return "Full phrase found, anchor text highlight missed";
     case "partial_text_found":
@@ -101,11 +101,7 @@ function calculateSimilarity(a: string, b: string): number {
       if (a[i - 1] === b[j - 1]) {
         matrix[i][j] = matrix[i - 1][j - 1];
       } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
+        matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
       }
     }
   }
@@ -117,11 +113,7 @@ function calculateSimilarity(a: string, b: string): number {
 /**
  * Highlight a substring within text
  */
-function highlightSubstring(
-  text: string,
-  substring: string | undefined,
-  highlightClass: string
-): React.ReactNode {
+function highlightSubstring(text: string, substring: string | undefined, highlightClass: string): React.ReactNode {
   if (!substring || !text.includes(substring)) {
     return text;
   }
@@ -166,9 +158,7 @@ const MatchQualityBar: React.FC<MatchQualityBarProps> = memo(({ similarity, clas
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 tabular-nums">
-        {percentage}%
-      </span>
+      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 tabular-nums">{percentage}%</span>
     </div>
   );
 });
@@ -187,42 +177,34 @@ interface CollapsibleTextProps {
   anchorTextClass?: string;
 }
 
-const CollapsibleText: React.FC<CollapsibleTextProps> = memo(({
-  text,
-  maxLength,
-  className,
-  anchorText,
-  anchorTextClass = "border-b-2 border-blue-400 dark:border-blue-500",
-}) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const shouldCollapse = text.length > maxLength;
+const CollapsibleText: React.FC<CollapsibleTextProps> = memo(
+  ({ text, maxLength, className, anchorText, anchorTextClass = "border-b-2 border-blue-400 dark:border-blue-500" }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const shouldCollapse = text.length > maxLength;
 
-  const displayText = shouldCollapse && !isExpanded
-    ? text.slice(0, maxLength) + "…"
-    : text;
+    const displayText = shouldCollapse && !isExpanded ? text.slice(0, maxLength) + "…" : text;
 
-  const content = anchorText
-    ? highlightSubstring(displayText, anchorText, anchorTextClass)
-    : displayText;
+    const content = anchorText ? highlightSubstring(displayText, anchorText, anchorTextClass) : displayText;
 
-  return (
-    <div className={className}>
-      <span className="whitespace-pre-wrap break-words">{content}</span>
-      {shouldCollapse && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsExpanded(!isExpanded);
-          }}
-          className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 text-[10px] font-medium"
-        >
-          {isExpanded ? "Show less" : "Show full text"}
-        </button>
-      )}
-    </div>
-  );
-});
+    return (
+      <div className={className}>
+        <span className="whitespace-pre-wrap break-words">{content}</span>
+        {shouldCollapse && (
+          <button
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
+            className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 text-[10px] font-medium"
+          >
+            {isExpanded ? "Show less" : "Show full text"}
+          </button>
+        )}
+      </div>
+    );
+  },
+);
 
 CollapsibleText.displayName = "CollapsibleText";
 
@@ -240,64 +222,56 @@ interface SplitViewProps {
   similarity: number;
 }
 
-const SplitView: React.FC<SplitViewProps> = memo(({
-  expected,
-  actual,
-  maxCollapsedLength,
-  anchorTextExpected,
-  anchorTextFound,
-  showMatchQuality,
-  similarity,
-}) => {
-  return (
-    <div className="space-y-2">
-      {showMatchQuality && (
-        <MatchQualityBar similarity={similarity} className="mb-3" />
-      )}
+const SplitView: React.FC<SplitViewProps> = memo(
+  ({ expected, actual, maxCollapsedLength, anchorTextExpected, anchorTextFound, showMatchQuality, similarity }) => {
+    return (
+      <div className="space-y-2">
+        {showMatchQuality && <MatchQualityBar similarity={similarity} className="mb-3" />}
 
-      {/* Expected row */}
-      <div className="rounded-md overflow-hidden">
-        <div className="flex items-start gap-2 p-2.5 bg-red-50 dark:bg-red-900/20">
-          <span className="shrink-0 text-[10px] font-medium text-red-600 dark:text-red-400 uppercase tracking-wide pt-0.5">
-            Expected:
-          </span>
-          <CollapsibleText
-            text={expected}
-            maxLength={maxCollapsedLength}
-            className="flex-1 font-mono text-[11px] text-red-700 dark:text-red-300"
-            anchorText={anchorTextExpected}
-            anchorTextClass="bg-red-200 dark:bg-red-800/50 px-0.5 rounded"
-          />
-        </div>
-      </div>
-
-      {/* Found row */}
-      <div className="rounded-md overflow-hidden">
-        <div className="flex items-start gap-2 p-2.5 bg-green-50 dark:bg-green-900/20">
-          <span className="shrink-0 text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wide pt-0.5 inline-flex items-center gap-1">
-            Found:
-            <span className="size-2.5 text-green-500 dark:text-green-400">
-              <CheckIcon />
+        {/* Expected row */}
+        <div className="rounded-md overflow-hidden">
+          <div className="flex items-start gap-2 p-2.5 bg-red-50 dark:bg-red-900/20">
+            <span className="shrink-0 text-[10px] font-medium text-red-600 dark:text-red-400 uppercase tracking-wide pt-0.5">
+              Expected:
             </span>
-          </span>
-          {actual ? (
             <CollapsibleText
-              text={actual}
+              text={expected}
               maxLength={maxCollapsedLength}
-              className="flex-1 font-mono text-[11px] text-green-700 dark:text-green-300"
-              anchorText={anchorTextFound}
-              anchorTextClass="bg-green-200 dark:bg-green-800/50 px-0.5 rounded"
+              className="flex-1 font-mono text-[11px] text-red-700 dark:text-red-300"
+              anchorText={anchorTextExpected}
+              anchorTextClass="bg-red-200 dark:bg-red-800/50 px-0.5 rounded"
             />
-          ) : (
-            <span className="flex-1 font-mono text-[11px] text-gray-500 dark:text-gray-400 italic">
-              No text found
+          </div>
+        </div>
+
+        {/* Found row */}
+        <div className="rounded-md overflow-hidden">
+          <div className="flex items-start gap-2 p-2.5 bg-green-50 dark:bg-green-900/20">
+            <span className="shrink-0 text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wide pt-0.5 inline-flex items-center gap-1">
+              Found:
+              <span className="size-2.5 text-green-500 dark:text-green-400">
+                <CheckIcon />
+              </span>
             </span>
-          )}
+            {actual ? (
+              <CollapsibleText
+                text={actual}
+                maxLength={maxCollapsedLength}
+                className="flex-1 font-mono text-[11px] text-green-700 dark:text-green-300"
+                anchorText={anchorTextFound}
+                anchorTextClass="bg-green-200 dark:bg-green-800/50 px-0.5 rounded"
+              />
+            ) : (
+              <span className="flex-1 font-mono text-[11px] text-gray-500 dark:text-gray-400 italic">
+                No text found
+              </span>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);
 
 SplitView.displayName = "SplitView";
 
@@ -315,98 +289,96 @@ SplitView.displayName = "SplitView";
  * - Match quality bar: visual similarity indicator
  * - Collapsible text: truncates long text with expand option
  */
-export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(({
-  expected,
-  actual,
-  label,
-  className,
-  sanitize,
-  mode = "auto",
-  showMatchQuality = false,
-  maxCollapsedLength = 200,
-  anchorTextExpected,
-  anchorTextFound,
-  status,
-  similarity: providedSimilarity,
-}) => {
-  // Sanitize inputs
-  const sanitizedExpected = useMemo(() => {
-    const clean = (expected || "").trim().replace(/\r\n/g, "\n");
-    return sanitize ? sanitize(clean) : clean;
-  }, [expected, sanitize]);
+export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
+  ({
+    expected,
+    actual,
+    label,
+    className,
+    sanitize,
+    mode = "auto",
+    showMatchQuality = false,
+    maxCollapsedLength = 200,
+    anchorTextExpected,
+    anchorTextFound,
+    status,
+    similarity: providedSimilarity,
+  }) => {
+    // Sanitize inputs
+    const sanitizedExpected = useMemo(() => {
+      const clean = (expected || "").trim().replace(/\r\n/g, "\n");
+      return sanitize ? sanitize(clean) : clean;
+    }, [expected, sanitize]);
 
-  const sanitizedActual = useMemo(() => {
-    const clean = (actual || "").trim().replace(/\r\n/g, "\n");
-    return sanitize ? sanitize(clean) : clean;
-  }, [actual, sanitize]);
+    const sanitizedActual = useMemo(() => {
+      const clean = (actual || "").trim().replace(/\r\n/g, "\n");
+      return sanitize ? sanitize(clean) : clean;
+    }, [actual, sanitize]);
 
-  // Calculate similarity
-  const similarity = useMemo(() => {
-    if (providedSimilarity !== undefined) return providedSimilarity;
-    return calculateSimilarity(sanitizedExpected, sanitizedActual);
-  }, [sanitizedExpected, sanitizedActual, providedSimilarity]);
+    // Calculate similarity
+    const similarity = useMemo(() => {
+      if (providedSimilarity !== undefined) return providedSimilarity;
+      return calculateSimilarity(sanitizedExpected, sanitizedActual);
+    }, [sanitizedExpected, sanitizedActual, providedSimilarity]);
 
-  // Determine effective display mode
-  const effectiveMode = useMemo(() => {
-    if (mode !== "auto") return mode;
+    // Determine effective display mode
+    const effectiveMode = useMemo(() => {
+      if (mode !== "auto") return mode;
 
-    // Smart mode selection based on PRD thresholds
-    if (similarity >= 0.8) return "inline";
-    if (similarity < 0.6) return "split";
+      // Smart mode selection based on PRD thresholds
+      if (similarity >= 0.8) return "inline";
+      if (similarity < 0.6) return "split";
 
-    // For status-based decisions
-    if (status === "found_anchor_text_only" || status === "partial_text_found") {
+      // For status-based decisions
+      if (status === "found_anchor_text_only" || status === "partial_text_found") {
+        return "split";
+      }
+
+      // Default to split for moderate variance (0.6-0.8) when showing diff
       return "split";
+    }, [mode, similarity, status]);
+
+    // Check if exact match
+    const isExactMatch = sanitizedExpected === sanitizedActual && sanitizedExpected.length > 0;
+
+    if (isExactMatch) {
+      return (
+        <div data-testid="split-diff-display" data-exact-match="true" className={cn("space-y-2", className)}>
+          {label && (
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
+          )}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">
+            <span className="size-2.5">
+              <CheckIcon />
+            </span>
+            <span>Exact match</span>
+          </div>
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-words">
+            {sanitizedActual}
+          </div>
+        </div>
+      );
     }
 
-    // Default to split for moderate variance (0.6-0.8) when showing diff
-    return "split";
-  }, [mode, similarity, status]);
-
-  // Check if exact match
-  const isExactMatch = sanitizedExpected === sanitizedActual && sanitizedExpected.length > 0;
-
-  if (isExactMatch) {
     return (
-      <div data-testid="split-diff-display" data-exact-match="true" className={cn("space-y-2", className)}>
+      <div data-testid="split-diff-display" data-mode={effectiveMode} className={cn("space-y-2", className)}>
         {label && (
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            {label}
-          </div>
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
         )}
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">
-          <span className="size-2.5">
-            <CheckIcon />
-          </span>
-          <span>Exact match</span>
-        </div>
-        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-words">
-          {sanitizedActual}
-        </div>
+
+        <SplitView
+          expected={sanitizedExpected}
+          actual={sanitizedActual}
+          maxCollapsedLength={maxCollapsedLength}
+          anchorTextExpected={anchorTextExpected}
+          anchorTextFound={anchorTextFound}
+          showMatchQuality={showMatchQuality}
+          similarity={similarity}
+        />
       </div>
     );
-  }
-
-  return (
-    <div data-testid="split-diff-display" data-mode={effectiveMode} className={cn("space-y-2", className)}>
-      {label && (
-        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-          {label}
-        </div>
-      )}
-
-      <SplitView
-        expected={sanitizedExpected}
-        actual={sanitizedActual}
-        maxCollapsedLength={maxCollapsedLength}
-        anchorTextExpected={anchorTextExpected}
-        anchorTextFound={anchorTextFound}
-        showMatchQuality={showMatchQuality}
-        similarity={similarity}
-      />
-    </div>
-  );
-});
+  },
+);
 
 SplitDiffDisplay.displayName = "SplitDiffDisplay";
 

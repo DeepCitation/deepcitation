@@ -8,10 +8,7 @@ import {
   replaceDeferredMarkers,
   getCitationMarkerIds,
 } from "../parsing/citationParser.js";
-import {
-  CITATION_DATA_START_DELIMITER,
-  CITATION_DATA_END_DELIMITER,
-} from "../prompts/citationPrompts.js";
+import { CITATION_DATA_START_DELIMITER, CITATION_DATA_END_DELIMITER } from "../prompts/citationPrompts.js";
 
 describe("parseDeferredCitationResponse", () => {
   it("parses a basic deferred citation response", () => {
@@ -43,9 +40,7 @@ ${CITATION_DATA_END_DELIMITER}`;
     const result = parseDeferredCitationResponse(response);
 
     expect(result.success).toBe(true);
-    expect(result.visibleText).toBe(
-      "The company reported strong growth [1]. Revenue increased significantly [2]."
-    );
+    expect(result.visibleText).toBe("The company reported strong growth [1]. Revenue increased significantly [2].");
     expect(result.citations.length).toBe(2);
     expect(result.citationMap.get(1)?.attachment_id).toBe("abc123");
     expect(result.citationMap.get(2)?.anchor_text).toBe("$2.3 billion");
@@ -130,9 +125,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(3);
-    expect(result.visibleText).toBe(
-      "Revenue was $1B [1] with profit of $100M [2] in Q4 [3]."
-    );
+    expect(result.visibleText).toBe("Revenue was $1B [1] with profit of $100M [2] in Q4 [3].");
   });
 
   it("repairs JSON with trailing commas", () => {
@@ -263,7 +256,7 @@ describe("deferredCitationToCitation", () => {
       attachment_id: "doc123",
       reasoning: "test reasoning",
       full_phrase: "The full phrase here",
-      anchor_text: "key phrase",
+      anchor_text: "anchor text",
       page_id: "page_number_3_index_2",
       line_ids: [10, 11, 12],
     };
@@ -273,7 +266,7 @@ describe("deferredCitationToCitation", () => {
     expect(citation.attachmentId).toBe("doc123");
     expect(citation.reasoning).toBe("test reasoning");
     expect(citation.fullPhrase).toBe("The full phrase here");
-    expect(citation.anchorText).toBe("key phrase");
+    expect(citation.anchorText).toBe("anchor text");
     expect(citation.pageNumber).toBe(3);
     expect(citation.startPageId).toBe("page_number_3_index_2");
     expect(citation.lineIds).toEqual([10, 11, 12]);
@@ -376,7 +369,7 @@ describe("replaceDeferredMarkers", () => {
   it("uses custom replacer function", () => {
     const text = "Test [1] and [2].";
     const result = replaceDeferredMarkers(text, {
-      replacer: (id) => `(ref${id})`,
+      replacer: id => `(ref${id})`,
     });
     expect(result).toBe("Test (ref1) and (ref2).");
   });

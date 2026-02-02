@@ -49,7 +49,7 @@ export type SourceType =
  *
  * Common fields (used by both types):
  * - `fullPhrase`: The full context/excerpt containing the cited information
- * - `anchorText`: The specific key phrase being cited (must be substring of fullPhrase)
+ * - `anchorText`: The specific anchor text being cited (must be substring of fullPhrase)
  * - `citationNumber`: Citation number for display (e.g., [1], [2])
  *
  * @example Document citation
@@ -93,7 +93,7 @@ export interface Citation {
   /** The full context/excerpt containing the cited information */
   fullPhrase?: string | null;
 
-  /** The specific key phrase being cited (should be substring of fullPhrase) */
+  /** The specific anchor text being cited (should be substring of fullPhrase) */
   anchorText?: string | null;
 
   /** Citation number for display (e.g., [1], [2], [3]) */

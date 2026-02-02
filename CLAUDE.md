@@ -447,7 +447,7 @@ const urlCitation: Citation = {
 
 **Common fields (both types):**
 - `fullPhrase` - The full context/excerpt containing the cited information
-- `anchorText` - The specific key phrase (must be substring of fullPhrase)
+- `anchorText` - The specific anchor text (must be substring of fullPhrase)
 - `citationNumber` - Citation number for display
 - `reasoning` - Why this citation was included
 

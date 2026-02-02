@@ -181,19 +181,19 @@ CLAIM 1: 'Patient DOB: 03/15/1985'
   → Source: medical-records.pdf (attachmentId: abc123)
   → Reasoning: DOB should be in patient demographics
   → Search phrase: '03/15/1985' or 'March 15, 1985'
-  → Key phrase: '03/15/1985'
+  → Anchor text: '03/15/1985'
 
 CLAIM 2: 'Diagnosis: Type 2 Diabetes'
   → Source: medical-records.pdf (attachmentId: abc123)
   → Reasoning: Diagnosis appears in clinical notes
   → Search phrase: 'Type 2 Diabetes'
-  → Key phrase: 'Type 2 Diabetes'
+  → Anchor text: 'Type 2 Diabetes'
 
 CLAIM 3: 'Last A1C: 7.2%'
   → Source: medical-records.pdf (attachmentId: abc123)
   → Reasoning: Lab value from recent tests
   → Search phrase: 'A1C' and '7.2%'
-  → Key phrase: '7.2%'
+  → Anchor text: '7.2%'
 
 Inserting citation markers into the output..."
 ```
@@ -303,7 +303,7 @@ Present verification results. **Detect rendering capabilities** and adapt output
 |--------|---------|-----------|
 | `found` | Exact match in source | ✓ Verified |
 | `partial_text_found` | Close match | ⚠ Partially verified |
-| `found_anchor_text_only` | Key phrase found | ⚠ Partially verified |
+| `found_anchor_text_only` | Anchor text found | ⚠ Partially verified |
 | `found_on_other_page` | Found but wrong location cited | ⚠ Partially verified |
 | `found_on_other_line` | Found but wrong line cited | ⚠ Partially verified |
 | `first_word_found` | Only first word matched | ⚠ Weak match |

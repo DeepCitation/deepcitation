@@ -42,12 +42,12 @@ const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   exact_line_match: "Exact location",
   line_with_buffer: "Nearby lines",
   current_page: "Expected page",
-  anchor_text_fallback: "Key phrase",
+  anchor_text_fallback: "Anchor text",
   adjacent_pages: "Nearby pages",
   expanded_window: "Wider area",
   regex_search: "Entire document",
   first_word_fallback: "First word",
-  keyspan_fallback: "Key phrase",
+  keyspan_fallback: "Anchor text",
 };
 
 /**
@@ -194,10 +194,14 @@ export function SourceContextHeader({ citation, verification, status }: SourceCo
 
     // Get status color and icon
     const colorScheme = getStatusColorScheme(status);
-    const IconComponent = colorScheme === "green" ? CheckIcon
-      : colorScheme === "amber" ? CheckIcon
-      : colorScheme === "red" ? XCircleIcon
-      : SpinnerIcon;
+    const IconComponent =
+      colorScheme === "green"
+        ? CheckIcon
+        : colorScheme === "amber"
+          ? CheckIcon
+          : colorScheme === "red"
+            ? XCircleIcon
+            : SpinnerIcon;
 
     // Format page/line text
     const pageLineText = formatPageLineText(pageNumber, lineIds);
@@ -257,9 +261,7 @@ export function SourceContextHeader({ citation, verification, status }: SourceCo
           <DocumentIcon />
         </span>
         {displayName && (
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">
-            {displayName}
-          </span>
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{displayName}</span>
         )}
       </div>
       {pageLineText && (
@@ -279,7 +281,10 @@ export function SourceContextHeader({ citation, verification, status }: SourceCo
  * columns can cause sync issues with expected line IDs. Line numbers are
  * only useful when there's a difference from expected.
  */
-function formatPageLineText(pageNumber: number | null | undefined, _lineIds: number[] | null | undefined): string | null {
+function formatPageLineText(
+  pageNumber: number | null | undefined,
+  _lineIds: number[] | null | undefined,
+): string | null {
   if (!pageNumber || pageNumber <= 0) return null;
   // Don't show line numbers in the header - they can be unreliable due to column layouts
   // Line differences are shown separately in the verification log when relevant
@@ -445,9 +450,10 @@ function formatScopeBadge(attempt: SearchAttempt): string {
 function getAttemptResultText(attempt: SearchAttempt): string {
   if (attempt.success) {
     if (attempt.matchedText) {
-      const truncated = attempt.matchedText.length > MAX_MATCHED_TEXT_LENGTH
-        ? attempt.matchedText.slice(0, MAX_MATCHED_TEXT_LENGTH) + "..."
-        : attempt.matchedText;
+      const truncated =
+        attempt.matchedText.length > MAX_MATCHED_TEXT_LENGTH
+          ? attempt.matchedText.slice(0, MAX_MATCHED_TEXT_LENGTH) + "..."
+          : attempt.matchedText;
       return `Found: "${truncated}"`;
     }
     return "Match found";
@@ -534,11 +540,7 @@ function PageBadge({ expectedPage, foundPage }: PageBadgeProps) {
   // Show found page or expected page
   const pageToShow = hasFound ? foundPage : expectedPage;
   if (pageToShow != null && pageToShow > 0) {
-    return (
-      <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-        Pg {pageToShow}
-      </span>
-    );
+    return <span className="text-xs font-mono text-gray-500 dark:text-gray-400">Pg {pageToShow}</span>;
   }
 
   return null;
@@ -586,17 +588,14 @@ export function AmbiguityWarning({ ambiguity }: AmbiguityWarningProps) {
           <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <div className="text-xs text-amber-800 dark:text-amber-200">
-          <span className="font-medium">
-            Found {ambiguity.totalOccurrences.toLocaleString()} occurrences
-          </span>
+          <span className="font-medium">Found {ambiguity.totalOccurrences.toLocaleString()} occurrences</span>
           {ambiguity.occurrencesOnExpectedPage > 0 && (
             <span className="text-amber-700 dark:text-amber-300">
-              {" "}({ambiguity.occurrencesOnExpectedPage.toLocaleString()} on expected page)
+              {" "}
+              ({ambiguity.occurrencesOnExpectedPage.toLocaleString()} on expected page)
             </span>
           )}
-          {displayNote && (
-            <p className="mt-0.5 text-amber-700 dark:text-amber-300 max-w-prose">{displayNote}</p>
-          )}
+          {displayNote && <p className="mt-0.5 text-amber-700 dark:text-amber-300 max-w-prose">{displayNote}</p>}
         </div>
       </div>
     </div>
@@ -616,7 +615,14 @@ export function AmbiguityWarning({ ambiguity }: AmbiguityWarningProps) {
  * - Subtle ring border for elevation
  * - Page badge is only shown if hidePageBadge is false (to avoid duplication with SourceContextHeader)
  */
-export function StatusHeader({ status, foundPage, expectedPage, compact = false, anchorText, hidePageBadge = false }: StatusHeaderProps) {
+export function StatusHeader({
+  status,
+  foundPage,
+  expectedPage,
+  compact = false,
+  anchorText,
+  hidePageBadge = false,
+}: StatusHeaderProps) {
   const colorScheme = getStatusColorScheme(status);
   const headerText = getStatusHeaderText(status);
 
@@ -625,10 +631,14 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
   // - Amber (partial): CheckIcon (de-emphasized, not aggressive warning)
   // - Red (not found): XCircleIcon (X in circle for clear "not found" indication)
   // - Gray (pending): SpinnerIcon (not aggressive warning)
-  const IconComponent = colorScheme === "green" ? CheckIcon
-    : colorScheme === "amber" ? CheckIcon
-    : colorScheme === "red" ? XCircleIcon
-    : SpinnerIcon;
+  const IconComponent =
+    colorScheme === "green"
+      ? CheckIcon
+      : colorScheme === "amber"
+        ? CheckIcon
+        : colorScheme === "red"
+          ? XCircleIcon
+          : SpinnerIcon;
 
   // Consistent single-row layout: icon + text + page badge
   // Display priority: headerText (status description) > anchorText (quoted phrase)
@@ -638,7 +648,7 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
     <div
       className={cn(
         "flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-700 text-sm",
-        compact ? "px-3 py-2" : "px-4 py-2.5"
+        compact ? "px-3 py-2" : "px-4 py-2.5",
       )}
     >
       <div className="flex items-center gap-2 min-w-0">
@@ -646,10 +656,12 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
           <IconComponent />
         </span>
         {displayText && (
-          <span className={cn(
-            "font-medium truncate",
-            headerText ? "text-gray-800 dark:text-gray-100" : "text-gray-600 dark:text-gray-300"
-          )}>
+          <span
+            className={cn(
+              "font-medium truncate",
+              headerText ? "text-gray-800 dark:text-gray-100" : "text-gray-600 dark:text-gray-300",
+            )}
+          >
             {displayText}
           </span>
         )}
@@ -669,9 +681,7 @@ export function StatusHeader({ status, foundPage, expectedPage, compact = false,
  * Uses left border accent (which aligns with shadcn patterns).
  */
 export function QuoteBox({ phrase, maxLength = MAX_QUOTE_BOX_LENGTH }: QuoteBoxProps) {
-  const displayPhrase = phrase.length > maxLength
-    ? phrase.slice(0, maxLength) + "..."
-    : phrase;
+  const displayPhrase = phrase.length > maxLength ? phrase.slice(0, maxLength) + "..." : phrase;
 
   return (
     <blockquote className="text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 p-3 border-l-[3px] border-gray-300 dark:border-gray-600 leading-relaxed text-sm">
@@ -699,11 +709,7 @@ interface VerificationLogSummaryProps {
  * Clickable summary header - GitHub-style with just chevron + count.
  * Issue #6 & #11: Simplified to avoid redundant info (header already shows status).
  */
-function VerificationLogSummary({
-  searchAttempts,
-  isExpanded,
-  onToggle,
-}: VerificationLogSummaryProps) {
+function VerificationLogSummary({ searchAttempts, isExpanded, onToggle }: VerificationLogSummaryProps) {
   const totalCount = searchAttempts.length;
   const successCount = searchAttempts.filter(a => a.success).length;
 
@@ -717,10 +723,7 @@ function VerificationLogSummary({
     >
       <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
         <svg
-          className={cn(
-            "size-3 transition-transform duration-200",
-            isExpanded && "rotate-90"
-          )}
+          className={cn("size-3 transition-transform duration-200", isExpanded && "rotate-90")}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -764,18 +767,20 @@ interface SearchAttemptRowProps {
 function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps) {
   // Format the phrase for display (truncate if too long), with null safety
   const phrase = attempt.searchPhrase ?? "";
-  const displayPhrase = phrase.length === 0
-    ? "(empty)"
-    : phrase.length > MAX_PHRASE_DISPLAY_LENGTH
-      ? phrase.slice(0, MAX_PHRASE_DISPLAY_LENGTH) + "..."
-      : phrase;
+  const displayPhrase =
+    phrase.length === 0
+      ? "(empty)"
+      : phrase.length > MAX_PHRASE_DISPLAY_LENGTH
+        ? phrase.slice(0, MAX_PHRASE_DISPLAY_LENGTH) + "..."
+        : phrase;
 
   // Format location
-  const locationText = attempt.searchScope === "document"
-    ? "Entire doc"
-    : attempt.pageSearched != null
-      ? `Pg ${attempt.pageSearched}`
-      : "";
+  const locationText =
+    attempt.searchScope === "document"
+      ? "Entire doc"
+      : attempt.pageSearched != null
+        ? `Pg ${attempt.pageSearched}`
+        : "";
 
   // Get method display name with safe fallback
   // For first_word_fallback, show the actual word searched
@@ -811,7 +816,7 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
       <span
         className={cn(
           "size-3 max-w-3 max-h-3 mt-0.5 flex-shrink-0",
-          attempt.success ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"
+          attempt.success ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500",
         )}
         role="img"
         aria-label={attempt.success ? "Found" : "Not found"}
@@ -822,17 +827,20 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
       {/* Phrase and details */}
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">
-            "{displayPhrase}"
-          </span>
+          <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">"{displayPhrase}"</span>
           <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0 whitespace-nowrap">
-            {methodName}{locationText && ` · ${locationText}`}
+            {methodName}
+            {locationText && ` · ${locationText}`}
           </span>
         </div>
         {/* Show search variations if present */}
         {variations.length > 0 && (
           <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-            {variationTypeLabel ?? "Also tried"}: {variations.slice(0, 3).map(v => `"${v}"`).join(", ")}
+            {variationTypeLabel ?? "Also tried"}:{" "}
+            {variations
+              .slice(0, 3)
+              .map(v => `"${v}"`)
+              .join(", ")}
             {variations.length > 3 && ` +${variations.length - 3} more`}
           </div>
         )}
@@ -858,15 +866,13 @@ function RejectedMatchesSection({ rejectedMatches }: RejectedMatchesSectionProps
         Found but rejected
       </div>
       <div className="space-y-1">
-        {rejectedMatches.map((match) => (
+        {rejectedMatches.map(match => (
           <div key={match.text} className="text-xs text-gray-600 dark:text-gray-300 font-mono">
             "{match.text}"{match.count != null && ` (${match.count} occurrences)`}
           </div>
         ))}
       </div>
-      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 italic">
-        Context did not match citation
-      </p>
+      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 italic">Context did not match citation</p>
     </div>
   );
 }
@@ -882,14 +888,8 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
 
   return (
     <div>
-      <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
-        Looking for
-      </div>
-      {hasAnchorText && (
-        <div className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1">
-          "{anchorText}"
-        </div>
-      )}
+      <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Looking for</div>
+      {hasAnchorText && <div className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1">"{anchorText}"</div>}
       {hasFullPhrase && (
         <div className="text-xs text-gray-600 dark:text-gray-300 font-mono break-all bg-gray-50 dark:bg-gray-800/50 p-2 rounded border-l-2 border-gray-300 dark:border-gray-600">
           "{fullPhrase}"
@@ -936,9 +936,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSea
                 <span className="size-3 max-w-3 max-h-3 mt-0.5 text-gray-400 dark:text-gray-500 flex-shrink-0">
                   <MissIcon />
                 </span>
-                <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">
-                  "{phrase}"
-                </span>
+                <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">"{phrase}"</span>
               </div>
             ))}
           </div>
@@ -954,17 +952,10 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSea
 
       {/* Search attempts timeline */}
       <div>
-        <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-          Search attempts
-        </div>
+        <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Search attempts</div>
         <div className="space-y-0.5">
           {searchAttempts.map((attempt, i) => (
-            <SearchAttemptRow
-              key={i}
-              attempt={attempt}
-              index={i + 1}
-              totalCount={searchAttempts.length}
-            />
+            <SearchAttemptRow key={i} attempt={attempt} index={i + 1} totalCount={searchAttempts.length} />
           ))}
         </div>
       </div>
@@ -998,9 +989,7 @@ function VerificationLogAttempt({ attempt, expectedPage }: VerificationLogAttemp
 
   // Icon component and color
   const IconComponent = isSuccess ? CheckIcon : MissIcon;
-  const iconColorClass = isSuccess
-    ? "text-green-600 dark:text-green-400"
-    : "text-gray-400 dark:text-gray-500";
+  const iconColorClass = isSuccess ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500";
 
   return (
     <div className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
@@ -1009,14 +998,10 @@ function VerificationLogAttempt({ attempt, expectedPage }: VerificationLogAttemp
         <IconComponent />
       </span>
       {/* Method name */}
-      <span className="flex-1 text-xs text-gray-700 dark:text-gray-300">
-        {methodName}
-      </span>
+      <span className="flex-1 text-xs text-gray-700 dark:text-gray-300">{methodName}</span>
       {/* Location detail - only when found on different page */}
       {showLocationDetail && (
-        <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">
-          → Pg {foundPage}
-        </span>
+        <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">→ Pg {foundPage}</span>
       )}
     </div>
   );
@@ -1040,16 +1025,18 @@ interface VerificationLogTimelineProps {
  * For miss states: shows audit-focused phrase display (what was searched).
  * For success/partial states: shows simplified method list with location info.
  */
-function VerificationLogTimeline({ searchAttempts, expectedPage, showAuditDisplay, fullPhrase, anchorText }: VerificationLogTimelineProps) {
+function VerificationLogTimeline({
+  searchAttempts,
+  expectedPage,
+  showAuditDisplay,
+  fullPhrase,
+  anchorText,
+}: VerificationLogTimelineProps) {
   // For miss states, show audit-focused display
   if (showAuditDisplay) {
     return (
       <div id="verification-log-timeline" style={{ maxHeight: MAX_TIMELINE_HEIGHT }} className="overflow-y-auto">
-        <AuditSearchDisplay
-          searchAttempts={searchAttempts}
-          fullPhrase={fullPhrase}
-          anchorText={anchorText}
-        />
+        <AuditSearchDisplay searchAttempts={searchAttempts} fullPhrase={fullPhrase} anchorText={anchorText} />
       </div>
     );
   }
@@ -1064,15 +1051,9 @@ function VerificationLogTimeline({ searchAttempts, expectedPage, showAuditDispla
       {searchAttempts.map((attempt, index) => {
         const lineKey = Array.isArray(attempt.lineSearched)
           ? attempt.lineSearched.join("-")
-          : attempt.lineSearched ?? "none";
+          : (attempt.lineSearched ?? "none");
         const key = `${attempt.method}-${attempt.pageSearched ?? "doc"}-${lineKey}-${index}`;
-        return (
-          <VerificationLogAttempt
-            key={key}
-            attempt={attempt}
-            expectedPage={expectedPage}
-          />
-        );
+        return <VerificationLogAttempt key={key} attempt={attempt} expectedPage={expectedPage} />;
       })}
     </div>
   );
@@ -1112,10 +1093,7 @@ export function VerificationLog({
   };
 
   // Memoize the successful attempt lookup
-  const successfulAttempt = useMemo(
-    () => searchAttempts.find(a => a.success),
-    [searchAttempts]
-  );
+  const successfulAttempt = useMemo(() => searchAttempts.find(a => a.success), [searchAttempts]);
 
   // Don't render if no attempts
   if (!searchAttempts || searchAttempts.length === 0) {
@@ -1158,7 +1136,7 @@ export function VerificationLog({
 // =============================================================================
 
 export interface AttemptingToVerifyProps {
-  /** The anchor text or key phrase being verified */
+  /** The anchor text or anchor text being verified */
   anchorText?: string;
   /** The full phrase being searched */
   fullPhrase?: string;
@@ -1177,12 +1155,8 @@ export function AttemptingToVerify({ anchorText, fullPhrase }: AttemptingToVerif
       <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium tracking-wide">
         Searching for:
       </div>
-      <div className="text-[15px] font-semibold text-gray-800 dark:text-gray-100">
-        "{displayAnchorText}"
-      </div>
-      {displayPhrase && displayPhrase !== displayAnchorText && (
-        <QuoteBox phrase={displayPhrase} />
-      )}
+      <div className="text-[15px] font-semibold text-gray-800 dark:text-gray-100">"{displayAnchorText}"</div>
+      {displayPhrase && displayPhrase !== displayAnchorText && <QuoteBox phrase={displayPhrase} />}
     </div>
   );
 }

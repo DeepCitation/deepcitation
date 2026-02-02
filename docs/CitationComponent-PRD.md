@@ -642,7 +642,7 @@ Improve status messages to be more descriptive:
 
 | Status | Current Message | Proposed Message |
 |--------|-----------------|------------------|
-| `found_anchor_text_only` | "Partial Match" | "Key phrase found, full context differs" |
+| `found_anchor_text_only` | "Partial Match" | "Anchor text found, full context differs" |
 | `partial_text_found` | "Partial Match" | "Partial text match found" |
 | `found_on_other_page` | "Partial Match" | "Found on page X (expected page Y)" |
 | `found_on_other_line` | "Partial Match" | "Found on different line" |

@@ -22,7 +22,8 @@ const baseCitation: Citation = {
 
 const longCitation: Citation = {
   ...baseCitation,
-  fullPhrase: "The quarterly financial report indicates that revenue increased by 15% compared to the same period last year, driven primarily by strong performance in the enterprise segment.",
+  fullPhrase:
+    "The quarterly financial report indicates that revenue increased by 15% compared to the same period last year, driven primarily by strong performance in the enterprise segment.",
   anchorText: "revenue increased by 15% compared to the same period last year",
   citationNumber: 2,
 };
@@ -35,7 +36,8 @@ const verifiedVerification: Verification = {
   status: "found",
   verifiedPageNumber: 5,
   verifiedMatchSnippet: "Revenue increased by 15% in Q4 2024.",
-  verificationImageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  verificationImageBase64:
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
 };
 
 const partialVerification: Verification = {
@@ -183,7 +185,8 @@ const urlVerifiedVerification: Verification = {
   status: "found",
   verifiedPageNumber: 1,
   verifiedMatchSnippet: "The TGU transitions and Halos require control, not brute strength.",
-  verificationImageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  verificationImageBase64:
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
 };
 
 const urlNotFoundVerification: Verification = {
@@ -430,32 +433,16 @@ export function VisualShowcase() {
                 <tr key={variant} className="border-b border-gray-100 dark:border-gray-800" data-variant-row={variant}>
                   <td className="p-2 font-mono text-gray-700 dark:text-gray-300">{variant}</td>
                   <td className="p-2">
-                    <CitationComponent
-                      citation={baseCitation}
-                      verification={verifiedVerification}
-                      variant={variant}
-                    />
+                    <CitationComponent citation={baseCitation} verification={verifiedVerification} variant={variant} />
                   </td>
                   <td className="p-2">
-                    <CitationComponent
-                      citation={baseCitation}
-                      verification={partialVerification}
-                      variant={variant}
-                    />
+                    <CitationComponent citation={baseCitation} verification={partialVerification} variant={variant} />
                   </td>
                   <td className="p-2">
-                    <CitationComponent
-                      citation={baseCitation}
-                      verification={notFoundVerification}
-                      variant={variant}
-                    />
+                    <CitationComponent citation={baseCitation} verification={notFoundVerification} variant={variant} />
                   </td>
                   <td className="p-2">
-                    <CitationComponent
-                      citation={baseCitation}
-                      verification={pendingVerification}
-                      variant={variant}
-                    />
+                    <CitationComponent citation={baseCitation} verification={pendingVerification} variant={variant} />
                   </td>
                 </tr>
               ))}
@@ -491,11 +478,7 @@ export function VisualShowcase() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="default">
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">showIndicator=true (default)</p>
-            <CitationComponent
-              citation={baseCitation}
-              verification={verifiedVerification}
-              variant="brackets"
-            />
+            <CitationComponent citation={baseCitation} verification={verifiedVerification} variant="brackets" />
           </div>
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="false">
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">showIndicator=false</p>
@@ -508,11 +491,7 @@ export function VisualShowcase() {
           </div>
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="chip-on">
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">chip with indicator</p>
-            <CitationComponent
-              citation={baseCitation}
-              verification={verifiedVerification}
-              variant="chip"
-            />
+            <CitationComponent citation={baseCitation} verification={verifiedVerification} variant="chip" />
           </div>
           <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded" data-show-indicator="chip-off">
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono">chip without indicator</p>
@@ -553,34 +532,42 @@ export function VisualShowcase() {
 
       {/* Section: Failed Search Attempts (Audit Log) */}
       <section className="mb-10" data-testid="audit-log-section">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Failed Search Attempts (Audit Log)</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+          Failed Search Attempts (Audit Log)
+        </h2>
         <div className="space-y-6">
-          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800" data-audit="not-found">
+          <div
+            className="p-4 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800"
+            data-audit="not-found"
+          >
             <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-3">Not Found - 6 search attempts</p>
-            <CitationComponent
-              citation={baseCitation}
-              verification={notFoundWithAudit}
-              variant="brackets"
-            />
+            <CitationComponent citation={baseCitation} verification={notFoundWithAudit} variant="brackets" />
           </div>
-          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800" data-audit="partial">
-            <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-3">Partial Match - Found on different page</p>
-            <CitationComponent
-              citation={baseCitation}
-              verification={partialWithAudit}
-              variant="brackets"
-            />
+          <div
+            className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800"
+            data-audit="partial"
+          >
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-3">
+              Partial Match - Found on different page
+            </p>
+            <CitationComponent citation={baseCitation} verification={partialWithAudit} variant="brackets" />
           </div>
-          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800" data-audit="low-trust">
-            <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-3">Low Trust - Only first word matched</p>
-            <CitationComponent
-              citation={baseCitation}
-              verification={lowTrustWithAudit}
-              variant="brackets"
-            />
+          <div
+            className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800"
+            data-audit="low-trust"
+          >
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-3">
+              Low Trust - Only first word matched
+            </p>
+            <CitationComponent citation={baseCitation} verification={lowTrustWithAudit} variant="brackets" />
           </div>
-          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800" data-audit="with-variations">
-            <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-3">Not Found - With spelling variations (helps auditor spot differences)</p>
+          <div
+            className="p-4 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800"
+            data-audit="with-variations"
+          >
+            <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-3">
+              Not Found - With spelling variations (helps auditor spot differences)
+            </p>
             <CitationComponent
               citation={{
                 ...baseCitation,
@@ -591,8 +578,13 @@ export function VisualShowcase() {
               variant="brackets"
             />
           </div>
-          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800" data-audit="rejected-matches">
-            <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-3">Not Found - With rejected matches (shows why $0.00 was not accepted)</p>
+          <div
+            className="p-4 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800"
+            data-audit="rejected-matches"
+          >
+            <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-3">
+              Not Found - With rejected matches (shows why $0.00 was not accepted)
+            </p>
             <CitationComponent
               citation={{
                 ...baseCitation,
@@ -603,8 +595,13 @@ export function VisualShowcase() {
               variant="brackets"
             />
           </div>
-          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800" data-audit="many-pages">
-            <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-3">Not Found - Many pages searched (tests page collapsing)</p>
+          <div
+            className="p-4 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800"
+            data-audit="many-pages"
+          >
+            <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-3">
+              Not Found - Many pages searched (tests page collapsing)
+            </p>
             <CitationComponent
               citation={{
                 ...baseCitation,
@@ -666,11 +663,7 @@ export function VisualShowcase() {
         <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded text-gray-700 dark:text-gray-300">
           <p className="leading-relaxed">
             According to the Q4 financial report, the company saw significant growth
-            <CitationComponent
-              citation={baseCitation}
-              verification={verifiedVerification}
-              variant="superscript"
-            />
+            <CitationComponent citation={baseCitation} verification={verifiedVerification} variant="superscript" />
             with revenue increasing by 15%
             <CitationComponent
               citation={{ ...baseCitation, citationNumber: 2 }}
@@ -705,13 +698,13 @@ export function MobileShowcase() {
         <h2 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200">Citation Variants</h2>
         <div className="space-y-2">
           {(["brackets", "chip", "superscript", "minimal", "linter"] as const).map(variant => (
-            <div key={variant} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded" data-mobile-variant={variant}>
+            <div
+              key={variant}
+              className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded"
+              data-mobile-variant={variant}
+            >
               <span className="text-xs text-gray-500 dark:text-gray-400 w-20 font-mono">{variant}</span>
-              <CitationComponent
-                citation={baseCitation}
-                verification={verifiedVerification}
-                variant={variant}
-              />
+              <CitationComponent citation={baseCitation} verification={verifiedVerification} variant={variant} />
             </div>
           ))}
         </div>
@@ -743,7 +736,12 @@ export function MobileShowcase() {
             The report shows growth
             <CitationComponent citation={baseCitation} verification={verifiedVerification} variant="superscript" />
             but some data is unverified
-            <CitationComponent citation={{ ...baseCitation, citationNumber: 2 }} verification={notFoundVerification} variant="superscript" />.
+            <CitationComponent
+              citation={{ ...baseCitation, citationNumber: 2 }}
+              verification={notFoundVerification}
+              variant="superscript"
+            />
+            .
           </p>
         </div>
       </section>
@@ -759,8 +757,12 @@ export function MobileShowcase() {
 const allVerificationStatuses: Array<{ status: SearchStatus; label: string; description: string }> = [
   // Green statuses
   { status: "found", label: "Found", description: "Exact match verified" },
-  { status: "found_anchor_text_only", label: "Anchor Text Only", description: "Key phrase matched" },
-  { status: "found_phrase_missed_anchor_text", label: "Phrase (Missed Anchor)", description: "Full phrase found but anchor text differed" },
+  { status: "found_anchor_text_only", label: "Anchor Text Only", description: "Anchor text matched" },
+  {
+    status: "found_phrase_missed_anchor_text",
+    label: "Phrase (Missed Anchor)",
+    description: "Full phrase found but anchor text differed",
+  },
   // Amber statuses
   { status: "found_on_other_page", label: "Other Page", description: "Found on different page" },
   { status: "found_on_other_line", label: "Other Line", description: "Found on different line" },
@@ -774,7 +776,8 @@ const allVerificationStatuses: Array<{ status: SearchStatus; label: string; desc
 ];
 
 /** Sample verification image (1x1 green pixel base64) */
-const sampleImage = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9QzwAEjDAGNzYAAIoaB1HkOzVfAAAAAElFTkSuQmCC";
+const sampleImage =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9QzwAEjDAGNzYAAIoaB1HkOzVfAAAAAElFTkSuQmCC";
 
 /**
  * Showcase component for testing all popover/tooltip states.
@@ -790,11 +793,12 @@ export function PopoverShowcase() {
 
       {/* Section: Loading/Pending State */}
       <section className="mb-10" data-testid="popover-pending-section">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-          Loading/Pending State
-        </h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Loading/Pending State</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-popover-state="pending">
+          <div
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+            data-popover-state="pending"
+          >
             <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               pending (with phrase + page)
             </div>
@@ -808,13 +812,14 @@ export function PopoverShowcase() {
               <p className="p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-gray-600 dark:text-gray-400 italic">
                 "Revenue increased by 15% in Q4 2024."
               </p>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Looking on page 5
-              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Looking on page 5</span>
             </div>
           </div>
 
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-popover-state="loading-long">
+          <div
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+            data-popover-state="loading-long"
+          >
             <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               pending (long phrase, truncated)
             </div>
@@ -828,9 +833,7 @@ export function PopoverShowcase() {
               <p className="p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-gray-600 dark:text-gray-400 italic">
                 "The quarterly financial report indicates that revenue increased by 15% compared…"
               </p>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Looking on page 12
-              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Looking on page 12</span>
             </div>
           </div>
         </div>
@@ -845,9 +848,12 @@ export function PopoverShowcase() {
           {allVerificationStatuses.map(({ status, label, description }) => {
             // For "unexpected location" statuses, show different expected vs found pages
             const isUnexpectedLocation = status === "found_on_other_page" || status === "found_on_other_line";
-            const foundPage = status !== "not_found" && status !== "pending" && status !== "loading"
-              ? (isUnexpectedLocation ? 7 : 5)
-              : undefined;
+            const foundPage =
+              status !== "not_found" && status !== "pending" && status !== "loading"
+                ? isUnexpectedLocation
+                  ? 7
+                  : 5
+                : undefined;
             const expectedPage = 5;
 
             return (
@@ -865,9 +871,7 @@ export function PopoverShowcase() {
                   expectedPage={expectedPage}
                   anchorText="revenue increased by 15%"
                 />
-                <div className="p-2 text-xs text-gray-600 dark:text-gray-400">
-                  {description}
-                </div>
+                <div className="p-2 text-xs text-gray-600 dark:text-gray-400">{description}</div>
               </div>
             );
           })}
@@ -876,22 +880,31 @@ export function PopoverShowcase() {
 
       {/* Section: QuoteBox Variations */}
       <section className="mb-10" data-testid="popover-quotebox-section">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-          Quote Box Variations
-        </h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Quote Box Variations</h2>
         <div className="space-y-4 max-w-md">
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden p-4" data-quotebox="short">
+          <div
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden p-4"
+            data-quotebox="short"
+          >
             <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Short quote</div>
             <QuoteBox phrase="Revenue increased by 15%." />
           </div>
 
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden p-4" data-quotebox="medium">
+          <div
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden p-4"
+            data-quotebox="medium"
+          >
             <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Medium quote</div>
             <QuoteBox phrase="Revenue increased by 15% in Q4 2024, marking a significant improvement over the previous quarter's performance." />
           </div>
 
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden p-4" data-quotebox="long">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Long quote (truncated at 150 chars)</div>
+          <div
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden p-4"
+            data-quotebox="long"
+          >
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">
+              Long quote (truncated at 150 chars)
+            </div>
             <QuoteBox phrase="The quarterly financial report indicates that revenue increased by 15% compared to the same period last year, driven primarily by strong performance in the enterprise segment and expansion into new markets across Asia-Pacific regions with additional growth expected in the coming fiscal year." />
           </div>
         </div>
@@ -907,7 +920,10 @@ export function PopoverShowcase() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Not Found - All failed */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-verification-log="not-found">
+          <div
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+            data-verification-log="not-found"
+          >
             <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               not_found - 6 failed attempts
             </div>
@@ -920,7 +936,10 @@ export function PopoverShowcase() {
           </div>
 
           {/* Partial - Found on different page */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-verification-log="partial-page">
+          <div
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+            data-verification-log="partial-page"
+          >
             <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               found_on_other_page - found on page 7
             </div>
@@ -933,7 +952,10 @@ export function PopoverShowcase() {
           </div>
 
           {/* Partial - Found on different line */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-verification-log="partial-line">
+          <div
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+            data-verification-log="partial-line"
+          >
             <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               found_on_other_line - expected line 12, found line 45
             </div>
@@ -968,7 +990,10 @@ export function PopoverShowcase() {
           </div>
 
           {/* Low trust - First word only */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-verification-log="low-trust">
+          <div
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+            data-verification-log="low-trust"
+          >
             <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               first_word_found - low confidence
             </div>
@@ -991,7 +1016,10 @@ export function PopoverShowcase() {
           Pre-expanded to show the full search attempt timeline
         </p>
         <div className="max-w-md">
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" data-verification-log="expanded">
+          <div
+            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+            data-verification-log="expanded"
+          >
             <div className="p-2 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono">
               not_found - expanded timeline
             </div>
@@ -1008,17 +1036,20 @@ export function PopoverShowcase() {
 
       {/* Section: Complete Popover Layouts */}
       <section className="mb-10" data-testid="popover-complete-layouts-section">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-          Complete Popover Layouts
-        </h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Complete Popover Layouts</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Full popover content as rendered in the actual tooltip
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Verified with image */}
           <div data-complete-popover="verified-with-image">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Verified (green) - with image + expandable log</div>
-            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">
+              Verified (green) - with image + expandable log
+            </div>
+            <div
+              className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+              style={{ width: "380px", maxWidth: "90vw" }}
+            >
               <StatusHeader status="found" foundPage={5} expectedPage={5} />
               <div className="p-2">
                 <div className="group block relative overflow-hidden rounded-md bg-gray-50 dark:bg-gray-800 w-full">
@@ -1026,7 +1057,12 @@ export function PopoverShowcase() {
                     src={sampleImage}
                     alt="Citation verification"
                     className="block rounded-md w-full"
-                    style={{ maxHeight: "min(50vh, 300px)", objectFit: "contain", minHeight: "100px", backgroundColor: "#22c55e" }}
+                    style={{
+                      maxHeight: "min(50vh, 300px)",
+                      objectFit: "contain",
+                      minHeight: "100px",
+                      backgroundColor: "#22c55e",
+                    }}
                   />
                   <span className="absolute left-0 right-0 bottom-0 flex items-center justify-end px-2 pb-1.5 pt-4 bg-gradient-to-t from-black/50 to-transparent rounded-b-md">
                     <span className="text-xs text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
@@ -1059,8 +1095,13 @@ export function PopoverShowcase() {
 
           {/* Partial match with image */}
           <div data-complete-popover="partial-with-image">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Partial (amber) - with image + log</div>
-            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">
+              Partial (amber) - with image + log
+            </div>
+            <div
+              className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+              style={{ width: "380px", maxWidth: "90vw" }}
+            >
               <StatusHeader status="found_on_other_page" foundPage={7} expectedPage={5} />
               <div className="p-2">
                 <div className="group block relative overflow-hidden rounded-md bg-gray-50 dark:bg-gray-800 w-full">
@@ -1068,7 +1109,12 @@ export function PopoverShowcase() {
                     src={sampleImage}
                     alt="Citation verification"
                     className="block rounded-md w-full"
-                    style={{ maxHeight: "min(50vh, 300px)", objectFit: "contain", minHeight: "100px", backgroundColor: "#f59e0b" }}
+                    style={{
+                      maxHeight: "min(50vh, 300px)",
+                      objectFit: "contain",
+                      minHeight: "100px",
+                      backgroundColor: "#f59e0b",
+                    }}
                   />
                 </div>
               </div>
@@ -1083,8 +1129,13 @@ export function PopoverShowcase() {
 
           {/* Not found without image */}
           <div data-complete-popover="not-found-no-image">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Not Found (red) - no image, combined header</div>
-            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" style={{ width: "380px", maxWidth: "90vw" }}>
+            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">
+              Not Found (red) - no image, combined header
+            </div>
+            <div
+              className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+              style={{ width: "380px", maxWidth: "90vw" }}
+            >
               <StatusHeader
                 status="not_found"
                 expectedPage={5}
@@ -1104,15 +1155,11 @@ export function PopoverShowcase() {
           <div data-complete-popover="text-only">
             <div className="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">Text-only fallback (no image)</div>
             <div className="p-3 flex flex-col gap-2 min-w-[180px] max-w-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-              <span className="text-xs font-medium text-green-600 dark:text-green-500">
-                Verified Match
-              </span>
+              <span className="text-xs font-medium text-green-600 dark:text-green-500">Verified Match</span>
               <span className="text-sm text-gray-700 dark:text-gray-300 italic">
                 "Revenue increased by 15% in Q4 2024."
               </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Page 5
-              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Page 5</span>
             </div>
           </div>
         </div>
@@ -1120,135 +1167,77 @@ export function PopoverShowcase() {
 
       {/* Section: Interactive Popover Examples */}
       <section className="mb-10" data-testid="popover-interactive-section">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-          Interactive Popover Examples
-        </h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Interactive Popover Examples</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Hover over citations to see the actual popover behavior
         </p>
         <div className="flex flex-wrap gap-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
           <div className="flex items-center gap-2" data-interactive-popover="verified">
             <span className="text-sm text-gray-600 dark:text-gray-400">Verified:</span>
-            <CitationComponent
-              citation={baseCitation}
-              verification={verifiedVerification}
-              variant="brackets"
-            />
+            <CitationComponent citation={baseCitation} verification={verifiedVerification} variant="brackets" />
           </div>
           <div className="flex items-center gap-2" data-interactive-popover="partial">
             <span className="text-sm text-gray-600 dark:text-gray-400">Partial:</span>
-            <CitationComponent
-              citation={baseCitation}
-              verification={partialWithAudit}
-              variant="brackets"
-            />
+            <CitationComponent citation={baseCitation} verification={partialWithAudit} variant="brackets" />
           </div>
           <div className="flex items-center gap-2" data-interactive-popover="not-found">
             <span className="text-sm text-gray-600 dark:text-gray-400">Not Found:</span>
-            <CitationComponent
-              citation={baseCitation}
-              verification={notFoundWithAudit}
-              variant="brackets"
-            />
+            <CitationComponent citation={baseCitation} verification={notFoundWithAudit} variant="brackets" />
           </div>
           <div className="flex items-center gap-2" data-interactive-popover="pending">
             <span className="text-sm text-gray-600 dark:text-gray-400">Pending:</span>
-            <CitationComponent
-              citation={baseCitation}
-              verification={pendingVerification}
-              variant="brackets"
-            />
+            <CitationComponent citation={baseCitation} verification={pendingVerification} variant="brackets" />
           </div>
         </div>
       </section>
 
       {/* Section: URL Citation Popover Examples */}
       <section className="mb-10" data-testid="popover-url-citation-section">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-          URL Citation Popover Examples
-        </h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">URL Citation Popover Examples</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           URL citations show the source URL in the header (no duplicate status row)
         </p>
         <div className="flex flex-wrap gap-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
           <div className="flex items-center gap-2" data-interactive-popover="url-verified">
             <span className="text-sm text-gray-600 dark:text-gray-400">URL Verified:</span>
-            <CitationComponent
-              citation={urlCitation}
-              verification={urlVerifiedVerification}
-              variant="brackets"
-            />
+            <CitationComponent citation={urlCitation} verification={urlVerifiedVerification} variant="brackets" />
           </div>
           <div className="flex items-center gap-2" data-interactive-popover="url-not-found">
             <span className="text-sm text-gray-600 dark:text-gray-400">URL Not Found:</span>
-            <CitationComponent
-              citation={urlCitation}
-              verification={urlNotFoundVerification}
-              variant="brackets"
-            />
+            <CitationComponent citation={urlCitation} verification={urlNotFoundVerification} variant="brackets" />
           </div>
           <div className="flex items-center gap-2" data-interactive-popover="url-pending">
             <span className="text-sm text-gray-600 dark:text-gray-400">URL Pending:</span>
-            <CitationComponent
-              citation={urlCitation}
-              verification={pendingVerification}
-              variant="brackets"
-            />
+            <CitationComponent citation={urlCitation} verification={pendingVerification} variant="brackets" />
           </div>
         </div>
       </section>
 
       {/* Section: Gray Background Test */}
       <section className="mb-10" data-testid="gray-background-section">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-          Gray Background Test
-        </h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Gray Background Test</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Verify text visibility on gray backgrounds (especially for not-found states)
         </p>
         <div className="p-6 bg-gray-200 dark:bg-gray-700 rounded-lg space-y-4">
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm text-gray-700 dark:text-gray-200">Linter variants:</span>
-            <CitationComponent
-              citation={baseCitation}
-              verification={verifiedVerification}
-              variant="linter"
-            />
-            <CitationComponent
-              citation={baseCitation}
-              verification={partialVerification}
-              variant="linter"
-            />
-            <CitationComponent
-              citation={baseCitation}
-              verification={notFoundVerification}
-              variant="linter"
-            />
-            <CitationComponent
-              citation={baseCitation}
-              verification={pendingVerification}
-              variant="linter"
-            />
+            <CitationComponent citation={baseCitation} verification={verifiedVerification} variant="linter" />
+            <CitationComponent citation={baseCitation} verification={partialVerification} variant="linter" />
+            <CitationComponent citation={baseCitation} verification={notFoundVerification} variant="linter" />
+            <CitationComponent citation={baseCitation} verification={pendingVerification} variant="linter" />
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm text-gray-700 dark:text-gray-200">Superscript:</span>
             <span className="text-gray-700 dark:text-gray-200">
               Text with citation
-              <CitationComponent
-                citation={baseCitation}
-                verification={notFoundVerification}
-                variant="superscript"
-              />
+              <CitationComponent citation={baseCitation} verification={notFoundVerification} variant="superscript" />
               continues here
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm text-gray-700 dark:text-gray-200">Minimal:</span>
-            <CitationComponent
-              citation={baseCitation}
-              verification={notFoundVerification}
-              variant="minimal"
-            />
+            <CitationComponent citation={baseCitation} verification={notFoundVerification} variant="minimal" />
           </div>
         </div>
       </section>

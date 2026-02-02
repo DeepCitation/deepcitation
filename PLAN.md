@@ -239,7 +239,7 @@ CLAIM: "[exact text from output]"
   → Source: [filename] (attachmentId: xxx)
   → Reasoning: [why this claim should be in this source]
   → Search phrase: [fullPhrase to look for]
-  → Key phrase: [anchorText - 1-3 words]
+  → Anchor text: [anchorText - 1-3 words]
 ```
 
 #### Verification Statuses
@@ -247,7 +247,7 @@ CLAIM: "[exact text from output]"
 |--------|---------|-----------|
 | `found` | Exact match in source | ✓ Verified |
 | `partial_text_found` | Close match | ⚠ Partially verified |
-| `found_anchor_text_only` | Key phrase found | ⚠ Partially verified |
+| `found_anchor_text_only` | Anchor text found | ⚠ Partially verified |
 | `found_on_other_page` | Found but wrong location | ⚠ Partially verified |
 | `not_found` | Not in source | ✗ Not verified |
 
