@@ -1,14 +1,44 @@
-import React, { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 
 // React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
 const Activity =
-  (React as { Activity?: React.ComponentType<{ mode: "visible" | "hidden"; children: React.ReactNode }> }).Activity ??
-  (({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>);
+  (
+    React as {
+      Activity?: React.ComponentType<{
+        mode: "visible" | "hidden";
+        children: React.ReactNode;
+      }>;
+    }
+  ).Activity ??
+  (({
+    children,
+  }: {
+    mode: "visible" | "hidden";
+    children: React.ReactNode;
+  }) => <>{children}</>);
 import { type CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
-import { CheckIcon, CloseIcon, SpinnerIcon, WarningIcon, XCircleIcon } from "./icons.js";
+import type {
+  MatchedVariation,
+  SearchAttempt,
+  SearchStatus,
+} from "../types/search.js";
+import {
+  CheckIcon,
+  CloseIcon,
+  SpinnerIcon,
+  WarningIcon,
+  XCircleIcon,
+} from "./icons.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover.js";
 import type {
   BaseCitationProps,
@@ -21,14 +51,30 @@ import type {
   CitationRenderProps,
   CitationVariant,
 } from "./types.js";
-import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
+import {
+  cn,
+  generateCitationInstanceId,
+  generateCitationKey,
+  isUrlCitation,
+} from "./utils.js";
 import { useSmartDiff } from "./useSmartDiff.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
-import { SplitDiffDisplay, getContextualStatusMessage } from "./SplitDiffDisplay.js";
-import { SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";
+import {
+  SplitDiffDisplay,
+  getContextualStatusMessage,
+} from "./SplitDiffDisplay.js";
+import {
+  SourceContextHeader,
+  StatusHeader,
+  VerificationLog,
+} from "./VerificationLog.js";
 
 // Re-export types for convenience
-export type { CitationVariant, CitationContent, CitationInteractionMode } from "./types.js";
+export type {
+  CitationVariant,
+  CitationContent,
+  CitationInteractionMode,
+} from "./types.js";
 
 /**
  * Module-level handler for hiding broken images.
@@ -81,7 +127,8 @@ function getIsTouchDevice(): boolean {
   // This specifically checks if the PRIMARY pointing device is coarse (touch)
   // Windows laptops with touchscreens typically report (pointer: fine) because
   // the mouse/trackpad is the primary input device
-  const hasCoarsePointer = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+  const hasCoarsePointer =
+    window.matchMedia?.("(pointer: coarse)").matches ?? false;
   return hasCoarsePointer;
 }
 
@@ -125,7 +172,10 @@ interface ErrorBoundaryState {
  * Error boundary for catching and displaying rendering errors in citation components.
  * Prevents the entire app from crashing if citation rendering fails.
  */
-class CitationErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class CitationErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -196,20 +246,29 @@ function stripBrackets(text: string): string {
 function getDisplayText(
   citation: BaseCitationProps["citation"],
   content: CitationContent,
-  fallbackDisplay?: string | null,
+  fallbackDisplay?: string | null
 ): string {
   if (content === "indicator") {
     return "";
   }
 
   if (content === "anchorText") {
-    const raw = citation.anchorText?.toString() || citation.citationNumber?.toString() || fallbackDisplay || "1";
+    const raw =
+      citation.anchorText?.toString() ||
+      citation.citationNumber?.toString() ||
+      fallbackDisplay ||
+      "1";
     return stripBrackets(raw);
   }
 
   if (content === "source") {
     // Source content: show siteName or domain (using main's field names)
-    return citation.siteName || citation.domain || citation.anchorText?.toString() || "Source";
+    return (
+      citation.siteName ||
+      citation.domain ||
+      citation.anchorText?.toString() ||
+      "Source"
+    );
   }
 
   // content === "number"
@@ -360,7 +419,9 @@ function getStatusLabel(status: CitationStatus): string {
  * - medium: Green checkmark (anchorText matches)
  * - low: Amber checkmark (partial matches)
  */
-function getTrustLevel(matchedVariation?: MatchedVariation): "high" | "medium" | "low" {
+function getTrustLevel(
+  matchedVariation?: MatchedVariation
+): "high" | "medium" | "low" {
   if (!matchedVariation) return "medium";
   switch (matchedVariation) {
     case "exact_full_phrase":
@@ -470,12 +531,16 @@ function formatPageList(pages: number[]): string {
     if (sorted[i] === rangeEnd + 1) {
       rangeEnd = sorted[i];
     } else {
-      ranges.push(rangeStart === rangeEnd ? `${rangeStart}` : `${rangeStart}-${rangeEnd}`);
+      ranges.push(
+        rangeStart === rangeEnd ? `${rangeStart}` : `${rangeStart}-${rangeEnd}`
+      );
       rangeStart = sorted[i];
       rangeEnd = sorted[i];
     }
   }
-  ranges.push(rangeStart === rangeEnd ? `${rangeStart}` : `${rangeStart}-${rangeEnd}`);
+  ranges.push(
+    rangeStart === rangeEnd ? `${rangeStart}` : `${rangeStart}-${rangeEnd}`
+  );
 
   return `pages ${ranges.join(", ")}`;
 }
@@ -494,7 +559,9 @@ function formatPageList(pages: number[]): string {
  *   console.log(`"${group.phrase}" - searched ${group.pagesSearched.length} pages`);
  * });
  */
-function groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] {
+function groupSearchAttempts(
+  attempts: SearchAttempt[]
+): GroupedSearchAttempt[] {
   const groups = new Map<string, GroupedSearchAttempt>();
 
   for (const attempt of attempts) {
@@ -526,7 +593,10 @@ function groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] 
     // Collect unique variations
     if (attempt.searchVariations) {
       for (const variation of attempt.searchVariations) {
-        if (variation !== phrase && !group.variationsTried.includes(variation)) {
+        if (
+          variation !== phrase &&
+          !group.variationsTried.includes(variation)
+        ) {
           group.variationsTried.push(variation);
         }
       }
@@ -579,7 +649,9 @@ function groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] 
  * Note: isPending is only true when status is explicitly "pending" or "loading".
  * Use the isLoading prop to show spinner when verification is in-flight.
  */
-function getStatusFromVerification(verification: Verification | null | undefined): CitationStatus {
+function getStatusFromVerification(
+  verification: Verification | null | undefined
+): CitationStatus {
   const status = verification?.status;
 
   // No verification or no status = no status flags set
@@ -598,7 +670,9 @@ function getStatusFromVerification(verification: Verification | null | undefined
 
   // Check if any successful search attempt has low trust
   const hasLowTrustMatch =
-    verification.searchAttempts?.some(a => a.success && isLowTrustMatch(a.matchedVariation)) ?? false;
+    verification.searchAttempts?.some(
+      (a) => a.success && isLowTrustMatch(a.matchedVariation)
+    ) ?? false;
 
   // Partial matches show amber indicator - something found but not ideal
   const isPartialMatch =
@@ -666,7 +740,7 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
         />
       </div>
     </div>,
-    document.body,
+    document.body
   );
 }
 
@@ -811,11 +885,19 @@ function AnchorTextFocusedImage({
   const imageRef = useRef<HTMLImageElement>(null);
   const hasInitializedScrollRef = useRef(false);
 
-  const anchorTextBox = useMemo(() => getKeySpanBoundingBox(verification), [verification]);
+  const anchorTextBox = useMemo(
+    () => getKeySpanBoundingBox(verification),
+    [verification]
+  );
 
   // Set initial scroll position when image loads, only once
   const handleImageLoad = useCallback(() => {
-    if (hasInitializedScrollRef.current || !containerRef.current || !imageRef.current || !anchorTextBox) {
+    if (
+      hasInitializedScrollRef.current ||
+      !containerRef.current ||
+      !imageRef.current ||
+      !anchorTextBox
+    ) {
       return;
     }
 
@@ -835,13 +917,18 @@ function AnchorTextFocusedImage({
     const scaleY = image.clientHeight / originalHeight;
 
     // Calculate the anchorText center in displayed image coordinates
-    const anchorTextCenterX = (anchorTextBox.x + anchorTextBox.width / 2) * scaleX;
-    const anchorTextCenterY = (anchorTextBox.y + anchorTextBox.height / 2) * scaleY;
+    const anchorTextCenterX =
+      (anchorTextBox.x + anchorTextBox.width / 2) * scaleX;
+    const anchorTextCenterY =
+      (anchorTextBox.y + anchorTextBox.height / 2) * scaleY;
 
     // Calculate scroll position to center the anchorText in the viewport
     // with some vertical bias towards showing content above the anchorText
     const scrollX = Math.max(0, anchorTextCenterX - container.clientWidth / 2);
-    const scrollY = Math.max(0, anchorTextCenterY - container.clientHeight * 0.4);
+    const scrollY = Math.max(
+      0,
+      anchorTextCenterY - container.clientHeight * 0.4
+    );
 
     container.scrollLeft = scrollX;
     container.scrollTop = scrollY;
@@ -858,7 +945,7 @@ function AnchorTextFocusedImage({
       type="button"
       // Removed bg-gray-50/bg-gray-800 - the evidence image's grey overlay provides visual separation
       className="group block cursor-zoom-in relative"
-      onClick={e => {
+      onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         onImageClick?.();
@@ -913,7 +1000,7 @@ function getHumanizingMessage(
   status: SearchStatus | null | undefined,
   anchorText?: string,
   expectedPage?: number,
-  foundPage?: number,
+  foundPage?: number
 ): string | null {
   if (!status) return null;
 
@@ -1004,7 +1091,10 @@ function SearchedPhrasesInfo({
 }) {
   // Get search attempts from verification, or create fallback from citation
   const searchAttempts = useMemo(() => {
-    if (verification?.searchAttempts && verification.searchAttempts.length > 0) {
+    if (
+      verification?.searchAttempts &&
+      verification.searchAttempts.length > 0
+    ) {
       return verification.searchAttempts;
     }
 
@@ -1031,7 +1121,10 @@ function SearchedPhrasesInfo({
   }, [citation, verification]);
 
   // Group attempts by unique phrase for cleaner display
-  const groupedAttempts = useMemo(() => groupSearchAttempts(searchAttempts), [searchAttempts]);
+  const groupedAttempts = useMemo(
+    () => groupSearchAttempts(searchAttempts),
+    [searchAttempts]
+  );
 
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
 
@@ -1045,7 +1138,7 @@ function SearchedPhrasesInfo({
         setInternalIsExpanded(expanded);
       }
     },
-    [onExpandChange],
+    [onExpandChange]
   );
 
   if (groupedAttempts.length === 0) return null;
@@ -1060,8 +1153,13 @@ function SearchedPhrasesInfo({
   const pagesSearchedCount = allPagesSearched.size;
 
   // Show first DEFAULT_VISIBLE_GROUP_COUNT groups by default (usually fullPhrase + anchorText), expand to show all
-  const defaultDisplayCount = Math.min(DEFAULT_VISIBLE_GROUP_COUNT, groupedAttempts.length);
-  const displayCount = isExpanded ? groupedAttempts.length : defaultDisplayCount;
+  const defaultDisplayCount = Math.min(
+    DEFAULT_VISIBLE_GROUP_COUNT,
+    groupedAttempts.length
+  );
+  const displayCount = isExpanded
+    ? groupedAttempts.length
+    : defaultDisplayCount;
   const hiddenGroupCount = groupedAttempts.length - defaultDisplayCount;
 
   return (
@@ -1069,14 +1167,20 @@ function SearchedPhrasesInfo({
       {/* Summary header showing what was searched */}
       <div className="text-[10px] text-gray-600 dark:text-gray-400 mb-2">
         Searched{" "}
-        {pagesSearchedCount > 1 ? `${pagesSearchedCount} pages` : pagesSearchedCount === 1 ? "1 page" : "document"}
+        {pagesSearchedCount > 1
+          ? `${pagesSearchedCount} pages`
+          : pagesSearchedCount === 1
+            ? "1 page"
+            : "document"}
         {hiddenGroupCount > 0 && (
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
             className="ml-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
           >
-            {isExpanded ? "show less" : `show all ${groupedAttempts.length} phrases`}
+            {isExpanded
+              ? "show less"
+              : `show all ${groupedAttempts.length} phrases`}
           </button>
         )}
       </div>
@@ -1099,11 +1203,14 @@ function SearchedPhrasesInfo({
 function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
   // Truncate phrase for display
   const displayPhrase =
-    group.phrase.length > MAX_PHRASE_LENGTH ? group.phrase.slice(0, MAX_PHRASE_LENGTH) + "…" : group.phrase;
+    group.phrase.length > MAX_PHRASE_LENGTH
+      ? group.phrase.slice(0, MAX_PHRASE_LENGTH) + "…"
+      : group.phrase;
 
   // Build location info string
   const validPages = group.pagesSearched.filter((p): p is number => p != null);
-  const locationInfo = validPages.length > 0 ? formatPageList(validPages) : "entire document";
+  const locationInfo =
+    validPages.length > 0 ? formatPageList(validPages) : "entire document";
 
   // Status indicator - only icon is colored
   const statusIndicator = group.anySuccess ? (
@@ -1112,7 +1219,7 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
         "inline-flex size-3 flex-shrink-0",
         isLowTrustMatch(group.successfulAttempt?.matchedVariation)
           ? "text-amber-600 dark:text-amber-400"
-          : "text-green-600 dark:text-green-400",
+          : "text-green-600 dark:text-green-400"
       )}
     >
       <CheckIcon />
@@ -1124,11 +1231,16 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
   );
 
   // Phrase type label
-  const phraseTypeLabel = group.phraseType === "anchor_text" ? "Anchor text" : "Full phrase";
+  const phraseTypeLabel =
+    group.phraseType === "anchor_text" ? "Anchor text" : "Full phrase";
 
   // For failed attempts, show variations that were also searched
-  const visibleVariations = group.variationsTried.slice(0, MAX_VISIBLE_VARIATIONS);
-  const hiddenVariationsCount = group.variationsTried.length - MAX_VISIBLE_VARIATIONS;
+  const visibleVariations = group.variationsTried.slice(
+    0,
+    MAX_VISIBLE_VARIATIONS
+  );
+  const hiddenVariationsCount =
+    group.variationsTried.length - MAX_VISIBLE_VARIATIONS;
 
   return (
     <div className="p-2 bg-gray-50 dark:bg-gray-800/40 rounded-md">
@@ -1140,7 +1252,9 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
 
       {/* The searched phrase */}
       <div className="flex items-start gap-1.5">
-        <p className="font-mono text-[11px] text-gray-700 dark:text-gray-200 break-words flex-1">"{displayPhrase}"</p>
+        <p className="font-mono text-[11px] text-gray-700 dark:text-gray-200 break-words flex-1">
+          "{displayPhrase}"
+        </p>
         {statusIndicator}
       </div>
 
@@ -1149,8 +1263,16 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
         group.successfulAttempt?.matchedText &&
         group.successfulAttempt.matchedText !== group.phrase && (
           <p className="text-[10px] text-green-600 dark:text-green-400 truncate mt-1">
-            Found: "{group.successfulAttempt.matchedText.slice(0, MAX_MATCHED_TEXT_LENGTH)}
-            {group.successfulAttempt.matchedText.length > MAX_MATCHED_TEXT_LENGTH ? "…" : ""}"
+            Found: "
+            {group.successfulAttempt.matchedText.slice(
+              0,
+              MAX_MATCHED_TEXT_LENGTH
+            )}
+            {group.successfulAttempt.matchedText.length >
+            MAX_MATCHED_TEXT_LENGTH
+              ? "…"
+              : ""}
+            "
           </p>
         )}
 
@@ -1163,7 +1285,9 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
               <span className="font-medium">Also tried: </span>
               {visibleVariations.map((variation, index) => {
                 const truncatedVar =
-                  variation.length > MAX_VARIATION_LENGTH ? variation.slice(0, MAX_VARIATION_LENGTH) + "…" : variation;
+                  variation.length > MAX_VARIATION_LENGTH
+                    ? variation.slice(0, MAX_VARIATION_LENGTH) + "…"
+                    : variation;
                 return (
                   <span key={index}>
                     <span className="font-mono">"{truncatedVar}"</span>
@@ -1172,14 +1296,19 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
                 );
               })}
               {hiddenVariationsCount > 0 && (
-                <span className="text-gray-400 dark:text-gray-500"> +{hiddenVariationsCount} more</span>
+                <span className="text-gray-400 dark:text-gray-500">
+                  {" "}
+                  +{hiddenVariationsCount} more
+                </span>
               )}
             </div>
           )}
 
           {/* Notes (if any, for additional context) */}
           {group.uniqueNotes.length > 0 && (
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{group.uniqueNotes[0]}</p>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+              {group.uniqueNotes[0]}
+            </p>
           )}
         </>
       )}
@@ -1205,7 +1334,8 @@ function DefaultPopoverContent({
   // Check if we have anchorText position data for focused scrolling
   const hasAnchorTextPosition = !!(
     verification &&
-    (verification.anchorTextMatchDeepItems?.length || verification.phraseMatchDeepItem)
+    (verification.anchorTextMatchDeepItems?.length ||
+      verification.phraseMatchDeepItem)
   );
 
   // Determine if we should show the verification log (for non-success states)
@@ -1224,8 +1354,14 @@ function DefaultPopoverContent({
   const anchorText = citation.anchorText?.toString();
   const fullPhrase = citation.fullPhrase;
   const humanizingMessage = useMemo(
-    () => getHumanizingMessage(searchStatus, anchorText, expectedPage ?? undefined, foundPage),
-    [searchStatus, anchorText, expectedPage, foundPage],
+    () =>
+      getHumanizingMessage(
+        searchStatus,
+        anchorText,
+        expectedPage ?? undefined,
+        foundPage
+      ),
+    [searchStatus, anchorText, expectedPage, foundPage]
   );
 
   // Loading/pending state view
@@ -1234,7 +1370,12 @@ function DefaultPopoverContent({
     return (
       <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md min-w-[200px] max-w-[400px]">
         {/* Source context header */}
-        <SourceContextHeader citation={citation} verification={verification} status={searchStatus} sourceLabel={sourceLabel} />
+        <SourceContextHeader
+          citation={citation}
+          verification={verification}
+          status={searchStatus}
+          sourceLabel={sourceLabel}
+        />
         <div className="p-3 flex flex-col gap-2">
           <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
             <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
@@ -1244,11 +1385,17 @@ function DefaultPopoverContent({
           </span>
           {searchingPhrase && (
             <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
-              "{searchingPhrase.length > 80 ? searchingPhrase.slice(0, 80) + "…" : searchingPhrase}"
+              "
+              {searchingPhrase.length > 80
+                ? searchingPhrase.slice(0, 80) + "…"
+                : searchingPhrase}
+              "
             </p>
           )}
           {citation.pageNumber && citation.pageNumber > 0 && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">Looking on page {citation.pageNumber}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Looking on page {citation.pageNumber}
+            </span>
           )}
         </div>
       </div>
@@ -1266,7 +1413,12 @@ function DefaultPopoverContent({
           style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}
         >
           {/* Source context header */}
-          <SourceContextHeader citation={citation} verification={verification} status={searchStatus} sourceLabel={sourceLabel} />
+          <SourceContextHeader
+            citation={citation}
+            verification={verification}
+            status={searchStatus}
+            sourceLabel={sourceLabel}
+          />
           {/* Status header with anchorText - skip for URL citations since SourceContextHeader already shows status icon + URL */}
           {!isUrlCitation(citation) && (
             <StatusHeader
@@ -1281,13 +1433,16 @@ function DefaultPopoverContent({
           {/* Verification image */}
           <div className="p-2">
             {hasAnchorTextPosition ? (
-              <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
+              <AnchorTextFocusedImage
+                verification={verification}
+                onImageClick={onImageClick}
+              />
             ) : (
               <button
                 type="button"
                 // Removed bg-gray-50/bg-gray-800 and rounded-md - the evidence image's grey overlay provides visual separation
                 className="group block cursor-zoom-in relative overflow-hidden w-full"
-                onClick={e => {
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onImageClick?.();
@@ -1315,20 +1470,21 @@ function DefaultPopoverContent({
           </div>
 
           {/* Expandable search details for verified matches */}
-          {verification.searchAttempts && verification.searchAttempts.length > 0 && (
-            <VerificationLog
-              searchAttempts={verification.searchAttempts}
-              status={searchStatus}
-              expectedPage={expectedPage ?? undefined}
-              expectedLine={expectedLine}
-              foundPage={foundPage}
-              foundLine={foundLine}
-              isExpanded={isPhrasesExpanded}
-              onExpandChange={onPhrasesExpandChange}
-              fullPhrase={fullPhrase ?? undefined}
-              anchorText={anchorText}
-            />
-          )}
+          {verification.searchAttempts &&
+            verification.searchAttempts.length > 0 && (
+              <VerificationLog
+                searchAttempts={verification.searchAttempts}
+                status={searchStatus}
+                expectedPage={expectedPage ?? undefined}
+                expectedLine={expectedLine}
+                foundPage={foundPage}
+                foundLine={foundLine}
+                isExpanded={isPhrasesExpanded}
+                onExpandChange={onPhrasesExpandChange}
+                fullPhrase={fullPhrase ?? undefined}
+                anchorText={anchorText}
+              />
+            )}
         </div>
       </Activity>
     );
@@ -1345,7 +1501,12 @@ function DefaultPopoverContent({
           style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}
         >
           {/* Source context header */}
-          <SourceContextHeader citation={citation} verification={verification} status={searchStatus} sourceLabel={sourceLabel} />
+          <SourceContextHeader
+            citation={citation}
+            verification={verification}
+            status={searchStatus}
+            sourceLabel={sourceLabel}
+          />
           {/* Content area: Image with simple header, OR combined status header with quote */}
           {hasImage && verification ? (
             // Show simple header + image (for partial matches that have images)
@@ -1368,13 +1529,16 @@ function DefaultPopoverContent({
               )}
               <div className="p-2">
                 {hasAnchorTextPosition ? (
-                  <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
+                  <AnchorTextFocusedImage
+                    verification={verification}
+                    onImageClick={onImageClick}
+                  />
                 ) : (
                   <button
                     type="button"
                     // Removed bg-gray-50/bg-gray-800 and rounded-md - the evidence image's grey overlay provides visual separation
                     className="group block cursor-zoom-in relative overflow-hidden w-full"
-                    onClick={e => {
+                    onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       onImageClick?.();
@@ -1416,7 +1580,9 @@ function DefaultPopoverContent({
               )}
               {/* Humanizing message provides additional context below the header */}
               {humanizingMessage && (
-                <div className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{humanizingMessage}</div>
+                <div className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                  {humanizingMessage}
+                </div>
               )}
             </>
           )}
@@ -1453,26 +1619,37 @@ function DefaultPopoverContent({
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md min-w-[180px] max-w-full">
       {/* Source context header */}
-      <SourceContextHeader citation={citation} verification={verification} status={searchStatus} sourceLabel={sourceLabel} />
+      <SourceContextHeader
+        citation={citation}
+        verification={verification}
+        status={searchStatus}
+        sourceLabel={sourceLabel}
+      />
       <div className="p-3 flex flex-col gap-2">
         {statusLabel && (
           <span
             className={cn(
               "text-xs font-medium",
-              status.isVerified && !status.isPartialMatch && "text-green-600 dark:text-green-400",
+              status.isVerified &&
+                !status.isPartialMatch &&
+                "text-green-600 dark:text-green-400",
               status.isPartialMatch && "text-amber-600 dark:text-amber-400",
               status.isMiss && "text-red-500 dark:text-red-400",
-              status.isPending && "text-gray-500 dark:text-gray-400",
+              status.isPending && "text-gray-500 dark:text-gray-400"
             )}
           >
             {statusLabel}
           </span>
         )}
         {hasSnippet && (
-          <span className="text-sm text-gray-700 dark:text-gray-200">"{verification.verifiedMatchSnippet}"</span>
+          <span className="text-sm text-gray-700 dark:text-gray-200">
+            "{verification.verifiedMatchSnippet}"
+          </span>
         )}
         {pageNumber && pageNumber > 0 && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Page {pageNumber}
+          </span>
         )}
       </div>
     </div>
@@ -1498,7 +1675,8 @@ function DiffDetails({
 }) {
   const { isMiss, isPartialMatch } = status;
 
-  const expectedText = citation.fullPhrase || citation.anchorText?.toString() || "";
+  const expectedText =
+    citation.fullPhrase || citation.anchorText?.toString() || "";
   const actualText = verification?.verifiedMatchSnippet || "";
 
   // Use the diff library for smart word-level diffing
@@ -1509,15 +1687,22 @@ function DiffDetails({
   const expectedLineIds = citation.lineIds;
   const actualLineIds = verification?.verifiedLineIds;
   const lineIdDiffers =
-    expectedLineIds && actualLineIds && JSON.stringify(expectedLineIds) !== JSON.stringify(actualLineIds);
+    expectedLineIds &&
+    actualLineIds &&
+    JSON.stringify(expectedLineIds) !== JSON.stringify(actualLineIds);
 
   const expectedPage = citation.pageNumber;
   const actualPage = verification?.verifiedPageNumber;
-  const pageDiffers = expectedPage != null && actualPage != null && expectedPage !== actualPage;
+  const pageDiffers =
+    expectedPage != null && actualPage != null && expectedPage !== actualPage;
 
   // Get contextual status message
   const searchStatus = verification?.status;
-  const statusMessage = getContextualStatusMessage(searchStatus, expectedPage, actualPage);
+  const statusMessage = getContextualStatusMessage(
+    searchStatus,
+    expectedPage,
+    actualPage
+  );
 
   // For "not_found" status, show expected text and "Not found" message
   if (isMiss) {
@@ -1546,7 +1731,7 @@ function DiffDetails({
         <div
           className={cn(
             "text-[10px] font-medium px-1.5 py-0.5 rounded inline-flex items-center gap-1",
-            "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
+            "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
           )}
         >
           <span className="size-2">
@@ -1578,7 +1763,9 @@ function DiffDetails({
             <span>Text matches</span>
           </div>
           <p className="p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
-            {expectedText.length > 150 ? expectedText.slice(0, 150) + "…" : expectedText}
+            {expectedText.length > 150
+              ? expectedText.slice(0, 150) + "…"
+              : expectedText}
           </p>
         </div>
       ) : null}
@@ -1588,23 +1775,33 @@ function DiffDetails({
         <div className="flex flex-wrap gap-3 pt-1">
           {pageDiffers && (
             <div className="flex items-center gap-1.5">
-              <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">Page:</span>
+              <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">
+                Page:
+              </span>
               <span className="font-mono text-[11px]">
-                <span className="text-red-600 dark:text-red-400 line-through opacity-70">{expectedPage}</span>
+                <span className="text-red-600 dark:text-red-400 line-through opacity-70">
+                  {expectedPage}
+                </span>
                 <span className="text-gray-400 mx-1">→</span>
-                <span className="text-green-600 dark:text-green-400">{actualPage}</span>
+                <span className="text-green-600 dark:text-green-400">
+                  {actualPage}
+                </span>
               </span>
             </div>
           )}
           {lineIdDiffers && (
             <div className="flex items-center gap-1.5">
-              <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">Line:</span>
+              <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">
+                Line:
+              </span>
               <span className="font-mono text-[11px]">
                 <span className="text-red-600 dark:text-red-400 line-through opacity-70">
                   {expectedLineIds?.join(", ")}
                 </span>
                 <span className="text-gray-400 mx-1">→</span>
-                <span className="text-green-600 dark:text-green-400">{actualLineIds?.join(", ")}</span>
+                <span className="text-green-600 dark:text-green-400">
+                  {actualLineIds?.join(", ")}
+                </span>
               </span>
             </div>
           )}
@@ -1632,7 +1829,10 @@ function DiffDetails({
  * Use `behaviorConfig.onClick` to completely replace the click behavior,
  * or `eventHandlers.onClick` to add side effects (which disables defaults).
  */
-export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentProps>(
+export const CitationComponent = forwardRef<
+  HTMLSpanElement,
+  CitationComponentProps
+>(
   (
     {
       citation,
@@ -1656,7 +1856,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       showIndicator = true,
       sourceLabel,
     },
-    ref,
+    ref
   ) => {
     // Relaxed mode: hover doesn't open popover, click opens popover instead of image
     const isRelaxedMode = interactionMode === "relaxed";
@@ -1673,22 +1873,35 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return getDefaultContent(variant);
     }, [contentProp, variant]);
     const [isHovering, setIsHovering] = useState(false);
-    const [expandedImageSrc, setExpandedImageSrc] = useState<string | null>(null);
+    const [expandedImageSrc, setExpandedImageSrc] = useState<string | null>(
+      null
+    );
     const [isPhrasesExpanded, setIsPhrasesExpanded] = useState(false);
     // Track if popover was already open before current interaction (for mobile tap-to-expand)
     const wasPopoverOpenBeforeTap = useRef(false);
 
-    const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
-    const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
+    const citationKey = useMemo(
+      () => generateCitationKey(citation),
+      [citation]
+    );
+    const citationInstanceId = useMemo(
+      () => generateCitationInstanceId(citationKey),
+      [citationKey]
+    );
 
     // Derive status from verification object
-    const status = useMemo(() => getStatusFromVerification(verification), [verification]);
+    const status = useMemo(
+      () => getStatusFromVerification(verification),
+      [verification]
+    );
     const { isMiss, isPartialMatch, isVerified, isPending } = status;
 
     // Spinner timeout: auto-hide after ~5s if still pending
     const SPINNER_TIMEOUT_MS = 5000;
     const [spinnerTimedOut, setSpinnerTimedOut] = useState(false);
-    const spinnerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const spinnerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
 
     // Determine if we should show spinner:
     // - explicit isLoading prop OR isPending status
@@ -1705,7 +1918,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       verification?.status === "found_on_other_line" ||
       verification?.status === "first_word_found";
 
-    const shouldShowSpinner = (isLoading || isPending) && !hasDefinitiveResult && !spinnerTimedOut;
+    const shouldShowSpinner =
+      (isLoading || isPending) && !hasDefinitiveResult && !spinnerTimedOut;
 
     // Reset spinner timeout when loading state changes
     useEffect(() => {
@@ -1747,7 +1961,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         isImageExpanded: !!expandedImageSrc,
         hasImage: !!verification?.verificationImageBase64,
       }),
-      [citation, citationKey, verification, isHovering, expandedImageSrc],
+      [citation, citationKey, verification, isHovering, expandedImageSrc]
     );
 
     // Apply behavior actions from custom handler
@@ -1756,14 +1970,17 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         if (actions.setImageExpanded !== undefined) {
           if (typeof actions.setImageExpanded === "string") {
             setExpandedImageSrc(actions.setImageExpanded);
-          } else if (actions.setImageExpanded === true && verification?.verificationImageBase64) {
+          } else if (
+            actions.setImageExpanded === true &&
+            verification?.verificationImageBase64
+          ) {
             setExpandedImageSrc(verification.verificationImageBase64);
           } else if (actions.setImageExpanded === false) {
             setExpandedImageSrc(null);
           }
         }
       },
-      [verification?.verificationImageBase64],
+      [verification?.verificationImageBase64]
     );
 
     // Click handler
@@ -1813,7 +2030,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           setExpandedImageSrc(verification.verificationImageBase64);
         } else if (isMiss) {
           // For miss state without image, toggle phrases expansion
-          setIsPhrasesExpanded(prev => !prev);
+          setIsPhrasesExpanded((prev) => !prev);
         }
       },
       [
@@ -1828,13 +2045,15 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         isHovering,
         getBehaviorContext,
         applyBehaviorActions,
-      ],
+      ]
     );
 
     // Hover handlers with delay for popover accessibility
     // Use a timeout to allow user to move mouse from trigger to popover
     const HOVER_CLOSE_DELAY_MS = 150;
-    const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
     const isOverPopoverRef = useRef(false);
 
     const cancelHoverCloseTimeout = useCallback(() => {
@@ -1880,7 +2099,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           eventHandlers?.onMouseLeave?.(citation, citationKey);
         }
       }, HOVER_CLOSE_DELAY_MS);
-    }, [eventHandlers, behaviorConfig, citation, citationKey, getBehaviorContext, cancelHoverCloseTimeout]);
+    }, [
+      eventHandlers,
+      behaviorConfig,
+      citation,
+      citationKey,
+      getBehaviorContext,
+      cancelHoverCloseTimeout,
+    ]);
 
     // Popover content hover handlers
     const handlePopoverMouseEnter = useCallback(() => {
@@ -1899,7 +2125,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         }
         eventHandlers?.onMouseLeave?.(citation, citationKey);
       }, HOVER_CLOSE_DELAY_MS);
-    }, [eventHandlers, behaviorConfig, citation, citationKey, getBehaviorContext, cancelHoverCloseTimeout]);
+    }, [
+      eventHandlers,
+      behaviorConfig,
+      citation,
+      citationKey,
+      getBehaviorContext,
+      cancelHoverCloseTimeout,
+    ]);
 
     // Cleanup hover timeout on unmount
     useEffect(() => {
@@ -1919,7 +2152,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           wasPopoverOpenBeforeTap.current = isHovering;
         }
       },
-      [isMobile, isHovering],
+      [isMobile, isHovering]
     );
 
     // Touch handler for mobile - handles tap-to-show-popover and tap-to-expand-image
@@ -1957,32 +2190,55 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           if (verification?.verificationImageBase64) {
             setExpandedImageSrc(verification.verificationImageBase64);
           } else if (isMiss) {
-            setIsPhrasesExpanded(prev => !prev);
+            setIsPhrasesExpanded((prev) => !prev);
           }
         }
       },
-      [eventHandlers, citation, citationKey, isMobile, behaviorConfig, getBehaviorContext, applyBehaviorActions, verification?.verificationImageBase64, isMiss],
+      [
+        eventHandlers,
+        citation,
+        citationKey,
+        isMobile,
+        behaviorConfig,
+        getBehaviorContext,
+        applyBehaviorActions,
+        verification?.verificationImageBase64,
+        isMiss,
+      ]
     );
 
     // Early return for miss with fallback display (only when showing anchorText)
-    if (fallbackDisplay !== null && fallbackDisplay !== undefined && resolvedContent === "anchorText" && isMiss) {
-      return <span className={cn("text-gray-400 dark:text-gray-500", className)}>{fallbackDisplay}</span>;
+    if (
+      fallbackDisplay !== null &&
+      fallbackDisplay !== undefined &&
+      resolvedContent === "anchorText" &&
+      isMiss
+    ) {
+      return (
+        <span className={cn("text-gray-400 dark:text-gray-500", className)}>
+          {fallbackDisplay}
+        </span>
+      );
     }
 
     // Status classes for text styling
     // Variants that display inline text (text, superscript, linter) need
     // a default text color that works in both light and dark modes
-    const needsDefaultTextColor = variant === "text" || variant === "superscript" || variant === "linter";
+    const needsDefaultTextColor =
+      variant === "text" || variant === "superscript" || variant === "linter";
 
     const statusClasses = cn(
       // Default text color for inline variants (ensures dark mode compatibility)
-      needsDefaultTextColor && !isMiss && !shouldShowSpinner && "text-gray-900 dark:text-gray-100",
+      needsDefaultTextColor &&
+        !isMiss &&
+        !shouldShowSpinner &&
+        "text-gray-900 dark:text-gray-100",
       // Found status (text color) - verified or partial match, for brackets variant
       (isVerified || isPartialMatch) &&
         variant === "brackets" &&
         "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline",
       isMiss && "opacity-70 line-through text-gray-700 dark:text-gray-200",
-      shouldShowSpinner && "text-gray-500 dark:text-gray-400",
+      shouldShowSpinner && "text-gray-500 dark:text-gray-400"
     );
 
     // Render indicator based on status priority:
@@ -2027,14 +2283,18 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             className={cn(
               "inline-flex items-center gap-1 px-2 py-px rounded-full text-sm font-medium",
               // Neutral gray background - status shown via icon color only
-              "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+              "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
             )}
           >
-            <span className={cn(
-              "max-w-60 overflow-hidden text-ellipsis whitespace-nowrap",
-              // Miss state: add line-through for visual distinction (on text only, not indicator)
-              isMiss && !shouldShowSpinner && "line-through opacity-70",
-            )}>{displayText}</span>
+            <span
+              className={cn(
+                "max-w-60 overflow-hidden text-ellipsis whitespace-nowrap",
+                // Miss state: add line-through for visual distinction (on text only, not indicator)
+                isMiss && !shouldShowSpinner && "line-through opacity-70"
+              )}
+            >
+              {displayText}
+            </span>
             {renderStatusIndicator()}
           </span>
         );
@@ -2046,11 +2306,23 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           // Default text color for dark mode compatibility
           !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
           // Pending state
-          shouldShowSpinner && "text-gray-500 dark:text-gray-400",
+          shouldShowSpinner && "text-gray-500 dark:text-gray-400"
         );
         return (
-          <sup className={cn("text-xs font-medium transition-colors hover:underline inline-flex items-baseline", supStatusClasses)}>
-            [<span className={cn(isMiss && !shouldShowSpinner && "line-through opacity-60")}>{displayText}</span>
+          <sup
+            className={cn(
+              "text-xs font-medium transition-colors hover:underline inline-flex items-baseline",
+              supStatusClasses
+            )}
+          >
+            [
+            <span
+              className={cn(
+                isMiss && !shouldShowSpinner && "line-through opacity-60"
+              )}
+            >
+              {displayText}
+            </span>
             {renderStatusIndicator()}]
           </sup>
         );
@@ -2076,11 +2348,19 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
               "transition-colors cursor-pointer",
               // Status-aware hover styling (10% opacity for all states)
-              isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-              isPartialMatch && !shouldShowSpinner && "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
-              isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-              (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
-                "hover:bg-gray-200 dark:hover:bg-gray-700",
+              isVerified &&
+                !isPartialMatch &&
+                !shouldShowSpinner &&
+                "hover:bg-green-600/10 dark:hover:bg-green-500/10",
+              isPartialMatch &&
+                !shouldShowSpinner &&
+                "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
+              isMiss &&
+                !shouldShowSpinner &&
+                "hover:bg-red-500/10 dark:hover:bg-red-400/10",
+              (shouldShowSpinner ||
+                (!isVerified && !isMiss && !isPartialMatch)) &&
+                "hover:bg-gray-200 dark:hover:bg-gray-700"
             )}
           >
             {faviconSrc && (
@@ -2093,13 +2373,19 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                 onError={handleImageError}
               />
             )}
-            <span className={cn(
-              "max-w-40 overflow-hidden text-ellipsis whitespace-nowrap",
-              // Miss state: add line-through for visual distinction (on text only, not indicator)
-              isMiss && !shouldShowSpinner && "line-through opacity-70",
-            )}>{displayText}</span>
+            <span
+              className={cn(
+                "max-w-40 overflow-hidden text-ellipsis whitespace-nowrap",
+                // Miss state: add line-through for visual distinction (on text only, not indicator)
+                isMiss && !shouldShowSpinner && "line-through opacity-70"
+              )}
+            >
+              {displayText}
+            </span>
             {additionalCount !== undefined && additionalCount > 0 && (
-              <span className="text-gray-500 dark:text-gray-400">+{additionalCount}</span>
+              <span className="text-gray-500 dark:text-gray-400">
+                +{additionalCount}
+              </span>
             )}
             {renderStatusIndicator()}
           </span>
@@ -2118,7 +2404,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       // The underline style also conveys status visually for additional context.
       if (variant === "linter") {
         // Compute status states once to avoid repetition
-        const isVerifiedState = isVerified && !isPartialMatch && !shouldShowSpinner;
+        const isVerifiedState =
+          isVerified && !isPartialMatch && !shouldShowSpinner;
         const isPartialState = isPartialMatch && !shouldShowSpinner;
         const isMissState = isMiss && !shouldShowSpinner;
         const isPendingState = shouldShowSpinner;
@@ -2148,21 +2435,25 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           linterStyles.textDecorationColor = "var(--dc-linter-error, #ef4444)"; // red-500
         } else if (isPartialState) {
           linterStyles.textDecorationStyle = "dashed";
-          linterStyles.textDecorationColor = "var(--dc-linter-warning, #d97706)"; // amber-600
+          linterStyles.textDecorationColor =
+            "var(--dc-linter-warning, #d97706)"; // amber-600
         } else if (isVerifiedState) {
           linterStyles.textDecorationStyle = "solid";
-          linterStyles.textDecorationColor = "var(--dc-linter-success, #16a34a)"; // green-600
+          linterStyles.textDecorationColor =
+            "var(--dc-linter-success, #16a34a)"; // green-600
         } else {
           // Pending or unknown state
           linterStyles.textDecorationStyle = "dotted";
-          linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)"; // gray-400
+          linterStyles.textDecorationColor =
+            "var(--dc-linter-pending, #9ca3af)"; // gray-400
         }
 
         const linterClasses = cn(
           "cursor-pointer",
           // Text color: let the underline convey status, keep text readable
           // Miss state uses same color as verified/partial - wavy red underline is the signal
-          (isVerifiedState || isPartialState || isMissState) && "text-gray-700 dark:text-gray-200",
+          (isVerifiedState || isPartialState || isMissState) &&
+            "text-gray-700 dark:text-gray-200",
           // Only pending is slightly muted
           isPendingState && "text-gray-500 dark:text-gray-400",
           // Verified: subtle green background wash on hover only (10% opacity)
@@ -2172,7 +2463,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           // Miss: subtle red background on hover (using red-500 to match component)
           isMissState && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
           // Pending: subtle gray background
-          isPendingState && "bg-gray-500/[0.05] hover:bg-gray-500/10 dark:bg-gray-400/[0.05] dark:hover:bg-gray-400/10",
+          isPendingState &&
+            "bg-gray-500/[0.05] hover:bg-gray-500/10 dark:bg-gray-400/[0.05] dark:hover:bg-gray-400/10"
         );
 
         return (
@@ -2190,12 +2482,17 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             "inline-flex items-baseline gap-0.5 whitespace-nowrap",
             "font-mono text-xs leading-tight",
             "text-gray-500 dark:text-gray-400",
-            "transition-colors",
+            "transition-colors"
           )}
           aria-hidden="true"
         >
           [
-          <span className={cn("max-w-80 overflow-hidden text-ellipsis", statusClasses)}>
+          <span
+            className={cn(
+              "max-w-80 overflow-hidden text-ellipsis",
+              statusClasses
+            )}
+          >
             {displayText}
             {renderStatusIndicator()}
           </span>
@@ -2213,7 +2510,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const shouldShowPopover =
       !isPopoverHidden &&
       // Has verification with image or snippet
-      ((verification && (verification.verificationImageBase64 || verification.verifiedMatchSnippet)) ||
+      ((verification &&
+        (verification.verificationImageBase64 ||
+          verification.verifiedMatchSnippet)) ||
         // Loading/pending state
         shouldShowSpinner ||
         isPending ||
@@ -2264,11 +2563,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           isPartialMatch &&
           !shouldShowSpinner &&
           "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
-        variant !== "linter" && isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
+        variant !== "linter" &&
+          isMiss &&
+          !shouldShowSpinner &&
+          "hover:bg-red-500/10 dark:hover:bg-red-400/10",
         variant !== "linter" &&
           (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
           "hover:bg-gray-500/10 dark:hover:bg-gray-400/10",
-        className,
+        className
       ),
       onMouseEnter: handleMouseEnter,
       onMouseLeave: handleMouseLeave,
@@ -2362,7 +2664,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         {imageOverlay}
       </>
     );
-  },
+  }
 );
 
 CitationComponent.displayName = "CitationComponent";
