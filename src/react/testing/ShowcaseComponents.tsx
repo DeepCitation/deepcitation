@@ -166,6 +166,33 @@ const lowTrustWithAudit: Verification = {
 };
 
 // =============================================================================
+// TEST FIXTURES - URL Citations
+// =============================================================================
+
+const urlCitation: Citation = {
+  type: "url",
+  url: "https://www.fitandwell.com/features/kettlebell-moves",
+  domain: "fitandwell.com",
+  title: "Build muscular arms with kettlebell moves",
+  fullPhrase: "The TGU transitions and Halos require control, not brute strength.",
+  anchorText: "require control, not brute strength",
+  citationNumber: 1,
+};
+
+const urlVerifiedVerification: Verification = {
+  status: "found",
+  verifiedPageNumber: 1,
+  verifiedMatchSnippet: "The TGU transitions and Halos require control, not brute strength.",
+  verificationImageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+};
+
+const urlNotFoundVerification: Verification = {
+  status: "not_found",
+  verifiedPageNumber: -1,
+  searchAttempts: failedSearchAttempts,
+};
+
+// =============================================================================
 // TEST FIXTURES - Enhanced Audit Display (with variations and rejected matches)
 // =============================================================================
 
@@ -1188,6 +1215,42 @@ export function PopoverShowcase() {
             <span className="text-sm text-gray-600 dark:text-gray-400">Pending:</span>
             <CitationComponent
               citation={baseCitation}
+              verification={pendingVerification}
+              variant="brackets"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Section: URL Citation Popover Examples */}
+      <section className="mb-10" data-testid="popover-url-citation-section">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+          URL Citation Popover Examples
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          URL citations show the source URL in the header (no duplicate status row)
+        </p>
+        <div className="flex flex-wrap gap-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="flex items-center gap-2" data-interactive-popover="url-verified">
+            <span className="text-sm text-gray-600 dark:text-gray-400">URL Verified:</span>
+            <CitationComponent
+              citation={urlCitation}
+              verification={urlVerifiedVerification}
+              variant="brackets"
+            />
+          </div>
+          <div className="flex items-center gap-2" data-interactive-popover="url-not-found">
+            <span className="text-sm text-gray-600 dark:text-gray-400">URL Not Found:</span>
+            <CitationComponent
+              citation={urlCitation}
+              verification={urlNotFoundVerification}
+              variant="brackets"
+            />
+          </div>
+          <div className="flex items-center gap-2" data-interactive-popover="url-pending">
+            <span className="text-sm text-gray-600 dark:text-gray-400">URL Pending:</span>
+            <CitationComponent
+              citation={urlCitation}
               verification={pendingVerification}
               variant="brackets"
             />

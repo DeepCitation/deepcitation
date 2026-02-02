@@ -32,6 +32,7 @@ import {
   cn,
   generateCitationInstanceId,
   generateCitationKey,
+  isUrlCitation,
 } from "./utils.js";
 import { useSmartDiff } from "./useSmartDiff.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
@@ -1285,8 +1286,10 @@ function DefaultPopoverContent({
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md" style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
           {/* Source context header */}
           <SourceContextHeader citation={citation} verification={verification} status={searchStatus} />
-          {/* Green status header - hide page badge since SourceContextHeader shows it, show anchorText for context */}
-          <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} hidePageBadge anchorText={anchorText} />
+          {/* Status header with anchorText - skip for URL citations since SourceContextHeader already shows status icon + URL */}
+          {!isUrlCitation(citation) && (
+            <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} hidePageBadge anchorText={anchorText} />
+          )}
 
           {/* Verification image */}
           <div className="p-2">
@@ -1360,7 +1363,10 @@ function DefaultPopoverContent({
           {hasImage && verification ? (
             // Show simple header + image (for partial matches that have images)
             <>
-              <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} hidePageBadge anchorText={anchorText} />
+              {/* Status header - skip for URL citations since SourceContextHeader already shows status */}
+              {!isUrlCitation(citation) && (
+                <StatusHeader status={searchStatus} foundPage={foundPage} expectedPage={expectedPage ?? undefined} hidePageBadge anchorText={anchorText} />
+              )}
               {/* Humanizing message for partial matches with images */}
               {humanizingMessage && (
                 <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
@@ -1409,15 +1415,18 @@ function DefaultPopoverContent({
             // Combined header with anchor text and quote (for not_found or partial without image)
             // When humanizingMessage exists, skip anchorText in header to avoid redundancy
             // (humanizingMessage already contains the anchor text in quotes)
+            // For URL citations, skip StatusHeader since SourceContextHeader already shows status
             <>
-              <StatusHeader
-                status={searchStatus}
-                foundPage={foundPage}
-                expectedPage={expectedPage ?? undefined}
-                anchorText={humanizingMessage ? undefined : anchorText}
-                fullPhrase={humanizingMessage ? undefined : (fullPhrase ?? undefined)}
-                hidePageBadge
-              />
+              {!isUrlCitation(citation) && (
+                <StatusHeader
+                  status={searchStatus}
+                  foundPage={foundPage}
+                  expectedPage={expectedPage ?? undefined}
+                  anchorText={humanizingMessage ? undefined : anchorText}
+                  fullPhrase={humanizingMessage ? undefined : (fullPhrase ?? undefined)}
+                  hidePageBadge
+                />
+              )}
               {/* Humanizing message replaces the anchor text display */}
               {humanizingMessage && (
                 <div className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
