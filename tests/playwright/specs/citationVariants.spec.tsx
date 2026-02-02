@@ -66,7 +66,9 @@ test.describe("ChipCitation", () => {
     );
     const chip = page.locator('[data-variant="chip"]');
 
-    await expect(chip).toHaveClass(/text-green-600/);
+    // Wrapper has background color, text color is on inner span
+    await expect(chip).toHaveClass(/bg-green-/);
+    await expect(chip.locator(".text-green-600").first()).toBeVisible();
     // Verified indicator is a checkmark
     const text = await chip.textContent();
     expect(text).toContain("✓");
@@ -78,8 +80,10 @@ test.describe("ChipCitation", () => {
     );
     const chip = page.locator('[data-variant="chip"]');
 
-    await expect(chip).toHaveClass(/text-red-/);
-    await expect(chip).toHaveClass(/line-through/);
+    // Wrapper has background color, text color is on inner span
+    await expect(chip).toHaveClass(/bg-red-/);
+    // line-through is on the inner text span to isolate it from status indicator
+    await expect(chip.locator(".line-through")).toBeVisible();
   });
 
   test("renders with partial match state", async ({ mount, page }) => {
@@ -91,7 +95,8 @@ test.describe("ChipCitation", () => {
     );
     const chip = page.locator('[data-variant="chip"]');
 
-    await expect(chip).toHaveClass(/text-amber-/);
+    // Wrapper has background color, text color is on inner span
+    await expect(chip).toHaveClass(/bg-amber-/);
     // Partial indicator is an asterisk rendered in an aria-hidden span
     const text = await chip.textContent();
     expect(text).toContain("*");
@@ -106,7 +111,8 @@ test.describe("ChipCitation", () => {
     );
     const chip = page.locator('[data-variant="chip"]');
 
-    await expect(chip).toHaveClass(/text-gray-/);
+    // Pending state shows gray background, text color is inherited
+    await expect(chip).toHaveClass(/bg-gray-/);
     await expect(chip.locator(".opacity-70")).toBeVisible();
   });
 
@@ -228,7 +234,8 @@ test.describe("SuperscriptCitation", () => {
     const sup = page.locator('[data-variant="superscript"]');
 
     await expect(sup).toHaveClass(/text-red-/);
-    await expect(sup).toHaveClass(/line-through/);
+    // line-through is on the inner text span to isolate it from status indicator
+    await expect(sup.locator(".line-through")).toBeVisible();
   });
 });
 
@@ -419,7 +426,8 @@ test.describe("MinimalCitation", () => {
     const minimal = page.locator('[data-variant="minimal"]');
 
     await expect(minimal).toHaveClass(/text-red-/);
-    await expect(minimal).toHaveClass(/line-through/);
+    // line-through is on the inner text span to isolate it from status indicator
+    await expect(minimal.locator(".line-through")).toBeVisible();
   });
 });
 
