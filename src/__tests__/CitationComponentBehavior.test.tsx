@@ -1241,3 +1241,375 @@ describe("CitationComponent mobile/touch detection", () => {
     });
   });
 });
+
+// =============================================================================
+// INTERACTION MODE TESTS
+// =============================================================================
+
+describe("CitationComponent interactionMode", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const baseCitation: Citation = {
+    citationNumber: 1,
+    anchorText: "test citation",
+    fullPhrase: "This is a test citation phrase",
+  };
+
+  const verificationWithImage: Verification = {
+    verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
+    matchSnippet: "test citation phrase",
+    pageNumber: 1,
+    status: "found",
+  };
+
+  const verificationWithoutImage: Verification = {
+    matchSnippet: "test citation phrase",
+    pageNumber: 1,
+    status: "found",
+  };
+
+  // Hover close delay must match HOVER_CLOSE_DELAY_MS in CitationComponent
+  const HOVER_CLOSE_DELAY_MS = 150;
+
+  // Helper to wait for hover close delay
+  const waitForHoverCloseDelay = () =>
+    new Promise((resolve) => setTimeout(resolve, HOVER_CLOSE_DELAY_MS + 50));
+
+  describe("eager mode (default)", () => {
+    it("shows popover on hover", async () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="eager"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      fireEvent.mouseEnter(citation!);
+
+      // Popover should appear on hover in eager mode
+      // Check for popover content (the image or verification details)
+      await waitFor(() => {
+        const popover = container.querySelector("[data-popover]");
+        expect(popover).toBeInTheDocument();
+      });
+    });
+
+    it("opens image overlay on click when image is available", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="eager"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      fireEvent.click(citation!);
+
+      // Image overlay should open directly on first click
+      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+    });
+
+    it("has cursor-zoom-in class when image is available", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="eager"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      expect(citation).toHaveClass("cursor-zoom-in");
+    });
+
+    it("has cursor-pointer class when no image is available", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithoutImage}
+          interactionMode="eager"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      expect(citation).toHaveClass("cursor-pointer");
+    });
+
+    it("is the default behavior when interactionMode is not specified", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // Click should open image directly (eager default behavior)
+      fireEvent.click(citation!);
+      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+    });
+  });
+
+  describe("relaxed mode", () => {
+    it("does NOT show popover on hover", async () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      fireEvent.mouseEnter(citation!);
+
+      // Give time for popover to appear if it would
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+
+      // Popover should NOT appear on hover in relaxed mode
+      const popover = container.querySelector("[data-popover]");
+      expect(popover).not.toBeInTheDocument();
+    });
+
+    it("shows popover on first click (not image overlay)", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      fireEvent.click(citation!);
+
+      // First click should NOT open image overlay
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+
+      // Popover should be shown instead (hover state activated)
+      const popover = container.querySelector("[data-popover]");
+      expect(popover).toBeInTheDocument();
+    });
+
+    it("opens image overlay on second click", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // First click - shows popover
+      fireEvent.click(citation!);
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+
+      // Second click - opens image overlay
+      fireEvent.click(citation!);
+      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+    });
+
+    it("has cursor-pointer class initially (before popover is shown)", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      expect(citation).toHaveClass("cursor-pointer");
+    });
+
+    it("changes to cursor-zoom-in after first click (when popover is shown)", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // Initially cursor-pointer
+      expect(citation).toHaveClass("cursor-pointer");
+
+      // First click - shows popover
+      fireEvent.click(citation!);
+
+      // Now should be cursor-zoom-in (indicating next click will zoom)
+      expect(citation).toHaveClass("cursor-zoom-in");
+    });
+
+    it("resets to cursor-pointer after closing image overlay", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // First click - shows popover
+      fireEvent.click(citation!);
+      expect(citation).toHaveClass("cursor-zoom-in");
+
+      // Second click - opens image overlay
+      fireEvent.click(citation!);
+      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+
+      // Close the overlay by clicking on it
+      const overlay = container.querySelector("[role='dialog']");
+      fireEvent.click(overlay!);
+
+      // Should be back to cursor-pointer (popover closed when overlay closes)
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+    });
+
+    it("still triggers eventHandlers.onClick on both clicks", () => {
+      const onClick = jest.fn();
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+          eventHandlers={{ onClick }}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // First click
+      fireEvent.click(citation!);
+      expect(onClick).toHaveBeenCalledTimes(1);
+
+      // Second click
+      fireEvent.click(citation!);
+      expect(onClick).toHaveBeenCalledTimes(2);
+    });
+
+    it("works correctly without image (no zoom needed)", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithoutImage}
+          interactionMode="relaxed"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // First click - shows popover
+      fireEvent.click(citation!);
+      const popover = container.querySelector("[data-popover]");
+      expect(popover).toBeInTheDocument();
+
+      // Second click - no image to zoom, popover stays
+      fireEvent.click(citation!);
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+    });
+
+    it("applies hover styles but not popover on hover", () => {
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // Hover should apply visual styles but not show popover
+      fireEvent.mouseEnter(citation!);
+
+      // The citation element should still be interactable
+      expect(citation).toBeInTheDocument();
+
+      // But popover should NOT appear
+      const popover = container.querySelector("[data-popover]");
+      expect(popover).not.toBeInTheDocument();
+    });
+  });
+
+  describe("interactionMode with behaviorConfig", () => {
+    it("custom onClick overrides relaxed mode behavior", () => {
+      const customOnClick = jest.fn();
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+          behaviorConfig={{ onClick: customOnClick }}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      fireEvent.click(citation!);
+
+      // Custom onClick should be called instead of relaxed mode default
+      expect(customOnClick).toHaveBeenCalledTimes(1);
+
+      // Neither popover nor image overlay should open (custom handler takes over)
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+    });
+
+    it("custom onClick returning actions works in relaxed mode", () => {
+      const customOnClick = jest.fn(
+        (): CitationBehaviorActions => ({
+          setImageExpanded: true,
+        })
+      );
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+          behaviorConfig={{ onClick: customOnClick }}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      fireEvent.click(citation!);
+
+      // Custom action should open image directly (bypassing relaxed mode)
+      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+    });
+
+    it("onHover callbacks still work in relaxed mode", () => {
+      const onEnter = jest.fn();
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          interactionMode="relaxed"
+          behaviorConfig={{ onHover: { onEnter } }}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      fireEvent.mouseEnter(citation!);
+
+      // onEnter callback should still fire
+      expect(onEnter).toHaveBeenCalledTimes(1);
+    });
+  });
+});
