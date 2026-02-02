@@ -20,6 +20,7 @@ import type {
   CitationVariant as CitationVariantType,
   CitationEventHandlers,
 } from "./types.js";
+import { XCircleIcon } from "./icons.js";
 
 const TWO_DOTS_THINKING_CONTENT = "..";
 
@@ -158,15 +159,27 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
     };
 
     // Check partial first since isVerified is true when isPartialMatch is true
+    // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
-      ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-500"
+      ? "bg-amber-100 dark:bg-amber-900/30"
       : isMiss
-      ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 line-through"
+      ? "bg-red-100 dark:bg-red-900/30"
       : isVerified
-      ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-500"
+      ? "bg-green-100 dark:bg-green-900/30"
       : isPending
-      ? "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-      : "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400";
+      ? "bg-gray-100 dark:bg-gray-800"
+      : "bg-blue-100 dark:bg-blue-900/30";
+
+    // Text color class (separate from status indicator)
+    const textColorClass = isPartialMatch
+      ? "text-amber-600 dark:text-amber-500"
+      : isMiss
+      ? "text-red-600 dark:text-red-400"
+      : isVerified
+      ? "text-green-600 dark:text-green-500"
+      : isPending
+      ? "text-gray-500 dark:text-gray-400"
+      : "text-blue-600 dark:text-blue-400";
 
     return (
       <>
@@ -177,7 +190,8 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="chip"
           className={classNames(
-            "inline-flex items-center gap-1 rounded-full font-medium cursor-pointer transition-colors hover:brightness-95",
+            "inline-flex items-center gap-1 rounded-full font-medium cursor-pointer transition-colors",
+            "hover:brightness-95",
             sizeClasses[size],
             statusClass,
             className
@@ -190,9 +204,17 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
         >
           {showIcon &&
             (icon || <span className="text-[0.9em]">📄</span>)}
-          <span className="font-medium">{displayText}</span>
+          <span className={classNames("font-medium", textColorClass, isMiss && "line-through opacity-70")}>{displayText}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
+          {isMiss && (
+            <>
+              <span className="size-3.5 max-w-3.5 max-h-3.5 text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" aria-hidden="true">
+                <XCircleIcon />
+              </span>
+              <span className="sr-only">not found</span>
+            </>
+          )}
           {isPending && (
             <span className="opacity-70">{pendingContent}</span>
           )}
@@ -274,10 +296,11 @@ export const SuperscriptCitation = forwardRef<
     }, [eventHandlers, citation, citationKey]);
 
     // Check partial first since isVerified is true when isPartialMatch is true
+    // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
       ? "text-amber-600 dark:text-amber-500"
       : isMiss
-      ? "text-red-500 dark:text-red-400 line-through"
+      ? "text-red-500 dark:text-red-400"
       : isVerified
       ? "text-green-600 dark:text-green-500"
       : isPending
@@ -293,7 +316,7 @@ export const SuperscriptCitation = forwardRef<
           data-citation-instance={citationInstanceId}
           data-variant="superscript"
           className={classNames(
-            "text-xs cursor-pointer font-medium transition-colors hover:underline",
+            "text-xs cursor-pointer font-medium transition-colors hover:underline inline-flex items-baseline",
             statusClass,
             className
           )}
@@ -304,9 +327,17 @@ export const SuperscriptCitation = forwardRef<
           aria-label={`Citation ${displayText}`}
         >
           {!hideBrackets && "["}
-          {displayText}
+          <span className={isMiss ? "line-through opacity-70" : undefined}>{displayText}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
+          {isMiss && (
+            <>
+              <span className="size-2.5 max-w-2.5 max-h-2.5 ml-0.5 flex-shrink-0" aria-hidden="true">
+                <XCircleIcon />
+              </span>
+              <span className="sr-only">not found</span>
+            </>
+          )}
           {isPending && pendingContent}
           {!hideBrackets && "]"}
         </sup>
@@ -397,10 +428,11 @@ export const FootnoteCitation = forwardRef<
     }, [eventHandlers, citation, citationKey]);
 
     // Check partial first since isVerified is true when isPartialMatch is true
+    // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
       ? "text-amber-600 dark:text-amber-500"
       : isMiss
-      ? "text-red-500 dark:text-red-400 line-through"
+      ? "text-red-500 dark:text-red-400"
       : isVerified
       ? "text-green-600 dark:text-green-500"
       : isPending
@@ -416,7 +448,7 @@ export const FootnoteCitation = forwardRef<
           data-citation-instance={citationInstanceId}
           data-variant="footnote"
           className={classNames(
-            "text-xs cursor-pointer font-normal transition-colors",
+            "text-xs cursor-pointer font-normal transition-colors inline-flex items-baseline",
             statusClass,
             className
           )}
@@ -426,9 +458,17 @@ export const FootnoteCitation = forwardRef<
           onClick={(e) => e.stopPropagation()}
           aria-label={`Footnote ${displaySymbol}`}
         >
-          {displaySymbol}
+          <span className={isMiss ? "line-through opacity-70" : undefined}>{displaySymbol}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
+          {isMiss && (
+            <>
+              <span className="size-2.5 max-w-2.5 max-h-2.5 ml-0.5 flex-shrink-0" aria-hidden="true">
+                <XCircleIcon />
+              </span>
+              <span className="sr-only">not found</span>
+            </>
+          )}
           {isPending && pendingContent}
         </sup>
       </>
@@ -504,10 +544,11 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
     }, [eventHandlers, citation, citationKey]);
 
     // Check partial first since isVerified is true when isPartialMatch is true
+    // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
       ? "text-amber-600 dark:text-amber-500"
       : isMiss
-      ? "text-red-500 dark:text-red-400 line-through"
+      ? "text-red-500 dark:text-red-400"
       : isVerified
       ? "text-green-600 dark:text-green-500"
       : isPending
@@ -530,7 +571,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="inline"
           className={classNames(
-            "cursor-pointer transition-colors hover:bg-blue-500/5",
+            "cursor-pointer transition-colors hover:bg-blue-500/5 inline-flex items-baseline",
             underlineClasses[underlineStyle],
             statusClass,
             className
@@ -541,9 +582,17 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           onClick={(e) => e.stopPropagation()}
           aria-label={`Citation: ${displayText}`}
         >
-          {displayText}
+          <span className={isMiss ? "line-through opacity-70" : undefined}>{displayText}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
+          {isMiss && (
+            <>
+              <span className="size-3 max-w-3 max-h-3 ml-0.5 flex-shrink-0" aria-hidden="true">
+                <XCircleIcon />
+              </span>
+              <span className="sr-only">not found</span>
+            </>
+          )}
           {isPending && (
             <span className="opacity-70 ml-1">{pendingContent}</span>
           )}
@@ -624,10 +673,11 @@ export const MinimalCitation = forwardRef<
     }, [eventHandlers, citation, citationKey]);
 
     // Check partial first since isVerified is true when isPartialMatch is true
+    // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
       ? "text-amber-600 dark:text-amber-500"
       : isMiss
-      ? "text-red-500 dark:text-red-400 line-through"
+      ? "text-red-500 dark:text-red-400"
       : isVerified
       ? "text-green-600 dark:text-green-500"
       : isPending
@@ -643,7 +693,7 @@ export const MinimalCitation = forwardRef<
           data-citation-instance={citationInstanceId}
           data-variant="minimal"
           className={classNames(
-            "cursor-pointer transition-colors hover:underline",
+            "cursor-pointer transition-colors hover:underline inline-flex items-baseline",
             statusClass,
             className
           )}
@@ -653,11 +703,19 @@ export const MinimalCitation = forwardRef<
           onClick={(e) => e.stopPropagation()}
           aria-label={`Citation ${displayText}`}
         >
-          {displayText}
+          <span className={isMiss ? "line-through opacity-70" : undefined}>{displayText}</span>
           {showStatusIndicator && (
             <>
               {isPartialMatch && renderPartialIndicator(status)}
               {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
+              {isMiss && (
+                <>
+                  <span className="size-2.5 max-w-2.5 max-h-2.5 ml-0.5 flex-shrink-0" aria-hidden="true">
+                    <XCircleIcon />
+                  </span>
+                  <span className="sr-only">not found</span>
+                </>
+              )}
               {isPending && pendingContent}
             </>
           )}

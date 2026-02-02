@@ -90,6 +90,9 @@ export interface SourceContextHeaderProps {
 /** Maximum length for display name truncation in source headers */
 const MAX_SOURCE_DISPLAY_NAME_LENGTH = 60;
 
+/** Maximum length for anchor text display in miss headers */
+const MAX_MISS_ANCHOR_TEXT_LENGTH = 60;
+
 /**
  * Maps document verification SearchStatus to UrlFetchStatus for display in UrlCitationComponent.
  */
@@ -182,7 +185,7 @@ export function SourceContextHeader({ citation, verification, status }: SourceCo
   const isUrl = isUrlCitation(citation);
 
   if (isUrl) {
-    // URL citation: show status icon + UrlCitationComponent badge + page/line info in one row
+    // URL citation: show favicon + URL on first row, status + phrase on second row
     const faviconUrl = verification?.verifiedFaviconUrl || citation.faviconUrl;
     const domain = verification?.verifiedDomain || citation.domain;
     const url = citation.url || "";
@@ -206,45 +209,72 @@ export function SourceContextHeader({ citation, verification, status }: SourceCo
     // Format page/line text
     const pageLineText = formatPageLineText(pageNumber, lineIds);
 
+    // Get the anchor text to display (found text or searched-for text)
+    const anchorText = verification?.verifiedAnchorText || citation.anchorText;
+    const displayAnchorText = anchorText
+      ? (anchorText.length > MAX_MISS_ANCHOR_TEXT_LENGTH
+          ? anchorText.slice(0, MAX_MISS_ANCHOR_TEXT_LENGTH) + "..."
+          : anchorText)
+      : null;
+
+    // Determine if we need to show the second line (status + phrase)
+    // Show for all resolved states, or if status indicates a miss
+    const isMiss = status === "not_found";
+    const isResolved = status && status !== "pending" && status !== "loading";
+    const showSecondLine = isResolved || isMiss;
+
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-        {/* Status icon */}
-        <span className={cn("size-4 max-w-4 max-h-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
-          <IconComponent />
-        </span>
-        {/* URL citation component */}
-        <div className="flex-1 min-w-0">
-          <UrlCitationComponent
-            urlMeta={{
-              url,
-              domain,
-              faviconUrl,
-              fetchStatus: urlFetchStatus,
-            }}
-            variant="chip"
-            maxDisplayLength={MAX_URL_DISPLAY_LENGTH}
-            preventTooltips={true}
-            showStatusIndicator={false}
-          />
+      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+        {/* First row: URL citation (no border variant for header) */}
+        <div className="flex items-center gap-2">
+          {/* URL citation component - inline chip style without border */}
+          <div className="flex-1 min-w-0">
+            <UrlCitationComponent
+              urlMeta={{
+                url,
+                domain,
+                faviconUrl,
+                fetchStatus: urlFetchStatus,
+              }}
+              variant="chip"
+              maxDisplayLength={MAX_URL_DISPLAY_LENGTH}
+              preventTooltips={true}
+              showStatusIndicator={false}
+              className="!bg-transparent !px-0 !py-0 hover:!bg-transparent"
+            />
+          </div>
+          {/* Page/line info */}
+          {pageLineText && (
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0 uppercase tracking-wide">
+              {pageLineText}
+            </span>
+          )}
         </div>
-        {/* Page/line info */}
-        {pageLineText && (
-          <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0 uppercase tracking-wide">
-            {pageLineText}
-          </span>
+        {/* Second row: Status icon + phrase (like document citations) */}
+        {showSecondLine && (
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className={cn("size-4 max-w-4 max-h-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
+              <IconComponent />
+            </span>
+            {displayAnchorText && (
+              <span className="text-sm text-gray-700 dark:text-gray-200 truncate">
+                "{displayAnchorText}"
+              </span>
+            )}
+          </div>
         )}
       </div>
     );
   }
 
-  // Document citation: show document icon + label/attachmentId + page/line info (right-aligned)
+  // Document citation: show document icon + label + page/line info (right-aligned)
+  // Note: attachmentId should never be shown to users - only show the label if available
   const label = verification?.label;
-  const attachmentId = citation.attachmentId;
   const pageNumber = verification?.verifiedPageNumber ?? citation.pageNumber;
   const lineIds = verification?.verifiedLineIds ?? citation.lineIds;
 
-  // Display text: prefer label, fall back to longer truncated attachmentId
-  const displayName = label || (attachmentId ? `${attachmentId.slice(0, 16)}...` : null);
+  // Display text: only use label (never show attachmentId to users)
+  const displayName = label || null;
 
   // Only show if we have something meaningful to display
   if (!displayName && !pageNumber) {
@@ -256,12 +286,12 @@ export function SourceContextHeader({ citation, verification, status }: SourceCo
 
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
         <span className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500">
           <DocumentIcon />
         </span>
         {displayName && (
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{displayName}</span>
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate max-w-[280px]">{displayName}</span>
         )}
       </div>
       {pageLineText && (

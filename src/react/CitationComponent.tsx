@@ -1962,11 +1962,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               "inline-flex items-center gap-1 px-2 py-px rounded-full text-sm font-medium",
               // Neutral gray background - status shown via icon color only
               "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
-              // Miss state: add line-through for visual distinction
-              isMiss && !shouldShowSpinner && "line-through opacity-70",
             )}
           >
-            <span className="max-w-60 overflow-hidden text-ellipsis whitespace-nowrap">{displayText}</span>
+            <span className={cn(
+              "max-w-60 overflow-hidden text-ellipsis whitespace-nowrap",
+              // Miss state: add line-through for visual distinction (on text only, not indicator)
+              isMiss && !shouldShowSpinner && "line-through opacity-70",
+            )}>{displayText}</span>
             {renderStatusIndicator()}
           </span>
         );
@@ -1976,16 +1978,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       if (variant === "superscript") {
         const supStatusClasses = cn(
           // Default text color for dark mode compatibility
-          // Miss state keeps readable text - line-through is the signal
           !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
-          // Miss state - keep line-through but text stays readable
-          isMiss && !shouldShowSpinner && "line-through opacity-60",
           // Pending state
           shouldShowSpinner && "text-gray-500 dark:text-gray-400",
         );
         return (
-          <sup className={cn("text-xs font-medium transition-colors hover:underline", supStatusClasses)}>
-            [{displayText}
+          <sup className={cn("text-xs font-medium transition-colors hover:underline inline-flex items-baseline", supStatusClasses)}>
+            [<span className={cn(isMiss && !shouldShowSpinner && "line-through opacity-60")}>{displayText}</span>
             {renderStatusIndicator()}]
           </sup>
         );
@@ -2016,8 +2015,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
               (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
                 "hover:bg-gray-200 dark:hover:bg-gray-700",
-              // Miss state: add line-through for visual distinction
-              isMiss && !shouldShowSpinner && "line-through opacity-70",
             )}
           >
             {faviconSrc && (
@@ -2030,7 +2027,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                 onError={handleImageError}
               />
             )}
-            <span className="max-w-40 overflow-hidden text-ellipsis whitespace-nowrap">{displayText}</span>
+            <span className={cn(
+              "max-w-40 overflow-hidden text-ellipsis whitespace-nowrap",
+              // Miss state: add line-through for visual distinction (on text only, not indicator)
+              isMiss && !shouldShowSpinner && "line-through opacity-70",
+            )}>{displayText}</span>
             {additionalCount !== undefined && additionalCount > 0 && (
               <span className="text-gray-500 dark:text-gray-400">+{additionalCount}</span>
             )}
