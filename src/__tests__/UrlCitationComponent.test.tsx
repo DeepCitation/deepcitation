@@ -205,26 +205,6 @@ describe("UrlCitationComponent", () => {
       windowOpenSpy.mockRestore();
     });
 
-    it("opens URL on click (openUrlOnClick prop is deprecated)", () => {
-      const windowOpenSpy = jest.spyOn(window, "open").mockImplementation(() => null);
-
-      // openUrlOnClick is now deprecated - clicking always opens URL
-      const { getByRole } = render(
-        <UrlCitationComponent urlMeta={createUrlMeta()} openUrlOnClick={true} />
-      );
-
-      const button = getByRole("button");
-      fireEvent.click(button);
-
-      expect(windowOpenSpy).toHaveBeenCalledWith(
-        "https://stripe.com/docs/api/v2/citations",
-        "_blank",
-        "noopener,noreferrer"
-      );
-
-      windowOpenSpy.mockRestore();
-    });
-
     it("calls custom onUrlClick when provided", () => {
       const onUrlClick = jest.fn();
 

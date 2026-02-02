@@ -205,7 +205,6 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       eventHandlers,
       preventTooltips = false,
       showStatusIndicator = true,
-      openUrlOnClick: _openUrlOnClick, // Deprecated, clicking always opens URL now
       showExternalLinkOnHover = true, // Show external link icon on hover by default
     },
     ref,
@@ -396,7 +395,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
 
     // Badge variant (default) - matches the HTML design
     // Changed from <a> to <span> to prevent default link behavior
-    // Click is handled by handleClick which respects openUrlOnClick prop
+    // Click always opens URL in new tab
     if (variant === "badge") {
       return (
         <>

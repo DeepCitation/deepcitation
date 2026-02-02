@@ -273,12 +273,6 @@ export interface UrlCitationProps extends Omit<BaseCitationProps, "citation" | "
   /** Whether to show the status indicator (checkmark, warning, spinner). Defaults to true. */
   showStatusIndicator?: boolean;
   /**
-   * @deprecated Clicking the URL citation now always opens the URL in a new tab.
-   * This prop is ignored.
-   * @default true
-   */
-  openUrlOnClick?: boolean;
-  /**
    * Whether to show an external link icon on hover.
    * The icon serves as a visual hint that clicking will open the URL.
    * @default true
