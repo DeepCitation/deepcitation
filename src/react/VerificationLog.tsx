@@ -1016,7 +1016,6 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSea
 
 interface VerificationLogAttemptProps {
   attempt: SearchAttempt;
-  expectedPage?: number;
 }
 
 /**
@@ -1024,7 +1023,7 @@ interface VerificationLogAttemptProps {
  * For success: shows the phrase that was matched and where it was found.
  * For failure: shows the phrase that was searched.
  */
-function VerificationLogAttempt({ attempt, expectedPage }: VerificationLogAttemptProps) {
+function VerificationLogAttempt({ attempt }: VerificationLogAttemptProps) {
   const isSuccess = attempt.success;
 
   // Get the phrase that was searched (or matched)
@@ -1105,7 +1104,7 @@ function VerificationLogTimeline({
           ? attempt.lineSearched.join("-")
           : (attempt.lineSearched ?? "none");
         const key = `${attempt.method}-${attempt.pageSearched ?? "doc"}-${lineKey}-${index}`;
-        return <VerificationLogAttempt key={key} attempt={attempt} expectedPage={expectedPage} />;
+        return <VerificationLogAttempt key={key} attempt={attempt} />;
       })}
     </div>
   );

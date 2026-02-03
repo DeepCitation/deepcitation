@@ -63,10 +63,6 @@ const verificationWithMiss: Verification = {
 // POPOVER IMAGE WIDTH TESTS
 // =============================================================================
 
-// Skip popover hover tests in CI - Radix UI popovers with portals are flaky in Playwright CT
-// These tests work locally but the hover interaction doesn't reliably trigger the popover in CI
-const skipPopoverHoverTests = !!process.env.CI;
-
 test.describe("Popover Image Width Constraint", () => {
   test("popover image has constrained max dimensions", async ({ mount, page }) => {
     await mount(
@@ -79,7 +75,8 @@ test.describe("Popover Image Width Constraint", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    await citation.hover();
+    // Click to open popover (lazy mode - hover no longer shows popover)
+    await citation.click();
 
     // Wait for popover to appear
     const popover = page.locator("[data-radix-popper-content-wrapper]");
@@ -106,7 +103,8 @@ test.describe("Popover Image Width Constraint", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    await citation.hover();
+    // Click to open popover (lazy mode - hover no longer shows popover)
+    await citation.click();
 
     // Wait for popover to appear
     const popover = page.locator("[data-radix-popper-content-wrapper]");
@@ -133,7 +131,8 @@ test.describe("Popover Image Width Constraint", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    await citation.hover();
+    // Click to open popover (lazy mode - hover no longer shows popover)
+    await citation.click();
 
     // Wait for popover to appear
     const popover = page.locator("[data-radix-popper-content-wrapper]");
@@ -160,7 +159,8 @@ test.describe("Popover Image Width Constraint", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    await citation.hover();
+    // Click to open popover (lazy mode - hover no longer shows popover)
+    await citation.click();
 
     // Wait for popover to appear
     const popover = page.locator("[data-radix-popper-content-wrapper]");
@@ -226,7 +226,7 @@ test.describe("Popover Visual States", () => {
     });
   });
 
-  test("popover with verified image on hover", async ({ mount, page }) => {
+  test("popover with verified image on click", async ({ mount, page }) => {
     test.skip(skipVisualTests, 'Skipping visual test - no baseline for this platform');
 
     await mount(
@@ -239,15 +239,16 @@ test.describe("Popover Visual States", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    await citation.hover();
+    // Click to open popover (lazy mode - hover no longer shows popover)
+    await citation.click();
 
     // Wait for popover animation
     await page.waitForTimeout(100);
 
-    await expect(page).toHaveScreenshot("popover-verified-hover.png");
+    await expect(page).toHaveScreenshot("popover-verified-click.png");
   });
 
-  test("popover with partial match on hover", async ({ mount, page }) => {
+  test("popover with partial match on click", async ({ mount, page }) => {
     test.skip(skipVisualTests, 'Skipping visual test - no baseline for this platform');
 
     await mount(
@@ -260,15 +261,16 @@ test.describe("Popover Visual States", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    await citation.hover();
+    // Click to open popover (lazy mode - hover no longer shows popover)
+    await citation.click();
 
     // Wait for popover animation
     await page.waitForTimeout(100);
 
-    await expect(page).toHaveScreenshot("popover-partial-hover.png");
+    await expect(page).toHaveScreenshot("popover-partial-click.png");
   });
 
-  test("popover with miss state on hover", async ({ mount, page }) => {
+  test("popover with miss state on click", async ({ mount, page }) => {
     test.skip(skipVisualTests, 'Skipping visual test - no baseline for this platform');
 
     await mount(
@@ -281,12 +283,13 @@ test.describe("Popover Visual States", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    await citation.hover();
+    // Click to open popover (lazy mode - hover no longer shows popover)
+    await citation.click();
 
     // Wait for popover animation
     await page.waitForTimeout(100);
 
-    await expect(page).toHaveScreenshot("popover-miss-hover.png");
+    await expect(page).toHaveScreenshot("popover-miss-click.png");
   });
 });
 
@@ -295,7 +298,7 @@ test.describe("Popover Visual States", () => {
 // =============================================================================
 
 test.describe("Image Click to Expand", () => {
-  test("clicking citation with image opens full-size overlay", async ({ mount, page }) => {
+  test("clicking image within popover opens full-size overlay", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "50px" }}>
         <CitationComponent
@@ -305,9 +308,18 @@ test.describe("Image Click to Expand", () => {
       </div>
     );
 
-    // Click the citation directly (default behavior opens image overlay)
+    // First click opens popover (lazy mode)
     const citation = page.locator("[data-citation-id]");
     await citation.click();
+
+    // Wait for popover to appear
+    const popover = page.locator("[data-radix-popper-content-wrapper]");
+    await expect(popover).toBeVisible();
+
+    // Click the image within the popover to expand to full size
+    const popoverImage = popover.locator("img");
+    await expect(popoverImage).toBeVisible();
+    await popoverImage.click();
 
     // Check that the full-size image overlay appeared
     // Use the specific aria-label to distinguish from popover
@@ -329,9 +341,15 @@ test.describe("Image Click to Expand", () => {
       </div>
     );
 
-    // Click citation to open overlay
+    // First click opens popover (lazy mode)
     const citation = page.locator("[data-citation-id]");
     await citation.click();
+
+    // Wait for popover and click image to expand
+    const popover = page.locator("[data-radix-popper-content-wrapper]");
+    await expect(popover).toBeVisible();
+    const popoverImage = popover.locator("img");
+    await popoverImage.click();
 
     // Verify overlay is open
     const overlay = page.getByRole("dialog", { name: "Full size verification image" });

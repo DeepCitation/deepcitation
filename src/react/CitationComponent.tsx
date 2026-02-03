@@ -1649,9 +1649,11 @@ function DiffDetails({
  *
  * ## Interaction Pattern
  *
- * - **Hover**: Shows popover with verification image or details
- * - **Click**: Opens full-size image overlay (if image available)
- * - **Escape / Click overlay**: Closes the image overlay
+ * - **Hover**: Style effects only (no popover)
+ * - **First Click**: Shows popover with verification image and details
+ * - **Second Click**: Toggles search details expansion within the popover
+ * - **Click Image**: Expands verification image to full-size overlay
+ * - **Click Outside / Escape**: Closes the popover
  *
  * ## Customization
  *
