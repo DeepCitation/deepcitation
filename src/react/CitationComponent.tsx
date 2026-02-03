@@ -2262,13 +2262,27 @@ export const CitationComponent = forwardRef<
 
       // Variant: chip (pill/badge style with neutral gray background)
       // Status is conveyed via the indicator icon color only
+      // Hover styling is applied here (not on parent) to keep hover contained within chip bounds
       if (variant === "chip") {
         return (
           <span
             className={cn(
-              "inline-flex items-center gap-1 px-2 py-px rounded-full text-sm font-medium",
+              "inline-flex items-center gap-1 px-2 py-px rounded-full text-sm font-medium transition-colors",
               // Neutral gray background - status shown via icon color only
-              "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+              "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+              // Status-aware hover styling (contained within the chip)
+              isVerified &&
+                !isPartialMatch &&
+                !shouldShowSpinner &&
+                "hover:bg-green-600/15 dark:hover:bg-green-500/15",
+              isPartialMatch &&
+                !shouldShowSpinner &&
+                "hover:bg-amber-600/15 dark:hover:bg-amber-500/15",
+              isMiss &&
+                !shouldShowSpinner &&
+                "hover:bg-red-500/15 dark:hover:bg-red-400/15",
+              (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
+                "hover:bg-gray-200 dark:hover:bg-gray-700"
             )}
           >
             <span
@@ -2524,6 +2538,10 @@ export const CitationComponent = forwardRef<
     // Generate unique popover ID for ARIA attributes
     const popoverId = `citation-popover-${citationInstanceId}`;
 
+    // Chip and badge variants have their own hover styles, so we shouldn't add
+    // hover backgrounds to the outer wrapper (it would extend beyond the chip bounds)
+    const variantHasOwnHover = variant === "chip" || variant === "badge" || variant === "linter";
+
     const triggerProps = {
       "data-citation-id": citationKey,
       "data-citation-instance": citationInstanceId,
@@ -2535,21 +2553,21 @@ export const CitationComponent = forwardRef<
         // Improved touch target size on mobile (minimum 44px recommended)
         // Using py-1.5 for better touch accessibility without breaking layout
         isMobile && "py-1.5 touch-manipulation",
-        // Status-aware hover for all variants (10% opacity; linter includes these in its own classes too)
-        variant !== "linter" &&
+        // Status-aware hover for variants that don't handle their own hover styling
+        !variantHasOwnHover &&
           isVerified &&
           !isPartialMatch &&
           !shouldShowSpinner &&
           "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-        variant !== "linter" &&
+        !variantHasOwnHover &&
           isPartialMatch &&
           !shouldShowSpinner &&
           "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
-        variant !== "linter" &&
+        !variantHasOwnHover &&
           isMiss &&
           !shouldShowSpinner &&
           "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-        variant !== "linter" &&
+        !variantHasOwnHover &&
           (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
           "hover:bg-gray-500/10 dark:hover:bg-gray-400/10",
         // Focus styles for keyboard accessibility

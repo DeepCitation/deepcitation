@@ -1015,54 +1015,6 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSea
 }
 
 // =============================================================================
-// LEGACY VERIFICATION LOG ATTEMPT (kept for success states)
-// =============================================================================
-
-interface VerificationLogAttemptProps {
-  attempt: SearchAttempt;
-}
-
-/**
- * Single attempt row - shows search phrase and location info.
- * For success: shows the phrase that was matched and where it was found.
- * For failure: shows the phrase that was searched.
- */
-function VerificationLogAttempt({ attempt }: VerificationLogAttemptProps) {
-  const isSuccess = attempt.success;
-
-  // Get the phrase that was searched (or matched)
-  const phrase = attempt.searchPhrase ?? "";
-  const displayPhrase =
-    phrase.length === 0
-      ? "(empty)"
-      : phrase.length > MAX_PHRASE_DISPLAY_LENGTH
-        ? phrase.slice(0, MAX_PHRASE_DISPLAY_LENGTH) + "..."
-        : phrase;
-
-  // Get location info
-  const foundPage = attempt.foundLocation?.page ?? attempt.pageSearched;
-
-  // Icon component and color
-  const IconComponent = isSuccess ? CheckIcon : MissIcon;
-  const iconColorClass = isSuccess ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500";
-
-  return (
-    <div className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-      {/* Leading icon */}
-      <span className={cn("size-3.5 max-w-3.5 max-h-3.5 flex-shrink-0", iconColorClass)}>
-        <IconComponent />
-      </span>
-      {/* Phrase that was matched/searched */}
-      <span className="flex-1 text-xs text-gray-700 dark:text-gray-300 font-mono truncate">"{displayPhrase}"</span>
-      {/* Page location (1-indexed; page 0 indicates unset/invalid) */}
-      {foundPage != null && foundPage > 0 && (
-        <span className="text-[11px] text-gray-500 dark:text-gray-400 flex-shrink-0">Pg {foundPage}</span>
-      )}
-    </div>
-  );
-}
-
-// =============================================================================
 // VERIFICATION LOG TIMELINE
 // =============================================================================
 
@@ -1077,39 +1029,21 @@ interface VerificationLogTimelineProps {
 
 /**
  * Scrollable timeline showing search attempts.
- * For miss states: shows audit-focused phrase display (what was searched).
- * For success/partial states: shows simplified method list with location info.
+ * Uses the same AuditSearchDisplay layout for all states (found, partial, and not_found)
+ * to maintain consistency and provide clear audit trail.
  */
 function VerificationLogTimeline({
   searchAttempts,
-  expectedPage,
-  showAuditDisplay,
+  expectedPage: _expectedPage,
+  showAuditDisplay: _showAuditDisplay,
   fullPhrase,
   anchorText,
 }: VerificationLogTimelineProps) {
-  // For miss states, show audit-focused display
-  if (showAuditDisplay) {
-    return (
-      <div id="verification-log-timeline" style={{ maxHeight: MAX_TIMELINE_HEIGHT }} className="overflow-y-auto">
-        <AuditSearchDisplay searchAttempts={searchAttempts} fullPhrase={fullPhrase} anchorText={anchorText} />
-      </div>
-    );
-  }
-
-  // For success/partial states, show simplified method list
+  // Use the same audit-focused display for all states (found, partial, not_found)
+  // This provides a consistent layout showing what was searched and where
   return (
-    <div
-      id="verification-log-timeline"
-      className="px-4 pb-3 overflow-y-auto"
-      style={{ maxHeight: MAX_TIMELINE_HEIGHT }}
-    >
-      {searchAttempts.map((attempt, index) => {
-        const lineKey = Array.isArray(attempt.lineSearched)
-          ? attempt.lineSearched.join("-")
-          : (attempt.lineSearched ?? "none");
-        const key = `${attempt.method}-${attempt.pageSearched ?? "doc"}-${lineKey}-${index}`;
-        return <VerificationLogAttempt key={key} attempt={attempt} />;
-      })}
+    <div id="verification-log-timeline" style={{ maxHeight: MAX_TIMELINE_HEIGHT }} className="overflow-y-auto">
+      <AuditSearchDisplay searchAttempts={searchAttempts} fullPhrase={fullPhrase} anchorText={anchorText} />
     </div>
   );
 }
