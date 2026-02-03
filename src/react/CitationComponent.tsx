@@ -2245,13 +2245,28 @@ export const CitationComponent = forwardRef<
     }, []);
 
     // Mobile click-outside dismiss handler
+    //
     // On mobile, tapping outside the citation trigger or popover should dismiss the popover.
-    // Desktop relies on mouse leave events which don't exist on mobile.
+    // Desktop relies on mouse leave events (handleMouseLeave) which don't exist on mobile.
+    //
+    // Why custom handling instead of Radix's built-in click-outside behavior:
+    // The PopoverContent has onPointerDownOutside and onInteractOutside handlers that call
+    // e.preventDefault() to give us full control over popover state. This is necessary for
+    // the two-tap mobile interaction pattern (first tap shows popover, second tap opens image).
+    // However, it means we need custom touch handling to dismiss the popover on outside taps.
+    //
+    // Cleanup: The listener only attaches when isMobile AND isHovering are both true.
+    // It's automatically removed when either condition becomes false or on unmount.
+    // This minimizes document-level listener churn since popovers open/close frequently.
     useEffect(() => {
       if (!isMobile || !isHovering) return;
 
       const handleOutsideTouch = (e: TouchEvent) => {
-        const target = e.target as Node;
+        // Type guard for touch event target
+        const target = e.target;
+        if (!(target instanceof Node)) {
+          return;
+        }
 
         // Check if touch is inside the trigger element
         if (triggerRef.current?.contains(target)) {
@@ -2268,6 +2283,7 @@ export const CitationComponent = forwardRef<
       };
 
       // Use touchstart with capture phase to detect touches before they're handled
+      // by other handlers (like handleTouchStart on the citation trigger itself)
       document.addEventListener("touchstart", handleOutsideTouch, {
         capture: true,
       });

@@ -1481,6 +1481,175 @@ describe("CitationComponent mobile/touch detection", () => {
     });
   });
 
+  describe("mobile tap-outside dismiss", () => {
+    it("tapping outside the popover dismisses it on mobile", async () => {
+      mockTouchDevice(true);
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          isMobile={true}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // First tap - should show popover
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // Popover should be visible
+      await waitFor(() => {
+        const popoverContent = container.querySelector('[data-state="open"]');
+        expect(popoverContent).toBeInTheDocument();
+      });
+
+      // Tap outside (on document body) - should dismiss popover
+      fireEvent.touchStart(document.body);
+
+      // Popover should be dismissed
+      await waitFor(() => {
+        const popoverContent = container.querySelector('[data-state="open"]');
+        expect(popoverContent).not.toBeInTheDocument();
+      });
+    });
+
+    it("tapping inside the popover content does NOT dismiss it", async () => {
+      mockTouchDevice(true);
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          isMobile={true}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // First tap - should show popover
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // Wait for popover to be visible
+      await waitFor(() => {
+        const popoverContent = container.querySelector('[data-state="open"]');
+        expect(popoverContent).toBeInTheDocument();
+      });
+
+      // Find the popover content and tap inside it
+      const popoverContent = container.querySelector('[data-state="open"]');
+      fireEvent.touchStart(popoverContent!);
+
+      // Popover should still be visible (not dismissed)
+      await waitFor(() => {
+        const popover = container.querySelector('[data-state="open"]');
+        expect(popover).toBeInTheDocument();
+      });
+    });
+
+    it("tapping the trigger while popover is open advances to image overlay", async () => {
+      mockTouchDevice(true);
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          isMobile={true}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // First tap - should show popover
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // Wait for popover to be visible
+      await waitFor(() => {
+        const popoverContent = container.querySelector('[data-state="open"]');
+        expect(popoverContent).toBeInTheDocument();
+      });
+
+      // Second tap on trigger - should open image overlay (not dismiss popover)
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      // Image overlay should be visible
+      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+    });
+
+    it("desktop mode (isMobile=false) does not dismiss on outside click", async () => {
+      mockTouchDevice(false);
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          isMobile={false}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // Hover to show popover
+      fireEvent.mouseEnter(citation!);
+
+      // Wait for popover to be visible
+      await waitFor(() => {
+        const popoverContent = container.querySelector('[data-state="open"]');
+        expect(popoverContent).toBeInTheDocument();
+      });
+
+      // Touch outside - should NOT dismiss popover (desktop doesn't use touch dismiss)
+      fireEvent.touchStart(document.body);
+
+      // Give time for any state changes
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Popover should still be visible (desktop uses mouse leave, not touch)
+      const popoverContent = container.querySelector('[data-state="open"]');
+      expect(popoverContent).toBeInTheDocument();
+    });
+
+    it("listener cleanup - rapid open/close does not cause issues", async () => {
+      mockTouchDevice(true);
+
+      const { container, unmount } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          isMobile={true}
+        />
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+
+      // Rapidly open and close popover multiple times
+      for (let i = 0; i < 3; i++) {
+        // Open popover
+        fireEvent.touchStart(citation!);
+        fireEvent.click(citation!);
+
+        // Close by tapping outside
+        fireEvent.touchStart(document.body);
+      }
+
+      // Final open
+      fireEvent.touchStart(citation!);
+      fireEvent.click(citation!);
+
+      await waitFor(() => {
+        const popoverContent = container.querySelector('[data-state="open"]');
+        expect(popoverContent).toBeInTheDocument();
+      });
+
+      // Unmount should not cause errors (cleanup works correctly)
+      expect(() => unmount()).not.toThrow();
+    });
+  });
+
   describe("keyboard accessibility", () => {
     it("Enter key triggers tap action in eager mode", () => {
       mockTouchDevice(false);
