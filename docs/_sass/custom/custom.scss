@@ -615,30 +615,33 @@ blockquote {
 
 // Override all focus rings to use brand blue instead of purple/pure blue
 // This targets the default browser/theme focus ring that uses rgba(0, 0, 255, 0.25)
-*:focus,
-*:focus-visible {
+// More targeted than universal * selector to avoid unintended side effects
+.main-content *:focus,
+.main-content *:focus-visible,
+.side-bar *:focus,
+.side-bar *:focus-visible,
+.site-header *:focus,
+.site-header *:focus-visible {
   outline-color: var(--link-color) !important;
 }
 
-// Override any box-shadow focus rings (Just the Docs default)
+// Override focus rings with box-shadow approach (consistent with --focus-ring-color variable)
 a:focus,
-button:focus,
-input:focus,
-select:focus,
-textarea:focus,
-.btn:focus,
-.nav-list-link:focus,
-[tabindex]:focus {
-  box-shadow: 0 0 0 3px var(--focus-ring-color) !important;
-}
-
-// Remove any default pure blue focus ring
 a:focus-visible,
+button:focus,
 button:focus-visible,
+input:focus,
 input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+.btn:focus,
 .btn:focus-visible,
-.nav-list-link:focus-visible {
-  outline: 2px solid var(--link-color) !important;
-  outline-offset: 2px !important;
-  box-shadow: none !important;
+.nav-list-link:focus,
+.nav-list-link:focus-visible,
+[tabindex]:focus,
+[tabindex]:focus-visible {
+  box-shadow: 0 0 0 3px var(--focus-ring-color) !important;
+  outline: none !important;
 }
