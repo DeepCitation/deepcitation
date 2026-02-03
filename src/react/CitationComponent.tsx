@@ -2300,8 +2300,14 @@ export const CitationComponent = forwardRef<
       }
 
       // Variant: superscript (footnote style)
-      // Hover styling is applied here (not on parent) to keep hover contained within superscript bounds
+      // Shows anchor text as unstyled inline text, followed by superscript [number✓]
+      // Hover styling is applied to the superscript part only to keep hover contained
       if (variant === "superscript") {
+        // Get anchor text for inline display (unstyled)
+        const anchorTextDisplay = citation.anchorText?.toString() || "";
+        // Get citation number for superscript
+        const citationNumber = citation.citationNumber?.toString() || "1";
+
         const supStatusClasses = cn(
           // Default text color for dark mode compatibility
           !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
@@ -2309,35 +2315,49 @@ export const CitationComponent = forwardRef<
           shouldShowSpinner && "text-gray-500 dark:text-gray-400"
         );
         return (
-          <sup
-            className={cn(
-              "text-xs font-medium transition-colors inline-flex items-baseline px-0.5 rounded",
-              supStatusClasses,
-              // Status-aware hover styling (contained within the superscript)
-              isVerified &&
-                !isPartialMatch &&
-                !shouldShowSpinner &&
-                "hover:bg-green-600/15 dark:hover:bg-green-500/15",
-              isPartialMatch &&
-                !shouldShowSpinner &&
-                "hover:bg-amber-600/15 dark:hover:bg-amber-500/15",
-              isMiss &&
-                !shouldShowSpinner &&
-                "hover:bg-red-500/15 dark:hover:bg-red-400/15",
-              (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
-                "hover:bg-gray-200 dark:hover:bg-gray-700"
+          <>
+            {/* Anchor text displayed as unstyled inline text */}
+            {anchorTextDisplay && (
+              <span
+                className={cn(
+                  // Miss state: add line-through for visual distinction
+                  isMiss && !shouldShowSpinner && "line-through opacity-70"
+                )}
+              >
+                {anchorTextDisplay}
+              </span>
             )}
-          >
-            [
-            <span
+            {/* Superscript citation number with indicator */}
+            <sup
               className={cn(
-                isMiss && !shouldShowSpinner && "line-through opacity-60"
+                "text-xs font-medium transition-colors inline-flex items-baseline px-0.5 rounded",
+                supStatusClasses,
+                // Status-aware hover styling (contained within the superscript)
+                isVerified &&
+                  !isPartialMatch &&
+                  !shouldShowSpinner &&
+                  "hover:bg-green-600/15 dark:hover:bg-green-500/15",
+                isPartialMatch &&
+                  !shouldShowSpinner &&
+                  "hover:bg-amber-600/15 dark:hover:bg-amber-500/15",
+                isMiss &&
+                  !shouldShowSpinner &&
+                  "hover:bg-red-500/15 dark:hover:bg-red-400/15",
+                (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
+                  "hover:bg-gray-200 dark:hover:bg-gray-700"
               )}
             >
-              {displayText}
-            </span>
-            {renderStatusIndicator()}]
-          </sup>
+              [
+              <span
+                className={cn(
+                  isMiss && !shouldShowSpinner && "line-through opacity-60"
+                )}
+              >
+                {citationNumber}
+              </span>
+              {renderStatusIndicator()}]
+            </sup>
+          </>
         );
       }
 
