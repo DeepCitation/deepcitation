@@ -7,8 +7,8 @@ url: "https://docs.deepcitation.com"
 remote_theme: just-the-docs/just-the-docs@v0.8.2
 color_scheme: light
 
-# Logo
-logo: "/assets/images/logo.svg"
+# Logo - disabled since we use custom _includes/title.html
+# logo: "/assets/images/logo.svg"
 
 # Aux links (top right)
 aux_links:

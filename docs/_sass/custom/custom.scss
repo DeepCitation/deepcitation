@@ -318,6 +318,19 @@ pre {
     > a:not(.site-title) {
       display: none !important;
     }
+
+    // Hide the default Just the Docs logo image element
+    // (we use our custom title.html with inline logo instead)
+    > img {
+      display: none !important;
+    }
+
+    // Hide any empty site-title or lh-tight elements
+    // These are rendered by Just the Docs when logo is configured
+    .lh-tight:empty,
+    .site-title:empty {
+      display: none !important;
+    }
   }
 
   // Site title with logo
@@ -329,6 +342,11 @@ pre {
     align-items: center;
     gap: 0.5rem;
     text-decoration: none;
+
+    // Hide if only contains whitespace (Just the Docs default)
+    &.lh-tight:not(:has(.site-logo)) {
+      display: none !important;
+    }
 
     // No hover color change - site title should stay as heading color
     &:hover {
@@ -582,6 +600,7 @@ blockquote {
 
 // -----------------------------------------------------
 // Override Just the Docs purple (#7253ed) in specific places
+// This includes focus rings that default to purple/blue
 // -----------------------------------------------------
 
 // Search icon color when input is focused
@@ -592,4 +611,34 @@ blockquote {
 // Anchor heading SVG (the link icon that appears on hover)
 .main-content .anchor-heading svg {
   color: var(--link-color);
+}
+
+// Override all focus rings to use brand blue instead of purple/pure blue
+// This targets the default browser/theme focus ring that uses rgba(0, 0, 255, 0.25)
+*:focus,
+*:focus-visible {
+  outline-color: var(--link-color) !important;
+}
+
+// Override any box-shadow focus rings (Just the Docs default)
+a:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus,
+.btn:focus,
+.nav-list-link:focus,
+[tabindex]:focus {
+  box-shadow: 0 0 0 3px var(--focus-ring-color) !important;
+}
+
+// Remove any default pure blue focus ring
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+.btn:focus-visible,
+.nav-list-link:focus-visible {
+  outline: 2px solid var(--link-color) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
 }

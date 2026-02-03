@@ -12,7 +12,7 @@ Verify AI citations against source documents. Visual proof for every claim.
 
 {: .fs-6 .fw-300 }
 
-[Get Started]({{ site.baseurl }}/getting-started/){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Get Started]({{ site.baseurl }}/getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/DeepCitation/deepcitation-js){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
@@ -21,15 +21,15 @@ Verify AI citations against source documents. Visual proof for every claim.
 
 | Section | Description |
 |:--------|:------------|
-| [Getting Started]({{ site.baseurl }}/getting-started/) | Installation and quick start guide |
-| [API Reference]({{ site.baseurl }}/api-reference/) | REST API endpoints for file preparation and verification |
-| [Curl Guide]({{ site.baseurl }}/curl-guide/) | Direct API usage with curl examples |
-| [Types]({{ site.baseurl }}/types/) | TypeScript interface definitions |
-| [Verification Statuses]({{ site.baseurl }}/verification-statuses/) | Understanding verification result statuses |
-| [Code Examples]({{ site.baseurl }}/code-examples/) | SDK usage examples and patterns |
-| [Components]({{ site.baseurl }}/components/) | React CitationComponent documentation |
-| [Real-World Examples]({{ site.baseurl }}/real-world-examples/) | Industry-specific integration examples |
-| [Styling]({{ site.baseurl }}/styling/) | CSS customization options |
+| [Getting Started]({{ site.baseurl }}/getting-started) | Installation and quick start guide |
+| [API Reference]({{ site.baseurl }}/api-reference) | REST API endpoints for file preparation and verification |
+| [Curl Guide]({{ site.baseurl }}/curl-guide) | Direct API usage with curl examples |
+| [Types]({{ site.baseurl }}/types) | TypeScript interface definitions |
+| [Verification Statuses]({{ site.baseurl }}/verification-statuses) | Understanding verification result statuses |
+| [Code Examples]({{ site.baseurl }}/code-examples) | SDK usage examples and patterns |
+| [Components]({{ site.baseurl }}/components) | React CitationComponent documentation |
+| [Real-World Examples]({{ site.baseurl }}/real-world-examples) | Industry-specific integration examples |
+| [Styling]({{ site.baseurl }}/styling) | CSS customization options |
 
 ---
 
