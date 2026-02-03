@@ -21,6 +21,7 @@ import type {
   CitationEventHandlers,
 } from "./types.js";
 import { XIcon } from "./icons.js";
+import { INDICATOR_SIZE_STYLE } from "./CitationComponent.js";
 
 const TWO_DOTS_THINKING_CONTENT = "..";
 
@@ -209,7 +210,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
             <>
-              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={{ width: '0.85em', height: '0.85em', minWidth: '10px', minHeight: '10px' }} aria-hidden="true">
+              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={INDICATOR_SIZE_STYLE} aria-hidden="true">
                 <XIcon />
               </span>
               <span className="sr-only">not found</span>
@@ -332,7 +333,7 @@ export const SuperscriptCitation = forwardRef<
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
             <>
-              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={{ width: '0.85em', height: '0.85em', minWidth: '10px', minHeight: '10px' }} aria-hidden="true">
+              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={INDICATOR_SIZE_STYLE} aria-hidden="true">
                 <XIcon />
               </span>
               <span className="sr-only">not found</span>
@@ -463,7 +464,7 @@ export const FootnoteCitation = forwardRef<
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
             <>
-              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={{ width: '0.85em', height: '0.85em', minWidth: '10px', minHeight: '10px' }} aria-hidden="true">
+              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={INDICATOR_SIZE_STYLE} aria-hidden="true">
                 <XIcon />
               </span>
               <span className="sr-only">not found</span>
@@ -587,7 +588,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
             <>
-              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={{ width: '0.85em', height: '0.85em', minWidth: '10px', minHeight: '10px' }} aria-hidden="true">
+              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={INDICATOR_SIZE_STYLE} aria-hidden="true">
                 <XIcon />
               </span>
               <span className="sr-only">not found</span>
@@ -710,7 +711,7 @@ export const MinimalCitation = forwardRef<
               {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
               {isMiss && (
                 <>
-                  <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={{ width: '0.85em', height: '0.85em', minWidth: '10px', minHeight: '10px' }} aria-hidden="true">
+                  <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={INDICATOR_SIZE_STYLE} aria-hidden="true">
                     <XIcon />
                   </span>
                   <span className="sr-only">not found</span>

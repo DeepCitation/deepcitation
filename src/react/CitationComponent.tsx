@@ -768,8 +768,16 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
  * Dynamic indicator size styles.
  * Uses em units so the indicator scales with the parent font size.
  * 0.85em provides good visibility at most text sizes while staying proportional.
+ * minWidth/minHeight ensure a minimum of 10px for accessibility at very small font sizes.
  */
-const INDICATOR_SIZE_STYLE = { width: '0.85em', height: '0.85em', minWidth: '10px', minHeight: '10px' };
+export const INDICATOR_SIZE_STYLE = { width: '0.85em', height: '0.85em', minWidth: '10px', minHeight: '10px' };
+
+/**
+ * Vertical offset for subscript-positioned indicators.
+ * Changed from 0.15em to 0.1em to better align with the larger 0.85em icon size.
+ * The larger icons need less vertical offset to appear visually centered with text.
+ */
+const INDICATOR_TOP_OFFSET = 'top-[0.1em]';
 
 /** Verified indicator - green checkmark for exact matches (subscript-positioned)
  * Uses [text-decoration:none] to prevent inheriting line-through from parent.

@@ -85,6 +85,7 @@ export {
 export {
   CitationComponent,
   MemoizedCitationComponent,
+  INDICATOR_SIZE_STYLE,
   type CitationVariant,
   type CitationComponentProps,
 } from "./CitationComponent.js";
