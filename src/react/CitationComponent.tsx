@@ -770,7 +770,7 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
  * 0.85em provides good visibility at most text sizes while staying proportional.
  * minWidth/minHeight ensure a minimum of 10px for accessibility at very small font sizes.
  */
-export const INDICATOR_SIZE_STYLE = { width: '0.85em', height: '0.85em', minWidth: '10px', minHeight: '10px' };
+export const INDICATOR_SIZE_STYLE: React.CSSProperties = { width: '0.85em', height: '0.85em', minWidth: '10px', minHeight: '10px' };
 
 /** Verified indicator - green checkmark for exact matches (subscript-positioned)
  * Vertical offset (top-[0.1em]) changed from 0.15em to better align with the larger 0.85em icon size.
