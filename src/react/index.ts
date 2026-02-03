@@ -85,6 +85,7 @@ export {
 export {
   CitationComponent,
   MemoizedCitationComponent,
+  INDICATOR_SIZE_STYLE,
   type CitationVariant,
   type CitationComponentProps,
 } from "./CitationComponent.js";
@@ -109,6 +110,7 @@ export {
   DocumentIcon,
   GlobeIcon,
   XCircleIcon,
+  XIcon,
 } from "./icons.js";
 
 // Sources List Components (Anthropic-style aggregated citations)

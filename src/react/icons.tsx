@@ -271,3 +271,28 @@ export const XCircleIcon = ({ className }: { className?: string }) => (
     <line x1="9" y1="9" x2="15" y2="15" />
   </svg>
 );
+
+/**
+ * Simple X icon for "not found" status at smaller sizes
+ * Simpler than XCircleIcon - just the X without the circle
+ * Better visibility at small font sizes where the circle becomes hard to see
+ * Size is controlled by parent container
+ */
+export const XIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    width="100%"
+    height="100%"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);

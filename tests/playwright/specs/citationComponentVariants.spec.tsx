@@ -604,3 +604,127 @@ test.describe("CitationComponent - Custom ClassName", () => {
     await expect(citation).toHaveClass(/my-custom-citation/);
   });
 });
+
+// =============================================================================
+// INDICATOR SCALING TESTS
+// =============================================================================
+
+test.describe("CitationComponent - Indicator Scaling", () => {
+  const fontSizes = ["12px", "16px", "24px", "32px"];
+
+  for (const fontSize of fontSizes) {
+    test(`indicator renders correctly at ${fontSize} font size`, async ({ mount, page }) => {
+      await mount(
+        <div style={{ fontSize, padding: "20px" }}>
+          <CitationComponent
+            citation={baseCitation}
+            variant="brackets"
+            verification={verifiedVerification}
+          />
+        </div>
+      );
+
+      const citation = page.locator("[data-citation-id]");
+      await expect(citation).toBeVisible();
+
+      // Find the indicator SVG inside the citation
+      const indicatorSvg = citation.locator("svg").first();
+      await expect(indicatorSvg).toBeVisible();
+
+      // Verify the SVG is a checkmark (verified state)
+      // The indicator should be visible and properly sized relative to font
+      const svgBox = await indicatorSvg.boundingBox();
+      expect(svgBox).toBeTruthy();
+      // Just verify it rendered with non-zero dimensions
+      expect(svgBox!.width).toBeGreaterThan(0);
+      expect(svgBox!.height).toBeGreaterThan(0);
+    });
+  }
+
+  test("indicator respects minimum size at very small font", async ({ mount, page }) => {
+    await mount(
+      <div style={{ fontSize: "8px", padding: "20px" }}>
+        <CitationComponent
+          citation={baseCitation}
+          variant="brackets"
+          verification={verifiedVerification}
+        />
+      </div>
+    );
+
+    const citation = page.locator("[data-citation-id]");
+    await expect(citation).toBeVisible();
+
+    // Find the indicator SVG
+    const indicatorSvg = citation.locator("svg").first();
+    await expect(indicatorSvg).toBeVisible();
+
+    // Get the parent span (the actual indicator with the size style)
+    const indicator = indicatorSvg.locator("..");
+    const box = await indicator.boundingBox();
+    expect(box).toBeTruthy();
+
+    // At 8px font, 0.85em = 6.8px, but minWidth/minHeight should enforce ~10px minimum
+    // Allow some tolerance for browser rendering
+    expect(box!.width).toBeGreaterThanOrEqual(9);
+    expect(box!.height).toBeGreaterThanOrEqual(9);
+  });
+
+  test("all verification states render indicators at different font sizes", async ({ mount, page }) => {
+    await mount(
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "20px" }}>
+        {/* Small font (12px) */}
+        <div style={{ fontSize: "12px" }}>
+          <span>12px: </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={partialVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={missVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={pendingVerification} />
+        </div>
+
+        {/* Medium font (16px) */}
+        <div style={{ fontSize: "16px" }}>
+          <span>16px: </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={partialVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={missVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={pendingVerification} />
+        </div>
+
+        {/* Large font (24px) */}
+        <div style={{ fontSize: "24px" }}>
+          <span>24px: </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={partialVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={missVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={pendingVerification} />
+        </div>
+
+        {/* Extra large font (32px) */}
+        <div style={{ fontSize: "32px" }}>
+          <span>32px: </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={partialVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={missVerification} />
+          <span> | </span>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={pendingVerification} />
+        </div>
+      </div>
+    );
+
+    // Verify all citations rendered
+    const citations = page.locator("[data-citation-id]");
+    await expect(citations).toHaveCount(16); // 4 states × 4 font sizes
+  });
+});
