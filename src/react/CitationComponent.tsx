@@ -233,7 +233,12 @@ const VARIANTS_WITH_OWN_HOVER = new Set<CitationVariant>([
  * @param isPartialMatch - Whether it's a partial match
  * @param isMiss - Whether it's not found
  * @param shouldShowSpinner - Whether to show loading spinner
- * @param opacity - Opacity level for hover backgrounds (default: 15)
+ * @param opacity - Opacity level for hover backgrounds:
+ *   - 15 (default): Used for contained variants (chip, superscript) where hover is
+ *     applied directly to the element. Higher opacity provides better visual feedback
+ *     since the element itself is the hover target.
+ *   - 10: Used for the outer trigger wrapper on variants without contained hover.
+ *     Lower opacity is more subtle since the wrapper may extend beyond the visual element.
  * @returns Array of Tailwind class strings for hover states
  */
 function getStatusHoverClasses(
