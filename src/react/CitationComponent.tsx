@@ -1908,6 +1908,28 @@ export const CitationComponent = forwardRef<
     const isHoveringRef = useRef(isHovering);
     isHoveringRef.current = isHovering;
 
+    // Ref for the popover content element (for mobile click-outside dismiss detection)
+    const popoverContentRef = useRef<HTMLDivElement>(null);
+
+    // Ref for the trigger element (for mobile click-outside dismiss detection)
+    // We need our own ref in addition to the forwarded ref to reliably check click targets
+    const triggerRef = useRef<HTMLSpanElement>(null);
+
+    // Merge the forwarded ref with our internal triggerRef
+    const setTriggerRef = useCallback(
+      (element: HTMLSpanElement | null) => {
+        // Set our internal ref
+        triggerRef.current = element;
+        // Forward to the external ref
+        if (typeof ref === "function") {
+          ref(element);
+        } else if (ref) {
+          ref.current = element;
+        }
+      },
+      [ref]
+    );
+
     const citationKey = useMemo(
       () => generateCitationKey(citation),
       [citation]
@@ -2254,6 +2276,68 @@ export const CitationComponent = forwardRef<
         }
       };
     }, []);
+
+    // Mobile click-outside dismiss handler
+    //
+    // On mobile, tapping outside the citation trigger or popover should dismiss the popover.
+    // Desktop relies on mouse leave events (handleMouseLeave) which don't exist on mobile.
+    //
+    // Why custom handling instead of Radix's built-in click-outside behavior:
+    // The PopoverContent has onPointerDownOutside and onInteractOutside handlers that call
+    // e.preventDefault() to give us full control over popover state. This is necessary for
+    // the two-tap mobile interaction pattern (first tap shows popover, second tap opens image).
+    // However, it means we need custom touch handling to dismiss the popover on outside taps.
+    //
+    // Event order when tapping the trigger while popover is open:
+    // 1. handleOutsideTouch (capture phase, document) - checks .contains(), returns early
+    // 2. handleTouchStart (bubble phase, trigger) - reads isHoveringRef.current
+    // 3. handleTouchEnd/handleClick - determines first vs second tap action
+    // The .contains() check in step 1 ensures we don't dismiss when tapping the trigger,
+    // allowing the normal two-tap flow to proceed.
+    //
+    // Portal note: popoverContentRef works with portaled content because Radix renders
+    // the popover content as a child of document.body, but we hold a direct ref to that
+    // DOM element, so .contains() correctly detects touches inside it.
+    //
+    // Cleanup: The listener only attaches when isMobile AND isHovering are both true.
+    // It's automatically removed when either condition becomes false or on unmount.
+    // This minimizes document-level listener churn since popovers open/close frequently.
+    useEffect(() => {
+      if (!isMobile || !isHovering) return;
+
+      const handleOutsideTouch = (e: TouchEvent) => {
+        // Type guard for touch event target
+        const target = e.target;
+        if (!(target instanceof Node)) {
+          return;
+        }
+
+        // Check if touch is inside the trigger element
+        if (triggerRef.current?.contains(target)) {
+          return;
+        }
+
+        // Check if touch is inside the popover content (works with portaled content)
+        if (popoverContentRef.current?.contains(target)) {
+          return;
+        }
+
+        // Touch is outside both - dismiss the popover
+        setIsHovering(false);
+      };
+
+      // Use touchstart with capture phase to detect touches before they're handled
+      // by other handlers (like handleTouchStart on the citation trigger itself)
+      document.addEventListener("touchstart", handleOutsideTouch, {
+        capture: true,
+      });
+
+      return () => {
+        document.removeEventListener("touchstart", handleOutsideTouch, {
+          capture: true,
+        });
+      };
+    }, [isMobile, isHovering, setIsHovering]);
 
     // Touch start handler for mobile - captures popover state before touch ends.
     // Reads isHoveringRef.current (which is kept in sync with isHovering state above)
@@ -2737,11 +2821,12 @@ export const CitationComponent = forwardRef<
           {prefetchElement}
           <Popover open={isHovering}>
             <PopoverTrigger asChild>
-              <span ref={ref} {...triggerProps}>
+              <span ref={setTriggerRef} {...triggerProps}>
                 {renderCitationContent()}
               </span>
             </PopoverTrigger>
             <PopoverContent
+              ref={popoverContentRef}
               id={popoverId}
               side={popoverPosition === "bottom" ? "bottom" : "top"}
               onPointerDownOutside={(e: Event) => e.preventDefault()}
@@ -2761,7 +2846,7 @@ export const CitationComponent = forwardRef<
     return (
       <>
         {children}
-        <span ref={ref} {...triggerProps}>
+        <span ref={setTriggerRef} {...triggerProps}>
           {renderCitationContent()}
         </span>
         {imageOverlay}
