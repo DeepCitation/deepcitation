@@ -2049,7 +2049,6 @@ export const CitationComponent = forwardRef<
     // - behaviorConfig/eventHandlers: User-provided callbacks that may change
     // - citation/citationKey: Core data passed to callbacks
     // - verification?.verificationImageBase64: Used for image expansion
-    // - isMiss: Determines whether to toggle phrases instead of image
     // - State setters (setIsHovering, etc.): Stable references included for exhaustive-deps
     const handleTapAction = useCallback(
       (

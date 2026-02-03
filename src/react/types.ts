@@ -13,8 +13,10 @@ import type { SearchStatus } from "../types/search.js";
  * | `lazy`  | Style hover only (no popover)| Toggles popover; 2nd click toggles search details   |
  *
  * Mobile behavior (touch devices):
- * - `eager`: 1st tap → popover, 2nd tap → image/expand
- * - `lazy`: 1st tap → popover (toggleable), 2nd tap → toggles search details
+ * - Both modes use the same mobile-friendly tap pattern:
+ *   - 1st tap → shows popover
+ *   - 2nd tap → toggles search details (never auto-opens image overlay)
+ *   - Tap outside → dismisses popover
  *
  * In `lazy` mode, the popover behaves like a standard tooltip trigger:
  * - Click opens the popover
