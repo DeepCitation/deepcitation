@@ -44,8 +44,8 @@ export interface UploadFileResponse {
   processingTimeMs?: number;
   /** Error message if status is "error" */
   error?: string;
-  /** Optional expiration date for the attachment (ISO 8601 string). After this date, the attachment may be deleted. */
-  expiresAt?: string;
+  /** Optional expiration date for the attachment (ISO 8601 string). If "never", the attachment does not expire (enterprise). */
+  expiresAt?: string | "never";
 }
 
 /**
@@ -195,6 +195,13 @@ export interface PrepareConvertedFileOptions {
 }
 
 /**
+ * Expiration value for attachments and pages.
+ * - ISO 8601 date string (e.g., "2025-12-31T23:59:59Z"): expires at this date
+ * - "never": does not expire (enterprise feature)
+ */
+export type ExpirationValue = string | "never";
+
+/**
  * Duration to extend the expiration by
  */
 export type ExtendExpirationDuration = "month" | "year";
@@ -215,10 +222,10 @@ export interface ExtendExpirationOptions {
 export interface ExtendExpirationResponse {
   /** The attachment ID that was extended */
   attachmentId: string;
-  /** The new expiration date (ISO 8601 string) */
-  expiresAt: string;
-  /** The previous expiration date (ISO 8601 string), if any */
-  previousExpiresAt?: string;
+  /** The new expiration date (ISO 8601 string), or "never" for enterprise attachments that don't expire */
+  expiresAt: string | "never";
+  /** The previous expiration date (ISO 8601 string), "never", or undefined if not previously set */
+  previousExpiresAt?: string | "never";
 }
 
 /**

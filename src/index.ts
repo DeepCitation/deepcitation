@@ -15,6 +15,7 @@ export type {
   FileInput,
   FileDataPart,
   PrepareFilesResult,
+  ExpirationValue,
   ExtendExpirationDuration,
   ExtendExpirationOptions,
   ExtendExpirationResponse,

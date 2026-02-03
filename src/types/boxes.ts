@@ -29,6 +29,6 @@ export interface Page {
   source: string;
   /** Optional base64-encoded thumbnail image (e.g., avif) for quick preview */
   thumbnail?: string;
-  /** Optional expiration date for the page data (ISO 8601 string) */
-  expiresAt?: string;
+  /** Optional expiration date for the page data (ISO 8601 string). If "never", the page does not expire (enterprise). */
+  expiresAt?: string | "never";
 }
