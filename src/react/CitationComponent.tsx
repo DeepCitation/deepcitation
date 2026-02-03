@@ -828,63 +828,12 @@ const MissIndicator = () => (
 );
 
 // =============================================================================
-// KEYSPAN FOCUSED IMAGE COMPONENT
+// VERIFICATION IMAGE COMPONENT
 // =============================================================================
 
 /**
- * Calculate the bounding box that encompasses all anchorText boxes.
- * Falls back to phraseMatchDeepItem if no anchorText boxes are available.
- */
-function getKeySpanBoundingBox(verification: Verification | null): {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-} | null {
-  if (!verification) return null;
-
-  // Prefer anchorTextMatchDeepItems for multi-box spans
-  const boxes = verification.anchorTextMatchDeepItems;
-  if (boxes && boxes.length > 0) {
-    // Calculate bounding box encompassing all anchorText boxes
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    for (const box of boxes) {
-      minX = Math.min(minX, box.x);
-      minY = Math.min(minY, box.y);
-      maxX = Math.max(maxX, box.x + box.width);
-      maxY = Math.max(maxY, box.y + box.height);
-    }
-
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-    };
-  }
-
-  // Fall back to phraseMatchDeepItem
-  const phrase = verification.phraseMatchDeepItem;
-  if (phrase) {
-    return {
-      x: phrase.x,
-      y: phrase.y,
-      width: phrase.width,
-      height: phrase.height,
-    };
-  }
-
-  return null;
-}
-
-/**
- * Displays a verification image in a scrollable container that initially
- * focuses on the anchorText position. Uses the anchorTextMatchDeepItems or
- * phraseMatchDeepItem coordinates to calculate the initial scroll position.
+ * Displays a verification image that fits within the container dimensions.
+ * The image is scaled to fit (without distortion) and can be clicked to expand.
  */
 function AnchorTextFocusedImage({
   verification,
@@ -897,70 +846,10 @@ function AnchorTextFocusedImage({
   maxWidth?: string;
   maxHeight?: string;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
-  const hasInitializedScrollRef = useRef(false);
-
-  const anchorTextBox = useMemo(
-    () => getKeySpanBoundingBox(verification),
-    [verification]
-  );
-
-  // Set initial scroll position when image loads, only once
-  const handleImageLoad = useCallback(() => {
-    if (
-      hasInitializedScrollRef.current ||
-      !containerRef.current ||
-      !imageRef.current ||
-      !anchorTextBox
-    ) {
-      return;
-    }
-
-    const container = containerRef.current;
-    const image = imageRef.current;
-    const imageDimensions = verification.verificationImageDimensions;
-
-    // We need to know the original image dimensions to calculate scale
-    // If not provided in verification, use the natural image dimensions
-    const originalWidth = imageDimensions?.width || image.naturalWidth;
-    const originalHeight = imageDimensions?.height || image.naturalHeight;
-
-    if (originalWidth === 0 || originalHeight === 0) return;
-
-    // Calculate the scale factor: displayed size / original size
-    const scaleX = image.clientWidth / originalWidth;
-    const scaleY = image.clientHeight / originalHeight;
-
-    // Calculate the anchorText center in displayed image coordinates
-    const anchorTextCenterX =
-      (anchorTextBox.x + anchorTextBox.width / 2) * scaleX;
-    const anchorTextCenterY =
-      (anchorTextBox.y + anchorTextBox.height / 2) * scaleY;
-
-    // Calculate scroll position to center the anchorText in the viewport
-    // with some vertical bias towards showing content above the anchorText
-    const scrollX = Math.max(0, anchorTextCenterX - container.clientWidth / 2);
-    const scrollY = Math.max(
-      0,
-      anchorTextCenterY - container.clientHeight * 0.4
-    );
-
-    container.scrollLeft = scrollX;
-    container.scrollTop = scrollY;
-    hasInitializedScrollRef.current = true;
-  }, [anchorTextBox, verification.verificationImageDimensions]);
-
-  // Reset scroll initialization when verification changes
-  useEffect(() => {
-    hasInitializedScrollRef.current = false;
-  }, [verification.verificationImageBase64]);
-
   return (
     <button
       type="button"
-      // Removed bg-gray-50/bg-gray-800 - the evidence image's grey overlay provides visual separation
-      className="group block cursor-zoom-in relative"
+      className="group block cursor-zoom-in relative w-full"
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -969,29 +858,22 @@ function AnchorTextFocusedImage({
       aria-label="Click to view full size"
     >
       <div
-        ref={containerRef}
-        className="overflow-auto"
+        className="overflow-hidden"
         style={{
           maxWidth,
           maxHeight,
         }}
       >
         <img
-          ref={imageRef}
           src={verification.verificationImageBase64 as string}
           alt="Citation verification"
-          className="block"
+          className="block w-full h-auto"
           style={{
-            // Let the image display at its natural size for scrolling,
-            // but cap it at reasonable maximums for very large images
-            maxWidth: "none",
-            maxHeight: "none",
-            width: "auto",
-            height: "auto",
+            maxHeight,
+            objectFit: "contain",
           }}
           loading="eager"
           decoding="async"
-          onLoad={handleImageLoad}
         />
       </div>
       {/* Bottom bar with expand hint on hover */}
@@ -1347,13 +1229,6 @@ function DefaultPopoverContent({
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 
-  // Check if we have anchorText position data for focused scrolling
-  const hasAnchorTextPosition = !!(
-    verification &&
-    (verification.anchorTextMatchDeepItems?.length ||
-      verification.phraseMatchDeepItem)
-  );
-
   // Determine if we should show the verification log (for non-success states)
   const showVerificationLog = isMiss || isPartialMatch;
 
@@ -1448,41 +1323,10 @@ function DefaultPopoverContent({
 
           {/* Verification image */}
           <div className="p-2">
-            {hasAnchorTextPosition ? (
-              <AnchorTextFocusedImage
-                verification={verification}
-                onImageClick={onImageClick}
-              />
-            ) : (
-              <button
-                type="button"
-                // Removed bg-gray-50/bg-gray-800 and rounded-md - the evidence image's grey overlay provides visual separation
-                className="group block cursor-zoom-in relative overflow-hidden w-full"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onImageClick?.();
-                }}
-                aria-label="Click to view full size"
-              >
-                <img
-                  src={verification.verificationImageBase64 as string}
-                  alt="Citation verification"
-                  className="block w-full"
-                  style={{
-                    maxHeight: "min(50vh, 300px)",
-                    objectFit: "contain",
-                  }}
-                  loading="eager"
-                  decoding="async"
-                />
-                <span className="absolute left-0 right-0 bottom-0 flex items-center justify-end px-2 pb-1.5 pt-4 bg-gradient-to-t from-black/50 to-transparent">
-                  <span className="text-xs text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] opacity-0 group-hover:opacity-100 transition-opacity">
-                    Click to expand
-                  </span>
-                </span>
-              </button>
-            )}
+            <AnchorTextFocusedImage
+              verification={verification}
+              onImageClick={onImageClick}
+            />
           </div>
 
           {/* Expandable search details for verified matches */}
@@ -1544,41 +1388,10 @@ function DefaultPopoverContent({
                 </div>
               )}
               <div className="p-2">
-                {hasAnchorTextPosition ? (
-                  <AnchorTextFocusedImage
-                    verification={verification}
-                    onImageClick={onImageClick}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    // Removed bg-gray-50/bg-gray-800 and rounded-md - the evidence image's grey overlay provides visual separation
-                    className="group block cursor-zoom-in relative overflow-hidden w-full"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onImageClick?.();
-                    }}
-                    aria-label="Click to view full size"
-                  >
-                    <img
-                      src={verification.verificationImageBase64 as string}
-                      alt="Citation verification"
-                      className="block w-full"
-                      style={{
-                        maxHeight: "min(50vh, 300px)",
-                        objectFit: "contain",
-                      }}
-                      loading="eager"
-                      decoding="async"
-                    />
-                    <span className="absolute left-0 right-0 bottom-0 flex items-center justify-end px-2 pb-1.5 pt-4 bg-gradient-to-t from-black/50 to-transparent">
-                      <span className="text-xs text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] opacity-0 group-hover:opacity-100 transition-opacity">
-                        Click to expand
-                      </span>
-                    </span>
-                  </button>
-                )}
+                <AnchorTextFocusedImage
+                  verification={verification}
+                  onImageClick={onImageClick}
+                />
               </div>
             </>
           ) : (
