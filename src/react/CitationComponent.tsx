@@ -355,16 +355,9 @@ export interface CitationComponentProps extends BaseCitationProps {
    */
   content?: CitationContent;
   /**
-   * Controls the eagerness of popover/tooltip interactions.
-   *
-   * - `eager` (default): Hover shows popover immediately, click opens image/expands details
-   * - `lazy`: Hover only applies style effects (no popover), click toggles popover,
-   *           second click toggles search details
-   *
-   * Use `lazy` mode when citations are densely packed and hover popovers
-   * would be distracting. Users can still access verification details by clicking.
-   *
-   * @default "eager"
+   * @deprecated The interactionMode prop has been removed. The component now always uses
+   * lazy mode behavior: click toggles popover, second click toggles search details.
+   * This prop is ignored for backwards compatibility.
    */
   interactionMode?: CitationInteractionMode;
   /** Event handlers for citation interactions */
@@ -1866,7 +1859,7 @@ export const CitationComponent = forwardRef<
       isLoading = false,
       variant = "linter",
       content: contentProp,
-      interactionMode = "eager",
+      interactionMode: _interactionMode, // Deprecated, ignored
       eventHandlers,
       behaviorConfig,
       isMobile: isMobileProp,
@@ -1881,8 +1874,6 @@ export const CitationComponent = forwardRef<
     },
     ref
   ) => {
-    // Lazy mode: hover doesn't open popover, click toggles popover, second click toggles search details
-    const isLazyMode = interactionMode === "lazy";
     // Get overlay context for blocking hover when any image overlay is open
     const { isAnyOverlayOpen } = useCitationOverlay();
 
@@ -2150,26 +2141,16 @@ export const CitationComponent = forwardRef<
           return;
         }
 
-        // Lazy mode: click toggles popover visibility, second click toggles search details
-        if (isLazyMode) {
-          if (!isHovering) {
-            // First click: open popover
-            handleTapAction(e, "showPopover");
-          } else {
-            // Popover is open: toggle search details
-            handleTapAction(e, "toggleDetails");
-          }
-          return;
-        }
-
-        // Eager mode: click opens image (if available) or toggles search details
-        if (verification?.verificationImageBase64) {
-          handleTapAction(e, "expandImage");
+        // Click toggles popover visibility, second click toggles search details
+        if (!isHovering) {
+          // First click: open popover
+          handleTapAction(e, "showPopover");
         } else {
+          // Popover is open: toggle search details
           handleTapAction(e, "toggleDetails");
         }
       },
-      [isMobile, isLazyMode, isHovering, handleTapAction, verification?.verificationImageBase64]
+      [isMobile, isHovering, handleTapAction]
     );
 
     // Keyboard handler for accessibility - Enter/Space triggers tap action
@@ -2179,25 +2160,15 @@ export const CitationComponent = forwardRef<
           e.preventDefault();
           e.stopPropagation();
 
-          // Lazy mode: toggle popover, then toggle search details
-          if (isLazyMode) {
-            if (!isHovering) {
-              handleTapAction(e, "showPopover");
-            } else {
-              handleTapAction(e, "toggleDetails");
-            }
-            return;
-          }
-
-          // Eager mode: expand image (if available) or toggle search details
-          if (verification?.verificationImageBase64) {
-            handleTapAction(e, "expandImage");
+          // Toggle popover, then toggle search details
+          if (!isHovering) {
+            handleTapAction(e, "showPopover");
           } else {
             handleTapAction(e, "toggleDetails");
           }
         }
       },
-      [isLazyMode, isHovering, handleTapAction, verification?.verificationImageBase64]
+      [isHovering, handleTapAction]
     );
 
     // Hover handlers with delay for popover accessibility
@@ -2220,10 +2191,7 @@ export const CitationComponent = forwardRef<
       if (isAnyOverlayOpen) return;
 
       cancelHoverCloseTimeout();
-      // In lazy mode, don't show popover on hover (only style hover effects)
-      if (!isLazyMode) {
-        setIsHovering(true);
-      }
+      // Don't show popover on hover - only on click (lazy mode behavior)
       if (behaviorConfig?.onHover?.onEnter) {
         behaviorConfig.onHover.onEnter(getBehaviorContext());
       }
@@ -2236,7 +2204,6 @@ export const CitationComponent = forwardRef<
       getBehaviorContext,
       cancelHoverCloseTimeout,
       isAnyOverlayOpen,
-      isLazyMode,
     ]);
 
     const handleMouseLeave = useCallback(() => {

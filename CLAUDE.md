@@ -332,45 +332,29 @@ The component displays different indicators based on `verification.status`:
 ### 6. Interaction Behavior
 
 The CitationComponent has simple, predictable default behaviors:
-- **Hover**: Shows popover with verification image/details (in eager mode)
-- **Click**: Opens full-size image overlay (in eager mode) or toggles popover/details (in lazy mode)
-- **Escape / Click overlay**: Closes the image overlay
+- **Hover**: Style effects only (underline/highlight changes)
+- **First Click**: Shows popover with verification details and image
+- **Second Click**: Toggles search details expansion within the popover
+- **Click Outside / Escape**: Closes the popover
 
 The popover uses a portal to render at the document body level, so it won't be clipped by parent `overflow:hidden` containers.
-
-#### Interaction Modes
-
-Control how eagerly citations respond to user interactions with the `interactionMode` prop:
 
 ```tsx
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
-// Eager mode (default): hover shows popover, click zooms image
+// Standard usage - click to open popover, click again to expand search details
 <CitationComponent
   citation={citation}
   verification={verification}
-  interactionMode="eager"
-/>
-
-// Lazy mode: hover only styles, click toggles popover, second click toggles search details
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  interactionMode="lazy"
 />
 ```
 
-| Mode | Hover | First Click | Second Click | Best For |
-|------|-------|-------------|--------------|----------|
-| `"eager"` (default) | Shows popover | Opens image (or toggles details if no image) | - | Sparse citations, detailed review |
-| `"lazy"` | Style effects only | Toggles popover | Toggles search details | Dense citations, less intrusive UX |
-
-**Use `lazy` mode when:**
-- Citations are densely packed and hover popovers would be distracting
-- You want a less intrusive interaction pattern
-- You want standard tooltip-like behavior (click to open, click outside to close)
-
-The cursor is `cursor-pointer` in lazy mode, and `cursor-zoom-in` in eager mode (when image is available).
+| Action | Behavior |
+|--------|----------|
+| Hover | Style effects only (no popover) |
+| First Click | Opens popover with verification details |
+| Second Click | Toggles search details section |
+| Click Outside | Closes popover |
 
 ### 7. Styling
 

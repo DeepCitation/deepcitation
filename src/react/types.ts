@@ -5,25 +5,15 @@ import type { SearchStatus } from "../types/search.js";
 /**
  * Interaction mode for citation components.
  *
- * Controls the eagerness of popover/tooltip interactions:
+ * @deprecated The interactionMode prop has been removed. The component now always uses
+ * the same behavior: click to show popover, second click to toggle search details.
+ * This type is kept for backwards compatibility but has no effect.
  *
- * | Mode    | Hover Behavior               | Click Behavior                                      |
- * |---------|------------------------------|-----------------------------------------------------|
- * | `eager` | Shows popover on hover       | Opens image/expands details                         |
- * | `lazy`  | Style hover only (no popover)| Toggles popover; 2nd click toggles search details   |
- *
- * Mobile behavior (touch devices):
- * - Both modes use the same mobile-friendly tap pattern:
- *   - 1st tap → shows popover
- *   - 2nd tap → toggles search details (never auto-opens image overlay)
- *   - Tap outside → dismisses popover
- *
- * In `lazy` mode, the popover behaves like a standard tooltip trigger:
- * - Click opens the popover
- * - Click outside or repeat click closes the popover
- * - When popover is open, another click toggles the search details section
- *
- * @default "eager"
+ * Previous behavior (now always applied):
+ * - Hover: Style hover effects only (no popover)
+ * - 1st click: Shows popover
+ * - 2nd click: Toggles search details
+ * - Click outside: Dismisses popover
  */
 export type CitationInteractionMode = "eager" | "lazy";
 
