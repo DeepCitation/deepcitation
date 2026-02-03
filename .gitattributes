@@ -1,2 +1,73 @@
-# Visual snapshot images should be treated as binary
+# Auto detect text files and normalize line endings to LF
+* text=auto eol=lf
+
+# Source code (explicit for clarity)
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
+*.xml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Config files
+*.md text eol=lf
+*.txt text eol=lf
+*.sh text eol=lf
+*.toml text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.prettierrc text eol=lf
+.prettierrc.* text eol=lf
+.eslintrc text eol=lf
+.eslintrc.* text eol=lf
+.npmrc text eol=lf
+.npmignore text eol=lf
+tsconfig.json text eol=lf
+tsconfig.*.json text eol=lf
+Dockerfile text eol=lf
+Makefile text eol=lf
+LICENSE text eol=lf
+
+# Lock files (text format)
+bun.lock text eol=lf
+package-lock.json text eol=lf
+yarn.lock text eol=lf
+
+# Binary lock files
+bun.lockb binary
+
+# Visual snapshot images
 tests/playwright/specs/__snapshots__/**/*.png binary
+
+# Binary files (images)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+
+# Binary files (fonts)
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# Binary files (media)
+*.mp4 binary
+*.webm binary
+*.mov binary
+
+# Binary files (archives/documents)
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
