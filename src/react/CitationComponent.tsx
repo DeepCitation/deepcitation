@@ -357,9 +357,10 @@ export interface CitationComponentProps extends BaseCitationProps {
    * Controls the eagerness of popover/tooltip interactions.
    *
    * - `eager` (default): Hover shows popover immediately, click opens image/expands details
-   * - `relaxed`: Hover only applies style effects (no popover), click opens popover
+   * - `lazy`: Hover only applies style effects (no popover), click toggles popover,
+   *           second click toggles search details
    *
-   * Use `relaxed` mode when citations are densely packed and hover popovers
+   * Use `lazy` mode when citations are densely packed and hover popovers
    * would be distracting. Users can still access verification details by clicking.
    *
    * @default "eager"
@@ -1861,8 +1862,8 @@ export const CitationComponent = forwardRef<
     },
     ref
   ) => {
-    // Relaxed mode: hover doesn't open popover, click opens popover instead of image
-    const isRelaxedMode = interactionMode === "relaxed";
+    // Lazy mode: hover doesn't open popover, click toggles popover, second click toggles search details
+    const isLazyMode = interactionMode === "lazy";
     // Get overlay context for blocking hover when any image overlay is open
     const { isAnyOverlayOpen } = useCitationOverlay();
 
@@ -1881,12 +1882,12 @@ export const CitationComponent = forwardRef<
     );
     const [isPhrasesExpanded, setIsPhrasesExpanded] = useState(false);
 
-    // Track if popover was already open before current interaction (for mobile tap-to-expand).
+    // Track if popover was already open before current interaction (for mobile/lazy mode).
     // Lifecycle:
     // 1. Set in handleTouchStart to capture isHovering state BEFORE the touch triggers any changes
     // 2. Read in handleTouchEnd/handleClick to determine if this is a "first tap" or "second tap"
     // 3. First tap (ref=false): Opens popover
-    // 4. Second tap (ref=true): Opens image overlay or toggles phrase expansion
+    // 4. Second tap (ref=true): Toggles search details expansion
     const wasPopoverOpenBeforeTap = useRef(false);
 
     // Track last touch time for touch-to-click debouncing (prevents double-firing).
@@ -2013,19 +2014,25 @@ export const CitationComponent = forwardRef<
     // Shared tap/click action handler - used by both click and touch handlers.
     // Extracts the common logic to avoid duplication.
     //
+    // Action types:
+    // - "showPopover": Show the popover (first tap/click when popover is closed)
+    // - "hidePopover": Hide the popover (for lazy mode toggle behavior)
+    // - "toggleDetails": Toggle search details/phrases expansion within popover
+    // - "expandImage": Open the full-size image overlay
+    //
     // Dependency chain explanation:
     // - getBehaviorContext: Captures current state (citation, verification, isHovering, expandedImageSrc)
     //   and is itself a useCallback that updates when those values change
     // - applyBehaviorActions: Handles setExpandedImageSrc based on custom behavior results
     // - behaviorConfig/eventHandlers: User-provided callbacks that may change
     // - citation/citationKey: Core data passed to callbacks
-    // - verification?.verificationImageBase64: Used for image expansion on second tap
+    // - verification?.verificationImageBase64: Used for image expansion
     // - isMiss: Determines whether to toggle phrases instead of image
     // - State setters (setIsHovering, etc.): Stable references included for exhaustive-deps
     const handleTapAction = useCallback(
       (
         e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent,
-        isFirstTap: boolean
+        action: "showPopover" | "hidePopover" | "toggleDetails" | "expandImage"
       ): void => {
         const context = getBehaviorContext();
 
@@ -2045,17 +2052,22 @@ export const CitationComponent = forwardRef<
           return;
         }
 
-        // First tap/click: show popover
-        if (isFirstTap) {
-          setIsHovering(true);
-          return;
-        }
-
-        // Second tap/click: open image or toggle phrases expansion
-        if (verification?.verificationImageBase64) {
-          setExpandedImageSrc(verification.verificationImageBase64);
-        } else if (isMiss) {
-          setIsPhrasesExpanded((prev) => !prev);
+        // Execute the requested action
+        switch (action) {
+          case "showPopover":
+            setIsHovering(true);
+            break;
+          case "hidePopover":
+            setIsHovering(false);
+            break;
+          case "toggleDetails":
+            setIsPhrasesExpanded((prev) => !prev);
+            break;
+          case "expandImage":
+            if (verification?.verificationImageBase64) {
+              setExpandedImageSrc(verification.verificationImageBase64);
+            }
+            break;
         }
       },
       [
@@ -2064,7 +2076,6 @@ export const CitationComponent = forwardRef<
         citation,
         citationKey,
         verification?.verificationImageBase64,
-        isMiss,
         getBehaviorContext,
         applyBehaviorActions,
         // State setters are stable (React guarantees), but included for exhaustive-deps compliance
@@ -2088,23 +2099,37 @@ export const CitationComponent = forwardRef<
           return;
         }
 
-        // On mobile: first tap shows popover, second tap opens image
+        // On mobile: first tap shows popover, second tap toggles search details
         // wasPopoverOpenBeforeTap is set in handleTouchStart before the click fires
         if (isMobile) {
-          handleTapAction(e, !wasPopoverOpenBeforeTap.current);
+          if (!wasPopoverOpenBeforeTap.current) {
+            handleTapAction(e, "showPopover");
+          } else {
+            handleTapAction(e, "toggleDetails");
+          }
           return;
         }
 
-        // Relaxed mode: first click shows popover, second click opens image
-        if (isRelaxedMode && !isHovering) {
-          handleTapAction(e, true);
+        // Lazy mode: click toggles popover visibility, second click toggles search details
+        if (isLazyMode) {
+          if (!isHovering) {
+            // First click: open popover
+            handleTapAction(e, "showPopover");
+          } else {
+            // Popover is open: toggle search details
+            handleTapAction(e, "toggleDetails");
+          }
           return;
         }
 
-        // Default (eager mode, or second click in relaxed mode)
-        handleTapAction(e, false);
+        // Eager mode: click opens image (if available) or toggles search details
+        if (verification?.verificationImageBase64) {
+          handleTapAction(e, "expandImage");
+        } else {
+          handleTapAction(e, "toggleDetails");
+        }
       },
-      [isMobile, isRelaxedMode, isHovering, handleTapAction]
+      [isMobile, isLazyMode, isHovering, handleTapAction, verification?.verificationImageBase64]
     );
 
     // Keyboard handler for accessibility - Enter/Space triggers tap action
@@ -2114,17 +2139,25 @@ export const CitationComponent = forwardRef<
           e.preventDefault();
           e.stopPropagation();
 
-          // Relaxed mode or mobile: first activation shows popover, second opens image
-          if (isRelaxedMode && !isHovering) {
-            handleTapAction(e, true);
+          // Lazy mode: toggle popover, then toggle search details
+          if (isLazyMode) {
+            if (!isHovering) {
+              handleTapAction(e, "showPopover");
+            } else {
+              handleTapAction(e, "toggleDetails");
+            }
             return;
           }
 
-          // Default (eager mode, or popover already open)
-          handleTapAction(e, false);
+          // Eager mode: expand image (if available) or toggle search details
+          if (verification?.verificationImageBase64) {
+            handleTapAction(e, "expandImage");
+          } else {
+            handleTapAction(e, "toggleDetails");
+          }
         }
       },
-      [isRelaxedMode, isHovering, handleTapAction]
+      [isLazyMode, isHovering, handleTapAction, verification?.verificationImageBase64]
     );
 
     // Hover handlers with delay for popover accessibility
@@ -2147,8 +2180,8 @@ export const CitationComponent = forwardRef<
       if (isAnyOverlayOpen) return;
 
       cancelHoverCloseTimeout();
-      // In relaxed mode, don't show popover on hover (only style hover effects)
-      if (!isRelaxedMode) {
+      // In lazy mode, don't show popover on hover (only style hover effects)
+      if (!isLazyMode) {
         setIsHovering(true);
       }
       if (behaviorConfig?.onHover?.onEnter) {
@@ -2163,7 +2196,7 @@ export const CitationComponent = forwardRef<
       getBehaviorContext,
       cancelHoverCloseTimeout,
       isAnyOverlayOpen,
-      isRelaxedMode,
+      isLazyMode,
     ]);
 
     const handleMouseLeave = useCallback(() => {
@@ -2239,8 +2272,8 @@ export const CitationComponent = forwardRef<
       [isMobile, eventHandlers, citation, citationKey]
     );
 
-    // Touch handler for mobile - handles tap-to-show-popover and tap-to-expand-image.
-    // On second tap, opens image overlay (if available) or toggles phrase expansion (for miss).
+    // Touch handler for mobile - handles tap-to-show-popover and tap-to-toggle-details.
+    // On second tap, toggles the search details expansion.
     const handleTouchEnd = useCallback(
       (e: React.TouchEvent<HTMLSpanElement>) => {
         if (isMobile) {
@@ -2253,8 +2286,11 @@ export const CitationComponent = forwardRef<
           eventHandlers?.onTouchEnd?.(citation, citationKey, e);
 
           // Determine if this is the first tap (popover was closed) or second tap (popover was open)
-          const isFirstTap = !wasPopoverOpenBeforeTap.current;
-          handleTapAction(e, isFirstTap);
+          if (!wasPopoverOpenBeforeTap.current) {
+            handleTapAction(e, "showPopover");
+          } else {
+            handleTapAction(e, "toggleDetails");
+          }
         }
       },
       [isMobile, eventHandlers, citation, citationKey, handleTapAction]
@@ -2587,13 +2623,11 @@ export const CitationComponent = forwardRef<
     // Shared trigger element props
     // All variants use status-aware hover colors (green/amber/red/gray)
     // Cursor changes based on mode:
-    // - eager mode with image: cursor-zoom-in (click zooms)
-    // - relaxed mode without popover open: cursor-pointer (click opens popover)
-    // - relaxed mode with popover open + image: cursor-zoom-in (click zooms)
-    const cursorClass = isRelaxedMode
-      ? isHovering && hasImage
-        ? "cursor-zoom-in"
-        : "cursor-pointer"
+    // - eager mode with image: cursor-zoom-in (click zooms image)
+    // - eager mode without image: cursor-pointer (click toggles details)
+    // - lazy mode: cursor-pointer (click toggles popover/details)
+    const cursorClass = isLazyMode
+      ? "cursor-pointer"
       : hasImage
         ? "cursor-zoom-in"
         : "cursor-pointer";

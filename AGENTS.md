@@ -52,10 +52,10 @@ examples/             # Usage examples (nextjs-ai-sdk, basic-verification)
 
 ## React Component Notes
 
-- **CitationComponent** supports `interactionMode` prop: `"eager"` (default) or `"relaxed"`
-  - Eager: hover shows popover, click zooms image
-  - Relaxed: hover only styles, click shows popover, second click zooms
-  - Use relaxed mode for dense citation layouts
+- **CitationComponent** supports `interactionMode` prop: `"eager"` (default) or `"lazy"`
+  - Eager: hover shows popover, click zooms image (or toggles details if no image)
+  - Lazy: hover only styles, click toggles popover, second click toggles search details
+  - Use lazy mode for dense citation layouts
 - **UrlCitationComponent** always opens URL on click (no config needed)
 - Status indicators use `XCircleIcon` SVG for not-found states (centered, not subscript)
 

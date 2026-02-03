@@ -332,8 +332,8 @@ The component displays different indicators based on `verification.status`:
 ### 6. Interaction Behavior
 
 The CitationComponent has simple, predictable default behaviors:
-- **Hover**: Shows popover with verification image/details
-- **Click**: Opens full-size image overlay (zooms the image)
+- **Hover**: Shows popover with verification image/details (in eager mode)
+- **Click**: Opens full-size image overlay (in eager mode) or toggles popover/details (in lazy mode)
 - **Escape / Click overlay**: Closes the image overlay
 
 The popover uses a portal to render at the document body level, so it won't be clipped by parent `overflow:hidden` containers.
@@ -352,27 +352,25 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
   interactionMode="eager"
 />
 
-// Relaxed mode: hover only styles, click shows popover, second click zooms
+// Lazy mode: hover only styles, click toggles popover, second click toggles search details
 <CitationComponent
   citation={citation}
   verification={verification}
-  interactionMode="relaxed"
+  interactionMode="lazy"
 />
 ```
 
 | Mode | Hover | First Click | Second Click | Best For |
 |------|-------|-------------|--------------|----------|
-| `"eager"` (default) | Shows popover | Opens image | - | Sparse citations, detailed review |
-| `"relaxed"` | Style effects only | Shows popover | Opens image | Dense citations, less intrusive UX |
+| `"eager"` (default) | Shows popover | Opens image (or toggles details if no image) | - | Sparse citations, detailed review |
+| `"lazy"` | Style effects only | Toggles popover | Toggles search details | Dense citations, less intrusive UX |
 
-**Use `relaxed` mode when:**
+**Use `lazy` mode when:**
 - Citations are densely packed and hover popovers would be distracting
 - You want a less intrusive interaction pattern
-- Mobile-like behavior on desktop is preferred
+- You want standard tooltip-like behavior (click to open, click outside to close)
 
-The cursor also changes based on mode:
-- **Eager mode**: `cursor-zoom-in` (indicates click will zoom)
-- **Relaxed mode**: `cursor-pointer` initially, then `cursor-zoom-in` when popover is open
+The cursor is `cursor-pointer` in lazy mode, and `cursor-zoom-in` in eager mode (when image is available).
 
 ### 7. Styling
 

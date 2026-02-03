@@ -1220,7 +1220,7 @@ describe("CitationComponent mobile/touch detection", () => {
   });
 
   describe("mobile tap sequence", () => {
-    it("first tap shows popover, second tap opens image overlay", () => {
+    it("first tap shows popover, second tap toggles search details", () => {
       mockTouchDevice(true);
 
       const { container } = render(
@@ -1241,15 +1241,15 @@ describe("CitationComponent mobile/touch detection", () => {
         container.querySelector("[role='dialog']")
       ).not.toBeInTheDocument();
 
-      // Second tap - now popover is already open, should open image overlay
+      // Second tap - now popover is already open, should toggle search details (not image)
       fireEvent.touchStart(citation!);
       fireEvent.click(citation!);
 
-      // Now image overlay should be visible
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      // No image overlay - second tap toggles details, not image
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
 
-    it("triple tap keeps image overlay open", () => {
+    it("multiple taps toggle search details without opening image overlay", () => {
       mockTouchDevice(true);
 
       const { container } = render(
@@ -1268,15 +1268,15 @@ describe("CitationComponent mobile/touch detection", () => {
         container.querySelector("[role='dialog']")
       ).not.toBeInTheDocument();
 
-      // Second tap - open image overlay
+      // Second tap - toggle search details
       fireEvent.touchStart(citation!);
       fireEvent.click(citation!);
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
-      // Third tap - image overlay should remain open (tap on citation doesn't close it)
+      // Third tap - toggle search details again
       fireEvent.touchStart(citation!);
       fireEvent.click(citation!);
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
 
     it("mobile tap without verification image still shows popover on first tap", () => {
@@ -1360,12 +1360,12 @@ describe("CitationComponent mobile/touch detection", () => {
         container.querySelector("[role='dialog']")
       ).not.toBeInTheDocument();
 
-      // Now second tap on citation B should open image
+      // Now second tap on citation B should toggle details (proves citation B wasn't incorrectly debounced)
       fireEvent.touchStart(citationB!);
       fireEvent.click(citationB!);
 
-      // Image overlay should be visible (proves citation B wasn't incorrectly debounced)
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      // No image overlay - second tap toggles details, not image
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
 
     it("second tap toggles phrase expansion for miss citations (no image)", () => {
@@ -1450,14 +1450,14 @@ describe("CitationComponent mobile/touch detection", () => {
       expect(context.citation).toEqual(baseCitation);
     });
 
-    it("mobile overrides relaxed mode - uses two-tap behavior regardless", () => {
+    it("mobile with lazy mode - uses two-tap behavior, second tap toggles details", () => {
       mockTouchDevice(true);
 
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
         />
       );
 
@@ -1472,12 +1472,12 @@ describe("CitationComponent mobile/touch detection", () => {
         container.querySelector("[role='dialog']")
       ).not.toBeInTheDocument();
 
-      // Second tap - should open image
+      // Second tap - should toggle details (not open image in lazy mode)
       fireEvent.touchStart(citation!);
       fireEvent.click(citation!);
 
-      // Image overlay should be visible
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      // No image overlay - second tap toggles details, not image
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
   });
 
@@ -1520,14 +1520,14 @@ describe("CitationComponent mobile/touch detection", () => {
       expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
     });
 
-    it("Enter key shows popover first in relaxed mode, second press opens image", () => {
+    it("Enter key shows popover first in lazy mode, second press toggles details", () => {
       mockTouchDevice(false);
 
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
         />
       );
 
@@ -1539,9 +1539,9 @@ describe("CitationComponent mobile/touch detection", () => {
         container.querySelector("[role='dialog']")
       ).not.toBeInTheDocument();
 
-      // Second Enter - should open image
+      // Second Enter - toggles details (not image in lazy mode)
       fireEvent.keyDown(citation!, { key: "Enter" });
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
 
     it("citation has correct ARIA attributes", () => {
@@ -1698,7 +1698,7 @@ describe("CitationComponent interactionMode", () => {
     });
   });
 
-  describe("relaxed mode", () => {
+  describe("lazy mode", () => {
     it("does NOT show popover on hover", async () => {
       const onEnter = jest.fn();
 
@@ -1706,7 +1706,7 @@ describe("CitationComponent interactionMode", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
           behaviorConfig={{ onHover: { onEnter } }}
         />
       );
@@ -1714,7 +1714,7 @@ describe("CitationComponent interactionMode", () => {
       const citation = container.querySelector("[data-citation-id]");
       fireEvent.mouseEnter(citation!);
 
-      // In relaxed mode, onEnter callback still fires but popover doesn't open
+      // In lazy mode, onEnter callback still fires but popover doesn't open
       expect(onEnter).toHaveBeenCalledTimes(1);
 
       // Give time for popover to appear if it would
@@ -1722,7 +1722,7 @@ describe("CitationComponent interactionMode", () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
       });
 
-      // Popover should NOT appear on hover in relaxed mode
+      // Popover should NOT appear on hover in lazy mode
       const popoverContent = container.querySelector('[data-state="open"]');
       expect(popoverContent).not.toBeInTheDocument();
     });
@@ -1732,7 +1732,7 @@ describe("CitationComponent interactionMode", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
         />
       );
 
@@ -1751,12 +1751,12 @@ describe("CitationComponent interactionMode", () => {
       });
     });
 
-    it("opens image overlay on second click", () => {
+    it("toggles search details on second click (not image overlay)", () => {
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
         />
       );
 
@@ -1768,9 +1768,10 @@ describe("CitationComponent interactionMode", () => {
         container.querySelector("[role='dialog']")
       ).not.toBeInTheDocument();
 
-      // Second click - opens image overlay
+      // Second click - toggles search details (not image overlay in lazy mode)
       fireEvent.click(citation!);
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      // In lazy mode, second click toggles search details, not image overlay
+      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
 
     it("has cursor-pointer class initially (before popover is shown)", () => {
@@ -1778,7 +1779,7 @@ describe("CitationComponent interactionMode", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
         />
       );
 
@@ -1786,12 +1787,12 @@ describe("CitationComponent interactionMode", () => {
       expect(citation).toHaveClass("cursor-pointer");
     });
 
-    it("changes to cursor-zoom-in after first click (when popover is shown)", () => {
+    it("stays cursor-pointer after first click (lazy mode doesn't zoom)", () => {
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
         />
       );
 
@@ -1803,37 +1804,31 @@ describe("CitationComponent interactionMode", () => {
       // First click - shows popover
       fireEvent.click(citation!);
 
-      // Now should be cursor-zoom-in (indicating next click will zoom)
-      expect(citation).toHaveClass("cursor-zoom-in");
+      // In lazy mode, cursor stays as pointer (not zoom-in)
+      expect(citation).toHaveClass("cursor-pointer");
     });
 
-    it("resets to cursor-pointer after closing image overlay", () => {
+    it("stays cursor-pointer throughout interactions in lazy mode", () => {
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
         />
       );
 
       const citation = container.querySelector("[data-citation-id]");
 
+      // Initially cursor-pointer
+      expect(citation).toHaveClass("cursor-pointer");
+
       // First click - shows popover
       fireEvent.click(citation!);
-      expect(citation).toHaveClass("cursor-zoom-in");
+      expect(citation).toHaveClass("cursor-pointer");
 
-      // Second click - opens image overlay
+      // Second click - toggles search details
       fireEvent.click(citation!);
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
-
-      // Close the overlay by clicking on it
-      const overlay = container.querySelector("[role='dialog']");
-      fireEvent.click(overlay!);
-
-      // Should be back to cursor-pointer (popover closed when overlay closes)
-      expect(
-        container.querySelector("[role='dialog']")
-      ).not.toBeInTheDocument();
+      expect(citation).toHaveClass("cursor-pointer");
     });
 
     it("still triggers eventHandlers.onClick on both clicks", () => {
@@ -1843,7 +1838,7 @@ describe("CitationComponent interactionMode", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
           eventHandlers={{ onClick }}
         />
       );
@@ -1864,7 +1859,7 @@ describe("CitationComponent interactionMode", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithoutImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
         />
       );
 
@@ -1893,7 +1888,7 @@ describe("CitationComponent interactionMode", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
         />
       );
 
@@ -1910,21 +1905,21 @@ describe("CitationComponent interactionMode", () => {
         await new Promise((resolve) => setTimeout(resolve, 100));
       });
 
-      // But popover should NOT appear in relaxed mode on hover
+      // But popover should NOT appear in lazy mode on hover
       const popoverContent = container.querySelector('[data-state="open"]');
       expect(popoverContent).not.toBeInTheDocument();
     });
   });
 
   describe("interactionMode with behaviorConfig", () => {
-    it("custom onClick overrides relaxed mode behavior", () => {
+    it("custom onClick overrides lazy mode behavior", () => {
       const customOnClick = jest.fn();
 
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
           behaviorConfig={{ onClick: customOnClick }}
         />
       );
@@ -1932,7 +1927,7 @@ describe("CitationComponent interactionMode", () => {
       const citation = container.querySelector("[data-citation-id]");
       fireEvent.click(citation!);
 
-      // Custom onClick should be called instead of relaxed mode default
+      // Custom onClick should be called instead of lazy mode default
       expect(customOnClick).toHaveBeenCalledTimes(1);
 
       // Neither popover nor image overlay should open (custom handler takes over)
@@ -1941,7 +1936,7 @@ describe("CitationComponent interactionMode", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("custom onClick returning actions works in relaxed mode", () => {
+    it("custom onClick returning actions works in lazy mode", () => {
       const customOnClick = jest.fn(
         (): CitationBehaviorActions => ({
           setImageExpanded: true,
@@ -1952,7 +1947,7 @@ describe("CitationComponent interactionMode", () => {
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
           behaviorConfig={{ onClick: customOnClick }}
         />
       );
@@ -1960,18 +1955,18 @@ describe("CitationComponent interactionMode", () => {
       const citation = container.querySelector("[data-citation-id]");
       fireEvent.click(citation!);
 
-      // Custom action should open image directly (bypassing relaxed mode)
+      // Custom action should open image directly (bypassing lazy mode)
       expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
     });
 
-    it("onHover callbacks still work in relaxed mode", () => {
+    it("onHover callbacks still work in lazy mode", () => {
       const onEnter = jest.fn();
 
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
           verification={verificationWithImage}
-          interactionMode="relaxed"
+          interactionMode="lazy"
           behaviorConfig={{ onHover: { onEnter } }}
         />
       );

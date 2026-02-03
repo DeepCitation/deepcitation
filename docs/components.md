@@ -202,25 +202,25 @@ Hover shows popover immediately, click opens full-size image. Best for sparse ci
 />
 ```
 
-### Relaxed Mode
+### Lazy Mode
 
-Hover only applies style effects (no popover). First click shows popover, second click opens image. Best for dense citation layouts where hover popovers would be distracting.
+Hover only applies style effects (no popover). First click toggles popover, second click toggles search details. Best for dense citation layouts where hover popovers would be distracting.
 
 ```tsx
 <CitationComponent
   citation={citation}
   verification={verification}
-  interactionMode="relaxed"
+  interactionMode="lazy"
 />
 ```
 
 | Mode | Hover | First Click | Second Click | Best For |
 |:-----|:------|:------------|:-------------|:---------|
-| `"eager"` | Shows popover | Opens image | - | Sparse citations, detailed review |
-| `"relaxed"` | Style effects only | Shows popover | Opens image | Dense citations, less intrusive UX |
+| `"eager"` | Shows popover | Opens image (or toggles details if no image) | - | Sparse citations, detailed review |
+| `"lazy"` | Style effects only | Toggles popover | Toggles search details | Dense citations, less intrusive UX |
 
 {: .note }
-The cursor changes based on mode and state: `cursor-zoom-in` when clicking will zoom the image, `cursor-pointer` otherwise.
+In lazy mode, the popover behaves like a standard tooltip: click to open, click outside or repeat click to close. The cursor is `cursor-pointer` in lazy mode, and `cursor-zoom-in` in eager mode (when image is available).
 
 ---
 
@@ -364,7 +364,7 @@ function MyComponent() {
 | `verification` | `Verification \| null` | No | Verification result data from the API |
 | `variant` | `"linter" \| "chip" \| "brackets" \| "text" \| "superscript" \| "badge"` | No | Visual style variant (default: "linter") |
 | `content` | `"anchorText" \| "number" \| "indicator" \| "source"` | No | What content to display. Defaults based on variant. |
-| `interactionMode` | `"eager" \| "relaxed"` | No | How eagerly to respond to interactions (default: "eager") |
+| `interactionMode` | `"eager" \| "lazy"` | No | How eagerly to respond to interactions (default: "eager") |
 | `isLoading` | `boolean` | No | Explicitly show loading spinner |
 | `children` | `ReactNode` | No | Content to render before the citation |
 | `className` | `string` | No | Additional CSS classes |

@@ -7,18 +7,23 @@ import type { SearchStatus } from "../types/search.js";
  *
  * Controls the eagerness of popover/tooltip interactions:
  *
- * | Mode       | Hover Behavior               | Click Behavior                         |
- * |------------|------------------------------|----------------------------------------|
- * | `eager`    | Shows popover on hover       | Opens image/expands details            |
- * | `relaxed`  | Style hover only (no popover)| Opens popover (not image)              |
+ * | Mode    | Hover Behavior               | Click Behavior                                      |
+ * |---------|------------------------------|-----------------------------------------------------|
+ * | `eager` | Shows popover on hover       | Opens image/expands details                         |
+ * | `lazy`  | Style hover only (no popover)| Toggles popover; 2nd click toggles search details   |
  *
  * Mobile behavior (touch devices):
  * - `eager`: 1st tap → popover, 2nd tap → image/expand
- * - `relaxed`: 1st tap → popover, 2nd tap → image/expand (same as eager on mobile)
+ * - `lazy`: 1st tap → popover (toggleable), 2nd tap → toggles search details
+ *
+ * In `lazy` mode, the popover behaves like a standard tooltip trigger:
+ * - Click opens the popover
+ * - Click outside or repeat click closes the popover
+ * - When popover is open, another click toggles the search details section
  *
  * @default "eager"
  */
-export type CitationInteractionMode = "eager" | "relaxed";
+export type CitationInteractionMode = "eager" | "lazy";
 
 /**
  * Visual style variants for citations.
