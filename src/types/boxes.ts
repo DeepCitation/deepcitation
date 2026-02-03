@@ -27,4 +27,6 @@ export interface Page {
   };
   /** Source URL for the page image/render */
   source: string;
+  /** Optional base64-encoded thumbnail image (e.g., avif) for quick preview */
+  thumbnail?: string;
 }
