@@ -21,6 +21,14 @@ export type SearchMethod =
   | "expanded_window"
   | "regex_search"
   | "first_word_fallback"
+  | "first_half_fallback"
+  | "last_half_fallback"
+  | "first_quarter_fallback"
+  | "second_quarter_fallback"
+  | "third_quarter_fallback"
+  | "fourth_quarter_fallback"
+  | "longest_word_fallback"
+  | "custom_phrase_fallback"
   | "keyspan_fallback";
 
 /** Type of variation applied to search phrases */

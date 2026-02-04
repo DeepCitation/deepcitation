@@ -48,6 +48,14 @@ const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   expanded_window: "Wider area",
   regex_search: "Entire document",
   first_word_fallback: "First word",
+  first_half_fallback: "First half",
+  last_half_fallback: "Last half",
+  first_quarter_fallback: "First quarter",
+  second_quarter_fallback: "Second quarter",
+  third_quarter_fallback: "Third quarter",
+  fourth_quarter_fallback: "Fourth quarter",
+  longest_word_fallback: "Longest word",
+  custom_phrase_fallback: "Custom search",
   keyspan_fallback: "Anchor text",
 };
 
@@ -998,15 +1006,7 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
         : "";
 
   // Get method display name with safe fallback
-  // For first_word_fallback, show the actual word searched
-  let methodName = METHOD_DISPLAY_NAMES[attempt.method] ?? attempt.method ?? "Search";
-  if (attempt.method === "first_word_fallback" && phrase) {
-    const trimmedPhrase = phrase.trim();
-    const firstWord = trimmedPhrase.length > 0 ? trimmedPhrase.split(/\s+/)[0] : null;
-    if (firstWord) {
-      methodName = `First word: "${firstWord}"`;
-    }
-  }
+  const methodName = METHOD_DISPLAY_NAMES[attempt.method] ?? attempt.method ?? "Search";
 
   // Calculate the width needed for the index number (for alignment)
   const indexWidth = String(totalCount).length;
