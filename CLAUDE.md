@@ -744,3 +744,24 @@ The Next.js example uses these models (DO NOT CHANGE):
 - Normalize citation formats
 - Handle multiple citation styles
 - Preserve original formatting
+
+## Important: Internal vs External Data
+
+### Line IDs are Internal Only
+
+**Do NOT expose `lineIds` to end users.** Line IDs are internal identifiers used by the verification system and do not correspond directly to visible line numbers in documents. Displaying them would cause confusion.
+
+- **Internal use**: `lineIds` are used for verification matching and are stored in `Citation.lineIds`
+- **User-facing display**: Show only `pageNumber` (e.g., "Page 3") - never show line IDs
+- **Markdown output**: Reference sections should show page numbers only, not lines
+- **API responses**: `lineIds` may be present in verification responses but should not be surfaced in UI
+
+```typescript
+// WRONG - exposes internal line IDs
+`Page 3, Lines 12-15`  // ❌ Confusing - these aren't visible line numbers
+
+// CORRECT - page number only
+`Page 3`  // ✓ Clear and verifiable
+```
+
+When building user-facing features (markdown export, reference sections, tooltips), always use `pageNumber` and omit `lineIds`.
