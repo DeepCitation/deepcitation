@@ -83,8 +83,8 @@ test.describe("Popover Image Width Constraint", () => {
     await expect(popover).toBeVisible();
 
     // Find the popover container - new layout uses a fixed-width container
-    // Implementation uses: style={{ width: "380px", maxWidth: "90vw" }}
-    const container = popover.locator(".overflow-hidden.rounded-lg");
+    // Implementation uses: style={{ width: "400px", maxWidth: "90vw" }}
+    const container = popover.locator(".rounded-lg.border");
     await expect(container).toBeVisible();
 
     // The container should have a constrained width (400px or 90vw max)
