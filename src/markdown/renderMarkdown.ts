@@ -57,7 +57,6 @@ function parseCiteAttributes(citeTag: string): Record<string, string | undefined
 
   while ((match = attrRegex.exec(citeTag)) !== null) {
     const key = match[1]
-      .toLowerCase()
       .replace(/([a-z])([A-Z])/g, "$1_$2")
       .toLowerCase();
     const value = match[3];
