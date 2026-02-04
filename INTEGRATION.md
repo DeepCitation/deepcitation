@@ -9,6 +9,24 @@ This guide provides step-by-step instructions for AI code agents (Claude, Cursor
 
 ---
 
+## ⚠️ FIRST: Install the Package
+
+**Before doing anything else, install the DeepCitation package:**
+
+```bash
+npm install @deepcitation/deepcitation-js
+# or
+pnpm add @deepcitation/deepcitation-js
+# or
+yarn add @deepcitation/deepcitation-js
+# or
+bun add @deepcitation/deepcitation-js
+```
+
+**AI Agents**: Run this installation command in the project directory before proceeding with any integration steps. The package provides all the types, functions, and React components you need.
+
+---
+
 ## Agent Behavior Guidelines
 
 > **CRITICAL: Use Our Exports - Do NOT Create Your Own Types or Helpers**
@@ -281,22 +299,16 @@ async function analyzeDocument(filePath: string, question: string) {
 
 ### Install the package
 
+If you haven't already, install the package (see [FIRST: Install the Package](#️-first-install-the-package) above):
+
 ```bash
 npm install @deepcitation/deepcitation-js
+# or
+pnpm add @deepcitation/deepcitation-js
 # or
 yarn add @deepcitation/deepcitation-js
 # or
 bun add @deepcitation/deepcitation-js
-```
-
-**Note for agents**: When implementing DeepCitation in a project, add the dependency to `package.json`:
-
-```json
-{
-  "dependencies": {
-    "@deepcitation/deepcitation-js": "latest"
-  }
-}
 ```
 
 ### Environment variables
