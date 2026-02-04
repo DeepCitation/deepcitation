@@ -21,14 +21,21 @@ import {
 const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
 
 /**
+ * Module-level regex for parsing cite tag attributes.
+ * Compiled once for better performance when processing multiple citations.
+ */
+const ATTR_REGEX = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
+
+/**
  * Parse attributes from a cite tag.
  */
 function parseCiteAttributes(citeTag: string): Record<string, string | undefined> {
   const attrs: Record<string, string | undefined> = {};
-  const attrRegex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
+  // Reset lastIndex since we're reusing the module-level regex
+  ATTR_REGEX.lastIndex = 0;
   let match;
 
-  while ((match = attrRegex.exec(citeTag)) !== null) {
+  while ((match = ATTR_REGEX.exec(citeTag)) !== null) {
     const key = match[1]
       .toLowerCase()
       .replace(/([a-z])([A-Z])/g, "$1_$2")

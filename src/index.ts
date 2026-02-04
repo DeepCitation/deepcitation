@@ -134,7 +134,11 @@ export {
 
 export type { CompressedResult } from "./prompts/types.js";
 
-// Markdown output
+// =============================================================================
+// Markdown Output
+// Static markdown rendering for citations (TUI, exported documents, etc.)
+// Phase 2 will add hosted verification viewer with shareable links
+// =============================================================================
 export {
   renderCitationsAsMarkdown,
   toMarkdown,

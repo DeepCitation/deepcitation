@@ -22,6 +22,9 @@ const LINE_POSITION_THRESHOLDS = {
   // END: 80-100% of page (implicit)
 } as const;
 
+/** Maximum characters for truncated fullPhrase fallback in inline variant */
+const INLINE_TEXT_TRUNCATION_LIMIT = 50;
+
 /**
  * Get the indicator string for a verification status.
  */
@@ -70,6 +73,23 @@ export function humanizeLinePosition(
   if (ratio < LINE_POSITION_THRESHOLDS.MIDDLE) return "middle";
   if (ratio < LINE_POSITION_THRESHOLDS.LATE) return "late";
   return "end";
+}
+
+/**
+ * Get fallback text for inline citations when anchorText is missing.
+ * Fallback chain: anchorText -> truncated fullPhrase -> citation number bracket
+ */
+function getInlineFallbackText(citation: Citation, citationNumber: number): string {
+  if (citation.anchorText) {
+    return citation.anchorText;
+  }
+  if (citation.fullPhrase) {
+    const truncated = citation.fullPhrase.slice(0, INLINE_TEXT_TRUNCATION_LIMIT);
+    return citation.fullPhrase.length > INLINE_TEXT_TRUNCATION_LIMIT
+      ? `${truncated}...`
+      : truncated;
+  }
+  return `[${citationNumber}]`;
 }
 
 /**
@@ -146,9 +166,7 @@ export function renderCitationVariant(
 
   switch (variant) {
     case "inline": {
-      // Fallback chain: anchorText -> fullPhrase (truncated) -> citation number
-      const text = citation.anchorText ||
-        (citation.fullPhrase ? citation.fullPhrase.slice(0, 50) + (citation.fullPhrase.length > 50 ? "..." : "") : `[${num}]`);
+      const text = getInlineFallbackText(citation, num);
       const anchor = linkStyle === "anchor" ? `[${text}${indicator}](#ref-${num})` : `${text}${indicator}`;
       return anchor;
     }
