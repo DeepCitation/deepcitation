@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { CitationComponent } from "../CitationComponent";
 import { UrlCitationComponent } from "../UrlCitationComponent";
 import { StatusHeader, VerificationLog, QuoteBox } from "../VerificationLog";
@@ -106,10 +106,14 @@ interface ShowcaseCardProps {
   children: React.ReactNode;
   className?: string;
   "data-testid"?: string;
-  [key: `data-${string}`]: string | undefined;
 }
 
-function ShowcaseCard({ children, className = "", "data-testid": testId, ...dataProps }: ShowcaseCardProps) {
+function ShowcaseCard({
+  children,
+  className = "",
+  "data-testid": testId,
+  ...dataProps
+}: ShowcaseCardProps & Record<`data-${string}`, string | undefined>) {
   return (
     <div
       className={`p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 ${className}`}
@@ -120,6 +124,32 @@ function ShowcaseCard({ children, className = "", "data-testid": testId, ...data
     </div>
   );
 }
+
+// =============================================================================
+// CONSTANTS - Variant and Status Arrays (extracted to prevent re-creation on render)
+// =============================================================================
+
+/** All citation variant types */
+const CITATION_VARIANTS = ["brackets", "chip", "text", "superscript", "minimal", "linter"] as const;
+
+/** Mobile-friendly citation variants */
+const MOBILE_CITATION_VARIANTS = ["brackets", "chip", "superscript", "minimal", "linter"] as const;
+
+/** Content type options */
+const CONTENT_TYPES = ["number", "anchorText", "indicator"] as const;
+
+/** URL citation variant types */
+const URL_VARIANTS = ["badge", "chip", "inline", "bracket"] as const;
+
+/** Mobile URL status examples */
+const MOBILE_URL_STATUSES = ["verified", "blocked_login", "error_not_found"] as const;
+
+/** Border color mapping for status headers */
+const BORDER_COLOR_MAP: Record<string, string> = {
+  green: "border-green-200 dark:border-green-800",
+  amber: "border-amber-200 dark:border-amber-800",
+  red: "border-red-200 dark:border-red-800",
+};
 
 // =============================================================================
 // TEST FIXTURES - Citations
@@ -573,7 +603,7 @@ export function VisualShowcase() {
                 </tr>
               </thead>
               <tbody>
-                {(["brackets", "chip", "text", "superscript", "minimal", "linter"] as const).map(variant => (
+                {CITATION_VARIANTS.map(variant => (
                   <tr key={variant} className="border-b border-gray-100 dark:border-gray-800" data-variant-row={variant}>
                     <td className="p-2 font-mono text-gray-700 dark:text-gray-300 text-xs">{variant}</td>
                     <td className="p-2">
@@ -609,7 +639,7 @@ export function VisualShowcase() {
         data-testid="content-section"
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(["number", "anchorText", "indicator"] as const).map(content => (
+          {CONTENT_TYPES.map(content => (
             <ShowcaseCard key={content} data-content-type={content}>
               <ShowcaseLabel
                 component="CitationComponent"
@@ -896,7 +926,7 @@ export function VisualShowcase() {
         data-testid="url-variants-section"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(["badge", "chip", "inline", "bracket"] as const).map(variant => {
+          {URL_VARIANTS.map(variant => {
             const meta: UrlCitationMeta = {
               url: "https://docs.example.com/api/v2/citations",
               domain: "docs.example.com",
@@ -987,7 +1017,7 @@ export function MobileShowcase() {
           All variants should fit within 375px width without horizontal scroll
         </p>
         <div className="space-y-2">
-          {(["brackets", "chip", "superscript", "minimal", "linter"] as const).map(variant => (
+          {MOBILE_CITATION_VARIANTS.map(variant => (
             <div
               key={variant}
               className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded"
@@ -1010,7 +1040,7 @@ export function MobileShowcase() {
           Long URLs should truncate with ellipsis, not cause overflow
         </p>
         <div className="space-y-2">
-          {(["verified", "blocked_login", "error_not_found"] as const).map(status => {
+          {MOBILE_URL_STATUSES.map(status => {
             const meta: UrlCitationMeta = {
               url: `https://very-long-domain-name.example.com/path/to/article/${status}`,
               fetchStatus: status,
@@ -1187,14 +1217,7 @@ export function PopoverShowcase() {
                   : 5
                 : undefined;
             const expectedPage = 5;
-            const borderColor =
-              color === "green"
-                ? "border-green-200 dark:border-green-800"
-                : color === "amber"
-                  ? "border-amber-200 dark:border-amber-800"
-                  : color === "red"
-                    ? "border-red-200 dark:border-red-800"
-                    : "border-gray-200 dark:border-gray-700";
+            const borderColor = BORDER_COLOR_MAP[color] ?? "border-gray-200 dark:border-gray-700";
 
             return (
               <ShowcaseCard key={status} className={borderColor} data-status-header={status}>
