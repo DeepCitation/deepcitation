@@ -31,7 +31,7 @@ export const CITATION_PROMPT = `
 ## REQUIRED: Citation Format
 
 ### In-Text Markers
-For every claim, value, or fact from attachments, place a sequential integer marker like [1], [2], [3] at the end of the claim.
+For every claim, value, or fact from attachments, place a sequential integer marker like [1], [2], [3] at the end of the claim. Each distinct piece of information needs its own unique marker number.
 
 ### Citation Data Block
 At the END of your response, append a citation block. Group citations by attachment_id to avoid repetition.
@@ -47,21 +47,24 @@ At the END of your response, append a citation block. Group citations by attachm
 <<<END_CITATION_DATA>>>
 \`\`\`
 
+### Shorthand Keys (Optional)
+To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, p=page_id, l=line_ids
+
 ### JSON Field Rules
 
 1. **Group key**: The attachment_id (exact ID from source document)
-2. **id**: Must match the [N] marker in your text (integer)
-3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
-4. **full_phrase**: Copy text VERBATIM from source. Use proper JSON escaping for quotes.
-5. **anchor_text**: The 1-3 most important words from full_phrase
-6. **page_id**: Format "page_number_N_index_I" where N=page number, I=index (copy exactly from \`<page_number_N_index_I>\` tags in the source)
-7. **line_ids**: Array of line numbers. Infer intermediate lines since only every 5th is shown.
+2. **id** (or n): Each citation MUST have a unique ID matching its [N] marker. Do NOT reuse the same ID for different citations.
+3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
+4. **full_phrase** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
+5. **anchor_text** (or k): The 1-3 most important words from full_phrase
+6. **page_id** (or p): Format "page_number_N_index_I" where N=page number, I=index (copy exactly from \`<page_number_N_index_I>\` tags in the source)
+7. **line_ids** (or l): Array of line numbers. Infer intermediate lines since only every 5th is shown.
 
 ### Placement Rules
 
 - Place [N] markers inline, typically at the end of a claim
 - One marker per distinct idea, concept, or value
-- Use sequential numbering starting from [1]
+- Use sequential numbering starting from [1] - each citation gets a unique number
 - The JSON block MUST appear at the very end of your response
 
 ### Example Response
@@ -397,8 +400,6 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
 /**
  * Compact citation data format from LLM output.
  * Uses single-character keys for token efficiency.
- * @deprecated Shorthand keys are no longer recommended in the prompt.
- * The parser still supports them for backwards compatibility.
  */
 export interface CompactCitationData {
   /** Citation number (n) - matches [N] marker */
