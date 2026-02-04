@@ -9,6 +9,24 @@ This guide provides step-by-step instructions for AI code agents (Claude, Cursor
 
 ---
 
+## ⚠️ FIRST: Install the Package
+
+**Before doing anything else, install the DeepCitation package (use `@latest` to get the most recent version):**
+
+```bash
+npm install @deepcitation/deepcitation-js@latest
+# or
+pnpm add @deepcitation/deepcitation-js@latest
+# or
+yarn add @deepcitation/deepcitation-js@latest
+# or
+bun add @deepcitation/deepcitation-js@latest
+```
+
+**AI Agents**: Run this installation command in the project directory before proceeding with any integration steps. Always use `@latest` to ensure you get the most recent version with all features and bug fixes. The package provides all the types, functions, and React components you need.
+
+---
+
 ## Agent Behavior Guidelines
 
 > **CRITICAL: Use Our Exports - Do NOT Create Your Own Types or Helpers**
@@ -111,7 +129,7 @@ The LLM output contains a `<<<CITATION_DATA>>>` block that **MUST BE STRIPPED** 
 Revenue grew 23% in Q4.<cite n="1" />
 
 <<<CITATION_DATA>>>
-{"1":{"pageNumber":1,"lineId":"5","fullPhrase":"Revenue grew 23% in Q4"}}
+{"1":{"pageId":"page_number_1_index_0","lineId":"5","fullPhrase":"Revenue grew 23% in Q4"}}
 <<<END_CITATION_DATA>>>
 ```
 
@@ -281,22 +299,16 @@ async function analyzeDocument(filePath: string, question: string) {
 
 ### Install the package
 
+If you haven't already, install the package (see [FIRST: Install the Package](#️-first-install-the-package) above):
+
 ```bash
-npm install @deepcitation/deepcitation-js
+npm install @deepcitation/deepcitation-js@latest
 # or
-yarn add @deepcitation/deepcitation-js
+pnpm add @deepcitation/deepcitation-js@latest
 # or
-bun add @deepcitation/deepcitation-js
-```
-
-**Note for agents**: When implementing DeepCitation in a project, add the dependency to `package.json`:
-
-```json
-{
-  "dependencies": {
-    "@deepcitation/deepcitation-js": "latest"
-  }
-}
+yarn add @deepcitation/deepcitation-js@latest
+# or
+bun add @deepcitation/deepcitation-js@latest
 ```
 
 ### Environment variables
