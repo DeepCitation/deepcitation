@@ -670,7 +670,7 @@ describe("simplified page_id format", () => {
     expect(citation.startPageId).toBeUndefined();
   });
 
-  it("auto-corrects 0-indexed page numbers to 1-indexed", () => {
+  it("auto-corrects 0_0 to page 1 (only when both page and index are 0)", () => {
     // page_id "0_0" should be corrected to page 1, index 0
     const zeroIndexed = deferredCitationToCitation({
       id: 1,
@@ -679,16 +679,21 @@ describe("simplified page_id format", () => {
     });
     expect(zeroIndexed.pageNumber).toBe(1);
     expect(zeroIndexed.startPageId).toBe("page_number_1_index_0");
+  });
 
-    // page_id "0_5" should be corrected to page 1, index 5
+  it("does NOT auto-correct ambiguous page_ids like 0_5", () => {
+    // page_id "0_5" is ambiguous - could be page 0 with index 5, or a mistake
+    // We should NOT guess, so leave it as page 0
     const zeroWithIndex = deferredCitationToCitation({
       id: 2,
       page_id: "0_5",
       full_phrase: "test",
     });
-    expect(zeroWithIndex.pageNumber).toBe(1);
-    expect(zeroWithIndex.startPageId).toBe("page_number_1_index_5");
+    expect(zeroWithIndex.pageNumber).toBe(0);
+    expect(zeroWithIndex.startPageId).toBe("page_number_0_index_5");
+  });
 
+  it("does NOT change non-zero page numbers", () => {
     // Non-zero page numbers should NOT be corrected
     const pageTwo = deferredCitationToCitation({
       id: 3,
@@ -699,7 +704,7 @@ describe("simplified page_id format", () => {
     expect(pageTwo.startPageId).toBe("page_number_2_index_0");
   });
 
-  it("auto-corrects 0-indexed legacy format page numbers", () => {
+  it("auto-corrects legacy format page_number_0_index_0", () => {
     // Legacy format "page_number_0_index_0" should also be corrected
     const legacyZero = deferredCitationToCitation({
       id: 1,
@@ -708,6 +713,17 @@ describe("simplified page_id format", () => {
     });
     expect(legacyZero.pageNumber).toBe(1);
     expect(legacyZero.startPageId).toBe("page_number_1_index_0");
+  });
+
+  it("does NOT auto-correct ambiguous legacy format like page_number_0_index_5", () => {
+    // Legacy format with page 0 but non-zero index is ambiguous
+    const legacyAmbiguous = deferredCitationToCitation({
+      id: 1,
+      page_id: "page_number_0_index_5",
+      full_phrase: "test",
+    });
+    expect(legacyAmbiguous.pageNumber).toBe(0);
+    expect(legacyAmbiguous.startPageId).toBe("page_number_0_index_5");
   });
 });
 

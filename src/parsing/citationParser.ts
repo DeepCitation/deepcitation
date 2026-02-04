@@ -352,9 +352,9 @@ export function parseDeferredCitationResponse(
  * Parses a page_id string to extract page number and index.
  * Supports both compact "N_I" format and legacy "page_number_N_index_I" format.
  *
- * Page numbers are 1-indexed (page 1 is the first page). If a 0-indexed page
- * number is detected (e.g., "0_0"), it will be auto-corrected to 1-indexed
- * (e.g., page 1, index 0).
+ * Page numbers are 1-indexed (page 1 is the first page). If page_id is "0_0"
+ * (both page and index are 0), it will be auto-corrected to page 1, index 0.
+ * Other cases like "0_5" are left as-is since they are ambiguous.
  *
  * @param pageId - The page ID string
  * @returns Object with pageNumber and normalized startPageId, or undefined values
@@ -366,9 +366,9 @@ function parsePageId(pageId: string): { pageNumber?: number; startPageId?: strin
     let pageNum = parseInt(compactMatch[1], 10);
     const index = parseInt(compactMatch[2], 10);
 
-    // Auto-correct 0-indexed page numbers to 1-indexed
-    // Page numbers should be 1-indexed (first page is page 1, not page 0)
-    if (pageNum === 0) {
+    // Only auto-correct "0_0" to page 1 (when both page and index are 0)
+    // Other cases like "0_5" are ambiguous and should not be guessed
+    if (pageNum === 0 && index === 0) {
       pageNum = 1;
     }
 
@@ -384,8 +384,8 @@ function parsePageId(pageId: string): { pageNumber?: number; startPageId?: strin
     let pageNum = parseInt(legacyMatch[1], 10);
     const index = parseInt(legacyMatch[2], 10);
 
-    // Auto-correct 0-indexed page numbers to 1-indexed
-    if (pageNum === 0) {
+    // Only auto-correct "page_number_0_index_0" to page 1
+    if (pageNum === 0 && index === 0) {
       pageNum = 1;
     }
 
