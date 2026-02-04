@@ -58,7 +58,7 @@ To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, p=page_id, l=li
 4. **full_phrase** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
 5. **anchor_text** (or k): The 1-3 most important words from full_phrase
 6. **page_id** (or p): Format "page_number_N_index_I" where N=page number, I=index (copy exactly from \`<page_number_N_index_I>\` tags in the source)
-7. **line_ids** (or l): Array of line numbers. Infer intermediate lines since only every 5th is shown.
+7. **line_ids** (or l): Array of line IDs from the source (copy from line ID markers in the text). Include IDs for all relevant lines.
 
 ### Placement Rules
 
@@ -347,7 +347,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     line_ids: {
       type: "array",
       items: { type: "integer" },
-      description: "Array of line numbers for the citation",
+      description: "Array of line IDs for the citation",
     },
   },
   required: ["id", "attachment_id", "full_phrase", "anchor_text"],
