@@ -251,7 +251,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
 
       const statusConfig = {
         verified: { icon: "✓", className: "text-green-600 dark:text-green-500" },
-        partial: { icon: "~", className: "text-amber-600 dark:text-amber-500" },
+        partial: { icon: "~", className: "text-amber-500 dark:text-amber-400" },
         pending: { icon: "…", className: "text-gray-400 dark:text-gray-500" },
         failed: { icon: "✗", className: "text-red-500 dark:text-red-400" },
         unknown: { icon: "?", className: "text-gray-400 dark:text-gray-500" },

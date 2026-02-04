@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import type { SearchAttempt, SearchStatus, SearchMethod, VariationType } from "../types/search.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import { CheckIcon, MissIcon, SpinnerIcon, DocumentIcon, GlobeIcon, XCircleIcon } from "./icons.js";
+import { CheckIcon, MissIcon, SpinnerIcon, DocumentIcon, GlobeIcon, XCircleIcon, ExternalLinkIcon } from "./icons.js";
 import { cn, isUrlCitation } from "./utils.js";
 import type { UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
@@ -21,18 +21,18 @@ const MAX_QUOTE_BOX_LENGTH = 150;
 const MAX_ANCHOR_TEXT_PREVIEW_LENGTH = 50;
 
 /** Maximum height for the scrollable timeline */
-const MAX_TIMELINE_HEIGHT = "200px";
+const MAX_TIMELINE_HEIGHT = "280px";
 
 /** Maximum length for phrase display in search attempt rows */
 const MAX_PHRASE_DISPLAY_LENGTH = 60;
 
 /** Maximum length for URL display in popover header */
-const MAX_URL_DISPLAY_LENGTH = 35;
+const MAX_URL_DISPLAY_LENGTH = 45;
 
 /** Icon color classes by status - defined outside component to avoid recreation on every render */
 const ICON_COLOR_CLASSES = {
   green: "text-green-600 dark:text-green-400",
-  amber: "text-amber-600 dark:text-amber-400",
+  amber: "text-amber-500 dark:text-amber-400",
   red: "text-red-500 dark:text-red-400",
   gray: "text-gray-400 dark:text-gray-500",
 } as const;
@@ -197,12 +197,10 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
   const isUrl = isUrlCitation(citation);
 
   if (isUrl) {
-    // URL citation: show favicon + URL on first row, status + phrase on second row
+    // URL citation: show status + favicon + URL on first row, quoted text on second row
     const faviconUrl = verification?.verifiedFaviconUrl || citation.faviconUrl;
     const domain = verification?.verifiedDomain || citation.domain;
     const url = citation.url || "";
-    const pageNumber = verification?.verifiedPageNumber ?? citation.pageNumber;
-    const lineIds = verification?.verifiedLineIds ?? citation.lineIds;
 
     // Map the search status to URL fetch status for display
     const urlFetchStatus = mapSearchStatusToUrlFetchStatus(status);
@@ -218,28 +216,24 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
             ? XCircleIcon
             : SpinnerIcon;
 
-    // Format page/line text
-    const pageLineText = formatPageLineText(pageNumber, lineIds);
-
     // Get the anchor text to display (found text or searched-for text)
     const anchorText = verification?.verifiedAnchorText || citation.anchorText;
     const displayAnchorText = anchorText
-      ? (anchorText.length > MAX_MISS_ANCHOR_TEXT_LENGTH
-          ? anchorText.slice(0, MAX_MISS_ANCHOR_TEXT_LENGTH) + "..."
+      ? (anchorText.length > MAX_MATCHED_TEXT_LENGTH
+          ? anchorText.slice(0, MAX_MATCHED_TEXT_LENGTH) + "..."
           : anchorText)
       : null;
 
-    // Determine if we need to show the second line (status + phrase)
-    // Show for all resolved states, or if status indicates a miss
-    const isMiss = status === "not_found";
+    // Show second line only when resolved (status icon already conveys outcome)
     const isResolved = status && status !== "pending" && status !== "loading";
-    const showSecondLine = isResolved || isMiss;
 
     return (
       <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-        {/* First row: URL citation (no border variant for header) */}
+        {/* Row 1: Status icon + favicon + URL + external link */}
         <div className="flex items-center gap-2">
-          {/* URL citation component - inline chip style without border */}
+          <span className={cn("size-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
+            <IconComponent />
+          </span>
           <div className="flex-1 min-w-0">
             <UrlCitationComponent
               urlMeta={{
@@ -259,24 +253,23 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
               className="!bg-transparent !px-0 !py-0 hover:!bg-transparent"
             />
           </div>
-          {/* Page/line info */}
-          {pageLineText && (
-            <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0 uppercase tracking-wide">
-              {pageLineText}
-            </span>
+          {url && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+              aria-label="Open URL in new tab"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLinkIcon />
+            </a>
           )}
         </div>
-        {/* Second row: Status icon + phrase (like document citations) */}
-        {showSecondLine && (
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className={cn("size-4 max-w-4 max-h-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
-              <IconComponent />
-            </span>
-            {displayAnchorText && (
-              <span className="text-sm text-gray-700 dark:text-gray-200 truncate">
-                "{displayAnchorText}"
-              </span>
-            )}
+        {/* Row 2: Quoted text we searched for (only when resolved) */}
+        {isResolved && displayAnchorText && (
+          <div className="mt-1 pl-6 text-xs text-gray-500 dark:text-gray-400 truncate">
+            "{displayAnchorText}"
           </div>
         )}
       </div>
@@ -322,7 +315,7 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
 
 /**
  * Formats page and line info for display in headers.
- * Returns "Pg X" or "Pg X, Ln Y" or null if no info available.
+ * Returns "Page X" or "Page X, Line Y" or null if no info available.
  *
  * Note: Line numbers are intentionally not shown by default since document
  * columns can cause sync issues with expected line IDs. Line numbers are
@@ -335,7 +328,7 @@ function formatPageLineText(
   if (!pageNumber || pageNumber <= 0) return null;
   // Don't show line numbers in the header - they can be unreliable due to column layouts
   // Line differences are shown separately in the verification log when relevant
-  return `Pg ${pageNumber}`;
+  return `Page ${pageNumber}`;
 }
 
 // =============================================================================
@@ -478,14 +471,14 @@ function formatScopeBadge(attempt: SearchAttempt): string {
   const line = attempt.lineSearched;
   const scope = attempt.searchScope;
 
-  if (scope === "document") return "Entire Doc";
+  if (scope === "document") return "Entire document";
 
   if (page != null) {
     if (line != null) {
       const lineStr = Array.isArray(line) ? line.join("-") : line.toString();
-      return `Pg ${page} : Line ${lineStr}`;
+      return `Page ${page}, line ${lineStr}`;
     }
-    return `Pg ${page} : All Lines`;
+    return `Page ${page}, all lines`;
   }
 
   return "Unknown";
@@ -526,16 +519,16 @@ function getAttemptDetailText(attempt: SearchAttempt): string {
     if (attempt.foundLocation) {
       const { page: foundPage, line: foundLine } = attempt.foundLocation;
       if (foundLine != null) {
-        return `Found on Pg ${foundPage}, Line ${foundLine}`;
+        return `Found on page ${foundPage}, line ${foundLine}`;
       }
-      return `Found on Pg ${foundPage}`;
+      return `Found on page ${foundPage}`;
     }
     if (page != null) {
       if (line != null) {
         const lineStr = Array.isArray(line) ? `${line[0]}-${line[line.length - 1]}` : line.toString();
-        return `Pg ${page}, Line ${lineStr}`;
+        return `Page ${page}, line ${lineStr}`;
       }
-      return `Pg ${page}`;
+      return `Page ${page}`;
     }
   }
 
@@ -544,10 +537,10 @@ function getAttemptDetailText(attempt: SearchAttempt): string {
 
   if (page != null) {
     if (line != null) {
-      const lineStr = Array.isArray(line) ? `Lines ${line[0]}-${line[line.length - 1]}` : `Line ${line}`;
-      return `Pg ${page}, ${lineStr}`;
+      const lineStr = Array.isArray(line) ? `lines ${line[0]}-${line[line.length - 1]}` : `line ${line}`;
+      return `Page ${page}, ${lineStr}`;
     }
-    return `Pg ${page}, all lines`;
+    return `Page ${page}, all lines`;
   }
 
   return "";
@@ -566,7 +559,7 @@ interface PageBadgeProps {
 
 /**
  * Displays page location information.
- * Shows arrow format (Pg 5 → 7) when location differs from expected.
+ * Shows arrow format (Page 5 → 7) when location differs from expected.
  *
  * Note: Pages are 1-indexed for user display. Page 0 is treated as invalid/unset
  * since documents start at "Page 1" in user-facing contexts.
@@ -577,11 +570,11 @@ function PageBadge({ expectedPage, foundPage }: PageBadgeProps) {
   const hasFound = foundPage != null && foundPage > 0;
   const locationDiffers = hasExpected && hasFound && expectedPage !== foundPage;
 
-  // Show arrow format when location differs (Issue #8: Pg 5 → 7)
+  // Show arrow format when location differs (e.g., "Page 5 → 7")
   if (locationDiffers) {
     return (
-      <span className="text-xs font-mono text-gray-500 dark:text-gray-400 flex items-center gap-1">
-        <span className="text-gray-400 dark:text-gray-500">Pg {expectedPage}</span>
+      <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+        <span className="text-gray-400 dark:text-gray-500">Page {expectedPage}</span>
         <span className="text-gray-400 dark:text-gray-500">→</span>
         <span className="text-gray-700 dark:text-gray-300">{foundPage}</span>
       </span>
@@ -591,7 +584,7 @@ function PageBadge({ expectedPage, foundPage }: PageBadgeProps) {
   // Show found page or expected page
   const pageToShow = hasFound ? foundPage : expectedPage;
   if (pageToShow != null && pageToShow > 0) {
-    return <span className="text-xs font-mono text-gray-500 dark:text-gray-400">Pg {pageToShow}</span>;
+    return <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageToShow}</span>;
   }
 
   return null;
@@ -628,7 +621,7 @@ export function AmbiguityWarning({ ambiguity }: AmbiguityWarningProps) {
     >
       <div className="flex items-start gap-2">
         <svg
-          className="size-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"
+          className="size-4 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -757,12 +750,69 @@ interface VerificationLogSummaryProps {
 }
 
 /**
- * Clickable summary header - GitHub-style with just chevron + count.
- * Issue #6 & #11: Simplified to avoid redundant info (header already shows status).
+ * Get a human-readable outcome summary for the collapsed state.
+ * Shows what kind of match was found (or that nothing was found).
  */
-function VerificationLogSummary({ searchAttempts, isExpanded, onToggle }: VerificationLogSummaryProps) {
-  const totalCount = searchAttempts.length;
-  const successCount = searchAttempts.filter(a => a.success).length;
+function getOutcomeSummary(status: SearchStatus | null | undefined, searchAttempts: SearchAttempt[]): string {
+  // Early return for not_found - no need to search for successful attempt
+  if (!status || status === "not_found") {
+    const totalCount = searchAttempts.length;
+    return `${totalCount} ${totalCount === 1 ? "search" : "searches"} tried`;
+  }
+
+  // Only search for successful attempt when we know something was found
+  const successfulAttempt = searchAttempts.find(a => a.success);
+
+  // For found states, describe the match type
+  if (successfulAttempt?.matchedVariation) {
+    switch (successfulAttempt.matchedVariation) {
+      case "exact_full_phrase":
+        return "Exact match";
+      case "normalized_full_phrase":
+        return "Normalized match";
+      case "exact_anchor_text":
+      case "normalized_anchor_text":
+        return "Anchor text match";
+      case "partial_full_phrase":
+      case "partial_anchor_text":
+        return "Partial match";
+      case "first_word_only":
+        return "First word match";
+      default:
+        return "Match found";
+    }
+  }
+
+  // Fallback based on status
+  switch (status) {
+    case "found":
+    case "found_phrase_missed_anchor_text":
+      return "Exact match";
+    case "found_anchor_text_only":
+      return "Anchor text match";
+    case "found_on_other_page":
+    case "found_on_other_line":
+      return "Found at different location";
+    case "partial_text_found":
+      return "Partial match";
+    case "first_word_found":
+      return "First word match";
+    default:
+      return "Match found";
+  }
+}
+
+/**
+ * Clickable summary header with status-aware language.
+ * - For found/partial: "How we verified this · Exact match"
+ * - For not_found: "Search attempts · 0/8 searches tried"
+ */
+function VerificationLogSummary({ status, searchAttempts, isExpanded, onToggle }: VerificationLogSummaryProps) {
+  const isMiss = status === "not_found";
+  const outcomeSummary = getOutcomeSummary(status, searchAttempts);
+
+  // Use different headers based on verification outcome
+  const headerText = isMiss ? "Search attempts" : "How we verified this";
 
   return (
     <button
@@ -783,9 +833,9 @@ function VerificationLogSummary({ searchAttempts, isExpanded, onToggle }: Verifi
         >
           <path d="M9 6l6 6-6 6" />
         </svg>
-        <span>Details</span>
+        <span>{headerText}</span>
         <span className="text-gray-400 dark:text-gray-500">
-          ({successCount} / {totalCount} {totalCount === 1 ? "search" : "searches"})
+          · {outcomeSummary}
         </span>
       </div>
     </button>
@@ -802,6 +852,8 @@ interface AuditSearchDisplayProps {
   fullPhrase?: string;
   /** Citation's anchor text (for display) */
   anchorText?: string;
+  /** Verification status (determines display mode) */
+  status?: SearchStatus | null;
 }
 
 interface SearchAttemptRowProps {
@@ -828,9 +880,9 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
   // Format location
   const locationText =
     attempt.searchScope === "document"
-      ? "Entire doc"
+      ? "Entire document"
       : attempt.pageSearched != null
-        ? `Pg ${attempt.pageSearched}`
+        ? `Page ${attempt.pageSearched}`
         : "";
 
   // Get method display name with safe fallback
@@ -952,12 +1004,16 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
 
 /**
  * Audit-focused search display.
- * Shows each search attempt in order with its phrase, method, and location.
- * This makes it clear what was searched at each step of the progression.
+ * - For found/partial: Shows only the successful match details
+ * - For not_found: Shows all search attempts to help debug
  */
-function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSearchDisplayProps) {
-  // Collect rejected matches (found but not accepted)
+function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: AuditSearchDisplayProps) {
+  const isMiss = status === "not_found";
+  const successfulAttempt = useMemo(() => searchAttempts.find(a => a.success), [searchAttempts]);
+
+  // Collect rejected matches (found but not accepted) - only relevant for misses
   const rejectedMatches = useMemo(() => {
+    if (!isMiss) return [];
     const seen = new Set<string>();
     const matches: Array<{ text: string; count?: number }> = [];
     for (const attempt of searchAttempts) {
@@ -967,7 +1023,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSea
       }
     }
     return matches;
-  }, [searchAttempts]);
+  }, [searchAttempts, isMiss]);
 
   // If no search attempts, fall back to citation data
   if (searchAttempts.length === 0) {
@@ -996,11 +1052,55 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText }: AuditSea
     );
   }
 
+  // For found/partial states: show only the successful match details
+  if (!isMiss && successfulAttempt) {
+    const phrase = successfulAttempt.searchPhrase ?? "";
+    const displayPhrase =
+      phrase.length === 0
+        ? "(empty)"
+        : phrase.length > MAX_PHRASE_DISPLAY_LENGTH
+          ? phrase.slice(0, MAX_PHRASE_DISPLAY_LENGTH) + "..."
+          : phrase;
+
+    const methodName = METHOD_DISPLAY_NAMES[successfulAttempt.method] ?? successfulAttempt.method ?? "Search";
+    const locationText =
+      successfulAttempt.foundLocation
+        ? `Page ${successfulAttempt.foundLocation.page}${successfulAttempt.foundLocation.line ? `, line ${successfulAttempt.foundLocation.line}` : ""}`
+        : successfulAttempt.pageSearched != null
+          ? `Page ${successfulAttempt.pageSearched}`
+          : "";
+
+    return (
+      <div className="px-4 py-3 space-y-3 text-sm">
+        <div>
+          <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Match details</div>
+          <div className="p-2.5 bg-gray-50 dark:bg-gray-800/40 rounded-md space-y-2">
+            {/* What was matched */}
+            <div className="flex items-start gap-2">
+              <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-600 dark:text-green-400 flex-shrink-0">
+                <CheckIcon />
+              </span>
+              <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">"{displayPhrase}"</span>
+            </div>
+            {/* Where it was found */}
+            <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
+              <span>{methodName}</span>
+              {locationText && <span>{locationText}</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // For not_found: show all search attempts
   return (
     <div className="px-4 py-3 space-y-4 text-sm">
       {/* Search attempts timeline - shows what was searched and where */}
       <div>
-        <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Search attempts</div>
+        <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+          {searchAttempts.length} {searchAttempts.length === 1 ? "search" : "searches"} tried
+        </div>
         <div className="space-y-0.5">
           {searchAttempts.map((attempt, i) => (
             <SearchAttemptRow key={i} attempt={attempt} index={i + 1} totalCount={searchAttempts.length} />
@@ -1022,23 +1122,23 @@ interface VerificationLogTimelineProps {
   searchAttempts: SearchAttempt[];
   fullPhrase?: string;
   anchorText?: string;
+  status?: SearchStatus | null;
 }
 
 /**
  * Scrollable timeline showing search attempts.
- * Uses the same AuditSearchDisplay layout for all states (found, partial, and not_found)
- * to maintain consistency and provide clear audit trail.
+ * - For found/partial: Shows only the successful match details
+ * - For not_found: Shows all search attempts with clear count
  */
 function VerificationLogTimeline({
   searchAttempts,
   fullPhrase,
   anchorText,
+  status,
 }: VerificationLogTimelineProps) {
-  // Use the same audit-focused display for all states (found, partial, not_found)
-  // This provides a consistent layout showing what was searched and where
   return (
     <div id="verification-log-timeline" style={{ maxHeight: MAX_TIMELINE_HEIGHT }} className="overflow-y-auto">
-      <AuditSearchDisplay searchAttempts={searchAttempts} fullPhrase={fullPhrase} anchorText={anchorText} />
+      <AuditSearchDisplay searchAttempts={searchAttempts} fullPhrase={fullPhrase} anchorText={anchorText} status={status} />
     </div>
   );
 }
@@ -1107,6 +1207,7 @@ export function VerificationLog({
           searchAttempts={searchAttempts}
           fullPhrase={fullPhrase}
           anchorText={anchorText}
+          status={status}
         />
       )}
     </div>

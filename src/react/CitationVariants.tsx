@@ -22,6 +22,7 @@ import type {
 } from "./types.js";
 import { XIcon } from "./icons.js";
 import { INDICATOR_SIZE_STYLE } from "./CitationComponent.js";
+import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
 
 const TWO_DOTS_THINKING_CONTENT = "..";
 
@@ -77,7 +78,7 @@ const DefaultVerifiedIndicator = () => (
  * Default partial match indicator (asterisk)
  */
 const DefaultPartialIndicator = () => (
-  <span className="text-amber-600 dark:text-amber-500 ml-0.5" aria-hidden="true">
+  <span className="text-amber-500 dark:text-amber-400 ml-0.5" aria-hidden="true">
     *
   </span>
 );
@@ -173,7 +174,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
 
     // Text color class (separate from status indicator)
     const textColorClass = isPartialMatch
-      ? "text-amber-600 dark:text-amber-500"
+      ? "text-amber-500 dark:text-amber-400"
       : isMiss
       ? "text-red-600 dark:text-red-400"
       : isVerified
@@ -205,7 +206,10 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
         >
           {showIcon &&
             (icon || <span className="text-[0.9em]">📄</span>)}
-          <span className={classNames("font-medium", textColorClass, isMiss && "line-through opacity-70")}>{displayText}</span>
+          <span
+            className={classNames("font-medium", textColorClass, isMiss && "opacity-70")}
+            style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
+          >{displayText}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
@@ -299,7 +303,7 @@ export const SuperscriptCitation = forwardRef<
     // Check partial first since isVerified is true when isPartialMatch is true
     // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
-      ? "text-amber-600 dark:text-amber-500"
+      ? "text-amber-500 dark:text-amber-400"
       : isMiss
       ? "text-red-500 dark:text-red-400"
       : isVerified
@@ -328,7 +332,10 @@ export const SuperscriptCitation = forwardRef<
           aria-label={`Citation ${displayText}`}
         >
           {!hideBrackets && "["}
-          <span className={isMiss ? "line-through opacity-70" : undefined}>{displayText}</span>
+          <span
+            className={isMiss ? "opacity-70" : undefined}
+            style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
+          >{displayText}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
@@ -431,7 +438,7 @@ export const FootnoteCitation = forwardRef<
     // Check partial first since isVerified is true when isPartialMatch is true
     // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
-      ? "text-amber-600 dark:text-amber-500"
+      ? "text-amber-500 dark:text-amber-400"
       : isMiss
       ? "text-red-500 dark:text-red-400"
       : isVerified
@@ -459,7 +466,10 @@ export const FootnoteCitation = forwardRef<
           onClick={(e) => e.stopPropagation()}
           aria-label={`Footnote ${displaySymbol}`}
         >
-          <span className={isMiss ? "line-through opacity-70" : undefined}>{displaySymbol}</span>
+          <span
+            className={isMiss ? "opacity-70" : undefined}
+            style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
+          >{displaySymbol}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
@@ -547,7 +557,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
     // Check partial first since isVerified is true when isPartialMatch is true
     // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
-      ? "text-amber-600 dark:text-amber-500"
+      ? "text-amber-500 dark:text-amber-400"
       : isMiss
       ? "text-red-500 dark:text-red-400"
       : isVerified
@@ -583,7 +593,10 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           onClick={(e) => e.stopPropagation()}
           aria-label={`Citation: ${displayText}`}
         >
-          <span className={isMiss ? "line-through opacity-70" : undefined}>{displayText}</span>
+          <span
+            className={isMiss ? "opacity-70" : undefined}
+            style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
+          >{displayText}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
@@ -676,7 +689,7 @@ export const MinimalCitation = forwardRef<
     // Check partial first since isVerified is true when isPartialMatch is true
     // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
-      ? "text-amber-600 dark:text-amber-500"
+      ? "text-amber-500 dark:text-amber-400"
       : isMiss
       ? "text-red-500 dark:text-red-400"
       : isVerified
@@ -704,7 +717,10 @@ export const MinimalCitation = forwardRef<
           onClick={(e) => e.stopPropagation()}
           aria-label={`Citation ${displayText}`}
         >
-          <span className={isMiss ? "line-through opacity-70" : undefined}>{displayText}</span>
+          <span
+            className={isMiss ? "opacity-70" : undefined}
+            style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
+          >{displayText}</span>
           {showStatusIndicator && (
             <>
               {isPartialMatch && renderPartialIndicator(status)}

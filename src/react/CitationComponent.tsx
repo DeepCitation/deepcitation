@@ -35,10 +35,12 @@ import type {
 import {
   CheckIcon,
   CloseIcon,
+  CopyIcon,
   SpinnerIcon,
   WarningIcon,
   XCircleIcon,
   XIcon,
+  ZoomInIcon,
 } from "./icons.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover.js";
 import type {
@@ -69,6 +71,7 @@ import {
   StatusHeader,
   VerificationLog,
 } from "./VerificationLog.js";
+import { MISS_WAVY_UNDERLINE_STYLE, COPY_FEEDBACK_DURATION_MS } from "./constants.js";
 
 // Re-export types for convenience
 export type {
@@ -93,10 +96,10 @@ const DEFAULT_VISIBLE_GROUP_COUNT = 2;
 const MAX_PHRASE_LENGTH = 50;
 
 /** Popover container width */
-const POPOVER_WIDTH = "380px";
+const POPOVER_WIDTH = "400px";
 
 /** Popover container max width (viewport-relative) */
-const POPOVER_MAX_WIDTH = "90vw";
+const POPOVER_MAX_WIDTH = "92vw";
 
 /** Maximum characters to show for matched text display in search results */
 const MAX_MATCHED_TEXT_LENGTH = 40;
@@ -256,7 +259,7 @@ function getStatusHoverClasses(
       `hover:bg-green-600${opacitySuffix} dark:hover:bg-green-500${opacitySuffix}`,
     isPartialMatch &&
       !shouldShowSpinner &&
-      `hover:bg-amber-600${opacitySuffix} dark:hover:bg-amber-500${opacitySuffix}`,
+      `hover:bg-amber-500${opacitySuffix} dark:hover:bg-amber-500${opacitySuffix}`,
     isMiss &&
       !shouldShowSpinner &&
       `hover:bg-red-500${opacitySuffix} dark:hover:bg-red-400${opacitySuffix}`,
@@ -540,13 +543,13 @@ interface GroupedSearchAttempt {
  */
 function getMethodLabel(method: string): string {
   const labels: Record<string, string> = {
-    exact_line_match: "exact line",
-    line_with_buffer: "line buffer",
+    exact_line_match: "exact location",
+    line_with_buffer: "nearby lines",
     current_page: "expected page",
     anchor_text_fallback: "anchor text",
-    adjacent_pages: "adjacent pages",
-    expanded_window: "expanded search",
-    regex_search: "regex",
+    adjacent_pages: "nearby pages",
+    expanded_window: "wider search",
+    regex_search: "entire document",
     first_word_fallback: "first word",
   };
   return labels[method] || method;
@@ -835,7 +838,7 @@ const VerifiedIndicator = () => (
  */
 const PartialIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.1em] text-amber-600 dark:text-amber-500 [text-decoration:none]"
+    className="inline-flex relative ml-0.5 top-[0.1em] text-amber-500 dark:text-amber-400 [text-decoration:none]"
     style={INDICATOR_SIZE_STYLE}
     aria-hidden="true"
   >
@@ -882,6 +885,7 @@ const MissIndicator = () => (
 /**
  * Displays a verification image that fits within the container dimensions.
  * The image is scaled to fit (without distortion) and can be clicked to expand.
+ * Includes an action bar with zoom and copy buttons.
  *
  * Note: This component uses simple object-fit: contain for predictable sizing.
  * Previous scroll-to-anchor-text logic was removed for simplicity - users can
@@ -890,51 +894,144 @@ const MissIndicator = () => (
 function AnchorTextFocusedImage({
   verification,
   onImageClick,
+  anchorText,
   maxWidth = "min(70vw, 384px)",
   maxHeight = "min(50vh, 300px)",
 }: {
   verification: Verification;
   onImageClick?: () => void;
+  anchorText?: string;
   maxWidth?: string;
   maxHeight?: string;
 }) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
+    "idle"
+  );
+
+  // Auto-reset copy state after feedback duration (with cleanup to prevent memory leaks)
+  useEffect(() => {
+    if (copyState === "idle") {
+      return; // No timeout needed for idle state
+    }
+    const timeoutId = setTimeout(
+      () => setCopyState("idle"),
+      COPY_FEEDBACK_DURATION_MS
+    );
+    return () => clearTimeout(timeoutId);
+  }, [copyState]);
+
+  const handleCopy = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!anchorText) return;
+
+      try {
+        await navigator.clipboard.writeText(anchorText);
+        setCopyState("copied");
+      } catch (err) {
+        console.error("Failed to copy text:", err);
+        setCopyState("error");
+      }
+    },
+    [anchorText]
+  );
+
   return (
-    <button
-      type="button"
-      className="group block cursor-zoom-in relative w-full"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onImageClick?.();
-      }}
-      aria-label="Click to view full size"
-    >
-      <div
-        className="overflow-hidden"
-        style={{
-          maxWidth,
-          maxHeight,
+    <div className="relative">
+      {/* Image container - clickable to zoom */}
+      <button
+        type="button"
+        className="group block cursor-zoom-in relative w-full"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onImageClick?.();
         }}
+        aria-label="Click to view full size"
       >
-        <img
-          src={verification.verificationImageBase64 as string}
-          alt="Citation verification"
-          className="block w-full h-auto"
+        <div
+          className="overflow-hidden rounded-t-md"
           style={{
+            maxWidth,
             maxHeight,
-            objectFit: "contain",
           }}
-          loading="eager"
-          decoding="async"
-        />
+        >
+          <img
+            src={verification.verificationImageBase64 as string}
+            alt="Citation verification"
+            className="block w-full h-auto"
+            style={{
+              maxHeight,
+              objectFit: "contain",
+            }}
+            loading="eager"
+            decoding="async"
+          />
+        </div>
+      </button>
+
+      {/* Action bar - always visible below image */}
+      <div className="flex items-center justify-between px-2 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-b-md border-t border-gray-200 dark:border-gray-700">
+        {/* Zoom button on left - using text-gray-700 for WCAG AA contrast (7.0:1 ratio on gray-100) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onImageClick?.();
+          }}
+          className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+          aria-label="Expand image"
+        >
+          <span className="size-3.5">
+            <ZoomInIcon />
+          </span>
+          <span>Expand</span>
+        </button>
+
+        {/* Copy button on right (only if anchorText exists) */}
+        {anchorText && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            aria-label={
+              copyState === "copied"
+                ? "Copied!"
+                : copyState === "error"
+                  ? "Failed to copy"
+                  : "Copy anchor text"
+            }
+          >
+            {copyState === "copied" ? (
+              <>
+                <span className="size-3.5 text-green-600 dark:text-green-400">
+                  <CheckIcon />
+                </span>
+                <span className="text-green-600 dark:text-green-400">
+                  Copied
+                </span>
+              </>
+            ) : copyState === "error" ? (
+              <>
+                <span className="size-3.5 text-red-500 dark:text-red-400">
+                  <XCircleIcon />
+                </span>
+                <span className="text-red-500 dark:text-red-400">Failed</span>
+              </>
+            ) : (
+              <>
+                <span className="size-3.5">
+                  <CopyIcon />
+                </span>
+                <span>Copy quote</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
-      {/* Bottom bar with expand hint on hover */}
-      <span className="absolute left-0 right-0 bottom-0 flex items-center justify-end px-2 pb-1.5 pt-4 bg-gradient-to-t from-black/50 to-transparent pointer-events-none">
-        <span className="text-xs text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] opacity-0 group-hover:opacity-100 transition-opacity">
-          Click to expand
-        </span>
-      </span>
-    </button>
+    </div>
   );
 }
 
@@ -1168,7 +1265,7 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
       className={cn(
         "inline-flex size-3 flex-shrink-0",
         isLowTrustMatch(group.successfulAttempt?.matchedVariation)
-          ? "text-amber-600 dark:text-amber-400"
+          ? "text-amber-500 dark:text-amber-400"
           : "text-green-600 dark:text-green-400"
       )}
     >
@@ -1378,6 +1475,7 @@ function DefaultPopoverContent({
             <AnchorTextFocusedImage
               verification={verification}
               onImageClick={onImageClick}
+              anchorText={anchorText}
             />
           </div>
 
@@ -1443,6 +1541,7 @@ function DefaultPopoverContent({
                 <AnchorTextFocusedImage
                   verification={verification}
                   onImageClick={onImageClick}
+                  anchorText={anchorText}
                 />
               </div>
             </>
@@ -1514,7 +1613,7 @@ function DefaultPopoverContent({
               status.isVerified &&
                 !status.isPartialMatch &&
                 "text-green-600 dark:text-green-400",
-              status.isPartialMatch && "text-amber-600 dark:text-amber-400",
+              status.isPartialMatch && "text-amber-500 dark:text-amber-400",
               status.isMiss && "text-red-500 dark:text-red-400",
               status.isPending && "text-gray-500 dark:text-gray-400"
             )}
@@ -1612,7 +1711,7 @@ function DiffDetails({
         <div
           className={cn(
             "text-[10px] font-medium px-1.5 py-0.5 rounded inline-flex items-center gap-1",
-            "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+            "bg-amber-100 dark:bg-amber-900/30 text-amber-500 dark:text-amber-400"
           )}
         >
           <span className="size-2">
@@ -2270,7 +2369,7 @@ export const CitationComponent = forwardRef<
       (isVerified || isPartialMatch) &&
         variant === "brackets" &&
         "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline",
-      isMiss && "opacity-70 line-through text-gray-700 dark:text-gray-200",
+      isMiss && "opacity-70 text-gray-700 dark:text-gray-200",
       shouldShowSpinner && "text-gray-500 dark:text-gray-400"
     );
 
@@ -2325,9 +2424,10 @@ export const CitationComponent = forwardRef<
             <span
               className={cn(
                 "max-w-60 overflow-hidden text-ellipsis whitespace-nowrap",
-                // Miss state: add line-through for visual distinction (on text only, not indicator)
-                isMiss && !shouldShowSpinner && "line-through opacity-70"
+                // Miss state: add wavy underline for visual distinction (on text only, not indicator)
+                isMiss && !shouldShowSpinner && "opacity-70"
               )}
+              style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
             >
               {displayText}
             </span>
@@ -2357,9 +2457,10 @@ export const CitationComponent = forwardRef<
             {anchorTextDisplay && (
               <span
                 className={cn(
-                  // Miss state: add line-through for visual distinction
-                  isMiss && !shouldShowSpinner && "line-through opacity-70"
+                  // Miss state: add wavy underline for visual distinction
+                  isMiss && !shouldShowSpinner && "opacity-70"
                 )}
+                style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
               >
                 {anchorTextDisplay}
               </span>
@@ -2376,8 +2477,9 @@ export const CitationComponent = forwardRef<
               [
               <span
                 className={cn(
-                  isMiss && !shouldShowSpinner && "line-through opacity-60"
+                  isMiss && !shouldShowSpinner && "opacity-60"
                 )}
+                style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
               >
                 {citationNumber}
               </span>
@@ -2413,7 +2515,7 @@ export const CitationComponent = forwardRef<
                 "hover:bg-green-600/10 dark:hover:bg-green-500/10",
               isPartialMatch &&
                 !shouldShowSpinner &&
-                "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
+                "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
               isMiss &&
                 !shouldShowSpinner &&
                 "hover:bg-red-500/10 dark:hover:bg-red-400/10",
@@ -2435,9 +2537,10 @@ export const CitationComponent = forwardRef<
             <span
               className={cn(
                 "max-w-40 overflow-hidden text-ellipsis whitespace-nowrap",
-                // Miss state: add line-through for visual distinction (on text only, not indicator)
-                isMiss && !shouldShowSpinner && "line-through opacity-70"
+                // Miss state: add wavy underline for visual distinction (on text only, not indicator)
+                isMiss && !shouldShowSpinner && "opacity-70"
               )}
+              style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
             >
               {displayText}
             </span>
@@ -2472,7 +2575,7 @@ export const CitationComponent = forwardRef<
         // Build inline styles for text-decoration since Tailwind doesn't support all decoration styles
         // Using Tailwind color values to match the rest of the component:
         // - green-600: #16a34a (verified)
-        // - amber-600: #d97706 (partial)
+        // - amber-500: #f59e0b (partial - more yellow amber)
         // - red-500: #ef4444 (miss)
         // - gray-400: #9ca3af (pending)
         //
@@ -2495,7 +2598,7 @@ export const CitationComponent = forwardRef<
         } else if (isPartialState) {
           linterStyles.textDecorationStyle = "dashed";
           linterStyles.textDecorationColor =
-            "var(--dc-linter-warning, #d97706)"; // amber-600
+            "var(--dc-linter-warning, #f59e0b)"; // amber-500
         } else if (isVerifiedState) {
           linterStyles.textDecorationStyle = "solid";
           linterStyles.textDecorationColor =
@@ -2517,8 +2620,8 @@ export const CitationComponent = forwardRef<
           isPendingState && "text-gray-500 dark:text-gray-400",
           // Verified: subtle green background wash on hover only (10% opacity)
           isVerifiedState && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-          // Partial: subtle amber background on hover (using amber-600 to match component)
-          isPartialState && "hover:bg-amber-600/10 dark:hover:bg-amber-500/10",
+          // Partial: subtle amber background on hover (using amber-500 to match component)
+          isPartialState && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
           // Miss: subtle red background on hover (using red-500 to match component)
           isMissState && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
           // Pending: subtle gray background

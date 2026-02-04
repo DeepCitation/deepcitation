@@ -3,6 +3,7 @@ import type { Citation } from "../types/citation.js";
 import type { UrlCitationMeta, UrlCitationProps, UrlFetchStatus } from "./types.js";
 import { classNames, generateCitationInstanceId, generateCitationKey } from "./utils.js";
 import { CheckIcon, XCircleIcon, LockIcon, ExternalLinkIcon } from "./icons.js";
+import { BROKEN_WAVY_UNDERLINE_STYLE } from "./constants.js";
 
 /**
  * Module-level handler for hiding broken favicon images.
@@ -51,16 +52,16 @@ function getUrlPath(url: string): string {
  */
 const STATUS_ICONS: Record<UrlFetchStatus, { icon: string; label: string; className: string }> = {
   verified: { icon: "✓", label: "Verified", className: "text-green-600 dark:text-green-500" },
-  partial: { icon: "~", label: "Partial match", className: "text-amber-600 dark:text-amber-500" },
+  partial: { icon: "~", label: "Partial match", className: "text-amber-500 dark:text-amber-400" },
   pending: { icon: "…", label: "Verifying", className: "text-gray-400 dark:text-gray-500" },
   accessible: { icon: "○", label: "Accessible", className: "text-blue-500 dark:text-blue-400" },
-  redirected: { icon: "↪", label: "Redirected", className: "text-amber-600 dark:text-amber-500" },
+  redirected: { icon: "↪", label: "Redirected", className: "text-amber-500 dark:text-amber-400" },
   redirected_valid: { icon: "↪✓", label: "Redirected (valid)", className: "text-green-600 dark:text-green-500" },
-  blocked_antibot: { icon: "⊘", label: "Blocked by anti-bot", className: "text-amber-600 dark:text-amber-500" },
-  blocked_login: { icon: "⊙", label: "Login required", className: "text-amber-600 dark:text-amber-500" },
-  blocked_paywall: { icon: "$", label: "Paywall", className: "text-amber-600 dark:text-amber-500" },
-  blocked_geo: { icon: "⊕", label: "Geo-restricted", className: "text-amber-600 dark:text-amber-500" },
-  blocked_rate_limit: { icon: "◔", label: "Rate limited", className: "text-amber-600 dark:text-amber-500" },
+  blocked_antibot: { icon: "⊘", label: "Blocked by anti-bot", className: "text-amber-500 dark:text-amber-400" },
+  blocked_login: { icon: "⊙", label: "Login required", className: "text-amber-500 dark:text-amber-400" },
+  blocked_paywall: { icon: "$", label: "Paywall", className: "text-amber-500 dark:text-amber-400" },
+  blocked_geo: { icon: "⊕", label: "Geo-restricted", className: "text-amber-500 dark:text-amber-400" },
+  blocked_rate_limit: { icon: "◔", label: "Rate limited", className: "text-amber-500 dark:text-amber-400" },
   error_timeout: { icon: "⊗", label: "Timed out", className: "text-red-500 dark:text-red-400" },
   error_not_found: { icon: "⊗", label: "Not found", className: "text-red-500 dark:text-red-400" },
   error_server: { icon: "⊗", label: "Server error", className: "text-red-500 dark:text-red-400" },
@@ -348,7 +349,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       // Partial: Amber check
       if (isPartial) {
         return (
-          <StatusIconWrapper className="text-amber-600 dark:text-amber-500">
+          <StatusIconWrapper className="text-amber-500 dark:text-amber-400">
             <CheckIcon className="w-full h-full" />
           </StatusIconWrapper>
         );
@@ -360,7 +361,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           return renderBlockedIndicator(fetchStatus, errorMessage);
         }
         return (
-          <StatusIconWrapper className="text-amber-600 dark:text-amber-500" aria-label={statusInfo.label}>
+          <StatusIconWrapper className="text-amber-500 dark:text-amber-400" aria-label={statusInfo.label}>
             <LockIcon className="w-full h-full" />
           </StatusIconWrapper>
         );
@@ -437,9 +438,9 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             <span
               className={classNames(
                 "font-mono text-[11px] font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[140px]",
-                "text-gray-800 dark:text-gray-200",
-                isBroken && "line-through"
+                "text-gray-800 dark:text-gray-200"
               )}
+              style={isBroken ? BROKEN_WAVY_UNDERLINE_STYLE : undefined}
             >
               {displayText}
             </span>
@@ -505,9 +506,10 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
               "inline-flex items-center gap-1 cursor-pointer transition-colors no-underline border-b border-dotted mr-0.5",
               "text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-500",
               "hover:border-gray-600 dark:hover:border-gray-300",
-              isBroken && "opacity-60 line-through",
+              isBroken && "opacity-60",
               className
             )}
+            style={isBroken ? BROKEN_WAVY_UNDERLINE_STYLE : undefined}
             title={showFullUrlOnHover ? url : undefined}
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
             onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
@@ -559,10 +561,10 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
         >
           [
           {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
-          <span className={classNames(
-            "max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap",
-            isBroken && "line-through"
-          )}>{displayText}</span>
+          <span
+            className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap"
+            style={isBroken ? BROKEN_WAVY_UNDERLINE_STYLE : undefined}
+          >{displayText}</span>
           {showStatusIndicator && renderStatusIndicator()}
           {renderExternalLinkButton()}
           ]

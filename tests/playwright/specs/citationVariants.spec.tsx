@@ -82,8 +82,14 @@ test.describe("ChipCitation", () => {
 
     // Wrapper has background color, text color is on inner span
     await expect(chip).toHaveClass(/bg-red-/);
-    // line-through is on the inner text span to isolate it from status indicator
-    await expect(chip.locator(".line-through")).toBeVisible();
+    // wavy underline is applied via inline style on the inner text span
+    const hasWavyUnderline = await chip.evaluate((el) => {
+      const spans = el.querySelectorAll("span");
+      return Array.from(spans).some(
+        (span) => (span as HTMLElement).style.textDecorationStyle === "wavy"
+      );
+    });
+    expect(hasWavyUnderline).toBe(true);
   });
 
   test("renders with partial match state", async ({ mount, page }) => {
@@ -234,8 +240,14 @@ test.describe("SuperscriptCitation", () => {
     const sup = page.locator('[data-variant="superscript"]');
 
     await expect(sup).toHaveClass(/text-red-/);
-    // line-through is on the inner text span to isolate it from status indicator
-    await expect(sup.locator(".line-through")).toBeVisible();
+    // wavy underline is applied via inline style on the inner text span
+    const hasWavyUnderline = await sup.evaluate((el) => {
+      const spans = el.querySelectorAll("span");
+      return Array.from(spans).some(
+        (span) => (span as HTMLElement).style.textDecorationStyle === "wavy"
+      );
+    });
+    expect(hasWavyUnderline).toBe(true);
   });
 });
 
@@ -426,8 +438,14 @@ test.describe("MinimalCitation", () => {
     const minimal = page.locator('[data-variant="minimal"]');
 
     await expect(minimal).toHaveClass(/text-red-/);
-    // line-through is on the inner text span to isolate it from status indicator
-    await expect(minimal.locator(".line-through")).toBeVisible();
+    // wavy underline is applied via inline style on the inner text span
+    const hasWavyUnderline = await minimal.evaluate((el) => {
+      const spans = el.querySelectorAll("span");
+      return Array.from(spans).some(
+        (span) => (span as HTMLElement).style.textDecorationStyle === "wavy"
+      );
+    });
+    expect(hasWavyUnderline).toBe(true);
   });
 });
 

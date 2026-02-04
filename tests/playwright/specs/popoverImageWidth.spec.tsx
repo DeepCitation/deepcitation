@@ -87,9 +87,9 @@ test.describe("Popover Image Width Constraint", () => {
     const container = popover.locator(".overflow-hidden.rounded-lg");
     await expect(container).toBeVisible();
 
-    // The container should have a constrained width (380px or 90vw max)
+    // The container should have a constrained width (400px or 90vw max)
     const containerWidth = await container.evaluate((el) => (el as HTMLElement).style.width);
-    expect(containerWidth).toBe("380px");
+    expect(containerWidth).toBe("400px");
   });
 
   test("popover image has max height constraint", async ({ mount, page }) => {

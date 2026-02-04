@@ -258,9 +258,21 @@ The `linter` variant displays citations as inline text with semantic underlines,
 
 **CSS Custom Properties:** The linter variant uses CSS custom properties for colors that can be overridden (defaults match Tailwind colors used elsewhere in the component):
 - `--dc-linter-success`: Green color for verified (default: `#16a34a` / green-600)
-- `--dc-linter-warning`: Amber color for partial matches (default: `#d97706` / amber-600)
+- `--dc-linter-warning`: Amber color for partial matches (default: `#f59e0b` / amber-500)
 - `--dc-linter-error`: Red color for not found (default: `#ef4444` / red-500)
 - `--dc-linter-pending`: Gray color for pending (default: `#9ca3af` / gray-400)
+
+**Wavy Underline Custom Property:** Non-linter variants (chip, brackets, superscript, text) use a wavy underline for "not found" status. The color can be customized:
+- `--dc-wavy-underline-color`: Red color for wavy underline (default: `#ef4444` / red-500)
+
+```css
+/* Example: Customize citation colors */
+:root {
+  --dc-linter-success: #22c55e;      /* brighter green */
+  --dc-linter-warning: #eab308;      /* yellow-500 */
+  --dc-wavy-underline-color: #dc2626; /* darker red */
+}
+```
 
 #### Variant (Visual Style)
 

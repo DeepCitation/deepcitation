@@ -199,8 +199,8 @@ describe("CitationComponent behaviorConfig", () => {
         />
       );
 
-      // Should have amber check (text-amber-600 class)
-      const amberCheck = container.querySelector(".text-amber-600");
+      // Should have amber check (text-amber-500 class - more yellow amber)
+      const amberCheck = container.querySelector(".text-amber-500");
       expect(amberCheck).toBeInTheDocument();
     });
   });
@@ -234,14 +234,12 @@ describe("CitationComponent behaviorConfig", () => {
 
       // Should NOT have any status indicators
       const greenCheck = container.querySelector(".text-green-600");
-      const amberCheck = container.querySelector(".text-amber-600");
+      const amberCheck = container.querySelector(".text-amber-500");
       const spinner = container.querySelector(".animate-spin");
-      const warningIcon = container.querySelector(".text-amber-500");
 
       expect(greenCheck).not.toBeInTheDocument();
       expect(amberCheck).not.toBeInTheDocument();
       expect(spinner).not.toBeInTheDocument();
-      expect(warningIcon).not.toBeInTheDocument();
     });
 
     it("hides spinner when showIndicator=false and isPending", () => {

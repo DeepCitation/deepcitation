@@ -68,8 +68,8 @@ describe("UrlCitationComponent", () => {
       />
     );
 
-    // Should have amber lock icon
-    const lockWrapper = container.querySelector(".text-amber-600");
+    // Should have amber lock icon (text-amber-500 - more yellow amber)
+    const lockWrapper = container.querySelector(".text-amber-500");
     expect(lockWrapper).toBeInTheDocument();
 
     // Should have an SVG (the lock icon)
@@ -106,16 +106,21 @@ describe("UrlCitationComponent", () => {
     expect(pulsingDot).toHaveClass("rounded-full");
   });
 
-  it("applies line-through for broken URLs", () => {
+  it("applies wavy underline for broken URLs", () => {
     const { container } = render(
       <UrlCitationComponent
         urlMeta={createUrlMeta({ fetchStatus: "error_not_found" })}
       />
     );
 
-    // The URL text should have line-through
-    const urlLabel = container.querySelector(".line-through");
-    expect(urlLabel).toBeInTheDocument();
+    // The URL text should have wavy underline styling (applied via inline style)
+    // Find the element with the wavy underline style
+    const urlElements = container.querySelectorAll("span");
+    const hasWavyUnderline = Array.from(urlElements).some((el) => {
+      const style = el.style;
+      return style.textDecorationStyle === "wavy";
+    });
+    expect(hasWavyUnderline).toBe(true);
   });
 
   it("handles missing favicon gracefully", () => {

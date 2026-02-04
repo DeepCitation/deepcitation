@@ -25,6 +25,7 @@ import {
   generateCitationInstanceId,
   classNames,
 } from "./utils.js";
+import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
 
 interface CitationContextValue {
   citation: CitationType;
@@ -227,8 +228,8 @@ export const CitationTrigger = forwardRef<
       status.isVerified &&
         !status.isPartialMatch &&
         "text-green-600 dark:text-green-500",
-      status.isPartialMatch && "text-amber-600 dark:text-amber-500",
-      status.isMiss && "text-red-500 dark:text-red-400 line-through",
+      status.isPartialMatch && "text-amber-500 dark:text-amber-400",
+      status.isMiss && "text-red-500 dark:text-red-400",
       status.isPending && "text-gray-400 dark:text-gray-500"
     );
 
@@ -242,6 +243,7 @@ export const CitationTrigger = forwardRef<
           statusClasses,
           className
         )}
+        style={status.isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
         onClick={handleClick}
         onMouseDown={handleMouseDown}
         onMouseEnter={handleMouseEnter}
@@ -407,7 +409,7 @@ export const CitationIndicator = forwardRef<
           ref={ref}
           className={classNames(
             baseClasses,
-            "text-amber-600 dark:text-amber-500",
+            "text-amber-500 dark:text-amber-400",
             className
           )}
           aria-label="Partial match"

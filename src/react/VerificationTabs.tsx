@@ -201,7 +201,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
           "text-xs font-medium px-2 py-1 rounded-md inline-flex items-center gap-1.5",
           status === "not_found"
             ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-            : "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
+            : "bg-amber-100 dark:bg-amber-900/30 text-amber-500 dark:text-amber-400"
         )}>
           {status !== "not_found" && (
             <span className="size-2.5">
