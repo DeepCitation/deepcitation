@@ -11,6 +11,7 @@ import {
   renderCitationVariant,
   renderReferencesSection,
   getCitationDisplayText,
+  getIndicator,
 } from "./markdownVariants.js";
 
 /**
@@ -214,6 +215,5 @@ export function getVerificationIndicator(
   style: import("./types.js").IndicatorStyle = "check"
 ): string {
   const status = getCitationStatus(verification);
-  const { getIndicator } = require("./markdownVariants.js");
   return getIndicator(status, style);
 }
