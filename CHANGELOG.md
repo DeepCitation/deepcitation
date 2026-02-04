@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.52] - 2026-02-04
+
+### Added
+- **Markdown output module** for static citation rendering - generate markdown with citation references (#161)
+- **Copy button** in citation popover for easy text copying (#164)
+- **View page support** in citation popover - navigate directly to source pages (#164)
+- **Page interface** for multi-page document support (#155)
+- **Optional expiration dates** for attachments and pages (#156)
+- **`sourceLabel` prop** for CitationComponent - display custom source names instead of filenames (#146)
+- **Lazy interaction mode** - renamed from 'relaxed' for clearer semantics (#151)
+- **Mobile tap-to-expand** logic for citations with click-outside dismiss (#148, #149)
+- **Dynamic font-proportional indicator sizing** with simplified X icon (#150)
+- **Comprehensive labeling system** for Playwright showcases (#159)
+
+### Changed
+- **Citation popover UX improvements** (#164):
+  - Unified popover design across all citation types
+  - Added copy button for citation text
+  - View page navigation support
+- **Improved chip/superscript variants** - better UX and popover layout (#162)
+- **Human-friendly language** in CitationComponent with better colors and wavy underlines (#160)
+- **Simplified citation tooltip UX** with improved verification display (#152)
+- **Contained hover styles** within chip/superscript variants with unified search details layout (#158)
+- **Citation header UX** - filename truncation, status indicators, URL layout improvements (#142)
+- **Terminology update** - renamed "key phrase" to "anchor text" for consistency (#139)
+- **Enhanced VerificationLog** with ambiguity warnings, variation labels, and improved search display (#122)
+- **Linter variant** - green background now only shows on hover (#121)
+- **Auto-detect touch devices** for proper mobile tap behavior (#119)
+
+### Fixed
+- Code quality issues in markdown and React components (#163)
+- Miss indicator visibility improvements (#132)
+- URL citation popover layout (#132, #134)
+- Performance optimizations: N+1 queries, concurrency limits, stack overflow prevention (#120)
+- Broken links, purple focus rings, and sidebar header spacing in docs (#154)
+
 ## [1.1.51] - 2026-01-29
 
 ### Added
@@ -245,7 +281,8 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.51...HEAD
+[Unreleased]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.52...HEAD
+[1.1.52]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.51...v1.1.52
 [1.1.51]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.50...v1.1.51
 [1.1.50]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.26...v1.1.50
 [1.1.26]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.25...v1.1.26
