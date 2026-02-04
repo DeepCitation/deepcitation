@@ -5,8 +5,10 @@ import {
   getIndicator,
   toSuperscript,
   humanizeLinePosition,
+  getCitationDisplayText,
   INDICATOR_SETS,
 } from "../markdown/index.js";
+import type { Citation } from "../types/citation.js";
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { Verification } from "../types/verification.js";
 import type { IndicatorStyle, MarkdownVariant } from "../markdown/types.js";
@@ -111,6 +113,23 @@ describe("toSuperscript", () => {
     expect(toSuperscript(12)).toBe("¹²");
     expect(toSuperscript(123)).toBe("¹²³");
     expect(toSuperscript(99)).toBe("⁹⁹");
+  });
+
+  it("handles negative numbers by using absolute value", () => {
+    expect(toSuperscript(-5)).toBe("⁵");
+    expect(toSuperscript(-12)).toBe("¹²");
+    expect(toSuperscript(-99)).toBe("⁹⁹");
+  });
+
+  it("handles floats by truncating to integer", () => {
+    expect(toSuperscript(3.7)).toBe("³");
+    expect(toSuperscript(12.9)).toBe("¹²");
+    expect(toSuperscript(0.5)).toBe("⁰");
+  });
+
+  it("handles negative floats", () => {
+    expect(toSuperscript(-3.7)).toBe("³");
+    expect(toSuperscript(-12.9)).toBe("¹²");
   });
 });
 
@@ -405,5 +424,88 @@ describe("edge cases", () => {
 
     expect(result.citations).toHaveLength(1);
     expect(result.citations[0].citation.attachmentId).toBe("abc");
+  });
+
+  it("regex does not maintain state between multiple calls", () => {
+    // This test verifies that the stateful regex bug is fixed
+    // Previously, reusing a module-level regex with 'g' flag could cause issues
+    const input1 = `First<cite attachment_id='first123' anchor_text='First' />`;
+    const input2 = `Second<cite attachment_id='second456' anchor_text='Second' />`;
+    const input3 = `Third<cite attachment_id='third789' anchor_text='Third' />`;
+
+    // Call multiple times in succession
+    const result1 = renderCitationsAsMarkdown(input1);
+    const result2 = renderCitationsAsMarkdown(input2);
+    const result3 = renderCitationsAsMarkdown(input3);
+
+    // Each call should correctly parse its own input
+    expect(result1.citations[0].citation.attachmentId).toBe("first123");
+    expect(result2.citations[0].citation.attachmentId).toBe("second456");
+    expect(result3.citations[0].citation.attachmentId).toBe("third789");
+
+    expect(result1.citations[0].citation.anchorText).toBe("First");
+    expect(result2.citations[0].citation.anchorText).toBe("Second");
+    expect(result3.citations[0].citation.anchorText).toBe("Third");
+  });
+});
+
+// =============================================================================
+// getCitationDisplayText CONSISTENCY TESTS
+// =============================================================================
+
+describe("getCitationDisplayText", () => {
+  it("returns anchorText for inline variant when available", () => {
+    const citation: Citation = {
+      anchorText: "test anchor",
+      fullPhrase: "full phrase text",
+      citationNumber: 1,
+    };
+
+    expect(getCitationDisplayText(citation, "inline")).toBe("test anchor");
+  });
+
+  it("returns truncated fullPhrase for inline variant when anchorText is missing", () => {
+    const citation: Citation = {
+      fullPhrase: "This is a very long phrase that exceeds fifty characters and should be truncated",
+      citationNumber: 1,
+    };
+
+    const result = getCitationDisplayText(citation, "inline");
+    expect(result).toBe("This is a very long phrase that exceeds fifty cha...");
+    expect(result.length).toBe(53); // 50 chars + "..."
+  });
+
+  it("returns bracketed number for inline variant when both anchorText and fullPhrase are missing", () => {
+    const citation: Citation = {
+      citationNumber: 5,
+    };
+
+    expect(getCitationDisplayText(citation, "inline")).toBe("[5]");
+  });
+
+  it("returns citation number for number-based variants", () => {
+    const citation: Citation = {
+      anchorText: "test anchor",
+      fullPhrase: "full phrase",
+      citationNumber: 3,
+    };
+
+    expect(getCitationDisplayText(citation, "brackets")).toBe("3");
+    expect(getCitationDisplayText(citation, "superscript")).toBe("3");
+    expect(getCitationDisplayText(citation, "footnote")).toBe("3");
+    expect(getCitationDisplayText(citation, "minimal")).toBe("3");
+  });
+
+  it("matches displayText in CitationWithStatus from renderCitationsAsMarkdown", () => {
+    // This test verifies that getCitationDisplayText returns the same value
+    // that is used as displayText in the CitationWithStatus objects
+    const input = `Test<cite attachment_id='abc' anchor_text='anchor' full_phrase='full phrase' />`;
+    const result = renderCitationsAsMarkdown(input, { variant: "inline" });
+
+    const citation = result.citations[0].citation;
+    const displayText = result.citations[0].displayText;
+
+    expect(displayText).toBe(getCitationDisplayText(citation, "inline"));
+    expect(displayText).toBe("anchor");
   });
 });
