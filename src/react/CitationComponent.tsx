@@ -26,6 +26,7 @@ const Activity =
     children: React.ReactNode;
   }) => <>{children}</>);
 import { type CitationStatus } from "../types/citation.js";
+import type { Page } from "../types/boxes.js";
 import type { Verification } from "../types/verification.js";
 import type {
   MatchedVariation,
@@ -894,17 +895,23 @@ const MissIndicator = () => (
 function AnchorTextFocusedImage({
   verification,
   onImageClick,
+  page,
   onViewPageClick,
   maxWidth = "min(70vw, 384px)",
   maxHeight = "min(50vh, 300px)",
 }: {
   verification: Verification;
   onImageClick?: () => void;
-  /** Optional callback for "View page" button. When provided, shows the button. */
-  onViewPageClick?: () => void;
+  /** Optional page data with source URL. When provided with a source, shows "View page" button. */
+  page?: Page | null;
+  /** Optional callback for "View page" button. Called with the page when clicked. */
+  onViewPageClick?: (page: Page) => void;
   maxWidth?: string;
   maxHeight?: string;
 }) {
+  // Show "View page" button only when we have page data with a source URL
+  const showViewPageButton = page?.source && onViewPageClick;
+
   return (
     <div className="relative">
       {/* Image container - clickable to zoom */}
@@ -958,14 +965,14 @@ function AnchorTextFocusedImage({
           <span>Expand</span>
         </button>
 
-        {/* View page button on right (only shown when onViewPageClick is provided) */}
-        {onViewPageClick && (
+        {/* View page button on right (only shown when page data with source URL is provided) */}
+        {showViewPageButton && (
           <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onViewPageClick();
+              onViewPageClick(page);
             }}
             className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
             aria-label="View full page"
