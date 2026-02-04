@@ -11,6 +11,18 @@ import type {
 import { INDICATOR_SETS, SUPERSCRIPT_DIGITS } from "./types.js";
 
 /**
+ * Line position thresholds for humanizing line IDs.
+ * These define the boundaries for categorizing where on a page a line appears.
+ */
+const LINE_POSITION_THRESHOLDS = {
+  START: 0.2,   // 0-20% of page
+  EARLY: 0.33,  // 20-33% of page
+  MIDDLE: 0.66, // 33-66% of page
+  LATE: 0.8,    // 66-80% of page
+  // END: 80-100% of page (implicit)
+} as const;
+
+/**
  * Get the indicator string for a verification status.
  */
 export function getIndicator(
@@ -53,10 +65,10 @@ export function humanizeLinePosition(
 
   const ratio = lineId / totalLinesOnPage;
 
-  if (ratio < 0.2) return "start";
-  if (ratio < 0.33) return "early";
-  if (ratio < 0.66) return "middle";
-  if (ratio < 0.8) return "late";
+  if (ratio < LINE_POSITION_THRESHOLDS.START) return "start";
+  if (ratio < LINE_POSITION_THRESHOLDS.EARLY) return "early";
+  if (ratio < LINE_POSITION_THRESHOLDS.MIDDLE) return "middle";
+  if (ratio < LINE_POSITION_THRESHOLDS.LATE) return "late";
   return "end";
 }
 
@@ -98,9 +110,6 @@ export function formatPageLocation(
   let location = `p.${pageNumber}`;
 
   // Add humanized line position for mismatches if available
-  // Note: totalLinesOnPage is not currently in the Verification type.
-  // When the API adds this field, humanization can be enabled.
-  // For now, we skip line position humanization until the API supports it.
   if (
     showLinePosition &&
     verification?.status === "found_on_other_line" &&
@@ -109,8 +118,7 @@ export function formatPageLocation(
   ) {
     const expectedLineId = citation.lineIds[0];
     const foundLineId = verification.verifiedLineIds[0];
-    // Cast to access potential future field - will be undefined until API adds it
-    const totalLines = (verification as { totalLinesOnPage?: number }).totalLinesOnPage;
+    const totalLines = verification.totalLinesOnPage;
 
     const expectedPos = humanizeLinePosition(expectedLineId, totalLines);
     const foundPos = humanizeLinePosition(foundLineId, totalLines);
@@ -138,7 +146,9 @@ export function renderCitationVariant(
 
   switch (variant) {
     case "inline": {
-      const text = citation.anchorText || "";
+      // Fallback chain: anchorText -> fullPhrase (truncated) -> citation number
+      const text = citation.anchorText ||
+        (citation.fullPhrase ? citation.fullPhrase.slice(0, 50) + (citation.fullPhrase.length > 50 ? "..." : "") : `[${num}]`);
       const anchor = linkStyle === "anchor" ? `[${text}${indicator}](#ref-${num})` : `${text}${indicator}`;
       return anchor;
     }
