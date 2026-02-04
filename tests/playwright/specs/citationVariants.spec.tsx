@@ -82,14 +82,15 @@ test.describe("ChipCitation", () => {
 
     // Wrapper has background color, text color is on inner span
     await expect(chip).toHaveClass(/bg-red-/);
-    // wavy underline is applied via inline style on the inner text span
-    const hasWavyUnderline = await chip.evaluate((el) => {
-      const spans = el.querySelectorAll("span");
-      return Array.from(spans).some(
-        (span) => (span as HTMLElement).style.textDecorationStyle === "wavy"
-      );
+    // Chip variant does NOT use wavy underline - status is conveyed via indicator icon
+    // Check that the X indicator is present
+    const hasXIndicator = await chip.evaluate((el) => {
+      return el.querySelector('svg') !== null || el.textContent?.includes('✕') || el.querySelector('[aria-hidden="true"]') !== null;
     });
-    expect(hasWavyUnderline).toBe(true);
+    expect(hasXIndicator).toBe(true);
+    // Verify text has reduced opacity
+    const textSpan = chip.locator('span').first();
+    await expect(textSpan).toHaveClass(/opacity-70/);
   });
 
   test("renders with partial match state", async ({ mount, page }) => {
@@ -246,14 +247,12 @@ test.describe("SuperscriptCitation", () => {
     const sup = page.locator('[data-variant="superscript"]');
 
     await expect(sup).toHaveClass(/text-red-/);
-    // wavy underline is applied via inline style on the inner text span
-    const hasWavyUnderline = await sup.evaluate((el) => {
-      const spans = el.querySelectorAll("span");
-      return Array.from(spans).some(
-        (span) => (span as HTMLElement).style.textDecorationStyle === "wavy"
-      );
+    // Superscript variant does NOT use wavy underline - status is conveyed via indicator icon
+    // Check that the X indicator is present
+    const hasXIndicator = await sup.evaluate((el) => {
+      return el.querySelector('svg') !== null || el.textContent?.includes('✕') || el.querySelector('[aria-hidden="true"]') !== null;
     });
-    expect(hasWavyUnderline).toBe(true);
+    expect(hasXIndicator).toBe(true);
   });
 });
 
