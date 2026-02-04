@@ -96,10 +96,10 @@ const DEFAULT_VISIBLE_GROUP_COUNT = 2;
 const MAX_PHRASE_LENGTH = 50;
 
 /** Popover container width */
-const POPOVER_WIDTH = "400px";
+const POPOVER_WIDTH = "384px";
 
-/** Popover container max width (viewport-relative) */
-const POPOVER_MAX_WIDTH = "92vw";
+/** Popover container max width (viewport-relative, with safe margin to prevent scrollbar) */
+const POPOVER_MAX_WIDTH = "calc(100vw - 32px)";
 
 /** Maximum characters to show for matched text display in search results */
 const MAX_MATCHED_TEXT_LENGTH = 40;
@@ -981,7 +981,7 @@ function AnchorTextFocusedImage({
             e.stopPropagation();
             onImageClick?.();
           }}
-          className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+          className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
           aria-label="Expand image"
         >
           <span className="size-3.5">
@@ -990,12 +990,19 @@ function AnchorTextFocusedImage({
           <span>Expand</span>
         </button>
 
-        {/* Copy button on right (only if anchorText exists) */}
+        {/* Copy button on right (only if anchorText exists) - icon only */}
         {anchorText && (
           <button
             type="button"
             onClick={handleCopy}
-            className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            className={cn(
+              "flex items-center gap-1 text-xs transition-colors cursor-pointer",
+              copyState === "copied"
+                ? "text-green-600 dark:text-green-400"
+                : copyState === "error"
+                  ? "text-red-500 dark:text-red-400"
+                  : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+            )}
             aria-label={
               copyState === "copied"
                 ? "Copied!"
@@ -1003,31 +1010,11 @@ function AnchorTextFocusedImage({
                   ? "Failed to copy"
                   : "Copy anchor text"
             }
+            title={copyState === "copied" ? "Copied!" : copyState === "error" ? "Failed" : "Copy"}
           >
-            {copyState === "copied" ? (
-              <>
-                <span className="size-3.5 text-green-600 dark:text-green-400">
-                  <CheckIcon />
-                </span>
-                <span className="text-green-600 dark:text-green-400">
-                  Copied
-                </span>
-              </>
-            ) : copyState === "error" ? (
-              <>
-                <span className="size-3.5 text-red-500 dark:text-red-400">
-                  <XCircleIcon />
-                </span>
-                <span className="text-red-500 dark:text-red-400">Failed</span>
-              </>
-            ) : (
-              <>
-                <span className="size-3.5">
-                  <CopyIcon />
-                </span>
-                <span>Copy quote</span>
-              </>
-            )}
+            <span className="size-3.5">
+              {copyState === "copied" ? <CheckIcon /> : copyState === "error" ? <XCircleIcon /> : <CopyIcon />}
+            </span>
           </button>
         )}
       </div>
@@ -2410,11 +2397,12 @@ export const CitationComponent = forwardRef<
       // Variant: chip (pill/badge style with neutral gray background)
       // Status is conveyed via the indicator icon color only
       // Hover styling is applied here (not on parent) to keep hover contained within chip bounds
+      // Uses minimal padding (px-1.5 py-0) to fit seamlessly into text layouts without enlarging line height
       if (variant === "chip") {
         return (
           <span
             className={cn(
-              "inline-flex items-center gap-1 px-2 py-px rounded-full text-sm font-medium transition-colors",
+              "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal transition-colors",
               // Neutral gray background - status shown via icon color only
               "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
               // Status-aware hover styling (contained within the chip)
@@ -2424,10 +2412,9 @@ export const CitationComponent = forwardRef<
             <span
               className={cn(
                 "max-w-60 overflow-hidden text-ellipsis whitespace-nowrap",
-                // Miss state: add wavy underline for visual distinction (on text only, not indicator)
+                // Miss state: reduce opacity only (no wavy underline for chip - indicator conveys status)
                 isMiss && !shouldShowSpinner && "opacity-70"
               )}
-              style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
             >
               {displayText}
             </span>
@@ -2439,6 +2426,7 @@ export const CitationComponent = forwardRef<
       // Variant: superscript (footnote style)
       // Shows anchor text as unstyled inline text, followed by superscript [number✓]
       // Hover styling is applied to the superscript part only to keep hover contained
+      // Note: No wavy underline for superscript - the indicator icon conveys status
       if (variant === "superscript") {
         // Get anchor text for inline display (unstyled)
         const anchorTextDisplay = citation.anchorText?.toString() || "";
@@ -2453,19 +2441,13 @@ export const CitationComponent = forwardRef<
         );
         return (
           <>
-            {/* Anchor text displayed as unstyled inline text */}
+            {/* Anchor text displayed as unstyled inline text - no wavy underline, indicator conveys status */}
             {anchorTextDisplay && (
-              <span
-                className={cn(
-                  // Miss state: add wavy underline for visual distinction
-                  isMiss && !shouldShowSpinner && "opacity-70"
-                )}
-                style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
-              >
+              <span>
                 {anchorTextDisplay}
               </span>
             )}
-            {/* Superscript citation number with indicator */}
+            {/* Superscript citation number with indicator - no wavy underline or opacity change */}
             <sup
               className={cn(
                 "text-xs font-medium transition-colors inline-flex items-baseline px-0.5 rounded",
@@ -2475,12 +2457,7 @@ export const CitationComponent = forwardRef<
               )}
             >
               [
-              <span
-                className={cn(
-                  isMiss && !shouldShowSpinner && "opacity-60"
-                )}
-                style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
-              >
+              <span>
                 {citationNumber}
               </span>
               {renderStatusIndicator()}]
@@ -2489,10 +2466,10 @@ export const CitationComponent = forwardRef<
         );
       }
 
-      // Variant: text (inherits parent styling)
+      // Variant: text (inherits parent styling except font-weight to avoid inheriting bold)
       if (variant === "text") {
         return (
-          <span className={statusClasses}>
+          <span className={cn("font-normal", statusClasses)}>
             {displayText}
             {renderStatusIndicator()}
           </span>
@@ -2611,7 +2588,7 @@ export const CitationComponent = forwardRef<
         }
 
         const linterClasses = cn(
-          "cursor-pointer",
+          "cursor-pointer font-normal",
           // Text color: let the underline convey status, keep text readable
           // Miss state uses same color as verified/partial - wavy red underline is the signal
           (isVerifiedState || isPartialState || isMissState) &&
@@ -2642,7 +2619,7 @@ export const CitationComponent = forwardRef<
         <span
           className={cn(
             "inline-flex items-baseline gap-0.5 whitespace-nowrap",
-            "font-mono text-xs leading-tight",
+            "font-mono font-normal text-xs leading-tight",
             "text-gray-500 dark:text-gray-400",
             "transition-colors"
           )}

@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import type { SearchAttempt, SearchStatus, SearchMethod, VariationType } from "../types/search.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import { CheckIcon, MissIcon, SpinnerIcon, DocumentIcon, GlobeIcon, XCircleIcon, ExternalLinkIcon } from "./icons.js";
+import { CheckIcon, MissIcon, SpinnerIcon, DocumentIcon, GlobeIcon, XCircleIcon, ExternalLinkIcon, CopyIcon } from "./icons.js";
 import { cn, isUrlCitation } from "./utils.js";
 import type { UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
+import { COPY_FEEDBACK_DURATION_MS } from "./constants.js";
 
 // =============================================================================
 // CONSTANTS
@@ -385,6 +386,8 @@ export interface StatusHeaderProps {
   anchorText?: string;
   /** Whether to hide the page badge (to avoid duplication when SourceContextHeader shows it) */
   hidePageBadge?: boolean;
+  /** Whether to show copy button next to anchor text */
+  showCopyButton?: boolean;
 }
 
 export interface QuoteBoxProps {
@@ -666,9 +669,35 @@ export function StatusHeader({
   compact = false,
   anchorText,
   hidePageBadge = false,
+  showCopyButton = true,
 }: StatusHeaderProps) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const colorScheme = getStatusColorScheme(status);
   const headerText = getStatusHeaderText(status);
+
+  // Auto-reset copy state after feedback duration
+  useEffect(() => {
+    if (copyState === "idle") return;
+    const timeoutId = setTimeout(() => setCopyState("idle"), COPY_FEEDBACK_DURATION_MS);
+    return () => clearTimeout(timeoutId);
+  }, [copyState]);
+
+  const handleCopy = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!anchorText) return;
+
+      try {
+        await navigator.clipboard.writeText(anchorText);
+        setCopyState("copied");
+      } catch (err) {
+        console.error("Failed to copy text:", err);
+        setCopyState("error");
+      }
+    },
+    [anchorText]
+  );
 
   // Select appropriate icon based on status
   // - Green (verified): CheckIcon
@@ -684,9 +713,11 @@ export function StatusHeader({
           ? XCircleIcon
           : SpinnerIcon;
 
-  // Consistent single-row layout: icon + text + page badge
+  // Consistent single-row layout: icon + text + copy button + page badge
   // Display priority: headerText (status description) > anchorText (quoted phrase)
   const displayText = headerText || (anchorText ? `"${anchorText}"` : null);
+  // Show copy button when we have anchor text and no header text (i.e., showing the quoted anchor text)
+  const shouldShowCopyButton = showCopyButton && anchorText && !headerText;
 
   return (
     <div
@@ -695,7 +726,7 @@ export function StatusHeader({
         compact ? "px-3 py-2" : "px-4 py-2.5",
       )}
     >
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
         <span className={cn("size-4 max-w-4 max-h-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
           <IconComponent />
         </span>
@@ -708,6 +739,27 @@ export function StatusHeader({
           >
             {displayText}
           </span>
+        )}
+        {/* Copy button - icon only, shown next to anchor text */}
+        {shouldShowCopyButton && (
+          <button
+            type="button"
+            onClick={handleCopy}
+            className={cn(
+              "flex-shrink-0 p-0.5 rounded transition-colors cursor-pointer",
+              copyState === "copied"
+                ? "text-green-600 dark:text-green-400"
+                : copyState === "error"
+                  ? "text-red-500 dark:text-red-400"
+                  : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+            )}
+            aria-label={copyState === "copied" ? "Copied!" : "Copy anchor text"}
+            title={copyState === "copied" ? "Copied!" : "Copy"}
+          >
+            <span className="size-3.5 block">
+              {copyState === "copied" ? <CheckIcon /> : <CopyIcon />}
+            </span>
+          </button>
         )}
       </div>
       {!hidePageBadge && <PageBadge expectedPage={expectedPage} foundPage={foundPage} />}
@@ -820,7 +872,7 @@ function VerificationLogSummary({ status, searchAttempts, isExpanded, onToggle }
       onClick={onToggle}
       aria-expanded={isExpanded}
       aria-controls="verification-log-timeline"
-      className="w-full px-4 py-2.5 flex items-center justify-between text-xs hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+      className="w-full px-4 py-2.5 flex items-center justify-between text-xs hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
     >
       <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
         <svg

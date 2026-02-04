@@ -63,7 +63,7 @@ function CodeBlock({ children, label }: { children: string; label?: string }) {
   return (
     <div>
       {label && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">{label}</p>}
-      <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+      <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs font-mono overflow-x-auto whitespace-pre-wrap text-gray-800 dark:text-gray-200">
         {children}
       </pre>
     </div>
@@ -211,8 +211,8 @@ export function MarkdownShowcase() {
                       const status = getCitationStatus(verification);
                       const indicator = getIndicator(status, style);
                       return (
-                        <td key={name} className="p-2 font-mono text-lg" data-indicator={name.toLowerCase()}>
-                          {indicator || <span className="text-gray-300">(none)</span>}
+                        <td key={name} className="p-2 font-mono text-lg text-gray-800 dark:text-gray-200" data-indicator={name.toLowerCase()}>
+                          {indicator || <span className="text-gray-400 dark:text-gray-600">(none)</span>}
                         </td>
                       );
                     })}

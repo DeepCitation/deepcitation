@@ -154,11 +154,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       eventHandlers?.onMouseLeave?.(citation, citationKey);
     }, [eventHandlers, citation, citationKey]);
 
-    const sizeClasses = {
-      sm: "text-xs px-1.5 py-px",
-      md: "text-sm px-2 py-0.5",
-      lg: "text-base px-3 py-1",
-    };
+    // Note: sizeClasses not used - chip uses consistent minimal sizing for inline text flow
 
     // Check partial first since isVerified is true when isPartialMatch is true
     // Note: For miss state, text gets line-through but status indicator should NOT
@@ -192,9 +188,8 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="chip"
           className={classNames(
-            "inline-flex items-center gap-1 rounded-full font-medium cursor-pointer transition-colors",
+            "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full font-normal cursor-pointer transition-colors text-[0.9em]",
             "hover:brightness-95",
-            sizeClasses[size],
             statusClass,
             className
           )}
@@ -207,8 +202,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           {showIcon &&
             (icon || <span className="text-[0.9em]">📄</span>)}
           <span
-            className={classNames("font-medium", textColorClass, isMiss && "opacity-70")}
-            style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
+            className={classNames(textColorClass, isMiss && "opacity-70")}
           >{displayText}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
@@ -332,10 +326,7 @@ export const SuperscriptCitation = forwardRef<
           aria-label={`Citation ${displayText}`}
         >
           {!hideBrackets && "["}
-          <span
-            className={isMiss ? "opacity-70" : undefined}
-            style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
-          >{displayText}</span>
+          <span>{displayText}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
