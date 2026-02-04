@@ -352,6 +352,10 @@ export function parseDeferredCitationResponse(
  * Parses a page_id string to extract page number and index.
  * Supports both compact "N_I" format and legacy "page_number_N_index_I" format.
  *
+ * Page numbers are 1-indexed (page 1 is the first page). If a 0-indexed page
+ * number is detected (e.g., "0_0"), it will be auto-corrected to 1-indexed
+ * (e.g., page 1, index 0).
+ *
  * @param pageId - The page ID string
  * @returns Object with pageNumber and normalized startPageId, or undefined values
  */
@@ -359,8 +363,15 @@ function parsePageId(pageId: string): { pageNumber?: number; startPageId?: strin
   // Try compact format first: "N_I" (e.g., "2_1")
   const compactMatch = pageId.match(/^(\d+)_(\d+)$/);
   if (compactMatch) {
-    const pageNum = parseInt(compactMatch[1], 10);
+    let pageNum = parseInt(compactMatch[1], 10);
     const index = parseInt(compactMatch[2], 10);
+
+    // Auto-correct 0-indexed page numbers to 1-indexed
+    // Page numbers should be 1-indexed (first page is page 1, not page 0)
+    if (pageNum === 0) {
+      pageNum = 1;
+    }
+
     return {
       pageNumber: pageNum,
       startPageId: `page_number_${pageNum}_index_${index}`,
@@ -370,8 +381,14 @@ function parsePageId(pageId: string): { pageNumber?: number; startPageId?: strin
   // Try legacy format: "page_number_N_index_I" or variations
   const legacyMatch = pageId.match(/page[_a-zA-Z]*(\d+)_index_(\d+)/i);
   if (legacyMatch) {
-    const pageNum = parseInt(legacyMatch[1], 10);
+    let pageNum = parseInt(legacyMatch[1], 10);
     const index = parseInt(legacyMatch[2], 10);
+
+    // Auto-correct 0-indexed page numbers to 1-indexed
+    if (pageNum === 0) {
+      pageNum = 1;
+    }
+
     return {
       pageNumber: pageNum,
       startPageId: `page_number_${pageNum}_index_${index}`,

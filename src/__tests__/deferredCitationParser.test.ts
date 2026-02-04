@@ -669,6 +669,46 @@ describe("simplified page_id format", () => {
     expect(citation.pageNumber).toBeUndefined();
     expect(citation.startPageId).toBeUndefined();
   });
+
+  it("auto-corrects 0-indexed page numbers to 1-indexed", () => {
+    // page_id "0_0" should be corrected to page 1, index 0
+    const zeroIndexed = deferredCitationToCitation({
+      id: 1,
+      page_id: "0_0",
+      full_phrase: "test",
+    });
+    expect(zeroIndexed.pageNumber).toBe(1);
+    expect(zeroIndexed.startPageId).toBe("page_number_1_index_0");
+
+    // page_id "0_5" should be corrected to page 1, index 5
+    const zeroWithIndex = deferredCitationToCitation({
+      id: 2,
+      page_id: "0_5",
+      full_phrase: "test",
+    });
+    expect(zeroWithIndex.pageNumber).toBe(1);
+    expect(zeroWithIndex.startPageId).toBe("page_number_1_index_5");
+
+    // Non-zero page numbers should NOT be corrected
+    const pageTwo = deferredCitationToCitation({
+      id: 3,
+      page_id: "2_0",
+      full_phrase: "test",
+    });
+    expect(pageTwo.pageNumber).toBe(2);
+    expect(pageTwo.startPageId).toBe("page_number_2_index_0");
+  });
+
+  it("auto-corrects 0-indexed legacy format page numbers", () => {
+    // Legacy format "page_number_0_index_0" should also be corrected
+    const legacyZero = deferredCitationToCitation({
+      id: 1,
+      page_id: "page_number_0_index_0",
+      full_phrase: "test",
+    });
+    expect(legacyZero.pageNumber).toBe(1);
+    expect(legacyZero.startPageId).toBe("page_number_1_index_0");
+  });
 });
 
 describe("JSON repair - invalid escape sequences", () => {
@@ -794,8 +834,9 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(citationValues.length).toBe(1);
     expect(citationValues[0].attachmentId).toBe("0");
     expect(citationValues[0].fullPhrase).toBe("the quote");
-    expect(citationValues[0].pageNumber).toBe(0);
-    expect(citationValues[0].startPageId).toBe("page_number_0_index_0");
+    // page_id "0_0" is auto-corrected to page 1 (1-indexed)
+    expect(citationValues[0].pageNumber).toBe(1);
+    expect(citationValues[0].startPageId).toBe("page_number_1_index_0");
   });
 });
 
@@ -863,8 +904,9 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(citationValues[0].attachmentId).toBe("646274488");
     expect(citationValues[0].fullPhrase).toBe("10 John Doe 50/M Full");
     expect(citationValues[0].anchorText).toBe("John Doe 50/M");
-    expect(citationValues[0].pageNumber).toBe(0);
-    expect(citationValues[0].startPageId).toBe("page_number_0_index_0");
+    // page_id "0_0" is auto-corrected to page 1 (1-indexed)
+    expect(citationValues[0].pageNumber).toBe(1);
+    expect(citationValues[0].startPageId).toBe("page_number_1_index_0");
     expect(citationValues[0].lineIds).toEqual([1, 2, 3]);
     expect(citationValues[0].reasoning).toBe("patient demographics");
 
