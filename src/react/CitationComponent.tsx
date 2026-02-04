@@ -922,6 +922,17 @@ function AnchorTextFocusedImage({
     "idle"
   );
 
+  // Auto-reset copy state after feedback duration (with cleanup to prevent memory leaks)
+  useEffect(() => {
+    if (copyState !== "idle") {
+      const timeoutId = setTimeout(
+        () => setCopyState("idle"),
+        COPY_FEEDBACK_DURATION_MS
+      );
+      return () => clearTimeout(timeoutId);
+    }
+  }, [copyState]);
+
   const handleCopy = useCallback(
     async (e: React.MouseEvent) => {
       e.preventDefault();
@@ -931,11 +942,9 @@ function AnchorTextFocusedImage({
       try {
         await navigator.clipboard.writeText(anchorText);
         setCopyState("copied");
-        setTimeout(() => setCopyState("idle"), COPY_FEEDBACK_DURATION_MS);
       } catch (err) {
         console.error("Failed to copy text:", err);
         setCopyState("error");
-        setTimeout(() => setCopyState("idle"), COPY_FEEDBACK_DURATION_MS);
       }
     },
     [anchorText]
