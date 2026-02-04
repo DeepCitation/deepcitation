@@ -22,20 +22,9 @@ import type {
 } from "./types.js";
 import { XIcon } from "./icons.js";
 import { INDICATOR_SIZE_STYLE } from "./CitationComponent.js";
+import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
 
 const TWO_DOTS_THINKING_CONTENT = "..";
-
-/**
- * Style for wavy underline in miss/not-found state.
- * Uses wavy text decoration (like spell-checker) instead of strikethrough
- * to indicate "this has a problem" rather than "this was deleted".
- */
-const MISS_WAVY_UNDERLINE_STYLE: React.CSSProperties = {
-  textDecoration: "underline",
-  textDecorationStyle: "wavy",
-  textDecorationColor: "#ef4444", // red-500
-  textUnderlineOffset: "2px",
-};
 
 /**
  * Shared props for all citation variant components.

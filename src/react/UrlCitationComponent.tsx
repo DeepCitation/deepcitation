@@ -3,18 +3,7 @@ import type { Citation } from "../types/citation.js";
 import type { UrlCitationMeta, UrlCitationProps, UrlFetchStatus } from "./types.js";
 import { classNames, generateCitationInstanceId, generateCitationKey } from "./utils.js";
 import { CheckIcon, XCircleIcon, LockIcon, ExternalLinkIcon } from "./icons.js";
-
-/**
- * Style for wavy underline in broken/error state.
- * Uses wavy text decoration (like spell-checker) instead of strikethrough
- * to indicate "this has a problem" rather than "this was deleted".
- */
-const BROKEN_WAVY_UNDERLINE_STYLE: React.CSSProperties = {
-  textDecoration: "underline",
-  textDecorationStyle: "wavy",
-  textDecorationColor: "#ef4444", // red-500
-  textUnderlineOffset: "2px",
-};
+import { BROKEN_WAVY_UNDERLINE_STYLE } from "./constants.js";
 
 /**
  * Module-level handler for hiding broken favicon images.

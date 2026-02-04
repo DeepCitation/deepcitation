@@ -71,6 +71,7 @@ import {
   StatusHeader,
   VerificationLog,
 } from "./VerificationLog.js";
+import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
 
 // Re-export types for convenience
 export type {
@@ -111,18 +112,6 @@ const MAX_VARIATION_LENGTH = 30;
 
 /** Debounce threshold for ignoring click events after touch (ms) */
 const TOUCH_CLICK_DEBOUNCE_MS = 100;
-
-/**
- * Style for wavy underline in miss/not-found state.
- * Uses wavy text decoration (like spell-checker) instead of strikethrough
- * to indicate "this has a problem" rather than "this was deleted".
- */
-const MISS_WAVY_UNDERLINE_STYLE: React.CSSProperties = {
-  textDecoration: "underline",
-  textDecorationStyle: "wavy",
-  textDecorationColor: "#ef4444", // red-500
-  textUnderlineOffset: "2px",
-};
 
 // =============================================================================
 // TOUCH DEVICE DETECTION

@@ -25,18 +25,7 @@ import {
   generateCitationInstanceId,
   classNames,
 } from "./utils.js";
-
-/**
- * Style for wavy underline in miss/not-found state.
- * Uses wavy text decoration (like spell-checker) instead of strikethrough
- * to indicate "this has a problem" rather than "this was deleted".
- */
-const MISS_WAVY_UNDERLINE_STYLE: React.CSSProperties = {
-  textDecoration: "underline",
-  textDecorationStyle: "wavy",
-  textDecorationColor: "#ef4444", // red-500
-  textUnderlineOffset: "2px",
-};
+import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
 
 interface CitationContextValue {
   citation: CitationType;
