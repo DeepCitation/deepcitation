@@ -887,6 +887,35 @@ ${CITATION_DATA_END_DELIMITER}`;
     // \u00F is invalid (only 3 hex digits), backslash should be removed
     expect(result.citations[0].full_phrase).toBe("testu00Fvalue");
   });
+
+  it("repairs consecutive invalid unicode-like escapes", () => {
+    const response = `Test [1].
+
+${CITATION_DATA_START_DELIMITER}
+[{"id": 1, "attachment_id": "doc", "full_phrase": "test\\utest\\u00Gend", "anchor_text": "testutestu00Gend"}]
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseDeferredCitationResponse(response);
+
+    expect(result.success).toBe(true);
+    // \utest is invalid (non-hex chars), \u00G is invalid (G is not hex)
+    // Both should have backslashes removed
+    expect(result.citations[0].full_phrase).toBe("testutestu00Gend");
+  });
+
+  it("preserves valid unicode escape at end of string", () => {
+    const response = `Test [1].
+
+${CITATION_DATA_START_DELIMITER}
+[{"id": 1, "attachment_id": "doc", "full_phrase": "test\\u0020", "anchor_text": "test "}]
+${CITATION_DATA_END_DELIMITER}`;
+
+    const result = parseDeferredCitationResponse(response);
+
+    expect(result.success).toBe(true);
+    // \u0020 at end of string should be preserved as space
+    expect(result.citations[0].full_phrase).toBe("test ");
+  });
 });
 
 describe("grouped format with numeric string keys", () => {
