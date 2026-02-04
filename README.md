@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](https://www.npmjs.com/package/@deepcitation/deepcitation-js)
 
-[Documentation](https://docs.deepcitation.com) · [Get API Key](https://deepcitation.com/signup) · [Examples](./examples) · [Agent Integration](./INTEGRATION.md)
+[Documentation](https://docs.deepcitation.com) · [Get API Key](https://deepcitation.com/signup) · [Terms](https://deepcitation.com/legal/terms-of-service) · [Privacy](https://deepcitation.com/legal/privacy) · [Examples](./examples) · [Agent Integration](./INTEGRATION.md)
 
 </div>
 
@@ -85,3 +85,5 @@ PDF, DOCX, XLSX, PPTX, HTML, Images (JPG, PNG, TIFF, WebP, HEIC), URLs
 ## License
 
 [MIT](./LICENSE)
+
+> Hosted API/service is subject to [Terms](https://deepcitation.com/legal/terms-of-service). Patent pending. "DeepCitation" is a trademark.
