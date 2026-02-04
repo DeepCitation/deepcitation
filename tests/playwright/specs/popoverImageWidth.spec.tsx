@@ -82,9 +82,9 @@ test.describe("Popover Image Width Constraint", () => {
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
 
-    // Find the popover container - new layout uses a fixed-width container
-    // Implementation uses: style={{ width: "380px", maxWidth: "90vw" }}
-    const container = popover.locator(".overflow-hidden.rounded-lg");
+    // Find the inner popover container with fixed-width styling
+    // Use shadow-md to distinguish from Radix's shadow-xl dialog wrapper
+    const container = popover.locator(".shadow-md.rounded-lg");
     await expect(container).toBeVisible();
 
     // The container should have a constrained width (400px or 90vw max)

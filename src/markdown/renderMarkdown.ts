@@ -1,0 +1,226 @@
+import type { Citation, CitationStatus } from "../types/citation.js";
+import type { Verification } from "../types/verification.js";
+import type {
+  RenderMarkdownOptions,
+  MarkdownOutput,
+  CitationWithStatus,
+} from "./types.js";
+import { getCitationStatus, getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
+import { generateCitationKey } from "../react/utils.js";
+import {
+  renderCitationVariant,
+  renderReferencesSection,
+  getCitationDisplayText,
+  getIndicator,
+} from "./markdownVariants.js";
+
+/**
+ * Module-level compiled regex for cite tag matching.
+ * Matches self-closing <cite ... /> tags.
+ */
+const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
+
+/**
+ * Module-level regex for parsing cite tag attributes.
+ * Compiled once for better performance when processing multiple citations.
+ */
+const ATTR_REGEX = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
+
+/**
+ * Parse attributes from a cite tag.
+ */
+function parseCiteAttributes(citeTag: string): Record<string, string | undefined> {
+  const attrs: Record<string, string | undefined> = {};
+  // Reset lastIndex since we're reusing the module-level regex
+  ATTR_REGEX.lastIndex = 0;
+  let match;
+
+  while ((match = ATTR_REGEX.exec(citeTag)) !== null) {
+    const key = match[1]
+      .toLowerCase()
+      .replace(/([a-z])([A-Z])/g, "$1_$2")
+      .toLowerCase();
+    const value = match[3];
+
+    // Normalize key names
+    const normalizedKey =
+      key === "fileid" || key === "file_id" || key === "attachmentid"
+        ? "attachment_id"
+        : key === "anchortext" || key === "anchor_text"
+          ? "anchor_text"
+          : key === "fullphrase" || key === "full_phrase"
+            ? "full_phrase"
+            : key === "lineids" || key === "line_ids"
+              ? "line_ids"
+              : key === "pagenumber" || key === "page_number"
+                ? "page_number"
+                : key === "citationnumber" || key === "citation_number"
+                  ? "citation_number"
+                  : key;
+
+    attrs[normalizedKey] = value;
+  }
+
+  return attrs;
+}
+
+/**
+ * Build a Citation object from parsed cite tag attributes.
+ */
+function buildCitationFromAttrs(
+  attrs: Record<string, string | undefined>,
+  citationNumber: number
+): Citation {
+  const parseLineIds = (lineIdsStr?: string): number[] | undefined => {
+    if (!lineIdsStr) return undefined;
+    const nums = lineIdsStr
+      .split(",")
+      .map((s) => parseInt(s.trim(), 10))
+      .filter((n) => !isNaN(n));
+    return nums.length > 0 ? nums : undefined;
+  };
+
+  const parsePageNumber = (pageStr?: string): number | undefined => {
+    if (!pageStr) return undefined;
+    // Handle page_number_X_index_Y format
+    const match = pageStr.match(/\d+/);
+    return match ? parseInt(match[0], 10) : undefined;
+  };
+
+  // Unescape quotes in text fields
+  const unescape = (str: string | undefined): string | undefined =>
+    str?.replace(/\\'/g, "'").replace(/\\"/g, '"');
+
+  return {
+    attachmentId: attrs.attachment_id,
+    pageNumber: attrs.page_number
+      ? parseInt(attrs.page_number, 10)
+      : parsePageNumber(attrs.start_page_id),
+    fullPhrase: unescape(attrs.full_phrase),
+    anchorText: unescape(attrs.anchor_text),
+    lineIds: parseLineIds(attrs.line_ids),
+    citationNumber: attrs.citation_number
+      ? parseInt(attrs.citation_number, 10)
+      : citationNumber,
+  };
+}
+
+/**
+ * Renders LLM output with <cite /> tags to clean markdown with verification indicators.
+ *
+ * @param input - LLM response text containing <cite /> tags
+ * @param options - Rendering options
+ * @returns Structured output with markdown, references, and citation metadata
+ *
+ * @example Basic usage (inline with check indicators)
+ * ```typescript
+ * const output = renderCitationsAsMarkdown(llmOutput, {
+ *   verifications,
+ *   variant: "inline",
+ *   indicatorStyle: "check",
+ * });
+ * // output.markdown: "Revenue grew 45%✓ according to the report."
+ * // output.full: includes references section if requested
+ * ```
+ *
+ * @example Footnote style with references
+ * ```typescript
+ * const output = renderCitationsAsMarkdown(llmOutput, {
+ *   verifications,
+ *   variant: "footnote",
+ *   includeReferences: true,
+ * });
+ * // output.markdown: "Revenue grew 45%[^1] according to the report."
+ * // output.references: "[^1]: \"Revenue grew 45%\" - p.3 ✓"
+ * ```
+ */
+export function renderCitationsAsMarkdown(
+  input: string,
+  options: RenderMarkdownOptions = {}
+): MarkdownOutput {
+  const { verifications = {}, includeReferences = false } = options;
+
+  const citationsWithStatus: CitationWithStatus[] = [];
+  let citationIndex = 0;
+
+  // Create fresh regex instance to reset lastIndex
+  const citationRegex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
+
+  // Replace cite tags with rendered variants
+  const markdown = input.replace(citationRegex, (match) => {
+    citationIndex++;
+    const attrs = parseCiteAttributes(match);
+    const citation = buildCitationFromAttrs(attrs, citationIndex);
+    const citationKey = generateCitationKey(citation);
+    const verification = verifications[citationKey] || null;
+    const status = getCitationStatus(verification);
+
+    const citationWithStatus: CitationWithStatus = {
+      citation,
+      citationKey,
+      verification,
+      status,
+      displayText: getCitationDisplayText(citation, options.variant || "inline"),
+      citationNumber: citationIndex,
+    };
+
+    citationsWithStatus.push(citationWithStatus);
+
+    return renderCitationVariant(citationWithStatus, options);
+  });
+
+  // Generate references section if requested
+  const references = includeReferences
+    ? renderReferencesSection(citationsWithStatus, options)
+    : undefined;
+
+  // Combine markdown and references for full output
+  const full = references ? `${markdown}\n\n---\n\n${references}` : markdown;
+
+  return {
+    markdown,
+    references,
+    full,
+    citations: citationsWithStatus,
+  };
+}
+
+/**
+ * Simplified function that returns just the markdown string.
+ * Use renderCitationsAsMarkdown() for structured output with metadata.
+ *
+ * @param input - LLM response text containing <cite /> tags
+ * @param options - Rendering options
+ * @returns Rendered markdown string (with references appended if requested)
+ *
+ * @example
+ * ```typescript
+ * const md = toMarkdown(llmOutput, {
+ *   verifications,
+ *   variant: "brackets",
+ *   includeReferences: true,
+ * });
+ * ```
+ */
+export function toMarkdown(
+  input: string,
+  options: RenderMarkdownOptions = {}
+): string {
+  return renderCitationsAsMarkdown(input, options).full;
+}
+
+/**
+ * Get verification indicator for plain text/terminal output.
+ * This is a re-export of the existing TUI function for convenience.
+ *
+ * @param verification - Verification result
+ * @param style - Indicator style (default: "check")
+ * @returns Indicator character(s)
+ */
+export function getVerificationIndicator(
+  verification: Verification | null | undefined,
+  style: import("./types.js").IndicatorStyle = "check"
+): string {
+  const status = getCitationStatus(verification);
+  return getIndicator(status, style);
+}

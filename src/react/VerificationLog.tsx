@@ -1073,7 +1073,6 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
     return (
       <div className="px-4 py-3 space-y-3 text-sm">
         <div>
-          <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Match details</div>
           <div className="p-2.5 bg-gray-50 dark:bg-gray-800/40 rounded-md space-y-2">
             {/* What was matched */}
             <div className="flex items-start gap-2">

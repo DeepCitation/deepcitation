@@ -64,6 +64,9 @@ export interface Verification {
 
   verifiedLineIds?: number[] | null;
 
+  /** Total number of lines on the verified page (for humanizing line position) */
+  totalLinesOnPage?: number | null;
+
   verifiedTimestamps?: { startTime?: string; endTime?: string } | null;
 
   verifiedFullPhrase?: string | null;

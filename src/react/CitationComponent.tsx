@@ -1408,7 +1408,7 @@ function DefaultPopoverContent({
   if (isLoading || isPending) {
     const searchingPhrase = fullPhrase || anchorText;
     return (
-      <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md min-w-[200px] max-w-[400px]">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md min-w-[200px] max-w-[400px] max-h-[inherit] overflow-y-auto">
         {/* Source context header */}
         <SourceContextHeader
           citation={citation}
@@ -1449,7 +1449,7 @@ function DefaultPopoverContent({
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div
-          className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md"
+          className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md max-h-[inherit] overflow-y-auto"
           style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}
         >
           {/* Source context header */}
@@ -1507,7 +1507,7 @@ function DefaultPopoverContent({
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div
-          className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md"
+          className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md max-h-[inherit] overflow-y-auto"
           style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}
         >
           {/* Source context header */}
@@ -1597,7 +1597,7 @@ function DefaultPopoverContent({
   if (!hasSnippet && !statusLabel) return null;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md min-w-[180px] max-w-full">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md min-w-[180px] max-w-full max-h-[inherit] overflow-y-auto">
       {/* Source context header */}
       <SourceContextHeader
         citation={citation}

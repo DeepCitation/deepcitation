@@ -134,7 +134,7 @@ export const LinkIcon = ({ className }: { className?: string }) => (
 
 /**
  * External link icon for opening URLs
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const ExternalLinkIcon = ({ className }: { className?: string }) => (
   <svg
@@ -147,8 +147,8 @@ export const ExternalLinkIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
     <polyline points="15 3 21 3 21 9" />

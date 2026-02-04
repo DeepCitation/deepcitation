@@ -744,3 +744,48 @@ The Next.js example uses these models (DO NOT CHANGE):
 - Normalize citation formats
 - Handle multiple citation styles
 - Preserve original formatting
+
+## Important: Internal vs External Data
+
+### Line IDs are Internal Only
+
+**Do NOT expose `lineIds` to end users.** Line IDs are internal identifiers used by the verification system and do not correspond directly to visible line numbers in documents. Displaying them would cause confusion.
+
+- **Internal use**: `lineIds` are used for verification matching and are stored in `Citation.lineIds`
+- **User-facing display**: Show only `pageNumber` (e.g., "Page 3") - never show line IDs
+- **Markdown output**: Reference sections should show page numbers only, not lines
+- **API responses**: `lineIds` may be present in verification responses but should not be surfaced in UI
+
+```typescript
+// WRONG - exposes internal line IDs
+`Page 3, Lines 12-15`  // ❌ Confusing - these aren't visible line numbers
+
+// CORRECT - page number only
+`Page 3`  // ✓ Clear and verifiable
+```
+
+When building user-facing features (markdown export, reference sections, tooltips), always use `pageNumber` and omit `lineIds`.
+
+### Humanizing Line Position (Acceptable)
+
+While raw line IDs should never be shown, you **can** humanize them into relative positions when showing location mismatches:
+
+```typescript
+// Convert lineId to human-readable position
+function humanizeLinePosition(lineId: number, totalLinesOnPage: number): string {
+  const ratio = lineId / totalLinesOnPage;
+  if (ratio < 0.2) return "start";
+  if (ratio < 0.33) return "early";
+  if (ratio < 0.66) return "middle";
+  if (ratio < 0.8) return "late";
+  return "end";
+}
+
+// ACCEPTABLE - humanized position
+`Page 3 (expected early, found middle)`  // ✓ Helpful context without exposing internals
+
+// WRONG - raw line IDs
+`Page 3, Lines 12-15`  // ❌ Still confusing
+```
+
+This gives users helpful context about location mismatches without exposing internal line numbering.
