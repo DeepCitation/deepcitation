@@ -1840,6 +1840,11 @@ export const CitationComponent = forwardRef<
     const isHoveringRef = useRef(isHovering);
     isHoveringRef.current = isHovering;
 
+    // Ref to track isAnyOverlayOpen for the mobile outside-touch effect (avoids stale closure).
+    // When an image overlay is open, we don't want outside taps to close the popover.
+    const isAnyOverlayOpenRef = useRef(isAnyOverlayOpen);
+    isAnyOverlayOpenRef.current = isAnyOverlayOpen;
+
     // Ref for the popover content element (for mobile click-outside dismiss detection)
     const popoverContentRef = useRef<HTMLDivElement>(null);
 
@@ -2129,10 +2134,15 @@ export const CitationComponent = forwardRef<
     ]);
 
     const handleMouseLeave = useCallback(() => {
+      // Don't close the popover if an image overlay is open - user expects to return to popover
+      // after closing the zoomed image
+      if (isAnyOverlayOpen) return;
       // Delay closing to allow mouse to move to popover
       cancelHoverCloseTimeout();
       hoverCloseTimeoutRef.current = setTimeout(() => {
-        if (!isOverPopoverRef.current) {
+        // Re-check overlay state at timeout execution time (via ref) to handle edge case where
+        // user opens overlay during the delay period
+        if (!isOverPopoverRef.current && !isAnyOverlayOpenRef.current) {
           setIsHovering(false);
           if (behaviorConfig?.onHover?.onLeave) {
             behaviorConfig.onHover.onLeave(getBehaviorContext());
@@ -2147,6 +2157,7 @@ export const CitationComponent = forwardRef<
       citationKey,
       getBehaviorContext,
       cancelHoverCloseTimeout,
+      isAnyOverlayOpen,
     ]);
 
     // Popover content hover handlers
@@ -2157,14 +2168,21 @@ export const CitationComponent = forwardRef<
 
     const handlePopoverMouseLeave = useCallback(() => {
       isOverPopoverRef.current = false;
+      // Don't close the popover if an image overlay is open - user expects to return to popover
+      // after closing the zoomed image
+      if (isAnyOverlayOpen) return;
       // Delay closing to allow mouse to move back to trigger
       cancelHoverCloseTimeout();
       hoverCloseTimeoutRef.current = setTimeout(() => {
-        setIsHovering(false);
-        if (behaviorConfig?.onHover?.onLeave) {
-          behaviorConfig.onHover.onLeave(getBehaviorContext());
+        // Re-check overlay state at timeout execution time (via ref) to handle edge case where
+        // user opens overlay during the delay period
+        if (!isAnyOverlayOpenRef.current) {
+          setIsHovering(false);
+          if (behaviorConfig?.onHover?.onLeave) {
+            behaviorConfig.onHover.onLeave(getBehaviorContext());
+          }
+          eventHandlers?.onMouseLeave?.(citation, citationKey);
         }
-        eventHandlers?.onMouseLeave?.(citation, citationKey);
       }, HOVER_CLOSE_DELAY_MS);
     }, [
       eventHandlers,
@@ -2173,6 +2191,7 @@ export const CitationComponent = forwardRef<
       citationKey,
       getBehaviorContext,
       cancelHoverCloseTimeout,
+      isAnyOverlayOpen,
     ]);
 
     // Cleanup hover timeout on unmount
@@ -2213,6 +2232,12 @@ export const CitationComponent = forwardRef<
       if (!isMobile || !isHovering) return;
 
       const handleOutsideTouch = (e: TouchEvent) => {
+        // Don't dismiss popover while an image overlay is open - user expects to return
+        // to the popover after closing the zoomed image. Uses ref to avoid stale closure.
+        if (isAnyOverlayOpenRef.current) {
+          return;
+        }
+
         // Type guard for touch event target
         const target = e.target;
         if (!(target instanceof Node)) {

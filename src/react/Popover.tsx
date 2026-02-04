@@ -23,12 +23,16 @@ const PopoverPortal = PopoverPrimitive.Portal;
 const PopoverContent = React.forwardRef<
   React.ComponentRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 8, ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 8, sticky = "always", ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}
       sideOffset={sideOffset}
+      // sticky="always" keeps the popover anchored to the trigger even when content changes.
+      // This prevents confusing UX where the popover shifts position when expanding/collapsing
+      // sections like search details. The popover may be partially offscreen but stays in place.
+      sticky={sticky}
       className={cn(
         // Base styling: fit-content dimensions, viewport-aware max for both width and height
         // Ensures popover never exceeds screen bounds, leaving room for positioning
