@@ -71,6 +71,7 @@ import {
   SourceContextHeader,
   StatusHeader,
   VerificationLog,
+  QuotedText,
 } from "./VerificationLog.js";
 import { MISS_WAVY_UNDERLINE_STYLE, COPY_FEEDBACK_DURATION_MS, POPOVER_CONTAINER_BASE_CLASSES } from "./constants.js";
 
@@ -1249,9 +1250,9 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
 
       {/* The searched phrase */}
       <div className="flex items-start gap-1.5">
-        <p className="font-mono text-[11px] text-gray-700 dark:text-gray-200 break-words flex-1">
-          "{displayPhrase}"
-        </p>
+        <QuotedText mono className="text-[11px] text-gray-700 dark:text-gray-200 break-words flex-1">
+          {displayPhrase}
+        </QuotedText>
         {statusIndicator}
       </div>
 
@@ -1260,16 +1261,17 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
         group.successfulAttempt?.matchedText &&
         group.successfulAttempt.matchedText !== group.phrase && (
           <p className="text-[10px] text-green-600 dark:text-green-400 truncate mt-1">
-            Found: "
-            {group.successfulAttempt.matchedText.slice(
-              0,
+            Found:{" "}
+            <QuotedText mono>
+              {group.successfulAttempt.matchedText.slice(
+                0,
+                MAX_MATCHED_TEXT_LENGTH
+              )}
+              {group.successfulAttempt.matchedText.length >
               MAX_MATCHED_TEXT_LENGTH
-            )}
-            {group.successfulAttempt.matchedText.length >
-            MAX_MATCHED_TEXT_LENGTH
-              ? "…"
-              : ""}
-            "
+                ? "…"
+                : ""}
+            </QuotedText>
           </p>
         )}
 
@@ -1287,7 +1289,7 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
                     : variation;
                 return (
                   <span key={index}>
-                    <span className="font-mono">"{truncatedVar}"</span>
+                    <QuotedText mono>{truncatedVar}</QuotedText>
                     {index < visibleVariations.length - 1 && ", "}
                   </span>
                 );
@@ -1570,9 +1572,9 @@ function DefaultPopoverContent({
           </span>
         )}
         {hasSnippet && (
-          <span className="text-sm text-gray-700 dark:text-gray-200">
-            "{verification.verifiedMatchSnippet}"
-          </span>
+          <QuotedText className="text-sm text-gray-700 dark:text-gray-200">
+            {verification.verifiedMatchSnippet}
+          </QuotedText>
         )}
         {pageNumber && pageNumber > 0 && (
           <span className="text-xs text-gray-500 dark:text-gray-400">

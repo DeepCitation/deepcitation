@@ -120,9 +120,9 @@ function UrlAnchorTextRow({ anchorText, displayAnchorText }: { anchorText: strin
 
   return (
     <div className="mt-1 pl-6 flex items-center gap-1.5">
-      <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
-        "{displayAnchorText}"
-      </span>
+      <QuotedText className="text-xs text-gray-500 dark:text-gray-400 truncate">
+        {displayAnchorText}
+      </QuotedText>
       <button
         type="button"
         onClick={handleCopy}
@@ -783,7 +783,8 @@ export function StatusHeader({
 
   // Consistent single-row layout: icon + text + copy button + page badge
   // Display priority: headerText (status description) > anchorText (quoted phrase)
-  const displayText = headerText || (anchorText ? `"${anchorText}"` : null);
+  const displayText = headerText || anchorText || null;
+  const shouldItalicize = !headerText && !!anchorText; // Italicize when showing anchorText as quoted
   // Show copy button whenever we have anchor text - users may want to copy even when headerText is displayed
   const shouldShowCopyButton = showCopyButton && anchorText;
 
@@ -803,6 +804,7 @@ export function StatusHeader({
             className={cn(
               "font-medium truncate",
               headerText ? "text-gray-800 dark:text-gray-100" : "text-gray-600 dark:text-gray-300",
+              shouldItalicize && "italic",
             )}
           >
             {displayText}
@@ -843,14 +845,42 @@ export function StatusHeader({
  * Styled quote box for displaying the phrase being verified.
  * Issue #7: Removed serif/italic for modern UI consistency.
  * Uses left border accent (which aligns with shadcn patterns).
+ * Uses italic styling instead of literal quotes for copy/paste friendliness.
  */
 export function QuoteBox({ phrase, maxLength = MAX_QUOTE_BOX_LENGTH }: QuoteBoxProps) {
   const displayPhrase = phrase.length > maxLength ? phrase.slice(0, maxLength) + "..." : phrase;
 
   return (
-    <blockquote className="text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 p-3 border-l-[3px] border-gray-300 dark:border-gray-600 leading-relaxed text-sm">
-      "{displayPhrase}"
+    <blockquote className="text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 p-3 border-l-[3px] border-gray-300 dark:border-gray-600 leading-relaxed text-sm italic">
+      {displayPhrase}
     </blockquote>
+  );
+}
+
+// =============================================================================
+// QUOTED TEXT COMPONENT
+// =============================================================================
+
+export interface QuotedTextProps {
+  /** The text to display as quoted */
+  children: React.ReactNode;
+  /** Additional CSS classes */
+  className?: string;
+  /** Whether to use monospace font (default: false) */
+  mono?: boolean;
+}
+
+/**
+ * Inline quoted text component that uses italic styling instead of literal quote characters.
+ * This makes copy/paste cleaner - users get the actual text without surrounding quotes.
+ *
+ * For block-level quotes, use QuoteBox instead.
+ */
+export function QuotedText({ children, className, mono = false }: QuotedTextProps) {
+  return (
+    <span className={cn("italic", mono && "font-mono", className)}>
+      {children}
+    </span>
   );
 }
 
@@ -1042,7 +1072,7 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
       {/* Phrase and details */}
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">"{displayPhrase}"</span>
+          <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">{displayPhrase}</QuotedText>
           <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0 whitespace-nowrap">
             {methodName}
             {locationText && ` · ${locationText}`}
@@ -1052,10 +1082,12 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
         {variations.length > 0 && (
           <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
             {variationTypeLabel ?? "Also tried"}:{" "}
-            {variations
-              .slice(0, 3)
-              .map(v => `"${v}"`)
-              .join(", ")}
+            {variations.slice(0, 3).map((v, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && ", "}
+                <QuotedText mono>{v}</QuotedText>
+              </React.Fragment>
+            ))}
             {variations.length > 3 && ` +${variations.length - 3} more`}
           </div>
         )}
@@ -1082,8 +1114,8 @@ function RejectedMatchesSection({ rejectedMatches }: RejectedMatchesSectionProps
       </div>
       <div className="space-y-1">
         {rejectedMatches.map(match => (
-          <div key={match.text} className="text-xs text-gray-600 dark:text-gray-300 font-mono">
-            "{match.text}"{match.count != null && ` (${match.count} occurrences)`}
+          <div key={match.text} className="text-xs text-gray-600 dark:text-gray-300">
+            <QuotedText mono>{match.text}</QuotedText>{match.count != null && ` (${match.count} occurrences)`}
           </div>
         ))}
       </div>
@@ -1104,10 +1136,10 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
   return (
     <div>
       <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Looking for</div>
-      {hasAnchorText && <div className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1">"{anchorText}"</div>}
+      {hasAnchorText && <div className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1 italic">{anchorText}</div>}
       {hasFullPhrase && (
-        <div className="text-xs text-gray-600 dark:text-gray-300 font-mono break-all bg-gray-50 dark:bg-gray-800/50 p-2 rounded border-l-2 border-gray-300 dark:border-gray-600">
-          "{fullPhrase}"
+        <div className="text-xs text-gray-600 dark:text-gray-300 font-mono break-all bg-gray-50 dark:bg-gray-800/50 p-2 rounded border-l-2 border-gray-300 dark:border-gray-600 italic">
+          {fullPhrase}
         </div>
       )}
     </div>
@@ -1155,7 +1187,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
                 <span className="size-3 max-w-3 max-h-3 mt-0.5 text-gray-400 dark:text-gray-500 flex-shrink-0">
                   <MissIcon />
                 </span>
-                <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">"{phrase}"</span>
+                <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">{phrase}</QuotedText>
               </div>
             ))}
           </div>
@@ -1191,7 +1223,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
               <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-600 dark:text-green-400 flex-shrink-0">
                 <CheckIcon />
               </span>
-              <span className="text-xs text-gray-700 dark:text-gray-200 font-mono break-all">"{displayPhrase}"</span>
+              <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">{displayPhrase}</QuotedText>
             </div>
             {/* Where it was found */}
             <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
@@ -1349,7 +1381,7 @@ export function AttemptingToVerify({ anchorText, fullPhrase }: AttemptingToVerif
       <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium tracking-wide">
         Searching for:
       </div>
-      <div className="text-[15px] font-semibold text-gray-800 dark:text-gray-100">"{displayAnchorText}"</div>
+      <div className="text-[15px] font-semibold text-gray-800 dark:text-gray-100 italic">{displayAnchorText}</div>
       {displayPhrase && displayPhrase !== displayAnchorText && <QuoteBox phrase={displayPhrase} />}
     </div>
   );
