@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.53] - 2026-02-12
+
+### Added
+- **Search fallback strategies** to improve citation verification success rates (#166)
+- **URL caching support** in the DeepCitation client for improved performance (#176)
+- **Legal and Medical domain demos**, replacing the previous financial demo (#168)
+- **Trademark notice and legal links** added to project documentation (#173)
+
+### Changed
+- **Default popover position** changed to `bottom` for better out-of-the-box visibility (#177)
+- **Improved copy-paste UX**: Replaced literal quotes with CSS left-border styling to prevent "phantom" characters when copying text (#175)
+- **AI Agent Integration**: Enhanced `INTEGRATION.md` with upfront installation guides for agentic workflows (#171)
+- **Internal Reorganization**: Moved PRDs and design docs into a dedicated `plans/` folder (#165)
+
+### Fixed
+- **Popover & Tooltip stability**: Fixed issues where citation popovers would jump or close unexpectedly during image overlays or while expanding search details (#167, #174, #177)
+- **Parsing robustness**: Improved citation parsing logic and simplified internal prompts for better reliability (#170)
+- **Display logic**: Fixed `first_word` display issues in search results (#166)
+
 ## [1.1.52] - 2026-02-04
 
 ### Added
@@ -76,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `removeCitations()` - use `replaceCitations()` instead
   - Various deprecated type aliases and re-exports
 
-## [1.1.50] - 2025-01-21
+## [1.1.50] - 2026-01-21
 
 This release marks the first comprehensive public release of DeepCitation, consolidating all features developed since the initial v1.0.0 release.
 
@@ -158,12 +177,12 @@ This release marks the first comprehensive public release of DeepCitation, conso
 ### Removed
 - `removeCitations()` - use `replaceCitations()` instead
 
-## [1.1.26] - 2025-01-15
+## [1.1.26] - 2026-01-15
 
 ### Added
 - `DeepCitationIcon` component for branding
 
-## [1.1.25] - 2025-01-15
+## [1.1.25] - 2026-01-15
 
 ### Added
 - Bundled icon components (`CheckIcon`, `SpinnerIcon`, `WarningIcon`)
@@ -171,34 +190,34 @@ This release marks the first comprehensive public release of DeepCitation, conso
 ### Fixed
 - Build configuration fixes
 
-## [1.1.24] - 2025-01-14
+## [1.1.24] - 2026-01-14
 
 ### Changed
 - Replaced `diff` npm dependency with custom implementation for Firebase Functions compatibility
 - Improved bundle size and reduced external dependencies
 
-## [1.1.23] - 2025-01-13
+## [1.1.23] - 2026-01-13
 
 ### Fixed
 - Build error fixes
 
-## [1.1.22] - 2025-01-12
+## [1.1.22] - 2026-01-12
 
 ### Changed
 - Simplified CitationComponent with shadcn/Radix Popover and Tailwind CSS
 - Simplified verification model types
 
-## [1.1.21] - 2025-01-11
+## [1.1.21] - 2026-01-11
 
 ### Fixed
 - Line ID handling improvements
 
-## [1.1.20] - 2025-01-10
+## [1.1.20] - 2026-01-10
 
 ### Changed
 - Improved CitationComponent tooltip efficiency for partial matches
 
-## [1.1.19] - 2025-01-09
+## [1.1.19] - 2026-01-09
 
 ### Added
 - Attachment support for file handling
@@ -206,70 +225,70 @@ This release marks the first comprehensive public release of DeepCitation, conso
 ### Changed
 - Renamed `fileId` to `attachmentId` across the codebase
 
-## [1.1.18] - 2025-01-08
+## [1.1.18] - 2026-01-08
 
 ### Fixed
 - CitationComponent variant styles now properly inherit text color
 
-## [1.1.17] - 2025-01-07
+## [1.1.17] - 2026-01-07
 
 ### Changed
 - Renamed `displayAnchorText`/`displayBrackets` to `showAnchorText`/`showBrackets`
 
-## [1.1.16] - 2025-01-06
+## [1.1.16] - 2026-01-06
 
 ### Changed
 - Improved CitationComponent API
 - Added `behaviorConfig` for customizing click/hover behavior
 
-## [1.1.15] - 2025-01-05
+## [1.1.15] - 2026-01-05
 
 ### Changed
 - Refactored CitationComponent: simplified variants
 - Added `displayBrackets` prop
 
-## [1.1.14] - 2025-01-04
+## [1.1.14] - 2026-01-04
 
 ### Added
 - AnchorText support for descriptive citation text
 
-## [1.1.13] - 2025-01-03
+## [1.1.13] - 2026-01-03
 
 ### Changed
 - Improved demo and parsing preservation
 
-## [1.1.12] - 2025-01-02
+## [1.1.12] - 2026-01-02
 
 ### Changed
 - Clearer naming conventions throughout the codebase
 
-## [1.1.11] - 2025-01-01
+## [1.1.11] - 2026-01-01
 
 ### Changed
 - Updated examples to use fast/cheap models
 - Added Gemini support in examples
 
-## [1.1.10] - 2024-12-31
+## [1.1.10] - 2025-12-31
 
 ### Changed
 - Client cleanup and improvements
 
-## [1.1.9] - 2024-12-30
+## [1.1.9] - 2025-12-30
 
 ### Added
 - AnchorText feature for citation display
 
-## [1.1.8] - 2024-12-29
+## [1.1.8] - 2025-12-29
 
 ### Fixed
 - Example improvements
 
-## [1.1.7] - 2024-12-28
+## [1.1.7] - 2025-12-28
 
 ### Fixed
 - npm build configuration
 
-## [1.1.6] - 2024-12-27
+## [1.1.6] - 2025-12-27
 
 ### Added
 - Initial public release
@@ -281,7 +300,8 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.52...HEAD
+[Unreleased]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.53...HEAD
+[1.1.53]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.52...v1.1.53
 [1.1.52]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.51...v1.1.52
 [1.1.51]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.50...v1.1.51
 [1.1.50]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.26...v1.1.50
