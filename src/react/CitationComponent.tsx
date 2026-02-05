@@ -1781,7 +1781,7 @@ export const CitationComponent = forwardRef<
       isMobile: isMobileProp,
       renderIndicator,
       renderContent,
-      popoverPosition = "top",
+      popoverPosition = "bottom",
       renderPopoverContent,
       additionalCount,
       faviconUrl,
