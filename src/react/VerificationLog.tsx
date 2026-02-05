@@ -874,13 +874,22 @@ export interface QuotedTextProps {
  * Inline quoted text component that uses left border + indent instead of literal quote characters.
  * This makes copy/paste cleaner - users get the actual text without surrounding quotes.
  *
+ * Uses 2px border (vs 3px for QuoteBox) for subtler inline styling.
  * For block-level quotes, use QuoteBox instead.
  */
 export function QuotedText({ children, className, mono = false }: QuotedTextProps) {
+  // Return null for empty/whitespace-only children
+  if (!children || (typeof children === "string" && !children.trim())) {
+    return null;
+  }
+
   return (
-    <span className={cn("border-l-2 border-gray-300 dark:border-gray-600 pl-1.5 ml-0.5", mono && "font-mono", className)}>
+    <q
+      className={cn("border-l-2 border-gray-300 dark:border-gray-600 pl-1.5 ml-0.5", mono && "font-mono", className)}
+      style={{ quotes: "none" }}
+    >
       {children}
-    </span>
+    </q>
   );
 }
 
