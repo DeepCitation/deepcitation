@@ -111,7 +111,7 @@ describe("StatusHeader", () => {
   describe("combined header with anchorText and fullPhrase", () => {
     it("renders anchor text inline when status text is empty (icon is self-explanatory)", () => {
       // When status is "found" or "not_found", headerText is empty
-      // The anchor text should be shown inline as: [icon] "increased by 15%" Pg 5
+      // The anchor text should be shown inline with left-border styling (no literal quotes)
       const { container } = render(
         <StatusHeader
           status="found"
@@ -120,8 +120,8 @@ describe("StatusHeader", () => {
         />
       );
 
-      // Should show quoted anchor text inline (since "Verified" text is no longer shown)
-      expect(container.textContent).toContain('"increased by 15%"');
+      // Should show anchor text inline (styled with border, no literal quotes for copy-paste friendliness)
+      expect(container.textContent).toContain("increased by 15%");
       expect(container.textContent).toContain("Page 5");
     });
 
@@ -134,8 +134,8 @@ describe("StatusHeader", () => {
         />
       );
 
-      // When status text is empty (not_found), anchor text is shown inline
-      expect(container.textContent).toContain('"increased by 15%"');
+      // When status text is empty (not_found), anchor text is shown inline (no literal quotes)
+      expect(container.textContent).toContain("increased by 15%");
       expect(container.textContent).toContain("Page 5");
     });
 
