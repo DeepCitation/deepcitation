@@ -20,6 +20,8 @@ export type {
   ExtendExpirationOptions,
   ExtendExpirationResponse,
   DeleteAttachmentResponse,
+  UrlCacheInfo,
+  UrlSourceInfo,
 } from "./client/index.js";
 
 // Parsing

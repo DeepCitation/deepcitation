@@ -46,6 +46,16 @@ export interface UploadFileResponse {
   error?: string;
   /** Optional expiration date for the attachment (ISO 8601 string). If "never", the attachment does not expire (enterprise). */
   expiresAt?: string | "never";
+  /**
+   * Cache information for URL-based requests.
+   * Only present when the request was for a URL (not file upload).
+   */
+  urlCache?: UrlCacheInfo;
+  /**
+   * Source URL information when the attachment originated from a URL.
+   * Use this to populate Citation.url and Citation.domain when creating citations.
+   */
+  urlSource?: UrlSourceInfo;
 }
 
 /**
@@ -81,6 +91,36 @@ export interface PrepareUrlOptions {
    * Default: false (uses safe PDF conversion)
    */
   unsafeFastUrlOutput?: boolean;
+  /**
+   * Set to true to skip the URL cache and force a fresh page-to-PDF conversion.
+   * Default is false (use cache if available).
+   */
+  skipCache?: boolean;
+}
+
+/**
+ * Cache metadata for URL-based requests.
+ * Returned when a URL was processed (either cached or fresh).
+ */
+export interface UrlCacheInfo {
+  /** Whether this response was served from cache */
+  cached: boolean;
+  /** ISO timestamp when the cache entry expires (end of the UTC day it was created) */
+  cacheExpiresAt: string;
+  /** The cache key used (SHA1 hash of userId + normalized URL + date) */
+  cacheKey: string;
+}
+
+/**
+ * Source URL information included when the attachment originated from a URL.
+ * This information should be used to populate Citation.url and Citation.domain
+ * when creating citations for verification.
+ */
+export interface UrlSourceInfo {
+  /** The original URL that was converted */
+  url: string;
+  /** The domain extracted from the URL (e.g., "example.com") */
+  domain: string;
 }
 
 /**

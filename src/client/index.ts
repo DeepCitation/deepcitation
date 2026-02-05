@@ -19,4 +19,6 @@ export type {
   ExtendExpirationOptions,
   ExtendExpirationResponse,
   DeleteAttachmentResponse,
+  UrlCacheInfo,
+  UrlSourceInfo,
 } from "./types.js";
