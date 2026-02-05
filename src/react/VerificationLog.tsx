@@ -1313,14 +1313,19 @@ export function VerificationLog({
         isExpanded={isExpanded}
         onToggle={() => setIsExpanded(!isExpanded)}
       />
-      {isExpanded && (
+      {/* Always render timeline to prevent popover repositioning on expand/collapse.
+          Use visibility: hidden when collapsed to preserve layout space. */}
+      <div
+        className={isExpanded ? "" : "invisible"}
+        aria-hidden={!isExpanded}
+      >
         <VerificationLogTimeline
           searchAttempts={searchAttempts}
           fullPhrase={fullPhrase}
           anchorText={anchorText}
           status={status}
         />
-      )}
+      </div>
     </div>
   );
 }
