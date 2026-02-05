@@ -784,7 +784,7 @@ export function StatusHeader({
   // Consistent single-row layout: icon + text + copy button + page badge
   // Display priority: headerText (status description) > anchorText (quoted phrase)
   const displayText = headerText || anchorText || null;
-  const shouldItalicize = !headerText && !!anchorText; // Italicize when showing anchorText as quoted
+  const shouldShowAsQuoted = !headerText && !!anchorText; // Show with quote styling when displaying anchorText
   // Show copy button whenever we have anchor text - users may want to copy even when headerText is displayed
   const shouldShowCopyButton = showCopyButton && anchorText;
 
@@ -800,15 +800,15 @@ export function StatusHeader({
           <IconComponent />
         </span>
         {displayText && (
-          <span
-            className={cn(
-              "font-medium truncate",
-              headerText ? "text-gray-800 dark:text-gray-100" : "text-gray-600 dark:text-gray-300",
-              shouldItalicize && "italic",
-            )}
-          >
-            {displayText}
-          </span>
+          shouldShowAsQuoted ? (
+            <QuotedText className={cn("font-medium truncate text-gray-600 dark:text-gray-300")}>
+              {displayText}
+            </QuotedText>
+          ) : (
+            <span className="font-medium truncate text-gray-800 dark:text-gray-100">
+              {displayText}
+            </span>
+          )
         )}
         {/* Copy button - icon only, shown next to anchor text */}
         {shouldShowCopyButton && (
@@ -845,13 +845,13 @@ export function StatusHeader({
  * Styled quote box for displaying the phrase being verified.
  * Issue #7: Removed serif/italic for modern UI consistency.
  * Uses left border accent (which aligns with shadcn patterns).
- * Uses italic styling instead of literal quotes for copy/paste friendliness.
+ * No literal quotes - the styling indicates quoted text for copy/paste friendliness.
  */
 export function QuoteBox({ phrase, maxLength = MAX_QUOTE_BOX_LENGTH }: QuoteBoxProps) {
   const displayPhrase = phrase.length > maxLength ? phrase.slice(0, maxLength) + "..." : phrase;
 
   return (
-    <blockquote className="text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 p-3 border-l-[3px] border-gray-300 dark:border-gray-600 leading-relaxed text-sm italic">
+    <blockquote className="text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 p-3 border-l-[3px] border-gray-300 dark:border-gray-600 leading-relaxed text-sm">
       {displayPhrase}
     </blockquote>
   );
@@ -871,14 +871,14 @@ export interface QuotedTextProps {
 }
 
 /**
- * Inline quoted text component that uses italic styling instead of literal quote characters.
+ * Inline quoted text component that uses left border + indent instead of literal quote characters.
  * This makes copy/paste cleaner - users get the actual text without surrounding quotes.
  *
  * For block-level quotes, use QuoteBox instead.
  */
 export function QuotedText({ children, className, mono = false }: QuotedTextProps) {
   return (
-    <span className={cn("italic", mono && "font-mono", className)}>
+    <span className={cn("border-l-2 border-gray-300 dark:border-gray-600 pl-1.5 ml-0.5", mono && "font-mono", className)}>
       {children}
     </span>
   );
@@ -1136,9 +1136,13 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
   return (
     <div>
       <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Looking for</div>
-      {hasAnchorText && <div className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1 italic">{anchorText}</div>}
+      {hasAnchorText && (
+        <div className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1 border-l-2 border-gray-300 dark:border-gray-600 pl-2">
+          {anchorText}
+        </div>
+      )}
       {hasFullPhrase && (
-        <div className="text-xs text-gray-600 dark:text-gray-300 font-mono break-all bg-gray-50 dark:bg-gray-800/50 p-2 rounded border-l-2 border-gray-300 dark:border-gray-600 italic">
+        <div className="text-xs text-gray-600 dark:text-gray-300 font-mono break-all bg-gray-50 dark:bg-gray-800/50 p-2 rounded border-l-2 border-gray-300 dark:border-gray-600">
           {fullPhrase}
         </div>
       )}
@@ -1381,7 +1385,7 @@ export function AttemptingToVerify({ anchorText, fullPhrase }: AttemptingToVerif
       <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium tracking-wide">
         Searching for:
       </div>
-      <div className="text-[15px] font-semibold text-gray-800 dark:text-gray-100 italic">{displayAnchorText}</div>
+      <div className="text-[15px] font-semibold text-gray-800 dark:text-gray-100 border-l-2 border-gray-300 dark:border-gray-600 pl-2">{displayAnchorText}</div>
       {displayPhrase && displayPhrase !== displayAnchorText && <QuoteBox phrase={displayPhrase} />}
     </div>
   );
