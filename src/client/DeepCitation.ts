@@ -438,6 +438,7 @@ export class DeepCitation {
         attachmentId: options.attachmentId,
         filename: options.filename,
         unsafeFastUrlOutput: options.unsafeFastUrlOutput,
+        skipCache: options.skipCache,
       }),
     });
 
