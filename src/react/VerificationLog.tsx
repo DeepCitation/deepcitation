@@ -1314,10 +1314,13 @@ export function VerificationLog({
         onToggle={() => setIsExpanded(!isExpanded)}
       />
       {/* Always render timeline to prevent popover repositioning on expand/collapse.
-          Use visibility: hidden when collapsed to preserve layout space. */}
+          Use visibility: hidden when collapsed to preserve layout space.
+          inert prevents keyboard focus into collapsed content for better accessibility. */}
       <div
-        className={isExpanded ? "" : "invisible"}
+        className={isExpanded ? undefined : "invisible"}
         aria-hidden={!isExpanded}
+        // @ts-expect-error - inert is a valid HTML attribute but not yet in React types
+        inert={isExpanded ? undefined : ""}
       >
         <VerificationLogTimeline
           searchAttempts={searchAttempts}
