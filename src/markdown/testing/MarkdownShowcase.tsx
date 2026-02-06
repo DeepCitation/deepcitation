@@ -1,19 +1,15 @@
-import React, { useMemo } from "react";
+import type React from "react";
+import { useMemo } from "react";
+import { getCitationStatus } from "../../parsing/parseCitation.js";
 import type { Citation } from "../../types/citation.js";
 import type { Verification } from "../../types/verification.js";
-import type {
-  MarkdownVariant,
-  IndicatorStyle,
-  RenderMarkdownOptions,
-} from "../types.js";
 import {
-  renderCitationsAsMarkdown,
-  toMarkdown,
   getIndicator,
   humanizeLinePosition,
-  INDICATOR_SETS,
+  renderCitationsAsMarkdown,
+  toMarkdown,
 } from "../index.js";
-import { getCitationStatus } from "../../parsing/parseCitation.js";
+import type { IndicatorStyle, MarkdownVariant } from "../types.js";
 
 // =============================================================================
 // SHOWCASE HELPER COMPONENTS
@@ -26,11 +22,22 @@ interface ShowcaseSectionProps {
   "data-testid"?: string;
 }
 
-function ShowcaseSection({ title, description, children, "data-testid": testId }: ShowcaseSectionProps) {
+function ShowcaseSection({
+  title,
+  description,
+  children,
+  "data-testid": testId,
+}: ShowcaseSectionProps) {
   return (
     <section className="mb-10" data-testid={testId}>
-      <h2 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-200">{title}</h2>
-      {description && <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{description}</p>}
+      <h2 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-200">
+        {title}
+      </h2>
+      {description && (
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          {description}
+        </p>
+      )}
       {children}
     </section>
   );
@@ -62,7 +69,11 @@ function ShowcaseCard({
 function CodeBlock({ children, label }: { children: string; label?: string }) {
   return (
     <div>
-      {label && <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">{label}</p>}
+      {label && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">
+          {label}
+        </p>
+      )}
       <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs font-mono overflow-x-auto whitespace-pre-wrap text-gray-800 dark:text-gray-200">
         {children}
       </pre>
@@ -74,7 +85,7 @@ function CodeBlock({ children, label }: { children: string; label?: string }) {
 // TEST FIXTURES
 // =============================================================================
 
-const baseCitation: Citation = {
+const _baseCitation: Citation = {
   attachmentId: "abc123",
   pageNumber: 5,
   lineIds: [12, 13],
@@ -102,7 +113,7 @@ const partialVerification: Verification = {
   verifiedLineIds: [30],
 };
 
-const linePositionVerification: Verification = {
+const _linePositionVerification: Verification = {
   status: "found_on_other_line",
   verifiedPageNumber: 5,
   verifiedLineIds: [80],
@@ -152,12 +163,16 @@ const STATUS_TYPES = [
 
 export function MarkdownShowcase() {
   return (
-    <div className="p-6 bg-white dark:bg-gray-900 min-h-screen" data-testid="markdown-showcase">
+    <div
+      className="p-6 bg-white dark:bg-gray-900 min-h-screen"
+      data-testid="markdown-showcase"
+    >
       <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
         Markdown Output Visual Showcase
       </h1>
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Visual reference for all markdown rendering variants, indicator styles, and output formats
+        Visual reference for all markdown rendering variants, indicator styles,
+        and output formats
       </p>
 
       {/* Section 1: Indicator Styles Matrix */}
@@ -171,7 +186,9 @@ export function MarkdownShowcase() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left p-2 text-gray-600 dark:text-gray-400">Style</th>
+                  <th className="text-left p-2 text-gray-600 dark:text-gray-400">
+                    Style
+                  </th>
                   <th className="text-left p-2 text-gray-600 dark:text-gray-400">
                     <span className="inline-flex items-center gap-1">
                       <span className="w-2 h-2 rounded-full bg-green-500"></span>
@@ -205,13 +222,23 @@ export function MarkdownShowcase() {
                     className="border-b border-gray-100 dark:border-gray-800"
                     data-indicator-row={style}
                   >
-                    <td className="p-2 font-mono text-gray-700 dark:text-gray-300 text-xs">{style}</td>
+                    <td className="p-2 font-mono text-gray-700 dark:text-gray-300 text-xs">
+                      {style}
+                    </td>
                     {STATUS_TYPES.map(({ name, verification }) => {
                       const status = getCitationStatus(verification);
                       const indicator = getIndicator(status, style);
                       return (
-                        <td key={name} className="p-2 font-mono text-lg text-gray-800 dark:text-gray-200" data-indicator={name.toLowerCase()}>
-                          {indicator || <span className="text-gray-400 dark:text-gray-500">(none)</span>}
+                        <td
+                          key={name}
+                          className="p-2 font-mono text-lg text-gray-800 dark:text-gray-200"
+                          data-indicator={name.toLowerCase()}
+                        >
+                          {indicator || (
+                            <span className="text-gray-400 dark:text-gray-500">
+                              (none)
+                            </span>
+                          )}
                         </td>
                       );
                     })}
@@ -243,7 +270,9 @@ export function MarkdownShowcase() {
 
             return (
               <ShowcaseCard key={variant} data-variant={variant}>
-                <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2 font-mono">{variant}</h3>
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2 font-mono">
+                  {variant}
+                </h3>
                 <CodeBlock>{output}</CodeBlock>
               </ShowcaseCard>
             );
@@ -259,12 +288,16 @@ export function MarkdownShowcase() {
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ShowcaseCard data-reference-type="standard">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Standard References</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Standard References
+            </h3>
             <ReferencePreview variant="brackets" />
           </ShowcaseCard>
 
           <ShowcaseCard data-reference-type="footnote">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Footnote Style</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Footnote Style
+            </h3>
             <ReferencePreview variant="footnote" />
           </ShowcaseCard>
         </div>
@@ -281,15 +314,24 @@ export function MarkdownShowcase() {
             {[10, 25, 50, 75, 95].map((lineId) => {
               const position = humanizeLinePosition(lineId, 100);
               return (
-                <div key={lineId} className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded" data-line-position={position}>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Line {lineId}/100</p>
-                  <p className="font-semibold text-gray-800 dark:text-gray-200">{position}</p>
+                <div
+                  key={lineId}
+                  className="text-center p-3 bg-gray-50 dark:bg-gray-800 rounded"
+                  data-line-position={position}
+                >
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Line {lineId}/100
+                  </p>
+                  <p className="font-semibold text-gray-800 dark:text-gray-200">
+                    {position}
+                  </p>
                 </div>
               );
             })}
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 italic">
-            Example: "p.3 (expected early, found middle)" helps users understand location mismatches without exposing internal line IDs.
+            Example: "p.3 (expected early, found middle)" helps users understand
+            location mismatches without exposing internal line IDs.
           </p>
         </ShowcaseCard>
       </ShowcaseSection>
@@ -302,12 +344,16 @@ export function MarkdownShowcase() {
       >
         <div className="space-y-4">
           <ShowcaseCard>
-            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Input (LLM Output with &lt;cite /&gt; tags)</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Input (LLM Output with &lt;cite /&gt; tags)
+            </h3>
             <CodeBlock>{sampleInput}</CodeBlock>
           </ShowcaseCard>
 
           <ShowcaseCard>
-            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Output (Clean Markdown)</h3>
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Output (Clean Markdown)
+            </h3>
             <CompleteDocumentPreview />
           </ShowcaseCard>
         </div>
@@ -345,7 +391,9 @@ function ReferencePreview({ variant }: { variant: MarkdownVariant }) {
   return (
     <div className="space-y-4">
       <CodeBlock label="Inline Text">{output.markdown}</CodeBlock>
-      {output.references && <CodeBlock label="References Section">{output.references}</CodeBlock>}
+      {output.references && (
+        <CodeBlock label="References Section">{output.references}</CodeBlock>
+      )}
     </div>
   );
 }

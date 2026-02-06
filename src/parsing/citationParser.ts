@@ -13,15 +13,15 @@
  * 5. Hydration: Map the JSON objects to a usable format
  */
 
-import { type Citation } from "../types/citation.js";
-import { generateCitationKey } from "../react/utils.js";
 import {
-  CITATION_DATA_START_DELIMITER,
   CITATION_DATA_END_DELIMITER,
+  CITATION_DATA_START_DELIMITER,
   type CitationData,
   type CompactCitationData,
   type ParsedCitationResponse,
 } from "../prompts/citationPrompts.js";
+import { generateCitationKey } from "../react/utils.js";
+import type { Citation } from "../types/citation.js";
 
 /**
  * Map of compact keys to their full CitationData equivalents.
@@ -40,7 +40,7 @@ const COMPACT_KEY_MAP: Record<string, keyof CitationData> = {
 /**
  * Map for timestamp sub-keys.
  */
-const TIMESTAMP_KEY_MAP: Record<string, string> = {
+const _TIMESTAMP_KEY_MAP: Record<string, string> = {
   s: "start_time",
   e: "end_time",
 } as const;
@@ -78,7 +78,11 @@ function expandCompactKeys(
     const fullKey = COMPACT_KEY_MAP[key] || key;
 
     // Handle timestamps specially (nested object with s/e keys)
-    if ((key === "t" || key === "timestamps") && value && typeof value === "object") {
+    if (
+      (key === "t" || key === "timestamps") &&
+      value &&
+      typeof value === "object"
+    ) {
       const ts = value as Record<string, unknown>;
       result.timestamps = {
         start_time: ts.s ?? ts.start_time,
@@ -128,7 +132,9 @@ function flattenGroupedCitations(
   for (const [attachmentId, citationArray] of Object.entries(grouped)) {
     for (const citation of citationArray) {
       if (typeof citation === "object" && citation !== null) {
-        citations.push(expandCompactKeys(citation as Record<string, unknown>, attachmentId));
+        citations.push(
+          expandCompactKeys(citation as Record<string, unknown>, attachmentId)
+        );
       }
     }
   }
@@ -147,10 +153,15 @@ function parseCitationsFromJson(parsed: unknown): CitationData[] {
 
   // Flat format: array of citations or single citation
   const rawCitations = Array.isArray(parsed) ? parsed : [parsed];
-  return rawCitations.map((c) => expandCompactKeys(c as Record<string, unknown>));
+  return rawCitations.map((c) =>
+    expandCompactKeys(c as Record<string, unknown>)
+  );
 }
 
-export type { CitationData, ParsedCitationResponse } from "../prompts/citationPrompts.js";
+export type {
+  CitationData,
+  ParsedCitationResponse,
+} from "../prompts/citationPrompts.js";
 
 /**
  * Attempts to repair malformed JSON.
@@ -164,7 +175,10 @@ export type { CitationData, ParsedCitationResponse } from "../prompts/citationPr
  * @param jsonString - The potentially malformed JSON string
  * @returns The repaired JSON string
  */
-function repairJson(jsonString: string): { repaired: string; repairs: string[] } {
+function repairJson(jsonString: string): {
+  repaired: string;
+  repairs: string[];
+} {
   let repaired = jsonString.trim();
   const repairs: string[] = [];
 
@@ -182,25 +196,22 @@ function repairJson(jsonString: string): { repaired: string; repairs: string[] }
   // Note: \u is only valid when followed by exactly 4 hex digits (e.g., \u0020).
   // Invalid \u sequences (like \utest) should have the backslash removed.
   const beforeInvalidEscapes = repaired;
-  repaired = repaired.replace(
-    /"(?:[^"\\]|\\.)*"/g,
-    (match) => {
-      // Inside a JSON string, fix invalid escape sequences
-      // by removing the backslash before non-standard escape characters.
-      // Use negative lookahead to preserve valid unicode escapes (\uXXXX).
-      return match.replace(
-        /\\(?!u[0-9a-fA-F]{4})([^"\\\/bfnrt])/g,
-        (_, char) => char
-      );
-    }
-  );
+  repaired = repaired.replace(/"(?:[^"\\]|\\.)*"/g, (match) => {
+    // Inside a JSON string, fix invalid escape sequences
+    // by removing the backslash before non-standard escape characters.
+    // Use negative lookahead to preserve valid unicode escapes (\uXXXX).
+    return match.replace(
+      /\\(?!u[0-9a-fA-F]{4})([^"\\/bfnrt])/g,
+      (_, char) => char
+    );
+  });
   if (repaired !== beforeInvalidEscapes) {
     repairs.push("fixed invalid escape sequences");
   }
 
   // Fix trailing commas before ] or }
   const beforeTrailingCommas = repaired;
-  repaired = repaired.replace(/,(\s*[\]\}])/g, "$1");
+  repaired = repaired.replace(/,(\s*[\]}])/g, "$1");
   if (repaired !== beforeTrailingCommas) {
     repairs.push("removed trailing commas");
   }
@@ -230,7 +241,6 @@ function repairJson(jsonString: string): { repaired: string; repairs: string[] }
 
   return { repaired, repairs };
 }
-
 
 /**
  * Parses a citation response from an LLM.
@@ -289,15 +299,11 @@ export function parseDeferredCitationResponse(
   const visibleText = llmResponse.substring(0, startIndex).trim();
 
   // Find the end delimiter
-  const endIndex = llmResponse.indexOf(
-    CITATION_DATA_END_DELIMITER,
-    startIndex
-  );
+  const endIndex = llmResponse.indexOf(CITATION_DATA_END_DELIMITER, startIndex);
 
   // Extract the JSON block
   const jsonStartIndex = startIndex + CITATION_DATA_START_DELIMITER.length;
-  const jsonEndIndex =
-    endIndex !== -1 ? endIndex : llmResponse.length;
+  const jsonEndIndex = endIndex !== -1 ? endIndex : llmResponse.length;
   const jsonString = llmResponse.substring(jsonStartIndex, jsonEndIndex).trim();
 
   // Parse the JSON
@@ -362,7 +368,10 @@ export function parseDeferredCitationResponse(
  * @param pageId - The page ID string
  * @returns Object with pageNumber and normalized startPageId, or undefined values
  */
-function parsePageId(pageId: string): { pageNumber?: number; startPageId?: string } {
+function parsePageId(pageId: string): {
+  pageNumber?: number;
+  startPageId?: string;
+} {
   // Try compact format first: "N_I" (e.g., "2_1")
   const compactMatch = pageId.match(/^(\d+)_(\d+)$/);
   if (compactMatch) {
@@ -465,9 +474,9 @@ export function deferredCitationToCitation(
  * // Returns: { "abc123...": { attachmentId: "...", fullPhrase: "...", ... }, ... }
  * ```
  */
-export function getAllCitationsFromDeferredResponse(
-  llmResponse: string
-): { [key: string]: Citation } {
+export function getAllCitationsFromDeferredResponse(llmResponse: string): {
+  [key: string]: Citation;
+} {
   const parsed = parseDeferredCitationResponse(llmResponse);
 
   if (!parsed.success || parsed.citations.length === 0) {
@@ -549,7 +558,7 @@ export function replaceDeferredMarkers(
   const { citationMap, showAnchorText, replacer } = options || {};
 
   // Match [N] patterns where N is one or more digits
-  return text.replace(/\[(\d+)\]/g, (match, idStr) => {
+  return text.replace(/\[(\d+)\]/g, (_match, idStr) => {
     const id = parseInt(idStr, 10);
     const data = citationMap?.get(id);
 

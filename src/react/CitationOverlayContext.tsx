@@ -17,7 +17,8 @@
  * If no provider is present, the hook returns a no-op implementation that
  * always allows hover (graceful degradation).
  */
-import React, {
+import type React from "react";
+import {
   createContext,
   useCallback,
   useContext,
@@ -34,9 +35,8 @@ interface CitationOverlayContextValue {
   unregisterOverlay: () => void;
 }
 
-const CitationOverlayContext = createContext<CitationOverlayContextValue | null>(
-  null
-);
+const CitationOverlayContext =
+  createContext<CitationOverlayContextValue | null>(null);
 
 /**
  * Provider component that manages overlay state for all child citations.

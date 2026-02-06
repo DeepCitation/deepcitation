@@ -1,17 +1,17 @@
-import { describe, it, expect } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 import {
+  getCitationDisplayText,
+  getIndicator,
+  humanizeLinePosition,
+  INDICATOR_SETS,
   renderCitationsAsMarkdown,
   toMarkdown,
-  getIndicator,
   toSuperscript,
-  humanizeLinePosition,
-  getCitationDisplayText,
-  INDICATOR_SETS,
 } from "../markdown/index.js";
-import type { Citation } from "../types/citation.js";
+import type { IndicatorStyle } from "../markdown/types.js";
 import { getCitationStatus } from "../parsing/parseCitation.js";
+import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import type { IndicatorStyle, MarkdownVariant } from "../markdown/types.js";
 
 // =============================================================================
 // TEST FIXTURES
@@ -34,7 +34,7 @@ const partialVerification: Verification = {
   verifiedPageNumber: 5,
 };
 
-const linePositionVerification: Verification = {
+const _linePositionVerification: Verification = {
   status: "found_on_other_line",
   verifiedPageNumber: 3,
   verifiedLineIds: [80],
@@ -77,7 +77,15 @@ describe("getIndicator", () => {
   });
 
   describe("all indicator styles", () => {
-    const styles: IndicatorStyle[] = ["check", "semantic", "circle", "square", "letter", "word", "none"];
+    const styles: IndicatorStyle[] = [
+      "check",
+      "semantic",
+      "circle",
+      "square",
+      "letter",
+      "word",
+      "none",
+    ];
 
     it.each(styles)("style %s has all four indicators defined", (style) => {
       const set = INDICATOR_SETS[style];
@@ -89,7 +97,7 @@ describe("getIndicator", () => {
     });
 
     it("none style returns empty strings", () => {
-      const set = INDICATOR_SETS["none"];
+      const set = INDICATOR_SETS.none;
       expect(set.verified).toBe("");
       expect(set.partial).toBe("");
       expect(set.notFound).toBe("");
@@ -273,7 +281,6 @@ describe("renderCitationsAsMarkdown", () => {
       expect(result.markdown).toContain("p.3");
     });
   });
-
 });
 
 // =============================================================================
@@ -393,7 +400,9 @@ describe("edge cases", () => {
   });
 
   it("handles input with no citations", () => {
-    const result = renderCitationsAsMarkdown("Just plain text without any citations.");
+    const result = renderCitationsAsMarkdown(
+      "Just plain text without any citations."
+    );
 
     expect(result.markdown).toBe("Just plain text without any citations.");
     expect(result.citations).toHaveLength(0);
@@ -403,7 +412,9 @@ describe("edge cases", () => {
     const input = `Test<cite full_phrase='He said \\'hello\\' to everyone.' anchor_text='hello' />`;
     const result = renderCitationsAsMarkdown(input);
 
-    expect(result.citations[0].citation.fullPhrase).toBe("He said 'hello' to everyone.");
+    expect(result.citations[0].citation.fullPhrase).toBe(
+      "He said 'hello' to everyone."
+    );
   });
 
   it("handles missing optional attributes", () => {
@@ -480,12 +491,15 @@ describe("getCitationDisplayText", () => {
 
   it("returns truncated fullPhrase for inline variant when anchorText is missing", () => {
     const citation: Citation = {
-      fullPhrase: "This is a very long phrase that exceeds fifty characters and should be truncated",
+      fullPhrase:
+        "This is a very long phrase that exceeds fifty characters and should be truncated",
       citationNumber: 1,
     };
 
     const result = getCitationDisplayText(citation, "inline");
-    expect(result).toBe("This is a very long phrase that exceeds fifty char...");
+    expect(result).toBe(
+      "This is a very long phrase that exceeds fifty char..."
+    );
     expect(result.length).toBe(53); // 50 chars + "..."
   });
 

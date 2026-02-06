@@ -1,14 +1,17 @@
 import { describe, expect, it } from "@jest/globals";
 import {
-  parseDeferredCitationResponse,
-  getAllCitationsFromDeferredResponse,
   deferredCitationToCitation,
-  hasDeferredCitations,
   extractVisibleText,
-  replaceDeferredMarkers,
+  getAllCitationsFromDeferredResponse,
   getCitationMarkerIds,
+  hasDeferredCitations,
+  parseDeferredCitationResponse,
+  replaceDeferredMarkers,
 } from "../parsing/citationParser.js";
-import { CITATION_DATA_START_DELIMITER, CITATION_DATA_END_DELIMITER } from "../prompts/citationPrompts.js";
+import {
+  CITATION_DATA_END_DELIMITER,
+  CITATION_DATA_START_DELIMITER,
+} from "../prompts/citationPrompts.js";
 
 describe("parseDeferredCitationResponse", () => {
   it("parses a basic deferred citation response", () => {
@@ -40,7 +43,9 @@ ${CITATION_DATA_END_DELIMITER}`;
     const result = parseDeferredCitationResponse(response);
 
     expect(result.success).toBe(true);
-    expect(result.visibleText).toBe("The company reported strong growth [1]. Revenue increased significantly [2].");
+    expect(result.visibleText).toBe(
+      "The company reported strong growth [1]. Revenue increased significantly [2]."
+    );
     expect(result.citations.length).toBe(2);
     expect(result.citationMap.get(1)?.attachment_id).toBe("abc123");
     expect(result.citationMap.get(2)?.anchor_text).toBe("$2.3 billion");
@@ -125,7 +130,9 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(3);
-    expect(result.visibleText).toBe("Revenue was $1B [1] with profit of $100M [2] in Q4 [3].");
+    expect(result.visibleText).toBe(
+      "Revenue was $1B [1] with profit of $100M [2] in Q4 [3]."
+    );
   });
 
   it("repairs JSON with trailing commas", () => {
@@ -369,7 +376,7 @@ describe("replaceDeferredMarkers", () => {
   it("uses custom replacer function", () => {
     const text = "Test [1] and [2].";
     const result = replaceDeferredMarkers(text, {
-      replacer: id => `(ref${id})`,
+      replacer: (id) => `(ref${id})`,
     });
     expect(result).toBe("Test (ref1) and (ref2).");
   });
@@ -1024,7 +1031,9 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.citations[0].line_ids).toEqual([1, 2, 3]);
 
     // Check last citation - plan
-    expect(result.citations[3].reasoning).toBe("lists the plan for the patient");
+    expect(result.citations[3].reasoning).toBe(
+      "lists the plan for the patient"
+    );
     expect(result.citations[3].anchor_text).toBe("Optimize for transplant");
   });
 
@@ -1055,7 +1064,9 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(citationValues[0].reasoning).toBe("patient demographics");
 
     // Verify second citation conversion
-    expect(citationValues[1].fullPhrase).toBe("Na+ 138 k+ 4.4 Mg 1.7 Cr 1.21 WBC 18");
+    expect(citationValues[1].fullPhrase).toBe(
+      "Na+ 138 k+ 4.4 Mg 1.7 Cr 1.21 WBC 18"
+    );
     expect(citationValues[1].anchorText).toBe("Na+ 138");
   });
 
@@ -1101,7 +1112,9 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
-    expect(result.citations[0].full_phrase).toBe("NSR w/ PVCs Pulses 2/2 Edema 1+");
+    expect(result.citations[0].full_phrase).toBe(
+      "NSR w/ PVCs Pulses 2/2 Edema 1+"
+    );
     expect(result.citations[1].full_phrase).toBe("Na+ 138 k+ 4.4 iCal Mg+ 1.7");
   });
 
@@ -1119,7 +1132,9 @@ ${CITATION_DATA_END_DELIMITER}`;
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
-    expect(result.citations[0].full_phrase).toBe("Cardiac cath showing ↑ pulm HTN, low CI");
+    expect(result.citations[0].full_phrase).toBe(
+      "Cardiac cath showing ↑ pulm HTN, low CI"
+    );
     expect(result.citations[0].anchor_text).toBe("↑ pulm HTN");
   });
 });

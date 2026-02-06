@@ -1,11 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
+import { generateVerificationKey } from "../react/utils.js";
 import {
   BLANK_VERIFICATION,
   NOT_FOUND_VERIFICATION_INDEX,
   PENDING_VERIFICATION_INDEX,
-  Verification,
+  type Verification,
 } from "../types/verification.js";
-import { generateVerificationKey } from "../react/utils.js";
 
 describe("verification helpers", () => {
   it("exposes sentinel constants and blank defaults", () => {

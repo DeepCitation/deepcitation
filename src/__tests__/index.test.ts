@@ -1,17 +1,17 @@
 import { describe, expect, it } from "@jest/globals";
 import {
-  normalizeCitations,
-  parseCitation,
-  sha1Hash,
-  CITATION_PROMPT,
-  CITATION_DATA_START_DELIMITER,
   CITATION_DATA_END_DELIMITER,
+  CITATION_DATA_START_DELIMITER,
+  CITATION_PROMPT,
   CITATION_X_PADDING,
   CITATION_Y_PADDING,
-  wrapSystemCitationPrompt,
-  wrapCitationPrompt,
-  parseDeferredCitationResponse,
   getAllCitationsFromDeferredResponse,
+  normalizeCitations,
+  parseCitation,
+  parseDeferredCitationResponse,
+  sha1Hash,
+  wrapCitationPrompt,
+  wrapSystemCitationPrompt,
 } from "../index.js";
 
 describe("index exports", () => {

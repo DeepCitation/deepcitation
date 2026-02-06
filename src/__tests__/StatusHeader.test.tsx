@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
 import { cleanup, render } from "@testing-library/react";
-import React from "react";
 import { StatusHeader } from "../react/VerificationLog";
 
 describe("StatusHeader", () => {
@@ -14,14 +13,18 @@ describe("StatusHeader", () => {
 
   describe("status display", () => {
     it("renders no text for found status (icon is self-explanatory)", () => {
-      const { container } = render(<StatusHeader status="found" foundPage={5} />);
+      const { container } = render(
+        <StatusHeader status="found" foundPage={5} />
+      );
       // "Verified" text was removed - the checkmark icon is self-explanatory
       // Just verifies the header renders with page info
       expect(container.textContent).toContain("Page 5");
     });
 
     it("renders 'Found on different page' for found_on_other_page", () => {
-      const { container } = render(<StatusHeader status="found_on_other_page" foundPage={7} />);
+      const { container } = render(
+        <StatusHeader status="found_on_other_page" foundPage={7} />
+      );
       expect(container.textContent).toContain("Found on different page");
     });
 
@@ -56,7 +59,11 @@ describe("StatusHeader", () => {
 
     it("shows arrow format when found on different page", () => {
       const { container } = render(
-        <StatusHeader status="found_on_other_page" foundPage={7} expectedPage={5} />
+        <StatusHeader
+          status="found_on_other_page"
+          foundPage={7}
+          expectedPage={5}
+        />
       );
 
       // Should show arrow format: Pg 5 → 7
@@ -67,7 +74,11 @@ describe("StatusHeader", () => {
 
     it("shows single page for found_on_other_line (same page)", () => {
       const { container } = render(
-        <StatusHeader status="found_on_other_line" foundPage={5} expectedPage={5} />
+        <StatusHeader
+          status="found_on_other_line"
+          foundPage={5}
+          expectedPage={5}
+        />
       );
 
       // For same page but different line, foundPage === expectedPage,
@@ -162,14 +173,18 @@ describe("StatusHeader", () => {
 
   describe("icon colors", () => {
     it("uses green icon color for verified status", () => {
-      const { container } = render(<StatusHeader status="found" foundPage={5} />);
+      const { container } = render(
+        <StatusHeader status="found" foundPage={5} />
+      );
 
       const greenIcon = container.querySelector(".text-green-600");
       expect(greenIcon).toBeInTheDocument();
     });
 
     it("uses amber icon color for partial match status", () => {
-      const { container } = render(<StatusHeader status="found_on_other_page" foundPage={7} />);
+      const { container } = render(
+        <StatusHeader status="found_on_other_page" foundPage={7} />
+      );
 
       const amberIcon = container.querySelector(".text-amber-500");
       expect(amberIcon).toBeInTheDocument();
@@ -196,25 +211,49 @@ describe("StatusHeader", () => {
 
   describe("neutral background styling", () => {
     it("uses clean neutral background for all statuses (no colored headers)", () => {
-      const { container: verifiedContainer } = render(<StatusHeader status="found" foundPage={5} />);
-      const { container: partialContainer } = render(<StatusHeader status="found_on_other_page" foundPage={7} />);
-      const { container: notFoundContainer } = render(<StatusHeader status="not_found" />);
+      const { container: verifiedContainer } = render(
+        <StatusHeader status="found" foundPage={5} />
+      );
+      const { container: partialContainer } = render(
+        <StatusHeader status="found_on_other_page" foundPage={7} />
+      );
+      const { container: notFoundContainer } = render(
+        <StatusHeader status="not_found" />
+      );
 
       // All should NOT have colored backgrounds - headers are clean/neutral
-      expect(verifiedContainer.querySelector(".bg-green-50")).not.toBeInTheDocument();
-      expect(partialContainer.querySelector(".bg-amber-50")).not.toBeInTheDocument();
-      expect(notFoundContainer.querySelector(".bg-red-50")).not.toBeInTheDocument();
+      expect(
+        verifiedContainer.querySelector(".bg-green-50")
+      ).not.toBeInTheDocument();
+      expect(
+        partialContainer.querySelector(".bg-amber-50")
+      ).not.toBeInTheDocument();
+      expect(
+        notFoundContainer.querySelector(".bg-red-50")
+      ).not.toBeInTheDocument();
     });
 
     it("does NOT use fully colored backgrounds", () => {
-      const { container: verifiedContainer } = render(<StatusHeader status="found" foundPage={5} />);
-      const { container: partialContainer } = render(<StatusHeader status="found_on_other_page" foundPage={7} />);
-      const { container: notFoundContainer } = render(<StatusHeader status="not_found" />);
+      const { container: verifiedContainer } = render(
+        <StatusHeader status="found" foundPage={5} />
+      );
+      const { container: partialContainer } = render(
+        <StatusHeader status="found_on_other_page" foundPage={7} />
+      );
+      const { container: notFoundContainer } = render(
+        <StatusHeader status="not_found" />
+      );
 
       // Should NOT have the old fully-colored background classes
-      expect(verifiedContainer.querySelector(".bg-green-50")).not.toBeInTheDocument();
-      expect(partialContainer.querySelector(".bg-amber-50")).not.toBeInTheDocument();
-      expect(notFoundContainer.querySelector(".bg-red-50")).not.toBeInTheDocument();
+      expect(
+        verifiedContainer.querySelector(".bg-green-50")
+      ).not.toBeInTheDocument();
+      expect(
+        partialContainer.querySelector(".bg-amber-50")
+      ).not.toBeInTheDocument();
+      expect(
+        notFoundContainer.querySelector(".bg-red-50")
+      ).not.toBeInTheDocument();
     });
   });
 });

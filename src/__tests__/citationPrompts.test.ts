@@ -1,12 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
 import {
-  CITATION_PROMPT,
   AV_CITATION_PROMPT,
-  CITATION_JSON_OUTPUT_FORMAT,
   CITATION_AV_JSON_OUTPUT_FORMAT,
   CITATION_DATA_START_DELIMITER,
-  wrapSystemCitationPrompt,
+  CITATION_JSON_OUTPUT_FORMAT,
+  CITATION_PROMPT,
   wrapCitationPrompt,
+  wrapSystemCitationPrompt,
 } from "../prompts/citationPrompts.js";
 
 describe("citation prompts", () => {
@@ -100,7 +100,9 @@ describe("wrapCitationPrompt", () => {
     expect(result.enhancedSystemPrompt).toContain(
       "You are a helpful assistant."
     );
-    expect(result.enhancedSystemPrompt).toContain(CITATION_DATA_START_DELIMITER);
+    expect(result.enhancedSystemPrompt).toContain(
+      CITATION_DATA_START_DELIMITER
+    );
     expect(result.enhancedUserPrompt).toContain("Analyze this document.");
   });
 
@@ -123,7 +125,9 @@ describe("wrapCitationPrompt", () => {
       isAudioVideo: true,
     });
 
-    expect(result.enhancedSystemPrompt).toContain(CITATION_DATA_START_DELIMITER);
+    expect(result.enhancedSystemPrompt).toContain(
+      CITATION_DATA_START_DELIMITER
+    );
     expect(result.enhancedSystemPrompt).toContain("timestamps");
     expect(result.enhancedSystemPrompt).toContain("start_time");
   });
@@ -147,7 +151,9 @@ describe("wrapCitationPrompt", () => {
       userPrompt: "",
     });
 
-    expect(result.enhancedSystemPrompt).toContain(CITATION_DATA_START_DELIMITER);
+    expect(result.enhancedSystemPrompt).toContain(
+      CITATION_DATA_START_DELIMITER
+    );
     expect(typeof result.enhancedUserPrompt).toBe("string");
   });
 

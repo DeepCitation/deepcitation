@@ -41,8 +41,12 @@
         "size": "size-limit",
         "analyze": "size-limit --why",
         "prepublishOnly": "npm run build",
-        "format": "prettier --write .",
-        "format:check": "prettier --check ."
+        "lint": "biome lint ./src",
+        "lint:fix": "biome lint --fix ./src",
+        "format": "biome format --write ./src",
+        "format:check": "biome format ./src",
+        "check": "biome check ./src",
+        "check:fix": "biome check --fix ./src"
     },
     "engines": {
         "node": ">=18"
@@ -85,7 +89,7 @@
         "happy-dom": "^20.5.0",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^29.7.0",
-        "prettier": "^3.8.1",
+        "@biomejs/biome": "^2.0.0",
         "react": "19.2.3",
         "react-dom": "19.2.3",
         "rimraf": "^5.0.10",

@@ -18,8 +18,20 @@ import React, { memo } from "react";
 
 // React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
 const Activity =
-  (React as { Activity?: React.ComponentType<{ mode: "visible" | "hidden"; children: React.ReactNode }> }).Activity ??
-  (({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>);
+  (
+    React as {
+      Activity?: React.ComponentType<{
+        mode: "visible" | "hidden";
+        children: React.ReactNode;
+      }>;
+    }
+  ).Activity ??
+  (({
+    children,
+  }: {
+    mode: "visible" | "hidden";
+    children: React.ReactNode;
+  }) => <>{children}</>);
 
 interface PrefetchedPopoverImageProps {
   /** Whether the popover (and image) should be visible */
@@ -178,7 +190,9 @@ interface PrefetchCacheState {
  * module reloads while avoiding collisions with other libraries.
  * The version suffix allows cache invalidation on breaking changes.
  */
-const PREFETCH_CACHE_KEY = Symbol.for("@deepcitation/deepcitation-js:prefetchCache:v1");
+const PREFETCH_CACHE_KEY = Symbol.for(
+  "@deepcitation/deepcitation-js:prefetchCache:v1"
+);
 
 /**
  * Type-safe interface for window with prefetch cache.
@@ -254,8 +268,9 @@ function cleanPrefetchCache(): void {
 
     // If still too large, remove oldest entries
     if (cache.size > MAX_PREFETCH_CACHE_SIZE) {
-      const entries = Array.from(cache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      const entries = Array.from(cache.entries()).sort(
+        (a, b) => a[1].timestamp - b[1].timestamp
+      );
       const toRemove = entries.slice(0, cache.size - MAX_PREFETCH_CACHE_SIZE);
       for (const [key] of toRemove) {
         cache.delete(key);

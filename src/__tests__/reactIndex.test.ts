@@ -1,18 +1,20 @@
 import { describe, expect, it } from "@jest/globals";
 import {
-  // Utilities
-  generateCitationKey,
-  generateCitationInstanceId,
-  getCitationDisplayText,
-  getCitationAnchorText,
-  classNames,
   CITATION_X_PADDING,
   CITATION_Y_PADDING,
+  classNames,
+  detectSourceType,
   // URL utilities
   extractDomain,
+  generateCitationInstanceId,
+  // Utilities
+  generateCitationKey,
+  getCitationAnchorText,
+  getCitationDisplayText,
+  getPlatformName,
+  isAccessibleStatus,
   isBlockedStatus,
   isErrorStatus,
-  isAccessibleStatus,
   isRedirectedStatus,
   isVerifiedStatus,
   // Sources list components and utilities
@@ -21,8 +23,6 @@ import {
   SourcesTrigger,
   sourceCitationsToListItems,
   useSourcesList,
-  detectSourceType,
-  getPlatformName,
 } from "../react/index.js";
 
 describe("react index exports", () => {

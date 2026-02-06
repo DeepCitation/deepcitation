@@ -1,12 +1,12 @@
-import React from "react";
-import { CitationComponent } from "../CitationComponent";
-import { UrlCitationComponent } from "../UrlCitationComponent";
-import { StatusHeader, VerificationLog, QuoteBox } from "../VerificationLog";
-import { SpinnerIcon } from "../icons";
+import type React from "react";
 import type { Citation } from "../../types/citation";
-import type { Verification } from "../../types/verification";
 import type { SearchAttempt, SearchStatus } from "../../types/search";
+import type { Verification } from "../../types/verification";
+import { CitationComponent } from "../CitationComponent";
+import { SpinnerIcon } from "../icons";
 import type { UrlCitationMeta, UrlFetchStatus } from "../types";
+import { UrlCitationComponent } from "../UrlCitationComponent";
+import { QuoteBox, StatusHeader, VerificationLog } from "../VerificationLog";
 
 // =============================================================================
 // SHOWCASE LABEL COMPONENTS

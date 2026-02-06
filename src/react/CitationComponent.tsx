@@ -25,25 +25,33 @@ const Activity =
     mode: "visible" | "hidden";
     children: React.ReactNode;
   }) => <>{children}</>);
-import { type CitationStatus } from "../types/citation.js";
+
 import type { Page } from "../types/boxes.js";
-import type { Verification } from "../types/verification.js";
+import type { CitationStatus } from "../types/citation.js";
 import type {
   MatchedVariation,
   SearchAttempt,
   SearchStatus,
 } from "../types/search.js";
+import type { Verification } from "../types/verification.js";
+import { useCitationOverlay } from "./CitationOverlayContext.js";
+import {
+  MISS_WAVY_UNDERLINE_STYLE,
+  POPOVER_CONTAINER_BASE_CLASSES,
+} from "./constants.js";
 import {
   CheckIcon,
   CloseIcon,
-  CopyIcon,
   SpinnerIcon,
   WarningIcon,
-  XCircleIcon,
   XIcon,
   ZoomInIcon,
 } from "./icons.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./Popover.js";
+import {
+  getContextualStatusMessage,
+  SplitDiffDisplay,
+} from "./SplitDiffDisplay.js";
 import type {
   BaseCitationProps,
   CitationBehaviorActions,
@@ -55,31 +63,25 @@ import type {
   CitationRenderProps,
   CitationVariant,
 } from "./types.js";
+import { useSmartDiff } from "./useSmartDiff.js";
 import {
   cn,
   generateCitationInstanceId,
   generateCitationKey,
   isUrlCitation,
 } from "./utils.js";
-import { useSmartDiff } from "./useSmartDiff.js";
-import { useCitationOverlay } from "./CitationOverlayContext.js";
 import {
-  SplitDiffDisplay,
-  getContextualStatusMessage,
-} from "./SplitDiffDisplay.js";
-import {
+  QuotedText,
   SourceContextHeader,
   StatusHeader,
   VerificationLog,
-  QuotedText,
 } from "./VerificationLog.js";
-import { MISS_WAVY_UNDERLINE_STYLE, COPY_FEEDBACK_DURATION_MS, POPOVER_CONTAINER_BASE_CLASSES } from "./constants.js";
 
 // Re-export types for convenience
 export type {
-  CitationVariant,
   CitationContent,
   CitationInteractionMode,
+  CitationVariant,
 } from "./types.js";
 
 /**
@@ -282,7 +284,6 @@ function getDefaultContent(variant: CitationVariant): CitationContent {
       return "anchorText";
     case "badge":
       return "source";
-    case "superscript":
     default:
       return "number";
   }
@@ -543,7 +544,7 @@ interface GroupedSearchAttempt {
 /**
  * Get a human-readable label for search methods.
  */
-function getMethodLabel(method: string): string {
+function _getMethodLabel(method: string): string {
   const labels: Record<string, string> = {
     exact_line_match: "exact location",
     line_with_buffer: "nearby lines",
@@ -817,7 +818,12 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
  * 0.85em provides good visibility at most text sizes while staying proportional.
  * minWidth/minHeight ensure a minimum of 10px for accessibility at very small font sizes.
  */
-export const INDICATOR_SIZE_STYLE: React.CSSProperties = { width: '0.85em', height: '0.85em', minWidth: '10px', minHeight: '10px' };
+export const INDICATOR_SIZE_STYLE: React.CSSProperties = {
+  width: "0.85em",
+  height: "0.85em",
+  minWidth: "10px",
+  minHeight: "10px",
+};
 
 /** Verified indicator - green checkmark for exact matches (subscript-positioned)
  * Vertical offset (top-[0.1em]) changed from 0.15em to better align with the larger 0.85em icon size.
@@ -1059,7 +1065,7 @@ interface PopoverContentProps {
  * - Amber: Successful match with low trust
  * - Red: Failed search attempt
  */
-function getSearchAttemptBorderClass(attempt: SearchAttempt): string {
+function _getSearchAttemptBorderClass(attempt: SearchAttempt): string {
   if (!attempt.success) {
     return "border-red-400 dark:border-red-500";
   }
@@ -1076,7 +1082,7 @@ function getSearchAttemptBorderClass(attempt: SearchAttempt): string {
  * - Shows methods used and variations tried
  * - Highlights successful vs failed attempts
  */
-function SearchedPhrasesInfo({
+function _SearchedPhrasesInfo({
   citation,
   verification,
   isExpanded: externalIsExpanded,
@@ -1202,7 +1208,7 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
   // Truncate phrase for display
   const displayPhrase =
     group.phrase.length > MAX_PHRASE_LENGTH
-      ? group.phrase.slice(0, MAX_PHRASE_LENGTH) + "…"
+      ? `${group.phrase.slice(0, MAX_PHRASE_LENGTH)}…`
       : group.phrase;
 
   // Build location info string
@@ -1250,7 +1256,10 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
 
       {/* The searched phrase */}
       <div className="flex items-start gap-1.5">
-        <QuotedText mono className="text-[11px] text-gray-700 dark:text-gray-200 break-words flex-1">
+        <QuotedText
+          mono
+          className="text-[11px] text-gray-700 dark:text-gray-200 break-words flex-1"
+        >
           {displayPhrase}
         </QuotedText>
         {statusIndicator}
@@ -1285,7 +1294,7 @@ function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
               {visibleVariations.map((variation, index) => {
                 const truncatedVar =
                   variation.length > MAX_VARIATION_LENGTH
-                    ? variation.slice(0, MAX_VARIATION_LENGTH) + "…"
+                    ? `${variation.slice(0, MAX_VARIATION_LENGTH)}…`
                     : variation;
                 return (
                   <span key={index}>
@@ -1360,7 +1369,9 @@ function DefaultPopoverContent({
   if (isLoading || isPending) {
     const searchingPhrase = fullPhrase || anchorText;
     return (
-      <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[200px] max-w-[400px]`}>
+      <div
+        className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[200px] max-w-[400px]`}
+      >
         {/* Source context header */}
         <SourceContextHeader
           citation={citation}
@@ -1379,7 +1390,7 @@ function DefaultPopoverContent({
             <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
               "
               {searchingPhrase.length > 80
-                ? searchingPhrase.slice(0, 80) + "…"
+                ? `${searchingPhrase.slice(0, 80)}…`
                 : searchingPhrase}
               "
             </p>
@@ -1547,7 +1558,9 @@ function DefaultPopoverContent({
   if (!hasSnippet && !statusLabel) return null;
 
   return (
-    <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[180px] max-w-full`}>
+    <div
+      className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[180px] max-w-full`}
+    >
       {/* Source context header */}
       <SourceContextHeader
         citation={citation}
@@ -1594,7 +1607,7 @@ function DefaultPopoverContent({
  * Renders diff highlighting between expected citation text and actual found text.
  * Uses split view for high-variance diffs and inline diff for low-variance.
  */
-function DiffDetails({
+function _DiffDetails({
   citation,
   verification,
   status,
@@ -1694,7 +1707,7 @@ function DiffDetails({
           </div>
           <p className="p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
             {expectedText.length > 150
-              ? expectedText.slice(0, 150) + "…"
+              ? `${expectedText.slice(0, 150)}…`
               : expectedText}
           </p>
         </div>
@@ -1791,7 +1804,10 @@ export const CitationComponent = forwardRef<
     ref
   ) => {
     // Warn about deprecated interactionMode prop in development
-    if (process.env.NODE_ENV !== "production" && _interactionMode !== undefined) {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      _interactionMode !== undefined
+    ) {
       console.warn(
         "CitationComponent: interactionMode prop is deprecated and has no effect. " +
           "The component now always uses click-to-show-popover behavior."
@@ -2038,10 +2054,6 @@ export const CitationComponent = forwardRef<
         verification?.verificationImageBase64,
         getBehaviorContext,
         applyBehaviorActions,
-        // State setters are stable (React guarantees), but included for exhaustive-deps compliance
-        setIsHovering,
-        setExpandedImageSrc,
-        setIsPhrasesExpanded,
       ]
     );
 
@@ -2271,7 +2283,7 @@ export const CitationComponent = forwardRef<
           capture: true,
         });
       };
-    }, [isMobile, isHovering, setIsHovering]);
+    }, [isMobile, isHovering]);
 
     // Touch start handler for mobile - captures popover state before touch ends.
     // Reads isHoveringRef.current (which is kept in sync with isHovering state above)
@@ -2394,7 +2406,12 @@ export const CitationComponent = forwardRef<
               // Neutral gray background - status shown via icon color only
               "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
               // Status-aware hover styling (contained within the chip)
-              ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner)
+              ...getStatusHoverClasses(
+                isVerified,
+                isPartialMatch,
+                isMiss,
+                shouldShowSpinner
+              )
             )}
           >
             <span
@@ -2431,9 +2448,7 @@ export const CitationComponent = forwardRef<
           <>
             {/* Anchor text displayed inline - font-normal prevents bold inheritance like other variants */}
             {anchorTextDisplay && (
-              <span className="font-normal">
-                {anchorTextDisplay}
-              </span>
+              <span className="font-normal">{anchorTextDisplay}</span>
             )}
             {/* Superscript citation number with indicator - no wavy underline or opacity change */}
             <sup
@@ -2441,13 +2456,15 @@ export const CitationComponent = forwardRef<
                 "text-xs font-medium transition-colors inline-flex items-baseline px-0.5 rounded",
                 supStatusClasses,
                 // Status-aware hover styling (contained within the superscript)
-                ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner)
+                ...getStatusHoverClasses(
+                  isVerified,
+                  isPartialMatch,
+                  isMiss,
+                  shouldShowSpinner
+                )
               )}
             >
-              [
-              <span>
-                {citationNumber}
-              </span>
+              [<span>{citationNumber}</span>
               {renderStatusIndicator()}]
             </sup>
           </>
@@ -2505,7 +2522,11 @@ export const CitationComponent = forwardRef<
                 // Miss state: add wavy underline for visual distinction (on text only, not indicator)
                 isMiss && !shouldShowSpinner && "opacity-70"
               )}
-              style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
+              style={
+                isMiss && !shouldShowSpinner
+                  ? MISS_WAVY_UNDERLINE_STYLE
+                  : undefined
+              }
             >
               {displayText}
             </span>
@@ -2683,7 +2704,13 @@ export const CitationComponent = forwardRef<
         // Status-aware hover for variants that don't handle their own hover styling (10% opacity)
         ...(variantHasOwnHover
           ? []
-          : getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner, 10)),
+          : getStatusHoverClasses(
+              isVerified,
+              isPartialMatch,
+              isMiss,
+              shouldShowSpinner,
+              10
+            )),
         // Focus styles for keyboard accessibility
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
         className

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DeepCitation } from "../client/DeepCitation.js";
 
 // Mock global fetch
@@ -171,8 +171,12 @@ describe("DeepCitation Client", () => {
       expect(result.fileDataParts[0].attachmentId).toBe("file_1");
       expect(result.fileDataParts[1].attachmentId).toBe("file_2");
 
-      expect(result.fileDataParts[0].deepTextPromptPortion).toContain("Content from file 1");
-      expect(result.fileDataParts[1].deepTextPromptPortion).toContain("Content from file 2");
+      expect(result.fileDataParts[0].deepTextPromptPortion).toContain(
+        "Content from file 1"
+      );
+      expect(result.fileDataParts[1].deepTextPromptPortion).toContain(
+        "Content from file 2"
+      );
     });
 
     it("handles single file", async () => {
@@ -199,7 +203,9 @@ describe("DeepCitation Client", () => {
       ]);
 
       expect(result.fileDataParts).toHaveLength(1);
-      expect(result.fileDataParts[0].deepTextPromptPortion).toContain("Single content");
+      expect(result.fileDataParts[0].deepTextPromptPortion).toContain(
+        "Single content"
+      );
     });
 
     it("handles empty files array", async () => {
@@ -439,8 +445,12 @@ describe("DeepCitation Client", () => {
           }),
         } as Response);
 
-      const citations1 = { "1": { fullPhrase: "phrase 1", attachmentId: "file_abc" } };
-      const citations2 = { "2": { fullPhrase: "phrase 2", attachmentId: "file_abc" } };
+      const citations1 = {
+        "1": { fullPhrase: "phrase 1", attachmentId: "file_abc" },
+      };
+      const citations2 = {
+        "2": { fullPhrase: "phrase 2", attachmentId: "file_abc" },
+      };
 
       await Promise.all([
         client.verifyAttachment("file_abc", citations1),
@@ -471,7 +481,12 @@ describe("DeepCitation Client", () => {
           json: async () => ({
             attachmentId: `file_${Math.random()}`,
             deepTextPromptPortion: "content",
-            metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+            metadata: {
+              filename: "test.pdf",
+              mimeType: "application/pdf",
+              pageCount: 1,
+              textByteSize: 50,
+            },
             status: "ready",
           }),
         } as Response;
@@ -516,7 +531,12 @@ describe("DeepCitation Client", () => {
           json: async () => ({
             attachmentId: `file_${Math.random()}`,
             deepTextPromptPortion: "content",
-            metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+            metadata: {
+              filename: "test.pdf",
+              mimeType: "application/pdf",
+              pageCount: 1,
+              textByteSize: 50,
+            },
             status: "ready",
           }),
         } as Response;

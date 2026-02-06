@@ -6,14 +6,14 @@ import {
   render,
   waitFor,
 } from "@testing-library/react";
-import React from "react";
+import type React from "react";
 import { CitationComponent } from "../react/CitationComponent";
-import type { Citation } from "../types/citation";
-import type { Verification } from "../types/verification";
 import type {
   CitationBehaviorActions,
   CitationBehaviorContext,
 } from "../react/types";
+import type { Citation } from "../types/citation";
+import type { Verification } from "../types/verification";
 
 // Mock createPortal to render content in place instead of portal
 // This allows us to query overlay elements in the same container
@@ -673,7 +673,7 @@ describe("CitationComponent behaviorConfig", () => {
           citation={baseCitation}
           verification={verificationWithImage}
           eventHandlers={{
-            onClick: (citation, citationKey) => {
+            onClick: (_citation, citationKey) => {
               trackingData.push(`clicked:${citationKey}`);
             },
           }}
@@ -700,7 +700,7 @@ describe("CitationComponent behaviorConfig", () => {
           citation={baseCitation}
           verification={verificationWithImage}
           behaviorConfig={{
-            onClick: (context) => {
+            onClick: (_context) => {
               behaviorConfigCalls.push("behavior");
               return { setImageExpanded: true };
             },
@@ -1299,7 +1299,9 @@ describe("CitationComponent mobile/touch detection", () => {
       fireEvent.click(citation!);
 
       // No image overlay - second tap toggles details, not image
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
     });
 
     it("multiple taps toggle search details without opening image overlay", () => {
@@ -1324,12 +1326,16 @@ describe("CitationComponent mobile/touch detection", () => {
       // Second tap - toggle search details
       fireEvent.touchStart(citation!);
       fireEvent.click(citation!);
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
 
       // Third tap - toggle search details again
       fireEvent.touchStart(citation!);
       fireEvent.click(citation!);
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
     });
 
     it("mobile tap without verification image still shows popover on first tap", () => {
@@ -1418,7 +1424,9 @@ describe("CitationComponent mobile/touch detection", () => {
       fireEvent.click(citationB!);
 
       // No image overlay - second tap toggles details, not image
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
     });
 
     it("second tap toggles phrase expansion for miss citations (no image)", () => {
@@ -1530,7 +1538,9 @@ describe("CitationComponent mobile/touch detection", () => {
       fireEvent.click(citation!);
 
       // No image overlay - second tap toggles details, not image
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -1625,7 +1635,9 @@ describe("CitationComponent mobile/touch detection", () => {
       fireEvent.click(citation!);
 
       // Image overlay should NOT be visible (second tap toggles details, not image)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
     });
 
     it("desktop mode (isMobile=false) does not dismiss on outside click", async () => {
@@ -1770,7 +1782,9 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Second Enter - toggles details (not image in lazy mode)
       fireEvent.keyDown(citation!, { key: "Enter" });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
     });
 
     it("citation has correct ARIA attributes", () => {
@@ -1840,7 +1854,7 @@ describe("CitationComponent interactionMode", () => {
   const HOVER_CLOSE_DELAY_MS = 150;
 
   // Helper to wait for hover close delay
-  const waitForHoverCloseDelay = () =>
+  const _waitForHoverCloseDelay = () =>
     new Promise((resolve) => setTimeout(resolve, HOVER_CLOSE_DELAY_MS + 50));
 
   describe("deprecated eager mode (now uses lazy behavior)", () => {
@@ -2019,7 +2033,9 @@ describe("CitationComponent interactionMode", () => {
       // Second click - toggles search details (not image overlay in lazy mode)
       fireEvent.click(citation!);
       // In lazy mode, second click toggles search details, not image overlay
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(
+        container.querySelector("[role='dialog']")
+      ).not.toBeInTheDocument();
     });
 
     it("has cursor-pointer class initially (before popover is shown)", () => {

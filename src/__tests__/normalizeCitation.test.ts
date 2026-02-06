@@ -4,9 +4,9 @@ import {
   normalizeCitations,
   replaceCitations,
 } from "../parsing/normalizeCitation.js";
-import type { Verification } from "../types/verification.js";
-import type { Citation } from "../types/citation.js";
 import { generateCitationKey } from "../react/utils.js";
+import type { Citation } from "../types/citation.js";
+import type { Verification } from "../types/verification.js";
 
 describe("getCitationPageNumber", () => {
   it("parses page numbers from standard keys", () => {
@@ -140,7 +140,9 @@ Medical History:
       // Verify structure: content appears before each citation
       const patientProfileIdx = result.indexOf("Patient Profile:");
       const nameIdx = result.indexOf("- Name: John Doe");
-      const firstCiteIdx = result.indexOf("<cite attachment_id='VVoEl2eWxfWbvZu0qajw'");
+      const firstCiteIdx = result.indexOf(
+        "<cite attachment_id='VVoEl2eWxfWbvZu0qajw'"
+      );
 
       expect(patientProfileIdx).toBeLessThan(nameIdx);
       expect(nameIdx).toBeLessThan(firstCiteIdx);
@@ -664,7 +666,7 @@ describe("replaceCitations with citationKey matching", () => {
     const citation: Citation = {
       attachmentId,
       pageNumber: 2,
-      fullPhrase: "The doctor said \"rest is important\" for recovery",
+      fullPhrase: 'The doctor said "rest is important" for recovery',
       anchorText: "rest is important",
       lineIds: [10],
     };
@@ -801,7 +803,9 @@ describe("replaceCitations with citationKey matching", () => {
         showVerificationStatus: true,
       });
 
-      expect(result).toBe("He has a history of HTN, CAD, HFrEF, Hypothyroid, and HLD ☑️.");
+      expect(result).toBe(
+        "He has a history of HTN, CAD, HFrEF, Hypothyroid, and HLD ☑️."
+      );
     });
 
     it("matches citationKey when line_ids are specified as ranges in the cite tag", () => {
@@ -888,11 +892,41 @@ describe("replaceCitations with citationKey matching", () => {
 
     // Simulate a medical chart with multiple facts
     const citations: Citation[] = [
-      { attachmentId, pageNumber: 1, fullPhrase: "Patient: John Doe, 50/M", anchorText: "John Doe", lineIds: [1] },
-      { attachmentId, pageNumber: 1, fullPhrase: "Allergies: NKDA", anchorText: "NKDA", lineIds: [2] },
-      { attachmentId, pageNumber: 1, fullPhrase: "Heparin 12 u/hr", anchorText: "Heparin", lineIds: [5] },
-      { attachmentId, pageNumber: 1, fullPhrase: "Dobutamine 2.5 mcg/kg", anchorText: "Dobutamine", lineIds: [6] },
-      { attachmentId, pageNumber: 1, fullPhrase: "Na+ 138", anchorText: "Na+ 138", lineIds: [10] },
+      {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "Patient: John Doe, 50/M",
+        anchorText: "John Doe",
+        lineIds: [1],
+      },
+      {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "Allergies: NKDA",
+        anchorText: "NKDA",
+        lineIds: [2],
+      },
+      {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "Heparin 12 u/hr",
+        anchorText: "Heparin",
+        lineIds: [5],
+      },
+      {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "Dobutamine 2.5 mcg/kg",
+        anchorText: "Dobutamine",
+        lineIds: [6],
+      },
+      {
+        attachmentId,
+        pageNumber: 1,
+        fullPhrase: "Na+ 138",
+        anchorText: "Na+ 138",
+        lineIds: [10],
+      },
     ];
 
     // Create verifications: some found, some not, some partial
@@ -913,7 +947,7 @@ describe("replaceCitations with citationKey matching", () => {
     // Build input (XML uses old key_span attr for backward compat)
     let input = "";
     citations.forEach((c, i) => {
-      input += `${c.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${c.fullPhrase}' key_span='${c.anchorText}' line_ids='${c.lineIds![0]}' />`;
+      input += `${c.fullPhrase}<cite attachment_id='${attachmentId}' start_page_key='page_number_1_index_0' full_phrase='${c.fullPhrase}' key_span='${c.anchorText}' line_ids='${c.lineIds?.[0]}' />`;
       if (i < citations.length - 1) input += " ";
     });
 

@@ -196,7 +196,9 @@ describe("promptCompression edge cases", () => {
 
     expect(Object.keys(prefixMap)).toHaveLength(1);
     const prefix = Object.keys(prefixMap)[0];
-    expect((compressed as typeof original).content).toBe(`Reference: ${prefix}`);
+    expect((compressed as typeof original).content).toBe(
+      `Reference: ${prefix}`
+    );
     expect((compressed as typeof original).id).toBe(prefix);
 
     const decompressed = decompressPromptIds(compressed, prefixMap);

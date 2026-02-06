@@ -22,34 +22,33 @@
  * @packageDocumentation
  */
 
-// Main rendering functions
-export {
-  renderCitationsAsMarkdown,
-  toMarkdown,
-  getVerificationIndicator,
-} from "./renderMarkdown.js";
-
 // Variant and indicator utilities
 export {
-  getIndicator,
-  toSuperscript,
-  humanizeLinePosition,
-  getCitationDisplayText,
   formatPageLocation,
+  getCitationDisplayText,
+  getIndicator,
+  humanizeLinePosition,
   renderCitationVariant,
   renderReferenceEntry,
   renderReferencesSection,
+  toSuperscript,
 } from "./markdownVariants.js";
+// Main rendering functions
+export {
+  getVerificationIndicator,
+  renderCitationsAsMarkdown,
+  toMarkdown,
+} from "./renderMarkdown.js";
 
 // Types
 export type {
-  MarkdownVariant,
-  IndicatorStyle,
-  LinePosition,
-  RenderMarkdownOptions,
-  MarkdownOutput,
   CitationWithStatus,
   IndicatorSet,
+  IndicatorStyle,
+  LinePosition,
+  MarkdownOutput,
+  MarkdownVariant,
+  RenderMarkdownOptions,
 } from "./types.js";
 
 // Constants

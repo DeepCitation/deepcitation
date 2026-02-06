@@ -1,7 +1,8 @@
-import React, { memo, useState, useMemo } from "react";
-import { cn } from "./utils.js";
-import { CheckIcon } from "./icons.js";
+import type React from "react";
+import { memo, useMemo, useState } from "react";
 import type { SearchStatus } from "../types/search.js";
+import { CheckIcon } from "./icons.js";
+import { cn } from "./utils.js";
 
 // =============================================================================
 // TYPES
@@ -46,7 +47,7 @@ export interface SplitDiffDisplayProps {
 export function getContextualStatusMessage(
   status: SearchStatus | null | undefined,
   expectedPage?: number | null,
-  actualPage?: number | null,
+  actualPage?: number | null
 ): string {
   if (!status) return "";
 
@@ -101,7 +102,11 @@ function calculateSimilarity(a: string, b: string): number {
       if (a[i - 1] === b[j - 1]) {
         matrix[i][j] = matrix[i - 1][j - 1];
       } else {
-        matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
       }
     }
   }
@@ -113,7 +118,11 @@ function calculateSimilarity(a: string, b: string): number {
 /**
  * Highlight a substring within text
  */
-function highlightSubstring(text: string, substring: string | undefined, highlightClass: string): React.ReactNode {
+function highlightSubstring(
+  text: string,
+  substring: string | undefined,
+  highlightClass: string
+): React.ReactNode {
   if (!substring || !text.includes(substring)) {
     return text;
   }
@@ -141,27 +150,34 @@ interface MatchQualityBarProps {
   className?: string;
 }
 
-const MatchQualityBar: React.FC<MatchQualityBarProps> = memo(({ similarity, className }) => {
-  const percentage = Math.round(similarity * 100);
-  const fillColor =
-    percentage >= 80
-      ? "bg-green-500 dark:bg-green-400"
-      : percentage >= 40
-        ? "bg-amber-500 dark:bg-amber-400"
-        : "bg-red-500 dark:bg-red-400";
+const MatchQualityBar: React.FC<MatchQualityBarProps> = memo(
+  ({ similarity, className }) => {
+    const percentage = Math.round(similarity * 100);
+    const fillColor =
+      percentage >= 80
+        ? "bg-green-500 dark:bg-green-400"
+        : percentage >= 40
+          ? "bg-amber-500 dark:bg-amber-400"
+          : "bg-red-500 dark:bg-red-400";
 
-  return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        <div
-          className={cn("h-full rounded-full transition-all duration-300", fillColor)}
-          style={{ width: `${percentage}%` }}
-        />
+    return (
+      <div className={cn("flex items-center gap-2", className)}>
+        <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all duration-300",
+              fillColor
+            )}
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 tabular-nums">
+          {percentage}%
+        </span>
       </div>
-      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 tabular-nums">{percentage}%</span>
-    </div>
-  );
-});
+    );
+  }
+);
 
 MatchQualityBar.displayName = "MatchQualityBar";
 
@@ -178,13 +194,22 @@ interface CollapsibleTextProps {
 }
 
 const CollapsibleText: React.FC<CollapsibleTextProps> = memo(
-  ({ text, maxLength, className, anchorText, anchorTextClass = "border-b-2 border-blue-400 dark:border-blue-500" }) => {
+  ({
+    text,
+    maxLength,
+    className,
+    anchorText,
+    anchorTextClass = "border-b-2 border-blue-400 dark:border-blue-500",
+  }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const shouldCollapse = text.length > maxLength;
 
-    const displayText = shouldCollapse && !isExpanded ? text.slice(0, maxLength) + "…" : text;
+    const displayText =
+      shouldCollapse && !isExpanded ? `${text.slice(0, maxLength)}…` : text;
 
-    const content = anchorText ? highlightSubstring(displayText, anchorText, anchorTextClass) : displayText;
+    const content = anchorText
+      ? highlightSubstring(displayText, anchorText, anchorTextClass)
+      : displayText;
 
     return (
       <div className={className}>
@@ -192,7 +217,7 @@ const CollapsibleText: React.FC<CollapsibleTextProps> = memo(
         {shouldCollapse && (
           <button
             type="button"
-            onClick={e => {
+            onClick={(e) => {
               e.stopPropagation();
               setIsExpanded(!isExpanded);
             }}
@@ -203,7 +228,7 @@ const CollapsibleText: React.FC<CollapsibleTextProps> = memo(
         )}
       </div>
     );
-  },
+  }
 );
 
 CollapsibleText.displayName = "CollapsibleText";
@@ -223,10 +248,20 @@ interface SplitViewProps {
 }
 
 const SplitView: React.FC<SplitViewProps> = memo(
-  ({ expected, actual, maxCollapsedLength, anchorTextExpected, anchorTextFound, showMatchQuality, similarity }) => {
+  ({
+    expected,
+    actual,
+    maxCollapsedLength,
+    anchorTextExpected,
+    anchorTextFound,
+    showMatchQuality,
+    similarity,
+  }) => {
     return (
       <div className="space-y-2">
-        {showMatchQuality && <MatchQualityBar similarity={similarity} className="mb-3" />}
+        {showMatchQuality && (
+          <MatchQualityBar similarity={similarity} className="mb-3" />
+        )}
 
         {/* Expected row */}
         <div className="rounded-md overflow-hidden">
@@ -270,7 +305,7 @@ const SplitView: React.FC<SplitViewProps> = memo(
         </div>
       </div>
     );
-  },
+  }
 );
 
 SplitView.displayName = "SplitView";
@@ -330,7 +365,10 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
       if (similarity < 0.6) return "split";
 
       // For status-based decisions
-      if (status === "found_anchor_text_only" || status === "partial_text_found") {
+      if (
+        status === "found_anchor_text_only" ||
+        status === "partial_text_found"
+      ) {
         return "split";
       }
 
@@ -339,13 +377,20 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
     }, [mode, similarity, status]);
 
     // Check if exact match
-    const isExactMatch = sanitizedExpected === sanitizedActual && sanitizedExpected.length > 0;
+    const isExactMatch =
+      sanitizedExpected === sanitizedActual && sanitizedExpected.length > 0;
 
     if (isExactMatch) {
       return (
-        <div data-testid="split-diff-display" data-exact-match="true" className={cn("space-y-2", className)}>
+        <div
+          data-testid="split-diff-display"
+          data-exact-match="true"
+          className={cn("space-y-2", className)}
+        >
           {label && (
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              {label}
+            </div>
           )}
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">
             <span className="size-2.5">
@@ -361,9 +406,15 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
     }
 
     return (
-      <div data-testid="split-diff-display" data-mode={effectiveMode} className={cn("space-y-2", className)}>
+      <div
+        data-testid="split-diff-display"
+        data-mode={effectiveMode}
+        className={cn("space-y-2", className)}
+      >
         {label && (
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
+          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            {label}
+          </div>
         )}
 
         <SplitView
@@ -377,7 +428,7 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
         />
       </div>
     );
-  },
+  }
 );
 
 SplitDiffDisplay.displayName = "SplitDiffDisplay";

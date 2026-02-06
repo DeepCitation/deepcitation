@@ -3,7 +3,8 @@ const MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE = 64;
 export const isGeminiGarbage = (content: string) => {
   if (!content) return false;
   const trimmedContent = content.trim();
-  if (trimmedContent.length < MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE) return false;
+  if (trimmedContent.length < MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE)
+    return false;
 
   const firstCharacter = trimmedContent?.[0];
 
@@ -31,9 +32,13 @@ export function cleanRepeatingLastSentence(text: string): string {
   }
 
   const lastTerminatorIndex = sentenceEndIndices[sentenceEndIndices.length - 1];
-  const secondLastTerminatorIndex = sentenceEndIndices[sentenceEndIndices.length - 2];
+  const secondLastTerminatorIndex =
+    sentenceEndIndices[sentenceEndIndices.length - 2];
 
-  const repeatingUnit = text.substring(secondLastTerminatorIndex + 1, lastTerminatorIndex + 1);
+  const repeatingUnit = text.substring(
+    secondLastTerminatorIndex + 1,
+    lastTerminatorIndex + 1
+  );
   const unitLength = repeatingUnit.length;
 
   const sentenceContent = repeatingUnit.trim().slice(0, -1);

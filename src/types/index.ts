@@ -4,33 +4,28 @@
  * @packageDocumentation
  */
 
+// Box/geometry types
+export type { DeepTextItem, IVertex, Page, ScreenBox } from "./boxes.js";
 // Citation core types
 export type {
   Citation,
   CitationStatus,
+  OutputImageFormat,
   VerifyCitationRequest,
   VerifyCitationResponse,
-  OutputImageFormat,
 } from "./citation.js";
-
 export { DEFAULT_OUTPUT_IMAGE_FORMAT } from "./citation.js";
-
-// Found highlight types
-export type { Verification } from "./verification.js";
-
-export {
-  NOT_FOUND_VERIFICATION_INDEX,
-  PENDING_VERIFICATION_INDEX,
-  BLANK_VERIFICATION,
-} from "./verification.js";
-
 // Search status types
 export type {
-  SearchStatus,
-  SearchMethod,
-  SearchAttempt,
   MatchedVariation,
+  SearchAttempt,
+  SearchMethod,
+  SearchStatus,
 } from "./search.js";
-
-// Box/geometry types
-export type { ScreenBox, DeepTextItem, IVertex, Page } from "./boxes.js";
+// Found highlight types
+export type { Verification } from "./verification.js";
+export {
+  BLANK_VERIFICATION,
+  NOT_FOUND_VERIFICATION_INDEX,
+  PENDING_VERIFICATION_INDEX,
+} from "./verification.js";

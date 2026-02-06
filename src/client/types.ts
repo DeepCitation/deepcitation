@@ -188,7 +188,6 @@ export interface VerifyInput {
   outputImageFormat?: "jpeg" | "png" | "avif";
 }
 
-
 /**
  * Input for convertFile - convert URL or Office file to PDF
  */

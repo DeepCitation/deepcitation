@@ -1,12 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
 import {
+  getAllCitationsFromLlmOutput,
   getCitationStatus,
   parseCitation,
-  getAllCitationsFromLlmOutput,
 } from "../parsing/parseCitation.js";
-import { NOT_FOUND_VERIFICATION_INDEX } from "../types/verification.js";
-import type { Verification } from "../types/verification.js";
 import type { Citation } from "../types/citation.js";
+import type { Verification } from "../types/verification.js";
+import { NOT_FOUND_VERIFICATION_INDEX } from "../types/verification.js";
 
 describe("getCitationStatus", () => {
   it("marks verified citations", () => {
@@ -303,7 +303,7 @@ describe("parseCitation", () => {
 
     it("handles malformed cite tag", () => {
       const fragment = "Text with <cite but no closing";
-      const parsed = parseCitation(fragment);
+      const _parsed = parseCitation(fragment);
     });
 
     it("handles cite tag without required attributes", () => {
@@ -1521,7 +1521,9 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("The company (NYSE: ABC) reported earnings");
+      expect(citation.fullPhrase).toBe(
+        "The company (NYSE: ABC) reported earnings"
+      );
       // Output uses new naming: anchorText
       expect(citation.anchorText).toBe("(NYSE: ABC)");
     });
@@ -1867,7 +1869,7 @@ Family:
     });
 
     it("handles mixed escaped and unescaped quotes across attributes", () => {
-      const input = `<cite attachment_id='test123' reasoning='Patient\\'s notes' full_phrase="The \"quoted\" text" key_span='quoted' start_page_key='page_number_1_index_0' line_ids='1' />`;
+      const input = `<cite attachment_id='test123' reasoning='Patient\\'s notes' full_phrase="The "quoted" text" key_span='quoted' start_page_key='page_number_1_index_0' line_ids='1' />`;
 
       const result = getAllCitationsFromLlmOutput(input);
 
@@ -2023,7 +2025,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
     });
 
     it("handles citation with very long full_phrase", () => {
-      const longPhrase = "A".repeat(500) + " important " + "B".repeat(500);
+      const longPhrase = `${"A".repeat(500)} important ${"B".repeat(500)}`;
       const input = `<cite attachment_id='test123' full_phrase='${longPhrase}' key_span='important' start_page_key='page_number_1_index_0' line_ids='1-50' />`;
 
       const result = getAllCitationsFromLlmOutput(input);
@@ -2172,7 +2174,9 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("Q4 earnings exceeded expectations by 20%");
+      expect(citation.fullPhrase).toBe(
+        "Q4 earnings exceeded expectations by 20%"
+      );
       // Output uses new naming (anchorText)
       expect(citation.anchorText).toBe("exceeded expectations");
       expect(citation.reasoning).toBe("Supports the growth claim");
@@ -2593,7 +2597,9 @@ Family:
       const citations = Object.values(result);
 
       // All citations should have the same attachmentId
-      expect(citations.every((c) => c.attachmentId === "LOcZ46PdCNO1P62p0p9M")).toBe(true);
+      expect(
+        citations.every((c) => c.attachmentId === "LOcZ46PdCNO1P62p0p9M")
+      ).toBe(true);
 
       // Check a few specific citations
       const citation1 = citations.find((c) => c.citationNumber === 1);
@@ -2634,7 +2640,9 @@ Patient Profile:
       expect(phrases).toContain("NKDA");
 
       // Verify attachmentId is correctly injected from the group key
-      const johndoeCitation = citations.find((c) => c.fullPhrase === "John Doe");
+      const johndoeCitation = citations.find(
+        (c) => c.fullPhrase === "John Doe"
+      );
       expect(johndoeCitation?.attachmentId).toBe("bm8JG5cIv5uhhj1ViHNm");
       expect(johndoeCitation?.pageNumber).toBe(1);
     });
@@ -2652,7 +2660,9 @@ Patient Profile:
 
       expect(Object.keys(result).length).toBe(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe("The company achieved 45% year-over-year growth");
+      expect(citation.fullPhrase).toBe(
+        "The company achieved 45% year-over-year growth"
+      );
       expect(citation.attachmentId).toBe("abc123");
       expect(citation.anchorText).toBe("45% growth");
       expect(citation.pageNumber).toBe(2);
@@ -2699,10 +2709,14 @@ Patient Profile:
       expect(Object.keys(result).length).toBe(2);
       const citations = Object.values(result);
 
-      const doc1Citation = citations.find((c) => c.fullPhrase === "content from doc1");
+      const doc1Citation = citations.find(
+        (c) => c.fullPhrase === "content from doc1"
+      );
       expect(doc1Citation?.attachmentId).toBe("doc1AttachmentId");
 
-      const doc2Citation = citations.find((c) => c.fullPhrase === "content from doc2");
+      const doc2Citation = citations.find(
+        (c) => c.fullPhrase === "content from doc2"
+      );
       expect(doc2Citation?.attachmentId).toBe("doc2AttachmentId");
     });
 
@@ -2753,7 +2767,9 @@ Patient Profile:
       // Should have citations from both formats
       expect(citations.length).toBe(2);
 
-      const deferredCitation = citations.find((c) => c.fullPhrase === "deferred phrase");
+      const deferredCitation = citations.find(
+        (c) => c.fullPhrase === "deferred phrase"
+      );
       expect(deferredCitation).toBeDefined();
       expect(deferredCitation?.attachmentId).toBe("deferredAttachmentId");
 

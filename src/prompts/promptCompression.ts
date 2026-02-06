@@ -1,4 +1,4 @@
-import { CompressedResult } from "./types.js";
+import type { CompressedResult } from "./types.js";
 
 const MIN_PREFIX_LENGTH = 4;
 const MIN_CHARACTERS_PER_PREFIX_WITH_AT_LEAST_ONE_DIGIT = 3;
@@ -38,7 +38,7 @@ function buildSafePrefixMap(
       }
 
       // 2) Only appears in prompt as part of the full ID
-      const esc = (s: string) => s.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+      const esc = (s: string) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
       const prefixCount = (prompt.match(new RegExp(esc(prefix), "g")) || [])
         .length;
       const fullCount = (prompt.match(new RegExp(esc(id), "g")) || []).length;
@@ -82,7 +82,7 @@ export function compressPromptIds<T>(
   let compressedText = text;
   for (const prefix of prefixes) {
     const full = prefixMap[prefix];
-    const escFull = full.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    const escFull = full.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
     compressedText = compressedText.replace(new RegExp(escFull, "g"), prefix);
   }
 
@@ -127,7 +127,7 @@ export function decompressPromptIds<T>(
 
   // Perform all prefix → full-ID replacements
   for (const [prefix, full] of entries) {
-    const escPrefix = prefix.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    const escPrefix = prefix.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
     text = text.replace(new RegExp(escPrefix, "g"), full);
   }
 
@@ -148,7 +148,7 @@ export function decompressPromptIds<T>(
 
   // For each prefix, look for it within ID attribute values and replace with full ID
   for (const [prefix, full] of entries) {
-    const escPrefix = prefix.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+    const escPrefix = prefix.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
     const keyPattern = idAttributeKeys.join("|");
     const quotePattern = "([\"'`])";
 

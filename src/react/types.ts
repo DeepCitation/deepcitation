@@ -1,6 +1,6 @@
 import type { Citation, CitationStatus } from "../types/citation.js";
-import type { Verification } from "../types/verification.js";
 import type { SearchStatus } from "../types/search.js";
+import type { Verification } from "../types/verification.js";
 
 /**
  * Interaction mode for citation components.
@@ -273,10 +273,8 @@ export type UrlCitationVariant = "badge" | "chip" | "inline" | "bracket";
 /**
  * Props for URL citation component
  */
-export interface UrlCitationProps extends Omit<
-  BaseCitationProps,
-  "citation" | "variant"
-> {
+export interface UrlCitationProps
+  extends Omit<BaseCitationProps, "citation" | "variant"> {
   /** Visual style variant for the URL citation */
   variant?: UrlCitationVariant;
   /** URL metadata including fetch status */
@@ -444,7 +442,7 @@ export interface CitationBehaviorActions {
 export type CitationClickBehavior = (
   context: CitationBehaviorContext,
   event: React.MouseEvent | React.TouchEvent | React.KeyboardEvent
-) => CitationBehaviorActions | false | void;
+) => CitationBehaviorActions | false | undefined;
 
 /**
  * Configuration for hover behavior.

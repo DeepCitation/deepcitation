@@ -3,29 +3,29 @@
  * @packageDocumentation
  */
 
-import React, {
+import {
   createContext,
-  useContext,
-  useMemo,
-  useCallback,
   forwardRef,
-  type ReactNode,
   type HTMLAttributes,
   type MouseEvent,
+  type ReactNode,
   type TouchEvent,
+  useCallback,
+  useContext,
+  useMemo,
 } from "react";
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import type {
-  Citation as CitationType,
   CitationStatus,
+  Citation as CitationType,
 } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import {
-  generateCitationKey,
-  generateCitationInstanceId,
-  classNames,
-} from "./utils.js";
 import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import {
+  classNames,
+  generateCitationInstanceId,
+  generateCitationKey,
+} from "./utils.js";
 
 interface CitationContextValue {
   citation: CitationType;
@@ -308,10 +308,7 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
       return (
         <span
           ref={ref}
-          className={classNames(
-            "font-medium opacity-60",
-            className
-          )}
+          className={classNames("font-medium opacity-60", className)}
           {...props}
         >
           {config.pendingContent}
@@ -333,35 +330,33 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
 
 CitationNumber.displayName = "Citation.Number";
 
-export interface CitationAnchorTextProps extends HTMLAttributes<HTMLSpanElement> {
+export interface CitationAnchorTextProps
+  extends HTMLAttributes<HTMLSpanElement> {
   anchorText?: string;
   separator?: string;
 }
 
 /** Displays the citation anchorText (summary text). */
-export const CitationAnchorText = forwardRef<HTMLSpanElement, CitationAnchorTextProps>(
-  ({ className, anchorText, separator = " ", ...props }, ref) => {
-    const { citation } = useCitationContext();
+export const CitationAnchorText = forwardRef<
+  HTMLSpanElement,
+  CitationAnchorTextProps
+>(({ className, anchorText, separator = " ", ...props }, ref) => {
+  const { citation } = useCitationContext();
 
-    const displayKeySpan = useMemo(() => {
-      if (anchorText !== undefined) return anchorText;
-      return citation.anchorText?.toString() || "";
-    }, [anchorText, citation]);
+  const displayKeySpan = useMemo(() => {
+    if (anchorText !== undefined) return anchorText;
+    return citation.anchorText?.toString() || "";
+  }, [anchorText, citation]);
 
-    if (!displayKeySpan) return null;
+  if (!displayKeySpan) return null;
 
-    return (
-      <span
-        ref={ref}
-        className={classNames("italic", className)}
-        {...props}
-      >
-        {displayKeySpan}
-        {separator}
-      </span>
-    );
-  }
-);
+  return (
+    <span ref={ref} className={classNames("italic", className)} {...props}>
+      {displayKeySpan}
+      {separator}
+    </span>
+  );
+});
 
 CitationAnchorText.displayName = "Citation.KeySpan";
 
@@ -508,11 +503,7 @@ export const CitationPhrase = forwardRef<HTMLSpanElement, CitationPhraseProps>(
     if (!displayPhrase) return null;
 
     return (
-      <span
-        ref={ref}
-        className={classNames("italic", className)}
-        {...props}
-      >
+      <span ref={ref} className={classNames("italic", className)} {...props}>
         {displayPhrase}
       </span>
     );
@@ -537,7 +528,10 @@ export const CitationPage = forwardRef<HTMLSpanElement, CitationPageProps>(
     return (
       <span
         ref={ref}
-        className={classNames("text-xs text-gray-400 dark:text-gray-500", className)}
+        className={classNames(
+          "text-xs text-gray-400 dark:text-gray-500",
+          className
+        )}
         {...props}
       >
         {prefix}

@@ -1,5 +1,5 @@
-import { diffLines, diffWordsWithSpace } from "../utils/diff.js";
 import { useMemo } from "react";
+import { diffLines, diffWordsWithSpace } from "../utils/diff.js";
 
 export type DiffBlockType = "modified" | "added" | "removed" | "unchanged";
 
@@ -56,7 +56,9 @@ export const useSmartDiff = (expected: string = "", actual: string = "") => {
       else if (part.added || part.removed) {
         processedDiffs.push({
           type: part.added ? "added" : "removed",
-          parts: [{ value: part.value, added: part.added, removed: part.removed }],
+          parts: [
+            { value: part.value, added: part.added, removed: part.removed },
+          ],
         });
         hasDiff = true;
         totalChange += part.value.length;

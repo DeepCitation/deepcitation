@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { CheckIcon, SpinnerIcon, WarningIcon } from "./icons.js";
 import type {
@@ -15,7 +14,9 @@ import { cn } from "./utils.js";
  * Module-level handler for hiding broken favicon images.
  * Performance fix: avoids creating new function references on every render.
  */
-const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
+const handleFaviconError = (
+  e: React.SyntheticEvent<HTMLImageElement>
+): void => {
   (e.target as HTMLImageElement).style.display = "none";
 };
 
@@ -43,11 +44,11 @@ export function groupCitationsBySource(
     if (!groups.has(groupKey)) {
       groups.set(groupKey, []);
     }
-    groups.get(groupKey)!.push(item);
+    groups.get(groupKey)?.push(item);
   }
 
   // Convert map to array of SourceCitationGroup
-  return Array.from(groups.entries()).map(([key, items]) => {
+  return Array.from(groups.entries()).map(([_key, items]) => {
     const firstCitation = items[0].citation;
     return {
       sourceName:
@@ -148,7 +149,8 @@ export function CitationDrawerItemComponent({
     citation.domain ||
     extractDomain(citation.url) ||
     "Source";
-  const articleTitle = citation.title || citation.anchorText || citation.fullPhrase;
+  const articleTitle =
+    citation.title || citation.anchorText || citation.fullPhrase;
   const snippet =
     citation.description ||
     verification?.actualContentSnippet ||
@@ -347,8 +349,10 @@ export function CitationDrawer({
         className={cn(
           "fixed z-[9999] bg-white dark:bg-gray-900 shadow-xl",
           "animate-in duration-200",
-          position === "bottom" && "inset-x-0 bottom-0 max-h-[80vh] rounded-t-2xl slide-in-from-bottom-4",
-          position === "right" && "inset-y-0 right-0 w-full max-w-md slide-in-from-right-4",
+          position === "bottom" &&
+            "inset-x-0 bottom-0 max-h-[80vh] rounded-t-2xl slide-in-from-bottom-4",
+          position === "right" &&
+            "inset-y-0 right-0 w-full max-w-md slide-in-from-right-4",
           className
         )}
         role="dialog"

@@ -1,28 +1,28 @@
 import React, {
-  memo,
-  useMemo,
-  useCallback,
   forwardRef,
+  memo,
   type ReactNode,
+  useCallback,
+  useMemo,
 } from "react";
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import {
-  generateCitationKey,
-  generateCitationInstanceId,
-  getCitationDisplayText,
-  getCitationNumber,
-  classNames,
-} from "./utils.js";
-import type {
-  BaseCitationProps,
-  CitationVariant as CitationVariantType,
-  CitationEventHandlers,
-} from "./types.js";
-import { XIcon } from "./icons.js";
 import { INDICATOR_SIZE_STYLE } from "./CitationComponent.js";
 import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import { XIcon } from "./icons.js";
+import type {
+  BaseCitationProps,
+  CitationEventHandlers,
+  CitationVariant as CitationVariantType,
+} from "./types.js";
+import {
+  classNames,
+  generateCitationInstanceId,
+  generateCitationKey,
+  getCitationDisplayText,
+  getCitationNumber,
+} from "./utils.js";
 
 const TWO_DOTS_THINKING_CONTENT = "..";
 
@@ -46,7 +46,6 @@ export interface CitationVariantProps extends BaseCitationProps {
   renderPartialIndicator?: (status: CitationStatus) => ReactNode;
 }
 
-
 /**
  * Hook to get common citation data.
  * NOTE: Status is not memoized because verification may be mutated in place.
@@ -69,7 +68,10 @@ function useCitationData(
  * Default verified indicator (checkmark)
  */
 const DefaultVerifiedIndicator = () => (
-  <span className="text-green-600 dark:text-green-500 ml-0.5" aria-hidden="true">
+  <span
+    className="text-green-600 dark:text-green-500 ml-0.5"
+    aria-hidden="true"
+  >
     ✓
   </span>
 );
@@ -78,7 +80,10 @@ const DefaultVerifiedIndicator = () => (
  * Default partial match indicator (asterisk)
  */
 const DefaultPartialIndicator = () => (
-  <span className="text-amber-500 dark:text-amber-400 ml-0.5" aria-hidden="true">
+  <span
+    className="text-amber-500 dark:text-amber-400 ml-0.5"
+    aria-hidden="true"
+  >
     *
   </span>
 );
@@ -161,23 +166,23 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
     const statusClass = isPartialMatch
       ? "bg-amber-100 dark:bg-amber-900/30"
       : isMiss
-      ? "bg-red-100 dark:bg-red-900/30"
-      : isVerified
-      ? "bg-green-100 dark:bg-green-900/30"
-      : isPending
-      ? "bg-gray-100 dark:bg-gray-800"
-      : "bg-blue-100 dark:bg-blue-900/30";
+        ? "bg-red-100 dark:bg-red-900/30"
+        : isVerified
+          ? "bg-green-100 dark:bg-green-900/30"
+          : isPending
+            ? "bg-gray-100 dark:bg-gray-800"
+            : "bg-blue-100 dark:bg-blue-900/30";
 
     // Text color class (separate from status indicator)
     const textColorClass = isPartialMatch
       ? "text-amber-500 dark:text-amber-400"
       : isMiss
-      ? "text-red-600 dark:text-red-400"
-      : isVerified
-      ? "text-green-600 dark:text-green-500"
-      : isPending
-      ? "text-gray-500 dark:text-gray-400"
-      : "text-blue-600 dark:text-blue-400";
+        ? "text-red-600 dark:text-red-400"
+        : isVerified
+          ? "text-green-600 dark:text-green-500"
+          : isPending
+            ? "text-gray-500 dark:text-gray-400"
+            : "text-blue-600 dark:text-blue-400";
 
     return (
       <>
@@ -199,24 +204,25 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           onClick={(e) => e.stopPropagation()}
           aria-label={displayText ? `Citation: ${displayText}` : undefined}
         >
-          {showIcon &&
-            (icon || <span className="text-[0.9em]">📄</span>)}
-          <span
-            className={classNames(textColorClass, isMiss && "opacity-70")}
-          >{displayText}</span>
+          {showIcon && (icon || <span className="text-[0.9em]">📄</span>)}
+          <span className={classNames(textColorClass, isMiss && "opacity-70")}>
+            {displayText}
+          </span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
             <>
-              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={INDICATOR_SIZE_STYLE} aria-hidden="true">
+              <span
+                className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0"
+                style={INDICATOR_SIZE_STYLE}
+                aria-hidden="true"
+              >
                 <XIcon />
               </span>
               <span className="sr-only">not found</span>
             </>
           )}
-          {isPending && (
-            <span className="opacity-70">{pendingContent}</span>
-          )}
+          {isPending && <span className="opacity-70">{pendingContent}</span>}
         </span>
       </>
     );
@@ -272,10 +278,7 @@ export const SuperscriptCitation = forwardRef<
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
     // SuperscriptCitation shows number by default
-    const displayText = useMemo(
-      () => getCitationNumber(citation),
-      [citation]
-    );
+    const displayText = useMemo(() => getCitationNumber(citation), [citation]);
 
     const handleClick = useCallback(
       (e: React.MouseEvent<HTMLSpanElement>) => {
@@ -299,12 +302,12 @@ export const SuperscriptCitation = forwardRef<
     const statusClass = isPartialMatch
       ? "text-amber-500 dark:text-amber-400"
       : isMiss
-      ? "text-red-500 dark:text-red-400"
-      : isVerified
-      ? "text-green-600 dark:text-green-500"
-      : isPending
-      ? "text-gray-400 dark:text-gray-500"
-      : "text-blue-600 dark:text-blue-400";
+        ? "text-red-500 dark:text-red-400"
+        : isVerified
+          ? "text-green-600 dark:text-green-500"
+          : isPending
+            ? "text-gray-400 dark:text-gray-500"
+            : "text-blue-600 dark:text-blue-400";
 
     return (
       <>
@@ -331,7 +334,11 @@ export const SuperscriptCitation = forwardRef<
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
             <>
-              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={INDICATOR_SIZE_STYLE} aria-hidden="true">
+              <span
+                className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0"
+                style={INDICATOR_SIZE_STYLE}
+                aria-hidden="true"
+              >
                 <XIcon />
               </span>
               <span className="sr-only">not found</span>
@@ -431,12 +438,12 @@ export const FootnoteCitation = forwardRef<
     const statusClass = isPartialMatch
       ? "text-amber-500 dark:text-amber-400"
       : isMiss
-      ? "text-red-500 dark:text-red-400"
-      : isVerified
-      ? "text-green-600 dark:text-green-500"
-      : isPending
-      ? "text-gray-400 dark:text-gray-500"
-      : "text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400";
+        ? "text-red-500 dark:text-red-400"
+        : isVerified
+          ? "text-green-600 dark:text-green-500"
+          : isPending
+            ? "text-gray-400 dark:text-gray-500"
+            : "text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400";
 
     return (
       <>
@@ -460,12 +467,18 @@ export const FootnoteCitation = forwardRef<
           <span
             className={isMiss ? "opacity-70" : undefined}
             style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
-          >{displaySymbol}</span>
+          >
+            {displaySymbol}
+          </span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
             <>
-              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={INDICATOR_SIZE_STYLE} aria-hidden="true">
+              <span
+                className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0"
+                style={INDICATOR_SIZE_STYLE}
+                aria-hidden="true"
+              >
                 <XIcon />
               </span>
               <span className="sr-only">not found</span>
@@ -550,12 +563,12 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
     const statusClass = isPartialMatch
       ? "text-amber-500 dark:text-amber-400"
       : isMiss
-      ? "text-red-500 dark:text-red-400"
-      : isVerified
-      ? "text-green-600 dark:text-green-500"
-      : isPending
-      ? "text-gray-400 dark:text-gray-500"
-      : "";
+        ? "text-red-500 dark:text-red-400"
+        : isVerified
+          ? "text-green-600 dark:text-green-500"
+          : isPending
+            ? "text-gray-400 dark:text-gray-500"
+            : "";
 
     const underlineClasses = {
       solid: "border-b border-current",
@@ -587,12 +600,18 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           <span
             className={isMiss ? "opacity-70" : undefined}
             style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
-          >{displayText}</span>
+          >
+            {displayText}
+          </span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
             <>
-              <span className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0" style={INDICATOR_SIZE_STYLE} aria-hidden="true">
+              <span
+                className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0"
+                style={INDICATOR_SIZE_STYLE}
+                aria-hidden="true"
+              >
                 <XIcon />
               </span>
               <span className="sr-only">not found</span>
@@ -660,7 +679,6 @@ export const CitationVariantFactory = forwardRef<
         return <FootnoteCitation ref={ref} {...props} {...footnoteProps} />;
       case "inline":
         return <InlineCitation ref={ref} {...props} {...inlineProps} />;
-      case "bracket":
       default:
         // For bracket variant, we return null here as CitationComponent handles it
         // This factory is meant to be used for alternate variants

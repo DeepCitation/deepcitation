@@ -11,123 +11,14 @@
  * @packageDocumentation
  */
 
-// Types - Useful for implementing your own citation components
-export type {
-  CitationContentProps,
-  CitationRenderProps,
-  CitationTooltipProps,
-  CitationStyles,
-  CitationStateClasses,
-  CitationCursorClasses,
-  CitationEventHandlers,
-  CitationVariant as CitationVariantType,
-  CitationContent,
-  CitationInteractionMode,
-  // URL citation types
-  UrlFetchStatus,
-  UrlCitationMeta,
-  UrlCitationProps,
-  UrlCitationVariant,
-  // URL content verification types
-  ContentMatchStatus,
-  UrlVerificationMeta,
-  // Behavior configuration types
-  CitationBehaviorConfig,
-  CitationBehaviorContext,
-  CitationBehaviorActions,
-  CitationClickBehavior,
-  CitationHoverBehavior,
-  // Sources list types (Anthropic-style aggregated citations)
-  SourcesListVariant,
-  SourcesListItemProps,
-  SourcesListHeaderConfig,
-  SourcesListProps,
-  SourcesTriggerProps,
-  // ChatGPT-style drawer types
-  CitationDrawerItem,
-  CitationDrawerItemProps,
-  CitationDrawerProps,
-  SourceCitationGroup,
-  SourceChipProps,
-  GroupCitationsBySource,
-} from "./types.js";
-
-// URL Citation Component - For displaying URL citations
-export {
-  UrlCitationComponent,
-  MemoizedUrlCitationComponent,
-  useUrlMeta,
-  urlDisplayUtils,
-  STATUS_ICONS as URL_STATUS_ICONS,
-  // Utilities
-  extractDomain,
-  isBlockedStatus,
-  isErrorStatus,
-  isAccessibleStatus,
-  isRedirectedStatus,
-  isVerifiedStatus,
-} from "./UrlCitationComponent.js";
-
-// Utilities - For generating citation keys and display text
-export {
-  generateCitationKey,
-  generateCitationInstanceId,
-  getCitationDisplayText,
-  getCitationNumber,
-  getCitationAnchorText,
-  classNames,
-  isUrlCitation,
-  CITATION_X_PADDING,
-  CITATION_Y_PADDING,
-} from "./utils.js";
-
 // Components
 export {
   CitationComponent,
-  MemoizedCitationComponent,
-  INDICATOR_SIZE_STYLE,
-  type CitationVariant,
   type CitationComponentProps,
+  type CitationVariant,
+  INDICATOR_SIZE_STYLE,
+  MemoizedCitationComponent,
 } from "./CitationComponent.js";
-
-// Citation Overlay Context (for blocking hover when image is expanded)
-export {
-  CitationOverlayProvider,
-  useCitationOverlay,
-  useHasCitationOverlayProvider,
-} from "./CitationOverlayContext.js";
-
-// Icons
-export {
-  DeepCitationIcon,
-  CheckIcon,
-  SpinnerIcon,
-  WarningIcon,
-  LinkIcon,
-  ExternalLinkIcon,
-  CloseIcon,
-  LockIcon,
-  DocumentIcon,
-  GlobeIcon,
-  XCircleIcon,
-  XIcon,
-} from "./icons.js";
-
-// Sources List Components (Anthropic-style aggregated citations)
-export {
-  SourcesListComponent,
-  MemoizedSourcesListComponent,
-  SourcesListItem,
-  MemoizedSourcesListItem,
-  SourcesTrigger,
-  MemoizedSourcesTrigger,
-  // Utilities
-  sourceCitationsToListItems,
-  useSourcesList,
-  detectSourceType,
-  getPlatformName,
-} from "./SourcesListComponent.js";
-
 // Citation Drawer (ChatGPT-style bottom sheet)
 export {
   CitationDrawer,
@@ -135,44 +26,146 @@ export {
   groupCitationsBySource,
   useCitationDrawer,
 } from "./CitationDrawer.js";
-
+// Citation Overlay Context (for blocking hover when image is expanded)
+export {
+  CitationOverlayProvider,
+  useCitationOverlay,
+  useHasCitationOverlayProvider,
+} from "./CitationOverlayContext.js";
+// Icons
+export {
+  CheckIcon,
+  CloseIcon,
+  DeepCitationIcon,
+  DocumentIcon,
+  ExternalLinkIcon,
+  GlobeIcon,
+  LinkIcon,
+  LockIcon,
+  SpinnerIcon,
+  WarningIcon,
+  XCircleIcon,
+  XIcon,
+} from "./icons.js";
 // Prefetch utilities (for pre-rendering images before hover)
 export {
-  PrefetchedPopoverImage,
   MemoizedPrefetchedPopoverImage,
-  usePrefetchImage,
+  PrefetchedPopoverImage,
   prefetchImages,
+  usePrefetchImage,
 } from "./PrefetchedPopoverImage.js";
-
+// Sources List Components (Anthropic-style aggregated citations)
+export {
+  detectSourceType,
+  getPlatformName,
+  MemoizedSourcesListComponent,
+  MemoizedSourcesListItem,
+  MemoizedSourcesTrigger,
+  SourcesListComponent,
+  SourcesListItem,
+  SourcesTrigger,
+  // Utilities
+  sourceCitationsToListItems,
+  useSourcesList,
+} from "./SourcesListComponent.js";
 // Diff Display Components (Enhanced diff visualization)
 export {
-  SplitDiffDisplay,
-  MatchQualityBar,
   CollapsibleText,
-  getContextualStatusMessage,
   type DiffDisplayMode,
+  getContextualStatusMessage,
+  MatchQualityBar,
+  SplitDiffDisplay,
   type SplitDiffDisplayProps,
 } from "./SplitDiffDisplay.js";
-
-// Verification Tabs Component
-export { VerificationTabs } from "./VerificationTabs.js";
-
+// Types - Useful for implementing your own citation components
+export type {
+  CitationBehaviorActions,
+  // Behavior configuration types
+  CitationBehaviorConfig,
+  CitationBehaviorContext,
+  CitationClickBehavior,
+  CitationContent,
+  CitationContentProps,
+  CitationCursorClasses,
+  // ChatGPT-style drawer types
+  CitationDrawerItem,
+  CitationDrawerItemProps,
+  CitationDrawerProps,
+  CitationEventHandlers,
+  CitationHoverBehavior,
+  CitationInteractionMode,
+  CitationRenderProps,
+  CitationStateClasses,
+  CitationStyles,
+  CitationTooltipProps,
+  CitationVariant as CitationVariantType,
+  // URL content verification types
+  ContentMatchStatus,
+  GroupCitationsBySource,
+  SourceChipProps,
+  SourceCitationGroup,
+  SourcesListHeaderConfig,
+  SourcesListItemProps,
+  SourcesListProps,
+  // Sources list types (Anthropic-style aggregated citations)
+  SourcesListVariant,
+  SourcesTriggerProps,
+  UrlCitationMeta,
+  UrlCitationProps,
+  UrlCitationVariant,
+  // URL citation types
+  UrlFetchStatus,
+  UrlVerificationMeta,
+} from "./types.js";
+// URL Citation Component - For displaying URL citations
+export {
+  // Utilities
+  extractDomain,
+  isAccessibleStatus,
+  isBlockedStatus,
+  isErrorStatus,
+  isRedirectedStatus,
+  isVerifiedStatus,
+  MemoizedUrlCitationComponent,
+  STATUS_ICONS as URL_STATUS_ICONS,
+  UrlCitationComponent,
+  urlDisplayUtils,
+  useUrlMeta,
+} from "./UrlCitationComponent.js";
 // Smart Diff Hook
-export { useSmartDiff, type DiffBlock, type DiffPart, type DiffBlockType } from "./useSmartDiff.js";
-
+export {
+  type DiffBlock,
+  type DiffBlockType,
+  type DiffPart,
+  useSmartDiff,
+} from "./useSmartDiff.js";
+// Utilities - For generating citation keys and display text
+export {
+  CITATION_X_PADDING,
+  CITATION_Y_PADDING,
+  classNames,
+  generateCitationInstanceId,
+  generateCitationKey,
+  getCitationAnchorText,
+  getCitationDisplayText,
+  getCitationNumber,
+  isUrlCitation,
+} from "./utils.js";
 // Verification Log Components (Search attempt timeline display)
 export {
-  VerificationLog,
-  StatusHeader,
-  QuoteBox,
-  QuotedText,
   AttemptingToVerify,
-  SourceContextHeader,
-  FaviconImage,
-  type VerificationLogProps,
-  type StatusHeaderProps,
-  type QuoteBoxProps,
-  type QuotedTextProps,
   type AttemptingToVerifyProps,
+  FaviconImage,
+  QuoteBox,
+  type QuoteBoxProps,
+  QuotedText,
+  type QuotedTextProps,
+  SourceContextHeader,
   type SourceContextHeaderProps,
+  StatusHeader,
+  type StatusHeaderProps,
+  VerificationLog,
+  type VerificationLogProps,
 } from "./VerificationLog.js";
+// Verification Tabs Component
+export { VerificationTabs } from "./VerificationTabs.js";

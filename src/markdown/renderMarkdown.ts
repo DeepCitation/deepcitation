@@ -1,18 +1,18 @@
-import type { Citation, CitationStatus } from "../types/citation.js";
-import type { Verification } from "../types/verification.js";
-import type {
-  RenderMarkdownOptions,
-  MarkdownOutput,
-  CitationWithStatus,
-} from "./types.js";
-import { getCitationStatus, getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
+import { getCitationStatus } from "../parsing/parseCitation.js";
 import { generateCitationKey } from "../react/utils.js";
+import type { Citation } from "../types/citation.js";
+import type { Verification } from "../types/verification.js";
 import {
-  renderCitationVariant,
-  renderReferencesSection,
   getCitationDisplayText,
   getIndicator,
+  renderCitationVariant,
+  renderReferencesSection,
 } from "./markdownVariants.js";
+import type {
+  CitationWithStatus,
+  MarkdownOutput,
+  RenderMarkdownOptions,
+} from "./types.js";
 
 /**
  * Module-level compiled regex for cite tag matching.
@@ -26,7 +26,8 @@ const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
  * in parseCiteAttributes. This avoids stateful lastIndex issues that occur when
  * reusing a global regex across multiple exec() calls on different strings.
  */
-const ATTR_REGEX_PATTERN = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
+const ATTR_REGEX_PATTERN =
+  /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
 
 /**
  * Map of attribute key aliases to their normalized form.
@@ -51,19 +52,22 @@ const ATTR_KEY_NORMALIZATION: Record<string, string> = {
 /**
  * Parse attributes from a cite tag.
  */
-function parseCiteAttributes(citeTag: string): Record<string, string | undefined> {
+function parseCiteAttributes(
+  citeTag: string
+): Record<string, string | undefined> {
   const attrs: Record<string, string | undefined> = {};
   // Create fresh regex instance to avoid stateful lastIndex issues
-  const attrRegex = new RegExp(ATTR_REGEX_PATTERN.source, ATTR_REGEX_PATTERN.flags);
+  const attrRegex = new RegExp(
+    ATTR_REGEX_PATTERN.source,
+    ATTR_REGEX_PATTERN.flags
+  );
   let match;
 
   while ((match = attrRegex.exec(citeTag)) !== null) {
     // Two-step normalization:
     // 1. Convert camelCase to snake_case (e.g., "attachmentId" -> "attachment_id")
     // 2. Lookup in alias map for legacy/alternate names (e.g., "fileid" -> "attachment_id")
-    const key = match[1]
-      .replace(/([a-z])([A-Z])/g, "$1_$2")
-      .toLowerCase();
+    const key = match[1].replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
     const value = match[3];
 
     const normalizedKey = ATTR_KEY_NORMALIZATION[key] ?? key;
@@ -86,7 +90,7 @@ function buildCitationFromAttrs(
     const nums = lineIdsStr
       .split(",")
       .map((s) => parseInt(s.trim(), 10))
-      .filter((n) => !isNaN(n));
+      .filter((n) => !Number.isNaN(n));
     return nums.length > 0 ? nums : undefined;
   };
 
@@ -170,7 +174,10 @@ export function renderCitationsAsMarkdown(
       citationKey,
       verification,
       status,
-      displayText: getCitationDisplayText(citation, options.variant || "inline"),
+      displayText: getCitationDisplayText(
+        citation,
+        options.variant || "inline"
+      ),
       citationNumber: citationIndex,
     };
 

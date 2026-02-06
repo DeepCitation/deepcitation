@@ -1,7 +1,6 @@
-import { sha1Hash } from "../utils/sha.js";
-import { type Citation } from "./citation.js";
-import { type SearchStatus, type SearchAttempt } from "./search.js";
-import { type DeepTextItem } from "./boxes.js";
+import type { DeepTextItem } from "./boxes.js";
+import type { Citation } from "./citation.js";
+import type { SearchAttempt, SearchStatus } from "./search.js";
 
 export const NOT_FOUND_VERIFICATION_INDEX = -1;
 export const PENDING_VERIFICATION_INDEX = -2;

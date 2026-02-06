@@ -1,7 +1,7 @@
+import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { sha1Hash } from "../utils/sha.js";
-import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
 
 // =============================================================================
 // UTILITY FUNCTIONS
@@ -15,7 +15,10 @@ export function cn(...classes: (string | undefined | null | false)[]): string {
  * Type guard to check if a citation is a URL citation (type: "url" or has url field).
  */
 export function isUrlCitation(citation: Citation): boolean {
-  return citation.type === "url" || (typeof citation.url === "string" && citation.url.length > 0);
+  return (
+    citation.type === "url" ||
+    (typeof citation.url === "string" && citation.url.length > 0)
+  );
 }
 
 /**
@@ -47,7 +50,7 @@ export function generateCitationKey(citation: Citation): string {
     keyParts.push(
       citation.url || "",
       citation.title || "",
-      citation.domain || "",
+      citation.domain || ""
     );
   }
 

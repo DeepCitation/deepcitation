@@ -54,7 +54,7 @@ export interface Change {
 function computeDiff(
   oldTokens: string[],
   newTokens: string[],
-  equals: (a: string, b: string) => boolean = (a, b) => a === b,
+  equals: (a: string, b: string) => boolean = (a, b) => a === b
 ): Change[] {
   const oldLen = oldTokens.length;
   const newLen = newTokens.length;
@@ -66,7 +66,9 @@ function computeDiff(
 
   // Quick path for completely new content
   if (oldLen === 0) {
-    return [{ value: newTokens.join(""), added: true, count: newTokens.length }];
+    return [
+      { value: newTokens.join(""), added: true, count: newTokens.length },
+    ];
   }
 
   // Quick path for completely removed content
@@ -93,7 +95,7 @@ function computeDiff(
     commonSuffixLen < newLen - commonPrefixLen &&
     equals(
       oldTokens[oldLen - 1 - commonSuffixLen],
-      newTokens[newLen - 1 - commonSuffixLen],
+      newTokens[newLen - 1 - commonSuffixLen]
     )
   ) {
     commonSuffixLen++;
@@ -140,7 +142,7 @@ function computeDiff(
 function myersDiff(
   oldTokens: string[],
   newTokens: string[],
-  equals: (a: string, b: string) => boolean,
+  equals: (a: string, b: string) => boolean
 ): Change[] {
   const oldLen = oldTokens.length;
   const newLen = newTokens.length;
@@ -191,7 +193,7 @@ function myersDiff(
 function backtrack(
   trace: Array<Record<number, number>>,
   oldTokens: string[],
-  newTokens: string[],
+  newTokens: string[]
 ): Change[] {
   const changes: Change[] = [];
   let x = oldTokens.length;
@@ -299,7 +301,7 @@ const EXTENDED_WORD_CHARS =
  */
 const TOKENIZE_REGEX = new RegExp(
   `[${EXTENDED_WORD_CHARS}]+|\\s+|[^${EXTENDED_WORD_CHARS}]`,
-  "gu",
+  "gu"
 );
 
 /**
@@ -343,7 +345,7 @@ function longestCommonSuffix(a: string, b: string): string {
 /**
  * Check if a string is only whitespace.
  */
-function isWhitespace(str: string): boolean {
+function _isWhitespace(str: string): boolean {
   return /^\s*$/.test(str);
 }
 
@@ -374,7 +376,10 @@ function dedupeWhitespaceInChangeObjects(changes: Change[]): Change[] {
       // Find common suffix (must be whitespace)
       const delWithoutPrefix = deletion.value.slice(wsPrefix.length);
       const insWithoutPrefix = insertion.value.slice(wsPrefix.length);
-      const commonSuffix = longestCommonSuffix(delWithoutPrefix, insWithoutPrefix);
+      const commonSuffix = longestCommonSuffix(
+        delWithoutPrefix,
+        insWithoutPrefix
+      );
       const wsSuffix = commonSuffix.match(/\s*$/)?.[0] || "";
 
       // Build the cleaned changes
@@ -384,11 +389,11 @@ function dedupeWhitespaceInChangeObjects(changes: Change[]): Change[] {
 
       const cleanedDel = deletion.value.slice(
         wsPrefix.length,
-        deletion.value.length - wsSuffix.length,
+        deletion.value.length - wsSuffix.length
       );
       const cleanedIns = insertion.value.slice(
         wsPrefix.length,
-        insertion.value.length - wsSuffix.length,
+        insertion.value.length - wsSuffix.length
       );
 
       if (cleanedDel) {
@@ -407,7 +412,12 @@ function dedupeWhitespaceInChangeObjects(changes: Change[]): Change[] {
     }
 
     // Scenario 2: Lone insertion after unchanged text
-    if (change.added && i > 0 && !changes[i - 1].added && !changes[i - 1].removed) {
+    if (
+      change.added &&
+      i > 0 &&
+      !changes[i - 1].added &&
+      !changes[i - 1].removed
+    ) {
       const prev = result[result.length - 1];
       if (prev && !prev.added && !prev.removed) {
         // Check for duplicate leading whitespace

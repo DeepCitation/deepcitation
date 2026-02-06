@@ -1,5 +1,5 @@
-import { type ScreenBox } from "./boxes.js";
-import { type Verification } from "./verification.js";
+import type { ScreenBox } from "./boxes.js";
+import type { Verification } from "./verification.js";
 
 export type OutputImageFormat = "jpeg" | "png" | "avif" | undefined | null;
 
@@ -260,7 +260,12 @@ export interface SourceMeta {
   /** Relevant excerpts/quotes from this source */
   excerpts?: string[];
   /** Verification status if verified */
-  verificationStatus?: "verified" | "partial" | "pending" | "failed" | "unknown";
+  verificationStatus?:
+    | "verified"
+    | "partial"
+    | "pending"
+    | "failed"
+    | "unknown";
   /** When the source was accessed */
   accessedAt?: Date | string;
 }

@@ -14,10 +14,10 @@
  * 10. Image prefetch deduplication
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { cleanRepeatingLastSentence } from "../parsing/parseWorkAround.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { normalizeCitations } from "../parsing/normalizeCitation.js";
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
+import { cleanRepeatingLastSentence } from "../parsing/parseWorkAround.js";
 import { diffLines, diffWordsWithSpace } from "../utils/diff.js";
 
 describe("Performance Fixes", () => {
@@ -48,9 +48,7 @@ describe("Performance Fixes", () => {
 
       // Both calls should detect the repetition
       expect(result1).toBe(result2);
-      expect(result1).toBe(
-        "This is content. This is a repeated sentence."
-      );
+      expect(result1).toBe("This is content. This is a repeated sentence.");
     });
   });
 
@@ -159,9 +157,11 @@ describe("Performance Fixes", () => {
         const result = diffWordsWithSpace("hello", "hello world");
 
         // Should have unchanged "hello" and added " world"
-        expect(result.some((c) => !c.added && !c.removed && c.value.includes("hello"))).toBe(
-          true
-        );
+        expect(
+          result.some(
+            (c) => !c.added && !c.removed && c.value.includes("hello")
+          )
+        ).toBe(true);
         expect(result.some((c) => c.added && c.value.includes("world"))).toBe(
           true
         );
@@ -171,9 +171,11 @@ describe("Performance Fixes", () => {
         const result = diffWordsWithSpace("hello world", "hello");
 
         // Should have unchanged "hello" and removed " world"
-        expect(result.some((c) => !c.added && !c.removed && c.value.includes("hello"))).toBe(
-          true
-        );
+        expect(
+          result.some(
+            (c) => !c.added && !c.removed && c.value.includes("hello")
+          )
+        ).toBe(true);
         expect(result.some((c) => c.removed && c.value.includes("world"))).toBe(
           true
         );
@@ -186,9 +188,9 @@ describe("Performance Fixes", () => {
         expect(result.some((c) => c.removed && c.value.includes("world"))).toBe(
           true
         );
-        expect(result.some((c) => c.added && c.value.includes("universe"))).toBe(
-          true
-        );
+        expect(
+          result.some((c) => c.added && c.value.includes("universe"))
+        ).toBe(true);
       });
 
       it("should handle large diffs efficiently", () => {
@@ -302,12 +304,12 @@ describe("Range Size Limits for Line ID Parsing", () => {
 
     // Large range should be sampled (50 points max: start + 48 samples + end)
     expect(citation.lineIds).toBeDefined();
-    expect(citation.lineIds!.length).toBe(50); // Exactly 50 sampled points
-    expect(citation.lineIds!.length).toBeLessThan(1000);
+    expect(citation.lineIds?.length).toBe(50); // Exactly 50 sampled points
+    expect(citation.lineIds?.length).toBeLessThan(1000);
 
     // Should contain start and end values
-    expect(citation.lineIds![0]).toBe(1);
-    expect(citation.lineIds![citation.lineIds!.length - 1]).toBe(10000);
+    expect(citation.lineIds?.[0]).toBe(1);
+    expect(citation.lineIds?.[citation.lineIds?.length - 1]).toBe(10000);
 
     // Samples should be evenly distributed
     const samples = citation.lineIds!;
@@ -345,11 +347,9 @@ describe("Depth Limit for Recursive Traversal", () => {
     const input = {
       level1: {
         level2: {
-          citations: [
-            { fullPhrase: "Test phrase", anchorText: "Test" }
-          ]
-        }
-      }
+          citations: [{ fullPhrase: "Test phrase", anchorText: "Test" }],
+        },
+      },
     };
 
     const result = getAllCitationsFromLlmOutput(input);
@@ -358,7 +358,9 @@ describe("Depth Limit for Recursive Traversal", () => {
 
   it("should handle deeply nested objects without stack overflow", () => {
     // Create an object nested 100 levels deep
-    let deepObj: any = { citations: [{ fullPhrase: "Deep citation", anchorText: "Deep" }] };
+    let deepObj: any = {
+      citations: [{ fullPhrase: "Deep citation", anchorText: "Deep" }],
+    };
     for (let i = 0; i < 100; i++) {
       deepObj = { nested: deepObj };
     }
@@ -429,11 +431,11 @@ describe("Range Sampling Behavior", () => {
 
     // Should produce exactly 50 sample points
     expect(citation.lineIds).toBeDefined();
-    expect(citation.lineIds!.length).toBe(50);
+    expect(citation.lineIds?.length).toBe(50);
 
     // First should be the range start, last should be the range end
-    expect(citation.lineIds![0]).toBe(1);
-    expect(citation.lineIds![49]).toBe(5000);
+    expect(citation.lineIds?.[0]).toBe(1);
+    expect(citation.lineIds?.[49]).toBe(5000);
   });
 
   it("should not sample small ranges within the limit", () => {
@@ -443,9 +445,9 @@ describe("Range Sampling Behavior", () => {
 
     // Should fully expand ranges within the limit
     expect(citation.lineIds).toBeDefined();
-    expect(citation.lineIds!.length).toBe(100);
-    expect(citation.lineIds![0]).toBe(1);
-    expect(citation.lineIds![99]).toBe(100);
+    expect(citation.lineIds?.length).toBe(100);
+    expect(citation.lineIds?.[0]).toBe(1);
+    expect(citation.lineIds?.[99]).toBe(100);
   });
 
   it("should handle edge case at exactly the limit", () => {
@@ -456,7 +458,7 @@ describe("Range Sampling Behavior", () => {
 
     // Range of exactly 1000 should be fully expanded (not sampled)
     expect(citation.lineIds).toBeDefined();
-    expect(citation.lineIds!.length).toBe(1000);
+    expect(citation.lineIds?.length).toBe(1000);
   });
 
   it("should sample ranges just above the limit", () => {
@@ -467,7 +469,7 @@ describe("Range Sampling Behavior", () => {
 
     // Range of 1001 should be sampled to 50 points
     expect(citation.lineIds).toBeDefined();
-    expect(citation.lineIds!.length).toBe(50);
+    expect(citation.lineIds?.length).toBe(50);
   });
 });
 
@@ -536,7 +538,9 @@ describe("Concurrency Limiter", () => {
         maxObserved = Math.max(maxObserved, currentlyRunning);
 
         // Simulate async work with variable delays
-        await new Promise((resolve) => setTimeout(resolve, Math.random() * 10 + 1));
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.random() * 10 + 1)
+        );
 
         currentlyRunning--;
         return i;

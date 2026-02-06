@@ -1,4 +1,8 @@
-import type { Citation, CitationRecord, VerificationRecord, CitationStatus } from "../types/citation.js";
+import type {
+  Citation,
+  CitationStatus,
+  VerificationRecord,
+} from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 
 /**
@@ -6,11 +10,11 @@ import type { Verification } from "../types/verification.js";
  * Analogous to React CitationComponent variants but for static markdown.
  */
 export type MarkdownVariant =
-  | "inline"      // "Revenue grew 45%✓" - text with inline indicator
-  | "brackets"    // "[1✓]" - bracketed number with indicator
+  | "inline" // "Revenue grew 45%✓" - text with inline indicator
+  | "brackets" // "[1✓]" - bracketed number with indicator
   | "superscript" // "¹✓" - unicode superscript number
-  | "footnote"    // "[^1]" - markdown footnote syntax with reference section
-  | "academic";   // "(Source, p.5)✓" - academic citation style
+  | "footnote" // "[^1]" - markdown footnote syntax with reference section
+  | "academic"; // "(Source, p.5)✓" - academic citation style
 
 /**
  * Indicator styles for verification status.
@@ -22,13 +26,13 @@ export type MarkdownVariant =
  * - Copy/paste friendliness
  */
 export type IndicatorStyle =
-  | "check"       // ✓ ⚠ ✗ ◌  (clean, universal unicode - DEFAULT)
-  | "semantic"    // ✓ ~ ✗ …  (tilde for partial, ellipsis for pending)
-  | "circle"      // ● ◐ ○ ◌  (filled/half/empty circles)
-  | "square"      // ■ ▪ □ ▫  (squares for monospace alignment)
-  | "letter"      // V P X ?  (single letters, ASCII-safe)
-  | "word"        // ✓verified ⚠partial ✗missed ◌pending
-  | "none";       // No indicator
+  | "check" // ✓ ⚠ ✗ ◌  (clean, universal unicode - DEFAULT)
+  | "semantic" // ✓ ~ ✗ …  (tilde for partial, ellipsis for pending)
+  | "circle" // ● ◐ ○ ◌  (filled/half/empty circles)
+  | "square" // ■ ▪ □ ▫  (squares for monospace alignment)
+  | "letter" // V P X ?  (single letters, ASCII-safe)
+  | "word" // ✓verified ⚠partial ✗missed ◌pending
+  | "none"; // No indicator
 
 /**
  * Humanized line position for location mismatches.
@@ -134,7 +138,12 @@ export const INDICATOR_SETS: Record<IndicatorStyle, IndicatorSet> = {
   circle: { verified: "●", partial: "◐", notFound: "○", pending: "◌" },
   square: { verified: "■", partial: "▪", notFound: "□", pending: "▫" },
   letter: { verified: "V", partial: "P", notFound: "X", pending: "?" },
-  word: { verified: "✓verified", partial: "⚠partial", notFound: "✗missed", pending: "◌pending" },
+  word: {
+    verified: "✓verified",
+    partial: "⚠partial",
+    notFound: "✗missed",
+    pending: "◌pending",
+  },
   none: { verified: "", partial: "", notFound: "", pending: "" },
 };
 

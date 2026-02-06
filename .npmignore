@@ -24,7 +24,7 @@ tsconfig.jest.json
 tsconfig.tsbuildinfo
 jest.config.cjs
 jest.setup.ts
-eslint.config.js
+biome.json
 playwright-ct.config.ts
 happydom.setup.ts
 bunfig.toml

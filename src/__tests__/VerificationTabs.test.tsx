@@ -7,7 +7,6 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import React from "react";
 import { VerificationTabs } from "../react/VerificationTabs";
 
 describe("VerificationTabs", () => {
@@ -173,7 +172,7 @@ describe("VerificationTabs", () => {
     });
 
     it("renders copy button for expected text when provided", () => {
-      const renderCopyButton = jest.fn((text, position) => (
+      const renderCopyButton = jest.fn((_text, position) => (
         <button>Copy {position}</button>
       ));
 
@@ -286,7 +285,7 @@ describe("VerificationTabs", () => {
     });
 
     it("renders copy button for found text when provided", () => {
-      const renderCopyButton = jest.fn((text, position) => (
+      const renderCopyButton = jest.fn((_text, position) => (
         <button>Copy {position}</button>
       ));
 

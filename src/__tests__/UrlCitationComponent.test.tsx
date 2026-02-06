@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
 import { cleanup, fireEvent, render } from "@testing-library/react";
-import React from "react";
+import type React from "react";
+import type { UrlCitationMeta } from "../react/types";
 import {
-  UrlCitationComponent,
   extractDomain,
   isBlockedStatus,
   isErrorStatus,
   isVerifiedStatus,
+  UrlCitationComponent,
 } from "../react/UrlCitationComponent";
-import type { UrlCitationMeta } from "../react/types";
 
 // Mock createPortal to render content in place instead of portal
 mock.module("react-dom", () => ({
@@ -36,7 +36,10 @@ describe("UrlCitationComponent", () => {
     // Should render as a button (click is handled by component, not native link)
     const button = getByRole("button");
     expect(button).toBeInTheDocument();
-    expect(button).toHaveAttribute("data-url", "https://stripe.com/docs/api/v2/citations");
+    expect(button).toHaveAttribute(
+      "data-url",
+      "https://stripe.com/docs/api/v2/citations"
+    );
 
     // Should have favicon
     const favicon = container.querySelector("img");
@@ -49,7 +52,9 @@ describe("UrlCitationComponent", () => {
 
   it("shows verified checkmark when status is verified", () => {
     const { container } = render(
-      <UrlCitationComponent urlMeta={createUrlMeta({ fetchStatus: "verified" })} />
+      <UrlCitationComponent
+        urlMeta={createUrlMeta({ fetchStatus: "verified" })}
+      />
     );
 
     // Should have a green checkmark (CheckIcon renders an SVG)
@@ -95,7 +100,9 @@ describe("UrlCitationComponent", () => {
 
   it("shows pulsing dot when pending", () => {
     const { container } = render(
-      <UrlCitationComponent urlMeta={createUrlMeta({ fetchStatus: "pending" })} />
+      <UrlCitationComponent
+        urlMeta={createUrlMeta({ fetchStatus: "pending" })}
+      />
     );
 
     // Should have animate-pulse class for the pending dot
@@ -152,10 +159,7 @@ describe("UrlCitationComponent", () => {
   describe("variants", () => {
     it("renders chip variant", () => {
       const { container } = render(
-        <UrlCitationComponent
-          urlMeta={createUrlMeta()}
-          variant="chip"
-        />
+        <UrlCitationComponent urlMeta={createUrlMeta()} variant="chip" />
       );
 
       const chip = container.querySelector("[data-variant='chip']");
@@ -165,10 +169,7 @@ describe("UrlCitationComponent", () => {
 
     it("renders inline variant", () => {
       const { container } = render(
-        <UrlCitationComponent
-          urlMeta={createUrlMeta()}
-          variant="inline"
-        />
+        <UrlCitationComponent urlMeta={createUrlMeta()} variant="inline" />
       );
 
       const inline = container.querySelector("[data-variant='inline']");
@@ -178,10 +179,7 @@ describe("UrlCitationComponent", () => {
 
     it("renders bracket variant", () => {
       const { container } = render(
-        <UrlCitationComponent
-          urlMeta={createUrlMeta()}
-          variant="bracket"
-        />
+        <UrlCitationComponent urlMeta={createUrlMeta()} variant="bracket" />
       );
 
       const bracket = container.querySelector("[data-variant='bracket']");
@@ -191,7 +189,9 @@ describe("UrlCitationComponent", () => {
 
   describe("interactions", () => {
     it("opens URL on click by default", () => {
-      const windowOpenSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+      const windowOpenSpy = jest
+        .spyOn(window, "open")
+        .mockImplementation(() => null);
 
       const { getByRole } = render(
         <UrlCitationComponent urlMeta={createUrlMeta()} />
@@ -249,7 +249,9 @@ describe("UrlCitationComponent", () => {
     });
 
     it("opens URL via external link button when clicked", () => {
-      const windowOpenSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+      const windowOpenSpy = jest
+        .spyOn(window, "open")
+        .mockImplementation(() => null);
 
       const { getByRole, getByLabelText } = render(
         <UrlCitationComponent urlMeta={createUrlMeta()} />
@@ -274,7 +276,10 @@ describe("UrlCitationComponent", () => {
       const onUrlClick = jest.fn();
 
       const { getByRole } = render(
-        <UrlCitationComponent urlMeta={createUrlMeta()} onUrlClick={onUrlClick} />
+        <UrlCitationComponent
+          urlMeta={createUrlMeta()}
+          onUrlClick={onUrlClick}
+        />
       );
 
       const button = getByRole("button");
@@ -290,7 +295,10 @@ describe("UrlCitationComponent", () => {
       const onUrlClick = jest.fn();
 
       const { getByRole } = render(
-        <UrlCitationComponent urlMeta={createUrlMeta()} onUrlClick={onUrlClick} />
+        <UrlCitationComponent
+          urlMeta={createUrlMeta()}
+          onUrlClick={onUrlClick}
+        />
       );
 
       const button = getByRole("button");
@@ -303,7 +311,9 @@ describe("UrlCitationComponent", () => {
     });
 
     it("opens URL on Enter key press", () => {
-      const windowOpenSpy = jest.spyOn(window, "open").mockImplementation(() => null);
+      const windowOpenSpy = jest
+        .spyOn(window, "open")
+        .mockImplementation(() => null);
 
       const { getByRole } = render(
         <UrlCitationComponent urlMeta={createUrlMeta()} />
@@ -355,10 +365,7 @@ describe("UrlCitationComponent", () => {
 
     it("hides favicon when showFavicon is false", () => {
       const { container } = render(
-        <UrlCitationComponent
-          urlMeta={createUrlMeta()}
-          showFavicon={false}
-        />
+        <UrlCitationComponent urlMeta={createUrlMeta()} showFavicon={false} />
       );
 
       const favicon = container.querySelector("img");
@@ -389,7 +396,10 @@ describe("UrlCitationComponent", () => {
       // Changed from "link" to "button" - click behavior now handled by component
       // External link opens via explicit external link button on hover
       const button = getByRole("button");
-      expect(button).toHaveAttribute("aria-label", expect.stringContaining("stripe.com"));
+      expect(button).toHaveAttribute(
+        "aria-label",
+        expect.stringContaining("stripe.com")
+      );
     });
 
     it("uses button role with proper tabindex for keyboard accessibility", () => {
@@ -411,7 +421,9 @@ describe("URL utility functions", () => {
     it("extracts domain from URL", () => {
       expect(extractDomain("https://www.example.com/path")).toBe("example.com");
       expect(extractDomain("https://stripe.com/docs")).toBe("stripe.com");
-      expect(extractDomain("http://sub.domain.org/page")).toBe("sub.domain.org");
+      expect(extractDomain("http://sub.domain.org/page")).toBe(
+        "sub.domain.org"
+      );
     });
 
     it("removes www prefix", () => {

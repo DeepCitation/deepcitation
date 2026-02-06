@@ -1,24 +1,36 @@
-import React, { forwardRef, memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
+import type React from "react";
+import {
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import type { SourceType } from "../types/citation.js";
 import type {
-  SourcesListProps,
   SourcesListItemProps,
+  SourcesListProps,
   SourcesTriggerProps,
-  SourcesListVariant,
 } from "./types.js";
-import { classNames } from "./utils.js";
 import { extractDomain } from "./UrlCitationComponent.js";
+import { classNames } from "./utils.js";
 
 /**
  * Module-level handlers for hiding broken favicon images.
  * Performance fix: avoids creating new function references on every render.
  */
-const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
+const handleFaviconError = (
+  e: React.SyntheticEvent<HTMLImageElement>
+): void => {
   (e.target as HTMLImageElement).style.display = "none";
 };
 
-const handleFaviconErrorOpacity = (e: React.SyntheticEvent<HTMLImageElement>): void => {
+const handleFaviconErrorOpacity = (
+  e: React.SyntheticEvent<HTMLImageElement>
+): void => {
   (e.target as HTMLImageElement).style.opacity = "0";
 };
 
@@ -48,42 +60,74 @@ export function detectSourceType(url: string): SourceType {
     const domain = extractDomain(url).toLowerCase();
 
     // Social media
-    if (domain.includes("twitter.com") || domain === "x.com" || domain.endsWith(".x.com")) return "social";
-    if (domain.includes("facebook.com") || domain.includes("instagram.com")) return "social";
+    if (
+      domain.includes("twitter.com") ||
+      domain === "x.com" ||
+      domain.endsWith(".x.com")
+    )
+      return "social";
+    if (domain.includes("facebook.com") || domain.includes("instagram.com"))
+      return "social";
     if (domain.includes("linkedin.com")) return "social";
-    if (domain.includes("threads.net") || domain.includes("mastodon")) return "social";
+    if (domain.includes("threads.net") || domain.includes("mastodon"))
+      return "social";
 
     // Video platforms
-    if (domain.includes("youtube.com") || domain.includes("youtu.be")) return "video";
+    if (domain.includes("youtube.com") || domain.includes("youtu.be"))
+      return "video";
     if (domain.includes("twitch.tv")) return "video";
-    if (domain.includes("vimeo.com") || domain.includes("tiktok.com")) return "video";
+    if (domain.includes("vimeo.com") || domain.includes("tiktok.com"))
+      return "video";
 
     // Code repositories
-    if (domain.includes("github.com") || domain.includes("gitlab.com")) return "code";
-    if (domain.includes("bitbucket.org") || domain.includes("stackoverflow.com")) return "code";
+    if (domain.includes("github.com") || domain.includes("gitlab.com"))
+      return "code";
+    if (
+      domain.includes("bitbucket.org") ||
+      domain.includes("stackoverflow.com")
+    )
+      return "code";
 
     // Academic
-    if (domain.includes("arxiv.org") || domain.includes("scholar.google")) return "academic";
-    if (domain.includes("pubmed") || domain.includes("doi.org")) return "academic";
-    if (domain.includes("researchgate.net") || domain.includes("academia.edu")) return "academic";
+    if (domain.includes("arxiv.org") || domain.includes("scholar.google"))
+      return "academic";
+    if (domain.includes("pubmed") || domain.includes("doi.org"))
+      return "academic";
+    if (domain.includes("researchgate.net") || domain.includes("academia.edu"))
+      return "academic";
 
     // News
-    if (domain.includes("news.") || domain.includes("reuters.com")) return "news";
+    if (domain.includes("news.") || domain.includes("reuters.com"))
+      return "news";
     if (domain.includes("bbc.com") || domain.includes("cnn.com")) return "news";
-    if (domain.includes("nytimes.com") || domain.includes("wsj.com")) return "news";
-    if (domain.includes("theguardian.com") || domain.includes("washingtonpost.com")) return "news";
+    if (domain.includes("nytimes.com") || domain.includes("wsj.com"))
+      return "news";
+    if (
+      domain.includes("theguardian.com") ||
+      domain.includes("washingtonpost.com")
+    )
+      return "news";
 
     // Reference
-    if (domain.includes("wikipedia.org") || domain.includes("britannica.com")) return "reference";
-    if (domain.includes("merriam-webster.com") || domain.includes("dictionary.com")) return "reference";
+    if (domain.includes("wikipedia.org") || domain.includes("britannica.com"))
+      return "reference";
+    if (
+      domain.includes("merriam-webster.com") ||
+      domain.includes("dictionary.com")
+    )
+      return "reference";
 
     // Forums
-    if (domain.includes("reddit.com") || domain.includes("quora.com")) return "forum";
-    if (domain.includes("discourse") || domain.includes("forum")) return "forum";
+    if (domain.includes("reddit.com") || domain.includes("quora.com"))
+      return "forum";
+    if (domain.includes("discourse") || domain.includes("forum"))
+      return "forum";
 
     // Commerce
-    if (domain.includes("amazon.") || domain.includes("ebay.")) return "commerce";
-    if (domain.includes("shopify") || domain.includes("etsy.com")) return "commerce";
+    if (domain.includes("amazon.") || domain.includes("ebay."))
+      return "commerce";
+    if (domain.includes("shopify") || domain.includes("etsy.com"))
+      return "commerce";
 
     // PDF check (by extension in URL)
     if (url.toLowerCase().endsWith(".pdf")) return "pdf";
@@ -131,7 +175,7 @@ export function getPlatformName(url: string, domain?: string): string {
 
   // Check if domain ends with or equals a known domain (e.g., "en.wikipedia.org" matches "wikipedia.org")
   for (const [key, name] of Object.entries(platformMap)) {
-    if (d === key || d.endsWith("." + key)) return name;
+    if (d === key || d.endsWith(`.${key}`)) return name;
   }
 
   // Capitalize first letter of domain
@@ -231,7 +275,16 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
       (e: React.MouseEvent<HTMLDivElement>) => {
         if (onClick) {
           onClick(
-            { id, url, title, domain, sourceType, faviconUrl, citationNumbers, verificationStatus },
+            {
+              id,
+              url,
+              title,
+              domain,
+              sourceType,
+              faviconUrl,
+              citationNumbers,
+              verificationStatus,
+            },
             e
           );
         } else {
@@ -239,18 +292,40 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
           window.open(url, "_blank", "noopener,noreferrer");
         }
       },
-      [onClick, id, url, title, domain, sourceType, faviconUrl, citationNumbers, verificationStatus]
+      [
+        onClick,
+        id,
+        url,
+        title,
+        domain,
+        sourceType,
+        faviconUrl,
+        citationNumbers,
+        verificationStatus,
+      ]
     );
 
-    const platformName = useMemo(() => getPlatformName(url, domain), [url, domain]);
-    const favicon = useMemo(() => getFaviconUrl(url, faviconUrl), [url, faviconUrl]);
-    const detectedType = useMemo(() => sourceType || detectSourceType(url), [sourceType, url]);
+    const platformName = useMemo(
+      () => getPlatformName(url, domain),
+      [url, domain]
+    );
+    const favicon = useMemo(
+      () => getFaviconUrl(url, faviconUrl),
+      [url, faviconUrl]
+    );
+    const detectedType = useMemo(
+      () => sourceType || detectSourceType(url),
+      [sourceType, url]
+    );
 
     const renderVerificationBadge = () => {
       if (!showVerificationIndicator || !verificationStatus) return null;
 
       const statusConfig = {
-        verified: { icon: "✓", className: "text-green-600 dark:text-green-500" },
+        verified: {
+          icon: "✓",
+          className: "text-green-600 dark:text-green-500",
+        },
         partial: { icon: "~", className: "text-amber-500 dark:text-amber-400" },
         pending: { icon: "…", className: "text-gray-400 dark:text-gray-500" },
         failed: { icon: "✗", className: "text-red-500 dark:text-red-400" },
@@ -259,7 +334,10 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
 
       const config = statusConfig[verificationStatus];
       return (
-        <span className={classNames("text-sm ml-1", config.className)} aria-label={verificationStatus}>
+        <span
+          className={classNames("text-sm ml-1", config.className)}
+          aria-label={verificationStatus}
+        >
           {config.icon}
         </span>
       );
@@ -290,7 +368,16 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
         {/* Favicon */}
         <div className="flex-shrink-0 mt-0.5">
           {renderFavicon ? (
-            renderFavicon({ id, url, title, domain, sourceType, faviconUrl, citationNumbers, verificationStatus })
+            renderFavicon({
+              id,
+              url,
+              title,
+              domain,
+              sourceType,
+              faviconUrl,
+              citationNumbers,
+              verificationStatus,
+            })
           ) : (
             <img
               src={favicon}
@@ -320,21 +407,25 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
             <span className="text-gray-500 dark:text-gray-400 text-xs">
               {platformName}
             </span>
-            {showCitationBadges && citationNumbers && citationNumbers.length > 0 && (
-              <div className="flex items-center gap-1">
-                {citationNumbers.slice(0, 3).map((num) => (
-                  <span
-                    key={num}
-                    className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded"
-                  >
-                    {num}
-                  </span>
-                ))}
-                {citationNumbers.length > 3 && (
-                  <span className="text-xs text-gray-400 dark:text-gray-500">+{citationNumbers.length - 3}</span>
-                )}
-              </div>
-            )}
+            {showCitationBadges &&
+              citationNumbers &&
+              citationNumbers.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {citationNumbers.slice(0, 3).map((num) => (
+                    <span
+                      key={num}
+                      className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded"
+                    >
+                      {num}
+                    </span>
+                  ))}
+                  {citationNumbers.length > 3 && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                      +{citationNumbers.length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
           </div>
         </div>
 
@@ -357,9 +448,18 @@ SourcesListItem.displayName = "SourcesListItem";
  * Compact trigger button that shows favicon previews and opens the sources list.
  * Matches the "Sources" button shown in the screenshots with stacked favicons.
  */
-export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>(
-  ({ sources, maxIcons = 3, onClick, label = "Sources", className, isOpen }, ref) => {
-    const displaySources = useMemo(() => sources.slice(0, maxIcons), [sources, maxIcons]);
+export const SourcesTrigger = forwardRef<
+  HTMLButtonElement,
+  SourcesTriggerProps
+>(
+  (
+    { sources, maxIcons = 3, onClick, label = "Sources", className, isOpen },
+    ref
+  ) => {
+    const displaySources = useMemo(
+      () => sources.slice(0, maxIcons),
+      [sources, maxIcons]
+    );
     const hasMore = sources.length > maxIcons;
 
     return (
@@ -441,7 +541,10 @@ SourcesTrigger.displayName = "SourcesTrigger";
  * />
  * ```
  */
-export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>(
+export const SourcesListComponent = forwardRef<
+  HTMLDivElement,
+  SourcesListProps
+>(
   (
     {
       sources,
@@ -514,10 +617,19 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
 
     // Render header
     const renderHeader = () => {
-      const { title = "Sources", showCloseButton = true, showCount = true, renderHeader: customRender } = header;
+      const {
+        title = "Sources",
+        showCloseButton = true,
+        showCount = true,
+        renderHeader: customRender,
+      } = header;
 
       if (customRender) {
-        return customRender({ title, count: sources.length, onClose: handleClose });
+        return customRender({
+          title,
+          count: sources.length,
+          onClose: handleClose,
+        });
       }
 
       return (
@@ -615,7 +727,10 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
 
     // Calculate max height style
     const maxHeightStyle = maxHeight
-      ? { maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight }
+      ? {
+          maxHeight:
+            typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight,
+        }
       : undefined;
 
     // Variant-specific rendering
@@ -649,7 +764,10 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
           )}
         >
           {renderHeader()}
-          <div className="overflow-y-auto" style={maxHeightStyle || { maxHeight: "400px" }}>
+          <div
+            className="overflow-y-auto"
+            style={maxHeightStyle || { maxHeight: "400px" }}
+          >
             {renderListContent()}
           </div>
         </div>
@@ -697,9 +815,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
               <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
             </div>
             {renderHeader()}
-            <div className="overflow-y-auto flex-1">
-              {renderListContent()}
-            </div>
+            <div className="overflow-y-auto flex-1">{renderListContent()}</div>
           </div>
         ) : (
           <div
@@ -713,9 +829,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
             )}
           >
             {renderHeader()}
-            <div className="overflow-y-auto flex-1">
-              {renderListContent()}
-            </div>
+            <div className="overflow-y-auto flex-1">{renderListContent()}</div>
           </div>
         )}
       </div>
@@ -763,8 +877,14 @@ export function sourceCitationsToListItems(
     if (sourceMap.has(key)) {
       // Aggregate citation numbers
       const existing = sourceMap.get(key)!;
-      if (citation.citationNumber && !existing.citationNumbers?.includes(citation.citationNumber)) {
-        existing.citationNumbers = [...(existing.citationNumbers || []), citation.citationNumber];
+      if (
+        citation.citationNumber &&
+        !existing.citationNumbers?.includes(citation.citationNumber)
+      ) {
+        existing.citationNumbers = [
+          ...(existing.citationNumbers || []),
+          citation.citationNumber,
+        ];
       }
     } else {
       sourceMap.set(key, {
@@ -774,7 +894,9 @@ export function sourceCitationsToListItems(
         domain,
         sourceType: citation.sourceType || detectSourceType(citation.url),
         faviconUrl: citation.faviconUrl,
-        citationNumbers: citation.citationNumber ? [citation.citationNumber] : [],
+        citationNumbers: citation.citationNumber
+          ? [citation.citationNumber]
+          : [],
       });
     }
   }
@@ -786,7 +908,8 @@ export function sourceCitationsToListItems(
  * Hook for managing sources list state.
  */
 export function useSourcesList(initialSources: SourcesListItemProps[] = []) {
-  const [sources, setSources] = useState<SourcesListItemProps[]>(initialSources);
+  const [sources, setSources] =
+    useState<SourcesListItemProps[]>(initialSources);
   const [isOpen, setIsOpen] = useState(false);
 
   const addSource = useCallback((source: SourcesListItemProps) => {

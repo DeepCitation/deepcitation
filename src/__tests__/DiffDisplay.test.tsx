@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
 import { cleanup, render, within } from "@testing-library/react";
-import React from "react";
 import DiffDisplay from "../react/DiffDisplay";
 
 describe("DiffDisplay", () => {
@@ -13,7 +12,9 @@ describe("DiffDisplay", () => {
       const { container } = render(
         <DiffDisplay expected="Hello" actual="Hello" />
       );
-      expect(container.querySelector('[data-testid="diff-display"]')).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="diff-display"]')
+      ).toBeInTheDocument();
     });
 
     it("renders label when provided", () => {
@@ -27,7 +28,9 @@ describe("DiffDisplay", () => {
       const { container } = render(
         <DiffDisplay expected="Hello" actual="Hello" />
       );
-      expect(container.querySelector('[data-testid="diff-label"]')).not.toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="diff-label"]')
+      ).not.toBeInTheDocument();
     });
 
     it("applies custom className", () => {
@@ -45,7 +48,9 @@ describe("DiffDisplay", () => {
       );
 
       // When texts are identical, there should be no removed or added parts
-      const removedParts = container.querySelectorAll('[data-diff-type="removed"]');
+      const removedParts = container.querySelectorAll(
+        '[data-diff-type="removed"]'
+      );
       expect(removedParts.length).toBe(0);
 
       const addedParts = container.querySelectorAll('[data-diff-type="added"]');
@@ -62,7 +67,9 @@ describe("DiffDisplay", () => {
         <DiffDisplay expected="Hello world" actual="Hello universe" />
       );
 
-      const removedParts = container.querySelectorAll('[data-diff-type="removed"]');
+      const removedParts = container.querySelectorAll(
+        '[data-diff-type="removed"]'
+      );
       expect(removedParts.length).toBeGreaterThan(0);
       expect(removedParts[0].textContent).toContain("world");
     });
@@ -85,7 +92,9 @@ describe("DiffDisplay", () => {
         />
       );
 
-      const removedParts = container.querySelectorAll('[data-diff-type="removed"]');
+      const removedParts = container.querySelectorAll(
+        '[data-diff-type="removed"]'
+      );
       const addedParts = container.querySelectorAll('[data-diff-type="added"]');
 
       expect(removedParts.length).toBeGreaterThan(0);
@@ -100,7 +109,9 @@ describe("DiffDisplay", () => {
       );
 
       // Component should render and contain both lines
-      expect(container.querySelector('[data-testid="diff-display"]')).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="diff-display"]')
+      ).toBeInTheDocument();
       expect(container.textContent).toContain("Line 1");
     });
   });
@@ -144,19 +155,25 @@ describe("DiffDisplay", () => {
       const { container } = render(
         <DiffDisplay expected="" actual="Some text" />
       );
-      expect(container.querySelector('[data-testid="diff-display"]')).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="diff-display"]')
+      ).toBeInTheDocument();
     });
 
     it("handles empty actual text", () => {
       const { container } = render(
         <DiffDisplay expected="Some text" actual="" />
       );
-      expect(container.querySelector('[data-testid="diff-display"]')).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="diff-display"]')
+      ).toBeInTheDocument();
     });
 
     it("handles both texts empty", () => {
       const { container } = render(<DiffDisplay expected="" actual="" />);
-      expect(container.querySelector('[data-testid="diff-display"]')).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="diff-display"]')
+      ).toBeInTheDocument();
     });
   });
 
@@ -193,7 +210,9 @@ describe("DiffDisplay", () => {
         <DiffDisplay expected={expected} actual={actual} />
       );
 
-      const removedParts = container.querySelectorAll('[data-diff-type="removed"]');
+      const removedParts = container.querySelectorAll(
+        '[data-diff-type="removed"]'
+      );
       expect(removedParts.length).toBeGreaterThan(0);
     });
   });
@@ -238,7 +257,9 @@ describe("DiffDisplay", () => {
       );
 
       // Should render as text, not as HTML - the diff component should render
-      expect(container.querySelector('[data-testid="diff-display"]')).toBeInTheDocument();
+      expect(
+        container.querySelector('[data-testid="diff-display"]')
+      ).toBeInTheDocument();
       // Verify content is present
       expect(container.textContent).toContain("div");
       expect(container.textContent).toContain("span");

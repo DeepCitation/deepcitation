@@ -1,7 +1,7 @@
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import { generateCitationKey } from "../react/utils.js";
-import { sha1Hash } from "../utils/sha.js";
 import type { Citation } from "../types/index.js";
+import { sha1Hash } from "../utils/sha.js";
 import type {
   CitationInput,
   ConvertFileInput,
@@ -17,9 +17,9 @@ import type {
   PrepareUrlOptions,
   UploadFileOptions,
   UploadFileResponse,
-  VerifyInput,
   VerifyCitationsOptions,
   VerifyCitationsResponse,
+  VerifyInput,
 } from "./types.js";
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
@@ -152,7 +152,10 @@ export class DeepCitation {
    * Cache entries expire after 5 minutes, and the cache is limited to 100 entries
    * to prevent memory leaks in long-running sessions.
    */
-  private readonly verifyCache = new Map<string, { promise: Promise<VerifyCitationsResponse>; timestamp: number }>();
+  private readonly verifyCache = new Map<
+    string,
+    { promise: Promise<VerifyCitationsResponse>; timestamp: number }
+  >();
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   private readonly CACHE_CLEANUP_INTERVAL_MS = 60 * 1000; // 1 minute
   private readonly MAX_CACHE_SIZE = 100; // Maximum cached entries to prevent memory leaks
@@ -218,9 +221,13 @@ export class DeepCitation {
 
       // LRU eviction: if still too large, remove oldest entries
       if (this.verifyCache.size > this.MAX_CACHE_SIZE) {
-        const entries = Array.from(this.verifyCache.entries())
-          .sort((a, b) => a[1].timestamp - b[1].timestamp);
-        const toRemove = entries.slice(0, this.verifyCache.size - this.MAX_CACHE_SIZE);
+        const entries = Array.from(this.verifyCache.entries()).sort(
+          (a, b) => a[1].timestamp - b[1].timestamp
+        );
+        const toRemove = entries.slice(
+          0,
+          this.verifyCache.size - this.MAX_CACHE_SIZE
+        );
         for (const [key] of toRemove) {
           this.verifyCache.delete(key);
         }
@@ -264,7 +271,8 @@ export class DeepCitation {
     const formData = new FormData();
     formData.append("file", blob, name);
 
-    if (options?.attachmentId) formData.append("attachmentId", options.attachmentId);
+    if (options?.attachmentId)
+      formData.append("attachmentId", options.attachmentId);
     if (options?.filename) formData.append("filename", options.filename);
 
     const response = await fetch(`${this.apiUrl}/prepareFile`, {
@@ -572,7 +580,9 @@ export class DeepCitation {
     const citationKeys = Object.values(citationMap)
       .map((citation) => {
         const baseKey = generateCitationKey(citation);
-        const selectionKey = citation.selection ? JSON.stringify(citation.selection) : "";
+        const selectionKey = citation.selection
+          ? JSON.stringify(citation.selection)
+          : "";
         return `${baseKey}:${selectionKey}`;
       })
       .sort()
@@ -622,8 +632,9 @@ export class DeepCitation {
     // This ensures we never exceed MAX_CACHE_SIZE even under heavy concurrent load
     if (this.verifyCache.size >= this.MAX_CACHE_SIZE) {
       // Sort by timestamp and remove oldest entries to make room
-      const entries = Array.from(this.verifyCache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      const entries = Array.from(this.verifyCache.entries()).sort(
+        (a, b) => a[1].timestamp - b[1].timestamp
+      );
       // Remove at least 10% of entries to avoid thrashing
       const toRemove = Math.max(1, Math.floor(this.MAX_CACHE_SIZE * 0.1));
       for (let i = 0; i < toRemove && i < entries.length; i++) {
@@ -632,7 +643,10 @@ export class DeepCitation {
     }
 
     // Cache the promise
-    this.verifyCache.set(cacheKey, { promise: fetchPromise, timestamp: Date.now() });
+    this.verifyCache.set(cacheKey, {
+      promise: fetchPromise,
+      timestamp: Date.now(),
+    });
 
     return fetchPromise;
   }
@@ -694,7 +708,9 @@ export class DeepCitation {
     for (const [attachmentId, fileCitations] of citationsByAttachment) {
       if (attachmentId) {
         verificationPromises.push(
-          this.verifyAttachment(attachmentId, fileCitations, { outputImageFormat })
+          this.verifyAttachment(attachmentId, fileCitations, {
+            outputImageFormat,
+          })
         );
       } else {
         Object.assign(skippedCitations, fileCitations);
@@ -747,16 +763,19 @@ export class DeepCitation {
   async extendExpiration(
     options: ExtendExpirationOptions
   ): Promise<ExtendExpirationResponse> {
-    const response = await fetch(`${this.apiUrl}/attachments/${options.attachmentId}/extend`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        duration: options.duration,
-      }),
-    });
+    const response = await fetch(
+      `${this.apiUrl}/attachments/${options.attachmentId}/extend`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          duration: options.duration,
+        }),
+      }
+    );
 
     if (!response.ok) {
       throw new Error(await extractErrorMessage(response, "Extend expiration"));
@@ -782,7 +801,9 @@ export class DeepCitation {
    * }
    * ```
    */
-  async deleteAttachment(attachmentId: string): Promise<DeleteAttachmentResponse> {
+  async deleteAttachment(
+    attachmentId: string
+  ): Promise<DeleteAttachmentResponse> {
     const response = await fetch(`${this.apiUrl}/attachments/${attachmentId}`, {
       method: "DELETE",
       headers: {

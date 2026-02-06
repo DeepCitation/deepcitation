@@ -158,7 +158,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
     });
 
     it("parses citation with very long full_phrase", () => {
-      const longPhrase = "A".repeat(500) + " important " + "B".repeat(500);
+      const longPhrase = `${"A".repeat(500)} important ${"B".repeat(500)}`;
       const input = `<cite attachment_id='test123' full_phrase='${longPhrase}' anchor_text='important' start_page_key='page_number_1_index_0' line_ids='1-50' />`;
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result).length).toBe(1);

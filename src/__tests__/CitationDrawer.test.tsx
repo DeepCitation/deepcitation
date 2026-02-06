@@ -5,19 +5,18 @@ import {
   fireEvent,
   render,
   renderHook,
-  waitFor,
 } from "@testing-library/react";
-import React from "react";
+import type React from "react";
+import { CitationComponent } from "../react/CitationComponent";
 import {
   CitationDrawer,
   CitationDrawerItemComponent,
   groupCitationsBySource,
   useCitationDrawer,
 } from "../react/CitationDrawer";
-import { CitationComponent } from "../react/CitationComponent";
+import type { CitationDrawerItem, SourceCitationGroup } from "../react/types";
 import type { Citation } from "../types/citation";
 import type { Verification } from "../types/verification";
-import type { CitationDrawerItem, SourceCitationGroup } from "../react/types";
 
 // Mock createPortal to render content in place instead of portal
 mock.module("react-dom", () => ({
@@ -47,7 +46,7 @@ describe("CitationComponent source variant", () => {
 
   describe("source variant rendering", () => {
     it("renders source name from citation", () => {
-      const { container, getByText } = render(
+      const { getByText } = render(
         <CitationComponent
           citation={baseCitation}
           verification={verification}
@@ -67,7 +66,9 @@ describe("CitationComponent source variant", () => {
         />
       );
 
-      const favicon = container.querySelector('img[src="https://delaware.gov/favicon.ico"]');
+      const favicon = container.querySelector(
+        'img[src="https://delaware.gov/favicon.ico"]'
+      );
       expect(favicon).toBeInTheDocument();
     });
 
@@ -233,7 +234,7 @@ describe("groupCitationsBySource", () => {
   ): CitationDrawerItem => ({
     citationKey: key,
     citation: {
-      citationNumber: parseInt(key),
+      citationNumber: parseInt(key, 10),
       siteName,
       domain,
       anchorText: `Citation ${key}`,
@@ -307,7 +308,9 @@ describe("CitationDrawerItemComponent", () => {
     cleanup();
   });
 
-  const createItem = (overrides: Partial<CitationDrawerItem> = {}): CitationDrawerItem => ({
+  const createItem = (
+    overrides: Partial<CitationDrawerItem> = {}
+  ): CitationDrawerItem => ({
     citationKey: "1",
     citation: {
       siteName: "Delaware Corporations",
@@ -351,7 +354,9 @@ describe("CitationDrawerItemComponent", () => {
       <CitationDrawerItemComponent item={createItem()} />
     );
 
-    const favicon = container.querySelector('img[src="https://delaware.gov/favicon.ico"]');
+    const favicon = container.querySelector(
+      'img[src="https://delaware.gov/favicon.ico"]'
+    );
     expect(favicon).toBeInTheDocument();
   });
 
@@ -363,9 +368,7 @@ describe("CitationDrawerItemComponent", () => {
       },
     });
 
-    const { getByText } = render(
-      <CitationDrawerItemComponent item={item} />
-    );
+    const { getByText } = render(<CitationDrawerItemComponent item={item} />);
 
     // Should show first letter as placeholder
     expect(getByText("T")).toBeInTheDocument();
@@ -456,10 +459,7 @@ describe("CitationDrawer", () => {
     cleanup();
   });
 
-  const createGroup = (
-    name: string,
-    count: number
-  ): SourceCitationGroup => ({
+  const createGroup = (name: string, count: number): SourceCitationGroup => ({
     sourceName: name,
     sourceDomain: `${name.toLowerCase()}.com`,
     citations: Array.from({ length: count }, (_, i) => ({
@@ -651,11 +651,7 @@ describe("CitationDrawer", () => {
 
   it("shows empty state when no citations", () => {
     const { getByText } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={() => {}}
-        citationGroups={[]}
-      />
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[]} />
     );
 
     expect(getByText("No citations to display")).toBeInTheDocument();
@@ -836,8 +832,16 @@ describe("useCitationDrawer", () => {
     const { result } = renderHook(() => useCitationDrawer());
 
     const items: CitationDrawerItem[] = [
-      { citationKey: "1", citation: { siteName: "Test 1" }, verification: null },
-      { citationKey: "2", citation: { siteName: "Test 2" }, verification: null },
+      {
+        citationKey: "1",
+        citation: { siteName: "Test 1" },
+        verification: null,
+      },
+      {
+        citationKey: "2",
+        citation: { siteName: "Test 2" },
+        verification: null,
+      },
     ];
 
     act(() => {

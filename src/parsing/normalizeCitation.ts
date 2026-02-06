@@ -1,7 +1,7 @@
-import type { Verification } from "../types/verification.js";
-import type { Citation } from "../types/citation.js";
-import { getCitationStatus } from "./parseCitation.js";
 import { generateCitationKey } from "../react/utils.js";
+import type { Citation } from "../types/citation.js";
+import type { Verification } from "../types/verification.js";
+import { getCitationStatus } from "./parseCitation.js";
 
 /**
  * Module-level compiled regexes for hot-path operations.
@@ -19,7 +19,7 @@ import { generateCitationKey } from "../react/utils.js";
  * Performance fix: avoids regex recompilation on every function call.
  */
 const PAGE_NUMBER_REGEX = /page[_a-zA-Z]*(\d+)/;
-const RANGE_EXPANSION_REGEX = /(\d+)-(\d+)/g;
+const _RANGE_EXPANSION_REGEX = /(\d+)-(\d+)/g;
 const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
 
 export interface ReplaceCitationsOptions {
@@ -68,13 +68,25 @@ const parseCiteAttributes = (
     const normalizedKey =
       key === "fileid" || key === "file_id" || key === "attachmentid"
         ? "attachment_id"
-        : key === "anchortext" || key === "anchor_text" || key === "keyspan" || key === "key_span"
+        : key === "anchortext" ||
+            key === "anchor_text" ||
+            key === "keyspan" ||
+            key === "key_span"
           ? "anchor_text"
           : key === "fullphrase"
             ? "full_phrase"
             : key === "lineids"
               ? "line_ids"
-              : key === "pageid" || key === "page_id" || key === "startpageid" || key === "start_pageid" || key === "start_page_id" || key === "startpagekey" || key === "start_pagekey" || key === "start_page_key" || key === "pagekey" || key === "page_key"
+              : key === "pageid" ||
+                  key === "page_id" ||
+                  key === "startpageid" ||
+                  key === "start_pageid" ||
+                  key === "start_page_id" ||
+                  key === "startpagekey" ||
+                  key === "start_pagekey" ||
+                  key === "start_page_key" ||
+                  key === "pagekey" ||
+                  key === "page_key"
                 ? "start_page_id"
                 : key;
 
@@ -180,7 +192,7 @@ export const replaceCitations = (
         const SAMPLE_COUNT = 50;
 
         // First expand ranges (e.g., "62-63" -> "62,63")
-        let expanded = lineIdsStr.replace(
+        const expanded = lineIdsStr.replace(
           /(\d+)-(\d+)/g,
           (_match, start, end) => {
             const startNum = parseInt(start, 10);
@@ -193,7 +205,10 @@ export const replaceCitations = (
                 const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
                 if (sampleCount > 0) {
                   // Use Math.floor for predictable sampling, ensuring step >= 1
-                  const step = Math.max(1, Math.floor((endNum - startNum) / (sampleCount + 1)));
+                  const step = Math.max(
+                    1,
+                    Math.floor((endNum - startNum) / (sampleCount + 1))
+                  );
                   for (let i = 1; i <= sampleCount; i++) {
                     const sample = startNum + step * i;
                     // Ensure we don't exceed the range end
@@ -215,7 +230,10 @@ export const replaceCitations = (
           }
         );
 
-        const nums = expanded.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n));
+        const nums = expanded
+          .split(",")
+          .map((s) => parseInt(s.trim(), 10))
+          .filter((n) => !Number.isNaN(n));
         return nums.length > 0 ? nums : undefined;
       };
 
@@ -270,7 +288,7 @@ export const getCitationPageNumber = (
 
   //regex first \d+ is the page number
   const pageNumber = startPageId.match(/\d+/)?.[0];
-  return pageNumber ? parseInt(pageNumber) : null;
+  return pageNumber ? parseInt(pageNumber, 10) : null;
 };
 
 /**
@@ -347,11 +365,13 @@ export const normalizeCitations = (response: string): string => {
   );
   if (citationParts.length <= 1) {
     // Handle unclosed citations by converting to self-closing
-    const unclosedMatch = trimmedResponse.match(/<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>/g);
+    const unclosedMatch = trimmedResponse.match(
+      /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>/g
+    );
     if (unclosedMatch && unclosedMatch.length > 0) {
       const result = trimmedResponse.replace(
         /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>/g,
-        (match) => match.replace(/>$/, ' />')
+        (match) => match.replace(/>$/, " />")
       );
       return normalizeCitationContent(result);
     }
@@ -360,9 +380,7 @@ export const normalizeCitations = (response: string): string => {
 
   trimmedResponse = citationParts
     .map((part) =>
-      part.startsWith("<cite")
-        ? extractAndRelocateCitationContent(part)
-        : part
+      part.startsWith("<cite") ? extractAndRelocateCitationContent(part) : part
     )
     .join("");
 
@@ -401,7 +419,13 @@ const normalizeCitationContent = (input: string): string => {
       lowerKey === "attachment_id"
     )
       return "attachment_id";
-    if (lowerKey === "anchortext" || lowerKey === "anchor_text" || lowerKey === "keyspan" || lowerKey === "key_span") return "anchor_text";
+    if (
+      lowerKey === "anchortext" ||
+      lowerKey === "anchor_text" ||
+      lowerKey === "keyspan" ||
+      lowerKey === "key_span"
+    )
+      return "anchor_text";
     if (lowerKey === "reasoning" || lowerKey === "value") return lowerKey;
     if (
       lowerKey === "timestamps" ||
@@ -414,15 +438,18 @@ const normalizeCitationContent = (input: string): string => {
   };
 
   const htmlEntityMap: Record<string, string> = {
-    '&quot;': '"',
-    '&apos;': "'",
-    '&lt;': '<',
-    '&gt;': '>',
-    '&amp;': '&',
+    "&quot;": '"',
+    "&apos;": "'",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&amp;": "&",
   };
   const htmlEntityRegex = /&(?:quot|apos|lt|gt|amp);/g;
   const decodeHtmlEntities = (str: string) => {
-    return str.replace(htmlEntityRegex, (match) => htmlEntityMap[match] || match);
+    return str.replace(
+      htmlEntityRegex,
+      (match) => htmlEntityMap[match] || match
+    );
   };
 
   const textAttributeRegex =
@@ -439,15 +466,21 @@ const normalizeCitationContent = (input: string): string => {
 
       // Flatten newlines and remove markdown markers
       content = content.replace(/(\r?\n)+|(\*|_){2,}|\*/g, (match: string) => {
-        if (match.includes('\n') || match.includes('\r')) return ' ';
-        return '';
+        if (match.includes("\n") || match.includes("\r")) return " ";
+        return "";
       });
 
       content = decodeHtmlEntities(content);
 
       // Normalize quotes
-      content = content.replace(/\\\\'/g, "'").replace(/\\'/g, "'").replace(/'/g, "\\'");
-      content = content.replace(/\\\\"/g, '"').replace(/\\"/g, '"').replace(/"/g, '\\"');
+      content = content
+        .replace(/\\\\'/g, "'")
+        .replace(/\\'/g, "'")
+        .replace(/'/g, "\\'");
+      content = content
+        .replace(/\\\\"/g, '"')
+        .replace(/\\"/g, '"')
+        .replace(/"/g, '\\"');
 
       return `${canonicalizeCiteAttributeKey(key)}='${content}'`;
     }
@@ -457,10 +490,10 @@ const normalizeCitationContent = (input: string): string => {
   const SAMPLE_COUNT = 50;
 
   normalized = normalized.replace(
-    /(line_ids|lineIds|timestamps)=['"]?([\[\]\(\){}A-Za-z0-9_\-, ]+)['"]?(\s*\/?>|\s+)/gm,
+    /(line_ids|lineIds|timestamps)=['"]?([[\](){}A-Za-z0-9_\-, ]+)['"]?(\s*\/?>|\s+)/gm,
     (_match, key, rawValue, trailingChars) => {
       // Clean up the value (remove generic text, keep numbers/separators)
-      let cleanedValue = rawValue.replace(/[A-Za-z\[\]\(\){}]/g, "");
+      let cleanedValue = rawValue.replace(/[A-Za-z[\](){}]/g, "");
 
       // Expand ranges (e.g., "1-3" -> "1,2,3")
       cleanedValue = cleanedValue.replace(
@@ -478,7 +511,10 @@ const normalizeCitationContent = (input: string): string => {
               const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
               if (sampleCount > 0) {
                 // Use Math.floor for predictable sampling, ensuring step >= 1
-                const step = Math.max(1, Math.floor((endNum - startNum) / (sampleCount + 1)));
+                const step = Math.max(
+                  1,
+                  Math.floor((endNum - startNum) / (sampleCount + 1))
+                );
                 for (let i = 1; i <= sampleCount; i++) {
                   const sample = startNum + step * i;
                   // Ensure we don't exceed the range end
@@ -548,12 +584,12 @@ const normalizeCitationContent = (input: string): string => {
       ordered.push("timestamps");
     } else {
       // Document citations: attachment_id, start_page*, full_phrase, anchor_text, line_ids, (optional reasoning/value), then any extras
-      if (startPageIds.includes("start_page_id"))
-        ordered.push("start_page_id");
-      startPageIds
+      if (startPageIds.includes("start_page_id")) ordered.push("start_page_id");
+      for (const k of startPageIds
         .filter((k) => k !== "start_page_id")
-        .sort()
-        .forEach((k) => ordered.push(k));
+        .sort()) {
+        ordered.push(k);
+      }
 
       if (attrs.full_phrase) ordered.push("full_phrase");
       if (attrs.anchor_text) ordered.push("anchor_text");
@@ -566,10 +602,9 @@ const normalizeCitationContent = (input: string): string => {
 
     // Any remaining attributes, stable + deterministic (alpha)
     const used = new Set(ordered);
-    keys
-      .filter((k) => !used.has(k))
-      .sort()
-      .forEach((k) => ordered.push(k));
+    for (const k of keys.filter((k) => !used.has(k)).sort()) {
+      ordered.push(k);
+    }
 
     const rebuiltAttrs = ordered.map((k) => `${k}='${attrs[k]}'`).join(" ");
     return `<cite ${rebuiltAttrs} />`;
