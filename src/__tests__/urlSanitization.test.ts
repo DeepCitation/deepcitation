@@ -54,6 +54,18 @@ describe("sanitizeUrl", () => {
     expect(sanitizeUrl("ftp://example.com/file")).toBeNull();
   });
 
+  // Mixed-case protocol bypass attempts
+  it("blocks mixed-case javascript: protocol", () => {
+    expect(sanitizeUrl("JavaScript:alert(1)")).toBeNull();
+    expect(sanitizeUrl("JAVASCRIPT:alert(1)")).toBeNull();
+    expect(sanitizeUrl("jAvAsCrIpT:alert(1)")).toBeNull();
+  });
+
+  it("blocks mixed-case data: protocol", () => {
+    expect(sanitizeUrl("Data:text/html,<script>alert(1)</script>")).toBeNull();
+    expect(sanitizeUrl("DATA:text/html,test")).toBeNull();
+  });
+
   // Malformed URLs
   it("returns null for empty string", () => {
     expect(sanitizeUrl("")).toBeNull();
