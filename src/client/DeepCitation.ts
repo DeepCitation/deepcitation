@@ -562,6 +562,8 @@ export class DeepCitation {
     // Check if we have a cached request
     const cached = this.verifyCache.get(cacheKey);
     if (cached) {
+      // Update timestamp on access for true LRU behavior
+      cached.timestamp = Date.now();
       return cached.promise;
     }
 

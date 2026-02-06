@@ -13,7 +13,7 @@ import { extractDomain } from "./urlUtils.js";
 export function getFaviconUrl(url: string, customFaviconUrl?: string): string {
   if (customFaviconUrl) return customFaviconUrl;
   const domain = extractDomain(url);
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32`;
 }
 
 /**

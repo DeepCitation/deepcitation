@@ -84,7 +84,7 @@
         "noAccumulatingSpread": "warn"
       },
       "suspicious": {
-        "noExplicitAny": "off",
+        "noExplicitAny": "warn",
         "noConsole": "off",
         "noVar": "error",
         "noImplicitAnyLet": "off",
@@ -106,7 +106,7 @@
       },
       "style": {
         "useConst": "error",
-        "noNonNullAssertion": "off",
+        "noNonNullAssertion": "warn",
         "useTemplate": "off",
         "useNodejsImportProtocol": "off",
         "useComponentExportOnlyModules": {

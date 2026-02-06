@@ -144,7 +144,7 @@ export function CitationDrawerItemComponent({
  *   isOpen={isOpen}
  *   onClose={() => setIsOpen(false)}
  *   citationGroups={citationGroups}
- *   onCitationClick={(item) => window.open(item.citation.sourceUrl, '_blank')}
+ *   onCitationClick={(item) => safeWindowOpen(item.citation.sourceUrl)}
  *   onReadMore={(item) => console.log('Read more:', item)}
  * />
  * ```

@@ -5,7 +5,7 @@ import { BROKEN_WAVY_UNDERLINE_STYLE } from "./constants.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
 import type { UrlCitationProps } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
-import { extractDomain, getUrlPath, STATUS_ICONS, truncateString } from "./urlUtils.js";
+import { extractDomain, getUrlPath, STATUS_ICONS, safeWindowOpen, truncateString } from "./urlUtils.js";
 import { classNames, generateCitationInstanceId, generateCitationKey } from "./utils.js";
 
 /**
@@ -40,7 +40,7 @@ const StatusIconWrapper = ({ children, className }: { children: React.ReactNode;
  */
 const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl?: string; isBroken?: boolean }) => {
   const domain = extractDomain(url);
-  const src = faviconUrl || `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
+  const src = faviconUrl || `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=16`;
 
   if (isBroken) {
     return (
@@ -163,7 +163,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
         } else {
           // Always open the URL when clicking on the component
           // The external link icon is just a visual hint, not a separate action
-          window.open(url, "_blank", "noopener,noreferrer");
+          safeWindowOpen(url);
         }
         // Always call the event handler so parent can handle (e.g., show popover)
         eventHandlers?.onClick?.(citation, citationKey, e);
@@ -176,7 +176,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        window.open(url, "_blank", "noopener,noreferrer");
+        safeWindowOpen(url);
       },
       [url],
     );
@@ -212,7 +212,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             onUrlClick(url, e);
           } else {
             // Always open the URL when activating via keyboard
-            window.open(url, "_blank", "noopener,noreferrer");
+            safeWindowOpen(url);
           }
           eventHandlers?.onClick?.(citation, citationKey, e);
         }

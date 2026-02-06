@@ -152,6 +152,8 @@ export {
 export {
   extractDomain,
   STATUS_ICONS as URL_STATUS_ICONS,
+  safeWindowOpen,
+  sanitizeUrl,
   urlDisplayUtils,
 } from "./urlUtils.js";
 // Citation Context (for accessing citation data within Citation.Root)

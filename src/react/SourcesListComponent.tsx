@@ -3,7 +3,7 @@ import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } f
 import { createPortal } from "react-dom";
 import { detectSourceType, getFaviconUrl, getPlatformName } from "./SourcesListComponent.utils.js";
 import type { SourcesListItemProps, SourcesListProps, SourcesTriggerProps } from "./types.js";
-import { extractDomain } from "./urlUtils.js";
+import { extractDomain, safeWindowOpen } from "./urlUtils.js";
 import { classNames } from "./utils.js";
 
 /**
@@ -110,8 +110,8 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
             e,
           );
         } else {
-          // Default: open URL in new tab
-          window.open(url, "_blank", "noopener,noreferrer");
+          // Default: open URL in new tab (protocol-validated)
+          safeWindowOpen(url);
         }
       },
       [onClick, id, url, title, domain, sourceType, faviconUrl, citationNumbers, verificationStatus],

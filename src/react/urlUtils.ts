@@ -9,6 +9,34 @@ import type { UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus, isVerifiedStatus } from "./urlStatus.js";
 
 /**
+ * Validates that a URL uses a safe protocol (http: or https:).
+ * Blocks javascript:, data:, vbscript:, and other potentially dangerous protocols.
+ *
+ * @returns The original URL if safe, or null if blocked.
+ */
+export function sanitizeUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Opens a URL in a new tab, but only if it uses a safe protocol.
+ * Silently no-ops for javascript:, data:, vbscript:, etc.
+ */
+export function safeWindowOpen(url: string): void {
+  if (sanitizeUrl(url)) {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
+/**
  * Extracts domain from URL for compact display.
  */
 export function extractDomain(url: string): string {
@@ -135,6 +163,8 @@ export const urlDisplayUtils = {
   extractDomain,
   truncateString,
   getUrlPath,
+  sanitizeUrl,
+  safeWindowOpen,
   isBlockedStatus,
   isErrorStatus,
   isVerifiedStatus,

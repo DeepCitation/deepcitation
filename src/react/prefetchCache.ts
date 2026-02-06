@@ -22,6 +22,7 @@ import React from "react";
  */
 const PREFETCH_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_PREFETCH_CACHE_SIZE = 100; // Maximum cached entries
+const MAX_CACHEABLE_SRC_LENGTH = 10_000; // Skip caching for unusually large src strings (e.g. base64)
 
 interface PrefetchCacheEntry {
   promise: Promise<undefined>;
@@ -79,7 +80,7 @@ function getPrefetchCacheState(): PrefetchCacheState | null {
         lastCleanup: 0,
       };
     }
-    return win[PREFETCH_CACHE_KEY]!;
+    return win[PREFETCH_CACHE_KEY] as PrefetchCacheState;
   } catch {
     // In strict CSP or sandboxed environments, window property access may throw
     // Gracefully degrade by disabling the prefetch cache
@@ -234,13 +235,18 @@ export async function prefetchImages(srcs: string[]): Promise<undefined[]> {
       img.src = src;
     });
 
-    // Store promise in cache immediately to prevent concurrent duplicates
-    cache.set(src, { promise, timestamp: now });
+    // Skip caching for unusually large src strings to prevent cache pollution
+    if (src.length <= MAX_CACHEABLE_SRC_LENGTH) {
+      // Store promise in cache immediately to prevent concurrent duplicates
+      cache.set(src, { promise, timestamp: now });
+    }
 
     return promise;
   });
 
-  return Promise.all(promises);
+  // Use Promise.allSettled to prevent one failed image from rejecting the entire batch
+  const results = await Promise.allSettled(promises);
+  return results.filter((r): r is PromiseFulfilledResult<undefined> => r.status === "fulfilled").map(r => r.value);
 }
 
 /**

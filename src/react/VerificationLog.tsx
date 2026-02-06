@@ -15,6 +15,7 @@ import {
 } from "./icons.js";
 import type { UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
+import { sanitizeUrl } from "./urlUtils.js";
 import { cn, isUrlCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
 
@@ -254,6 +255,7 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
     const faviconUrl = verification?.verifiedFaviconUrl || citation.faviconUrl;
     const domain = verification?.verifiedDomain || citation.domain;
     const url = citation.url || "";
+    const safeUrl = sanitizeUrl(url);
 
     // Map the search status to URL fetch status for display
     const urlFetchStatus = mapSearchStatusToUrlFetchStatus(status);
@@ -306,9 +308,9 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
               className="!bg-transparent !px-0 !py-0 hover:!bg-transparent"
             />
           </div>
-          {url && (
+          {safeUrl && (
             <a
-              href={url}
+              href={safeUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
