@@ -51,10 +51,7 @@ const _TIMESTAMP_KEY_MAP: Record<string, string> = {
  */
 function isValidCitationData(obj: unknown): obj is CitationData {
   return (
-    typeof obj === "object" &&
-    obj !== null &&
-    "id" in obj &&
-    typeof (obj as Record<string, unknown>).id === "number"
+    typeof obj === "object" && obj !== null && "id" in obj && typeof (obj as Record<string, unknown>).id === "number"
   );
 }
 
@@ -69,7 +66,7 @@ function isValidCitationData(obj: unknown): obj is CitationData {
  */
 function expandCompactKeys(
   data: CompactCitationData | CitationData | Record<string, unknown>,
-  attachmentId?: string
+  attachmentId?: string,
 ): CitationData {
   const result: Record<string, unknown> = {};
 
@@ -78,11 +75,7 @@ function expandCompactKeys(
     const fullKey = COMPACT_KEY_MAP[key] || key;
 
     // Handle timestamps specially (nested object with s/e keys)
-    if (
-      (key === "t" || key === "timestamps") &&
-      value &&
-      typeof value === "object"
-    ) {
+    if ((key === "t" || key === "timestamps") && value && typeof value === "object") {
       const ts = value as Record<string, unknown>;
       result.timestamps = {
         start_time: ts.s ?? ts.start_time,
@@ -124,17 +117,13 @@ function isGroupedFormat(parsed: unknown): parsed is Record<string, unknown[]> {
  * Grouped format: { "attachmentId": [citations...], ... }
  * Flat format: [{ attachment_id: "...", ...citation }, ...]
  */
-function flattenGroupedCitations(
-  grouped: Record<string, unknown[]>
-): CitationData[] {
+function flattenGroupedCitations(grouped: Record<string, unknown[]>): CitationData[] {
   const citations: CitationData[] = [];
 
   for (const [attachmentId, citationArray] of Object.entries(grouped)) {
     for (const citation of citationArray) {
       if (typeof citation === "object" && citation !== null) {
-        citations.push(
-          expandCompactKeys(citation as Record<string, unknown>, attachmentId)
-        );
+        citations.push(expandCompactKeys(citation as Record<string, unknown>, attachmentId));
       }
     }
   }
@@ -153,9 +142,7 @@ function parseCitationsFromJson(parsed: unknown): CitationData[] {
 
   // Flat format: array of citations or single citation
   const rawCitations = Array.isArray(parsed) ? parsed : [parsed];
-  return rawCitations.map((c) =>
-    expandCompactKeys(c as Record<string, unknown>)
-  );
+  return rawCitations.map(c => expandCompactKeys(c as Record<string, unknown>));
 }
 
 export type {
@@ -196,14 +183,11 @@ function repairJson(jsonString: string): {
   // Note: \u is only valid when followed by exactly 4 hex digits (e.g., \u0020).
   // Invalid \u sequences (like \utest) should have the backslash removed.
   const beforeInvalidEscapes = repaired;
-  repaired = repaired.replace(/"(?:[^"\\]|\\.)*"/g, (match) => {
+  repaired = repaired.replace(/"(?:[^"\\]|\\.)*"/g, match => {
     // Inside a JSON string, fix invalid escape sequences
     // by removing the backslash before non-standard escape characters.
     // Use negative lookahead to preserve valid unicode escapes (\uXXXX).
-    return match.replace(
-      /\\(?!u[0-9a-fA-F]{4})([^"\\/bfnrt])/g,
-      (_, char) => char
-    );
+    return match.replace(/\\(?!u[0-9a-fA-F]{4})([^"\\/bfnrt])/g, (_, char) => char);
   });
   if (repaired !== beforeInvalidEscapes) {
     repairs.push("fixed invalid escape sequences");
@@ -269,9 +253,7 @@ function repairJson(jsonString: string): {
  * console.log(parsed.citations); // [{id: 1, attachment_id: "abc", ...}]
  * ```
  */
-export function parseDeferredCitationResponse(
-  llmResponse: string
-): ParsedCitationResponse {
+export function parseDeferredCitationResponse(llmResponse: string): ParsedCitationResponse {
   if (!llmResponse || typeof llmResponse !== "string") {
     return {
       visibleText: "",
@@ -327,7 +309,7 @@ export function parseDeferredCitationResponse(
           console.warn(
             "[DeepCitation] JSON repair was triggered for citation data.",
             `Repairs applied: ${repairs.join(", ")}.`,
-            `Initial parse error: ${initialError instanceof Error ? initialError.message : "Unknown error"}`
+            `Initial parse error: ${initialError instanceof Error ? initialError.message : "Unknown error"}`,
           );
         }
       } catch (repairError) {
@@ -417,10 +399,7 @@ function parsePageId(pageId: string): {
  * @param citationNumber - Optional override for citation number (defaults to data.id)
  * @returns Standard Citation object
  */
-export function deferredCitationToCitation(
-  data: CitationData,
-  citationNumber?: number
-): Citation {
+export function deferredCitationToCitation(data: CitationData, citationNumber?: number): Citation {
   // Parse page number from page_id (supports both "N_I" and "page_number_N_index_I")
   let pageNumber: number | undefined;
   let startPageId: string | undefined;
@@ -441,9 +420,7 @@ export function deferredCitationToCitation(
   }
 
   // Sort lineIds if present
-  const lineIds = data.line_ids?.length
-    ? [...data.line_ids].sort((a, b) => a - b)
-    : undefined;
+  const lineIds = data.line_ids?.length ? [...data.line_ids].sort((a, b) => a - b) : undefined;
 
   return {
     attachmentId: data.attachment_id,
@@ -503,10 +480,7 @@ export function getAllCitationsFromDeferredResponse(llmResponse: string): {
  * @returns True if the response contains the citation data delimiter
  */
 export function hasDeferredCitations(response: string): boolean {
-  return (
-    typeof response === "string" &&
-    response.includes(CITATION_DATA_START_DELIMITER)
-  );
+  return typeof response === "string" && response.includes(CITATION_DATA_START_DELIMITER);
 }
 
 /**
@@ -553,7 +527,7 @@ export function replaceDeferredMarkers(
     showAnchorText?: boolean;
     /** Custom replacement function */
     replacer?: (id: number, data?: CitationData) => string;
-  }
+  },
 ): string {
   const { citationMap, showAnchorText, replacer } = options || {};
 

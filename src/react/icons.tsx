@@ -67,14 +67,7 @@ export const CheckIcon = ({ className }: { className?: string }) => (
  * Size is controlled by parent container - use size-4 or similar on wrapper
  */
 export const WarningIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 256 256"
-    fill="currentColor"
-    aria-hidden="true"
-    width="100%"
-    height="100%"
-  >
+  <svg className={className} viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" width="100%" height="100%">
     <path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z" />
   </svg>
 );
@@ -93,14 +86,7 @@ export const SpinnerIcon = ({ className }: { className?: string }) => (
     width="100%"
     height="100%"
   >
-    <circle
-      cx="12"
-      cy="12"
-      r="10"
-      stroke="currentColor"
-      strokeWidth="4"
-      style={{ opacity: 0.25 }}
-    />
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{ opacity: 0.25 }} />
     <path
       fill="currentColor"
       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"

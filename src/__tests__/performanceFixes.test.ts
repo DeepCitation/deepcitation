@@ -103,7 +103,7 @@ describe("Performance Fixes", () => {
       const citations: string[] = [];
       for (let i = 0; i < 100; i++) {
         citations.push(
-          `<cite attachment_id='att${i}' start_page_key='page_number_${i}_index_0' full_phrase='Phrase ${i}' anchor_text='Key ${i}' line_ids='${i}' />`
+          `<cite attachment_id='att${i}' start_page_key='page_number_${i}_index_0' full_phrase='Phrase ${i}' anchor_text='Key ${i}' line_ids='${i}' />`,
         );
       }
       const text = citations.join("\n");
@@ -125,7 +125,7 @@ describe("Performance Fixes", () => {
         const result = diffLines(text, text);
 
         // No changes expected
-        expect(result.every((c) => !c.added && !c.removed)).toBe(true);
+        expect(result.every(c => !c.added && !c.removed)).toBe(true);
       });
 
       it("should correctly split lines with Windows line endings", () => {
@@ -133,22 +133,20 @@ describe("Performance Fixes", () => {
         const result = diffLines(text, text);
 
         // No changes expected
-        expect(result.every((c) => !c.added && !c.removed)).toBe(true);
+        expect(result.every(c => !c.added && !c.removed)).toBe(true);
       });
 
       it("should handle empty strings", () => {
         const result = diffLines("", "new content");
 
-        expect(result.some((c) => c.added)).toBe(true);
+        expect(result.some(c => c.added)).toBe(true);
       });
 
       it("should handle lines without trailing newline", () => {
         const result = diffLines("line1\nline2", "line1\nline2\nline3");
 
         // Should detect the added line
-        expect(result.some((c) => c.added && c.value.includes("line3"))).toBe(
-          true
-        );
+        expect(result.some(c => c.added && c.value.includes("line3"))).toBe(true);
       });
     });
 
@@ -157,40 +155,24 @@ describe("Performance Fixes", () => {
         const result = diffWordsWithSpace("hello", "hello world");
 
         // Should have unchanged "hello" and added " world"
-        expect(
-          result.some(
-            (c) => !c.added && !c.removed && c.value.includes("hello")
-          )
-        ).toBe(true);
-        expect(result.some((c) => c.added && c.value.includes("world"))).toBe(
-          true
-        );
+        expect(result.some(c => !c.added && !c.removed && c.value.includes("hello"))).toBe(true);
+        expect(result.some(c => c.added && c.value.includes("world"))).toBe(true);
       });
 
       it("should produce correct diff results for removals", () => {
         const result = diffWordsWithSpace("hello world", "hello");
 
         // Should have unchanged "hello" and removed " world"
-        expect(
-          result.some(
-            (c) => !c.added && !c.removed && c.value.includes("hello")
-          )
-        ).toBe(true);
-        expect(result.some((c) => c.removed && c.value.includes("world"))).toBe(
-          true
-        );
+        expect(result.some(c => !c.added && !c.removed && c.value.includes("hello"))).toBe(true);
+        expect(result.some(c => c.removed && c.value.includes("world"))).toBe(true);
       });
 
       it("should produce correct diff results for replacements", () => {
         const result = diffWordsWithSpace("hello world", "hello universe");
 
         // Should have unchanged "hello", removed "world", added "universe"
-        expect(result.some((c) => c.removed && c.value.includes("world"))).toBe(
-          true
-        );
-        expect(
-          result.some((c) => c.added && c.value.includes("universe"))
-        ).toBe(true);
+        expect(result.some(c => c.removed && c.value.includes("world"))).toBe(true);
+        expect(result.some(c => c.added && c.value.includes("universe"))).toBe(true);
       });
 
       it("should handle large diffs efficiently", () => {
@@ -538,13 +520,11 @@ describe("Concurrency Limiter", () => {
         maxObserved = Math.max(maxObserved, currentlyRunning);
 
         // Simulate async work with variable delays
-        await new Promise((resolve) =>
-          setTimeout(resolve, Math.random() * 10 + 1)
-        );
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 10 + 1));
 
         currentlyRunning--;
         return i;
-      })
+      }),
     );
 
     const results = await Promise.all(tasks);
@@ -571,17 +551,17 @@ describe("Concurrency Limiter", () => {
 
       // Normal tasks that should still complete
       limiter(async () => {
-        await new Promise((r) => setTimeout(r, 5));
+        await new Promise(r => setTimeout(r, 5));
         completedTasks.push(1);
         return "task1";
       }),
       limiter(async () => {
-        await new Promise((r) => setTimeout(r, 5));
+        await new Promise(r => setTimeout(r, 5));
         completedTasks.push(2);
         return "task2";
       }),
       limiter(async () => {
-        await new Promise((r) => setTimeout(r, 5));
+        await new Promise(r => setTimeout(r, 5));
         completedTasks.push(3);
         return "task3";
       }),
@@ -603,18 +583,18 @@ describe("Concurrency Limiter", () => {
     const tasks = [
       // Task that rejects asynchronously
       limiter(async () => {
-        await new Promise((r) => setTimeout(r, 2));
+        await new Promise(r => setTimeout(r, 2));
         throw new Error("async error");
       }).catch(() => "caught-async"),
 
       // Normal tasks that should still complete
       limiter(async () => {
-        await new Promise((r) => setTimeout(r, 10));
+        await new Promise(r => setTimeout(r, 10));
         completedTasks.push(1);
         return "task1";
       }),
       limiter(async () => {
-        await new Promise((r) => setTimeout(r, 10));
+        await new Promise(r => setTimeout(r, 10));
         completedTasks.push(2);
         return "task2";
       }),
@@ -636,9 +616,9 @@ describe("Concurrency Limiter", () => {
     const tasks = Array.from({ length: 10 }, (_, i) =>
       limiter(async () => {
         order.push(i);
-        await new Promise((r) => setTimeout(r, 1));
+        await new Promise(r => setTimeout(r, 1));
         return i;
-      })
+      }),
     );
 
     const results = await Promise.all(tasks);

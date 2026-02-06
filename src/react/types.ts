@@ -273,8 +273,7 @@ export type UrlCitationVariant = "badge" | "chip" | "inline" | "bracket";
 /**
  * Props for URL citation component
  */
-export interface UrlCitationProps
-  extends Omit<BaseCitationProps, "citation" | "variant"> {
+export interface UrlCitationProps extends Omit<BaseCitationProps, "citation" | "variant"> {
   /** Visual style variant for the URL citation */
   variant?: UrlCitationVariant;
   /** URL metadata including fetch status */
@@ -290,15 +289,9 @@ export interface UrlCitationProps
   /** Maximum characters for truncated display */
   maxDisplayLength?: number;
   /** Custom render for the blocked status indicator */
-  renderBlockedIndicator?: (
-    status: UrlFetchStatus,
-    errorMessage?: string
-  ) => React.ReactNode;
+  renderBlockedIndicator?: (status: UrlFetchStatus, errorMessage?: string) => React.ReactNode;
   /** Click handler for the URL (supports both mouse and keyboard activation) */
-  onUrlClick?: (
-    url: string,
-    event: React.MouseEvent | React.KeyboardEvent
-  ) => void;
+  onUrlClick?: (url: string, event: React.MouseEvent | React.KeyboardEvent) => void;
   /** Event handlers for citation interactions */
   eventHandlers?: CitationEventHandlers;
   /** Whether tooltips should be prevented */
@@ -380,20 +373,12 @@ export interface CitationEventHandlers {
   onClick?: (
     citation: Citation,
     citationKey: string,
-    event: React.MouseEvent | React.TouchEvent | React.KeyboardEvent
+    event: React.MouseEvent | React.TouchEvent | React.KeyboardEvent,
   ) => void;
   /** Called on touch start (mobile) - useful for analytics or custom interactions */
-  onTouchStart?: (
-    citation: Citation,
-    citationKey: string,
-    event: React.TouchEvent
-  ) => void;
+  onTouchStart?: (citation: Citation, citationKey: string, event: React.TouchEvent) => void;
   /** Called on touch end (mobile) */
-  onTouchEnd?: (
-    citation: Citation,
-    citationKey: string,
-    event: React.TouchEvent
-  ) => void;
+  onTouchEnd?: (citation: Citation, citationKey: string, event: React.TouchEvent) => void;
 }
 
 /**
@@ -441,7 +426,7 @@ export interface CitationBehaviorActions {
  */
 export type CitationClickBehavior = (
   context: CitationBehaviorContext,
-  event: React.MouseEvent | React.TouchEvent | React.KeyboardEvent
+  event: React.MouseEvent | React.TouchEvent | React.KeyboardEvent,
 ) => CitationBehaviorActions | false | undefined;
 
 /**
@@ -546,12 +531,7 @@ export interface SourcesListItemProps {
   /** Citation numbers that reference this source */
   citationNumbers?: number[];
   /** Verification status */
-  verificationStatus?:
-    | "verified"
-    | "partial"
-    | "pending"
-    | "failed"
-    | "unknown";
+  verificationStatus?: "verified" | "partial" | "pending" | "failed" | "unknown";
   /** Click handler */
   onClick?: (source: SourcesListItemProps, event: React.MouseEvent) => void;
   /** Additional class name */
@@ -575,11 +555,7 @@ export interface SourcesListHeaderConfig {
   /** Whether to show source count badge */
   showCount?: boolean;
   /** Custom header render */
-  renderHeader?: (props: {
-    title: string;
-    count: number;
-    onClose?: () => void;
-  }) => React.ReactNode;
+  renderHeader?: (props: { title: string; count: number; onClose?: () => void }) => React.ReactNode;
 }
 
 /**
@@ -610,10 +586,7 @@ export interface SourcesListProps {
   /** Class name for the list items container */
   listClassName?: string;
   /** Click handler for source items */
-  onSourceClick?: (
-    source: SourcesListItemProps,
-    event: React.MouseEvent
-  ) => void;
+  onSourceClick?: (source: SourcesListItemProps, event: React.MouseEvent) => void;
   /** Whether to show verification indicators on items */
   showVerificationIndicators?: boolean;
   /** Whether to show citation number badges on items */
@@ -647,38 +620,13 @@ export interface SourcesTriggerProps {
   isOpen?: boolean;
 }
 
-// ============================================================================
-// ChatGPT-style Citation Drawer Types
-// ============================================================================
-
-/**
- * A single citation item with its verification result for the drawer.
- */
-export interface CitationDrawerItem {
-  /** Unique key for this citation */
-  citationKey: string;
-  /** The citation data */
-  citation: Citation;
-  /** Verification result if available */
-  verification: Verification | null;
-}
-
-/**
- * Group of citations from the same source (for "+N" display).
- * Used when multiple citations reference the same source domain.
- */
-export interface SourceCitationGroup {
-  /** Primary source name to display (e.g., "Delaware Corporations") */
-  sourceName: string;
-  /** Source domain (e.g., "delaware.gov") */
-  sourceDomain?: string;
-  /** Favicon URL for the source */
-  sourceFavicon?: string;
-  /** All citations in this group */
-  citations: CitationDrawerItem[];
-  /** Count of additional citations beyond the first */
-  additionalCount: number;
-}
+// Re-export ChatGPT-style Citation Drawer types from separate file
+export type {
+  CitationDrawerItem,
+  CitationDrawerItemProps,
+  CitationDrawerProps,
+  SourceCitationGroup,
+} from "./CitationDrawer.types.js";
 
 /**
  * Props for the source chip variant (ChatGPT-style inline citation).
@@ -689,53 +637,9 @@ export interface SourceChipProps {
   /** Verification result */
   verification?: Verification | null;
   /** Additional citations grouped with this one */
-  additionalCitations?: CitationDrawerItem[];
+  additionalCitations?: import("./CitationDrawer.types.js").CitationDrawerItem[];
   /** Callback when chip is clicked (typically opens drawer) */
-  onClick?: (group: SourceCitationGroup, event: React.MouseEvent) => void;
-  /** Additional class name */
-  className?: string;
-}
-
-/**
- * Props for the CitationDrawer component.
- */
-export interface CitationDrawerProps {
-  /** Whether the drawer is open */
-  isOpen: boolean;
-  /** Callback to close the drawer */
-  onClose: () => void;
-  /** Citation groups to display */
-  citationGroups: SourceCitationGroup[];
-  /** Title for the drawer header */
-  title?: string;
-  /** Whether to show "More" section for additional sources */
-  showMoreSection?: boolean;
-  /** Maximum items to show before "More" section */
-  maxVisibleItems?: number;
-  /** Callback when a citation item is clicked */
-  onCitationClick?: (item: CitationDrawerItem) => void;
-  /** Callback when "Read more" is clicked for a citation */
-  onReadMore?: (item: CitationDrawerItem) => void;
-  /** Additional class name for the drawer container */
-  className?: string;
-  /** Render position: 'bottom' for mobile sheet, 'right' for side panel */
-  position?: "bottom" | "right";
-  /** Custom render for citation items */
-  renderCitationItem?: (item: CitationDrawerItem) => React.ReactNode;
-}
-
-/**
- * Props for the CitationDrawerItem component.
- */
-export interface CitationDrawerItemProps {
-  /** The citation item to display */
-  item: CitationDrawerItem;
-  /** Whether this is the last item (no bottom border) */
-  isLast?: boolean;
-  /** Callback when item is clicked */
-  onClick?: (item: CitationDrawerItem) => void;
-  /** Callback when "Read more" is clicked */
-  onReadMore?: (item: CitationDrawerItem) => void;
+  onClick?: (group: import("./CitationDrawer.types.js").SourceCitationGroup, event: React.MouseEvent) => void;
   /** Additional class name */
   className?: string;
 }
@@ -744,5 +648,5 @@ export interface CitationDrawerItemProps {
  * Helper function type for grouping citations by source.
  */
 export type GroupCitationsBySource = (
-  citations: CitationDrawerItem[]
-) => SourceCitationGroup[];
+  citations: import("./CitationDrawer.types.js").CitationDrawerItem[],
+) => import("./CitationDrawer.types.js").SourceCitationGroup[];

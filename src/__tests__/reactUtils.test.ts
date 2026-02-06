@@ -25,9 +25,7 @@ describe("react utils", () => {
   it("generates deterministic keys", () => {
     const key = generateCitationKey(citation);
     expect(key).toHaveLength(16);
-    expect(generateCitationKey({ ...citation, anchorText: "$11" })).not.toBe(
-      key
-    );
+    expect(generateCitationKey({ ...citation, anchorText: "$11" })).not.toBe(key);
   });
 
   it("creates unique instance ids with a random suffix", () => {
@@ -49,23 +47,18 @@ describe("react utils", () => {
         ...citation,
         anchorText: null,
         citationNumber: undefined,
-      })
+      }),
     ).toBe("1");
     // Can use custom fallback
     expect(
-      getCitationDisplayText(
-        { ...citation, anchorText: null, citationNumber: undefined },
-        { fallbackDisplay: "N/A" }
-      )
+      getCitationDisplayText({ ...citation, anchorText: null, citationNumber: undefined }, { fallbackDisplay: "N/A" }),
     ).toBe("N/A");
   });
 
   it("returns citation number", () => {
     expect(getCitationNumber(citation)).toBe("2");
     // Falls back to "1" when no citationNumber
-    expect(getCitationNumber({ ...citation, citationNumber: undefined })).toBe(
-      "1"
-    );
+    expect(getCitationNumber({ ...citation, citationNumber: undefined })).toBe("1");
   });
 
   it("returns anchorText text", () => {
@@ -136,9 +129,7 @@ describe("react utils", () => {
         title: "Q4 Report",
       };
 
-      expect(generateCitationKey(urlCitation)).toBe(
-        generateCitationKey(urlCitation)
-      );
+      expect(generateCitationKey(urlCitation)).toBe(generateCitationKey(urlCitation));
     });
   });
 });

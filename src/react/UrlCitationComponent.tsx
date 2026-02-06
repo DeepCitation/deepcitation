@@ -3,246 +3,44 @@ import { forwardRef, memo, useCallback, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import { BROKEN_WAVY_UNDERLINE_STYLE } from "./constants.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
-import type {
-  UrlCitationMeta,
-  UrlCitationProps,
-  UrlFetchStatus,
-} from "./types.js";
-import {
-  classNames,
-  generateCitationInstanceId,
-  generateCitationKey,
-} from "./utils.js";
+import type { UrlCitationProps } from "./types.js";
+import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
+import { extractDomain, getUrlPath, STATUS_ICONS, truncateString } from "./urlUtils.js";
+import { classNames, generateCitationInstanceId, generateCitationKey } from "./utils.js";
 
 /**
  * Module-level handler for hiding broken favicon images.
  * Performance fix: avoids creating new function references on every render.
  */
-const handleFaviconError = (
-  e: React.SyntheticEvent<HTMLImageElement>
-): void => {
+const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
   (e.target as HTMLImageElement).style.display = "none";
 };
-
-/**
- * Extracts domain from URL for compact display.
- */
-export function extractDomain(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname.replace(/^www\./, "");
-  } catch {
-    // Fallback for invalid URLs
-    return url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
-  }
-}
-
-/**
- * Truncates a string to max length with ellipsis.
- */
-function truncateString(str: string, maxLength: number): string {
-  if (str.length <= maxLength) return str;
-  return `${str.slice(0, maxLength - 1)}…`;
-}
-
-/**
- * Get path from URL for display.
- */
-function getUrlPath(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    const path = urlObj.pathname + urlObj.search;
-    return path === "/" ? "" : path;
-  } catch {
-    return "";
-  }
-}
-
-/**
- * Status indicator icons for URL fetch states.
- */
-const STATUS_ICONS: Record<
-  UrlFetchStatus,
-  { icon: string; label: string; className: string }
-> = {
-  verified: {
-    icon: "✓",
-    label: "Verified",
-    className: "text-green-600 dark:text-green-500",
-  },
-  partial: {
-    icon: "~",
-    label: "Partial match",
-    className: "text-amber-500 dark:text-amber-400",
-  },
-  pending: {
-    icon: "…",
-    label: "Verifying",
-    className: "text-gray-400 dark:text-gray-500",
-  },
-  accessible: {
-    icon: "○",
-    label: "Accessible",
-    className: "text-blue-500 dark:text-blue-400",
-  },
-  redirected: {
-    icon: "↪",
-    label: "Redirected",
-    className: "text-amber-500 dark:text-amber-400",
-  },
-  redirected_valid: {
-    icon: "↪✓",
-    label: "Redirected (valid)",
-    className: "text-green-600 dark:text-green-500",
-  },
-  blocked_antibot: {
-    icon: "⊘",
-    label: "Blocked by anti-bot",
-    className: "text-amber-500 dark:text-amber-400",
-  },
-  blocked_login: {
-    icon: "⊙",
-    label: "Login required",
-    className: "text-amber-500 dark:text-amber-400",
-  },
-  blocked_paywall: {
-    icon: "$",
-    label: "Paywall",
-    className: "text-amber-500 dark:text-amber-400",
-  },
-  blocked_geo: {
-    icon: "⊕",
-    label: "Geo-restricted",
-    className: "text-amber-500 dark:text-amber-400",
-  },
-  blocked_rate_limit: {
-    icon: "◔",
-    label: "Rate limited",
-    className: "text-amber-500 dark:text-amber-400",
-  },
-  error_timeout: {
-    icon: "⊗",
-    label: "Timed out",
-    className: "text-red-500 dark:text-red-400",
-  },
-  error_not_found: {
-    icon: "⊗",
-    label: "Not found",
-    className: "text-red-500 dark:text-red-400",
-  },
-  error_server: {
-    icon: "⊗",
-    label: "Server error",
-    className: "text-red-500 dark:text-red-400",
-  },
-  error_network: {
-    icon: "⊗",
-    label: "Network error",
-    className: "text-red-500 dark:text-red-400",
-  },
-  unknown: {
-    icon: "?",
-    label: "Unknown status",
-    className: "text-gray-400 dark:text-gray-500",
-  },
-};
-
-/**
- * Checks if status is a blocked status.
- */
-export function isBlockedStatus(status: UrlFetchStatus): boolean {
-  return status.startsWith("blocked_");
-}
-
-/**
- * Checks if status is an error status.
- */
-export function isErrorStatus(status: UrlFetchStatus): boolean {
-  return status.startsWith("error_");
-}
-
-/**
- * Checks if status indicates the URL is accessible (may not have verified content yet).
- */
-export function isAccessibleStatus(status: UrlFetchStatus): boolean {
-  return (
-    status === "verified" ||
-    status === "partial" ||
-    status === "accessible" ||
-    status === "redirected_valid"
-  );
-}
-
-/**
- * Checks if status indicates a redirect occurred.
- */
-export function isRedirectedStatus(status: UrlFetchStatus): boolean {
-  return status === "redirected" || status === "redirected_valid";
-}
-
-/**
- * Checks if URL was successfully verified.
- */
-export function isVerifiedStatus(status: UrlFetchStatus): boolean {
-  return (
-    status === "verified" ||
-    status === "partial" ||
-    status === "redirected_valid"
-  );
-}
 
 /**
  * Pulsing dot indicator for pending state.
  */
 const PendingDot = () => (
-  <span
-    className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse"
-    aria-hidden="true"
-  />
+  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse" aria-hidden="true" />
 );
 
 /**
  * Green verified checkmark indicator.
  */
-const VerifiedCheck = () => (
-  <CheckIcon className="w-full h-full text-green-600 dark:text-green-500" />
-);
+const VerifiedCheck = () => <CheckIcon className="w-full h-full text-green-600 dark:text-green-500" />;
 
 /**
  * Status icon wrapper for consistent sizing and alignment.
  */
-const StatusIconWrapper = ({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <span
-    className={classNames(
-      "w-3 h-3 flex-shrink-0 flex items-center justify-center",
-      className
-    )}
-  >
-    {children}
-  </span>
+const StatusIconWrapper = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <span className={classNames("w-3 h-3 flex-shrink-0 flex items-center justify-center", className)}>{children}</span>
 );
 
 /**
  * Default favicon component.
  */
-const DefaultFavicon = ({
-  url,
-  faviconUrl,
-  isBroken,
-}: {
-  url: string;
-  faviconUrl?: string;
-  isBroken?: boolean;
-}) => {
+const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl?: string; isBroken?: boolean }) => {
   const domain = extractDomain(url);
-  const src =
-    faviconUrl || `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
+  const src = faviconUrl || `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
 
   if (isBroken) {
     return (
@@ -291,10 +89,7 @@ const DefaultFavicon = ({
  * // Renders: [protected-site.com 🔒]
  * ```
  */
-export const UrlCitationComponent = forwardRef<
-  HTMLSpanElement,
-  UrlCitationProps
->(
+export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps>(
   (
     {
       urlMeta,
@@ -313,7 +108,7 @@ export const UrlCitationComponent = forwardRef<
       showStatusIndicator = true,
       showExternalLinkOnHover = true, // Show external link icon on hover by default
     },
-    ref
+    ref,
   ) => {
     // Track hover and focus state for external link indicator
     const [isHovered, setIsHovered] = useState(false);
@@ -322,16 +117,8 @@ export const UrlCitationComponent = forwardRef<
     // Show external link when either hovered or focused
     const shouldShowExternalLink = showExternalLinkOnHover;
     // Show external link when either hovered or focused (keyboard accessibility)
-    const showExternalLinkIndicator =
-      shouldShowExternalLink && (isHovered || isFocused);
-    const {
-      url,
-      domain: providedDomain,
-      title,
-      fetchStatus,
-      faviconUrl,
-      errorMessage,
-    } = urlMeta;
+    const showExternalLinkIndicator = shouldShowExternalLink && (isHovered || isFocused);
+    const { url, domain: providedDomain, title, fetchStatus, faviconUrl, errorMessage } = urlMeta;
 
     // Derive citation from URL meta if not provided
     const citation: Citation = useMemo(
@@ -340,23 +127,14 @@ export const UrlCitationComponent = forwardRef<
           value: url,
           fullPhrase: title || url,
         },
-      [providedCitation, url, title]
+      [providedCitation, url, title],
     );
 
-    const citationKey = useMemo(
-      () => generateCitationKey(citation),
-      [citation]
-    );
-    const citationInstanceId = useMemo(
-      () => generateCitationInstanceId(citationKey),
-      [citationKey]
-    );
+    const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
+    const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
 
     // Compute display text
-    const domain = useMemo(
-      () => providedDomain || extractDomain(url),
-      [providedDomain, url]
-    );
+    const domain = useMemo(() => providedDomain || extractDomain(url), [providedDomain, url]);
     const path = useMemo(() => getUrlPath(url), [url]);
 
     const displayText = useMemo(() => {
@@ -364,9 +142,7 @@ export const UrlCitationComponent = forwardRef<
         return truncateString(title, maxDisplayLength);
       }
       // Show domain + truncated path
-      const pathPart = path
-        ? truncateString(path, maxDisplayLength - domain.length - 1)
-        : "";
+      const pathPart = path ? truncateString(path, maxDisplayLength - domain.length - 1) : "";
       return pathPart ? `${domain}${pathPart}` : domain;
     }, [showTitle, title, domain, path, maxDisplayLength]);
 
@@ -392,7 +168,7 @@ export const UrlCitationComponent = forwardRef<
         // Always call the event handler so parent can handle (e.g., show popover)
         eventHandlers?.onClick?.(citation, citationKey, e);
       },
-      [onUrlClick, url, eventHandlers, citation, citationKey]
+      [onUrlClick, url, eventHandlers, citation, citationKey],
     );
 
     // Handler specifically for the external link icon
@@ -402,7 +178,7 @@ export const UrlCitationComponent = forwardRef<
         e.stopPropagation();
         window.open(url, "_blank", "noopener,noreferrer");
       },
-      [url]
+      [url],
     );
 
     const handleMouseEnter = useCallback(() => {
@@ -441,7 +217,7 @@ export const UrlCitationComponent = forwardRef<
           eventHandlers?.onClick?.(citation, citationKey, e);
         }
       },
-      [onUrlClick, url, eventHandlers, citation, citationKey]
+      [onUrlClick, url, eventHandlers, citation, citationKey],
     );
 
     // External link button that appears on hover or focus
@@ -485,10 +261,7 @@ export const UrlCitationComponent = forwardRef<
           return renderBlockedIndicator(fetchStatus, errorMessage);
         }
         return (
-          <StatusIconWrapper
-            className="text-amber-500 dark:text-amber-400"
-            aria-label={statusInfo.label}
-          >
+          <StatusIconWrapper className="text-amber-500 dark:text-amber-400" aria-label={statusInfo.label}>
             <LockIcon className="w-full h-full" />
           </StatusIconWrapper>
         );
@@ -548,7 +321,7 @@ export const UrlCitationComponent = forwardRef<
               "hover:bg-gray-50 dark:hover:bg-gray-800",
               // Broken state: muted styling
               isBroken && "opacity-60",
-              className
+              className,
             )}
             title={showFullUrlOnHover ? errorMessage || url : undefined}
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
@@ -561,17 +334,11 @@ export const UrlCitationComponent = forwardRef<
             tabIndex={0}
             aria-label={`Link to ${domain}: ${statusInfo.label}`}
           >
-            {showFavicon && (
-              <DefaultFavicon
-                url={url}
-                faviconUrl={faviconUrl}
-                isBroken={isBroken}
-              />
-            )}
+            {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} isBroken={isBroken} />}
             <span
               className={classNames(
                 "font-mono text-[11px] font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[140px]",
-                "text-gray-800 dark:text-gray-200"
+                "text-gray-800 dark:text-gray-200",
               )}
               style={isBroken ? BROKEN_WAVY_UNDERLINE_STYLE : undefined}
             >
@@ -601,7 +368,7 @@ export const UrlCitationComponent = forwardRef<
               "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
               "hover:bg-gray-200 dark:hover:bg-gray-700",
               isBroken && "opacity-60",
-              className
+              className,
             )}
             title={showFullUrlOnHover ? url : undefined}
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
@@ -614,9 +381,7 @@ export const UrlCitationComponent = forwardRef<
             tabIndex={0}
             aria-label={`Link to ${domain}: ${statusInfo.label}`}
           >
-            {showFavicon && (
-              <DefaultFavicon url={url} faviconUrl={faviconUrl} />
-            )}
+            {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
             <span className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-700 dark:text-gray-300">
               {displayText}
             </span>
@@ -644,7 +409,7 @@ export const UrlCitationComponent = forwardRef<
               "text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-500",
               "hover:border-gray-600 dark:hover:border-gray-300",
               isBroken && "opacity-60",
-              className
+              className,
             )}
             style={isBroken ? BROKEN_WAVY_UNDERLINE_STYLE : undefined}
             title={showFullUrlOnHover ? url : undefined}
@@ -658,9 +423,7 @@ export const UrlCitationComponent = forwardRef<
             tabIndex={0}
             aria-label={`Link to ${domain}: ${statusInfo.label}`}
           >
-            {showFavicon && (
-              <DefaultFavicon url={url} faviconUrl={faviconUrl} />
-            )}
+            {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
             <span>{displayText}</span>
             {showStatusIndicator && renderStatusIndicator()}
             {renderExternalLinkButton()}
@@ -685,7 +448,7 @@ export const UrlCitationComponent = forwardRef<
             "font-mono text-xs leading-tight",
             "text-gray-500 dark:text-gray-400",
             isBroken && "opacity-60",
-            className
+            className,
           )}
           title={showFullUrlOnHover ? url : undefined}
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
@@ -710,7 +473,7 @@ export const UrlCitationComponent = forwardRef<
         </span>
       </>
     );
-  }
+  },
 );
 
 UrlCitationComponent.displayName = "UrlCitationComponent";
@@ -719,39 +482,3 @@ UrlCitationComponent.displayName = "UrlCitationComponent";
  * Memoized version for performance.
  */
 export const MemoizedUrlCitationComponent = memo(UrlCitationComponent);
-
-/**
- * Hook to parse URL and create UrlCitationMeta.
- */
-export function useUrlMeta(
-  url: string,
-  fetchStatus: UrlFetchStatus = "unknown",
-  additionalMeta?: Partial<UrlCitationMeta>
-): UrlCitationMeta {
-  return useMemo(
-    () => ({
-      url,
-      domain: extractDomain(url),
-      fetchStatus,
-      ...additionalMeta,
-    }),
-    [url, fetchStatus, additionalMeta]
-  );
-}
-
-/**
- * Compact URL display utilities.
- */
-export const urlDisplayUtils = {
-  extractDomain,
-  truncateString,
-  getUrlPath,
-  isBlockedStatus,
-  isErrorStatus,
-  isVerifiedStatus,
-};
-
-/**
- * Status configuration for custom styling.
- */
-export { STATUS_ICONS };

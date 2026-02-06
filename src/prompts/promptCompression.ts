@@ -8,10 +8,7 @@ const MIN_CHARACTERS_PER_PREFIX_WITH_NO_DIGITS = 5;
  * Build a map from each ID's minimal unique prefix to the full ID,
  * such that the prefix only ever appears in the prompt where the full ID appears.
  */
-function buildSafePrefixMap(
-  ids: string[],
-  prompt: string
-): Record<string, string> {
+function buildSafePrefixMap(ids: string[], prompt: string): Record<string, string> {
   const map: Record<string, string> = {};
 
   for (const id of ids) {
@@ -24,23 +21,20 @@ function buildSafePrefixMap(
 
       if (
         prefix.length < MIN_PREFIX_LENGTH ||
-        (digitCount > 0 &&
-          letterCount < MIN_CHARACTERS_PER_PREFIX_WITH_AT_LEAST_ONE_DIGIT) ||
-        (digitCount === 0 &&
-          letterCount < MIN_CHARACTERS_PER_PREFIX_WITH_NO_DIGITS)
+        (digitCount > 0 && letterCount < MIN_CHARACTERS_PER_PREFIX_WITH_AT_LEAST_ONE_DIGIT) ||
+        (digitCount === 0 && letterCount < MIN_CHARACTERS_PER_PREFIX_WITH_NO_DIGITS)
       ) {
         continue;
       }
 
       // 1) Unique among IDs
-      if (ids.some((other) => other !== id && other.startsWith(prefix))) {
+      if (ids.some(other => other !== id && other.startsWith(prefix))) {
         continue;
       }
 
       // 2) Only appears in prompt as part of the full ID
       const esc = (s: string) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
-      const prefixCount = (prompt.match(new RegExp(esc(prefix), "g")) || [])
-        .length;
+      const prefixCount = (prompt.match(new RegExp(esc(prefix), "g")) || []).length;
       const fullCount = (prompt.match(new RegExp(esc(id), "g")) || []).length;
       if (prefixCount !== fullCount) {
         continue;
@@ -52,7 +46,7 @@ function buildSafePrefixMap(
 
     if (!Object.values(map).includes(id)) {
       throw new Error(
-        `Cannot find a safe unique prefix for ID "${id}" that meets the minimum requirements (length: ${MIN_PREFIX_LENGTH})`
+        `Cannot find a safe unique prefix for ID "${id}" that meets the minimum requirements (length: ${MIN_PREFIX_LENGTH})`,
       );
     }
   }
@@ -64,10 +58,7 @@ function buildSafePrefixMap(
  * Compress all occurrences of `ids` inside `obj`, returning a new object
  * plus the `prefixMap` needed to decompress.
  */
-export function compressPromptIds<T>(
-  obj: T,
-  ids: string[] | undefined
-): CompressedResult<T> {
+export function compressPromptIds<T>(obj: T, ids: string[] | undefined): CompressedResult<T> {
   if (!ids || ids.length === 0) {
     return { compressed: obj, prefixMap: {} };
   }
@@ -99,18 +90,13 @@ export function compressPromptIds<T>(
  * If you pass in a string, it will return a string.
  * If you pass in an object, it will JSON‑serialize and parse it back.
  */
-export function decompressPromptIds<T>(
-  compressed: T | string,
-  prefixMap: Record<string, string>
-): T | string {
+export function decompressPromptIds<T>(compressed: T | string, prefixMap: Record<string, string>): T | string {
   if (!prefixMap || Object.keys(prefixMap).length === 0) {
     return compressed;
   }
 
   // Prepare sorted [prefix, full] entries (longest prefix first)
-  const entries = Object.entries(prefixMap).sort(
-    (a, b) => b[0].length - a[0].length
-  );
+  const entries = Object.entries(prefixMap).sort((a, b) => b[0].length - a[0].length);
 
   // Decide whether we're working on a string or an object
   let text: string;
@@ -154,19 +140,14 @@ export function decompressPromptIds<T>(
 
     // Match: attributeName = 'prefix' or attributeName="prefix" etc.
     // Only replace the prefix part, preserving the attribute name and quotes
-    const re = new RegExp(
-      `(${keyPattern})(\\s*=\\s*)${quotePattern}${escPrefix}\\3`,
-      "g"
-    );
+    const re = new RegExp(`(${keyPattern})(\\s*=\\s*)${quotePattern}${escPrefix}\\3`, "g");
     text = text.replace(re, `$1$2$3${full}$3`);
   }
   const newLength = text?.length;
 
   const diff = originalLength - newLength;
   if (diff > 0) {
-    throw new Error(
-      `[decompressedPromptIds] diff ${diff} originalLength ${originalLength} newLength ${newLength}`
-    );
+    throw new Error(`[decompressedPromptIds] diff ${diff} originalLength ${originalLength} newLength ${newLength}`);
   }
 
   return shouldParseBack ? (JSON.parse(text) as T) : text;

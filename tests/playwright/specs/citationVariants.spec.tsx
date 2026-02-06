@@ -1,10 +1,10 @@
-import { test, expect } from "@playwright/experimental-ct-react";
+import { expect, test } from "@playwright/experimental-ct-react";
 import {
   ChipCitation,
-  SuperscriptCitation,
+  CitationVariantFactory,
   FootnoteCitation,
   InlineCitation,
-  CitationVariantFactory,
+  SuperscriptCitation,
 } from "../../../src/react/CitationVariants";
 import type { Citation } from "../../../src/types/citation";
 import type { Verification } from "../../../src/types/verification";
@@ -60,9 +60,7 @@ test.describe("ChipCitation", () => {
   });
 
   test("renders with verified state", async ({ mount, page }) => {
-    await mount(
-      <ChipCitation citation={baseCitation} verification={verification} />
-    );
+    await mount(<ChipCitation citation={baseCitation} verification={verification} />);
     const chip = page.locator('[data-variant="chip"]');
 
     // Wrapper has background color, text color is on inner span
@@ -74,18 +72,14 @@ test.describe("ChipCitation", () => {
   });
 
   test("renders with miss state", async ({ mount, page }) => {
-    await mount(
-      <ChipCitation citation={baseCitation} verification={missFoundCitation} />
-    );
+    await mount(<ChipCitation citation={baseCitation} verification={missFoundCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
     // Wrapper has background color, text color is on inner span
     await expect(chip).toHaveClass(/bg-red-/);
     // Chip variant does NOT use wavy underline - status is conveyed via indicator icon
     // Check that the X indicator is present (red text color indicates miss state icon)
-    const xIndicator = chip
-      .locator("span.text-red-500, span.text-red-400")
-      .first();
+    const xIndicator = chip.locator("span.text-red-500, span.text-red-400").first();
     await expect(xIndicator).toBeVisible();
     // Verify text span has reduced opacity (the span with opacity-70 class)
     const textSpan = chip.locator("span.opacity-70");
@@ -93,12 +87,7 @@ test.describe("ChipCitation", () => {
   });
 
   test("renders with partial match state", async ({ mount, page }) => {
-    await mount(
-      <ChipCitation
-        citation={baseCitation}
-        verification={partialFoundCitation}
-      />
-    );
+    await mount(<ChipCitation citation={baseCitation} verification={partialFoundCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
     // Wrapper has background color, text color is on inner span
@@ -109,12 +98,7 @@ test.describe("ChipCitation", () => {
   });
 
   test("renders with pending state", async ({ mount, page }) => {
-    await mount(
-      <ChipCitation
-        citation={baseCitation}
-        verification={pendingFoundCitation}
-      />
-    );
+    await mount(<ChipCitation citation={baseCitation} verification={pendingFoundCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
     // Pending state shows gray background, text color is inherited
@@ -162,13 +146,11 @@ test.describe("ChipCitation", () => {
     await mount(
       <ChipCitation citation={baseCitation}>
         <span data-testid="child">Before text</span>
-      </ChipCitation>
+      </ChipCitation>,
     );
 
     await expect(page.locator('[data-testid="child"]')).toBeVisible();
-    await expect(page.locator('[data-testid="child"]')).toContainText(
-      "Before text"
-    );
+    await expect(page.locator('[data-testid="child"]')).toContainText("Before text");
   });
 });
 
@@ -183,33 +165,19 @@ test.describe("SuperscriptCitation", () => {
 
     await expect(sup).toBeVisible();
     await expect(sup).toHaveAttribute("data-variant", "superscript");
-    const tagName = await sup.evaluate((el) => el.tagName.toLowerCase());
+    const tagName = await sup.evaluate(el => el.tagName.toLowerCase());
     expect(tagName).toBe("sup");
   });
 
   test("renders with verified state", async ({ mount, page }) => {
-    await mount(
-      <SuperscriptCitation
-        citation={baseCitation}
-        verification={verification}
-      />
-    );
+    await mount(<SuperscriptCitation citation={baseCitation} verification={verification} />);
     const sup = page.locator('[data-variant="superscript"]');
 
     await expect(sup).toHaveClass(/text-green-/);
   });
 
-  test("renders with brackets when hideBrackets is false", async ({
-    mount,
-    page,
-  }) => {
-    await mount(
-      <SuperscriptCitation
-        citation={baseCitation}
-        hideBrackets={false}
-        verification={verification}
-      />
-    );
+  test("renders with brackets when hideBrackets is false", async ({ mount, page }) => {
+    await mount(<SuperscriptCitation citation={baseCitation} hideBrackets={false} verification={verification} />);
     const sup = page.locator('[data-variant="superscript"]');
 
     // Contains [1 and ] with verified indicator in between
@@ -227,13 +195,8 @@ test.describe("SuperscriptCitation", () => {
     expect(text).toContain("]");
   });
 
-  test("renders without brackets when hideBrackets is true", async ({
-    mount,
-    page,
-  }) => {
-    await mount(
-      <SuperscriptCitation citation={baseCitation} hideBrackets={true} />
-    );
+  test("renders without brackets when hideBrackets is true", async ({ mount, page }) => {
+    await mount(<SuperscriptCitation citation={baseCitation} hideBrackets={true} />);
     const sup = page.locator('[data-variant="superscript"]');
 
     const text = await sup.textContent();
@@ -242,18 +205,13 @@ test.describe("SuperscriptCitation", () => {
   });
 
   test("renders with miss state", async ({ mount, page }) => {
-    await mount(
-      <SuperscriptCitation
-        citation={baseCitation}
-        verification={missFoundCitation}
-      />
-    );
+    await mount(<SuperscriptCitation citation={baseCitation} verification={missFoundCitation} />);
     const sup = page.locator('[data-variant="superscript"]');
 
     await expect(sup).toHaveClass(/text-red-/);
     // Superscript variant does NOT use wavy underline - status is conveyed via indicator icon
     // Check that the X indicator is present
-    const hasXIndicator = await sup.evaluate((el) => {
+    const hasXIndicator = await sup.evaluate(el => {
       return (
         el.querySelector("svg") !== null ||
         el.textContent?.includes("✕") ||
@@ -275,45 +233,33 @@ test.describe("FootnoteCitation", () => {
 
     await expect(footnote).toBeVisible();
     await expect(footnote).toHaveAttribute("data-variant", "footnote");
-    const tagName = await footnote.evaluate((el) => el.tagName.toLowerCase());
+    const tagName = await footnote.evaluate(el => el.tagName.toLowerCase());
     expect(tagName).toBe("sup");
   });
 
   test("renders number by default", async ({ mount, page }) => {
-    await mount(
-      <FootnoteCitation citation={baseCitation} symbolStyle="number" />
-    );
+    await mount(<FootnoteCitation citation={baseCitation} symbolStyle="number" />);
     const footnote = page.locator('[data-variant="footnote"]');
 
     await expect(footnote).toContainText("1");
   });
 
   test("renders asterisk symbol", async ({ mount, page }) => {
-    await mount(
-      <FootnoteCitation citation={baseCitation} symbolStyle="asterisk" />
-    );
+    await mount(<FootnoteCitation citation={baseCitation} symbolStyle="asterisk" />);
     const footnote = page.locator('[data-variant="footnote"]');
 
     await expect(footnote).toContainText("*");
   });
 
   test("renders custom symbol", async ({ mount, page }) => {
-    await mount(
-      <FootnoteCitation
-        citation={baseCitation}
-        symbolStyle="custom"
-        customSymbol="§"
-      />
-    );
+    await mount(<FootnoteCitation citation={baseCitation} symbolStyle="custom" customSymbol="§" />);
     const footnote = page.locator('[data-variant="footnote"]');
 
     await expect(footnote).toContainText("§");
   });
 
   test("renders with verified state", async ({ mount, page }) => {
-    await mount(
-      <FootnoteCitation citation={baseCitation} verification={verification} />
-    );
+    await mount(<FootnoteCitation citation={baseCitation} verification={verification} />);
     const footnote = page.locator('[data-variant="footnote"]');
 
     await expect(footnote).toHaveClass(/text-green-/);
@@ -341,9 +287,7 @@ test.describe("InlineCitation", () => {
   });
 
   test("renders with solid underline", async ({ mount, page }) => {
-    await mount(
-      <InlineCitation citation={baseCitation} underlineStyle="solid" />
-    );
+    await mount(<InlineCitation citation={baseCitation} underlineStyle="solid" />);
     const inline = page.locator('[data-variant="inline"]');
 
     await expect(inline).toHaveClass(/border-b/);
@@ -352,9 +296,7 @@ test.describe("InlineCitation", () => {
   });
 
   test("renders with dashed underline", async ({ mount, page }) => {
-    await mount(
-      <InlineCitation citation={baseCitation} underlineStyle="dashed" />
-    );
+    await mount(<InlineCitation citation={baseCitation} underlineStyle="dashed" />);
     const inline = page.locator('[data-variant="inline"]');
 
     await expect(inline).toHaveClass(/border-dashed/);
@@ -369,21 +311,14 @@ test.describe("InlineCitation", () => {
   });
 
   test("renders with verified state", async ({ mount, page }) => {
-    await mount(
-      <InlineCitation citation={baseCitation} verification={verification} />
-    );
+    await mount(<InlineCitation citation={baseCitation} verification={verification} />);
     const inline = page.locator('[data-variant="inline"]');
 
     await expect(inline).toHaveClass(/text-green-/);
   });
 
   test("renders with pending indicator", async ({ mount, page }) => {
-    await mount(
-      <InlineCitation
-        citation={baseCitation}
-        verification={pendingFoundCitation}
-      />
-    );
+    await mount(<InlineCitation citation={baseCitation} verification={pendingFoundCitation} />);
     const inline = page.locator('[data-variant="inline"]');
 
     await expect(inline).toHaveClass(/text-gray-/);
@@ -397,36 +332,28 @@ test.describe("InlineCitation", () => {
 
 test.describe("CitationVariantFactory", () => {
   test("renders chip variant", async ({ mount, page }) => {
-    await mount(
-      <CitationVariantFactory variant="chip" citation={baseCitation} />
-    );
+    await mount(<CitationVariantFactory variant="chip" citation={baseCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
     await expect(chip).toBeVisible();
   });
 
   test("renders superscript variant", async ({ mount, page }) => {
-    await mount(
-      <CitationVariantFactory variant="superscript" citation={baseCitation} />
-    );
+    await mount(<CitationVariantFactory variant="superscript" citation={baseCitation} />);
     const sup = page.locator('[data-variant="superscript"]');
 
     await expect(sup).toHaveAttribute("data-variant", "superscript");
   });
 
   test("renders footnote variant", async ({ mount, page }) => {
-    await mount(
-      <CitationVariantFactory variant="footnote" citation={baseCitation} />
-    );
+    await mount(<CitationVariantFactory variant="footnote" citation={baseCitation} />);
     const footnote = page.locator('[data-variant="footnote"]');
 
     await expect(footnote).toHaveAttribute("data-variant", "footnote");
   });
 
   test("renders inline variant", async ({ mount, page }) => {
-    await mount(
-      <CitationVariantFactory variant="inline" citation={baseCitation} />
-    );
+    await mount(<CitationVariantFactory variant="inline" citation={baseCitation} />);
     const inline = page.locator('[data-variant="inline"]');
 
     await expect(inline).toHaveAttribute("data-variant", "inline");
@@ -435,13 +362,7 @@ test.describe("CitationVariantFactory", () => {
   test("passes variant-specific props", async ({ mount, page }) => {
     // Note: size prop is now ignored for chip - uses consistent sizing for inline text flow
     // This test verifies the factory component works with chip variant
-    await mount(
-      <CitationVariantFactory
-        variant="chip"
-        citation={baseCitation}
-        chipProps={{ size: "lg" }}
-      />
-    );
+    await mount(<CitationVariantFactory variant="chip" citation={baseCitation} chipProps={{ size: "lg" }} />);
     const chip = page.locator('[data-variant="chip"]');
 
     // Chip uses consistent 0.9em sizing regardless of size prop
@@ -484,9 +405,7 @@ test.describe("Accessibility", () => {
   });
 
   test("verified icon is aria-hidden", async ({ mount, page }) => {
-    await mount(
-      <ChipCitation citation={baseCitation} verification={verification} />
-    );
+    await mount(<ChipCitation citation={baseCitation} verification={verification} />);
     const chip = page.locator('[data-variant="chip"]');
 
     // The checkmark indicator span has aria-hidden="true"
@@ -502,20 +421,14 @@ test.describe("Accessibility", () => {
 // =============================================================================
 
 test.describe("Data Attributes", () => {
-  test("chip citation has citation-id data attribute", async ({
-    mount,
-    page,
-  }) => {
+  test("chip citation has citation-id data attribute", async ({ mount, page }) => {
     await mount(<ChipCitation citation={baseCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
     await expect(chip).toHaveAttribute("data-citation-id");
   });
 
-  test("chip citation has citation-instance data attribute", async ({
-    mount,
-    page,
-  }) => {
+  test("chip citation has citation-instance data attribute", async ({ mount, page }) => {
     await mount(<ChipCitation citation={baseCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
@@ -527,15 +440,11 @@ test.describe("Data Attributes", () => {
       <>
         <ChipCitation citation={baseCitation} className="citation-1" />
         <ChipCitation citation={baseCitation} className="citation-2" />
-      </>
+      </>,
     );
 
-    const instance1 = await page
-      .locator(".citation-1")
-      .getAttribute("data-citation-instance");
-    const instance2 = await page
-      .locator(".citation-2")
-      .getAttribute("data-citation-instance");
+    const instance1 = await page.locator(".citation-1").getAttribute("data-citation-instance");
+    const instance2 = await page.locator(".citation-2").getAttribute("data-citation-instance");
 
     expect(instance1).not.toEqual(instance2);
   });
@@ -545,15 +454,11 @@ test.describe("Data Attributes", () => {
       <>
         <ChipCitation citation={baseCitation} className="citation-1" />
         <ChipCitation citation={baseCitation} className="citation-2" />
-      </>
+      </>,
     );
 
-    const id1 = await page
-      .locator(".citation-1")
-      .getAttribute("data-citation-id");
-    const id2 = await page
-      .locator(".citation-2")
-      .getAttribute("data-citation-id");
+    const id1 = await page.locator(".citation-1").getAttribute("data-citation-id");
+    const id2 = await page.locator(".citation-2").getAttribute("data-citation-id");
 
     expect(id1).toEqual(id2);
   });

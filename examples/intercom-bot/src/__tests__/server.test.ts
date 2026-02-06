@@ -9,33 +9,33 @@
  * - Error handling
  */
 
-import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
-import express, { type Express } from "express";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import crypto from "crypto";
+import express, { type Express } from "express";
 
 // Mock implementations for dependencies
-const mockPrepareFiles = mock(() =>
+const _mockPrepareFiles = mock(() =>
   Promise.resolve({
     fileDataParts: [{ attachmentId: "ABCDEFghij1234567890" }],
     deepTextPromptPortion: ["[Page 1]\n[L1] Test content"],
-  })
+  }),
 );
 
-const mockVerify = mock(() =>
+const _mockVerify = mock(() =>
   Promise.resolve({
     verifications: {
       "1": { verifiedPageNumber: 1, status: "found" },
     },
-  })
+  }),
 );
 
-const mockOpenAICreate = mock(() =>
+const _mockOpenAICreate = mock(() =>
   Promise.resolve({
     choices: [{ message: { content: "Test response" } }],
-  })
+  }),
 );
 
-const mockIntercomReply = mock(() => Promise.resolve({}));
+const _mockIntercomReply = mock(() => Promise.resolve({}));
 
 // Create test versions of the server components
 function createTestApp() {
@@ -47,7 +47,7 @@ function createTestApp() {
       verify: (req: express.Request & { rawBody?: string }, _res, buf) => {
         req.rawBody = buf.toString();
       },
-    })
+    }),
   );
 
   // State
@@ -65,44 +65,29 @@ function createTestApp() {
 
   // Mock handler
   const handleIncomingMessage = mock(
-    async (
-      conversationId: string,
-      userMessage: string,
-      adminId: string
-    ): Promise<typeof lastGeneratedResponse> => {
+    async (_conversationId: string, _userMessage: string, _adminId: string): Promise<typeof lastGeneratedResponse> => {
       return lastGeneratedResponse;
-    }
+    },
   );
 
   // Mock generate response
-  const generateResponse = mock(
-    async (question: string): Promise<typeof lastGeneratedResponse> => {
-      return lastGeneratedResponse;
-    }
-  );
+  const generateResponse = mock(async (_question: string): Promise<typeof lastGeneratedResponse> => {
+    return lastGeneratedResponse;
+  });
 
   // Signature verification
-  function verifyWebhookSignature(
-    rawBody: string,
-    signature: string,
-    secret: string
-  ): boolean {
+  function verifyWebhookSignature(rawBody: string, signature: string, secret: string): boolean {
     const hmac = crypto.createHmac("sha256", secret);
     const digest = hmac.update(rawBody).digest("hex");
     try {
-      return crypto.timingSafeEqual(
-        Buffer.from(signature, "hex"),
-        Buffer.from(digest, "hex")
-      );
+      return crypto.timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(digest, "hex"));
     } catch {
       return false;
     }
   }
 
   // Extract helpers
-  function extractUserMessage(
-    payload: Record<string, unknown>
-  ): string | null {
+  function extractUserMessage(payload: Record<string, unknown>): string | null {
     const data = payload.data as Record<string, unknown> | undefined;
     if (!data) return null;
 
@@ -114,12 +99,8 @@ function createTestApp() {
       return source.body as string;
     }
 
-    const parts = item.conversation_parts as
-      | Record<string, unknown>
-      | undefined;
-    const partsList = parts?.conversation_parts as
-      | Array<Record<string, unknown>>
-      | undefined;
+    const parts = item.conversation_parts as Record<string, unknown> | undefined;
+    const partsList = parts?.conversation_parts as Array<Record<string, unknown>> | undefined;
     if (partsList && partsList.length > 0) {
       const lastPart = partsList[partsList.length - 1];
       return lastPart.body as string;
@@ -128,9 +109,7 @@ function createTestApp() {
     return null;
   }
 
-  function extractConversationId(
-    payload: Record<string, unknown>
-  ): string | null {
+  function extractConversationId(payload: Record<string, unknown>): string | null {
     const data = payload.data as Record<string, unknown> | undefined;
     if (!data) return null;
     const item = data.item as Record<string, unknown> | undefined;
@@ -139,54 +118,42 @@ function createTestApp() {
   }
 
   // Routes
-  app.post(
-    "/webhook",
-    async (req: express.Request & { rawBody?: string }, res) => {
-      const clientSecret = process.env.INTERCOM_CLIENT_SECRET;
+  app.post("/webhook", async (req: express.Request & { rawBody?: string }, res) => {
+    const clientSecret = process.env.INTERCOM_CLIENT_SECRET;
 
-      if (clientSecret) {
-        const signature = req.headers["x-hub-signature"] as string;
-        if (!signature) {
-          return res.status(401).json({ error: "Missing signature" });
-        }
-
-        const signatureValue = signature.replace("sha1=", "");
-
-        if (
-          !verifyWebhookSignature(
-            req.rawBody || "",
-            signatureValue,
-            clientSecret
-          )
-        ) {
-          return res.status(401).json({ error: "Invalid signature" });
-        }
+    if (clientSecret) {
+      const signature = req.headers["x-hub-signature"] as string;
+      if (!signature) {
+        return res.status(401).json({ error: "Missing signature" });
       }
 
-      res.status(200).json({ received: true });
+      const signatureValue = signature.replace("sha1=", "");
 
-      // Process asynchronously (in real server, this happens after response)
-      const payload = req.body;
-      const topic = payload.topic as string;
-
-      if (
-        topic !== "conversation.user.created" &&
-        topic !== "conversation.user.replied"
-      ) {
-        return;
+      if (!verifyWebhookSignature(req.rawBody || "", signatureValue, clientSecret)) {
+        return res.status(401).json({ error: "Invalid signature" });
       }
-
-      if (!isReady) return;
-      if (!botAdminId) return;
-
-      const conversationId = extractConversationId(payload);
-      const userMessage = extractUserMessage(payload);
-
-      if (!conversationId || !userMessage) return;
-
-      await handleIncomingMessage(conversationId, userMessage, botAdminId);
     }
-  );
+
+    res.status(200).json({ received: true });
+
+    // Process asynchronously (in real server, this happens after response)
+    const payload = req.body;
+    const topic = payload.topic as string;
+
+    if (topic !== "conversation.user.created" && topic !== "conversation.user.replied") {
+      return;
+    }
+
+    if (!isReady) return;
+    if (!botAdminId) return;
+
+    const conversationId = extractConversationId(payload);
+    const userMessage = extractUserMessage(payload);
+
+    if (!conversationId || !userMessage) return;
+
+    await handleIncomingMessage(conversationId, userMessage, botAdminId);
+  });
 
   app.get("/health", (_req, res) => {
     res.json({
@@ -216,7 +183,7 @@ function createTestApp() {
           verified: response.verifiedCitations,
         },
       });
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({ error: "Failed to generate response" });
     }
   });
@@ -240,26 +207,26 @@ function createTestApp() {
 }
 
 // Helper to make requests
-async function request(
+async function _request(
   app: Express,
   method: "get" | "post",
   path: string,
   options: {
     body?: Record<string, unknown>;
     headers?: Record<string, string>;
-  } = {}
+  } = {},
 ): Promise<{ status: number; body: unknown }> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...options.headers,
   };
 
-  const response = await app.request(
+  const _response = await app.request(
     new Request(`http://localhost${path}`, {
       method: method.toUpperCase(),
       headers,
       body: options.body ? JSON.stringify(options.body) : undefined,
-    })
+    }),
   );
 
   // Handle the express response format
@@ -297,7 +264,7 @@ describe("Webhook Endpoint", () => {
       };
 
       // Use a simple fetch-based test since we're testing the logic
-      const mockReq = {
+      const _mockReq = {
         body: payload,
         rawBody: JSON.stringify(payload),
         headers: {},
@@ -418,9 +385,7 @@ describe("Test Endpoint", () => {
     });
 
     it("returns 500 on generation error", () => {
-      testApp.mocks.generateResponse.mockImplementationOnce(() =>
-        Promise.reject(new Error("OpenAI error"))
-      );
+      testApp.mocks.generateResponse.mockImplementationOnce(() => Promise.reject(new Error("OpenAI error")));
 
       // Should return 500 Internal Server Error
       expect(testApp.mocks.generateResponse).toBeDefined();
@@ -454,10 +419,7 @@ describe("Webhook Payload Extraction", () => {
           item: {
             id: "conv_123",
             conversation_parts: {
-              conversation_parts: [
-                { body: "First message" },
-                { body: "Second message" },
-              ],
+              conversation_parts: [{ body: "First message" }, { body: "Second message" }],
             },
           },
         },
@@ -526,11 +488,7 @@ describe("Webhook Payload Extraction", () => {
 
 describe("Server Configuration", () => {
   it("requires DEEPCITATION_API_KEY", () => {
-    const requiredVars = [
-      "DEEPCITATION_API_KEY",
-      "OPENAI_API_KEY",
-      "INTERCOM_ACCESS_TOKEN",
-    ];
+    const requiredVars = ["DEEPCITATION_API_KEY", "OPENAI_API_KEY", "INTERCOM_ACCESS_TOKEN"];
 
     // All these should be required for the server to start
     expect(requiredVars).toContain("DEEPCITATION_API_KEY");
@@ -560,9 +518,7 @@ describe("Server Configuration", () => {
 
   it("uses default confidence threshold 0.8", () => {
     const defaultThreshold = 0.8;
-    const threshold = parseFloat(
-      process.env.MIN_CONFIDENCE_THRESHOLD || "0.8"
-    );
+    const threshold = parseFloat(process.env.MIN_CONFIDENCE_THRESHOLD || "0.8");
     expect(threshold).toBe(defaultThreshold);
   });
 });

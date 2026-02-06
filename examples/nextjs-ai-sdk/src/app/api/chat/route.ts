@@ -1,10 +1,7 @@
-import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
-import { streamText, convertToModelMessages, type UIMessage } from "ai";
-import {
-  wrapCitationPrompt,
-  type FileDataPart,
-} from "@deepcitation/deepcitation-js";
+import { openai } from "@ai-sdk/openai";
+import { type FileDataPart, wrapCitationPrompt } from "@deepcitation/deepcitation-js";
+import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 export const maxDuration = 60;
 
@@ -17,24 +14,15 @@ const MODELS = {
 type ModelProvider = keyof typeof MODELS;
 
 export async function POST(req: Request) {
-  const {
-    messages,
-    provider = "openai",
-    fileDataParts: clientFileDataParts = [],
-  } = await req.json();
+  const { messages, provider = "openai", fileDataParts: clientFileDataParts = [] } = await req.json();
 
-  console.log(
-    "[Chat API] Received messages:",
-    JSON.stringify(messages?.slice(-1), null, 2)
-  );
+  console.log("[Chat API] Received messages:", JSON.stringify(messages?.slice(-1), null, 2));
 
   // fileDataParts now contains deepTextPromptPortion - single source of truth
   const fileDataParts: FileDataPart[] = clientFileDataParts;
 
   // Extract deepTextPromptPortion from fileDataParts
-  const deepTextPromptPortion = fileDataParts
-    .map((f: FileDataPart) => f.deepTextPromptPortion)
-    .filter(Boolean);
+  const deepTextPromptPortion = fileDataParts.map((f: FileDataPart) => f.deepTextPromptPortion).filter(Boolean);
 
   const hasDocuments = fileDataParts.length > 0;
 
@@ -45,17 +33,13 @@ export async function POST(req: Request) {
     if (!msg.parts) return "";
     return msg.parts
       .filter((p): p is { type: "text"; text: string } => p.type === "text")
-      .map((p) => p.text)
+      .map(p => p.text)
       .join("");
   };
 
   // Get the latest user message
-  const lastUserMessage = (messages as UIMessage[]).findLast(
-    (m) => m.role === "user"
-  );
-  const lastUserContent = lastUserMessage
-    ? getMessageContent(lastUserMessage)
-    : "";
+  const lastUserMessage = (messages as UIMessage[]).findLast(m => m.role === "user");
+  const lastUserContent = lastUserMessage ? getMessageContent(lastUserMessage) : "";
 
   // Prepare system prompt
   const baseSystemPrompt = `You are a helpful assistant that answers questions accurately.`;

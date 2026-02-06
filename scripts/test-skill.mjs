@@ -6,7 +6,7 @@
  */
 
 import { readFileSync } from "fs";
-import { join, dirname } from "path";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -112,7 +112,7 @@ const requiredSections = [
   "Quick Reference",
 ];
 
-requiredSections.forEach((section) => {
+requiredSections.forEach(section => {
   test(`contains "${section}" section`, () => {
     expect(skillContent).toContain(`## ${section}`);
   });
@@ -149,12 +149,8 @@ test("has valid JSON blocks", () => {
       JSON.parse(jsonContent);
     } catch (e) {
       // Show more context for debugging - first 500 chars or full content if shorter
-      const preview = jsonContent.length > 500
-        ? jsonContent.slice(0, 500) + "\n... (truncated)"
-        : jsonContent;
-      throw new Error(
-        `Invalid JSON in block ${index + 1}: ${e.message}\n\nContent:\n${preview}`
-      );
+      const preview = jsonContent.length > 500 ? jsonContent.slice(0, 500) + "\n... (truncated)" : jsonContent;
+      throw new Error(`Invalid JSON in block ${index + 1}: ${e.message}\n\nContent:\n${preview}`);
     }
   });
   console.log(`  (validated ${jsonBlocks.length} JSON blocks)`);
@@ -190,7 +186,7 @@ const expectedStatuses = [
   "not_found",
 ];
 
-expectedStatuses.forEach((status) => {
+expectedStatuses.forEach(status => {
   test(`documents "${status}" status`, () => {
     expect(skillContent).toContain(`\`${status}\``);
   });

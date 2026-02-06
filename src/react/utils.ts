@@ -15,10 +15,7 @@ export function cn(...classes: (string | undefined | null | false)[]): string {
  * Type guard to check if a citation is a URL citation (type: "url" or has url field).
  */
 export function isUrlCitation(citation: Citation): boolean {
-  return (
-    citation.type === "url" ||
-    (typeof citation.url === "string" && citation.url.length > 0)
-  );
+  return citation.type === "url" || (typeof citation.url === "string" && citation.url.length > 0);
 }
 
 /**
@@ -31,8 +28,7 @@ export function isUrlCitation(citation: Citation): boolean {
  * @returns A unique, deterministic key for the citation
  */
 export function generateCitationKey(citation: Citation): string {
-  const pageNumber =
-    citation.pageNumber || getCitationPageNumber(citation.startPageId);
+  const pageNumber = citation.pageNumber || getCitationPageNumber(citation.startPageId);
 
   // Base key parts for all citations
   const keyParts = [
@@ -47,11 +43,7 @@ export function generateCitationKey(citation: Citation): string {
 
   // Add URL-specific fields if present
   if (isUrlCitation(citation)) {
-    keyParts.push(
-      citation.url || "",
-      citation.title || "",
-      citation.domain || ""
-    );
+    keyParts.push(citation.url || "", citation.title || "", citation.domain || "");
   }
 
   return sha1Hash(keyParts.join("|")).slice(0, 16);
@@ -97,15 +89,10 @@ export function getCitationDisplayText(
   citation: Citation,
   options: {
     fallbackDisplay?: string | null;
-  } = {}
+  } = {},
 ): string {
   const { fallbackDisplay } = options;
-  return (
-    citation.anchorText?.toString() ||
-    citation.citationNumber?.toString() ||
-    fallbackDisplay ||
-    "1"
-  );
+  return citation.anchorText?.toString() || citation.citationNumber?.toString() || fallbackDisplay || "1";
 }
 
 /**
@@ -126,9 +113,7 @@ export function getCitationAnchorText(citation: Citation): string {
  * Joins class names, filtering out falsy values.
  * This is a minimal implementation for the base component.
  */
-export function classNames(
-  ...classes: (string | undefined | null | false)[]
-): string {
+export function classNames(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 

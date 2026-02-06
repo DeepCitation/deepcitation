@@ -41,7 +41,8 @@
   @apply mb-3 last:mb-0;
 }
 
-.prose ul, .prose ol {
+.prose ul,
+.prose ol {
   @apply mb-3 pl-5;
 }
 

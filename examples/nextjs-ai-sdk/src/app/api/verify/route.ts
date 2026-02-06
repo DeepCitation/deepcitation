@@ -1,16 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  DeepCitation,
-  getCitationStatus,
-  getAllCitationsFromLlmOutput,
-} from "@deepcitation/deepcitation-js";
+import { DeepCitation, getAllCitationsFromLlmOutput, getCitationStatus } from "@deepcitation/deepcitation-js";
+import { type NextRequest, NextResponse } from "next/server";
 
 // Check for API key at startup
 const apiKey = process.env.DEEPCITATION_API_KEY;
 if (!apiKey) {
   console.error(
-    "\n⚠️  DEEPCITATION_API_KEY is not set!\n" +
-      "   Get your API key from https://deepcitation.com/dashboard\n"
+    "\n⚠️  DEEPCITATION_API_KEY is not set!\n" + "   Get your API key from https://deepcitation.com/dashboard\n",
   );
 }
 
@@ -24,7 +19,7 @@ export async function POST(req: NextRequest) {
         error: "DeepCitation API key not configured",
         details: "Set DEEPCITATION_API_KEY in your .env file",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -88,20 +83,12 @@ export async function POST(req: NextRequest) {
       if (status.isPending) pending++;
 
       // Log with appropriate icon
-      const statusIcon = status.isVerified
-        ? status.isPartialMatch
-          ? "⚠️ "
-          : "✅"
-        : status.isPending
-        ? "⏳"
-        : "❌";
+      const statusIcon = status.isVerified ? (status.isPartialMatch ? "⚠️ " : "✅") : status.isPending ? "⏳" : "❌";
 
       console.log(`Citation [${key}]: ${statusIcon}`);
     }
 
-    console.log(
-      `📊 Summary: ${verified} verified, ${missed} missed, ${pending} pending`
-    );
+    console.log(`📊 Summary: ${verified} verified, ${missed} missed, ${pending} pending`);
 
     return NextResponse.json({
       citations,
@@ -123,13 +110,10 @@ export async function POST(req: NextRequest) {
           error: "Invalid or expired API key",
           details: "Check your DEEPCITATION_API_KEY in .env",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    return NextResponse.json(
-      { error: "Failed to verify citations", details: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to verify citations", details: message }, { status: 500 });
   }
 }

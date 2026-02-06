@@ -1,8 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import {
-  compressPromptIds,
-  decompressPromptIds,
-} from "../prompts/promptCompression.js";
+import { compressPromptIds, decompressPromptIds } from "../prompts/promptCompression.js";
 
 describe("promptCompression compress/decompress cycles", () => {
   const fullId = "file_ABC123def456";
@@ -64,12 +61,7 @@ describe("promptCompression ID attribute variations", () => {
 
   it("handles all ID attribute name variations", () => {
     // All supported attachment ID attribute formats (fileId variants supported for backwards compatibility)
-    const attributeNames = [
-      "attachmentId",
-      "attachment_id",
-      "attachment_ID",
-      "attachmentID",
-    ];
+    const attributeNames = ["attachmentId", "attachment_id", "attachment_ID", "attachmentID"];
 
     for (const attrName of attributeNames) {
       const original = `<cite ${attrName}="${fullId}" />`;
@@ -196,9 +188,7 @@ describe("promptCompression edge cases", () => {
 
     expect(Object.keys(prefixMap)).toHaveLength(1);
     const prefix = Object.keys(prefixMap)[0];
-    expect((compressed as typeof original).content).toBe(
-      `Reference: ${prefix}`
-    );
+    expect((compressed as typeof original).content).toBe(`Reference: ${prefix}`);
     expect((compressed as typeof original).id).toBe(prefix);
 
     const decompressed = decompressPromptIds(compressed, prefixMap);

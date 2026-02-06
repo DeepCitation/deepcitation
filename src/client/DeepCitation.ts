@@ -88,10 +88,7 @@ function createConcurrencyLimiter(limit: number) {
 }
 
 /** Convert File/Blob/Buffer to a Blob suitable for FormData */
-function toBlob(
-  file: File | Blob | Buffer,
-  filename?: string
-): { blob: Blob; name: string } {
+function toBlob(file: File | Blob | Buffer, filename?: string): { blob: Blob; name: string } {
   if (typeof Buffer !== "undefined" && Buffer.isBuffer(file)) {
     const uint8 = Uint8Array.from(file);
     return { blob: new Blob([uint8]), name: filename || "document" };
@@ -106,15 +103,9 @@ function toBlob(
 }
 
 /** Extract error message from API response */
-async function extractErrorMessage(
-  response: Response,
-  fallbackAction: string
-): Promise<string> {
+async function extractErrorMessage(response: Response, fallbackAction: string): Promise<string> {
   const error = await response.json().catch(() => ({}));
-  return (
-    error?.error?.message ||
-    `${fallbackAction} failed with status ${response.status}`
-  );
+  return error?.error?.message || `${fallbackAction} failed with status ${response.status}`;
 }
 
 /**
@@ -152,10 +143,7 @@ export class DeepCitation {
    * Cache entries expire after 5 minutes, and the cache is limited to 100 entries
    * to prevent memory leaks in long-running sessions.
    */
-  private readonly verifyCache = new Map<
-    string,
-    { promise: Promise<VerifyCitationsResponse>; timestamp: number }
-  >();
+  private readonly verifyCache = new Map<string, { promise: Promise<VerifyCitationsResponse>; timestamp: number }>();
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   private readonly CACHE_CLEANUP_INTERVAL_MS = 60 * 1000; // 1 minute
   private readonly MAX_CACHE_SIZE = 100; // Maximum cached entries to prevent memory leaks
@@ -186,15 +174,11 @@ export class DeepCitation {
    */
   constructor(config: DeepCitationConfig) {
     if (!config.apiKey) {
-      throw new Error(
-        "DeepCitation API key is required. Get one at https://deepcitation.com/dashboard"
-      );
+      throw new Error("DeepCitation API key is required. Get one at https://deepcitation.com/dashboard");
     }
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl?.replace(/\/$/, "") || DEFAULT_API_URL;
-    this.uploadLimiter = createConcurrencyLimiter(
-      config.maxUploadConcurrency ?? DEFAULT_UPLOAD_CONCURRENCY
-    );
+    this.uploadLimiter = createConcurrencyLimiter(config.maxUploadConcurrency ?? DEFAULT_UPLOAD_CONCURRENCY);
   }
 
   /**
@@ -221,13 +205,8 @@ export class DeepCitation {
 
       // LRU eviction: if still too large, remove oldest entries
       if (this.verifyCache.size > this.MAX_CACHE_SIZE) {
-        const entries = Array.from(this.verifyCache.entries()).sort(
-          (a, b) => a[1].timestamp - b[1].timestamp
-        );
-        const toRemove = entries.slice(
-          0,
-          this.verifyCache.size - this.MAX_CACHE_SIZE
-        );
+        const entries = Array.from(this.verifyCache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp);
+        const toRemove = entries.slice(0, this.verifyCache.size - this.MAX_CACHE_SIZE);
         for (const [key] of toRemove) {
           this.verifyCache.delete(key);
         }
@@ -263,16 +242,12 @@ export class DeepCitation {
    * const result = await deepcitation.uploadFile(buffer, { filename: 'document.pdf' });
    * ```
    */
-  async uploadFile(
-    file: File | Blob | Buffer,
-    options?: UploadFileOptions
-  ): Promise<UploadFileResponse> {
+  async uploadFile(file: File | Blob | Buffer, options?: UploadFileOptions): Promise<UploadFileResponse> {
     const { blob, name } = toBlob(file, options?.filename);
     const formData = new FormData();
     formData.append("file", blob, name);
 
-    if (options?.attachmentId)
-      formData.append("attachmentId", options.attachmentId);
+    if (options?.attachmentId) formData.append("attachmentId", options.attachmentId);
     if (options?.filename) formData.append("filename", options.filename);
 
     const response = await fetch(`${this.apiUrl}/prepareFile`, {
@@ -320,11 +295,8 @@ export class DeepCitation {
    * });
    * ```
    */
-  async convertToPdf(
-    input: ConvertFileInput | string
-  ): Promise<ConvertFileResponse> {
-    const inputObj: ConvertFileInput =
-      typeof input === "string" ? { url: input } : input;
+  async convertToPdf(input: ConvertFileInput | string): Promise<ConvertFileResponse> {
+    const inputObj: ConvertFileInput = typeof input === "string" ? { url: input } : input;
     const { url, file, filename, attachmentId } = inputObj;
 
     if (!url && !file) {
@@ -383,9 +355,7 @@ export class DeepCitation {
    * // Use deepTextPromptPortion in your LLM prompt...
    * ```
    */
-  async prepareConvertedFile(
-    options: PrepareConvertedFileOptions
-  ): Promise<UploadFileResponse> {
+  async prepareConvertedFile(options: PrepareConvertedFileOptions): Promise<UploadFileResponse> {
     const response = await fetch(`${this.apiUrl}/prepareFile`, {
       method: "POST",
       headers: {
@@ -491,23 +461,21 @@ export class DeepCitation {
     // Performance fix: limits concurrent uploads to DEFAULT_UPLOAD_CONCURRENCY
     const uploadPromises = files.map(({ file, filename, attachmentId }) =>
       this.uploadLimiter(() =>
-        this.uploadFile(file, { filename, attachmentId }).then((result) => ({
+        this.uploadFile(file, { filename, attachmentId }).then(result => ({
           result,
           filename,
-        }))
-      )
+        })),
+      ),
     );
 
     const uploadResults = await Promise.all(uploadPromises);
 
     // Extract file data parts with deepTextPromptPortion included (single source of truth)
-    const fileDataParts: FileDataPart[] = uploadResults.map(
-      ({ result, filename }) => ({
-        attachmentId: result.attachmentId,
-        deepTextPromptPortion: result.deepTextPromptPortion,
-        filename: filename || result.metadata?.filename,
-      })
-    );
+    const fileDataParts: FileDataPart[] = uploadResults.map(({ result, filename }) => ({
+      attachmentId: result.attachmentId,
+      deepTextPromptPortion: result.deepTextPromptPortion,
+      filename: filename || result.metadata?.filename,
+    }));
 
     return { fileDataParts };
   }
@@ -540,7 +508,7 @@ export class DeepCitation {
   async verifyAttachment(
     attachmentId: string,
     citations: CitationInput,
-    options?: VerifyCitationsOptions
+    options?: VerifyCitationsOptions,
   ): Promise<VerifyCitationsResponse> {
     // Normalize citations to a map with citation keys
     const citationMap: Record<string, Citation> = {};
@@ -578,11 +546,9 @@ export class DeepCitation {
     // Note: We use Object.values, not Object.entries, because the map key (citation number)
     // is just a display identifier - verification results depend only on citation content
     const citationKeys = Object.values(citationMap)
-      .map((citation) => {
+      .map(citation => {
         const baseKey = generateCitationKey(citation);
-        const selectionKey = citation.selection
-          ? JSON.stringify(citation.selection)
-          : "";
+        const selectionKey = citation.selection ? JSON.stringify(citation.selection) : "";
         return `${baseKey}:${selectionKey}`;
       })
       .sort()
@@ -632,9 +598,7 @@ export class DeepCitation {
     // This ensures we never exceed MAX_CACHE_SIZE even under heavy concurrent load
     if (this.verifyCache.size >= this.MAX_CACHE_SIZE) {
       // Sort by timestamp and remove oldest entries to make room
-      const entries = Array.from(this.verifyCache.entries()).sort(
-        (a, b) => a[1].timestamp - b[1].timestamp
-      );
+      const entries = Array.from(this.verifyCache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp);
       // Remove at least 10% of entries to avoid thrashing
       const toRemove = Math.max(1, Math.floor(this.MAX_CACHE_SIZE * 0.1));
       for (let i = 0; i < toRemove && i < entries.length; i++) {
@@ -678,10 +642,7 @@ export class DeepCitation {
    * }
    * ```
    */
-  async verify(
-    input: VerifyInput,
-    citations?: { [key: string]: Citation }
-  ): Promise<VerifyCitationsResponse> {
+  async verify(input: VerifyInput, citations?: { [key: string]: Citation }): Promise<VerifyCitationsResponse> {
     const { llmOutput, outputImageFormat = "avif" } = input;
 
     // Parse citations from LLM output
@@ -710,14 +671,12 @@ export class DeepCitation {
         verificationPromises.push(
           this.verifyAttachment(attachmentId, fileCitations, {
             outputImageFormat,
-          })
+          }),
         );
       } else {
         Object.assign(skippedCitations, fileCitations);
         if (typeof console !== "undefined" && console.warn) {
-          console.warn(
-            `[DeepCitation] ${Object.keys(fileCitations).length} citation(s) skipped: missing attachmentId`
-          );
+          console.warn(`[DeepCitation] ${Object.keys(fileCitations).length} citation(s) skipped: missing attachmentId`);
         }
       }
     }
@@ -760,22 +719,17 @@ export class DeepCitation {
    * });
    * ```
    */
-  async extendExpiration(
-    options: ExtendExpirationOptions
-  ): Promise<ExtendExpirationResponse> {
-    const response = await fetch(
-      `${this.apiUrl}/attachments/${options.attachmentId}/extend`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          duration: options.duration,
-        }),
-      }
-    );
+  async extendExpiration(options: ExtendExpirationOptions): Promise<ExtendExpirationResponse> {
+    const response = await fetch(`${this.apiUrl}/attachments/${options.attachmentId}/extend`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        duration: options.duration,
+      }),
+    });
 
     if (!response.ok) {
       throw new Error(await extractErrorMessage(response, "Extend expiration"));
@@ -801,9 +755,7 @@ export class DeepCitation {
    * }
    * ```
    */
-  async deleteAttachment(
-    attachmentId: string
-  ): Promise<DeleteAttachmentResponse> {
+  async deleteAttachment(attachmentId: string): Promise<DeleteAttachmentResponse> {
     const response = await fetch(`${this.apiUrl}/attachments/${attachmentId}`, {
       method: "DELETE",
       headers: {

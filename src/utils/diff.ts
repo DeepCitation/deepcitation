@@ -54,7 +54,7 @@ export interface Change {
 function computeDiff(
   oldTokens: string[],
   newTokens: string[],
-  equals: (a: string, b: string) => boolean = (a, b) => a === b
+  equals: (a: string, b: string) => boolean = (a, b) => a === b,
 ): Change[] {
   const oldLen = oldTokens.length;
   const newLen = newTokens.length;
@@ -66,16 +66,12 @@ function computeDiff(
 
   // Quick path for completely new content
   if (oldLen === 0) {
-    return [
-      { value: newTokens.join(""), added: true, count: newTokens.length },
-    ];
+    return [{ value: newTokens.join(""), added: true, count: newTokens.length }];
   }
 
   // Quick path for completely removed content
   if (newLen === 0) {
-    return [
-      { value: oldTokens.join(""), removed: true, count: oldTokens.length },
-    ];
+    return [{ value: oldTokens.join(""), removed: true, count: oldTokens.length }];
   }
 
   // Find common prefix
@@ -93,10 +89,7 @@ function computeDiff(
   while (
     commonSuffixLen < oldLen - commonPrefixLen &&
     commonSuffixLen < newLen - commonPrefixLen &&
-    equals(
-      oldTokens[oldLen - 1 - commonSuffixLen],
-      newTokens[newLen - 1 - commonSuffixLen]
-    )
+    equals(oldTokens[oldLen - 1 - commonSuffixLen], newTokens[newLen - 1 - commonSuffixLen])
   ) {
     commonSuffixLen++;
   }
@@ -139,11 +132,7 @@ function computeDiff(
  * Myers diff algorithm implementation.
  * Uses the "middle snake" approach for better memory efficiency.
  */
-function myersDiff(
-  oldTokens: string[],
-  newTokens: string[],
-  equals: (a: string, b: string) => boolean
-): Change[] {
+function myersDiff(oldTokens: string[], newTokens: string[], equals: (a: string, b: string) => boolean): Change[] {
   const oldLen = oldTokens.length;
   const newLen = newTokens.length;
   const maxD = oldLen + newLen;
@@ -190,11 +179,7 @@ function myersDiff(
   return backtrack(trace, oldTokens, newTokens);
 }
 
-function backtrack(
-  trace: Array<Record<number, number>>,
-  oldTokens: string[],
-  newTokens: string[]
-): Change[] {
+function backtrack(trace: Array<Record<number, number>>, oldTokens: string[], newTokens: string[]): Change[] {
   const changes: Change[] = [];
   let x = oldTokens.length;
   let y = newTokens.length;
@@ -248,11 +233,7 @@ function mergeConsecutiveChanges(changes: Change[]): Change[] {
   for (const change of changes) {
     const last = result[result.length - 1];
 
-    if (
-      last &&
-      last.added === change.added &&
-      last.removed === change.removed
-    ) {
+    if (last && last.added === change.added && last.removed === change.removed) {
       last.value += change.value;
       last.count = (last.count || 1) + (change.count || 1);
     } else {
@@ -299,10 +280,7 @@ const EXTENDED_WORD_CHARS =
  * Tokenization regex matching jsdiff's approach.
  * Matches: word character runs, whitespace runs, or single non-word chars.
  */
-const TOKENIZE_REGEX = new RegExp(
-  `[${EXTENDED_WORD_CHARS}]+|\\s+|[^${EXTENDED_WORD_CHARS}]`,
-  "gu"
-);
+const TOKENIZE_REGEX = new RegExp(`[${EXTENDED_WORD_CHARS}]+|\\s+|[^${EXTENDED_WORD_CHARS}]`, "gu");
 
 /**
  * Split text into tokens using jsdiff's tokenization approach.
@@ -332,11 +310,7 @@ function longestCommonPrefix(a: string, b: string): string {
  */
 function longestCommonSuffix(a: string, b: string): string {
   let i = 0;
-  while (
-    i < a.length &&
-    i < b.length &&
-    a[a.length - 1 - i] === b[b.length - 1 - i]
-  ) {
+  while (i < a.length && i < b.length && a[a.length - 1 - i] === b[b.length - 1 - i]) {
     i++;
   }
   return a.slice(a.length - i);
@@ -376,10 +350,7 @@ function dedupeWhitespaceInChangeObjects(changes: Change[]): Change[] {
       // Find common suffix (must be whitespace)
       const delWithoutPrefix = deletion.value.slice(wsPrefix.length);
       const insWithoutPrefix = insertion.value.slice(wsPrefix.length);
-      const commonSuffix = longestCommonSuffix(
-        delWithoutPrefix,
-        insWithoutPrefix
-      );
+      const commonSuffix = longestCommonSuffix(delWithoutPrefix, insWithoutPrefix);
       const wsSuffix = commonSuffix.match(/\s*$/)?.[0] || "";
 
       // Build the cleaned changes
@@ -387,14 +358,8 @@ function dedupeWhitespaceInChangeObjects(changes: Change[]): Change[] {
         result.push({ value: wsPrefix, count: 1 });
       }
 
-      const cleanedDel = deletion.value.slice(
-        wsPrefix.length,
-        deletion.value.length - wsSuffix.length
-      );
-      const cleanedIns = insertion.value.slice(
-        wsPrefix.length,
-        insertion.value.length - wsSuffix.length
-      );
+      const cleanedDel = deletion.value.slice(wsPrefix.length, deletion.value.length - wsSuffix.length);
+      const cleanedIns = insertion.value.slice(wsPrefix.length, insertion.value.length - wsSuffix.length);
 
       if (cleanedDel) {
         result.push({ value: cleanedDel, removed: true, count: 1 });
@@ -412,12 +377,7 @@ function dedupeWhitespaceInChangeObjects(changes: Change[]): Change[] {
     }
 
     // Scenario 2: Lone insertion after unchanged text
-    if (
-      change.added &&
-      i > 0 &&
-      !changes[i - 1].added &&
-      !changes[i - 1].removed
-    ) {
+    if (change.added && i > 0 && !changes[i - 1].added && !changes[i - 1].removed) {
       const prev = result[result.length - 1];
       if (prev && !prev.added && !prev.removed) {
         // Check for duplicate leading whitespace
@@ -440,13 +400,7 @@ function dedupeWhitespaceInChangeObjects(changes: Change[]): Change[] {
     }
 
     // Scenario 3: Lone deletion between unchanged text
-    if (
-      change.removed &&
-      !changes[i + 1]?.added &&
-      i > 0 &&
-      !changes[i - 1]?.added &&
-      !changes[i - 1]?.removed
-    ) {
+    if (change.removed && !changes[i + 1]?.added && i > 0 && !changes[i - 1]?.added && !changes[i - 1]?.removed) {
       const prev = result[result.length - 1];
       const next = changes[i + 1];
 

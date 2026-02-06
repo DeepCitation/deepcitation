@@ -62,3 +62,16 @@ export const COPY_FEEDBACK_DURATION_MS = 2000;
  */
 export const POPOVER_CONTAINER_BASE_CLASSES =
   "rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md max-h-[inherit] overflow-y-auto";
+
+/**
+ * Dynamic indicator size styles.
+ * Uses em units so the indicator scales with the parent font size.
+ * 0.85em provides good visibility at most text sizes while staying proportional.
+ * minWidth/minHeight ensure a minimum of 10px for accessibility at very small font sizes.
+ */
+export const INDICATOR_SIZE_STYLE: React.CSSProperties = {
+  width: "0.85em",
+  height: "0.85em",
+  minWidth: "10px",
+  minHeight: "10px",
+};

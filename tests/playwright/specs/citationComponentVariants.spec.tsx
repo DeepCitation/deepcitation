@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/experimental-ct-react";
+import { expect, test } from "@playwright/experimental-ct-react";
 import { CitationComponent } from "../../../src/react/CitationComponent";
 import type { Citation } from "../../../src/types/citation";
 import type { Verification } from "../../../src/types/verification";
@@ -57,39 +57,21 @@ test.describe("CitationComponent - Brackets Variant", () => {
   });
 
   test("shows number when content is number", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="brackets"
-        content="number"
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="brackets" content="number" />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toContainText("42");
   });
 
   test("shows anchorText when content is anchorText", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="brackets"
-        content="anchorText"
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="brackets" content="anchorText" />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toContainText("25% revenue growth");
   });
 
   test("shows verified indicator when verified", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="brackets"
-        verification={verifiedVerification}
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
@@ -98,13 +80,7 @@ test.describe("CitationComponent - Brackets Variant", () => {
   });
 
   test("shows miss styling when not found", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="brackets"
-        verification={missVerification}
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="brackets" verification={missVerification} />);
     const citation = page.locator("[data-citation-id]");
 
     // Miss citations have line-through styling
@@ -113,13 +89,7 @@ test.describe("CitationComponent - Brackets Variant", () => {
   });
 
   test("renders with pending verification", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="brackets"
-        verification={pendingVerification}
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="brackets" verification={pendingVerification} />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
@@ -142,11 +112,7 @@ test.describe("CitationComponent - Superscript Variant", () => {
 
   test("shows verified indicator", async ({ mount, page }) => {
     await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="superscript"
-        verification={verifiedVerification}
-      />
+      <CitationComponent citation={baseCitation} variant="superscript" verification={verifiedVerification} />,
     );
     const citation = page.locator("[data-citation-id]");
 
@@ -169,22 +135,14 @@ test.describe("CitationComponent - Text Variant", () => {
   });
 
   test("shows verified indicator", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="text"
-        verification={verifiedVerification}
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="text" verification={verifiedVerification} />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
   });
 
   test("falls back to citation number when no anchorText", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent citation={citationWithoutAnchorText} variant="text" />
-    );
+    await mount(<CitationComponent citation={citationWithoutAnchorText} variant="text" />);
     const citation = page.locator("[data-citation-id]");
 
     // Should fall back to citation number since no anchorText
@@ -205,13 +163,7 @@ test.describe("CitationComponent - Chip Variant", () => {
   });
 
   test("shows verified state", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="chip"
-        verification={verifiedVerification}
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="chip" verification={verifiedVerification} />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
@@ -235,20 +187,12 @@ test.describe("CitationComponent - Linter Variant", () => {
     const linterSpan = citation.locator("span").first();
 
     // Verify underline is applied
-    const textDecorationLine = await linterSpan.evaluate(
-      (el) => getComputedStyle(el).textDecorationLine
-    );
+    const textDecorationLine = await linterSpan.evaluate(el => getComputedStyle(el).textDecorationLine);
     expect(textDecorationLine).toBe("underline");
   });
 
   test("shows verified state with solid underline", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="linter"
-        verification={verifiedVerification}
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="linter" verification={verifiedVerification} />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
@@ -258,20 +202,12 @@ test.describe("CitationComponent - Linter Variant", () => {
     const linterSpan = citation.locator("span").first();
 
     // Verified state should have solid underline
-    const textDecorationStyle = await linterSpan.evaluate(
-      (el) => getComputedStyle(el).textDecorationStyle
-    );
+    const textDecorationStyle = await linterSpan.evaluate(el => getComputedStyle(el).textDecorationStyle);
     expect(textDecorationStyle).toBe("solid");
   });
 
   test("shows partial match state with dashed underline", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="linter"
-        verification={partialVerification}
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="linter" verification={partialVerification} />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
@@ -280,20 +216,12 @@ test.describe("CitationComponent - Linter Variant", () => {
     const linterSpan = citation.locator("span").first();
 
     // Partial match should have dashed underline
-    const textDecorationStyle = await linterSpan.evaluate(
-      (el) => getComputedStyle(el).textDecorationStyle
-    );
+    const textDecorationStyle = await linterSpan.evaluate(el => getComputedStyle(el).textDecorationStyle);
     expect(textDecorationStyle).toBe("dashed");
   });
 
   test("shows not found state with wavy underline", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="linter"
-        verification={missVerification}
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="linter" verification={missVerification} />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
@@ -302,20 +230,12 @@ test.describe("CitationComponent - Linter Variant", () => {
     const linterSpan = citation.locator("span").first();
 
     // Not found should have wavy underline
-    const textDecorationStyle = await linterSpan.evaluate(
-      (el) => getComputedStyle(el).textDecorationStyle
-    );
+    const textDecorationStyle = await linterSpan.evaluate(el => getComputedStyle(el).textDecorationStyle);
     expect(textDecorationStyle).toBe("wavy");
   });
 
   test("shows pending state with dotted underline", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="linter"
-        verification={pendingVerification}
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="linter" verification={pendingVerification} />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toBeVisible();
@@ -324,9 +244,7 @@ test.describe("CitationComponent - Linter Variant", () => {
     const linterSpan = citation.locator("span").first();
 
     // Pending should have dotted underline
-    const textDecorationStyle = await linterSpan.evaluate(
-      (el) => getComputedStyle(el).textDecorationStyle
-    );
+    const textDecorationStyle = await linterSpan.evaluate(el => getComputedStyle(el).textDecorationStyle);
     expect(textDecorationStyle).toBe("dotted");
   });
 });
@@ -341,11 +259,7 @@ test.describe("CitationComponent - All Variants Visual", () => {
       <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "20px" }}>
         <div>
           <strong>Brackets (default):</strong>{" "}
-          <CitationComponent
-            citation={baseCitation}
-            variant="brackets"
-            verification={verifiedVerification}
-          />
+          <CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />
         </div>
         <div>
           <strong>Brackets with anchorText:</strong>{" "}
@@ -358,37 +272,21 @@ test.describe("CitationComponent - All Variants Visual", () => {
         </div>
         <div>
           <strong>Superscript:</strong>{" "}
-          <CitationComponent
-            citation={baseCitation}
-            variant="superscript"
-            verification={verifiedVerification}
-          />
+          <CitationComponent citation={baseCitation} variant="superscript" verification={verifiedVerification} />
         </div>
         <div>
           <strong>Text:</strong>{" "}
-          <CitationComponent
-            citation={baseCitation}
-            variant="text"
-            verification={verifiedVerification}
-          />
+          <CitationComponent citation={baseCitation} variant="text" verification={verifiedVerification} />
         </div>
         <div>
           <strong>Chip:</strong>{" "}
-          <CitationComponent
-            citation={baseCitation}
-            variant="chip"
-            verification={verifiedVerification}
-          />
+          <CitationComponent citation={baseCitation} variant="chip" verification={verifiedVerification} />
         </div>
         <div>
           <strong>Linter:</strong>{" "}
-          <CitationComponent
-            citation={baseCitation}
-            variant="linter"
-            verification={verifiedVerification}
-          />
+          <CitationComponent citation={baseCitation} variant="linter" verification={verifiedVerification} />
         </div>
-      </div>
+      </div>,
     );
 
     // Verify all variants are rendered
@@ -458,7 +356,7 @@ test.describe("CitationComponent - All Variants Visual", () => {
             <CitationComponent citation={baseCitation} variant="linter" />
           </div>
         </div>
-      </div>
+      </div>,
     );
 
     // Just verify the page rendered successfully with multiple citations
@@ -494,18 +392,15 @@ test.describe("CitationComponent - Data Attributes", () => {
 test.describe("CitationComponent - Popover", () => {
   const verificationWithImage: Verification = {
     ...verifiedVerification,
-    verificationImageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    verificationImageBase64:
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
   };
 
   test("renders citation with image verification", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          variant="brackets"
-          verification={verificationWithImage}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} variant="brackets" verification={verificationWithImage} />
+      </div>,
     );
 
     const citation = page.locator("[data-citation-id]");
@@ -521,7 +416,7 @@ test.describe("CitationComponent - Popover", () => {
         variant="brackets"
         verification={verificationWithImage}
         popoverPosition="hidden"
-      />
+      />,
     );
 
     const citation = page.locator("[data-citation-id]");
@@ -538,7 +433,7 @@ test.describe("CitationComponent - Children", () => {
     await mount(
       <CitationComponent citation={baseCitation} variant="brackets">
         <span data-testid="prefix">Source: </span>
-      </CitationComponent>
+      </CitationComponent>,
     );
 
     await expect(page.locator('[data-testid="prefix"]')).toBeVisible();
@@ -552,13 +447,7 @@ test.describe("CitationComponent - Children", () => {
 
 test.describe("CitationComponent - Custom ClassName", () => {
   test("applies custom className", async ({ mount, page }) => {
-    await mount(
-      <CitationComponent
-        citation={baseCitation}
-        variant="brackets"
-        className="my-custom-citation"
-      />
-    );
+    await mount(<CitationComponent citation={baseCitation} variant="brackets" className="my-custom-citation" />);
     const citation = page.locator("[data-citation-id]");
 
     await expect(citation).toHaveClass(/my-custom-citation/);
@@ -576,12 +465,8 @@ test.describe("CitationComponent - Indicator Scaling", () => {
     test(`indicator renders correctly at ${fontSize} font size`, async ({ mount, page }) => {
       await mount(
         <div style={{ fontSize, padding: "20px" }}>
-          <CitationComponent
-            citation={baseCitation}
-            variant="brackets"
-            verification={verifiedVerification}
-          />
-        </div>
+          <CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />
+        </div>,
       );
 
       const citation = page.locator("[data-citation-id]");
@@ -604,12 +489,8 @@ test.describe("CitationComponent - Indicator Scaling", () => {
   test("indicator respects minimum size at very small font", async ({ mount, page }) => {
     await mount(
       <div style={{ fontSize: "8px", padding: "20px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          variant="brackets"
-          verification={verifiedVerification}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />
+      </div>,
     );
 
     const citation = page.locator("[data-citation-id]");
@@ -680,7 +561,7 @@ test.describe("CitationComponent - Indicator Scaling", () => {
           <span> | </span>
           <CitationComponent citation={baseCitation} variant="brackets" verification={pendingVerification} />
         </div>
-      </div>
+      </div>,
     );
 
     // Verify all citations rendered

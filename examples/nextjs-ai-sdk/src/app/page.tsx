@@ -1,15 +1,11 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState, useRef, useEffect, useEffectEvent } from "react";
+import type { Citation, FileDataPart, Verification } from "@deepcitation/deepcitation-js";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { FileUpload } from "@/components/FileUpload";
 import { VerificationPanel } from "@/components/VerificationPanel";
-import type {
-  FileDataPart,
-  Verification,
-  Citation,
-} from "@deepcitation/deepcitation-js";
 
 type ModelProvider = "openai" | "gemini";
 
@@ -39,53 +35,48 @@ export default function Home() {
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
 
   // Map of message ID to its full verification result (citations + verifications + summary)
-  const [messageVerifications, setMessageVerifications] = useState<
-    Record<string, MessageVerificationResult>
-  >({});
+  const [messageVerifications, setMessageVerifications] = useState<Record<string, MessageVerificationResult>>({});
   const [isVerifying, setIsVerifying] = useState(false);
   const [provider, setProvider] = useState<ModelProvider>("gemini");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const wasLoadingRef = useRef(false);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } =
-    useChat({
-      streamProtocol: "text",
-      body: {
-        provider,
-        // Pass complete fileDataParts - includes deepTextPromptPortion
-        fileDataParts,
-      },
-      onError: (error) => {
-        console.error("[useChat] Error:", error);
-      },
-    });
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+    streamProtocol: "text",
+    body: {
+      provider,
+      // Pass complete fileDataParts - includes deepTextPromptPortion
+      fileDataParts,
+    },
+    onError: error => {
+      console.error("[useChat] Error:", error);
+    },
+  });
 
   // Stable event handler for verification - doesn't need to be in deps
-  const onVerifyMessage = useEffectEvent(
-    (messageId: string, messageContent: string) => {
-      if (!messageContent || fileDataParts.length === 0) return;
+  const onVerifyMessage = useEffectEvent((messageId: string, messageContent: string) => {
+    if (!messageContent || fileDataParts.length === 0) return;
 
-      // Send llmOutput to verify API - citation extraction happens server-side
-      fetch("/api/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          llmOutput: messageContent,
-          attachmentId: fileDataParts[0].attachmentId,
-        }),
+    // Send llmOutput to verify API - citation extraction happens server-side
+    fetch("/api/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        llmOutput: messageContent,
+        attachmentId: fileDataParts[0].attachmentId,
+      }),
+    })
+      .then(res => res.json())
+      .then((data: MessageVerificationResult) => {
+        // Store the full verification result keyed by message ID
+        setMessageVerifications(prev => ({
+          ...prev,
+          [messageId]: data,
+        }));
       })
-        .then((res) => res.json())
-        .then((data: MessageVerificationResult) => {
-          // Store the full verification result keyed by message ID
-          setMessageVerifications((prev) => ({
-            ...prev,
-            [messageId]: data,
-          }));
-        })
-        .catch((err) => console.error("Verification failed:", err))
-        .finally(() => setIsVerifying(false));
-    }
-  );
+      .catch(err => console.error("Verification failed:", err))
+      .finally(() => setIsVerifying(false));
+  });
 
   // Detect when streaming completes (isLoading: true -> false) and verify
   useEffect(() => {
@@ -96,10 +87,7 @@ export default function Home() {
     if (wasLoading && !isLoading) {
       const lastMessage = messages[messages.length - 1];
       // Only verify if this message hasn't been verified yet
-      if (
-        lastMessage?.role === "assistant" &&
-        !messageVerifications[lastMessage.id]
-      ) {
+      if (lastMessage?.role === "assistant" && !messageVerifications[lastMessage.id]) {
         console.log("[useEffect] Stream finished, verifying...");
         setIsVerifying(true);
 
@@ -134,7 +122,7 @@ export default function Home() {
 
       if (res.ok && data.fileDataPart) {
         // Store the complete FileDataPart as single source of truth
-        setFileDataParts((prev) => [...prev, data.fileDataPart]);
+        setFileDataParts(prev => [...prev, data.fileDataPart]);
       } else {
         // Show error to user
         const errorMsg = data.details || data.error || "Upload failed";
@@ -150,13 +138,10 @@ export default function Home() {
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, []);
 
   // Get latest message's verification result
-  const latestVerification =
-    messages.length > 0
-      ? messageVerifications[messages[messages.length - 1]?.id]
-      : null;
+  const latestVerification = messages.length > 0 ? messageVerifications[messages[messages.length - 1]?.id] : null;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -166,27 +151,21 @@ export default function Home() {
         <header className="bg-white border-b px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">
-                DeepCitation Chat
-              </h1>
-              <p className="text-sm text-gray-500">
-                Upload documents and ask questions with verified citations
-              </p>
+              <h1 className="text-xl font-semibold text-gray-900">DeepCitation Chat</h1>
+              <p className="text-sm text-gray-500">Upload documents and ask questions with verified citations</p>
             </div>
 
             {/* Settings */}
             <div className="flex items-center gap-4">
               {/* Model Provider Selection */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-gray-500">
-                  Model:
-                </label>
+                <label className="text-xs font-medium text-gray-500">Model:</label>
                 <select
                   value={provider}
-                  onChange={(e) => setProvider(e.target.value as ModelProvider)}
+                  onChange={e => setProvider(e.target.value as ModelProvider)}
                   className="text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {MODEL_OPTIONS.map((option) => (
+                  {MODEL_OPTIONS.map(option => (
                     <option key={option.value} value={option.value}>
                       {option.label} ({option.description})
                     </option>
@@ -202,12 +181,10 @@ export default function Home() {
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="bg-white rounded-xl p-8 shadow-sm max-w-lg">
-                <h2 className="text-lg font-medium text-gray-900 mb-2">
-                  Welcome to DeepCitation Chat
-                </h2>
+                <h2 className="text-lg font-medium text-gray-900 mb-2">Welcome to DeepCitation Chat</h2>
                 <p className="text-gray-600 mb-4">
-                  Upload a document to get started, then ask questions. Every AI
-                  response will be verified against your attachments.
+                  Upload a document to get started, then ask questions. Every AI response will be verified against your
+                  attachments.
                 </p>
 
                 <div className="text-left text-sm text-gray-500">
@@ -222,14 +199,12 @@ export default function Home() {
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((message) => (
+              {messages.map(message => (
                 <ChatMessage
                   key={message.id}
                   message={message}
                   citations={messageVerifications[message.id]?.citations}
-                  verifications={
-                    messageVerifications[message.id]?.verifications
-                  }
+                  verifications={messageVerifications[message.id]?.verifications}
                   summary={messageVerifications[message.id]?.summary}
                 />
               ))}
@@ -240,24 +215,9 @@ export default function Home() {
               )}
               {isVerifying && (
                 <div className="flex items-center gap-2 text-blue-500 text-sm">
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                   Verifying citations...
                 </div>
@@ -272,7 +232,7 @@ export default function Home() {
           <form onSubmit={handleSubmit} className="flex gap-3">
             <FileUpload
               onUpload={handleFileUpload}
-              uploadedFiles={fileDataParts.map((f) => ({
+              uploadedFiles={fileDataParts.map(f => ({
                 name: f.filename || "Document",
                 attachmentId: f.attachmentId,
               }))}
@@ -305,12 +265,7 @@ export default function Home() {
                   key={i}
                   className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm text-gray-700"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"

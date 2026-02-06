@@ -32,14 +32,7 @@ export type SearchMethod =
   | "keyspan_fallback";
 
 /** Type of variation applied to search phrases */
-export type VariationType =
-  | "exact"
-  | "normalized"
-  | "currency"
-  | "date"
-  | "numeric"
-  | "symbol"
-  | "accent";
+export type VariationType = "exact" | "normalized" | "currency" | "date" | "numeric" | "symbol" | "accent";
 
 /**
  * Indicates which variation of the citation was matched.

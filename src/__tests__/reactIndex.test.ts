@@ -114,9 +114,7 @@ describe("react index exports", () => {
   });
 
   it("sourceCitationsToListItems converts citations", () => {
-    const citations = [
-      { url: "https://example.com/page", title: "Example", citationNumber: 1 },
-    ];
+    const citations = [{ url: "https://example.com/page", title: "Example", citationNumber: 1 }];
     const items = sourceCitationsToListItems(citations);
     expect(items).toHaveLength(1);
     expect(items[0].url).toBe("https://example.com/page");

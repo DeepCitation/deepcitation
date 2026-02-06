@@ -12,9 +12,7 @@ describe("DeepCitation Client", () => {
 
   describe("constructor", () => {
     it("throws error when no API key provided", () => {
-      expect(() => new DeepCitation({ apiKey: "" })).toThrow(
-        "DeepCitation API key is required"
-      );
+      expect(() => new DeepCitation({ apiKey: "" })).toThrow("DeepCitation API key is required");
     });
 
     it("creates client with valid API key", () => {
@@ -82,9 +80,7 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["test content"]);
-      await expect(client.uploadFile(blob)).rejects.toThrow(
-        "Invalid file format"
-      );
+      await expect(client.uploadFile(blob)).rejects.toThrow("Invalid file format");
     });
 
     it("handles custom attachmentId option", async () => {
@@ -117,9 +113,7 @@ describe("DeepCitation Client", () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       // @ts-expect-error - testing invalid input
-      await expect(client.uploadFile("not a file")).rejects.toThrow(
-        "Invalid file type"
-      );
+      await expect(client.uploadFile("not a file")).rejects.toThrow("Invalid file type");
     });
   });
 
@@ -171,12 +165,8 @@ describe("DeepCitation Client", () => {
       expect(result.fileDataParts[0].attachmentId).toBe("file_1");
       expect(result.fileDataParts[1].attachmentId).toBe("file_2");
 
-      expect(result.fileDataParts[0].deepTextPromptPortion).toContain(
-        "Content from file 1"
-      );
-      expect(result.fileDataParts[1].deepTextPromptPortion).toContain(
-        "Content from file 2"
-      );
+      expect(result.fileDataParts[0].deepTextPromptPortion).toContain("Content from file 1");
+      expect(result.fileDataParts[1].deepTextPromptPortion).toContain("Content from file 2");
     });
 
     it("handles single file", async () => {
@@ -198,14 +188,10 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["single content"]);
-      const result = await client.prepareFiles([
-        { file: blob, filename: "single.pdf" },
-      ]);
+      const result = await client.prepareFiles([{ file: blob, filename: "single.pdf" }]);
 
       expect(result.fileDataParts).toHaveLength(1);
-      expect(result.fileDataParts[0].deepTextPromptPortion).toContain(
-        "Single content"
-      );
+      expect(result.fileDataParts[0].deepTextPromptPortion).toContain("Single content");
     });
 
     it("handles empty files array", async () => {
@@ -226,9 +212,7 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["content"]);
-      await expect(
-        client.prepareFiles([{ file: blob, filename: "test.pdf" }])
-      ).rejects.toThrow("Server error");
+      await expect(client.prepareFiles([{ file: blob, filename: "test.pdf" }])).rejects.toThrow("Server error");
     });
 
     it("supports custom attachmentId per file", async () => {
@@ -250,9 +234,7 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["content"]);
-      const result = await client.prepareFiles([
-        { file: blob, filename: "custom.pdf", attachmentId: "my_custom_id" },
-      ]);
+      const result = await client.prepareFiles([{ file: blob, filename: "custom.pdf", attachmentId: "my_custom_id" }]);
 
       expect(result.fileDataParts[0].attachmentId).toBe("my_custom_id");
     });
@@ -304,9 +286,7 @@ describe("DeepCitation Client", () => {
       });
 
       expect(result.verifications).toBeDefined();
-      expect(Object.keys(result.verifications).length).toBeGreaterThanOrEqual(
-        1
-      );
+      expect(Object.keys(result.verifications).length).toBeGreaterThanOrEqual(1);
     });
 
     it("verifies citations with attachmentId in citation", async () => {
@@ -381,7 +361,7 @@ describe("DeepCitation Client", () => {
       await expect(
         client.verifyAttachment("unknown_file", {
           "1": { fullPhrase: "test" },
-        })
+        }),
       ).rejects.toThrow("File not found");
     });
 
@@ -473,7 +453,7 @@ describe("DeepCitation Client", () => {
         maxConcurrentCalls = Math.max(maxConcurrentCalls, concurrentCalls);
 
         // Simulate some async work
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         concurrentCalls--;
         return {
@@ -523,7 +503,7 @@ describe("DeepCitation Client", () => {
         concurrentCalls++;
         maxConcurrentCalls = Math.max(maxConcurrentCalls, concurrentCalls);
 
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await new Promise(resolve => setTimeout(resolve, 10));
 
         concurrentCalls--;
         return {

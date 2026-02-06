@@ -260,12 +260,7 @@ export interface SourceMeta {
   /** Relevant excerpts/quotes from this source */
   excerpts?: string[];
   /** Verification status if verified */
-  verificationStatus?:
-    | "verified"
-    | "partial"
-    | "pending"
-    | "failed"
-    | "unknown";
+  verificationStatus?: "verified" | "partial" | "pending" | "failed" | "unknown";
   /** When the source was accessed */
   accessedAt?: Date | string;
 }

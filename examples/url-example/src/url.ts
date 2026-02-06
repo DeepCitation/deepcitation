@@ -13,17 +13,17 @@
  */
 
 import "dotenv/config";
-import * as readline from "readline";
-import OpenAI from "openai";
 import {
   DeepCitation,
-  wrapCitationPrompt,
-  getCitationStatus,
-  replaceCitations,
-  getAllCitationsFromLlmOutput,
   extractVisibleText,
+  getAllCitationsFromLlmOutput,
+  getCitationStatus,
   getVerificationTextIndicator,
+  replaceCitations,
+  wrapCitationPrompt,
 } from "@deepcitation/deepcitation-js";
+import OpenAI from "openai";
+import * as readline from "readline";
 
 // Initialize clients
 const deepcitation = new DeepCitation({
@@ -43,8 +43,8 @@ const rl = readline.createInterface({
 });
 
 function prompt(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
+  return new Promise(resolve => {
+    rl.question(question, answer => {
       resolve(answer.trim());
     });
   });
@@ -78,7 +78,7 @@ async function main() {
 
   // Ask about fast mode
   const fastModeInput = await prompt(
-    "Use unsafe fast mode? (y/N) [Fast but vulnerable to hidden text/prompt injection]: "
+    "Use unsafe fast mode? (y/N) [Fast but vulnerable to hidden text/prompt injection]: ",
   );
   const unsafeFastUrlOutput = fastModeInput.toLowerCase() === "y";
 
@@ -190,10 +190,7 @@ async function main() {
 
   console.log(`Found ${citationCount} citation(s). Verifying...\n`);
 
-  const verificationResult = await deepcitation.verifyAttachment(
-    attachmentId,
-    parsedCitations
-  );
+  const verificationResult = await deepcitation.verifyAttachment(attachmentId, parsedCitations);
 
   // ============================================
   // STEP 6: Display verification results
@@ -240,7 +237,7 @@ async function main() {
     replaceCitations(visibleText, {
       verifications: verificationResult.verifications,
       showVerificationStatus: true,
-    })
+    }),
   );
   console.log("-".repeat(50));
 
@@ -261,7 +258,7 @@ async function main() {
   rl.close();
 }
 
-main().catch((err) => {
+main().catch(err => {
   console.error("Error:", err);
   rl.close();
   process.exit(1);

@@ -8,7 +8,7 @@ describe("Citation Parsing Edge Cases", () => {
       const result = getAllCitationsFromLlmOutput(input);
       // backward compat: key_span in input is parsed to anchorText
       expect(Object.keys(result).length).toBe(2);
-      const anchorTexts = Object.values(result).map((c) => c.anchorText);
+      const anchorTexts = Object.values(result).map(c => c.anchorText);
       expect(anchorTexts).toContain("first");
       expect(anchorTexts).toContain("second");
     });
@@ -122,7 +122,7 @@ Third: <cite attachment_id='file3' full_phrase='phrase three' anchor_text='three
       // backward compat: key_span in input is parsed to anchorText
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result).length).toBe(3);
-      const anchorTexts = Object.values(result).map((c) => c.anchorText);
+      const anchorTexts = Object.values(result).map(c => c.anchorText);
       expect(anchorTexts).toContain("one");
       expect(anchorTexts).toContain("two");
       expect(anchorTexts).toContain("three");

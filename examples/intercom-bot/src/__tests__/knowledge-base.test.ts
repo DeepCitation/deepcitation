@@ -8,11 +8,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import {
-  SAMPLE_KNOWLEDGE_BASE,
-  getKnowledgeBaseSummary,
-  type KnowledgeDocument,
-} from "../knowledge-base.js";
+import { getKnowledgeBaseSummary, type KnowledgeDocument, SAMPLE_KNOWLEDGE_BASE } from "../knowledge-base.js";
 
 describe("SAMPLE_KNOWLEDGE_BASE", () => {
   describe("structure", () => {
@@ -31,7 +27,7 @@ describe("SAMPLE_KNOWLEDGE_BASE", () => {
     });
 
     it("filenames are unique", () => {
-      const filenames = SAMPLE_KNOWLEDGE_BASE.map((doc) => doc.filename);
+      const filenames = SAMPLE_KNOWLEDGE_BASE.map(doc => doc.filename);
       const uniqueFilenames = new Set(filenames);
       expect(uniqueFilenames.size).toBe(filenames.length);
     });
@@ -40,9 +36,7 @@ describe("SAMPLE_KNOWLEDGE_BASE", () => {
       const validExtensions = [".txt", ".md", ".pdf", ".doc", ".docx"];
 
       for (const doc of SAMPLE_KNOWLEDGE_BASE) {
-        const hasValidExtension = validExtensions.some((ext) =>
-          doc.filename.endsWith(ext)
-        );
+        const hasValidExtension = validExtensions.some(ext => doc.filename.endsWith(ext));
         expect(hasValidExtension).toBe(true);
       }
     });
@@ -55,9 +49,7 @@ describe("SAMPLE_KNOWLEDGE_BASE", () => {
   });
 
   describe("content coverage", () => {
-    const allContent = SAMPLE_KNOWLEDGE_BASE.map((doc) => doc.content).join(
-      "\n"
-    );
+    const allContent = SAMPLE_KNOWLEDGE_BASE.map(doc => doc.content).join("\n");
 
     it("includes refund policy information", () => {
       expect(allContent.toLowerCase()).toContain("refund");
@@ -101,10 +93,7 @@ describe("SAMPLE_KNOWLEDGE_BASE", () => {
     it("documents have structured content", () => {
       for (const doc of SAMPLE_KNOWLEDGE_BASE) {
         // Should have multiple sections or bullet points
-        const hasStructure =
-          doc.content.includes("##") ||
-          doc.content.includes("- ") ||
-          doc.content.includes("1.");
+        const hasStructure = doc.content.includes("##") || doc.content.includes("- ") || doc.content.includes("1.");
         expect(hasStructure).toBe(true);
       }
     });
@@ -122,8 +111,7 @@ describe("SAMPLE_KNOWLEDGE_BASE", () => {
   describe("specific documents", () => {
     it("has refund policy document", () => {
       const refundDoc = SAMPLE_KNOWLEDGE_BASE.find(
-        (doc) =>
-          doc.filename.includes("refund") || doc.filename.includes("policy")
+        doc => doc.filename.includes("refund") || doc.filename.includes("policy"),
       );
       expect(refundDoc).toBeDefined();
       expect(refundDoc?.content).toContain("30 days");
@@ -131,9 +119,7 @@ describe("SAMPLE_KNOWLEDGE_BASE", () => {
     });
 
     it("has shipping document", () => {
-      const shippingDoc = SAMPLE_KNOWLEDGE_BASE.find((doc) =>
-        doc.filename.includes("shipping")
-      );
+      const shippingDoc = SAMPLE_KNOWLEDGE_BASE.find(doc => doc.filename.includes("shipping"));
       expect(shippingDoc).toBeDefined();
       expect(shippingDoc?.content.toLowerCase()).toContain("standard");
       expect(shippingDoc?.content.toLowerCase()).toContain("express");
@@ -141,18 +127,14 @@ describe("SAMPLE_KNOWLEDGE_BASE", () => {
     });
 
     it("has account management document", () => {
-      const accountDoc = SAMPLE_KNOWLEDGE_BASE.find((doc) =>
-        doc.filename.includes("account")
-      );
+      const accountDoc = SAMPLE_KNOWLEDGE_BASE.find(doc => doc.filename.includes("account"));
       expect(accountDoc).toBeDefined();
       expect(accountDoc?.content.toLowerCase()).toContain("password reset");
       expect(accountDoc?.content.toLowerCase()).toContain("2fa");
     });
 
     it("has warranty document", () => {
-      const warrantyDoc = SAMPLE_KNOWLEDGE_BASE.find((doc) =>
-        doc.filename.includes("warranty")
-      );
+      const warrantyDoc = SAMPLE_KNOWLEDGE_BASE.find(doc => doc.filename.includes("warranty"));
       expect(warrantyDoc).toBeDefined();
       expect(warrantyDoc?.content).toContain("2-year");
       expect(warrantyDoc?.content.toLowerCase()).toContain("extended");
@@ -176,7 +158,7 @@ describe("getKnowledgeBaseSummary", () => {
 
   it("formats as bullet list", () => {
     const summary = getKnowledgeBaseSummary();
-    const lines = summary.split("\n").filter((line) => line.trim());
+    const lines = summary.split("\n").filter(line => line.trim());
 
     for (const line of lines) {
       expect(line.startsWith("- ")).toBe(true);
@@ -185,7 +167,7 @@ describe("getKnowledgeBaseSummary", () => {
 
   it("has correct number of entries", () => {
     const summary = getKnowledgeBaseSummary();
-    const lines = summary.split("\n").filter((line) => line.trim());
+    const lines = summary.split("\n").filter(line => line.trim());
 
     expect(lines.length).toBe(SAMPLE_KNOWLEDGE_BASE.length);
   });
@@ -216,23 +198,20 @@ describe("KnowledgeDocument type", () => {
 describe("Knowledge base usage scenarios", () => {
   it("can be filtered by topic", () => {
     const policyDocs = SAMPLE_KNOWLEDGE_BASE.filter(
-      (doc) =>
-        doc.filename.includes("policy") || doc.filename.includes("warranty")
+      doc => doc.filename.includes("policy") || doc.filename.includes("warranty"),
     );
 
     expect(policyDocs.length).toBeGreaterThan(0);
   });
 
   it("can be searched for specific content", () => {
-    const docsWithPricing = SAMPLE_KNOWLEDGE_BASE.filter((doc) =>
-      doc.content.includes("$")
-    );
+    const docsWithPricing = SAMPLE_KNOWLEDGE_BASE.filter(doc => doc.content.includes("$"));
 
     expect(docsWithPricing.length).toBeGreaterThan(0);
   });
 
   it("can be converted to buffers for upload", () => {
-    const bufferedDocs = SAMPLE_KNOWLEDGE_BASE.map((doc) => ({
+    const bufferedDocs = SAMPLE_KNOWLEDGE_BASE.map(doc => ({
       file: Buffer.from(doc.content),
       filename: doc.filename,
     }));
@@ -244,32 +223,23 @@ describe("Knowledge base usage scenarios", () => {
   });
 
   it("can be combined into single content", () => {
-    const combinedContent = SAMPLE_KNOWLEDGE_BASE.map(
-      (doc) => `## ${doc.filename}\n\n${doc.content}`
-    ).join("\n\n---\n\n");
+    const combinedContent = SAMPLE_KNOWLEDGE_BASE.map(doc => `## ${doc.filename}\n\n${doc.content}`).join(
+      "\n\n---\n\n",
+    );
 
     expect(combinedContent.length).toBeGreaterThan(
-      SAMPLE_KNOWLEDGE_BASE.reduce((sum, doc) => sum + doc.content.length, 0)
+      SAMPLE_KNOWLEDGE_BASE.reduce((sum, doc) => sum + doc.content.length, 0),
     );
   });
 });
 
 describe("Content validation", () => {
   it("no documents contain placeholder text", () => {
-    const placeholders = [
-      "TODO",
-      "FIXME",
-      "XXX",
-      "[insert",
-      "[placeholder",
-      "lorem ipsum",
-    ];
+    const placeholders = ["TODO", "FIXME", "XXX", "[insert", "[placeholder", "lorem ipsum"];
 
     for (const doc of SAMPLE_KNOWLEDGE_BASE) {
       for (const placeholder of placeholders) {
-        expect(doc.content.toLowerCase()).not.toContain(
-          placeholder.toLowerCase()
-        );
+        expect(doc.content.toLowerCase()).not.toContain(placeholder.toLowerCase());
       }
     }
   });
@@ -299,9 +269,7 @@ describe("Content validation", () => {
 
       for (const url of urls) {
         const isExampleDomain =
-          url.includes("example.com") ||
-          url.includes("example.org") ||
-          url.includes("acme.example");
+          url.includes("example.com") || url.includes("example.org") || url.includes("acme.example");
         expect(isExampleDomain).toBe(true);
       }
     }

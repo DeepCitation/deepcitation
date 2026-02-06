@@ -1,20 +1,10 @@
 import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  renderHook,
-} from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook } from "@testing-library/react";
 import type React from "react";
 import { CitationComponent } from "../react/CitationComponent";
-import {
-  CitationDrawer,
-  CitationDrawerItemComponent,
-  groupCitationsBySource,
-  useCitationDrawer,
-} from "../react/CitationDrawer";
-import type { CitationDrawerItem, SourceCitationGroup } from "../react/types";
+import { CitationDrawer, CitationDrawerItemComponent } from "../react/CitationDrawer";
+import type { CitationDrawerItem, SourceCitationGroup } from "../react/CitationDrawer.types";
+import { groupCitationsBySource, useCitationDrawer } from "../react/CitationDrawer.utils";
 import type { Citation } from "../types/citation";
 import type { Verification } from "../types/verification";
 
@@ -47,11 +37,7 @@ describe("CitationComponent source variant", () => {
   describe("source variant rendering", () => {
     it("renders source name from citation", () => {
       const { getByText } = render(
-        <CitationComponent
-          citation={baseCitation}
-          verification={verification}
-          variant="badge"
-        />
+        <CitationComponent citation={baseCitation} verification={verification} variant="badge" />,
       );
 
       expect(getByText("Delaware Corporations")).toBeInTheDocument();
@@ -59,16 +45,10 @@ describe("CitationComponent source variant", () => {
 
     it("renders favicon when provided", () => {
       const { container } = render(
-        <CitationComponent
-          citation={baseCitation}
-          verification={verification}
-          variant="badge"
-        />
+        <CitationComponent citation={baseCitation} verification={verification} variant="badge" />,
       );
 
-      const favicon = container.querySelector(
-        'img[src="https://delaware.gov/favicon.ico"]'
-      );
+      const favicon = container.querySelector('img[src="https://delaware.gov/favicon.ico"]');
       expect(favicon).toBeInTheDocument();
     });
 
@@ -80,7 +60,7 @@ describe("CitationComponent source variant", () => {
           verification={verification}
           variant="badge"
           faviconUrl={customFavicon}
-        />
+        />,
       );
 
       const favicon = container.querySelector(`img[src="${customFavicon}"]`);
@@ -89,12 +69,7 @@ describe("CitationComponent source variant", () => {
 
     it("renders additional count when provided", () => {
       const { getByText } = render(
-        <CitationComponent
-          citation={baseCitation}
-          verification={verification}
-          variant="badge"
-          additionalCount={2}
-        />
+        <CitationComponent citation={baseCitation} verification={verification} variant="badge" additionalCount={2} />,
       );
 
       expect(getByText("+2")).toBeInTheDocument();
@@ -102,12 +77,7 @@ describe("CitationComponent source variant", () => {
 
     it("does not render additional count when 0", () => {
       const { queryByText } = render(
-        <CitationComponent
-          citation={baseCitation}
-          verification={verification}
-          variant="badge"
-          additionalCount={0}
-        />
+        <CitationComponent citation={baseCitation} verification={verification} variant="badge" additionalCount={0} />,
       );
 
       expect(queryByText("+0")).not.toBeInTheDocument();
@@ -120,11 +90,7 @@ describe("CitationComponent source variant", () => {
       };
 
       const { getByText } = render(
-        <CitationComponent
-          citation={citationWithoutName}
-          verification={verification}
-          variant="badge"
-        />
+        <CitationComponent citation={citationWithoutName} verification={verification} variant="badge" />,
       );
 
       expect(getByText("delaware.gov")).toBeInTheDocument();
@@ -137,11 +103,7 @@ describe("CitationComponent source variant", () => {
       };
 
       const { getByText } = render(
-        <CitationComponent
-          citation={citationNoSource}
-          verification={verification}
-          variant="badge"
-        />
+        <CitationComponent citation={citationNoSource} verification={verification} variant="badge" />,
       );
 
       expect(getByText("Fallback Text")).toBeInTheDocument();
@@ -153,11 +115,7 @@ describe("CitationComponent source variant", () => {
       };
 
       const { getByText } = render(
-        <CitationComponent
-          citation={citationEmpty}
-          verification={verification}
-          variant="badge"
-        />
+        <CitationComponent citation={citationEmpty} verification={verification} variant="badge" />,
       );
 
       expect(getByText("Source")).toBeInTheDocument();
@@ -165,11 +123,7 @@ describe("CitationComponent source variant", () => {
 
     it("applies correct styling classes for source variant", () => {
       const { container } = render(
-        <CitationComponent
-          citation={baseCitation}
-          verification={verification}
-          variant="badge"
-        />
+        <CitationComponent citation={baseCitation} verification={verification} variant="badge" />,
       );
 
       const chip = container.querySelector(".rounded-full");
@@ -179,11 +133,7 @@ describe("CitationComponent source variant", () => {
 
     it("hides broken favicon images on error", () => {
       const { container } = render(
-        <CitationComponent
-          citation={baseCitation}
-          verification={verification}
-          variant="badge"
-        />
+        <CitationComponent citation={baseCitation} verification={verification} variant="badge" />,
       );
 
       const favicon = container.querySelector("img") as HTMLImageElement;
@@ -199,11 +149,7 @@ describe("CitationComponent source variant", () => {
   describe("source content type", () => {
     it("uses source content type by default for source variant", () => {
       const { getByText } = render(
-        <CitationComponent
-          citation={baseCitation}
-          verification={verification}
-          variant="badge"
-        />
+        <CitationComponent citation={baseCitation} verification={verification} variant="badge" />,
       );
 
       // Should show siteName, not anchorText or number
@@ -212,12 +158,7 @@ describe("CitationComponent source variant", () => {
 
     it("can override content type for source variant", () => {
       const { getByText } = render(
-        <CitationComponent
-          citation={baseCitation}
-          verification={verification}
-          variant="badge"
-          content="anchorText"
-        />
+        <CitationComponent citation={baseCitation} verification={verification} variant="badge" content="anchorText" />,
       );
 
       // Should show anchorText when explicitly set
@@ -227,11 +168,7 @@ describe("CitationComponent source variant", () => {
 });
 
 describe("groupCitationsBySource", () => {
-  const createCitationItem = (
-    key: string,
-    siteName: string,
-    domain?: string
-  ): CitationDrawerItem => ({
+  const createCitationItem = (key: string, siteName: string, domain?: string): CitationDrawerItem => ({
     citationKey: key,
     citation: {
       citationNumber: parseInt(key, 10),
@@ -308,9 +245,7 @@ describe("CitationDrawerItemComponent", () => {
     cleanup();
   });
 
-  const createItem = (
-    overrides: Partial<CitationDrawerItem> = {}
-  ): CitationDrawerItem => ({
+  const createItem = (overrides: Partial<CitationDrawerItem> = {}): CitationDrawerItem => ({
     citationKey: "1",
     citation: {
       siteName: "Delaware Corporations",
@@ -324,39 +259,27 @@ describe("CitationDrawerItemComponent", () => {
   });
 
   it("renders source name", () => {
-    const { getByText } = render(
-      <CitationDrawerItemComponent item={createItem()} />
-    );
+    const { getByText } = render(<CitationDrawerItemComponent item={createItem()} />);
 
     expect(getByText("Delaware Corporations")).toBeInTheDocument();
   });
 
   it("renders article title", () => {
-    const { getByText } = render(
-      <CitationDrawerItemComponent item={createItem()} />
-    );
+    const { getByText } = render(<CitationDrawerItemComponent item={createItem()} />);
 
     expect(getByText("How to Calculate Franchise Taxes")).toBeInTheDocument();
   });
 
   it("renders snippet", () => {
-    const { getByText } = render(
-      <CitationDrawerItemComponent item={createItem()} />
-    );
+    const { getByText } = render(<CitationDrawerItemComponent item={createItem()} />);
 
-    expect(
-      getByText("The minimum tax is $175.00 for corporations...")
-    ).toBeInTheDocument();
+    expect(getByText("The minimum tax is $175.00 for corporations...")).toBeInTheDocument();
   });
 
   it("renders favicon when available", () => {
-    const { container } = render(
-      <CitationDrawerItemComponent item={createItem()} />
-    );
+    const { container } = render(<CitationDrawerItemComponent item={createItem()} />);
 
-    const favicon = container.querySelector(
-      'img[src="https://delaware.gov/favicon.ico"]'
-    );
+    const favicon = container.querySelector('img[src="https://delaware.gov/favicon.ico"]');
     expect(favicon).toBeInTheDocument();
   });
 
@@ -378,9 +301,7 @@ describe("CitationDrawerItemComponent", () => {
     const onClick = jest.fn();
     const item = createItem();
 
-    const { container } = render(
-      <CitationDrawerItemComponent item={item} onClick={onClick} />
-    );
+    const { container } = render(<CitationDrawerItemComponent item={item} onClick={onClick} />);
 
     const itemElement = container.querySelector("[role='button']");
     fireEvent.click(itemElement!);
@@ -390,9 +311,7 @@ describe("CitationDrawerItemComponent", () => {
 
   it("shows status indicator for verified citations", () => {
     const { container } = render(
-      <CitationDrawerItemComponent
-        item={createItem({ verification: { status: "found" } })}
-      />
+      <CitationDrawerItemComponent item={createItem({ verification: { status: "found" } })} />,
     );
 
     const indicator = container.querySelector(".text-green-500");
@@ -401,9 +320,7 @@ describe("CitationDrawerItemComponent", () => {
 
   it("shows warning indicator for not found citations", () => {
     const { container } = render(
-      <CitationDrawerItemComponent
-        item={createItem({ verification: { status: "not_found" } })}
-      />
+      <CitationDrawerItemComponent item={createItem({ verification: { status: "not_found" } })} />,
     );
 
     const indicator = container.querySelector(".text-amber-500");
@@ -412,9 +329,7 @@ describe("CitationDrawerItemComponent", () => {
 
   it("shows spinner for pending citations", () => {
     const { container } = render(
-      <CitationDrawerItemComponent
-        item={createItem({ verification: { status: "pending" } })}
-      />
+      <CitationDrawerItemComponent item={createItem({ verification: { status: "pending" } })} />,
     );
 
     const spinner = container.querySelector(".animate-spin");
@@ -422,18 +337,14 @@ describe("CitationDrawerItemComponent", () => {
   });
 
   it("applies border when not last item", () => {
-    const { container } = render(
-      <CitationDrawerItemComponent item={createItem()} isLast={false} />
-    );
+    const { container } = render(<CitationDrawerItemComponent item={createItem()} isLast={false} />);
 
     const itemElement = container.firstChild;
     expect(itemElement).toHaveClass("border-b");
   });
 
   it("does not apply border when last item", () => {
-    const { container } = render(
-      <CitationDrawerItemComponent item={createItem()} isLast={true} />
-    );
+    const { container } = render(<CitationDrawerItemComponent item={createItem()} isLast={true} />);
 
     const itemElement = container.firstChild;
     expect(itemElement).not.toHaveClass("border-b");
@@ -443,9 +354,7 @@ describe("CitationDrawerItemComponent", () => {
     const onClick = jest.fn();
     const item = createItem();
 
-    const { container } = render(
-      <CitationDrawerItemComponent item={item} onClick={onClick} />
-    );
+    const { container } = render(<CitationDrawerItemComponent item={item} onClick={onClick} />);
 
     const itemElement = container.querySelector("[role='button']");
     fireEvent.keyDown(itemElement!, { key: "Enter" });
@@ -476,11 +385,7 @@ describe("CitationDrawer", () => {
 
   it("renders when open", () => {
     const { getByRole } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={() => {}}
-        citationGroups={[createGroup("Test", 1)]}
-      />
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Test", 1)]} />,
     );
 
     expect(getByRole("dialog")).toBeInTheDocument();
@@ -488,11 +393,7 @@ describe("CitationDrawer", () => {
 
   it("does not render when closed", () => {
     const { queryByRole } = render(
-      <CitationDrawer
-        isOpen={false}
-        onClose={() => {}}
-        citationGroups={[createGroup("Test", 1)]}
-      />
+      <CitationDrawer isOpen={false} onClose={() => {}} citationGroups={[createGroup("Test", 1)]} />,
     );
 
     expect(queryByRole("dialog")).not.toBeInTheDocument();
@@ -505,7 +406,7 @@ describe("CitationDrawer", () => {
         onClose={() => {}}
         citationGroups={[createGroup("Test", 1)]}
         title="My Citations"
-      />
+      />,
     );
 
     expect(getByText("My Citations")).toBeInTheDocument();
@@ -513,11 +414,7 @@ describe("CitationDrawer", () => {
 
   it("renders default title", () => {
     const { getByText } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={() => {}}
-        citationGroups={[createGroup("Test", 1)]}
-      />
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Test", 1)]} />,
     );
 
     expect(getByText("Citations")).toBeInTheDocument();
@@ -527,11 +424,7 @@ describe("CitationDrawer", () => {
     const onClose = jest.fn();
 
     const { getByLabelText } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={onClose}
-        citationGroups={[createGroup("Test", 1)]}
-      />
+      <CitationDrawer isOpen={true} onClose={onClose} citationGroups={[createGroup("Test", 1)]} />,
     );
 
     const closeButton = getByLabelText("Close");
@@ -544,11 +437,7 @@ describe("CitationDrawer", () => {
     const onClose = jest.fn();
 
     const { container } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={onClose}
-        citationGroups={[createGroup("Test", 1)]}
-      />
+      <CitationDrawer isOpen={true} onClose={onClose} citationGroups={[createGroup("Test", 1)]} />,
     );
 
     const backdrop = container.querySelector("[aria-hidden='true']");
@@ -560,13 +449,7 @@ describe("CitationDrawer", () => {
   it("calls onClose on Escape key", () => {
     const onClose = jest.fn();
 
-    render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={onClose}
-        citationGroups={[createGroup("Test", 1)]}
-      />
-    );
+    render(<CitationDrawer isOpen={true} onClose={onClose} citationGroups={[createGroup("Test", 1)]} />);
 
     fireEvent.keyDown(document, { key: "Escape" });
 
@@ -577,12 +460,7 @@ describe("CitationDrawer", () => {
     const groups = [createGroup("Source A", 2), createGroup("Source B", 1)];
 
     const { getAllByText } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={() => {}}
-        citationGroups={groups}
-        showMoreSection={false}
-      />
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} showMoreSection={false} />,
     );
 
     // Source A has Article 1 and Article 2, Source B has Article 1
@@ -601,7 +479,7 @@ describe("CitationDrawer", () => {
         citationGroups={groups}
         showMoreSection={true}
         maxVisibleItems={3}
-      />
+      />,
     );
 
     expect(getByText("More (2)")).toBeInTheDocument();
@@ -617,7 +495,7 @@ describe("CitationDrawer", () => {
         citationGroups={groups}
         showMoreSection={true}
         maxVisibleItems={3}
-      />
+      />,
     );
 
     // Initially, items 4 and 5 should not be visible
@@ -636,12 +514,7 @@ describe("CitationDrawer", () => {
     const groups = [createGroup("Test", 1)];
 
     const { getByText } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={() => {}}
-        citationGroups={groups}
-        onCitationClick={onCitationClick}
-      />
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} onCitationClick={onCitationClick} />,
     );
 
     fireEvent.click(getByText("Article 1"));
@@ -650,21 +523,14 @@ describe("CitationDrawer", () => {
   });
 
   it("shows empty state when no citations", () => {
-    const { getByText } = render(
-      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[]} />
-    );
+    const { getByText } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[]} />);
 
     expect(getByText("No citations to display")).toBeInTheDocument();
   });
 
   it("renders handle bar for bottom position", () => {
     const { container } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={() => {}}
-        citationGroups={[createGroup("Test", 1)]}
-        position="bottom"
-      />
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Test", 1)]} position="bottom" />,
     );
 
     // Handle bar is a rounded div
@@ -674,12 +540,7 @@ describe("CitationDrawer", () => {
 
   it("does not render handle bar for right position", () => {
     const { container } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={() => {}}
-        citationGroups={[createGroup("Test", 1)]}
-        position="right"
-      />
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Test", 1)]} position="right" />,
     );
 
     // Handle bar should not exist
@@ -695,10 +556,8 @@ describe("CitationDrawer", () => {
         isOpen={true}
         onClose={() => {}}
         citationGroups={groups}
-        renderCitationItem={(item) => (
-          <div key={item.citationKey}>Custom: {item.citation.title}</div>
-        )}
-      />
+        renderCitationItem={item => <div key={item.citationKey}>Custom: {item.citation.title}</div>}
+      />,
     );
 
     expect(getByText("Custom: Article 1")).toBeInTheDocument();

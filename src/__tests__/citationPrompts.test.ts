@@ -29,12 +29,7 @@ describe("citation prompts", () => {
   });
 
   it("defines required fields for citations in JSON schema", () => {
-    expect(CITATION_JSON_OUTPUT_FORMAT.required).toEqual([
-      "id",
-      "attachment_id",
-      "full_phrase",
-      "anchor_text",
-    ]);
+    expect(CITATION_JSON_OUTPUT_FORMAT.required).toEqual(["id", "attachment_id", "full_phrase", "anchor_text"]);
   });
 
   it("defines timestamp requirements for AV citations in JSON schema", () => {
@@ -53,13 +48,9 @@ describe("wrapSystemCitationPrompt", () => {
     expect(result).toContain("[1]");
     expect(result).toContain("<citation-reminder>");
     // Citation instructions come first (wrap mode)
-    expect(result.indexOf(CITATION_DATA_START_DELIMITER)).toBeLessThan(
-      result.indexOf("You are a helpful assistant.")
-    );
+    expect(result.indexOf(CITATION_DATA_START_DELIMITER)).toBeLessThan(result.indexOf("You are a helpful assistant."));
     // Reminder comes after system prompt
-    expect(result.indexOf("You are a helpful assistant.")).toBeLessThan(
-      result.indexOf("<citation-reminder>")
-    );
+    expect(result.indexOf("You are a helpful assistant.")).toBeLessThan(result.indexOf("<citation-reminder>"));
   });
 
   it("uses AV citation format when isAudioVideo is true", () => {
@@ -97,12 +88,8 @@ describe("wrapCitationPrompt", () => {
       userPrompt: "Analyze this document.",
     });
 
-    expect(result.enhancedSystemPrompt).toContain(
-      "You are a helpful assistant."
-    );
-    expect(result.enhancedSystemPrompt).toContain(
-      CITATION_DATA_START_DELIMITER
-    );
+    expect(result.enhancedSystemPrompt).toContain("You are a helpful assistant.");
+    expect(result.enhancedSystemPrompt).toContain(CITATION_DATA_START_DELIMITER);
     expect(result.enhancedUserPrompt).toContain("Analyze this document.");
   });
 
@@ -125,9 +112,7 @@ describe("wrapCitationPrompt", () => {
       isAudioVideo: true,
     });
 
-    expect(result.enhancedSystemPrompt).toContain(
-      CITATION_DATA_START_DELIMITER
-    );
+    expect(result.enhancedSystemPrompt).toContain(CITATION_DATA_START_DELIMITER);
     expect(result.enhancedSystemPrompt).toContain("timestamps");
     expect(result.enhancedSystemPrompt).toContain("start_time");
   });
@@ -140,9 +125,7 @@ describe("wrapCitationPrompt", () => {
     });
 
     // User prompt should be returned as-is (or with minimal modifications)
-    expect(result.enhancedUserPrompt).toContain(
-      "Analyze this document: [content here]"
-    );
+    expect(result.enhancedUserPrompt).toContain("Analyze this document: [content here]");
   });
 
   it("handles empty prompts", () => {
@@ -151,9 +134,7 @@ describe("wrapCitationPrompt", () => {
       userPrompt: "",
     });
 
-    expect(result.enhancedSystemPrompt).toContain(
-      CITATION_DATA_START_DELIMITER
-    );
+    expect(result.enhancedSystemPrompt).toContain(CITATION_DATA_START_DELIMITER);
     expect(typeof result.enhancedUserPrompt).toBe("string");
   });
 
@@ -173,9 +154,7 @@ More content.`;
 
     const result = wrapCitationPrompt({ systemPrompt, userPrompt });
 
-    expect(result.enhancedSystemPrompt).toContain(
-      "analyze documents carefully"
-    );
+    expect(result.enhancedSystemPrompt).toContain("analyze documents carefully");
     expect(result.enhancedUserPrompt).toContain("Page 1:");
     expect(result.enhancedUserPrompt).toContain("Page 2:");
   });
@@ -190,9 +169,7 @@ More content.`;
         deepTextPromptPortion,
       });
 
-      expect(result.enhancedUserPrompt).toContain(
-        "This is the document content."
-      );
+      expect(result.enhancedUserPrompt).toContain("This is the document content.");
       expect(result.enhancedUserPrompt).toContain("Second line here.");
       expect(result.enhancedUserPrompt).toContain("Summarize this document.");
     });
@@ -221,11 +198,8 @@ More content.`;
         deepTextPromptPortion,
       });
 
-      const fileContentIndex = result.enhancedUserPrompt.indexOf(
-        "[FILE CONTENT HERE]"
-      );
-      const userPromptIndex =
-        result.enhancedUserPrompt.indexOf("User question");
+      const fileContentIndex = result.enhancedUserPrompt.indexOf("[FILE CONTENT HERE]");
+      const userPromptIndex = result.enhancedUserPrompt.indexOf("User question");
       expect(fileContentIndex).toBeLessThan(userPromptIndex);
     });
 
@@ -278,11 +252,7 @@ describe("wrapSystemCitationPrompt maintains wrap strategy", () => {
     const result = wrapSystemCitationPrompt({
       systemPrompt: "My system prompt here",
     });
-    expect(result.indexOf(CITATION_DATA_START_DELIMITER)).toBeLessThan(
-      result.indexOf("My system prompt here")
-    );
-    expect(result.indexOf("My system prompt here")).toBeLessThan(
-      result.lastIndexOf("<citation-reminder>")
-    );
+    expect(result.indexOf(CITATION_DATA_START_DELIMITER)).toBeLessThan(result.indexOf("My system prompt here"));
+    expect(result.indexOf("My system prompt here")).toBeLessThan(result.lastIndexOf("<citation-reminder>"));
   });
 });

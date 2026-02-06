@@ -12,19 +12,12 @@ import crypto from "crypto";
  * Verify Intercom webhook signature
  * This is the same function used in server.ts
  */
-function verifyWebhookSignature(
-  rawBody: string,
-  signature: string,
-  secret: string
-): boolean {
+function verifyWebhookSignature(rawBody: string, signature: string, secret: string): boolean {
   const hmac = crypto.createHmac("sha256", secret);
   const digest = hmac.update(rawBody).digest("hex");
 
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, "hex"),
-      Buffer.from(digest, "hex")
-    );
+    return crypto.timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(digest, "hex"));
   } catch {
     return false;
   }
@@ -64,11 +57,7 @@ describe("Webhook Signature Verification", () => {
       const body = JSON.stringify({ topic: "conversation.user.replied" });
       const signatureFromWrongSecret = generateSignature(body, "wrong_secret");
 
-      const isValid = verifyWebhookSignature(
-        body,
-        signatureFromWrongSecret,
-        testSecret
-      );
+      const isValid = verifyWebhookSignature(body, signatureFromWrongSecret, testSecret);
 
       expect(isValid).toBe(false);
     });
@@ -217,11 +206,7 @@ describe("Webhook Signature Verification", () => {
       const bodyWithNewlines = '{"message": "Line 1\\nLine 2\\nLine 3"}';
       const signature = generateSignature(bodyWithNewlines, testSecret);
 
-      const isValid = verifyWebhookSignature(
-        bodyWithNewlines,
-        signature,
-        testSecret
-      );
+      const isValid = verifyWebhookSignature(bodyWithNewlines, signature, testSecret);
 
       expect(isValid).toBe(true);
     });

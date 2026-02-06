@@ -5,9 +5,7 @@ import { useSmartDiff } from "../react/useSmartDiff";
 describe("useSmartDiff", () => {
   describe("identical texts", () => {
     it("returns no diff for identical strings", () => {
-      const { result } = renderHook(() =>
-        useSmartDiff("Hello world", "Hello world")
-      );
+      const { result } = renderHook(() => useSmartDiff("Hello world", "Hello world"));
 
       expect(result.current.hasDiff).toBe(false);
       expect(result.current.similarity).toBe(1);
@@ -17,9 +15,7 @@ describe("useSmartDiff", () => {
     });
 
     it("treats case differences as unchanged", () => {
-      const { result } = renderHook(() =>
-        useSmartDiff("Hello World", "Hello World")
-      );
+      const { result } = renderHook(() => useSmartDiff("Hello World", "Hello World"));
 
       expect(result.current.hasDiff).toBe(false);
       expect(result.current.similarity).toBe(1);
@@ -35,39 +31,27 @@ describe("useSmartDiff", () => {
 
   describe("simple word changes", () => {
     it("detects single word change", () => {
-      const { result } = renderHook(() =>
-        useSmartDiff("Hello world", "Hello universe")
-      );
+      const { result } = renderHook(() => useSmartDiff("Hello world", "Hello universe"));
 
       expect(result.current.hasDiff).toBe(true);
-      expect(
-        result.current.diffResult.some((block) => block.type === "modified")
-      ).toBe(true);
+      expect(result.current.diffResult.some(block => block.type === "modified")).toBe(true);
 
-      const modifiedBlock = result.current.diffResult.find(
-        (block) => block.type === "modified"
-      );
+      const modifiedBlock = result.current.diffResult.find(block => block.type === "modified");
       expect(modifiedBlock).toBeDefined();
-      expect(modifiedBlock?.parts.some((part) => part.removed)).toBe(true);
-      expect(modifiedBlock?.parts.some((part) => part.added)).toBe(true);
+      expect(modifiedBlock?.parts.some(part => part.removed)).toBe(true);
+      expect(modifiedBlock?.parts.some(part => part.added)).toBe(true);
     });
 
     it("detects multiple word changes", () => {
-      const { result } = renderHook(() =>
-        useSmartDiff("The quick brown fox", "The slow brown dog")
-      );
+      const { result } = renderHook(() => useSmartDiff("The quick brown fox", "The slow brown dog"));
 
       expect(result.current.hasDiff).toBe(true);
-      const modifiedBlock = result.current.diffResult.find(
-        (block) => block.type === "modified"
-      );
+      const modifiedBlock = result.current.diffResult.find(block => block.type === "modified");
       expect(modifiedBlock).toBeDefined();
     });
 
     it("handles whitespace normalization", () => {
-      const { result } = renderHook(() =>
-        useSmartDiff("Hello  world", "Hello world")
-      );
+      const { result } = renderHook(() => useSmartDiff("Hello  world", "Hello world"));
 
       // Should detect the difference in spacing
       expect(result.current.hasDiff).toBe(true);
@@ -83,9 +67,7 @@ describe("useSmartDiff", () => {
 
       expect(result.current.hasDiff).toBe(true);
       // diffLines may merge line changes into "modified" or produce "added" depending on content
-      const hasChange = result.current.diffResult.some(
-        (block) => block.type === "added" || block.type === "modified"
-      );
+      const hasChange = result.current.diffResult.some(block => block.type === "added" || block.type === "modified");
       expect(hasChange).toBe(true);
     });
 
@@ -97,9 +79,7 @@ describe("useSmartDiff", () => {
 
       expect(result.current.hasDiff).toBe(true);
       // diffLines may merge line changes into "modified" or produce "removed" depending on content
-      const hasChange = result.current.diffResult.some(
-        (block) => block.type === "removed" || block.type === "modified"
-      );
+      const hasChange = result.current.diffResult.some(block => block.type === "removed" || block.type === "modified");
       expect(hasChange).toBe(true);
     });
 
@@ -112,7 +92,7 @@ describe("useSmartDiff", () => {
       expect(result.current.hasDiff).toBe(true);
       // May produce "added" blocks or "modified" blocks depending on how diffLines processes
       const changeBlocks = result.current.diffResult.filter(
-        (block) => block.type === "added" || block.type === "modified"
+        block => block.type === "added" || block.type === "modified",
       );
       expect(changeBlocks.length).toBeGreaterThan(0);
     });
@@ -120,9 +100,7 @@ describe("useSmartDiff", () => {
 
   describe("similarity scoring", () => {
     it("returns high similarity for minor changes", () => {
-      const { result } = renderHook(() =>
-        useSmartDiff("The quick brown fox", "The quick brown dog")
-      );
+      const { result } = renderHook(() => useSmartDiff("The quick brown fox", "The quick brown dog"));
 
       expect(result.current.similarity).toBeGreaterThan(0.7);
       expect(result.current.isHighVariance).toBe(false);
@@ -138,9 +116,7 @@ describe("useSmartDiff", () => {
       // Two texts of similar length may still have high structural similarity
       expect(result.current.hasDiff).toBe(true);
       // Just verify it detected a difference
-      expect(
-        result.current.diffResult.some((block) => block.type !== "unchanged")
-      ).toBe(true);
+      expect(result.current.diffResult.some(block => block.type !== "unchanged")).toBe(true);
     });
 
     it("handles completely different texts", () => {
@@ -212,9 +188,7 @@ describe("useSmartDiff", () => {
 
       expect(result.current.hasDiff).toBe(true);
       // diffLines may merge changes into "modified" blocks
-      const hasChanges = result.current.diffResult.some(
-        (block) => block.type === "modified" || block.type === "added"
-      );
+      const hasChanges = result.current.diffResult.some(block => block.type === "modified" || block.type === "added");
       expect(hasChanges).toBe(true);
     });
 
@@ -226,9 +200,7 @@ describe("useSmartDiff", () => {
 
       expect(result.current.hasDiff).toBe(true);
       // diffLines may merge changes into "modified" blocks
-      const hasChanges = result.current.diffResult.some(
-        (block) => block.type === "modified" || block.type === "removed"
-      );
+      const hasChanges = result.current.diffResult.some(block => block.type === "modified" || block.type === "removed");
       expect(hasChanges).toBe(true);
     });
   });

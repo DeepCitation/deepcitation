@@ -203,5 +203,5 @@ Please have ready:
  * Get the combined knowledge base content for display
  */
 export function getKnowledgeBaseSummary(): string {
-  return SAMPLE_KNOWLEDGE_BASE.map((doc) => `- ${doc.filename}`).join("\n");
+  return SAMPLE_KNOWLEDGE_BASE.map(doc => `- ${doc.filename}`).join("\n");
 }

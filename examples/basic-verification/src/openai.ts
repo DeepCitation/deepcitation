@@ -15,19 +15,19 @@
  */
 
 import "dotenv/config";
-import { readFileSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
-import OpenAI from "openai";
 import {
   DeepCitation,
-  wrapCitationPrompt,
-  getCitationStatus,
-  replaceCitations,
-  getAllCitationsFromLlmOutput,
   extractVisibleText,
+  getAllCitationsFromLlmOutput,
+  getCitationStatus,
   getVerificationTextIndicator,
+  replaceCitations,
+  wrapCitationPrompt,
 } from "@deepcitation/deepcitation-js";
+import { readFileSync } from "fs";
+import OpenAI from "openai";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
 
 // Get current directory for loading sample file
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -54,15 +54,12 @@ async function main() {
   console.log("📄 Step 1: Uploading document and preparing prompts...\n");
 
   // Load the sample chart image from shared assets
-  const sampleDocument = readFileSync(
-    resolve(__dirname, "../../assets/john-doe-50-m-chart.jpg")
-  );
+  const sampleDocument = readFileSync(resolve(__dirname, "../../assets/john-doe-50-m-chart.jpg"));
 
   // Upload documents to DeepCitation
-  const { fileDataParts, deepTextPromptPortion } =
-    await deepcitation.prepareFiles([
-      { file: sampleDocument, filename: "john-doe-50-m-chart.jpg" },
-    ]);
+  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareFiles([
+    { file: sampleDocument, filename: "john-doe-50-m-chart.jpg" },
+  ]);
 
   // DeepCitation assigns a 20-character alphanumeric attachmentId - save this to use for verification
   const attachmentId = fileDataParts[0].attachmentId;
@@ -72,7 +69,9 @@ async function main() {
 
   // Wrap your prompts with citation instructions
   // These can be overridden via environment variables
-  const systemPrompt = process.env.SYSTEM_PROMPT || `You are a helpful assistant. Answer questions about the
+  const systemPrompt =
+    process.env.SYSTEM_PROMPT ||
+    `You are a helpful assistant. Answer questions about the
 provided documents accurately and cite your sources.`;
 
   const userQuestion = process.env.USER_PROMPT || "Summarize the key information shown in this document.";
@@ -197,10 +196,7 @@ provided documents accurately and cite your sources.`;
 
   console.log("🔍 Step 4: Verifying citations against source document...\n");
 
-  const verificationResult = await deepcitation.verifyAttachment(
-    attachmentId,
-    parsedCitations
-  );
+  const verificationResult = await deepcitation.verifyAttachment(attachmentId, parsedCitations);
 
   // ============================================
   // STEP 5: DISPLAY RESULTS
@@ -226,7 +222,9 @@ provided documents accurately and cite your sources.`;
       // Original citation from LLM
       const originalCitation = parsedCitations[key];
       if (originalCitation?.fullPhrase) {
-        console.log(`  📝 Claimed: "${originalCitation.fullPhrase.slice(0, 100)}${originalCitation.fullPhrase.length > 100 ? "..." : ""}"`);
+        console.log(
+          `  📝 Claimed: "${originalCitation.fullPhrase.slice(0, 100)}${originalCitation.fullPhrase.length > 100 ? "..." : ""}"`,
+        );
       }
 
       // Verification details
@@ -234,7 +232,9 @@ provided documents accurately and cite your sources.`;
       console.log(`  📄 Page: ${verification.verifiedPageNumber ?? "N/A"}`);
 
       if (verification.verifiedMatchSnippet) {
-        console.log(`  🔍 Found: "${verification.verifiedMatchSnippet.slice(0, 100)}${verification.verifiedMatchSnippet.length > 100 ? "..." : ""}"`);
+        console.log(
+          `  🔍 Found: "${verification.verifiedMatchSnippet.slice(0, 100)}${verification.verifiedMatchSnippet.length > 100 ? "..." : ""}"`,
+        );
       }
 
       if (verification.verificationImageBase64) {
@@ -257,35 +257,20 @@ provided documents accurately and cite your sources.`;
     replaceCitations(visibleText, {
       verifications: verificationResult.verifications,
       showVerificationStatus: true,
-    })
+    }),
   );
   console.log("─".repeat(50) + "\n");
 
   // Summary statistics
-  const verified = verifications.filter(
-    ([, h]) => getCitationStatus(h).isVerified
-  ).length;
-  const partial = verifications.filter(
-    ([, h]) => getCitationStatus(h).isPartialMatch
-  ).length;
-  const missed = verifications.filter(
-    ([, h]) => getCitationStatus(h).isMiss
-  ).length;
+  const verified = verifications.filter(([, h]) => getCitationStatus(h).isVerified).length;
+  const partial = verifications.filter(([, h]) => getCitationStatus(h).isPartialMatch).length;
+  const missed = verifications.filter(([, h]) => getCitationStatus(h).isMiss).length;
 
   console.log("📊 Summary:");
   console.log(`   Total citations: ${verifications.length}`);
   if (verifications.length > 0) {
-    console.log(
-      `   Verified: ${verified} (${(
-        (verified / verifications.length) *
-        100
-      ).toFixed(0)}%)`
-    );
-    console.log(`   Partial: ${partial} (${(
-      (partial / verifications.length) *
-      100
-    ).toFixed(0)}%)`
-    );
+    console.log(`   Verified: ${verified} (${((verified / verifications.length) * 100).toFixed(0)}%)`);
+    console.log(`   Partial: ${partial} (${((partial / verifications.length) * 100).toFixed(0)}%)`);
     console.log(`   Not found: ${missed}`);
   }
 }

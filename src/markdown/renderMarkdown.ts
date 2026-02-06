@@ -8,11 +8,7 @@ import {
   renderCitationVariant,
   renderReferencesSection,
 } from "./markdownVariants.js";
-import type {
-  CitationWithStatus,
-  MarkdownOutput,
-  RenderMarkdownOptions,
-} from "./types.js";
+import type { CitationWithStatus, MarkdownOutput, RenderMarkdownOptions } from "./types.js";
 
 /**
  * Module-level compiled regex for cite tag matching.
@@ -26,8 +22,7 @@ const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
  * in parseCiteAttributes. This avoids stateful lastIndex issues that occur when
  * reusing a global regex across multiple exec() calls on different strings.
  */
-const ATTR_REGEX_PATTERN =
-  /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
+const ATTR_REGEX_PATTERN = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
 
 /**
  * Map of attribute key aliases to their normalized form.
@@ -52,15 +47,10 @@ const ATTR_KEY_NORMALIZATION: Record<string, string> = {
 /**
  * Parse attributes from a cite tag.
  */
-function parseCiteAttributes(
-  citeTag: string
-): Record<string, string | undefined> {
+function parseCiteAttributes(citeTag: string): Record<string, string | undefined> {
   const attrs: Record<string, string | undefined> = {};
   // Create fresh regex instance to avoid stateful lastIndex issues
-  const attrRegex = new RegExp(
-    ATTR_REGEX_PATTERN.source,
-    ATTR_REGEX_PATTERN.flags
-  );
+  const attrRegex = new RegExp(ATTR_REGEX_PATTERN.source, ATTR_REGEX_PATTERN.flags);
   let match;
 
   while ((match = attrRegex.exec(citeTag)) !== null) {
@@ -81,16 +71,13 @@ function parseCiteAttributes(
 /**
  * Build a Citation object from parsed cite tag attributes.
  */
-function buildCitationFromAttrs(
-  attrs: Record<string, string | undefined>,
-  citationNumber: number
-): Citation {
+function buildCitationFromAttrs(attrs: Record<string, string | undefined>, citationNumber: number): Citation {
   const parseLineIds = (lineIdsStr?: string): number[] | undefined => {
     if (!lineIdsStr) return undefined;
     const nums = lineIdsStr
       .split(",")
-      .map((s) => parseInt(s.trim(), 10))
-      .filter((n) => !Number.isNaN(n));
+      .map(s => parseInt(s.trim(), 10))
+      .filter(n => !Number.isNaN(n));
     return nums.length > 0 ? nums : undefined;
   };
 
@@ -102,20 +89,15 @@ function buildCitationFromAttrs(
   };
 
   // Unescape quotes in text fields
-  const unescape = (str: string | undefined): string | undefined =>
-    str?.replace(/\\'/g, "'").replace(/\\"/g, '"');
+  const unescapeText = (str: string | undefined): string | undefined => str?.replace(/\\'/g, "'").replace(/\\"/g, '"');
 
   return {
     attachmentId: attrs.attachment_id,
-    pageNumber: attrs.page_number
-      ? parseInt(attrs.page_number, 10)
-      : parsePageNumber(attrs.start_page_id),
-    fullPhrase: unescape(attrs.full_phrase),
-    anchorText: unescape(attrs.anchor_text),
+    pageNumber: attrs.page_number ? parseInt(attrs.page_number, 10) : parsePageNumber(attrs.start_page_id),
+    fullPhrase: unescapeText(attrs.full_phrase),
+    anchorText: unescapeText(attrs.anchor_text),
     lineIds: parseLineIds(attrs.line_ids),
-    citationNumber: attrs.citation_number
-      ? parseInt(attrs.citation_number, 10)
-      : citationNumber,
+    citationNumber: attrs.citation_number ? parseInt(attrs.citation_number, 10) : citationNumber,
   };
 }
 
@@ -148,10 +130,7 @@ function buildCitationFromAttrs(
  * // output.references: "[^1]: \"Revenue grew 45%\" - p.3 ✓"
  * ```
  */
-export function renderCitationsAsMarkdown(
-  input: string,
-  options: RenderMarkdownOptions = {}
-): MarkdownOutput {
+export function renderCitationsAsMarkdown(input: string, options: RenderMarkdownOptions = {}): MarkdownOutput {
   const { verifications = {}, includeReferences = false } = options;
 
   const citationsWithStatus: CitationWithStatus[] = [];
@@ -161,7 +140,7 @@ export function renderCitationsAsMarkdown(
   const citationRegex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
 
   // Replace cite tags with rendered variants
-  const markdown = input.replace(citationRegex, (match) => {
+  const markdown = input.replace(citationRegex, match => {
     citationIndex++;
     const attrs = parseCiteAttributes(match);
     const citation = buildCitationFromAttrs(attrs, citationIndex);
@@ -174,10 +153,7 @@ export function renderCitationsAsMarkdown(
       citationKey,
       verification,
       status,
-      displayText: getCitationDisplayText(
-        citation,
-        options.variant || "inline"
-      ),
+      displayText: getCitationDisplayText(citation, options.variant || "inline"),
       citationNumber: citationIndex,
     };
 
@@ -187,9 +163,7 @@ export function renderCitationsAsMarkdown(
   });
 
   // Generate references section if requested
-  const references = includeReferences
-    ? renderReferencesSection(citationsWithStatus, options)
-    : undefined;
+  const references = includeReferences ? renderReferencesSection(citationsWithStatus, options) : undefined;
 
   // Combine markdown and references for full output
   const full = references ? `${markdown}\n\n---\n\n${references}` : markdown;
@@ -219,10 +193,7 @@ export function renderCitationsAsMarkdown(
  * });
  * ```
  */
-export function toMarkdown(
-  input: string,
-  options: RenderMarkdownOptions = {}
-): string {
+export function toMarkdown(input: string, options: RenderMarkdownOptions = {}): string {
   return renderCitationsAsMarkdown(input, options).full;
 }
 
@@ -236,7 +207,7 @@ export function toMarkdown(
  */
 export function getVerificationIndicator(
   verification: Verification | null | undefined,
-  style: import("./types.js").IndicatorStyle = "check"
+  style: import("./types.js").IndicatorStyle = "check",
 ): string {
   const status = getCitationStatus(verification);
   return getIndicator(status, style);

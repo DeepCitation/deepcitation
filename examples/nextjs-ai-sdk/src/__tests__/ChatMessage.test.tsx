@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { ChatMessage } from "../components/ChatMessage";
 
 // Mock the CitationComponent from deepcitation
@@ -23,20 +23,13 @@ describe("ChatMessage", () => {
         citations={undefined}
         verifications={undefined}
         summary={undefined}
-      />
+      />,
     );
     expect(screen.getByText("Hello world")).toBeInTheDocument();
   });
 
   it("renders assistant message without crashing when citations/verifications are undefined", () => {
-    render(
-      <ChatMessage
-        message={baseMessage}
-        citations={undefined}
-        verifications={undefined}
-        summary={undefined}
-      />
-    );
+    render(<ChatMessage message={baseMessage} citations={undefined} verifications={undefined} summary={undefined} />);
     // The component should render without throwing
     expect(document.body).toBeInTheDocument();
   });
@@ -48,7 +41,7 @@ describe("ChatMessage", () => {
         citations={{}}
         verifications={{}}
         summary={{ total: 0, verified: 0, missed: 0, pending: 0 }}
-      />
+      />,
     );
     expect(document.body).toBeInTheDocument();
   });
@@ -64,7 +57,7 @@ describe("ChatMessage", () => {
         citations={undefined}
         verifications={undefined}
         summary={undefined}
-      />
+      />,
     );
     expect(document.body).toBeInTheDocument();
   });
@@ -94,7 +87,7 @@ describe("ChatMessage", () => {
         citations={citations as any}
         verifications={verifications as any}
         summary={{ total: 1, verified: 1, missed: 0, pending: 0 }}
-      />
+      />,
     );
     expect(document.body).toBeInTheDocument();
   });

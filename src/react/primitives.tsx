@@ -4,56 +4,20 @@
  */
 
 import {
-  createContext,
   forwardRef,
   type HTMLAttributes,
   type MouseEvent,
   type ReactNode,
   type TouchEvent,
   useCallback,
-  useContext,
   useMemo,
 } from "react";
 import { getCitationStatus } from "../parsing/parseCitation.js";
-import type {
-  CitationStatus,
-  Citation as CitationType,
-} from "../types/citation.js";
+import type { CitationStatus, Citation as CitationType } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
-import {
-  classNames,
-  generateCitationInstanceId,
-  generateCitationKey,
-} from "./utils.js";
-
-interface CitationContextValue {
-  citation: CitationType;
-  citationKey: string;
-  citationInstanceId: string;
-  status: CitationStatus;
-  verification: Verification | null;
-  config: {
-    fallbackDisplay: string | null;
-    pendingContent: ReactNode;
-  };
-}
-
-const CitationContext = createContext<CitationContextValue | null>(null);
-
-/** Access citation context. Must be used within Citation.Root. */
-export function useCitationContext(): CitationContextValue {
-  const context = useContext(CitationContext);
-  if (!context) {
-    throw new Error("Citation components must be used within a Citation.Root");
-  }
-  return context;
-}
-
-/** Safely access citation context (returns null if not in context). */
-export function useCitationContextSafe(): CitationContextValue | null {
-  return useContext(CitationContext);
-}
+import { CitationContext, type CitationContextValue, useCitationContext } from "./useCitationContext.js";
+import { classNames, generateCitationInstanceId, generateCitationKey } from "./utils.js";
 
 export interface CitationRootProps {
   citation: CitationType;
@@ -64,30 +28,13 @@ export interface CitationRootProps {
 }
 
 /** Root component that provides citation context to all child primitives. */
-export const CitationRoot = forwardRef<
-  HTMLSpanElement,
-  CitationRootProps & HTMLAttributes<HTMLSpanElement>
->(
+export const CitationRoot = forwardRef<HTMLSpanElement, CitationRootProps & HTMLAttributes<HTMLSpanElement>>(
   (
-    {
-      citation,
-      verification = null,
-      children,
-      fallbackDisplay = null,
-      pendingContent = "..",
-      className,
-      ...props
-    },
-    ref
+    { citation, verification = null, children, fallbackDisplay = null, pendingContent = "..", className, ...props },
+    ref,
   ) => {
-    const citationKey = useMemo(
-      () => generateCitationKey(citation),
-      [citation]
-    );
-    const citationInstanceId = useMemo(
-      () => generateCitationInstanceId(citationKey),
-      [citationKey]
-    );
+    const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
+    const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
     const status = getCitationStatus(verification);
 
     const contextValue = useMemo<CitationContextValue>(
@@ -102,15 +49,7 @@ export const CitationRoot = forwardRef<
           pendingContent,
         },
       }),
-      [
-        citation,
-        citationKey,
-        citationInstanceId,
-        status,
-        verification,
-        fallbackDisplay,
-        pendingContent,
-      ]
+      [citation, citationKey, citationInstanceId, status, verification, fallbackDisplay, pendingContent],
     );
 
     return (
@@ -126,33 +65,22 @@ export const CitationRoot = forwardRef<
         </span>
       </CitationContext.Provider>
     );
-  }
+  },
 );
 
 CitationRoot.displayName = "Citation.Root";
 
 export interface CitationTriggerProps extends HTMLAttributes<HTMLSpanElement> {
-  onCitationClick?: (
-    citation: CitationType,
-    citationKey: string,
-    event: MouseEvent
-  ) => void;
+  onCitationClick?: (citation: CitationType, citationKey: string, event: MouseEvent) => void;
   onCitationMouseEnter?: (citation: CitationType, citationKey: string) => void;
   onCitationMouseLeave?: (citation: CitationType, citationKey: string) => void;
-  onCitationTouchEnd?: (
-    citation: CitationType,
-    citationKey: string,
-    event: TouchEvent
-  ) => void;
+  onCitationTouchEnd?: (citation: CitationType, citationKey: string, event: TouchEvent) => void;
   isMobile?: boolean;
   disableHover?: boolean;
 }
 
 /** Interactive trigger component for the citation. */
-export const CitationTrigger = forwardRef<
-  HTMLSpanElement,
-  CitationTriggerProps
->(
+export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>(
   (
     {
       children,
@@ -170,7 +98,7 @@ export const CitationTrigger = forwardRef<
       onTouchEnd,
       ...props
     },
-    ref
+    ref,
   ) => {
     const { citation, citationKey, status } = useCitationContext();
 
@@ -179,7 +107,7 @@ export const CitationTrigger = forwardRef<
         e.stopPropagation();
         onClick?.(e);
       },
-      [onClick]
+      [onClick],
     );
 
     const handleMouseDown = useCallback(
@@ -189,7 +117,7 @@ export const CitationTrigger = forwardRef<
         onMouseDown?.(e);
         onCitationClick?.(citation, citationKey, e);
       },
-      [onMouseDown, onCitationClick, citation, citationKey]
+      [onMouseDown, onCitationClick, citation, citationKey],
     );
 
     const handleMouseEnter = useCallback(
@@ -199,7 +127,7 @@ export const CitationTrigger = forwardRef<
           onCitationMouseEnter?.(citation, citationKey);
         }
       },
-      [onMouseEnter, disableHover, onCitationMouseEnter, citation, citationKey]
+      [onMouseEnter, disableHover, onCitationMouseEnter, citation, citationKey],
     );
 
     const handleMouseLeave = useCallback(
@@ -209,7 +137,7 @@ export const CitationTrigger = forwardRef<
           onCitationMouseLeave?.(citation, citationKey);
         }
       },
-      [onMouseLeave, disableHover, onCitationMouseLeave, citation, citationKey]
+      [onMouseLeave, disableHover, onCitationMouseLeave, citation, citationKey],
     );
 
     const handleTouchEnd = useCallback(
@@ -221,16 +149,14 @@ export const CitationTrigger = forwardRef<
           onCitationTouchEnd?.(citation, citationKey, e);
         }
       },
-      [onTouchEnd, isMobile, onCitationTouchEnd, citation, citationKey]
+      [onTouchEnd, isMobile, onCitationTouchEnd, citation, citationKey],
     );
 
     const statusClasses = classNames(
-      status.isVerified &&
-        !status.isPartialMatch &&
-        "text-green-600 dark:text-green-500",
+      status.isVerified && !status.isPartialMatch && "text-green-600 dark:text-green-500",
       status.isPartialMatch && "text-amber-500 dark:text-amber-400",
       status.isMiss && "text-red-500 dark:text-red-400",
-      status.isPending && "text-gray-400 dark:text-gray-500"
+      status.isPending && "text-gray-400 dark:text-gray-500",
     );
 
     return (
@@ -241,7 +167,7 @@ export const CitationTrigger = forwardRef<
         className={classNames(
           "cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2 focus-visible:rounded-sm",
           statusClasses,
-          className
+          className,
         )}
         style={status.isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
         onClick={handleClick}
@@ -254,7 +180,7 @@ export const CitationTrigger = forwardRef<
         {children}
       </span>
     );
-  }
+  },
 );
 
 CitationTrigger.displayName = "Citation.Trigger";
@@ -265,23 +191,17 @@ export interface CitationBracketProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 /** Bracket wrapper component for citation content. */
-export const CitationBracket = forwardRef<
-  HTMLSpanElement,
-  CitationBracketProps
->(({ children, className, open = "[", close = "]", ...props }, ref) => {
-  return (
-    <span
-      ref={ref}
-      className={classNames("inline", className)}
-      aria-hidden="true"
-      {...props}
-    >
-      <span className="inline">{open}</span>
-      <span className="inline">{children}</span>
-      <span className="inline">{close}</span>
-    </span>
-  );
-});
+export const CitationBracket = forwardRef<HTMLSpanElement, CitationBracketProps>(
+  ({ children, className, open = "[", close = "]", ...props }, ref) => {
+    return (
+      <span ref={ref} className={classNames("inline", className)} aria-hidden="true" {...props}>
+        <span className="inline">{open}</span>
+        <span className="inline">{children}</span>
+        <span className="inline">{close}</span>
+      </span>
+    );
+  },
+);
 
 CitationBracket.displayName = "Citation.Bracket";
 
@@ -296,72 +216,56 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
 
     const displayNumber = useMemo(() => {
       if (number !== undefined) return String(number);
-      return (
-        citation.anchorText?.toString() ||
-        citation.citationNumber?.toString() ||
-        config.fallbackDisplay ||
-        "1"
-      );
+      return citation.anchorText?.toString() || citation.citationNumber?.toString() || config.fallbackDisplay || "1";
     }, [number, citation, config]);
 
     if (status.isPending) {
       return (
-        <span
-          ref={ref}
-          className={classNames("font-medium opacity-60", className)}
-          {...props}
-        >
+        <span ref={ref} className={classNames("font-medium opacity-60", className)} {...props}>
           {config.pendingContent}
         </span>
       );
     }
 
     return (
-      <span
-        ref={ref}
-        className={classNames("font-medium", className)}
-        {...props}
-      >
+      <span ref={ref} className={classNames("font-medium", className)} {...props}>
         {displayNumber}
       </span>
     );
-  }
+  },
 );
 
 CitationNumber.displayName = "Citation.Number";
 
-export interface CitationAnchorTextProps
-  extends HTMLAttributes<HTMLSpanElement> {
+export interface CitationAnchorTextProps extends HTMLAttributes<HTMLSpanElement> {
   anchorText?: string;
   separator?: string;
 }
 
 /** Displays the citation anchorText (summary text). */
-export const CitationAnchorText = forwardRef<
-  HTMLSpanElement,
-  CitationAnchorTextProps
->(({ className, anchorText, separator = " ", ...props }, ref) => {
-  const { citation } = useCitationContext();
+export const CitationAnchorText = forwardRef<HTMLSpanElement, CitationAnchorTextProps>(
+  ({ className, anchorText, separator = " ", ...props }, ref) => {
+    const { citation } = useCitationContext();
 
-  const displayKeySpan = useMemo(() => {
-    if (anchorText !== undefined) return anchorText;
-    return citation.anchorText?.toString() || "";
-  }, [anchorText, citation]);
+    const displayKeySpan = useMemo(() => {
+      if (anchorText !== undefined) return anchorText;
+      return citation.anchorText?.toString() || "";
+    }, [anchorText, citation]);
 
-  if (!displayKeySpan) return null;
+    if (!displayKeySpan) return null;
 
-  return (
-    <span ref={ref} className={classNames("italic", className)} {...props}>
-      {displayKeySpan}
-      {separator}
-    </span>
-  );
-});
+    return (
+      <span ref={ref} className={classNames("italic", className)} {...props}>
+        {displayKeySpan}
+        {separator}
+      </span>
+    );
+  },
+);
 
 CitationAnchorText.displayName = "Citation.KeySpan";
 
-export interface CitationIndicatorProps
-  extends HTMLAttributes<HTMLSpanElement> {
+export interface CitationIndicatorProps extends HTMLAttributes<HTMLSpanElement> {
   verifiedIndicator?: ReactNode;
   partialIndicator?: ReactNode;
   missIndicator?: ReactNode;
@@ -370,10 +274,7 @@ export interface CitationIndicatorProps
 }
 
 /** Displays a status indicator based on citation verification state. */
-export const CitationIndicator = forwardRef<
-  HTMLSpanElement,
-  CitationIndicatorProps
->(
+export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorProps>(
   (
     {
       className,
@@ -384,7 +285,7 @@ export const CitationIndicator = forwardRef<
       showFor,
       ...props
     },
-    ref
+    ref,
   ) => {
     const { status } = useCitationContext();
 
@@ -393,7 +294,7 @@ export const CitationIndicator = forwardRef<
         if (!showFor) return true;
         return showFor.includes(state);
       },
-      [showFor]
+      [showFor],
     );
 
     const baseClasses = "inline ml-0.5 text-[0.85em]";
@@ -402,11 +303,7 @@ export const CitationIndicator = forwardRef<
       return (
         <span
           ref={ref}
-          className={classNames(
-            baseClasses,
-            "text-amber-500 dark:text-amber-400",
-            className
-          )}
+          className={classNames(baseClasses, "text-amber-500 dark:text-amber-400", className)}
           aria-label="Partial match"
           {...props}
         >
@@ -419,11 +316,7 @@ export const CitationIndicator = forwardRef<
       return (
         <span
           ref={ref}
-          className={classNames(
-            baseClasses,
-            "text-green-600 dark:text-green-500",
-            className
-          )}
+          className={classNames(baseClasses, "text-green-600 dark:text-green-500", className)}
           aria-label="Verified"
           {...props}
         >
@@ -436,11 +329,7 @@ export const CitationIndicator = forwardRef<
       return (
         <span
           ref={ref}
-          className={classNames(
-            baseClasses,
-            "text-red-500 dark:text-red-400",
-            className
-          )}
+          className={classNames(baseClasses, "text-red-500 dark:text-red-400", className)}
           aria-label="Not found"
           {...props}
         >
@@ -453,11 +342,7 @@ export const CitationIndicator = forwardRef<
       return (
         <span
           ref={ref}
-          className={classNames(
-            baseClasses,
-            "text-gray-400 dark:text-gray-500",
-            className
-          )}
+          className={classNames(baseClasses, "text-gray-400 dark:text-gray-500", className)}
           aria-label="Pending"
           {...props}
         >
@@ -467,7 +352,7 @@ export const CitationIndicator = forwardRef<
     }
 
     return null;
-  }
+  },
 );
 
 CitationIndicator.displayName = "Citation.Indicator";
@@ -507,7 +392,7 @@ export const CitationPhrase = forwardRef<HTMLSpanElement, CitationPhraseProps>(
         {displayPhrase}
       </span>
     );
-  }
+  },
 );
 
 CitationPhrase.displayName = "Citation.Phrase";
@@ -526,34 +411,14 @@ export const CitationPage = forwardRef<HTMLSpanElement, CitationPageProps>(
     }
 
     return (
-      <span
-        ref={ref}
-        className={classNames(
-          "text-xs text-gray-400 dark:text-gray-500",
-          className
-        )}
-        {...props}
-      >
+      <span ref={ref} className={classNames("text-xs text-gray-400 dark:text-gray-500", className)} {...props}>
         {prefix}
         {citation.pageNumber}
       </span>
     );
-  }
+  },
 );
 
 CitationPage.displayName = "Citation.Page";
-
-/** Citation primitives namespace for composable citation components. */
-export const Citation = {
-  Root: CitationRoot,
-  Trigger: CitationTrigger,
-  Bracket: CitationBracket,
-  Number: CitationNumber,
-  AnchorText: CitationAnchorText,
-  Indicator: CitationIndicator,
-  Status: CitationStatusComponent,
-  Phrase: CitationPhrase,
-  Page: CitationPage,
-} as const;
 
 // Types are exported at their definitions above

@@ -3,97 +3,127 @@
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
   },
-  "assist": {
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
-    }
+  "files": {
+    "includes": [
+      "src/**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/lib",
+      "!**/coverage",
+      "!**/playwright-report",
+      "!**/test-results"
+    ]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2,
-    "lineWidth": 80,
+    "lineWidth": 120,
     "lineEnding": "lf"
   },
   "javascript": {
     "formatter": {
+      "semicolons": "always",
       "quoteStyle": "double",
       "jsxQuoteStyle": "double",
-      "trailingCommas": "es5",
-      "semicolons": "always",
-      "arrowParentheses": "always",
+      "trailingCommas": "all",
       "bracketSpacing": true,
       "bracketSameLine": false,
-      "attributePosition": "auto"
+      "arrowParentheses": "asNeeded"
+    }
+  },
+  "css": {
+    "parser": {
+      "cssModules": true,
+      "tailwindDirectives": true
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
     }
   },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
+      "a11y": {
+        "recommended": false
+      },
+      "complexity": {
+        "useLiteralKeys": "off",
+        "useOptionalChain": "off",
+        "noUselessFragments": "warn",
+        "noBannedTypes": "off",
+        "noImportantStyles": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn",
+        "noGlobalEval": "warn"
+      },
       "correctness": {
-        "useHookAtTopLevel": "error",
         "useExhaustiveDependencies": "warn",
+        "useHookAtTopLevel": "warn",
         "noUnusedVariables": "warn",
-        "noUnusedFunctionParameters": "off",
+        "noUnusedImports": "warn",
+        "noUnusedFunctionParameters": "warn",
+        "useParseIntRadix": "warn",
+        "noEmptyPattern": "warn",
+        "noInvalidPositionAtImportRule": "warn",
+        "noChildrenProp": "warn",
+        "noUnreachable": "warn",
+        "noUnknownPseudoClass": "warn",
+        "noVoidTypeReturn": "warn",
+        "useJsxKeyInIterable": "warn",
         "noInvalidUseBeforeDeclaration": "off"
+      },
+      "performance": {
+        "noAccumulatingSpread": "warn"
       },
       "suspicious": {
         "noExplicitAny": "off",
         "noConsole": "off",
-        "noDebugger": "warn",
-        "noAssignInExpressions": "off",
-        "noArrayIndexKey": "off",
+        "noVar": "error",
         "noImplicitAnyLet": "off",
-        "noShadowRestrictedNames": "off",
-        "noConfusingVoidType": "off"
+        "noArrayIndexKey": "off",
+        "noAssignInExpressions": "off",
+        "useIterableCallbackReturn": "off",
+        "noGlobalIsNan": "warn",
+        "noGlobalIsFinite": "warn",
+        "noDoubleEquals": "warn",
+        "noControlCharactersInRegex": "warn",
+        "noSparseArray": "warn",
+        "noFallthroughSwitchClause": "warn",
+        "noShadowRestrictedNames": "warn",
+        "noRedeclare": "warn",
+        "noSelfCompare": "warn",
+        "noExportsInTest": "warn",
+        "noDuplicateClassMembers": "warn",
+        "noShorthandPropertyOverrides": "warn"
       },
       "style": {
         "useConst": "error",
-        "noNonNullAssertion": "off"
-      },
-      "a11y": {
-        "noSvgWithoutTitle": "off",
-        "useButtonType": "off",
-        "useKeyWithClickEvents": "off",
-        "useSemanticElements": "off",
-        "useAriaPropsSupportedByRole": "off",
-        "noStaticElementInteractions": "off"
-      }
-    }
-  },
-  "css": {
-    "parser": {
-      "cssModules": false,
-      "tailwindDirectives": true
-    },
-    "linter": {
-      "enabled": false
-    },
-    "formatter": {
-      "enabled": false
-    }
-  },
-  "files": {
-    "includes": [
-      "src/**",
-      "biome.json"
-    ]
-  },
-  "overrides": [
-    {
-      "includes": ["src/__tests__/**"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "noDebugger": "off"
+        "noNonNullAssertion": "off",
+        "useTemplate": "off",
+        "useNodejsImportProtocol": "off",
+        "useComponentExportOnlyModules": {
+          "level": "warn",
+          "options": {
+            "allowConstantExport": true
           }
         }
       }
     }
-  ]
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
 }

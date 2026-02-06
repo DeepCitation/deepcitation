@@ -11,12 +11,8 @@ describe("verification helpers", () => {
   it("exposes sentinel constants and blank defaults", () => {
     expect(NOT_FOUND_VERIFICATION_INDEX).toBe(-1);
     expect(PENDING_VERIFICATION_INDEX).toBe(-2);
-    expect(BLANK_VERIFICATION.verifiedPageNumber).toBe(
-      NOT_FOUND_VERIFICATION_INDEX
-    );
-    expect(BLANK_VERIFICATION.citation?.pageNumber).toBe(
-      NOT_FOUND_VERIFICATION_INDEX
-    );
+    expect(BLANK_VERIFICATION.verifiedPageNumber).toBe(NOT_FOUND_VERIFICATION_INDEX);
+    expect(BLANK_VERIFICATION.citation?.pageNumber).toBe(NOT_FOUND_VERIFICATION_INDEX);
   });
 
   it("builds deterministic ids from verification attributes", () => {

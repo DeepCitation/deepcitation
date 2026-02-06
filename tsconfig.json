@@ -1,25 +1,25 @@
 {
-    "compilerOptions": {
-      "target": "ESNext",
-      "module": "ESNext",
-      "moduleResolution": "node",
-      "outDir": "./lib",
-      "rootDir": "./src",
-      "baseUrl": ".",
-      "composite": true,
-      "declaration": true,
-      "declarationMap": true,
-      "sourceMap": true,
-      "esModuleInterop": true,
-      "strict": true,
-      "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true,
-      "jsx": "react-jsx",
-      "types": ["node", "react", "react-dom", "jest","@testing-library/jest-dom" ],
-      "paths": {
-        "@/*": ["src/*"]
-      }
-    },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "lib", "src/__tests__", "src/react/testing", "tests"]
-  }
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "types": ["node", "react", "react-dom", "jest", "@testing-library/jest-dom"],
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "lib", "src/__tests__", "src/react/testing", "tests"]
+}

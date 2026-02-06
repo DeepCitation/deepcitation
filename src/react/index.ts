@@ -11,27 +11,40 @@
  * @packageDocumentation
  */
 
+// Citation Primitives Namespace (composable building blocks)
+export { Citation } from "./Citation.js";
 // Components
 export {
   CitationComponent,
   type CitationComponentProps,
   type CitationVariant,
-  INDICATOR_SIZE_STYLE,
   MemoizedCitationComponent,
 } from "./CitationComponent.js";
 // Citation Drawer (ChatGPT-style bottom sheet)
 export {
   CitationDrawer,
   CitationDrawerItemComponent,
+} from "./CitationDrawer.js";
+export {
   groupCitationsBySource,
   useCitationDrawer,
-} from "./CitationDrawer.js";
+} from "./CitationDrawer.utils.js";
 // Citation Overlay Context (for blocking hover when image is expanded)
 export {
   CitationOverlayProvider,
   useCitationOverlay,
   useHasCitationOverlayProvider,
 } from "./CitationOverlayContext.js";
+// Constants - Shared styling and configuration
+export {
+  BROKEN_WAVY_UNDERLINE_STYLE,
+  COPY_FEEDBACK_DURATION_MS,
+  INDICATOR_SIZE_STYLE,
+  MISS_WAVY_UNDERLINE_STYLE,
+  POPOVER_CONTAINER_BASE_CLASSES,
+  WAVY_UNDERLINE_COLOR_VAR,
+  WAVY_UNDERLINE_DEFAULT_COLOR,
+} from "./constants.js";
 // Icons
 export {
   CheckIcon,
@@ -49,6 +62,7 @@ export {
 } from "./icons.js";
 // Prefetch utilities (for pre-rendering images before hover)
 export {
+  clearPrefetchCache,
   MemoizedPrefetchedPopoverImage,
   PrefetchedPopoverImage,
   prefetchImages,
@@ -56,27 +70,31 @@ export {
 } from "./PrefetchedPopoverImage.js";
 // Sources List Components (Anthropic-style aggregated citations)
 export {
-  detectSourceType,
-  getPlatformName,
   MemoizedSourcesListComponent,
   MemoizedSourcesListItem,
   MemoizedSourcesTrigger,
   SourcesListComponent,
   SourcesListItem,
   SourcesTrigger,
-  // Utilities
+} from "./SourcesListComponent.js";
+// Sources List Utilities
+export {
+  detectSourceType,
+  getFaviconUrl,
+  getPlatformName,
   sourceCitationsToListItems,
   useSourcesList,
-} from "./SourcesListComponent.js";
+} from "./SourcesListComponent.utils.js";
 // Diff Display Components (Enhanced diff visualization)
 export {
   CollapsibleText,
   type DiffDisplayMode,
-  getContextualStatusMessage,
   MatchQualityBar,
   SplitDiffDisplay,
   type SplitDiffDisplayProps,
 } from "./SplitDiffDisplay.js";
+// Status Message Utilities
+export { getContextualStatusMessage } from "./statusMessage.js";
 // Types - Useful for implementing your own citation components
 export type {
   CitationBehaviorActions,
@@ -119,19 +137,29 @@ export type {
 } from "./types.js";
 // URL Citation Component - For displaying URL citations
 export {
-  // Utilities
-  extractDomain,
+  MemoizedUrlCitationComponent,
+  UrlCitationComponent,
+} from "./UrlCitationComponent.js";
+// URL Status utilities
+export {
   isAccessibleStatus,
   isBlockedStatus,
   isErrorStatus,
   isRedirectedStatus,
   isVerifiedStatus,
-  MemoizedUrlCitationComponent,
+} from "./urlStatus.js";
+// URL Display utilities
+export {
+  extractDomain,
   STATUS_ICONS as URL_STATUS_ICONS,
-  UrlCitationComponent,
   urlDisplayUtils,
-  useUrlMeta,
-} from "./UrlCitationComponent.js";
+} from "./urlUtils.js";
+// Citation Context (for accessing citation data within Citation.Root)
+export {
+  type CitationContextValue,
+  useCitationContext,
+  useCitationContextSafe,
+} from "./useCitationContext.js";
 // Smart Diff Hook
 export {
   type DiffBlock,
@@ -139,6 +167,8 @@ export {
   type DiffPart,
   useSmartDiff,
 } from "./useSmartDiff.js";
+// URL Metadata hook
+export { useUrlMeta } from "./useUrlMeta.js";
 // Utilities - For generating citation keys and display text
 export {
   CITATION_X_PADDING,
@@ -169,3 +199,5 @@ export {
 } from "./VerificationLog.js";
 // Verification Tabs Component
 export { VerificationTabs } from "./VerificationTabs.js";
+// Variation Label Utilities
+export { getVariationLabel } from "./variationLabels.js";

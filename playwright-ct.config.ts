@@ -1,9 +1,9 @@
 import { defineConfig, devices } from "@playwright/experimental-ct-react";
-import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,7 +52,7 @@ export default defineConfig({
   workers: process.env.PLAYWRIGHT_WORKERS
     ? (() => {
         const parsed = parseInt(process.env.PLAYWRIGHT_WORKERS, 10);
-        return !isNaN(parsed) && parsed > 0 ? parsed : undefined;
+        return !Number.isNaN(parsed) && parsed > 0 ? parsed : undefined;
       })()
     : undefined,
   reporter: "html",

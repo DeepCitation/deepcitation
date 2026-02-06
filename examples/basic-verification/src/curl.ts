@@ -14,26 +14,25 @@
  */
 
 import "dotenv/config";
-import { readFileSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
-import OpenAI from "openai";
 import {
-  wrapCitationPrompt,
-  getCitationStatus,
-  replaceCitations,
-  getAllCitationsFromLlmOutput,
   extractVisibleText,
+  getAllCitationsFromLlmOutput,
+  getCitationStatus,
   getVerificationTextIndicator,
+  replaceCitations,
+  wrapCitationPrompt,
 } from "@deepcitation/deepcitation-js";
+import { readFileSync } from "fs";
+import OpenAI from "openai";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
 
 // Get current directory for loading sample file
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // API configuration
 const DEEPCITATION_API_KEY = process.env.DEEPCITATION_API_KEY!;
-const DEEPCITATION_BASE_URL =
-  process.env.DEEPCITATION_BASE_URL || "https://api.deepcitation.com";
+const DEEPCITATION_BASE_URL = process.env.DEEPCITATION_BASE_URL || "https://api.deepcitation.com";
 
 // Initialize OpenAI client (you can use any LLM provider)
 const openai = new OpenAI({
@@ -53,7 +52,7 @@ const model = "gpt-5-mini";
  */
 async function prepareFile(
   file: Buffer,
-  filename: string
+  filename: string,
 ): Promise<{
   attachmentId: string;
   deepTextPromptPortion: string;
@@ -87,7 +86,7 @@ async function prepareFile(
  */
 async function verifyCitations(
   attachmentId: string,
-  citations: Record<string, { fullPhrase?: string; pageNumber?: number }>
+  citations: Record<string, { fullPhrase?: string; pageNumber?: number }>,
 ): Promise<{
   verifications: Record<
     string,
@@ -134,19 +133,14 @@ async function main() {
   console.log("📄 Step 1: Uploading document via raw API call...\n");
 
   // Load the sample chart image from shared assets
-  const sampleDocument = readFileSync(
-    resolve(__dirname, "../../assets/john-doe-50-m-chart.jpg")
-  );
+  const sampleDocument = readFileSync(resolve(__dirname, "../../assets/john-doe-50-m-chart.jpg"));
 
   // Upload using raw fetch call
   console.log(`   POST ${DEEPCITATION_BASE_URL}/prepareFile`);
   console.log("   Headers: Authorization: Bearer dc_live_***");
   console.log("   Body: FormData with file\n");
 
-  const { attachmentId, deepTextPromptPortion } = await prepareFile(
-    sampleDocument,
-    "john-doe-50-m-chart.jpg"
-  );
+  const { attachmentId, deepTextPromptPortion } = await prepareFile(sampleDocument, "john-doe-50-m-chart.jpg");
 
   console.log("✅ Document uploaded successfully");
   console.log(`   Attachment ID: ${attachmentId}\n`);
@@ -158,9 +152,7 @@ async function main() {
     `You are a helpful assistant. Answer questions about the
 provided documents accurately and cite your sources.`;
 
-  const userQuestion =
-    process.env.USER_PROMPT ||
-    "Summarize the key information shown in this document.";
+  const userQuestion = process.env.USER_PROMPT || "Summarize the key information shown in this document.";
 
   // Show before prompts
   console.log("📋 System Prompt (BEFORE):");
@@ -308,7 +300,7 @@ provided documents accurately and cite your sources.`;
       const originalCitation = parsedCitations[key];
       if (originalCitation?.fullPhrase) {
         console.log(
-          `  📝 Claimed: "${originalCitation.fullPhrase.slice(0, 100)}${originalCitation.fullPhrase.length > 100 ? "..." : ""}"`
+          `  📝 Claimed: "${originalCitation.fullPhrase.slice(0, 100)}${originalCitation.fullPhrase.length > 100 ? "..." : ""}"`,
         );
       }
 
@@ -318,14 +310,12 @@ provided documents accurately and cite your sources.`;
 
       if (verification.verifiedMatchSnippet) {
         console.log(
-          `  🔍 Found: "${verification.verifiedMatchSnippet.slice(0, 100)}${verification.verifiedMatchSnippet.length > 100 ? "..." : ""}"`
+          `  🔍 Found: "${verification.verifiedMatchSnippet.slice(0, 100)}${verification.verifiedMatchSnippet.length > 100 ? "..." : ""}"`,
         );
       }
 
       if (verification.verificationImageBase64) {
-        const imgSize = Math.round(
-          verification.verificationImageBase64.length / 1024
-        );
+        const imgSize = Math.round(verification.verificationImageBase64.length / 1024);
         console.log(`  🖼️  Proof image: Yes (${imgSize}KB)`);
       } else {
         console.log(`  🖼️  Proof image: No`);
@@ -344,35 +334,20 @@ provided documents accurately and cite your sources.`;
     replaceCitations(visibleText, {
       verifications: verificationResult.verifications,
       showVerificationStatus: true,
-    })
+    }),
   );
   console.log("─".repeat(50) + "\n");
 
   // Summary statistics
-  const verified = verifications.filter(
-    ([, h]) => getCitationStatus(h).isVerified
-  ).length;
-  const partial = verifications.filter(
-    ([, h]) => getCitationStatus(h).isPartialMatch
-  ).length;
-  const missed = verifications.filter(
-    ([, h]) => getCitationStatus(h).isMiss
-  ).length;
+  const verified = verifications.filter(([, h]) => getCitationStatus(h).isVerified).length;
+  const partial = verifications.filter(([, h]) => getCitationStatus(h).isPartialMatch).length;
+  const missed = verifications.filter(([, h]) => getCitationStatus(h).isMiss).length;
 
   console.log("📊 Summary:");
   console.log(`   Total citations: ${verifications.length}`);
   if (verifications.length > 0) {
-    console.log(
-      `   Verified: ${verified} (${(
-        (verified / verifications.length) *
-        100
-      ).toFixed(0)}%)`
-    );
-    console.log(`   Partial: ${partial} (${(
-      (partial / verifications.length) *
-      100
-    ).toFixed(0)}%)`
-    );
+    console.log(`   Verified: ${verified} (${((verified / verifications.length) * 100).toFixed(0)}%)`);
+    console.log(`   Partial: ${partial} (${((partial / verifications.length) * 100).toFixed(0)}%)`);
     console.log(`   Not found: ${missed}`);
   }
 

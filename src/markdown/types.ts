@@ -1,8 +1,4 @@
-import type {
-  Citation,
-  CitationStatus,
-  VerificationRecord,
-} from "../types/citation.js";
+import type { Citation, CitationStatus, VerificationRecord } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 
 /**

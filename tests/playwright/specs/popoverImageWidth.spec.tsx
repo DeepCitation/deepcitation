@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/experimental-ct-react";
+import { expect, test } from "@playwright/experimental-ct-react";
 import { CitationComponent } from "../../../src/react/CitationComponent";
 import type { Citation } from "../../../src/types/citation";
 import type { Verification } from "../../../src/types/verification";
@@ -20,19 +20,19 @@ const baseCitation: Citation = {
 const wideImageBase64 = (() => {
   // Generate a simple gray PNG programmatically using canvas
   // This creates an 800x100 gray rectangle image
-  if (typeof document !== 'undefined') {
-    const canvas = document.createElement('canvas');
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
     canvas.width = 800;
     canvas.height = 100;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (ctx) {
-      ctx.fillStyle = '#cccccc';
+      ctx.fillStyle = "#cccccc";
       ctx.fillRect(0, 0, 800, 100);
-      ctx.fillStyle = '#333333';
-      ctx.font = '14px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('Wide verification image (800px)', 400, 55);
-      return canvas.toDataURL('image/png');
+      ctx.fillStyle = "#333333";
+      ctx.font = "14px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Wide verification image (800px)", 400, 55);
+      return canvas.toDataURL("image/png");
     }
   }
   // Fallback: minimal 1x1 gray PNG for SSR/Node environments
@@ -67,11 +67,8 @@ test.describe("Popover Image Width Constraint", () => {
   test("popover image has constrained max dimensions", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          verification={verificationWithWideImage}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
     );
 
     const citation = page.locator("[data-citation-id]");
@@ -88,18 +85,15 @@ test.describe("Popover Image Width Constraint", () => {
     await expect(container).toBeVisible();
 
     // The container should have a constrained width (384px with safe margins to prevent scrollbar)
-    const containerWidth = await container.evaluate((el) => (el as HTMLElement).style.width);
+    const containerWidth = await container.evaluate(el => (el as HTMLElement).style.width);
     expect(containerWidth).toBe("384px");
   });
 
   test("popover image has max height constraint", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          verification={verificationWithWideImage}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
     );
 
     const citation = page.locator("[data-citation-id]");
@@ -116,18 +110,15 @@ test.describe("Popover Image Width Constraint", () => {
 
     // Check that image has max-height constraint via inline style
     // Implementation uses: maxHeight: "min(50vh, 300px)"
-    const maxHeight = await image.evaluate((el) => (el as HTMLElement).style.maxHeight);
+    const maxHeight = await image.evaluate(el => (el as HTMLElement).style.maxHeight);
     expect(maxHeight).toContain("300px");
   });
 
   test("image uses object-fit contain to maintain aspect ratio", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          verification={verificationWithWideImage}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
     );
 
     const citation = page.locator("[data-citation-id]");
@@ -144,18 +135,15 @@ test.describe("Popover Image Width Constraint", () => {
 
     // Check that image uses object-fit: contain to maintain aspect ratio
     // Implementation uses inline style: objectFit: "contain"
-    const objectFit = await image.evaluate((el) => (el as HTMLElement).style.objectFit);
+    const objectFit = await image.evaluate(el => (el as HTMLElement).style.objectFit);
     expect(objectFit).toBe("contain");
   });
 
   test("image fills container width", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          verification={verificationWithWideImage}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
     );
 
     const citation = page.locator("[data-citation-id]");
@@ -172,7 +160,7 @@ test.describe("Popover Image Width Constraint", () => {
 
     // Check that image uses w-full class to fill container width
     // Implementation uses: className="block rounded-md w-full"
-    const hasWFullClass = await image.evaluate((el) => el.classList.contains("w-full"));
+    const hasWFullClass = await image.evaluate(el => el.classList.contains("w-full"));
     expect(hasWFullClass).toBe(true);
   });
 });
@@ -186,37 +174,30 @@ const skipVisualTests = !!process.env.CI && !process.env.UPDATE_SNAPSHOTS;
 
 test.describe("Popover Visual States", () => {
   test("visual comparison of all popover states", async ({ mount, page }) => {
-    test.skip(skipVisualTests, 'Skipping visual test - no baseline for this platform');
+    test.skip(skipVisualTests, "Skipping visual test - no baseline for this platform");
     await mount(
-      <div style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "200px",
-        padding: "120px 50px",
-        minHeight: "800px"
-      }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "200px",
+          padding: "120px 50px",
+          minHeight: "800px",
+        }}
+      >
         <div>
           <strong>Verified with wide image:</strong>{" "}
-          <CitationComponent
-            citation={baseCitation}
-            verification={verificationWithWideImage}
-          />
+          <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
         </div>
         <div>
           <strong>Partial match with wide image:</strong>{" "}
-          <CitationComponent
-            citation={baseCitation}
-            verification={verificationWithPartialMatch}
-          />
+          <CitationComponent citation={baseCitation} verification={verificationWithPartialMatch} />
         </div>
         <div>
           <strong>Not found (no image):</strong>{" "}
-          <CitationComponent
-            citation={baseCitation}
-            verification={verificationWithMiss}
-          />
+          <CitationComponent citation={baseCitation} verification={verificationWithMiss} />
         </div>
-      </div>
+      </div>,
     );
 
     // Take screenshot of the page for visual verification
@@ -227,15 +208,12 @@ test.describe("Popover Visual States", () => {
   });
 
   test("popover with verified image on click", async ({ mount, page }) => {
-    test.skip(skipVisualTests, 'Skipping visual test - no baseline for this platform');
+    test.skip(skipVisualTests, "Skipping visual test - no baseline for this platform");
 
     await mount(
       <div style={{ padding: "150px 50px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          verification={verificationWithWideImage}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
     );
 
     const citation = page.locator("[data-citation-id]");
@@ -249,15 +227,12 @@ test.describe("Popover Visual States", () => {
   });
 
   test("popover with partial match on click", async ({ mount, page }) => {
-    test.skip(skipVisualTests, 'Skipping visual test - no baseline for this platform');
+    test.skip(skipVisualTests, "Skipping visual test - no baseline for this platform");
 
     await mount(
       <div style={{ padding: "150px 50px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          verification={verificationWithPartialMatch}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} verification={verificationWithPartialMatch} />
+      </div>,
     );
 
     const citation = page.locator("[data-citation-id]");
@@ -271,15 +246,12 @@ test.describe("Popover Visual States", () => {
   });
 
   test("popover with miss state on click", async ({ mount, page }) => {
-    test.skip(skipVisualTests, 'Skipping visual test - no baseline for this platform');
+    test.skip(skipVisualTests, "Skipping visual test - no baseline for this platform");
 
     await mount(
       <div style={{ padding: "150px 50px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          verification={verificationWithMiss}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} verification={verificationWithMiss} />
+      </div>,
     );
 
     const citation = page.locator("[data-citation-id]");
@@ -301,11 +273,8 @@ test.describe("Image Click to Expand", () => {
   test("clicking image within popover opens full-size overlay", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "50px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          verification={verificationWithWideImage}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
     );
 
     // First click opens popover (lazy mode)
@@ -334,11 +303,8 @@ test.describe("Image Click to Expand", () => {
   test("pressing Escape closes overlay", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "50px" }}>
-        <CitationComponent
-          citation={baseCitation}
-          verification={verificationWithWideImage}
-        />
-      </div>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
     );
 
     // First click opens popover (lazy mode)

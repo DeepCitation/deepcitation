@@ -6,17 +6,17 @@
  * without showing citation markers to end users.
  */
 
-import OpenAI from "openai";
-import { IntercomClient } from "intercom-client";
 import {
   DeepCitation,
-  wrapCitationPrompt,
+  extractVisibleText,
+  type FileDataPart,
   getCitationStatus,
   replaceCitations,
-  extractVisibleText,
   type Verification,
-  type FileDataPart,
+  wrapCitationPrompt,
 } from "@deepcitation/deepcitation-js";
+import { IntercomClient } from "intercom-client";
+import OpenAI from "openai";
 
 export interface IntercomBotConfig {
   deepcitationApiKey: string;
@@ -48,7 +48,6 @@ export interface KnowledgeDocument {
 }
 
 export class IntercomBot {
-  private dc: DeepCitation;
   private openai: OpenAI;
   private intercom: IntercomClient;
   private minConfidenceThreshold: number;
@@ -73,11 +72,8 @@ export class IntercomBot {
    * - Help center articles
    */
   async loadKnowledgeBase(documents: KnowledgeDocument[]): Promise<void> {
-    const files = documents.map((doc) => ({
-      file:
-        typeof doc.content === "string"
-          ? Buffer.from(doc.content)
-          : doc.content,
+    const files = documents.map(doc => ({
+      file: typeof doc.content === "string" ? Buffer.from(doc.content) : doc.content,
       filename: doc.filename,
     }));
 
@@ -104,9 +100,7 @@ export class IntercomBot {
    */
   async generateResponse(question: string): Promise<BotResponse> {
     if (!this.isLoaded) {
-      throw new Error(
-        "Knowledge base not loaded. Call loadKnowledgeBase() first."
-      );
+      throw new Error("Knowledge base not loaded. Call loadKnowledgeBase() first.");
     }
 
     // Step 1: Prepare citation-enhanced prompts
@@ -142,14 +136,11 @@ Do not make up information that isn't in the attachments.`;
     // Step 4: Calculate confidence score
     const citations = Object.values(verificationResult.verifications);
     const totalCitations = citations.length;
-    const verifiedCitations = citations.filter(
-      (c) => getCitationStatus(c).isVerified
-    ).length;
+    const verifiedCitations = citations.filter(c => getCitationStatus(c).isVerified).length;
 
     // Confidence = percentage of verified citations
     // If no citations, we assume low confidence (response may be made up)
-    const confidence =
-      totalCitations > 0 ? verifiedCitations / totalCitations : 0;
+    const confidence = totalCitations > 0 ? verifiedCitations / totalCitations : 0;
 
     // Step 5: Return clean response with verification metadata
     // IMPORTANT: Use extractVisibleText to strip the <<<CITATION_DATA>>> block
@@ -169,11 +160,7 @@ Do not make up information that isn't in the attachments.`;
   /**
    * Reply to an Intercom conversation
    */
-  async replyToConversation(
-    conversationId: string,
-    message: string,
-    adminId: string
-  ): Promise<void> {
+  async replyToConversation(conversationId: string, message: string, adminId: string): Promise<void> {
     await this.intercom.conversations.reply({
       conversation_id: conversationId,
       body: {
@@ -188,11 +175,7 @@ Do not make up information that isn't in the attachments.`;
   /**
    * Add an internal note to a conversation (visible only to admins)
    */
-  async addInternalNote(
-    conversationId: string,
-    note: string,
-    adminId: string
-  ): Promise<void> {
+  async addInternalNote(conversationId: string, note: string, adminId: string): Promise<void> {
     await this.intercom.conversations.reply({
       conversation_id: conversationId,
       body: {
@@ -208,12 +191,7 @@ Do not make up information that isn't in the attachments.`;
    * Format verification details as an internal note
    */
   formatVerificationNote(response: BotResponse): string {
-    const confidenceEmoji =
-      response.confidence >= 0.8
-        ? "✅"
-        : response.confidence >= 0.5
-          ? "⚠️"
-          : "❌";
+    const confidenceEmoji = response.confidence >= 0.8 ? "✅" : response.confidence >= 0.5 ? "⚠️" : "❌";
 
     let note = `**DeepCitation Verification Report**\n\n`;
     note += `${confidenceEmoji} **Confidence:** ${(response.confidence * 100).toFixed(0)}%\n`;
@@ -225,9 +203,7 @@ Do not make up information that isn't in the attachments.`;
 
     if (response.totalCitations > 0) {
       note += `\n**Citation Details:**\n`;
-      for (const [key, verification] of Object.entries(
-        response.verificationDetails
-      )) {
+      for (const [key, verification] of Object.entries(response.verificationDetails)) {
         const status = getCitationStatus(verification);
         note += `- Citation ${key}: ${status.isVerified ? "✅ Verified" : "❌ Not verified"}\n`;
       }
@@ -245,11 +221,7 @@ Do not make up information that isn't in the attachments.`;
    * 2. Replies to the conversation with the clean response
    * 3. Adds an internal note with verification details
    */
-  async handleIncomingMessage(
-    conversationId: string,
-    userMessage: string,
-    adminId: string
-  ): Promise<BotResponse> {
+  async handleIncomingMessage(conversationId: string, userMessage: string, adminId: string): Promise<BotResponse> {
     console.log(`\n📩 Received message in conversation ${conversationId}`);
     console.log(`   Question: "${userMessage}"`);
 
@@ -257,15 +229,11 @@ Do not make up information that isn't in the attachments.`;
     const response = await this.generateResponse(userMessage);
 
     console.log(
-      `   Confidence: ${(response.confidence * 100).toFixed(0)}% (${response.verifiedCitations}/${response.totalCitations} citations)`
+      `   Confidence: ${(response.confidence * 100).toFixed(0)}% (${response.verifiedCitations}/${response.totalCitations} citations)`,
     );
 
     // Reply to the customer with clean response
-    await this.replyToConversation(
-      conversationId,
-      response.cleanResponse,
-      adminId
-    );
+    await this.replyToConversation(conversationId, response.cleanResponse, adminId);
     console.log(`   ✓ Sent reply to customer`);
 
     // Add internal note with verification details

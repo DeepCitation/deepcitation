@@ -28,10 +28,7 @@ const INLINE_TEXT_TRUNCATION_LIMIT = 50;
 /**
  * Get the indicator string for a verification status.
  */
-export function getIndicator(
-  status: CitationStatus,
-  style: IndicatorStyle = "check"
-): string {
+export function getIndicator(status: CitationStatus, style: IndicatorStyle = "check"): string {
   const indicators = INDICATOR_SETS[style];
 
   if (status.isMiss) return indicators.notFound;
@@ -55,7 +52,7 @@ export function toSuperscript(num: number): string {
   const absNum = Math.abs(intNum);
   return String(absNum)
     .split("")
-    .map((digit) => SUPERSCRIPT_DIGITS[parseInt(digit, 10)] || digit)
+    .map(digit => SUPERSCRIPT_DIGITS[parseInt(digit, 10)] || digit)
     .join("");
 }
 
@@ -66,10 +63,7 @@ export function toSuperscript(num: number): string {
  * @example humanizeLinePosition(10, 100) => "start"
  * @example humanizeLinePosition(50, 100) => "middle"
  */
-export function humanizeLinePosition(
-  lineId: number,
-  totalLinesOnPage: number | null | undefined
-): LinePosition | null {
+export function humanizeLinePosition(lineId: number, totalLinesOnPage: number | null | undefined): LinePosition | null {
   if (!totalLinesOnPage || totalLinesOnPage <= 0) return null;
 
   const ratio = lineId / totalLinesOnPage;
@@ -85,21 +79,13 @@ export function humanizeLinePosition(
  * Get fallback text for inline/academic citations when anchorText is missing.
  * Fallback chain: anchorText -> truncated fullPhrase -> citation number bracket
  */
-function getInlineFallbackText(
-  citation: Citation,
-  citationNumber: number
-): string {
+function getInlineFallbackText(citation: Citation, citationNumber: number): string {
   if (citation.anchorText) {
     return citation.anchorText;
   }
   if (citation.fullPhrase) {
-    const truncated = citation.fullPhrase.slice(
-      0,
-      INLINE_TEXT_TRUNCATION_LIMIT
-    );
-    return citation.fullPhrase.length > INLINE_TEXT_TRUNCATION_LIMIT
-      ? `${truncated}...`
-      : truncated;
+    const truncated = citation.fullPhrase.slice(0, INLINE_TEXT_TRUNCATION_LIMIT);
+    return citation.fullPhrase.length > INLINE_TEXT_TRUNCATION_LIMIT ? `${truncated}...` : truncated;
   }
   return `[${citationNumber}]`;
 }
@@ -109,10 +95,7 @@ function getInlineFallbackText(
  * For inline/academic variants, uses the same fallback logic as renderCitationVariant
  * to ensure consistency between the returned displayText and the actual rendered output.
  */
-export function getCitationDisplayText(
-  citation: Citation,
-  variant: MarkdownVariant
-): string {
+export function getCitationDisplayText(citation: Citation, variant: MarkdownVariant): string {
   switch (variant) {
     case "brackets":
     case "superscript":
@@ -130,7 +113,7 @@ export function getCitationDisplayText(
 export function formatPageLocation(
   citation: Citation,
   verification: Verification | null,
-  options: RenderMarkdownOptions
+  options: RenderMarkdownOptions,
 ): string {
   const { showPageNumber = true, showLinePosition = true } = options;
 
@@ -166,15 +149,8 @@ export function formatPageLocation(
 /**
  * Render a citation in the specified markdown variant.
  */
-export function renderCitationVariant(
-  citationWithStatus: CitationWithStatus,
-  options: RenderMarkdownOptions
-): string {
-  const {
-    variant = "inline",
-    indicatorStyle = "check",
-    linkStyle = "anchor",
-  } = options;
+export function renderCitationVariant(citationWithStatus: CitationWithStatus, options: RenderMarkdownOptions): string {
+  const { variant = "inline", indicatorStyle = "check", linkStyle = "anchor" } = options;
   const { citation, status, citationNumber } = citationWithStatus;
 
   const indicator = getIndicator(status, indicatorStyle);
@@ -183,27 +159,18 @@ export function renderCitationVariant(
   switch (variant) {
     case "inline": {
       const text = getInlineFallbackText(citation, num);
-      const anchor =
-        linkStyle === "anchor"
-          ? `[${text}${indicator}](#ref-${num})`
-          : `${text}${indicator}`;
+      const anchor = linkStyle === "anchor" ? `[${text}${indicator}](#ref-${num})` : `${text}${indicator}`;
       return anchor;
     }
 
     case "brackets": {
-      const anchor =
-        linkStyle === "anchor"
-          ? `[${num}${indicator}](#ref-${num})`
-          : `[${num}${indicator}]`;
+      const anchor = linkStyle === "anchor" ? `[${num}${indicator}](#ref-${num})` : `[${num}${indicator}]`;
       return anchor;
     }
 
     case "superscript": {
       const sup = toSuperscript(num);
-      const anchor =
-        linkStyle === "anchor"
-          ? `[${sup}${indicator}](#ref-${num})`
-          : `${sup}${indicator}`;
+      const anchor = linkStyle === "anchor" ? `[${sup}${indicator}](#ref-${num})` : `${sup}${indicator}`;
       return anchor;
     }
 
@@ -213,8 +180,7 @@ export function renderCitationVariant(
     }
 
     case "academic": {
-      const sourceLabel =
-        options.sourceLabels?.[citation.attachmentId || ""] || "Source";
+      const sourceLabel = options.sourceLabels?.[citation.attachmentId || ""] || "Source";
       const page = citation.pageNumber ? `, p.${citation.pageNumber}` : "";
       const anchor =
         linkStyle === "anchor"
@@ -231,15 +197,8 @@ export function renderCitationVariant(
 /**
  * Render a single reference entry for the references section.
  */
-export function renderReferenceEntry(
-  citationWithStatus: CitationWithStatus,
-  options: RenderMarkdownOptions
-): string {
-  const {
-    variant = "inline",
-    indicatorStyle = "check",
-    showReasoning = false,
-  } = options;
+export function renderReferenceEntry(citationWithStatus: CitationWithStatus, options: RenderMarkdownOptions): string {
+  const { variant = "inline", indicatorStyle = "check", showReasoning = false } = options;
   const { citation, verification, status, citationNumber } = citationWithStatus;
 
   const indicator = getIndicator(status, indicatorStyle);
@@ -284,10 +243,7 @@ export function renderReferenceEntry(
 /**
  * Render the full references section.
  */
-export function renderReferencesSection(
-  citations: CitationWithStatus[],
-  options: RenderMarkdownOptions
-): string {
+export function renderReferencesSection(citations: CitationWithStatus[], options: RenderMarkdownOptions): string {
   const { referenceHeading = "## References", variant = "inline" } = options;
 
   if (citations.length === 0) return "";
@@ -301,14 +257,10 @@ export function renderReferencesSection(
     }
   } else {
     // Group by status for better organization
-    const verified = citations.filter(
-      (c) => c.status.isVerified && !c.status.isPartialMatch
-    );
-    const partial = citations.filter((c) => c.status.isPartialMatch);
-    const notFound = citations.filter((c) => c.status.isMiss);
-    const pending = citations.filter(
-      (c) => c.status.isPending && !c.status.isVerified && !c.status.isMiss
-    );
+    const verified = citations.filter(c => c.status.isVerified && !c.status.isPartialMatch);
+    const partial = citations.filter(c => c.status.isPartialMatch);
+    const notFound = citations.filter(c => c.status.isMiss);
+    const pending = citations.filter(c => c.status.isPending && !c.status.isVerified && !c.status.isMiss);
 
     if (verified.length > 0) {
       lines.push("### Verified", "");

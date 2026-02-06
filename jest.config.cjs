@@ -14,6 +14,6 @@ module.exports = {
     "^react/jsx-dev-runtime$": "<rootDir>/../../node_modules/react/jsx-dev-runtime",
     "^(\\.{1,2}/.*)\\.js$": "$1",
     // Mock canvas for environments where native module is not available
-    "canvas": "<rootDir>/tests/mocks/canvas.js",
+    canvas: "<rootDir>/tests/mocks/canvas.js",
   },
 };

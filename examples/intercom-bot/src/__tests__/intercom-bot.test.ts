@@ -8,7 +8,7 @@
  * - Intercom API interactions
  */
 
-import { describe, expect, it, beforeEach, mock, spyOn } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { IntercomBot, type IntercomBotConfig } from "../intercom-bot.js";
 
 // Mock the external dependencies
@@ -21,7 +21,7 @@ const mockPrepareFiles = mock(() =>
       },
     ],
     deepTextPromptPortion: ["[Page 1]\n[L1] Test content"],
-  })
+  }),
 );
 
 const mockVerify = mock(() =>
@@ -33,7 +33,7 @@ const mockVerify = mock(() =>
         verifiedMatchSnippet: "Test content",
       },
     },
-  })
+  }),
 );
 
 const mockOpenAICreate = mock(() =>
@@ -46,7 +46,7 @@ const mockOpenAICreate = mock(() =>
         },
       },
     ],
-  })
+  }),
 );
 
 const mockIntercomReply = mock(() => Promise.resolve({}));
@@ -134,9 +134,7 @@ describe("IntercomBot", () => {
 
     it("returns true after knowledge base is loaded", async () => {
       const bot = new IntercomBot(validConfig);
-      await bot.loadKnowledgeBase([
-        { content: "Test content", filename: "test.txt" },
-      ]);
+      await bot.loadKnowledgeBase([{ content: "Test content", filename: "test.txt" }]);
       expect(bot.isReady()).toBe(true);
     });
   });
@@ -157,9 +155,7 @@ describe("IntercomBot", () => {
     it("handles Buffer content", async () => {
       const bot = new IntercomBot(validConfig);
 
-      await bot.loadKnowledgeBase([
-        { content: Buffer.from("Binary content"), filename: "doc.pdf" },
-      ]);
+      await bot.loadKnowledgeBase([{ content: Buffer.from("Binary content"), filename: "doc.pdf" }]);
 
       expect(mockPrepareFiles).toHaveBeenCalledTimes(1);
     });
@@ -169,7 +165,7 @@ describe("IntercomBot", () => {
         Promise.resolve({
           fileDataParts: [],
           deepTextPromptPortion: [],
-        })
+        }),
       );
 
       const bot = new IntercomBot(validConfig);
@@ -183,16 +179,12 @@ describe("IntercomBot", () => {
     it("throws error if knowledge base not loaded", async () => {
       const bot = new IntercomBot(validConfig);
 
-      await expect(bot.generateResponse("What is the policy?")).rejects.toThrow(
-        "Knowledge base not loaded"
-      );
+      await expect(bot.generateResponse("What is the policy?")).rejects.toThrow("Knowledge base not loaded");
     });
 
     it("generates response with citation verification", async () => {
       const bot = new IntercomBot(validConfig);
-      await bot.loadKnowledgeBase([
-        { content: "Test content", filename: "test.txt" },
-      ]);
+      await bot.loadKnowledgeBase([{ content: "Test content", filename: "test.txt" }]);
 
       const response = await bot.generateResponse("What is the test content?");
 
@@ -207,9 +199,7 @@ describe("IntercomBot", () => {
 
     it("calculates confidence correctly with all verified citations", async () => {
       const bot = new IntercomBot(validConfig);
-      await bot.loadKnowledgeBase([
-        { content: "Test content", filename: "test.txt" },
-      ]);
+      await bot.loadKnowledgeBase([{ content: "Test content", filename: "test.txt" }]);
 
       const response = await bot.generateResponse("Question?");
 
@@ -229,13 +219,11 @@ describe("IntercomBot", () => {
               status: "not_found",
             },
           },
-        })
+        }),
       );
 
       const bot = new IntercomBot(validConfig);
-      await bot.loadKnowledgeBase([
-        { content: "Test content", filename: "test.txt" },
-      ]);
+      await bot.loadKnowledgeBase([{ content: "Test content", filename: "test.txt" }]);
 
       const response = await bot.generateResponse("Question?");
 
@@ -253,19 +241,17 @@ describe("IntercomBot", () => {
               },
             },
           ],
-        })
+        }),
       );
 
       mockVerify.mockImplementationOnce(() =>
         Promise.resolve({
           verifications: {},
-        })
+        }),
       );
 
       const bot = new IntercomBot(validConfig);
-      await bot.loadKnowledgeBase([
-        { content: "Test content", filename: "test.txt" },
-      ]);
+      await bot.loadKnowledgeBase([{ content: "Test content", filename: "test.txt" }]);
 
       const response = await bot.generateResponse("Unknown question?");
 
@@ -276,9 +262,7 @@ describe("IntercomBot", () => {
 
     it("removes citations from clean response", async () => {
       const bot = new IntercomBot(validConfig);
-      await bot.loadKnowledgeBase([
-        { content: "Test content", filename: "test.txt" },
-      ]);
+      await bot.loadKnowledgeBase([{ content: "Test content", filename: "test.txt" }]);
 
       const response = await bot.generateResponse("Question?");
 
@@ -396,15 +380,9 @@ describe("IntercomBot", () => {
   describe("handleIncomingMessage", () => {
     it("processes message and sends reply with note", async () => {
       const bot = new IntercomBot(validConfig);
-      await bot.loadKnowledgeBase([
-        { content: "Test content", filename: "test.txt" },
-      ]);
+      await bot.loadKnowledgeBase([{ content: "Test content", filename: "test.txt" }]);
 
-      const response = await bot.handleIncomingMessage(
-        "conv_123",
-        "What is the test content?",
-        "admin_456"
-      );
+      const response = await bot.handleIncomingMessage("conv_123", "What is the test content?", "admin_456");
 
       // Should call Intercom twice: once for reply, once for note
       expect(mockIntercomReply).toHaveBeenCalledTimes(2);
@@ -434,9 +412,9 @@ describe("IntercomBot", () => {
     it("throws error if knowledge base not loaded", async () => {
       const bot = new IntercomBot(validConfig);
 
-      await expect(
-        bot.handleIncomingMessage("conv_123", "Question?", "admin_456")
-      ).rejects.toThrow("Knowledge base not loaded");
+      await expect(bot.handleIncomingMessage("conv_123", "Question?", "admin_456")).rejects.toThrow(
+        "Knowledge base not loaded",
+      );
     });
   });
 });
@@ -456,42 +434,28 @@ describe("IntercomBot edge cases", () => {
   });
 
   it("handles API errors gracefully", async () => {
-    mockPrepareFiles.mockImplementationOnce(() =>
-      Promise.reject(new Error("API Error"))
-    );
+    mockPrepareFiles.mockImplementationOnce(() => Promise.reject(new Error("API Error")));
 
     const bot = new IntercomBot(validConfig);
 
-    await expect(
-      bot.loadKnowledgeBase([{ content: "test", filename: "test.txt" }])
-    ).rejects.toThrow("API Error");
+    await expect(bot.loadKnowledgeBase([{ content: "test", filename: "test.txt" }])).rejects.toThrow("API Error");
   });
 
   it("handles OpenAI API errors", async () => {
-    mockOpenAICreate.mockImplementationOnce(() =>
-      Promise.reject(new Error("OpenAI rate limit"))
-    );
+    mockOpenAICreate.mockImplementationOnce(() => Promise.reject(new Error("OpenAI rate limit")));
 
     const bot = new IntercomBot(validConfig);
-    await bot.loadKnowledgeBase([
-      { content: "Test content", filename: "test.txt" },
-    ]);
+    await bot.loadKnowledgeBase([{ content: "Test content", filename: "test.txt" }]);
 
-    await expect(bot.generateResponse("Question?")).rejects.toThrow(
-      "OpenAI rate limit"
-    );
+    await expect(bot.generateResponse("Question?")).rejects.toThrow("OpenAI rate limit");
   });
 
   it("handles Intercom API errors", async () => {
-    mockIntercomReply.mockImplementationOnce(() =>
-      Promise.reject(new Error("Intercom API error"))
-    );
+    mockIntercomReply.mockImplementationOnce(() => Promise.reject(new Error("Intercom API error")));
 
     const bot = new IntercomBot(validConfig);
 
-    await expect(
-      bot.replyToConversation("conv_123", "Message", "admin_456")
-    ).rejects.toThrow("Intercom API error");
+    await expect(bot.replyToConversation("conv_123", "Message", "admin_456")).rejects.toThrow("Intercom API error");
   });
 
   it("handles partial verification results", async () => {
@@ -502,13 +466,11 @@ describe("IntercomBot edge cases", () => {
           "2": { verifiedPageNumber: 1, status: "not_found" },
           "3": { verifiedPageNumber: 2, status: "found" },
         },
-      })
+      }),
     );
 
     const bot = new IntercomBot(validConfig);
-    await bot.loadKnowledgeBase([
-      { content: "Test content", filename: "test.txt" },
-    ]);
+    await bot.loadKnowledgeBase([{ content: "Test content", filename: "test.txt" }]);
 
     const response = await bot.generateResponse("Multi-citation question?");
 

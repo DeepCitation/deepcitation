@@ -230,9 +230,7 @@ export interface WrapCitationPromptResult {
  * });
  * ```
  */
-export function wrapSystemCitationPrompt(
-  options: WrapSystemPromptOptions
-): string {
+export function wrapSystemCitationPrompt(options: WrapSystemPromptOptions): string {
   const { systemPrompt, isAudioVideo = false } = options;
 
   const citationPrompt = isAudioVideo ? AV_CITATION_PROMPT : CITATION_PROMPT;
@@ -273,15 +271,8 @@ export function wrapSystemCitationPrompt(
  * });
  * ```
  */
-export function wrapCitationPrompt(
-  options: WrapCitationPromptOptions
-): WrapCitationPromptResult {
-  const {
-    systemPrompt,
-    userPrompt,
-    deepTextPromptPortion,
-    isAudioVideo = false,
-  } = options;
+export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCitationPromptResult {
+  const { systemPrompt, userPrompt, deepTextPromptPortion, isAudioVideo = false } = options;
 
   const enhancedSystemPrompt = wrapSystemCitationPrompt({
     systemPrompt,
@@ -294,11 +285,9 @@ export function wrapCitationPrompt(
   let enhancedUserPrompt = userPrompt;
 
   if (deepTextPromptPortion) {
-    const fileTexts = Array.isArray(deepTextPromptPortion)
-      ? deepTextPromptPortion
-      : [deepTextPromptPortion];
+    const fileTexts = Array.isArray(deepTextPromptPortion) ? deepTextPromptPortion : [deepTextPromptPortion];
     const fileContent = fileTexts
-      .map((text) => {
+      .map(text => {
         return `\n${text}`;
       })
       .join("\n\n");
@@ -341,8 +330,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     },
     page_id: {
       type: "string",
-      description:
-        "Page ID in format 'page_number_N_index_I' (copy from <page_number_N_index_I> tags)",
+      description: "Page ID in format 'page_number_N_index_I' (copy from <page_number_N_index_I> tags)",
     },
     line_ids: {
       type: "array",

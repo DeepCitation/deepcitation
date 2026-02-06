@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/experimental-ct-react";
-import { UrlCitationComponent } from "../../../src/react/UrlCitationComponent";
+import { expect, test } from "@playwright/experimental-ct-react";
 import type { UrlCitationMeta, UrlFetchStatus } from "../../../src/react/types";
+import { UrlCitationComponent } from "../../../src/react/UrlCitationComponent";
 
 // =============================================================================
 // TEST FIXTURES
@@ -253,10 +253,8 @@ test.describe("URL Citation - Blocked Status", () => {
     await mount(
       <UrlCitationComponent
         urlMeta={blockedLoginMeta}
-        renderBlockedIndicator={(status, message) => (
-          <span data-testid="custom-blocked">Custom: {status}</span>
-        )}
-      />
+        renderBlockedIndicator={(status, _message) => <span data-testid="custom-blocked">Custom: {status}</span>}
+      />,
     );
 
     await expect(page.locator('[data-testid="custom-blocked"]')).toBeVisible();
@@ -371,7 +369,7 @@ test.describe("URL Citation - Composition", () => {
     await mount(
       <UrlCitationComponent urlMeta={verifiedUrlMeta}>
         <span data-testid="prefix">Source: </span>
-      </UrlCitationComponent>
+      </UrlCitationComponent>,
     );
 
     await expect(page.locator('[data-testid="prefix"]')).toBeVisible();

@@ -77,17 +77,9 @@ describe("getIndicator", () => {
   });
 
   describe("all indicator styles", () => {
-    const styles: IndicatorStyle[] = [
-      "check",
-      "semantic",
-      "circle",
-      "square",
-      "letter",
-      "word",
-      "none",
-    ];
+    const styles: IndicatorStyle[] = ["check", "semantic", "circle", "square", "letter", "word", "none"];
 
-    it.each(styles)("style %s has all four indicators defined", (style) => {
+    it.each(styles)("style %s has all four indicators defined", style => {
       const set = INDICATOR_SETS[style];
       expect(set).toBeDefined();
       expect(typeof set.verified).toBe("string");
@@ -400,9 +392,7 @@ describe("edge cases", () => {
   });
 
   it("handles input with no citations", () => {
-    const result = renderCitationsAsMarkdown(
-      "Just plain text without any citations."
-    );
+    const result = renderCitationsAsMarkdown("Just plain text without any citations.");
 
     expect(result.markdown).toBe("Just plain text without any citations.");
     expect(result.citations).toHaveLength(0);
@@ -412,9 +402,7 @@ describe("edge cases", () => {
     const input = `Test<cite full_phrase='He said \\'hello\\' to everyone.' anchor_text='hello' />`;
     const result = renderCitationsAsMarkdown(input);
 
-    expect(result.citations[0].citation.fullPhrase).toBe(
-      "He said 'hello' to everyone."
-    );
+    expect(result.citations[0].citation.fullPhrase).toBe("He said 'hello' to everyone.");
   });
 
   it("handles missing optional attributes", () => {
@@ -491,15 +479,12 @@ describe("getCitationDisplayText", () => {
 
   it("returns truncated fullPhrase for inline variant when anchorText is missing", () => {
     const citation: Citation = {
-      fullPhrase:
-        "This is a very long phrase that exceeds fifty characters and should be truncated",
+      fullPhrase: "This is a very long phrase that exceeds fifty characters and should be truncated",
       citationNumber: 1,
     };
 
     const result = getCitationDisplayText(citation, "inline");
-    expect(result).toBe(
-      "This is a very long phrase that exceeds fifty char..."
-    );
+    expect(result).toBe("This is a very long phrase that exceeds fifty char...");
     expect(result.length).toBe(53); // 50 chars + "..."
   });
 

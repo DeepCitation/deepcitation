@@ -1,14 +1,7 @@
 import { generateCitationKey } from "../react/utils.js";
-import type {
-  Citation,
-  CitationRecord,
-  CitationStatus,
-} from "../types/citation.js";
+import type { Citation, CitationRecord, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import {
-  getAllCitationsFromDeferredResponse,
-  hasDeferredCitations,
-} from "./citationParser.js";
+import { getAllCitationsFromDeferredResponse, hasDeferredCitations } from "./citationParser.js";
 import { normalizeCitations } from "./normalizeCitation.js";
 
 /**
@@ -45,8 +38,7 @@ import { normalizeCitations } from "./normalizeCitation.js";
 const PAGE_ID_FULL_REGEX = /page[_a-zA-Z]*(\d+)_index_(\d+)/;
 const PAGE_ID_SIMPLE_REGEX = /page[_a-zA-Z]*(\d+)_index_(\d+)/i;
 const SIMPLE_PAGE_INDEX_REGEX = /^(\d+)_(\d+)$/;
-const CITE_TAG_REGEX =
-  /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*\/>/g;
+const CITE_TAG_REGEX = /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*\/>/g;
 
 const attributeRegexCache = new Map<string, RegExp>();
 
@@ -107,16 +99,10 @@ function parseLineIds(lineIdsString: string): number[] | undefined {
           // for predictable behavior. Deduplication happens at the end via Set.
           // Note: No warning logged to avoid spamming production logs.
           lineIds.push(start);
-          const sampleCount = Math.min(
-            LARGE_RANGE_SAMPLE_COUNT - 2,
-            rangeSize - 2
-          );
+          const sampleCount = Math.min(LARGE_RANGE_SAMPLE_COUNT - 2, rangeSize - 2);
           if (sampleCount > 0) {
             // Use Math.floor for predictable sampling, ensuring step >= 1
-            const step = Math.max(
-              1,
-              Math.floor((end - start) / (sampleCount + 1))
-            );
+            const step = Math.max(1, Math.floor((end - start) / (sampleCount + 1)));
             for (let i = 1; i <= sampleCount; i++) {
               const sample = start + step * i;
               // Ensure we don't exceed the range end
@@ -157,9 +143,7 @@ function parseLineIds(lineIdsString: string): number[] | undefined {
  * @param verification - The found highlight location, or null/undefined if not found
  * @returns An object containing boolean flags for verification status
  */
-export function getCitationStatus(
-  verification: Verification | null | undefined
-): CitationStatus {
+export function getCitationStatus(verification: Verification | null | undefined): CitationStatus {
   const status = verification?.status;
 
   const isMiss = ["not_found"].includes(status || "");
@@ -174,9 +158,7 @@ export function getCitationStatus(
   ].includes(status || "");
 
   // Verified: exact match or partial match (green or amber indicator)
-  const isVerified =
-    ["found", "found_phrase_missed_anchor_text"].includes(status || "") ||
-    isPartialMatch;
+  const isVerified = ["found", "found_phrase_missed_anchor_text"].includes(status || "") || isPartialMatch;
 
   const isPending = ["pending", "loading", null, undefined].includes(status);
 
@@ -187,7 +169,7 @@ export const parseCitation = (
   fragment: string,
   mdAttachmentId?: string | null,
   citationCounterRef?: any | null,
-  isVerbose?: boolean
+  isVerbose?: boolean,
 ) => {
   // Helper: Remove wrapper quotes and fully unescape content
   // Handles: \' -> ', \" -> ", \n -> space, \\ -> \
@@ -200,11 +182,7 @@ export const parseCitation = (
       result = result.slice(1);
     }
     // Check end: remove trailing quote only if it's not escaped (not preceded by \)
-    if (
-      (result.endsWith("'") || result.endsWith('"')) &&
-      !result.endsWith("\\'") &&
-      !result.endsWith('\\"')
-    ) {
+    if ((result.endsWith("'") || result.endsWith('"')) && !result.endsWith("\\'") && !result.endsWith('\\"')) {
       result = result.slice(0, -1);
     }
     // Replace escaped double quotes with actual double quotes
@@ -218,23 +196,13 @@ export const parseCitation = (
     return result;
   };
 
-  const citationNumber = citationCounterRef?.current
-    ? citationCounterRef.current++
-    : undefined;
+  const citationNumber = citationCounterRef?.current ? citationCounterRef.current++ : undefined;
 
   const beforeCite = fragment.substring(0, fragment.indexOf("<cite"));
-  const afterCite = fragment.includes("/>")
-    ? fragment.slice(fragment.indexOf("/>") + 2)
-    : "";
-  const middleCite = fragment.substring(
-    fragment.indexOf("<cite"),
-    fragment.indexOf("/>") + 2
-  );
+  const afterCite = fragment.includes("/>") ? fragment.slice(fragment.indexOf("/>") + 2) : "";
+  const middleCite = fragment.substring(fragment.indexOf("<cite"), fragment.indexOf("/>") + 2);
 
-  const extractAttribute = (
-    tag: string,
-    attrNames: string[]
-  ): string | undefined => {
+  const extractAttribute = (tag: string, attrNames: string[]): string | undefined => {
     for (const name of attrNames) {
       const regex = getAttributeRegex(name);
       const match = tag.match(regex);
@@ -246,16 +214,8 @@ export const parseCitation = (
   };
 
   // Extract all attributes by name (order-independent)
-  const rawAttachmentId = extractAttribute(middleCite, [
-    "attachment_id",
-    "attachmentId",
-    "file_id",
-    "fileId",
-  ]);
-  const attachmentId =
-    rawAttachmentId?.length === 20
-      ? rawAttachmentId
-      : mdAttachmentId || rawAttachmentId;
+  const rawAttachmentId = extractAttribute(middleCite, ["attachment_id", "attachmentId", "file_id", "fileId"]);
+  const attachmentId = rawAttachmentId?.length === 20 ? rawAttachmentId : mdAttachmentId || rawAttachmentId;
 
   const startPageIdRaw = extractAttribute(middleCite, [
     "start_page_id",
@@ -276,20 +236,11 @@ export const parseCitation = (
   }
 
   // Use helper to handle escaped quotes inside the phrase
-  const fullPhrase = cleanAndUnescape(
-    extractAttribute(middleCite, ["full_phrase", "fullPhrase"])
-  );
+  const fullPhrase = cleanAndUnescape(extractAttribute(middleCite, ["full_phrase", "fullPhrase"]));
   const anchorText = cleanAndUnescape(
-    extractAttribute(middleCite, [
-      "anchor_text",
-      "anchorText",
-      "key_span",
-      "keySpan",
-    ])
+    extractAttribute(middleCite, ["anchor_text", "anchorText", "key_span", "keySpan"]),
   );
-  const reasoning = cleanAndUnescape(
-    extractAttribute(middleCite, ["reasoning"])
-  );
+  const reasoning = cleanAndUnescape(extractAttribute(middleCite, ["reasoning"]));
   const value = cleanAndUnescape(extractAttribute(middleCite, ["value"]));
 
   let lineIds: number[] | undefined;
@@ -338,10 +289,7 @@ export const parseCitation = (
  * @param citationNumber - Optional citation number for ordering
  * @returns Parsed Citation object
  */
-const parseJsonCitation = (
-  jsonCitation: any,
-  citationNumber?: number
-): Citation | null => {
+const parseJsonCitation = (jsonCitation: any, citationNumber?: number): Citation | null => {
   if (!jsonCitation) {
     return null;
   }
@@ -349,21 +297,12 @@ const parseJsonCitation = (
   // Support both camelCase and snake_case property names (with backward compatibility)
   const fullPhrase = jsonCitation.fullPhrase ?? jsonCitation.full_phrase;
   const startPageId =
-    jsonCitation.startPageId ??
-    jsonCitation.start_page_id ??
-    jsonCitation.startPageKey ??
-    jsonCitation.start_page_key;
+    jsonCitation.startPageId ?? jsonCitation.start_page_id ?? jsonCitation.startPageKey ?? jsonCitation.start_page_key;
   const anchorText =
-    jsonCitation.anchorText ??
-    jsonCitation.anchor_text ??
-    jsonCitation.keySpan ??
-    jsonCitation.key_span;
+    jsonCitation.anchorText ?? jsonCitation.anchor_text ?? jsonCitation.keySpan ?? jsonCitation.key_span;
   const rawLineIds = jsonCitation.lineIds ?? jsonCitation.line_ids;
   const attachmentId =
-    jsonCitation.attachmentId ??
-    jsonCitation.attachment_id ??
-    jsonCitation.fileId ??
-    jsonCitation.file_id;
+    jsonCitation.attachmentId ?? jsonCitation.attachment_id ?? jsonCitation.fileId ?? jsonCitation.file_id;
   const reasoning = jsonCitation.reasoning;
   const value = jsonCitation.value;
 
@@ -389,9 +328,7 @@ const parseJsonCitation = (
   }
 
   // Sort lineIds if present
-  const lineIds = rawLineIds?.length
-    ? [...rawLineIds].sort((a: number, b: number) => a - b)
-    : undefined;
+  const lineIds = rawLineIds?.length ? [...rawLineIds].sort((a: number, b: number) => a - b) : undefined;
 
   const citation: Citation = {
     attachmentId,
@@ -474,11 +411,7 @@ const MAX_TRAVERSAL_DEPTH = 50;
  * @param found - Array to collect found citations
  * @param depth - Current recursion depth (internal)
  */
-const findJsonCitationsInObject = (
-  obj: any,
-  found: Citation[],
-  depth = 0
-): void => {
+const findJsonCitationsInObject = (obj: any, found: Citation[], depth = 0): void => {
   // Performance fix: prevent stack overflow with depth limit
   if (depth > MAX_TRAVERSAL_DEPTH || !obj || typeof obj !== "object") return;
 
@@ -488,9 +421,7 @@ const findJsonCitationsInObject = (
     found.push(...items);
   }
   if (obj.citations && isJsonCitationFormat(obj.citations)) {
-    const items = Array.isArray(obj.citations)
-      ? obj.citations
-      : [obj.citations];
+    const items = Array.isArray(obj.citations) ? obj.citations : [obj.citations];
     found.push(...items);
   }
 
@@ -569,9 +500,7 @@ const extractXmlCitations = (text: string): CitationRecord => {
  * }
  * ```
  */
-export const getAllCitationsFromLlmOutput = (
-  llmOutput: unknown
-): CitationRecord => {
+export const getAllCitationsFromLlmOutput = (llmOutput: unknown): CitationRecord => {
   if (!llmOutput) return {};
 
   const citations: CitationRecord = {};
@@ -630,9 +559,7 @@ export const getAllCitationsFromLlmOutput = (
  * }
  * ```
  */
-export function groupCitationsByAttachmentId(
-  citations: Citation[] | CitationRecord
-): Map<string, CitationRecord> {
+export function groupCitationsByAttachmentId(citations: Citation[] | CitationRecord): Map<string, CitationRecord> {
   const grouped = new Map<string, CitationRecord>();
 
   // Normalize input to entries
@@ -673,7 +600,7 @@ export function groupCitationsByAttachmentId(
  * ```
  */
 export function groupCitationsByAttachmentIdObject(
-  citations: Citation[] | CitationRecord
+  citations: Citation[] | CitationRecord,
 ): Record<string, CitationRecord> {
   const grouped: Record<string, CitationRecord> = {};
 

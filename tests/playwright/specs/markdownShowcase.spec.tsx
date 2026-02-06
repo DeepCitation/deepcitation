@@ -1,10 +1,7 @@
-import { test, expect } from "@playwright/experimental-ct-react";
-
+import { expect, test } from "@playwright/experimental-ct-react";
 // Import showcase components separately to avoid Playwright CT bundling conflict
 import { MarkdownShowcase } from "../../../src/markdown/testing/MarkdownShowcase";
-import { INDICATOR_STYLES } from "../../../src/markdown/testing/MarkdownShowcase";
-import { MARKDOWN_VARIANTS } from "../../../src/markdown/testing/MarkdownShowcase";
-import { STATUS_TYPES } from "../../../src/markdown/testing/MarkdownShowcase";
+import { INDICATOR_STYLES, MARKDOWN_VARIANTS } from "../../../src/markdown/testing/MarkdownShowcase.constants";
 
 // =============================================================================
 // TESTS - Markdown Showcase

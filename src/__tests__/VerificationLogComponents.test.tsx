@@ -4,10 +4,10 @@ import {
   type AmbiguityInfo,
   AmbiguityWarning,
   FaviconImage,
-  getVariationLabel,
   LookingForSection,
   SourceContextHeader,
 } from "../react/VerificationLog";
+import { getVariationLabel } from "../react/variationLabels";
 import type { Citation } from "../types/citation";
 import type { Verification } from "../types/verification";
 
@@ -90,9 +90,7 @@ describe("AmbiguityWarning", () => {
       };
 
       const { container } = render(<AmbiguityWarning ambiguity={ambiguity} />);
-      expect(container.textContent).toContain(
-        "This is a test note about ambiguity"
-      );
+      expect(container.textContent).toContain("This is a test note about ambiguity");
     });
 
     it("truncates very long notes at word boundary", () => {
@@ -228,27 +226,20 @@ describe("LookingForSection", () => {
 
   describe("rendering", () => {
     it("renders with anchorText only", () => {
-      const { container } = render(
-        <LookingForSection anchorText="test anchor" />
-      );
+      const { container } = render(<LookingForSection anchorText="test anchor" />);
       expect(container.textContent).toContain("Looking for");
       expect(container.textContent).toContain("test anchor");
     });
 
     it("renders with fullPhrase only", () => {
-      const { container } = render(
-        <LookingForSection fullPhrase="test full phrase" />
-      );
+      const { container } = render(<LookingForSection fullPhrase="test full phrase" />);
       expect(container.textContent).toContain("Looking for");
       expect(container.textContent).toContain("test full phrase");
     });
 
     it("renders with both anchorText and fullPhrase", () => {
       const { container } = render(
-        <LookingForSection
-          anchorText="anchor text"
-          fullPhrase="The anchor text is important."
-        />
+        <LookingForSection anchorText="anchor text" fullPhrase="The anchor text is important." />,
       );
       expect(container.textContent).toContain("Looking for");
       expect(container.textContent).toContain("anchor text");
@@ -271,9 +262,7 @@ describe("LookingForSection", () => {
     });
 
     it("handles anchorText === fullPhrase (shows only once)", () => {
-      const { container } = render(
-        <LookingForSection anchorText="same text" fullPhrase="same text" />
-      );
+      const { container } = render(<LookingForSection anchorText="same text" fullPhrase="same text" />);
       expect(container.textContent).toContain("Looking for");
       expect(container.textContent).toContain("same text");
       // Should only appear once in the rendered output (in quotes)
@@ -399,9 +388,7 @@ describe("SourceContextHeader", () => {
         verifiedDomain: "verified.com",
       };
 
-      const { container } = render(
-        <SourceContextHeader citation={citation} verification={verification} />
-      );
+      const { container } = render(<SourceContextHeader citation={citation} verification={verification} />);
 
       // UrlCitationComponent uses verified domain
       expect(container.textContent).toContain("verified.com");
@@ -439,9 +426,7 @@ describe("SourceContextHeader", () => {
         verifiedPageNumber: 5,
       };
 
-      const { container } = render(
-        <SourceContextHeader citation={citation} verification={verification} />
-      );
+      const { container } = render(<SourceContextHeader citation={citation} verification={verification} />);
 
       expect(container.textContent).toContain("Invoice.pdf");
       // Page info is now shown as "Page X" format (human-readable)
@@ -508,11 +493,7 @@ describe("FaviconImage", () => {
   describe("rendering", () => {
     it("renders img when faviconUrl is provided", () => {
       const { container } = render(
-        <FaviconImage
-          faviconUrl="https://example.com/favicon.ico"
-          domain="example.com"
-          alt="Example"
-        />
+        <FaviconImage faviconUrl="https://example.com/favicon.ico" domain="example.com" alt="Example" />,
       );
 
       const img = container.querySelector("img");
@@ -521,9 +502,7 @@ describe("FaviconImage", () => {
     });
 
     it("uses Google Favicon Service when only domain is provided", () => {
-      const { container } = render(
-        <FaviconImage faviconUrl={null} domain="example.com" alt="Example" />
-      );
+      const { container } = render(<FaviconImage faviconUrl={null} domain="example.com" alt="Example" />);
 
       const img = container.querySelector("img");
       expect(img).toBeInTheDocument();
@@ -532,9 +511,7 @@ describe("FaviconImage", () => {
     });
 
     it("renders GlobeIcon when no faviconUrl or domain provided", () => {
-      const { container } = render(
-        <FaviconImage faviconUrl={null} domain={null} alt="Source" />
-      );
+      const { container } = render(<FaviconImage faviconUrl={null} domain={null} alt="Source" />);
 
       // Should not have an img element
       const img = container.querySelector("img");
@@ -546,11 +523,7 @@ describe("FaviconImage", () => {
 
     it("falls back to GlobeIcon when image fails to load", async () => {
       const { container } = render(
-        <FaviconImage
-          faviconUrl="https://invalid-url.com/broken.ico"
-          domain="example.com"
-          alt="Example"
-        />
+        <FaviconImage faviconUrl="https://invalid-url.com/broken.ico" domain="example.com" alt="Example" />,
       );
 
       // Initially should show img
@@ -575,11 +548,7 @@ describe("FaviconImage", () => {
   describe("accessibility", () => {
     it("uses provided alt text", () => {
       const { container } = render(
-        <FaviconImage
-          faviconUrl="https://example.com/favicon.ico"
-          domain="example.com"
-          alt="Example Site"
-        />
+        <FaviconImage faviconUrl="https://example.com/favicon.ico" domain="example.com" alt="Example Site" />,
       );
 
       const img = container.querySelector("img");
@@ -588,11 +557,7 @@ describe("FaviconImage", () => {
 
     it("falls back to 'Source' for empty alt text", () => {
       const { container } = render(
-        <FaviconImage
-          faviconUrl="https://example.com/favicon.ico"
-          domain="example.com"
-          alt=""
-        />
+        <FaviconImage faviconUrl="https://example.com/favicon.ico" domain="example.com" alt="" />,
       );
 
       const img = container.querySelector("img");
@@ -601,11 +566,7 @@ describe("FaviconImage", () => {
 
     it("falls back to 'Source' for whitespace-only alt text", () => {
       const { container } = render(
-        <FaviconImage
-          faviconUrl="https://example.com/favicon.ico"
-          domain="example.com"
-          alt="   "
-        />
+        <FaviconImage faviconUrl="https://example.com/favicon.ico" domain="example.com" alt="   " />,
       );
 
       const img = container.querySelector("img");

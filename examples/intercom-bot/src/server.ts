@@ -6,10 +6,10 @@
  */
 
 import "dotenv/config";
-import express from "express";
 import crypto from "crypto";
+import express from "express";
 import { IntercomBot } from "./intercom-bot.js";
-import { SAMPLE_KNOWLEDGE_BASE, getKnowledgeBaseSummary } from "./knowledge-base.js";
+import { getKnowledgeBaseSummary, SAMPLE_KNOWLEDGE_BASE } from "./knowledge-base.js";
 
 const app = express();
 
@@ -19,7 +19,7 @@ app.use(
     verify: (req: express.Request & { rawBody?: string }, _res, buf) => {
       req.rawBody = buf.toString();
     },
-  })
+  }),
 );
 
 // Bot instance
@@ -33,20 +33,13 @@ let botAdminId: string | null = null;
  * Intercom signs webhook payloads with HMAC-SHA256 using your client secret.
  * This prevents malicious actors from sending fake webhook events.
  */
-function verifyWebhookSignature(
-  rawBody: string,
-  signature: string,
-  secret: string
-): boolean {
+function verifyWebhookSignature(rawBody: string, signature: string, secret: string): boolean {
   const hmac = crypto.createHmac("sha256", secret);
   const digest = hmac.update(rawBody).digest("hex");
 
   // Use timing-safe comparison to prevent timing attacks
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, "hex"),
-      Buffer.from(digest, "hex")
-    );
+    return crypto.timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(digest, "hex"));
   } catch {
     return false;
   }
@@ -130,10 +123,7 @@ app.post("/webhook", async (req: express.Request & { rawBody?: string }, res) =>
     console.log(`\n🔔 Received webhook: ${topic}`);
 
     // Only process user messages
-    if (
-      topic !== "conversation.user.created" &&
-      topic !== "conversation.user.replied"
-    ) {
+    if (topic !== "conversation.user.created" && topic !== "conversation.user.replied") {
       console.log(`   Ignoring topic: ${topic}`);
       return;
     }
@@ -217,13 +207,9 @@ async function main() {
 `);
 
   // Validate environment variables
-  const requiredEnvVars = [
-    "DEEPCITATION_API_KEY",
-    "OPENAI_API_KEY",
-    "INTERCOM_ACCESS_TOKEN",
-  ];
+  const requiredEnvVars = ["DEEPCITATION_API_KEY", "OPENAI_API_KEY", "INTERCOM_ACCESS_TOKEN"];
 
-  const missingVars = requiredEnvVars.filter((v) => !process.env[v]);
+  const missingVars = requiredEnvVars.filter(v => !process.env[v]);
   if (missingVars.length > 0) {
     console.error(`❌ Missing required environment variables: ${missingVars.join(", ")}`);
     console.error("   Copy .env.example to .env and fill in your API keys");
@@ -236,16 +222,14 @@ async function main() {
     deepcitationApiKey: process.env.DEEPCITATION_API_KEY!,
     openaiApiKey: process.env.OPENAI_API_KEY!,
     intercomAccessToken: process.env.INTERCOM_ACCESS_TOKEN!,
-    minConfidenceThreshold: parseFloat(
-      process.env.MIN_CONFIDENCE_THRESHOLD || "0.8"
-    ),
+    minConfidenceThreshold: parseFloat(process.env.MIN_CONFIDENCE_THRESHOLD || "0.8"),
   });
 
   // Load knowledge base
   console.log("📚 Loading knowledge base...");
   await bot.loadKnowledgeBase(SAMPLE_KNOWLEDGE_BASE);
   console.log("   ✓ Loaded documents:");
-  SAMPLE_KNOWLEDGE_BASE.forEach((doc) => {
+  SAMPLE_KNOWLEDGE_BASE.forEach(doc => {
     console.log(`     - ${doc.filename}`);
   });
 

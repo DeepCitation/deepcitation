@@ -1,9 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import {
-  getCitationPageNumber,
-  normalizeCitations,
-  replaceCitations,
-} from "../parsing/normalizeCitation.js";
+import { getCitationPageNumber, normalizeCitations, replaceCitations } from "../parsing/normalizeCitation.js";
 import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
@@ -26,7 +22,7 @@ describe("normalizeCitations", () => {
       "Intro <cite lineIds='1-3' fileID='file123' start_page_key='page_number_2_index_0' fullPhrase=\"Hello\n**world**\" reasoning=\"A &quot;quote&quot;\"></cite> outro";
     const normalized = normalizeCitations(input);
     expect(normalized).toBe(
-      "Intro <cite attachment_id='file123' start_page_id='page_number_2_index_0' full_phrase='Hello world' line_ids='1,2,3' reasoning='A \\\"quote\\\"' /> outro"
+      "Intro <cite attachment_id='file123' start_page_id='page_number_2_index_0' full_phrase='Hello world' line_ids='1,2,3' reasoning='A \\\"quote\\\"' /> outro",
     );
   });
 
@@ -140,9 +136,7 @@ Medical History:
       // Verify structure: content appears before each citation
       const patientProfileIdx = result.indexOf("Patient Profile:");
       const nameIdx = result.indexOf("- Name: John Doe");
-      const firstCiteIdx = result.indexOf(
-        "<cite attachment_id='VVoEl2eWxfWbvZu0qajw'"
-      );
+      const firstCiteIdx = result.indexOf("<cite attachment_id='VVoEl2eWxfWbvZu0qajw'");
 
       expect(patientProfileIdx).toBeLessThan(nameIdx);
       expect(nameIdx).toBeLessThan(firstCiteIdx);
@@ -655,9 +649,7 @@ describe("replaceCitations with citationKey matching", () => {
 
     // Each citation should have its own correct indicator
     // citation1 = found (☑️), citation2 = not_found (❌), citation3 = partial (✅)
-    expect(result).toBe(
-      `${citation1.fullPhrase}☑️ and ${citation2.fullPhrase}❌ and ${citation3.fullPhrase}✅.`
-    );
+    expect(result).toBe(`${citation1.fullPhrase}☑️ and ${citation2.fullPhrase}❌ and ${citation3.fullPhrase}✅.`);
   });
 
   it("matches by citationKey even when citations have escaped quotes", () => {
@@ -803,9 +795,7 @@ describe("replaceCitations with citationKey matching", () => {
         showVerificationStatus: true,
       });
 
-      expect(result).toBe(
-        "He has a history of HTN, CAD, HFrEF, Hypothyroid, and HLD ☑️."
-      );
+      expect(result).toBe("He has a history of HTN, CAD, HFrEF, Hypothyroid, and HLD ☑️.");
     });
 
     it("matches citationKey when line_ids are specified as ranges in the cite tag", () => {
@@ -931,13 +921,7 @@ describe("replaceCitations with citationKey matching", () => {
 
     // Create verifications: some found, some not, some partial
     const verifications: Record<string, Verification> = {};
-    const statuses: Array<Verification["status"]> = [
-      "found",
-      "found",
-      "not_found",
-      "partial_text_found",
-      "found",
-    ];
+    const statuses: Array<Verification["status"]> = ["found", "found", "not_found", "partial_text_found", "found"];
 
     citations.forEach((c, i) => {
       const key = generateCitationKey(c);
@@ -958,8 +942,6 @@ describe("replaceCitations with citationKey matching", () => {
 
     // Verify each citation gets its correct indicator
     // found=☑️, not_found=❌, partial=✅
-    expect(result).toBe(
-      "Patient: John Doe, 50/M☑️ Allergies: NKDA☑️ Heparin 12 u/hr❌ Dobutamine 2.5 mcg/kg✅ Na+ 138☑️"
-    );
+    expect(result).toBe("Patient: John Doe, 50/M☑️ Allergies: NKDA☑️ Heparin 12 u/hr❌ Dobutamine 2.5 mcg/kg✅ Na+ 138☑️");
   });
 });

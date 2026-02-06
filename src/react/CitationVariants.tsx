@@ -1,21 +1,10 @@
-import React, {
-  forwardRef,
-  memo,
-  type ReactNode,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { forwardRef, memo, type ReactNode, useCallback, useMemo } from "react";
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import { INDICATOR_SIZE_STYLE } from "./CitationComponent.js";
-import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import { INDICATOR_SIZE_STYLE, MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
 import { XIcon } from "./icons.js";
-import type {
-  BaseCitationProps,
-  CitationEventHandlers,
-  CitationVariant as CitationVariantType,
-} from "./types.js";
+import type { BaseCitationProps, CitationEventHandlers, CitationVariant as CitationVariantType } from "./types.js";
 import {
   classNames,
   generateCitationInstanceId,
@@ -50,15 +39,9 @@ export interface CitationVariantProps extends BaseCitationProps {
  * Hook to get common citation data.
  * NOTE: Status is not memoized because verification may be mutated in place.
  */
-function useCitationData(
-  citation: Citation,
-  verification?: Verification | null
-) {
+function useCitationData(citation: Citation, verification?: Verification | null) {
   const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
-  const citationInstanceId = useMemo(
-    () => generateCitationInstanceId(citationKey),
-    [citationKey]
-  );
+  const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
   // Don't memoize - object reference as dependency causes stale values on mutation
   const status = getCitationStatus(verification ?? null);
   return { citationKey, citationInstanceId, status };
@@ -68,10 +51,7 @@ function useCitationData(
  * Default verified indicator (checkmark)
  */
 const DefaultVerifiedIndicator = () => (
-  <span
-    className="text-green-600 dark:text-green-500 ml-0.5"
-    aria-hidden="true"
-  >
+  <span className="text-green-600 dark:text-green-500 ml-0.5" aria-hidden="true">
     ✓
   </span>
 );
@@ -80,10 +60,7 @@ const DefaultVerifiedIndicator = () => (
  * Default partial match indicator (asterisk)
  */
 const DefaultPartialIndicator = () => (
-  <span
-    className="text-amber-500 dark:text-amber-400 ml-0.5"
-    aria-hidden="true"
-  >
+  <span className="text-amber-500 dark:text-amber-400 ml-0.5" aria-hidden="true">
     *
   </span>
 );
@@ -119,27 +96,22 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       fallbackDisplay,
       verification,
       eventHandlers,
-      isMobile = false,
       preventTooltips = false,
       pendingContent = TWO_DOTS_THINKING_CONTENT,
       renderVerifiedIndicator = () => <DefaultVerifiedIndicator />,
       renderPartialIndicator = () => <DefaultPartialIndicator />,
-      size = "md",
       showIcon = false,
       icon,
     },
-    ref
+    ref,
   ) => {
-    const { citationKey, citationInstanceId, status } = useCitationData(
-      citation,
-      verification
-    );
+    const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
     // ChipCitation shows anchorText by default
     const displayText = useMemo(
       () => getCitationDisplayText(citation, { fallbackDisplay }),
-      [citation, fallbackDisplay]
+      [citation, fallbackDisplay],
     );
 
     const handleClick = useCallback(
@@ -148,7 +120,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
         e.stopPropagation();
         eventHandlers?.onClick?.(citation, citationKey, e);
       },
-      [eventHandlers, citation, citationKey]
+      [eventHandlers, citation, citationKey],
     );
 
     const handleMouseEnter = useCallback(() => {
@@ -196,18 +168,16 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
             "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full font-normal cursor-pointer transition-colors text-[0.9em]",
             "hover:brightness-95",
             statusClass,
-            className
+            className,
           )}
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
           aria-label={displayText ? `Citation: ${displayText}` : undefined}
         >
           {showIcon && (icon || <span className="text-[0.9em]">📄</span>)}
-          <span className={classNames(textColorClass, isMiss && "opacity-70")}>
-            {displayText}
-          </span>
+          <span className={classNames(textColorClass, isMiss && "opacity-70")}>{displayText}</span>
           {isPartialMatch && renderPartialIndicator(status)}
           {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
           {isMiss && (
@@ -226,7 +196,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
         </span>
       </>
     );
-  }
+  },
 );
 
 ChipCitation.displayName = "ChipCitation";
@@ -250,31 +220,23 @@ export interface SuperscriptCitationProps extends CitationVariantProps {
  * // Renders: Text content¹
  * ```
  */
-export const SuperscriptCitation = forwardRef<
-  HTMLSpanElement,
-  SuperscriptCitationProps
->(
+export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitationProps>(
   (
     {
       citation,
       children,
       className,
-      fallbackDisplay,
       verification,
       eventHandlers,
-      isMobile = false,
       preventTooltips = false,
       pendingContent = TWO_DOTS_THINKING_CONTENT,
       renderVerifiedIndicator = () => <DefaultVerifiedIndicator />,
       renderPartialIndicator = () => <DefaultPartialIndicator />,
       hideBrackets = false,
     },
-    ref
+    ref,
   ) => {
-    const { citationKey, citationInstanceId, status } = useCitationData(
-      citation,
-      verification
-    );
+    const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
     // SuperscriptCitation shows number by default
@@ -286,7 +248,7 @@ export const SuperscriptCitation = forwardRef<
         e.stopPropagation();
         eventHandlers?.onClick?.(citation, citationKey, e);
       },
-      [eventHandlers, citation, citationKey]
+      [eventHandlers, citation, citationKey],
     );
 
     const handleMouseEnter = useCallback(() => {
@@ -320,12 +282,12 @@ export const SuperscriptCitation = forwardRef<
           className={classNames(
             "text-xs cursor-pointer font-medium transition-colors hover:underline inline-flex items-baseline",
             statusClass,
-            className
+            className,
           )}
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
           aria-label={`Citation ${displayText}`}
         >
           {!hideBrackets && "["}
@@ -349,7 +311,7 @@ export const SuperscriptCitation = forwardRef<
         </sup>
       </>
     );
-  }
+  },
 );
 
 SuperscriptCitation.displayName = "SuperscriptCitation";
@@ -377,16 +339,12 @@ const FOOTNOTE_SYMBOLS = ["*", "†", "‡", "§", "‖", "¶"];
  * // Renders: Text content*
  * ```
  */
-export const FootnoteCitation = forwardRef<
-  HTMLSpanElement,
-  FootnoteCitationProps
->(
+export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProps>(
   (
     {
       citation,
       children,
       className,
-      fallbackDisplay,
       verification,
       eventHandlers,
       preventTooltips = false,
@@ -396,18 +354,14 @@ export const FootnoteCitation = forwardRef<
       symbolStyle = "number",
       customSymbol,
     },
-    ref
+    ref,
   ) => {
-    const { citationKey, citationInstanceId, status } = useCitationData(
-      citation,
-      verification
-    );
+    const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
     const displaySymbol = useMemo(() => {
       if (symbolStyle === "custom" && customSymbol) return customSymbol;
-      if (symbolStyle === "number")
-        return citation.citationNumber?.toString() || "1";
+      if (symbolStyle === "number") return citation.citationNumber?.toString() || "1";
       if (symbolStyle === "asterisk") return "*";
       if (symbolStyle === "dagger") {
         const num = (citation.citationNumber || 1) - 1;
@@ -422,7 +376,7 @@ export const FootnoteCitation = forwardRef<
         e.stopPropagation();
         eventHandlers?.onClick?.(citation, citationKey, e);
       },
-      [eventHandlers, citation, citationKey]
+      [eventHandlers, citation, citationKey],
     );
 
     const handleMouseEnter = useCallback(() => {
@@ -456,18 +410,15 @@ export const FootnoteCitation = forwardRef<
           className={classNames(
             "text-xs cursor-pointer font-normal transition-colors inline-flex items-baseline",
             statusClass,
-            className
+            className,
           )}
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
           aria-label={`Footnote ${displaySymbol}`}
         >
-          <span
-            className={isMiss ? "opacity-70" : undefined}
-            style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
-          >
+          <span className={isMiss ? "opacity-70" : undefined} style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}>
             {displaySymbol}
           </span>
           {isPartialMatch && renderPartialIndicator(status)}
@@ -488,7 +439,7 @@ export const FootnoteCitation = forwardRef<
         </sup>
       </>
     );
-  }
+  },
 );
 
 FootnoteCitation.displayName = "FootnoteCitation";
@@ -527,18 +478,15 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
       renderPartialIndicator = () => <DefaultPartialIndicator />,
       underlineStyle = "dotted",
     },
-    ref
+    ref,
   ) => {
-    const { citationKey, citationInstanceId, status } = useCitationData(
-      citation,
-      verification
-    );
+    const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
 
     // InlineCitation shows anchorText by default
     const displayText = useMemo(
       () => getCitationDisplayText(citation, { fallbackDisplay }),
-      [citation, fallbackDisplay]
+      [citation, fallbackDisplay],
     );
 
     const handleClick = useCallback(
@@ -547,7 +495,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
         e.stopPropagation();
         eventHandlers?.onClick?.(citation, citationKey, e);
       },
-      [eventHandlers, citation, citationKey]
+      [eventHandlers, citation, citationKey],
     );
 
     const handleMouseEnter = useCallback(() => {
@@ -589,18 +537,15 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
             "cursor-pointer transition-colors hover:bg-blue-500/5 inline-flex items-baseline",
             underlineClasses[underlineStyle],
             statusClass,
-            className
+            className,
           )}
           onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
           aria-label={`Citation: ${displayText}`}
         >
-          <span
-            className={isMiss ? "opacity-70" : undefined}
-            style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
-          >
+          <span className={isMiss ? "opacity-70" : undefined} style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}>
             {displayText}
           </span>
           {isPartialMatch && renderPartialIndicator(status)}
@@ -617,13 +562,11 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
               <span className="sr-only">not found</span>
             </>
           )}
-          {isPending && (
-            <span className="opacity-70 ml-1">{pendingContent}</span>
-          )}
+          {isPending && <span className="opacity-70 ml-1">{pendingContent}</span>}
         </span>
       </>
     );
-  }
+  },
 );
 
 InlineCitation.displayName = "InlineCitation";
@@ -653,28 +596,13 @@ export interface VariantCitationProps extends CitationVariantProps {
  * <CitationVariantFactory variant="chip" citation={citation} chipProps={{ size: "lg" }} />
  * ```
  */
-export const CitationVariantFactory = forwardRef<
-  HTMLSpanElement,
-  VariantCitationProps
->(
-  (
-    {
-      variant = "bracket",
-      chipProps,
-      superscriptProps,
-      footnoteProps,
-      inlineProps,
-      ...props
-    },
-    ref
-  ) => {
+export const CitationVariantFactory = forwardRef<HTMLSpanElement, VariantCitationProps>(
+  ({ variant = "bracket", chipProps, superscriptProps, footnoteProps, inlineProps, ...props }, ref) => {
     switch (variant) {
       case "chip":
         return <ChipCitation ref={ref} {...props} {...chipProps} />;
       case "superscript":
-        return (
-          <SuperscriptCitation ref={ref} {...props} {...superscriptProps} />
-        );
+        return <SuperscriptCitation ref={ref} {...props} {...superscriptProps} />;
       case "footnote":
         return <FootnoteCitation ref={ref} {...props} {...footnoteProps} />;
       case "inline":
@@ -684,7 +612,7 @@ export const CitationVariantFactory = forwardRef<
         // This factory is meant to be used for alternate variants
         return null;
     }
-  }
+  },
 );
 
 CitationVariantFactory.displayName = "CitationVariantFactory";

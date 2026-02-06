@@ -6,6 +6,9 @@ lib/**/*
 
 bun.lock
 
+.turbo/
+.claude/
+
 /playwright/.cache/
 /test-results/
 /playwright-report/

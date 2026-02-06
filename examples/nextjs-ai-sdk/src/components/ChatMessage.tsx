@@ -1,14 +1,10 @@
 "use client";
 
+import { type Citation, parseCitation, type Verification } from "@deepcitation/deepcitation-js";
+import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  type Verification,
-  type Citation,
-  parseCitation,
-} from "@deepcitation/deepcitation-js";
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 interface ChatMessageProps {
   message: {
@@ -33,28 +29,20 @@ interface ChatMessageProps {
  * Displays chat messages with inline citation verification.
  * Replaces <cite> tags with CitationComponent using verification data.
  */
-export function ChatMessage({
-  message,
-  citations,
-  verifications,
-}: ChatMessageProps) {
+export function ChatMessage({ message, citations, verifications }: ChatMessageProps) {
   const isUser = message.role === "user";
 
   // AI SDK v6 uses parts array, fall back to content for compatibility
   const messageContent =
     message.content ||
     message.parts
-      ?.filter((p) => p.type === "text")
-      .map((p) => p.text)
+      ?.filter(p => p.type === "text")
+      .map(p => p.text)
       .join("") ||
     "";
 
   const processedContent = useMemo(() => {
-    return processContentWithCitations(
-      messageContent,
-      citations ?? {},
-      verifications ?? {}
-    );
+    return processContentWithCitations(messageContent, citations ?? {}, verifications ?? {});
   }, [messageContent, citations, verifications]);
 
   return (
@@ -89,7 +77,7 @@ export function ChatMessage({
 /**
  * Verification summary badge component
  */
-function VerificationSummaryBadge({
+function _VerificationSummaryBadge({
   summary,
 }: {
   summary: { total: number; verified: number; missed: number; pending: number };
@@ -103,8 +91,8 @@ function VerificationSummaryBadge({
         allVerified
           ? "bg-green-100 text-green-700"
           : someVerified
-          ? "bg-yellow-100 text-yellow-700"
-          : "bg-red-100 text-red-700"
+            ? "bg-yellow-100 text-yellow-700"
+            : "bg-red-100 text-red-700"
       }`}
     >
       {allVerified ? "✓" : someVerified ? "◐" : "✗"}
@@ -121,7 +109,7 @@ function VerificationSummaryBadge({
 function processContentWithCitations(
   content: string,
   citations: Record<string, Citation>,
-  verifications: Record<string, Verification>
+  verifications: Record<string, Verification>,
 ): React.ReactNode {
   // Match <cite ... /> tags
   const citationRegex = /<cite\s+[^>]*\/>/g;
@@ -173,7 +161,7 @@ function processContentWithCitations(
           }}
         >
           {part.content}
-        </ReactMarkdown>
+        </ReactMarkdown>,
       );
     } else if (part.type === "citation") {
       // Match by index - citations and verifications should be in same order
@@ -185,32 +173,16 @@ function processContentWithCitations(
         const [, citation] = citationEntry;
         const [, verificationData] = verificationEntry;
         elements.push(
-          <CitationComponent
-            key={`citation-${index}`}
-            citation={citation}
-            verification={verificationData}
-          />
+          <CitationComponent key={`citation-${index}`} citation={citation} verification={verificationData} />,
         );
       } else if (citationEntry) {
         // Have citation but no verification yet
         const [, citation] = citationEntry;
-        elements.push(
-          <CitationComponent
-            key={`citation-${index}`}
-            citation={citation}
-            verification={undefined}
-          />
-        );
+        elements.push(<CitationComponent key={`citation-${index}`} citation={citation} verification={undefined} />);
       } else {
         // Fallback: parse the citation without verification
         const { citation } = parseCitation(part.content);
-        elements.push(
-          <CitationComponent
-            key={`citation-${index}`}
-            citation={citation}
-            verification={undefined}
-          />
-        );
+        elements.push(<CitationComponent key={`citation-${index}`} citation={citation} verification={undefined} />);
       }
     }
   });

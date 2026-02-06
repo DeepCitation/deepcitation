@@ -47,14 +47,11 @@ export interface ReplaceCitationsOptions {
  * Parse attributes from a cite tag in any order.
  * Returns an object with all found attributes.
  */
-const parseCiteAttributes = (
-  citeTag: string
-): Record<string, string | undefined> => {
+const parseCiteAttributes = (citeTag: string): Record<string, string | undefined> => {
   const attrs: Record<string, string | undefined> = {};
 
   // Match attribute patterns: key='value' or key="value"
-  const attrRegex =
-    /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
+  const attrRegex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
   let match;
 
   while ((match = attrRegex.exec(citeTag)) !== null) {
@@ -68,10 +65,7 @@ const parseCiteAttributes = (
     const normalizedKey =
       key === "fileid" || key === "file_id" || key === "attachmentid"
         ? "attachment_id"
-        : key === "anchortext" ||
-            key === "anchor_text" ||
-            key === "keyspan" ||
-            key === "key_span"
+        : key === "anchortext" || key === "anchor_text" || key === "keyspan" || key === "key_span"
           ? "anchor_text"
           : key === "fullphrase"
             ? "full_phrase"
@@ -103,9 +97,7 @@ const parseCiteAttributes = (
  * For web UI, use the React CitationComponent instead which provides
  * proper styled indicators with colors and accessibility.
  */
-export const getVerificationTextIndicator = (
-  verification: Verification | null | undefined
-): string => {
+export const getVerificationTextIndicator = (verification: Verification | null | undefined): string => {
   const status = getCitationStatus(verification);
 
   if (status.isMiss) return "❌";
@@ -143,15 +135,8 @@ export const getVerificationTextIndicator = (
  * // Output: "Revenue grew 45% year-over-year Revenue Growth✓"
  * ```
  */
-export const replaceCitations = (
-  markdownWithCitations: string,
-  options: ReplaceCitationsOptions = {}
-): string => {
-  const {
-    leaveAnchorTextBehind = false,
-    verifications,
-    showVerificationStatus = false,
-  } = options;
+export const replaceCitations = (markdownWithCitations: string, options: ReplaceCitationsOptions = {}): string => {
+  const { leaveAnchorTextBehind = false, verifications, showVerificationStatus = false } = options;
 
   // Track citation index for matching with numbered verification keys
   let citationIndex = 0;
@@ -159,7 +144,7 @@ export const replaceCitations = (
   // Performance fix: use module-level compiled regex (create fresh instance to reset lastIndex)
   const citationRegex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
 
-  return markdownWithCitations.replace(citationRegex, (match) => {
+  return markdownWithCitations.replace(citationRegex, match => {
     citationIndex++;
     const attrs = parseCiteAttributes(match);
 
@@ -192,48 +177,42 @@ export const replaceCitations = (
         const SAMPLE_COUNT = 50;
 
         // First expand ranges (e.g., "62-63" -> "62,63")
-        const expanded = lineIdsStr.replace(
-          /(\d+)-(\d+)/g,
-          (_match, start, end) => {
-            const startNum = parseInt(start, 10);
-            const endNum = parseInt(end, 10);
-            if (startNum <= endNum) {
-              const rangeSize = endNum - startNum + 1;
-              // For large ranges, use sampling to maintain accuracy
-              if (rangeSize > MAX_RANGE_SIZE) {
-                const samples = [startNum];
-                const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
-                if (sampleCount > 0) {
-                  // Use Math.floor for predictable sampling, ensuring step >= 1
-                  const step = Math.max(
-                    1,
-                    Math.floor((endNum - startNum) / (sampleCount + 1))
-                  );
-                  for (let i = 1; i <= sampleCount; i++) {
-                    const sample = startNum + step * i;
-                    // Ensure we don't exceed the range end
-                    if (sample < endNum) {
-                      samples.push(sample);
-                    }
+        const expanded = lineIdsStr.replace(/(\d+)-(\d+)/g, (_match, start, end) => {
+          const startNum = parseInt(start, 10);
+          const endNum = parseInt(end, 10);
+          if (startNum <= endNum) {
+            const rangeSize = endNum - startNum + 1;
+            // For large ranges, use sampling to maintain accuracy
+            if (rangeSize > MAX_RANGE_SIZE) {
+              const samples = [startNum];
+              const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
+              if (sampleCount > 0) {
+                // Use Math.floor for predictable sampling, ensuring step >= 1
+                const step = Math.max(1, Math.floor((endNum - startNum) / (sampleCount + 1)));
+                for (let i = 1; i <= sampleCount; i++) {
+                  const sample = startNum + step * i;
+                  // Ensure we don't exceed the range end
+                  if (sample < endNum) {
+                    samples.push(sample);
                   }
                 }
-                samples.push(endNum);
-                return samples.join(",");
               }
-              const range = [];
-              for (let i = startNum; i <= endNum; i++) {
-                range.push(i);
-              }
-              return range.join(",");
+              samples.push(endNum);
+              return samples.join(",");
             }
-            return start;
+            const range = [];
+            for (let i = startNum; i <= endNum; i++) {
+              range.push(i);
+            }
+            return range.join(",");
           }
-        );
+          return start;
+        });
 
         const nums = expanded
           .split(",")
-          .map((s) => parseInt(s.trim(), 10))
-          .filter((n) => !Number.isNaN(n));
+          .map(s => parseInt(s.trim(), 10))
+          .filter(n => !Number.isNaN(n));
         return nums.length > 0 ? nums : undefined;
       };
 
@@ -280,9 +259,7 @@ export const removeLineIdMetadata = (pageText: string): string => {
   return pageText.replace(lineIdRegex, "");
 };
 
-export const getCitationPageNumber = (
-  startPageId?: string | null
-): number | null => {
+export const getCitationPageNumber = (startPageId?: string | null): number | null => {
   //page_number_{page_number}_index_{page_index} or page_number_{page_number} or page_id_{page_number}_index_{page_index}
   if (!startPageId) return null;
 
@@ -303,15 +280,13 @@ const extractAndRelocateCitationContent = (citePart: string): string => {
   // Match: <cite with attributes> then content then </cite>
   // The attribute regex handles escaped quotes: (?:[^'\\]|\\.)* matches non-quote/non-backslash OR backslash+any
   const nonSelfClosingMatch = citePart.match(
-    /^(<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>)([\s\S]*?)<\/cite>$/
+    /^(<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>)([\s\S]*?)<\/cite>$/,
   );
 
   if (!nonSelfClosingMatch) {
     // Check if this is an unclosed citation ending with just >
     // Pattern: <cite attributes> (no closing tag)
-    const unclosedMatch = citePart.match(
-      /^(<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>)$/
-    );
+    const unclosedMatch = citePart.match(/^(<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>)$/);
     if (unclosedMatch) {
       // Convert <cite ... > to self-closing <cite ... />
       const selfClosingTag = unclosedMatch[1].replace(/>$/, " />");
@@ -352,7 +327,7 @@ export const normalizeCitations = (response: string): string => {
   // This avoids matching words like "excite" or "recite"
   trimmedResponse = trimmedResponse.replace(
     /(?<![<a-zA-Z])cite\s+(attachment_id|file_id|fileId|attachmentId)\s*=/gi,
-    "<cite $1="
+    "<cite $1=",
   );
 
   // Split on citation tags - captures three patterns:
@@ -360,18 +335,13 @@ export const normalizeCitations = (response: string): string => {
   // 2. With closing tag: <cite ...>content</cite>
   // 3. Unclosed (ends with >): <cite ...> (no closing tag, no </cite> anywhere after)
   // Pattern 3 uses negative lookahead to avoid matching when </cite> follows
-  const citationParts = trimmedResponse.split(
-    /(<cite[\s\S]*?(?:\/>|<\/cite>|>(?=\s*$|[\r\n])(?![\s\S]*<\/cite>)))/gm
-  );
+  const citationParts = trimmedResponse.split(/(<cite[\s\S]*?(?:\/>|<\/cite>|>(?=\s*$|[\r\n])(?![\s\S]*<\/cite>)))/gm);
   if (citationParts.length <= 1) {
     // Handle unclosed citations by converting to self-closing
-    const unclosedMatch = trimmedResponse.match(
-      /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>/g
-    );
+    const unclosedMatch = trimmedResponse.match(/<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>/g);
     if (unclosedMatch && unclosedMatch.length > 0) {
-      const result = trimmedResponse.replace(
-        /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>/g,
-        (match) => match.replace(/>$/, " />")
+      const result = trimmedResponse.replace(/<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*>/g, match =>
+        match.replace(/>$/, " />"),
       );
       return normalizeCitationContent(result);
     }
@@ -379,9 +349,7 @@ export const normalizeCitations = (response: string): string => {
   }
 
   trimmedResponse = citationParts
-    .map((part) =>
-      part.startsWith("<cite") ? extractAndRelocateCitationContent(part) : part
-    )
+    .map(part => (part.startsWith("<cite") ? extractAndRelocateCitationContent(part) : part))
     .join("");
 
   return trimmedResponse;
@@ -400,8 +368,7 @@ const normalizeCitationContent = (input: string): string => {
 
   const canonicalizeCiteAttributeKey = (key: string): string => {
     const lowerKey = key.toLowerCase();
-    if (lowerKey === "fullphrase" || lowerKey === "full_phrase")
-      return "full_phrase";
+    if (lowerKey === "fullphrase" || lowerKey === "full_phrase") return "full_phrase";
     if (lowerKey === "lineids" || lowerKey === "line_ids") return "line_ids";
     if (
       lowerKey === "startpageid" ||
@@ -412,27 +379,12 @@ const normalizeCitationContent = (input: string): string => {
       lowerKey === "start_page_key"
     )
       return "start_page_id";
-    if (
-      lowerKey === "fileid" ||
-      lowerKey === "file_id" ||
-      lowerKey === "attachmentid" ||
-      lowerKey === "attachment_id"
-    )
+    if (lowerKey === "fileid" || lowerKey === "file_id" || lowerKey === "attachmentid" || lowerKey === "attachment_id")
       return "attachment_id";
-    if (
-      lowerKey === "anchortext" ||
-      lowerKey === "anchor_text" ||
-      lowerKey === "keyspan" ||
-      lowerKey === "key_span"
-    )
+    if (lowerKey === "anchortext" || lowerKey === "anchor_text" || lowerKey === "keyspan" || lowerKey === "key_span")
       return "anchor_text";
     if (lowerKey === "reasoning" || lowerKey === "value") return lowerKey;
-    if (
-      lowerKey === "timestamps" ||
-      lowerKey === "timestamp" ||
-      lowerKey === "timestamps"
-    )
-      return "timestamps";
+    if (lowerKey === "timestamps" || lowerKey === "timestamp" || lowerKey === "timestamps") return "timestamps";
 
     return lowerKey;
   };
@@ -446,45 +398,33 @@ const normalizeCitationContent = (input: string): string => {
   };
   const htmlEntityRegex = /&(?:quot|apos|lt|gt|amp);/g;
   const decodeHtmlEntities = (str: string) => {
-    return str.replace(
-      htmlEntityRegex,
-      (match) => htmlEntityMap[match] || match
-    );
+    return str.replace(htmlEntityRegex, match => htmlEntityMap[match] || match);
   };
 
   const textAttributeRegex =
     /(fullPhrase|full_phrase|anchorText|anchor_text|keySpan|key_span|reasoning|value)\s*=\s*(['"])([\s\S]*?)(?=\s+(?:line_ids|lineIds|timestamps|fileId|file_id|attachmentId|attachment_id|start_page_id|start_pageId|startPageId|start_page_key|start_pageKey|startPageKey|anchorText|anchor_text|keySpan|key_span|reasoning|value|full_phrase)\s*=|\s*\/>|['"]>)/gm;
 
-  normalized = normalized.replace(
-    textAttributeRegex,
-    (_match, key, openQuote, rawContent) => {
-      let content = rawContent;
+  normalized = normalized.replace(textAttributeRegex, (_match, key, openQuote, rawContent) => {
+    let content = rawContent;
 
-      if (content.endsWith(openQuote)) {
-        content = content.slice(0, -1);
-      }
-
-      // Flatten newlines and remove markdown markers
-      content = content.replace(/(\r?\n)+|(\*|_){2,}|\*/g, (match: string) => {
-        if (match.includes("\n") || match.includes("\r")) return " ";
-        return "";
-      });
-
-      content = decodeHtmlEntities(content);
-
-      // Normalize quotes
-      content = content
-        .replace(/\\\\'/g, "'")
-        .replace(/\\'/g, "'")
-        .replace(/'/g, "\\'");
-      content = content
-        .replace(/\\\\"/g, '"')
-        .replace(/\\"/g, '"')
-        .replace(/"/g, '\\"');
-
-      return `${canonicalizeCiteAttributeKey(key)}='${content}'`;
+    if (content.endsWith(openQuote)) {
+      content = content.slice(0, -1);
     }
-  );
+
+    // Flatten newlines and remove markdown markers
+    content = content.replace(/(\r?\n)+|(\*|_){2,}|\*/g, (match: string) => {
+      if (match.includes("\n") || match.includes("\r")) return " ";
+      return "";
+    });
+
+    content = decodeHtmlEntities(content);
+
+    // Normalize quotes
+    content = content.replace(/\\\\'/g, "'").replace(/\\'/g, "'").replace(/'/g, "\\'");
+    content = content.replace(/\\\\"/g, '"').replace(/\\"/g, '"').replace(/"/g, '\\"');
+
+    return `${canonicalizeCiteAttributeKey(key)}='${content}'`;
+  });
   // Performance fix: limit range expansion to prevent memory exhaustion
   const MAX_RANGE_SIZE = 1000;
   const SAMPLE_COUNT = 50;
@@ -496,64 +436,55 @@ const normalizeCitationContent = (input: string): string => {
       let cleanedValue = rawValue.replace(/[A-Za-z[\](){}]/g, "");
 
       // Expand ranges (e.g., "1-3" -> "1,2,3")
-      cleanedValue = cleanedValue.replace(
-        /(\d+)-(\d+)/g,
-        (_rangeMatch: string, start: string, end: string) => {
-          const startNum = parseInt(start, 10);
-          const endNum = parseInt(end, 10);
+      cleanedValue = cleanedValue.replace(/(\d+)-(\d+)/g, (_rangeMatch: string, start: string, end: string) => {
+        const startNum = parseInt(start, 10);
+        const endNum = parseInt(end, 10);
 
-          // Handle ascending range
-          if (startNum <= endNum) {
-            const rangeSize = endNum - startNum + 1;
-            // For large ranges, use sampling to maintain accuracy
-            if (rangeSize > MAX_RANGE_SIZE) {
-              const samples = [startNum];
-              const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
-              if (sampleCount > 0) {
-                // Use Math.floor for predictable sampling, ensuring step >= 1
-                const step = Math.max(
-                  1,
-                  Math.floor((endNum - startNum) / (sampleCount + 1))
-                );
-                for (let i = 1; i <= sampleCount; i++) {
-                  const sample = startNum + step * i;
-                  // Ensure we don't exceed the range end
-                  if (sample < endNum) {
-                    samples.push(sample);
-                  }
+        // Handle ascending range
+        if (startNum <= endNum) {
+          const rangeSize = endNum - startNum + 1;
+          // For large ranges, use sampling to maintain accuracy
+          if (rangeSize > MAX_RANGE_SIZE) {
+            const samples = [startNum];
+            const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
+            if (sampleCount > 0) {
+              // Use Math.floor for predictable sampling, ensuring step >= 1
+              const step = Math.max(1, Math.floor((endNum - startNum) / (sampleCount + 1)));
+              for (let i = 1; i <= sampleCount; i++) {
+                const sample = startNum + step * i;
+                // Ensure we don't exceed the range end
+                if (sample < endNum) {
+                  samples.push(sample);
                 }
               }
-              samples.push(endNum);
-              return samples.join(",");
             }
-            const range = [];
-            for (let i = startNum; i <= endNum; i++) {
-              range.push(i);
-            }
-            return range.join(",");
-          } else {
-            // Fallback for weird descending ranges or just return start
-            return String(startNum);
+            samples.push(endNum);
+            return samples.join(",");
           }
+          const range = [];
+          for (let i = startNum; i <= endNum; i++) {
+            range.push(i);
+          }
+          return range.join(",");
+        } else {
+          // Fallback for weird descending ranges or just return start
+          return String(startNum);
         }
-      );
+      });
 
       // Normalize commas
       cleanedValue = cleanedValue.replace(/,+/g, ",").replace(/^,|,$/g, "");
 
       // Return standardized format: key='value' + preserved trailing characters (space or />)
-      return `${canonicalizeCiteAttributeKey(
-        key
-      )}='${cleanedValue}'${trailingChars}`;
-    }
+      return `${canonicalizeCiteAttributeKey(key)}='${cleanedValue}'${trailingChars}`;
+    },
   );
 
   // 4. Re-order <cite ... /> attributes to match the strict parsing expectations in `citationParser.ts`
   // (the parser uses regexes that assume a canonical attribute order).
   const reorderCiteTagAttributes = (tag: string): string => {
     // Match both single-quoted and double-quoted attributes
-    const attrRegex =
-      /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(['"])((?:[^'"\\\n]|\\.)*)(?:\2)/g;
+    const attrRegex = /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(['"])((?:[^'"\\\n]|\\.)*)(?:\2)/g;
     const attrs: Record<string, string> = {};
     let match: RegExpExecArray | null;
 
@@ -568,9 +499,8 @@ const normalizeCitationContent = (input: string): string => {
     const keys = Object.keys(attrs);
     if (keys.length === 0) return tag;
 
-    const hasTimestamps =
-      typeof attrs.timestamps === "string" && attrs.timestamps.length > 0;
-    const startPageIds = keys.filter((k) => k.startsWith("start_page"));
+    const hasTimestamps = typeof attrs.timestamps === "string" && attrs.timestamps.length > 0;
+    const startPageIds = keys.filter(k => k.startsWith("start_page"));
 
     const ordered: string[] = [];
 
@@ -585,9 +515,7 @@ const normalizeCitationContent = (input: string): string => {
     } else {
       // Document citations: attachment_id, start_page*, full_phrase, anchor_text, line_ids, (optional reasoning/value), then any extras
       if (startPageIds.includes("start_page_id")) ordered.push("start_page_id");
-      for (const k of startPageIds
-        .filter((k) => k !== "start_page_id")
-        .sort()) {
+      for (const k of startPageIds.filter(k => k !== "start_page_id").sort()) {
         ordered.push(k);
       }
 
@@ -602,17 +530,15 @@ const normalizeCitationContent = (input: string): string => {
 
     // Any remaining attributes, stable + deterministic (alpha)
     const used = new Set(ordered);
-    for (const k of keys.filter((k) => !used.has(k)).sort()) {
+    for (const k of keys.filter(k => !used.has(k)).sort()) {
       ordered.push(k);
     }
 
-    const rebuiltAttrs = ordered.map((k) => `${k}='${attrs[k]}'`).join(" ");
+    const rebuiltAttrs = ordered.map(k => `${k}='${attrs[k]}'`).join(" ");
     return `<cite ${rebuiltAttrs} />`;
   };
 
-  normalized = normalized.replace(/<cite\b[\s\S]*?\/>/gm, (tag) =>
-    reorderCiteTagAttributes(tag)
-  );
+  normalized = normalized.replace(/<cite\b[\s\S]*?\/>/gm, tag => reorderCiteTagAttributes(tag));
 
   return normalized;
 };

@@ -53,9 +53,7 @@ describe("sha1Hash", () => {
     circularObj.self = circularObj;
 
     // Spy on console.error to verify it's called
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     const result = sha1Hash(circularObj);
 
@@ -64,10 +62,7 @@ describe("sha1Hash", () => {
 
     // Should log error once
     expect(consoleSpy).toHaveBeenCalledTimes(1);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "Error in making the hash:",
-      expect.any(Error)
-    );
+    expect(consoleSpy).toHaveBeenCalledWith("Error in making the hash:", expect.any(Error));
 
     consoleSpy.mockRestore();
   });
@@ -82,9 +77,7 @@ describe("sha1Hash", () => {
     };
     (obj.level1 as Record<string, unknown>).level2 = obj;
 
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     const result = sha1Hash(obj);
     expect(result).toBe("");
@@ -97,9 +90,7 @@ describe("sha1Hash", () => {
     const arr: unknown[] = [1, 2, 3];
     arr.push(arr);
 
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     const result = sha1Hash(arr);
     expect(result).toBe("");

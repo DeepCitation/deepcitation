@@ -1,9 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import {
-  getAllCitationsFromLlmOutput,
-  getCitationStatus,
-  parseCitation,
-} from "../parsing/parseCitation.js";
+import { getAllCitationsFromLlmOutput, getCitationStatus, parseCitation } from "../parsing/parseCitation.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { NOT_FOUND_VERIFICATION_INDEX } from "../types/verification.js";
@@ -252,9 +248,7 @@ describe("parseCitation", () => {
     const parsed = parseCitation(fragment);
     const { citation } = parsed;
 
-    expect(citation.fullPhrase).toBe(
-      "The quick brown fox jumps over the lazy dog"
-    );
+    expect(citation.fullPhrase).toBe("The quick brown fox jumps over the lazy dog");
     // Output uses new naming: anchorText
     expect(citation.anchorText).toBe("quick brown fox");
   });
@@ -491,9 +485,7 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("returns empty object for string without citations", () => {
-      const result = getAllCitationsFromLlmOutput(
-        "Just some plain text without any citations"
-      );
+      const result = getAllCitationsFromLlmOutput("Just some plain text without any citations");
       expect(result).toEqual({});
     });
 
@@ -538,7 +530,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result).length).toBeGreaterThanOrEqual(3);
       const citations = Object.values(result);
-      const phrases = citations.map((c) => c.fullPhrase);
+      const phrases = citations.map(c => c.fullPhrase);
       expect(phrases).toContain("first phrase");
       expect(phrases).toContain("second phrase");
       expect(phrases).toContain("third phrase");
@@ -598,7 +590,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBe(2);
-      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.fullPhrase);
       expect(phrases).toContain("first phrase");
       expect(phrases).toContain("second phrase");
     });
@@ -629,7 +621,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBe(2);
-      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.fullPhrase);
       expect(phrases).toContain("citation one");
       expect(phrases).toContain("citation two");
     });
@@ -639,9 +631,7 @@ describe("getAllCitationsFromLlmOutput", () => {
         level1: {
           level2: {
             level3: {
-              citations: [
-                { fullPhrase: "deep citation", attachmentId: "deep1" },
-              ],
+              citations: [{ fullPhrase: "deep citation", attachmentId: "deep1" }],
             },
           },
         },
@@ -753,7 +743,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBeGreaterThanOrEqual(2);
-      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.fullPhrase);
       expect(phrases).toContain("xml phrase");
       expect(phrases).toContain("json phrase");
     });
@@ -906,10 +896,7 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
 
     it("detects array with at least one citation-like object", () => {
-      const input = [
-        { notACitation: true },
-        { fullPhrase: "this is a citation" },
-      ];
+      const input = [{ notACitation: true }, { fullPhrase: "this is a citation" }];
       const result = getAllCitationsFromLlmOutput(input);
       expect(Object.keys(result)).toHaveLength(1);
     });
@@ -986,7 +973,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(2);
-      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.fullPhrase);
       expect(phrases).toContain("first citation");
       expect(phrases).toContain("second citation");
     });
@@ -1058,9 +1045,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe(
-        "The quick brown fox jumps over the lazy dog"
-      );
+      expect(citation.fullPhrase).toBe("The quick brown fox jumps over the lazy dog");
       // Output uses new naming: anchorText
       expect(citation.anchorText).toBe("quick brown fox");
     });
@@ -1076,9 +1061,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe(
-        "The quick brown fox jumps over the lazy dog"
-      );
+      expect(citation.fullPhrase).toBe("The quick brown fox jumps over the lazy dog");
       // Output uses new naming: anchorText
       expect(citation.anchorText).toBe("quick brown fox");
     });
@@ -1157,9 +1140,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
       const citations = Object.values(result);
 
-      const numbers = citations
-        .map((c) => c.citationNumber)
-        .sort((a, b) => (a || 0) - (b || 0));
+      const numbers = citations.map(c => c.citationNumber).sort((a, b) => (a || 0) - (b || 0));
       expect(numbers).toEqual([1, 2, 3]);
     });
   });
@@ -1177,9 +1158,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.attachmentId).toBe("D8bv8mItwv6VOmIBo2nr");
-      expect(citation.fullPhrase).toBe(
-        "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD"
-      );
+      expect(citation.fullPhrase).toBe("Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD");
       // Output uses new naming: anchorText
       expect(citation.anchorText).toBe("5 PATHOGENIC BACTERIA");
       expect(citation.pageNumber).toBe(1);
@@ -1193,7 +1172,7 @@ describe("getAllCitationsFromLlmOutput", () => {
 
       expect(Object.keys(result).length).toBeGreaterThanOrEqual(2);
       const citations = Object.values(result);
-      const phrases = citations.map((c) => c.fullPhrase);
+      const phrases = citations.map(c => c.fullPhrase);
       expect(phrases).toContain("first phrase");
       expect(phrases).toContain("second phrase");
     });
@@ -1285,7 +1264,7 @@ describe("getAllCitationsFromLlmOutput", () => {
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBe(2);
-      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.fullPhrase);
       expect(phrases).toContain("first phrase");
       expect(phrases).toContain("second phrase");
     });
@@ -1306,11 +1285,9 @@ describe("getAllCitationsFromLlmOutput", () => {
       expect(citation.attachmentId).toBe("kYtgMlok4yauewjI730z");
       // Escaped quotes should be unescaped in the final output
       expect(citation.fullPhrase).toBe(
-        'THIS DECLARATION (the "Declaration") is made BY: The Exchange Inc. (the "Declarant")'
+        'THIS DECLARATION (the "Declaration") is made BY: The Exchange Inc. (the "Declarant")',
       );
-      expect(citation.reasoning).toBe(
-        "The document states it is made by 'The Exchange Inc. (the \"Declarant\")'"
-      );
+      expect(citation.reasoning).toBe("The document states it is made by 'The Exchange Inc. (the \"Declarant\")'");
       // Output uses new naming: anchorText
       expect(citation.anchorText).toBe("The Exchange Inc.");
       expect(citation.pageNumber).toBe(2);
@@ -1521,9 +1498,7 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe(
-        "The company (NYSE: ABC) reported earnings"
-      );
+      expect(citation.fullPhrase).toBe("The company (NYSE: ABC) reported earnings");
       // Output uses new naming: anchorText
       expect(citation.anchorText).toBe("(NYSE: ABC)");
     });
@@ -1627,7 +1602,7 @@ Line 3" key_span="Line 2" start_page_key="page_number_1_index_0" line_ids="1" />
 
       expect(Object.keys(result)).toHaveLength(3);
       const citations = Object.values(result);
-      const attachmentIds = citations.map((c) => c.attachmentId);
+      const attachmentIds = citations.map(c => c.attachmentId);
       expect(attachmentIds).toContain("test1");
       expect(attachmentIds).toContain("test2");
       expect(attachmentIds).toContain("test3");
@@ -1684,7 +1659,7 @@ Medical History:
       expect(Object.keys(result).length).toBeGreaterThanOrEqual(2);
       const citations = Object.values(result);
       // Output uses new naming: anchorText
-      const anchorTexts = citations.map((c) => c.anchorText);
+      const anchorTexts = citations.map(c => c.anchorText);
       expect(anchorTexts).toContain("John Doe");
       expect(anchorTexts).toContain("HTN, CAD, HFEF");
     });
@@ -1766,7 +1741,7 @@ Family:
       expect(Object.keys(result).length).toBe(6);
       const citations = Object.values(result);
       // Output uses new naming: anchorText
-      const anchorTexts = citations.map((c) => c.anchorText);
+      const anchorTexts = citations.map(c => c.anchorText);
       expect(anchorTexts).toContain("John Doe");
       expect(anchorTexts).toContain("HTN, CAD, HFEF");
       expect(anchorTexts).toContain("worsening soB admitted transferred");
@@ -1811,7 +1786,7 @@ Family:
 
       expect(Object.keys(result).length).toBe(2);
       // Output uses new naming: anchorText
-      const anchorTexts = Object.values(result).map((c) => c.anchorText);
+      const anchorTexts = Object.values(result).map(c => c.anchorText);
       expect(anchorTexts).toContain("first");
       expect(anchorTexts).toContain("second");
     });
@@ -1982,7 +1957,7 @@ Third: <cite attachment_id='file3' full_phrase='phrase three' key_span='three' s
 
       expect(Object.keys(result).length).toBe(3);
       // Output uses new naming (anchorText)
-      const anchorTexts = Object.values(result).map((c) => c.anchorText);
+      const anchorTexts = Object.values(result).map(c => c.anchorText);
       expect(anchorTexts).toContain("one");
       expect(anchorTexts).toContain("two");
       expect(anchorTexts).toContain("three");
@@ -2145,12 +2120,8 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
       expect(citation.attachmentId).toBe("file123456789012345");
-      expect(citation.reasoning).toBe(
-        "This citation directly supports the claim about revenue"
-      );
-      expect(citation.fullPhrase).toBe(
-        "Revenue increased 45% year-over-year to $2.3 billion"
-      );
+      expect(citation.reasoning).toBe("This citation directly supports the claim about revenue");
+      expect(citation.fullPhrase).toBe("Revenue increased 45% year-over-year to $2.3 billion");
       // Output uses new naming (anchorText)
       expect(citation.anchorText).toBe("increased 45%");
       expect(citation.pageNumber).toBe(2);
@@ -2174,9 +2145,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe(
-        "Q4 earnings exceeded expectations by 20%"
-      );
+      expect(citation.fullPhrase).toBe("Q4 earnings exceeded expectations by 20%");
       // Output uses new naming (anchorText)
       expect(citation.anchorText).toBe("exceeded expectations");
       expect(citation.reasoning).toBe("Supports the growth claim");
@@ -2210,8 +2179,8 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       expect(Object.keys(result)).toHaveLength(2);
       const citations = Object.values(result);
       // Output uses new naming (anchorText)
-      expect(citations.map((c) => c.anchorText)).toContain("35%");
-      expect(citations.map((c) => c.anchorText)).toContain("15%");
+      expect(citations.map(c => c.anchorText)).toContain("35%");
+      expect(citations.map(c => c.anchorText)).toContain("15%");
     });
 
     it("extracts single citation from 'citations' property (non-array)", () => {
@@ -2230,9 +2199,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
 
       expect(Object.keys(result)).toHaveLength(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe(
-        "The study conclusively demonstrates improvement"
-      );
+      expect(citation.fullPhrase).toBe("The study conclusively demonstrates improvement");
     });
 
     it("extracts citations from deeply nested structure with 'citation' property", () => {
@@ -2288,7 +2255,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(2);
-      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.fullPhrase);
       expect(phrases).toContain("First section citation");
       expect(phrases).toContain("Second section citation");
     });
@@ -2326,7 +2293,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(3);
-      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.fullPhrase);
       expect(phrases).toContain("Main citation phrase");
       expect(phrases).toContain("Supporting citation one");
       expect(phrases).toContain("Supporting citation two");
@@ -2414,7 +2381,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result).length).toBeGreaterThanOrEqual(2);
-      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.fullPhrase);
       expect(phrases).toContain("XML embedded citation");
       expect(phrases).toContain("JSON structured citation");
     });
@@ -2477,7 +2444,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       const result = getAllCitationsFromLlmOutput(input);
 
       expect(Object.keys(result)).toHaveLength(2);
-      const phrases = Object.values(result).map((c) => c.fullPhrase);
+      const phrases = Object.values(result).map(c => c.fullPhrase);
       expect(phrases).toContain("Answer to Q1");
       expect(phrases).toContain("Answer to Q2");
     });
@@ -2501,9 +2468,7 @@ The report shows **important findings**<cite attachment_id='file1' full_phrase='
       const citations = Object.values(result);
 
       // All citations should have sequential numbers
-      const numbers = citations
-        .map((c) => c.citationNumber)
-        .sort((a, b) => (a || 0) - (b || 0));
+      const numbers = citations.map(c => c.citationNumber).sort((a, b) => (a || 0) - (b || 0));
       expect(numbers).toEqual([1, 2, 3]);
     });
   });
@@ -2597,16 +2562,14 @@ Family:
       const citations = Object.values(result);
 
       // All citations should have the same attachmentId
-      expect(
-        citations.every((c) => c.attachmentId === "LOcZ46PdCNO1P62p0p9M")
-      ).toBe(true);
+      expect(citations.every(c => c.attachmentId === "LOcZ46PdCNO1P62p0p9M")).toBe(true);
 
       // Check a few specific citations
-      const citation1 = citations.find((c) => c.citationNumber === 1);
+      const citation1 = citations.find(c => c.citationNumber === 1);
       expect(citation1?.fullPhrase).toBe("John Doe 50/M Full NKDA");
       expect(citation1?.pageNumber).toBe(1);
 
-      const citation14 = citations.find((c) => c.citationNumber === 14);
+      const citation14 = citations.find(c => c.citationNumber === 14);
       expect(citation14?.fullPhrase).toBe("FAMILY July-wife * Pon Chris-Son");
     });
 
@@ -2634,15 +2597,13 @@ Patient Profile:
 
       expect(Object.keys(result).length).toBe(4);
       const citations = Object.values(result);
-      const phrases = citations.map((c) => c.fullPhrase);
+      const phrases = citations.map(c => c.fullPhrase);
       expect(phrases).toContain("John Doe");
       expect(phrases).toContain("50/M");
       expect(phrases).toContain("NKDA");
 
       // Verify attachmentId is correctly injected from the group key
-      const johndoeCitation = citations.find(
-        (c) => c.fullPhrase === "John Doe"
-      );
+      const johndoeCitation = citations.find(c => c.fullPhrase === "John Doe");
       expect(johndoeCitation?.attachmentId).toBe("bm8JG5cIv5uhhj1ViHNm");
       expect(johndoeCitation?.pageNumber).toBe(1);
     });
@@ -2660,9 +2621,7 @@ Patient Profile:
 
       expect(Object.keys(result).length).toBe(1);
       const citation = Object.values(result)[0];
-      expect(citation.fullPhrase).toBe(
-        "The company achieved 45% year-over-year growth"
-      );
+      expect(citation.fullPhrase).toBe("The company achieved 45% year-over-year growth");
       expect(citation.attachmentId).toBe("abc123");
       expect(citation.anchorText).toBe("45% growth");
       expect(citation.pageNumber).toBe(2);
@@ -2709,14 +2668,10 @@ Patient Profile:
       expect(Object.keys(result).length).toBe(2);
       const citations = Object.values(result);
 
-      const doc1Citation = citations.find(
-        (c) => c.fullPhrase === "content from doc1"
-      );
+      const doc1Citation = citations.find(c => c.fullPhrase === "content from doc1");
       expect(doc1Citation?.attachmentId).toBe("doc1AttachmentId");
 
-      const doc2Citation = citations.find(
-        (c) => c.fullPhrase === "content from doc2"
-      );
+      const doc2Citation = citations.find(c => c.fullPhrase === "content from doc2");
       expect(doc2Citation?.attachmentId).toBe("doc2AttachmentId");
     });
 
@@ -2767,13 +2722,11 @@ Patient Profile:
       // Should have citations from both formats
       expect(citations.length).toBe(2);
 
-      const deferredCitation = citations.find(
-        (c) => c.fullPhrase === "deferred phrase"
-      );
+      const deferredCitation = citations.find(c => c.fullPhrase === "deferred phrase");
       expect(deferredCitation).toBeDefined();
       expect(deferredCitation?.attachmentId).toBe("deferredAttachmentId");
 
-      const xmlCitation = citations.find((c) => c.fullPhrase === "xml phrase");
+      const xmlCitation = citations.find(c => c.fullPhrase === "xml phrase");
       expect(xmlCitation).toBeDefined();
       expect(xmlCitation?.attachmentId).toBe("xmlAttachmentId");
     });

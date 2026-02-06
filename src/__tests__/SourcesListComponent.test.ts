@@ -1,18 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
-import {
-  detectSourceType,
-  getPlatformName,
-  sourceCitationsToListItems,
-} from "../react/SourcesListComponent.js";
+import { detectSourceType, getPlatformName, sourceCitationsToListItems } from "../react/SourcesListComponent.utils.js";
 import { generateCitationKey, isUrlCitation } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
 
 describe("SourcesListComponent utilities", () => {
   describe("detectSourceType", () => {
     it("detects social media platforms", () => {
-      expect(detectSourceType("https://twitter.com/user/status/123")).toBe(
-        "social"
-      );
+      expect(detectSourceType("https://twitter.com/user/status/123")).toBe("social");
       expect(detectSourceType("https://x.com/user")).toBe("social");
       expect(detectSourceType("https://linkedin.com/in/user")).toBe("social");
       expect(detectSourceType("https://facebook.com/page")).toBe("social");
@@ -30,21 +24,13 @@ describe("SourcesListComponent utilities", () => {
     it("detects code platforms", () => {
       expect(detectSourceType("https://github.com/org/repo")).toBe("code");
       expect(detectSourceType("https://gitlab.com/org/repo")).toBe("code");
-      expect(detectSourceType("https://stackoverflow.com/questions/123")).toBe(
-        "code"
-      );
+      expect(detectSourceType("https://stackoverflow.com/questions/123")).toBe("code");
     });
 
     it("detects academic sources", () => {
-      expect(detectSourceType("https://arxiv.org/abs/2301.00001")).toBe(
-        "academic"
-      );
-      expect(detectSourceType("https://pubmed.ncbi.nlm.nih.gov/123")).toBe(
-        "academic"
-      );
-      expect(detectSourceType("https://scholar.google.com/citations")).toBe(
-        "academic"
-      );
+      expect(detectSourceType("https://arxiv.org/abs/2301.00001")).toBe("academic");
+      expect(detectSourceType("https://pubmed.ncbi.nlm.nih.gov/123")).toBe("academic");
+      expect(detectSourceType("https://scholar.google.com/citations")).toBe("academic");
     });
 
     it("detects news sources", () => {
@@ -55,18 +41,12 @@ describe("SourcesListComponent utilities", () => {
     });
 
     it("detects reference sources", () => {
-      expect(detectSourceType("https://en.wikipedia.org/wiki/Topic")).toBe(
-        "reference"
-      );
-      expect(detectSourceType("https://britannica.com/topic/Subject")).toBe(
-        "reference"
-      );
+      expect(detectSourceType("https://en.wikipedia.org/wiki/Topic")).toBe("reference");
+      expect(detectSourceType("https://britannica.com/topic/Subject")).toBe("reference");
     });
 
     it("detects forums", () => {
-      expect(detectSourceType("https://reddit.com/r/programming")).toBe(
-        "forum"
-      );
+      expect(detectSourceType("https://reddit.com/r/programming")).toBe("forum");
       expect(detectSourceType("https://quora.com/question")).toBe("forum");
     });
 
@@ -94,9 +74,7 @@ describe("SourcesListComponent utilities", () => {
       expect(getPlatformName("https://linkedin.com/in/user")).toBe("LinkedIn");
       expect(getPlatformName("https://twitch.tv/channel")).toBe("Twitch");
       expect(getPlatformName("https://reddit.com/r/sub")).toBe("Reddit");
-      expect(getPlatformName("https://wikipedia.org/wiki/Page")).toBe(
-        "Wikipedia"
-      );
+      expect(getPlatformName("https://wikipedia.org/wiki/Page")).toBe("Wikipedia");
     });
 
     it("capitalizes unknown domains", () => {
@@ -105,9 +83,7 @@ describe("SourcesListComponent utilities", () => {
     });
 
     it("uses provided domain if given", () => {
-      expect(getPlatformName("https://example.com", "twitch.tv")).toBe(
-        "Twitch"
-      );
+      expect(getPlatformName("https://example.com", "twitch.tv")).toBe("Twitch");
     });
   });
 
@@ -188,9 +164,7 @@ describe("SourcesListComponent utilities", () => {
     });
 
     it("uses domain as fallback title", () => {
-      const citations = [
-        { url: "https://example.com/article", citationNumber: 1 },
-      ];
+      const citations = [{ url: "https://example.com/article", citationNumber: 1 }];
 
       const items = sourceCitationsToListItems(citations);
 
@@ -287,9 +261,7 @@ describe("SourcesListComponent utilities", () => {
         url: "https://example.com/page2",
       };
 
-      expect(generateCitationKey(citation1)).not.toBe(
-        generateCitationKey(citation2)
-      );
+      expect(generateCitationKey(citation1)).not.toBe(generateCitationKey(citation2));
     });
 
     it("produces different keys for different titles", () => {
@@ -306,9 +278,7 @@ describe("SourcesListComponent utilities", () => {
         title: "Title 2",
       };
 
-      expect(generateCitationKey(citation1)).not.toBe(
-        generateCitationKey(citation2)
-      );
+      expect(generateCitationKey(citation1)).not.toBe(generateCitationKey(citation2));
     });
 
     it("works with regular Citation (no URL fields)", () => {

@@ -8,12 +8,7 @@
  */
 
 import "dotenv/config";
-import {
-  DeepCitation,
-  wrapCitationPrompt,
-  getCitationStatus,
-  replaceCitations,
-} from "@deepcitation/deepcitation-js";
+import { DeepCitation, getCitationStatus, replaceCitations, wrapCitationPrompt } from "@deepcitation/deepcitation-js";
 import OpenAI from "openai";
 import { SAMPLE_KNOWLEDGE_BASE } from "./knowledge-base.js";
 
@@ -34,12 +29,12 @@ async function main() {
   }
 
   // Initialize clients
-  const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
+  const _dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
   // Load knowledge base
   console.log("📚 Loading knowledge base...");
-  const files = SAMPLE_KNOWLEDGE_BASE.map((doc) => ({
+  const files = SAMPLE_KNOWLEDGE_BASE.map(doc => ({
     file: Buffer.from(doc.content),
     filename: doc.filename,
   }));
@@ -95,11 +90,8 @@ If information is not available in the knowledge base, say so honestly.`;
     // Calculate confidence
     const citations = Object.values(verificationResult.verifications);
     const totalCitations = citations.length;
-    const verifiedCitations = citations.filter(
-      (c) => getCitationStatus(c).isVerified
-    ).length;
-    const confidence =
-      totalCitations > 0 ? verifiedCitations / totalCitations : 0;
+    const verifiedCitations = citations.filter(c => getCitationStatus(c).isVerified).length;
+    const confidence = totalCitations > 0 ? verifiedCitations / totalCitations : 0;
     const needsReview = confidence < minConfidenceThreshold;
 
     // Display clean response
@@ -107,10 +99,9 @@ If information is not available in the knowledge base, say so honestly.`;
     console.log(`💬 Bot: ${cleanResponse}\n`);
 
     // Display verification status
-    const confidenceEmoji =
-      confidence >= 0.8 ? "✅" : confidence >= 0.5 ? "⚠️" : "❌";
+    const confidenceEmoji = confidence >= 0.8 ? "✅" : confidence >= 0.5 ? "⚠️" : "❌";
     console.log(
-      `${confidenceEmoji} Confidence: ${(confidence * 100).toFixed(0)}% (${verifiedCitations}/${totalCitations} citations verified)`
+      `${confidenceEmoji} Confidence: ${(confidence * 100).toFixed(0)}% (${verifiedCitations}/${totalCitations} citations verified)`,
     );
 
     if (needsReview) {
@@ -120,9 +111,7 @@ If information is not available in the knowledge base, say so honestly.`;
     // Show citation details
     if (totalCitations > 0) {
       console.log("\n📋 Citation Details:");
-      for (const [key, verification] of Object.entries(
-        verificationResult.verifications
-      )) {
+      for (const [key, verification] of Object.entries(verificationResult.verifications)) {
         const status = getCitationStatus(verification);
         const icon = status.isVerified ? "✓" : "✗";
         console.log(`   [${key}] ${icon} ${status.isVerified ? "Verified" : "Not verified"}`);
