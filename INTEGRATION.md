@@ -5,7 +5,7 @@
 
 > **Important**: The product name is **DeepCitation** (not "DeepCite"). Always use "DeepCitation" when referring to the product, package, or API.
 
-This guide provides step-by-step instructions for AI code agents (Claude, Cursor, GitHub Copilot, etc.) to implement DeepCitation in any codebase.
+This guide provides step-by-step instructions for AI code agents (Claude, Cursor, GitHub Copilot, etc.) to implement DeepCitation in any codebase. Follow the phases in order — each phase has a checklist and a **GATE** that must be satisfied before proceeding.
 
 ---
 
@@ -27,37 +27,39 @@ bun add @deepcitation/deepcitation-js@latest
 
 ---
 
-## Agent Behavior Guidelines
+## Golden Rules
 
-> **CRITICAL: Use Our Exports - Do NOT Create Your Own Types or Helpers**
->
-> DeepCitation exports all the types, interfaces, and helper functions you need. **Never define your own versions** of `Citation`, `Verification`, `CitationRecord`, `VerificationRecord`, or any other types. Import them from the package.
+These rules apply to **every phase**. Violating any of them is a bug.
+
+> **1. Import, never define** — All types come from `@deepcitation/deepcitation-js`. Never create your own `Citation`, `Verification`, `CitationRecord`, `VerificationRecord`, or any other type.
 >
 > ```typescript
-> // ✅ CORRECT - Import our types
+> // ✅ CORRECT
 > import type { Citation, Verification, CitationRecord, VerificationRecord } from "@deepcitation/deepcitation-js";
 >
-> // ❌ WRONG - Never define your own types
-> interface Citation { ... }  // DON'T DO THIS
-> type VerificationResult = { ... }  // DON'T DO THIS
+> // ❌ WRONG — never do this
+> interface Citation { ... }
+> type VerificationResult = { ... }
 > ```
+>
+> **2. Strip before display** — Always use `extractVisibleText()` before showing LLM output to users. Raw output contains `<<<CITATION_DATA>>>` blocks that users must never see.
+>
+> **3. Use our helpers** — Call `getCitationStatus(verification)` for status checks, `getAllCitationsFromLlmOutput()` for parsing, `replaceCitations()` for text display. Never write your own versions.
+>
+> **4. CitationRecord is an object, not an array** — `getAllCitationsFromLlmOutput()` returns `Record<string, Citation>`. Use `Object.keys(citations).length`, not `.length`.
+>
+> **5. Never fabricate URLs** — Only use URLs listed in [Appendix A: Real URLs](#appendix-a-real-urls).
 
-**DO:**
-- **Import all types from `@deepcitation/deepcitation-js`** - We export everything you need
-- **Import React components from `@deepcitation/deepcitation-js/react`** - Pre-built, tested components
-- Use only methods documented in this file
-- Use only URLs listed in the [Real URLs](#appendix-a-real-urls) appendix
-- Follow the exact code patterns shown in examples
-- Use `extractVisibleText()` before displaying LLM output to users
+**Common mistakes at a glance:**
 
-**DON'T:**
-- **Never create your own `Citation`, `Verification`, or other type definitions** - Use our exports
-- **Never write your own citation parsing logic** - Use `getAllCitationsFromLlmOutput()`
-- **Never write your own status checking logic** - Use `getCitationStatus()`
-- Never fabricate URLs or API endpoints not listed here
-- Never invent methods not documented (e.g., `deepcitation.someUndocumentedMethod()`)
-- Never show raw `llmOutput` to users (it contains `<<<CITATION_DATA>>>` blocks)
-- Never hardcode API keys in source code
+| ❌ Wrong | ✅ Correct |
+|----------|------------|
+| `interface Citation { ... }` | `import type { Citation } from "@deepcitation/deepcitation-js"` |
+| `type Verification = { status: string }` | `import type { Verification } from "@deepcitation/deepcitation-js"` |
+| `const isVerified = v.status === "found"` | `const { isVerified } = getCitationStatus(v)` |
+| `citations.length` (it's not an array!) | `Object.keys(citations).length` |
+| Writing custom cite tag parsers | `getAllCitationsFromLlmOutput(llmOutput)` |
+| Showing raw `llmOutput` to users | `extractVisibleText(llmOutput)` |
 
 ---
 
@@ -75,25 +77,148 @@ bun add @deepcitation/deepcitation-js@latest
 
 ---
 
-## Use Our Exports - Don't Reinvent the Wheel
+## Quick Start (Complete Example)
 
-DeepCitation provides **everything you need** - types, parsing functions, status helpers, and React components. Import and use them directly.
-
-### Required Imports Pattern
-
-Every integration should start with these imports:
+This is a complete, runnable example. Copy this to get started:
 
 ```typescript
-// Functions you'll use
+// Phase 0: Imports — use our types, don't define your own!
 import {
   DeepCitation,
   wrapCitationPrompt,
   getAllCitationsFromLlmOutput,
   extractVisibleText,
   getCitationStatus,
+  replaceCitations,
 } from "@deepcitation/deepcitation-js";
 
-// Types you'll need - IMPORT THESE, don't create your own!
+import type {
+  CitationRecord,
+  VerificationRecord,
+  FileDataPart,
+} from "@deepcitation/deepcitation-js";
+
+import OpenAI from "openai";
+import { readFileSync } from "fs";
+
+async function analyzeDocument(filePath: string, question: string) {
+  // Phase 0: Initialize clients
+  const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+  // Phase 1: Upload document
+  const document = readFileSync(filePath);
+  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareFiles([
+    { file: document, filename: filePath },
+  ]);
+  const attachmentId: string = fileDataParts[0].attachmentId;
+
+  // Phase 2: Wrap prompts and call LLM
+  const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
+    systemPrompt: "You are a helpful assistant. Cite your sources.",
+    userPrompt: question,
+    deepTextPromptPortion,
+  });
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-5-mini",
+    messages: [
+      { role: "system", content: enhancedSystemPrompt },
+      { role: "user", content: enhancedUserPrompt },
+    ],
+  });
+  const llmOutput: string = response.choices[0].message.content!;
+
+  // Phase 3: Parse citations and extract visible text
+  const citations: CitationRecord = getAllCitationsFromLlmOutput(llmOutput);
+  const visibleText: string = extractVisibleText(llmOutput);
+
+  // Phase 4: Pre-verification display (clean markdown, no cite tags)
+  const preVerifiedDisplay = replaceCitations(visibleText, {
+    leaveAnchorTextBehind: true,
+  });
+  // Show preVerifiedDisplay to user while verification runs...
+
+  // Phase 5: Verify citations
+  const result = await deepcitation.verifyAttachment(attachmentId, citations);
+  const verifications: VerificationRecord = result.verifications;
+
+  // Phase 6: Post-verification display (with status indicators)
+  const verifiedDisplay = replaceCitations(visibleText, {
+    verifications,
+    showVerificationStatus: true,
+  });
+
+  // Summary using getCitationStatus() — don't write your own status logic!
+  const entries = Object.values(verifications);
+  const verified = entries.filter((v) => getCitationStatus(v).isVerified).length;
+
+  return {
+    response: verifiedDisplay,
+    summary: { total: entries.length, verified },
+  };
+}
+```
+
+---
+
+## Core Workflow Overview
+
+```
+Phase 0    Phase 1         Phase 2          Phase 3           Phase 4              Phase 5         Phase 6
+SETUP  →  PREPARE     →  PROMPT & LLM  →  PARSE &       →  DISPLAY           →  VERIFY      →  DISPLAY
+          SOURCES                          EXTRACT           (pre-verification)                    (post-verification)
+          ─────────      ─────────        ──────────        ─────────────────     ──────────      ──────────────────
+          Upload docs    Wrap prompts     Parse citations   Clean text for UI     Verify against  Show ✓ ⚠ ✗
+          Get IDs        Call LLM         Strip data block  Pending spinners      source docs     Proof images
+```
+
+---
+
+## Phase 0: Setup (One-Time)
+
+### Checklist
+
+- [ ] Install `@deepcitation/deepcitation-js@latest`
+- [ ] Set `DEEPCITATION_API_KEY` in `.env` (must start with `sk-dc-`)
+- [ ] Initialize the DeepCitation client
+- [ ] Set up imports (functions + types from our package)
+
+### Environment Variables
+
+```bash
+# .env
+DEEPCITATION_API_KEY=sk-dc-your-key-here
+```
+
+Get your API key at [deepcitation.com/signup](https://deepcitation.com/signup)
+
+### Client Initialization
+
+```typescript
+import { DeepCitation } from "@deepcitation/deepcitation-js";
+
+const deepcitation = new DeepCitation({
+  apiKey: process.env.DEEPCITATION_API_KEY!,
+});
+```
+
+### Required Imports
+
+Every integration should start with these imports:
+
+```typescript
+// Functions
+import {
+  DeepCitation,
+  wrapCitationPrompt,
+  getAllCitationsFromLlmOutput,
+  extractVisibleText,
+  getCitationStatus,
+  replaceCitations,
+} from "@deepcitation/deepcitation-js";
+
+// Types — ALWAYS import, NEVER recreate (see Golden Rules)
 import type {
   Citation,
   Verification,
@@ -106,260 +231,38 @@ import type {
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 ```
 
-### Common Mistakes to Avoid
+### GATE
 
-| ❌ Wrong | ✅ Correct |
-|----------|------------|
-| `interface Citation { ... }` | `import type { Citation } from "@deepcitation/deepcitation-js"` |
-| `type Verification = { status: string }` | `import type { Verification } from "@deepcitation/deepcitation-js"` |
-| `const isVerified = v.status === "found"` | `const { isVerified } = getCitationStatus(v)` |
-| `citations.length` (it's not an array!) | `Object.keys(citations).length` |
-| Writing custom cite tag parsers | `getAllCitationsFromLlmOutput(llmOutput)` |
-
-See the [Key Imports Reference](#key-imports-reference-must-use) section for the complete list of exports.
+✅ Imports resolve without errors. `new DeepCitation(...)` instantiates without throwing. Proceed to Phase 1.
 
 ---
 
-## Critical Warning: Citation Data Block
+## Phase 1: Prepare Sources
 
-The LLM output contains a `<<<CITATION_DATA>>>` block that **MUST BE STRIPPED** before showing to users.
+### Checklist
 
-**WRONG** - User sees raw citation data:
-```
-Revenue grew 23% in Q4.<cite n="1" />
+- [ ] Choose source type (files, URLs, or multiple documents)
+- [ ] Upload via `prepareFiles()` or `prepareUrl()`
+- [ ] Save `attachmentId` (needed in Phase 5 for verification)
+- [ ] Save `deepTextPromptPortion` (needed in Phase 2 for prompt wrapping)
 
-<<<CITATION_DATA>>>
-{"1":{"pageId":"page_number_1_index_0","lineId":"5","fullPhrase":"Revenue grew 23% in Q4"}}
-<<<END_CITATION_DATA>>>
-```
-
-**CORRECT** - Use `extractVisibleText()`:
-```
-Revenue grew 23% in Q4.<cite n="1" />
-```
-
-**Always use:**
-```typescript
-import { extractVisibleText } from "@deepcitation/deepcitation-js";
-
-const visibleText = extractVisibleText(llmOutput);
-// Show visibleText to users, NOT llmOutput
-```
-
----
-
-## Quick Start (Complete Example)
-
-This is a complete, runnable example. Copy this to get started:
+### For Files (PDFs, Images) — Fast (<1 second)
 
 ```typescript
-// Import functions
-import {
-  DeepCitation,
-  wrapCitationPrompt,
-  getAllCitationsFromLlmOutput,
-  extractVisibleText,
-  getCitationStatus,
-  replaceCitations,
-} from "@deepcitation/deepcitation-js";
-
-// Import types - ALWAYS use our types, don't define your own!
-import type {
-  CitationRecord,
-  VerificationRecord,
-  FileDataPart,
-} from "@deepcitation/deepcitation-js";
-
-import OpenAI from "openai";
 import { readFileSync } from "fs";
 
-async function analyzeDocument(filePath: string, question: string) {
-  // 1. Initialize clients
-  const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
-
-  // 2. Upload document - FileDataPart[] is our exported type
-  const document = readFileSync(filePath);
-  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareFiles([
-    { file: document, filename: filePath },
-  ]);
-  const attachmentId: string = fileDataParts[0].attachmentId;
-
-  // 3. Wrap prompts with citation instructions
-  const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
-    systemPrompt: "You are a helpful assistant. Cite your sources.",
-    userPrompt: question,
-    deepTextPromptPortion,
-  });
-
-  // 4. Call LLM
-  const response = await openai.chat.completions.create({
-    model: "gpt-5-mini",
-    messages: [
-      { role: "system", content: enhancedSystemPrompt },
-      { role: "user", content: enhancedUserPrompt },
-    ],
-  });
-  const llmOutput: string = response.choices[0].message.content!;
-
-  // 5. Parse citations and extract visible text
-  // CRITICAL: Strip the <<<CITATION_DATA>>> block before showing to users
-  // NOTE: CitationRecord is an OBJECT (Record<string, Citation>), NOT an array!
-  const citations: CitationRecord = getAllCitationsFromLlmOutput(llmOutput);
-  const visibleText: string = extractVisibleText(llmOutput);
-
-  // 6. Verify citations - returns VerificationRecord (Record<string, Verification>)
-  const result = await deepcitation.verifyAttachment(attachmentId, citations);
-  const verifications: VerificationRecord = result.verifications;
-
-  // 7. Display results (use visibleText, not raw llmOutput)
-  const cleanResponse = replaceCitations(visibleText, {
-    verifications,
-    showVerificationStatus: true,
-  });
-
-  // Calculate summary using getCitationStatus() - don't write your own status logic!
-  const entries = Object.values(verifications);
-  const verified = entries.filter((v) => getCitationStatus(v).isVerified).length;
-
-  return {
-    response: cleanResponse,
-    summary: { total: entries.length, verified },
-  };
-}
-```
-
----
-
-## Core Workflow
-
-**The 5-step workflow: Upload → Wrap → LLM → Parse → Verify → Display**
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  STEP 1: UPLOAD                                                     │
-│  Document/URL → prepareFiles() or prepareUrl()                      │
-│  Returns: attachmentId + deepTextPromptPortion                      │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  STEP 2: WRAP PROMPTS                                               │
-│  systemPrompt + userPrompt + deepTextPromptPortion                  │
-│  → wrapCitationPrompt()                                             │
-│  Returns: enhancedSystemPrompt + enhancedUserPrompt                 │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  STEP 3: CALL LLM                                                   │
-│  Use enhanced prompts with any LLM (OpenAI, Anthropic, Google)      │
-│  Returns: llmOutput (contains <<<CITATION_DATA>>> block)            │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  STEP 4: PARSE & EXTRACT                                            │
-│  getAllCitationsFromLlmOutput(llmOutput) → citations                │
-│  extractVisibleText(llmOutput) → visibleText (STRIPPED)             │
-│  ⚠️  NEVER show raw llmOutput to users!                             │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  STEP 5: VERIFY                                                     │
-│  verifyAttachment(attachmentId, citations)                          │
-│  Returns: verifications with status and proof images                │
-│  Note: This is async, can run while showing initial response        │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  STEP 6: DISPLAY                                                    │
-│  replaceCitations() for text output                                 │
-│  OR CitationComponent for React                                     │
-│  Shows: ✅ verified, ⚠️ partial, ❌ not found, ⏳ pending           │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Why Each Step Exists
-
-| Step | Why It's Needed |
-|------|-----------------|
-| **Upload** | Converts documents to structured text with page/line IDs that LLMs can reference |
-| **Wrap** | Injects citation instructions so the LLM knows how to format citations |
-| **Parse** | Extracts citation data from the special `<<<CITATION_DATA>>>` block |
-| **Extract** | Removes the citation data block so users see clean text |
-| **Verify** | Checks if cited text actually exists in the source document |
-| **Display** | Shows verification status (checkmarks, warnings) to users |
-
----
-
-## Installation & Setup
-
-### Install the package
-
-If you haven't already, install the package (see [FIRST: Install the Package](#️-first-install-the-package) above):
-
-```bash
-npm install @deepcitation/deepcitation-js@latest
-# or
-pnpm add @deepcitation/deepcitation-js@latest
-# or
-yarn add @deepcitation/deepcitation-js@latest
-# or
-bun add @deepcitation/deepcitation-js@latest
-```
-
-### Environment variables
-
-```bash
-# .env
-DEEPCITATION_API_KEY=sk-dc-your-key-here
-```
-
-Get your API key at [deepcitation.com/signup](https://deepcitation.com/signup)
-
-### Initialize the client
-
-```typescript
-import { DeepCitation } from "@deepcitation/deepcitation-js";
-
-const deepcitation = new DeepCitation({
-  apiKey: process.env.DEEPCITATION_API_KEY!,
-});
-```
-
----
-
-## Step-by-Step Guide
-
-### Step 1: Upload Documents
-
-Upload source documents before calling your LLM. This returns structured text with page/line IDs.
-
-**For files (PDFs, images) - Fast (<1 second):**
-
-```typescript
-import { DeepCitation } from "@deepcitation/deepcitation-js";
-import { readFileSync } from "fs";
-
-const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
-
-// Load and upload document
 const document = readFileSync("./document.pdf");
 const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareFiles([
   { file: document, filename: "document.pdf" },
 ]);
 
-// Save the attachmentId for verification later
+// Save for later phases
 const attachmentId = fileDataParts[0].attachmentId;
 ```
 
-**For URLs - Slower (~30 seconds):**
+### For URLs — Slower (~30 seconds)
 
 ```typescript
-// URLs and Office files require conversion, taking ~30 seconds
 const { attachmentId, deepTextPromptPortion, metadata } = await deepcitation.prepareUrl({
   url: "https://example.com/article",
 });
@@ -371,6 +274,22 @@ console.log(`Processed: ${metadata.filename}, ${metadata.pageCount} pages`);
 > - Block internal IPs: `localhost`, `127.0.0.1`, `192.168.*`, `10.*`, `172.16-31.*`
 > - Block private hostnames and cloud metadata endpoints
 > - Validate URL scheme is `http` or `https` only
+
+### For Multiple Documents
+
+```typescript
+const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareFiles([
+  { file: doc1, filename: "report.pdf" },
+  { file: doc2, filename: "chart.png" },
+  { file: doc3, filename: "data.xlsx" },
+]);
+
+// All documents are combined in deepTextPromptPortion
+// Each document gets its own attachmentId in fileDataParts
+// fileDataParts[0].attachmentId → report.pdf
+// fileDataParts[1].attachmentId → chart.png
+// fileDataParts[2].attachmentId → data.xlsx
+```
 
 <details>
 <summary>⚠️ Unsafe Fast Mode for URLs (trusted sources only)</summary>
@@ -391,25 +310,46 @@ const result = await deepcitation.prepareUrl({
 
 </details>
 
-**For multiple documents:**
+<details>
+<summary>Optional: Compress prompt IDs for large documents</summary>
+
+When documents produce very long `deepTextPromptPortion` strings, you can compress the attachment IDs to save tokens:
 
 ```typescript
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareFiles([
-  { file: doc1, filename: "report.pdf" },
-  { file: doc2, filename: "chart.png" },
-  { file: doc3, filename: "data.xlsx" },
-]);
+import { compressPromptIds, decompressPromptIds } from "@deepcitation/deepcitation-js";
 
-// All documents are combined in deepTextPromptPortion
-// Each document gets its own attachmentId in fileDataParts
-// fileDataParts[0].attachmentId → report.pdf
-// fileDataParts[1].attachmentId → chart.png
-// fileDataParts[2].attachmentId → data.xlsx
+// Compress before wrapping prompts
+const { compressed, prefixMap } = compressPromptIds(
+  deepTextPromptPortion,
+  [attachmentId]
+);
+
+// Use `compressed` in place of `deepTextPromptPortion` in Phase 2
+// Save `prefixMap` — you'll need it to decompress the LLM output in Phase 3
+
+// In Phase 3, decompress before parsing:
+const decompressedOutput = decompressPromptIds(llmOutput, prefixMap);
+const citations = getAllCitationsFromLlmOutput(decompressedOutput as string);
 ```
 
-### Step 2: Wrap Prompts
+</details>
 
-Add citation instructions to your prompts:
+### GATE
+
+✅ You have `attachmentId` (string) and `deepTextPromptPortion` (string or string[]). Proceed to Phase 2.
+
+---
+
+## Phase 2: Prompt & Call LLM
+
+### Checklist
+
+- [ ] Wrap prompts with `wrapCitationPrompt()`
+- [ ] Call your LLM with the enhanced prompts
+- [ ] Collect the complete response as `llmOutput`
+- [ ] If streaming: buffer the full response before moving to Phase 3 (the `<<<CITATION_DATA>>>` block arrives at the end)
+
+### Wrap Prompts
 
 ```typescript
 import { wrapCitationPrompt } from "@deepcitation/deepcitation-js";
@@ -420,29 +360,13 @@ const userPrompt = "Summarize this document";
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt,
   userPrompt,
-  deepTextPromptPortion, // Include the structured document text
+  deepTextPromptPortion, // from Phase 1
 });
 ```
 
-**Position options for citation instructions:**
+The wrapping places citation instructions at the start of the system prompt (high priority) and a brief reminder at the end (recency effect). The document content is prepended to the user prompt.
 
-| Position | When to Use | Description |
-|----------|-------------|-------------|
-| `'append'` | Short system prompts (default) | Instructions added at end |
-| `'prepend'` | Large system prompts | Instructions at start (higher priority) |
-| `'wrap'` | Maximum reliability | Instructions at start AND reminder at end |
-
-```typescript
-// For large system prompts, prepend instructions for higher priority
-const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
-  systemPrompt,
-  userPrompt,
-  deepTextPromptPortion,
-  position: 'prepend', // or 'wrap' for maximum emphasis
-});
-```
-
-### Step 3: Call Your LLM
+### Call Your LLM
 
 **OpenAI:**
 
@@ -536,56 +460,162 @@ return result.toTextStreamResponse();
 
 </details>
 
-### Step 4: Parse Citations & Extract Visible Text
+### GATE
 
-**CRITICAL**: The LLM response contains a `<<<CITATION_DATA>>>` block that must be stripped before showing to users.
+✅ You have the **complete** `llmOutput` string (not a partial stream). Proceed to Phase 3.
 
-> **Use our parsing functions** - Don't write your own citation parser! `getAllCitationsFromLlmOutput()` handles all the complexity.
+---
+
+## Phase 3: Parse & Extract
+
+### Checklist
+
+- [ ] Parse citations: `getAllCitationsFromLlmOutput(llmOutput)` → returns `CitationRecord` (an **object**, NOT an array)
+- [ ] Extract visible text: `extractVisibleText(llmOutput)` → strips the `<<<CITATION_DATA>>>` block
+- [ ] Handle "no citations" case gracefully
+- [ ] If you used prompt compression in Phase 1, **decompress BEFORE parsing**: `decompressPromptIds(llmOutput, prefixMap)` — this must be the first step
+
+### Parse Citations
 
 ```typescript
-// Import functions AND types from our package
 import { getAllCitationsFromLlmOutput, extractVisibleText } from "@deepcitation/deepcitation-js";
 import type { CitationRecord, Citation } from "@deepcitation/deepcitation-js";
 
-// Parse citations from LLM output using OUR function
-// IMPORTANT: Returns CitationRecord (an object/dictionary), NOT an array!
+// Parse citations — returns CitationRecord (OBJECT, NOT array!)
 const citations: CitationRecord = getAllCitationsFromLlmOutput(llmOutput);
 
-// CRITICAL: Extract visible text to strip the citation data block
-// The citation data block is for parsing only - users should NEVER see it
+// CRITICAL: Strip the <<<CITATION_DATA>>> block before display
 const visibleText: string = extractVisibleText(llmOutput);
 
-// Use visibleText for display, not the raw llmOutput
-// NOTE: Use Object.keys().length, NOT citations.length (it's not an array!)
+// Use Object.keys().length, NOT .length
 console.log(`Found ${Object.keys(citations).length} citations`);
 
-// Access individual citations - they are typed as Citation (our exported type)
+// Access individual citations
 for (const [key, citation] of Object.entries(citations)) {
-  const c: Citation = citation; // Type is already correct from our exports
+  const c: Citation = citation;
   console.log(`Citation ${c.citationNumber}: ${c.anchorText}`);
 }
 ```
 
-**Handling no citations:**
+### Handle No Citations
 
 ```typescript
 const citations = getAllCitationsFromLlmOutput(llmOutput);
 
-// IMPORTANT: citations is an object, NOT an array. Use Object.keys().length!
+// citations is an object — use Object.keys().length!
 if (Object.keys(citations).length === 0) {
-  // LLM didn't include citations - display response as-is
+  // LLM didn't include citations — display response as-is
   const visibleText = extractVisibleText(llmOutput);
   return { response: visibleText, verifications: {} };
 }
 
-// Proceed with verification...
+// Proceed to Phase 4...
 ```
 
-### Step 5: Verify Citations
+### Why `extractVisibleText()` is Critical
 
-Verify citations against the source documents:
+The raw LLM output looks like this — users must **never** see the data block:
 
-> **Use our types**: `VerificationRecord` is `Record<string, Verification>` - import both from our package.
+```
+Revenue grew 23% in Q4.<cite n="1" />
+
+<<<CITATION_DATA>>>
+{"1":{"pageId":"page_number_1_index_0","lineId":"5","fullPhrase":"Revenue grew 23% in Q4"}}
+<<<END_CITATION_DATA>>>
+```
+
+After `extractVisibleText()`:
+```
+Revenue grew 23% in Q4.<cite n="1" />
+```
+
+### GATE
+
+✅ You have `citations` (`CitationRecord`) and `visibleText` (string with data block stripped). **NEVER show raw `llmOutput` to users.** Proceed to Phase 4.
+
+---
+
+## Phase 4: Display (Pre-Verification)
+
+> This phase handles what to show users **during streaming** or **before verification completes**. Verification can take a few seconds — users shouldn't see raw `<cite>` tags while they wait.
+
+### Checklist
+
+- [ ] Choose a pre-verification display strategy (see decision table below)
+- [ ] Apply it to `visibleText` (from Phase 3)
+- [ ] Ensure no raw `<cite>` tags or `<<<CITATION_DATA>>>` blocks are visible to users
+
+### Decision: Pre-Verification Display Strategy
+
+| Strategy | Code | Output Example | When to Use |
+|----------|------|----------------|-------------|
+| **Clean text** (strip everything) | `replaceCitations(visibleText, {})` | `"Revenue grew 23% in Q4."` | Simplest — no trace of citations |
+| **Anchor text visible** | `replaceCitations(visibleText, { leaveAnchorTextBehind: true })` | `"Revenue grew 23% in Q4. Revenue Growth"` | When you want cited phrases to remain inline |
+| **React pending state** | `<CitationComponent citation={c} verification={null} />` | Shows spinner ◌ | Interactive UI with loading indicators |
+
+### Markdown / Text Display
+
+```typescript
+import { replaceCitations } from "@deepcitation/deepcitation-js";
+
+// Option A: Strip all citation tags — clean text, no trace of citations
+const cleanText = replaceCitations(visibleText, {});
+// "Revenue grew 23% in Q4."
+
+// Option B: Keep anchor text visible, remove cite tags
+const withAnchors = replaceCitations(visibleText, { leaveAnchorTextBehind: true });
+// "Revenue grew 23% Revenue Growth in Q4."
+```
+
+### React Display
+
+```tsx
+import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+
+// Render with null verification — shows pending spinner
+<CitationComponent
+  citation={citation}
+  verification={null}
+/>
+```
+
+### Streaming Pattern
+
+During streaming, buffer the response and show clean text progressively:
+
+```typescript
+let fullResponse = "";
+
+for await (const chunk of stream) {
+  const content = chunk.choices[0]?.delta?.content || "";
+  fullResponse += content;
+
+  // Show clean text (strip any partial cite tags)
+  const visibleSoFar = extractVisibleText(fullResponse);
+  const cleanSoFar = replaceCitations(visibleSoFar, {});
+  updateUI(cleanSoFar);
+}
+
+// CRITICAL: Wait for stream to fully complete before parsing citations!
+// The <<<CITATION_DATA>>> block arrives at the END of the response.
+// After stream completes — proceed to Phase 3 parse, then Phase 5 verify
+```
+
+### GATE
+
+✅ You have displayable text with no raw `<cite>` tags or `<<<CITATION_DATA>>>` blocks. Users see clean, readable content. Proceed to Phase 5.
+
+---
+
+## Phase 5: Verify Citations
+
+### Checklist
+
+- [ ] Verify citations against source documents using `verifyAttachment()` or `verify()`
+- [ ] Extract `verifications` from the result (`VerificationRecord`)
+- [ ] Use `getCitationStatus(verification)` for status checks — **never check status strings directly**
+
+### Verify
 
 **Option A: Manual parsing (more control)**
 
@@ -596,14 +626,12 @@ const result = await deepcitation.verifyAttachment(attachmentId, citations, {
   outputImageFormat: "avif", // or "png", "jpeg"
 });
 
-// verifications is VerificationRecord (Record<string, Verification>)
 const verifications: VerificationRecord = result.verifications;
 ```
 
 **Option B: Automatic parsing (simpler)**
 
 ```typescript
-// Let DeepCitation parse and verify automatically
 const result = await deepcitation.verify({
   llmOutput: llmOutput,
 });
@@ -611,18 +639,17 @@ const result = await deepcitation.verify({
 const verifications: VerificationRecord = result.verifications;
 ```
 
-**Check verification status - USE `getCitationStatus()`, don't check status strings manually:**
+### Check Status
 
 ```typescript
 import { getCitationStatus } from "@deepcitation/deepcitation-js";
-import type { Verification, CitationStatus } from "@deepcitation/deepcitation-js";
 
-// ❌ WRONG - Don't check status strings manually
+// ❌ WRONG — don't check status strings directly
 // if (verification.status === "found") { ... }
 
-// ✅ CORRECT - Use getCitationStatus() helper
+// ✅ CORRECT — use getCitationStatus()
 for (const [key, verification] of Object.entries(verifications)) {
-  const status: CitationStatus = getCitationStatus(verification);
+  const status = getCitationStatus(verification);
 
   if (status.isVerified && !status.isPartialMatch) {
     console.log(`Citation ${key}: ✅ Fully verified`);
@@ -636,7 +663,32 @@ for (const [key, verification] of Object.entries(verifications)) {
 }
 ```
 
-**Error handling:**
+<details>
+<summary>Multi-document verification</summary>
+
+When citations span multiple documents, group them by attachment ID before verifying:
+
+```typescript
+import { groupCitationsByAttachmentId } from "@deepcitation/deepcitation-js";
+
+// Group citations by their attachment ID
+const grouped = groupCitationsByAttachmentId(citations);
+
+// Verify each attachment separately
+const allVerifications: VerificationRecord = {};
+
+for (const [attId, attCitations] of grouped.entries()) {
+  const result = await deepcitation.verifyAttachment(attId, attCitations, {
+    outputImageFormat: "avif",
+  });
+  Object.assign(allVerifications, result.verifications);
+}
+```
+
+</details>
+
+<details>
+<summary>Error handling</summary>
 
 ```typescript
 try {
@@ -645,38 +697,98 @@ try {
   const message = error?.message || "Unknown error";
 
   if (message.includes("Invalid or expired API key")) {
-    // API key issue - check DEEPCITATION_API_KEY
+    // API key issue — check DEEPCITATION_API_KEY
     console.error("Invalid API key. Get a new one at https://deepcitation.com/dashboard");
   } else if (message.includes("Attachment not found")) {
-    // attachmentId expired or invalid - re-upload document
+    // attachmentId expired or invalid — re-upload document
     console.error("Attachment expired. Re-upload the document.");
   } else {
-    // Network or other error - retry with backoff
+    // Network or other error — retry with backoff
     console.error("Verification failed:", message);
   }
 }
 ```
 
-### Step 6: Display Results
+</details>
 
-**Text output (non-React):**
+### GATE
+
+✅ You have `verifications` (`VerificationRecord`) keyed by the same citation key hashes as your `CitationRecord`. See [Verification Status Reference](#verification-status-reference) for detailed status meanings. Proceed to Phase 6.
+
+---
+
+## Phase 6: Display (Post-Verification)
+
+> Now that verifications are available, upgrade the display to show verification status indicators (✓ ⚠ ✗) alongside citations.
+
+### Checklist
+
+- [ ] Choose a post-verification display method (see options below)
+- [ ] For markdown/text: use `replaceCitations()` with verifications, or `renderCitationsAsMarkdown()` for richer output
+- [ ] For React: use `<CitationComponent>` with the `verification` prop
+- [ ] Users see green checks (✅), amber warnings (⚠️), red X (❌), or spinners (⏳) next to citations
+
+### Option A: `replaceCitations()` — Simple Text Indicators
 
 ```typescript
-import { replaceCitations, getVerificationTextIndicator } from "@deepcitation/deepcitation-js";
+import { replaceCitations } from "@deepcitation/deepcitation-js";
 
-// Replace citation tags with text indicators
-const cleanText = replaceCitations(visibleText, {
+const verifiedText = replaceCitations(visibleText, {
   verifications,
   showVerificationStatus: true,
 });
-// Output: "Revenue grew 23% [✅] in Q4..."
-
-// Or get indicator for single verification
-const indicator = getVerificationTextIndicator(verification);
-// Returns: "✅" | "⚠️" | "❌" | "⏳"
+// Output: "Revenue grew 23%☑️ in Q4..."
 ```
 
-**React components:**
+### Option B: `renderCitationsAsMarkdown()` — Rich Markdown Output
+
+For more control over citation rendering style:
+
+```typescript
+import { renderCitationsAsMarkdown, toMarkdown } from "@deepcitation/deepcitation-js";
+
+// Full structured output
+const output = renderCitationsAsMarkdown(visibleText, {
+  verifications,
+  variant: "inline",           // how citations look
+  indicatorStyle: "check",     // which indicator characters
+  includeReferences: true,     // append references section
+});
+
+// output.markdown  — text with inline indicators
+// output.references — references section (if requested)
+// output.full — markdown + references combined
+// output.citations — array of CitationWithStatus objects
+
+// Or use the simplified shorthand:
+const md = toMarkdown(visibleText, {
+  verifications,
+  variant: "brackets",
+  includeReferences: true,
+});
+```
+
+**Markdown variants:**
+
+| Variant | Example | Description |
+|---------|---------|-------------|
+| `"inline"` | `Revenue grew 45%✓` | Text with inline indicator (default) |
+| `"brackets"` | `[1✓]` | Bracketed citation number |
+| `"superscript"` | `¹✓` | Unicode superscript footnote |
+| `"footnote"` | `[^1]` | Markdown footnote syntax |
+| `"academic"` | `(Source, p.5)✓` | Academic-style reference |
+
+**Indicator styles:**
+
+| Style | Verified | Partial | Not Found | Pending |
+|-------|----------|---------|-----------|---------|
+| `"check"` (default) | ✓ | ⚠ | ✗ | ◌ |
+| `"semantic"` | ✓ | ~ | ✗ | … |
+| `"circle"` | ● | ◐ | ○ | ◌ |
+| `"word"` | ✓verified | ⚠partial | ✗missed | ◌pending |
+| `"none"` | (empty) | (empty) | (empty) | (empty) |
+
+### Option C: React `<CitationComponent>` — Interactive Display
 
 ```tsx
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
@@ -692,39 +804,40 @@ import "@deepcitation/deepcitation-js/styles.css";
 <CitationComponent
   citation={citation}
   verification={verification}
-  variant="chip"           // "brackets" | "chip" | "text" | "superscript" | "linter"
-  content="anchorText"     // "anchorText" | "number" | "indicator"
+  variant="chip"           // "brackets" | "chip" | "text" | "superscript" | "linter" | "badge"
+  content="anchorText"     // "anchorText" | "number" | "indicator" | "source"
 />
 ```
 
 <details>
-<summary>React Component Variants Reference</summary>
+<summary>React component variants reference</summary>
 
 | Variant | Example | Best For |
 |---------|---------|----------|
+| `"linter"` | underlined text | Grammar-check style (default) |
 | `"brackets"` | `[1✓]` | Academic, footnote style |
 | `"chip"` | pill badge | Modern UI, inline highlights |
 | `"superscript"` | `¹✓` | Compact footnotes |
 | `"text"` | plain text | Inheriting parent styles |
-| `"linter"` | underlined | Grammar-check style indicators |
+| `"badge"` | source chip with favicon | ChatGPT-style sources |
 
-**Rendering inline citations in React:**
+</details>
+
+<details>
+<summary>Custom React rendering: inline citations in markdown</summary>
+
+When rendering LLM markdown with inline citations in React, split on cite tags and render each one:
 
 ```tsx
-// Import functions from main entry
 import { parseCitation, generateCitationKey } from "@deepcitation/deepcitation-js";
-// Import types - ALWAYS use our types!
 import type { Citation, Verification, VerificationRecord } from "@deepcitation/deepcitation-js";
-// Import components from /react
 import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
-// Use our VerificationRecord type, not your own Record<string, ...>
 function renderWithCitations(text: string, verifications: VerificationRecord) {
   const parts = text.split(/(<cite\s+[^>]*\/>)/g);
 
   return parts.map((part, index) => {
     if (part.startsWith("<cite")) {
-      // parseCitation returns { citation: Citation } - our exported type
       const { citation }: { citation: Citation } = parseCitation(part);
       const citationKey: string = generateCitationKey(citation);
       const verification: Verification | undefined = verifications[citationKey];
@@ -744,9 +857,90 @@ function renderWithCitations(text: string, verifications: VerificationRecord) {
 
 </details>
 
+### Complete Display Flow
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ STREAMING / PRE-VERIFIED (Phase 4):                                          │
+│                                                                              │
+│ llmOutput → extractVisibleText() → replaceCitations(visibleText, {})         │
+│                                    → clean markdown (no citations)           │
+│                                                                              │
+│                                 → replaceCitations(visibleText,              │
+│                                     { leaveAnchorTextBehind: true })         │
+│                                    → markdown with anchor text visible       │
+│                                                                              │
+│                            React: <CitationComponent verification={null} />  │
+│                                    → shows pending spinner ◌                 │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ POST-VERIFIED (Phase 6):                                                     │
+│                                                                              │
+│ visibleText → replaceCitations(visibleText,                                  │
+│                 { verifications, showVerificationStatus: true })              │
+│               → markdown with ☑️⚠✗ indicators                               │
+│                                                                              │
+│            → renderCitationsAsMarkdown(visibleText,                          │
+│                { verifications, variant: "inline" })                         │
+│               → structured MarkdownOutput { markdown, references, full }     │
+│                                                                              │
+│            → toMarkdown(visibleText,                                         │
+│                { verifications, variant: "brackets" })                       │
+│               → string shorthand                                             │
+│                                                                              │
+│       React: <CitationComponent citation={c} verification={v} />            │
+│               → interactive display with ✓ ⚠ ✗ indicators and popover      │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### GATE
+
+✅ You have rendered output with verification indicators (✓ ⚠ ✗ ◌) next to citations. Integration is complete.
+
 ---
 
-## Framework Integration Patterns
+## Verification Status Reference
+
+### Quick Summary
+
+| Indicator | Meaning | When shown |
+|-----------|---------|------------|
+| ✅ Green checkmark | Verified | Exact match found at expected location |
+| ⚠️ Amber checkmark | Partial match | Found but with caveats (wrong page, partial text, etc.) |
+| ❌ Red warning | Not found | Text not found in document |
+| ⏳ Spinner | Pending | Verification in progress |
+
+### Detailed Status Values
+
+| Status Value | Indicator | Description | UI Guidance |
+|--------------|-----------|-------------|-------------|
+| `"found"` | ✅ Green | Exact match at expected location | High confidence, show proof image |
+| `"found_phrase_missed_anchor_text"` | ✅ Green | Full phrase found, anchor text highlight missed | Show as verified |
+| `"found_anchor_text_only"` | ⚠️ Amber | Only anchor text found, full phrase not matched | Show with caution |
+| `"found_on_other_page"` | ⚠️ Amber | Found on different page than expected | Note the actual page |
+| `"found_on_other_line"` | ⚠️ Amber | Found on different line than expected | Usually still reliable |
+| `"partial_text_found"` | ⚠️ Amber | Only part of the text matched | Show what was found |
+| `"first_word_found"` | ⚠️ Amber | Only first word matched (lowest confidence) | Consider not showing |
+| `"not_found"` | ❌ Red | Text not found in document | Mark as unverified |
+| `"pending"` / `null` | ⏳ Spinner | Verification in progress | Show loading state |
+
+### Status Flags (from `getCitationStatus()`)
+
+| Status Value | `isVerified` | `isPartialMatch` | `isMiss` | `isPending` |
+|--------------|--------------|------------------|----------|-------------|
+| `"found"` | ✅ true | false | false | false |
+| `"found_phrase_missed_anchor_text"` | ✅ true | false | false | false |
+| `"found_anchor_text_only"` | ✅ true | ⚠️ true | false | false |
+| `"found_on_other_page"` | ✅ true | ⚠️ true | false | false |
+| `"found_on_other_line"` | ✅ true | ⚠️ true | false | false |
+| `"partial_text_found"` | ✅ true | ⚠️ true | false | false |
+| `"first_word_found"` | ✅ true | ⚠️ true | false | false |
+| `"not_found"` | false | false | ❌ true | false |
+| `"pending"` / `null` | false | false | false | ⏳ true |
+
+---
+
+<details>
+<summary>Framework Integration Patterns</summary>
 
 ### Next.js API Routes
 
@@ -774,16 +968,14 @@ export async function POST(req: NextRequest) {
 **Chat route (`/api/chat`):**
 
 ```typescript
-// Import functions AND types from our package
 import { wrapCitationPrompt } from "@deepcitation/deepcitation-js";
-import type { FileDataPart, WrapCitationPromptResult } from "@deepcitation/deepcitation-js";
+import type { FileDataPart } from "@deepcitation/deepcitation-js";
 import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 
 export async function POST(req: Request) {
   const { messages, fileDataParts } = await req.json();
 
-  // Use our FileDataPart type - don't define your own!
   const typedFileDataParts: FileDataPart[] = fileDataParts;
 
   // Combine deepTextPromptPortion from all files
@@ -793,8 +985,7 @@ export async function POST(req: Request) {
 
   const lastUserContent = messages[messages.length - 1].content;
 
-  // wrapCitationPrompt returns WrapCitationPromptResult - use our type!
-  const { enhancedSystemPrompt, enhancedUserPrompt }: WrapCitationPromptResult = wrapCitationPrompt({
+  const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt: "You are a helpful assistant.",
     userPrompt: lastUserContent,
     deepTextPromptPortion,
@@ -814,9 +1005,8 @@ export async function POST(req: Request) {
 
 ```typescript
 import { NextRequest, NextResponse } from "next/server";
-// Import functions AND types from our package
 import { DeepCitation, getAllCitationsFromLlmOutput, getCitationStatus } from "@deepcitation/deepcitation-js";
-import type { CitationRecord, VerificationRecord, CitationStatus } from "@deepcitation/deepcitation-js";
+import type { CitationRecord, VerificationRecord } from "@deepcitation/deepcitation-js";
 
 const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
 
@@ -838,7 +1028,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Use our exported types - don't define your own!
     const citations: CitationRecord = getAllCitationsFromLlmOutput(llmOutput);
     const citationCount = Object.keys(citations).length;
 
@@ -855,10 +1044,10 @@ export async function POST(req: NextRequest) {
     });
     const verifications: VerificationRecord = result.verifications;
 
-    // Calculate summary using getCitationStatus() - don't check status strings manually!
+    // Use getCitationStatus() — don't check status strings manually!
     let verified = 0, missed = 0;
     for (const verification of Object.values(verifications)) {
-      const status: CitationStatus = getCitationStatus(verification);
+      const status = getCitationStatus(verification);
       if (status.isVerified) verified++;
       if (status.isMiss) missed++;
     }
@@ -911,65 +1100,27 @@ for await (const chunk of stream) {
 }
 
 // After streaming completes:
-// 1. Parse citations from the full response
+// Phase 3: Parse citations from the full response
 const citations = getAllCitationsFromLlmOutput(fullResponse);
 
-// 2. CRITICAL: Extract visible text (strips <<<CITATION_DATA>>> block)
+// Phase 3: Extract visible text (strips <<<CITATION_DATA>>> block)
 const visibleText = extractVisibleText(fullResponse);
 
-// 3. Send visibleText to client (NOT fullResponse!)
+// Phase 4: Send visibleText to client (NOT fullResponse!)
 // The client should never see the <<<CITATION_DATA>>> block
 
-// 4. Verify citations (can run in background while user reads response)
+// Phase 5: Verify citations (can run in background while user reads response)
 const result = await deepcitation.verifyAttachment(attachmentId, citations);
 
-// 5. Update UI with verification status when ready
+// Phase 6: Update UI with verification status when ready
 ```
 
----
-
-## Verification Status Reference
-
-### Quick Summary
-
-| Indicator | Meaning | When shown |
-|-----------|---------|------------|
-| ✅ Green checkmark | Verified | Exact match found at expected location |
-| ⚠️ Amber checkmark | Partial match | Found but with caveats (wrong page, partial text, etc.) |
-| ❌ Red warning | Not found | Text not found in document |
-| ⏳ Spinner | Pending | Verification in progress |
-
-### Detailed Status Values
-
-| Status Value | Indicator | Description | UI Guidance |
-|--------------|-----------|-------------|-------------|
-| `"found"` | ✅ Green | Exact match at expected location | High confidence, show proof image |
-| `"found_phrase_missed_anchor_text"` | ✅ Green | Full phrase found, anchor text highlight missed | Show as verified |
-| `"found_anchor_text_only"` | ⚠️ Amber | Only anchor text found, full phrase not matched | Show with caution |
-| `"found_on_other_page"` | ⚠️ Amber | Found on different page than expected | Note the actual page |
-| `"found_on_other_line"` | ⚠️ Amber | Found on different line than expected | Usually still reliable |
-| `"partial_text_found"` | ⚠️ Amber | Only part of the text matched | Show what was found |
-| `"first_word_found"` | ⚠️ Amber | Only first word matched (lowest confidence) | Consider not showing |
-| `"not_found"` | ❌ Red | Text not found in document | Mark as unverified |
-| `"pending"` / `null` | ⏳ Spinner | Verification in progress | Show loading state |
-
-### Status Flags
-
-| Status Value | `isVerified` | `isPartialMatch` | `isMiss` | `isPending` |
-|--------------|--------------|------------------|----------|-------------|
-| `"found"` | ✅ true | false | false | false |
-| `"found_phrase_missed_anchor_text"` | ✅ true | false | false | false |
-| `"found_anchor_text_only"` | ✅ true | ⚠️ true | false | false |
-| `"found_on_other_page"` | ✅ true | ⚠️ true | false | false |
-| `"found_on_other_line"` | ✅ true | ⚠️ true | false | false |
-| `"partial_text_found"` | ✅ true | ⚠️ true | false | false |
-| `"first_word_found"` | ✅ true | ⚠️ true | false | false |
-| `"not_found"` | false | false | ❌ true | false |
-| `"pending"` / `null` | false | false | false | ⏳ true |
+</details>
 
 ---
 
-## Troubleshooting
+<details>
+<summary>Troubleshooting</summary>
 
 ### Issue: No citations in LLM output
 
@@ -977,13 +1128,12 @@ const result = await deepcitation.verifyAttachment(attachmentId, citations);
 
 **Causes**:
 - `deepTextPromptPortion` not included in the prompt
-- Using `position: 'append'` with a very large system prompt
 - LLM model doesn't follow citation instructions well
 
 **Solutions**:
 1. Verify `deepTextPromptPortion` is passed to `wrapCitationPrompt()`
-2. Try `position: 'prepend'` or `position: 'wrap'` for stronger instructions
-3. Try a different LLM model
+2. Try a different LLM model
+3. Use `CITATION_REMINDER` in additional user prompts for reinforcement
 
 **DON'T**:
 - Don't manually write citation instructions (use `wrapCitationPrompt`)
@@ -1028,7 +1178,7 @@ const result = await deepcitation.verifyAttachment(attachmentId, citations);
 4. Partial matches (`⚠️`) indicate content was found but location differs
 
 **DON'T**:
-- Don't assume all "not found" results are bugs - LLMs can hallucinate
+- Don't assume all "not found" results are bugs — LLMs can hallucinate
 - Don't reuse `attachmentId` across different documents
 
 ---
@@ -1049,6 +1199,8 @@ const visibleText = extractVisibleText(llmOutput);
 return { response: visibleText };
 ```
 
+</details>
+
 ---
 
 ## Production Checklist
@@ -1057,15 +1209,18 @@ Before deploying to production:
 
 - [ ] API key stored in environment variable, not hardcoded
 - [ ] Using `extractVisibleText()` before displaying to users
+- [ ] Using `replaceCitations()` for text display (not showing raw `<cite>` tags)
 - [ ] Error handling for API failures (network, auth, invalid attachment)
 - [ ] Handling "no citations" case gracefully
-- [ ] Handling verification timeout/errors (show pending state)
+- [ ] Handling verification timeout/errors (show pending state via Phase 4)
 - [ ] Input validation for user-provided URLs (prevent SSRF)
 - [ ] Caching strategy for attachmentIds (valid for 24 hours)
+- [ ] All types imported from `@deepcitation/deepcitation-js`, none defined locally
 
 ---
 
-## Rate Limiting & Caching
+<details>
+<summary>Rate Limiting & Caching</summary>
 
 ### Caching attachmentIds
 
@@ -1101,6 +1256,8 @@ Check the [API documentation](https://deepcitation.com/docs/api) for current rat
 - Queue verification requests to stay within limits
 - Consider batch verification for multiple citations
 
+</details>
+
 ---
 
 ## Supported File Formats
@@ -1116,9 +1273,8 @@ Check the [API documentation](https://deepcitation.com/docs/api) for current rat
 
 ---
 
-## Key Imports Reference (MUST USE)
-
-> **IMPORTANT**: All types, interfaces, and helpers shown below are exported by the package. **You MUST import and use these** - do not create your own versions.
+<details>
+<summary>Key Imports Reference (Complete Listing)</summary>
 
 ### Core Functions (from main entry)
 
@@ -1133,18 +1289,30 @@ import {
   CITATION_REMINDER,               // Short reminder text for reinforcement
   CITATION_JSON_OUTPUT_FORMAT,     // JSON schema for structured output LLMs
 
-  // Parsing - USE THESE, don't write your own!
+  // Parsing — use these, don't write your own!
   getAllCitationsFromLlmOutput,    // Parse all citations from LLM response text
-  extractVisibleText,              // CRITICAL: Strip <<<CITATION_DATA>>> block
+  extractVisibleText,              // Strip <<<CITATION_DATA>>> block
   parseCitation,                   // Parse a single <cite> tag
   generateCitationKey,             // Generate lookup key for a citation
 
-  // Status checking - USE THESE, don't write your own!
+  // Status checking — use these, don't write your own!
   getCitationStatus,               // Get status flags (isVerified, isPartialMatch, isMiss, isPending)
 
   // Display helpers
   replaceCitations,                // Replace <cite> tags with text + indicators
-  getVerificationTextIndicator,    // Get emoji indicator (✅⚠️❌⏳)
+  getVerificationTextIndicator,    // Get emoji indicator (☑️⚠️❌⏳)
+
+  // Markdown rendering
+  renderCitationsAsMarkdown,       // Rich markdown with variant/indicator options
+  toMarkdown,                      // Simplified string shorthand
+
+  // Prompt compression
+  compressPromptIds,               // Compress attachment IDs to save tokens
+  decompressPromptIds,             // Decompress back to full IDs
+
+  // Multi-document support
+  groupCitationsByAttachmentId,    // Group citations by attachment (returns Map)
+  groupCitationsByAttachmentIdObject, // Group citations by attachment (returns Object)
 } from "@deepcitation/deepcitation-js";
 ```
 
@@ -1160,19 +1328,18 @@ import {
 } from "@deepcitation/deepcitation-js/react";
 ```
 
-### Types - MUST IMPORT, DO NOT RECREATE
+### Types
 
 ```typescript
-// ⚠️ CRITICAL: Import these types - NEVER define your own versions!
 import type {
   // Core types
-  Citation,                        // Citation data from LLM - DO NOT RECREATE
-  Verification,                    // Verification result from API - DO NOT RECREATE
+  Citation,                        // Citation data from LLM
+  Verification,                    // Verification result from API
   CitationType,                    // "document" | "url"
 
   // Record types (object dictionaries, NOT arrays!)
-  CitationRecord,                  // Record<string, Citation> - returned by getAllCitationsFromLlmOutput
-  VerificationRecord,              // Record<string, Verification> - returned by verify methods
+  CitationRecord,                  // Record<string, Citation>
+  VerificationRecord,              // Record<string, Verification>
 
   // Client types
   FileDataPart,                    // Result from prepareFiles()
@@ -1180,7 +1347,6 @@ import type {
   VerifyCitationsResponse,         // Response from verify methods
 
   // Options types
-  CitationPosition,                // 'append' | 'prepend' | 'wrap'
   WrapCitationPromptOptions,       // Options for wrapCitationPrompt()
   WrapCitationPromptResult,        // Result from wrapCitationPrompt()
 
@@ -1190,24 +1356,7 @@ import type {
 } from "@deepcitation/deepcitation-js";
 ```
 
-### Why You Must Use Our Types
-
-1. **Type safety**: Our types are kept in sync with the API responses
-2. **Consistency**: All examples and documentation use these types
-3. **Future compatibility**: Updates to the package will maintain backward compatibility
-4. **IDE support**: Better autocomplete and error checking
-
-```typescript
-// ❌ WRONG - Don't create your own types
-interface MyCitation {
-  page: number;
-  text: string;
-}
-
-// ✅ CORRECT - Import our types
-import type { Citation } from "@deepcitation/deepcitation-js";
-const citation: Citation = getAllCitationsFromLlmOutput(llmOutput)["key"];
-```
+</details>
 
 ---
 
@@ -1247,9 +1396,11 @@ If your chat application has a message input area with feature toggles or mode i
 
 **Important**: Match the existing UI patterns in the application. Use the same list item styles, icon sizes, active/enabled indicators, and interaction patterns already present in the message input area.
 
-### Implementation approaches
+<details>
+<summary>Implementation approaches</summary>
 
-#### If the app supports toggleable features
+### If the app supports toggleable features
+
 Add "Deep Citation" as a toggleable option in the existing features menu/list:
 
 ```tsx
@@ -1264,7 +1415,8 @@ import { DeepCitationIcon } from "@deepcitation/deepcitation-js/react";
 />
 ```
 
-#### If the app only shows read-only indicators
+### If the app only shows read-only indicators
+
 Display "Deep Citation" as an enabled indicator when documents are uploaded:
 
 ```tsx
@@ -1294,7 +1446,7 @@ Study the existing feature toggles/indicators in the message input and replicate
 
 ### Using the DeepCitationIcon
 
-We provide an official `DeepCitationIcon` component - square brackets `[ ]` that represent citations:
+We provide an official `DeepCitationIcon` component — square brackets `[ ]` that represent citations:
 
 ```tsx
 import { DeepCitationIcon } from "@deepcitation/deepcitation-js/react";
@@ -1311,6 +1463,8 @@ import { DeepCitationIcon } from "@deepcitation/deepcitation-js/react";
 - **Default state**: DeepCitation should be enabled by default when you set it up. Users benefit from verifiable citations without needing to manually enable the feature.
 
 This indicator increases user trust by signaling that AI-generated content will include verifiable citations. It's optional and should only be added if it fits naturally with the application's existing UX patterns.
+
+</details>
 
 ---
 
