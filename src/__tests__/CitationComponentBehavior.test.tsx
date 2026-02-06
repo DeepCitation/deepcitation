@@ -261,7 +261,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       // First click should show popover, NOT image overlay
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Image overlay should NOT be visible (first click shows popover)
@@ -278,13 +278,13 @@ describe("CitationComponent behaviorConfig", () => {
 
       // First click - shows popover
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
       // Second click - toggles search details (not image overlay)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
@@ -298,7 +298,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       // Click should not open overlay (no image)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
@@ -312,7 +312,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       expect(onClick).toHaveBeenCalledTimes(1);
@@ -340,7 +340,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       // Click should not open image (onClick replaces default behavior)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
       expect(customOnClick).toHaveBeenCalledTimes(1);
@@ -361,9 +361,9 @@ describe("CitationComponent behaviorConfig", () => {
 
       // Multiple clicks should not show image overlay
       await act(async () => {
-        fireEvent.click(citation!);
-        fireEvent.click(citation!);
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
@@ -385,7 +385,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       expect(customOnClick).toHaveBeenCalledTimes(1);
@@ -411,7 +411,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       expect(customOnClick).toHaveBeenCalledTimes(1);
@@ -440,7 +440,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Custom handler was called
@@ -463,7 +463,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Custom handler was called
@@ -490,7 +490,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Custom action: image should be expanded
@@ -515,7 +515,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       const overlayImage = container.querySelector("[role='dialog'] img");
@@ -543,14 +543,14 @@ describe("CitationComponent behaviorConfig", () => {
 
       // Click to open image via custom onClick
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
 
       // Click overlay to close
       const overlay = container.querySelector("[role='dialog']");
       await act(async () => {
-        fireEvent.click(overlay!);
+        fireEvent.click(overlay as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
@@ -574,7 +574,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       expect(customOnClick).toHaveBeenCalledTimes(1);
@@ -596,7 +596,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       expect(customOnClick).toHaveBeenCalledTimes(1);
@@ -628,7 +628,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       // Click - analytics tracked but default behavior is disabled
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(trackingData).toHaveLength(1);
       // Default behavior (image opening) should NOT happen
@@ -659,7 +659,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Both handlers were called
@@ -686,7 +686,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
       });
 
       expect(onEnter).toHaveBeenCalledTimes(1);
@@ -704,7 +704,7 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       const citation = container.querySelector("[data-citation-id]");
-      fireEvent.mouseLeave(citation!);
+      fireEvent.mouseLeave(citation as HTMLElement);
 
       // Wait for hover close delay
       await act(async () => {
@@ -727,7 +727,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
       });
 
       const context = onEnter.mock.calls[0][0] as CitationBehaviorContext;
@@ -749,7 +749,7 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       const citation = container.querySelector("[data-citation-id]");
-      fireEvent.mouseLeave(citation!);
+      fireEvent.mouseLeave(citation as HTMLElement);
 
       // Wait for hover close delay
       await act(async () => {
@@ -776,7 +776,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
       });
 
       expect(behaviorOnEnter).toHaveBeenCalledTimes(1);
@@ -797,7 +797,7 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       const citation = container.querySelector("[data-citation-id]");
-      fireEvent.mouseLeave(citation!);
+      fireEvent.mouseLeave(citation as HTMLElement);
 
       // Wait for hover close delay
       await act(async () => {
@@ -823,8 +823,8 @@ describe("CitationComponent behaviorConfig", () => {
 
       // Should not throw when leaving without onLeave handler
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
-        fireEvent.mouseLeave(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
+        fireEvent.mouseLeave(citation as HTMLElement);
       });
 
       expect(onEnter).toHaveBeenCalledTimes(1);
@@ -844,8 +844,8 @@ describe("CitationComponent behaviorConfig", () => {
       const citation = container.querySelector("[data-citation-id]");
 
       // Should not throw when entering without onEnter handler
-      fireEvent.mouseEnter(citation!);
-      fireEvent.mouseLeave(citation!);
+      fireEvent.mouseEnter(citation as HTMLElement);
+      fireEvent.mouseLeave(citation as HTMLElement);
 
       // Wait for hover close delay
       await act(async () => {
@@ -880,7 +880,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Custom action was applied
@@ -906,12 +906,12 @@ describe("CitationComponent behaviorConfig", () => {
       const citation = container.querySelector("[data-citation-id]");
 
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
       });
       expect(onEnter).toHaveBeenCalledTimes(1);
 
       await act(async () => {
-        fireEvent.mouseLeave(citation!);
+        fireEvent.mouseLeave(citation as HTMLElement);
       });
 
       // Wait for hover close delay
@@ -923,7 +923,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       // Click behavior is replaced by custom onClick (which does nothing)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(customOnClick).toHaveBeenCalledTimes(1);
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
@@ -953,14 +953,14 @@ describe("CitationComponent behaviorConfig", () => {
 
       // First click - image not expanded yet
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(contexts[0].isImageExpanded).toBe(false);
       expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
 
       // Second click - image should now be expanded
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(contexts[1].isImageExpanded).toBe(true);
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
@@ -981,7 +981,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       // Should work with default behavior (first click shows popover, not image overlay)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
@@ -998,7 +998,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       // Should work with default behavior (first click shows popover, not image overlay)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
@@ -1019,7 +1019,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
       });
 
       const context = onEnter.mock.calls[0][0] as CitationBehaviorContext;
@@ -1035,7 +1035,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
       });
 
       const context = onEnter.mock.calls[0][0] as CitationBehaviorContext;
@@ -1056,7 +1056,7 @@ describe("CitationComponent behaviorConfig", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       const context = customOnClick.mock.calls[0][0] as CitationBehaviorContext;
@@ -1131,8 +1131,8 @@ describe("CitationComponent mobile/touch detection", () => {
       // On touch devices, first tap should show popover, not open image overlay
       // Simulate touch sequence: touchStart then click
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // First tap should NOT open the full-screen image overlay
@@ -1152,7 +1152,7 @@ describe("CitationComponent mobile/touch detection", () => {
       // On non-touch devices, click should show popover (not image overlay)
       // as we now use lazy mode by default for all devices
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Should NOT open image overlay directly (lazy mode)
@@ -1178,8 +1178,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Simulate touch sequence
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // First tap should NOT open image overlay (mobile behavior)
@@ -1198,7 +1198,7 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Click should show popover (lazy mode is now default for all devices)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Should NOT open image overlay directly (lazy mode)
@@ -1222,8 +1222,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First tap - should show popover (not image overlay)
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // No image overlay yet
@@ -1231,8 +1231,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Second tap - now popover is already open, should toggle search details (not image)
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // No image overlay - second tap toggles details, not image
@@ -1248,22 +1248,22 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First tap - show popover
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
       // Second tap - toggle search details
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
       // Third tap - toggle search details again
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
@@ -1282,8 +1282,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First tap - should show popover
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // No image overlay (no image available)
@@ -1291,8 +1291,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Second tap - still no image overlay (no image available)
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
@@ -1325,15 +1325,15 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Tap citation A
       await act(async () => {
-        fireEvent.touchStart(citationA!);
-        fireEvent.click(citationA!);
+        fireEvent.touchStart(citationA as HTMLElement);
+        fireEvent.click(citationA as HTMLElement);
       });
 
       // Immediately tap citation B (within debounce window if it were global)
       // This should NOT be debounced because each citation has its own timer
       await act(async () => {
-        fireEvent.touchStart(citationB!);
-        fireEvent.click(citationB!);
+        fireEvent.touchStart(citationB as HTMLElement);
+        fireEvent.click(citationB as HTMLElement);
       });
 
       // Both citations should have responded to their first tap
@@ -1342,8 +1342,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Now second tap on citation B should toggle details (proves citation B wasn't incorrectly debounced)
       await act(async () => {
-        fireEvent.touchStart(citationB!);
-        fireEvent.click(citationB!);
+        fireEvent.touchStart(citationB as HTMLElement);
+        fireEvent.click(citationB as HTMLElement);
       });
 
       // No image overlay - second tap toggles details, not image
@@ -1380,8 +1380,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First tap - show popover
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // No image overlay (it's a miss, no image)
@@ -1389,8 +1389,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Second tap - should toggle phrase expansion (not image overlay)
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Still no image overlay (miss citation behavior toggles phrases, not image)
@@ -1416,8 +1416,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Tap on mobile
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.touchEnd(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.touchEnd(citation as HTMLElement);
       });
 
       // behaviorConfig.onClick should have been called
@@ -1440,8 +1440,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First tap - should show popover (mobile two-tap behavior)
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // No image overlay yet (first tap shows popover)
@@ -1449,8 +1449,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Second tap - should toggle details (not open image in lazy mode)
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // No image overlay - second tap toggles details, not image
@@ -1470,8 +1470,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First tap - should show popover
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Popover should be visible
@@ -1497,8 +1497,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First tap - should show popover
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Wait for popover to be visible
@@ -1510,7 +1510,7 @@ describe("CitationComponent mobile/touch detection", () => {
       // Find the popover content and tap inside it
       const popoverContent = container.querySelector('[data-state="open"]');
       await act(async () => {
-        fireEvent.touchStart(popoverContent!);
+        fireEvent.touchStart(popoverContent as HTMLElement);
       });
 
       // Popover should still be visible (not dismissed)
@@ -1531,8 +1531,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First tap - should show popover
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Wait for popover to be visible
@@ -1544,8 +1544,8 @@ describe("CitationComponent mobile/touch detection", () => {
       // Second tap on trigger - should toggle search details (not open image overlay)
       // In lazy/mobile mode, second tap toggles details instead of opening image
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Image overlay should NOT be visible (second tap toggles details, not image)
@@ -1563,7 +1563,7 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Click to show popover (lazy mode - click opens popover)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Wait for popover to be visible
@@ -1598,8 +1598,8 @@ describe("CitationComponent mobile/touch detection", () => {
       for (let i = 0; i < 3; i++) {
         // Open popover
         await act(async () => {
-          fireEvent.touchStart(citation!);
-          fireEvent.click(citation!);
+          fireEvent.touchStart(citation as HTMLElement);
+          fireEvent.click(citation as HTMLElement);
         });
 
         // Close by tapping outside
@@ -1610,8 +1610,8 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Final open
       await act(async () => {
-        fireEvent.touchStart(citation!);
-        fireEvent.click(citation!);
+        fireEvent.touchStart(citation as HTMLElement);
+        fireEvent.click(citation as HTMLElement);
       });
 
       await waitFor(() => {
@@ -1634,13 +1634,13 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First Enter - should show popover (not image)
       await act(async () => {
-        fireEvent.keyDown(citation!, { key: "Enter" });
+        fireEvent.keyDown(citation as HTMLElement, { key: "Enter" });
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
       // Second Enter - toggles details (not image)
       await act(async () => {
-        fireEvent.keyDown(citation!, { key: "Enter" });
+        fireEvent.keyDown(citation as HTMLElement, { key: "Enter" });
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
@@ -1654,13 +1654,13 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First Space - should show popover (not image)
       await act(async () => {
-        fireEvent.keyDown(citation!, { key: " " });
+        fireEvent.keyDown(citation as HTMLElement, { key: " " });
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
       // Second Space - toggles details (not image)
       await act(async () => {
-        fireEvent.keyDown(citation!, { key: " " });
+        fireEvent.keyDown(citation as HTMLElement, { key: " " });
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
@@ -1676,13 +1676,13 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // First Enter - should show popover (not image)
       await act(async () => {
-        fireEvent.keyDown(citation!, { key: "Enter" });
+        fireEvent.keyDown(citation as HTMLElement, { key: "Enter" });
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
       // Second Enter - toggles details (not image in lazy mode)
       await act(async () => {
-        fireEvent.keyDown(citation!, { key: "Enter" });
+        fireEvent.keyDown(citation as HTMLElement, { key: "Enter" });
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
@@ -1761,7 +1761,7 @@ describe("CitationComponent interactionMode", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
       });
 
       // onEnter callback should still fire
@@ -1784,7 +1784,7 @@ describe("CitationComponent interactionMode", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // First click should show popover, NOT image overlay (lazy behavior)
@@ -1822,7 +1822,7 @@ describe("CitationComponent interactionMode", () => {
 
       // Click should show popover, not image directly (lazy mode is default)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
@@ -1849,7 +1849,7 @@ describe("CitationComponent interactionMode", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
       });
 
       // In lazy mode, onEnter callback still fires but popover doesn't open
@@ -1872,7 +1872,7 @@ describe("CitationComponent interactionMode", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // First click should NOT open image overlay
@@ -1894,13 +1894,13 @@ describe("CitationComponent interactionMode", () => {
 
       // First click - shows popover
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
       // Second click - toggles search details (not image overlay in lazy mode)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       // In lazy mode, second click toggles search details, not image overlay
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
@@ -1926,7 +1926,7 @@ describe("CitationComponent interactionMode", () => {
       expect(citation).toHaveClass("cursor-pointer");
 
       // First click - shows popover
-      fireEvent.click(citation!);
+      fireEvent.click(citation as HTMLElement);
 
       // In lazy mode, cursor stays as pointer (not zoom-in)
       expect(citation).toHaveClass("cursor-pointer");
@@ -1943,11 +1943,11 @@ describe("CitationComponent interactionMode", () => {
       expect(citation).toHaveClass("cursor-pointer");
 
       // First click - shows popover
-      fireEvent.click(citation!);
+      fireEvent.click(citation as HTMLElement);
       expect(citation).toHaveClass("cursor-pointer");
 
       // Second click - toggles search details
-      fireEvent.click(citation!);
+      fireEvent.click(citation as HTMLElement);
       expect(citation).toHaveClass("cursor-pointer");
     });
 
@@ -1967,13 +1967,13 @@ describe("CitationComponent interactionMode", () => {
 
       // First click
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(onClick).toHaveBeenCalledTimes(1);
 
       // Second click
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(onClick).toHaveBeenCalledTimes(2);
     });
@@ -1987,7 +1987,7 @@ describe("CitationComponent interactionMode", () => {
 
       // First click - activates hover state (would show popover)
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Image overlay should NOT open (no image available)
@@ -1995,7 +1995,7 @@ describe("CitationComponent interactionMode", () => {
 
       // Second click - still no image to zoom
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
       expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
 
@@ -2012,7 +2012,7 @@ describe("CitationComponent interactionMode", () => {
 
       // Hover should apply visual styles but not show popover
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
       });
 
       // The citation element should still be interactable
@@ -2044,7 +2044,7 @@ describe("CitationComponent interactionMode", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Custom onClick should be called instead of lazy mode default
@@ -2072,7 +2072,7 @@ describe("CitationComponent interactionMode", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(citation!);
+        fireEvent.click(citation as HTMLElement);
       });
 
       // Custom action should open image directly (bypassing lazy mode)
@@ -2093,7 +2093,7 @@ describe("CitationComponent interactionMode", () => {
 
       const citation = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.mouseEnter(citation!);
+        fireEvent.mouseEnter(citation as HTMLElement);
       });
 
       // onEnter callback should still fire
