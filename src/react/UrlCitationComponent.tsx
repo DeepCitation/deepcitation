@@ -5,7 +5,7 @@ import { BROKEN_WAVY_UNDERLINE_STYLE } from "./constants.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
 import type { UrlCitationProps } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
-import { extractDomain, getUrlPath, safeWindowOpen, STATUS_ICONS, truncateString } from "./urlUtils.js";
+import { extractDomain, getUrlPath, STATUS_ICONS, safeWindowOpen, truncateString } from "./urlUtils.js";
 import { classNames, generateCitationInstanceId, generateCitationKey } from "./utils.js";
 
 /**
