@@ -37,9 +37,9 @@ export {
 } from "./CitationOverlayContext.js";
 // Constants - Shared styling and configuration
 export {
-  BROKEN_WAVY_UNDERLINE_STYLE,
   COPY_FEEDBACK_DURATION_MS,
   INDICATOR_SIZE_STYLE,
+  MISS_WAVY_UNDERLINE_STYLE,
   MISS_WAVY_UNDERLINE_STYLE,
   POPOVER_CONTAINER_BASE_CLASSES,
   WAVY_UNDERLINE_COLOR_VAR,

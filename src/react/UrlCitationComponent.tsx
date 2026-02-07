@@ -1,7 +1,7 @@
 import type React from "react";
 import { forwardRef, memo, useCallback, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
-import { BROKEN_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
 import type { UrlCitationProps } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
@@ -340,7 +340,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
                 "font-mono text-[11px] font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[140px]",
                 "text-gray-800 dark:text-gray-200",
               )}
-              style={isBroken ? BROKEN_WAVY_UNDERLINE_STYLE : undefined}
+              style={isBroken ? MISS_WAVY_UNDERLINE_STYLE : undefined}
             >
               {displayText}
             </span>
@@ -411,7 +411,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
               isBroken && "opacity-60",
               className,
             )}
-            style={isBroken ? BROKEN_WAVY_UNDERLINE_STYLE : undefined}
+            style={isBroken ? MISS_WAVY_UNDERLINE_STYLE : undefined}
             title={showFullUrlOnHover ? url : undefined}
             onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
             onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
@@ -462,7 +462,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           [{showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
           <span
             className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap"
-            style={isBroken ? BROKEN_WAVY_UNDERLINE_STYLE : undefined}
+            style={isBroken ? MISS_WAVY_UNDERLINE_STYLE : undefined}
           >
             {displayText}
           </span>
