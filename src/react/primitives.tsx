@@ -6,6 +6,7 @@
 import {
   forwardRef,
   type HTMLAttributes,
+  type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
   type TouchEvent,
@@ -152,6 +153,17 @@ export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>
       [onTouchEnd, isMobile, onCitationTouchEnd, citation, citationKey],
     );
 
+    const handleKeyDown = useCallback(
+      (e: KeyboardEvent<HTMLSpanElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onCitationClick?.(citation, citationKey, e as unknown as MouseEvent<HTMLSpanElement>);
+        }
+      },
+      [onCitationClick, citation, citationKey],
+    );
+
     const statusClasses = classNames(
       status.isVerified && !status.isPartialMatch && "text-green-600 dark:text-green-500",
       status.isPartialMatch && "text-amber-500 dark:text-amber-400",
@@ -171,6 +183,7 @@ export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>
         )}
         style={status.isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}
         onClick={handleClick}
+        onKeyDown={handleKeyDown}
         onMouseDown={handleMouseDown}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

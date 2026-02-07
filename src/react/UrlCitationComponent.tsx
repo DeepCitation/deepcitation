@@ -275,7 +275,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
         return (
           <span
             className="w-3 h-3 flex-shrink-0 flex items-center justify-center text-red-500 dark:text-red-400"
-            aria-label={statusInfo.label}
+            title={statusInfo.label}
           >
             <XCircleIcon className="w-full h-full" />
           </span>
@@ -457,8 +457,6 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           onBlur={handleBlur}
           onClick={handleClick}
           onKeyDown={handleKeyDown}
-          role="button"
-          tabIndex={0}
           aria-label={`Link to ${domain}: ${statusInfo.label}`}
         >
           [{showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}

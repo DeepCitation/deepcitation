@@ -1,6 +1,6 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
-  "root": false,
+  "root": true,
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -52,7 +52,12 @@
     "rules": {
       "recommended": true,
       "a11y": {
-        "recommended": false
+        "recommended": false,
+        "useKeyWithClickEvents": "warn",
+        "noAriaHiddenOnFocusable": "warn",
+        "useValidAnchor": "warn",
+        "useAltText": "warn",
+        "useButtonType": "warn"
       },
       "complexity": {
         "useLiteralKeys": "off",
@@ -107,7 +112,7 @@
       },
       "style": {
         "useConst": "error",
-        "noNonNullAssertion": "warn",
+        "noNonNullAssertion": "off",
         "useTemplate": "off",
         "useNodejsImportProtocol": "off",
         "useComponentExportOnlyModules": {

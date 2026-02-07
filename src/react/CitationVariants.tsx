@@ -131,6 +131,17 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       eventHandlers?.onMouseLeave?.(citation, citationKey);
     }, [eventHandlers, citation, citationKey]);
 
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLSpanElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
+        }
+      },
+      [eventHandlers, citation, citationKey],
+    );
+
     // Note: sizeClasses not used - chip uses consistent minimal sizing for inline text flow
 
     // Check partial first since isVerified is true when isPartialMatch is true
@@ -161,6 +172,8 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
         {children}
         <span
           ref={ref}
+          role="button"
+          tabIndex={0}
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="chip"
@@ -174,6 +187,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
           onClick={e => e.stopPropagation()}
+          onKeyDown={handleKeyDown}
           aria-label={displayText ? `Citation: ${displayText}` : undefined}
         >
           {showIcon && (icon || <span className="text-[0.9em]">📄</span>)}
@@ -259,6 +273,17 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
       eventHandlers?.onMouseLeave?.(citation, citationKey);
     }, [eventHandlers, citation, citationKey]);
 
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
+        }
+      },
+      [eventHandlers, citation, citationKey],
+    );
+
     // Check partial first since isVerified is true when isPartialMatch is true
     // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
@@ -276,6 +301,8 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
         {children}
         <sup
           ref={ref}
+          role="button"
+          tabIndex={0}
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="superscript"
@@ -288,6 +315,7 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
           onClick={e => e.stopPropagation()}
+          onKeyDown={handleKeyDown}
           aria-label={`Citation ${displayText}`}
         >
           {!hideBrackets && "["}
@@ -387,6 +415,17 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
       eventHandlers?.onMouseLeave?.(citation, citationKey);
     }, [eventHandlers, citation, citationKey]);
 
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
+        }
+      },
+      [eventHandlers, citation, citationKey],
+    );
+
     // Check partial first since isVerified is true when isPartialMatch is true
     // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
@@ -404,6 +443,8 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
         {children}
         <sup
           ref={ref}
+          role="button"
+          tabIndex={0}
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="footnote"
@@ -416,6 +457,7 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
           onClick={e => e.stopPropagation()}
+          onKeyDown={handleKeyDown}
           aria-label={`Footnote ${displaySymbol}`}
         >
           <span className={isMiss ? "opacity-70" : undefined} style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}>
@@ -506,6 +548,17 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
       eventHandlers?.onMouseLeave?.(citation, citationKey);
     }, [eventHandlers, citation, citationKey]);
 
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLSpanElement>) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
+        }
+      },
+      [eventHandlers, citation, citationKey],
+    );
+
     // Check partial first since isVerified is true when isPartialMatch is true
     // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
@@ -530,6 +583,8 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
         {children}
         <span
           ref={ref}
+          role="button"
+          tabIndex={0}
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="inline"
@@ -543,6 +598,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
           onMouseDown={handleClick}
           onClick={e => e.stopPropagation()}
+          onKeyDown={handleKeyDown}
           aria-label={`Citation: ${displayText}`}
         >
           <span className={isMiss ? "opacity-70" : undefined} style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}>

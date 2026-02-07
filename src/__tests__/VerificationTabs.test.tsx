@@ -99,7 +99,16 @@ describe("VerificationTabs", () => {
     it("stops event propagation on tab click", () => {
       const onClick = jest.fn();
       const { container } = render(
-        <div onClick={onClick}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onClick}
+          onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+            if (e.key === "Enter" || e.key === " ") {
+              onClick(e);
+            }
+          }}
+        >
           <VerificationTabs expected="Hello world" actual="Hello universe" />
         </div>,
       );
@@ -126,7 +135,7 @@ describe("VerificationTabs", () => {
     });
 
     it("renders copy button for expected text when provided", () => {
-      const renderCopyButton = jest.fn((_text, position) => <button>Copy {position}</button>);
+      const renderCopyButton = jest.fn((_text, position) => <button type="button">Copy {position}</button>);
 
       const { container } = render(
         <VerificationTabs expected="Hello world" actual="Hello universe" renderCopyButton={renderCopyButton} />,
@@ -209,7 +218,7 @@ describe("VerificationTabs", () => {
     });
 
     it("renders copy button for found text when provided", () => {
-      const renderCopyButton = jest.fn((_text, position) => <button>Copy {position}</button>);
+      const renderCopyButton = jest.fn((_text, position) => <button type="button">Copy {position}</button>);
 
       const { container } = render(
         <VerificationTabs expected="Expected" actual="Actual" renderCopyButton={renderCopyButton} />,
@@ -255,7 +264,11 @@ describe("VerificationTabs", () => {
     });
 
     it("renders custom copy button for expected tab", () => {
-      const renderCopyButton = jest.fn(text => <button data-testid="custom-copy">{text}</button>);
+      const renderCopyButton = jest.fn(text => (
+        <button type="button" data-testid="custom-copy">
+          {text}
+        </button>
+      ));
 
       const { container } = render(
         <VerificationTabs expected="Hello world" actual="Hello universe" renderCopyButton={renderCopyButton} />,
@@ -269,7 +282,11 @@ describe("VerificationTabs", () => {
     });
 
     it("renders custom copy button for found tab", () => {
-      const renderCopyButton = jest.fn(text => <button data-testid="custom-copy">{text}</button>);
+      const renderCopyButton = jest.fn(text => (
+        <button type="button" data-testid="custom-copy">
+          {text}
+        </button>
+      ));
 
       const { container } = render(
         <VerificationTabs expected="Hello world" actual="Hello universe" renderCopyButton={renderCopyButton} />,

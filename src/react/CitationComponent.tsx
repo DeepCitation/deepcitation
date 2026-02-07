@@ -704,6 +704,9 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-[50ms]"
       onClick={onClose}
+      onKeyDown={e => {
+        if (e.key === "Escape") onClose();
+      }}
       role="dialog"
       aria-modal="true"
       aria-label="Full size verification image"
@@ -1086,8 +1089,8 @@ function _SearchedPhrasesInfo({
 
       {/* Search phrase list */}
       <div className="space-y-2">
-        {groupedAttempts.slice(0, displayCount).map((group, index) => (
-          <SearchAttemptRow key={index} group={group} />
+        {groupedAttempts.slice(0, displayCount).map(group => (
+          <SearchAttemptRow key={`${group.phraseType}:${group.phrase}`} group={group} />
         ))}
       </div>
     </div>
