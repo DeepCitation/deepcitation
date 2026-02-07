@@ -1,7 +1,10 @@
 import type { SearchStatus } from "../../types/search";
 import type { UrlFetchStatus } from "../types";
 
-export const allUrlStatuses: Array<{ status: UrlFetchStatus; description: string }> = [
+export const allUrlStatuses: Array<{
+  status: UrlFetchStatus;
+  description: string;
+}> = [
   { status: "verified", description: "Verified" },
   { status: "partial", description: "Partial" },
   { status: "pending", description: "Pending" },

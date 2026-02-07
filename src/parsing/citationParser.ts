@@ -560,9 +560,11 @@ export function replaceDeferredMarkers(
 export function getCitationMarkerIds(text: string): number[] {
   const ids: number[] = [];
   const regex = /\[(\d+)\]/g;
-  let match;
+  let match: RegExpExecArray | null;
 
-  while ((match = regex.exec(text)) !== null) {
+  for (;;) {
+    match = regex.exec(text);
+    if (!match) break;
     ids.push(parseInt(match[1], 10));
   }
 

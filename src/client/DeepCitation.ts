@@ -49,8 +49,10 @@ function createConcurrencyLimiter(limit: number) {
   const next = () => {
     if (queue.length > 0 && running < limit) {
       // Don't increment running here - the queued function's run() will handle it
-      const fn = queue.shift()!;
-      fn();
+      const fn = queue.shift();
+      if (fn) {
+        fn();
+      }
     }
   };
 
@@ -314,8 +316,8 @@ export class DeepCitation {
         },
         body: JSON.stringify({ url, filename, attachmentId }),
       });
-    } else {
-      const { blob, name } = toBlob(file!, filename);
+    } else if (file) {
+      const { blob, name } = toBlob(file, filename);
       const formData = new FormData();
       formData.append("file", blob, name);
       if (attachmentId) formData.append("attachmentId", attachmentId);
@@ -326,6 +328,8 @@ export class DeepCitation {
         headers: { Authorization: `Bearer ${this.apiKey}` },
         body: formData,
       });
+    } else {
+      throw new Error("Either url or file must be provided");
     }
 
     if (!response.ok) {
@@ -662,7 +666,10 @@ export class DeepCitation {
       if (!citationsByAttachment.has(attachmentId)) {
         citationsByAttachment.set(attachmentId, {});
       }
-      citationsByAttachment.get(attachmentId)![key] = citation;
+      const attachmentCitations = citationsByAttachment.get(attachmentId);
+      if (attachmentCitations) {
+        attachmentCitations[key] = citation;
+      }
     }
 
     const verificationPromises: Promise<VerifyCitationsResponse>[] = [];

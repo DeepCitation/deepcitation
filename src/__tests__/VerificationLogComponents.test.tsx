@@ -531,7 +531,9 @@ describe("FaviconImage", () => {
       expect(img).toBeInTheDocument();
 
       // Trigger error event
-      fireEvent.error(img!);
+      if (img) {
+        fireEvent.error(img);
+      }
 
       // After error, should show GlobeIcon (SVG)
       await waitFor(() => {

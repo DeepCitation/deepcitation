@@ -42,52 +42,56 @@ const DiffDisplay: React.FC<DiffDisplayProps> = memo(({ expected, actual, label,
 
       <div data-testid="diff-content" className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
         <div data-testid="diff-blocks" className="text-sm font-mono whitespace-pre-wrap break-words">
-          {diffResult.map((block, blockIndex) => (
-            <div
-              key={`block-${blockIndex}`}
-              className={cn(
-                block.type === "added" && "bg-green-50 dark:bg-green-900/20",
-                block.type === "removed" && "bg-red-50 dark:bg-red-900/20",
-              )}
-            >
-              {block.parts.map((part, partIndex) => {
-                const key = `p-${blockIndex}-${partIndex}`;
+          {diffResult.map((block, blockIndex) => {
+            const blockContent = block.parts.map(p => p.value).join("");
+            const blockKey = `${block.type}-${blockContent.slice(0, 20)}-${blockContent.length}`;
+            return (
+              <div
+                key={blockKey}
+                className={cn(
+                  block.type === "added" && "bg-green-50 dark:bg-green-900/20",
+                  block.type === "removed" && "bg-red-50 dark:bg-red-900/20",
+                )}
+              >
+                {block.parts.map((part, partIndex) => {
+                  const key = `p-${blockIndex}-${partIndex}`;
 
-                if (part.removed) {
+                  if (part.removed) {
+                    return (
+                      <span
+                        key={key}
+                        data-diff-type="removed"
+                        className="bg-red-200 dark:bg-red-800/50 text-red-800 dark:text-red-200 line-through"
+                        title="Expected text"
+                      >
+                        {part.value}
+                      </span>
+                    );
+                  }
+
+                  if (part.added) {
+                    return (
+                      <span
+                        key={key}
+                        data-diff-type="added"
+                        className="bg-green-200 dark:bg-green-800/50 text-green-800 dark:text-green-200"
+                        title="Actual text found"
+                      >
+                        {part.value}
+                      </span>
+                    );
+                  }
+
+                  // Unchanged text
                   return (
-                    <span
-                      key={key}
-                      data-diff-type="removed"
-                      className="bg-red-200 dark:bg-red-800/50 text-red-800 dark:text-red-200 line-through"
-                      title="Expected text"
-                    >
+                    <span key={key} className="text-gray-700 dark:text-gray-300">
                       {part.value}
                     </span>
                   );
-                }
-
-                if (part.added) {
-                  return (
-                    <span
-                      key={key}
-                      data-diff-type="added"
-                      className="bg-green-200 dark:bg-green-800/50 text-green-800 dark:text-green-200"
-                      title="Actual text found"
-                    >
-                      {part.value}
-                    </span>
-                  );
-                }
-
-                // Unchanged text
-                return (
-                  <span key={key} className="text-gray-700 dark:text-gray-300">
-                    {part.value}
-                  </span>
-                );
-              })}
-            </div>
-          ))}
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

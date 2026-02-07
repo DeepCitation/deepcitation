@@ -142,8 +142,8 @@ export function sourceCitationsToListItems(
 
     if (sourceMap.has(key)) {
       // Aggregate citation numbers
-      const existing = sourceMap.get(key)!;
-      if (citation.citationNumber && !existing.citationNumbers?.includes(citation.citationNumber)) {
+      const existing = sourceMap.get(key);
+      if (existing && citation.citationNumber && !existing.citationNumbers?.includes(citation.citationNumber)) {
         existing.citationNumbers = [...(existing.citationNumbers || []), citation.citationNumber];
       }
     } else {

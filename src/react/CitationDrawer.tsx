@@ -108,6 +108,7 @@ export function CitationDrawerItemComponent({
               {snippet}
               {onReadMore && snippet.length > 100 && (
                 <button
+                  type="button"
                   onClick={handleReadMore}
                   className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
                 >
@@ -230,6 +231,7 @@ export function CitationDrawer({
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             aria-label="Close"
@@ -270,6 +272,7 @@ export function CitationDrawer({
               {moreCitations.length > 0 && !showMore && (
                 <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
                   <button
+                    type="button"
                     onClick={() => setShowMore(true)}
                     className="text-sm font-medium text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
                   >

@@ -168,7 +168,7 @@ export function getCitationStatus(verification: Verification | null | undefined)
 export const parseCitation = (
   fragment: string,
   mdAttachmentId?: string | null,
-  citationCounterRef?: any | null,
+  citationCounterRef?: { current: number } | null,
   isVerbose?: boolean,
 ) => {
   // Helper: Remove wrapper quotes and fully unescape content
@@ -289,22 +289,35 @@ export const parseCitation = (
  * @param citationNumber - Optional citation number for ordering
  * @returns Parsed Citation object
  */
-const parseJsonCitation = (jsonCitation: any, citationNumber?: number): Citation | null => {
-  if (!jsonCitation) {
+const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Citation | null => {
+  if (!jsonCitation || typeof jsonCitation !== "object") {
     return null;
   }
 
+  // Type assertion after runtime check - we've verified it's an object
+  const obj = jsonCitation as Record<string, unknown>;
+
   // Support both camelCase and snake_case property names (with backward compatibility)
-  const fullPhrase = jsonCitation.fullPhrase ?? jsonCitation.full_phrase;
-  const startPageId =
-    jsonCitation.startPageId ?? jsonCitation.start_page_id ?? jsonCitation.startPageKey ?? jsonCitation.start_page_key;
-  const anchorText =
-    jsonCitation.anchorText ?? jsonCitation.anchor_text ?? jsonCitation.keySpan ?? jsonCitation.key_span;
-  const rawLineIds = jsonCitation.lineIds ?? jsonCitation.line_ids;
-  const attachmentId =
-    jsonCitation.attachmentId ?? jsonCitation.attachment_id ?? jsonCitation.fileId ?? jsonCitation.file_id;
-  const reasoning = jsonCitation.reasoning;
-  const value = jsonCitation.value;
+  const fullPhraseValue = obj.fullPhrase ?? obj.full_phrase;
+  const fullPhrase = typeof fullPhraseValue === "string" ? fullPhraseValue : undefined;
+
+  const startPageIdValue = obj.startPageId ?? obj.start_page_id ?? obj.startPageKey ?? obj.start_page_key;
+  const startPageId = typeof startPageIdValue === "string" ? startPageIdValue : undefined;
+
+  const anchorTextValue = obj.anchorText ?? obj.anchor_text ?? obj.keySpan ?? obj.key_span;
+  const anchorText = typeof anchorTextValue === "string" ? anchorTextValue : undefined;
+
+  const rawLineIdsValue = obj.lineIds ?? obj.line_ids;
+  const rawLineIds = Array.isArray(rawLineIdsValue) ? rawLineIdsValue : undefined;
+
+  const attachmentIdValue = obj.attachmentId ?? obj.attachment_id ?? obj.fileId ?? obj.file_id;
+  const attachmentId = typeof attachmentIdValue === "string" ? attachmentIdValue : undefined;
+
+  const reasoningValue = obj.reasoning;
+  const reasoning = typeof reasoningValue === "string" ? reasoningValue : undefined;
+
+  const valueValue = obj.value;
+  const value = typeof valueValue === "string" ? valueValue : undefined;
 
   if (!fullPhrase) {
     return null;
@@ -346,7 +359,7 @@ const parseJsonCitation = (jsonCitation: any, citationNumber?: number): Citation
 /**
  * Checks if an object has citation-like properties (camelCase or snake_case).
  */
-const hasCitationProperties = (item: any): boolean =>
+const hasCitationProperties = (item: unknown): boolean =>
   typeof item === "object" &&
   item !== null &&
   ("fullPhrase" in item ||
@@ -366,7 +379,7 @@ const hasCitationProperties = (item: any): boolean =>
  * Checks if the input appears to be JSON-based citations.
  * Looks for array of objects with citation-like properties (supports both camelCase and snake_case).
  */
-const isJsonCitationFormat = (data: any): data is Citation[] | Citation => {
+const isJsonCitationFormat = (data: unknown): data is Citation[] | Citation => {
   if (Array.isArray(data)) {
     return data.length > 0 && data.some(hasCitationProperties);
   }
@@ -411,17 +424,20 @@ const MAX_TRAVERSAL_DEPTH = 50;
  * @param found - Array to collect found citations
  * @param depth - Current recursion depth (internal)
  */
-const findJsonCitationsInObject = (obj: any, found: Citation[], depth = 0): void => {
+const findJsonCitationsInObject = (obj: unknown, found: Citation[], depth = 0): void => {
   // Performance fix: prevent stack overflow with depth limit
   if (depth > MAX_TRAVERSAL_DEPTH || !obj || typeof obj !== "object") return;
 
+  // Type assertion after runtime check - we've verified it's an object
+  const record = obj as Record<string, unknown>;
+
   // Check for citation/citations properties
-  if (obj.citation && isJsonCitationFormat(obj.citation)) {
-    const items = Array.isArray(obj.citation) ? obj.citation : [obj.citation];
+  if (record.citation && isJsonCitationFormat(record.citation)) {
+    const items = Array.isArray(record.citation) ? record.citation : [record.citation];
     found.push(...items);
   }
-  if (obj.citations && isJsonCitationFormat(obj.citations)) {
-    const items = Array.isArray(obj.citations) ? obj.citations : [obj.citations];
+  if (record.citations && isJsonCitationFormat(record.citations)) {
+    const items = Array.isArray(record.citations) ? record.citations : [record.citations];
     found.push(...items);
   }
 
@@ -431,9 +447,9 @@ const findJsonCitationsInObject = (obj: any, found: Citation[], depth = 0): void
       findJsonCitationsInObject(item, found, depth + 1);
     }
   } else {
-    for (const key of Object.keys(obj)) {
+    for (const key of Object.keys(record)) {
       if (key !== "citation" && key !== "citations") {
-        findJsonCitationsInObject(obj[key], found, depth + 1);
+        findJsonCitationsInObject(record[key], found, depth + 1);
       }
     }
   }
@@ -574,7 +590,10 @@ export function groupCitationsByAttachmentId(citations: Citation[] | CitationRec
       grouped.set(attachmentId, {});
     }
 
-    grouped.get(attachmentId)![key] = citation;
+    const group = grouped.get(attachmentId);
+    if (group) {
+      group[key] = citation;
+    }
   }
 
   return grouped;

@@ -17,7 +17,11 @@
 import React, { memo } from "react";
 
 // Re-export utilities from prefetchCache for backward compatibility
-export { clearPrefetchCache, prefetchImages, usePrefetchImage } from "./prefetchCache.js";
+export {
+  clearPrefetchCache,
+  prefetchImages,
+  usePrefetchImage,
+} from "./prefetchCache.js";
 
 // React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
 const Activity =

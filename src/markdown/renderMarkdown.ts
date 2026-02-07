@@ -51,9 +51,10 @@ function parseCiteAttributes(citeTag: string): Record<string, string | undefined
   const attrs: Record<string, string | undefined> = {};
   // Create fresh regex instance to avoid stateful lastIndex issues
   const attrRegex = new RegExp(ATTR_REGEX_PATTERN.source, ATTR_REGEX_PATTERN.flags);
-  let match;
-
-  while ((match = attrRegex.exec(citeTag)) !== null) {
+  let match: RegExpExecArray | null;
+  for (;;) {
+    match = attrRegex.exec(citeTag);
+    if (!match) break;
     // Two-step normalization:
     // 1. Convert camelCase to snake_case (e.g., "attachmentId" -> "attachment_id")
     // 2. Lookup in alias map for legacy/alternate names (e.g., "fileid" -> "attachment_id")

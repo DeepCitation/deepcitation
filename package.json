@@ -42,8 +42,8 @@
     "prepublishOnly": "npm run build",
     "lint": "biome ci ./src",
     "lint:fix": "biome check --fix ./src",
-    "format": "biome format --write ./src",
-    "format:check": "biome format ./src",
+    "format": "biome format ./src",
+    "format:fix": "biome format --write ./src",
     "check": "biome ci ./src",
     "check:fix": "biome check --fix ./src"
   },

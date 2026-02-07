@@ -294,10 +294,12 @@ describe("Range Size Limits for Line ID Parsing", () => {
     expect(citation.lineIds?.[citation.lineIds?.length - 1]).toBe(10000);
 
     // Samples should be evenly distributed
-    const samples = citation.lineIds!;
-    for (let i = 1; i < samples.length; i++) {
-      // Each sample should be greater than the previous (sorted)
-      expect(samples[i]).toBeGreaterThan(samples[i - 1]);
+    if (citation.lineIds) {
+      const samples = citation.lineIds;
+      for (let i = 1; i < samples.length; i++) {
+        // Each sample should be greater than the previous (sorted)
+        expect(samples[i]).toBeGreaterThan(samples[i - 1]);
+      }
     }
   });
 
@@ -340,7 +342,12 @@ describe("Depth Limit for Recursive Traversal", () => {
 
   it("should handle deeply nested objects without stack overflow", () => {
     // Create an object nested 100 levels deep
-    let deepObj: any = {
+    type NestedObject = {
+      citations?: Array<{ fullPhrase: string; anchorText: string }>;
+      nested?: NestedObject;
+    };
+
+    let deepObj: NestedObject = {
       citations: [{ fullPhrase: "Deep citation", anchorText: "Deep" }],
     };
     for (let i = 0; i < 100; i++) {
@@ -356,8 +363,19 @@ describe("Depth Limit for Recursive Traversal", () => {
 
   it("should handle circular reference-like structures gracefully", () => {
     // Create a structure that would cause issues without depth limit
-    const obj: any = { level1: {} };
-    let current = obj.level1;
+    type DeeplyNestedObject = {
+      level1?: {
+        nested?: DeeplyNestedObject;
+        level?: number;
+        citations?: Array<{ fullPhrase: string; anchorText: string }>;
+      };
+      nested?: DeeplyNestedObject;
+      level?: number;
+      citations?: Array<{ fullPhrase: string; anchorText: string }>;
+    };
+
+    const obj: DeeplyNestedObject = { level1: {} };
+    let current: DeeplyNestedObject = obj.level1 as DeeplyNestedObject;
     for (let i = 0; i < 200; i++) {
       current.nested = { level: i };
       current = current.nested;
@@ -466,8 +484,10 @@ describe("Concurrency Limiter", () => {
 
     const next = () => {
       if (queue.length > 0 && running < limit) {
-        const fn = queue.shift()!;
-        fn();
+        const fn = queue.shift();
+        if (fn) {
+          fn();
+        }
       }
     };
 

@@ -304,7 +304,10 @@ describe("CitationDrawerItemComponent", () => {
     const { container } = render(<CitationDrawerItemComponent item={item} onClick={onClick} />);
 
     const itemElement = container.querySelector("[role='button']");
-    fireEvent.click(itemElement!);
+    expect(itemElement).toBeInTheDocument();
+    if (itemElement) {
+      fireEvent.click(itemElement);
+    }
 
     expect(onClick).toHaveBeenCalledWith(item);
   });
@@ -357,7 +360,10 @@ describe("CitationDrawerItemComponent", () => {
     const { container } = render(<CitationDrawerItemComponent item={item} onClick={onClick} />);
 
     const itemElement = container.querySelector("[role='button']");
-    fireEvent.keyDown(itemElement!, { key: "Enter" });
+    expect(itemElement).toBeInTheDocument();
+    if (itemElement) {
+      fireEvent.keyDown(itemElement, { key: "Enter" });
+    }
 
     expect(onClick).toHaveBeenCalledWith(item);
   });
@@ -441,7 +447,10 @@ describe("CitationDrawer", () => {
     );
 
     const backdrop = container.querySelector("[aria-hidden='true']");
-    fireEvent.click(backdrop!);
+    expect(backdrop).toBeInTheDocument();
+    if (backdrop) {
+      fireEvent.click(backdrop);
+    }
 
     expect(onClose).toHaveBeenCalled();
   });

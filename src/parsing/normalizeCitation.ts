@@ -52,9 +52,11 @@ const parseCiteAttributes = (citeTag: string): Record<string, string | undefined
 
   // Match attribute patterns: key='value' or key="value"
   const attrRegex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
-  let match;
+  let match: RegExpExecArray | null;
 
-  while ((match = attrRegex.exec(citeTag)) !== null) {
+  for (;;) {
+    match = attrRegex.exec(citeTag);
+    if (!match) break;
     const key = match[1]
       .toLowerCase()
       .replace(/([a-z])([A-Z])/g, "$1_$2")
@@ -488,7 +490,9 @@ const normalizeCitationContent = (input: string): string => {
     const attrs: Record<string, string> = {};
     let match: RegExpExecArray | null;
 
-    while ((match = attrRegex.exec(tag))) {
+    for (;;) {
+      match = attrRegex.exec(tag);
+      if (!match) break;
       const rawKey = match[1];
       const value = match[3]; // match[2] is the quote character
       const key = canonicalizeCiteAttributeKey(rawKey);
