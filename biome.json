@@ -112,7 +112,7 @@
       },
       "style": {
         "useConst": "error",
-        "noNonNullAssertion": "off",
+        "noNonNullAssertion": "warn",
         "useTemplate": "off",
         "useNodejsImportProtocol": "off",
         "useComponentExportOnlyModules": {

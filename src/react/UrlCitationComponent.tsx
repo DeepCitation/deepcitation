@@ -275,7 +275,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
         return (
           <span
             className="w-3 h-3 flex-shrink-0 flex items-center justify-center text-red-500 dark:text-red-400"
-            title={statusInfo.label}
+            aria-label={statusInfo.label}
           >
             <XCircleIcon className="w-full h-full" />
           </span>

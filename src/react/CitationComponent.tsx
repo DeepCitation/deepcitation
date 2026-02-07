@@ -685,12 +685,18 @@ interface ImageOverlayProps {
  */
 function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
   const { registerOverlay, unregisterOverlay } = useCitationOverlay();
+  const backdropRef = useRef<HTMLDivElement>(null);
 
   // Register this overlay as open globally (blocks hover on other citations)
   useEffect(() => {
     registerOverlay();
     return () => unregisterOverlay();
   }, [registerOverlay, unregisterOverlay]);
+
+  // Auto-focus the backdrop when the overlay opens for keyboard accessibility
+  useEffect(() => {
+    backdropRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -702,7 +708,9 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-[50ms]"
+      ref={backdropRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-[50ms] outline-none"
       onClick={onClose}
       onKeyDown={e => {
         if (e.key === "Escape") onClose();
