@@ -134,7 +134,7 @@
   },
   "overrides": [
     {
-      "include": ["src/**/*.ts", "src/**/*.tsx"],
+      "includes": ["src/**/*.ts", "src/**/*.tsx"],
       "linter": {
         "rules": {
           "nursery": {}
