@@ -281,4 +281,60 @@ describe("parseCiteAttributes + buildCitationFromAttrs integration", () => {
     expect(citation.fullPhrase).toBe('He said "Hello".');
     expect(citation.anchorText).toBe("Said 'Hello'");
   });
+
+  it("includes type field set to document", () => {
+    const attrs = parseCiteAttributes(basicCiteTag);
+    const citation = buildCitationFromAttrs(attrs, 1);
+
+    expect(citation.type).toBe("document");
+  });
+});
+
+// =============================================================================
+// TESTS: Malformed Input (Graceful Degradation)
+// =============================================================================
+
+describe("parseCiteAttributes - malformed input", () => {
+  it("handles unclosed quotes gracefully", () => {
+    const tag = `<cite attachment_id="unclosed full_phrase="test" />`;
+    const attrs = parseCiteAttributes(tag);
+
+    // Malformed quote structure causes unexpected parsing behavior
+    // The regex matches up to the next quote, capturing malformed content
+    expect(attrs.attachment_id).toBe('unclosed full_phrase=');
+    expect(attrs.full_phrase).toBeUndefined();
+  });
+
+  it("handles missing attribute values", () => {
+    const tag = `<cite attachment_id= full_phrase="test" />`;
+    const attrs = parseCiteAttributes(tag);
+
+    // Only well-formed attributes are parsed
+    expect(attrs.full_phrase).toBe("test");
+    expect(attrs.attachment_id).toBeUndefined();
+  });
+
+  it("handles attributes without quotes", () => {
+    const tag = `<cite attachment_id=abc123 full_phrase="test" />`;
+    const attrs = parseCiteAttributes(tag);
+
+    // Unquoted values are not matched by the regex
+    expect(attrs.attachment_id).toBeUndefined();
+    expect(attrs.full_phrase).toBe("test");
+  });
+
+  it("handles completely empty cite tag", () => {
+    const tag = `<cite />`;
+    const attrs = parseCiteAttributes(tag);
+
+    expect(Object.keys(attrs).length).toBe(0);
+  });
+
+  it("handles malformed HTML entities", () => {
+    const tag = `<cite attachment_id="test&broken" full_phrase="test" />`;
+    const attrs = parseCiteAttributes(tag);
+
+    // Malformed entities are preserved as-is (not decoded)
+    expect(attrs.attachment_id).toBe("test&broken");
+  });
 });

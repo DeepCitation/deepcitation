@@ -50,9 +50,8 @@ export function renderCitationsForGitHub(input: string, options: GitHubRenderOpt
   const proofUrls: Record<string, string> = {};
   let citationIndex = 0;
 
-  const citationRegex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
-
-  const markdown = input.replace(citationRegex, match => {
+  // Use module-level regex directly - replace() handles lastIndex reset automatically
+  const markdown = input.replace(CITE_TAG_REGEX, match => {
     citationIndex++;
     const attrs = parseCiteAttributes(match);
     const citation = buildCitationFromAttrs(attrs, citationIndex);

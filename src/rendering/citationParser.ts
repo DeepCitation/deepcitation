@@ -50,6 +50,7 @@ export function buildCitationFromAttrs(attrs: Record<string, string | undefined>
   };
 
   return {
+    type: "document",
     attachmentId: attrs.attachment_id,
     pageNumber: attrs.page_number ? parseInt(attrs.page_number, 10) : parsePageNumber(attrs.start_page_id),
     fullPhrase: unescapeText(attrs.full_phrase),

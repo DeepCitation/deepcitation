@@ -87,8 +87,6 @@ export function renderCitationsForTerminal(input: string, options: TerminalRende
   const citationsWithStatus: RenderCitationWithStatus[] = [];
   let citationIndex = 0;
 
-  const citationRegex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
-
   let coloredText = input;
   let plainText = input;
 
@@ -96,7 +94,8 @@ export function renderCitationsForTerminal(input: string, options: TerminalRende
   // Do a single pass to collect replacements, then apply them.
   const replacements: Array<{ original: string; colored: string; plain: string }> = [];
 
-  const matches = input.match(citationRegex);
+  // Use module-level regex directly - match() handles lastIndex reset automatically
+  const matches = input.match(CITE_TAG_REGEX);
   if (matches) {
     for (const match of matches) {
       citationIndex++;

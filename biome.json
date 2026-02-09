@@ -131,15 +131,5 @@
         "organizeImports": "on"
       }
     }
-  },
-  "overrides": [
-    {
-      "includes": ["src/**/*.ts", "src/**/*.tsx"],
-      "linter": {
-        "rules": {
-          "nursery": {}
-        }
-      }
-    }
-  ]
+  }
 }
