@@ -9,6 +9,10 @@ export default defineConfig({
     "prompts/index": "src/prompts/index.ts",
     "types/index": "src/types/index.ts",
     "react/index": "src/react/index.ts",
+    "rendering/slack/slackRenderer": "src/rendering/slack/slackRenderer.ts",
+    "rendering/github/githubRenderer": "src/rendering/github/githubRenderer.ts",
+    "rendering/html/htmlRenderer": "src/rendering/html/htmlRenderer.ts",
+    "rendering/terminal/terminalRenderer": "src/rendering/terminal/terminalRenderer.ts",
   },
   format: ["esm", "cjs"],
   dts: {

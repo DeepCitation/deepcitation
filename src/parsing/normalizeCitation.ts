@@ -54,9 +54,7 @@ const parseCiteAttributes = (citeTag: string): Record<string, string | undefined
   const attrRegex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
   let match: RegExpExecArray | null;
 
-  for (;;) {
-    match = attrRegex.exec(citeTag);
-    if (!match) break;
+  while ((match = attrRegex.exec(citeTag)) !== null) {
     const key = match[1]
       .toLowerCase()
       .replace(/([a-z])([A-Z])/g, "$1_$2")
@@ -143,10 +141,8 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
   // Track citation index for matching with numbered verification keys
   let citationIndex = 0;
 
-  // Performance fix: use module-level compiled regex (create fresh instance to reset lastIndex)
-  const citationRegex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
-
-  return markdownWithCitations.replace(citationRegex, match => {
+  // Use module-level regex directly - replace() handles lastIndex reset automatically
+  return markdownWithCitations.replace(CITE_TAG_REGEX, match => {
     citationIndex++;
     const attrs = parseCiteAttributes(match);
 
@@ -490,9 +486,7 @@ const normalizeCitationContent = (input: string): string => {
     const attrs: Record<string, string> = {};
     let match: RegExpExecArray | null;
 
-    for (;;) {
-      match = attrRegex.exec(tag);
-      if (!match) break;
+    while ((match = attrRegex.exec(tag)) !== null) {
       const rawKey = match[1];
       const value = match[3]; // match[2] is the quote character
       const key = canonicalizeCiteAttributeKey(rawKey);

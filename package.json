@@ -148,6 +148,30 @@
       "require": "./lib/types/index.cjs",
       "default": "./lib/types/index.js"
     },
+    "./slack": {
+      "types": "./lib/rendering/slack/slackRenderer.d.ts",
+      "import": "./lib/rendering/slack/slackRenderer.js",
+      "require": "./lib/rendering/slack/slackRenderer.cjs",
+      "default": "./lib/rendering/slack/slackRenderer.js"
+    },
+    "./github": {
+      "types": "./lib/rendering/github/githubRenderer.d.ts",
+      "import": "./lib/rendering/github/githubRenderer.js",
+      "require": "./lib/rendering/github/githubRenderer.cjs",
+      "default": "./lib/rendering/github/githubRenderer.js"
+    },
+    "./html": {
+      "types": "./lib/rendering/html/htmlRenderer.d.ts",
+      "import": "./lib/rendering/html/htmlRenderer.js",
+      "require": "./lib/rendering/html/htmlRenderer.cjs",
+      "default": "./lib/rendering/html/htmlRenderer.js"
+    },
+    "./terminal": {
+      "types": "./lib/rendering/terminal/terminalRenderer.d.ts",
+      "import": "./lib/rendering/terminal/terminalRenderer.js",
+      "require": "./lib/rendering/terminal/terminalRenderer.cjs",
+      "default": "./lib/rendering/terminal/terminalRenderer.js"
+    },
     "./tailwind.css": "./src/tailwind.css",
     "./styles.css": "./lib/styles.css",
     "./package.json": "./package.json"

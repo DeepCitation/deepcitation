@@ -52,9 +52,7 @@ function parseCiteAttributes(citeTag: string): Record<string, string | undefined
   // Create fresh regex instance to avoid stateful lastIndex issues
   const attrRegex = new RegExp(ATTR_REGEX_PATTERN.source, ATTR_REGEX_PATTERN.flags);
   let match: RegExpExecArray | null;
-  for (;;) {
-    match = attrRegex.exec(citeTag);
-    if (!match) break;
+  while ((match = attrRegex.exec(citeTag)) !== null) {
     // Two-step normalization:
     // 1. Convert camelCase to snake_case (e.g., "attachmentId" -> "attachment_id")
     // 2. Lookup in alias map for legacy/alternate names (e.g., "fileid" -> "attachment_id")
@@ -137,11 +135,9 @@ export function renderCitationsAsMarkdown(input: string, options: RenderMarkdown
   const citationsWithStatus: CitationWithStatus[] = [];
   let citationIndex = 0;
 
-  // Create fresh regex instance to reset lastIndex
-  const citationRegex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
-
   // Replace cite tags with rendered variants
-  const markdown = input.replace(citationRegex, match => {
+  // Use module-level regex directly - replace() handles lastIndex reset automatically
+  const markdown = input.replace(CITE_TAG_REGEX, match => {
     citationIndex++;
     const attrs = parseCiteAttributes(match);
     const citation = buildCitationFromAttrs(attrs, citationIndex);
