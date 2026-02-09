@@ -1,16 +1,13 @@
 import type React from "react";
 import { getIndicator } from "../../markdown/markdownVariants.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
-import type { Citation } from "../../types/citation.js";
 import type { CitationStatus } from "../../types/citation.js";
-import type { Verification } from "../../types/verification.js";
 import {
   DOC_CITATION_1,
   DOC_CITATION_2,
   DOC_CITATION_3,
   NOT_FOUND_VERIFICATION,
   PARTIAL_VERIFICATION,
-  PENDING_VERIFICATION,
   RENDER_STATUS_TYPES,
   TERMINAL_VARIANTS,
   VERIFIED_VERIFICATION,
@@ -77,7 +74,9 @@ export function TerminalPreview() {
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left p-2 text-gray-600 dark:text-gray-400">Variant</th>
                 {RENDER_STATUS_TYPES.map(({ name }) => (
-                  <th key={name} className="text-left p-2 text-gray-600 dark:text-gray-400">{name}</th>
+                  <th key={name} className="text-left p-2 text-gray-600 dark:text-gray-400">
+                    {name}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -99,13 +98,23 @@ export function TerminalPreview() {
                     let display: React.ReactNode;
                     switch (variant) {
                       case "inline":
-                        display = <span className={colorClass}>{anchor}{indicator}</span>;
+                        display = (
+                          <span className={colorClass}>
+                            {anchor}
+                            {indicator}
+                          </span>
+                        );
                         break;
                       case "minimal":
                         display = <span className={colorClass}>{indicator}</span>;
                         break;
                       default:
-                        display = <span className={colorClass}>[{num}{indicator}]</span>;
+                        display = (
+                          <span className={colorClass}>
+                            [{num}
+                            {indicator}]
+                          </span>
+                        );
                         break;
                     }
 
@@ -140,8 +149,14 @@ export function TerminalPreview() {
               return (
                 <div key={name} data-terminal-status={statusKey}>
                   <span className="text-gray-300">{citation.fullPhrase} </span>
-                  <span className={colorClass}>[{num}{indicator}]</span>
-                  <span className="text-gray-500 ml-4">{"  ← "}{name.toLowerCase()}</span>
+                  <span className={colorClass}>
+                    [{num}
+                    {indicator}]
+                  </span>
+                  <span className="text-gray-500 ml-4">
+                    {"  ← "}
+                    {name.toLowerCase()}
+                  </span>
                 </div>
               );
             })}
@@ -178,9 +193,27 @@ export function TerminalPreview() {
 // =============================================================================
 
 const SOURCES = [
-  { num: 1, verification: VERIFIED_VERIFICATION, citation: DOC_CITATION_1, label: "Q4 Financial Report", statusLabel: "Verified" },
-  { num: 2, verification: PARTIAL_VERIFICATION, citation: DOC_CITATION_2, label: "Q4 Financial Report", statusLabel: "Partial (found on other page)" },
-  { num: 3, verification: NOT_FOUND_VERIFICATION, citation: DOC_CITATION_3, label: "Q4 Financial Report", statusLabel: "Not found in source document" },
+  {
+    num: 1,
+    verification: VERIFIED_VERIFICATION,
+    citation: DOC_CITATION_1,
+    label: "Q4 Financial Report",
+    statusLabel: "Verified",
+  },
+  {
+    num: 2,
+    verification: PARTIAL_VERIFICATION,
+    citation: DOC_CITATION_2,
+    label: "Q4 Financial Report",
+    statusLabel: "Partial (found on other page)",
+  },
+  {
+    num: 3,
+    verification: NOT_FOUND_VERIFICATION,
+    citation: DOC_CITATION_3,
+    label: "Q4 Financial Report",
+    statusLabel: "Not found in source document",
+  },
 ] as const;
 
 function TerminalSourcesDisplay() {
@@ -195,8 +228,14 @@ function TerminalSourcesDisplay() {
         return (
           <div key={num} className="ml-1">
             <div>
-              <span className={colorClass}> [{num}] {indicator}</span>
-              <span className="text-gray-300"> {citation.attachmentId ? `Q4 Financial Report — p.${page}` : statusLabel}</span>
+              <span className={colorClass}>
+                {" "}
+                [{num}] {indicator}
+              </span>
+              <span className="text-gray-300">
+                {" "}
+                {citation.attachmentId ? `Q4 Financial Report — p.${page}` : statusLabel}
+              </span>
             </div>
             <div className="ml-5 text-gray-500">
               {status.isMiss ? "Not found in source document" : `"${citation.fullPhrase}"`}
@@ -243,9 +282,7 @@ function TerminalCompleteDisplay() {
 // =============================================================================
 
 function terminalSourcesRaw(): string {
-  const lines = [
-    "─── Sources ────────────────────────────────────",
-  ];
+  const lines = ["─── Sources ────────────────────────────────────"];
   for (const { num, verification, citation } of SOURCES) {
     const status = getCitationStatus(verification);
     const indicator = getIndicator(status, "check");

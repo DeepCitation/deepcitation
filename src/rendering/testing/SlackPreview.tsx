@@ -2,7 +2,6 @@ import type React from "react";
 import { getIndicator, toSuperscript } from "../../markdown/markdownVariants.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
 import type { Citation } from "../../types/citation.js";
-import type { CitationStatus } from "../../types/citation.js";
 import type { Verification } from "../../types/verification.js";
 import {
   DOC_CITATION_1,
@@ -10,7 +9,6 @@ import {
   DOC_CITATION_3,
   NOT_FOUND_VERIFICATION,
   PARTIAL_VERIFICATION,
-  PENDING_VERIFICATION,
   PROOF_BASE_URL,
   RENDER_STATUS_TYPES,
   SLACK_VARIANTS,
@@ -33,12 +31,7 @@ function slackNumber(num: number, indicator: string, proofUrl: string): string {
   return `<${proofUrl}|${toSuperscript(num)}${indicator}>`;
 }
 
-function getSlackVariantOutput(
-  variant: string,
-  citation: Citation,
-  indicator: string,
-  proofUrl: string,
-): string {
+function getSlackVariantOutput(variant: string, citation: Citation, indicator: string, proofUrl: string): string {
   const num = citation.citationNumber ?? 1;
   const anchor = citation.anchorText ?? "citation";
   switch (variant) {
@@ -76,7 +69,7 @@ function SlackMessage({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SlackLink({ href, children }: { href: string; children: React.ReactNode }) {
+function SlackLink({ children }: { href: string; children: React.ReactNode }) {
   return (
     <span className="text-blue-600 dark:text-blue-400 underline cursor-pointer hover:text-blue-800 dark:hover:text-blue-300">
       {children}
@@ -100,7 +93,9 @@ export function SlackPreview() {
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left p-2 text-gray-600 dark:text-gray-400">Variant</th>
                 {RENDER_STATUS_TYPES.map(({ name }) => (
-                  <th key={name} className="text-left p-2 text-gray-600 dark:text-gray-400">{name}</th>
+                  <th key={name} className="text-left p-2 text-gray-600 dark:text-gray-400">
+                    {name}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -138,24 +133,9 @@ export function SlackPreview() {
         <SlackMessage>
           <div className="space-y-1">
             <p className="font-bold italic">Sources:</p>
-            <SlackSourceLine
-              num={1}
-              verification={VERIFIED_VERIFICATION}
-              label="Q4 Financial Report"
-              page={5}
-            />
-            <SlackSourceLine
-              num={2}
-              verification={PARTIAL_VERIFICATION}
-              label="Q4 Financial Report"
-              page={9}
-            />
-            <SlackSourceLine
-              num={3}
-              verification={NOT_FOUND_VERIFICATION}
-              label="Q4 Financial Report"
-              page={12}
-            />
+            <SlackSourceLine num={1} verification={VERIFIED_VERIFICATION} label="Q4 Financial Report" page={5} />
+            <SlackSourceLine num={2} verification={PARTIAL_VERIFICATION} label="Q4 Financial Report" page={9} />
+            <SlackSourceLine num={3} verification={NOT_FOUND_VERIFICATION} label="Q4 Financial Report" page={12} />
           </div>
         </SlackMessage>
         <div className="mt-2">
@@ -172,11 +152,15 @@ export function SlackPreview() {
           <div className="space-y-2">
             <p>
               The company reported strong growth.{" "}
-              <SlackCitationPreview variant="brackets" citation={DOC_CITATION_1} verification={VERIFIED_VERIFICATION} />
-              {" "}Operating costs were reduced.{" "}
-              <SlackCitationPreview variant="brackets" citation={DOC_CITATION_2} verification={PARTIAL_VERIFICATION} />
-              {" "}However, some projections remain unverified.{" "}
-              <SlackCitationPreview variant="brackets" citation={DOC_CITATION_3} verification={NOT_FOUND_VERIFICATION} />
+              <SlackCitationPreview variant="brackets" citation={DOC_CITATION_1} verification={VERIFIED_VERIFICATION} />{" "}
+              Operating costs were reduced.{" "}
+              <SlackCitationPreview variant="brackets" citation={DOC_CITATION_2} verification={PARTIAL_VERIFICATION} />{" "}
+              However, some projections remain unverified.{" "}
+              <SlackCitationPreview
+                variant="brackets"
+                citation={DOC_CITATION_3}
+                verification={NOT_FOUND_VERIFICATION}
+              />
             </p>
             <hr className="border-gray-200 dark:border-gray-600" />
             <div className="space-y-1">
@@ -228,11 +212,7 @@ function SlackCitationPreview({
       break;
   }
 
-  return (
-    <SlackLink href={`${PROOF_BASE_URL}/p/${citation.attachmentId || "url"}`}>
-      {displayText}
-    </SlackLink>
-  );
+  return <SlackLink href={`${PROOF_BASE_URL}/p/${citation.attachmentId || "url"}`}>{displayText}</SlackLink>;
 }
 
 function SlackSourceLine({
@@ -252,9 +232,9 @@ function SlackSourceLine({
     <p>
       {"• "}
       <SlackLink href={`${PROOF_BASE_URL}/p/proof${num}`}>
-        [{num}{indicator}]
-      </SlackLink>
-      {" "}
+        [{num}
+        {indicator}]
+      </SlackLink>{" "}
       {label} — p.{page}
     </p>
   );

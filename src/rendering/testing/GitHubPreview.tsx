@@ -35,12 +35,7 @@ function githubFootnote(num: number): string {
   return `[^${num}]`;
 }
 
-function getGitHubVariantOutput(
-  variant: string,
-  citation: Citation,
-  indicator: string,
-  proofUrl: string,
-): string {
+function getGitHubVariantOutput(variant: string, citation: Citation, indicator: string, proofUrl: string): string {
   const num = citation.citationNumber ?? 1;
   const anchor = citation.anchorText ?? "citation";
   switch (variant) {
@@ -74,12 +69,8 @@ function GitHubComment({ children }: { children: React.ReactNode }) {
   );
 }
 
-function GitHubLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <span className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
-      {children}
-    </span>
-  );
+function GitHubLink({ children }: { href: string; children: React.ReactNode }) {
+  return <span className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">{children}</span>;
 }
 
 // =============================================================================
@@ -98,7 +89,9 @@ export function GitHubPreview() {
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left p-2 text-gray-600 dark:text-gray-400">Variant</th>
                 {RENDER_STATUS_TYPES.map(({ name }) => (
-                  <th key={name} className="text-left p-2 text-gray-600 dark:text-gray-400">{name}</th>
+                  <th key={name} className="text-left p-2 text-gray-600 dark:text-gray-400">
+                    {name}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -163,11 +156,19 @@ export function GitHubPreview() {
           <div className="space-y-2">
             <p>
               The company reported strong growth.{" "}
-              <GitHubCitationPreview variant="brackets" citation={DOC_CITATION_1} verification={VERIFIED_VERIFICATION} />
-              {" "}Operating costs were reduced.{" "}
-              <GitHubCitationPreview variant="brackets" citation={DOC_CITATION_2} verification={PARTIAL_VERIFICATION} />
-              {" "}However, some projections remain unverified.{" "}
-              <GitHubCitationPreview variant="brackets" citation={DOC_CITATION_3} verification={NOT_FOUND_VERIFICATION} />
+              <GitHubCitationPreview
+                variant="brackets"
+                citation={DOC_CITATION_1}
+                verification={VERIFIED_VERIFICATION}
+              />{" "}
+              Operating costs were reduced.{" "}
+              <GitHubCitationPreview variant="brackets" citation={DOC_CITATION_2} verification={PARTIAL_VERIFICATION} />{" "}
+              However, some projections remain unverified.{" "}
+              <GitHubCitationPreview
+                variant="brackets"
+                citation={DOC_CITATION_3}
+                verification={NOT_FOUND_VERIFICATION}
+              />
             </p>
             <GitHubDetailsPreview format="table" />
           </div>
@@ -215,26 +216,38 @@ function GitHubCitationPreview({
       break;
   }
 
-  return (
-    <GitHubLink href={`${PROOF_BASE_URL}/p/${citation.attachmentId || "url"}`}>
-      {displayText}
-    </GitHubLink>
-  );
+  return <GitHubLink href={`${PROOF_BASE_URL}/p/${citation.attachmentId || "url"}`}>{displayText}</GitHubLink>;
 }
 
 const SOURCES_DATA = [
-  { num: 1, verification: VERIFIED_VERIFICATION, citation: DOC_CITATION_1, label: "Q4 Financial Report", statusLabel: "Verified" },
-  { num: 2, verification: PARTIAL_VERIFICATION, citation: DOC_CITATION_2, label: "Q4 Financial Report", statusLabel: "Partial" },
-  { num: 3, verification: NOT_FOUND_VERIFICATION, citation: DOC_CITATION_3, label: "Q4 Financial Report", statusLabel: "Not Found" },
+  {
+    num: 1,
+    verification: VERIFIED_VERIFICATION,
+    citation: DOC_CITATION_1,
+    label: "Q4 Financial Report",
+    statusLabel: "Verified",
+  },
+  {
+    num: 2,
+    verification: PARTIAL_VERIFICATION,
+    citation: DOC_CITATION_2,
+    label: "Q4 Financial Report",
+    statusLabel: "Partial",
+  },
+  {
+    num: 3,
+    verification: NOT_FOUND_VERIFICATION,
+    citation: DOC_CITATION_3,
+    label: "Q4 Financial Report",
+    statusLabel: "Not Found",
+  },
 ] as const;
 
 function GitHubDetailsPreview({ format }: { format: "table" | "detailed" }) {
   return (
     <details className="border border-gray-200 dark:border-gray-700 rounded p-2" open>
       <summary className="font-bold cursor-pointer text-sm">Sources (3)</summary>
-      <div className="mt-2">
-        {format === "table" ? <GitHubSourcesTable /> : <GitHubSourcesDetailed />}
-      </div>
+      <div className="mt-2">{format === "table" ? <GitHubSourcesTable /> : <GitHubSourcesDetailed />}</div>
     </details>
   );
 }
@@ -259,7 +272,9 @@ function GitHubSourcesTable() {
           return (
             <tr key={num} className="border-b border-gray-100 dark:border-gray-800">
               <td className="p-1.5">{num}</td>
-              <td className="p-1.5">{indicator} {statusLabel}</td>
+              <td className="p-1.5">
+                {indicator} {statusLabel}
+              </td>
               <td className="p-1.5">{label}</td>
               <td className="p-1.5">p.{page}</td>
               <td className="p-1.5">
@@ -276,14 +291,15 @@ function GitHubSourcesTable() {
 function GitHubSourcesDetailed() {
   return (
     <div className="space-y-3">
-      {SOURCES_DATA.map(({ num, verification, citation, label, statusLabel }) => {
+      {SOURCES_DATA.map(({ num, verification, citation, label }) => {
         const status = getCitationStatus(verification);
         const indicator = getIndicator(status, "check");
         const page = verification.verifiedPageNumber ?? citation.pageNumber ?? 0;
         return (
           <div key={num}>
             <p className="font-bold text-xs">
-              [{num}{indicator}] {label} — p.{page}
+              [{num}
+              {indicator}] {label} — p.{page}
             </p>
             <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-3 my-1 text-xs text-gray-600 dark:text-gray-400 italic">
               "{citation.fullPhrase}"
@@ -316,19 +332,16 @@ function githubSourcesTableRaw(): string {
     const status = getCitationStatus(verification);
     const indicator = getIndicator(status, "check");
     const page = verification.verifiedPageNumber ?? citation.pageNumber ?? 0;
-    lines.push(`| ${num} | ${indicator} ${statusLabel} | ${label} | p.${page} | [View proof](${PROOF_BASE_URL}/p/proof${num}) |`);
+    lines.push(
+      `| ${num} | ${indicator} ${statusLabel} | ${label} | p.${page} | [View proof](${PROOF_BASE_URL}/p/proof${num}) |`,
+    );
   }
   lines.push("", "</details>");
   return lines.join("\n");
 }
 
 function githubSourcesDetailedRaw(): string {
-  const lines = [
-    "<details>",
-    "<summary><b>Sources (3)</b></summary>",
-    "<br>",
-    "",
-  ];
+  const lines = ["<details>", "<summary><b>Sources (3)</b></summary>", "<br>", ""];
   for (const { num, verification, citation, label } of SOURCES_DATA) {
     const status = getCitationStatus(verification);
     const indicator = getIndicator(status, "check");

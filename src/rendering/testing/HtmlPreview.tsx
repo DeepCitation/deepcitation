@@ -1,17 +1,13 @@
-import type React from "react";
-import { useEffect, useRef } from "react";
+
+import { useEffect, } from "react";
 import { getIndicator, toSuperscript } from "../../markdown/markdownVariants.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
 import type { Citation } from "../../types/citation.js";
 import type { Verification } from "../../types/verification.js";
 import {
-  DOC_CITATION_1,
-  DOC_CITATION_2,
-  DOC_CITATION_3,
   HTML_VARIANTS,
   NOT_FOUND_VERIFICATION,
   PARTIAL_VERIFICATION,
-  PENDING_VERIFICATION,
   PROOF_BASE_URL,
   RENDER_STATUS_TYPES,
   VERIFIED_VERIFICATION,
@@ -135,17 +131,15 @@ export function HtmlPreview() {
               <tr className="border-b border-gray-200 dark:border-gray-700">
                 <th className="text-left p-2 text-gray-600 dark:text-gray-400">Variant</th>
                 {RENDER_STATUS_TYPES.map(({ name }) => (
-                  <th key={name} className="text-left p-2 text-gray-600 dark:text-gray-400">{name}</th>
+                  <th key={name} className="text-left p-2 text-gray-600 dark:text-gray-400">
+                    {name}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {HTML_VARIANTS.map(variant => (
-                <tr
-                  key={variant}
-                  className="border-b border-gray-100 dark:border-gray-800"
-                  data-html-variant={variant}
-                >
+                <tr key={variant} className="border-b border-gray-100 dark:border-gray-800" data-html-variant={variant}>
                   <td className="p-2 font-mono text-gray-700 dark:text-gray-300 text-xs">{variant}</td>
                   {RENDER_STATUS_TYPES.map(({ name, verification, citation }) => {
                     const proofUrl = `${PROOF_BASE_URL}/p/${citation.attachmentId || "url"}`;
@@ -153,10 +147,8 @@ export function HtmlPreview() {
                     return (
                       <td key={name} className="p-2" data-html-status={name.toLowerCase().replace(" ", "-")}>
                         <div className="space-y-1">
-                          <div
-                            className="dc-preview-scope text-sm"
-                            dangerouslySetInnerHTML={{ __html: rawHtml }}
-                          />
+                          {/* biome-ignore lint/security/noDangerouslySetInnerHtml: HTML preview requires rendering raw HTML output */}
+                          <div className="dc-preview-scope text-sm" dangerouslySetInnerHTML={{ __html: rawHtml }} />
                           <code className="block text-[10px] bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded font-mono text-gray-500 dark:text-gray-400 break-all">
                             {rawHtml}
                           </code>
@@ -179,21 +171,21 @@ export function HtmlPreview() {
             The company reported strong growth.{" "}
             <span className="dc-tooltip-wrap">
               <span className="dc-citation dc-brackets dc-verified">
-                <a href="#">[1✓]</a>
+                <span role="link" tabIndex={0}>[1✓]</span>
               </span>
               <span className="dc-tooltip">✓ Verified — Q4 Financial Report, p.5</span>
-            </span>
-            {" "}Operating costs were reduced.{" "}
+            </span>{" "}
+            Operating costs were reduced.{" "}
             <span className="dc-tooltip-wrap">
               <span className="dc-citation dc-brackets dc-partial">
-                <a href="#">[2⚠]</a>
+                <span role="link" tabIndex={0}>[2⚠]</span>
               </span>
               <span className="dc-tooltip">⚠ Partial — Q4 Financial Report, p.9</span>
-            </span>
-            {" "}However, some projections remain unverified.{" "}
+            </span>{" "}
+            However, some projections remain unverified.{" "}
             <span className="dc-tooltip-wrap">
               <span className="dc-citation dc-brackets dc-not-found">
-                <a href="#">[3✗]</a>
+                <span role="link" tabIndex={0}>[3✗]</span>
               </span>
               <span className="dc-tooltip">✗ Not Found</span>
             </span>
@@ -219,6 +211,7 @@ export function HtmlPreview() {
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-900">
               <div
                 className="dc-preview-scope text-sm text-gray-800 dark:text-gray-200"
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: HTML preview requires rendering raw HTML output
                 dangerouslySetInnerHTML={{ __html: selfContainedHtmlBody() }}
               />
             </div>

@@ -163,6 +163,7 @@ function SourceTooltip({
 }) {
   const aggregateVerification = getGroupAggregateVerification(group);
   const statusInfo = getStatusInfo(aggregateVerification);
+  const sourceName = group.sourceName || "Source";
 
   // Find the first verification with a proof image, validating the data URL
   const rawProofImage = showProofThumbnail
@@ -202,10 +203,10 @@ function SourceTooltip({
           />
         ) : (
           <span className="w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[8px] font-medium text-gray-600 dark:text-gray-300 flex-shrink-0">
-            {group.sourceName.charAt(0).toUpperCase()}
+            {sourceName.charAt(0).toUpperCase()}
           </span>
         )}
-        <span className="flex-1 text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{group.sourceName}</span>
+        <span className="flex-1 text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{sourceName}</span>
         <span className={cn("inline-flex w-3.5 h-3.5 flex-shrink-0", statusInfo.color)} title={statusInfo.label}>
           {statusInfo.icon}
         </span>
@@ -223,7 +224,7 @@ function SourceTooltip({
             type="button"
             className="block w-full rounded overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer"
             onClick={handleProofClick}
-            aria-label={`View proof for ${group.sourceName}`}
+            aria-label={`View proof for ${sourceName}`}
           >
             <img
               src={proofImage}
