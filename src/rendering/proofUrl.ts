@@ -61,10 +61,7 @@ export function buildSnippetImageUrl(proofId: string, options: ProofUrlOptions):
  * for when the backend returns proof IDs). For now, it uses the citationKey
  * as a fallback proof ID.
  */
-export function buildProofUrls(
-  verifications: VerificationRecord,
-  options: ProofUrlOptions,
-): Record<string, string> {
+export function buildProofUrls(verifications: VerificationRecord, options: ProofUrlOptions): Record<string, string> {
   const urls: Record<string, string> = {};
 
   for (const [citationKey, verification] of Object.entries(verifications)) {

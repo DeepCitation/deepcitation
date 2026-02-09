@@ -1,4 +1,4 @@
-import type { RenderOptions, RenderedOutput, RenderCitationWithStatus } from "../types.js";
+import type { RenderedOutput, RenderOptions } from "../types.js";
 
 /**
  * HTML citation variant.

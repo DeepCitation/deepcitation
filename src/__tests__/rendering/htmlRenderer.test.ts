@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
-import { renderCitationsAsHtml } from "../../rendering/html/htmlRenderer.js";
 import { generateCitationKey } from "../../react/utils.js";
+import { renderCitationsAsHtml } from "../../rendering/html/htmlRenderer.js";
 import type { Verification } from "../../types/verification.js";
 
 // =============================================================================

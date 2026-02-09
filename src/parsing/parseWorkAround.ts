@@ -22,9 +22,7 @@ export function cleanRepeatingLastSentence(text: string): string {
   const sentenceEndRegex = /[.?!](?=\s+|$)/g;
   const sentenceEndIndices: number[] = [];
   let match: RegExpExecArray | null;
-  for (;;) {
-    match = sentenceEndRegex.exec(text);
-    if (!match) break;
+  while ((match = sentenceEndRegex.exec(text)) !== null) {
     sentenceEndIndices.push(match.index);
   }
 

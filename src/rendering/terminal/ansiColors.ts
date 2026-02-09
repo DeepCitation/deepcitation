@@ -74,7 +74,8 @@ export function dim(text: string, useColor: boolean): string {
  */
 export function stripAnsi(str: string): string {
   // Matches all ANSI escape sequences
-  return str.replace(/\x1b\[[0-9;]*m/g, "");
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences require control characters
+  return str.replace(/\u001b\[[0-9;]*m/g, "");
 }
 
 /**

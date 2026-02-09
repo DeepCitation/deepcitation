@@ -562,9 +562,7 @@ export function getCitationMarkerIds(text: string): number[] {
   const regex = /\[(\d+)\]/g;
   let match: RegExpExecArray | null;
 
-  for (;;) {
-    match = regex.exec(text);
-    if (!match) break;
+  while ((match = regex.exec(text)) !== null) {
     ids.push(parseInt(match[1], 10));
   }
 

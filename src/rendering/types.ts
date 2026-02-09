@@ -1,7 +1,6 @@
-import type { CitationStatus, VerificationRecord } from "../types/citation.js";
-import type { Citation } from "../types/citation.js";
-import type { Verification } from "../types/verification.js";
 import type { IndicatorStyle } from "../markdown/types.js";
+import type { Citation, CitationStatus, VerificationRecord } from "../types/citation.js";
+import type { Verification } from "../types/verification.js";
 
 /**
  * Base render options shared across all text-based render targets.
