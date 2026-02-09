@@ -1,8 +1,8 @@
+import { formatPageLocation } from "../../markdown/markdownVariants.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
 import { generateCitationKey } from "../../react/utils.js";
-import { formatPageLocation } from "../../markdown/markdownVariants.js";
+import { buildCitationFromAttrs, parseCiteAttributes } from "../citationParser.js";
 import { buildProofUrl, buildSnippetImageUrl } from "../proofUrl.js";
-import { parseCiteAttributes, buildCitationFromAttrs } from "../citationParser.js";
 import type { RenderCitationWithStatus } from "../types.js";
 import { renderHtmlCitation } from "./htmlVariants.js";
 import { generateStyleBlock } from "./styles.js";
@@ -65,10 +65,7 @@ export function renderCitationsAsHtml(input: string, options: HtmlRenderOptions 
       proofUrls[citationKey] = proofUrl;
     }
 
-    const label =
-      sourceLabels[citation.attachmentId || ""] ||
-      verification?.label ||
-      citation.title;
+    const label = sourceLabels[citation.attachmentId || ""] || verification?.label || citation.title;
     const location = formatPageLocation(citation, verification, { showPageNumber: true, showLinePosition: false });
 
     let imageUrl: string | undefined;
@@ -113,7 +110,10 @@ export function renderCitationsAsHtml(input: string, options: HtmlRenderOptions 
         cws.verification?.label ||
         cws.citation.title ||
         `Source ${cws.citationNumber}`;
-      const location = formatPageLocation(cws.citation, cws.verification, { showPageNumber: true, showLinePosition: false });
+      const location = formatPageLocation(cws.citation, cws.verification, {
+        showPageNumber: true,
+        showLinePosition: false,
+      });
       const proofUrl = proofUrls[cws.citationKey];
       const loc = location ? ` — ${escapeHtml(location)}` : "";
       const link = proofUrl
@@ -146,17 +146,9 @@ export function renderCitationsAsHtml(input: string, options: HtmlRenderOptions 
 }
 
 function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function escapeHtmlAttr(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

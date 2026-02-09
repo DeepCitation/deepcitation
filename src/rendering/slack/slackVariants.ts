@@ -1,6 +1,6 @@
-import type { CitationStatus } from "../../types/citation.js";
 import { getIndicator, toSuperscript } from "../../markdown/markdownVariants.js";
 import type { IndicatorStyle } from "../../markdown/types.js";
+import type { CitationStatus } from "../../types/citation.js";
 import type { SlackVariant } from "./types.js";
 
 /**
@@ -25,7 +25,6 @@ export function renderSlackCitation(
     case "number":
       text = `${toSuperscript(citationNumber)}${indicator}`;
       break;
-    case "brackets":
     default:
       text = `[${citationNumber}${indicator}]`;
       break;
@@ -49,9 +48,7 @@ export function renderSlackSourceEntry(
   proofUrl: string | undefined,
 ): string {
   const indicator = getIndicator(status, indicatorStyle);
-  const marker = proofUrl
-    ? `<${proofUrl}|[${citationNumber}${indicator}]>`
-    : `[${citationNumber}${indicator}]`;
+  const marker = proofUrl ? `<${proofUrl}|[${citationNumber}${indicator}]>` : `[${citationNumber}${indicator}]`;
 
   const location = pageLocation ? ` — ${pageLocation}` : "";
   return `• ${marker} ${sourceLabel}${location}`;

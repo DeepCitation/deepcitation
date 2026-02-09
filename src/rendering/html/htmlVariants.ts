@@ -1,8 +1,8 @@
-import type { CitationStatus } from "../../types/citation.js";
 import { getIndicator, toSuperscript } from "../../markdown/markdownVariants.js";
 import type { IndicatorStyle } from "../../markdown/types.js";
+import type { CitationStatus } from "../../types/citation.js";
+import { getIndicatorInlineStyle, getInlineStyle } from "./styles.js";
 import type { HtmlTheme, HtmlVariant } from "./types.js";
-import { getInlineStyle, getIndicatorInlineStyle } from "./styles.js";
 
 /**
  * Map a CitationStatus to a status key for CSS classes and inline styles.
@@ -99,7 +99,6 @@ export function renderHtmlCitation(opts: HtmlCitationOptions): string {
     case "superscript":
       displayText = toSuperscript(citationNumber);
       break;
-    case "brackets":
     default:
       displayText = `[${citationNumber}`;
       break;
@@ -126,9 +125,7 @@ export function renderHtmlCitation(opts: HtmlCitationOptions): string {
 
   // Add tooltip
   if (includeTooltips) {
-    const tooltipParts: string[] = [
-      `<span class="${prefix}tooltip-status">${indicator} ${statusLabel}</span>`,
-    ];
+    const tooltipParts: string[] = [`<span class="${prefix}tooltip-status">${indicator} ${statusLabel}</span>`];
     if (sourceLabel) {
       const loc = location ? ` — ${escapeHtml(location)}` : "";
       tooltipParts.push(`<span class="${prefix}tooltip-source">${escapeHtml(sourceLabel)}${loc}</span>`);
@@ -138,32 +135,22 @@ export function renderHtmlCitation(opts: HtmlCitationOptions): string {
       tooltipParts.push(`<span class="${prefix}tooltip-quote">"${escapeHtml(truncated)}"</span>`);
     }
     if (imageUrl) {
-      tooltipParts.push(`<img class="${prefix}tooltip-image" src="${escapeHtmlAttr(imageUrl)}" alt="Proof snippet" loading="lazy" />`);
+      tooltipParts.push(
+        `<img class="${prefix}tooltip-image" src="${escapeHtmlAttr(imageUrl)}" alt="Proof snippet" loading="lazy" />`,
+      );
     }
     inner += `<span class="${prefix}tooltip">${tooltipParts.join("")}</span>`;
   }
 
-  const classes = [
-    `${prefix}citation`,
-    statusCls,
-    variantClass,
-  ].filter(Boolean).join(" ");
+  const classes = [`${prefix}citation`, statusCls, variantClass].filter(Boolean).join(" ");
 
   return `<span class="${classes}"${spanStyle} data-citation-key="${escapeHtmlAttr(citationKey)}"${proofUrl ? ` data-proof-url="${escapeHtmlAttr(proofUrl)}"` : ""}>${inner}</span>`;
 }
 
 function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function escapeHtmlAttr(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

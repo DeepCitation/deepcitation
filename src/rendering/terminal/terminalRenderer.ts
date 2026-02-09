@@ -1,10 +1,10 @@
+import { formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
 import { generateCitationKey } from "../../react/utils.js";
-import { getIndicator, formatPageLocation } from "../../markdown/markdownVariants.js";
 import type { CitationStatus } from "../../types/citation.js";
-import { parseCiteAttributes, buildCitationFromAttrs } from "../citationParser.js";
+import { buildCitationFromAttrs, parseCiteAttributes } from "../citationParser.js";
 import type { RenderCitationWithStatus } from "../types.js";
-import { shouldUseColor, colorize, bold, dim, stripAnsi, horizontalRule } from "./ansiColors.js";
+import { bold, colorize, dim, horizontalRule, shouldUseColor } from "./ansiColors.js";
 import type { TerminalOutput, TerminalRenderOptions, TerminalVariant } from "./types.js";
 
 /**
@@ -20,16 +20,6 @@ function getStatusKey(status: CitationStatus): "verified" | "partial" | "notFoun
   if (status.isPartialMatch) return "partial";
   if (status.isVerified) return "verified";
   return "pending";
-}
-
-/**
- * Get a human-readable status label.
- */
-function getStatusLabel(status: CitationStatus): string {
-  if (status.isMiss) return "Not Found";
-  if (status.isPartialMatch) return "Partial";
-  if (status.isVerified) return "Verified";
-  return "Pending";
 }
 
 /**
@@ -54,7 +44,6 @@ function renderTerminalCitation(
     case "minimal":
       plainText = indicator;
       break;
-    case "brackets":
     default:
       plainText = `[${citationNumber}${indicator}]`;
       break;
@@ -156,10 +145,12 @@ export function renderCitationsForTerminal(input: string, options: TerminalRende
         cws.verification?.label ||
         cws.citation.title ||
         `Source ${cws.citationNumber}`;
-      const location = formatPageLocation(cws.citation, cws.verification, { showPageNumber: true, showLinePosition: false });
+      const location = formatPageLocation(cws.citation, cws.verification, {
+        showPageNumber: true,
+        showLinePosition: false,
+      });
       const indicator = getIndicator(cws.status, indicatorStyle as import("../../markdown/types.js").IndicatorStyle);
       const statusKey = getStatusKey(cws.status);
-      const statusLabel = getStatusLabel(cws.status);
 
       const marker = colorize(`[${cws.citationNumber}]`, statusKey, useColor);
       const coloredIndicator = colorize(indicator, statusKey, useColor);
@@ -167,9 +158,10 @@ export function renderCitationsForTerminal(input: string, options: TerminalRende
       sourceLines.push(` ${marker} ${coloredIndicator} ${label}${loc}`);
 
       if (cws.citation.fullPhrase) {
-        const quote = cws.citation.fullPhrase.length > maxWidth - 10
-          ? `${cws.citation.fullPhrase.slice(0, maxWidth - 13)}...`
-          : cws.citation.fullPhrase;
+        const quote =
+          cws.citation.fullPhrase.length > maxWidth - 10
+            ? `${cws.citation.fullPhrase.slice(0, maxWidth - 13)}...`
+            : cws.citation.fullPhrase;
         sourceLines.push(`     ${dim(`"${quote}"`, useColor)}`);
       }
     }
@@ -180,7 +172,6 @@ export function renderCitationsForTerminal(input: string, options: TerminalRende
   }
 
   const coloredFull = sources ? `${coloredText}\n\n${sources}` : coloredText;
-  const plainFull = sources ? `${plainText}\n\n${stripAnsi(sources)}` : plainText;
 
   return {
     content: coloredText,

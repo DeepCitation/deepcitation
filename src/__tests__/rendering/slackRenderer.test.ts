@@ -1,7 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { renderCitationsForSlack } from "../../rendering/slack/slackRenderer.js";
 import type { Verification } from "../../types/verification.js";
-import { generateCitationKey } from "../../react/utils.js";
 
 // =============================================================================
 // TEST FIXTURES
@@ -11,16 +10,6 @@ const simpleInput = `Revenue grew 45%<cite attachment_id='abc123' page_number='3
 
 const multiCitationInput = `First claim<cite attachment_id='abc123' page_number='1' full_phrase='First fact.' anchor_text='First' />.
 Second claim<cite attachment_id='abc123' page_number='2' full_phrase='Second fact.' anchor_text='Second' />.`;
-
-function getVerificationKeyForCitation(attrs: Record<string, any>): string {
-  return generateCitationKey(attrs);
-}
-
-const verifiedVerification: Verification = {
-  status: "found",
-  verifiedPageNumber: 3,
-  label: "Q4 Report",
-};
 
 const notFoundVerification: Verification = {
   status: "not_found",

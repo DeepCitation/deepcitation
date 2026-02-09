@@ -1,6 +1,6 @@
-import type { CitationStatus } from "../../types/citation.js";
 import { getIndicator, toSuperscript } from "../../markdown/markdownVariants.js";
 import type { IndicatorStyle } from "../../markdown/types.js";
+import type { CitationStatus } from "../../types/citation.js";
 import type { GitHubVariant } from "./types.js";
 
 /**
@@ -31,7 +31,6 @@ export function renderGitHubCitation(
       return proofUrl ? `[${text}](${proofUrl})` : text;
     }
 
-    case "brackets":
     default: {
       const text = `[${citationNumber}${indicator}]`;
       return proofUrl ? `[${text}](${proofUrl})` : text;
@@ -74,7 +73,9 @@ export function renderGitHubSourcesTable(
 
   for (const entry of entries) {
     const proofLink = entry.proofUrl ? `[View proof](${entry.proofUrl})` : "—";
-    lines.push(`| ${entry.citationNumber} | ${entry.indicator} ${entry.statusLabel} | ${entry.sourceLabel} | ${entry.location || "—"} | ${proofLink} |`);
+    lines.push(
+      `| ${entry.citationNumber} | ${entry.indicator} ${entry.statusLabel} | ${entry.sourceLabel} | ${entry.location || "—"} | ${proofLink} |`,
+    );
   }
 
   lines.push("", "</details>");
@@ -94,12 +95,7 @@ export function renderGitHubSourcesList(
     proofUrl?: string;
   }>,
 ): string {
-  const lines: string[] = [
-    "<details>",
-    `<summary><b>Sources (${entries.length})</b></summary>`,
-    "<br>",
-    "",
-  ];
+  const lines: string[] = ["<details>", `<summary><b>Sources (${entries.length})</b></summary>`, "<br>", ""];
 
   for (const entry of entries) {
     const proofLink = entry.proofUrl ? ` — [View proof](${entry.proofUrl})` : "";
@@ -126,15 +122,12 @@ export function renderGitHubSourcesDetailed(
     imageUrl?: string;
   }>,
 ): string {
-  const lines: string[] = [
-    "<details>",
-    `<summary><b>Sources (${entries.length})</b></summary>`,
-    "<br>",
-    "",
-  ];
+  const lines: string[] = ["<details>", `<summary><b>Sources (${entries.length})</b></summary>`, "<br>", ""];
 
   for (const entry of entries) {
-    lines.push(`**[${entry.citationNumber}${entry.indicator}] ${entry.sourceLabel}${entry.location ? ` — ${entry.location}` : ""}**`);
+    lines.push(
+      `**[${entry.citationNumber}${entry.indicator}] ${entry.sourceLabel}${entry.location ? ` — ${entry.location}` : ""}**`,
+    );
 
     if (entry.quote) {
       lines.push(`> "${entry.quote}"`);

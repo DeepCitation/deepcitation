@@ -1,8 +1,8 @@
+import { formatPageLocation } from "../../markdown/markdownVariants.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
 import { generateCitationKey } from "../../react/utils.js";
-import { formatPageLocation } from "../../markdown/markdownVariants.js";
+import { buildCitationFromAttrs, parseCiteAttributes } from "../citationParser.js";
 import { buildProofUrl } from "../proofUrl.js";
-import { parseCiteAttributes, buildCitationFromAttrs } from "../citationParser.js";
 import type { RenderCitationWithStatus } from "../types.js";
 import { renderSlackCitation, renderSlackSourceEntry } from "./slackVariants.js";
 import type { SlackOutput, SlackRenderOptions } from "./types.js";
@@ -67,7 +67,14 @@ export function renderCitationsForSlack(input: string, options: SlackRenderOptio
       citationNumber: citationIndex,
     });
 
-    return renderSlackCitation(citationIndex, citation.anchorText ?? undefined, status, indicatorStyle, proofUrl, variant);
+    return renderSlackCitation(
+      citationIndex,
+      citation.anchorText ?? undefined,
+      status,
+      indicatorStyle,
+      proofUrl,
+      variant,
+    );
   });
 
   // Build sources section
@@ -80,9 +87,14 @@ export function renderCitationsForSlack(input: string, options: SlackRenderOptio
         cws.verification?.label ||
         cws.citation.title ||
         `Source ${cws.citationNumber}`;
-      const location = formatPageLocation(cws.citation, cws.verification, { showPageNumber: true, showLinePosition: false });
+      const location = formatPageLocation(cws.citation, cws.verification, {
+        showPageNumber: true,
+        showLinePosition: false,
+      });
       const proofUrl = proofUrls[cws.citationKey];
-      sourceLines.push(renderSlackSourceEntry(cws.citationNumber, cws.status, indicatorStyle, label, location, proofUrl));
+      sourceLines.push(
+        renderSlackSourceEntry(cws.citationNumber, cws.status, indicatorStyle, label, location, proofUrl),
+      );
     }
     sources = sourceLines.join("\n");
   }

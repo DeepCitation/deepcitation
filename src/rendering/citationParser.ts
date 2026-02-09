@@ -33,12 +33,8 @@ export function parseCiteAttributes(citeTag: string): Record<string, string | un
  * @param citationNumber - The citation number for this citation
  * @returns Citation object
  */
-export function buildCitationFromAttrs(
-  attrs: Record<string, string | undefined>,
-  citationNumber: number
-): Citation {
-  const unescapeText = (str: string | undefined): string | undefined =>
-    str?.replace(/\\'/g, "'").replace(/\\"/g, '"');
+export function buildCitationFromAttrs(attrs: Record<string, string | undefined>, citationNumber: number): Citation {
+  const unescapeText = (str: string | undefined): string | undefined => str?.replace(/\\'/g, "'").replace(/\\"/g, '"');
 
   const parsePageNumber = (pageStr?: string): number | undefined => {
     if (!pageStr) return undefined;
@@ -48,7 +44,10 @@ export function buildCitationFromAttrs(
 
   const parseLineIds = (lineIdsStr?: string): number[] | undefined => {
     if (!lineIdsStr) return undefined;
-    const nums = lineIdsStr.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !Number.isNaN(n));
+    const nums = lineIdsStr
+      .split(",")
+      .map(s => parseInt(s.trim(), 10))
+      .filter(n => !Number.isNaN(n));
     return nums.length > 0 ? nums : undefined;
   };
 

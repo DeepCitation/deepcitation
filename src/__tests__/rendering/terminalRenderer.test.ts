@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
-import { renderCitationsForTerminal } from "../../rendering/terminal/terminalRenderer.js";
 import { generateCitationKey } from "../../react/utils.js";
+import { renderCitationsForTerminal } from "../../rendering/terminal/terminalRenderer.js";
 import type { Verification } from "../../types/verification.js";
 
 // =============================================================================

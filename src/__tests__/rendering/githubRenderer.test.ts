@@ -1,7 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
 import { renderCitationsForGitHub } from "../../rendering/github/githubRenderer.js";
-import { generateCitationKey } from "../../react/utils.js";
-import type { Verification } from "../../types/verification.js";
 
 // =============================================================================
 // TEST FIXTURES
@@ -11,12 +9,6 @@ const simpleInput = `Revenue grew 45%<cite attachment_id='abc123' page_number='3
 
 const multiCitationInput = `First claim<cite attachment_id='abc123' page_number='1' full_phrase='First fact.' anchor_text='First' />.
 Second claim<cite attachment_id='abc123' page_number='2' full_phrase='Second fact.' anchor_text='Second' />.`;
-
-const verifiedVerification: Verification = {
-  status: "found",
-  verifiedPageNumber: 3,
-  label: "Q4 Report",
-};
 
 // =============================================================================
 // TESTS

@@ -1,15 +1,15 @@
+import { formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
 import { generateCitationKey } from "../../react/utils.js";
-import { getIndicator, formatPageLocation } from "../../markdown/markdownVariants.js";
+import { buildCitationFromAttrs, parseCiteAttributes } from "../citationParser.js";
 import { buildProofUrl, buildSnippetImageUrl } from "../proofUrl.js";
-import { parseCiteAttributes, buildCitationFromAttrs } from "../citationParser.js";
 import type { RenderCitationWithStatus } from "../types.js";
 import {
-  renderGitHubCitation,
   getStatusLabel,
-  renderGitHubSourcesTable,
-  renderGitHubSourcesList,
+  renderGitHubCitation,
   renderGitHubSourcesDetailed,
+  renderGitHubSourcesList,
+  renderGitHubSourcesTable,
 } from "./githubVariants.js";
 import type { GitHubOutput, GitHubRenderOptions } from "./types.js";
 
@@ -74,7 +74,14 @@ export function renderCitationsForGitHub(input: string, options: GitHubRenderOpt
       citationNumber: citationIndex,
     });
 
-    return renderGitHubCitation(citationIndex, citation.anchorText ?? undefined, status, indicatorStyle, proofUrl, variant);
+    return renderGitHubCitation(
+      citationIndex,
+      citation.anchorText ?? undefined,
+      status,
+      indicatorStyle,
+      proofUrl,
+      variant,
+    );
   });
 
   // Build sources section
@@ -86,7 +93,10 @@ export function renderCitationsForGitHub(input: string, options: GitHubRenderOpt
         cws.verification?.label ||
         cws.citation.title ||
         `Source ${cws.citationNumber}`;
-      const location = formatPageLocation(cws.citation, cws.verification, { showPageNumber: true, showLinePosition: false });
+      const location = formatPageLocation(cws.citation, cws.verification, {
+        showPageNumber: true,
+        showLinePosition: false,
+      });
       const indicator = getIndicator(cws.status, indicatorStyle);
       const statusLabel = getStatusLabel(cws.status);
       const proofUrl = proofUrls[cws.citationKey];

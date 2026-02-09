@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { buildProofUrl, buildSnippetImageUrl, buildProofUrls } from "../../rendering/proofUrl.js";
+import { buildProofUrl, buildProofUrls, buildSnippetImageUrl } from "../../rendering/proofUrl.js";
 
 describe("buildProofUrl", () => {
   const baseOptions = { baseUrl: "https://proof.deepcitation.com" };
@@ -67,8 +67,9 @@ describe("buildProofUrls", () => {
   });
 
   it("uses proofId from verification when available", () => {
-    const verifications = {
-      key1: { status: "found" as const, proofId: "proof_abc" } as any,
+    // biome-ignore lint/suspicious/noExplicitAny: test fixture requires partial verification type
+    const verifications: Record<string, any> = {
+      key1: { status: "found" as const, proofId: "proof_abc" },
     };
     const urls = buildProofUrls(verifications, { baseUrl: "https://proof.deepcitation.com" });
     expect(urls.key1).toContain("/p/proof_abc");
