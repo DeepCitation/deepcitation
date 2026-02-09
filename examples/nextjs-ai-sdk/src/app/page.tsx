@@ -94,10 +94,10 @@ export default function Home() {
 
         // Get message content from either content or parts
         const messageContent =
-          (lastMessage as any).content ||
-          (lastMessage as any).parts
-            ?.filter((p: any) => p.type === "text")
-            .map((p: any) => p.text)
+          lastMessage.content ||
+          lastMessage.parts
+            .filter((p): p is { type: "text"; text: string } => p.type === "text")
+            .map(p => p.text)
             .join("") ||
           "";
 
