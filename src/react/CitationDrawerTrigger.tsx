@@ -164,10 +164,15 @@ function SourceTooltip({
   const aggregateVerification = getGroupAggregateVerification(group);
   const statusInfo = getStatusInfo(aggregateVerification);
 
-  // Find the first verification with a proof image
-  const proofImage = showProofThumbnail
+  // Find the first verification with a proof image, validating the data URL
+  const rawProofImage = showProofThumbnail
     ? group.citations.find(c => c.verification?.verificationImageBase64)?.verification?.verificationImageBase64
     : null;
+  const proofImage =
+    typeof rawProofImage === "string" &&
+    (rawProofImage.startsWith("data:image/") || rawProofImage.startsWith("https://"))
+      ? rawProofImage
+      : null;
 
   const handleProofClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -221,7 +226,7 @@ function SourceTooltip({
             aria-label={`View proof for ${group.sourceName}`}
           >
             <img
-              src={proofImage as string}
+              src={proofImage}
               alt="Verification proof"
               className="w-full h-auto max-h-16 object-cover"
               loading="lazy"
@@ -264,20 +269,25 @@ function StackedStatusIcons({
   const overflowCount = citationGroups.length - maxIcons;
 
   return (
-    <div className="flex items-center" aria-hidden="true">
+    <div className="flex items-center" role="group" aria-label="Source verification status">
       {displayGroups.map((group, i) => (
         <div
           key={`${group.sourceDomain ?? group.sourceName}-${i}`}
           className="relative transition-all duration-300 ease-out"
           style={{
             marginLeft: i === 0 ? 0 : isHovered ? 6 : -8,
-            zIndex: citationGroups.length - i,
+            zIndex: Math.min(displayGroups.length - i, 10),
           }}
           onMouseEnter={() => onIconHover(i)}
           onMouseLeave={onIconLeave}
+          onFocus={() => onIconHover(i)}
+          onBlur={onIconLeave}
+          tabIndex={0}
+          role="button"
+          aria-label={`${group.sourceName}: ${getStatusInfo(getGroupAggregateVerification(group)).label}`}
         >
           <StatusIconChip group={group} />
-          {/* Tooltip when this specific icon is hovered and bar is expanded */}
+          {/* Tooltip when this specific icon is hovered/focused and bar is expanded */}
           {isHovered && hoveredGroupIndex === i && (
             <SourceTooltip group={group} showProofThumbnail={showProofThumbnails} onSourceClick={onSourceClick} />
           )}
@@ -331,7 +341,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
   ) => {
     const [isHovered, setIsHovered] = useState(false);
     const [hoveredGroupIndex, setHoveredGroupIndex] = useState<number | null>(null);
-    const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+    const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const summary = useMemo(() => computeStatusSummary(citationGroups), [citationGroups]);
     const displayLabel = label ?? generateDefaultLabel(summary);
@@ -345,10 +355,15 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
       setHoveredGroupIndex(null);
       clearTimeout(leaveTimeoutRef.current);
     }, []);
-    const handleFocus = useCallback(() => setIsHovered(true), []);
+    const handleFocus = useCallback(() => {
+      clearTimeout(leaveTimeoutRef.current);
+      setIsHovered(true);
+    }, []);
     const handleBlur = useCallback(() => {
-      setIsHovered(false);
-      setHoveredGroupIndex(null);
+      leaveTimeoutRef.current = setTimeout(() => {
+        setIsHovered(false);
+        setHoveredGroupIndex(null);
+      }, TOOLTIP_HIDE_DELAY_MS);
     }, []);
 
     const handleIconHover = useCallback((index: number) => {
