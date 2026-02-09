@@ -2074,7 +2074,7 @@ export function CitationDrawerShowcase() {
               </div>
               {/* Expanded source rows */}
               <div className="px-3 pb-2 pt-1 border-t border-gray-200 dark:border-gray-700 space-y-0.5">
-                {mixedGroups.map((group) => (
+                {mixedGroups.map(group => (
                   <div
                     key={group.sourceDomain ?? group.sourceName}
                     className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 py-0.5"

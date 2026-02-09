@@ -97,7 +97,7 @@ function StatusDots({ summary }: { summary: CitationStatusSummary }) {
 
   return (
     <div className="flex items-center -space-x-1" aria-hidden="true">
-      {dots.map((dot) => (
+      {dots.map(dot => (
         <span
           key={dot.label}
           className={cn("w-2.5 h-2.5 rounded-full ring-1 ring-white dark:ring-gray-800", dot.color)}

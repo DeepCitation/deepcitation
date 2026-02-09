@@ -6,9 +6,7 @@ import type { SourceCitationGroup } from "../react/CitationDrawer.types";
 // Test Fixtures
 // =========
 
-const createMockCitationGroup = (
-  overrides?: Partial<SourceCitationGroup>,
-): SourceCitationGroup => ({
+const createMockCitationGroup = (overrides?: Partial<SourceCitationGroup>): SourceCitationGroup => ({
   sourceName: "Test Source",
   sourceDomain: "test.com",
   sourceFavicon: "https://test.com/favicon.ico",
@@ -306,9 +304,7 @@ test.describe("CitationDrawerTrigger", () => {
   test("displays custom label when provided", async ({ mount }) => {
     const groups = createAllVerifiedGroups();
     const customLabel = "Custom Citations Label";
-    const component = await mount(
-      <CitationDrawerTrigger citationGroups={groups} label={customLabel} />,
-    );
+    const component = await mount(<CitationDrawerTrigger citationGroups={groups} label={customLabel} />);
 
     const label = component.locator("span").filter({ hasText: customLabel });
     await expect(label).toBeVisible();
@@ -396,9 +392,7 @@ test.describe("CitationDrawerTrigger", () => {
   test("applies custom className prop", async ({ mount }) => {
     const groups = createAllVerifiedGroups();
     const customClass = "custom-test-class";
-    const component = await mount(
-      <CitationDrawerTrigger citationGroups={groups} className={customClass} />,
-    );
+    const component = await mount(<CitationDrawerTrigger citationGroups={groups} className={customClass} />);
 
     const button = component.locator("button");
     const classes = await button.getAttribute("class");
@@ -429,13 +423,11 @@ test.describe("CitationDrawerTrigger", () => {
         sourceFavicon: "https://invalid-domain-that-does-not-exist.example.com/broken.ico",
       });
 
-      const component = await mount(
-        <CitationDrawerTrigger citationGroups={[groupWithBrokenFavicon]} />,
-      );
+      const component = await mount(<CitationDrawerTrigger citationGroups={[groupWithBrokenFavicon]} />);
 
       // Image load failure should not crash component
       const img = component.locator("img");
-      if (await img.count() > 0) {
+      if ((await img.count()) > 0) {
         // Simulate image load error
         await img.dispatchEvent("error");
       }
@@ -448,9 +440,7 @@ test.describe("CitationDrawerTrigger", () => {
         sourceName: "A very long source name that could potentially break the layout if not handled correctly",
       });
 
-      const component = await mount(
-        <CitationDrawerTrigger citationGroups={[groupWithLongName]} />,
-      );
+      const component = await mount(<CitationDrawerTrigger citationGroups={[groupWithLongName]} />);
 
       // Should truncate gracefully with CSS truncation
       await expect(component).toBeVisible();
@@ -489,7 +479,7 @@ test.describe("CitationDrawerTrigger", () => {
 
       await mount(
         <CitationDrawerTrigger
-          ref={(el) => {
+          ref={el => {
             buttonRef = el;
           }}
           citationGroups={groups}
@@ -554,9 +544,7 @@ test.describe("CitationDrawerTrigger", () => {
         clicked = true;
       };
 
-      const component = await mount(
-        <CitationDrawerTrigger citationGroups={groups} onClick={onClick} />,
-      );
+      const component = await mount(<CitationDrawerTrigger citationGroups={groups} onClick={onClick} />);
 
       await component.click();
       expect(clicked).toBe(true);
