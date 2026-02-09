@@ -543,15 +543,16 @@ proofs/
 **Retention:** Images follow the same expiry as the parent attachment. When an attachment expires, its proof images are garbage collected.
 
 **Caching:**
-- Proof pages: `Cache-Control: private, max-age=3600` (1 hour)
-- Proof images: `Cache-Control: private, max-age=86400` (24 hours)
-- CDN caching with proof_id as cache key (immutable content)
+- Non-public proofs: `Cache-Control: private, max-age=3600` for pages, `private, max-age=86400` for images (browser-only caching, no CDN)
+- Public proofs: `Cache-Control: public, max-age=86400` with CDN caching using `proof_id` as cache key (immutable content)
 
 ---
 
 ## 6. OG Metadata for Slack Unfurls
 
-When a proof URL is posted in Slack (or any platform that reads OG tags), the proof page's `<head>` provides:
+When a proof URL is posted in Slack (or any platform that reads OG tags), the proof page's `<head>` provides OG metadata. **Important:** OG content is fetched and cached by third-party platforms indefinitely, so non-public proofs must not expose claim text or snippet images in OG tags.
+
+#### Public proofs (`access: "public"`)
 
 ```html
 <meta property="og:type" content="article" />
@@ -564,7 +565,20 @@ When a proof URL is posted in Slack (or any platform that reads OG tags), the pr
 <meta property="og:site_name" content="DeepCitation" />
 ```
 
-**Title format by status:**
+#### Non-public proofs (`access: "signed"` or `"workspace"`)
+
+```html
+<meta property="og:type" content="article" />
+<meta property="og:title" content="DeepCitation Proof — Sign in to view" />
+<meta property="og:description" content="This proof requires authentication to view." />
+<meta property="og:image" content="https://proof.deepcitation.com/assets/og-placeholder.png" />
+<meta property="og:image:width" content="600" />
+<meta property="og:image:height" content="200" />
+<meta property="og:url" content="https://proof.deepcitation.com/p/{proofId}" />
+<meta property="og:site_name" content="DeepCitation" />
+```
+
+**Title format by status (public proofs only):**
 
 | Status | OG Title |
 |--------|---------|
@@ -572,7 +586,7 @@ When a proof URL is posted in Slack (or any platform that reads OG tags), the pr
 | Partial | `⚠ Partial Match — {source_title}, {location}` |
 | Not Supported | `✗ Not Supported — {source_title}, {location}` |
 
-**OG Image requirements:**
+**OG Image requirements (public proofs only):**
 - Minimum 200x200px (Slack requirement)
 - Recommended 600x300px for large unfurl cards
 - PNG format for sharpness
@@ -590,6 +604,8 @@ When a proof URL is posted in Slack (or any platform that reads OG tags), the pr
 | `GET` | `/p/{proofId}?format=png` | Proof snippet image | Token / workspace / public |
 | `GET` | `/p/{proofId}?format=png&view=context` | Proof context image | Token / workspace / public |
 | `GET` | `/p/{proofId}?format=png&view=page` | Full page image | Token / workspace / public |
+| `DELETE` | `/p/{proofId}` | Delete a single proof and its images | API key |
+| `DELETE` | `/proofs?attachmentId={id}` | Delete all proofs for an attachment | API key |
 
 ---
 
@@ -686,14 +702,44 @@ const verifications = await client.verifyCitations(citations, attachmentId, {
 - Tokens are scoped to a single proofId (cannot be reused for other proofs)
 - Expiry is enforced server-side (not just client-side)
 - Tokens cannot be refreshed — new ones must be generated via the API
+- **Token leakage risk:** JWT tokens in query strings (`?token=`) are exposed in browser history, server/CDN access logs, and `Referer` headers when users navigate away from the proof page. Mitigations:
+  - Set `Referrer-Policy: no-referrer` on proof pages to prevent token leakage via `Referer` headers
+  - Consider a token-exchange flow: client `POST`s the token, receives a short-lived session cookie, then loads the proof page without the token in the URL
+  - At minimum, keep signed URL expiry short and document that tokens should be treated as secrets
+- **JWT payload is not encrypted:** Anyone with a proof URL can base64-decode the JWT and read the payload (`wid`, `proofId`, timing). This is not a secret leak per se, but exposes workspace structure. Consider opaque tokens (random strings mapped server-side) or JWE (encrypted JWTs) if this is a concern.
 
 ### Content leakage prevention
 
 - Proof images are served with `Cache-Control: private` (no CDN caching of private content)
+- CDN caching (with `proof_id` as cache key) is only enabled for `access: "public"` proofs. Non-public proofs must not be CDN-cached.
 - `X-Frame-Options: DENY` on proof pages (prevent iframe embedding)
 - `Content-Security-Policy: frame-ancestors 'none'` reinforcement
+- `X-Content-Type-Options: nosniff` on all proof responses (prevents MIME-sniffing)
 - No indexing: `<meta name="robots" content="noindex, nofollow" />`
 - For `access: "public"`, these restrictions are relaxed
+
+### OG metadata and third-party caching
+
+When a proof URL is shared in Slack, Twitter, or similar platforms, those platforms fetch and **cache OG metadata (title, description, image) on their own servers**. This cached content persists indefinitely on the third-party platform, even after the signed URL expires or the proof is deleted. This effectively makes the claim text and snippet image public for any non-public proof that gets shared.
+
+**Mitigation:** For `access: "signed"` and `"workspace"` proofs, serve genericized OG metadata:
+
+```html
+<!-- Non-public proofs: generic OG tags -->
+<meta property="og:title" content="DeepCitation Proof — Sign in to view" />
+<meta property="og:description" content="This proof requires authentication to view." />
+<meta property="og:image" content="https://proof.deepcitation.com/assets/og-placeholder.png" />
+```
+
+Only populate real claim text and snippet images in OG tags for `access: "public"` proofs.
+
+### Proof images as content copies
+
+Proof images (snippet, context, page) are extracted copies of source document content stored in a separate object storage bucket. This creates a second copy of potentially confidential content accessible via a different auth model (token vs. API key).
+
+- Proof image storage must inherit the same encryption-at-rest and access controls as source attachments
+- The `page` view serves an entire page of the source document — consider whether this is necessary at launch or if `snippet` and `context` are sufficient
+- When an attachment is deleted, all associated proof images must be garbage-collected immediately (not just on expiry)
 
 ### Rate limiting
 
@@ -703,7 +749,56 @@ const verifications = await client.verifyCitations(citations, attachmentId, {
 
 ---
 
-## 13. Open Questions
+## 13. Privacy & Compliance
+
+### Data contained in proofs
+
+Each proof object contains potentially sensitive data:
+- `claimText` — excerpt from the source document
+- `userId`, `workspaceId` — organizational identifiers
+- Snippet/context/page images — visual copies of document content
+- `contentHash` — cryptographic proof that specific content existed at a specific time (may have legal/discovery implications)
+
+### Right to erasure (GDPR Article 17 / CCPA)
+
+Users and workspaces must be able to delete proof data on demand. Required endpoints:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `DELETE` | `/p/{proofId}` | Delete a single proof and its images |
+| `DELETE` | `/proofs?attachmentId={id}` | Delete all proofs for an attachment |
+| `DELETE` | `/proofs?workspaceId={id}` | Delete all proofs for a workspace |
+
+Deletion must:
+- Remove the proof metadata from the database
+- Remove all associated images from object storage
+- Invalidate any CDN-cached copies (purge by cache key)
+- Return `404` for subsequent requests to the proof URL
+
+**Note:** Deletion cannot recall OG content already cached by third-party platforms (Slack, Twitter). This is mitigated by serving generic OG tags for non-public proofs (see section 12).
+
+### Data residency
+
+Proof data (metadata and images) should be stored in the same region as the source attachment. For enterprise customers with data residency requirements, proof storage must respect workspace-level region configuration.
+
+### Analytics and tracking disclosure
+
+The analytics events in section 11 track proof page views with `surface` and `referrer` data inferred from the `Referer` header. This constitutes user activity tracking and must be:
+- Disclosed in the privacy policy
+- Limited to the bucketed `surface` value (do not store raw `Referer` URLs)
+- Respectful of `DNT` (Do Not Track) headers where applicable
+
+### Retention
+
+- Proof data follows the same retention/expiry as the parent attachment
+- When an attachment is deleted, all associated proofs are deleted (cascade)
+- Expired proofs are garbage-collected and return `404`
+
+---
+
+## 14. Open Questions
+
+> Section 13 recommendations are approved as-is.
 
 | # | Question | Options | Recommendation |
 |---|----------|---------|----------------|
@@ -715,13 +810,17 @@ const verifications = await client.verifyCitations(citations, attachmentId, {
 
 ---
 
-## 14. Definition of Done
+## 15. Definition of Done
 
 1. `verifyCitations` with `generateProofUrls: true` returns `proofId`, `proofUrl`, and `proofImageUrl` for each citation
 2. `GET /p/{proofId}` returns an HTML proof page with claim, status, snippet image, and view toggles
 3. `GET /p/{proofId}?format=png&view=snippet` returns a highlighted snippet image suitable for OG previews
 4. OG metadata on proof pages causes meaningful Slack unfurls (title, description, image)
-5. Signed URLs with expiry prevent unauthorized access to private proofs
-6. Unauthorized requests get clean error pages, not raw errors
-7. Snippet image loads fast enough for chat usage (< 500ms)
-8. No existing API behavior changes when `generateProofUrls` is not set
+5. Non-public proofs serve genericized OG metadata (no claim text or snippet image in OG tags)
+6. Signed URLs with expiry prevent unauthorized access to private proofs
+7. Proof pages set `Referrer-Policy: no-referrer` to prevent token leakage
+8. `DELETE /p/{proofId}` removes proof metadata and images from storage
+9. Attachment deletion cascades to delete all associated proofs
+10. Unauthorized requests get clean error pages, not raw errors
+11. Snippet image loads fast enough for chat usage (< 500ms)
+12. No existing API behavior changes when `generateProofUrls` is not set
