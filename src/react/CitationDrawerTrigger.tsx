@@ -163,7 +163,7 @@ function SourceTooltip({
 }) {
   const aggregateVerification = getGroupAggregateVerification(group);
   const statusInfo = getStatusInfo(aggregateVerification);
-  const sourceName = group.sourceName || "Source";
+  const sourceName = group.sourceName?.trim() || "Source";
 
   // Find the first verification with a proof image, validating the data URL
   const rawProofImage = showProofThumbnail
@@ -279,7 +279,7 @@ function StackedStatusIcons({
           className="relative transition-[margin-left] duration-300 ease-out"
           style={{
             marginLeft: i === 0 ? 0 : isHovered ? 6 : -8,
-            zIndex: Math.min(displayGroups.length - i, 10),
+            zIndex: Math.max(1, Math.min(10, displayGroups.length - i)),
           }}
           onMouseEnter={() => onIconHover(i)}
           onMouseLeave={onIconLeave}
