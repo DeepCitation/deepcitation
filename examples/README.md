@@ -7,7 +7,6 @@ Complete, runnable examples demonstrating DeepCitation integration patterns.
 | Example | Description | Best For |
 |---------|-------------|----------|
 | [**basic-verification**](./basic-verification) | Core 3-step workflow with OpenAI/Anthropic | Learning the basics, quick integration |
-| [**intercom-bot**](./intercom-bot) | Intercom integration with invisible citations | Customer support, Intercom users |
 | [**nextjs-ai-sdk**](./nextjs-ai-sdk) | Next.js chat app with Vercel AI SDK | Full-stack apps, streaming UI |
 
 ## Quick Start
@@ -17,7 +16,7 @@ Complete, runnable examples demonstrating DeepCitation integration patterns.
 cd packages/deepcitation/examples
 
 # Choose an example
-cd basic-verification  # or intercom-bot
+cd basic-verification  # or nextjs-ai-sdk
 
 # Install and run
 npm install
@@ -59,29 +58,6 @@ for (const [key, verification] of Object.entries(result.verifications)) {
   const status = getCitationStatus(verification);
   console.log(`Citation ${key}: ${status.isVerified ? "✅" : "❌"}`);
 }
-```
-
-### Intercom Bot
-
-Intercom integration with invisible citation verification:
-
-```typescript
-const bot = new IntercomBot({
-  deepcitationApiKey: "...",
-  openaiApiKey: "...",
-  intercomAccessToken: "...",
-  minConfidenceThreshold: 0.8,
-});
-
-await bot.loadKnowledgeBase([
-  { content: faqContent, filename: "faq.txt" },
-]);
-
-// Handle incoming Intercom webhook
-await bot.handleIncomingMessage(conversationId, userMessage, adminId);
-
-// Customer sees clean response (no citations)
-// Admin sees internal note with confidence score
 ```
 
 ### Next.js AI SDK

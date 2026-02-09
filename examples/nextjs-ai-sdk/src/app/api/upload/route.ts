@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to DeepCitation - fileDataParts now includes deepTextPromptPortion
-    const { fileDataParts } = await deepcitation.prepareFiles([{ file: buffer, filename: file.name }]);
+    const { fileDataParts } = await dc.prepareFiles([{ file: buffer, filename: file.name }]);
 
     const fileDataPart = fileDataParts[0];
     console.log(`Uploaded: ${file.name} (${fileDataPart.attachmentId})`);

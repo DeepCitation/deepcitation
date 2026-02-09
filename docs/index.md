@@ -48,7 +48,6 @@ Complete working examples are available on GitHub:
 
 - [Basic Verification](https://github.com/DeepCitation/deepcitation-js/tree/main/examples/basic-verification) - Simple file upload and verification
 - [Next.js AI SDK](https://github.com/DeepCitation/deepcitation-js/tree/main/examples/nextjs-ai-sdk) - Integration with Vercel AI SDK
-- [Intercom Bot](https://github.com/DeepCitation/deepcitation-js/tree/main/examples/intercom-bot) - Customer support chatbot with citations
 
 ---
 

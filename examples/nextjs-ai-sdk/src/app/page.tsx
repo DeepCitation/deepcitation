@@ -6,6 +6,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { FileUpload } from "@/components/FileUpload";
 import { VerificationPanel } from "@/components/VerificationPanel";
+import { toDrawerItems } from "@/utils/citationDrawerAdapter";
 
 type ModelProvider = "openai" | "gemini";
 
@@ -199,15 +200,23 @@ export default function Home() {
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map(message => (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  citations={messageVerifications[message.id]?.citations}
-                  verifications={messageVerifications[message.id]?.verifications}
-                  summary={messageVerifications[message.id]?.summary}
-                />
-              ))}
+              {messages.map(message => {
+                const msgVerification = messageVerifications[message.id];
+                return (
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    citations={msgVerification?.citations}
+                    verifications={msgVerification?.verifications}
+                    summary={msgVerification?.summary}
+                    drawerItems={
+                      msgVerification
+                        ? toDrawerItems(msgVerification.citations, msgVerification.verifications)
+                        : undefined
+                    }
+                  />
+                );
+              })}
               {isLoading && (
                 <div className="flex items-center gap-2 text-gray-500">
                   <div className="animate-pulse">Thinking...</div>
