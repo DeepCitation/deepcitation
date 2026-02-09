@@ -137,6 +137,27 @@ export interface VerifyCitationsResponse {
 export interface VerifyCitationsOptions {
   /** Output image format for verification screenshots */
   outputImageFormat?: "jpeg" | "png" | "avif";
+
+  /**
+   * When true, the backend will persist proof artifacts and return
+   * proofId, proofUrl, and proofImageUrl in each verification.
+   * @default false
+   */
+  generateProofUrls?: boolean;
+
+  /**
+   * Proof URL configuration. Only used when generateProofUrls is true.
+   */
+  proofConfig?: {
+    /** Access control for proof URLs */
+    access?: "signed" | "workspace" | "public";
+    /** Expiry duration for signed URLs */
+    signedUrlExpiry?: "1h" | "24h" | "7d" | "30d" | "90d" | "1y";
+    /** Image format for proof images */
+    imageFormat?: "png" | "jpeg" | "avif" | "webp";
+    /** Whether to also return base64 images inline */
+    includeBase64?: boolean;
+  };
 }
 
 /**

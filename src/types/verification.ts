@@ -170,4 +170,28 @@ export interface Verification {
     /** Human-readable note about the ambiguity */
     note: string;
   } | null;
+
+  // ==========================================================================
+  // Proof Hosting Fields
+  // Populated when generateProofUrls is true in the verification request
+  // ==========================================================================
+
+  /**
+   * Stable proof identifier assigned by the backend.
+   * Used to construct proof page URLs: {proofBaseUrl}/p/{proofId}
+   * Format: URL-safe base64, 22 characters (128-bit UUID -> base64url)
+   */
+  proofId?: string;
+
+  /**
+   * Pre-built proof page URL.
+   * Includes signed token if the workspace has access control enabled.
+   */
+  proofUrl?: string;
+
+  /**
+   * Direct URL to the proof snippet image (highlighted crop).
+   * Can be used in GitHub Markdown ![](url), HTML <img>, etc.
+   */
+  proofImageUrl?: string;
 }

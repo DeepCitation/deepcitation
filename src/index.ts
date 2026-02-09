@@ -142,5 +142,8 @@ export {
   NOT_FOUND_VERIFICATION_INDEX,
   PENDING_VERIFICATION_INDEX,
 } from "./types/verification.js";
+// Proof URL Builders
+export type { ProofUrlOptions } from "./rendering/proofUrl.js";
+export { buildProofUrl, buildProofUrls, buildSnippetImageUrl } from "./rendering/proofUrl.js";
 // Utilities
 export { sha1Hash } from "./utils/sha.js";

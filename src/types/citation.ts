@@ -67,6 +67,27 @@ export interface VerifyCitationRequest {
   citations: CitationRecord;
   outputImageFormat?: OutputImageFormat;
   apiKey?: string; // Optional API key for authentication
+
+  /**
+   * When true, the backend will persist proof artifacts (images, metadata)
+   * and return proofId, proofUrl, and proofImageUrl in the response.
+   * @default false
+   */
+  generateProofUrls?: boolean;
+
+  /**
+   * Proof URL configuration. Only used when generateProofUrls is true.
+   */
+  proofConfig?: {
+    /** Access control for proof URLs */
+    access?: "signed" | "workspace" | "public";
+    /** Expiry duration for signed URLs (only used when access is "signed") */
+    signedUrlExpiry?: "1h" | "24h" | "7d" | "30d" | "90d" | "1y";
+    /** Image format for proof images */
+    imageFormat?: "png" | "jpeg" | "avif" | "webp";
+    /** Whether to also return base64 images inline (in addition to URLs) */
+    includeBase64?: boolean;
+  };
 }
 
 /**

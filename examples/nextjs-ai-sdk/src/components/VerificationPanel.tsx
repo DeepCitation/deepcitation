@@ -127,10 +127,35 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                     </div>
                   )}
 
-                  {v.verificationImageBase64 && (
+                  {v.proofImageUrl ? (
+                    <div className="bg-gray-50 rounded p-2">
+                      <div className="text-xs font-medium text-gray-500 mb-1">Visual Proof</div>
+                      <img src={v.proofImageUrl} alt="Verification proof" className="w-full rounded border" />
+                    </div>
+                  ) : v.verificationImageBase64 ? (
                     <div className="bg-gray-50 rounded p-2">
                       <div className="text-xs font-medium text-gray-500 mb-1">Visual Proof</div>
                       <img src={v.verificationImageBase64} alt="Verification proof" className="w-full rounded border" />
+                    </div>
+                  ) : null}
+
+                  {v.proofUrl && (
+                    <div className="bg-blue-50 rounded p-2 flex items-center gap-2">
+                      <a
+                        href={v.proofUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:underline flex-1 truncate"
+                      >
+                        View Hosted Proof
+                      </a>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(v.proofUrl!)}
+                        className="text-gray-400 hover:text-gray-600 text-xs"
+                        title="Copy proof URL"
+                      >
+                        Copy
+                      </button>
                     </div>
                   )}
 

@@ -60,6 +60,12 @@ export async function POST(req: NextRequest) {
     // Verify citations against the source document
     const result = await deepcitation.verifyAttachment(attachmentId, citations, {
       outputImageFormat: "avif",
+      generateProofUrls: true,
+      proofConfig: {
+        access: "signed",
+        signedUrlExpiry: "7d",
+        imageFormat: "png",
+      },
     });
 
     const { verifications } = result;

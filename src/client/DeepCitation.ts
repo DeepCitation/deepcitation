@@ -577,6 +577,8 @@ export class DeepCitation {
         attachmentId,
         citations: citationMap,
         outputImageFormat: options?.outputImageFormat || "avif",
+        generateProofUrls: options?.generateProofUrls,
+        proofConfig: options?.proofConfig,
       },
     };
 
