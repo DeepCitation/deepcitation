@@ -15,6 +15,7 @@ export type SearchStatus =
 export type SearchMethod =
   | "exact_line_match"
   | "line_with_buffer"
+  | "expanded_line_buffer"
   | "current_page"
   | "anchor_text_fallback"
   | "adjacent_pages"

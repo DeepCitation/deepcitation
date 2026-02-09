@@ -53,6 +53,7 @@ const ICON_COLOR_CLASSES = {
 const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   exact_line_match: "Exact location",
   line_with_buffer: "Nearby lines",
+  expanded_line_buffer: "Extended nearby lines",
   current_page: "Expected page",
   anchor_text_fallback: "Anchor text",
   adjacent_pages: "Nearby pages",
