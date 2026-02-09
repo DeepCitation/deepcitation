@@ -221,7 +221,7 @@ test.describe("Drawer Showcase - Interactive", () => {
     await expect(dialog).not.toBeVisible({ timeout: 5000 });
   });
 
-  test("hover spreads status icons", async ({ mount, page }) => {
+  test("visual snapshot - hover spreads status icons", async ({ mount, page }) => {
     await mount(<CitationDrawerShowcase />);
 
     // Find a trigger with multiple sources
