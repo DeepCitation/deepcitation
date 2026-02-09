@@ -1,5 +1,4 @@
-
-import { useEffect, } from "react";
+import { useEffect } from "react";
 import { getIndicator, toSuperscript } from "../../markdown/markdownVariants.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
 import type { Citation } from "../../types/citation.js";
@@ -171,21 +170,27 @@ export function HtmlPreview() {
             The company reported strong growth.{" "}
             <span className="dc-tooltip-wrap">
               <span className="dc-citation dc-brackets dc-verified">
-                <span role="link" tabIndex={0}>[1✓]</span>
+                <span role="link" tabIndex={0}>
+                  [1✓]
+                </span>
               </span>
               <span className="dc-tooltip">✓ Verified — Q4 Financial Report, p.5</span>
             </span>{" "}
             Operating costs were reduced.{" "}
             <span className="dc-tooltip-wrap">
               <span className="dc-citation dc-brackets dc-partial">
-                <span role="link" tabIndex={0}>[2⚠]</span>
+                <span role="link" tabIndex={0}>
+                  [2⚠]
+                </span>
               </span>
               <span className="dc-tooltip">⚠ Partial — Q4 Financial Report, p.9</span>
             </span>{" "}
             However, some projections remain unverified.{" "}
             <span className="dc-tooltip-wrap">
               <span className="dc-citation dc-brackets dc-not-found">
-                <span role="link" tabIndex={0}>[3✗]</span>
+                <span role="link" tabIndex={0}>
+                  [3✗]
+                </span>
               </span>
               <span className="dc-tooltip">✗ Not Found</span>
             </span>

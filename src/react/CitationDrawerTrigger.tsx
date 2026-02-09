@@ -171,7 +171,9 @@ function SourceTooltip({
     : null;
   const proofImage =
     typeof rawProofImage === "string" &&
-    (rawProofImage.startsWith("data:image/") || rawProofImage.startsWith("https://"))
+    (rawProofImage.startsWith("data:image/") ||
+      rawProofImage.startsWith("https://api.deepcitation.com/") ||
+      rawProofImage.startsWith("https://cdn.deepcitation.com/"))
       ? rawProofImage
       : null;
 
@@ -274,18 +276,13 @@ function StackedStatusIcons({
       {displayGroups.map((group, i) => (
         <div
           key={`${group.sourceDomain ?? group.sourceName}-${i}`}
-          className="relative transition-all duration-300 ease-out"
+          className="relative transition-[margin-left] duration-300 ease-out"
           style={{
             marginLeft: i === 0 ? 0 : isHovered ? 6 : -8,
             zIndex: Math.min(displayGroups.length - i, 10),
           }}
           onMouseEnter={() => onIconHover(i)}
           onMouseLeave={onIconLeave}
-          onFocus={() => onIconHover(i)}
-          onBlur={onIconLeave}
-          tabIndex={0}
-          role="button"
-          aria-label={`${group.sourceName}: ${getStatusInfo(getGroupAggregateVerification(group)).label}`}
         >
           <StatusIconChip group={group} />
           {/* Tooltip when this specific icon is hovered/focused and bar is expanded */}
@@ -296,7 +293,7 @@ function StackedStatusIcons({
       ))}
       {hasOverflow && (
         <div
-          className="transition-all duration-300 ease-out"
+          className="transition-[margin-left] duration-300 ease-out"
           style={{
             marginLeft: isHovered ? 6 : -8,
             zIndex: 0,
@@ -373,6 +370,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
     }, []);
 
     const handleIconLeave = useCallback(() => {
+      clearTimeout(leaveTimeoutRef.current);
       leaveTimeoutRef.current = setTimeout(() => setHoveredGroupIndex(null), TOOLTIP_HIDE_DELAY_MS);
     }, []);
 
