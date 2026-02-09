@@ -694,7 +694,7 @@ src/
 ├── index.ts              # Main exports
 ├── client/               # DeepCitation client
 ├── parsing/              # Citation parsing & normalization
-│   ├── parseCitation.ts
+│   ├── parseCitation.ts  # getCitationStatus() — CANONICAL LOCATION
 │   ├── normalizeCitation.ts
 │   └── parseWorkAround.ts
 ├── prompts/              # LLM prompt utilities
@@ -705,7 +705,19 @@ src/
 │   ├── CitationComponent.tsx
 │   ├── SourcesListComponent.tsx  # Aggregated sources list/drawer
 │   ├── CitationVariants.tsx
-│   └── UrlCitationComponent.tsx
+│   ├── UrlCitationComponent.tsx
+│   └── utils.ts          # generateCitationKey() — CANONICAL LOCATION
+├── markdown/             # Markdown renderer
+│   ├── renderMarkdown.ts
+│   ├── markdownVariants.ts  # getIndicator(), toSuperscript() — CANONICAL LOCATION
+│   └── types.ts             # INDICATOR_SETS, SUPERSCRIPT_DIGITS — CANONICAL LOCATION
+├── rendering/            # Universal render targets (Slack, GitHub, HTML, Terminal)
+│   ├── proofUrl.ts       # buildProofUrl() — CANONICAL LOCATION
+│   ├── types.ts          # RenderOptions, RenderedOutput — CANONICAL LOCATION
+│   ├── slack/            # Slack mrkdwn renderer
+│   ├── github/           # GitHub-flavored Markdown renderer
+│   ├── html/             # Static HTML renderer (email, embeds)
+│   └── terminal/         # Terminal/ANSI renderer
 ├── types/                # TypeScript types
 │   ├── citation.ts
 │   ├── verification.ts
@@ -737,6 +749,51 @@ The Next.js example uses these models (DO NOT CHANGE):
 - Normalize citation formats
 - Handle multiple citation styles
 - Preserve original formatting
+
+## Important: No Variable Re-Exports
+
+**NEVER re-export variables (functions, constants, classes) from a different module.** Re-exporting variables causes bundler issues, circular dependency problems, tree-shaking failures, and makes the dependency graph harder to trace.
+
+### Rules
+
+1. **Every function/constant has ONE canonical location.** That's where it's defined. All consumers import from that location directly.
+2. **No barrel re-exports of variables.** Do not create `index.ts` files that `export { X } from "./other.js"` for variables. Type-only re-exports (`export type { X }`) are acceptable.
+3. **No alias exports.** Do not create a new variable that just references another (e.g., `export const ALIAS = ORIGINAL`).
+4. **No wrapper files.** Do not create files whose sole purpose is to re-export from other modules.
+5. **Import from canonical locations.** When you need a function from another module, import directly from the file that defines it.
+
+### Canonical Locations
+
+| Symbol | Canonical file | Notes |
+|--------|---------------|-------|
+| `getCitationStatus()` | `src/parsing/parseCitation.ts` | Status computation |
+| `generateCitationKey()` | `src/react/utils.ts` | Key generation |
+| `getIndicator()` | `src/markdown/markdownVariants.ts` | Status → indicator char |
+| `INDICATOR_SETS` | `src/markdown/types.ts` | Indicator character sets |
+| `SUPERSCRIPT_DIGITS` | `src/markdown/types.ts` | Unicode superscript chars |
+| `toSuperscript()` | `src/markdown/markdownVariants.ts` | Number → superscript |
+| `humanizeLinePosition()` | `src/markdown/markdownVariants.ts` | LineId → position label |
+| `formatPageLocation()` | `src/markdown/markdownVariants.ts` | Page location string |
+| `buildProofUrl()` | `src/rendering/proofUrl.ts` | Proof URL construction |
+| `MISS_WAVY_UNDERLINE_STYLE` | `src/react/constants.ts` | Wavy underline CSS |
+
+### Example
+
+```typescript
+// WRONG — re-exporting a variable from another module
+// src/rendering/core/status.ts
+export { getCitationStatus } from "../../parsing/parseCitation.js"; // ❌ DO NOT
+
+// WRONG — creating an alias
+// src/react/constants.ts
+export const BROKEN_WAVY_UNDERLINE_STYLE = MISS_WAVY_UNDERLINE_STYLE; // ❌ DO NOT
+
+// CORRECT — import directly from canonical location
+// src/rendering/slack/slackRenderer.ts
+import { getCitationStatus } from "../../parsing/parseCitation.js"; // ✓ Direct import
+import { generateCitationKey } from "../../react/utils.js";         // ✓ Direct import
+import { getIndicator } from "../../markdown/markdownVariants.js";   // ✓ Direct import
+```
 
 ## Important: Internal vs External Data
 
