@@ -1,3 +1,4 @@
+import type { CitationPage } from "../types/boxes.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 
@@ -11,6 +12,8 @@ export interface CitationDrawerItem {
   citation: Citation;
   /** Verification result if available */
   verification: Verification | null;
+  /** Optional page render for the citation's verified page */
+  page?: CitationPage | null;
 }
 
 /**
