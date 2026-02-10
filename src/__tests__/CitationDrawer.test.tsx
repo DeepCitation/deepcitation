@@ -1237,35 +1237,32 @@ describe("CitationDrawer group collapse/expand state", () => {
   });
 
   /**
-   * Find a group header button by looking for the source name text via screen.getAllByText
-   * (which searches the entire document, not just the render container — important because
-   * createPortal may render outside the container in some jsdom environments).
-   *
-   * Walks up from matching text nodes to find the parent button with aria-expanded.
+   * Find a group header button by its citation count text (e.g. "2 citations" or "1 citation").
+   * This text is unique to SourceGroupHeader and not present in citation items.
+   * Walks up from the count badge to find the parent button with aria-expanded.
    */
-  const findGroupHeader = (name: string): HTMLElement | null => {
+  const findGroupHeaderByCount = (countText: string): HTMLElement | null => {
     try {
-      const textElements = screen.getAllByText(name);
-      for (const el of textElements) {
-        let node: HTMLElement | null = el;
-        while (node) {
-          if (node.tagName === "BUTTON" && node.hasAttribute("aria-expanded")) {
-            return node;
-          }
-          node = node.parentElement;
+      const el = screen.getByText(countText);
+      let node: HTMLElement | null = el;
+      while (node) {
+        if (node.tagName === "BUTTON" && node.hasAttribute("aria-expanded")) {
+          return node;
         }
+        node = node.parentElement;
       }
-    } catch { /* no matching text elements */ }
+    } catch { /* no matching text element */ }
     return null;
   };
 
   it("shows group headers when multiple groups exist", () => {
     render(
-      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 1), createGroup("Beta", 1)]} showMoreSection={false} />,
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 1), createGroup("Beta", 2)]} showMoreSection={false} />,
     );
 
-    expect(findGroupHeader("Alpha")).toBeInTheDocument();
-    expect(findGroupHeader("Beta")).toBeInTheDocument();
+    // Group headers show citation counts — unique to SourceGroupHeader
+    expect(screen.getByText("1 citation")).toBeInTheDocument();
+    expect(screen.getByText("2 citations")).toBeInTheDocument();
   });
 
   it("collapses a group when its header is clicked", () => {
@@ -1277,8 +1274,9 @@ describe("CitationDrawer group collapse/expand state", () => {
     expect(screen.queryByText("Alpha Article 1")).toBeInTheDocument();
     expect(screen.queryByText("Alpha Article 2")).toBeInTheDocument();
 
-    // Click the Alpha group header to collapse it
-    const alphaHeader = findGroupHeader("Alpha")!;
+    // Click the Alpha group header (has "2 citations" count)
+    const alphaHeader = findGroupHeaderByCount("2 citations")!;
+    expect(alphaHeader).toBeInTheDocument();
     fireEvent.click(alphaHeader);
 
     // Alpha articles should be hidden
@@ -1294,44 +1292,49 @@ describe("CitationDrawer group collapse/expand state", () => {
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 2), createGroup("Beta", 1)]} showMoreSection={false} />,
     );
 
-    const alphaHeader = findGroupHeader("Alpha")!;
+    const alphaHeader = findGroupHeaderByCount("2 citations")!;
 
     // Collapse Alpha
     fireEvent.click(alphaHeader);
     expect(screen.queryByText("Alpha Article 1")).not.toBeInTheDocument();
 
-    // Expand Alpha again — re-find since DOM may have changed
-    const alphaHeaderCollapsed = findGroupHeader("Alpha")!;
-    fireEvent.click(alphaHeaderCollapsed);
+    // Expand Alpha again
+    fireEvent.click(alphaHeader);
     expect(screen.queryByText("Alpha Article 1")).toBeInTheDocument();
     expect(screen.queryByText("Alpha Article 2")).toBeInTheDocument();
   });
 
   it("maintains independent collapse state per group", () => {
+    // Use different counts per group so each header is uniquely identifiable
     render(
-      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 1), createGroup("Beta", 1), createGroup("Gamma", 1)]} showMoreSection={false} />,
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={[createGroup("Alpha", 2), createGroup("Beta", 3), createGroup("Gamma", 4)]}
+        showMoreSection={false}
+      />,
     );
 
-    // Collapse Alpha and Gamma, leave Beta open
-    fireEvent.click(findGroupHeader("Alpha")!);
-    fireEvent.click(findGroupHeader("Gamma")!);
+    // Collapse Alpha (2 citations) and Gamma (4 citations), leave Beta open
+    fireEvent.click(findGroupHeaderByCount("2 citations")!);
+    fireEvent.click(findGroupHeaderByCount("4 citations")!);
 
     expect(screen.queryByText("Alpha Article 1")).not.toBeInTheDocument();
     expect(screen.queryByText("Beta Article 1")).toBeInTheDocument();
     expect(screen.queryByText("Gamma Article 1")).not.toBeInTheDocument();
 
     // Expand Alpha back — Gamma should remain collapsed
-    fireEvent.click(findGroupHeader("Alpha")!);
+    fireEvent.click(findGroupHeaderByCount("2 citations")!);
     expect(screen.queryByText("Alpha Article 1")).toBeInTheDocument();
     expect(screen.queryByText("Gamma Article 1")).not.toBeInTheDocument();
   });
 
   it("sets aria-expanded on group headers", () => {
     render(
-      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 1), createGroup("Beta", 1)]} showMoreSection={false} />,
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 2), createGroup("Beta", 1)]} showMoreSection={false} />,
     );
 
-    const alphaHeader = findGroupHeader("Alpha")!;
+    const alphaHeader = findGroupHeaderByCount("2 citations")!;
     expect(alphaHeader).toHaveAttribute("aria-expanded", "true");
 
     // Collapse Alpha
@@ -1341,10 +1344,10 @@ describe("CitationDrawer group collapse/expand state", () => {
 
   it("shows chevron rotation class for expanded groups", () => {
     render(
-      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 1), createGroup("Beta", 1)]} showMoreSection={false} />,
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 2), createGroup("Beta", 1)]} showMoreSection={false} />,
     );
 
-    const alphaHeader = findGroupHeader("Alpha")!;
+    const alphaHeader = findGroupHeaderByCount("2 citations")!;
     const chevron = alphaHeader.querySelector("svg");
 
     // Expanded: should have rotate-90
@@ -1367,9 +1370,8 @@ describe("CitationDrawer group collapse/expand state", () => {
     expect(screen.getByText("Alpha Article 2")).toBeInTheDocument();
     expect(screen.getByText("Alpha Article 3")).toBeInTheDocument();
 
-    // No group header button with aria-expanded should exist
-    const groupHeaderButton = findGroupHeader("Alpha");
-    expect(groupHeaderButton).toBeNull();
+    // No citation count badge (unique to group headers) should exist
+    expect(screen.queryByText("3 citations")).not.toBeInTheDocument();
   });
 });
 
