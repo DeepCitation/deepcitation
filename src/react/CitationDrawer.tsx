@@ -1,9 +1,9 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CitationDrawerItemProps, CitationDrawerProps, SourceCitationGroup } from "./CitationDrawer.types.js";
 import { extractDomain, getStatusInfo } from "./CitationDrawer.utils.js";
-import { ZoomInIcon } from "./icons.js";
-import { cn } from "./utils.js";
+import { SourceContextHeader } from "./VerificationLog.js";
+import { cn, isUrlCitation } from "./utils.js";
 
 /**
  * Module-level handler for hiding broken favicon images.
@@ -94,9 +94,34 @@ function SourceGroupHeader({
 }
 
 /**
+ * Format a verification date for display.
+ * Recent dates show relative time; older dates show short absolute format.
+ */
+function formatCheckedDate(date: Date | string | null | undefined): string | null {
+  if (!date) return null;
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return null;
+
+  const now = Date.now();
+  const diffMs = now - d.getTime();
+  if (diffMs < 0) return null; // future date
+
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+
+  const diffDays = Math.floor(diffHr / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+/**
  * Individual citation item displayed in the drawer.
- * Shows source name, status, article title, snippet, page number, proof image, and click affordance.
- * Miss items (not_found) have a red left border accent for instant visual scanning.
+ * Shows status indicator, source name, article title, snippet, and expandable detail view.
  */
 export const CitationDrawerItemComponent = React.memo(function CitationDrawerItemComponent({
   item,
@@ -106,26 +131,33 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   className,
 }: CitationDrawerItemProps) {
   const { citation, verification } = item;
-  const statusInfo = getStatusInfo(verification);
-  const isMiss = verification?.status === "not_found";
+  const statusInfo = useMemo(() => getStatusInfo(verification), [verification]);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Get display values with fallbacks
   const isDocument = citation.type === "document" || (!citation.type && citation.attachmentId);
+  const isUrl = isUrlCitation(citation);
   const sourceName = isDocument
     ? (verification?.label || "Document")
     : (citation.siteName || citation.domain || extractDomain(citation.url) || "Source");
-  const articleTitle = citation.anchorText || citation.title || citation.fullPhrase;
+  const articleTitle = citation.anchorText || citation.title;
   const snippet = citation.fullPhrase || citation.description || verification?.actualContentSnippet || verification?.verifiedMatchSnippet;
-  const faviconUrl = citation.faviconUrl;
 
   // Page number for document citations
   const pageNumber = citation.pageNumber ?? verification?.verifiedPageNumber;
 
-  // Proof image
+  // Proof image (only shown in expanded view)
   const rawProofImage = verification?.verificationImageBase64;
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
+  // Pending state
+  const isPending = !verification?.status || verification.status === "pending" || verification.status === "loading";
+
+  // Verification date
+  const checkedDate = formatCheckedDate(verification?.verifiedAt ?? verification?.crawledAt);
+
   const handleClick = useCallback(() => {
+    setIsExpanded(prev => !prev);
     onClick?.(item);
   }, [item, onClick]);
 
@@ -140,108 +172,86 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   return (
     <div
       className={cn(
-        "group py-3 cursor-pointer transition-colors",
-        // Red left border accent for misses — instantly scannable
-        isMiss
-          ? "border-l-2 border-l-red-400 dark:border-l-red-500 pl-3.5 pr-4 hover:bg-red-50 dark:hover:bg-red-900/10"
-          : "px-4 hover:bg-gray-50 dark:hover:bg-gray-800/50",
+        "group hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors",
         !isLast && "border-b border-gray-200 dark:border-gray-700",
         className,
       )}
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          handleClick();
-        }
-      }}
     >
-      <div className="flex items-start gap-3">
-        {/* Favicon */}
-        <div className="flex-shrink-0 mt-0.5">
-          {faviconUrl ? (
-            <img
-              src={faviconUrl}
-              alt=""
-              className="w-5 h-5 rounded object-contain"
-              loading="lazy"
-              onError={handleFaviconError}
-            />
-          ) : (
-            <div className="w-5 h-5 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400">{sourceName.charAt(0).toUpperCase()}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Source name with status indicator and page number */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{sourceName}</span>
+      {/* Clickable summary row */}
+      <div
+        className="px-4 py-3"
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        onKeyDown={e => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+      >
+        <div className="flex items-start gap-3">
+          {/* Status indicator */}
+          <div className="flex-shrink-0 mt-0.5" data-testid="status-indicator">
             <span
               className={cn(
-                "inline-flex w-3 h-3",
+                "inline-flex w-5 h-5 items-center justify-center",
                 statusInfo.color,
-                verification?.status === "pending" || verification?.status === "loading" ? "animate-spin" : "",
+                isPending && "animate-spin",
               )}
               title={statusInfo.label}
             >
               {statusInfo.icon}
             </span>
-            {pageNumber != null && pageNumber > 0 && (
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                p.{pageNumber}
-              </span>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Source name with page number and timestamp */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{sourceName}</span>
+              {pageNumber != null && pageNumber > 0 && (
+                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+                  p.{pageNumber}
+                </span>
+              )}
+              {checkedDate && (
+                <span className="text-[11px] text-gray-400 dark:text-gray-500 flex-shrink-0 ml-auto">
+                  Checked {checkedDate}
+                </span>
+              )}
+            </div>
+
+            {/* Article title */}
+            {articleTitle && (
+              <h4 className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">{articleTitle}</h4>
+            )}
+
+            {/* Snippet */}
+            {snippet && snippet !== articleTitle && (
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                {snippet}
+                {onReadMore && snippet.length > 100 && (
+                  <button
+                    type="button"
+                    onClick={handleReadMore}
+                    className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    Read more
+                  </button>
+                )}
+              </p>
             )}
           </div>
 
-          {/* Article title */}
-          {articleTitle && (
-            <h4 className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">{articleTitle}</h4>
-          )}
-
-          {/* Snippet */}
-          {snippet && snippet !== articleTitle && (
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-              {snippet}
-              {onReadMore && snippet.length > 100 && (
-                <button
-                  type="button"
-                  onClick={handleReadMore}
-                  className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  Read more
-                </button>
-              )}
-            </p>
-          )}
-
-          {/* Proof image thumbnail with hover overlay */}
-          {proofImage && (
-            <div className="mt-2 relative group/proof inline-block">
-              <img
-                src={proofImage}
-                alt="Verification proof"
-                className="rounded border border-gray-200 dark:border-gray-700 max-h-16 w-auto object-cover"
-                loading="lazy"
-              />
-              {/* Hover overlay with zoom icon */}
-              <div className="absolute inset-0 rounded bg-black/0 group-hover/proof:bg-black/10 dark:group-hover/proof:bg-white/10 flex items-center justify-center opacity-0 group-hover/proof:opacity-100 transition-opacity pointer-events-none">
-                <span className="w-4 h-4 text-white drop-shadow-md">
-                  <ZoomInIcon />
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Click affordance chevron */}
-        {onClick && (
+          {/* Expand/collapse chevron (decorative — parent has aria-expanded) */}
           <svg
-            className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-hidden="true"
+            className={cn(
+              "w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 mt-1 transition-transform duration-200",
+              isExpanded && "rotate-90",
+            )}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -249,8 +259,51 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
-        )}
+        </div>
       </div>
+
+      {/* Expanded detail view */}
+      {isExpanded && (
+        <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+          {/* Reuse popover header — shows clickable URL/favicon for URLs, document icon/label for docs */}
+          <SourceContextHeader
+            citation={citation}
+            verification={verification}
+            status={verification?.status}
+            sourceLabel={isDocument ? (verification?.label || undefined) : undefined}
+          />
+
+          {/* Proof image */}
+          {proofImage && (
+            <div className="px-4 py-2">
+              <img
+                src={proofImage}
+                alt="Verification proof"
+                className="rounded border border-gray-200 dark:border-gray-700 max-h-32 w-auto object-contain"
+                loading="lazy"
+              />
+            </div>
+          )}
+
+          {/* URL link for inspection */}
+          {isUrl && citation.url && (
+            <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800">
+              <a
+                href={citation.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 inline-flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Open source
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 });
@@ -258,7 +311,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 /**
  * CitationDrawer displays a collection of citations in a drawer/bottom sheet.
  * Citations are grouped by source with always-expanded sections. No collapse/expand toggle —
- * the full list is scrollable. Miss items have red left border accents for instant scanning.
+ * the full list is scrollable.
  *
  * @example Basic usage
  * ```tsx
@@ -347,7 +400,7 @@ export function CitationDrawer({
       {/* Drawer */}
       <div
         className={cn(
-          "fixed z-[9999] bg-white dark:bg-gray-900 shadow-xl flex flex-col",
+          "fixed z-[9999] bg-white dark:bg-gray-900 flex flex-col",
           "animate-in duration-200",
           position === "bottom" && "inset-x-0 bottom-0 max-h-[80vh] rounded-t-2xl slide-in-from-bottom-4",
           position === "right" && "inset-y-0 right-0 w-full max-w-md slide-in-from-right-4",

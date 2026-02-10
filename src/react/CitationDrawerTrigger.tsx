@@ -229,7 +229,7 @@ function CitationTooltip({
       className={cn(
         "absolute bottom-full left-1/2 mb-2 z-50",
         "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700",
-        "rounded-lg shadow-lg min-w-[180px] max-w-[260px]",
+        "rounded-lg min-w-[180px] max-w-[260px]",
         "pointer-events-auto",
       )}
       style={{
@@ -369,7 +369,7 @@ function StackedStatusIcons({
  * Compact single-line summary bar for citation verification status.
  *
  * Sits at the bottom of AI-generated content and provides progressive disclosure:
- * - **Collapsed**: Per-citation status icons (check/X/spinner) + label + stacked source favicons
+ * - **Collapsed**: Per-citation status icons (check/X/spinner) + label
  * - **Hover**: Icons spread horizontally, individual icon hover shows citation tooltip with proof
  * - **Click**: Opens the full CitationDrawer
  *
@@ -398,11 +398,6 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
 
     // Flatten citation groups into individual items for per-citation icons
     const flatCitations = useMemo(() => flattenCitations(citationGroups), [citationGroups]);
-
-    // Source groups are still used for favicons display (max 5)
-    const MAX_FAVICONS = 5;
-    const displayGroups = useMemo(() => citationGroups.slice(0, MAX_FAVICONS), [citationGroups]);
-    const hasMoreFavicons = citationGroups.length > MAX_FAVICONS;
 
     const handleMouseEnter = useCallback(() => setIsHovered(true), []);
     const handleMouseLeave = useCallback(() => {
@@ -475,39 +470,6 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
 
           {/* Label */}
           <span className="flex-1 min-w-0 text-sm text-gray-600 dark:text-gray-300 truncate">{displayLabel}</span>
-
-          {/* Stacked favicons */}
-          <div className="flex items-center -space-x-1 flex-shrink-0">
-            {displayGroups.map((group, index) => {
-              if (group.sourceFavicon) {
-                return (
-                  <img
-                    key={`${group.sourceDomain ?? group.sourceName}-${index}`}
-                    src={group.sourceFavicon}
-                    alt=""
-                    className="w-4 h-4 rounded-full ring-1 ring-white dark:ring-gray-800 object-contain"
-                    width={16}
-                    height={16}
-                    loading="lazy"
-                    onError={handleFaviconError}
-                  />
-                );
-              }
-              return (
-                <span
-                  key={`${group.sourceDomain ?? group.sourceName}-${index}`}
-                  className="w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 ring-1 ring-white dark:ring-gray-800 flex items-center justify-center text-[8px] font-medium text-gray-600 dark:text-gray-300"
-                >
-                  {(group.sourceName || "S").charAt(0).toUpperCase()}
-                </span>
-              );
-            })}
-            {hasMoreFavicons && (
-              <span className="w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 ring-1 ring-white dark:ring-gray-800 flex items-center justify-center text-[8px] font-medium text-gray-600 dark:text-gray-300">
-                +{citationGroups.length - MAX_FAVICONS}
-              </span>
-            )}
-          </div>
 
           {/* Chevron — static arrow indicating "click to open" */}
           <svg
