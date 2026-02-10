@@ -117,7 +117,7 @@ export {
   generateCitationKey,
   generateVerificationKey,
 } from "./react/utils.js";
-export type { DeepTextItem, IVertex, Page, ScreenBox } from "./types/boxes.js";
+export type { CitationPage, DeepTextItem, IVertex, ScreenBox } from "./types/boxes.js";
 // Types
 export type {
   Citation,
