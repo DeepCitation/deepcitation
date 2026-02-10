@@ -1,7 +1,8 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import type { CitationDrawerItemProps, CitationDrawerProps, SourceCitationGroup } from "./CitationDrawer.types.js";
 import { extractDomain, getStatusInfo } from "./CitationDrawer.utils.js";
+import { ZoomInIcon } from "./icons.js";
 import { cn } from "./utils.js";
 
 /**
@@ -44,41 +45,20 @@ function isValidProofImageSrc(src: unknown): src is string {
 
 /**
  * Source group header displayed in the drawer.
- * Shows favicon, source name, citation count, and aggregate status.
+ * Shows favicon, source name, and citation count. Always expanded (no collapse toggle).
  */
 function SourceGroupHeader({
   group,
-  isCollapsed,
-  onToggle,
 }: {
   group: SourceCitationGroup;
-  isCollapsed: boolean;
-  onToggle: () => void;
 }) {
   const sourceName = group.sourceName || "Source";
   const citationCount = group.citations.length;
 
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="w-full px-4 py-2.5 flex items-center gap-2.5 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b border-gray-200 dark:border-gray-700"
-      aria-expanded={!isCollapsed}
+    <div
+      className="w-full px-4 py-2.5 flex items-center gap-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700"
     >
-      {/* Chevron */}
-      <svg
-        className={cn(
-          "w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0 transition-transform duration-200",
-          !isCollapsed && "rotate-90",
-        )}
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2.5}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-      </svg>
-
       {/* Favicon */}
       <div className="flex-shrink-0">
         {group.sourceFavicon ? (
@@ -107,13 +87,14 @@ function SourceGroupHeader({
       <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
         {citationCount} citation{citationCount !== 1 ? "s" : ""}
       </span>
-    </button>
+    </div>
   );
 }
 
 /**
  * Individual citation item displayed in the drawer.
  * Shows source name, status, article title, snippet, page number, proof image, and click affordance.
+ * Miss items (not_found) have a red left border accent for instant visual scanning.
  */
 export const CitationDrawerItemComponent = React.memo(function CitationDrawerItemComponent({
   item,
@@ -124,6 +105,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 }: CitationDrawerItemProps) {
   const { citation, verification } = item;
   const statusInfo = getStatusInfo(verification);
+  const isMiss = verification?.status === "not_found";
 
   // Get display values with fallbacks
   const isDocument = citation.type === "document" || (!citation.type && citation.attachmentId);
@@ -156,7 +138,11 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   return (
     <div
       className={cn(
-        "group px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors",
+        "group py-3 cursor-pointer transition-colors",
+        // Red left border accent for misses — instantly scannable
+        isMiss
+          ? "border-l-2 border-l-red-400 dark:border-l-red-500 pl-3.5 pr-4 hover:bg-red-50 dark:hover:bg-red-900/10"
+          : "px-4 hover:bg-gray-50 dark:hover:bg-gray-800/50",
         !isLast && "border-b border-gray-200 dark:border-gray-700",
         className,
       )}
@@ -231,15 +217,21 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
             </p>
           )}
 
-          {/* Proof image thumbnail */}
+          {/* Proof image thumbnail with hover overlay */}
           {proofImage && (
-            <div className="mt-2">
+            <div className="mt-2 relative group/proof inline-block">
               <img
                 src={proofImage}
                 alt="Verification proof"
                 className="rounded border border-gray-200 dark:border-gray-700 max-h-16 w-auto object-cover"
                 loading="lazy"
               />
+              {/* Hover overlay with zoom icon */}
+              <div className="absolute inset-0 rounded bg-black/0 group-hover/proof:bg-black/10 dark:group-hover/proof:bg-white/10 flex items-center justify-center opacity-0 group-hover/proof:opacity-100 transition-opacity pointer-events-none">
+                <span className="w-4 h-4 text-white drop-shadow-md">
+                  <ZoomInIcon />
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -263,7 +255,8 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
 /**
  * CitationDrawer displays a collection of citations in a drawer/bottom sheet.
- * Citations are grouped by source with collapsible sections.
+ * Citations are grouped by source with always-expanded sections. No collapse/expand toggle —
+ * the full list is scrollable. Miss items have red left border accents for instant scanning.
  *
  * @example Basic usage
  * ```tsx
@@ -276,86 +269,25 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
  *   citationGroups={citationGroups}
  * />
  * ```
- *
- * @example With click handlers
- * ```tsx
- * <CitationDrawer
- *   isOpen={isOpen}
- *   onClose={() => setIsOpen(false)}
- *   citationGroups={citationGroups}
- *   onCitationClick={(item) => safeWindowOpen(item.citation.sourceUrl)}
- *   onReadMore={(item) => console.log('Read more:', item)}
- * />
- * ```
  */
 export function CitationDrawer({
   isOpen,
   onClose,
   citationGroups,
   title = "Citations",
-  showMoreSection = true,
-  maxVisibleItems = 3,
+  // showMoreSection and maxVisibleItems are deprecated — accepted but ignored
+  showMoreSection: _showMoreSection,
+  maxVisibleItems: _maxVisibleItems,
   onCitationClick,
   onReadMore,
   className,
   position = "bottom",
   renderCitationItem,
 }: CitationDrawerProps) {
-  const [showMore, setShowMore] = useState(false);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<number>>(new Set());
-
-  const toggleGroup = useCallback((index: number) => {
-    setCollapsedGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  }, []);
-
-  // Flatten all citations for "More" section counting
+  // Flatten all citations for total count
   const totalCitations = useMemo(() => {
     return citationGroups.reduce((sum, g) => sum + g.citations.length, 0);
   }, [citationGroups]);
-
-  // Build visible groups with per-citation limit for "More" section
-  const { visibleGroups, hasMore, moreCount } = useMemo(() => {
-    if (!showMoreSection || showMore) {
-      return { visibleGroups: citationGroups, hasMore: false, moreCount: 0 };
-    }
-
-    // Build visible groups, slicing citations within groups if needed
-    const result: SourceCitationGroup[] = [];
-    let remaining = maxVisibleItems;
-
-    for (const group of citationGroups) {
-      if (remaining <= 0) break;
-
-      if (group.citations.length <= remaining) {
-        result.push(group);
-        remaining -= group.citations.length;
-      } else {
-        // Split this group: show only `remaining` citations
-        result.push({
-          ...group,
-          citations: group.citations.slice(0, remaining),
-          additionalCount: Math.max(0, remaining - 1),
-        });
-        remaining = 0;
-      }
-    }
-
-    const visibleCount = result.reduce((sum, g) => sum + g.citations.length, 0);
-    const hiddenCount = totalCitations - visibleCount;
-    return {
-      visibleGroups: result,
-      hasMore: hiddenCount > 0,
-      moreCount: hiddenCount,
-    };
-  }, [citationGroups, showMoreSection, showMore, maxVisibleItems, totalCitations]);
 
   // Handle escape key
   React.useEffect(() => {
@@ -375,40 +307,28 @@ export function CitationDrawer({
   if (!isOpen) return null;
 
   const renderGroup = (group: SourceCitationGroup, groupIndex: number, isLastGroup: boolean) => {
-    const isCollapsed = collapsedGroups.has(groupIndex);
     const showGroupHeader = citationGroups.length > 1;
 
     return (
       <div key={`${group.sourceDomain ?? group.sourceName}-${groupIndex}`}>
         {showGroupHeader && (
-          <SourceGroupHeader
-            group={group}
-            isCollapsed={isCollapsed}
-            onToggle={() => toggleGroup(groupIndex)}
-          />
+          <SourceGroupHeader group={group} />
         )}
-        {(!showGroupHeader || !isCollapsed) && (
-          <div
-            className={cn(
-              "transition-all duration-200",
-              showGroupHeader && !isCollapsed && "animate-in fade-in-0 duration-150",
-            )}
-          >
-            {group.citations.map((item, index) =>
-              renderCitationItem ? (
-                <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
-              ) : (
-                <CitationDrawerItemComponent
-                  key={item.citationKey}
-                  item={item}
-                  isLast={isLastGroup && index === group.citations.length - 1}
-                  onClick={onCitationClick}
-                  onReadMore={onReadMore}
-                />
-              ),
-            )}
-          </div>
-        )}
+        <div>
+          {group.citations.map((item, index) =>
+            renderCitationItem ? (
+              <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
+            ) : (
+              <CitationDrawerItemComponent
+                key={item.citationKey}
+                item={item}
+                isLast={isLastGroup && index === group.citations.length - 1}
+                onClick={onCitationClick}
+                onReadMore={onReadMore}
+              />
+            ),
+          )}
+        </div>
       </div>
     );
   };
@@ -435,15 +355,15 @@ export function CitationDrawer({
         aria-modal="true"
         aria-label={title}
       >
-        {/* Handle bar (mobile) */}
+        {/* Handle bar (mobile) — reduced padding */}
         {position === "bottom" && (
-          <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div className="flex justify-center pt-2 pb-0.5 flex-shrink-0">
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
           </div>
         )}
 
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
+        {/* Header — reduced padding */}
+        <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
           <button
             type="button"
@@ -463,36 +383,14 @@ export function CitationDrawer({
           </button>
         </div>
 
-        {/* Citation list */}
+        {/* Citation list — always fully expanded and scrollable */}
         <div className="flex-1 overflow-y-auto">
           {totalCitations === 0 ? (
             <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No citations to display</div>
           ) : (
-            <>
-              {visibleGroups.map((group, groupIndex) =>
-                renderGroup(group, groupIndex, !hasMore && groupIndex === visibleGroups.length - 1),
-              )}
-
-              {/* More section */}
-              {hasMore && !showMore && (
-                <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    type="button"
-                    onClick={() => setShowMore(true)}
-                    className="text-sm font-medium text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                  >
-                    More ({moreCount})
-                  </button>
-                </div>
-              )}
-
-              {/* Expanded "more" groups */}
-              {showMore &&
-                citationGroups.slice(visibleGroups.length).map((group, i) => {
-                  const groupIndex = visibleGroups.length + i;
-                  return renderGroup(group, groupIndex, groupIndex === citationGroups.length - 1);
-                })}
-            </>
+            citationGroups.map((group, groupIndex) =>
+              renderGroup(group, groupIndex, groupIndex === citationGroups.length - 1),
+            )
           )}
         </div>
       </div>

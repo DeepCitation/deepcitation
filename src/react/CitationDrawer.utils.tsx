@@ -7,7 +7,7 @@ import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.t
 import {
   CheckIcon as CheckIconComponent,
   SpinnerIcon as SpinnerIconComponent,
-  WarningIcon as WarningIconComponent,
+  XCircleIcon as XCircleIconComponent,
 } from "./icons.js";
 
 /**
@@ -80,8 +80,8 @@ export function getStatusInfo(verification: Verification | null): {
 
   if (status === "not_found") {
     return {
-      color: "text-amber-500",
-      icon: <WarningIconComponent />,
+      color: "text-red-500",
+      icon: <XCircleIconComponent />,
       label: "Not found",
     };
   }
