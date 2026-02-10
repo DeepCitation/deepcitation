@@ -792,7 +792,8 @@ describe("CitationDrawerTrigger", () => {
     const groups = [createGroup("Source A", 2), createGroup("Source B", 1)];
     const { getByText } = render(<CitationDrawerTrigger citationGroups={groups} />);
 
-    expect(getByText("2 sources")).toBeInTheDocument();
+    // New label format: "Source A +1" (first source name + count of additional sources)
+    expect(getByText("Source A +1")).toBeInTheDocument();
   });
 
   it("uses custom label when provided", () => {
@@ -849,12 +850,15 @@ describe("CitationDrawerTrigger", () => {
 
   it("does not render stacked favicons", () => {
     const groups = [createGroup("Test", 1)];
-    const { container } = render(<CitationDrawerTrigger citationGroups={groups} />);
+    const { queryByTestId } = render(<CitationDrawerTrigger citationGroups={groups} />);
 
     // Stacked favicons section has been removed; only status icons should appear
-    const triggerBar = container.querySelector("[data-testid='citation-drawer-trigger']");
+    const triggerBar = queryByTestId("citation-drawer-trigger");
+    expect(triggerBar).toBeInTheDocument();
+
+    // No favicon images should be directly in the trigger bar
     const faviconInBar = triggerBar?.querySelector('img[src="https://test.com/favicon.ico"]');
-    expect(faviconInBar).toBeNull();
+    expect(faviconInBar).not.toBeInTheDocument();
   });
 
   /** Helper: hover the trigger, then hover the first icon in the status group */
@@ -903,8 +907,8 @@ describe("CitationDrawerTrigger", () => {
     const trigger = getByTestId("citation-drawer-trigger");
     hoverFirstIcon(trigger);
 
-    // Click the proof thumbnail button
-    const proofButton = trigger.querySelector("button[aria-label='View proof for TestSource']");
+    // Click the proof thumbnail (now a div with role="button" to avoid nesting buttons)
+    const proofButton = trigger.querySelector("[aria-label='View proof for TestSource']");
     expect(proofButton).toBeInTheDocument();
     if (proofButton) fireEvent.click(proofButton);
 

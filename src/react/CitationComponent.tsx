@@ -12,7 +12,7 @@ const Activity =
     }
   ).Activity ?? (({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>);
 
-import type { Page } from "../types/boxes.js";
+import type { CitationPage } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
@@ -26,11 +26,9 @@ import {
   POPOVER_CONTAINER_BASE_CLASSES,
   VERIFIED_COLOR_STYLE,
 } from "./constants.js";
-import { CheckIcon, CloseIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
+import { CheckIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
-import { SplitDiffDisplay } from "./SplitDiffDisplay.js";
-import { getContextualStatusMessage } from "./statusMessage.js";
 import type {
   BaseCitationProps,
   CitationBehaviorActions,
@@ -42,7 +40,6 @@ import type {
   CitationRenderProps,
   CitationVariant,
 } from "./types.js";
-import { useSmartDiff } from "./useSmartDiff.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 import { QuotedText, SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";
 
@@ -50,7 +47,7 @@ import { QuotedText, SourceContextHeader, StatusHeader, VerificationLog } from "
 export type {
   CitationContent,
   CitationInteractionMode,
-  CitationVariant,
+  CitationVariant
 } from "./types.js";
 
 /**
@@ -848,9 +845,9 @@ function AnchorTextFocusedImage({
   verification: Verification;
   onImageClick?: () => void;
   /** Optional page data with source URL. When provided with a source, shows "View page" button. */
-  page?: Page | null;
+  page?: CitationPage | null;
   /** Optional callback for "View page" button. Called with the page when clicked. */
-  onViewPageClick?: (page: Page) => void;
+  onViewPageClick?: (page: CitationPage) => void;
   maxWidth?: string;
   maxHeight?: string;
 }) {
@@ -995,230 +992,6 @@ interface PopoverContentProps {
    * See BaseCitationProps.sourceLabel for details.
    */
   sourceLabel?: string;
-}
-
-/**
- * Get border color class based on search attempt success and trust level.
- * - Green: Successful match with high/medium trust
- * - Amber: Successful match with low trust
- * - Red: Failed search attempt
- */
-function _getSearchAttemptBorderClass(attempt: SearchAttempt): string {
-  if (!attempt.success) {
-    return "border-red-400 dark:border-red-500";
-  }
-  if (isLowTrustMatch(attempt.matchedVariation)) {
-    return "border-amber-400 dark:border-amber-500";
-  }
-  return "border-green-400 dark:border-green-500";
-}
-
-/**
- * Component to display searched phrases from search attempts.
- * Groups similar attempts together for a cleaner display:
- * - Same phrase searched on multiple pages → shows once with page summary
- * - Shows methods used and variations tried
- * - Highlights successful vs failed attempts
- */
-function _SearchedPhrasesInfo({
-  citation,
-  verification,
-  isExpanded: externalIsExpanded,
-  onExpandChange,
-}: {
-  citation: BaseCitationProps["citation"];
-  verification: Verification | null;
-  isExpanded?: boolean;
-  onExpandChange?: (expanded: boolean) => void;
-}) {
-  // Get search attempts from verification, or create fallback from citation
-  const searchAttempts = useMemo(() => {
-    if (verification?.searchAttempts && verification.searchAttempts.length > 0) {
-      return verification.searchAttempts;
-    }
-
-    // Fallback: create synthetic attempts from citation data
-    const fallbackAttempts: SearchAttempt[] = [];
-    if (citation.fullPhrase) {
-      fallbackAttempts.push({
-        method: "current_page",
-        success: false,
-        searchPhrase: citation.fullPhrase,
-        searchPhraseType: "full_phrase",
-      });
-    }
-    // Also add anchorText as a separate fallback if it differs from fullPhrase
-    if (citation.anchorText && citation.anchorText !== citation.fullPhrase) {
-      fallbackAttempts.push({
-        method: "anchor_text_fallback",
-        success: false,
-        searchPhrase: citation.anchorText.toString(),
-        searchPhraseType: "anchor_text",
-      });
-    }
-    return fallbackAttempts;
-  }, [citation, verification]);
-
-  // Group attempts by unique phrase for cleaner display
-  const groupedAttempts = useMemo(() => groupSearchAttempts(searchAttempts), [searchAttempts]);
-
-  const [internalIsExpanded, setInternalIsExpanded] = useState(false);
-
-  // Use external state if provided, otherwise internal
-  const isExpanded = externalIsExpanded ?? internalIsExpanded;
-  const setIsExpanded = useCallback(
-    (expanded: boolean) => {
-      if (onExpandChange) {
-        onExpandChange(expanded);
-      } else {
-        setInternalIsExpanded(expanded);
-      }
-    },
-    [onExpandChange],
-  );
-
-  if (groupedAttempts.length === 0) return null;
-
-  // Calculate pages searched across all attempts
-  const allPagesSearched = new Set<number>();
-  for (const group of groupedAttempts) {
-    for (const page of group.pagesSearched) {
-      if (page != null) allPagesSearched.add(page);
-    }
-  }
-  const pagesSearchedCount = allPagesSearched.size;
-
-  // Show first DEFAULT_VISIBLE_GROUP_COUNT groups by default (usually fullPhrase + anchorText), expand to show all
-  const defaultDisplayCount = Math.min(DEFAULT_VISIBLE_GROUP_COUNT, groupedAttempts.length);
-  const displayCount = isExpanded ? groupedAttempts.length : defaultDisplayCount;
-  const hiddenGroupCount = groupedAttempts.length - defaultDisplayCount;
-
-  return (
-    <div className="mt-1">
-      {/* Summary header showing what was searched */}
-      <div className="text-[10px] text-gray-600 dark:text-gray-400 mb-2">
-        Searched{" "}
-        {pagesSearchedCount > 1 ? `${pagesSearchedCount} pages` : pagesSearchedCount === 1 ? "1 page" : "document"}
-        {hiddenGroupCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="ml-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            {isExpanded ? "show less" : `show all ${groupedAttempts.length} phrases`}
-          </button>
-        )}
-      </div>
-
-      {/* Search phrase list */}
-      <div className="space-y-2">
-        {groupedAttempts.slice(0, displayCount).map(group => (
-          <SearchAttemptRow key={`${group.phraseType}:${group.phrase}`} group={group} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Compact single-row display for a grouped search attempt.
- * Shows phrase, metadata badges, and result on one or two lines.
- * Uses cleaner, less colorful design with monochrome badges.
- */
-function SearchAttemptRow({ group }: { group: GroupedSearchAttempt }) {
-  // Truncate phrase for display
-  const displayPhrase =
-    group.phrase.length > MAX_PHRASE_LENGTH ? `${group.phrase.slice(0, MAX_PHRASE_LENGTH)}…` : group.phrase;
-
-  // Build location info string
-  const validPages = group.pagesSearched.filter((p): p is number => p != null);
-  const locationInfo = validPages.length > 0 ? formatPageList(validPages) : "entire document";
-
-  // Status indicator - only icon is colored
-  const statusIndicator = group.anySuccess ? (
-    <span
-      className={cn(
-        "inline-flex size-3 flex-shrink-0",
-        isLowTrustMatch(group.successfulAttempt?.matchedVariation)
-          ? "text-amber-500 dark:text-amber-400"
-          : "text-green-600 dark:text-green-400",
-      )}
-    >
-      <CheckIcon />
-    </span>
-  ) : (
-    <span className="inline-flex size-3 flex-shrink-0 text-gray-500 dark:text-gray-400">
-      <CloseIcon />
-    </span>
-  );
-
-  // Phrase type label
-  const phraseTypeLabel = group.phraseType === "anchor_text" ? "Anchor text" : "Full phrase";
-
-  // For failed attempts, show variations that were also searched
-  const visibleVariations = group.variationsTried.slice(0, MAX_VISIBLE_VARIATIONS);
-  const hiddenVariationsCount = group.variationsTried.length - MAX_VISIBLE_VARIATIONS;
-
-  return (
-    <div className="p-2 bg-gray-50 dark:bg-gray-800/40 rounded-md">
-      {/* Phrase type and location - monochrome */}
-      <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-1">
-        <span className="font-medium">{phraseTypeLabel}</span>
-        <span>{locationInfo}</span>
-      </div>
-
-      {/* The searched phrase */}
-      <div className="flex items-start gap-1.5">
-        <QuotedText mono className="text-[11px] text-gray-700 dark:text-gray-200 break-words flex-1">
-          {displayPhrase}
-        </QuotedText>
-        {statusIndicator}
-      </div>
-
-      {/* Result line for successful matches */}
-      {group.anySuccess &&
-        group.successfulAttempt?.matchedText &&
-        group.successfulAttempt.matchedText !== group.phrase && (
-          <p className="text-[10px] text-green-600 dark:text-green-400 truncate mt-1">
-            Found:{" "}
-            <QuotedText mono>
-              {group.successfulAttempt.matchedText.slice(0, MAX_MATCHED_TEXT_LENGTH)}
-              {group.successfulAttempt.matchedText.length > MAX_MATCHED_TEXT_LENGTH ? "…" : ""}
-            </QuotedText>
-          </p>
-        )}
-
-      {/* Detailed info for failed attempts */}
-      {!group.anySuccess && (
-        <>
-          {/* Variations that were also searched */}
-          {visibleVariations.length > 0 && (
-            <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-              <span className="font-medium">Also tried: </span>
-              {visibleVariations.map((variation, index) => {
-                const truncatedVar =
-                  variation.length > MAX_VARIATION_LENGTH ? `${variation.slice(0, MAX_VARIATION_LENGTH)}…` : variation;
-                return (
-                  <span key={index}>
-                    <QuotedText mono>{truncatedVar}</QuotedText>
-                    {index < visibleVariations.length - 1 && ", "}
-                  </span>
-                );
-              })}
-              {hiddenVariationsCount > 0 && (
-                <span className="text-gray-400 dark:text-gray-500"> +{hiddenVariationsCount} more</span>
-              )}
-            </div>
-          )}
-
-          {/* Notes (if any, for additional context) */}
-          {group.uniqueNotes.length > 0 && (
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{group.uniqueNotes[0]}</p>
-          )}
-        </>
-      )}
-    </div>
-  );
 }
 
 function DefaultPopoverContent({
@@ -1457,141 +1230,6 @@ function DefaultPopoverContent({
           <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
         )}
       </div>
-    </div>
-  );
-}
-
-// =============================================================================
-// DIFF DETAILS COMPONENT
-// =============================================================================
-
-/**
- * Renders diff highlighting between expected citation text and actual found text.
- * Uses split view for high-variance diffs and inline diff for low-variance.
- */
-function _DiffDetails({
-  citation,
-  verification,
-  status,
-}: {
-  citation: BaseCitationProps["citation"];
-  verification: Verification | null;
-  status: CitationStatus;
-}) {
-  const { isMiss, isPartialMatch } = status;
-
-  const expectedText = citation.fullPhrase || citation.anchorText?.toString() || "";
-  const actualText = verification?.verifiedMatchSnippet || "";
-
-  // Use the diff library for smart word-level diffing
-  const { hasDiff, similarity } = useSmartDiff(expectedText, actualText);
-
-  if (!isMiss && !isPartialMatch) return null;
-
-  const expectedLineIds = citation.lineIds;
-  const actualLineIds = verification?.verifiedLineIds;
-  const lineIdDiffers =
-    expectedLineIds && actualLineIds && JSON.stringify(expectedLineIds) !== JSON.stringify(actualLineIds);
-
-  const expectedPage = citation.pageNumber;
-  const actualPage = verification?.verifiedPageNumber;
-  const pageDiffers = expectedPage != null && actualPage != null && expectedPage !== actualPage;
-
-  // Get contextual status message
-  const searchStatus = verification?.status;
-  const statusMessage = getContextualStatusMessage(searchStatus, expectedPage, actualPage);
-
-  // For "not_found" status, show expected text and "Not found" message
-  if (isMiss) {
-    return (
-      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs space-y-2">
-        {expectedText && (
-          <SplitDiffDisplay
-            expected={expectedText}
-            actual=""
-            mode="split"
-            showMatchQuality={false}
-            maxCollapsedLength={150}
-            anchorTextExpected={citation.anchorText?.toString()}
-            status={searchStatus}
-          />
-        )}
-      </div>
-    );
-  }
-
-  // For partial matches, show enhanced diff with split view
-  return (
-    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs space-y-2">
-      {/* Contextual status message */}
-      {statusMessage && searchStatus !== "found" && (
-        <div
-          className={cn(
-            "text-[10px] font-medium px-1.5 py-0.5 rounded inline-flex items-center gap-1",
-            "bg-amber-100 dark:bg-amber-900/30 text-amber-500 dark:text-amber-400",
-          )}
-        >
-          <span className="size-2">
-            <CheckIcon />
-          </span>
-          {statusMessage}
-        </div>
-      )}
-
-      {expectedText && actualText && hasDiff ? (
-        <SplitDiffDisplay
-          expected={expectedText}
-          actual={actualText}
-          mode="split"
-          showMatchQuality={true}
-          maxCollapsedLength={150}
-          anchorTextExpected={citation.anchorText?.toString()}
-          anchorTextFound={verification?.verifiedAnchorText ?? undefined}
-          status={searchStatus}
-          similarity={similarity}
-        />
-      ) : expectedText && !hasDiff ? (
-        // Text matches exactly (partial match is due to location difference)
-        <div>
-          <div className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-500 text-[10px] font-medium mb-1">
-            <span className="size-2">
-              <CheckIcon />
-            </span>
-            <span>Text matches</span>
-          </div>
-          <p className="p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
-            {expectedText.length > 150 ? `${expectedText.slice(0, 150)}…` : expectedText}
-          </p>
-        </div>
-      ) : null}
-
-      {/* Location differences */}
-      {(pageDiffers || lineIdDiffers) && (
-        <div className="flex flex-wrap gap-3 pt-1">
-          {pageDiffers && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">Page:</span>
-              <span className="font-mono text-[11px]">
-                <span className="text-red-600 dark:text-red-400 line-through opacity-70">{expectedPage}</span>
-                <span className="text-gray-400 mx-1">→</span>
-                <span className="text-green-600 dark:text-green-400">{actualPage}</span>
-              </span>
-            </div>
-          )}
-          {lineIdDiffers && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500 dark:text-gray-400 font-medium uppercase text-[10px]">Line:</span>
-              <span className="font-mono text-[11px]">
-                <span className="text-red-600 dark:text-red-400 line-through opacity-70">
-                  {expectedLineIds?.join(", ")}
-                </span>
-                <span className="text-gray-400 mx-1">→</span>
-                <span className="text-green-600 dark:text-green-400">{actualLineIds?.join(", ")}</span>
-              </span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

@@ -2102,7 +2102,7 @@ export function CitationDrawerShowcase() {
                   <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-200 text-left truncate">
                     {group.sourceName}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
                     {group.citations.length} citation{group.citations.length !== 1 ? "s" : ""}
                   </span>
                 </div>

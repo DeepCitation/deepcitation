@@ -113,7 +113,7 @@ function UrlAnchorTextRow({ anchorText, displayAnchorText }: { anchorText: strin
         type="button"
         onClick={handleCopy}
         className={cn(
-          "flex-shrink-0 p-0.5 rounded transition-colors cursor-pointer",
+          "shrink-0 p-0.5 rounded transition-colors cursor-pointer",
           copyState === "copied"
             ? "text-green-600 dark:text-green-400"
             : copyState === "error"
@@ -222,7 +222,7 @@ export function FaviconImage({
   // Show GlobeIcon if no URL or if image failed to load
   if (!effectiveFaviconUrl || hasError) {
     return (
-      <span className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500">
+      <span className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500">
         <GlobeIcon />
       </span>
     );
@@ -232,7 +232,7 @@ export function FaviconImage({
     <img
       src={effectiveFaviconUrl}
       alt={alt?.trim() || "Source"}
-      className="w-4 h-4 flex-shrink-0 rounded-sm"
+      className="w-4 h-4 shrink-0 rounded-sm"
       onError={() => setHasError(true)}
       loading="lazy"
     />
@@ -287,7 +287,7 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
       <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
         {/* Row 1: Status icon + favicon + URL + external link */}
         <div className="flex items-center gap-2">
-          <span className={cn("size-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
+          <span className={cn("size-4 shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
             <IconComponent />
           </span>
           <div className="flex-1 min-w-0">
@@ -314,7 +314,7 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
               href={safeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+              className="shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
               aria-label="Open URL in new tab"
               onClick={e => e.stopPropagation()}
             >
@@ -351,7 +351,7 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500">
+        <span className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500">
           <DocumentIcon />
         </span>
         {displayName && (
@@ -361,7 +361,7 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
         )}
       </div>
       {pageLineText && (
-        <span className="text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0 uppercase tracking-wide">
+        <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">
           {pageLineText}
         </span>
       )}
@@ -677,7 +677,7 @@ export function AmbiguityWarning({ ambiguity }: AmbiguityWarningProps) {
     >
       <div className="flex items-start gap-2">
         <svg
-          className="size-4 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5"
+          className="size-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -781,7 +781,7 @@ export function StatusHeader({
       )}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className={cn("size-4 max-w-4 max-h-4 flex-shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
+        <span className={cn("size-4 max-w-4 max-h-4 shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
           <IconComponent />
         </span>
         {displayText &&
@@ -798,7 +798,7 @@ export function StatusHeader({
             type="button"
             onClick={handleCopy}
             className={cn(
-              "flex-shrink-0 p-0.5 rounded transition-colors cursor-pointer",
+              "shrink-0 p-0.5 rounded transition-colors cursor-pointer",
               copyState === "copied"
                 ? "text-green-600 dark:text-green-400"
                 : copyState === "error"
@@ -1038,7 +1038,7 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
     <div className="flex items-start gap-2 py-0.5">
       {/* Index number */}
       <span
-        className="text-[10px] text-gray-400 dark:text-gray-500 font-mono flex-shrink-0 tabular-nums"
+        className="text-[10px] text-gray-400 dark:text-gray-500 font-mono shrink-0 tabular-nums"
         style={{ minWidth: `${indexWidth + 1}ch` }}
       >
         {index}.
@@ -1047,7 +1047,7 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
       {/* Status icon */}
       <span
         className={cn(
-          "size-3 max-w-3 max-h-3 mt-0.5 flex-shrink-0",
+          "size-3 max-w-3 max-h-3 mt-0.5 shrink-0",
           attempt.success ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500",
         )}
         role="img"
@@ -1062,7 +1062,7 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
           <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">
             {displayPhrase}
           </QuotedText>
-          <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0 whitespace-nowrap">
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0 whitespace-nowrap">
             {methodName}
             {locationText && ` · ${locationText}`}
           </span>
@@ -1178,7 +1178,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
           <div className="space-y-1">
             {fallbackPhrases.map((phrase, i) => (
               <div key={i} className="flex items-start gap-2">
-                <span className="size-3 max-w-3 max-h-3 mt-0.5 text-gray-400 dark:text-gray-500 flex-shrink-0">
+                <span className="size-3 max-w-3 max-h-3 mt-0.5 text-gray-400 dark:text-gray-500 shrink-0">
                   <MissIcon />
                 </span>
                 <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">
@@ -1215,7 +1215,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
           <div className="p-2.5 bg-gray-50 dark:bg-gray-800/40 rounded-md space-y-2">
             {/* What was matched */}
             <div className="flex items-start gap-2">
-              <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-600 dark:text-green-400 flex-shrink-0">
+              <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-600 dark:text-green-400 shrink-0">
                 <CheckIcon />
               </span>
               <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">
