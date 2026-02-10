@@ -98,8 +98,8 @@ function computeStatusSummary(citationGroups: SourceCitationGroup[]): CitationSt
  * Generate simplified default label — just "N sources".
  * The per-citation icons already communicate the status breakdown visually.
  */
-function generateDefaultLabel(summary: CitationStatusSummary): string {
-  return `${summary.total} sources`;
+function generateDefaultLabel(sourceCount: number): string {
+  return `${sourceCount} source${sourceCount !== 1 ? "s" : ""}`;
 }
 
 /**
@@ -111,7 +111,7 @@ function flattenCitations(citationGroups: SourceCitationGroup[]): FlatCitationIt
     for (const item of group.citations) {
       items.push({
         item,
-        sourceName: group.sourceName || "Source",
+        sourceName: group.sourceName?.trim() || "Source",
         sourceFavicon: group.sourceFavicon,
         group,
       });
@@ -420,7 +420,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
     const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const summary = useMemo(() => computeStatusSummary(citationGroups), [citationGroups]);
-    const displayLabel = label ?? generateDefaultLabel(summary);
+    const displayLabel = label ?? generateDefaultLabel(citationGroups.length);
 
     // Flatten citation groups into individual items for per-citation icons
     const flatCitations = useMemo(() => flattenCitations(citationGroups), [citationGroups]);

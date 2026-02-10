@@ -327,7 +327,7 @@ describe("CitationDrawerItemComponent", () => {
       <CitationDrawerItemComponent item={createItem({ verification: { status: "not_found" } })} />,
     );
 
-    const indicator = container.querySelector(".text-amber-500");
+    const indicator = container.querySelector(".text-red-500");
     expect(indicator).toBeInTheDocument();
   });
 
@@ -479,7 +479,7 @@ describe("CitationDrawer", () => {
     expect(getAllByText("Article 2")).toHaveLength(1);
   });
 
-  it("shows 'More' section when there are more items", () => {
+  it("shows all items without More section (always expanded)", () => {
     const groups = [createGroup("Test", 5)];
 
     const { getByText } = render(
@@ -487,34 +487,11 @@ describe("CitationDrawer", () => {
         isOpen={true}
         onClose={() => {}}
         citationGroups={groups}
-        showMoreSection={true}
-        maxVisibleItems={3}
       />,
     );
 
-    expect(getByText("More (2)")).toBeInTheDocument();
-  });
-
-  it("expands More section when clicked", () => {
-    const groups = [createGroup("Test", 5)];
-
-    const { getByText, queryByText } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={() => {}}
-        citationGroups={groups}
-        showMoreSection={true}
-        maxVisibleItems={3}
-      />,
-    );
-
-    // Initially, items 4 and 5 should not be visible
-    expect(queryByText("Article 4")).not.toBeInTheDocument();
-
-    // Click More
-    fireEvent.click(getByText("More (2)"));
-
-    // Now items 4 and 5 should be visible
+    // All items should be visible (no More section, always expanded)
+    expect(getByText("Article 1")).toBeInTheDocument();
     expect(getByText("Article 4")).toBeInTheDocument();
     expect(getByText("Article 5")).toBeInTheDocument();
   });
@@ -808,7 +785,7 @@ describe("CitationDrawerTrigger", () => {
     const groups = [createGroup("Source A", 2), createGroup("Source B", 1)];
     const { getByText } = render(<CitationDrawerTrigger citationGroups={groups} />);
 
-    expect(getByText("3 sources · 3 verified")).toBeInTheDocument();
+    expect(getByText("2 sources")).toBeInTheDocument();
   });
 
   it("uses custom label when provided", () => {
@@ -835,10 +812,10 @@ describe("CitationDrawerTrigger", () => {
     ];
     const { container } = render(<CitationDrawerTrigger citationGroups={groups} />);
 
-    // Should have green, gray, and amber status icons
+    // Should have green, gray, and red status icons
     expect(container.querySelector(".text-green-500")).toBeInTheDocument();
     expect(container.querySelector(".text-gray-400")).toBeInTheDocument();
-    expect(container.querySelector(".text-amber-500")).toBeInTheDocument();
+    expect(container.querySelector(".text-red-500")).toBeInTheDocument();
   });
 
   it("renders spinner for pending status icons", () => {
