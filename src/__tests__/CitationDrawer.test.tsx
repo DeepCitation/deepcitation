@@ -1246,7 +1246,7 @@ describe("CitationDrawer group collapse/expand state", () => {
       const el = screen.getByText(countText);
       let node: HTMLElement | null = el;
       while (node) {
-        if (node.tagName === "BUTTON" && node.hasAttribute("aria-expanded")) {
+        if (node.tagName.toUpperCase() === "BUTTON" && node.hasAttribute("aria-expanded")) {
           return node;
         }
         node = node.parentElement;
