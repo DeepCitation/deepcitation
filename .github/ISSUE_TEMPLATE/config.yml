@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📚 Documentation
+    url: https://docs.deepcitation.com
+    about: Read the full documentation and API reference
+  - name: 💬 GitHub Discussions
+    url: https://github.com/DeepCitation/deepcitation-js/discussions
+    about: Ask questions and connect with the community

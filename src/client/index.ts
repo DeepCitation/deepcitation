@@ -1,9 +1,18 @@
 export { DeepCitation } from "./DeepCitation.js";
+export {
+  AuthenticationError,
+  DeepCitationError,
+  NetworkError,
+  RateLimitError,
+  ServerError,
+  ValidationError,
+} from "./errors.js";
 export type {
   CitationInput,
   ConvertFileInput,
   ConvertFileResponse,
   DeepCitationConfig,
+  DeepCitationLogger,
   DeleteAttachmentResponse,
   ExpirationValue,
   ExtendExpirationDuration,

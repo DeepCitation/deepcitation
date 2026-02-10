@@ -5,10 +5,8 @@ import {
   CITATION_PROMPT,
   CITATION_X_PADDING,
   CITATION_Y_PADDING,
-  getAllCitationsFromDeferredResponse,
   normalizeCitations,
   parseCitation,
-  parseDeferredCitationResponse,
   sha1Hash,
   wrapCitationPrompt,
   wrapSystemCitationPrompt,
@@ -29,11 +27,6 @@ describe("index exports", () => {
   it("re-exports citation prompt functions", () => {
     expect(typeof wrapSystemCitationPrompt).toBe("function");
     expect(typeof wrapCitationPrompt).toBe("function");
-  });
-
-  it("re-exports deferred citation parser functions", () => {
-    expect(typeof parseDeferredCitationResponse).toBe("function");
-    expect(typeof getAllCitationsFromDeferredResponse).toBe("function");
   });
 
   it("CITATION_PROMPT includes deferred JSON format markers", () => {

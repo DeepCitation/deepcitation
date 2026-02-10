@@ -17,7 +17,15 @@ import type { CitationStatus } from "../types/citation.js";
 import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
-import { INDICATOR_SIZE_STYLE, MISS_WAVY_UNDERLINE_STYLE, POPOVER_CONTAINER_BASE_CLASSES } from "./constants.js";
+import {
+  ERROR_COLOR_STYLE,
+  INDICATOR_SIZE_STYLE,
+  MISS_WAVY_UNDERLINE_STYLE,
+  PARTIAL_COLOR_STYLE,
+  PENDING_COLOR_STYLE,
+  POPOVER_CONTAINER_BASE_CLASSES,
+  VERIFIED_COLOR_STYLE,
+} from "./constants.js";
 import { CheckIcon, CloseIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
@@ -60,8 +68,8 @@ const DEFAULT_VISIBLE_GROUP_COUNT = 2;
 /** Maximum characters to show for truncated phrases in search attempts */
 const MAX_PHRASE_LENGTH = 50;
 
-/** Popover container width */
-const POPOVER_WIDTH = "384px";
+/** Popover container width. Customizable via CSS custom property `--dc-popover-width`. */
+const POPOVER_WIDTH = "var(--dc-popover-width, 384px)";
 
 /** Popover container max width (viewport-relative, with safe margin to prevent scrollbar) */
 const POPOVER_MAX_WIDTH = "calc(100vw - 32px)";
@@ -755,8 +763,9 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
  */
 const VerifiedIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.1em] text-green-600 dark:text-green-500 [text-decoration:none]"
-    style={INDICATOR_SIZE_STYLE}
+    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none]"
+    style={{ ...INDICATOR_SIZE_STYLE, ...VERIFIED_COLOR_STYLE }}
+    data-dc-indicator="verified"
     aria-hidden="true"
   >
     <CheckIcon />
@@ -764,13 +773,15 @@ const VerifiedIndicator = () => (
 );
 
 /** Partial match indicator - amber checkmark for partial/relocated matches (subscript-positioned)
+ * Color customizable via `--dc-partial-color` CSS custom property.
  * Uses [text-decoration:none] to prevent inheriting line-through from parent.
  * Dynamic sizing via em units for font-proportional scaling.
  */
 const PartialIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.1em] text-amber-500 dark:text-amber-400 [text-decoration:none]"
-    style={INDICATOR_SIZE_STYLE}
+    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none]"
+    style={{ ...INDICATOR_SIZE_STYLE, ...PARTIAL_COLOR_STYLE }}
+    data-dc-indicator="partial"
     aria-hidden="true"
   >
     <CheckIcon />
@@ -778,13 +789,15 @@ const PartialIndicator = () => (
 );
 
 /** Pending indicator - spinner for loading state (subscript-positioned)
+ * Color customizable via `--dc-pending-color` CSS custom property.
  * Uses [text-decoration:none] to prevent inheriting line-through from parent.
  * Dynamic sizing via em units for font-proportional scaling.
  */
 const PendingIndicator = () => (
   <span
-    className="inline-flex relative ml-1 top-[0.1em] animate-spin text-gray-400 dark:text-gray-500 [text-decoration:none]"
-    style={INDICATOR_SIZE_STYLE}
+    className="inline-flex relative ml-1 top-[0.1em] animate-spin [text-decoration:none]"
+    style={{ ...INDICATOR_SIZE_STYLE, ...PENDING_COLOR_STYLE }}
+    data-dc-indicator="pending"
     aria-hidden="true"
   >
     <SpinnerIcon />
@@ -792,6 +805,7 @@ const PendingIndicator = () => (
 );
 
 /** Miss indicator - red X for not found (centered, not subscript)
+ * Color customizable via `--dc-error-color` CSS custom property.
  * Uses simple XIcon for better visibility at all sizes.
  * The circle in XCircleIcon becomes hard to see at small font sizes.
  * Centered vertically (not subscript) to make the "not found" status more prominent.
@@ -801,8 +815,9 @@ const PendingIndicator = () => (
  */
 const MissIndicator = () => (
   <span
-    className="inline-flex items-center ml-0.5 text-red-500 dark:text-red-400 [text-decoration:none]"
-    style={INDICATOR_SIZE_STYLE}
+    className="inline-flex items-center ml-0.5 [text-decoration:none]"
+    style={{ ...INDICATOR_SIZE_STYLE, ...ERROR_COLOR_STYLE }}
+    data-dc-indicator="error"
     aria-hidden="true"
   >
     <XIcon />
@@ -2431,8 +2446,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Cursor is always pointer since click toggles popover/details
     const cursorClass = "cursor-pointer";
 
-    // Generate unique popover ID for ARIA attributes
+    // Generate unique IDs for ARIA attributes
     const popoverId = `citation-popover-${citationInstanceId}`;
+    const statusDescId = `citation-status-${citationInstanceId}`;
+    const statusDescription = shouldShowSpinner
+      ? "Verifying..."
+      : getStatusLabel(status);
 
     // Variants with their own hover styles don't need parent hover (would extend beyond bounds)
     const variantHasOwnHover = VARIANTS_WITH_OWN_HOVER.has(variant);
@@ -2460,6 +2479,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       "aria-expanded": isHovering,
       "aria-controls": shouldShowPopover ? popoverId : undefined,
       "aria-label": displayText ? `Citation: ${displayText}` : "Citation",
+      "aria-describedby": statusDescription ? statusDescId : undefined,
       // Event handlers
       onMouseEnter: handleMouseEnter,
       onMouseLeave: handleMouseLeave,
@@ -2520,6 +2540,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return (
         <>
           {children}
+          {/* Visually hidden live region for screen reader status announcements */}
+          {statusDescription && (
+            <span id={statusDescId} className="sr-only" aria-live="polite">
+              {statusDescription}
+            </span>
+          )}
           {/* Hidden prefetch layer - pre-renders image content using Activity */}
           {prefetchElement}
           <Popover open={isHovering}>
@@ -2549,6 +2575,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     return (
       <>
         {children}
+        {/* Visually hidden live region for screen reader status announcements */}
+        {statusDescription && (
+          <span id={statusDescId} className="sr-only" aria-live="polite">
+            {statusDescription}
+          </span>
+        )}
         <span ref={setTriggerRef} {...triggerProps}>
           {renderCitationContent()}
         </span>

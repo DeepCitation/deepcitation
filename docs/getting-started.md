@@ -140,3 +140,6 @@ The SDK handles API routing automatically. You only need to configure your API k
 - [API Reference]({{ site.baseurl }}/api-reference/) - Learn about the REST API endpoints
 - [Components]({{ site.baseurl }}/components/) - Display citations with React components
 - [Code Examples]({{ site.baseurl }}/code-examples/) - See more integration patterns
+- [Error Handling]({{ site.baseurl }}/error-handling/) - Production error patterns and retry logic
+- [Styling]({{ site.baseurl }}/styling/) - CSS customization and theming
+- [Migration Guide]({{ site.baseurl }}/migration/) - API changes by version

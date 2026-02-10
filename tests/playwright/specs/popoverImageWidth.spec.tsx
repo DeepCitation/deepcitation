@@ -85,7 +85,10 @@ test.describe("Popover Image Width Constraint", () => {
     await expect(container).toBeVisible();
 
     // The container should have a constrained width (384px with safe margins to prevent scrollbar)
-    const containerWidth = await container.evaluate(el => (el as HTMLElement).style.width);
+    // Use getComputedStyle to get the resolved value, not the inline style attribute
+    const containerWidth = await container.evaluate(el =>
+      window.getComputedStyle(el as HTMLElement).width
+    );
     expect(containerWidth).toBe("384px");
   });
 

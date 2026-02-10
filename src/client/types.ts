@@ -1,6 +1,18 @@
 import type { Citation, Verification } from "../types/index.js";
 
 /**
+ * Logger interface for DeepCitation client observability.
+ * All methods are optional -- only implement the levels you need.
+ * Default: no logging (no-op).
+ */
+export interface DeepCitationLogger {
+  debug?: (message: string, meta?: Record<string, unknown>) => void;
+  info?: (message: string, meta?: Record<string, unknown>) => void;
+  warn?: (message: string, meta?: Record<string, unknown>) => void;
+  error?: (message: string, meta?: Record<string, unknown>) => void;
+}
+
+/**
  * Configuration options for the DeepCitation client
  */
 export interface DeepCitationConfig {
@@ -14,6 +26,22 @@ export interface DeepCitationConfig {
    * @default 5
    */
   maxUploadConcurrency?: number;
+  /**
+   * Optional logger for observability. Receives structured log messages
+   * about uploads, verifications, cache operations, and errors.
+   *
+   * @example
+   * ```typescript
+   * const dc = new DeepCitation({
+   *   apiKey: '...',
+   *   logger: {
+   *     info: (msg, meta) => console.log(`[DC] ${msg}`, meta),
+   *     error: (msg, meta) => console.error(`[DC] ${msg}`, meta),
+   *   },
+   * });
+   * ```
+   */
+  logger?: DeepCitationLogger;
 }
 
 /**

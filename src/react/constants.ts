@@ -44,6 +44,104 @@ export const MISS_WAVY_UNDERLINE_STYLE: React.CSSProperties = {
   textUnderlineOffset: "2px",
 };
 
+// =============================================================================
+// Status Color CSS Custom Properties
+// These can be overridden via CSS to match your design system:
+//
+// :root {
+//   --dc-verified-color: #22c55e;
+//   --dc-partial-color: #eab308;
+//   --dc-error-color: #dc2626;
+//   --dc-pending-color: #6b7280;
+//   --dc-popover-width: 400px;
+// }
+// =============================================================================
+
+/**
+ * CSS custom property name for verified/success indicator color.
+ * @example
+ * ```css
+ * :root {
+ *   --dc-verified-color: #22c55e; // Override default
+ * }
+ * ```
+ */
+export const VERIFIED_COLOR_VAR = "--dc-verified-color";
+/** Default verified indicator color (Tailwind green-600) */
+export const VERIFIED_COLOR_DEFAULT = "#16a34a";
+
+/**
+ * CSS custom property name for partial match indicator color.
+ * @example
+ * ```css
+ * :root {
+ *   --dc-partial-color: #eab308; // Override default
+ * }
+ * ```
+ */
+export const PARTIAL_COLOR_VAR = "--dc-partial-color";
+/** Default partial match indicator color (Tailwind amber-500) */
+export const PARTIAL_COLOR_DEFAULT = "#f59e0b";
+
+/**
+ * CSS custom property name for error/not-found indicator color.
+ * @example
+ * ```css
+ * :root {
+ *   --dc-error-color: #dc2626; // Override default
+ * }
+ * ```
+ */
+export const ERROR_COLOR_VAR = "--dc-error-color";
+/** Default error indicator color (Tailwind red-500) */
+export const ERROR_COLOR_DEFAULT = "#ef4444";
+
+/**
+ * CSS custom property name for pending indicator color.
+ * @example
+ * ```css
+ * :root {
+ *   --dc-pending-color: #6b7280; // Override default
+ * }
+ * ```
+ */
+export const PENDING_COLOR_VAR = "--dc-pending-color";
+/** Default pending indicator color (Tailwind gray-400) */
+export const PENDING_COLOR_DEFAULT = "#9ca3af";
+
+/**
+ * CSS custom property name for popover width.
+ * @example
+ * ```css
+ * :root {
+ *   --dc-popover-width: 500px; // Override default 384px
+ * }
+ * ```
+ */
+export const POPOVER_WIDTH_VAR = "--dc-popover-width";
+/** Default popover width */
+export const POPOVER_WIDTH_DEFAULT = "384px";
+
+/** Inline style for verified indicator color, using CSS custom property with fallback */
+export const VERIFIED_COLOR_STYLE: React.CSSProperties = {
+  color: `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`,
+};
+
+/** Inline style for partial match indicator color, using CSS custom property with fallback */
+export const PARTIAL_COLOR_STYLE: React.CSSProperties = {
+  color: `var(${PARTIAL_COLOR_VAR}, ${PARTIAL_COLOR_DEFAULT})`,
+};
+
+/** Inline style for error/not-found indicator color, using CSS custom property with fallback */
+export const ERROR_COLOR_STYLE: React.CSSProperties = {
+  color: `var(${ERROR_COLOR_VAR}, ${ERROR_COLOR_DEFAULT})`,
+};
+
+/** Inline style for pending indicator color, using CSS custom property with fallback */
+export const PENDING_COLOR_STYLE: React.CSSProperties = {
+  color: `var(${PENDING_COLOR_VAR}, ${PENDING_COLOR_DEFAULT})`,
+};
+
 /**
  * Duration in ms to show "Copied" feedback before resetting to idle state.
  * Used for copy-to-clipboard feedback in various components.
