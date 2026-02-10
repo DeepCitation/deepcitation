@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
@@ -578,73 +578,23 @@ export function CitationDrawer({
   position = "bottom",
   renderCitationItem,
 }: CitationDrawerProps) {
-  // Refs for focus management
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const previousActiveElementRef = useRef<HTMLElement | null>(null);
-  const drawerRef = useRef<HTMLDivElement>(null);
-
   // Flatten all citations for total count
   const totalCitations = useMemo(() => {
     return citationGroups.reduce((sum, g) => sum + g.citations.length, 0);
   }, [citationGroups]);
 
-  // Handle escape key and focus management
-  useEffect(() => {
+  // Handle escape key
+  React.useEffect(() => {
     if (!isOpen) return;
-
-    // Store the element that had focus before opening
-    previousActiveElementRef.current = document.activeElement as HTMLElement;
-
-    // Focus the close button when drawer opens
-    const focusTimer = setTimeout(() => {
-      closeButtonRef.current?.focus();
-    }, 100); // Small delay to ensure drawer is rendered
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
-        return;
-      }
-
-      // Focus trap: handle Tab key
-      if (e.key === "Tab") {
-        const drawer = drawerRef.current;
-        if (!drawer) return;
-
-        const focusableElements = drawer.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        const focusableArray = Array.from(focusableElements);
-        const firstElement = focusableArray[0];
-        const lastElement = focusableArray[focusableArray.length - 1];
-
-        if (e.shiftKey) {
-          // Shift+Tab: if at first element, wrap to last
-          if (document.activeElement === firstElement) {
-            e.preventDefault();
-            lastElement?.focus();
-          }
-        } else {
-          // Tab: if at last element, wrap to first
-          if (document.activeElement === lastElement) {
-            e.preventDefault();
-            firstElement?.focus();
-          }
-        }
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      clearTimeout(focusTimer);
-      document.removeEventListener("keydown", handleKeyDown);
-
-      // Restore focus to the element that opened the drawer
-      if (previousActiveElementRef.current && document.body.contains(previousActiveElementRef.current)) {
-        previousActiveElementRef.current.focus();
-      }
-    };
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
   // Don't render if closed
@@ -685,7 +635,6 @@ export function CitationDrawer({
 
       {/* Drawer */}
       <div
-        ref={drawerRef}
         className={cn(
           "fixed z-[9999] bg-white dark:bg-gray-900 flex flex-col",
           "animate-in duration-200",
@@ -708,7 +657,6 @@ export function CitationDrawer({
         <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between shrink-0">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
           <button
-            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

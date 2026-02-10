@@ -38,19 +38,7 @@ export interface CitationDrawerProps {
   isOpen: boolean;
   /** Callback to close the drawer */
   onClose: () => void;
-  /**
-   * Citation groups to display.
-   *
-   * **Performance Note**: For optimal performance, memoize this prop using `useMemo` or ensure
-   * it has a stable reference. The drawer uses `useMemo` internally to compute total citations,
-   * but if this prop changes on every render, that optimization is bypassed.
-   *
-   * @example
-   * ```tsx
-   * const citationGroups = useMemo(() => computeGroups(citations), [citations]);
-   * <CitationDrawer citationGroups={citationGroups} ... />
-   * ```
-   */
+  /** Citation groups to display */
   citationGroups: SourceCitationGroup[];
   /** Title for the drawer header */
   title?: string;
