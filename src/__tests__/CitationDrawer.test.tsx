@@ -277,14 +277,20 @@ describe("CitationDrawerItemComponent", () => {
     expect(getByText("The minimum tax is $175.00 for corporations...")).toBeInTheDocument();
   });
 
-  it("renders favicon when available", () => {
+  it("renders status indicator instead of favicon", () => {
     const { container } = render(<CitationDrawerItemComponent item={createItem()} />);
 
-    const favicon = container.querySelector('img[src="https://delaware.gov/favicon.ico"]');
-    expect(favicon).toBeInTheDocument();
+    // Status indicator should be present (verified = green check)
+    const statusIcon = container.querySelector("[title='Verified']");
+    expect(statusIcon).toBeInTheDocument();
+
+    // No favicon image should be rendered in the left column
+    const leftColumn = container.querySelector(".flex-shrink-0.mt-0\\.5");
+    const faviconImg = leftColumn?.querySelector("img");
+    expect(faviconImg).toBeNull();
   });
 
-  it("renders placeholder when no favicon", () => {
+  it("renders status indicator when no favicon available", () => {
     const item = createItem({
       citation: {
         siteName: "Test",
@@ -292,10 +298,11 @@ describe("CitationDrawerItemComponent", () => {
       },
     });
 
-    const { getByText } = render(<CitationDrawerItemComponent item={item} />);
+    const { container } = render(<CitationDrawerItemComponent item={item} />);
 
-    // Should show first letter as placeholder
-    expect(getByText("T")).toBeInTheDocument();
+    // Should show status indicator, not initial letter "T"
+    const statusIcon = container.querySelector("[title='Verified']");
+    expect(statusIcon).toBeInTheDocument();
   });
 
   it("calls onClick when clicked", () => {
@@ -840,12 +847,14 @@ describe("CitationDrawerTrigger", () => {
     expect(getByTestId("citation-drawer-trigger")).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("renders stacked favicons", () => {
+  it("does not render stacked favicons", () => {
     const groups = [createGroup("Test", 1)];
     const { container } = render(<CitationDrawerTrigger citationGroups={groups} />);
 
-    const favicon = container.querySelector('img[src="https://test.com/favicon.ico"]');
-    expect(favicon).toBeInTheDocument();
+    // Stacked favicons section has been removed; only status icons should appear
+    const triggerBar = container.querySelector("[data-testid='citation-drawer-trigger']");
+    const faviconInBar = triggerBar?.querySelector('img[src="https://test.com/favicon.ico"]');
+    expect(faviconInBar).toBeNull();
   });
 
   /** Helper: hover the trigger, then hover the first icon in the status group */
