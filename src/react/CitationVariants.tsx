@@ -145,7 +145,7 @@ function StatusIndicators({
       {isMiss && (
         <>
           <span
-            className="ml-0.5 flex-shrink-0"
+            className="ml-0.5 shrink-0"
             style={{ ...INDICATOR_SIZE_STYLE, ...ERROR_COLOR_STYLE }}
             aria-hidden="true"
           >
