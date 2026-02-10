@@ -42,9 +42,9 @@ export interface CitationDrawerProps {
   citationGroups: SourceCitationGroup[];
   /** Title for the drawer header */
   title?: string;
-  /** Whether to show "More" section for additional sources */
+  /** @deprecated No longer used. The drawer always shows all items in a flat scrollable list. */
   showMoreSection?: boolean;
-  /** Maximum items to show before "More" section */
+  /** @deprecated No longer used. The drawer always shows all items in a flat scrollable list. */
   maxVisibleItems?: number;
   /** Callback when a citation item is clicked */
   onCitationClick?: (item: CitationDrawerItem) => void;

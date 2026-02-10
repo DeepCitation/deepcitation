@@ -349,7 +349,7 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
   const pageLineText = formatPageLineText(pageNumber, lineIds);
 
   return (
-    <div className="flex items-center justify-between gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+    <div className="flex items-center justify-between gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <span className="w-4 h-4 flex-shrink-0 text-gray-400 dark:text-gray-500">
           <DocumentIcon />
@@ -384,7 +384,7 @@ function formatPageLineText(
   if (!pageNumber || pageNumber <= 0) return null;
   // Don't show line numbers in the header - they can be unreliable due to column layouts
   // Line differences are shown separately in the verification log when relevant
-  return `Page ${pageNumber}`;
+  return `p.${pageNumber}`;
 }
 
 // =============================================================================
@@ -626,11 +626,11 @@ function PageBadge({ expectedPage, foundPage }: PageBadgeProps) {
   const hasFound = foundPage != null && foundPage > 0;
   const locationDiffers = hasExpected && hasFound && expectedPage !== foundPage;
 
-  // Show arrow format when location differs (e.g., "Page 5 → 7")
+  // Show arrow format when location differs (e.g., "p.5 → 7")
   if (locationDiffers) {
     return (
       <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-        <span className="text-gray-400 dark:text-gray-500">Page {expectedPage}</span>
+        <span className="text-gray-400 dark:text-gray-500">p.{expectedPage}</span>
         <span className="text-gray-400 dark:text-gray-500">→</span>
         <span className="text-gray-700 dark:text-gray-300">{foundPage}</span>
       </span>
@@ -640,7 +640,7 @@ function PageBadge({ expectedPage, foundPage }: PageBadgeProps) {
   // Show found page or expected page
   const pageToShow = hasFound ? foundPage : expectedPage;
   if (pageToShow != null && pageToShow > 0) {
-    return <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageToShow}</span>;
+    return <span className="text-xs text-gray-500 dark:text-gray-400">p.{pageToShow}</span>;
   }
 
   return null;
@@ -777,7 +777,7 @@ export function StatusHeader({
     <div
       className={cn(
         "flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-700 text-sm",
-        compact ? "px-3 py-2" : "px-4 py-2.5",
+        compact ? "px-3 py-1.5" : "px-4 py-2",
       )}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -959,7 +959,7 @@ function VerificationLogSummary({ status, searchAttempts, isExpanded, onToggle }
       onClick={onToggle}
       aria-expanded={isExpanded}
       aria-controls="verification-log-timeline"
-      className="w-full px-4 py-2.5 flex items-center justify-between text-xs hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
+      className="w-full px-4 py-2 flex items-center justify-between text-xs hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
     >
       <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
         <svg

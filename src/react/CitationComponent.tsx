@@ -1253,7 +1253,7 @@ function DefaultPopoverContent({
           status={searchStatus}
           sourceLabel={sourceLabel}
         />
-        <div className="p-3 flex flex-col gap-2">
+        <div className="p-2 flex flex-col gap-2">
           <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
             <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
               <SpinnerIcon />
@@ -1266,7 +1266,7 @@ function DefaultPopoverContent({
             </p>
           )}
           {citation.pageNumber && citation.pageNumber > 0 && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">Looking on page {citation.pageNumber}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Looking on p.{citation.pageNumber}</span>
           )}
         </div>
       </div>
