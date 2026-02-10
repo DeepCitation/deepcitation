@@ -398,18 +398,6 @@ export interface CitationComponentProps extends BaseCitationProps {
    * Defaults to true. Set to false to hide the indicator.
    */
   showIndicator?: boolean;
-  /**
-   * Page data for the verified page. When provided with a `source` field,
-   * enables a "View page" button in the verification image action bar.
-   * The `source` should be a URL to the pre-rendered page image.
-   */
-  page?: Page | null;
-  /**
-   * Callback for "View page" button click. Called with the page data.
-   * When not provided but `verification.proofUrl` is available,
-   * defaults to opening the proof page with `?view=page` in a new tab.
-   */
-  onViewPageClick?: (page: Page) => void;
 }
 
 function getStatusLabel(status: CitationStatus): string {
@@ -1007,10 +995,6 @@ interface PopoverContentProps {
    * See BaseCitationProps.sourceLabel for details.
    */
   sourceLabel?: string;
-  /** Optional page data for "View page" button. */
-  page?: Page | null;
-  /** Optional callback for "View page" button. */
-  onViewPageClick?: (page: Page) => void;
 }
 
 /**
@@ -1247,8 +1231,6 @@ function DefaultPopoverContent({
   onPhrasesExpandChange,
   isVisible = true,
   sourceLabel,
-  page,
-  onViewPageClick,
 }: PopoverContentProps) {
   const hasImage = verification?.verificationImageBase64;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
@@ -1333,12 +1315,7 @@ function DefaultPopoverContent({
 
           {/* Verification image */}
           <div className="p-2">
-            <AnchorTextFocusedImage
-              verification={verification}
-              onImageClick={onImageClick}
-              page={page}
-              onViewPageClick={onViewPageClick}
-            />
+            <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
           </div>
 
           {/* Expandable search details for verified matches */}
@@ -1396,12 +1373,7 @@ function DefaultPopoverContent({
                 </div>
               )}
               <div className="p-2">
-                <AnchorTextFocusedImage
-                  verification={verification}
-                  onImageClick={onImageClick}
-                  page={page}
-                  onViewPageClick={onViewPageClick}
-                />
+                <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
               </div>
             </>
           ) : (
@@ -1667,8 +1639,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       faviconUrl,
       showIndicator = true,
       sourceLabel,
-      page: pageProp,
-      onViewPageClick: onViewPageClickProp,
     },
     ref,
   ) => {
@@ -1755,36 +1725,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Derive status from verification object
     const status = useMemo(() => getStatusFromVerification(verification), [verification]);
     const { isMiss, isPartialMatch, isVerified, isPending } = status;
-
-    // Derive "View page" props: when proofUrl is available and no explicit
-    // page/onViewPageClick provided, create a synthetic page that opens the proof page
-    const effectivePage = useMemo((): Page | null => {
-      if (pageProp !== undefined) return pageProp;
-      if (verification?.proofUrl) {
-        return {
-          pageNumber: verification.verifiedPageNumber ?? citation.pageNumber ?? 1,
-          dimensions: { width: 0, height: 0 },
-          source: verification.proofUrl,
-        };
-      }
-      return null;
-    }, [pageProp, verification?.proofUrl, verification?.verifiedPageNumber, citation.pageNumber]);
-
-    const effectiveOnViewPageClick = useCallback(
-      (page: Page) => {
-        if (onViewPageClickProp) {
-          onViewPageClickProp(page);
-          return;
-        }
-        // Default: open proof page with full page view in a new tab
-        if (page.source) {
-          const url = new URL(page.source);
-          url.searchParams.set("view", "page");
-          window.open(url.toString(), "_blank", "noopener,noreferrer");
-        }
-      },
-      [onViewPageClickProp],
-    );
 
     // Spinner timeout: auto-hide after ~5s if still pending
     const SPINNER_TIMEOUT_MS = 5000;
@@ -2570,8 +2510,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             onPhrasesExpandChange={setIsPhrasesExpanded}
             isVisible={isHovering}
             sourceLabel={sourceLabel}
-            page={effectivePage}
-            onViewPageClick={effectiveOnViewPageClick}
             onImageClick={() => {
               if (verification?.verificationImageBase64) {
                 setExpandedImageSrc(verification.verificationImageBase64);
@@ -2594,8 +2532,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               isLoading={false}
               isVisible={false}
               sourceLabel={sourceLabel}
-              page={effectivePage}
-              onViewPageClick={effectiveOnViewPageClick}
               onImageClick={() => {}}
             />
           </CitationErrorBoundary>

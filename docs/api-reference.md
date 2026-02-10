@@ -80,12 +80,6 @@ Verify citations from LLM output against the source document. Returns verificati
 | `data.attachmentId` | string | Yes | From prepareFile response. The SDK handles this automatically with `deepcitation.verify()`. |
 | `data.citations` | `Record<string, Citation>` | Yes | Map of citation keys to Citation objects |
 | `data.outputImageFormat` | `"jpeg"` \| `"png"` \| `"avif"` | No | Image format for proofs (default: "avif") |
-| `data.generateProofUrls` | boolean | No | Enable [proof hosting]({{ site.baseurl }}/proof-hosting/) — returns `proofId`, `proofUrl`, and `proofImageUrl` per citation (default: false) |
-| `data.proofConfig` | object | No | Proof URL configuration (only used when `generateProofUrls` is true) |
-| `data.proofConfig.access` | `"signed"` \| `"workspace"` \| `"public"` | No | Access control level (default: "signed") |
-| `data.proofConfig.signedUrlExpiry` | `"1h"` \| `"24h"` \| `"7d"` \| `"30d"` \| `"90d"` \| `"1y"` | No | Token expiry for signed URLs (default: "7d") |
-| `data.proofConfig.imageFormat` | `"png"` \| `"jpeg"` \| `"avif"` \| `"webp"` | No | Image format for hosted proof images (default: "png") |
-| `data.proofConfig.includeBase64` | boolean | No | Also return base64 images in addition to URLs (default: false) |
 
 ### Response Fields
 
@@ -144,65 +138,6 @@ curl -X POST "https://api.deepcitation.com/verifyCitations" \
     }
   }
 }
-```
-
-### Proof Hosting Response Fields
-
-When `generateProofUrls: true`, each `Verification` object includes additional fields:
-
-| Field | Type | Description |
-|:------|:-----|:------------|
-| `proofId` | string | Stable proof identifier (22-char URL-safe base64) |
-| `proofUrl` | string | HTML proof page URL (includes signed token if applicable) |
-| `proofImageUrl` | string | Direct image URL for embedding in Markdown, HTML, etc. |
-
-{: .note }
-When proof hosting is enabled, `verificationImageBase64` is omitted by default to reduce payload. Set `proofConfig.includeBase64: true` to include both.
-
-#### Example Response (with proof hosting)
-
-```json
-{
-  "verifications": {
-    "citation-1": {
-      "pageNumber": 1,
-      "matchSnippet": "...Revenue increased by 25% in Q4...",
-      "searchState": { "status": "found" },
-      "proofId": "xK9mPqR2sT4uV6wY8zA1bC",
-      "proofUrl": "https://proof.deepcitation.com/p/xK9mPqR2sT4uV6wY8zA1bC?token=eyJ...",
-      "proofImageUrl": "https://proof.deepcitation.com/p/xK9mPqR2sT4uV6wY8zA1bC?format=png&view=snippet&token=eyJ..."
-    }
-  }
-}
-```
-
----
-
-## GET /p/{proofId}
-
-Serves a proof page (HTML or image) for a single citation verification. See the [Proof Hosting guide]({{ site.baseurl }}/proof-hosting/) for full details.
-
-### Query Parameters
-
-| Param | Type | Default | Description |
-|:------|:-----|:--------|:------------|
-| `view` | `snippet` \| `context` \| `page` | `snippet` | Image crop level |
-| `format` | `html` \| `png` \| `jpeg` \| `avif` \| `webp` | `html` | Response format |
-| `token` | string | — | Signed access token (required for `access: "signed"`) |
-
-### Response
-
-- **`format=html`**: Interactive proof page with view switcher, OG meta tags for link unfurling, claim text, and verification status
-- **`format=png|jpeg|avif|webp`**: Direct image binary for embedding
-
-### Example
-
-```bash
-# HTML proof page (opens in browser with view switcher)
-curl "https://proof.deepcitation.com/p/xK9mPqR2sT4uV6wY8zA1bC?token=eyJ..."
-
-# Direct image (for embedding in Markdown, chat, etc.)
-curl "https://proof.deepcitation.com/p/xK9mPqR2sT4uV6wY8zA1bC?format=png&view=page&token=eyJ..."
 ```
 
 ---

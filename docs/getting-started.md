@@ -99,27 +99,6 @@ for (const [key, result] of Object.entries(verified.verifications)) {
 
 ---
 
-## Proof Hosting (Optional)
-
-For shareable proof URLs instead of base64 images, add `generateProofUrls: true`:
-
-```typescript
-const verified = await deepcitation.verify(attachmentId, citations, {
-  generateProofUrls: true,
-  proofConfig: { access: "signed", signedUrlExpiry: "7d" },
-});
-
-// Each verification includes proof URLs
-for (const [key, result] of Object.entries(verified.verifications)) {
-  console.log(result.proofUrl);
-  // → https://proof.deepcitation.com/p/xK9mPqR2sT4uV6wY8zA1bC?token=eyJ...
-}
-```
-
-Proof pages support interactive view switching — users can toggle between snippet, context, and full page views. See the [Proof Hosting guide]({{ site.baseurl }}/proof-hosting/) for details.
-
----
-
 ## Authentication
 
 Include your API key in the Authorization header:

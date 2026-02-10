@@ -440,54 +440,6 @@ The `sourceLabel` prop allows you to override the filename or URL title displaye
 
 ---
 
-## Proof Page Integration
-
-When [proof hosting]({{ site.baseurl }}/proof-hosting/) is enabled (`generateProofUrls: true`), the CitationComponent automatically shows a **"View page"** button in the image action bar:
-
-{% raw %}
-```tsx
-// Enable proof hosting in your verification call
-const verified = await deepcitation.verify(attachmentId, citations, {
-  generateProofUrls: true,
-});
-
-// Component auto-detects proofUrl and shows "View page" button
-<CitationComponent
-  citation={citation}
-  verification={verified.verifications[key]}
-/>
-// Image bar shows: [Expand] [View page]
-// "View page" opens the proof page at ?view=page in a new tab
-```
-{% endraw %}
-
-### Custom Page Viewing
-
-Override the default behavior with `page` and `onViewPageClick`:
-
-{% raw %}
-```tsx
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  page={myPageData}
-  onViewPageClick={(page) => {
-    // Open in your own page viewer
-    openSidePanel(page.source);
-  }}
-/>
-```
-{% endraw %}
-
-### Props for Proof Page Integration
-
-| Prop | Type | Description |
-|:-----|:-----|:------------|
-| `page` | `Page \| null` | Page data with `source` URL. Auto-derived from `verification.proofUrl` if not provided. |
-| `onViewPageClick` | `(page: Page) => void` | Click handler for "View page" button. Defaults to opening proof page in new tab. |
-
----
-
 ## Primitives (Experimental)
 
 {: .warning }
