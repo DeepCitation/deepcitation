@@ -1,17 +1,14 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
+import type { Verification } from "../types/verification.js";
 import type { CitationDrawerItemProps, CitationDrawerProps, SourceCitationGroup } from "./CitationDrawer.types.js";
-import { extractDomain, getStatusInfo } from "./CitationDrawer.utils.js";
-import { SourceContextHeader } from "./VerificationLog.js";
-import { cn, isUrlCitation } from "./utils.js";
-
-/**
- * Module-level handler for hiding broken favicon images.
- * Performance fix: avoids creating new function references on every render.
- */
-const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-  (e.target as HTMLImageElement).style.display = "none";
-};
+import { getStatusInfo } from "./CitationDrawer.utils.js";
+import { CheckIcon, CopyIcon, ExternalLinkIcon, MissIcon, ZoomInIcon } from "./icons.js";
+import { FaviconImage } from "./VerificationLog.js";
+import { COPY_FEEDBACK_DURATION_MS } from "./constants.js";
+import { cn } from "./utils.js";
+import { sanitizeUrl } from "./urlUtils.js";
 
 /** Safe raster image data URI prefixes (no SVG — can contain scripts). */
 const SAFE_DATA_IMAGE_PREFIXES = ["data:image/png", "data:image/jpeg", "data:image/jpg", "data:image/webp", "data:image/avif", "data:image/gif"] as const;
@@ -43,9 +40,159 @@ function isValidProofImageSrc(src: unknown): src is string {
   }
 }
 
+// =========
+// Drawer-adapted method display names (subset of VerificationLog's METHOD_DISPLAY_NAMES)
+// =========
+
+const DRAWER_METHOD_NAMES: Record<SearchMethod, string> = {
+  exact_line_match: "Exact location",
+  line_with_buffer: "Nearby lines",
+  expanded_line_buffer: "Extended nearby",
+  current_page: "Expected page",
+  anchor_text_fallback: "Anchor text",
+  adjacent_pages: "Nearby pages",
+  expanded_window: "Wider area",
+  regex_search: "Full document",
+  first_word_fallback: "First word",
+  first_half_fallback: "First half",
+  last_half_fallback: "Last half",
+  first_quarter_fallback: "First quarter",
+  second_quarter_fallback: "Second quarter",
+  third_quarter_fallback: "Third quarter",
+  fourth_quarter_fallback: "Fourth quarter",
+  longest_word_fallback: "Longest word",
+  custom_phrase_fallback: "Custom search",
+  keyspan_fallback: "Anchor text",
+};
+
+// =========
+// DrawerVerificationSummary — flat verification display shown directly on expand
+// =========
+
+/** Get a human-readable match type from a successful attempt or status. */
+function getMatchType(status: SearchStatus | null | undefined, searchAttempts: SearchAttempt[]): string {
+  if (!status || status === "not_found") {
+    const count = searchAttempts.length;
+    return `${count} ${count === 1 ? "search" : "searches"} tried`;
+  }
+
+  const successfulAttempt = searchAttempts.find(a => a.success);
+  if (successfulAttempt?.matchedVariation) {
+    switch (successfulAttempt.matchedVariation) {
+      case "exact_full_phrase": return "Exact match";
+      case "normalized_full_phrase": return "Normalized match";
+      case "exact_anchor_text":
+      case "normalized_anchor_text": return "Anchor text match";
+      case "partial_full_phrase":
+      case "partial_anchor_text": return "Partial match";
+      case "first_word_only": return "First word match";
+      default: return "Match found";
+    }
+  }
+
+  switch (status) {
+    case "found":
+    case "found_phrase_missed_anchor_text": return "Exact match";
+    case "found_anchor_text_only": return "Anchor text match";
+    case "found_on_other_page":
+    case "found_on_other_line": return "Found at different location";
+    case "partial_text_found": return "Partial match";
+    case "first_word_found": return "First word match";
+    default: return "Match found";
+  }
+}
+
+/** Max phrase length in drawer context */
+const DRAWER_MAX_PHRASE_LENGTH = 50;
+
+/**
+ * Compact verification summary for the drawer.
+ * Shown directly when an item is expanded — no nested collapse/expand.
+ *
+ * Found/partial: single card with match info + method + location.
+ * Not_found: compact list of unique methods tried.
+ */
+function DrawerVerificationSummary({
+  searchAttempts,
+  status,
+}: {
+  searchAttempts: SearchAttempt[];
+  status: SearchStatus | null | undefined;
+}) {
+  if (searchAttempts.length === 0) return null;
+
+  const isMiss = status === "not_found";
+  const matchType = getMatchType(status, searchAttempts);
+  const successfulAttempt = searchAttempts.find(a => a.success);
+
+  // For found/partial: show a compact match card
+  if (!isMiss && successfulAttempt) {
+    const phrase = successfulAttempt.searchPhrase ?? "";
+    const displayPhrase = phrase.length > DRAWER_MAX_PHRASE_LENGTH
+      ? `${phrase.slice(0, DRAWER_MAX_PHRASE_LENGTH)}...`
+      : phrase;
+    const methodName = DRAWER_METHOD_NAMES[successfulAttempt.method] ?? "Search";
+    const foundPage = successfulAttempt.foundLocation?.page ?? successfulAttempt.pageSearched;
+    const locationText = foundPage != null ? `Page ${foundPage}` : "";
+
+    return (
+      <div className="px-4 py-2.5">
+        <div className="p-2.5 bg-white dark:bg-gray-900/50 rounded-md border border-gray-100 dark:border-gray-800">
+          <div className="flex items-start gap-2">
+            <span className="size-3.5 mt-0.5 shrink-0 text-green-600 dark:text-green-400">
+              <CheckIcon />
+            </span>
+            <span className="text-xs text-gray-700 dark:text-gray-200 break-all border-l-2 border-gray-300 dark:border-gray-600 pl-1.5">
+              {displayPhrase || matchType}
+            </span>
+          </div>
+          <div className="flex items-center justify-between mt-1.5 text-[11px] text-gray-400 dark:text-gray-500 pl-[22px]">
+            <span>{matchType} · {methodName}</span>
+            {locationText && <span>{locationText}</span>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // For not_found: show unique methods tried as a compact list
+  const uniqueMethods: string[] = [];
+  const seen = new Set<string>();
+  for (const attempt of searchAttempts) {
+    const name = DRAWER_METHOD_NAMES[attempt.method] ?? attempt.method;
+    if (!seen.has(name)) {
+      seen.add(name);
+      uniqueMethods.push(name);
+    }
+  }
+
+  return (
+    <div className="px-4 py-2.5">
+      <div className="p-2.5 bg-white dark:bg-gray-900/50 rounded-md border border-gray-100 dark:border-gray-800">
+        <div className="flex items-start gap-2">
+          <span className="size-3.5 mt-0.5 shrink-0 text-red-500 dark:text-red-400">
+            <MissIcon />
+          </span>
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
+            {matchType}
+          </span>
+        </div>
+        <div className="mt-1.5 pl-[22px] text-[11px] text-gray-400 dark:text-gray-500">
+          Searched: {uniqueMethods.join(", ")}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =========
+// SourceGroupHeader
+// =========
+
 /**
  * Source group header displayed in the drawer.
- * Shows favicon, source name, and citation count. Always expanded (no collapse toggle).
+ * Shows favicon (or letter avatar for documents), source name,
+ * external link for URL sources, and citation count.
  */
 function SourceGroupHeader({
   group,
@@ -54,6 +201,11 @@ function SourceGroupHeader({
 }) {
   const sourceName = group.sourceName || "Source";
   const citationCount = group.citations.length;
+  const isUrlSource = !!group.sourceDomain;
+
+  // For URL sources, get a link to visit
+  const sourceUrl = isUrlSource ? group.citations[0]?.citation.url : undefined;
+  const safeSourceUrl = sourceUrl ? sanitizeUrl(sourceUrl) : null;
 
   return (
     <div
@@ -61,15 +213,13 @@ function SourceGroupHeader({
       role="heading"
       aria-level={3}
     >
-      {/* Favicon */}
-      <div className="flex-shrink-0">
-        {group.sourceFavicon ? (
-          <img
-            src={group.sourceFavicon}
-            alt=""
-            className="w-4 h-4 rounded-sm object-contain"
-            loading="lazy"
-            onError={handleFaviconError}
+      {/* Favicon for URL sources, letter avatar for documents */}
+      <div className="shrink-0">
+        {isUrlSource ? (
+          <FaviconImage
+            faviconUrl={group.sourceFavicon || null}
+            domain={group.sourceDomain || null}
+            alt={sourceName}
           />
         ) : (
           <div className="w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
@@ -85,13 +235,31 @@ function SourceGroupHeader({
         {sourceName}
       </span>
 
+      {/* External link for URL sources */}
+      {safeSourceUrl && (
+        <a
+          href={safeSourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+          aria-label={`Open ${sourceName} in new tab`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="size-3.5 block"><ExternalLinkIcon /></span>
+        </a>
+      )}
+
       {/* Citation count badge */}
-      <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+      <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
         {citationCount} citation{citationCount !== 1 ? "s" : ""}
       </span>
     </div>
   );
 }
+
+// =========
+// Utilities
+// =========
 
 /**
  * Format a verification date for display.
@@ -119,9 +287,13 @@ function formatCheckedDate(date: Date | string | null | undefined): string | nul
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+// =========
+// CitationDrawerItemComponent
+// =========
+
 /**
  * Individual citation item displayed in the drawer.
- * Shows status indicator, source name, article title, snippet, and expandable detail view.
+ * Shows status + anchor text summary, expands to show compact verification details.
  */
 export const CitationDrawerItemComponent = React.memo(function CitationDrawerItemComponent({
   item,
@@ -133,13 +305,17 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const { citation, verification } = item;
   const statusInfo = useMemo(() => getStatusInfo(verification), [verification]);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [imageExpanded, setImageExpanded] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+
+  // Auto-reset copy state
+  useEffect(() => {
+    if (copyState === "idle") return;
+    const id = setTimeout(() => setCopyState("idle"), COPY_FEEDBACK_DURATION_MS);
+    return () => clearTimeout(id);
+  }, [copyState]);
 
   // Get display values with fallbacks
-  const isDocument = citation.type === "document" || (!citation.type && citation.attachmentId);
-  const isUrl = isUrlCitation(citation);
-  const sourceName = isDocument
-    ? (verification?.label || "Document")
-    : (citation.siteName || citation.domain || extractDomain(citation.url) || "Source");
   const articleTitle = citation.anchorText || citation.title;
   const snippet = citation.fullPhrase || citation.description || verification?.actualContentSnippet || verification?.verifiedMatchSnippet;
 
@@ -156,6 +332,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   // Verification date
   const checkedDate = formatCheckedDate(verification?.verifiedAt ?? verification?.crawledAt);
 
+  // Search attempts for verification summary
+  const searchAttempts = verification?.searchAttempts ?? [];
+
   const handleClick = useCallback(() => {
     setIsExpanded(prev => !prev);
     onClick?.(item);
@@ -169,17 +348,41 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     [item, onReadMore],
   );
 
+  const handleCopyAnchor = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const text = citation.anchorText?.toString() || articleTitle;
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopyState("copied");
+      } catch {
+        setCopyState("error");
+      }
+    },
+    [citation.anchorText, articleTitle],
+  );
+
   return (
     <div
       className={cn(
-        "group hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors",
+        "cursor-pointer transition-colors",
         !isLast && "border-b border-gray-200 dark:border-gray-700",
+        // Expanded: left accent border for visual distinction
+        isExpanded
+          ? "border-l-2 border-l-blue-400 dark:border-l-blue-500"
+          : "border-l-2 border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
         className,
       )}
     >
       {/* Clickable summary row */}
       <div
-        className="px-4 py-3"
+        className={cn(
+          "group px-4 py-3",
+          // Subtle highlight when expanded so the summary stands out from the detail area
+          isExpanded && "bg-gray-50/50 dark:bg-gray-800/30",
+        )}
         onClick={handleClick}
         role="button"
         tabIndex={0}
@@ -193,7 +396,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       >
         <div className="flex items-start gap-3">
           {/* Status indicator */}
-          <div className="flex-shrink-0 mt-0.5" data-testid="status-indicator">
+          <div className="shrink-0 mt-0.5" data-testid="status-indicator">
             <span
               className={cn(
                 "inline-flex w-5 h-5 items-center justify-center",
@@ -208,29 +411,109 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Source name with page number and timestamp */}
+            {/* Anchor text with page number, copy button, and timestamp */}
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{sourceName}</span>
+              {articleTitle && (
+                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{articleTitle}</h4>
+              )}
+              {/* Copy anchor text button — always in DOM, opacity on hover (no layout shift) */}
+              {articleTitle && (
+                <button
+                  type="button"
+                  onClick={handleCopyAnchor}
+                  className={cn(
+                    "shrink-0 p-0.5 rounded transition-opacity cursor-pointer",
+                    copyState === "copied"
+                      ? "opacity-100 text-green-600 dark:text-green-400"
+                      : "opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300",
+                  )}
+                  aria-label={copyState === "copied" ? "Copied!" : "Copy anchor text"}
+                  title={copyState === "copied" ? "Copied!" : "Copy"}
+                >
+                  <span className="size-3.5 block">{copyState === "copied" ? <CheckIcon /> : <CopyIcon />}</span>
+                </button>
+              )}
               {pageNumber != null && pageNumber > 0 && (
-                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+                <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
                   p.{pageNumber}
                 </span>
               )}
               {checkedDate && (
-                <span className="text-[11px] text-gray-400 dark:text-gray-500 flex-shrink-0 ml-auto">
-                  Checked {checkedDate}
+                <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0 ml-auto">
+                  {checkedDate}
                 </span>
               )}
             </div>
+          </div>
 
-            {/* Article title */}
-            {articleTitle && (
-              <h4 className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">{articleTitle}</h4>
+          {/* Expand/collapse chevron */}
+          <svg
+            aria-hidden="true"
+            className={cn(
+              "w-4 h-4 shrink-0 mt-1 transition-transform duration-200",
+              isExpanded
+                ? "rotate-180 text-gray-500 dark:text-gray-400"
+                : "text-gray-400 dark:text-gray-500",
             )}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
 
-            {/* Snippet */}
-            {snippet && snippet !== articleTitle && (
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+      {/* Expanded detail view */}
+      {isExpanded && (
+        <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+          {/* Proof image — click to expand/collapse */}
+          {proofImage && (
+            <div className="px-4 py-2">
+              <button
+                type="button"
+                className={cn(
+                  "relative group/img block rounded border border-gray-200 dark:border-gray-700 overflow-hidden transition-all",
+                  imageExpanded ? "cursor-zoom-out" : "cursor-zoom-in",
+                )}
+                onClick={(e) => { e.stopPropagation(); setImageExpanded(prev => !prev); }}
+                aria-label={imageExpanded ? "Collapse proof image" : "Expand proof image"}
+              >
+                <img
+                  src={proofImage}
+                  alt="Verification proof"
+                  className={cn(
+                    "w-auto object-contain transition-[max-height] duration-200",
+                    imageExpanded ? "max-h-[600px]" : "max-h-40",
+                  )}
+                  loading="lazy"
+                />
+                {/* Hover overlay with zoom hint (only when collapsed) */}
+                {!imageExpanded && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/img:bg-black/10 transition-colors">
+                    <span className="opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center gap-1 text-xs text-white bg-black/60 rounded px-2 py-1">
+                      <span className="size-3.5"><ZoomInIcon /></span>
+                      Expand
+                    </span>
+                  </div>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Verification summary — shown directly, no nested collapse */}
+          {searchAttempts.length > 0 && (
+            <DrawerVerificationSummary
+              searchAttempts={searchAttempts}
+              status={verification?.status}
+            />
+          )}
+
+          {/* Snippet fallback when no search attempts (shows full phrase context) */}
+          {searchAttempts.length === 0 && snippet && snippet !== articleTitle && (
+            <div className="px-4 py-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-4">
                 {snippet}
                 {onReadMore && snippet.length > 100 && (
                   <button
@@ -242,71 +525,18 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                   </button>
                 )}
               </p>
-            )}
-          </div>
-
-          {/* Expand/collapse chevron (decorative — parent has aria-expanded) */}
-          <svg
-            aria-hidden="true"
-            className={cn(
-              "w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0 mt-1 transition-transform duration-200",
-              isExpanded && "rotate-90",
-            )}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      </div>
-
-      {/* Expanded detail view */}
-      {isExpanded && (
-        <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
-          {/* Reuse popover header — shows clickable URL/favicon for URLs, document icon/label for docs */}
-          <SourceContextHeader
-            citation={citation}
-            verification={verification}
-            status={verification?.status}
-            sourceLabel={isDocument ? (verification?.label || undefined) : undefined}
-          />
-
-          {/* Proof image */}
-          {proofImage && (
-            <div className="px-4 py-2">
-              <img
-                src={proofImage}
-                alt="Verification proof"
-                className="rounded border border-gray-200 dark:border-gray-700 max-h-32 w-auto object-contain"
-                loading="lazy"
-              />
             </div>
           )}
 
-          {/* URL link for inspection */}
-          {isUrl && citation.url && (
-            <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800">
-              <a
-                href={citation.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 inline-flex items-center gap-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Open source
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            </div>
-          )}
         </div>
       )}
     </div>
   );
 });
+
+// =========
+// CitationDrawer
+// =========
 
 /**
  * CitationDrawer displays a collection of citations in a drawer/bottom sheet.
@@ -362,13 +592,10 @@ export function CitationDrawer({
   if (!isOpen) return null;
 
   const renderGroup = (group: SourceCitationGroup, groupIndex: number, isLastGroup: boolean) => {
-    const showGroupHeader = citationGroups.length > 1;
-
     return (
       <div key={`${group.sourceDomain ?? group.sourceName}-${groupIndex}`}>
-        {showGroupHeader && (
-          <SourceGroupHeader group={group} />
-        )}
+        {/* Always show group header — it's the only source identity */}
+        <SourceGroupHeader group={group} />
         <div>
           {group.citations.map((item, index) =>
             renderCitationItem ? (
@@ -412,13 +639,13 @@ export function CitationDrawer({
       >
         {/* Handle bar (mobile) — reduced padding */}
         {position === "bottom" && (
-          <div className="flex justify-center pt-2 pb-0.5 flex-shrink-0">
+          <div className="flex justify-center pt-2 pb-0.5 shrink-0">
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
           </div>
         )}
 
         {/* Header — reduced padding */}
-        <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
+        <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between shrink-0">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
           <button
             type="button"

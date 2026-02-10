@@ -166,7 +166,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
         aria-label={`${title} from ${platformName}`}
       >
         {/* Favicon */}
-        <div className="flex-shrink-0 mt-0.5">
+        <div className="shrink-0 mt-0.5">
           {renderFavicon ? (
             renderFavicon({
               id,
@@ -224,7 +224,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
         </div>
 
         {/* Arrow indicator */}
-        <div className="flex-shrink-0 text-gray-400 dark:text-gray-500 mt-1">
+        <div className="shrink-0 text-gray-400 dark:text-gray-500 mt-1">
           <ChevronRightIcon />
         </div>
       </div>
