@@ -24,7 +24,13 @@ export interface CitationStatusSummary {
  * Props for the CitationDrawerTrigger component.
  */
 export interface CitationDrawerTriggerProps {
-  /** Citation groups to summarize (same data as CitationDrawer) */
+  /**
+   * Citation groups to summarize (same data as CitationDrawer).
+   *
+   * **Performance Note**: For optimal performance, memoize this prop using `useMemo` or ensure
+   * it has a stable reference. The trigger uses `useMemo` internally to flatten citations,
+   * but if this prop changes on every render, that optimization is bypassed.
+   */
   citationGroups: SourceCitationGroup[];
   /** Click handler — typically opens the full CitationDrawer */
   onClick?: () => void;
@@ -173,6 +179,7 @@ function CitationTooltip({
 }) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [adjustedLeft, setAdjustedLeft] = useState<number | null>(null);
+  const [isFlipped, setIsFlipped] = useState(false);
   const { item, sourceName, sourceFavicon, group } = flatItem;
   const statusInfo = getStatusInfo(item.verification);
 
@@ -212,7 +219,7 @@ function CitationTooltip({
     onSourceClick?.(group);
   };
 
-  // Clamp tooltip to viewport edges on mount and when layout changes
+  // Clamp tooltip to viewport edges and flip if needed
   useLayoutEffect(() => {
     const el = tooltipRef.current;
     if (!el) return;
@@ -220,12 +227,21 @@ function CitationTooltip({
     const clamp = () => {
       const rect = el.getBoundingClientRect();
       const margin = 8;
+
+      // Horizontal clamping
       if (rect.left < margin) {
         setAdjustedLeft(-rect.left + margin);
       } else if (rect.right > window.innerWidth - margin) {
         setAdjustedLeft(window.innerWidth - margin - rect.right);
       } else {
         setAdjustedLeft(null);
+      }
+
+      // Vertical flip: if tooltip would overflow top, flip to bottom
+      if (rect.top < margin) {
+        setIsFlipped(true);
+      } else {
+        setIsFlipped(false);
       }
     };
 
@@ -240,10 +256,11 @@ function CitationTooltip({
     <div
       ref={tooltipRef}
       className={cn(
-        "absolute bottom-full left-1/2 mb-2 z-50",
+        "absolute left-1/2 z-50",
         "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700",
         "rounded-lg min-w-[180px] max-w-[260px]",
         "pointer-events-auto",
+        isFlipped ? "top-full mt-2" : "bottom-full mb-2",
       )}
       style={{
         transform: `translateX(calc(-50% + ${adjustedLeft ?? 0}px))`,
@@ -419,17 +436,26 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
     // Flatten citation groups into individual items for per-citation icons
     const flatCitations = useMemo(() => flattenCitations(citationGroups), [citationGroups]);
 
-    const handleMouseEnter = useCallback(() => setIsHovered(true), []);
-    const handleMouseLeave = useCallback(() => {
-      setIsHovered(false);
-      setHoveredIndex(null);
+    const handleMouseEnter = useCallback(() => {
       clearTimeout(leaveTimeoutRef.current);
+      setIsHovered(true);
     }, []);
+
+    const handleMouseLeave = useCallback(() => {
+      clearTimeout(leaveTimeoutRef.current);
+      leaveTimeoutRef.current = setTimeout(() => {
+        setIsHovered(false);
+        setHoveredIndex(null);
+      }, TOOLTIP_HIDE_DELAY_MS);
+    }, []);
+
     const handleFocus = useCallback(() => {
       clearTimeout(leaveTimeoutRef.current);
       setIsHovered(true);
     }, []);
+
     const handleBlur = useCallback(() => {
+      clearTimeout(leaveTimeoutRef.current);
       leaveTimeoutRef.current = setTimeout(() => {
         setIsHovered(false);
         setHoveredIndex(null);
