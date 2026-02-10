@@ -1236,27 +1236,44 @@ describe("CitationDrawer group collapse/expand state", () => {
     additionalCount: count - 1,
   });
 
-  /** Find the group header button by aria-expanded attribute containing the source name.
-   * Searches document.body (not RTL container) because the portal mock renders at document level. */
-  const findGroupHeader = (name: string): HTMLElement | null => {
-    const buttons = document.querySelectorAll("button[aria-expanded]");
-    for (const btn of buttons) {
-      if (btn.textContent?.includes(name)) return btn as HTMLElement;
+  /**
+   * Find a group header button via RTL's getAllByRole.
+   * The group header buttons have `aria-expanded` and contain the source name text.
+   */
+  const findGroupHeader = (
+    getAllByRole: (role: string, options?: Record<string, unknown>) => HTMLElement[],
+    name: string,
+  ): HTMLElement | null => {
+    try {
+      const buttons = getAllByRole("button", { expanded: true })
+        .concat(getAllByRole("button", { expanded: false }))
+        .filter(btn => btn.textContent?.includes(name));
+      return buttons[0] ?? null;
+    } catch {
+      // getAllByRole throws when no matches — try only one expanded state
+      try {
+        const expanded = getAllByRole("button", { expanded: true }).filter(btn => btn.textContent?.includes(name));
+        if (expanded.length > 0) return expanded[0];
+      } catch { /* no expanded buttons */ }
+      try {
+        const collapsed = getAllByRole("button", { expanded: false }).filter(btn => btn.textContent?.includes(name));
+        if (collapsed.length > 0) return collapsed[0];
+      } catch { /* no collapsed buttons */ }
+      return null;
     }
-    return null;
   };
 
   it("shows group headers when multiple groups exist", () => {
-    render(
+    const { getAllByRole } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 1), createGroup("Beta", 1)]} showMoreSection={false} />,
     );
 
-    expect(findGroupHeader("Alpha")).toBeInTheDocument();
-    expect(findGroupHeader("Beta")).toBeInTheDocument();
+    expect(findGroupHeader(getAllByRole, "Alpha")).toBeInTheDocument();
+    expect(findGroupHeader(getAllByRole, "Beta")).toBeInTheDocument();
   });
 
   it("collapses a group when its header is clicked", () => {
-    const { queryByText } = render(
+    const { getAllByRole, queryByText } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 2), createGroup("Beta", 1)]} showMoreSection={false} />,
     );
 
@@ -1265,7 +1282,7 @@ describe("CitationDrawer group collapse/expand state", () => {
     expect(queryByText("Alpha Article 2")).toBeInTheDocument();
 
     // Click the Alpha group header to collapse it
-    const alphaHeader = findGroupHeader("Alpha")!;
+    const alphaHeader = findGroupHeader(getAllByRole, "Alpha")!;
     fireEvent.click(alphaHeader);
 
     // Alpha articles should be hidden
@@ -1277,47 +1294,48 @@ describe("CitationDrawer group collapse/expand state", () => {
   });
 
   it("expands a collapsed group when its header is clicked again", () => {
-    const { queryByText } = render(
+    const { getAllByRole, queryByText } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 2), createGroup("Beta", 1)]} showMoreSection={false} />,
     );
 
-    const alphaHeader = findGroupHeader("Alpha")!;
+    const alphaHeader = findGroupHeader(getAllByRole, "Alpha")!;
 
     // Collapse Alpha
     fireEvent.click(alphaHeader);
     expect(queryByText("Alpha Article 1")).not.toBeInTheDocument();
 
-    // Expand Alpha again
-    fireEvent.click(alphaHeader);
+    // Expand Alpha again — need to re-find since it now has expanded=false
+    const alphaHeaderCollapsed = findGroupHeader(getAllByRole, "Alpha")!;
+    fireEvent.click(alphaHeaderCollapsed);
     expect(queryByText("Alpha Article 1")).toBeInTheDocument();
     expect(queryByText("Alpha Article 2")).toBeInTheDocument();
   });
 
   it("maintains independent collapse state per group", () => {
-    const { queryByText } = render(
+    const { getAllByRole, queryByText } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 1), createGroup("Beta", 1), createGroup("Gamma", 1)]} showMoreSection={false} />,
     );
 
     // Collapse Alpha and Gamma, leave Beta open
-    fireEvent.click(findGroupHeader("Alpha")!);
-    fireEvent.click(findGroupHeader("Gamma")!);
+    fireEvent.click(findGroupHeader(getAllByRole, "Alpha")!);
+    fireEvent.click(findGroupHeader(getAllByRole, "Gamma")!);
 
     expect(queryByText("Alpha Article 1")).not.toBeInTheDocument();
     expect(queryByText("Beta Article 1")).toBeInTheDocument();
     expect(queryByText("Gamma Article 1")).not.toBeInTheDocument();
 
     // Expand Alpha back — Gamma should remain collapsed
-    fireEvent.click(findGroupHeader("Alpha")!);
+    fireEvent.click(findGroupHeader(getAllByRole, "Alpha")!);
     expect(queryByText("Alpha Article 1")).toBeInTheDocument();
     expect(queryByText("Gamma Article 1")).not.toBeInTheDocument();
   });
 
   it("sets aria-expanded on group headers", () => {
-    render(
+    const { getAllByRole } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 1), createGroup("Beta", 1)]} showMoreSection={false} />,
     );
 
-    const alphaHeader = findGroupHeader("Alpha")!;
+    const alphaHeader = findGroupHeader(getAllByRole, "Alpha")!;
     expect(alphaHeader).toHaveAttribute("aria-expanded", "true");
 
     // Collapse Alpha
@@ -1326,11 +1344,11 @@ describe("CitationDrawer group collapse/expand state", () => {
   });
 
   it("shows chevron rotation class for expanded groups", () => {
-    render(
+    const { getAllByRole } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 1), createGroup("Beta", 1)]} showMoreSection={false} />,
     );
 
-    const alphaHeader = findGroupHeader("Alpha")!;
+    const alphaHeader = findGroupHeader(getAllByRole, "Alpha")!;
     const chevron = alphaHeader.querySelector("svg");
 
     // Expanded: should have rotate-90
@@ -1344,7 +1362,7 @@ describe("CitationDrawer group collapse/expand state", () => {
   });
 
   it("does not show group headers when only one group exists", () => {
-    const { getByText } = render(
+    const { getAllByRole, getByText } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Alpha", 3)]} showMoreSection={false} />,
     );
 
@@ -1353,8 +1371,8 @@ describe("CitationDrawer group collapse/expand state", () => {
     expect(getByText("Alpha Article 2")).toBeInTheDocument();
     expect(getByText("Alpha Article 3")).toBeInTheDocument();
 
-    // No group header button should exist (aria-expanded is only on group headers)
-    const groupHeaderButton = findGroupHeader("Alpha");
+    // No group header button with aria-expanded should exist
+    const groupHeaderButton = findGroupHeader(getAllByRole, "Alpha");
     expect(groupHeaderButton).toBeNull();
   });
 });
