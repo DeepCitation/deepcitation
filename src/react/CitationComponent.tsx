@@ -854,44 +854,37 @@ const MissIndicator = () => (
 );
 
 // =============================================================================
-// DOT INDICATOR COMPONENTS (subtle colored dots, like GitHub status dots)
+// DOT INDICATOR COMPONENT (subtle colored dot, like GitHub/shadcn status dots)
 // =============================================================================
+// Smaller than icon indicators (ml-0.5 vs ml-1) because the dots are roughly
+// half the size and need less visual separation from adjacent text.
 
-/** Verified dot - green filled circle for exact matches */
-const VerifiedDot = () => (
+const DOT_COLORS = {
+  green: "bg-green-600 dark:bg-green-500",
+  amber: "bg-amber-500 dark:bg-amber-400",
+  red: "bg-red-500 dark:bg-red-400",
+  gray: "bg-gray-400 dark:bg-gray-500",
+} as const;
+
+/** Unified dot indicator — color + optional pulse animation. */
+const DotIndicator = ({ color, pulse = false, label }: { color: keyof typeof DOT_COLORS; pulse?: boolean; label: string }) => (
   <span
-    className="inline-block relative ml-0.5 top-[0.05em] rounded-full bg-green-600 dark:bg-green-500 [text-decoration:none]"
+    className={cn(
+      "inline-block relative ml-0.5 top-[0.05em] rounded-full [text-decoration:none]",
+      DOT_COLORS[color],
+      pulse && "animate-pulse",
+    )}
     style={DOT_INDICATOR_SIZE_STYLE}
-    aria-hidden="true"
+    data-dc-indicator={color === "red" ? "error" : color === "gray" ? "pending" : color === "amber" ? "partial" : "verified"}
+    role="img"
+    aria-label={label}
   />
 );
 
-/** Partial dot - amber filled circle for partial/relocated matches */
-const PartialDot = () => (
-  <span
-    className="inline-block relative ml-0.5 top-[0.05em] rounded-full bg-amber-500 dark:bg-amber-400 [text-decoration:none]"
-    style={DOT_INDICATOR_SIZE_STYLE}
-    aria-hidden="true"
-  />
-);
-
-/** Pending dot - gray pulsing circle (like shadcn badge dot) */
-const PendingDot = () => (
-  <span
-    className="inline-block relative ml-0.5 top-[0.05em] rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse [text-decoration:none]"
-    style={DOT_INDICATOR_SIZE_STYLE}
-    aria-hidden="true"
-  />
-);
-
-/** Miss dot - red filled circle for not found */
-const MissDot = () => (
-  <span
-    className="inline-block relative ml-0.5 top-[0.05em] rounded-full bg-red-500 dark:bg-red-400 [text-decoration:none]"
-    style={DOT_INDICATOR_SIZE_STYLE}
-    aria-hidden="true"
-  />
-);
+const VerifiedDot = () => <DotIndicator color="green" label="Verified" />;
+const PartialDot = () => <DotIndicator color="amber" label="Partial match" />;
+const PendingDot = () => <DotIndicator color="gray" pulse label="Verifying" />;
+const MissDot = () => <DotIndicator color="red" label="Not found" />;
 
 // =============================================================================
 // VERIFICATION IMAGE COMPONENT
