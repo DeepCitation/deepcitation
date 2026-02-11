@@ -598,6 +598,7 @@ Complete these tasks in order:
 #### Imports
 
 ```typescript
+import { useState } from "react";
 import { parseCitation } from "@deepcitation/deepcitation-js";
 import type { Citation, Verification } from "@deepcitation/deepcitation-js";
 import {
