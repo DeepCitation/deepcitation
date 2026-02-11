@@ -5,7 +5,7 @@
  */
 
 // Box/geometry types
-export type { DeepTextItem, IVertex, Page, ScreenBox } from "./boxes.js";
+export type { CitationPage, DeepTextItem, IVertex, ScreenBox } from "./boxes.js";
 // Citation core types
 export type {
   Citation,

@@ -6,6 +6,7 @@
 export type {
   CitationInput,
   DeepCitationConfig,
+  DeepCitationLogger,
   DeleteAttachmentResponse,
   ExpirationValue,
   ExtendExpirationDuration,
@@ -21,8 +22,17 @@ export type {
   VerifyCitationsOptions,
   VerifyCitationsResponse,
 } from "./client/index.js";
-// Client
-export { DeepCitation } from "./client/index.js";
+// Client - import from canonical location
+export { DeepCitation } from "./client/DeepCitation.js";
+// Errors - import from canonical location
+export {
+  AuthenticationError,
+  DeepCitationError,
+  NetworkError,
+  RateLimitError,
+  ServerError,
+  ValidationError,
+} from "./client/errors.js";
 export type {
   CitationWithStatus,
   IndicatorSet,
@@ -48,9 +58,8 @@ export {
   toMarkdown,
   toSuperscript,
 } from "./markdown/index.js";
-// Citation Parsing (deferred JSON pattern)
+// Citation Parsing
 export {
-  deferredCitationToCitation,
   extractVisibleText,
   getAllCitationsFromDeferredResponse,
   getCitationMarkerIds,
@@ -110,7 +119,7 @@ export {
   generateCitationKey,
   generateVerificationKey,
 } from "./react/utils.js";
-export type { DeepTextItem, IVertex, Page, ScreenBox } from "./types/boxes.js";
+export type { CitationPage, DeepTextItem, IVertex, ScreenBox } from "./types/boxes.js";
 // Types
 export type {
   Citation,

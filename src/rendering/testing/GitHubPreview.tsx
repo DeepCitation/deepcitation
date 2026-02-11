@@ -60,7 +60,7 @@ function GitHubComment({ children }: { children: React.ReactNode }) {
   return (
     <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
       <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-300 dark:border-gray-600 flex items-center gap-2">
-        <div className="w-6 h-6 rounded-full bg-gray-400 dark:bg-gray-500 flex-shrink-0" />
+        <div className="w-6 h-6 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0" />
         <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">deepcitation-bot</span>
         <span className="text-xs text-gray-500 dark:text-gray-400">commented 2 hours ago</span>
       </div>

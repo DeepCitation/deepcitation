@@ -44,6 +44,104 @@ export const MISS_WAVY_UNDERLINE_STYLE: React.CSSProperties = {
   textUnderlineOffset: "2px",
 };
 
+// =============================================================================
+// Status Color CSS Custom Properties
+// These can be overridden via CSS to match your design system:
+//
+// :root {
+//   --dc-verified-color: #22c55e;
+//   --dc-partial-color: #eab308;
+//   --dc-error-color: #dc2626;
+//   --dc-pending-color: #6b7280;
+//   --dc-popover-width: 400px;
+// }
+// =============================================================================
+
+/**
+ * CSS custom property name for verified/success indicator color.
+ * @example
+ * ```css
+ * :root {
+ *   --dc-verified-color: #22c55e; // Override default
+ * }
+ * ```
+ */
+export const VERIFIED_COLOR_VAR = "--dc-verified-color";
+/** Default verified indicator color (Tailwind green-600) */
+export const VERIFIED_COLOR_DEFAULT = "#16a34a";
+
+/**
+ * CSS custom property name for partial match indicator color.
+ * @example
+ * ```css
+ * :root {
+ *   --dc-partial-color: #eab308; // Override default
+ * }
+ * ```
+ */
+export const PARTIAL_COLOR_VAR = "--dc-partial-color";
+/** Default partial match indicator color (Tailwind amber-500) */
+export const PARTIAL_COLOR_DEFAULT = "#f59e0b";
+
+/**
+ * CSS custom property name for error/not-found indicator color.
+ * @example
+ * ```css
+ * :root {
+ *   --dc-error-color: #dc2626; // Override default
+ * }
+ * ```
+ */
+export const ERROR_COLOR_VAR = "--dc-error-color";
+/** Default error indicator color (Tailwind red-500) */
+export const ERROR_COLOR_DEFAULT = "#ef4444";
+
+/**
+ * CSS custom property name for pending indicator color.
+ * @example
+ * ```css
+ * :root {
+ *   --dc-pending-color: #6b7280; // Override default
+ * }
+ * ```
+ */
+export const PENDING_COLOR_VAR = "--dc-pending-color";
+/** Default pending indicator color (Tailwind gray-400) */
+export const PENDING_COLOR_DEFAULT = "#9ca3af";
+
+/**
+ * CSS custom property name for popover width.
+ * @example
+ * ```css
+ * :root {
+ *   --dc-popover-width: 500px; // Override default 384px
+ * }
+ * ```
+ */
+export const POPOVER_WIDTH_VAR = "--dc-popover-width";
+/** Default popover width */
+export const POPOVER_WIDTH_DEFAULT = "384px";
+
+/** Inline style for verified indicator color, using CSS custom property with fallback */
+export const VERIFIED_COLOR_STYLE: React.CSSProperties = {
+  color: `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`,
+};
+
+/** Inline style for partial match indicator color, using CSS custom property with fallback */
+export const PARTIAL_COLOR_STYLE: React.CSSProperties = {
+  color: `var(${PARTIAL_COLOR_VAR}, ${PARTIAL_COLOR_DEFAULT})`,
+};
+
+/** Inline style for error/not-found indicator color, using CSS custom property with fallback */
+export const ERROR_COLOR_STYLE: React.CSSProperties = {
+  color: `var(${ERROR_COLOR_VAR}, ${ERROR_COLOR_DEFAULT})`,
+};
+
+/** Inline style for pending indicator color, using CSS custom property with fallback */
+export const PENDING_COLOR_STYLE: React.CSSProperties = {
+  color: `var(${PENDING_COLOR_VAR}, ${PENDING_COLOR_DEFAULT})`,
+};
+
 /**
  * Duration in ms to show "Copied" feedback before resetting to idle state.
  * Used for copy-to-clipboard feedback in various components.
@@ -93,3 +191,76 @@ export const DOT_INDICATOR_FIXED_SIZE_STYLE: React.CSSProperties = {
   width: "6px",
   height: "6px",
 };
+
+// =============================================================================
+// Z-INDEX LAYERING
+// =============================================================================
+//
+// Z-index hierarchy for DeepCitation overlay components.
+// All values use CSS custom properties so consumers can adjust stacking
+// relative to their own app's z-index scale.
+//
+// Layer                        CSS custom property             Default
+// ────────────────────────────────────────────────────────────────────
+// Popover (Radix portal)       --dc-z-popover                  9998
+// Drawer backdrop              --dc-z-drawer-backdrop           9998
+// Drawer container             --dc-z-drawer                    9999
+// Image overlay                --dc-z-image-overlay             9999
+// Tooltip (SourceTooltip)      z-50 (Tailwind, local stacking)    50
+//
+// Drawer stacked icons use inline z-index 1–10 for local stacking order.
+
+/** CSS custom property for the popover z-index. Default: 9998. */
+export const Z_INDEX_POPOVER_VAR = "--dc-z-popover";
+/** CSS custom property for the drawer backdrop z-index. Default: 9998. */
+export const Z_INDEX_DRAWER_BACKDROP_VAR = "--dc-z-drawer-backdrop";
+/** CSS custom property for the drawer container z-index. Default: 9999. */
+export const Z_INDEX_DRAWER_VAR = "--dc-z-drawer";
+/** CSS custom property for the image overlay z-index. Default: 9999. */
+export const Z_INDEX_IMAGE_OVERLAY_VAR = "--dc-z-image-overlay";
+
+/** Default z-index for backdrop layers (popover, drawer backdrop). */
+export const Z_INDEX_BACKDROP_DEFAULT = 9998;
+/** Default z-index for foreground overlays (drawer, image overlay). */
+export const Z_INDEX_OVERLAY_DEFAULT = 9999;
+
+// =============================================================================
+// PORTAL
+// =============================================================================
+
+/**
+ * Returns `document.body` if available (browser), or `null` during SSR.
+ * Use as the container argument for `createPortal` — when `null` is returned,
+ * the caller should skip rendering the portal entirely.
+ */
+export function getPortalContainer(): HTMLElement | null {
+  return typeof document !== "undefined" ? document.body : null;
+}
+
+/** Safe raster image data URI prefixes (no SVG — can contain scripts). */
+export const SAFE_DATA_IMAGE_PREFIXES = ["data:image/png", "data:image/jpeg", "data:image/jpg", "data:image/webp", "data:image/avif", "data:image/gif"] as const;
+
+/** Trusted CDN hostnames for proof images. */
+export const TRUSTED_IMAGE_HOSTS = ["api.deepcitation.com", "cdn.deepcitation.com"] as const;
+
+/**
+ * Validate that a proof image source is a trusted URL or safe data URI.
+ * Blocks SVG data URIs (can contain script), case-insensitive, trims whitespace.
+ */
+export function isValidProofImageSrc(src: unknown): src is string {
+  if (typeof src !== "string") return false;
+  const trimmed = src.trim();
+  if (trimmed.length === 0) return false;
+
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith("data:")) {
+    return SAFE_DATA_IMAGE_PREFIXES.some(prefix => lower.startsWith(prefix));
+  }
+
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "https:" && (TRUSTED_IMAGE_HOSTS as readonly string[]).includes(url.hostname);
+  } catch {
+    return false;
+  }
+}

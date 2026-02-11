@@ -792,6 +792,7 @@ The Next.js example uses these models (DO NOT CHANGE):
 | `MISS_WAVY_UNDERLINE_STYLE` | `src/react/constants.ts` | Wavy underline CSS |
 | `DOT_INDICATOR_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (inline, em-based) |
 | `DOT_INDICATOR_FIXED_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (drawers/wrappers, fixed px) |
+| `formatCaptureDate()` | `src/react/dateUtils.ts` | Date formatting for timestamps |
 
 ### Example
 

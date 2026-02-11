@@ -429,8 +429,8 @@ describe("SourceContextHeader", () => {
       const { container } = render(<SourceContextHeader citation={citation} verification={verification} />);
 
       expect(container.textContent).toContain("Invoice.pdf");
-      // Page info is now shown as "Page X" format (human-readable)
-      expect(container.textContent).toContain("Page 5");
+      // Page info is now shown as "p.X" format
+      expect(container.textContent).toContain("p.5");
       // Should have SVG for document icon
       const svg = container.querySelector("svg");
       expect(svg).toBeInTheDocument();
@@ -448,7 +448,7 @@ describe("SourceContextHeader", () => {
 
       // attachmentId should never be shown to users - only show page info
       expect(container.textContent).not.toContain("abc123");
-      expect(container.textContent).toContain("Page 1");
+      expect(container.textContent).toContain("p.1");
     });
 
     it("returns null when no meaningful display info available", () => {
@@ -471,8 +471,8 @@ describe("SourceContextHeader", () => {
 
       const { container } = render(<SourceContextHeader citation={citation} />);
 
-      // Page info is now shown as "Page X" format (human-readable)
-      expect(container.textContent).toContain("Page 10");
+      // Page info is now shown as "p.X" format
+      expect(container.textContent).toContain("p.10");
     });
   });
 });

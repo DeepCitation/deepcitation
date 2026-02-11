@@ -8,6 +8,7 @@
 
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as React from "react";
+import { Z_INDEX_BACKDROP_DEFAULT, Z_INDEX_POPOVER_VAR } from "./constants.js";
 
 function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
@@ -16,7 +17,7 @@ function cn(...classes: (string | undefined | null | false)[]): string {
 const PopoverContent = React.forwardRef<
   React.ComponentRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 8, sticky = "always", ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 8, sticky = "always", style, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
@@ -26,10 +27,11 @@ const PopoverContent = React.forwardRef<
       // This prevents confusing UX where the popover shifts position when expanding/collapsing
       // sections like search details. The popover may be partially offscreen but stays in place.
       sticky={sticky}
+      style={{ zIndex: `var(${Z_INDEX_POPOVER_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})`, ...style } as React.CSSProperties}
       className={cn(
         // Base styling: fit-content dimensions, viewport-aware max for both width and height
         // Ensures popover never exceeds screen bounds, leaving room for positioning
-        "z-[9998] rounded-lg border bg-white shadow-xl outline-none",
+        "rounded-lg border bg-white shadow-xl outline-none",
         "w-fit max-w-[min(400px,calc(100vw-2rem))] max-h-[calc(100vh-4rem)]",
         "overflow-auto",
         "border-gray-200 dark:border-gray-700 dark:bg-gray-900",

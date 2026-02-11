@@ -7,7 +7,7 @@ import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.t
 import {
   CheckIcon as CheckIconComponent,
   SpinnerIcon as SpinnerIconComponent,
-  WarningIcon as WarningIconComponent,
+  XCircleIcon as XCircleIconComponent,
 } from "./icons.js";
 
 /**
@@ -40,7 +40,7 @@ export function groupCitationsBySource(citations: CitationDrawerItem[]): SourceC
         ? (firstVerification?.label || firstCitation.attachmentId || "Document")
         : (firstCitation.siteName || firstCitation.domain || extractDomain(firstCitation.url) || "Unknown Source"),
       sourceDomain: isDocType ? undefined : (firstCitation.domain || extractDomain(firstCitation.url)),
-      sourceFavicon: firstCitation.faviconUrl || undefined,
+      sourceFavicon: firstVerification?.verifiedFaviconUrl || firstCitation.faviconUrl || undefined,
       citations: items,
       additionalCount: items.length - 1,
     };
@@ -124,7 +124,7 @@ export function getStatusInfo(
   if (status === "not_found") {
     return {
       color: "text-red-500",
-      icon: <WarningIconComponent />,
+      icon: <XCircleIconComponent />,
       label: "Not found",
     };
   }

@@ -16,7 +16,7 @@ describe("StatusHeader", () => {
       const { container } = render(<StatusHeader status="found" foundPage={5} />);
       // "Verified" text was removed - the checkmark icon is self-explanatory
       // Just verifies the header renders with page info
-      expect(container.textContent).toContain("Page 5");
+      expect(container.textContent).toContain("p.5");
     });
 
     it("renders 'Found on different page' for found_on_other_page", () => {
@@ -46,7 +46,7 @@ describe("StatusHeader", () => {
       const { container } = render(<StatusHeader status="found" foundPage={5} expectedPage={5} />);
 
       // Should show "Pg 5" once (pages match, no arrow)
-      expect(container.textContent).toContain("Page 5");
+      expect(container.textContent).toContain("p.5");
       // Should NOT have arrow (pages match)
       expect(container.textContent).not.toContain("→");
     });
@@ -55,7 +55,7 @@ describe("StatusHeader", () => {
       const { container } = render(<StatusHeader status="found_on_other_page" foundPage={7} expectedPage={5} />);
 
       // Should show arrow format: Pg 5 → 7
-      expect(container.textContent).toContain("Page 5");
+      expect(container.textContent).toContain("p.5");
       expect(container.textContent).toContain("→");
       expect(container.textContent).toContain("7");
     });
@@ -66,28 +66,28 @@ describe("StatusHeader", () => {
       // For same page but different line, foundPage === expectedPage,
       // so no arrow should appear
       expect(container.textContent).not.toContain("→");
-      expect(container.textContent).toContain("Page 5");
+      expect(container.textContent).toContain("p.5");
     });
 
     it("shows only expectedPage when status is not_found (no foundPage)", () => {
       const { container } = render(<StatusHeader status="not_found" expectedPage={5} />);
 
       // Should show expected page for not_found
-      expect(container.textContent).toContain("Page 5");
+      expect(container.textContent).toContain("p.5");
     });
 
     it("shows nothing when no page info provided", () => {
       const { container } = render(<StatusHeader status="pending" />);
 
       // Should not contain any Pg text
-      expect(container.textContent).not.toContain("Page");
+      expect(container.textContent).not.toContain("p.");
     });
 
     it("handles undefined expectedPage gracefully", () => {
       const { container } = render(<StatusHeader status="found" foundPage={5} expectedPage={undefined} />);
 
       // Should show foundPage
-      expect(container.textContent).toContain("Page 5");
+      expect(container.textContent).toContain("p.5");
       // No arrow (no expected page to compare)
       expect(container.textContent).not.toContain("→");
     });
@@ -105,7 +105,7 @@ describe("StatusHeader", () => {
 
       // Should show anchor text inline (styled with border, no literal quotes for copy-paste friendliness)
       expect(container.textContent).toContain("increased by 15%");
-      expect(container.textContent).toContain("Page 5");
+      expect(container.textContent).toContain("p.5");
     });
 
     it("renders anchor text inline when status text is empty", () => {
@@ -113,7 +113,7 @@ describe("StatusHeader", () => {
 
       // When status text is empty (not_found), anchor text is shown inline (no literal quotes)
       expect(container.textContent).toContain("increased by 15%");
-      expect(container.textContent).toContain("Page 5");
+      expect(container.textContent).toContain("p.5");
     });
 
     it("shows arrow format page badge for partial match", () => {
@@ -122,7 +122,7 @@ describe("StatusHeader", () => {
       );
 
       // Should show arrow format: Pg 5 → 7 (not strikethrough)
-      expect(container.textContent).toContain("Page 5");
+      expect(container.textContent).toContain("p.5");
       expect(container.textContent).toContain("→");
       expect(container.textContent).toContain("7");
     });

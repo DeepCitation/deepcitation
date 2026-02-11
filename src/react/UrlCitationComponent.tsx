@@ -32,7 +32,7 @@ const VerifiedCheck = () => <CheckIcon className="w-full h-full text-green-600 d
  * Status icon wrapper for consistent sizing and alignment.
  */
 const StatusIconWrapper = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <span className={classNames("w-3 h-3 flex-shrink-0 flex items-center justify-center", className)}>{children}</span>
+  <span className={classNames("w-3 h-3 shrink-0 flex items-center justify-center", className)}>{children}</span>
 );
 
 /**
@@ -44,7 +44,7 @@ const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl
 
   if (isBroken) {
     return (
-      <span className="w-3.5 h-3.5 flex items-center justify-center text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+      <span className="w-3.5 h-3.5 flex items-center justify-center text-xs text-gray-400 dark:text-gray-500 shrink-0">
         🌐
       </span>
     );
@@ -54,7 +54,7 @@ const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl
     <img
       src={src}
       alt=""
-      className="w-3.5 h-3.5 rounded-sm flex-shrink-0"
+      className="w-3.5 h-3.5 rounded-sm shrink-0"
       width={14}
       height={14}
       loading="lazy"
@@ -298,7 +298,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
         }
         return (
           <span
-            className="w-3 h-3 flex-shrink-0 flex items-center justify-center text-red-500 dark:text-red-400"
+            className="w-3 h-3 shrink-0 flex items-center justify-center text-red-500 dark:text-red-400"
             aria-label={statusInfo.label}
           >
             <XCircleIcon className="w-full h-full" />

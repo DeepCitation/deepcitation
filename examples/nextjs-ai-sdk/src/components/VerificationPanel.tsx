@@ -17,6 +17,7 @@ interface VerificationPanelProps {
 
 export function VerificationPanel({ verification }: VerificationPanelProps) {
   const [expandedCitation, setExpandedCitation] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const { summary, verifications } = verification;
   const verificationRate = summary.total > 0 ? (summary.verified / summary.total) * 100 : 0;
@@ -150,11 +151,20 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                         View Hosted Proof
                       </a>
                       <button
-                        onClick={() => navigator.clipboard.writeText(v.proofUrl!)}
+                        onClick={async () => {
+                          try {
+                            if (!v.proofUrl) return;
+                            await navigator.clipboard.writeText(v.proofUrl);
+                            setCopiedKey(key);
+                            setTimeout(() => setCopiedKey(null), 2000);
+                          } catch {
+                            console.error("Failed to copy proof URL to clipboard");
+                          }
+                        }}
                         className="text-gray-400 hover:text-gray-600 text-xs"
                         title="Copy proof URL"
                       >
-                        Copy
+                        {copiedKey === key ? "Copied!" : "Copy"}
                       </button>
                     </div>
                   )}

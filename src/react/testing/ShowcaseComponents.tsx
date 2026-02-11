@@ -2089,16 +2089,7 @@ export function CitationDrawerShowcase() {
             {mixedGroups.map((group, groupIndex) => (
               <div key={`${group.sourceDomain ?? group.sourceName}-${groupIndex}`}>
                 {/* Source group header */}
-                <div className="px-4 py-2.5 flex items-center gap-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                  <svg
-                    className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0 rotate-90"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
+                <div className="w-full px-4 py-2.5 flex items-center gap-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
                   {group.sourceFavicon ? (
                     <img src={group.sourceFavicon} alt="" className="w-4 h-4 rounded-sm object-contain" loading="lazy" />
                   ) : (
@@ -2111,7 +2102,7 @@ export function CitationDrawerShowcase() {
                   <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-200 text-left truncate">
                     {group.sourceName}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
                     {group.citations.length} citation{group.citations.length !== 1 ? "s" : ""}
                   </span>
                 </div>
