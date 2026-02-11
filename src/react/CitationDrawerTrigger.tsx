@@ -3,6 +3,7 @@ import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, u
 import type { Verification } from "../types/verification.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
 import { extractDomain, getStatusInfo } from "./CitationDrawer.utils.js";
+import { isValidProofImageSrc } from "./constants.js";
 import { cn } from "./utils.js";
 
 // =========
@@ -184,27 +185,9 @@ function CitationTooltip({
       : anchorText
     : null;
 
-  // Find proof image for this specific citation
+  // Find proof image for this specific citation, validating the source
   const rawProofImage = showProofThumbnail ? item.verification?.verificationImageBase64 : null;
-  const proofImage = (() => {
-    if (typeof rawProofImage !== "string") return null;
-    const trimmed = rawProofImage.trim();
-    if (trimmed.length === 0) return null;
-    const lower = trimmed.toLowerCase();
-    // Data URI: allow safe raster formats only (no SVG — can contain scripts)
-    if (lower.startsWith("data:")) {
-      const safePrefixes = ["data:image/png", "data:image/jpeg", "data:image/jpg", "data:image/webp", "data:image/avif", "data:image/gif"];
-      return safePrefixes.some(p => lower.startsWith(p)) ? trimmed : null;
-    }
-    // HTTPS URL: validate via URL constructor against trusted hosts
-    try {
-      const url = new URL(trimmed);
-      const trustedHosts = ["api.deepcitation.com", "cdn.deepcitation.com"];
-      return url.protocol === "https:" && trustedHosts.includes(url.hostname) ? trimmed : null;
-    } catch {
-      return null;
-    }
-  })();
+  const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
   const handleProofClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -242,7 +225,7 @@ function CitationTooltip({
       className={cn(
         "absolute bottom-full left-1/2 mb-2 z-50",
         "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700",
-        "rounded-lg min-w-[180px] max-w-[260px]",
+        "rounded-lg min-w-[180px] max-w-[260px] max-h-[50vh] overflow-y-auto",
         "pointer-events-auto",
       )}
       style={{

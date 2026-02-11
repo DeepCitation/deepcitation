@@ -167,3 +167,76 @@ export const INDICATOR_SIZE_STYLE: React.CSSProperties = {
   minWidth: "10px",
   minHeight: "10px",
 };
+
+// =============================================================================
+// Z-INDEX LAYERING
+// =============================================================================
+//
+// Z-index hierarchy for DeepCitation overlay components.
+// All values use CSS custom properties so consumers can adjust stacking
+// relative to their own app's z-index scale.
+//
+// Layer                        CSS custom property             Default
+// ────────────────────────────────────────────────────────────────────
+// Popover (Radix portal)       --dc-z-popover                  9998
+// Drawer backdrop              --dc-z-drawer-backdrop           9998
+// Drawer container             --dc-z-drawer                    9999
+// Image overlay                --dc-z-image-overlay             9999
+// Tooltip (SourceTooltip)      z-50 (Tailwind, local stacking)    50
+//
+// Drawer stacked icons use inline z-index 1–10 for local stacking order.
+
+/** CSS custom property for the popover z-index. Default: 9998. */
+export const Z_INDEX_POPOVER_VAR = "--dc-z-popover";
+/** CSS custom property for the drawer backdrop z-index. Default: 9998. */
+export const Z_INDEX_DRAWER_BACKDROP_VAR = "--dc-z-drawer-backdrop";
+/** CSS custom property for the drawer container z-index. Default: 9999. */
+export const Z_INDEX_DRAWER_VAR = "--dc-z-drawer";
+/** CSS custom property for the image overlay z-index. Default: 9999. */
+export const Z_INDEX_IMAGE_OVERLAY_VAR = "--dc-z-image-overlay";
+
+/** Default z-index for backdrop layers (popover, drawer backdrop). */
+export const Z_INDEX_BACKDROP_DEFAULT = 9998;
+/** Default z-index for foreground overlays (drawer, image overlay). */
+export const Z_INDEX_OVERLAY_DEFAULT = 9999;
+
+// =============================================================================
+// PORTAL
+// =============================================================================
+
+/**
+ * Returns `document.body` if available (browser), or `null` during SSR.
+ * Use as the container argument for `createPortal` — when `null` is returned,
+ * the caller should skip rendering the portal entirely.
+ */
+export function getPortalContainer(): HTMLElement | null {
+  return typeof document !== "undefined" ? document.body : null;
+}
+
+/** Safe raster image data URI prefixes (no SVG — can contain scripts). */
+export const SAFE_DATA_IMAGE_PREFIXES = ["data:image/png", "data:image/jpeg", "data:image/jpg", "data:image/webp", "data:image/avif", "data:image/gif"] as const;
+
+/** Trusted CDN hostnames for proof images. */
+export const TRUSTED_IMAGE_HOSTS = ["api.deepcitation.com", "cdn.deepcitation.com"] as const;
+
+/**
+ * Validate that a proof image source is a trusted URL or safe data URI.
+ * Blocks SVG data URIs (can contain script), case-insensitive, trims whitespace.
+ */
+export function isValidProofImageSrc(src: unknown): src is string {
+  if (typeof src !== "string") return false;
+  const trimmed = src.trim();
+  if (trimmed.length === 0) return false;
+
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith("data:")) {
+    return SAFE_DATA_IMAGE_PREFIXES.some(prefix => lower.startsWith(prefix));
+  }
+
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "https:" && (TRUSTED_IMAGE_HOSTS as readonly string[]).includes(url.hostname);
+  } catch {
+    return false;
+  }
+}

@@ -19,12 +19,15 @@ import type { Verification } from "../types/verification.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import {
   ERROR_COLOR_STYLE,
+  getPortalContainer,
   INDICATOR_SIZE_STYLE,
   MISS_WAVY_UNDERLINE_STYLE,
   PARTIAL_COLOR_STYLE,
   PENDING_COLOR_STYLE,
   POPOVER_CONTAINER_BASE_CLASSES,
   VERIFIED_COLOR_STYLE,
+  Z_INDEX_IMAGE_OVERLAY_VAR,
+  Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
 import { CheckIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
@@ -57,6 +60,15 @@ export type {
 const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
   (e.target as HTMLImageElement).style.display = "none";
 };
+
+/** Tracks which deprecation warnings have already been emitted (dev-mode only). */
+const deprecationWarned = new Set<string>();
+
+/** Auto-hide spinner after this duration if verification is still pending. */
+const SPINNER_TIMEOUT_MS = 5000;
+
+/** Delay in ms before closing popover on mouse leave (allows moving to popover content). */
+const HOVER_CLOSE_DELAY_MS = 150;
 
 // Constants
 /** Default number of search attempt groups to show before expanding */
@@ -698,9 +710,13 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
     return () => unregisterOverlay();
   }, [registerOverlay, unregisterOverlay]);
 
-  // Auto-focus the backdrop when the overlay opens for keyboard accessibility
+  // Auto-focus the backdrop when the overlay opens for keyboard accessibility.
+  // Uses rAF to ensure the portal has been painted before focusing.
   useEffect(() => {
-    backdropRef.current?.focus();
+    const rafId = requestAnimationFrame(() => {
+      backdropRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(rafId);
   }, []);
 
   useEffect(() => {
@@ -711,11 +727,16 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  // SSR-safe: skip portal if document.body unavailable
+  const portalContainer = getPortalContainer();
+  if (!portalContainer) return null;
+
   return createPortal(
     <div
       ref={backdropRef}
       tabIndex={-1}
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-[50ms] outline-none"
+      className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-[50ms] outline-none"
+      style={{ zIndex: `var(${Z_INDEX_IMAGE_OVERLAY_VAR}, ${Z_INDEX_OVERLAY_DEFAULT})` } as React.CSSProperties}
       onClick={onClose}
       onKeyDown={e => {
         if (e.key === "Escape") onClose();
@@ -733,7 +754,7 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
         />
       </div>
     </div>,
-    document.body,
+    portalContainer,
   );
 }
 
@@ -1280,12 +1301,22 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     },
     ref,
   ) => {
-    // Warn about deprecated interactionMode prop in development
-    if (process.env.NODE_ENV !== "production" && _interactionMode !== undefined) {
-      console.warn(
-        "CitationComponent: interactionMode prop is deprecated and has no effect. " +
-          "The component now always uses click-to-show-popover behavior.",
-      );
+    // Warn about deprecated props in development (once per prop to avoid console spam)
+    if (process.env.NODE_ENV !== "production") {
+      if (_interactionMode !== undefined && !deprecationWarned.has("interactionMode")) {
+        deprecationWarned.add("interactionMode");
+        console.warn(
+          "CitationComponent: interactionMode prop is deprecated and has no effect. " +
+            "The component now always uses click-to-show-popover behavior.",
+        );
+      }
+      if (eventHandlers?.onClick && behaviorConfig?.onClick && !deprecationWarned.has("eventHandlers.onClick")) {
+        deprecationWarned.add("eventHandlers.onClick");
+        console.warn(
+          "CitationComponent: eventHandlers.onClick is ignored when behaviorConfig.onClick is provided. " +
+            "Prefer behaviorConfig.onClick for customizing click behavior.",
+        );
+      }
     }
 
     // Get overlay context for blocking hover when any image overlay is open
@@ -1364,8 +1395,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const status = useMemo(() => getStatusFromVerification(verification), [verification]);
     const { isMiss, isPartialMatch, isVerified, isPending } = status;
 
-    // Spinner timeout: auto-hide after ~5s if still pending
-    const SPINNER_TIMEOUT_MS = 5000;
+    // Spinner timeout: auto-hide after SPINNER_TIMEOUT_MS if still pending
     const [spinnerTimedOut, setSpinnerTimedOut] = useState(false);
     const spinnerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1568,7 +1598,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // Hover handlers with delay for popover accessibility
     // Use a timeout to allow user to move mouse from trigger to popover
-    const HOVER_CLOSE_DELAY_MS = 150;
     const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isOverPopoverRef = useRef(false);
 
