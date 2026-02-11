@@ -776,6 +776,7 @@ The Next.js example uses these models (DO NOT CHANGE):
 | `formatPageLocation()` | `src/markdown/markdownVariants.ts` | Page location string |
 | `buildProofUrl()` | `src/rendering/proofUrl.ts` | Proof URL construction |
 | `MISS_WAVY_UNDERLINE_STYLE` | `src/react/constants.ts` | Wavy underline CSS |
+| `formatCaptureDate()` | `src/react/dateUtils.ts` | Date formatting for timestamps |
 
 ### Example
 

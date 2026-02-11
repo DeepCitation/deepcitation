@@ -142,6 +142,11 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const rawProofImage = verification?.verificationImageBase64;
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
+  // Crawl date for URL citations
+  const formattedCrawlDate = !isDocument && verification?.crawledAt
+    ? formatCaptureDate(verification.crawledAt)
+    : null;
+
   const handleClick = useCallback(() => {
     onClick?.(item);
   }, [item, onClick]);
@@ -233,14 +238,11 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           )}
 
           {/* Capture date for URL citations */}
-          {!isDocument && verification?.crawledAt && (() => {
-            const formatted = formatCaptureDate(verification.crawledAt);
-            return formatted ? (
-              <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500" title={formatted.tooltip}>
-                Retrieved {formatted.display}
-              </p>
-            ) : null;
-          })()}
+          {formattedCrawlDate && (
+            <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500" title={formattedCrawlDate.tooltip}>
+              Retrieved {formattedCrawlDate.display}
+            </p>
+          )}
 
           {/* Proof image thumbnail */}
           {proofImage && (

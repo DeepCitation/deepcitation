@@ -1,6 +1,9 @@
 /**
  * Formats a capture/verification date for display in citation popovers and drawers.
  *
+ * - `display` uses the user's local timezone for readability
+ * - `tooltip` always returns a full ISO 8601 timestamp (UTC) for audit precision
+ *
  * @param date - Date object, ISO string, or null/undefined
  * @param options - Optional config: `showTime` adds time component (for URL citations)
  * @returns `{ display, tooltip }` or null if input is falsy/unparseable
