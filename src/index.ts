@@ -61,8 +61,10 @@ export {
 // Citation Parsing
 export {
   extractVisibleText,
+  getAllCitationsFromDeferredResponse,
   getCitationMarkerIds,
   hasDeferredCitations,
+  parseDeferredCitationResponse,
   replaceDeferredMarkers,
 } from "./parsing/citationParser.js";
 export type { ReplaceCitationsOptions } from "./parsing/normalizeCitation.js";
