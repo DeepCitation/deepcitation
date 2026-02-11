@@ -1,6 +1,7 @@
 import type React from "react";
 import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { getPortalContainer } from "./constants.js";
 import { detectSourceType, getFaviconUrl, getPlatformName } from "./SourcesListComponent.utils.js";
 import type { SourcesListItemProps, SourcesListProps, SourcesTriggerProps } from "./types.js";
 import { extractDomain, safeWindowOpen } from "./urlUtils.js";
@@ -600,7 +601,10 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
       </div>
     );
 
-    return createPortal(portalContent, document.body);
+    // SSR-safe: skip portal if document.body unavailable
+    const portalContainer = getPortalContainer();
+    if (!portalContainer) return null;
+    return createPortal(portalContent, portalContainer);
   },
 );
 

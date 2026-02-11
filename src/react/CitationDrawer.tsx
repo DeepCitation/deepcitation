@@ -4,41 +4,19 @@ import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.
 import type { Verification } from "../types/verification.js";
 import type { CitationDrawerItemProps, CitationDrawerProps, SourceCitationGroup } from "./CitationDrawer.types.js";
 import { getStatusInfo } from "./CitationDrawer.utils.js";
+import {
+  COPY_FEEDBACK_DURATION_MS,
+  getPortalContainer,
+  isValidProofImageSrc,
+  Z_INDEX_BACKDROP_DEFAULT,
+  Z_INDEX_DRAWER_BACKDROP_VAR,
+  Z_INDEX_DRAWER_VAR,
+  Z_INDEX_OVERLAY_DEFAULT,
+} from "./constants.js";
 import { CheckIcon, CopyIcon, ExternalLinkIcon, MissIcon, ZoomInIcon } from "./icons.js";
 import { FaviconImage } from "./VerificationLog.js";
-import { COPY_FEEDBACK_DURATION_MS } from "./constants.js";
 import { cn } from "./utils.js";
 import { sanitizeUrl } from "./urlUtils.js";
-
-/** Safe raster image data URI prefixes (no SVG — can contain scripts). */
-const SAFE_DATA_IMAGE_PREFIXES = ["data:image/png", "data:image/jpeg", "data:image/jpg", "data:image/webp", "data:image/avif", "data:image/gif"] as const;
-
-/** Trusted CDN hostnames for proof images. */
-const TRUSTED_IMAGE_HOSTS = ["api.deepcitation.com", "cdn.deepcitation.com"] as const;
-
-/**
- * Validate that a proof image source is a trusted URL or safe data URI.
- * Blocks SVG data URIs (can contain script), case-insensitive, trims whitespace.
- */
-function isValidProofImageSrc(src: unknown): src is string {
-  if (typeof src !== "string") return false;
-  const trimmed = src.trim();
-  if (trimmed.length === 0) return false;
-
-  // Data URI: allow only safe raster formats (no SVG)
-  const lower = trimmed.toLowerCase();
-  if (lower.startsWith("data:")) {
-    return SAFE_DATA_IMAGE_PREFIXES.some(prefix => lower.startsWith(prefix));
-  }
-
-  // HTTPS URL: validate via URL constructor, check against trusted hosts
-  try {
-    const url = new URL(trimmed);
-    return url.protocol === "https:" && (TRUSTED_IMAGE_HOSTS as readonly string[]).includes(url.hostname);
-  } catch {
-    return false;
-  }
-}
 
 // =========
 // Drawer-adapted method display names (subset of VerificationLog's METHOD_DISPLAY_NAMES)
@@ -628,7 +606,8 @@ export function CitationDrawer({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 z-[9998] animate-in fade-in-0 duration-150"
+        className="fixed inset-0 bg-black/40 animate-in fade-in-0 duration-150"
+        style={{ zIndex: `var(${Z_INDEX_DRAWER_BACKDROP_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})` } as React.CSSProperties}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -636,12 +615,13 @@ export function CitationDrawer({
       {/* Drawer */}
       <div
         className={cn(
-          "fixed z-[9999] bg-white dark:bg-gray-900 flex flex-col",
+          "fixed bg-white dark:bg-gray-900 flex flex-col",
           "animate-in duration-200",
           position === "bottom" && "inset-x-0 bottom-0 max-h-[80vh] rounded-t-2xl slide-in-from-bottom-4",
           position === "right" && "inset-y-0 right-0 w-full max-w-md slide-in-from-right-4",
           className,
         )}
+        style={{ zIndex: `var(${Z_INDEX_DRAWER_VAR}, ${Z_INDEX_OVERLAY_DEFAULT})` } as React.CSSProperties}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -688,6 +668,8 @@ export function CitationDrawer({
     </>
   );
 
-  // Render via portal
-  return createPortal(drawerContent, document.body);
+  // Render via portal (SSR-safe: skip if document.body unavailable)
+  const portalContainer = getPortalContainer();
+  if (!portalContainer) return null;
+  return createPortal(drawerContent, portalContainer);
 }
