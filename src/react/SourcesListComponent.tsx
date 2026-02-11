@@ -1,6 +1,7 @@
 import type React from "react";
 import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { getPortalContainer } from "./constants.js";
 import { detectSourceType, getFaviconUrl, getPlatformName } from "./SourcesListComponent.utils.js";
 import type { SourcesListItemProps, SourcesListProps, SourcesTriggerProps } from "./types.js";
 import { extractDomain, safeWindowOpen } from "./urlUtils.js";
@@ -166,7 +167,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
         aria-label={`${title} from ${platformName}`}
       >
         {/* Favicon */}
-        <div className="flex-shrink-0 mt-0.5">
+        <div className="shrink-0 mt-0.5">
           {renderFavicon ? (
             renderFavicon({
               id,
@@ -224,7 +225,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
         </div>
 
         {/* Arrow indicator */}
-        <div className="flex-shrink-0 text-gray-400 dark:text-gray-500 mt-1">
+        <div className="shrink-0 text-gray-400 dark:text-gray-500 mt-1">
           <ChevronRightIcon />
         </div>
       </div>
@@ -600,7 +601,10 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
       </div>
     );
 
-    return createPortal(portalContent, document.body);
+    // SSR-safe: skip portal if document.body unavailable
+    const portalContainer = getPortalContainer();
+    if (!portalContainer) return null;
+    return createPortal(portalContent, portalContainer);
   },
 );
 

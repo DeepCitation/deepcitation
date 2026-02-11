@@ -1,6 +1,18 @@
 import type { Citation, Verification } from "../types/index.js";
 
 /**
+ * Logger interface for DeepCitation client observability.
+ * All methods are optional -- only implement the levels you need.
+ * Default: no logging (no-op).
+ */
+export interface DeepCitationLogger {
+  debug?: (message: string, meta?: Record<string, unknown>) => void;
+  info?: (message: string, meta?: Record<string, unknown>) => void;
+  warn?: (message: string, meta?: Record<string, unknown>) => void;
+  error?: (message: string, meta?: Record<string, unknown>) => void;
+}
+
+/**
  * Configuration options for the DeepCitation client
  */
 export interface DeepCitationConfig {
@@ -14,6 +26,22 @@ export interface DeepCitationConfig {
    * @default 5
    */
   maxUploadConcurrency?: number;
+  /**
+   * Optional logger for observability. Receives structured log messages
+   * about uploads, verifications, cache operations, and errors.
+   *
+   * @example
+   * ```typescript
+   * const dc = new DeepCitation({
+   *   apiKey: '...',
+   *   logger: {
+   *     info: (msg, meta) => console.log(`[DC] ${msg}`, meta),
+   *     error: (msg, meta) => console.error(`[DC] ${msg}`, meta),
+   *   },
+   * });
+   * ```
+   */
+  logger?: DeepCitationLogger;
 }
 
 /**
@@ -146,12 +174,29 @@ export interface VerifyCitationsOptions {
   generateProofUrls?: boolean;
 
   /**
-   * Proof URL configuration. Only used when generateProofUrls is true.
+   * Proof URL configuration. Only used when `generateProofUrls` is `true`.
+   * Ignored when `generateProofUrls` is `false` or omitted.
+   *
+   * @example
+   * ```typescript
+   * // Signed URLs with 7-day expiry and PNG images
+   * proofConfig: {
+   *   access: "signed",
+   *   signedUrlExpiry: "7d",
+   *   imageFormat: "png",
+   * }
+   *
+   * // Public proof URLs with AVIF images
+   * proofConfig: {
+   *   access: "public",
+   *   imageFormat: "avif",
+   * }
+   * ```
    */
   proofConfig?: {
     /** Access control for proof URLs */
     access?: "signed" | "workspace" | "public";
-    /** Expiry duration for signed URLs */
+    /** Expiry duration for signed URLs. Only used when `access` is `"signed"`. */
     signedUrlExpiry?: "1h" | "24h" | "7d" | "30d" | "90d" | "1y";
     /** Image format for proof images */
     imageFormat?: "png" | "jpeg" | "avif" | "webp";

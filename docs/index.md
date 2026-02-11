@@ -30,6 +30,8 @@ Verify AI citations against source documents. Visual proof for every claim.
 | [Components]({{ site.baseurl }}/components) | React CitationComponent documentation |
 | [Real-World Examples]({{ site.baseurl }}/real-world-examples) | Industry-specific integration examples |
 | [Styling]({{ site.baseurl }}/styling) | CSS customization options |
+| [Error Handling]({{ site.baseurl }}/error-handling) | Production error patterns and retry logic |
+| [Migration Guide]({{ site.baseurl }}/migration) | API changes between versions |
 
 ---
 

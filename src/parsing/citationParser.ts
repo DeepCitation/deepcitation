@@ -252,6 +252,9 @@ function repairJson(jsonString: string): {
  * console.log(parsed.visibleText); // "The company grew 45% [1]."
  * console.log(parsed.citations); // [{id: 1, attachment_id: "abc", ...}]
  * ```
+ *
+ * @deprecated Use {@link getAllCitationsFromLlmOutput} instead, which handles all formats automatically.
+ * This low-level function only handles the deferred JSON pattern. Will be removed in v2.0.
  */
 export function parseDeferredCitationResponse(llmResponse: string): ParsedCitationResponse {
   if (!llmResponse || typeof llmResponse !== "string") {
@@ -395,6 +398,9 @@ function parsePageId(pageId: string): {
 /**
  * Converts a CitationData object to the standard Citation format.
  *
+ * @deprecated Prefer {@link getAllCitationsFromLlmOutput} which handles all citation formats automatically.
+ * This low-level function only handles the deferred JSON pattern. Will be removed in v2.0.
+ *
  * @param data - The citation data
  * @param citationNumber - Optional override for citation number (defaults to data.id)
  * @returns Standard Citation object
@@ -450,6 +456,9 @@ export function deferredCitationToCitation(data: CitationData, citationNumber?: 
  * const citations = getAllCitationsFromDeferredResponse(llmOutput);
  * // Returns: { "abc123...": { attachmentId: "...", fullPhrase: "...", ... }, ... }
  * ```
+ *
+ * @deprecated Use {@link getAllCitationsFromLlmOutput} instead, which handles both deferred JSON
+ * and XML `<cite />` tag formats automatically. Will be removed in v2.0.
  */
 export function getAllCitationsFromDeferredResponse(llmResponse: string): {
   [key: string]: Citation;

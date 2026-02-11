@@ -78,9 +78,12 @@ test.describe("ChipCitation", () => {
     // Wrapper has background color, text color is on inner span
     await expect(chip).toHaveClass(/bg-red-/);
     // Chip variant does NOT use wavy underline - status is conveyed via indicator icon
-    // Check that the X indicator is present (red text color indicates miss state icon)
-    const xIndicator = chip.locator("span.text-red-500, span.text-red-400").first();
+    // Check that the X indicator SVG is present (miss state icon)
+    const xIndicator = chip.locator('svg[stroke="currentColor"]').first();
     await expect(xIndicator).toBeVisible();
+    // Verify screen reader text for miss state
+    const srText = chip.locator("text=not found");
+    await expect(srText).toBeVisible();
     // Verify text span has reduced opacity (the span with opacity-70 class)
     const textSpan = chip.locator("span.opacity-70");
     await expect(textSpan).toBeVisible();

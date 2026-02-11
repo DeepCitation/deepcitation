@@ -16,8 +16,10 @@ export interface ScreenBox extends IVertex {
 /**
  * Represents a page in a document with its metadata and dimensions.
  * Used for tracking page information in multi-page documents.
+ *
+ * Named `CitationPage` to avoid collisions with common `Page` types in user codebases.
  */
-export interface Page {
+export interface CitationPage {
   /** Page number (1-indexed) */
   pageNumber: number;
   /** Page dimensions in pixels or PDF units */

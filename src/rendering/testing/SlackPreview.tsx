@@ -54,7 +54,7 @@ function SlackMessage({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
       <div className="flex gap-3">
-        <div className="w-9 h-9 rounded bg-indigo-500 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+        <div className="w-9 h-9 rounded bg-indigo-500 shrink-0 flex items-center justify-center text-white text-xs font-bold">
           DC
         </div>
         <div className="flex-1 min-w-0">

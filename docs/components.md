@@ -440,8 +440,43 @@ The `sourceLabel` prop allows you to override the filename or URL title displaye
 
 ---
 
+## Primitives (Experimental)
+
+{: .warning }
+The compound component API is experimental and may change in minor releases. For stable usage, use `CitationComponent`.
+
+For fully custom citation layouts, composable primitives are available:
+
+{% raw %}
+```tsx
+import { Citation } from "@deepcitation/deepcitation-js/react";
+
+<Citation.Root citation={citation} verification={verification}>
+  <Citation.Trigger>
+    <Citation.AnchorText />
+    <Citation.Indicator />
+  </Citation.Trigger>
+</Citation.Root>
+```
+{% endraw %}
+
+Available primitives:
+- `Citation.Root` - Context provider
+- `Citation.Trigger` - Clickable wrapper
+- `Citation.AnchorText` - Display text
+- `Citation.Number` - Citation number
+- `Citation.Indicator` - Status indicator icon
+- `Citation.Bracket` - Bracket characters
+
+Use these when `CitationComponent` doesn't fit your layout requirements.
+
+---
+
 ## Next Steps
 
+- [Proof Hosting]({{ site.baseurl }}/proof-hosting/) - Shareable proof page URLs and view modes
 - [Types]({{ site.baseurl }}/types/) - Full TypeScript interface definitions
-- [Real-World Examples]({{ site.baseurl }}/real-world-examples/) - Industry-specific integrations
 - [Styling]({{ site.baseurl }}/styling/) - CSS customization
+- [Error Handling]({{ site.baseurl }}/error-handling/) - Production error patterns
+- [Real-World Examples]({{ site.baseurl }}/real-world-examples/) - Industry-specific integrations
+- [Migration Guide]({{ site.baseurl }}/migration/) - API changes by version

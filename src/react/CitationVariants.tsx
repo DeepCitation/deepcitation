@@ -2,7 +2,13 @@ import React, { forwardRef, memo, type ReactNode, useCallback, useMemo } from "r
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import { INDICATOR_SIZE_STYLE, MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import {
+  ERROR_COLOR_STYLE,
+  INDICATOR_SIZE_STYLE,
+  MISS_WAVY_UNDERLINE_STYLE,
+  PARTIAL_COLOR_STYLE,
+  VERIFIED_COLOR_STYLE,
+} from "./constants.js";
 import { XIcon } from "./icons.js";
 import type { BaseCitationProps, CitationEventHandlers, CitationVariant as CitationVariantType } from "./types.js";
 import {
@@ -48,22 +54,110 @@ function useCitationData(citation: Citation, verification?: Verification | null)
 }
 
 /**
- * Default verified indicator (checkmark)
+ * Default verified indicator (checkmark).
+ * Color is customizable via CSS custom property `--dc-verified-color`.
  */
 const DefaultVerifiedIndicator = () => (
-  <span className="text-green-600 dark:text-green-500 ml-0.5" aria-hidden="true">
+  <span className="ml-0.5" style={VERIFIED_COLOR_STYLE} aria-hidden="true">
     ✓
   </span>
 );
 
 /**
- * Default partial match indicator (asterisk)
+ * Default partial match indicator (asterisk).
+ * Color is customizable via CSS custom property `--dc-partial-color`.
  */
 const DefaultPartialIndicator = () => (
-  <span className="text-amber-500 dark:text-amber-400 ml-0.5" aria-hidden="true">
+  <span className="ml-0.5" style={PARTIAL_COLOR_STYLE} aria-hidden="true">
     *
   </span>
 );
+
+/**
+ * Hook for shared citation event handlers.
+ * Extracts the duplicated click/hover/keyboard logic from each variant.
+ */
+function useCitationEvents(
+  citation: Citation,
+  citationKey: string,
+  eventHandlers: CitationEventHandlers | undefined,
+  preventTooltips: boolean,
+) {
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      eventHandlers?.onClick?.(citation, citationKey, e as React.MouseEvent<HTMLSpanElement>);
+    },
+    [eventHandlers, citation, citationKey],
+  );
+
+  const handleMouseEnter = useCallback(() => {
+    eventHandlers?.onMouseEnter?.(citation, citationKey);
+  }, [eventHandlers, citation, citationKey]);
+
+  const handleMouseLeave = useCallback(() => {
+    eventHandlers?.onMouseLeave?.(citation, citationKey);
+  }, [eventHandlers, citation, citationKey]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        e.stopPropagation();
+        eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
+      }
+    },
+    [eventHandlers, citation, citationKey],
+  );
+
+  return {
+    onMouseEnter: preventTooltips ? undefined : handleMouseEnter,
+    onMouseLeave: preventTooltips ? undefined : handleMouseLeave,
+    onMouseDown: handleClick,
+    onClick: (e: React.MouseEvent) => e.stopPropagation(),
+    onKeyDown: handleKeyDown,
+  };
+}
+
+/**
+ * Shared status indicator rendering for citation variants.
+ * Renders the appropriate verified/partial/miss/pending indicator.
+ */
+function StatusIndicators({
+  status,
+  pendingContent,
+  renderVerifiedIndicator,
+  renderPartialIndicator,
+  pendingClassName,
+}: {
+  status: CitationStatus;
+  pendingContent: ReactNode;
+  renderVerifiedIndicator: (s: CitationStatus) => ReactNode;
+  renderPartialIndicator: (s: CitationStatus) => ReactNode;
+  pendingClassName?: string;
+}) {
+  const { isVerified, isMiss, isPartialMatch, isPending } = status;
+  return (
+    <>
+      {isPartialMatch && renderPartialIndicator(status)}
+      {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
+      {isMiss && (
+        <>
+          <span
+            className="ml-0.5 shrink-0"
+            style={{ ...INDICATOR_SIZE_STYLE, ...ERROR_COLOR_STYLE }}
+            aria-hidden="true"
+          >
+            <XIcon />
+          </span>
+          <span className="sr-only">not found</span>
+        </>
+      )}
+      {isPending && <span className={pendingClassName ?? "opacity-70"}>{pendingContent}</span>}
+    </>
+  );
+}
 
 // =============================================================================
 // CHIP VARIANT - Pill/badge style citation
@@ -107,6 +201,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
   ) => {
     const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
     const { isVerified, isMiss, isPartialMatch, isPending } = status;
+    const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
 
     // ChipCitation shows anchorText by default
     const displayText = useMemo(
@@ -114,38 +209,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       [citation, fallbackDisplay],
     );
 
-    const handleClick = useCallback(
-      (e: React.MouseEvent<HTMLSpanElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        eventHandlers?.onClick?.(citation, citationKey, e);
-      },
-      [eventHandlers, citation, citationKey],
-    );
-
-    const handleMouseEnter = useCallback(() => {
-      eventHandlers?.onMouseEnter?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey]);
-
-    const handleMouseLeave = useCallback(() => {
-      eventHandlers?.onMouseLeave?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey]);
-
-    const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent<HTMLSpanElement>) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          e.stopPropagation();
-          eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
-        }
-      },
-      [eventHandlers, citation, citationKey],
-    );
-
-    // Note: sizeClasses not used - chip uses consistent minimal sizing for inline text flow
-
     // Check partial first since isVerified is true when isPartialMatch is true
-    // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
       ? "bg-amber-100 dark:bg-amber-900/30"
       : isMiss
@@ -156,7 +220,6 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
             ? "bg-gray-100 dark:bg-gray-800"
             : "bg-blue-100 dark:bg-blue-900/30";
 
-    // Text color class (separate from status indicator)
     const textColorClass = isPartialMatch
       ? "text-amber-500 dark:text-amber-400"
       : isMiss
@@ -183,30 +246,17 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
             statusClass,
             className,
           )}
-          onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
-          onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
-          onMouseDown={handleClick}
-          onClick={e => e.stopPropagation()}
-          onKeyDown={handleKeyDown}
+          {...events}
           aria-label={displayText ? `Citation: ${displayText}` : undefined}
         >
           {showIcon && (icon || <span className="text-[0.9em]">📄</span>)}
           <span className={classNames(textColorClass, isMiss && "opacity-70")}>{displayText}</span>
-          {isPartialMatch && renderPartialIndicator(status)}
-          {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
-          {isMiss && (
-            <>
-              <span
-                className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0"
-                style={INDICATOR_SIZE_STYLE}
-                aria-hidden="true"
-              >
-                <XIcon />
-              </span>
-              <span className="sr-only">not found</span>
-            </>
-          )}
-          {isPending && <span className="opacity-70">{pendingContent}</span>}
+          <StatusIndicators
+            status={status}
+            pendingContent={pendingContent}
+            renderVerifiedIndicator={renderVerifiedIndicator}
+            renderPartialIndicator={renderPartialIndicator}
+          />
         </span>
       </>
     );
@@ -251,41 +301,13 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
     ref,
   ) => {
     const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
-    const { isVerified, isMiss, isPartialMatch, isPending } = status;
+    const { isPartialMatch, isMiss, isVerified, isPending } = status;
+    const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
 
     // SuperscriptCitation shows number by default
     const displayText = useMemo(() => getCitationNumber(citation), [citation]);
 
-    const handleClick = useCallback(
-      (e: React.MouseEvent<HTMLSpanElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        eventHandlers?.onClick?.(citation, citationKey, e);
-      },
-      [eventHandlers, citation, citationKey],
-    );
-
-    const handleMouseEnter = useCallback(() => {
-      eventHandlers?.onMouseEnter?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey]);
-
-    const handleMouseLeave = useCallback(() => {
-      eventHandlers?.onMouseLeave?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey]);
-
-    const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent<HTMLElement>) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          e.stopPropagation();
-          eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
-        }
-      },
-      [eventHandlers, citation, citationKey],
-    );
-
     // Check partial first since isVerified is true when isPartialMatch is true
-    // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
       ? "text-amber-500 dark:text-amber-400"
       : isMiss
@@ -311,30 +333,17 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
             statusClass,
             className,
           )}
-          onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
-          onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
-          onMouseDown={handleClick}
-          onClick={e => e.stopPropagation()}
-          onKeyDown={handleKeyDown}
+          {...events}
           aria-label={`Citation ${displayText}`}
         >
           {!hideBrackets && "["}
           <span>{displayText}</span>
-          {isPartialMatch && renderPartialIndicator(status)}
-          {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
-          {isMiss && (
-            <>
-              <span
-                className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0"
-                style={INDICATOR_SIZE_STYLE}
-                aria-hidden="true"
-              >
-                <XIcon />
-              </span>
-              <span className="sr-only">not found</span>
-            </>
-          )}
-          {isPending && pendingContent}
+          <StatusIndicators
+            status={status}
+            pendingContent={pendingContent}
+            renderVerifiedIndicator={renderVerifiedIndicator}
+            renderPartialIndicator={renderPartialIndicator}
+          />
           {!hideBrackets && "]"}
         </sup>
       </>
@@ -385,7 +394,8 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
     ref,
   ) => {
     const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
-    const { isVerified, isMiss, isPartialMatch, isPending } = status;
+    const { isMiss, isPartialMatch, isVerified, isPending } = status;
+    const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
 
     const displaySymbol = useMemo(() => {
       if (symbolStyle === "custom" && customSymbol) return customSymbol;
@@ -398,36 +408,7 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
       return "*";
     }, [symbolStyle, customSymbol, citation.citationNumber]);
 
-    const handleClick = useCallback(
-      (e: React.MouseEvent<HTMLSpanElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        eventHandlers?.onClick?.(citation, citationKey, e);
-      },
-      [eventHandlers, citation, citationKey],
-    );
-
-    const handleMouseEnter = useCallback(() => {
-      eventHandlers?.onMouseEnter?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey]);
-
-    const handleMouseLeave = useCallback(() => {
-      eventHandlers?.onMouseLeave?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey]);
-
-    const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent<HTMLElement>) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          e.stopPropagation();
-          eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
-        }
-      },
-      [eventHandlers, citation, citationKey],
-    );
-
     // Check partial first since isVerified is true when isPartialMatch is true
-    // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
       ? "text-amber-500 dark:text-amber-400"
       : isMiss
@@ -453,31 +434,18 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
             statusClass,
             className,
           )}
-          onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
-          onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
-          onMouseDown={handleClick}
-          onClick={e => e.stopPropagation()}
-          onKeyDown={handleKeyDown}
+          {...events}
           aria-label={`Footnote ${displaySymbol}`}
         >
           <span className={isMiss ? "opacity-70" : undefined} style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}>
             {displaySymbol}
           </span>
-          {isPartialMatch && renderPartialIndicator(status)}
-          {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
-          {isMiss && (
-            <>
-              <span
-                className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0"
-                style={INDICATOR_SIZE_STYLE}
-                aria-hidden="true"
-              >
-                <XIcon />
-              </span>
-              <span className="sr-only">not found</span>
-            </>
-          )}
-          {isPending && pendingContent}
+          <StatusIndicators
+            status={status}
+            pendingContent={pendingContent}
+            renderVerifiedIndicator={renderVerifiedIndicator}
+            renderPartialIndicator={renderPartialIndicator}
+          />
         </sup>
       </>
     );
@@ -523,7 +491,8 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
     ref,
   ) => {
     const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
-    const { isVerified, isMiss, isPartialMatch, isPending } = status;
+    const { isMiss, isPartialMatch, isVerified, isPending } = status;
+    const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
 
     // InlineCitation shows anchorText by default
     const displayText = useMemo(
@@ -531,36 +500,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
       [citation, fallbackDisplay],
     );
 
-    const handleClick = useCallback(
-      (e: React.MouseEvent<HTMLSpanElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        eventHandlers?.onClick?.(citation, citationKey, e);
-      },
-      [eventHandlers, citation, citationKey],
-    );
-
-    const handleMouseEnter = useCallback(() => {
-      eventHandlers?.onMouseEnter?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey]);
-
-    const handleMouseLeave = useCallback(() => {
-      eventHandlers?.onMouseLeave?.(citation, citationKey);
-    }, [eventHandlers, citation, citationKey]);
-
-    const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent<HTMLSpanElement>) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          e.stopPropagation();
-          eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
-        }
-      },
-      [eventHandlers, citation, citationKey],
-    );
-
     // Check partial first since isVerified is true when isPartialMatch is true
-    // Note: For miss state, text gets line-through but status indicator should NOT
     const statusClass = isPartialMatch
       ? "text-amber-500 dark:text-amber-400"
       : isMiss
@@ -594,31 +534,19 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
             statusClass,
             className,
           )}
-          onMouseEnter={preventTooltips ? undefined : handleMouseEnter}
-          onMouseLeave={preventTooltips ? undefined : handleMouseLeave}
-          onMouseDown={handleClick}
-          onClick={e => e.stopPropagation()}
-          onKeyDown={handleKeyDown}
+          {...events}
           aria-label={`Citation: ${displayText}`}
         >
           <span className={isMiss ? "opacity-70" : undefined} style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}>
             {displayText}
           </span>
-          {isPartialMatch && renderPartialIndicator(status)}
-          {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
-          {isMiss && (
-            <>
-              <span
-                className="text-red-500 dark:text-red-400 ml-0.5 flex-shrink-0"
-                style={INDICATOR_SIZE_STYLE}
-                aria-hidden="true"
-              >
-                <XIcon />
-              </span>
-              <span className="sr-only">not found</span>
-            </>
-          )}
-          {isPending && <span className="opacity-70 ml-1">{pendingContent}</span>}
+          <StatusIndicators
+            status={status}
+            pendingContent={pendingContent}
+            renderVerifiedIndicator={renderVerifiedIndicator}
+            renderPartialIndicator={renderPartialIndicator}
+            pendingClassName="opacity-70 ml-1"
+          />
         </span>
       </>
     );
