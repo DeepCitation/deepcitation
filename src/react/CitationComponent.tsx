@@ -18,6 +18,7 @@ import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/sea
 import type { Verification } from "../types/verification.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import {
+  DOT_COLORS,
   DOT_INDICATOR_SIZE_STYLE,
   ERROR_COLOR_STYLE,
   getPortalContainer,
@@ -858,13 +859,7 @@ const MissIndicator = () => (
 // =============================================================================
 // Smaller than icon indicators (ml-0.5 vs ml-1) because the dots are roughly
 // half the size and need less visual separation from adjacent text.
-
-const DOT_COLORS = {
-  green: "bg-green-600 dark:bg-green-500",
-  amber: "bg-amber-500 dark:bg-amber-400",
-  red: "bg-red-500 dark:bg-red-400",
-  gray: "bg-gray-400 dark:bg-gray-500",
-} as const;
+// DOT_COLORS is imported from ./constants.js for consistency across components.
 
 /** Unified dot indicator — color + optional pulse animation. */
 const DotIndicator = ({ color, pulse = false, label }: { color: keyof typeof DOT_COLORS; pulse?: boolean; label: string }) => (

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
-import { COPY_FEEDBACK_DURATION_MS } from "./constants.js";
+import { COPY_FEEDBACK_DURATION_MS, DOT_COLORS } from "./constants.js";
 import {
   CheckIcon,
   CopyIcon,
@@ -47,14 +47,6 @@ const ICON_COLOR_CLASSES = {
   amber: "text-amber-500 dark:text-amber-400",
   red: "text-red-500 dark:text-red-400",
   gray: "text-gray-400 dark:text-gray-500",
-} as const;
-
-/** Dot background color classes by status for the dot indicator variant */
-const DOT_BG_CLASSES = {
-  green: "bg-green-600 dark:bg-green-500",
-  amber: "bg-amber-500 dark:bg-amber-400",
-  red: "bg-red-500 dark:bg-red-400",
-  gray: "bg-gray-400 dark:bg-gray-500 animate-pulse",
 } as const;
 
 /** User-friendly method names for display (Issue #10: simplified from technical jargon) */
@@ -798,7 +790,7 @@ export function StatusHeader({
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {indicatorVariant === "dot" ? (
-          <span className={cn("size-2.5 rounded-full shrink-0", DOT_BG_CLASSES[colorScheme])} aria-hidden="true" />
+          <span className={cn("size-2.5 rounded-full shrink-0", DOT_COLORS[colorScheme], colorScheme === "gray" && "animate-pulse")} aria-hidden="true" />
         ) : (
           <span className={cn("size-4 max-w-4 max-h-4 shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
             <IconComponent />
