@@ -21,24 +21,32 @@ const citationWithoutAnchorText: Citation = {
 };
 
 const verifiedVerification: Verification = {
-  verifiedPageNumber: 5,
   status: "found",
+  document: {
+    verifiedPageNumber: 5,
+  },
 };
 
 const partialVerification: Verification = {
-  verifiedPageNumber: 5,
   status: "partial_text_found",
   verifiedMatchSnippet: "25% revenue increase",
+  document: {
+    verifiedPageNumber: 5,
+  },
 };
 
 const missVerification: Verification = {
-  verifiedPageNumber: -1,
   status: "not_found",
+  document: {
+    verifiedPageNumber: -1,
+  },
 };
 
 const pendingVerification: Verification = {
-  verifiedPageNumber: null,
   status: "pending",
+  document: {
+    verifiedPageNumber: null,
+  },
 };
 
 // =============================================================================
@@ -392,8 +400,11 @@ test.describe("CitationComponent - Data Attributes", () => {
 test.describe("CitationComponent - Popover", () => {
   const verificationWithImage: Verification = {
     ...verifiedVerification,
-    verificationImageBase64:
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    document: {
+      ...verifiedVerification.document,
+      verificationImageBase64:
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    },
   };
 
   test("renders citation with image verification", async ({ mount, page }) => {
