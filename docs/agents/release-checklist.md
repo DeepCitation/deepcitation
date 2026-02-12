@@ -39,23 +39,34 @@ Actionable checklist for preparing and publishing a release of `@deepcitation/de
 
 - [ ] **Commit all changes** — stage `package.json`, `CHANGELOG.md`, and any updated docs. Message: `chore: release vX.Y.Z`.
 - [ ] **Push to main** — ensure the release commit lands on `main` (direct push or merge PR).
-- [ ] **Wait for CI** — `ci.yml` and `playwright.yml` workflows must pass on the main branch.
+- [ ] **Wait for CI** — the "CI" (`ci.yml`) and "Playwright Tests" (`playwright.yml`) workflows must pass on the main branch.
 
 ## Phase 5: GitHub Release
 
 - [ ] **Create a GitHub Release** — tag `vX.Y.Z` (must match `package.json` version exactly).
-  ```bash
-  gh release create vX.Y.Z --title "vX.Y.Z" --notes "$(sed -n '/^## \[X.Y.Z\]/,/^## \[/{ /^## \[X.Y.Z\]/d; /^## \[/d; p; }' CHANGELOG.md)"
-  ```
-  Or create via the GitHub UI — paste the CHANGELOG entry as the body.
+  - Copy the CHANGELOG entry for this version into a `notes.md` file, then:
+    ```bash
+    gh release create vX.Y.Z --title "vX.Y.Z" --notes-file notes.md
+    ```
+  - Or create via the GitHub UI — paste the CHANGELOG entry as the body.
+  - **Alternative**: create as pre-release first, then promote to full release when ready.
 - [ ] **Mark as latest release** — must be marked as **not** a pre-release and **not** a draft. Publishing triggers the `publish.yml` workflow automatically.
 
 ## Phase 6: Post-Release Verification
 
 - [ ] **Monitor publish workflow** — watch `.github/workflows/publish.yml`. It will build, publish to npm with provenance, and append "Published to npm registry" to the release notes.
 - [ ] **Verify on npm** — `npm view @deepcitation/deepcitation-js version` returns the new version.
-- [ ] **Test install** — `npm install @deepcitation/deepcitation-js@X.Y.Z` in a scratch directory to confirm the package works.
-- [ ] **Update `[Unreleased]` comparison link** — at the bottom of `CHANGELOG.md`, update the comparison URL to `vX.Y.Z...HEAD`.
+- [ ] **Test install** — in a scratch directory, install and verify imports work:
+  ```bash
+  mkdir /tmp/test-release && cd /tmp/test-release && npm init -y
+  npm install @deepcitation/deepcitation-js@X.Y.Z
+  node -e "import('@deepcitation/deepcitation-js').then(m => console.log('OK:', Object.keys(m).length, 'exports'))"
+  ```
+- [ ] **Update `[Unreleased]` comparison link** — at the bottom of `CHANGELOG.md`, update the comparison URL:
+  ```markdown
+  [Unreleased]: https://github.com/DeepCitation/deepcitation-js/compare/vX.Y.Z...HEAD
+  [X.Y.Z]: https://github.com/DeepCitation/deepcitation-js/compare/vPREVIOUS...vX.Y.Z
+  ```
 
 ---
 
