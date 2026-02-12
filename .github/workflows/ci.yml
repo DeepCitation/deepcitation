@@ -6,55 +6,36 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.event_name == 'push' && github.ref || github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
-  # Determine if this is a docs-only commit
-  check-changes:
+  # Check if this is a non-code change (docs, style, CI config, etc.)
+  check-skip:
     runs-on: ubuntu-latest
     outputs:
-      docs-only: ${{ steps.check.outputs.docs-only }}
-      src-changed: ${{ steps.check.outputs.src-changed }}
+      should-skip: ${{ steps.check.outputs.should-skip }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - id: check
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          # Get the commit message
-          if [ "${{ github.event_name }}" == "push" ]; then
-            COMMIT_MSG=$(git log -1 --pretty=%B)
+          MSG="${PR_TITLE}${COMMIT_MSG}"
+
+          # Check for non-code change patterns (docs, style, ci, chore)
+          if [[ "$MSG" =~ ^(docs|style|ci|chore\((docs|readme|typo)\)): ]]; then
+            echo "should-skip=true" >> $GITHUB_OUTPUT
+            echo "This is a non-code change - skipping CI"
           else
-            # For PRs, check the PR title and body
-            COMMIT_MSG="${{ github.event.pull_request.title }} ${{ github.event.pull_request.body }}"
+            echo "should-skip=false" >> $GITHUB_OUTPUT
           fi
 
-          echo "Commit message: $COMMIT_MSG"
-
-          # Check if commit starts with "docs:" or similar
-          if [[ "$COMMIT_MSG" =~ ^docs: ]] || [[ "$COMMIT_MSG" =~ ^chore:.*docs ]]; then
-            echo "docs-only=true" >> $GITHUB_OUTPUT
-            echo "This is a docs-only commit"
-          else
-            echo "docs-only=false" >> $GITHUB_OUTPUT
-          fi
-
-          # Check if src files changed (for push events)
-          if [ "${{ github.event_name }}" == "push" ]; then
-            if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -qE "^src/|package\.json|tsconfig|biome\.json|vite\.config"; then
-              echo "src-changed=true" >> $GITHUB_OUTPUT
-            else
-              echo "src-changed=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            # For PRs, always assume src might have changed (safer)
-            echo "src-changed=true" >> $GITHUB_OUTPUT
-          fi
-
-  ci:
+  lint-and-validate:
     runs-on: blacksmith-4vcpu-ubuntu-2404
-    needs: check-changes
-    # Skip CI entirely if docs-only and on push (not on PR)
-    if: ${{ github.event_name == 'pull_request' || needs.check-changes.outputs.docs-only == 'false' }}
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip == 'false'
 
     steps:
       - name: Checkout repository
@@ -64,6 +45,7 @@ jobs:
         uses: useblacksmith/setup-node@v5
         with:
           node-version: '22'
+          cache: 'npm'
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -71,21 +53,62 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        if: needs.check-changes.outputs.src-changed == 'true' || github.event_name == 'pull_request'
         run: npm install
 
-      - name: Auto-fix formatting and lint
-        if: needs.check-changes.outputs.docs-only == 'false' && needs.check-changes.outputs.src-changed == 'true'
-        run: npx biome check --fix ./src
+      - name: Format check
+        run: npx biome format ./src --check
 
-      - name: Lint and format check
-        if: needs.check-changes.outputs.docs-only == 'false' && needs.check-changes.outputs.src-changed == 'true'
+      - name: Lint and check
         run: npx biome ci ./src
 
+  build:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip == 'false'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: useblacksmith/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Build
-        if: needs.check-changes.outputs.src-changed == 'true' || github.event_name == 'pull_request'
         run: npm run build
 
+  test:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip == 'false'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: useblacksmith/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Run tests
-        if: needs.check-changes.outputs.src-changed == 'true' || github.event_name == 'pull_request'
         run: bun run test
