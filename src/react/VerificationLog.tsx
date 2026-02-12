@@ -3,6 +3,7 @@ import type { Citation } from "../types/citation.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 import { COPY_FEEDBACK_DURATION_MS } from "./constants.js";
+import { formatShortDate } from "./dateUtils.js";
 import {
   CheckIcon,
   CopyIcon,
@@ -949,19 +950,6 @@ function getOutcomeSummary(status: SearchStatus | null | undefined, searchAttemp
  * - For found/partial: "How we verified this · Exact match"
  * - For not_found: "Search attempts · 0/8 searches tried"
  */
-/**
- * Format a date as "MMM D" (e.g., "Feb 12") or "MMM D, YYYY" if not current year.
- */
-function formatVerifiedDate(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  if (Number.isNaN(d.getTime())) return "";
-  const now = new Date();
-  const sameYear = d.getFullYear() === now.getFullYear();
-  const month = d.toLocaleDateString("en-US", { month: "short" });
-  const day = d.getDate();
-  return sameYear ? `${month} ${day}` : `${month} ${day}, ${d.getFullYear()}`;
-}
-
 function VerificationLogSummary({
   status,
   searchAttempts,
@@ -976,7 +964,7 @@ function VerificationLogSummary({
   const headerText = isMiss ? "Search attempts" : "How we verified this";
 
   // Format the verified date for display
-  const dateStr = verifiedAt ? formatVerifiedDate(verifiedAt) : "";
+  const dateStr = formatShortDate(verifiedAt);
 
   return (
     <button
