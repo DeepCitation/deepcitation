@@ -152,7 +152,9 @@ function StatusIconChip({
       style={{ width: size, height: size }}
       title={title}
     >
-      <span className={cn("w-3 h-3", isPending && indicatorVariant !== "dot" && "animate-spin")}>{statusInfo.icon}</span>
+      <span className={cn("w-3 h-3", isPending && indicatorVariant !== "dot" && "animate-spin")}>
+        {statusInfo.icon}
+      </span>
     </span>
   );
 }
