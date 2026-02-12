@@ -58,9 +58,10 @@ Actionable checklist for preparing and publishing a release of `@deepcitation/de
 - [ ] **Verify on npm** — `npm view @deepcitation/deepcitation-js version` returns the new version.
 - [ ] **Test install** — in a scratch directory, install and verify imports work:
   ```bash
-  mkdir /tmp/test-release && cd /tmp/test-release && npm init -y
+  mkdir /tmp/test-release && cd /tmp/test-release
+  echo '{"type":"module"}' > package.json
   npm install @deepcitation/deepcitation-js@X.Y.Z
-  node -e "import('@deepcitation/deepcitation-js').then(m => console.log('OK:', Object.keys(m).length, 'exports'))"
+  node --eval "import('@deepcitation/deepcitation-js').then(m => console.log('OK:', Object.keys(m).length, 'exports'))"
   ```
 - [ ] **Update `[Unreleased]` comparison link** — at the bottom of `CHANGELOG.md`, update the comparison URL:
   ```markdown
