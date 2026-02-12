@@ -402,7 +402,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               className={cn(
                 "inline-flex w-5 h-5 items-center justify-center",
                 statusInfo.color,
-                isPending && "animate-spin",
+                isPending && indicatorVariant !== "dot" && "animate-spin",
               )}
               title={statusInfo.label}
             >

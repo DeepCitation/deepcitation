@@ -859,7 +859,7 @@ const DotIndicator = ({
 }) => (
   <span
     className={cn(
-      "inline-block relative ml-0.5 top-[0.05em] rounded-full [text-decoration:none]",
+      "inline-block ml-0.5 rounded-full [text-decoration:none] align-middle",
       DOT_COLORS[color],
       pulse && "animate-pulse",
     )}
@@ -1048,6 +1048,11 @@ interface PopoverContentProps {
    * See BaseCitationProps.sourceLabel for details.
    */
   sourceLabel?: string;
+  /**
+   * Visual style for status indicators inside the popover.
+   * @default "icon"
+   */
+  indicatorVariant?: "icon" | "dot";
 }
 
 function DefaultPopoverContent({
@@ -1060,6 +1065,7 @@ function DefaultPopoverContent({
   onPhrasesExpandChange,
   isVisible = true,
   sourceLabel,
+  indicatorVariant = "icon",
 }: PopoverContentProps) {
   const hasImage = verification?.document?.verificationImageBase64;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
@@ -1139,6 +1145,7 @@ function DefaultPopoverContent({
               expectedPage={expectedPage ?? undefined}
               hidePageBadge
               anchorText={anchorText}
+              indicatorVariant={indicatorVariant}
             />
           )}
 
@@ -1194,6 +1201,7 @@ function DefaultPopoverContent({
                   expectedPage={expectedPage ?? undefined}
                   hidePageBadge
                   anchorText={anchorText}
+                  indicatorVariant={indicatorVariant}
                 />
               )}
               {/* Humanizing message for partial matches with images */}
@@ -1217,6 +1225,7 @@ function DefaultPopoverContent({
                   expectedPage={expectedPage ?? undefined}
                   anchorText={anchorText}
                   hidePageBadge
+                  indicatorVariant={indicatorVariant}
                 />
               )}
               {/* Humanizing message provides additional context below the header */}
@@ -2223,6 +2232,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             onPhrasesExpandChange={setIsPhrasesExpanded}
             isVisible={isHovering}
             sourceLabel={sourceLabel}
+            indicatorVariant={indicatorVariant}
             onImageClick={() => {
               if (verification?.document?.verificationImageBase64) {
                 setExpandedImageSrc(verification.document.verificationImageBase64);
@@ -2245,6 +2255,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               isLoading={false}
               isVisible={false}
               sourceLabel={sourceLabel}
+              indicatorVariant={indicatorVariant}
               onImageClick={() => {}}
             />
           </CitationErrorBoundary>
