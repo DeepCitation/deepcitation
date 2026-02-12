@@ -76,18 +76,9 @@ Push #3 → CI #2 cancelled, CI #3 starts
 Without concurrency: 15 minutes wasted
 With concurrency: Only most recent run completes (~3 min)
 
-### 4. **NPM Cache Integration**
+### 4. **Lock File Note**
 
-Each job now includes npm cache for faster dependency installation:
-
-```yaml
-- uses: useblacksmith/setup-node@v5
-  with:
-    node-version: '22'
-    cache: 'npm'  # ← Caches node_modules
-```
-
-Saves ~30-60 seconds per job on cache hits.
+Note: This project uses Bun with gitignored lock files (`bun.lock` excluded from git). Therefore, dependency caching is not enabled in CI. Each run installs dependencies fresh, which is appropriate for this project's setup.
 
 ## Examples
 
@@ -325,17 +316,13 @@ git push  # Commit 3
 - ⏱️ Total time: ~3 minutes (not 9 minutes)
 - ✅ Verify in Actions tab: Commit 1 & 2 show "cancelled" status
 
-### Test 6: NPM cache speeds up dependencies
+### Test 6: Dependencies install successfully
 **Action:**
-Run the same PR twice to verify cache behavior
-```bash
-# First run: cold cache
-# Second run: warm cache
-```
+Run the workflow and verify dependencies install without errors
 **Expected:**
-- ✅ First `npm install`: ~60 seconds
-- ✅ Second `npm install`: ~20 seconds (3x faster)
-- ✅ Verify in job logs: "cache hit" message
+- ✅ `npm install` completes successfully
+- ✅ All dependencies resolved
+- ✅ No lock file errors (bun.lock is gitignored by design)
 
 ### Test 7: Mixed commits in multi-file change
 **Action:**
