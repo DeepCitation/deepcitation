@@ -18,6 +18,16 @@ import type { Verification } from "../types/verification.js";
 export type CitationInteractionMode = "eager" | "lazy";
 
 /**
+ * Indicator style variant for verification status display.
+ *
+ * | Variant | Description                                    |
+ * |---------|------------------------------------------------|
+ * | `"icon"`  | Icon-based indicators: checkmark, spinner, X (default) |
+ * | `"dot"`   | Subtle colored dot (like GitHub status dots / shadcn badge dots) |
+ */
+export type IndicatorVariant = "icon" | "dot";
+
+/**
  * Visual style variants for citations.
  *
  * | Variant       | Description                                    |
@@ -298,6 +308,13 @@ export interface UrlCitationProps extends Omit<BaseCitationProps, "citation" | "
   preventTooltips?: boolean;
   /** Whether to show the status indicator (checkmark, warning, spinner). Defaults to true. */
   showStatusIndicator?: boolean;
+  /**
+   * Visual style for status indicators.
+   * - `"icon"`: Icon-based indicators (default)
+   * - `"dot"`: Subtle colored dots (like GitHub status dots)
+   * @default "icon"
+   */
+  indicatorVariant?: IndicatorVariant;
   /**
    * Whether to show an external link icon on hover.
    * The icon serves as a visual hint that clicking will open the URL.

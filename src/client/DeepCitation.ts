@@ -2,11 +2,20 @@ import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/index.js";
 import { sha1Hash } from "../utils/sha.js";
+import {
+  AuthenticationError,
+  type DeepCitationError,
+  NetworkError,
+  RateLimitError,
+  ServerError,
+  ValidationError,
+} from "./errors.js";
 import type {
   CitationInput,
   ConvertFileInput,
   ConvertFileResponse,
   DeepCitationConfig,
+  DeepCitationLogger,
   DeleteAttachmentResponse,
   ExtendExpirationOptions,
   ExtendExpirationResponse,
@@ -101,13 +110,23 @@ function toBlob(file: File | Blob | Buffer, filename?: string): { blob: Blob; na
       name: filename || (file instanceof File ? file.name : "document"),
     };
   }
-  throw new Error("Invalid file type. Expected File, Blob, or Buffer.");
+  throw new ValidationError("Invalid file type. Expected File, Blob, or Buffer.");
 }
 
 /** Extract error message from API response */
 async function extractErrorMessage(response: Response, fallbackAction: string): Promise<string> {
   const error = await response.json().catch(() => ({}));
   return error?.error?.message || `${fallbackAction} failed with status ${response.status}`;
+}
+
+/** Map HTTP response to a structured DeepCitation error */
+async function createApiError(response: Response, fallbackAction: string): Promise<DeepCitationError> {
+  const message = await extractErrorMessage(response, fallbackAction);
+  const status = response.status;
+  if (status === 401 || status === 403) return new AuthenticationError(message);
+  if (status === 429) return new RateLimitError(message);
+  if (status >= 400 && status < 500) return new ValidationError(message, status);
+  return new ServerError(message, status);
 }
 
 /**
@@ -138,6 +157,7 @@ async function extractErrorMessage(response: Response, fallbackAction: string): 
 export class DeepCitation {
   private readonly apiKey: string;
   private readonly apiUrl: string;
+  private readonly logger: DeepCitationLogger;
 
   /**
    * Request deduplication cache for verify calls.
@@ -176,11 +196,12 @@ export class DeepCitation {
    */
   constructor(config: DeepCitationConfig) {
     if (!config.apiKey) {
-      throw new Error("DeepCitation API key is required. Get one at https://deepcitation.com/dashboard");
+      throw new AuthenticationError("DeepCitation API key is required. Get one at https://deepcitation.com/dashboard");
     }
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl?.replace(/\/$/, "") || DEFAULT_API_URL;
     this.uploadLimiter = createConcurrencyLimiter(config.maxUploadConcurrency ?? DEFAULT_UPLOAD_CONCURRENCY);
+    this.logger = config.logger ?? {};
   }
 
   /**
@@ -215,9 +236,10 @@ export class DeepCitation {
       }
     } catch (err) {
       // Silently fail - do not break the main verification flow
-      if (typeof console !== "undefined" && console.warn) {
-        console.warn("[DeepCitation] Cache cleanup failed:", err);
-      }
+      // Serialize error to avoid passing non-serializable objects to logger
+      this.logger.warn?.("Cache cleanup failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
@@ -246,6 +268,8 @@ export class DeepCitation {
    */
   async uploadFile(file: File | Blob | Buffer, options?: UploadFileOptions): Promise<UploadFileResponse> {
     const { blob, name } = toBlob(file, options?.filename);
+    this.logger.info?.("Uploading file", { filename: name, size: blob.size });
+
     const formData = new FormData();
     formData.append("file", blob, name);
 
@@ -259,10 +283,13 @@ export class DeepCitation {
     });
 
     if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, "Upload"));
+      this.logger.error?.("Upload failed", { filename: name, status: response.status });
+      throw await createApiError(response, "Upload");
     }
 
-    return (await response.json()) as UploadFileResponse;
+    const result = (await response.json()) as UploadFileResponse;
+    this.logger.info?.("Upload complete", { filename: name, attachmentId: result.attachmentId });
+    return result;
   }
 
   /**
@@ -302,9 +329,10 @@ export class DeepCitation {
     const { url, file, filename, attachmentId } = inputObj;
 
     if (!url && !file) {
-      throw new Error("Either url or file must be provided");
+      throw new ValidationError("Either url or file must be provided");
     }
 
+    this.logger.info?.("Converting to PDF", { url, filename, attachmentId });
     let response: Response;
 
     if (url) {
@@ -329,14 +357,17 @@ export class DeepCitation {
         body: formData,
       });
     } else {
-      throw new Error("Either url or file must be provided");
+      throw new ValidationError("Either url or file must be provided");
     }
 
     if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, "Conversion"));
+      this.logger.error?.("Conversion failed", { url, filename, status: response.status });
+      throw await createApiError(response, "Conversion");
     }
 
-    return (await response.json()) as ConvertFileResponse;
+    const result = (await response.json()) as ConvertFileResponse;
+    this.logger.info?.("Conversion complete", { attachmentId: result.attachmentId });
+    return result;
   }
 
   /**
@@ -360,6 +391,8 @@ export class DeepCitation {
    * ```
    */
   async prepareConvertedFile(options: PrepareConvertedFileOptions): Promise<UploadFileResponse> {
+    this.logger.info?.("Preparing converted file", { attachmentId: options.attachmentId });
+
     const response = await fetch(`${this.apiUrl}/prepareFile`, {
       method: "POST",
       headers: {
@@ -372,10 +405,13 @@ export class DeepCitation {
     });
 
     if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, "Prepare"));
+      this.logger.error?.("Prepare converted file failed", { attachmentId: options.attachmentId, status: response.status });
+      throw await createApiError(response, "Prepare");
     }
 
-    return (await response.json()) as UploadFileResponse;
+    const result = (await response.json()) as UploadFileResponse;
+    this.logger.info?.("Prepare converted file complete", { attachmentId: result.attachmentId });
+    return result;
   }
 
   /**
@@ -409,6 +445,8 @@ export class DeepCitation {
    * ```
    */
   async prepareUrl(options: PrepareUrlOptions): Promise<UploadFileResponse> {
+    this.logger.info?.("Preparing URL", { url: options.url, unsafeFast: options.unsafeFastUrlOutput, skipCache: options.skipCache });
+
     const response = await fetch(`${this.apiUrl}/prepareFile`, {
       method: "POST",
       headers: {
@@ -425,10 +463,17 @@ export class DeepCitation {
     });
 
     if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, "Prepare URL"));
+      this.logger.error?.("Prepare URL failed", { url: options.url, status: response.status });
+      throw await createApiError(response, "Prepare URL");
     }
 
-    return (await response.json()) as UploadFileResponse;
+    const result = (await response.json()) as UploadFileResponse;
+    this.logger.info?.("Prepare URL complete", {
+      url: options.url,
+      attachmentId: result.attachmentId,
+      cached: result.urlCache?.cached,
+    });
+    return result;
   }
 
   /**
@@ -461,6 +506,8 @@ export class DeepCitation {
       return { fileDataParts: [] };
     }
 
+    this.logger.info?.("Preparing files", { count: files.length });
+
     // Upload files with concurrency limit to prevent overwhelming network/server
     // Performance fix: limits concurrent uploads to DEFAULT_UPLOAD_CONCURRENCY
     const uploadPromises = files.map(({ file, filename, attachmentId }) =>
@@ -481,6 +528,7 @@ export class DeepCitation {
       filename: filename || result.metadata?.filename,
     }));
 
+    this.logger.info?.("Prepare files complete", { count: fileDataParts.length });
     return { fileDataParts };
   }
 
@@ -534,11 +582,12 @@ export class DeepCitation {
         Object.assign(citationMap, citations);
       }
     } else {
-      throw new Error("Invalid citations format");
+      throw new ValidationError("Invalid citations format");
     }
 
     // If no citations to verify, return empty result
-    if (Object.keys(citationMap).length === 0) {
+    const citationCount = Object.keys(citationMap).length;
+    if (citationCount === 0) {
       return { verifications: {} };
     }
 
@@ -568,9 +617,15 @@ export class DeepCitation {
     if (cached) {
       // Update timestamp on access for true LRU behavior
       cached.timestamp = Date.now();
+      this.logger.debug?.("Verification cache hit", { attachmentId, citationCount });
       return cached.promise;
     }
 
+    if (options?.proofConfig && !options?.generateProofUrls) {
+      console.warn("DeepCitation: proofConfig is ignored when generateProofUrls is not true");
+    }
+
+    this.logger.info?.("Verifying citations", { attachmentId, citationCount });
     const requestUrl = `${this.apiUrl}/verifyCitations`;
     const requestBody = {
       data: {
@@ -578,7 +633,7 @@ export class DeepCitation {
         citations: citationMap,
         outputImageFormat: options?.outputImageFormat || "avif",
         generateProofUrls: options?.generateProofUrls,
-        proofConfig: options?.proofConfig,
+        proofConfig: options?.generateProofUrls ? options?.proofConfig : undefined,
       },
     };
 
@@ -596,7 +651,8 @@ export class DeepCitation {
       if (!response.ok) {
         // Remove from cache on error so retry is possible
         this.verifyCache.delete(cacheKey);
-        throw new Error(await extractErrorMessage(response, "Verification"));
+        this.logger.error?.("Verification failed", { attachmentId, status: response.status });
+        throw await createApiError(response, "Verification");
       }
 
       return (await response.json()) as VerifyCitationsResponse;
@@ -656,10 +712,14 @@ export class DeepCitation {
     // Parse citations from LLM output
     if (!citations) citations = getAllCitationsFromLlmOutput(llmOutput);
 
+    const totalCount = Object.keys(citations).length;
     // If no citations found, return empty result
-    if (Object.keys(citations).length === 0) {
+    if (totalCount === 0) {
+      this.logger.debug?.("No citations found in LLM output");
       return { verifications: {} };
     }
+
+    this.logger.info?.("Verifying LLM output", { citationCount: totalCount });
 
     // Group citations by attachmentId
     const citationsByAttachment = new Map<string, Record<string, Citation>>();
@@ -686,9 +746,8 @@ export class DeepCitation {
         );
       } else {
         Object.assign(skippedCitations, fileCitations);
-        if (typeof console !== "undefined" && console.warn) {
-          console.warn(`[DeepCitation] ${Object.keys(fileCitations).length} citation(s) skipped: missing attachmentId`);
-        }
+        const skippedCount = Object.keys(fileCitations).length;
+        this.logger.warn?.(`${skippedCount} citation(s) skipped: missing attachmentId`, { skippedCount });
       }
     }
 
@@ -731,6 +790,8 @@ export class DeepCitation {
    * ```
    */
   async extendExpiration(options: ExtendExpirationOptions): Promise<ExtendExpirationResponse> {
+    this.logger.info?.("Extending expiration", { attachmentId: options.attachmentId, duration: options.duration });
+
     const response = await fetch(`${this.apiUrl}/attachments/${options.attachmentId}/extend`, {
       method: "POST",
       headers: {
@@ -743,10 +804,13 @@ export class DeepCitation {
     });
 
     if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, "Extend expiration"));
+      this.logger.error?.("Extend expiration failed", { attachmentId: options.attachmentId, status: response.status });
+      throw await createApiError(response, "Extend expiration");
     }
 
-    return (await response.json()) as ExtendExpirationResponse;
+    const result = (await response.json()) as ExtendExpirationResponse;
+    this.logger.info?.("Expiration extended", { attachmentId: result.attachmentId, expiresAt: result.expiresAt });
+    return result;
   }
 
   /**
@@ -767,6 +831,8 @@ export class DeepCitation {
    * ```
    */
   async deleteAttachment(attachmentId: string): Promise<DeleteAttachmentResponse> {
+    this.logger.info?.("Deleting attachment", { attachmentId });
+
     const response = await fetch(`${this.apiUrl}/attachments/${attachmentId}`, {
       method: "DELETE",
       headers: {
@@ -775,9 +841,12 @@ export class DeepCitation {
     });
 
     if (!response.ok) {
-      throw new Error(await extractErrorMessage(response, "Delete attachment"));
+      this.logger.error?.("Delete attachment failed", { attachmentId, status: response.status });
+      throw await createApiError(response, "Delete attachment");
     }
 
-    return (await response.json()) as DeleteAttachmentResponse;
+    const result = (await response.json()) as DeleteAttachmentResponse;
+    this.logger.info?.("Attachment deleted", { attachmentId: result.attachmentId });
+    return result;
   }
 }

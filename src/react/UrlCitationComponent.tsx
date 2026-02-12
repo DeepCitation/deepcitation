@@ -71,7 +71,7 @@ const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl
 
   if (isBroken) {
     return (
-      <span className="w-3.5 h-3.5 flex items-center justify-center text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+      <span className="w-3.5 h-3.5 flex items-center justify-center text-xs text-gray-400 dark:text-gray-500 shrink-0">
         🌐
       </span>
     );
@@ -81,7 +81,7 @@ const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl
     <img
       src={src}
       alt=""
-      className="w-3.5 h-3.5 rounded-sm flex-shrink-0"
+      className="w-3.5 h-3.5 rounded-sm shrink-0"
       width={14}
       height={14}
       loading="lazy"
@@ -133,6 +133,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       eventHandlers,
       preventTooltips = false,
       showStatusIndicator = true,
+      indicatorVariant = "icon",
       showExternalLinkOnHover = true, // Show external link icon on hover by default
     },
     ref,
@@ -264,6 +265,29 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
     };
 
     const renderStatusIndicator = () => {
+      // Dot variant: simple colored dots for all statuses
+      if (indicatorVariant === "dot") {
+        if (isVerified) {
+          return <StatusIconWrapper><span className="rounded-full bg-green-600 dark:bg-green-500" style={DOT_INDICATOR_FIXED_SIZE_STYLE} aria-hidden="true" /></StatusIconWrapper>;
+        }
+        if (isPartial) {
+          return <StatusIconWrapper><span className="rounded-full bg-amber-500 dark:bg-amber-400" style={DOT_INDICATOR_FIXED_SIZE_STYLE} aria-hidden="true" /></StatusIconWrapper>;
+        }
+        if (isBlocked) {
+          if (renderBlockedIndicator) return renderBlockedIndicator(fetchStatus, errorMessage);
+          return <StatusIconWrapper><span className="rounded-full bg-amber-500 dark:bg-amber-400" style={DOT_INDICATOR_FIXED_SIZE_STYLE} aria-hidden="true" /></StatusIconWrapper>;
+        }
+        if (isError) {
+          if (renderBlockedIndicator) return renderBlockedIndicator(fetchStatus, errorMessage);
+          return <StatusIconWrapper><span className="rounded-full bg-red-500 dark:bg-red-400" style={DOT_INDICATOR_FIXED_SIZE_STYLE} aria-hidden="true" /></StatusIconWrapper>;
+        }
+        if (isPending) {
+          return <StatusIconWrapper><PendingDot /></StatusIconWrapper>;
+        }
+        return null;
+      }
+
+      // Default: icon variant
       // Verified: Green checkmark
       if (isVerified) {
         return (
@@ -306,7 +330,6 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           <StatusIconWrapper
             className="text-red-500 dark:text-red-400"
             ariaLabel={statusInfo.label}
-            role="img"
           >
             <XCircleIcon className="w-full h-full" />
           </StatusIconWrapper>

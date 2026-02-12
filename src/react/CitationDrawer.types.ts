@@ -1,3 +1,4 @@
+import type { CitationPage } from "../types/boxes.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 
@@ -11,6 +12,8 @@ export interface CitationDrawerItem {
   citation: Citation;
   /** Verification result if available */
   verification: Verification | null;
+  /** Optional page render for the citation's verified page */
+  page?: CitationPage | null;
 }
 
 /**
@@ -42,9 +45,9 @@ export interface CitationDrawerProps {
   citationGroups: SourceCitationGroup[];
   /** Title for the drawer header */
   title?: string;
-  /** Whether to show "More" section for additional sources */
+  /** @deprecated No longer used. The drawer always shows all items in a flat scrollable list. */
   showMoreSection?: boolean;
-  /** Maximum items to show before "More" section */
+  /** @deprecated No longer used. The drawer always shows all items in a flat scrollable list. */
   maxVisibleItems?: number;
   /** Callback when a citation item is clicked */
   onCitationClick?: (item: CitationDrawerItem) => void;
@@ -56,6 +59,13 @@ export interface CitationDrawerProps {
   position?: "bottom" | "right";
   /** Custom render for citation items */
   renderCitationItem?: (item: CitationDrawerItem) => React.ReactNode;
+  /**
+   * Visual style for status indicators.
+   * - `"icon"`: Checkmarks, spinner, X icons (default)
+   * - `"dot"`: Subtle colored dots (like GitHub status dots)
+   * @default "icon"
+   */
+  indicatorVariant?: "icon" | "dot";
 }
 
 /**
@@ -72,4 +82,11 @@ export interface CitationDrawerItemProps {
   onReadMore?: (item: CitationDrawerItem) => void;
   /** Additional class name */
   className?: string;
+  /**
+   * Visual style for status indicators.
+   * - `"icon"`: Checkmarks, spinner, X icons (default)
+   * - `"dot"`: Subtle colored dots (like GitHub status dots)
+   * @default "icon"
+   */
+  indicatorVariant?: "icon" | "dot";
 }

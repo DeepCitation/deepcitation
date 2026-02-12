@@ -8,88 +8,76 @@ description: "CSS customization options for CitationComponent"
 
 # Styling
 
-Customize the appearance of CitationComponent using CSS custom properties.
+Customize the appearance of CitationComponent using CSS custom properties, class names, and Tailwind utilities.
 
 ---
 
 ## CSS Custom Properties
 
-Override the default colors using CSS custom properties:
+Override these CSS variables to theme all DeepCitation components at once:
 
 ```css
 :root {
-  /* Text colors */
-  --dc-color-verified: #2563eb;     /* Blue for found citations */
-  --dc-color-success: #16a34a;      /* Green checkmark for exact match */
-  --dc-color-partial: #f59e0b;      /* Orange checkmark for partial match */
+  /* Status indicator colors */
+  --dc-verified-color: #16a34a;   /* Green - verified/exact match (default: green-600) */
+  --dc-partial-color: #f59e0b;    /* Amber - partial match (default: amber-500) */
+  --dc-error-color: #ef4444;      /* Red - not found/hallucination (default: red-500) */
+  --dc-pending-color: #9ca3af;    /* Gray - loading/pending (default: gray-400) */
 
-  /* Backgrounds */
-  --dc-hover-bg: rgba(59, 130, 246, 0.08);
-  --dc-verified-hover-bg: rgba(37, 99, 235, 0.08);
-  --dc-miss-hover-bg: rgba(148, 163, 184, 0.1);
+  /* Wavy underline for "not found" status (non-linter variants) */
+  --dc-wavy-underline-color: #ef4444;  /* Default: red-500 */
 
-  /* Popover */
-  --dc-popover-bg: #ffffff;
-  --dc-border-color: #e2e8f0;
+  /* Linter variant underline colors */
+  --dc-linter-success: #16a34a;   /* Solid green underline for verified */
+  --dc-linter-warning: #f59e0b;   /* Dashed amber underline for partial */
+  --dc-linter-error: #ef4444;     /* Wavy red underline for not found */
+  --dc-linter-pending: #9ca3af;   /* Dotted gray underline for pending */
+
+  /* Popover dimensions */
+  --dc-popover-width: 384px;      /* Popover container width */
 }
 ```
 
----
-
-## Dark Mode
-
-For dark mode support, define the variables within a dark mode context:
+### Dark Mode
 
 ```css
-/* Dark mode overrides */
 @media (prefers-color-scheme: dark) {
   :root {
-    --dc-color-verified: #60a5fa;    /* Lighter blue for dark mode */
-    --dc-color-success: #4ade80;     /* Lighter green */
-    --dc-popover-bg: #1e293b;        /* Dark background */
-    --dc-border-color: #334155;      /* Dark border */
+    --dc-verified-color: #4ade80;     /* green-400 */
+    --dc-partial-color: #fbbf24;      /* amber-400 */
+    --dc-error-color: #f87171;        /* red-400 */
+    --dc-pending-color: #6b7280;      /* gray-500 */
+    --dc-linter-success: #4ade80;
+    --dc-linter-warning: #fbbf24;
+    --dc-linter-error: #f87171;
+    --dc-linter-pending: #6b7280;
   }
 }
 
-/* Or with a class-based approach */
+/* Or with a class-based approach (Tailwind dark mode) */
 .dark {
-  --dc-color-verified: #60a5fa;
-  --dc-popover-bg: #1e293b;
+  --dc-verified-color: #4ade80;
+  --dc-partial-color: #fbbf24;
+  --dc-error-color: #f87171;
+  --dc-pending-color: #6b7280;
 }
 ```
 
----
+### Indicator Variants
 
-## CSS Class Targets
+The `indicatorVariant` prop controls whether status is shown as icons (checkmarks, spinners, X) or subtle colored dots:
 
-Target specific elements within the component:
+```tsx
+// Icon indicators (default)
+<CitationComponent citation={citation} verification={verification} />
 
-| Class | Element | Description |
-|:------|:--------|:------------|
-| `.dc-citation-wrapper` | Outer container | The main wrapper element |
-| `.dc-citation-text` | Text content | The citation text/anchorText |
-| `.dc-citation-indicator` | Status icon | Checkmark, warning, or spinner |
-| `.dc-citation-popover` | Popover container | The hover tooltip |
-
-### Example: Custom Styling
-
-```css
-/* Make citations bold */
-.dc-citation-text {
-  font-weight: 600;
-}
-
-/* Increase indicator spacing */
-.dc-citation-indicator {
-  margin-left: 0.25rem;
-}
-
-/* Custom popover styling */
-.dc-citation-popover {
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-}
+// Dot indicators (like GitHub status dots)
+<CitationComponent citation={citation} verification={verification} indicatorVariant="dot" />
 ```
+
+Dot indicators use Tailwind `bg-*` classes for color (`bg-green-600`, `bg-amber-500`, `bg-red-500`, `bg-gray-400`) and `rounded-full` for shape. The pending dot uses `animate-pulse` for subtle animation.
+
+The dot size is controlled by the `DOT_INDICATOR_SIZE_STYLE` constant (`0.45em`, min `6px`), which is roughly half the size of icon indicators (`0.85em`, min `10px`).
 
 ---
 
@@ -105,89 +93,11 @@ Pass custom classes to the component:
 />
 ```
 
-```css
-/* Target your custom class */
-.my-custom-citation {
-  /* Your styles */
-}
-
-.my-custom-citation .dc-citation-text {
-  text-decoration: underline;
-}
-```
-
----
-
-## Variant-Specific Styling
-
-Each variant has its own base styles that can be overridden:
-
-### Chip Variant
-
-```css
-/* Customize chip appearance */
-.dc-citation-wrapper[data-variant="chip"] {
-  border-radius: 9999px;
-  padding: 0.25rem 0.75rem;
-}
-```
-
-### Brackets Variant
-
-```css
-/* Customize brackets appearance */
-.dc-citation-wrapper[data-variant="brackets"] .dc-citation-text::before {
-  content: "[";
-}
-.dc-citation-wrapper[data-variant="brackets"] .dc-citation-text::after {
-  content: "]";
-}
-```
-
-### Superscript Variant
-
-```css
-/* Customize superscript size */
-.dc-citation-wrapper[data-variant="superscript"] {
-  font-size: 0.75em;
-  vertical-align: super;
-}
-```
-
----
-
-## Status-Based Styling
-
-Style citations based on their verification status:
-
-```css
-/* Verified citations */
-.dc-citation-wrapper[data-status="verified"] {
-  /* Styles for found citations */
-}
-
-/* Partial matches */
-.dc-citation-wrapper[data-status="partial"] {
-  /* Styles for partial matches */
-}
-
-/* Not found (hallucinations) */
-.dc-citation-wrapper[data-status="miss"] {
-  opacity: 0.7;
-  text-decoration: line-through;
-}
-
-/* Pending verification */
-.dc-citation-wrapper[data-status="pending"] {
-  opacity: 0.5;
-}
-```
-
 ---
 
 ## Tailwind CSS Integration
 
-If using Tailwind CSS, you can use utility classes directly:
+If using Tailwind CSS, components work out of the box. You can add utility classes:
 
 ```tsx
 <CitationComponent
@@ -211,13 +121,76 @@ Or define component styles in your CSS:
 }
 ```
 
-```tsx
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  className="citation-legal"
-/>
+---
+
+## Without Tailwind CSS
+
+Import the bundled stylesheet:
+
+```typescript
+import "@deepcitation/deepcitation-js/styles.css";
 ```
+
+Or reference the Tailwind source for your own build:
+
+```typescript
+import "@deepcitation/deepcitation-js/tailwind.css";
+```
+
+---
+
+## CSS Class Targets
+
+Target specific citation elements using data attributes and selectors:
+
+```css
+/* All citations with verified status */
+[data-dc-indicator="verified"] {
+  font-weight: 500;
+}
+
+/* Verified citations - specific styling */
+[data-dc-indicator="verified"] {
+  color: var(--dc-verified-color);
+}
+
+/* Partial match citations */
+[data-dc-indicator="partial"] {
+  color: var(--dc-partial-color);
+}
+
+/* Not found / hallucination citations */
+[data-dc-indicator="error"] {
+  color: var(--dc-error-color);
+}
+
+/* Pending / loading citations */
+[data-dc-indicator="pending"] {
+  color: var(--dc-pending-color);
+}
+
+/* Citation trigger element */
+[data-citation-id] {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* On hover */
+[data-citation-id]:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-citation-id]:hover:dark {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+```
+
+### Available Data Attributes
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `data-dc-indicator` | `verified`, `partial`, `pending`, `error` | Citation status indicator |
+| `data-citation-id` | string | Unique citation identifier (present on trigger element) |
 
 ---
 
@@ -226,11 +199,6 @@ Or define component styles in your CSS:
 Add animations to citations:
 
 ```css
-/* Fade in when verification completes */
-.dc-citation-wrapper {
-  transition: opacity 0.2s ease-in-out;
-}
-
 /* Pulse animation for pending state */
 .dc-citation-wrapper[data-status="pending"] {
   animation: pulse 2s infinite;
@@ -264,3 +232,11 @@ Optimize for printing:
   }
 }
 ```
+
+---
+
+## Related
+
+- [Components]({{ site.baseurl }}/components/) - Component API reference
+- [Getting Started]({{ site.baseurl }}/getting-started/) - Installation and setup
+- [Error Handling]({{ site.baseurl }}/error-handling/) - Production error patterns

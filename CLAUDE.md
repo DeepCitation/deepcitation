@@ -306,7 +306,10 @@ The `linter` variant displays citations as inline text with semantic underlines,
 
 ### 5. Status Indicators
 
-The component displays different indicators based on `verification.status`:
+The component displays different indicators based on `verification.status`.
+Use the `indicatorVariant` prop to choose between icon-based indicators (default) and subtle dot indicators:
+
+#### Icon Variant (default: `indicatorVariant="icon"`)
 
 | Status        | Indicator          | Color  | `status` values                              |
 |---------------|--------------------| -------|----------------------------------------------|
@@ -315,25 +318,36 @@ The component displays different indicators based on `verification.status`:
 | **Partial**   | Checkmark ✓        | Amber  | `"found_on_other_page"`, `"found_on_other_line"`, `"partial_text_found"`, `"first_word_found"` |
 | **Not Found** | X in circle ⊗      | Red    | `"not_found"`                                            |
 
-```tsx
-// Pending state (spinner)
-<CitationComponent citation={citation} verification={null} />
-<CitationComponent citation={citation} verification={{ status: "pending" }} />
+#### Dot Variant (`indicatorVariant="dot"`)
 
-// Verified state (green check)
+| Status        | Indicator          | Color  | Animation     |
+|---------------|--------------------| -------|---------------|
+| **Pending**   | Filled dot ●       | Gray   | `animate-pulse` |
+| **Verified**  | Filled dot ●       | Green  | none          |
+| **Partial**   | Filled dot ●       | Amber  | none          |
+| **Not Found** | Filled dot ●       | Red    | none          |
+
+```tsx
+// Default icon indicators
+<CitationComponent citation={citation} verification={null} />
 <CitationComponent citation={citation} verification={{ status: "found" }} />
 
-// Partial match (amber check)
-<CitationComponent citation={citation} verification={{ status: "found_on_other_page" }} />
+// Subtle dot indicators (like GitHub/shadcn status dots)
+<CitationComponent citation={citation} verification={verification} indicatorVariant="dot" />
 
-// Not found (red warning)
-<CitationComponent citation={citation} verification={{ status: "not_found" }} />
+// Dot indicators work with all variants
+<CitationComponent citation={citation} verification={verification} variant="chip" indicatorVariant="dot" />
+<CitationComponent citation={citation} verification={verification} variant="linter" indicatorVariant="dot" />
+
+// Also supported on CitationDrawer and CitationDrawerTrigger
+<CitationDrawer isOpen={isOpen} onClose={onClose} citationGroups={groups} indicatorVariant="dot" />
+<CitationDrawerTrigger citationGroups={groups} onClick={openDrawer} indicatorVariant="dot" />
 ```
 
 #### Custom Indicator Rendering
 
 ```tsx
-// Custom indicator rendering
+// Custom indicator rendering (overrides both icon and dot variants)
 <CitationComponent
   citation={citation}
   verification={verification}
@@ -776,6 +790,9 @@ The Next.js example uses these models (DO NOT CHANGE):
 | `formatPageLocation()` | `src/markdown/markdownVariants.ts` | Page location string |
 | `buildProofUrl()` | `src/rendering/proofUrl.ts` | Proof URL construction |
 | `MISS_WAVY_UNDERLINE_STYLE` | `src/react/constants.ts` | Wavy underline CSS |
+| `DOT_INDICATOR_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (inline, em-based) |
+| `DOT_INDICATOR_FIXED_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (drawers/wrappers, fixed px) |
+| `formatCaptureDate()` | `src/react/dateUtils.ts` | Date formatting for timestamps |
 
 ### Example
 

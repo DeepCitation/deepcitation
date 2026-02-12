@@ -118,11 +118,11 @@ describe("CitationComponent behaviorConfig", () => {
 
       // A definitive verification status should override isLoading
       // This prevents stuck spinners when we already have a result
-      const spinner = container.querySelector(".animate-spin svg");
+      const spinner = container.querySelector("[data-dc-indicator='pending']");
       expect(spinner).not.toBeInTheDocument();
 
       // Should show the verified indicator instead
-      const greenCheck = container.querySelector(".text-green-600");
+      const greenCheck = container.querySelector("[data-dc-indicator='verified']");
       expect(greenCheck).toBeInTheDocument();
     });
 
@@ -132,11 +132,11 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       // Should NOT have a spinner
-      const spinner = container.querySelector(".animate-spin svg");
+      const spinner = container.querySelector("[data-dc-indicator='pending']");
       expect(spinner).not.toBeInTheDocument();
 
-      // Should have green check (text-green-600 class)
-      const greenCheck = container.querySelector(".text-green-600");
+      // Should have verified indicator
+      const greenCheck = container.querySelector("[data-dc-indicator='verified']");
       expect(greenCheck).toBeInTheDocument();
     });
 
@@ -144,11 +144,11 @@ describe("CitationComponent behaviorConfig", () => {
       const { container } = render(<CitationComponent citation={baseCitation} verification={missVerification} />);
 
       // Should NOT have a spinner
-      const spinner = container.querySelector(".animate-spin svg");
+      const spinner = container.querySelector("[data-dc-indicator='pending']");
       expect(spinner).not.toBeInTheDocument();
 
-      // Should have red X circle (text-red-500 class)
-      const redXIcon = container.querySelector(".text-red-500");
+      // Should have error indicator
+      const redXIcon = container.querySelector("[data-dc-indicator='error']");
       expect(redXIcon).toBeInTheDocument();
     });
 
@@ -161,8 +161,8 @@ describe("CitationComponent behaviorConfig", () => {
 
       const { container } = render(<CitationComponent citation={baseCitation} verification={partialVerification} />);
 
-      // Should have amber check (text-amber-500 class - more yellow amber)
-      const amberCheck = container.querySelector(".text-amber-500");
+      // Should have partial match indicator
+      const amberCheck = container.querySelector("[data-dc-indicator='partial']");
       expect(amberCheck).toBeInTheDocument();
     });
   });
@@ -177,8 +177,8 @@ describe("CitationComponent behaviorConfig", () => {
         <CitationComponent citation={baseCitation} verification={verificationWithoutImage} />,
       );
 
-      // Should have green check indicator
-      const greenCheck = container.querySelector(".text-green-600");
+      // Should have verified indicator
+      const greenCheck = container.querySelector("[data-dc-indicator='verified']");
       expect(greenCheck).toBeInTheDocument();
     });
 
@@ -188,9 +188,9 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       // Should NOT have any status indicators
-      const greenCheck = container.querySelector(".text-green-600");
-      const amberCheck = container.querySelector(".text-amber-500");
-      const spinner = container.querySelector(".animate-spin");
+      const greenCheck = container.querySelector("[data-dc-indicator='verified']");
+      const amberCheck = container.querySelector("[data-dc-indicator='partial']");
+      const spinner = container.querySelector("[data-dc-indicator='pending']");
 
       expect(greenCheck).not.toBeInTheDocument();
       expect(amberCheck).not.toBeInTheDocument();
@@ -223,8 +223,8 @@ describe("CitationComponent behaviorConfig", () => {
       // Custom indicator should still be rendered
       expect(getByTestId("custom-indicator")).toBeInTheDocument();
 
-      // Default green check should NOT be rendered
-      const greenCheck = container.querySelector(".text-green-600");
+      // Default verified indicator should NOT be rendered
+      const greenCheck = container.querySelector("[data-dc-indicator='verified']");
       expect(greenCheck).not.toBeInTheDocument();
     });
 
@@ -238,8 +238,8 @@ describe("CitationComponent behaviorConfig", () => {
         />,
       );
 
-      // Should NOT have red X circle indicator
-      const redXIcon = container.querySelector(".text-red-500");
+      // Should NOT have error indicator
+      const redXIcon = container.querySelector("[data-dc-indicator='error']");
       expect(redXIcon).not.toBeInTheDocument();
     });
   });

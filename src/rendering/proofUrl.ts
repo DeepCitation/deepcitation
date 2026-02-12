@@ -1,4 +1,5 @@
 import type { VerificationRecord } from "../types/citation.js";
+import type { Verification } from "../types/verification.js";
 
 /**
  * Options for building proof page URLs.
@@ -56,18 +57,15 @@ export function buildSnippetImageUrl(proofId: string, options: ProofUrlOptions):
  * Build proof URLs for all citations in a verification record.
  * Returns a map of citationKey -> proofUrl.
  *
- * Note: This requires the verification objects to include a `proofId` field
- * (not yet part of the Verification interface — this is a forward-looking API
- * for when the backend returns proof IDs). For now, it uses the citationKey
- * as a fallback proof ID.
+ * Uses `proofId` from each verification if available, otherwise falls back
+ * to the citationKey as the proof ID.
  */
 export function buildProofUrls(verifications: VerificationRecord, options: ProofUrlOptions): Record<string, string> {
   const urls: Record<string, string> = {};
 
   for (const [citationKey, verification] of Object.entries(verifications)) {
-    // Use proofId from verification if available, otherwise fall back to citationKey
-    const proofId = (verification as Record<string, unknown>).proofId as string | undefined;
-    urls[citationKey] = buildProofUrl(proofId || citationKey, options);
+    const proofId = verification.proofId || citationKey;
+    urls[citationKey] = buildProofUrl(proofId, options);
   }
 
   return urls;

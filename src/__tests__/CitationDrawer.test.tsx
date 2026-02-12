@@ -277,14 +277,20 @@ describe("CitationDrawerItemComponent", () => {
     expect(getByText("The minimum tax is $175.00 for corporations...")).toBeInTheDocument();
   });
 
-  it("renders favicon when available", () => {
-    const { container } = render(<CitationDrawerItemComponent item={createItem()} />);
+  it("renders status indicator instead of favicon", () => {
+    const { container, getByTestId } = render(<CitationDrawerItemComponent item={createItem()} />);
 
-    const favicon = container.querySelector('img[src="https://delaware.gov/favicon.ico"]');
-    expect(favicon).toBeInTheDocument();
+    // Status indicator should be present (verified = green check)
+    const statusIcon = container.querySelector("[title='Verified']");
+    expect(statusIcon).toBeInTheDocument();
+
+    // No favicon image should be rendered in the status indicator column
+    const leftColumn = getByTestId("status-indicator");
+    const faviconImg = leftColumn.querySelector("img");
+    expect(faviconImg).toBeNull();
   });
 
-  it("renders placeholder when no favicon", () => {
+  it("renders status indicator when no favicon available", () => {
     const item = createItem({
       citation: {
         siteName: "Test",
@@ -292,10 +298,11 @@ describe("CitationDrawerItemComponent", () => {
       },
     });
 
-    const { getByText } = render(<CitationDrawerItemComponent item={item} />);
+    const { container } = render(<CitationDrawerItemComponent item={item} />);
 
-    // Should show first letter as placeholder
-    expect(getByText("T")).toBeInTheDocument();
+    // Should show status indicator, not initial letter "T"
+    const statusIcon = container.querySelector("[title='Verified']");
+    expect(statusIcon).toBeInTheDocument();
   });
 
   it("calls onClick when clicked", () => {
@@ -327,7 +334,7 @@ describe("CitationDrawerItemComponent", () => {
       <CitationDrawerItemComponent item={createItem({ verification: { status: "not_found" } })} />,
     );
 
-    const indicator = container.querySelector(".text-amber-500");
+    const indicator = container.querySelector(".text-red-500");
     expect(indicator).toBeInTheDocument();
   });
 
@@ -479,7 +486,7 @@ describe("CitationDrawer", () => {
     expect(getAllByText("Article 2")).toHaveLength(1);
   });
 
-  it("shows 'More' section when there are more items", () => {
+  it("shows all items without More section (always expanded)", () => {
     const groups = [createGroup("Test", 5)];
 
     const { getByText } = render(
@@ -487,34 +494,11 @@ describe("CitationDrawer", () => {
         isOpen={true}
         onClose={() => {}}
         citationGroups={groups}
-        showMoreSection={true}
-        maxVisibleItems={3}
       />,
     );
 
-    expect(getByText("More (2)")).toBeInTheDocument();
-  });
-
-  it("expands More section when clicked", () => {
-    const groups = [createGroup("Test", 5)];
-
-    const { getByText, queryByText } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={() => {}}
-        citationGroups={groups}
-        showMoreSection={true}
-        maxVisibleItems={3}
-      />,
-    );
-
-    // Initially, items 4 and 5 should not be visible
-    expect(queryByText("Article 4")).not.toBeInTheDocument();
-
-    // Click More
-    fireEvent.click(getByText("More (2)"));
-
-    // Now items 4 and 5 should be visible
+    // All items should be visible (no More section, always expanded)
+    expect(getByText("Article 1")).toBeInTheDocument();
     expect(getByText("Article 4")).toBeInTheDocument();
     expect(getByText("Article 5")).toBeInTheDocument();
   });
@@ -808,7 +792,8 @@ describe("CitationDrawerTrigger", () => {
     const groups = [createGroup("Source A", 2), createGroup("Source B", 1)];
     const { getByText } = render(<CitationDrawerTrigger citationGroups={groups} />);
 
-    expect(getByText("3 sources · 3 verified")).toBeInTheDocument();
+    // New label format: "Source A +1" (first source name + count of additional sources)
+    expect(getByText("Source A +1")).toBeInTheDocument();
   });
 
   it("uses custom label when provided", () => {
@@ -835,10 +820,10 @@ describe("CitationDrawerTrigger", () => {
     ];
     const { container } = render(<CitationDrawerTrigger citationGroups={groups} />);
 
-    // Should have green, gray, and amber status icons
+    // Should have green, gray, and red status icons
     expect(container.querySelector(".text-green-500")).toBeInTheDocument();
     expect(container.querySelector(".text-gray-400")).toBeInTheDocument();
-    expect(container.querySelector(".text-amber-500")).toBeInTheDocument();
+    expect(container.querySelector(".text-red-500")).toBeInTheDocument();
   });
 
   it("renders spinner for pending status icons", () => {
@@ -863,12 +848,17 @@ describe("CitationDrawerTrigger", () => {
     expect(getByTestId("citation-drawer-trigger")).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("renders stacked favicons", () => {
+  it("does not render stacked favicons", () => {
     const groups = [createGroup("Test", 1)];
-    const { container } = render(<CitationDrawerTrigger citationGroups={groups} />);
+    const { queryByTestId } = render(<CitationDrawerTrigger citationGroups={groups} />);
 
-    const favicon = container.querySelector('img[src="https://test.com/favicon.ico"]');
-    expect(favicon).toBeInTheDocument();
+    // Stacked favicons section has been removed; only status icons should appear
+    const triggerBar = queryByTestId("citation-drawer-trigger");
+    expect(triggerBar).toBeInTheDocument();
+
+    // No favicon images should be directly in the trigger bar
+    const faviconInBar = triggerBar?.querySelector('img[src="https://test.com/favicon.ico"]');
+    expect(faviconInBar).not.toBeInTheDocument();
   });
 
   /** Helper: hover the trigger, then hover the first icon in the status group */
@@ -917,8 +907,8 @@ describe("CitationDrawerTrigger", () => {
     const trigger = getByTestId("citation-drawer-trigger");
     hoverFirstIcon(trigger);
 
-    // Click the proof thumbnail button
-    const proofButton = trigger.querySelector("button[aria-label='View proof for TestSource']");
+    // Click the proof thumbnail (now a div with role="button" to avoid nesting buttons)
+    const proofButton = trigger.querySelector("[aria-label='View proof for TestSource']");
     expect(proofButton).toBeInTheDocument();
     if (proofButton) fireEvent.click(proofButton);
 
