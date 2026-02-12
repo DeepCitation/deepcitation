@@ -48,7 +48,6 @@ import type {
 } from "./types.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 import { QuotedText, SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";
-import { formatCaptureDate } from "./dateUtils.js";
 
 // Re-export types for convenience
 export type {
@@ -75,27 +74,11 @@ const SPINNER_TIMEOUT_MS = 5000;
 /** Delay in ms before closing popover on mouse leave (allows moving to popover content). */
 const HOVER_CLOSE_DELAY_MS = 150;
 
-// Constants
-/** Default number of search attempt groups to show before expanding */
-const DEFAULT_VISIBLE_GROUP_COUNT = 2;
-
-/** Maximum characters to show for truncated phrases in search attempts */
-const MAX_PHRASE_LENGTH = 50;
-
 /** Popover container width. Customizable via CSS custom property `--dc-popover-width`. */
 const POPOVER_WIDTH = "var(--dc-popover-width, 384px)";
 
 /** Popover container max width (viewport-relative, with safe margin to prevent scrollbar) */
 const POPOVER_MAX_WIDTH = "calc(100vw - 32px)";
-
-/** Maximum characters to show for matched text display in search results */
-const MAX_MATCHED_TEXT_LENGTH = 40;
-
-/** Maximum number of search variations to show before collapsing */
-const MAX_VISIBLE_VARIATIONS = 3;
-
-/** Maximum characters to show for variation strings */
-const MAX_VARIATION_LENGTH = 30;
 
 /** Debounce threshold for ignoring click events after touch (ms) */
 const TOUCH_CLICK_DEBOUNCE_MS = 100;
@@ -889,38 +872,6 @@ const MissDot = () => <DotIndicator color="red" label="Not found" />;
 // =============================================================================
 
 /**
- * Displays a capture/verification timestamp in the popover.
- * URL citations show "Retrieved [date+time]"; document citations show "Verified [date]".
- * Renders nothing when no date is available.
- */
-function CaptureTimestamp({
-  verification,
-  citation,
-}: {
-  verification: Verification | null;
-  citation: BaseCitationProps["citation"];
-}) {
-  const isUrl = isUrlCitation(citation);
-  const rawDate = isUrl
-    ? (verification?.url?.crawledAt ?? verification?.verifiedAt)
-    : verification?.verifiedAt;
-
-  const formatted = formatCaptureDate(rawDate, { showTime: isUrl });
-  if (!formatted) return null;
-
-  const label = isUrl && verification?.url?.crawledAt ? "Retrieved" : "Verified";
-
-  return (
-    <div
-      className="px-3 py-1.5 text-[11px] text-gray-400 dark:text-gray-500"
-      title={formatted.tooltip}
-    >
-      {label} {formatted.display}
-    </div>
-  );
-}
-
-/**
  * Displays a verification image that fits within the container dimensions.
  * The image is scaled to fit (without distortion) and can be clicked to expand.
  * Includes an action bar with zoom button and optional "View page" button.
@@ -1186,9 +1137,6 @@ function DefaultPopoverContent({
             <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
           </div>
 
-          {/* Capture/verification timestamp */}
-          <CaptureTimestamp verification={verification} citation={citation} />
-
           {/* Expandable search details for verified matches */}
           {verification.searchAttempts && verification.searchAttempts.length > 0 && (
             <VerificationLog
@@ -1268,9 +1216,6 @@ function DefaultPopoverContent({
             </>
           )}
 
-          {/* Capture/verification timestamp */}
-          <CaptureTimestamp verification={verification} citation={citation} />
-
           {/* Verification log (collapsible) */}
           {showVerificationLog && verification?.searchAttempts && (
             <VerificationLog
@@ -1333,8 +1278,6 @@ function DefaultPopoverContent({
           <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
         )}
       </div>
-      {/* Capture/verification timestamp */}
-      <CaptureTimestamp verification={verification} citation={citation} />
     </div>
   );
 }
