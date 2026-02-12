@@ -270,34 +270,35 @@ export const parseCitation = (
   const faviconUrl = cleanAndUnescape(extractAttribute(middleCite, ["favicon_url", "faviconUrl"]));
 
   // Determine citation type: URL citation if url is present and no attachmentId
-  const citation: Citation = url && !attachmentId
-    ? {
-        type: "url" as const,
-        url,
-        domain,
-        title,
-        description,
-        siteName,
-        faviconUrl,
-        fullPhrase,
-        anchorText: anchorText || value,
-        citationNumber,
-        beforeCite,
-        timestamps,
-        reasoning,
-      } as UrlCitation
-    : {
-        attachmentId: attachmentId,
-        pageNumber,
-        startPageId: `page_number_${pageNumber || 1}_index_${pageIndex || 0}`,
-        fullPhrase,
-        anchorText: anchorText || value,
-        citationNumber,
-        lineIds,
-        beforeCite,
-        timestamps,
-        reasoning,
-      } as DocumentCitation;
+  const citation: Citation =
+    url && !attachmentId
+      ? ({
+          type: "url" as const,
+          url,
+          domain,
+          title,
+          description,
+          siteName,
+          faviconUrl,
+          fullPhrase,
+          anchorText: anchorText || value,
+          citationNumber,
+          beforeCite,
+          timestamps,
+          reasoning,
+        } as UrlCitation)
+      : ({
+          attachmentId: attachmentId,
+          pageNumber,
+          startPageId: `page_number_${pageNumber || 1}_index_${pageIndex || 0}`,
+          fullPhrase,
+          anchorText: anchorText || value,
+          citationNumber,
+          lineIds,
+          beforeCite,
+          timestamps,
+          reasoning,
+        } as DocumentCitation);
 
   return {
     beforeCite,

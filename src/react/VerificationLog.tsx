@@ -162,7 +162,7 @@ const _MAX_MISS_ANCHOR_TEXT_LENGTH = 60;
 /**
  * Maps document verification SearchStatus to UrlFetchStatus for display in UrlCitationComponent.
  */
-export function mapSearchStatusToUrlFetchStatus(status: SearchStatus | null | undefined): UrlFetchStatus {
+function mapSearchStatusToUrlFetchStatus(status: SearchStatus | null | undefined): UrlFetchStatus {
   if (!status) return "pending";
   switch (status) {
     case "found":

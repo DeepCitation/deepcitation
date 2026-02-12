@@ -2,14 +2,13 @@ import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { Verification } from "../types/verification.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
-import { isUrlCitation } from "./utils.js";
-
 // Import icon components for JSX rendering in getStatusInfo
 import {
   CheckIcon as CheckIconComponent,
   SpinnerIcon as SpinnerIconComponent,
   XCircleIcon as XCircleIconComponent,
 } from "./icons.js";
+import { isUrlCitation } from "./utils.js";
 
 /**
  * Groups citations by their source domain/name.
@@ -22,8 +21,8 @@ export function groupCitationsBySource(citations: CitationDrawerItem[]): SourceC
     // Group by attachmentId for document citations, domain/siteName/url for URL citations
     const cit = item.citation;
     const groupKey = isUrlCitation(cit)
-      ? (cit.domain || cit.siteName || cit.url || "unknown")
-      : (cit.attachmentId || item.verification?.label || "unknown-doc");
+      ? cit.domain || cit.siteName || cit.url || "unknown"
+      : cit.attachmentId || item.verification?.label || "unknown-doc";
 
     if (!groups.has(groupKey)) {
       groups.set(groupKey, []);
@@ -36,11 +35,15 @@ export function groupCitationsBySource(citations: CitationDrawerItem[]): SourceC
     const firstCitation = items[0].citation;
     const firstVerification = items[0].verification;
     return {
-      sourceName: firstCitation.type === "url"
-        ? (firstCitation.siteName || firstCitation.domain || extractDomain(firstCitation.url) || "Unknown Source")
-        : (firstVerification?.label || firstCitation.attachmentId || "Document"),
-      sourceDomain: firstCitation.type === "url" ? (firstCitation.domain || extractDomain(firstCitation.url)) : undefined,
-      sourceFavicon: firstVerification?.url?.verifiedFaviconUrl || (firstCitation.type === "url" ? firstCitation.faviconUrl : undefined) || undefined,
+      sourceName:
+        firstCitation.type === "url"
+          ? firstCitation.siteName || firstCitation.domain || extractDomain(firstCitation.url) || "Unknown Source"
+          : firstVerification?.label || firstCitation.attachmentId || "Document",
+      sourceDomain: firstCitation.type === "url" ? firstCitation.domain || extractDomain(firstCitation.url) : undefined,
+      sourceFavicon:
+        firstVerification?.url?.verifiedFaviconUrl ||
+        (firstCitation.type === "url" ? firstCitation.faviconUrl : undefined) ||
+        undefined,
       citations: items,
       additionalCount: items.length - 1,
     };
@@ -87,7 +90,12 @@ export function getStatusInfo(
     if (!status || status === "pending" || status === "loading") {
       return {
         color: "text-gray-400",
-        icon: <span className="inline-block rounded-full bg-gray-400 animate-pulse" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
+        icon: (
+          <span
+            className="inline-block rounded-full bg-gray-400 animate-pulse"
+            style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+          />
+        ),
         label: "Verifying",
       };
     }

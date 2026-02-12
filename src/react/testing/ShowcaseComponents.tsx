@@ -2091,7 +2091,12 @@ export function CitationDrawerShowcase() {
                 {/* Source group header */}
                 <div className="w-full px-4 py-2.5 flex items-center gap-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
                   {group.sourceFavicon ? (
-                    <img src={group.sourceFavicon} alt="" className="w-4 h-4 rounded-sm object-contain" loading="lazy" />
+                    <img
+                      src={group.sourceFavicon}
+                      alt=""
+                      className="w-4 h-4 rounded-sm object-contain"
+                      loading="lazy"
+                    />
                   ) : (
                     <div className="w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                       <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400">

@@ -189,5 +189,4 @@ export interface Verification {
     /** Human-readable note about the ambiguity */
     note: string;
   } | null;
-
 }

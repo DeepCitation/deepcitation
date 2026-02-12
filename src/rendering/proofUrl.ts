@@ -1,5 +1,4 @@
 import type { VerificationRecord } from "../types/citation.js";
-import type { Verification } from "../types/verification.js";
 
 /**
  * Options for building proof page URLs.

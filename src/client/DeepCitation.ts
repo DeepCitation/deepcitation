@@ -2,14 +2,7 @@ import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/index.js";
 import { sha1Hash } from "../utils/sha.js";
-import {
-  AuthenticationError,
-  type DeepCitationError,
-  NetworkError,
-  RateLimitError,
-  ServerError,
-  ValidationError,
-} from "./errors.js";
+import { AuthenticationError, type DeepCitationError, RateLimitError, ServerError, ValidationError } from "./errors.js";
 import type {
   CitationInput,
   ConvertFileInput,
@@ -405,7 +398,10 @@ export class DeepCitation {
     });
 
     if (!response.ok) {
-      this.logger.error?.("Prepare converted file failed", { attachmentId: options.attachmentId, status: response.status });
+      this.logger.error?.("Prepare converted file failed", {
+        attachmentId: options.attachmentId,
+        status: response.status,
+      });
       throw await createApiError(response, "Prepare");
     }
 
@@ -445,7 +441,11 @@ export class DeepCitation {
    * ```
    */
   async prepareUrl(options: PrepareUrlOptions): Promise<UploadFileResponse> {
-    this.logger.info?.("Preparing URL", { url: options.url, unsafeFast: options.unsafeFastUrlOutput, skipCache: options.skipCache });
+    this.logger.info?.("Preparing URL", {
+      url: options.url,
+      unsafeFast: options.unsafeFastUrlOutput,
+      skipCache: options.skipCache,
+    });
 
     const response = await fetch(`${this.apiUrl}/prepareFile`, {
       method: "POST",

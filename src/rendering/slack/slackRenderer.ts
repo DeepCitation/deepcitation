@@ -83,8 +83,8 @@ export function renderCitationsForSlack(input: string, options: SlackRenderOptio
     for (const cws of citationsWithStatus) {
       const label =
         cws.citation.type === "url"
-          ? (sourceLabels[""] || cws.verification?.label || cws.citation.title || `Source ${cws.citationNumber}`)
-          : (sourceLabels[cws.citation.attachmentId || ""] || cws.verification?.label || `Source ${cws.citationNumber}`);
+          ? sourceLabels[""] || cws.verification?.label || cws.citation.title || `Source ${cws.citationNumber}`
+          : sourceLabels[cws.citation.attachmentId || ""] || cws.verification?.label || `Source ${cws.citationNumber}`;
       const location = formatPageLocation(cws.citation, cws.verification, {
         showPageNumber: true,
         showLinePosition: false,

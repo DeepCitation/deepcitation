@@ -497,13 +497,7 @@ describe("CitationDrawer", () => {
   it("shows all items without More section (always expanded)", () => {
     const groups = [createGroup("Test", 5)];
 
-    const { getByText } = render(
-      <CitationDrawer
-        isOpen={true}
-        onClose={() => {}}
-        citationGroups={groups}
-      />,
-    );
+    const { getByText } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
 
     // All items should be visible (no More section, always expanded)
     expect(getByText("Article 1")).toBeInTheDocument();

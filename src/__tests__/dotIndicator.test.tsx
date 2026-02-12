@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, mock } from "@jest/globals";
 import { cleanup, render } from "@testing-library/react";
 import type React from "react";
 import { INDICATOR_SETS } from "../markdown/types";
-import { getStatusInfo } from "../react/CitationDrawer.utils";
 import { CitationComponent } from "../react/CitationComponent";
+import { getStatusInfo } from "../react/CitationDrawer.utils";
 import { DOT_INDICATOR_SIZE_STYLE, INDICATOR_SIZE_STYLE } from "../react/constants";
 import { StatusHeader } from "../react/VerificationLog";
 import type { Citation } from "../types/citation";
@@ -78,9 +78,7 @@ describe("Dot Indicator Variant", () => {
     });
 
     it("renders icon indicators by default (no indicatorVariant)", () => {
-      const { container } = render(
-        <CitationComponent citation={baseCitation} verification={verifiedVerification} />,
-      );
+      const { container } = render(<CitationComponent citation={baseCitation} verification={verifiedVerification} />);
       // Default should render SVG checkmark icon
       const svg = container.querySelector("svg");
       expect(svg).toBeInTheDocument();
@@ -135,25 +133,19 @@ describe("Dot Indicator Variant", () => {
 
   describe("StatusHeader", () => {
     it("renders dot instead of icon when indicatorVariant is dot", () => {
-      const { container } = render(
-        <StatusHeader status="found" foundPage={5} indicatorVariant="dot" />,
-      );
+      const { container } = render(<StatusHeader status="found" foundPage={5} indicatorVariant="dot" />);
       const dot = container.querySelector(".rounded-full");
       expect(dot).toBeInTheDocument();
     });
 
     it("renders icon by default", () => {
-      const { container } = render(
-        <StatusHeader status="found" foundPage={5} />,
-      );
+      const { container } = render(<StatusHeader status="found" foundPage={5} />);
       const svg = container.querySelector("svg");
       expect(svg).toBeInTheDocument();
     });
 
     it("renders pulsing dot for pending status with dot variant", () => {
-      const { container } = render(
-        <StatusHeader status="pending" indicatorVariant="dot" />,
-      );
+      const { container } = render(<StatusHeader status="pending" indicatorVariant="dot" />);
       const dot = container.querySelector(".animate-pulse.rounded-full");
       expect(dot).toBeInTheDocument();
     });

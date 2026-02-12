@@ -523,7 +523,7 @@ function _getMethodLabel(method: string): string {
  * formatPageList([2]) // "page 2"
  * formatPageList([]) // ""
  */
-function formatPageList(pages: number[]): string {
+function _formatPageList(pages: number[]): string {
   if (pages.length === 0) return "";
   const sorted = [...new Set(pages)].sort((a, b) => a - b);
   if (sorted.length === 1) return `page ${sorted[0]}`;
@@ -560,7 +560,7 @@ function formatPageList(pages: number[]): string {
  *   console.log(`"${group.phrase}" - searched ${group.pagesSearched.length} pages`);
  * });
  */
-function groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] {
+function _groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] {
   const groups = new Map<string, GroupedSearchAttempt>();
 
   for (const attempt of attempts) {
@@ -848,7 +848,15 @@ const MissIndicator = () => (
 // DOT_COLORS is imported from ./constants.js for consistency across components.
 
 /** Unified dot indicator — color + optional pulse animation. */
-const DotIndicator = ({ color, pulse = false, label }: { color: keyof typeof DOT_COLORS; pulse?: boolean; label: string }) => (
+const DotIndicator = ({
+  color,
+  pulse = false,
+  label,
+}: {
+  color: keyof typeof DOT_COLORS;
+  pulse?: boolean;
+  label: string;
+}) => (
   <span
     className={cn(
       "inline-block relative ml-0.5 top-[0.05em] rounded-full [text-decoration:none]",
@@ -856,7 +864,9 @@ const DotIndicator = ({ color, pulse = false, label }: { color: keyof typeof DOT
       pulse && "animate-pulse",
     )}
     style={DOT_INDICATOR_SIZE_STYLE}
-    data-dc-indicator={color === "red" ? "error" : color === "gray" ? "pending" : color === "amber" ? "partial" : "verified"}
+    data-dc-indicator={
+      color === "red" ? "error" : color === "gray" ? "pending" : color === "amber" ? "partial" : "verified"
+    }
     role="img"
     aria-label={label}
   />
@@ -2154,9 +2164,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Generate unique IDs for ARIA attributes
     const popoverId = `citation-popover-${citationInstanceId}`;
     const statusDescId = `citation-status-${citationInstanceId}`;
-    const statusDescription = shouldShowSpinner
-      ? "Verifying..."
-      : getStatusLabel(status);
+    const statusDescription = shouldShowSpinner ? "Verifying..." : getStatusLabel(status);
 
     // Variants with their own hover styles don't need parent hover (would extend beyond bounds)
     const variantHasOwnHover = VARIANTS_WITH_OWN_HOVER.has(variant);

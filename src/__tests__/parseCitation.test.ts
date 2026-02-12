@@ -6,8 +6,8 @@ import {
   normalizeCitationType,
   parseCitation,
 } from "../parsing/parseCitation.js";
-import type { Citation } from "../types/citation.js";
 import { isDocumentCitation, isUrlCitation } from "../react/utils.js";
+import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { NOT_FOUND_VERIFICATION_INDEX } from "../types/verification.js";
 
@@ -2812,8 +2812,7 @@ describe("parseCitation — URL citations", () => {
   });
 
   it("extracts description for URL citations", () => {
-    const fragment =
-      "<cite url='https://example.com' description='A brief summary' full_phrase='test' />";
+    const fragment = "<cite url='https://example.com' description='A brief summary' full_phrase='test' />";
     const { citation } = parseCitation(fragment);
 
     expect(citation.type).toBe("url");
@@ -2990,8 +2989,11 @@ describe("groupCitationsByAttachmentId — mixed citation types", () => {
     expect(grouped.has("")).toBe(true);
     expect(grouped.has("file1")).toBe(true);
 
-    const urlGroup = grouped.get("")!;
-    const docGroup = grouped.get("file1")!;
+    const urlGroup = grouped.get("");
+    const docGroup = grouped.get("file1");
+    expect(urlGroup).toBeDefined();
+    expect(docGroup).toBeDefined();
+    if (!urlGroup || !docGroup) return;
 
     expect(Object.values(urlGroup)).toHaveLength(1);
     expect(Object.values(urlGroup)[0].type).toBe("url");

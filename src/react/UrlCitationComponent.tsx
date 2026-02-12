@@ -266,21 +266,57 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       // Dot variant: simple colored dots for all statuses
       if (indicatorVariant === "dot") {
         if (isVerified) {
-          return <StatusIconWrapper ariaLabel="Verified"><span className={classNames("rounded-full", DOT_COLORS.green)} style={DOT_INDICATOR_FIXED_SIZE_STYLE} aria-hidden="true" /></StatusIconWrapper>;
+          return (
+            <StatusIconWrapper ariaLabel="Verified">
+              <span
+                className={classNames("rounded-full", DOT_COLORS.green)}
+                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+                aria-hidden="true"
+              />
+            </StatusIconWrapper>
+          );
         }
         if (isPartial) {
-          return <StatusIconWrapper ariaLabel="Partial match"><span className={classNames("rounded-full", DOT_COLORS.amber)} style={DOT_INDICATOR_FIXED_SIZE_STYLE} aria-hidden="true" /></StatusIconWrapper>;
+          return (
+            <StatusIconWrapper ariaLabel="Partial match">
+              <span
+                className={classNames("rounded-full", DOT_COLORS.amber)}
+                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+                aria-hidden="true"
+              />
+            </StatusIconWrapper>
+          );
         }
         if (isBlocked) {
           if (renderBlockedIndicator) return renderBlockedIndicator(fetchStatus, errorMessage);
-          return <StatusIconWrapper ariaLabel={statusInfo.label}><span className={classNames("rounded-full", DOT_COLORS.amber)} style={DOT_INDICATOR_FIXED_SIZE_STYLE} aria-hidden="true" /></StatusIconWrapper>;
+          return (
+            <StatusIconWrapper ariaLabel={statusInfo.label}>
+              <span
+                className={classNames("rounded-full", DOT_COLORS.amber)}
+                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+                aria-hidden="true"
+              />
+            </StatusIconWrapper>
+          );
         }
         if (isError) {
           if (renderBlockedIndicator) return renderBlockedIndicator(fetchStatus, errorMessage);
-          return <StatusIconWrapper ariaLabel={statusInfo.label}><span className={classNames("rounded-full", DOT_COLORS.red)} style={DOT_INDICATOR_FIXED_SIZE_STYLE} aria-hidden="true" /></StatusIconWrapper>;
+          return (
+            <StatusIconWrapper ariaLabel={statusInfo.label}>
+              <span
+                className={classNames("rounded-full", DOT_COLORS.red)}
+                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+                aria-hidden="true"
+              />
+            </StatusIconWrapper>
+          );
         }
         if (isPending) {
-          return <StatusIconWrapper ariaLabel="Verification in progress"><PendingDot /></StatusIconWrapper>;
+          return (
+            <StatusIconWrapper ariaLabel="Verification in progress">
+              <PendingDot />
+            </StatusIconWrapper>
+          );
         }
         return null;
       }
@@ -310,10 +346,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           return renderBlockedIndicator(fetchStatus, errorMessage);
         }
         return (
-          <StatusIconWrapper
-            className="text-amber-500 dark:text-amber-400"
-            ariaLabel={statusInfo.label}
-          >
+          <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel={statusInfo.label}>
             <LockIcon className="w-full h-full" />
           </StatusIconWrapper>
         );
@@ -325,10 +358,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           return renderBlockedIndicator(fetchStatus, errorMessage);
         }
         return (
-          <StatusIconWrapper
-            className="text-red-500 dark:text-red-400"
-            ariaLabel={statusInfo.label}
-          >
+          <StatusIconWrapper className="text-red-500 dark:text-red-400" ariaLabel={statusInfo.label}>
             <XCircleIcon className="w-full h-full" />
           </StatusIconWrapper>
         );

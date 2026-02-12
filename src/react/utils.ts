@@ -51,11 +51,7 @@ export function generateCitationKey(citation: Citation): string {
   } else {
     // Document-specific key parts
     const pageNumber = citation.pageNumber || getCitationPageNumber(citation.startPageId);
-    keyParts.push(
-      citation.attachmentId || "",
-      pageNumber?.toString() || "",
-      citation.lineIds?.join(",") || "",
-    );
+    keyParts.push(citation.attachmentId || "", pageNumber?.toString() || "", citation.lineIds?.join(",") || "");
   }
 
   return sha1Hash(keyParts.join("|")).slice(0, 16);

@@ -144,8 +144,6 @@ export type {
   CitationHoverBehavior,
   CitationInteractionMode,
   CitationRenderProps,
-  // Indicator variant type
-  IndicatorVariant,
   CitationStateClasses,
   CitationStyles,
   CitationTooltipProps,
@@ -153,6 +151,8 @@ export type {
   // URL content verification types
   ContentMatchStatus,
   GroupCitationsBySource,
+  // Indicator variant type
+  IndicatorVariant,
   SourceChipProps,
   SourceCitationGroup,
   SourcesListHeaderConfig,

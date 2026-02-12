@@ -256,7 +256,14 @@ export function getPortalContainer(): HTMLElement | null {
 }
 
 /** Safe raster image data URI prefixes (no SVG — can contain scripts). */
-export const SAFE_DATA_IMAGE_PREFIXES = ["data:image/png", "data:image/jpeg", "data:image/jpg", "data:image/webp", "data:image/avif", "data:image/gif"] as const;
+export const SAFE_DATA_IMAGE_PREFIXES = [
+  "data:image/png",
+  "data:image/jpeg",
+  "data:image/jpg",
+  "data:image/webp",
+  "data:image/avif",
+  "data:image/gif",
+] as const;
 
 /** Trusted CDN hostnames for proof images. */
 export const TRUSTED_IMAGE_HOSTS = ["api.deepcitation.com", "cdn.deepcitation.com"] as const;

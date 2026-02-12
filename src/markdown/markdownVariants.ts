@@ -183,7 +183,8 @@ export function renderCitationVariant(citationWithStatus: CitationWithStatus, op
     }
 
     case "academic": {
-      const sourceLabel = options.sourceLabels?.[citation.type !== "url" ? (citation.attachmentId || "") : ""] || "Source";
+      const sourceLabel =
+        options.sourceLabels?.[citation.type !== "url" ? citation.attachmentId || "" : ""] || "Source";
       const page = citation.type !== "url" && citation.pageNumber ? `, p.${citation.pageNumber}` : "";
       const anchor =
         linkStyle === "anchor"
