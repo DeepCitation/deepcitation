@@ -126,16 +126,15 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const statusInfo = getStatusInfo(verification);
 
   // Get display values with fallbacks
-  const isDocument = citation.type === "document" || (!citation.type && citation.attachmentId);
-  const sourceName = isDocument
-    ? (verification?.label || "Document")
-    : (citation.siteName || citation.domain || extractDomain(citation.url) || "Source");
-  const articleTitle = citation.anchorText || citation.title || citation.fullPhrase;
-  const snippet = citation.fullPhrase || citation.description || verification?.actualContentSnippet || verification?.verifiedMatchSnippet;
-  const faviconUrl = citation.faviconUrl;
+  const sourceName = citation.type === "url"
+    ? (citation.siteName || citation.domain || extractDomain(citation.url) || "Source")
+    : (verification?.label || "Document");
+  const articleTitle = citation.anchorText || (citation.type === "url" ? citation.title : undefined) || citation.fullPhrase;
+  const snippet = citation.fullPhrase || (citation.type === "url" ? citation.description : undefined) || verification?.actualContentSnippet || verification?.verifiedMatchSnippet;
+  const faviconUrl = citation.type === "url" ? citation.faviconUrl : undefined;
 
   // Page number for document citations
-  const pageNumber = citation.pageNumber ?? verification?.verifiedPageNumber;
+  const pageNumber = (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.verifiedPageNumber;
 
   // Proof image
   const rawProofImage = verification?.verificationImageBase64;

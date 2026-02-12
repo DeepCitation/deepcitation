@@ -265,8 +265,11 @@ function getDisplayText(
   }
 
   if (content === "source") {
-    // Source content: show siteName or domain (using main's field names)
-    return citation.siteName || citation.domain || citation.anchorText?.toString() || "Source";
+    // Source content: show siteName or domain (URL citations only)
+    if (isUrlCitation(citation)) {
+      return citation.siteName || citation.domain || citation.anchorText?.toString() || "Source";
+    }
+    return citation.anchorText?.toString() || "Source";
   }
 
   // content === "number"
@@ -1227,9 +1230,9 @@ function DefaultPopoverContent({
   // Determine if this is a "clean" success (no log needed)
   const isCleanSuccess = isVerified && !isPartialMatch && !isMiss;
 
-  // Get page/line info for the log
-  const expectedPage = citation.pageNumber;
-  const expectedLine = citation.lineIds?.[0];
+  // Get page/line info for the log (document citations only)
+  const expectedPage = !isUrlCitation(citation) ? citation.pageNumber : undefined;
+  const expectedLine = !isUrlCitation(citation) ? citation.lineIds?.[0] : undefined;
   const foundPage = verification?.verifiedPageNumber ?? undefined;
   const foundLine = verification?.verifiedLineIds?.[0];
 
@@ -1265,7 +1268,7 @@ function DefaultPopoverContent({
               "{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}"
             </p>
           )}
-          {citation.pageNumber && citation.pageNumber > 0 && (
+          {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
             <span className="text-xs text-gray-500 dark:text-gray-400">Looking on page {citation.pageNumber}</span>
           )}
         </div>
@@ -1473,12 +1476,12 @@ function _DiffDetails({
 
   if (!isMiss && !isPartialMatch) return null;
 
-  const expectedLineIds = citation.lineIds;
+  const expectedLineIds = !isUrlCitation(citation) ? citation.lineIds : undefined;
   const actualLineIds = verification?.verifiedLineIds;
   const lineIdDiffers =
     expectedLineIds && actualLineIds && JSON.stringify(expectedLineIds) !== JSON.stringify(actualLineIds);
 
-  const expectedPage = citation.pageNumber;
+  const expectedPage = !isUrlCitation(citation) ? citation.pageNumber : undefined;
   const actualPage = verification?.verifiedPageNumber;
   const pageDiffers = expectedPage != null && actualPage != null && expectedPage !== actualPage;
 
@@ -2257,7 +2260,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
       // Variant: badge (ChatGPT-style source chip with favicon + count + status indicator)
       if (variant === "badge") {
-        const faviconSrc = faviconUrl || citation.faviconUrl;
+        const faviconSrc = faviconUrl || (isUrlCitation(citation) ? citation.faviconUrl : undefined);
         return (
           <span
             className={cn(

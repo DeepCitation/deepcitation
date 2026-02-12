@@ -1,4 +1,4 @@
-import type { DeepTextItem } from "./boxes.js";
+import type { DeepTextItem, Page, ScreenBox } from "./boxes.js";
 import type { Citation } from "./citation.js";
 import type { SearchAttempt, SearchStatus } from "./search.js";
 
@@ -43,29 +43,79 @@ export type UrlAccessStatus =
   | "pending" // Not yet checked
   | "unknown"; // Unknown status
 
+// ==========================================================================
+// Sub-interfaces for type-specific verification results
+// ==========================================================================
+
+/** Document-specific verification results */
+export interface DocumentVerificationResult {
+  verifiedPageNumber?: number | null;
+  verifiedLineIds?: number[] | null;
+  totalLinesOnPage?: number | null;
+  hitIndexWithinPage?: number | null;
+  phraseMatchDeepItem?: DeepTextItem;
+  anchorTextMatchDeepItems?: DeepTextItem[];
+  verificationImageBase64?: string | null;
+  verificationImageDimensions?: { width: number; height: number } | null;
+}
+
+/** URL-specific verification results */
+export interface UrlVerificationResult {
+  verifiedUrl?: string | null;
+  resolvedUrl?: string | null;
+  httpStatus?: number | null;
+  urlAccessStatus?: UrlAccessStatus | null;
+  contentMatchStatus?: ContentMatchStatus | null;
+  contentSimilarity?: number | null;
+  verifiedTitle?: string | null;
+  actualContentSnippet?: string | null;
+  webPageScreenshotBase64?: string | null;
+  crawledAt?: Date | string | null;
+  urlVerificationError?: string | null;
+  verifiedDomain?: string | null;
+  verifiedDescription?: string | null;
+  verifiedFaviconUrl?: string | null;
+  verifiedSiteName?: string | null;
+  verifiedAuthor?: string | null;
+  verifiedPublishedAt?: Date | string | null;
+  verifiedImageUrl?: string | null;
+  contentType?: string | null;
+}
+
+/** Proof hosting fields (populated when generateProofUrls is true) */
+export interface VerificationProof {
+  proofId?: string;
+  proofUrl?: string;
+  proofImageUrl?: string;
+}
+
+/**
+ * A page returned from verification for user inspection.
+ * Extends the existing Page type with verification-specific metadata.
+ */
+export interface CitationPage extends Page {
+  /** Whether this page contains the verified citation match */
+  isMatchPage?: boolean;
+  /** Highlighted region on this page (if match found) */
+  highlightBox?: ScreenBox;
+}
+
 export interface Verification {
+  // ========== Identity ==========
   attachmentId?: string | null;
 
   label?: string | null; //e.g. "Invoice"
 
   citation?: Citation;
 
-  // Search status
+  // ========== Search ==========
   status?: SearchStatus | null;
 
-  // Search attempts
   searchAttempts?: SearchAttempt[];
 
   highlightColor?: string | null;
 
-  // Verified results (actual values found - expected values are in citation)
-  verifiedPageNumber?: number | null;
-
-  verifiedLineIds?: number[] | null;
-
-  /** Total number of lines on the verified page (for humanizing line position) */
-  totalLinesOnPage?: number | null;
-
+  // ========== Shared verified text results ==========
   verifiedTimestamps?: { startTime?: string; endTime?: string } | null;
 
   verifiedFullPhrase?: string | null;
@@ -74,91 +124,23 @@ export interface Verification {
 
   verifiedMatchSnippet?: string | null;
 
-  hitIndexWithinPage?: number | null;
-
-  phraseMatchDeepItem?: DeepTextItem;
-
-  /** Multiple boxes for anchorText highlighting when the anchorText spans multiple PDF items/words */
-  anchorTextMatchDeepItems?: DeepTextItem[];
-
-  verificationImageBase64?: string | null;
-
-  /** Dimensions of the verification image (for coordinate mapping) */
-  verificationImageDimensions?: { width: number; height: number } | null;
-
   verifiedAt?: Date;
 
-  // ==========================================================================
-  // URL/Web Content Verification Fields
-  // Used when verifying AI-generated URL claims (e.g., "According to example.com...")
-  // ==========================================================================
+  // ========== Type-specific results (NEW sub-objects) ==========
+  /** Document-specific verification results */
+  document?: DocumentVerificationResult;
 
-  /** The URL that was verified (from Citation.url when type: "url") */
-  verifiedUrl?: string | null;
+  /** URL-specific verification results */
+  url?: UrlVerificationResult;
 
-  /** The actual URL after following redirects */
-  resolvedUrl?: string | null;
+  /** Proof hosting results */
+  proof?: VerificationProof;
 
-  /** HTTP status code returned */
-  httpStatus?: number | null;
+  // ========== Pages for user inspection ==========
+  /** Pages returned from verification for user inspection */
+  pages?: CitationPage[];
 
-  /** URL accessibility status */
-  urlAccessStatus?: UrlAccessStatus | null;
-
-  /** Whether the page content matches what the AI claimed */
-  contentMatchStatus?: ContentMatchStatus | null;
-
-  /** Similarity score between expected and actual content (0-1) */
-  contentSimilarity?: number | null;
-
-  /** The page title found at the URL */
-  verifiedTitle?: string | null;
-
-  /** Snippet of actual content found on the page */
-  actualContentSnippet?: string | null;
-
-  /** Screenshot of the web page as verification proof */
-  webPageScreenshotBase64?: string | null;
-
-  /** When the URL was crawled/fetched */
-  crawledAt?: Date | string | null;
-
-  /** Error message if URL verification failed */
-  urlVerificationError?: string | null;
-
-  // ==========================================================================
-  // Verified URL metadata (fetched from the actual page)
-  // ==========================================================================
-
-  /** Verified domain from the URL */
-  verifiedDomain?: string | null;
-
-  /** Verified description/meta description from the page */
-  verifiedDescription?: string | null;
-
-  /** Verified favicon URL */
-  verifiedFaviconUrl?: string | null;
-
-  /** Verified site name (from og:site_name or similar) */
-  verifiedSiteName?: string | null;
-
-  /** Verified author (from meta tags) */
-  verifiedAuthor?: string | null;
-
-  /** Verified publication date */
-  verifiedPublishedAt?: Date | string | null;
-
-  /** Verified OG image URL */
-  verifiedImageUrl?: string | null;
-
-  /** Content type of the fetched URL (e.g., "text/html", "application/pdf") */
-  contentType?: string | null;
-
-  // ==========================================================================
-  // Ambiguity Detection
-  // Used when the same text appears multiple times in the document
-  // ==========================================================================
-
+  // ========== Ambiguity Detection ==========
   /** Ambiguity information when multiple occurrences of the text exist */
   ambiguity?: {
     /** Total number of occurrences found in the document */
@@ -172,26 +154,96 @@ export interface Verification {
   } | null;
 
   // ==========================================================================
-  // Proof Hosting Fields
-  // Populated when generateProofUrls is true in the verification request
+  // DEPRECATED flat fields (kept for backward compat)
   // ==========================================================================
 
-  /**
-   * Stable proof identifier assigned by the backend.
-   * Used to construct proof page URLs: {proofBaseUrl}/p/{proofId}
-   * Format: URL-safe base64, 22 characters (128-bit UUID -> base64url)
-   */
+  /** @deprecated Use document?.verifiedPageNumber */
+  verifiedPageNumber?: number | null;
+
+  /** @deprecated Use document?.verifiedLineIds */
+  verifiedLineIds?: number[] | null;
+
+  /** @deprecated Use document?.totalLinesOnPage */
+  totalLinesOnPage?: number | null;
+
+  /** @deprecated Use document?.hitIndexWithinPage */
+  hitIndexWithinPage?: number | null;
+
+  /** @deprecated Use document?.phraseMatchDeepItem */
+  phraseMatchDeepItem?: DeepTextItem;
+
+  /** @deprecated Use document?.anchorTextMatchDeepItems */
+  anchorTextMatchDeepItems?: DeepTextItem[];
+
+  /** @deprecated Use document?.verificationImageBase64 */
+  verificationImageBase64?: string | null;
+
+  /** @deprecated Use document?.verificationImageDimensions */
+  verificationImageDimensions?: { width: number; height: number } | null;
+
+  /** @deprecated Use url?.verifiedUrl */
+  verifiedUrl?: string | null;
+
+  /** @deprecated Use url?.resolvedUrl */
+  resolvedUrl?: string | null;
+
+  /** @deprecated Use url?.httpStatus */
+  httpStatus?: number | null;
+
+  /** @deprecated Use url?.urlAccessStatus */
+  urlAccessStatus?: UrlAccessStatus | null;
+
+  /** @deprecated Use url?.contentMatchStatus */
+  contentMatchStatus?: ContentMatchStatus | null;
+
+  /** @deprecated Use url?.contentSimilarity */
+  contentSimilarity?: number | null;
+
+  /** @deprecated Use url?.verifiedTitle */
+  verifiedTitle?: string | null;
+
+  /** @deprecated Use url?.actualContentSnippet */
+  actualContentSnippet?: string | null;
+
+  /** @deprecated Use url?.webPageScreenshotBase64 */
+  webPageScreenshotBase64?: string | null;
+
+  /** @deprecated Use url?.crawledAt */
+  crawledAt?: Date | string | null;
+
+  /** @deprecated Use url?.urlVerificationError */
+  urlVerificationError?: string | null;
+
+  /** @deprecated Use url?.verifiedDomain */
+  verifiedDomain?: string | null;
+
+  /** @deprecated Use url?.verifiedDescription */
+  verifiedDescription?: string | null;
+
+  /** @deprecated Use url?.verifiedFaviconUrl */
+  verifiedFaviconUrl?: string | null;
+
+  /** @deprecated Use url?.verifiedSiteName */
+  verifiedSiteName?: string | null;
+
+  /** @deprecated Use url?.verifiedAuthor */
+  verifiedAuthor?: string | null;
+
+  /** @deprecated Use url?.verifiedPublishedAt */
+  verifiedPublishedAt?: Date | string | null;
+
+  /** @deprecated Use url?.verifiedImageUrl */
+  verifiedImageUrl?: string | null;
+
+  /** @deprecated Use url?.contentType */
+  contentType?: string | null;
+
+  /** @deprecated Use proof?.proofId */
   proofId?: string;
 
-  /**
-   * Pre-built proof page URL.
-   * Includes signed token if the workspace has access control enabled.
-   */
+  /** @deprecated Use proof?.proofUrl */
   proofUrl?: string;
 
-  /**
-   * Direct URL to the proof snippet image (highlighted crop).
-   * Can be used in GitHub Markdown ![](url), HTML <img>, etc.
-   */
+  /** @deprecated Use proof?.proofImageUrl */
   proofImageUrl?: string;
 }

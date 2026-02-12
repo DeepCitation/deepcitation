@@ -119,6 +119,9 @@ export function formatPageLocation(
 
   if (!showPageNumber) return "";
 
+  // URL citations don't have page numbers or line IDs
+  if (citation.type === "url") return "";
+
   const pageNumber = verification?.verifiedPageNumber ?? citation.pageNumber;
   if (!pageNumber || pageNumber < 0) return "";
 
@@ -180,8 +183,8 @@ export function renderCitationVariant(citationWithStatus: CitationWithStatus, op
     }
 
     case "academic": {
-      const sourceLabel = options.sourceLabels?.[citation.attachmentId || ""] || "Source";
-      const page = citation.pageNumber ? `, p.${citation.pageNumber}` : "";
+      const sourceLabel = options.sourceLabels?.[citation.type !== "url" ? (citation.attachmentId || "") : ""] || "Source";
+      const page = citation.type !== "url" && citation.pageNumber ? `, p.${citation.pageNumber}` : "";
       const anchor =
         linkStyle === "anchor"
           ? `[(${sourceLabel}${page})${indicator}](#ref-${num})`

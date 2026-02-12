@@ -584,7 +584,7 @@ export function groupCitationsByAttachmentId(citations: Citation[] | CitationRec
     : Object.entries(citations);
 
   for (const [key, citation] of entries) {
-    const attachmentId = citation.attachmentId || "";
+    const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
 
     if (!grouped.has(attachmentId)) {
       grouped.set(attachmentId, {});
@@ -629,7 +629,7 @@ export function groupCitationsByAttachmentIdObject(
     : Object.entries(citations);
 
   for (const [key, citation] of entries) {
-    const attachmentId = citation.attachmentId || "";
+    const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
 
     if (!grouped[attachmentId]) {
       grouped[attachmentId] = {};

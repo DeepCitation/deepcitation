@@ -116,55 +116,9 @@ export type SourceType =
   | "unknown"; // Unknown/other
 
 /**
- * Unified citation interface for both document and URL-based citations.
- *
- * Use `type` to discriminate:
- * - `type: "document"` - Uses attachmentId, pageNumber, lineIds for document citations
- * - `type: "url"` - Uses url, domain, title, etc. for web citations
- *
- * Common fields (used by both types):
- * - `fullPhrase`: The full context/excerpt containing the cited information
- * - `anchorText`: The specific anchor text being cited (must be substring of fullPhrase)
- * - `citationNumber`: Citation number for display (e.g., [1], [2])
- *
- * @example Document citation
- * ```typescript
- * const docCitation: Citation = {
- *   type: "document",
- *   attachmentId: "abc123",
- *   pageNumber: 5,
- *   lineIds: [12, 13],
- *   fullPhrase: "Revenue increased by 15% in Q4.",
- *   anchorText: "increased by 15%",
- *   citationNumber: 1,
- * };
- * ```
- *
- * @example URL citation
- * ```typescript
- * const urlCitation: Citation = {
- *   type: "url",
- *   url: "https://example.com/article",
- *   domain: "example.com",
- *   title: "Q4 Financial Report",
- *   fullPhrase: "The TGU transitions require control, not brute strength.",
- *   anchorText: "require control, not brute strength",
- *   citationNumber: 1,
- * };
- * ```
+ * Common fields shared by all citation types.
  */
-export interface Citation {
-  /**
-   * Citation type discriminator.
-   * - `"document"`: PDF/uploaded document (default if not specified)
-   * - `"url"`: Web URL citation
-   */
-  type?: CitationType;
-
-  // ==========================================================================
-  // Common fields (used by both document and URL citations)
-  // ==========================================================================
-
+export interface CitationBase {
   /** The full context/excerpt containing the cited information */
   fullPhrase?: string | null;
 
@@ -180,9 +134,36 @@ export interface Citation {
   /** Text that appears before the citation marker */
   beforeCite?: string;
 
-  // ==========================================================================
-  // Document citation fields (type: "document")
-  // ==========================================================================
+  /** Timestamps for audio/video citations */
+  timestamps?: {
+    startTime?: string;
+    endTime?: string;
+  };
+}
+
+/**
+ * Document citation — PDF or uploaded document.
+ * Uses attachmentId, pageNumber, lineIds for verification.
+ *
+ * `type` is optional for backward compatibility: omitting it (or setting to `"document"`)
+ * means this is a document citation.
+ *
+ * @example
+ * ```typescript
+ * const docCitation: DocumentCitation = {
+ *   type: "document",
+ *   attachmentId: "abc123",
+ *   pageNumber: 5,
+ *   lineIds: [12, 13],
+ *   fullPhrase: "Revenue increased by 15% in Q4.",
+ *   anchorText: "increased by 15%",
+ *   citationNumber: 1,
+ * };
+ * ```
+ */
+export interface DocumentCitation extends CitationBase {
+  /** Citation type discriminator. Optional — `undefined` is treated as `"document"`. */
+  type?: "document";
 
   /** Attachment ID for document citations */
   attachmentId?: string;
@@ -198,10 +179,30 @@ export interface Citation {
 
   /** Selection box coordinates in the document */
   selection?: ScreenBox | null;
+}
 
-  // ==========================================================================
-  // URL citation fields (type: "url")
-  // ==========================================================================
+/**
+ * URL citation — web page or online resource.
+ * Uses url, domain, title, etc. for verification.
+ *
+ * `type: "url"` is REQUIRED — it is the discriminator.
+ *
+ * @example
+ * ```typescript
+ * const urlCitation: UrlCitation = {
+ *   type: "url",
+ *   url: "https://example.com/article",
+ *   domain: "example.com",
+ *   title: "Q4 Financial Report",
+ *   fullPhrase: "The TGU transitions require control, not brute strength.",
+ *   anchorText: "require control, not brute strength",
+ *   citationNumber: 1,
+ * };
+ * ```
+ */
+export interface UrlCitation extends CitationBase {
+  /** Citation type discriminator. REQUIRED for URL citations. */
+  type: "url";
 
   /** The source URL */
   url?: string;
@@ -238,17 +239,17 @@ export interface Citation {
 
   /** When the source was accessed/verified */
   accessedAt?: Date | string;
-
-  // ==========================================================================
-  // Audio/Video citation fields (can be used with both types)
-  // ==========================================================================
-
-  /** Timestamps for audio/video citations */
-  timestamps?: {
-    startTime?: string;
-    endTime?: string;
-  };
 }
+
+/**
+ * Discriminated union for citations.
+ *
+ * Narrow with `citation.type === "url"` to get `UrlCitation`,
+ * otherwise it's a `DocumentCitation` (type is `"document"` or `undefined`).
+ *
+ * Common fields (`fullPhrase`, `anchorText`, etc.) are accessible without narrowing.
+ */
+export type Citation = DocumentCitation | UrlCitation;
 
 export interface CitationStatus {
   isVerified: boolean;

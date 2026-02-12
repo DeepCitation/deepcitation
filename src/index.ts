@@ -114,14 +114,17 @@ export type { DeepTextItem, IVertex, Page, ScreenBox } from "./types/boxes.js";
 // Types
 export type {
   Citation,
+  CitationBase,
   // Record types (object dictionaries, NOT arrays)
   CitationRecord,
   CitationStatus,
   CitationType,
+  DocumentCitation,
   OutputImageFormat,
   SourceMeta,
   // Source types for categorization
   SourceType,
+  UrlCitation,
   VerificationRecord,
   VerifyCitationRequest,
   VerifyCitationResponse,
@@ -133,9 +136,13 @@ export type {
   SearchStatus,
 } from "./types/search.js";
 export type {
+  CitationPage,
   ContentMatchStatus,
+  DocumentVerificationResult,
   UrlAccessStatus,
+  UrlVerificationResult,
   Verification,
+  VerificationProof,
 } from "./types/verification.js";
 export {
   BLANK_VERIFICATION,

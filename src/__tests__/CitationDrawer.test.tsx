@@ -20,6 +20,7 @@ describe("CitationComponent source variant", () => {
   });
 
   const baseCitation: Citation = {
+    type: "url",
     citationNumber: 1,
     anchorText: "test citation",
     fullPhrase: "This is a test citation phrase",
@@ -87,6 +88,7 @@ describe("CitationComponent source variant", () => {
     it("falls back to domain when siteName is not provided", () => {
       const citationWithoutName: Citation = {
         ...baseCitation,
+        type: "url",
         siteName: undefined,
       };
 
@@ -172,6 +174,7 @@ describe("groupCitationsBySource", () => {
   const createCitationItem = (key: string, siteName: string, domain?: string): CitationDrawerItem => ({
     citationKey: key,
     citation: {
+      type: "url",
       citationNumber: parseInt(key, 10),
       siteName,
       domain,
@@ -219,6 +222,7 @@ describe("groupCitationsBySource", () => {
       {
         citationKey: "1",
         citation: {
+          type: "url",
           siteName: "Test",
           domain: "test.com",
           faviconUrl: "https://test.com/favicon.ico",
@@ -228,6 +232,7 @@ describe("groupCitationsBySource", () => {
       {
         citationKey: "2",
         citation: {
+          type: "url",
           siteName: "Test",
           domain: "test.com",
         },
@@ -249,6 +254,7 @@ describe("CitationDrawerItemComponent", () => {
   const createItem = (overrides: Partial<CitationDrawerItem> = {}): CitationDrawerItem => ({
     citationKey: "1",
     citation: {
+      type: "url",
       siteName: "Delaware Corporations",
       domain: "delaware.gov",
       faviconUrl: "https://delaware.gov/favicon.ico",
@@ -287,6 +293,7 @@ describe("CitationDrawerItemComponent", () => {
   it("renders placeholder when no favicon", () => {
     const item = createItem({
       citation: {
+        type: "url",
         siteName: "Test",
         domain: "test.com",
       },
@@ -381,6 +388,7 @@ describe("CitationDrawer", () => {
     citations: Array.from({ length: count }, (_, i) => ({
       citationKey: `${name}-${i}`,
       citation: {
+        type: "url" as const,
         siteName: name,
         title: `Article ${i + 1}`,
         description: `Snippet for article ${i + 1}`,
@@ -625,7 +633,7 @@ describe("useCitationDrawer", () => {
 
     const item: CitationDrawerItem = {
       citationKey: "1",
-      citation: { siteName: "Test" },
+      citation: { type: "url", siteName: "Test" },
       verification: null,
     };
 
@@ -642,7 +650,7 @@ describe("useCitationDrawer", () => {
 
     const item: CitationDrawerItem = {
       citationKey: "1",
-      citation: { siteName: "Test" },
+      citation: { type: "url", siteName: "Test" },
       verification: null,
     };
 
@@ -659,7 +667,7 @@ describe("useCitationDrawer", () => {
 
     const item: CitationDrawerItem = {
       citationKey: "1",
-      citation: { siteName: "Test" },
+      citation: { type: "url", siteName: "Test" },
       verification: null,
     };
 
@@ -680,12 +688,12 @@ describe("useCitationDrawer", () => {
     act(() => {
       result.current.addCitation({
         citationKey: "1",
-        citation: { siteName: "Test 1" },
+        citation: { type: "url", siteName: "Test 1" },
         verification: null,
       });
       result.current.addCitation({
         citationKey: "2",
-        citation: { siteName: "Test 2" },
+        citation: { type: "url", siteName: "Test 2" },
         verification: null,
       });
     });
@@ -703,12 +711,12 @@ describe("useCitationDrawer", () => {
     const items: CitationDrawerItem[] = [
       {
         citationKey: "1",
-        citation: { siteName: "Test 1" },
+        citation: { type: "url", siteName: "Test 1" },
         verification: null,
       },
       {
         citationKey: "2",
-        citation: { siteName: "Test 2" },
+        citation: { type: "url", siteName: "Test 2" },
         verification: null,
       },
     ];
@@ -726,17 +734,17 @@ describe("useCitationDrawer", () => {
     act(() => {
       result.current.addCitation({
         citationKey: "1",
-        citation: { siteName: "Source A", domain: "a.com" },
+        citation: { type: "url", siteName: "Source A", domain: "a.com" },
         verification: null,
       });
       result.current.addCitation({
         citationKey: "2",
-        citation: { siteName: "Source A", domain: "a.com" },
+        citation: { type: "url", siteName: "Source A", domain: "a.com" },
         verification: null,
       });
       result.current.addCitation({
         citationKey: "3",
-        citation: { siteName: "Source B", domain: "b.com" },
+        citation: { type: "url", siteName: "Source B", domain: "b.com" },
         verification: null,
       });
     });
@@ -784,6 +792,7 @@ describe("CitationDrawerTrigger", () => {
     citations: Array.from({ length: count }, (_, i) => ({
       citationKey: `${name}-${i}`,
       citation: {
+        type: "url" as const,
         siteName: name,
         title: `Article ${i + 1}`,
       },
@@ -902,7 +911,7 @@ describe("CitationDrawerTrigger", () => {
         citations: [
           {
             citationKey: "ts-0",
-            citation: { siteName: "TestSource", title: "Article 1" },
+            citation: { type: "url", siteName: "TestSource", title: "Article 1" },
             verification: {
               status: "found",
               verificationImageBase64: "data:image/png;base64,abc123",
@@ -933,7 +942,7 @@ describe("CitationDrawerTrigger", () => {
         citations: [
           {
             citationKey: "t-0",
-            citation: { siteName: "" },
+            citation: { type: "url", siteName: "" },
             verification: { status: "found" },
           },
         ],
@@ -959,7 +968,7 @@ describe("CitationDrawerTrigger", () => {
         citations: [
           {
             citationKey: "t-0",
-            citation: { siteName: "   " },
+            citation: { type: "url", siteName: "   " },
             verification: { status: "found" },
           },
         ],
@@ -984,7 +993,7 @@ describe("CitationDrawerTrigger", () => {
         citations: [
           {
             citationKey: "ts-0",
-            citation: { siteName: "TestSource", title: "Article 1" },
+            citation: { type: "url", siteName: "TestSource", title: "Article 1" },
             verification: {
               status: "found",
               verificationImageBase64: "javascript:alert('xss')",
