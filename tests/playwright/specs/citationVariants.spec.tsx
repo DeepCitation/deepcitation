@@ -22,26 +22,34 @@ const baseCitation: Citation = {
 
 const verification: Verification = {
   label: "test",
-  verifiedPageNumber: 5,
   status: "found",
+  document: {
+    verifiedPageNumber: 5,
+  },
 };
 
 const missFoundCitation: Verification = {
   label: "test",
-  verifiedPageNumber: -1, // NOT_FOUND_VERIFICATION_INDEX
   status: "not_found",
+  document: {
+    verifiedPageNumber: -1, // NOT_FOUND_VERIFICATION_INDEX
+  },
 };
 
 const partialFoundCitation: Verification = {
   label: "test",
-  verifiedPageNumber: 5,
   status: "partial_text_found",
+  document: {
+    verifiedPageNumber: 5,
+  },
 };
 
 const pendingFoundCitation: Verification = {
   label: "test",
-  verifiedPageNumber: null,
   status: "pending",
+  document: {
+    verifiedPageNumber: null,
+  },
 };
 
 // =============================================================================

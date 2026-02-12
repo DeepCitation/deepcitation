@@ -82,6 +82,7 @@ export {
   getCitationStatus,
   groupCitationsByAttachmentId,
   groupCitationsByAttachmentIdObject,
+  normalizeCitationType,
   parseCitation,
 } from "./parsing/parseCitation.js";
 export {
@@ -123,14 +124,17 @@ export type { CitationPage, DeepTextItem, IVertex, ScreenBox } from "./types/box
 // Types
 export type {
   Citation,
+  CitationBase,
   // Record types (object dictionaries, NOT arrays)
   CitationRecord,
   CitationStatus,
   CitationType,
+  DocumentCitation,
   OutputImageFormat,
   SourceMeta,
   // Source types for categorization
   SourceType,
+  UrlCitation,
   VerificationRecord,
   VerifyCitationRequest,
   VerifyCitationResponse,
@@ -143,8 +147,12 @@ export type {
 } from "./types/search.js";
 export type {
   ContentMatchStatus,
+  DocumentVerificationResult,
   UrlAccessStatus,
+  UrlVerificationResult,
   Verification,
+  VerificationPage,
+  VerificationProof,
 } from "./types/verification.js";
 export {
   BLANK_VERIFICATION,

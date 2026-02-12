@@ -11,7 +11,9 @@ const simpleInput = `Revenue grew 45%<cite attachment_id='abc123' page_number='3
 
 const verifiedVerification: Verification = {
   status: "found",
-  verifiedPageNumber: 3,
+  document: {
+    verifiedPageNumber: 3,
+  },
   label: "Q4 Report",
 };
 

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "@jest/globals";
-import { getAllCitationsFromLlmOutput, getCitationStatus, parseCitation } from "../parsing/parseCitation.js";
+import {
+  getAllCitationsFromLlmOutput,
+  getCitationStatus,
+  groupCitationsByAttachmentId,
+  normalizeCitationType,
+  parseCitation,
+} from "../parsing/parseCitation.js";
 import type { Citation } from "../types/citation.js";
+import { isDocumentCitation, isUrlCitation } from "../react/utils.js";
 import type { Verification } from "../types/verification.js";
 import { NOT_FOUND_VERIFICATION_INDEX } from "../types/verification.js";
 
@@ -12,7 +19,9 @@ describe("getCitationStatus", () => {
         fullPhrase: "term",
         attachmentId: "file",
       },
-      verifiedPageNumber: 2,
+      document: {
+        verifiedPageNumber: 2,
+      },
       status: "found",
       verifiedMatchSnippet: "snippet",
     };
@@ -28,7 +37,9 @@ describe("getCitationStatus", () => {
         fullPhrase: "term",
         attachmentId: "file",
       },
-      verifiedPageNumber: NOT_FOUND_VERIFICATION_INDEX,
+      document: {
+        verifiedPageNumber: NOT_FOUND_VERIFICATION_INDEX,
+      },
       status: "not_found",
       verifiedMatchSnippet: "snippet",
     };
@@ -49,7 +60,9 @@ describe("getCitationStatus", () => {
           attachmentId: "file",
           pageNumber: 4,
         },
-        verifiedPageNumber: 5,
+        document: {
+          verifiedPageNumber: 5,
+        },
         status: "found_on_other_page",
         verifiedMatchSnippet: "snippet",
       };
@@ -69,9 +82,11 @@ describe("getCitationStatus", () => {
           pageNumber: 3,
           lineIds: [1, 2, 3],
         },
-        verifiedPageNumber: 3,
+        document: {
+          verifiedPageNumber: 3,
+          verifiedLineIds: [2, 3],
+        },
         status: "found_on_other_line",
-        verifiedLineIds: [2, 3],
         verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
@@ -87,7 +102,9 @@ describe("getCitationStatus", () => {
           attachmentId: "file",
           pageNumber: 1,
         },
-        verifiedPageNumber: 1,
+        document: {
+          verifiedPageNumber: 1,
+        },
         status: "first_word_found",
         verifiedMatchSnippet: "snippet",
       };
@@ -103,7 +120,9 @@ describe("getCitationStatus", () => {
           fullPhrase: "term",
           attachmentId: "file",
         },
-        verifiedPageNumber: 2,
+        document: {
+          verifiedPageNumber: 2,
+        },
         status: "partial_text_found",
         verifiedMatchSnippet: "snippet",
       };
@@ -119,7 +138,9 @@ describe("getCitationStatus", () => {
           fullPhrase: "term",
           attachmentId: "file",
         },
-        verifiedPageNumber: 2,
+        document: {
+          verifiedPageNumber: 2,
+        },
         status: "found_phrase_missed_anchor_text",
         verifiedMatchSnippet: "snippet",
       };
@@ -135,7 +156,9 @@ describe("getCitationStatus", () => {
           fullPhrase: "full phrase",
           attachmentId: "file",
         },
-        verifiedPageNumber: 2,
+        document: {
+          verifiedPageNumber: 2,
+        },
         status: "found_anchor_text_only",
         verifiedMatchSnippet: "term",
       };
@@ -151,7 +174,9 @@ describe("getCitationStatus", () => {
           fullPhrase: "term",
           attachmentId: "file",
         },
-        verifiedPageNumber: 2,
+        document: {
+          verifiedPageNumber: 2,
+        },
         status: "loading",
         verifiedMatchSnippet: "snippet",
       };
@@ -168,7 +193,9 @@ describe("getCitationStatus", () => {
           attachmentId: "file",
           pageNumber: 2,
         },
-        verifiedPageNumber: 2,
+        document: {
+          verifiedPageNumber: 2,
+        },
         status: "pending",
         verifiedMatchSnippet: "snippet",
       };
@@ -184,7 +211,9 @@ describe("getCitationStatus", () => {
           fullPhrase: "term",
           attachmentId: "file",
         },
-        verifiedPageNumber: NOT_FOUND_VERIFICATION_INDEX,
+        document: {
+          verifiedPageNumber: NOT_FOUND_VERIFICATION_INDEX,
+        },
         status: "not_found",
         verifiedMatchSnippet: "snippet",
       };
@@ -202,7 +231,9 @@ describe("getCitationStatus", () => {
           attachmentId: "file",
           pageNumber: 2,
         },
-        verifiedPageNumber: 2,
+        document: {
+          verifiedPageNumber: 2,
+        },
         status: null,
         verifiedMatchSnippet: "snippet",
       };
@@ -2730,5 +2761,241 @@ Patient Profile:
       expect(xmlCitation).toBeDefined();
       expect(xmlCitation?.attachmentId).toBe("xmlAttachmentId");
     });
+  });
+});
+
+// =============================================================================
+// URL CITATION PARSING TESTS
+// =============================================================================
+
+describe("parseCitation — URL citations", () => {
+  it("creates UrlCitation with type 'url' when url attribute is present and no attachmentId", () => {
+    const fragment =
+      "<cite url='https://example.com/article' domain='example.com' title='Test Article' full_phrase='The data shows growth' anchor_text='growth' />";
+    const { citation } = parseCitation(fragment);
+
+    expect(citation.type).toBe("url");
+    expect(citation).toHaveProperty("url", "https://example.com/article");
+    expect(citation).toHaveProperty("domain", "example.com");
+    expect(citation).toHaveProperty("title", "Test Article");
+    expect(citation.fullPhrase).toBe("The data shows growth");
+    expect(citation.anchorText).toBe("growth");
+  });
+
+  it("creates DocumentCitation when attachmentId is present even with url", () => {
+    const fragment =
+      "<cite attachment_id='abc12345678901234567' url='https://example.com' full_phrase='Some phrase' />";
+    const { citation } = parseCitation(fragment);
+
+    expect(citation.type).not.toBe("url");
+    expect(citation).toHaveProperty("attachmentId", "abc12345678901234567");
+  });
+
+  it("creates DocumentCitation when no url attribute is present", () => {
+    const fragment =
+      "<cite attachment_id='abc12345678901234567' full_phrase='Some phrase' start_page_id='page_number_3_index_0' />";
+    const { citation } = parseCitation(fragment);
+
+    expect(citation.type).not.toBe("url");
+    expect(citation).toHaveProperty("attachmentId", "abc12345678901234567");
+    expect(citation).toHaveProperty("pageNumber", 3);
+  });
+
+  it("extracts site_name and favicon_url for URL citations", () => {
+    const fragment =
+      "<cite url='https://example.com' site_name='Example Site' favicon_url='https://example.com/favicon.ico' full_phrase='test' />";
+    const { citation } = parseCitation(fragment);
+
+    expect(citation.type).toBe("url");
+    expect(citation).toHaveProperty("siteName", "Example Site");
+    expect(citation).toHaveProperty("faviconUrl", "https://example.com/favicon.ico");
+  });
+
+  it("extracts description for URL citations", () => {
+    const fragment =
+      "<cite url='https://example.com' description='A brief summary' full_phrase='test' />";
+    const { citation } = parseCitation(fragment);
+
+    expect(citation.type).toBe("url");
+    expect(citation).toHaveProperty("description", "A brief summary");
+  });
+});
+
+describe("parseJsonCitation — URL citations", () => {
+  it("creates UrlCitation from JSON with url field", () => {
+    const input = {
+      url: "https://example.com/article",
+      domain: "example.com",
+      title: "Test Article",
+      fullPhrase: "The data shows growth",
+      anchorText: "growth",
+    };
+    const result = getAllCitationsFromLlmOutput(input);
+    const citations = Object.values(result);
+
+    expect(citations).toHaveLength(1);
+    expect(citations[0].type).toBe("url");
+    expect(citations[0]).toHaveProperty("url", "https://example.com/article");
+    expect(citations[0]).toHaveProperty("domain", "example.com");
+    expect(citations[0]).toHaveProperty("title", "Test Article");
+  });
+
+  it("creates DocumentCitation from JSON with attachmentId and url", () => {
+    const input = {
+      attachmentId: "abc123",
+      url: "https://example.com",
+      fullPhrase: "Some phrase",
+      pageNumber: 1,
+    };
+    const result = getAllCitationsFromLlmOutput(input);
+    const citations = Object.values(result);
+
+    expect(citations).toHaveLength(1);
+    expect(citations[0].type).not.toBe("url");
+    expect(citations[0]).toHaveProperty("attachmentId", "abc123");
+  });
+
+  it("creates UrlCitation from JSON when only url (no attachmentId) is present", () => {
+    const input = { fullPhrase: "URL citation text", url: "https://example.com", domain: "example.com" };
+    const result = getAllCitationsFromLlmOutput(input);
+    const citation = Object.values(result)[0];
+
+    expect(citation.type).toBe("url");
+    expect(citation.fullPhrase).toBe("URL citation text");
+  });
+
+  it("creates DocumentCitation from JSON when attachmentId is present (no url)", () => {
+    const input = { fullPhrase: "Doc citation text", attachmentId: "file1", pageNumber: 1 };
+    const result = getAllCitationsFromLlmOutput(input);
+    const citation = Object.values(result)[0];
+
+    expect(citation.type).not.toBe("url");
+    expect(citation.fullPhrase).toBe("Doc citation text");
+  });
+
+  it("extracts siteName and faviconUrl from JSON URL citations", () => {
+    const input = {
+      url: "https://example.com",
+      siteName: "Example",
+      faviconUrl: "https://example.com/favicon.ico",
+      fullPhrase: "test phrase",
+    };
+    const result = getAllCitationsFromLlmOutput(input);
+    const citation = Object.values(result)[0];
+
+    expect(citation.type).toBe("url");
+    expect(citation).toHaveProperty("siteName", "Example");
+    expect(citation).toHaveProperty("faviconUrl", "https://example.com/favicon.ico");
+  });
+});
+
+// =============================================================================
+// URL CITATION XML EXTRACTION (via getAllCitationsFromLlmOutput)
+// =============================================================================
+
+describe("getAllCitationsFromLlmOutput — URL citations in XML", () => {
+  it("extracts URL citation from XML in string input", () => {
+    const input = `Here is a reference: <cite url='https://example.com/article' domain='example.com' full_phrase='Revenue grew 15%' anchor_text='15%' />`;
+    const result = getAllCitationsFromLlmOutput(input);
+    const citations = Object.values(result);
+
+    expect(citations).toHaveLength(1);
+    expect(citations[0].type).toBe("url");
+    expect(citations[0]).toHaveProperty("url", "https://example.com/article");
+    expect(citations[0].fullPhrase).toBe("Revenue grew 15%");
+  });
+});
+
+// =============================================================================
+// normalizeCitationType TESTS
+// =============================================================================
+
+describe("normalizeCitationType", () => {
+  it("passes through URL citations with type already set", () => {
+    const raw = { type: "url", url: "https://example.com", fullPhrase: "test" };
+    const result = normalizeCitationType(raw);
+    expect(result.type).toBe("url");
+  });
+
+  it("adds type: 'url' when url field is present but type is missing", () => {
+    const raw = { url: "https://example.com", fullPhrase: "test" };
+    const result = normalizeCitationType(raw);
+    expect(result.type).toBe("url");
+  });
+
+  it("throws when type is 'url' but url field is missing", () => {
+    const raw = { type: "url", fullPhrase: "test" };
+    expect(() => normalizeCitationType(raw)).toThrow("URL citation missing required 'url' field");
+  });
+
+  it("throws when type is 'url' but url field is empty string", () => {
+    const raw = { type: "url", url: "", fullPhrase: "test" };
+    expect(() => normalizeCitationType(raw)).toThrow("URL citation missing required 'url' field");
+  });
+
+  it("returns DocumentCitation when no url field is present", () => {
+    const raw = { attachmentId: "abc", pageNumber: 1, fullPhrase: "test" };
+    const result = normalizeCitationType(raw);
+    expect(result.type).toBeUndefined();
+  });
+
+  it("returns DocumentCitation when url is not a string", () => {
+    const raw = { url: 123, fullPhrase: "test" };
+    const result = normalizeCitationType(raw);
+    expect(result.type).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// isDocumentCitation / isUrlCitation TYPE GUARDS
+// =============================================================================
+
+describe("type guards", () => {
+  it("isUrlCitation returns true for URL citations", () => {
+    const citation: Citation = { type: "url", url: "https://example.com", fullPhrase: "test" };
+    expect(isUrlCitation(citation)).toBe(true);
+    expect(isDocumentCitation(citation)).toBe(false);
+  });
+
+  it("isDocumentCitation returns true for document citations", () => {
+    const citation: Citation = { attachmentId: "abc", fullPhrase: "test" };
+    expect(isDocumentCitation(citation)).toBe(true);
+    expect(isUrlCitation(citation)).toBe(false);
+  });
+
+  it("isDocumentCitation returns true for citations with type 'document'", () => {
+    const citation: Citation = { type: "document", attachmentId: "abc", fullPhrase: "test" };
+    expect(isDocumentCitation(citation)).toBe(true);
+    expect(isUrlCitation(citation)).toBe(false);
+  });
+
+  it("isDocumentCitation returns true for citations with no type (backward compat)", () => {
+    const citation: Citation = { fullPhrase: "test" };
+    expect(isDocumentCitation(citation)).toBe(true);
+  });
+});
+
+// =============================================================================
+// groupCitationsByAttachmentId WITH URL CITATIONS
+// =============================================================================
+
+describe("groupCitationsByAttachmentId — mixed citation types", () => {
+  it("groups URL citations under empty string key", () => {
+    const citations: Citation[] = [
+      { type: "url", url: "https://example.com", fullPhrase: "url phrase" },
+      { attachmentId: "file1", fullPhrase: "doc phrase", pageNumber: 1 },
+    ];
+    const grouped = groupCitationsByAttachmentId(citations);
+
+    expect(grouped.has("")).toBe(true);
+    expect(grouped.has("file1")).toBe(true);
+
+    const urlGroup = grouped.get("")!;
+    const docGroup = grouped.get("file1")!;
+
+    expect(Object.values(urlGroup)).toHaveLength(1);
+    expect(Object.values(urlGroup)[0].type).toBe("url");
+    expect(Object.values(docGroup)).toHaveLength(1);
+    expect(Object.values(docGroup)[0]).toHaveProperty("attachmentId", "file1");
   });
 });

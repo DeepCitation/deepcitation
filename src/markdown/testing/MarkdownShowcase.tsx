@@ -83,9 +83,11 @@ However, some projections<cite attachment_id='abc123' page_number='12' full_phra
 
 const _linePositionVerification: Verification = {
   status: "found_on_other_line",
-  verifiedPageNumber: 5,
-  verifiedLineIds: [80],
-  totalLinesOnPage: 100,
+  document: {
+    verifiedPageNumber: 5,
+    verifiedLineIds: [80],
+    totalLinesOnPage: 100,
+  },
 };
 
 // =============================================================================

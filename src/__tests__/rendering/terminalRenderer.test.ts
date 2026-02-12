@@ -14,7 +14,9 @@ Second claim<cite attachment_id='abc123' page_number='2' full_phrase='Second fac
 
 const verifiedVerification: Verification = {
   status: "found",
-  verifiedPageNumber: 3,
+  document: {
+    verifiedPageNumber: 3,
+  },
   label: "Q4 Report",
 };
 

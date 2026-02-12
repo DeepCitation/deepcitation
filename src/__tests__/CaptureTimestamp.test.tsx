@@ -73,7 +73,9 @@ describe("CaptureTimestamp in CitationComponent", () => {
     const verification: Verification = {
       status: "found",
       verifiedMatchSnippet: "test text from URL",
-      crawledAt: "2026-01-15T15:42:00Z",
+      url: {
+        crawledAt: "2026-01-15T15:42:00Z",
+      },
       verifiedAt: new Date("2026-01-15T16:00:00Z"),
     };
 
@@ -121,7 +123,9 @@ describe("CaptureTimestamp in CitationComponent", () => {
     const verification: Verification = {
       status: "found",
       verifiedMatchSnippet: "test text",
-      crawledAt: "2026-01-10T10:00:00Z",
+      url: {
+        crawledAt: "2026-01-10T10:00:00Z",
+      },
       verifiedAt: new Date("2026-01-15T10:00:00Z"),
     };
 

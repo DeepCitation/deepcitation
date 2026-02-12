@@ -254,8 +254,8 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
 
   if (isUrl) {
     // URL citation: show status + favicon + URL on first row, quoted text on second row
-    const faviconUrl = verification?.verifiedFaviconUrl || citation.faviconUrl;
-    const domain = verification?.verifiedDomain || citation.domain;
+    const faviconUrl = verification?.url?.verifiedFaviconUrl || citation.faviconUrl;
+    const domain = verification?.url?.verifiedDomain || citation.domain;
     const url = citation.url || "";
     const safeUrl = sanitizeUrl(url);
 
@@ -335,8 +335,8 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
   // Note: attachmentId should never be shown to users - only show the label if available
   // sourceLabel takes precedence over verification.label
   const label = sourceLabel || verification?.label;
-  const pageNumber = verification?.verifiedPageNumber ?? citation.pageNumber;
-  const lineIds = verification?.verifiedLineIds ?? citation.lineIds;
+  const pageNumber = verification?.document?.verifiedPageNumber ?? citation.pageNumber;
+  const lineIds = verification?.document?.verifiedLineIds ?? citation.lineIds;
 
   // Display text: only use label (never show attachmentId to users)
   const displayName = label || null;

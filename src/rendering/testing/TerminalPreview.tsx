@@ -224,7 +224,7 @@ function TerminalSourcesDisplay() {
         const status = getCitationStatus(verification);
         const colorClass = getStatusColorClass(status);
         const indicator = getIndicator(status, "check");
-        const page = verification.verifiedPageNumber ?? citation.pageNumber ?? 0;
+        const page = verification.document?.verifiedPageNumber ?? (citation.type !== "url" ? citation.pageNumber : undefined) ?? 0;
         return (
           <div key={num} className="ml-1">
             <div>
@@ -234,7 +234,7 @@ function TerminalSourcesDisplay() {
               </span>
               <span className="text-gray-300">
                 {" "}
-                {citation.attachmentId ? `Q4 Financial Report — p.${page}` : statusLabel}
+                {citation.type !== "url" && citation.attachmentId ? `Q4 Financial Report — p.${page}` : statusLabel}
               </span>
             </div>
             <div className="ml-5 text-gray-500">
@@ -286,7 +286,7 @@ function terminalSourcesRaw(): string {
   for (const { num, verification, citation } of SOURCES) {
     const status = getCitationStatus(verification);
     const indicator = getIndicator(status, "check");
-    const page = verification.verifiedPageNumber ?? citation.pageNumber ?? 0;
+    const page = verification.document?.verifiedPageNumber ?? (citation.type !== "url" ? citation.pageNumber : undefined) ?? 0;
     lines.push(` [${num}] ${indicator} Q4 Financial Report — p.${page}`);
     if (status.isMiss) {
       lines.push(`     Not found in source document`);

@@ -51,21 +51,20 @@ describe("CitationComponent behaviorConfig", () => {
   };
 
   const verificationWithImage: Verification = {
-    verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
-    matchSnippet: "test citation phrase",
-    pageNumber: 1,
+    document: {
+      verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
+    },
+    verifiedMatchSnippet: "test citation phrase",
     status: "found",
   };
 
   const verificationWithoutImage: Verification = {
-    matchSnippet: "test citation phrase",
-    pageNumber: 1,
+    verifiedMatchSnippet: "test citation phrase",
     status: "found",
   };
 
   const missVerification: Verification = {
-    matchSnippet: "",
-    pageNumber: 0,
+    verifiedMatchSnippet: "",
     status: "not_found",
   };
 
@@ -154,8 +153,7 @@ describe("CitationComponent behaviorConfig", () => {
 
     it("shows amber check for partial match status", () => {
       const partialVerification: Verification = {
-        matchSnippet: "partial text",
-        pageNumber: 2,
+        verifiedMatchSnippet: "partial text",
         status: "found_on_other_page",
       };
 
@@ -1091,9 +1089,10 @@ describe("CitationComponent mobile/touch detection", () => {
   };
 
   const verificationWithImage: Verification = {
-    verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
-    matchSnippet: "test citation phrase",
-    pageNumber: 1,
+    document: {
+      verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
+    },
+    verifiedMatchSnippet: "test citation phrase",
     status: "found",
   };
 
@@ -1728,15 +1727,15 @@ describe("CitationComponent interactionMode", () => {
   };
 
   const verificationWithImage: Verification = {
-    verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
-    matchSnippet: "test citation phrase",
-    pageNumber: 1,
+    document: {
+      verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
+    },
+    verifiedMatchSnippet: "test citation phrase",
     status: "found",
   };
 
   const verificationWithoutImage: Verification = {
-    matchSnippet: "test citation phrase",
-    pageNumber: 1,
+    verifiedMatchSnippet: "test citation phrase",
     status: "found",
   };
 

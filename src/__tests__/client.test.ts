@@ -269,9 +269,11 @@ describe("DeepCitation Client", () => {
         json: async () => ({
           verifications: {
             citation_key_1: {
-              verifiedPageNumber: 1,
+              document: {
+                verifiedPageNumber: 1,
+                verificationImageBase64: "base64data",
+              },
               status: "found",
-              verificationImageBase64: "base64data",
               verifiedMatchSnippet: "Revenue grew 15%",
             },
           },
@@ -297,7 +299,9 @@ describe("DeepCitation Client", () => {
         json: async () => ({
           verifications: {
             key1: {
-              verifiedPageNumber: 1,
+              document: {
+                verifiedPageNumber: 1,
+              },
               status: "found",
               verifiedMatchSnippet: "Test content",
             },
@@ -333,7 +337,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           verifications: {
-            "1": { verifiedPageNumber: 1, status: "found" },
+            "1": { document: { verifiedPageNumber: 1 }, status: "found" },
           },
         }),
       } as Response);
@@ -381,7 +385,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           verifications: {
-            "1": { verifiedPageNumber: 1, status: "found" },
+            "1": { document: { verifiedPageNumber: 1 }, status: "found" },
           },
         }),
       } as Response);

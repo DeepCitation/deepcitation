@@ -41,22 +41,28 @@ const wideImageBase64 = (() => {
 })();
 
 const verificationWithWideImage: Verification = {
-  verifiedPageNumber: 5,
   status: "found",
-  verificationImageBase64: wideImageBase64,
   verifiedMatchSnippet: "Functional status: He is at baseline",
+  document: {
+    verifiedPageNumber: 5,
+    verificationImageBase64: wideImageBase64,
+  },
 };
 
 const verificationWithPartialMatch: Verification = {
-  verifiedPageNumber: 5,
   status: "partial_text_found",
-  verificationImageBase64: wideImageBase64,
   verifiedMatchSnippet: "Functional status: at baseline",
+  document: {
+    verifiedPageNumber: 5,
+    verificationImageBase64: wideImageBase64,
+  },
 };
 
 const verificationWithMiss: Verification = {
-  verifiedPageNumber: -1,
   status: "not_found",
+  document: {
+    verifiedPageNumber: -1,
+  },
 };
 
 // =============================================================================

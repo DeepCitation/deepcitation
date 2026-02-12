@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 import type { CitationDrawerItemProps, CitationDrawerProps, SourceCitationGroup } from "./CitationDrawer.types.js";
-import { getStatusInfo } from "./CitationDrawer.utils.js";
+import { extractDomain, getStatusInfo } from "./CitationDrawer.utils.js";
 import {
   COPY_FEEDBACK_DURATION_MS,
   getPortalContainer,
@@ -183,7 +183,8 @@ function SourceGroupHeader({
   const isUrlSource = !!group.sourceDomain;
 
   // For URL sources, get a link to visit
-  const sourceUrl = isUrlSource ? group.citations[0]?.citation.url : undefined;
+  const firstCit = group.citations[0]?.citation;
+  const sourceUrl = isUrlSource && firstCit?.type === "url" ? firstCit.url : undefined;
   const safeSourceUrl = sourceUrl ? sanitizeUrl(sourceUrl) : null;
 
   return (
@@ -296,27 +297,30 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   }, [copyState]);
 
   // Get display values with fallbacks
-  const sourceName = citation.siteName;
-  const articleTitle = citation.title || citation.anchorText;
-  const snippet = citation.description || citation.fullPhrase || verification?.actualContentSnippet || verification?.verifiedMatchSnippet;
+  const sourceName = citation.type === "url"
+    ? (citation.siteName || citation.domain || extractDomain(citation.url) || "Source")
+    : (verification?.label || "Document");
+  const articleTitle = (citation.type === "url" ? citation.title : undefined) || citation.anchorText || citation.fullPhrase;
+  const snippet = (citation.type === "url" ? citation.description : undefined) || citation.fullPhrase || verification?.url?.actualContentSnippet || verification?.verifiedMatchSnippet;
+  const faviconUrl = citation.type === "url" ? citation.faviconUrl : undefined;
 
   // Page number for document citations
-  const pageNumber = citation.pageNumber ?? verification?.verifiedPageNumber;
+  const pageNumber = (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
 
   // Proof image (only shown in expanded view)
-  const rawProofImage = verification?.verificationImageBase64;
+  const rawProofImage = verification?.document?.verificationImageBase64;
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
   // Pending state
   const isPending = !verification?.status || verification.status === "pending" || verification.status === "loading";
 
   // Verification date
-  const checkedDate = formatCheckedDate(verification?.verifiedAt ?? verification?.crawledAt);
+  const checkedDate = formatCheckedDate(verification?.verifiedAt ?? verification?.url?.crawledAt);
 
   // Crawl date for URL citations (absolute format for audit precision)
   const isDocument = citation.type === "document" || (!citation.type && citation.attachmentId);
-  const formattedCrawlDate = !isDocument && verification?.crawledAt
-    ? formatCaptureDate(verification.crawledAt)
+  const formattedCrawlDate = !isDocument && verification?.url?.crawledAt
+    ? formatCaptureDate(verification.url.crawledAt)
     : null;
 
   // Search attempts for verification summary

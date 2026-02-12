@@ -9,8 +9,11 @@ export type { CitationPage, DeepTextItem, IVertex, ScreenBox } from "./boxes.js"
 // Citation core types
 export type {
   Citation,
+  CitationBase,
   CitationStatus,
+  DocumentCitation,
   OutputImageFormat,
+  UrlCitation,
   VerifyCitationRequest,
   VerifyCitationResponse,
 } from "./citation.js";
@@ -23,7 +26,13 @@ export type {
   SearchStatus,
 } from "./search.js";
 // Found highlight types
-export type { Verification } from "./verification.js";
+export type {
+  DocumentVerificationResult,
+  UrlVerificationResult,
+  Verification,
+  VerificationPage,
+  VerificationProof,
+} from "./verification.js";
 export {
   BLANK_VERIFICATION,
   NOT_FOUND_VERIFICATION_INDEX,

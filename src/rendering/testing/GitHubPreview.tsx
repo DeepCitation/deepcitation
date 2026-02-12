@@ -216,7 +216,7 @@ function GitHubCitationPreview({
       break;
   }
 
-  return <GitHubLink href={`${PROOF_BASE_URL}/p/${citation.attachmentId || "url"}`}>{displayText}</GitHubLink>;
+  return <GitHubLink href={`${PROOF_BASE_URL}/p/${(citation.type !== "url" && citation.attachmentId) || "url"}`}>{displayText}</GitHubLink>;
 }
 
 const SOURCES_DATA = [
@@ -268,7 +268,7 @@ function GitHubSourcesTable() {
         {SOURCES_DATA.map(({ num, verification, citation, label, statusLabel }) => {
           const status = getCitationStatus(verification);
           const indicator = getIndicator(status, "check");
-          const page = verification.verifiedPageNumber ?? citation.pageNumber ?? 0;
+          const page = verification.document?.verifiedPageNumber ?? (citation.type !== "url" ? citation.pageNumber : undefined) ?? 0;
           return (
             <tr key={num} className="border-b border-gray-100 dark:border-gray-800">
               <td className="p-1.5">{num}</td>
@@ -294,7 +294,7 @@ function GitHubSourcesDetailed() {
       {SOURCES_DATA.map(({ num, verification, citation, label }) => {
         const status = getCitationStatus(verification);
         const indicator = getIndicator(status, "check");
-        const page = verification.verifiedPageNumber ?? citation.pageNumber ?? 0;
+        const page = verification.document?.verifiedPageNumber ?? (citation.type !== "url" ? citation.pageNumber : undefined) ?? 0;
         return (
           <div key={num}>
             <p className="font-bold text-xs">
@@ -331,7 +331,7 @@ function githubSourcesTableRaw(): string {
   for (const { num, verification, citation, label, statusLabel } of SOURCES_DATA) {
     const status = getCitationStatus(verification);
     const indicator = getIndicator(status, "check");
-    const page = verification.verifiedPageNumber ?? citation.pageNumber ?? 0;
+    const page = verification.document?.verifiedPageNumber ?? (citation.type !== "url" ? citation.pageNumber : undefined) ?? 0;
     lines.push(
       `| ${num} | ${indicator} ${statusLabel} | ${label} | p.${page} | [View proof](${PROOF_BASE_URL}/p/proof${num}) |`,
     );
@@ -345,7 +345,7 @@ function githubSourcesDetailedRaw(): string {
   for (const { num, verification, citation, label } of SOURCES_DATA) {
     const status = getCitationStatus(verification);
     const indicator = getIndicator(status, "check");
-    const page = verification.verifiedPageNumber ?? citation.pageNumber ?? 0;
+    const page = verification.document?.verifiedPageNumber ?? (citation.type !== "url" ? citation.pageNumber : undefined) ?? 0;
     lines.push(`**[${num}${indicator}] ${label} — p.${page}**`);
     lines.push(`> "${citation.fullPhrase}"`);
     lines.push("");

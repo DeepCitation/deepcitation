@@ -64,7 +64,7 @@ export function buildProofUrls(verifications: VerificationRecord, options: Proof
   const urls: Record<string, string> = {};
 
   for (const [citationKey, verification] of Object.entries(verifications)) {
-    const proofId = verification.proofId || citationKey;
+    const proofId = verification.proof?.proofId || citationKey;
     urls[citationKey] = buildProofUrl(proofId, options);
   }
 

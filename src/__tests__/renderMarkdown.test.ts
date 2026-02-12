@@ -25,20 +25,26 @@ Third claim<cite attachment_id='abc123' page_number='3' full_phrase='Third fact.
 
 const verifiedVerification: Verification = {
   status: "found",
-  verifiedPageNumber: 3,
-  verifiedLineIds: [12, 13],
+  document: {
+    verifiedPageNumber: 3,
+    verifiedLineIds: [12, 13],
+  },
 };
 
 const partialVerification: Verification = {
   status: "found_on_other_page",
-  verifiedPageNumber: 5,
+  document: {
+    verifiedPageNumber: 5,
+  },
 };
 
 const _linePositionVerification: Verification = {
   status: "found_on_other_line",
-  verifiedPageNumber: 3,
-  verifiedLineIds: [80],
-  totalLinesOnPage: 100,
+  document: {
+    verifiedPageNumber: 3,
+    verifiedLineIds: [80],
+    totalLinesOnPage: 100,
+  },
 };
 
 const notFoundVerification: Verification = {

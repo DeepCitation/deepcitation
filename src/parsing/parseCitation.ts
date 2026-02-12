@@ -1,5 +1,5 @@
 import { generateCitationKey } from "../react/utils.js";
-import type { Citation, CitationRecord, CitationStatus } from "../types/citation.js";
+import type { Citation, CitationRecord, CitationStatus, DocumentCitation, UrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getAllCitationsFromDeferredResponse, hasDeferredCitations } from "./citationParser.js";
 import { normalizeCitations } from "./normalizeCitation.js";
@@ -261,18 +261,43 @@ export const parseCitation = (
     timestamps = { startTime, endTime };
   }
 
-  const citation: Citation = {
-    attachmentId: attachmentId,
-    pageNumber,
-    startPageId: `page_number_${pageNumber || 1}_index_${pageIndex || 0}`,
-    fullPhrase,
-    anchorText: anchorText || value,
-    citationNumber,
-    lineIds,
-    beforeCite,
-    timestamps,
-    reasoning,
-  };
+  // Extract URL-specific attributes
+  const url = cleanAndUnescape(extractAttribute(middleCite, ["url"]));
+  const domain = cleanAndUnescape(extractAttribute(middleCite, ["domain"]));
+  const title = cleanAndUnescape(extractAttribute(middleCite, ["title"]));
+  const description = cleanAndUnescape(extractAttribute(middleCite, ["description"]));
+  const siteName = cleanAndUnescape(extractAttribute(middleCite, ["site_name", "siteName"]));
+  const faviconUrl = cleanAndUnescape(extractAttribute(middleCite, ["favicon_url", "faviconUrl"]));
+
+  // Determine citation type: URL citation if url is present and no attachmentId
+  const citation: Citation = url && !attachmentId
+    ? {
+        type: "url" as const,
+        url,
+        domain,
+        title,
+        description,
+        siteName,
+        faviconUrl,
+        fullPhrase,
+        anchorText: anchorText || value,
+        citationNumber,
+        beforeCite,
+        timestamps,
+        reasoning,
+      } as UrlCitation
+    : {
+        attachmentId: attachmentId,
+        pageNumber,
+        startPageId: `page_number_${pageNumber || 1}_index_${pageIndex || 0}`,
+        fullPhrase,
+        anchorText: anchorText || value,
+        citationNumber,
+        lineIds,
+        beforeCite,
+        timestamps,
+        reasoning,
+      } as DocumentCitation;
 
   return {
     beforeCite,
@@ -343,7 +368,39 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
   // Sort lineIds if present
   const lineIds = rawLineIds?.length ? [...rawLineIds].sort((a: number, b: number) => a - b) : undefined;
 
-  const citation: Citation = {
+  // Extract URL-specific fields
+  const urlValue = obj.url ?? obj.URL;
+  const url = typeof urlValue === "string" ? urlValue : undefined;
+  const domainValue = obj.domain;
+  const domain = typeof domainValue === "string" ? domainValue : undefined;
+  const titleValue = obj.title;
+  const title = typeof titleValue === "string" ? titleValue : undefined;
+  const descriptionValue = obj.description;
+  const description = typeof descriptionValue === "string" ? descriptionValue : undefined;
+  const siteNameValue = obj.siteName ?? obj.site_name;
+  const siteName = typeof siteNameValue === "string" ? siteNameValue : undefined;
+  const faviconUrlValue = obj.faviconUrl ?? obj.favicon_url;
+  const faviconUrl = typeof faviconUrlValue === "string" ? faviconUrlValue : undefined;
+
+  // Determine citation type: URL citation if url is present and no attachmentId
+  if (url && !attachmentId) {
+    const citation: UrlCitation = {
+      type: "url" as const,
+      url,
+      domain,
+      title,
+      description,
+      siteName,
+      faviconUrl,
+      fullPhrase,
+      citationNumber,
+      anchorText: anchorText || value,
+      reasoning,
+    };
+    return citation;
+  }
+
+  const citation: DocumentCitation = {
     attachmentId,
     pageNumber,
     fullPhrase,
@@ -373,7 +430,9 @@ const hasCitationProperties = (item: unknown): boolean =>
     "keySpan" in item ||
     "key_span" in item ||
     "lineIds" in item ||
-    "line_ids" in item);
+    "line_ids" in item ||
+    // URL citation properties (fullPhrase + url = URL citation)
+    (("url" in item || "URL" in item) && ("fullPhrase" in item || "full_phrase" in item)));
 
 /**
  * Checks if the input appears to be JSON-based citations.
@@ -584,7 +643,7 @@ export function groupCitationsByAttachmentId(citations: Citation[] | CitationRec
     : Object.entries(citations);
 
   for (const [key, citation] of entries) {
-    const attachmentId = citation.attachmentId || "";
+    const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
 
     if (!grouped.has(attachmentId)) {
       grouped.set(attachmentId, {});
@@ -629,7 +688,7 @@ export function groupCitationsByAttachmentIdObject(
     : Object.entries(citations);
 
   for (const [key, citation] of entries) {
-    const attachmentId = citation.attachmentId || "";
+    const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
 
     if (!grouped[attachmentId]) {
       grouped[attachmentId] = {};
@@ -639,4 +698,58 @@ export function groupCitationsByAttachmentIdObject(
   }
 
   return grouped;
+}
+
+/**
+ * Normalizes a citation object from external sources (APIs, databases) to ensure
+ * the `type` discriminator is set correctly.
+ *
+ * If the citation has a `url` field but no `type: "url"`, it is corrected to a `UrlCitation`.
+ * This is useful when consuming data that predates the discriminated union refactor.
+ *
+ * @example
+ * ```typescript
+ * // External data missing the discriminator
+ * const raw = { url: "https://example.com", fullPhrase: "..." };
+ * const citation = normalizeCitationType(raw); // { type: "url", url: "...", fullPhrase: "..." }
+ * ```
+ */
+/**
+ * Normalizes a citation object from external sources (APIs, databases) to ensure
+ * the `type` discriminator is set correctly.
+ *
+ * If the citation has a `url` field but no `type: "url"`, it is corrected to a `UrlCitation`.
+ * This is useful when consuming data that predates the discriminated union refactor.
+ *
+ * Validates that URL citations have a non-empty `url` string. If `type: "url"` is set
+ * but `url` is missing/empty, throws an error to prevent malformed citations.
+ *
+ * @example
+ * ```typescript
+ * // External data missing the discriminator
+ * const raw = { url: "https://example.com", fullPhrase: "..." };
+ * const citation = normalizeCitationType(raw); // { type: "url", url: "...", fullPhrase: "..." }
+ *
+ * // Already correct — passes through
+ * const correct = { type: "url", url: "https://example.com" };
+ * normalizeCitationType(correct); // unchanged
+ *
+ * // Document citation — passes through
+ * const doc = { attachmentId: "abc", pageNumber: 1 };
+ * normalizeCitationType(doc); // unchanged, type stays undefined (DocumentCitation)
+ * ```
+ *
+ * @throws Error if `type` is `"url"` but `url` field is missing or empty
+ */
+export function normalizeCitationType(citation: Record<string, unknown>): Citation {
+  if (citation.type === "url") {
+    if (typeof citation.url !== "string" || !citation.url) {
+      throw new Error("URL citation missing required 'url' field");
+    }
+    return citation as unknown as UrlCitation;
+  }
+  if (typeof citation.url === "string" && citation.url.length > 0) {
+    return { ...citation, type: "url" as const } as unknown as UrlCitation;
+  }
+  return citation as unknown as DocumentCitation;
 }

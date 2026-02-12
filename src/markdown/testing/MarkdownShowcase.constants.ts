@@ -7,20 +7,26 @@ import type { IndicatorStyle, MarkdownVariant } from "../types.js";
 
 const verifiedVerification: Verification = {
   status: "found",
-  verifiedPageNumber: 5,
-  verifiedLineIds: [12, 13],
+  document: {
+    verifiedPageNumber: 5,
+    verifiedLineIds: [12, 13],
+  },
   verifiedMatchSnippet: "Revenue increased by 15% in Q4 2024.",
 };
 
 const partialVerification: Verification = {
   status: "found_on_other_page",
-  verifiedPageNumber: 7,
-  verifiedLineIds: [30],
+  document: {
+    verifiedPageNumber: 7,
+    verifiedLineIds: [30],
+  },
 };
 
 const notFoundVerification: Verification = {
   status: "not_found",
-  verifiedPageNumber: -1,
+  document: {
+    verifiedPageNumber: -1,
+  },
 };
 
 const pendingVerification: Verification = {

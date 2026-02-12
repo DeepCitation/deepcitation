@@ -287,8 +287,11 @@ function getDisplayText(
   }
 
   if (content === "source") {
-    // Source content: show siteName or domain (using main's field names)
-    return citation.siteName || citation.domain || citation.anchorText?.toString() || "Source";
+    // Source content: show siteName or domain (URL citations only)
+    if (isUrlCitation(citation)) {
+      return citation.siteName || citation.domain || citation.anchorText?.toString() || "Source";
+    }
+    return citation.anchorText?.toString() || "Source";
   }
 
   // content === "number"
@@ -899,13 +902,13 @@ function CaptureTimestamp({
 }) {
   const isUrl = isUrlCitation(citation);
   const rawDate = isUrl
-    ? (verification?.crawledAt ?? verification?.verifiedAt)
+    ? (verification?.url?.crawledAt ?? verification?.verifiedAt)
     : verification?.verifiedAt;
 
   const formatted = formatCaptureDate(rawDate, { showTime: isUrl });
   if (!formatted) return null;
 
-  const label = isUrl && verification?.crawledAt ? "Retrieved" : "Verified";
+  const label = isUrl && verification?.url?.crawledAt ? "Retrieved" : "Verified";
 
   return (
     <div
@@ -967,7 +970,7 @@ function AnchorTextFocusedImage({
           }}
         >
           <img
-            src={verification.verificationImageBase64 as string}
+            src={verification.document?.verificationImageBase64 as string}
             alt="Citation verification"
             className="block w-full h-auto"
             style={{
@@ -1097,7 +1100,7 @@ function DefaultPopoverContent({
   isVisible = true,
   sourceLabel,
 }: PopoverContentProps) {
-  const hasImage = verification?.verificationImageBase64;
+  const hasImage = verification?.document?.verificationImageBase64;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 
@@ -1107,11 +1110,11 @@ function DefaultPopoverContent({
   // Determine if this is a "clean" success (no log needed)
   const isCleanSuccess = isVerified && !isPartialMatch && !isMiss;
 
-  // Get page/line info for the log
-  const expectedPage = citation.pageNumber;
-  const expectedLine = citation.lineIds?.[0];
-  const foundPage = verification?.verifiedPageNumber ?? undefined;
-  const foundLine = verification?.verifiedLineIds?.[0];
+  // Get page/line info for the log (document citations only)
+  const expectedPage = !isUrlCitation(citation) ? citation.pageNumber : undefined;
+  const expectedLine = !isUrlCitation(citation) ? citation.lineIds?.[0] : undefined;
+  const foundPage = verification?.document?.verifiedPageNumber ?? undefined;
+  const foundLine = verification?.document?.verifiedLineIds?.[0];
 
   // Get humanizing message for partial/not-found states
   const anchorText = citation.anchorText?.toString();
@@ -1145,7 +1148,7 @@ function DefaultPopoverContent({
               "{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}"
             </p>
           )}
-          {citation.pageNumber && citation.pageNumber > 0 && (
+          {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
             <span className="text-xs text-gray-500 dark:text-gray-400">Looking on p.{citation.pageNumber}</span>
           )}
         </div>
@@ -1294,7 +1297,7 @@ function DefaultPopoverContent({
   // ==========================================================================
   const statusLabel = getStatusLabel(status);
   const hasSnippet = verification?.verifiedMatchSnippet;
-  const pageNumber = verification?.verifiedPageNumber;
+  const pageNumber = verification?.document?.verifiedPageNumber;
 
   if (!hasSnippet && !statusLabel) return null;
 
@@ -1486,7 +1489,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // - BUT NOT if we have a verification image or definitive status
     // - AND NOT if spinner has timed out
     const hasDefinitiveResult =
-      verification?.verificationImageBase64 ||
+      verification?.document?.verificationImageBase64 ||
       verification?.status === "found" ||
       verification?.status === "found_anchor_text_only" ||
       verification?.status === "found_phrase_missed_anchor_text" ||
@@ -1536,7 +1539,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         verification: verification ?? null,
         isTooltipExpanded: isHovering,
         isImageExpanded: !!expandedImageSrc,
-        hasImage: !!verification?.verificationImageBase64,
+        hasImage: !!verification?.document?.verificationImageBase64,
       }),
       [citation, citationKey, verification, isHovering, expandedImageSrc],
     );
@@ -1547,14 +1550,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         if (actions.setImageExpanded !== undefined) {
           if (typeof actions.setImageExpanded === "string") {
             setExpandedImageSrc(actions.setImageExpanded);
-          } else if (actions.setImageExpanded === true && verification?.verificationImageBase64) {
-            setExpandedImageSrc(verification.verificationImageBase64);
+          } else if (actions.setImageExpanded === true && verification?.document?.verificationImageBase64) {
+            setExpandedImageSrc(verification.document.verificationImageBase64);
           } else if (actions.setImageExpanded === false) {
             setExpandedImageSrc(null);
           }
         }
       },
-      [verification?.verificationImageBase64],
+      [verification?.document?.verificationImageBase64],
     );
 
     // Shared tap/click action handler - used by both click and touch handlers.
@@ -1609,8 +1612,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             setIsPhrasesExpanded(prev => !prev);
             break;
           case "expandImage":
-            if (verification?.verificationImageBase64) {
-              setExpandedImageSrc(verification.verificationImageBase64);
+            if (verification?.document?.verificationImageBase64) {
+              setExpandedImageSrc(verification.document.verificationImageBase64);
             }
             break;
         }
@@ -1620,7 +1623,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         eventHandlers,
         citation,
         citationKey,
-        verification?.verificationImageBase64,
+        verification?.document?.verificationImageBase64,
         getBehaviorContext,
         applyBehaviorActions,
       ],
@@ -2031,7 +2034,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
       // Variant: badge (ChatGPT-style source chip with favicon + count + status indicator)
       if (variant === "badge") {
-        const faviconSrc = faviconUrl || citation.faviconUrl;
+        const faviconSrc = faviconUrl || (isUrlCitation(citation) ? citation.faviconUrl : undefined);
         return (
           <span
             className={cn(
@@ -2181,7 +2184,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const shouldShowPopover =
       !isPopoverHidden &&
       // Has verification with image or snippet
-      ((verification && (verification.verificationImageBase64 || verification.verifiedMatchSnippet)) ||
+      ((verification && (verification.document?.verificationImageBase64 || verification.verifiedMatchSnippet)) ||
         // Loading/pending state
         shouldShowSpinner ||
         isPending ||
@@ -2189,7 +2192,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         // Miss state (show what was searched)
         isMiss);
 
-    const hasImage = !!verification?.verificationImageBase64;
+    const hasImage = !!verification?.document?.verificationImageBase64;
 
     // Image overlay
     const imageOverlay = expandedImageSrc ? (
@@ -2270,8 +2273,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             isVisible={isHovering}
             sourceLabel={sourceLabel}
             onImageClick={() => {
-              if (verification?.verificationImageBase64) {
-                setExpandedImageSrc(verification.verificationImageBase64);
+              if (verification?.document?.verificationImageBase64) {
+                setExpandedImageSrc(verification.document.verificationImageBase64);
               }
             }}
           />

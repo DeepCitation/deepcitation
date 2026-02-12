@@ -214,6 +214,7 @@ export {
   getCitationAnchorText,
   getCitationDisplayText,
   getCitationNumber,
+  isDocumentCitation,
   isUrlCitation,
 } from "./utils.js";
 // Verification Log Components (Search attempt timeline display)

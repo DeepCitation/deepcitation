@@ -601,7 +601,7 @@ export class DeepCitation {
     const citationKeys = Object.values(citationMap)
       .map(citation => {
         const baseKey = generateCitationKey(citation);
-        const selectionKey = citation.selection ? JSON.stringify(citation.selection) : "";
+        const selectionKey = citation.type !== "url" && citation.selection ? JSON.stringify(citation.selection) : "";
         return `${baseKey}:${selectionKey}`;
       })
       .sort()
@@ -724,7 +724,7 @@ export class DeepCitation {
     // Group citations by attachmentId
     const citationsByAttachment = new Map<string, Record<string, Citation>>();
     for (const [key, citation] of Object.entries(citations)) {
-      const attachmentId = citation.attachmentId || "";
+      const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
       if (!citationsByAttachment.has(attachmentId)) {
         citationsByAttachment.set(attachmentId, {});
       }
