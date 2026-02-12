@@ -7,8 +7,54 @@ on:
     branches: [main]
 
 jobs:
+  # Determine if this is a docs-only commit
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      docs-only: ${{ steps.check.outputs.docs-only }}
+      src-changed: ${{ steps.check.outputs.src-changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: check
+        run: |
+          # Get the commit message
+          if [ "${{ github.event_name }}" == "push" ]; then
+            COMMIT_MSG=$(git log -1 --pretty=%B)
+          else
+            # For PRs, check the PR title and body
+            COMMIT_MSG="${{ github.event.pull_request.title }} ${{ github.event.pull_request.body }}"
+          fi
+
+          echo "Commit message: $COMMIT_MSG"
+
+          # Check if commit starts with "docs:" or similar
+          if [[ "$COMMIT_MSG" =~ ^docs: ]] || [[ "$COMMIT_MSG" =~ ^chore:.*docs ]]; then
+            echo "docs-only=true" >> $GITHUB_OUTPUT
+            echo "This is a docs-only commit"
+          else
+            echo "docs-only=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if src files changed (for push events)
+          if [ "${{ github.event_name }}" == "push" ]; then
+            if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -qE "^src/|package\.json|tsconfig|biome\.json|vite\.config"; then
+              echo "src-changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "src-changed=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            # For PRs, always assume src might have changed (safer)
+            echo "src-changed=true" >> $GITHUB_OUTPUT
+          fi
+
   ci:
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    needs: check-changes
+    # Skip CI entirely if docs-only and on push (not on PR)
+    if: ${{ github.event_name == 'pull_request' || needs.check-changes.outputs.docs-only == 'false' }}
 
     steps:
       - name: Checkout repository
@@ -25,16 +71,21 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
+        if: needs.check-changes.outputs.src-changed == 'true' || github.event_name == 'pull_request'
         run: npm install
 
       - name: Auto-fix formatting and lint
+        if: needs.check-changes.outputs.docs-only == 'false' && needs.check-changes.outputs.src-changed == 'true'
         run: npx biome check --fix ./src
 
       - name: Lint and format check
+        if: needs.check-changes.outputs.docs-only == 'false' && needs.check-changes.outputs.src-changed == 'true'
         run: npx biome ci ./src
 
       - name: Build
+        if: needs.check-changes.outputs.src-changed == 'true' || github.event_name == 'pull_request'
         run: npm run build
 
       - name: Run tests
+        if: needs.check-changes.outputs.src-changed == 'true' || github.event_name == 'pull_request'
         run: bun run test
