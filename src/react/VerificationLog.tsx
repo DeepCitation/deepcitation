@@ -426,6 +426,8 @@ export interface VerificationLogProps {
   anchorText?: string;
   /** Ambiguity information when multiple occurrences exist */
   ambiguity?: AmbiguityInfo | null;
+  /** When the verification was performed */
+  verifiedAt?: Date | string | null;
 }
 
 export interface StatusHeaderProps {
@@ -886,6 +888,7 @@ interface VerificationLogSummaryProps {
   foundLine?: number;
   isExpanded: boolean;
   onToggle: () => void;
+  verifiedAt?: Date | string | null;
 }
 
 /**
@@ -946,12 +949,34 @@ function getOutcomeSummary(status: SearchStatus | null | undefined, searchAttemp
  * - For found/partial: "How we verified this · Exact match"
  * - For not_found: "Search attempts · 0/8 searches tried"
  */
-function VerificationLogSummary({ status, searchAttempts, isExpanded, onToggle }: VerificationLogSummaryProps) {
+/**
+ * Format a date as "MMM D" (e.g., "Feb 12") or "MMM D, YYYY" if not current year.
+ */
+function formatVerifiedDate(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return "";
+  const now = new Date();
+  const sameYear = d.getFullYear() === now.getFullYear();
+  const month = d.toLocaleDateString("en-US", { month: "short" });
+  const day = d.getDate();
+  return sameYear ? `${month} ${day}` : `${month} ${day}, ${d.getFullYear()}`;
+}
+
+function VerificationLogSummary({
+  status,
+  searchAttempts,
+  isExpanded,
+  onToggle,
+  verifiedAt,
+}: VerificationLogSummaryProps) {
   const isMiss = status === "not_found";
   const outcomeSummary = getOutcomeSummary(status, searchAttempts);
 
   // Use different headers based on verification outcome
   const headerText = isMiss ? "Search attempts" : "How we verified this";
+
+  // Format the verified date for display
+  const dateStr = verifiedAt ? formatVerifiedDate(verifiedAt) : "";
 
   return (
     <button
@@ -975,6 +1000,14 @@ function VerificationLogSummary({ status, searchAttempts, isExpanded, onToggle }
         <span>{headerText}</span>
         <span className="text-gray-400 dark:text-gray-500">· {outcomeSummary}</span>
       </div>
+      {dateStr && (
+        <span
+          className="text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2"
+          title={isMiss ? `Checked ${dateStr}` : `Verified ${dateStr}`}
+        >
+          {dateStr}
+        </span>
+      )}
     </button>
   );
 }
@@ -1303,6 +1336,7 @@ export function VerificationLog({
   fullPhrase,
   anchorText,
   ambiguity,
+  verifiedAt,
 }: VerificationLogProps) {
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
 
@@ -1341,6 +1375,7 @@ export function VerificationLog({
         foundLine={derivedFoundLine}
         isExpanded={isExpanded}
         onToggle={() => setIsExpanded(!isExpanded)}
+        verifiedAt={verifiedAt}
       />
       {isExpanded && (
         <VerificationLogTimeline

@@ -1316,6 +1316,7 @@ function DefaultPopoverContent({
               onExpandChange={onPhrasesExpandChange}
               fullPhrase={fullPhrase ?? undefined}
               anchorText={anchorText}
+              verifiedAt={verification.verifiedAt}
             />
           )}
         </div>
@@ -1394,6 +1395,7 @@ function DefaultPopoverContent({
               onExpandChange={onPhrasesExpandChange}
               fullPhrase={fullPhrase ?? undefined}
               anchorText={anchorText}
+              verifiedAt={verification.verifiedAt}
             />
           )}
         </div>
