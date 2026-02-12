@@ -19,13 +19,14 @@ jobs:
     steps:
       - id: check
         env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          MSG="${PR_TITLE}${COMMIT_MSG}"
+          # Use commit message (more reliable than PR title which can be edited)
+          MSG="${COMMIT_MSG}"
 
           # Check for non-code change patterns (docs, style, ci, chore)
-          if [[ "$MSG" =~ ^(docs|style|ci|chore\((docs|readme|typo)\)): ]]; then
+          # These patterns indicate the commit is non-functional (pure refactoring of config/docs)
+          if [[ "$MSG" =~ ^docs: ]] || [[ "$MSG" =~ ^style: ]] || [[ "$MSG" =~ ^chore\((docs|readme|typo)\): ]]; then
             echo "should-skip=true" >> $GITHUB_OUTPUT
             echo "This is a non-code change - skipping CI"
           else

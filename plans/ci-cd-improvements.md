@@ -17,8 +17,9 @@ This reduces CI run time significantly while maintaining full validation for cod
 Detects non-code change patterns and skips entire CI workflow:
 - `docs:` prefix (e.g., `docs: update API reference`)
 - `style:` prefix (e.g., `style: adjust spacing`)
-- `ci:` prefix (e.g., `ci: add new workflow`)
 - `chore(docs):`, `chore(readme):`, `chore(typo):` patterns
+
+Note: `ci:` commits are NOT skipped since they may contain code changes
 
 **Behavior:**
 - All downstream jobs skip if pattern detected
@@ -167,12 +168,13 @@ env:
   COMMIT_MSG: ${{ github.event.head_commit.message }}
 ```
 
-Pattern matching in Bash:
+Pattern matching in Bash (uses commit message for reliability):
 ```bash
-MSG="${PR_TITLE}${COMMIT_MSG}"
+MSG="${COMMIT_MSG}"
 
-# Matches: docs:, style:, ci:, chore(docs):, chore(readme):, chore(typo):
-if [[ "$MSG" =~ ^(docs|style|ci|chore\((docs|readme|typo)\)): ]]; then
+# Matches: docs:, style:, chore(docs):, chore(readme):, chore(typo):
+# NOTE: ci: is NOT skipped (may contain code changes)
+if [[ "$MSG" =~ ^docs: ]] || [[ "$MSG" =~ ^style: ]] || [[ "$MSG" =~ ^chore\((docs|readme|typo)\): ]]; then
   echo "should-skip=true"
 fi
 ```
