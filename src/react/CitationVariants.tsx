@@ -230,6 +230,16 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
             ? "border-gray-200 dark:border-gray-700"
             : "border-blue-200 dark:border-blue-700";
 
+    const hoverClass = isPartialMatch
+      ? "hover:bg-amber-200 dark:hover:bg-amber-800/40"
+      : isMiss
+        ? "hover:bg-red-200 dark:hover:bg-red-800/40"
+        : isVerified
+          ? "hover:bg-green-200 dark:hover:bg-green-800/40"
+          : isPending
+            ? "hover:bg-gray-200 dark:hover:bg-gray-700"
+            : "hover:bg-blue-200 dark:hover:bg-blue-800/40";
+
     const textColorClass = isPartialMatch
       ? "text-amber-500 dark:text-amber-400"
       : isMiss
@@ -252,9 +262,10 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           data-variant="chip"
           className={classNames(
             "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full font-normal cursor-pointer transition-colors text-[0.9em]",
-            "border hover:brightness-95",
+            "border",
             statusClass,
             borderClass,
+            hoverClass,
             className,
           )}
           {...events}
