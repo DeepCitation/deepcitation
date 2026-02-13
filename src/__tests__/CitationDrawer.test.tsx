@@ -484,14 +484,20 @@ describe("CitationDrawer", () => {
   it("renders all citation items", () => {
     const groups = [createGroup("Source A", 2), createGroup("Source B", 1)];
 
-    const { getAllByText } = render(
+    const { getAllByText, getByText } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} showMoreSection={false} />,
     );
 
-    // Source A has Article 1 and Article 2, Source B has Article 1
-    // So we should have 2 "Article 1" and 1 "Article 2"
-    expect(getAllByText("Article 1")).toHaveLength(2);
-    expect(getAllByText("Article 2")).toHaveLength(1);
+    // Source A has 2 citations (rendered as expanded items, shows titles)
+    // Source B has 1 citation (renders as CompactSingleCitationRow, no title shown)
+    // So "Article 1" appears only once (from Source A)
+    // And "Article 2" appears once (from Source A)
+    expect(getAllByText("Article 1")).toHaveLength(1);
+    expect(getByText("Article 2")).toBeInTheDocument();
+
+    // But both source groups should be present
+    expect(getByText("Source A")).toBeInTheDocument();
+    expect(getByText("Source B")).toBeInTheDocument();
   });
 
   it("shows all items without More section (always expanded)", () => {
@@ -507,13 +513,37 @@ describe("CitationDrawer", () => {
 
   it("calls onCitationClick when item clicked", () => {
     const onCitationClick = jest.fn();
-    const groups = [createGroup("Test", 1)];
+    const groups = [
+      {
+        sourceName: "Test",
+        sourceDomain: "test.com",
+        citations: [
+          {
+            citationKey: "test-0",
+            citation: {
+              type: "url" as const,
+              siteName: "Test",
+              title: "Article 1",
+              description: "Snippet for article 1",
+              anchorText: "Article 1",
+            },
+            verification: { status: "found" as const },
+          },
+        ],
+        additionalCount: 0,
+      },
+    ];
 
-    const { getByText } = render(
+    const { container } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} onCitationClick={onCitationClick} />,
     );
 
-    fireEvent.click(getByText("Article 1"));
+    // Click on the CompactSingleCitationRow (role="button")
+    const button = container.querySelector('[role="button"]');
+    expect(button).toBeInTheDocument();
+    if (button) {
+      fireEvent.click(button);
+    }
 
     expect(onCitationClick).toHaveBeenCalled();
   });

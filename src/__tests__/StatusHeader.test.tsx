@@ -98,21 +98,19 @@ describe("StatusHeader", () => {
   // ==========================================================================
 
   describe("combined header with anchorText and fullPhrase", () => {
-    it("renders anchor text inline when status text is empty (icon is self-explanatory)", () => {
-      // When status is "found" or "not_found", headerText is empty
-      // The anchor text should be shown inline with left-border styling (no literal quotes)
+    it("renders status text for found citations", () => {
+      // Status text "Verified" is now shown instead of echoing anchor text
       const { container } = render(<StatusHeader status="found" foundPage={5} anchorText="increased by 15%" />);
 
-      // Should show anchor text inline (styled with border, no literal quotes for copy-paste friendliness)
-      expect(container.textContent).toContain("increased by 15%");
+      expect(container.textContent).toContain("Verified");
       expect(container.textContent).toContain("p.5");
     });
 
-    it("renders anchor text inline when status text is empty", () => {
+    it("renders status text for not found citations", () => {
+      // Status text "Not found" is now shown
       const { container } = render(<StatusHeader status="not_found" expectedPage={5} anchorText="increased by 15%" />);
 
-      // When status text is empty (not_found), anchor text is shown inline (no literal quotes)
-      expect(container.textContent).toContain("increased by 15%");
+      expect(container.textContent).toContain("Not found");
       expect(container.textContent).toContain("p.5");
     });
 

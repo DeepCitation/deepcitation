@@ -455,7 +455,7 @@ describe("SourceContextHeader", () => {
       expect(container.textContent).toContain("p.1");
     });
 
-    it("returns null when no meaningful display info available", () => {
+    it("shows 'Document' fallback when no label available", () => {
       const citation: Citation = {
         type: "document",
         fullPhrase: "Test phrase",
@@ -463,7 +463,8 @@ describe("SourceContextHeader", () => {
 
       const { container } = render(<SourceContextHeader citation={citation} />);
 
-      expect(container.textContent).toBe("");
+      // Always show source name (fallback to "Document" for document citations)
+      expect(container.textContent).toContain("Document");
     });
 
     it("shows page number even without label or attachmentId", () => {
