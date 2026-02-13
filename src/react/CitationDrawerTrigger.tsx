@@ -467,12 +467,15 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
       }
     }, [isTouchDevice]);
 
-    const handleIconHover = useCallback((index: number) => {
-      if (!isTouchDevice) {
-        clearTimeout(leaveTimeoutRef.current);
-        setHoveredIndex(index);
-      }
-    }, [isTouchDevice]);
+    const handleIconHover = useCallback(
+      (index: number) => {
+        if (!isTouchDevice) {
+          clearTimeout(leaveTimeoutRef.current);
+          setHoveredIndex(index);
+        }
+      },
+      [isTouchDevice],
+    );
 
     const handleIconLeave = useCallback(() => {
       if (!isTouchDevice) {

@@ -739,7 +739,7 @@ export function StatusHeader({
     return () => clearTimeout(timeoutId);
   }, [copyState]);
 
-  const handleCopy = useCallback(
+  const _handleCopy = useCallback(
     async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -797,9 +797,7 @@ export function StatusHeader({
             <IconComponent />
           </span>
         )}
-        {displayText && (
-          <span className="font-medium truncate text-gray-800 dark:text-gray-100">{displayText}</span>
-        )}
+        {displayText && <span className="font-medium truncate text-gray-800 dark:text-gray-100">{displayText}</span>}
       </div>
       {!hidePageBadge && <PageBadge expectedPage={expectedPage} foundPage={foundPage} />}
     </div>
@@ -1002,10 +1000,7 @@ interface SearchSummary {
  * Build a human-readable summary of search attempts for not-found states.
  * Computes page range, full doc scan presence, and closest match if any.
  */
-function buildSearchSummary(
-  searchAttempts: SearchAttempt[],
-  verification?: Verification | null,
-): SearchSummary {
+function _buildSearchSummary(searchAttempts: SearchAttempt[], verification?: Verification | null): SearchSummary {
   const totalAttempts = searchAttempts.length;
 
   // Collect unique pages searched
@@ -1033,7 +1028,7 @@ function buildSearchSummary(
   }
 
   // Find closest match: look for matchedText on unsuccessful attempts, or rejected matches
-  let closestMatch: SearchSummary["closestMatch"] = undefined;
+  let closestMatch: SearchSummary["closestMatch"];
 
   // First check verification.verifiedMatchSnippet
   if (verification?.verifiedMatchSnippet) {

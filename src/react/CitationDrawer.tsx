@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
-import type { CitationDrawerItem, CitationDrawerItemProps, CitationDrawerProps, SourceCitationGroup } from "./CitationDrawer.types.js";
+import type {
+  CitationDrawerItem,
+  CitationDrawerItemProps,
+  CitationDrawerProps,
+  SourceCitationGroup,
+} from "./CitationDrawer.types.js";
 import { extractDomain, getStatusInfo } from "./CitationDrawer.utils.js";
 import {
   COPY_FEEDBACK_DURATION_MS,
@@ -292,9 +297,7 @@ function SourceGroupHeader({
 
       {/* Citation count badge — only shown when > 1 (single item is self-evident) */}
       {citationCount > 1 && (
-        <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
-          {citationCount} citations
-        </span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{citationCount} citations</span>
       )}
     </div>
   );
@@ -484,7 +487,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           {/* Content */}
           <div className="flex-1 min-w-0">
             {/* Source name — hidden when inside a group (group header shows it) */}
-            {!hideSourceName && sourceName && <div className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">{sourceName}</div>}
+            {!hideSourceName && sourceName && (
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">{sourceName}</div>
+            )}
             {/* Title/phrase row with page number, copy button, and timestamp */}
             <div className="flex items-center gap-1.5">
               {shouldMergePhrase ? (

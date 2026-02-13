@@ -33,7 +33,7 @@ import {
   Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
-import { CheckIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
+import { CheckIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import type {
@@ -744,7 +744,7 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
       tabIndex={-1}
       className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-[50ms] outline-none"
       style={{ zIndex: `var(${Z_INDEX_IMAGE_OVERLAY_VAR}, ${Z_INDEX_OVERLAY_DEFAULT})` } as React.CSSProperties}
-      onClick={(e) => {
+      onClick={e => {
         e.stopPropagation();
         e.preventDefault();
         onClose();
@@ -765,7 +765,7 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
           alt={alt}
           className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl"
           draggable={false}
-          onClick={(e) => {
+          onClick={e => {
             e.stopPropagation();
           }}
         />
@@ -936,7 +936,7 @@ function AnchorTextFocusedImage({
         <button
           type="button"
           className="block relative w-full"
-          style={{ cursor: 'zoom-in' }}
+          style={{ cursor: "zoom-in" }}
           onClick={e => {
             e.preventDefault();
             e.stopPropagation();
