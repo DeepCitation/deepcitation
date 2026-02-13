@@ -43,6 +43,9 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
+      - name: Install sharp for snapshot optimization
+        run: npm install --save-dev sharp
+
       - name: Build
         run: npm run build
 
@@ -58,6 +61,10 @@ jobs:
         id: snapshots
         env:
           PLAYWRIGHT_WORKERS: 1
+
+      - name: Convert PNG snapshots to AVIF
+        run: node scripts/convert-snapshots-to-avif.js --remove-png
+        continue-on-error: true
 
       - name: Commit updated snapshots
         # Run on pushes and PRs from the same repo (not forks, which lack write access)
