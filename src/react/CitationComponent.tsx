@@ -763,14 +763,18 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
         <img
           src={src}
           alt={alt}
-          className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl"
+          className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           draggable={false}
+          tabIndex={0}
+          role="button"
+          aria-label="Click to close full size image"
           onClick={e => {
             e.stopPropagation();
             onClose();
           }}
           onKeyDown={e => {
             if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
               e.stopPropagation();
               onClose();
             }
