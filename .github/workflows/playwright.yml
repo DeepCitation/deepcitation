@@ -59,6 +59,10 @@ jobs:
         env:
           PLAYWRIGHT_WORKERS: 1
 
+      - name: Convert PNG snapshots to AVIF
+        run: node scripts/convert-snapshots-to-avif.js --remove-png
+        continue-on-error: true
+
       - name: Commit updated snapshots
         # Run on pushes and PRs from the same repo (not forks, which lack write access)
         if: |

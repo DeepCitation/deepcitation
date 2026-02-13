@@ -262,6 +262,53 @@ const dc = new DeepCitation({
 
 The logger receives events for: file uploads, verification requests, cache hits/misses, and errors. Default is a no-op logger.
 
+## Development
+
+### Running Tests
+
+```bash
+# Run unit tests
+bun test
+
+# Run Playwright component tests
+npm run test:ct
+
+# Run visual snapshot tests
+npm run test:ct -- --grep "visual snapshot"
+```
+
+### Visual Snapshot Optimization
+
+Visual test snapshots are automatically optimized to AVIF format in CI for ~50% size savings while maintaining quality:
+
+- **Snapshots** are stored as AVIF files in `tests/playwright/specs/__snapshots__/`
+- **Conversion** happens automatically in CI after tests run
+- **Quality settings**: AVIF quality=60, effort=4 (good balance of compression vs quality)
+
+#### Local Development
+
+To convert snapshots locally after running visual tests:
+
+```bash
+# Convert PNG → AVIF and remove PNGs
+node scripts/convert-snapshots-to-avif.js --remove-png
+
+# Convert but keep original PNGs
+node scripts/convert-snapshots-to-avif.js
+```
+
+**Note:** `sharp` is included in `devDependencies` and will be installed automatically with `npm install`.
+
+#### Reverting to PNG
+
+If you need to revert AVIF snapshots back to PNG:
+
+1. Run tests with `--update-snapshots` (Playwright will generate PNGs)
+2. Delete the corresponding AVIF files
+3. Commit the PNG snapshots
+
+Playwright supports both PNG and AVIF snapshot formats for visual regression testing.
+
 ## Go deeper
 
 - [Full Documentation](https://docs.deepcitation.com)

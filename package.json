@@ -92,6 +92,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "rimraf": "^5.0.10",
+    "sharp": "^0.34.1",
     "size-limit": "^11.2.0",
     "tailwindcss": "^4.1.18",
     "ts-jest": "^29.4.6",
