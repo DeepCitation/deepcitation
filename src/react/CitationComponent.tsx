@@ -763,10 +763,21 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
         <img
           src={src}
           alt={alt}
-          className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl"
+          className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           draggable={false}
+          tabIndex={0}
+          role="button"
+          aria-label="Click to close full size image"
           onClick={e => {
             e.stopPropagation();
+            onClose();
+          }}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }
           }}
         />
       </div>
@@ -1042,9 +1053,19 @@ function getHumanizingMessage(
  * Renders fullPhrase with the anchorText substring highlighted using the same
  * amber highlight style used in the API-side proof images.
  * Only highlights when fullPhrase has enough additional context beyond anchorText.
+ * When isMiss is true, renders the phrase without highlighting (since the text wasn't found).
  */
-function HighlightedPhrase({ fullPhrase, anchorText }: { fullPhrase: string; anchorText?: string }) {
-  if (!anchorText || !fullPhrase.includes(anchorText)) {
+function HighlightedPhrase({
+  fullPhrase,
+  anchorText,
+  isMiss,
+}: {
+  fullPhrase: string;
+  anchorText?: string;
+  isMiss?: boolean;
+}) {
+  // Don't highlight when citation is "not found" - misleading to highlight text that wasn't found
+  if (isMiss || !anchorText || !fullPhrase.includes(anchorText)) {
     return <span className="italic text-gray-600 dark:text-gray-300">&ldquo;{fullPhrase}&rdquo;</span>;
   }
   const wc = (s: string) => {
@@ -1187,7 +1208,7 @@ function DefaultPopoverContent({
           {/* Full phrase with highlighted anchor text */}
           {fullPhrase && (
             <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
-              <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} />
+              <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}
 
@@ -1255,7 +1276,7 @@ function DefaultPopoverContent({
               {/* Full phrase with highlighted anchor text */}
               {fullPhrase && (
                 <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
-                  <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} />
+                  <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
                 </div>
               )}
               <div className="p-2">
@@ -1283,7 +1304,7 @@ function DefaultPopoverContent({
               {/* Full phrase with highlighted anchor text */}
               {fullPhrase && (
                 <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
-                  <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} />
+                  <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
                 </div>
               )}
             </>

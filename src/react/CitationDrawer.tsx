@@ -444,10 +444,10 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       className={cn(
         "cursor-pointer transition-colors",
         !isLast && "border-b border-gray-200 dark:border-gray-700",
-        // Expanded: left accent border for visual distinction
+        // 3px border for visual distinction (2px too subtle, 4px too heavy)
         isExpanded
-          ? "border-l-2 border-l-blue-400 dark:border-l-blue-500"
-          : "border-l-2 border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
+          ? "border-l-[3px] border-l-blue-400 dark:border-l-blue-500"
+          : "border-l-[3px] border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
         className,
       )}
     >
@@ -455,8 +455,8 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       <div
         className={cn(
           "group px-4 py-3",
-          // Subtle highlight when expanded so the summary stands out from the detail area
-          isExpanded && "bg-gray-50/50 dark:bg-gray-800/30",
+          // Blue-tinted highlight when expanded so the summary stands out from the detail area
+          isExpanded && "bg-blue-50/60 dark:bg-blue-950/30",
         )}
         onClick={handleClick}
         role="button"
@@ -493,12 +493,17 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
             {/* Title/phrase row with page number, copy button, and timestamp */}
             <div className="flex items-center gap-1.5">
               {shouldMergePhrase ? (
-                <div className="text-sm text-gray-900 dark:text-gray-100 truncate">
+                <div className="text-sm text-gray-900 dark:text-gray-100 truncate" title={fullPhrase}>
                   {renderPhraseWithHighlight(fullPhrase, anchorText)}
                 </div>
               ) : (
                 articleTitle && (
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{articleTitle}</h4>
+                  <h4
+                    className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2"
+                    title={articleTitle}
+                  >
+                    {articleTitle}
+                  </h4>
                 )
               )}
               {/* Copy button — always in DOM, opacity on hover (no layout shift) */}
@@ -556,7 +561,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
       {/* Expanded detail view */}
       {isExpanded && (
-        <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+        <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
           {/* Proof image — click to expand/collapse */}
           {proofImage && (
             <div className="px-4 py-2">
@@ -694,7 +699,12 @@ function CompactSingleCitationRow({
       </div>
 
       {/* Source name */}
-      <span className="text-sm text-gray-600 dark:text-gray-400 shrink-0 truncate max-w-[120px]">{sourceName}</span>
+      <span
+        className="text-sm text-gray-600 dark:text-gray-400 shrink-0 truncate max-w-[120px] sm:max-w-[160px] md:max-w-[200px]"
+        title={sourceName}
+      >
+        {sourceName}
+      </span>
 
       {/* Status indicator */}
       <span
