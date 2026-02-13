@@ -1021,6 +1021,79 @@ function VerificationLogSummary({
 }
 
 // =============================================================================
+// SEARCH SUMMARY BUILDER
+// =============================================================================
+
+interface SearchSummary {
+  totalAttempts: number;
+  pageRange: string; // "page 3" or "pages 3-7"
+  includesFullDocScan: boolean;
+  closestMatch?: { text: string; page?: number };
+}
+
+/**
+ * Build a human-readable summary of search attempts for not-found states.
+ * Computes page range, full doc scan presence, and closest match if any.
+ */
+function buildSearchSummary(
+  searchAttempts: SearchAttempt[],
+  verification?: Verification | null,
+): SearchSummary {
+  const totalAttempts = searchAttempts.length;
+
+  // Collect unique pages searched
+  const pagesSearched = new Set<number>();
+  let includesFullDocScan = false;
+  for (const attempt of searchAttempts) {
+    if (attempt.pageSearched != null) {
+      pagesSearched.add(attempt.pageSearched);
+    }
+    if (attempt.searchScope === "document") {
+      includesFullDocScan = true;
+    }
+  }
+
+  // Format page range
+  let pageRange: string;
+  if (pagesSearched.size === 0) {
+    pageRange = "";
+  } else if (pagesSearched.size === 1) {
+    const [page] = pagesSearched;
+    pageRange = `page ${page}`;
+  } else {
+    const sorted = Array.from(pagesSearched).sort((a, b) => a - b);
+    pageRange = `pages ${sorted[0]}-${sorted[sorted.length - 1]}`;
+  }
+
+  // Find closest match: look for matchedText on unsuccessful attempts, or rejected matches
+  let closestMatch: SearchSummary["closestMatch"] = undefined;
+
+  // First check verification.verifiedMatchSnippet
+  if (verification?.verifiedMatchSnippet) {
+    const page = verification.document?.verifiedPageNumber ?? undefined;
+    closestMatch = {
+      text: verification.verifiedMatchSnippet,
+      page: page != null && page > 0 ? page : undefined,
+    };
+  }
+
+  // If no snippet from verification, look through search attempts for rejected/partial matches
+  if (!closestMatch) {
+    for (const attempt of searchAttempts) {
+      if (!attempt.success && attempt.matchedText) {
+        closestMatch = {
+          text: attempt.matchedText,
+          page: attempt.pageSearched,
+        };
+        break; // Take the first one found
+      }
+    }
+  }
+
+  return { totalAttempts, pageRange, includesFullDocScan, closestMatch };
+}
+
+// =============================================================================
 // AUDIT-FOCUSED SEARCH DISPLAY
 // =============================================================================
 
@@ -1032,12 +1105,16 @@ interface AuditSearchDisplayProps {
   anchorText?: string;
   /** Verification status (determines display mode) */
   status?: SearchStatus | null;
+  /** Full verification object (for closest match extraction) */
+  verification?: Verification | null;
 }
 
 interface SearchAttemptRowProps {
   attempt: SearchAttempt;
   index: number;
   totalCount: number;
+  /** Overall verification status; when not_found, suppresses green checkmarks on individual rows */
+  overallStatus?: SearchStatus | null;
 }
 
 /**
@@ -1045,7 +1122,7 @@ interface SearchAttemptRowProps {
  * Displays as: "1. "phrase..."   Method · Pg X"
  * Also shows search variations if present.
  */
-function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps) {
+function SearchAttemptRow({ attempt, index, totalCount, overallStatus }: SearchAttemptRowProps) {
   // Format the phrase for display (truncate if too long), with null safety
   const phrase = attempt.searchPhrase ?? "";
   const displayPhrase =
@@ -1085,16 +1162,18 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
         {index}.
       </span>
 
-      {/* Status icon */}
+      {/* Status icon - suppress green when overall verification failed */}
       <span
         className={cn(
           "size-3 max-w-3 max-h-3 mt-0.5 shrink-0",
-          attempt.success ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500",
+          attempt.success && overallStatus !== "not_found"
+            ? "text-green-600 dark:text-green-400"
+            : "text-gray-400 dark:text-gray-500",
         )}
         role="img"
         aria-label={attempt.success ? "Found" : "Not found"}
       >
-        {attempt.success ? <CheckIcon /> : <MissIcon />}
+        {attempt.success && overallStatus !== "not_found" ? <CheckIcon /> : <MissIcon />}
       </span>
 
       {/* Phrase and details */}

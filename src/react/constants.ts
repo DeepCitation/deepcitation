@@ -289,3 +289,29 @@ export function isValidProofImageSrc(src: unknown): src is string {
     return false;
   }
 }
+
+/**
+ * Anchor text highlight colors — matches the proof image highlight from the API.
+ * Used to highlight the anchorText substring within the fullPhrase display.
+ */
+export const ANCHOR_HIGHLIGHT_COLOR = "rgba(251, 191, 36, 0.2)";
+export const ANCHOR_HIGHLIGHT_COLOR_DARK = "rgba(251, 191, 36, 0.25)";
+
+/**
+ * CSS custom property for anchor text highlight color.
+ * Can be overridden to match custom proof image styles.
+ */
+export const ANCHOR_HIGHLIGHT_VAR = "--dc-anchor-highlight";
+
+/** Inline style for anchor text highlight background */
+export const ANCHOR_HIGHLIGHT_STYLE: React.CSSProperties = {
+  backgroundColor: `var(${ANCHOR_HIGHLIGHT_VAR}, ${ANCHOR_HIGHLIGHT_COLOR})`,
+  borderRadius: "2px",
+  padding: "0 1px",
+};
+
+/**
+ * Minimum word count difference between fullPhrase and anchorText
+ * required to show the highlight. Matches API-side MIN_WORD_DIFFERENCE.
+ */
+export const MIN_WORD_DIFFERENCE = 2;

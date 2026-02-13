@@ -175,6 +175,56 @@ function DrawerVerificationSummary({
 }
 
 // =========
+// Utilities: sourceLabelMap lookup
+// =========
+
+/**
+ * Look up a friendly display label from the sourceLabelMap for a citation.
+ * Tries citation.attachmentId first, then citation.url.
+ */
+function lookupSourceLabel(
+  citation: { attachmentId?: string; url?: string } | undefined,
+  sourceLabelMap: Record<string, string> | undefined,
+): string | undefined {
+  if (!sourceLabelMap || !citation) return undefined;
+  if (citation.attachmentId && sourceLabelMap[citation.attachmentId]) {
+    return sourceLabelMap[citation.attachmentId];
+  }
+  if (citation.url && sourceLabelMap[citation.url]) {
+    return sourceLabelMap[citation.url];
+  }
+  return undefined;
+}
+
+/**
+ * Count words in a string (splits on whitespace).
+ */
+function wordCount(str: string): number {
+  return str.trim().split(/\s+/).length;
+}
+
+/**
+ * Render fullPhrase with anchorText highlighted in bold.
+ * Returns a React fragment with the anchorText portion wrapped in <strong>.
+ * If anchorText is not a substring of fullPhrase, returns fullPhrase as-is.
+ */
+function renderPhraseWithHighlight(fullPhrase: string, anchorText: string): React.ReactNode {
+  const idx = fullPhrase.indexOf(anchorText);
+  if (idx === -1) return fullPhrase;
+
+  const before = fullPhrase.slice(0, idx);
+  const after = fullPhrase.slice(idx + anchorText.length);
+
+  return (
+    <>
+      {before}
+      <strong>{anchorText}</strong>
+      {after}
+    </>
+  );
+}
+
+// =========
 // SourceGroupHeader
 // =========
 
@@ -183,14 +233,21 @@ function DrawerVerificationSummary({
  * Shows favicon (or letter avatar for documents), source name,
  * external link for URL sources, and citation count.
  */
-function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
-  const sourceName = group.sourceName || "Source";
+function SourceGroupHeader({
+  group,
+  sourceLabelMap,
+}: {
+  group: SourceCitationGroup;
+  sourceLabelMap?: Record<string, string>;
+}) {
+  const firstCitation = group.citations[0]?.citation;
+  const labelOverride = lookupSourceLabel(firstCitation, sourceLabelMap);
+  const sourceName = labelOverride || group.sourceName || "Source";
   const citationCount = group.citations.length;
   const isUrlSource = !!group.sourceDomain;
 
   // For URL sources, get a link to visit
-  const firstCit = group.citations[0]?.citation;
-  const sourceUrl = isUrlSource && firstCit?.type === "url" ? firstCit.url : undefined;
+  const sourceUrl = isUrlSource && firstCitation?.type === "url" ? firstCitation.url : undefined;
   const safeSourceUrl = sourceUrl ? sanitizeUrl(sourceUrl) : null;
 
   return (
