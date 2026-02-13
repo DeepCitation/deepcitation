@@ -5,7 +5,7 @@
  */
 
 // Box/geometry types
-export type { CitationPage, DeepTextItem, IVertex, ScreenBox } from "./boxes.js";
+export type { DeepTextItem, IVertex, ScreenBox, SourcePage } from "./boxes.js";
 // Citation core types
 export type {
   Citation,
@@ -28,10 +28,10 @@ export type {
 // Found highlight types
 export type {
   DocumentVerificationResult,
+  ProofUrl,
   UrlVerificationResult,
   Verification,
   VerificationPage,
-  VerificationProof,
 } from "./verification.js";
 export {
   BLANK_VERIFICATION,

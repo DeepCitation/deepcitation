@@ -12,7 +12,7 @@ const Activity =
     }
   ).Activity ?? (({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>);
 
-import type { CitationPage } from "../types/boxes.js";
+import type { SourcePage } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
@@ -901,9 +901,9 @@ function AnchorTextFocusedImage({
   verification: Verification;
   onImageClick?: () => void;
   /** Optional page data with source URL. When provided with a source, shows "View page" button. */
-  page?: CitationPage | null;
+  page?: SourcePage | null;
   /** Optional callback for "View page" button. Called with the page when clicked. */
-  onViewPageClick?: (page: CitationPage) => void;
+  onViewPageClick?: (page: SourcePage) => void;
   maxWidth?: string;
   maxHeight?: string;
 }) {

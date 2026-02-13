@@ -707,7 +707,7 @@ export class DeepCitation {
    * ```
    */
   async verify(input: VerifyInput, citations?: { [key: string]: Citation }): Promise<VerifyCitationsResponse> {
-    const { llmOutput, outputImageFormat = "avif" } = input;
+    const { llmOutput, outputImageFormat = "avif", generateProofUrls, proofConfig } = input;
 
     // Parse citations from LLM output
     if (!citations) citations = getAllCitationsFromLlmOutput(llmOutput);
@@ -742,6 +742,8 @@ export class DeepCitation {
         verificationPromises.push(
           this.verifyAttachment(attachmentId, fileCitations, {
             outputImageFormat,
+            generateProofUrls,
+            proofConfig,
           }),
         );
       } else {

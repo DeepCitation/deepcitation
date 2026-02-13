@@ -123,7 +123,7 @@ export {
 // Proof URL Builders
 export type { ProofUrlOptions } from "./rendering/proofUrl.js";
 export { buildProofUrl, buildProofUrls, buildSnippetImageUrl } from "./rendering/proofUrl.js";
-export type { CitationPage, DeepTextItem, IVertex, ScreenBox } from "./types/boxes.js";
+export type { DeepTextItem, IVertex, ScreenBox, SourcePage } from "./types/boxes.js";
 // Types
 export type {
   Citation,
@@ -151,11 +151,11 @@ export type {
 export type {
   ContentMatchStatus,
   DocumentVerificationResult,
+  ProofUrl,
   UrlAccessStatus,
   UrlVerificationResult,
   Verification,
   VerificationPage,
-  VerificationProof,
 } from "./types/verification.js";
 export {
   BLANK_VERIFICATION,

@@ -252,6 +252,16 @@ export interface VerifyInput {
   fileDataParts?: FileDataPart[];
   /** Output image format for verification screenshots */
   outputImageFormat?: "jpeg" | "png" | "avif";
+  /**
+   * When true, the backend will persist proof artifacts and return
+   * proofId, proofUrl, and proofImageUrl in each verification.
+   * @default false
+   */
+  generateProofUrls?: boolean;
+  /**
+   * Proof URL configuration. Only used when `generateProofUrls` is `true`.
+   */
+  proofConfig?: VerifyCitationsOptions["proofConfig"];
 }
 
 /**

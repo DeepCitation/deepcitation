@@ -1,4 +1,4 @@
-import type { CitationPage, DeepTextItem, ScreenBox } from "./boxes.js";
+import type { DeepTextItem, ScreenBox, SourcePage } from "./boxes.js";
 import type { Citation } from "./citation.js";
 import type { SearchAttempt, SearchStatus } from "./search.js";
 
@@ -120,7 +120,7 @@ export interface UrlVerificationResult {
  * }
  * ```
  */
-export interface VerificationProof {
+export interface ProofUrl {
   proofId?: string;
   proofUrl?: string;
   proofImageUrl?: string;
@@ -128,9 +128,9 @@ export interface VerificationProof {
 
 /**
  * A page returned from verification for user inspection.
- * Extends CitationPage from boxes.ts with verification-specific metadata.
+ * Extends SourcePage from boxes.ts with verification-specific metadata.
  */
-export interface VerificationPage extends CitationPage {
+export interface VerificationPage extends SourcePage {
   /** Whether this page contains the verified citation match */
   isMatchPage?: boolean;
   /** Highlighted region on this page (if match found) */
@@ -171,7 +171,7 @@ export interface Verification {
   url?: UrlVerificationResult;
 
   /** Proof hosting results */
-  proof?: VerificationProof;
+  proof?: ProofUrl;
 
   // ========== Pages for user inspection ==========
   /** Pages returned from verification for user inspection */
