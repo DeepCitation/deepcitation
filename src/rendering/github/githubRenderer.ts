@@ -88,10 +88,9 @@ export function renderCitationsForGitHub(input: string, options: GitHubRenderOpt
   if (includeSources && citationsWithStatus.length > 0) {
     const entries = citationsWithStatus.map(cws => {
       const label =
-        sourceLabels[cws.citation.attachmentId || ""] ||
-        cws.verification?.label ||
-        cws.citation.title ||
-        `Source ${cws.citationNumber}`;
+        cws.citation.type === "url"
+          ? sourceLabels[""] || cws.verification?.label || cws.citation.title || `Source ${cws.citationNumber}`
+          : sourceLabels[cws.citation.attachmentId || ""] || cws.verification?.label || `Source ${cws.citationNumber}`;
       const location = formatPageLocation(cws.citation, cws.verification, {
         showPageNumber: true,
         showLinePosition: false,

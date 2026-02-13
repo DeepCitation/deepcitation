@@ -58,7 +58,7 @@ describe("buildSnippetImageUrl", () => {
 describe("buildProofUrls", () => {
   it("builds proof URLs for all verifications", () => {
     const verifications = {
-      key1: { status: "found" as const, verifiedPageNumber: 1 },
+      key1: { status: "found" as const, document: { verifiedPageNumber: 1 } },
       key2: { status: "not_found" as const },
     };
     const urls = buildProofUrls(verifications, { baseUrl: "https://proof.deepcitation.com" });
@@ -69,7 +69,7 @@ describe("buildProofUrls", () => {
 
   it("uses proofId from verification when available", () => {
     const verifications: VerificationRecord = {
-      key1: { status: "found" as const, proofId: "proof_abc" },
+      key1: { status: "found" as const, proof: { proofId: "proof_abc" } },
     };
     const urls = buildProofUrls(verifications, { baseUrl: "https://proof.deepcitation.com" });
     expect(urls.key1).toContain("/p/proof_abc");

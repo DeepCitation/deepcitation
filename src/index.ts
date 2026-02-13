@@ -3,6 +3,17 @@
  * @packageDocumentation
  */
 
+// Client - import from canonical location
+export { DeepCitation } from "./client/DeepCitation.js";
+// Errors - import from canonical location
+export {
+  AuthenticationError,
+  DeepCitationError,
+  NetworkError,
+  RateLimitError,
+  ServerError,
+  ValidationError,
+} from "./client/errors.js";
 export type {
   CitationInput,
   DeepCitationConfig,
@@ -22,17 +33,6 @@ export type {
   VerifyCitationsOptions,
   VerifyCitationsResponse,
 } from "./client/index.js";
-// Client - import from canonical location
-export { DeepCitation } from "./client/DeepCitation.js";
-// Errors - import from canonical location
-export {
-  AuthenticationError,
-  DeepCitationError,
-  NetworkError,
-  RateLimitError,
-  ServerError,
-  ValidationError,
-} from "./client/errors.js";
 export type {
   CitationWithStatus,
   IndicatorSet,
@@ -82,6 +82,7 @@ export {
   getCitationStatus,
   groupCitationsByAttachmentId,
   groupCitationsByAttachmentIdObject,
+  normalizeCitationType,
   parseCitation,
 } from "./parsing/parseCitation.js";
 export {
@@ -119,18 +120,24 @@ export {
   generateCitationKey,
   generateVerificationKey,
 } from "./react/utils.js";
+// Proof URL Builders
+export type { ProofUrlOptions } from "./rendering/proofUrl.js";
+export { buildProofUrl, buildProofUrls, buildSnippetImageUrl } from "./rendering/proofUrl.js";
 export type { CitationPage, DeepTextItem, IVertex, ScreenBox } from "./types/boxes.js";
 // Types
 export type {
   Citation,
+  CitationBase,
   // Record types (object dictionaries, NOT arrays)
   CitationRecord,
   CitationStatus,
   CitationType,
+  DocumentCitation,
   OutputImageFormat,
   SourceMeta,
   // Source types for categorization
   SourceType,
+  UrlCitation,
   VerificationRecord,
   VerifyCitationRequest,
   VerifyCitationResponse,
@@ -143,16 +150,17 @@ export type {
 } from "./types/search.js";
 export type {
   ContentMatchStatus,
+  DocumentVerificationResult,
   UrlAccessStatus,
+  UrlVerificationResult,
   Verification,
+  VerificationPage,
+  VerificationProof,
 } from "./types/verification.js";
 export {
   BLANK_VERIFICATION,
   NOT_FOUND_VERIFICATION_INDEX,
   PENDING_VERIFICATION_INDEX,
 } from "./types/verification.js";
-// Proof URL Builders
-export type { ProofUrlOptions } from "./rendering/proofUrl.js";
-export { buildProofUrl, buildProofUrls, buildSnippetImageUrl } from "./rendering/proofUrl.js";
 // Utilities
 export { sha1Hash } from "./utils/sha.js";

@@ -168,6 +168,48 @@ export const INDICATOR_SIZE_STYLE: React.CSSProperties = {
   minHeight: "10px",
 };
 
+/**
+ * Dot indicator color classes for status states.
+ * Extracted for consistency across components.
+ * Used by UrlCitationComponent and other components for colored dot indicators.
+ *
+ * Provides both light and dark mode variants aligned with Tailwind color palette:
+ * - green: Verified/success state
+ * - amber: Partial/warning state
+ * - red: Error/not found state
+ * - gray: Pending/loading state
+ */
+export const DOT_COLORS = {
+  green: "bg-green-600 dark:bg-green-500",
+  amber: "bg-amber-500 dark:bg-amber-400",
+  red: "bg-red-500 dark:bg-red-400",
+  gray: "bg-gray-400 dark:bg-gray-500",
+} as const;
+
+/**
+ * Dynamic dot indicator size styles.
+ * Much smaller than icon indicators — a subtle filled circle (like GitHub status dots).
+ * Uses em units so the dot scales with parent font size.
+ * 0.45em produces a dot roughly half the size of the icon indicators.
+ * minWidth/minHeight ensure a minimum of 6px for visibility at very small font sizes.
+ */
+export const DOT_INDICATOR_SIZE_STYLE: React.CSSProperties = {
+  width: "0.45em",
+  height: "0.45em",
+  minWidth: "6px",
+  minHeight: "6px",
+};
+
+/**
+ * Fixed-size dot indicator for non-inline contexts (drawers, wrappers, badges).
+ * Uses fixed 6px instead of em units because these contexts have their own
+ * fixed-size containers that handle proportional sizing.
+ */
+export const DOT_INDICATOR_FIXED_SIZE_STYLE: React.CSSProperties = {
+  width: "6px",
+  height: "6px",
+};
+
 // =============================================================================
 // Z-INDEX LAYERING
 // =============================================================================
@@ -214,7 +256,14 @@ export function getPortalContainer(): HTMLElement | null {
 }
 
 /** Safe raster image data URI prefixes (no SVG — can contain scripts). */
-export const SAFE_DATA_IMAGE_PREFIXES = ["data:image/png", "data:image/jpeg", "data:image/jpg", "data:image/webp", "data:image/avif", "data:image/gif"] as const;
+export const SAFE_DATA_IMAGE_PREFIXES = [
+  "data:image/png",
+  "data:image/jpeg",
+  "data:image/jpg",
+  "data:image/webp",
+  "data:image/avif",
+  "data:image/gif",
+] as const;
 
 /** Trusted CDN hostnames for proof images. */
 export const TRUSTED_IMAGE_HOSTS = ["api.deepcitation.com", "cdn.deepcitation.com"] as const;

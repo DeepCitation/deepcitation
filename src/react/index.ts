@@ -44,6 +44,8 @@ export {
 // Constants - Shared styling and configuration
 export {
   COPY_FEEDBACK_DURATION_MS,
+  DOT_INDICATOR_FIXED_SIZE_STYLE,
+  DOT_INDICATOR_SIZE_STYLE,
   ERROR_COLOR_DEFAULT,
   ERROR_COLOR_STYLE,
   ERROR_COLOR_VAR,
@@ -149,6 +151,8 @@ export type {
   // URL content verification types
   ContentMatchStatus,
   GroupCitationsBySource,
+  // Indicator variant type
+  IndicatorVariant,
   SourceChipProps,
   SourceCitationGroup,
   SourcesListHeaderConfig,
@@ -210,6 +214,7 @@ export {
   getCitationAnchorText,
   getCitationDisplayText,
   getCitationNumber,
+  isDocumentCitation,
   isUrlCitation,
 } from "./utils.js";
 // Verification Log Components (Search attempt timeline display)

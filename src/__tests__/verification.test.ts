@@ -11,16 +11,18 @@ describe("verification helpers", () => {
   it("exposes sentinel constants and blank defaults", () => {
     expect(NOT_FOUND_VERIFICATION_INDEX).toBe(-1);
     expect(PENDING_VERIFICATION_INDEX).toBe(-2);
-    expect(BLANK_VERIFICATION.verifiedPageNumber).toBe(NOT_FOUND_VERIFICATION_INDEX);
-    expect(BLANK_VERIFICATION.citation?.pageNumber).toBe(NOT_FOUND_VERIFICATION_INDEX);
+    expect(BLANK_VERIFICATION.document?.verifiedPageNumber).toBe(NOT_FOUND_VERIFICATION_INDEX);
+    expect(BLANK_VERIFICATION.citation).toBeUndefined();
   });
 
   it("builds deterministic ids from verification attributes", () => {
     const verification: Verification = {
       label: "phrase",
       attachmentId: "file-1",
-      verifiedPageNumber: 3,
-      hitIndexWithinPage: 2,
+      document: {
+        verifiedPageNumber: 3,
+        hitIndexWithinPage: 2,
+      },
       verifiedMatchSnippet: "snippet",
     };
     const first = generateVerificationKey(verification);

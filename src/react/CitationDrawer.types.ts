@@ -59,6 +59,13 @@ export interface CitationDrawerProps {
   position?: "bottom" | "right";
   /** Custom render for citation items */
   renderCitationItem?: (item: CitationDrawerItem) => React.ReactNode;
+  /**
+   * Visual style for status indicators.
+   * - `"icon"`: Checkmarks, spinner, X icons (default)
+   * - `"dot"`: Subtle colored dots (like GitHub status dots)
+   * @default "icon"
+   */
+  indicatorVariant?: "icon" | "dot";
 }
 
 /**
@@ -75,4 +82,11 @@ export interface CitationDrawerItemProps {
   onReadMore?: (item: CitationDrawerItem) => void;
   /** Additional class name */
   className?: string;
+  /**
+   * Visual style for status indicators.
+   * - `"icon"`: Checkmarks, spinner, X icons (default)
+   * - `"dot"`: Subtle colored dots (like GitHub status dots)
+   * @default "icon"
+   */
+  indicatorVariant?: "icon" | "dot";
 }

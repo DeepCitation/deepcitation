@@ -1,5 +1,5 @@
 import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
-import type { Citation } from "../types/citation.js";
+import type { Citation, DocumentCitation, UrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { sha1Hash } from "../utils/sha.js";
 
@@ -12,10 +12,19 @@ export function cn(...classes: (string | undefined | null | false)[]): string {
 }
 
 /**
- * Type guard to check if a citation is a URL citation (type: "url" or has url field).
+ * Type guard to check if a citation is a URL citation.
+ * Narrows the Citation union to UrlCitation when true.
  */
-export function isUrlCitation(citation: Citation): boolean {
-  return citation.type === "url" || (typeof citation.url === "string" && citation.url.length > 0);
+export function isUrlCitation(citation: Citation): citation is UrlCitation {
+  return citation.type === "url";
+}
+
+/**
+ * Type guard to check if a citation is a document citation.
+ * Narrows the Citation union to DocumentCitation when true.
+ */
+export function isDocumentCitation(citation: Citation): citation is DocumentCitation {
+  return citation.type !== "url";
 }
 
 /**
@@ -28,22 +37,21 @@ export function isUrlCitation(citation: Citation): boolean {
  * @returns A unique, deterministic key for the citation
  */
 export function generateCitationKey(citation: Citation): string {
-  const pageNumber = citation.pageNumber || getCitationPageNumber(citation.startPageId);
-
-  // Base key parts for all citations
+  // Common key parts
   const keyParts = [
-    citation.attachmentId || "",
-    pageNumber?.toString() || "",
     citation.fullPhrase || "",
     citation.anchorText?.toString() || "",
-    citation.lineIds?.join(",") || "",
     citation.timestamps?.startTime || "",
     citation.timestamps?.endTime || "",
   ];
 
-  // Add URL-specific fields if present
   if (isUrlCitation(citation)) {
+    // URL-specific key parts
     keyParts.push(citation.url || "", citation.title || "", citation.domain || "");
+  } else {
+    // Document-specific key parts
+    const pageNumber = citation.pageNumber || getCitationPageNumber(citation.startPageId);
+    keyParts.push(citation.attachmentId || "", pageNumber?.toString() || "", citation.lineIds?.join(",") || "");
   }
 
   return sha1Hash(keyParts.join("|")).slice(0, 16);
@@ -60,14 +68,14 @@ export function generateVerificationKey(verification: Verification): string {
     verification.label || "",
     verification.verifiedFullPhrase || "",
     verification.verifiedAnchorText || "",
-    verification.verifiedLineIds?.join(",") || "",
-    verification.verifiedPageNumber?.toString() || "",
+    verification.document?.verifiedLineIds?.join(",") || "",
+    verification.document?.verifiedPageNumber?.toString() || "",
 
     verification.verifiedTimestamps?.startTime || "",
     verification.verifiedTimestamps?.endTime || "",
 
     verification.verifiedMatchSnippet || "",
-    verification.hitIndexWithinPage?.toString() || "",
+    verification.document?.hitIndexWithinPage?.toString() || "",
   ];
 
   return sha1Hash(keyParts.join("|")).slice(0, 16);

@@ -6,9 +6,46 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.event_name == 'push' && github.ref || github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
-  ci:
+  # Check if this is a non-code change (docs, style, CI config, etc.)
+  check-skip:
+    runs-on: ubuntu-latest
+    outputs:
+      should-skip: ${{ steps.check.outputs.should-skip }}
+    steps:
+      - id: check
+        env:
+          # For PRs: use title (head_commit.message is null)
+          # For pushes: use commit message (more reliable)
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          # Determine message source based on event type
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            MSG="${PR_TITLE}"
+          else
+            MSG="${COMMIT_MSG:-}"
+          fi
+
+          # Check for non-code change patterns (docs, style, chore)
+          # These patterns indicate non-functional changes (documentation, styling, maintenance)
+          # NOTE: 'ci:' commits are NOT skipped as they may contain code changes
+          if [[ "$MSG" =~ ^docs: ]] || [[ "$MSG" =~ ^style: ]] || [[ "$MSG" =~ ^chore\((docs|readme|typo)\): ]]; then
+            echo "should-skip=true" >> $GITHUB_OUTPUT
+            echo "Detected non-code change pattern, skipping CI jobs"
+          else
+            echo "should-skip=false" >> $GITHUB_OUTPUT
+          fi
+
+  lint-and-validate:
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip == 'false'
 
     steps:
       - name: Checkout repository
@@ -27,14 +64,55 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Auto-fix formatting and lint
-        run: npx biome check --fix ./src
-
-      - name: Lint and format check
+      - name: Lint, format, and check
         run: npx biome ci ./src
+
+  build:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip == 'false'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: useblacksmith/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Build
         run: npm run build
+
+  test:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    needs: check-skip
+    if: needs.check-skip.outputs.should-skip == 'false'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: useblacksmith/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Run tests
         run: bun run test

@@ -212,7 +212,11 @@ function SlackCitationPreview({
       break;
   }
 
-  return <SlackLink href={`${PROOF_BASE_URL}/p/${citation.attachmentId || "url"}`}>{displayText}</SlackLink>;
+  return (
+    <SlackLink href={`${PROOF_BASE_URL}/p/${(citation.type !== "url" && citation.attachmentId) || "url"}`}>
+      {displayText}
+    </SlackLink>
+  );
 }
 
 function SlackSourceLine({

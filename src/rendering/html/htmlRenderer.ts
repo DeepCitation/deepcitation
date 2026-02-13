@@ -64,7 +64,10 @@ export function renderCitationsAsHtml(input: string, options: HtmlRenderOptions 
       proofUrls[citationKey] = proofUrl;
     }
 
-    const label = sourceLabels[citation.attachmentId || ""] || verification?.label || citation.title;
+    const label =
+      citation.type === "url"
+        ? sourceLabels[""] || verification?.label || citation.title
+        : sourceLabels[citation.attachmentId || ""] || verification?.label;
     const location = formatPageLocation(citation, verification, { showPageNumber: true, showLinePosition: false });
 
     let imageUrl: string | undefined;
@@ -105,10 +108,9 @@ export function renderCitationsAsHtml(input: string, options: HtmlRenderOptions 
     const sourceLines: string[] = [`<div class="${classPrefix}sources">`, `<h3>Sources</h3>`, "<ul>"];
     for (const cws of citationsWithStatus) {
       const label =
-        sourceLabels[cws.citation.attachmentId || ""] ||
-        cws.verification?.label ||
-        cws.citation.title ||
-        `Source ${cws.citationNumber}`;
+        cws.citation.type === "url"
+          ? sourceLabels[""] || cws.verification?.label || cws.citation.title || `Source ${cws.citationNumber}`
+          : sourceLabels[cws.citation.attachmentId || ""] || cws.verification?.label || `Source ${cws.citationNumber}`;
       const location = formatPageLocation(cws.citation, cws.verification, {
         showPageNumber: true,
         showLinePosition: false,

@@ -51,22 +51,28 @@ export const URL_CITATION: Citation = {
 
 export const VERIFIED_VERIFICATION: Verification = {
   status: "found",
-  verifiedPageNumber: 5,
-  verifiedLineIds: [12, 13],
+  document: {
+    verifiedPageNumber: 5,
+    verifiedLineIds: [12, 13],
+  },
   verifiedMatchSnippet: "Revenue increased by 15% in Q4 2024.",
   label: "Q4 Financial Report",
 };
 
 export const PARTIAL_VERIFICATION: Verification = {
   status: "found_on_other_page",
-  verifiedPageNumber: 9,
-  verifiedLineIds: [30],
+  document: {
+    verifiedPageNumber: 9,
+    verifiedLineIds: [30],
+  },
   label: "Q4 Financial Report",
 };
 
 export const NOT_FOUND_VERIFICATION: Verification = {
   status: "not_found",
-  verifiedPageNumber: -1,
+  document: {
+    verifiedPageNumber: -1,
+  },
 };
 
 export const PENDING_VERIFICATION: Verification = {

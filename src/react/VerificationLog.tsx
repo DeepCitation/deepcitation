@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
-import { COPY_FEEDBACK_DURATION_MS } from "./constants.js";
+import { COPY_FEEDBACK_DURATION_MS, DOT_COLORS } from "./constants.js";
+import { formatCaptureDate } from "./dateUtils.js";
 import {
   CheckIcon,
   CopyIcon,
@@ -161,7 +162,7 @@ const _MAX_MISS_ANCHOR_TEXT_LENGTH = 60;
 /**
  * Maps document verification SearchStatus to UrlFetchStatus for display in UrlCitationComponent.
  */
-export function mapSearchStatusToUrlFetchStatus(status: SearchStatus | null | undefined): UrlFetchStatus {
+function mapSearchStatusToUrlFetchStatus(status: SearchStatus | null | undefined): UrlFetchStatus {
   if (!status) return "pending";
   switch (status) {
     case "found":
@@ -253,8 +254,8 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
 
   if (isUrl) {
     // URL citation: show status + favicon + URL on first row, quoted text on second row
-    const faviconUrl = verification?.verifiedFaviconUrl || citation.faviconUrl;
-    const domain = verification?.verifiedDomain || citation.domain;
+    const faviconUrl = verification?.url?.verifiedFaviconUrl || citation.faviconUrl;
+    const domain = verification?.url?.verifiedDomain || citation.domain;
     const url = citation.url || "";
     const safeUrl = sanitizeUrl(url);
 
@@ -334,8 +335,8 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
   // Note: attachmentId should never be shown to users - only show the label if available
   // sourceLabel takes precedence over verification.label
   const label = sourceLabel || verification?.label;
-  const pageNumber = verification?.verifiedPageNumber ?? citation.pageNumber;
-  const lineIds = verification?.verifiedLineIds ?? citation.lineIds;
+  const pageNumber = verification?.document?.verifiedPageNumber ?? citation.pageNumber;
+  const lineIds = verification?.document?.verifiedLineIds ?? citation.lineIds;
 
   // Display text: only use label (never show attachmentId to users)
   const displayName = label || null;
@@ -426,6 +427,8 @@ export interface VerificationLogProps {
   anchorText?: string;
   /** Ambiguity information when multiple occurrences exist */
   ambiguity?: AmbiguityInfo | null;
+  /** When the verification was performed */
+  verifiedAt?: Date | string | null;
 }
 
 export interface StatusHeaderProps {
@@ -443,6 +446,13 @@ export interface StatusHeaderProps {
   hidePageBadge?: boolean;
   /** Whether to show copy button next to anchor text */
   showCopyButton?: boolean;
+  /**
+   * Visual style for status indicators.
+   * - `"icon"`: Icon-based indicators (default)
+   * - `"dot"`: Subtle colored dots
+   * @default "icon"
+   */
+  indicatorVariant?: "icon" | "dot";
 }
 
 export interface QuoteBoxProps {
@@ -723,6 +733,7 @@ export function StatusHeader({
   anchorText,
   hidePageBadge = false,
   showCopyButton = true,
+  indicatorVariant = "icon",
 }: StatusHeaderProps) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const colorScheme = getStatusColorScheme(status);
@@ -781,9 +792,20 @@ export function StatusHeader({
       )}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className={cn("size-4 max-w-4 max-h-4 shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
-          <IconComponent />
-        </span>
+        {indicatorVariant === "dot" ? (
+          <span
+            className={cn(
+              "size-2.5 rounded-full shrink-0",
+              DOT_COLORS[colorScheme],
+              colorScheme === "gray" && "animate-pulse",
+            )}
+            aria-hidden="true"
+          />
+        ) : (
+          <span className={cn("size-4 max-w-4 max-h-4 shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
+            <IconComponent />
+          </span>
+        )}
         {displayText &&
           (shouldShowAsQuoted ? (
             <QuotedText className={cn("font-medium truncate text-gray-600 dark:text-gray-300")}>
@@ -886,6 +908,7 @@ interface VerificationLogSummaryProps {
   foundLine?: number;
   isExpanded: boolean;
   onToggle: () => void;
+  verifiedAt?: Date | string | null;
 }
 
 /**
@@ -946,12 +969,22 @@ function getOutcomeSummary(status: SearchStatus | null | undefined, searchAttemp
  * - For found/partial: "How we verified this · Exact match"
  * - For not_found: "Search attempts · 0/8 searches tried"
  */
-function VerificationLogSummary({ status, searchAttempts, isExpanded, onToggle }: VerificationLogSummaryProps) {
+function VerificationLogSummary({
+  status,
+  searchAttempts,
+  isExpanded,
+  onToggle,
+  verifiedAt,
+}: VerificationLogSummaryProps) {
   const isMiss = status === "not_found";
   const outcomeSummary = getOutcomeSummary(status, searchAttempts);
 
   // Use different headers based on verification outcome
   const headerText = isMiss ? "Search attempts" : "How we verified this";
+
+  // Format the verified date for display
+  const formatted = formatCaptureDate(verifiedAt);
+  const dateStr = formatted?.display ?? "";
 
   return (
     <button
@@ -975,6 +1008,14 @@ function VerificationLogSummary({ status, searchAttempts, isExpanded, onToggle }
         <span>{headerText}</span>
         <span className="text-gray-400 dark:text-gray-500">· {outcomeSummary}</span>
       </div>
+      {dateStr && (
+        <span
+          className="text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2"
+          title={isMiss ? `Checked ${formatted?.tooltip ?? dateStr}` : `Verified ${formatted?.tooltip ?? dateStr}`}
+        >
+          {dateStr}
+        </span>
+      )}
     </button>
   );
 }
@@ -1303,6 +1344,7 @@ export function VerificationLog({
   fullPhrase,
   anchorText,
   ambiguity,
+  verifiedAt,
 }: VerificationLogProps) {
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
 
@@ -1341,6 +1383,7 @@ export function VerificationLog({
         foundLine={derivedFoundLine}
         isExpanded={isExpanded}
         onToggle={() => setIsExpanded(!isExpanded)}
+        verifiedAt={verifiedAt}
       />
       {isExpanded && (
         <VerificationLogTimeline

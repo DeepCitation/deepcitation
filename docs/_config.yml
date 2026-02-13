@@ -55,6 +55,5 @@ exclude:
   - Gemfile.lock
   - node_modules
   - vendor
-  - CitationComponent-PRD.md
-  - verifyAfterTheFact-PRD.md
   - skill.md
+  - agents

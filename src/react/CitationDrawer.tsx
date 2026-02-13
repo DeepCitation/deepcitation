@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
-import type { Verification } from "../types/verification.js";
 import type { CitationDrawerItemProps, CitationDrawerProps, SourceCitationGroup } from "./CitationDrawer.types.js";
-import { getStatusInfo } from "./CitationDrawer.utils.js";
+import { extractDomain, getStatusInfo } from "./CitationDrawer.utils.js";
 import {
   COPY_FEEDBACK_DURATION_MS,
   getPortalContainer,
@@ -15,9 +14,9 @@ import {
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { CheckIcon, CopyIcon, ExternalLinkIcon, MissIcon, ZoomInIcon } from "./icons.js";
-import { FaviconImage } from "./VerificationLog.js";
-import { cn } from "./utils.js";
 import { sanitizeUrl } from "./urlUtils.js";
+import { cn } from "./utils.js";
+import { FaviconImage } from "./VerificationLog.js";
 
 // =========
 // Drawer-adapted method display names (subset of VerificationLog's METHOD_DISPLAY_NAMES)
@@ -58,26 +57,38 @@ function getMatchType(status: SearchStatus | null | undefined, searchAttempts: S
   const successfulAttempt = searchAttempts.find(a => a.success);
   if (successfulAttempt?.matchedVariation) {
     switch (successfulAttempt.matchedVariation) {
-      case "exact_full_phrase": return "Exact match";
-      case "normalized_full_phrase": return "Normalized match";
+      case "exact_full_phrase":
+        return "Exact match";
+      case "normalized_full_phrase":
+        return "Normalized match";
       case "exact_anchor_text":
-      case "normalized_anchor_text": return "Anchor text match";
+      case "normalized_anchor_text":
+        return "Anchor text match";
       case "partial_full_phrase":
-      case "partial_anchor_text": return "Partial match";
-      case "first_word_only": return "First word match";
-      default: return "Match found";
+      case "partial_anchor_text":
+        return "Partial match";
+      case "first_word_only":
+        return "First word match";
+      default:
+        return "Match found";
     }
   }
 
   switch (status) {
     case "found":
-    case "found_phrase_missed_anchor_text": return "Exact match";
-    case "found_anchor_text_only": return "Anchor text match";
+    case "found_phrase_missed_anchor_text":
+      return "Exact match";
+    case "found_anchor_text_only":
+      return "Anchor text match";
     case "found_on_other_page":
-    case "found_on_other_line": return "Found at different location";
-    case "partial_text_found": return "Partial match";
-    case "first_word_found": return "First word match";
-    default: return "Match found";
+    case "found_on_other_line":
+      return "Found at different location";
+    case "partial_text_found":
+      return "Partial match";
+    case "first_word_found":
+      return "First word match";
+    default:
+      return "Match found";
   }
 }
 
@@ -107,9 +118,8 @@ function DrawerVerificationSummary({
   // For found/partial: show a compact match card
   if (!isMiss && successfulAttempt) {
     const phrase = successfulAttempt.searchPhrase ?? "";
-    const displayPhrase = phrase.length > DRAWER_MAX_PHRASE_LENGTH
-      ? `${phrase.slice(0, DRAWER_MAX_PHRASE_LENGTH)}...`
-      : phrase;
+    const displayPhrase =
+      phrase.length > DRAWER_MAX_PHRASE_LENGTH ? `${phrase.slice(0, DRAWER_MAX_PHRASE_LENGTH)}...` : phrase;
     const methodName = DRAWER_METHOD_NAMES[successfulAttempt.method] ?? "Search";
     const foundPage = successfulAttempt.foundLocation?.page ?? successfulAttempt.pageSearched;
     const locationText = foundPage != null ? `Page ${foundPage}` : "";
@@ -126,7 +136,9 @@ function DrawerVerificationSummary({
             </span>
           </div>
           <div className="flex items-center justify-between mt-1.5 text-[11px] text-gray-400 dark:text-gray-500 pl-[22px]">
-            <span>{matchType} · {methodName}</span>
+            <span>
+              {matchType} · {methodName}
+            </span>
             {locationText && <span>{locationText}</span>}
           </div>
         </div>
@@ -152,9 +164,7 @@ function DrawerVerificationSummary({
           <span className="size-3.5 mt-0.5 shrink-0 text-red-500 dark:text-red-400">
             <MissIcon />
           </span>
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
-            {matchType}
-          </span>
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{matchType}</span>
         </div>
         <div className="mt-1.5 pl-[22px] text-[11px] text-gray-400 dark:text-gray-500">
           Searched: {uniqueMethods.join(", ")}
@@ -173,17 +183,14 @@ function DrawerVerificationSummary({
  * Shows favicon (or letter avatar for documents), source name,
  * external link for URL sources, and citation count.
  */
-function SourceGroupHeader({
-  group,
-}: {
-  group: SourceCitationGroup;
-}) {
+function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
   const sourceName = group.sourceName || "Source";
   const citationCount = group.citations.length;
   const isUrlSource = !!group.sourceDomain;
 
   // For URL sources, get a link to visit
-  const sourceUrl = isUrlSource ? group.citations[0]?.citation.url : undefined;
+  const firstCit = group.citations[0]?.citation;
+  const sourceUrl = isUrlSource && firstCit?.type === "url" ? firstCit.url : undefined;
   const safeSourceUrl = sourceUrl ? sanitizeUrl(sourceUrl) : null;
 
   return (
@@ -195,11 +202,7 @@ function SourceGroupHeader({
       {/* Favicon for URL sources, letter avatar for documents */}
       <div className="shrink-0">
         {isUrlSource ? (
-          <FaviconImage
-            faviconUrl={group.sourceFavicon || null}
-            domain={group.sourceDomain || null}
-            alt={sourceName}
-          />
+          <FaviconImage faviconUrl={group.sourceFavicon || null} domain={group.sourceDomain || null} alt={sourceName} />
         ) : (
           <div className="w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
             <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400">
@@ -222,9 +225,11 @@ function SourceGroupHeader({
           rel="noopener noreferrer"
           className="shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
           aria-label={`Open ${sourceName} in new tab`}
-          onClick={(e) => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
         >
-          <span className="size-3.5 block"><ExternalLinkIcon /></span>
+          <span className="size-3.5 block">
+            <ExternalLinkIcon />
+          </span>
         </a>
       )}
 
@@ -280,9 +285,10 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   onClick,
   onReadMore,
   className,
+  indicatorVariant = "icon",
 }: CitationDrawerItemProps) {
   const { citation, verification } = item;
-  const statusInfo = useMemo(() => getStatusInfo(verification), [verification]);
+  const statusInfo = useMemo(() => getStatusInfo(verification, indicatorVariant), [verification, indicatorVariant]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
@@ -295,28 +301,37 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   }, [copyState]);
 
   // Get display values with fallbacks
-  const sourceName = citation.siteName;
-  const articleTitle = citation.title || citation.anchorText;
-  const snippet = citation.description || citation.fullPhrase || verification?.actualContentSnippet || verification?.verifiedMatchSnippet;
+  const sourceName =
+    citation.type === "url"
+      ? citation.siteName || citation.domain || extractDomain(citation.url) || "Source"
+      : verification?.label || "Document";
+  const articleTitle =
+    (citation.type === "url" ? citation.title : undefined) || citation.anchorText || citation.fullPhrase;
+  const snippet =
+    (citation.type === "url" ? citation.description : undefined) ||
+    citation.fullPhrase ||
+    verification?.url?.actualContentSnippet ||
+    verification?.verifiedMatchSnippet;
+  const _faviconUrl = citation.type === "url" ? citation.faviconUrl : undefined;
 
   // Page number for document citations
-  const pageNumber = citation.pageNumber ?? verification?.verifiedPageNumber;
+  const pageNumber =
+    (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
 
   // Proof image (only shown in expanded view)
-  const rawProofImage = verification?.verificationImageBase64;
+  const rawProofImage = verification?.document?.verificationImageBase64;
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
   // Pending state
   const isPending = !verification?.status || verification.status === "pending" || verification.status === "loading";
 
   // Verification date
-  const checkedDate = formatCheckedDate(verification?.verifiedAt ?? verification?.crawledAt);
+  const checkedDate = formatCheckedDate(verification?.verifiedAt ?? verification?.url?.crawledAt);
 
   // Crawl date for URL citations (absolute format for audit precision)
   const isDocument = citation.type === "document" || (!citation.type && citation.attachmentId);
-  const formattedCrawlDate = !isDocument && verification?.crawledAt
-    ? formatCaptureDate(verification.crawledAt)
-    : null;
+  const formattedCrawlDate =
+    !isDocument && verification?.url?.crawledAt ? formatCaptureDate(verification.url.crawledAt) : null;
 
   // Search attempts for verification summary
   const searchAttempts = verification?.searchAttempts ?? [];
@@ -387,7 +402,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               className={cn(
                 "inline-flex w-5 h-5 items-center justify-center",
                 statusInfo.color,
-                isPending && "animate-spin",
+                isPending && indicatorVariant !== "dot" && "animate-spin",
               )}
               title={statusInfo.label}
             >
@@ -398,9 +413,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           {/* Content */}
           <div className="flex-1 min-w-0">
             {/* Source name (for URL citations) */}
-            {sourceName && (
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">{sourceName}</div>
-            )}
+            {sourceName && <div className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">{sourceName}</div>}
             {/* Anchor text with page number, copy button, and timestamp */}
             <div className="flex items-center gap-1.5">
               {articleTitle && (
@@ -424,14 +437,10 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 </button>
               )}
               {pageNumber != null && pageNumber > 0 && (
-                <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">
-                  p.{pageNumber}
-                </span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">p.{pageNumber}</span>
               )}
               {checkedDate && (
-                <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0 ml-auto">
-                  {checkedDate}
-                </span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0 ml-auto">{checkedDate}</span>
               )}
             </div>
             {/* Snippet/description */}
@@ -451,9 +460,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
             aria-hidden="true"
             className={cn(
               "w-4 h-4 shrink-0 mt-1 transition-transform duration-200",
-              isExpanded
-                ? "rotate-180 text-gray-500 dark:text-gray-400"
-                : "text-gray-400 dark:text-gray-500",
+              isExpanded ? "rotate-180 text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500",
             )}
             fill="none"
             viewBox="0 0 24 24"
@@ -477,7 +484,10 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                   "relative group/img block rounded border border-gray-200 dark:border-gray-700 overflow-hidden transition-all",
                   imageExpanded ? "cursor-zoom-out" : "cursor-zoom-in",
                 )}
-                onClick={(e) => { e.stopPropagation(); setImageExpanded(prev => !prev); }}
+                onClick={e => {
+                  e.stopPropagation();
+                  setImageExpanded(prev => !prev);
+                }}
                 aria-label={imageExpanded ? "Collapse proof image" : "Expand proof image"}
               >
                 <img
@@ -493,7 +503,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 {!imageExpanded && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/img:bg-black/10 transition-colors">
                     <span className="opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center gap-1 text-xs text-white bg-black/60 rounded px-2 py-1">
-                      <span className="size-3.5"><ZoomInIcon /></span>
+                      <span className="size-3.5">
+                        <ZoomInIcon />
+                      </span>
                       Expand
                     </span>
                   </div>
@@ -504,10 +516,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
           {/* Verification summary — shown directly, no nested collapse */}
           {searchAttempts.length > 0 && (
-            <DrawerVerificationSummary
-              searchAttempts={searchAttempts}
-              status={verification?.status}
-            />
+            <DrawerVerificationSummary searchAttempts={searchAttempts} status={verification?.status} />
           )}
 
           {/* Snippet fallback when no search attempts (shows full phrase context) */}
@@ -527,7 +536,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               </p>
             </div>
           )}
-
         </div>
       )}
     </div>
@@ -568,6 +576,7 @@ export function CitationDrawer({
   className,
   position = "bottom",
   renderCitationItem,
+  indicatorVariant = "icon",
 }: CitationDrawerProps) {
   // Flatten all citations for total count
   const totalCitations = useMemo(() => {
@@ -607,6 +616,7 @@ export function CitationDrawer({
                 isLast={isLastGroup && index === group.citations.length - 1}
                 onClick={onCitationClick}
                 onReadMore={onReadMore}
+                indicatorVariant={indicatorVariant}
               />
             ),
           )}

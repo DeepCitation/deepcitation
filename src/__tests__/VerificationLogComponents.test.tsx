@@ -384,8 +384,10 @@ describe("SourceContextHeader", () => {
         fullPhrase: "Test phrase",
       };
       const verification: Verification = {
-        verifiedSiteName: "Verified Site Name",
-        verifiedDomain: "verified.com",
+        url: {
+          verifiedSiteName: "Verified Site Name",
+          verifiedDomain: "verified.com",
+        },
       };
 
       const { container } = render(<SourceContextHeader citation={citation} verification={verification} />);
@@ -423,7 +425,9 @@ describe("SourceContextHeader", () => {
       };
       const verification: Verification = {
         label: "Invoice.pdf",
-        verifiedPageNumber: 5,
+        document: {
+          verifiedPageNumber: 5,
+        },
       };
 
       const { container } = render(<SourceContextHeader citation={citation} verification={verification} />);

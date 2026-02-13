@@ -2,14 +2,7 @@ import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/index.js";
 import { sha1Hash } from "../utils/sha.js";
-import {
-  AuthenticationError,
-  type DeepCitationError,
-  NetworkError,
-  RateLimitError,
-  ServerError,
-  ValidationError,
-} from "./errors.js";
+import { AuthenticationError, type DeepCitationError, RateLimitError, ServerError, ValidationError } from "./errors.js";
 import type {
   CitationInput,
   ConvertFileInput,
@@ -405,7 +398,10 @@ export class DeepCitation {
     });
 
     if (!response.ok) {
-      this.logger.error?.("Prepare converted file failed", { attachmentId: options.attachmentId, status: response.status });
+      this.logger.error?.("Prepare converted file failed", {
+        attachmentId: options.attachmentId,
+        status: response.status,
+      });
       throw await createApiError(response, "Prepare");
     }
 
@@ -445,7 +441,11 @@ export class DeepCitation {
    * ```
    */
   async prepareUrl(options: PrepareUrlOptions): Promise<UploadFileResponse> {
-    this.logger.info?.("Preparing URL", { url: options.url, unsafeFast: options.unsafeFastUrlOutput, skipCache: options.skipCache });
+    this.logger.info?.("Preparing URL", {
+      url: options.url,
+      unsafeFast: options.unsafeFastUrlOutput,
+      skipCache: options.skipCache,
+    });
 
     const response = await fetch(`${this.apiUrl}/prepareFile`, {
       method: "POST",
@@ -601,7 +601,7 @@ export class DeepCitation {
     const citationKeys = Object.values(citationMap)
       .map(citation => {
         const baseKey = generateCitationKey(citation);
-        const selectionKey = citation.selection ? JSON.stringify(citation.selection) : "";
+        const selectionKey = citation.type !== "url" && citation.selection ? JSON.stringify(citation.selection) : "";
         return `${baseKey}:${selectionKey}`;
       })
       .sort()
@@ -724,7 +724,7 @@ export class DeepCitation {
     // Group citations by attachmentId
     const citationsByAttachment = new Map<string, Record<string, Citation>>();
     for (const [key, citation] of Object.entries(citations)) {
-      const attachmentId = citation.attachmentId || "";
+      const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
       if (!citationsByAttachment.has(attachmentId)) {
         citationsByAttachment.set(attachmentId, {});
       }

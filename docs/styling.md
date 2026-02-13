@@ -63,6 +63,22 @@ Override these CSS variables to theme all DeepCitation components at once:
 }
 ```
 
+### Indicator Variants
+
+The `indicatorVariant` prop controls whether status is shown as icons (checkmarks, spinners, X) or subtle colored dots:
+
+```tsx
+// Icon indicators (default)
+<CitationComponent citation={citation} verification={verification} />
+
+// Dot indicators (like GitHub status dots)
+<CitationComponent citation={citation} verification={verification} indicatorVariant="dot" />
+```
+
+Dot indicators use Tailwind `bg-*` classes for color (`bg-green-600`, `bg-amber-500`, `bg-red-500`, `bg-gray-400`) and `rounded-full` for shape. The pending dot uses `animate-pulse` for subtle animation.
+
+The dot size is controlled by the `DOT_INDICATOR_SIZE_STYLE` constant (`0.45em`, min `6px`), which is roughly half the size of icon indicators (`0.85em`, min `10px`).
+
 ---
 
 ## Using className Prop

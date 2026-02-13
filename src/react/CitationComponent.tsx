@@ -18,6 +18,8 @@ import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/sea
 import type { Verification } from "../types/verification.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import {
+  DOT_COLORS,
+  DOT_INDICATOR_SIZE_STYLE,
   ERROR_COLOR_STYLE,
   getPortalContainer,
   INDICATOR_SIZE_STYLE,
@@ -42,16 +44,17 @@ import type {
   CitationInteractionMode,
   CitationRenderProps,
   CitationVariant,
+  IndicatorVariant,
 } from "./types.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 import { QuotedText, SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";
-import { formatCaptureDate } from "./dateUtils.js";
 
 // Re-export types for convenience
 export type {
   CitationContent,
   CitationInteractionMode,
-  CitationVariant
+  CitationVariant,
+  IndicatorVariant,
 } from "./types.js";
 
 /**
@@ -71,27 +74,11 @@ const SPINNER_TIMEOUT_MS = 5000;
 /** Delay in ms before closing popover on mouse leave (allows moving to popover content). */
 const HOVER_CLOSE_DELAY_MS = 150;
 
-// Constants
-/** Default number of search attempt groups to show before expanding */
-const DEFAULT_VISIBLE_GROUP_COUNT = 2;
-
-/** Maximum characters to show for truncated phrases in search attempts */
-const MAX_PHRASE_LENGTH = 50;
-
 /** Popover container width. Customizable via CSS custom property `--dc-popover-width`. */
 const POPOVER_WIDTH = "var(--dc-popover-width, 384px)";
 
 /** Popover container max width (viewport-relative, with safe margin to prevent scrollbar) */
 const POPOVER_MAX_WIDTH = "calc(100vw - 32px)";
-
-/** Maximum characters to show for matched text display in search results */
-const MAX_MATCHED_TEXT_LENGTH = 40;
-
-/** Maximum number of search variations to show before collapsing */
-const MAX_VISIBLE_VARIATIONS = 3;
-
-/** Maximum characters to show for variation strings */
-const MAX_VARIATION_LENGTH = 30;
 
 /** Debounce threshold for ignoring click events after touch (ms) */
 const TOUCH_CLICK_DEBOUNCE_MS = 100;
@@ -283,8 +270,11 @@ function getDisplayText(
   }
 
   if (content === "source") {
-    // Source content: show siteName or domain (using main's field names)
-    return citation.siteName || citation.domain || citation.anchorText?.toString() || "Source";
+    // Source content: show siteName or domain (URL citations only)
+    if (isUrlCitation(citation)) {
+      return citation.siteName || citation.domain || citation.anchorText?.toString() || "Source";
+    }
+    return citation.anchorText?.toString() || "Source";
   }
 
   // content === "number"
@@ -408,6 +398,13 @@ export interface CitationComponentProps extends BaseCitationProps {
    * Defaults to true. Set to false to hide the indicator.
    */
   showIndicator?: boolean;
+  /**
+   * Visual style for status indicators.
+   * - `"icon"`: Checkmarks, spinner, X icons (default)
+   * - `"dot"`: Subtle colored dots (like GitHub status dots / shadcn badge dots)
+   * @default "icon"
+   */
+  indicatorVariant?: IndicatorVariant;
 }
 
 function getStatusLabel(status: CitationStatus): string {
@@ -526,7 +523,7 @@ function _getMethodLabel(method: string): string {
  * formatPageList([2]) // "page 2"
  * formatPageList([]) // ""
  */
-function formatPageList(pages: number[]): string {
+function _formatPageList(pages: number[]): string {
   if (pages.length === 0) return "";
   const sorted = [...new Set(pages)].sort((a, b) => a - b);
   if (sorted.length === 1) return `page ${sorted[0]}`;
@@ -563,7 +560,7 @@ function formatPageList(pages: number[]): string {
  *   console.log(`"${group.phrase}" - searched ${group.pagesSearched.length} pages`);
  * });
  */
-function groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] {
+function _groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] {
   const groups = new Map<string, GroupedSearchAttempt>();
 
   for (const attempt of attempts) {
@@ -844,40 +841,45 @@ const MissIndicator = () => (
 );
 
 // =============================================================================
+// DOT INDICATOR COMPONENT (subtle colored dot, like GitHub/shadcn status dots)
+// =============================================================================
+// Smaller than icon indicators (ml-0.5 vs ml-1) because the dots are roughly
+// half the size and need less visual separation from adjacent text.
+// DOT_COLORS is imported from ./constants.js for consistency across components.
+
+/** Unified dot indicator — color + optional pulse animation. */
+const DotIndicator = ({
+  color,
+  pulse = false,
+  label,
+}: {
+  color: keyof typeof DOT_COLORS;
+  pulse?: boolean;
+  label: string;
+}) => (
+  <span
+    className={cn(
+      "inline-block ml-0.5 rounded-full [text-decoration:none] align-middle",
+      DOT_COLORS[color],
+      pulse && "animate-pulse",
+    )}
+    style={DOT_INDICATOR_SIZE_STYLE}
+    data-dc-indicator={
+      color === "red" ? "error" : color === "gray" ? "pending" : color === "amber" ? "partial" : "verified"
+    }
+    role="img"
+    aria-label={label}
+  />
+);
+
+const VerifiedDot = () => <DotIndicator color="green" label="Verified" />;
+const PartialDot = () => <DotIndicator color="amber" label="Partial match" />;
+const PendingDot = () => <DotIndicator color="gray" pulse label="Verifying" />;
+const MissDot = () => <DotIndicator color="red" label="Not found" />;
+
+// =============================================================================
 // VERIFICATION IMAGE COMPONENT
 // =============================================================================
-
-/**
- * Displays a capture/verification timestamp in the popover.
- * URL citations show "Retrieved [date+time]"; document citations show "Verified [date]".
- * Renders nothing when no date is available.
- */
-function CaptureTimestamp({
-  verification,
-  citation,
-}: {
-  verification: Verification | null;
-  citation: BaseCitationProps["citation"];
-}) {
-  const isUrl = isUrlCitation(citation);
-  const rawDate = isUrl
-    ? (verification?.crawledAt ?? verification?.verifiedAt)
-    : verification?.verifiedAt;
-
-  const formatted = formatCaptureDate(rawDate, { showTime: isUrl });
-  if (!formatted) return null;
-
-  const label = isUrl && verification?.crawledAt ? "Retrieved" : "Verified";
-
-  return (
-    <div
-      className="px-3 py-1.5 text-[11px] text-gray-400 dark:text-gray-500"
-      title={formatted.tooltip}
-    >
-      {label} {formatted.display}
-    </div>
-  );
-}
 
 /**
  * Displays a verification image that fits within the container dimensions.
@@ -929,7 +931,7 @@ function AnchorTextFocusedImage({
           }}
         >
           <img
-            src={verification.verificationImageBase64 as string}
+            src={verification.document?.verificationImageBase64 as string}
             alt="Citation verification"
             className="block w-full h-auto"
             style={{
@@ -1046,6 +1048,11 @@ interface PopoverContentProps {
    * See BaseCitationProps.sourceLabel for details.
    */
   sourceLabel?: string;
+  /**
+   * Visual style for status indicators inside the popover.
+   * @default "icon"
+   */
+  indicatorVariant?: "icon" | "dot";
 }
 
 function DefaultPopoverContent({
@@ -1058,8 +1065,9 @@ function DefaultPopoverContent({
   onPhrasesExpandChange,
   isVisible = true,
   sourceLabel,
+  indicatorVariant = "icon",
 }: PopoverContentProps) {
-  const hasImage = verification?.verificationImageBase64;
+  const hasImage = verification?.document?.verificationImageBase64;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 
@@ -1069,11 +1077,11 @@ function DefaultPopoverContent({
   // Determine if this is a "clean" success (no log needed)
   const isCleanSuccess = isVerified && !isPartialMatch && !isMiss;
 
-  // Get page/line info for the log
-  const expectedPage = citation.pageNumber;
-  const expectedLine = citation.lineIds?.[0];
-  const foundPage = verification?.verifiedPageNumber ?? undefined;
-  const foundLine = verification?.verifiedLineIds?.[0];
+  // Get page/line info for the log (document citations only)
+  const expectedPage = !isUrlCitation(citation) ? citation.pageNumber : undefined;
+  const expectedLine = !isUrlCitation(citation) ? citation.lineIds?.[0] : undefined;
+  const foundPage = verification?.document?.verifiedPageNumber ?? undefined;
+  const foundLine = verification?.document?.verifiedLineIds?.[0];
 
   // Get humanizing message for partial/not-found states
   const anchorText = citation.anchorText?.toString();
@@ -1107,7 +1115,7 @@ function DefaultPopoverContent({
               "{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}"
             </p>
           )}
-          {citation.pageNumber && citation.pageNumber > 0 && (
+          {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
             <span className="text-xs text-gray-500 dark:text-gray-400">Looking on p.{citation.pageNumber}</span>
           )}
         </div>
@@ -1137,6 +1145,7 @@ function DefaultPopoverContent({
               expectedPage={expectedPage ?? undefined}
               hidePageBadge
               anchorText={anchorText}
+              indicatorVariant={indicatorVariant}
             />
           )}
 
@@ -1144,9 +1153,6 @@ function DefaultPopoverContent({
           <div className="p-2">
             <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
           </div>
-
-          {/* Capture/verification timestamp */}
-          <CaptureTimestamp verification={verification} citation={citation} />
 
           {/* Expandable search details for verified matches */}
           {verification.searchAttempts && verification.searchAttempts.length > 0 && (
@@ -1161,6 +1167,7 @@ function DefaultPopoverContent({
               onExpandChange={onPhrasesExpandChange}
               fullPhrase={fullPhrase ?? undefined}
               anchorText={anchorText}
+              verifiedAt={verification.verifiedAt}
             />
           )}
         </div>
@@ -1194,6 +1201,7 @@ function DefaultPopoverContent({
                   expectedPage={expectedPage ?? undefined}
                   hidePageBadge
                   anchorText={anchorText}
+                  indicatorVariant={indicatorVariant}
                 />
               )}
               {/* Humanizing message for partial matches with images */}
@@ -1217,6 +1225,7 @@ function DefaultPopoverContent({
                   expectedPage={expectedPage ?? undefined}
                   anchorText={anchorText}
                   hidePageBadge
+                  indicatorVariant={indicatorVariant}
                 />
               )}
               {/* Humanizing message provides additional context below the header */}
@@ -1225,9 +1234,6 @@ function DefaultPopoverContent({
               )}
             </>
           )}
-
-          {/* Capture/verification timestamp */}
-          <CaptureTimestamp verification={verification} citation={citation} />
 
           {/* Verification log (collapsible) */}
           {showVerificationLog && verification?.searchAttempts && (
@@ -1242,6 +1248,7 @@ function DefaultPopoverContent({
               onExpandChange={onPhrasesExpandChange}
               fullPhrase={fullPhrase ?? undefined}
               anchorText={anchorText}
+              verifiedAt={verification.verifiedAt}
             />
           )}
         </div>
@@ -1254,7 +1261,7 @@ function DefaultPopoverContent({
   // ==========================================================================
   const statusLabel = getStatusLabel(status);
   const hasSnippet = verification?.verifiedMatchSnippet;
-  const pageNumber = verification?.verifiedPageNumber;
+  const pageNumber = verification?.document?.verifiedPageNumber;
 
   if (!hasSnippet && !statusLabel) return null;
 
@@ -1290,8 +1297,6 @@ function DefaultPopoverContent({
           <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
         )}
       </div>
-      {/* Capture/verification timestamp */}
-      <CaptureTimestamp verification={verification} citation={citation} />
     </div>
   );
 }
@@ -1338,6 +1343,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       additionalCount,
       faviconUrl,
       showIndicator = true,
+      indicatorVariant = "icon",
       sourceLabel,
     },
     ref,
@@ -1445,7 +1451,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // - BUT NOT if we have a verification image or definitive status
     // - AND NOT if spinner has timed out
     const hasDefinitiveResult =
-      verification?.verificationImageBase64 ||
+      verification?.document?.verificationImageBase64 ||
       verification?.status === "found" ||
       verification?.status === "found_anchor_text_only" ||
       verification?.status === "found_phrase_missed_anchor_text" ||
@@ -1495,7 +1501,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         verification: verification ?? null,
         isTooltipExpanded: isHovering,
         isImageExpanded: !!expandedImageSrc,
-        hasImage: !!verification?.verificationImageBase64,
+        hasImage: !!verification?.document?.verificationImageBase64,
       }),
       [citation, citationKey, verification, isHovering, expandedImageSrc],
     );
@@ -1506,14 +1512,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         if (actions.setImageExpanded !== undefined) {
           if (typeof actions.setImageExpanded === "string") {
             setExpandedImageSrc(actions.setImageExpanded);
-          } else if (actions.setImageExpanded === true && verification?.verificationImageBase64) {
-            setExpandedImageSrc(verification.verificationImageBase64);
+          } else if (actions.setImageExpanded === true && verification?.document?.verificationImageBase64) {
+            setExpandedImageSrc(verification.document.verificationImageBase64);
           } else if (actions.setImageExpanded === false) {
             setExpandedImageSrc(null);
           }
         }
       },
-      [verification?.verificationImageBase64],
+      [verification?.document?.verificationImageBase64],
     );
 
     // Shared tap/click action handler - used by both click and touch handlers.
@@ -1568,8 +1574,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             setIsPhrasesExpanded(prev => !prev);
             break;
           case "expandImage":
-            if (verification?.verificationImageBase64) {
-              setExpandedImageSrc(verification.verificationImageBase64);
+            if (verification?.document?.verificationImageBase64) {
+              setExpandedImageSrc(verification.document.verificationImageBase64);
             }
             break;
         }
@@ -1579,7 +1585,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         eventHandlers,
         citation,
         citationKey,
-        verification?.verificationImageBase64,
+        verification?.document?.verificationImageBase64,
         getBehaviorContext,
         applyBehaviorActions,
       ],
@@ -1879,6 +1885,16 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const renderStatusIndicator = () => {
       if (renderIndicator) return renderIndicator(status);
       if (!showIndicator) return null;
+
+      if (indicatorVariant === "dot") {
+        if (shouldShowSpinner) return <PendingDot />;
+        if (isVerified && !isPartialMatch) return <VerifiedDot />;
+        if (isPartialMatch) return <PartialDot />;
+        if (isMiss) return <MissDot />;
+        return null;
+      }
+
+      // Default: icon variant
       if (shouldShowSpinner) return <PendingIndicator />;
       if (isVerified && !isPartialMatch) return <VerifiedIndicator />;
       if (isPartialMatch) return <PartialIndicator />;
@@ -1980,7 +1996,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
       // Variant: badge (ChatGPT-style source chip with favicon + count + status indicator)
       if (variant === "badge") {
-        const faviconSrc = faviconUrl || citation.faviconUrl;
+        const faviconSrc = faviconUrl || (isUrlCitation(citation) ? citation.faviconUrl : undefined);
         return (
           <span
             className={cn(
@@ -2130,7 +2146,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const shouldShowPopover =
       !isPopoverHidden &&
       // Has verification with image or snippet
-      ((verification && (verification.verificationImageBase64 || verification.verifiedMatchSnippet)) ||
+      ((verification && (verification.document?.verificationImageBase64 || verification.verifiedMatchSnippet)) ||
         // Loading/pending state
         shouldShowSpinner ||
         isPending ||
@@ -2138,7 +2154,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         // Miss state (show what was searched)
         isMiss);
 
-    const hasImage = !!verification?.verificationImageBase64;
+    const hasImage = !!verification?.document?.verificationImageBase64;
 
     // Image overlay
     const imageOverlay = expandedImageSrc ? (
@@ -2157,9 +2173,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Generate unique IDs for ARIA attributes
     const popoverId = `citation-popover-${citationInstanceId}`;
     const statusDescId = `citation-status-${citationInstanceId}`;
-    const statusDescription = shouldShowSpinner
-      ? "Verifying..."
-      : getStatusLabel(status);
+    const statusDescription = shouldShowSpinner ? "Verifying..." : getStatusLabel(status);
 
     // Variants with their own hover styles don't need parent hover (would extend beyond bounds)
     const variantHasOwnHover = VARIANTS_WITH_OWN_HOVER.has(variant);
@@ -2218,9 +2232,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             onPhrasesExpandChange={setIsPhrasesExpanded}
             isVisible={isHovering}
             sourceLabel={sourceLabel}
+            indicatorVariant={indicatorVariant}
             onImageClick={() => {
-              if (verification?.verificationImageBase64) {
-                setExpandedImageSrc(verification.verificationImageBase64);
+              if (verification?.document?.verificationImageBase64) {
+                setExpandedImageSrc(verification.document.verificationImageBase64);
               }
             }}
           />
@@ -2240,6 +2255,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               isLoading={false}
               isVisible={false}
               sourceLabel={sourceLabel}
+              indicatorVariant={indicatorVariant}
               onImageClick={() => {}}
             />
           </CitationErrorBoundary>

@@ -2,13 +2,13 @@ import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { Verification } from "../types/verification.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
-
 // Import icon components for JSX rendering in getStatusInfo
 import {
   CheckIcon as CheckIconComponent,
   SpinnerIcon as SpinnerIconComponent,
   XCircleIcon as XCircleIconComponent,
 } from "./icons.js";
+import { isUrlCitation } from "./utils.js";
 
 /**
  * Groups citations by their source domain/name.
@@ -19,10 +19,10 @@ export function groupCitationsBySource(citations: CitationDrawerItem[]): SourceC
 
   for (const item of citations) {
     // Group by attachmentId for document citations, domain/siteName/url for URL citations
-    const isDocument = item.citation.type === "document" || (!item.citation.type && item.citation.attachmentId);
-    const groupKey = isDocument
-      ? (item.citation.attachmentId || item.verification?.label || "unknown-doc")
-      : (item.citation.domain || item.citation.siteName || item.citation.url || "unknown");
+    const cit = item.citation;
+    const groupKey = isUrlCitation(cit)
+      ? cit.domain || cit.siteName || cit.url || "unknown"
+      : cit.attachmentId || item.verification?.label || "unknown-doc";
 
     if (!groups.has(groupKey)) {
       groups.set(groupKey, []);
@@ -34,13 +34,16 @@ export function groupCitationsBySource(citations: CitationDrawerItem[]): SourceC
   return Array.from(groups.entries()).map(([_key, items]) => {
     const firstCitation = items[0].citation;
     const firstVerification = items[0].verification;
-    const isDocType = firstCitation.type === "document" || (!firstCitation.type && firstCitation.attachmentId);
     return {
-      sourceName: isDocType
-        ? (firstVerification?.label || firstCitation.attachmentId || "Document")
-        : (firstCitation.siteName || firstCitation.domain || extractDomain(firstCitation.url) || "Unknown Source"),
-      sourceDomain: isDocType ? undefined : (firstCitation.domain || extractDomain(firstCitation.url)),
-      sourceFavicon: firstVerification?.verifiedFaviconUrl || firstCitation.faviconUrl || undefined,
+      sourceName:
+        firstCitation.type === "url"
+          ? firstCitation.siteName || firstCitation.domain || extractDomain(firstCitation.url) || "Unknown Source"
+          : firstVerification?.label || firstCitation.attachmentId || "Document",
+      sourceDomain: firstCitation.type === "url" ? firstCitation.domain || extractDomain(firstCitation.url) : undefined,
+      sourceFavicon:
+        firstVerification?.url?.verifiedFaviconUrl ||
+        (firstCitation.type === "url" ? firstCitation.faviconUrl : undefined) ||
+        undefined,
       citations: items,
       additionalCount: items.length - 1,
     };
@@ -60,16 +63,64 @@ export function extractDomain(url?: string | null): string | undefined {
   }
 }
 
+import { DOT_INDICATOR_FIXED_SIZE_STYLE } from "./constants.js";
+
 /**
- * Get verification status indicator info
+ * Get verification status indicator info.
+ * @param verification - The verification result
+ * @param indicatorVariant - "icon" for SVG icons (default), "dot" for subtle colored dots
  */
-export function getStatusInfo(verification: Verification | null): {
+export function getStatusInfo(
+  verification: Verification | null,
+  indicatorVariant: "icon" | "dot" = "icon",
+): {
   color: string;
   icon: React.ReactNode;
   label: string;
 } {
   const status = verification?.status;
 
+  const isPartial =
+    status === "partial_text_found" ||
+    status === "found_on_other_page" ||
+    status === "found_on_other_line" ||
+    status === "first_word_found";
+
+  if (indicatorVariant === "dot") {
+    if (!status || status === "pending" || status === "loading") {
+      return {
+        color: "text-gray-400",
+        icon: (
+          <span
+            className="inline-block rounded-full bg-gray-400 animate-pulse"
+            style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+          />
+        ),
+        label: "Verifying",
+      };
+    }
+    if (status === "not_found") {
+      return {
+        color: "text-red-500",
+        icon: <span className="inline-block rounded-full bg-red-500" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
+        label: "Not found",
+      };
+    }
+    if (isPartial) {
+      return {
+        color: "text-amber-500",
+        icon: <span className="inline-block rounded-full bg-amber-500" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
+        label: "Partial match",
+      };
+    }
+    return {
+      color: "text-green-500",
+      icon: <span className="inline-block rounded-full bg-green-500" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
+      label: "Verified",
+    };
+  }
+
+  // Default: icon variant
   if (!status || status === "pending" || status === "loading") {
     return {
       color: "text-gray-400",
@@ -85,12 +136,6 @@ export function getStatusInfo(verification: Verification | null): {
       label: "Not found",
     };
   }
-
-  const isPartial =
-    status === "partial_text_found" ||
-    status === "found_on_other_page" ||
-    status === "found_on_other_line" ||
-    status === "first_word_found";
 
   if (isPartial) {
     return {

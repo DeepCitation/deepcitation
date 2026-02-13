@@ -1,7 +1,7 @@
 import type React from "react";
 import { forwardRef, memo, useCallback, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
-import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import { DOT_COLORS, DOT_INDICATOR_FIXED_SIZE_STYLE, MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
 import type { UrlCitationProps } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
@@ -18,21 +18,46 @@ const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => 
 
 /**
  * Pulsing dot indicator for pending state.
+ * Uses DOT_COLORS.gray for consistency across components (gray for pending state).
  */
 const PendingDot = () => (
-  <span className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse" aria-hidden="true" />
+  <span
+    className={classNames("w-1.5 h-1.5 rounded-full animate-pulse", DOT_COLORS.gray)}
+    role="img"
+    aria-label="Verification in progress"
+  />
 );
 
 /**
  * Green verified checkmark indicator.
+ * Uses green-600 color to match DOT_COLORS.green for visual consistency.
  */
-const VerifiedCheck = () => <CheckIcon className="w-full h-full text-green-600 dark:text-green-500" />;
+const VerifiedCheck = () => (
+  <span role="img" aria-label="Verified">
+    <CheckIcon className={classNames("w-full h-full", "text-green-600 dark:text-green-500")} />
+  </span>
+);
 
 /**
  * Status icon wrapper for consistent sizing and alignment.
+ * Includes role="img" for accessibility of icon-based indicators.
  */
-const StatusIconWrapper = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <span className={classNames("w-3 h-3 shrink-0 flex items-center justify-center", className)}>{children}</span>
+const StatusIconWrapper = ({
+  children,
+  className,
+  ariaLabel,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  ariaLabel?: string;
+}) => (
+  <span
+    className={classNames("w-3 h-3 flex-shrink-0 flex items-center justify-center", className)}
+    role="img"
+    aria-label={ariaLabel}
+  >
+    {children}
+  </span>
 );
 
 /**
@@ -106,6 +131,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       eventHandlers,
       preventTooltips = false,
       showStatusIndicator = true,
+      indicatorVariant = "icon",
       showExternalLinkOnHover = true, // Show external link icon on hover by default
     },
     ref,
@@ -237,10 +263,69 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
     };
 
     const renderStatusIndicator = () => {
+      // Dot variant: simple colored dots for all statuses
+      if (indicatorVariant === "dot") {
+        if (isVerified) {
+          return (
+            <StatusIconWrapper ariaLabel="Verified">
+              <span
+                className={classNames("rounded-full", DOT_COLORS.green)}
+                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+                aria-hidden="true"
+              />
+            </StatusIconWrapper>
+          );
+        }
+        if (isPartial) {
+          return (
+            <StatusIconWrapper ariaLabel="Partial match">
+              <span
+                className={classNames("rounded-full", DOT_COLORS.amber)}
+                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+                aria-hidden="true"
+              />
+            </StatusIconWrapper>
+          );
+        }
+        if (isBlocked) {
+          if (renderBlockedIndicator) return renderBlockedIndicator(fetchStatus, errorMessage);
+          return (
+            <StatusIconWrapper ariaLabel={statusInfo.label}>
+              <span
+                className={classNames("rounded-full", DOT_COLORS.amber)}
+                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+                aria-hidden="true"
+              />
+            </StatusIconWrapper>
+          );
+        }
+        if (isError) {
+          if (renderBlockedIndicator) return renderBlockedIndicator(fetchStatus, errorMessage);
+          return (
+            <StatusIconWrapper ariaLabel={statusInfo.label}>
+              <span
+                className={classNames("rounded-full", DOT_COLORS.red)}
+                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+                aria-hidden="true"
+              />
+            </StatusIconWrapper>
+          );
+        }
+        if (isPending) {
+          return (
+            <StatusIconWrapper ariaLabel="Verification in progress">
+              <PendingDot />
+            </StatusIconWrapper>
+          );
+        }
+        return null;
+      }
+
+      // Default: icon variant
       // Verified: Green checkmark
       if (isVerified) {
         return (
-          <StatusIconWrapper>
+          <StatusIconWrapper ariaLabel="Verified">
             <VerifiedCheck />
           </StatusIconWrapper>
         );
@@ -249,7 +334,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       // Partial: Amber check
       if (isPartial) {
         return (
-          <StatusIconWrapper className="text-amber-500 dark:text-amber-400">
+          <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel="Partial match">
             <CheckIcon className="w-full h-full" />
           </StatusIconWrapper>
         );
@@ -261,7 +346,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           return renderBlockedIndicator(fetchStatus, errorMessage);
         }
         return (
-          <StatusIconWrapper className="text-amber-500 dark:text-amber-400" aria-label={statusInfo.label}>
+          <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel={statusInfo.label}>
             <LockIcon className="w-full h-full" />
           </StatusIconWrapper>
         );
@@ -273,19 +358,16 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           return renderBlockedIndicator(fetchStatus, errorMessage);
         }
         return (
-          <span
-            className="w-3 h-3 shrink-0 flex items-center justify-center text-red-500 dark:text-red-400"
-            aria-label={statusInfo.label}
-          >
+          <StatusIconWrapper className="text-red-500 dark:text-red-400" ariaLabel={statusInfo.label}>
             <XCircleIcon className="w-full h-full" />
-          </span>
+          </StatusIconWrapper>
         );
       }
 
       // Pending: Pulsing dot
       if (isPending) {
         return (
-          <StatusIconWrapper>
+          <StatusIconWrapper ariaLabel="Verification in progress">
             <PendingDot />
           </StatusIconWrapper>
         );
