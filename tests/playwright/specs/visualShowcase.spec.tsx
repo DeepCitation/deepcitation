@@ -111,7 +111,7 @@ test.describe("Visual Showcase - Desktop", () => {
 // =============================================================================
 
 test.describe("Visual Showcase - Mobile", () => {
-  test.use({ viewport: { width: 375, height: 667 } }); // iPhone SE
+  test.use({ viewport: { width: 320, height: 480 } }); // iPhone SE
 
   test("renders mobile showcase", async ({ mount, page }) => {
     await mount(<MobileShowcase />);
@@ -130,7 +130,7 @@ test.describe("Visual Showcase - Mobile", () => {
       // Check no horizontal overflow
       const box = await variantEl.boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.width).toBeLessThanOrEqual(375);
+      expect(box!.width).toBeLessThanOrEqual(320);
     }
   });
 
@@ -143,7 +143,7 @@ test.describe("Visual Showcase - Mobile", () => {
 
       const box = await urlEl.boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.width).toBeLessThanOrEqual(375);
+      expect(box!.width).toBeLessThanOrEqual(320);
     }
   });
 
@@ -169,7 +169,7 @@ test.describe("Visual Showcase - Mobile", () => {
 // =============================================================================
 
 test.describe("Visual Showcase - Tablet", () => {
-  test.use({ viewport: { width: 768, height: 1024 } }); // iPad
+  test.use({ viewport: { width: 480, height: 640 } }); // iPad
 
   test("visual snapshot - tablet showcase", async ({ mount, page }) => {
     await mount(<VisualShowcase />);
@@ -423,7 +423,7 @@ test.describe("Visual Showcase - Desktop Dark Mode", () => {
 
 test.describe("Visual Showcase - Mobile Dark Mode", () => {
   test.use({
-    viewport: { width: 375, height: 667 },
+    viewport: { width: 320, height: 480 },
     colorScheme: "dark",
   });
 
@@ -444,7 +444,7 @@ test.describe("Visual Showcase - Mobile Dark Mode", () => {
       // Check no horizontal overflow
       const box = await variantEl.boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.width).toBeLessThanOrEqual(375);
+      expect(box!.width).toBeLessThanOrEqual(320);
     }
   });
 
@@ -467,7 +467,7 @@ test.describe("Visual Showcase - Mobile Dark Mode", () => {
 
 test.describe("Visual Showcase - Tablet Dark Mode", () => {
   test.use({
-    viewport: { width: 768, height: 1024 },
+    viewport: { width: 480, height: 640 },
     colorScheme: "dark",
   });
 

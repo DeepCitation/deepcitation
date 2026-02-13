@@ -142,7 +142,7 @@ test.describe("Markdown Showcase - Desktop Dark Mode", () => {
 // =============================================================================
 
 test.describe("Markdown Showcase - Mobile", () => {
-  test.use({ viewport: { width: 375, height: 667 } });
+  test.use({ viewport: { width: 320, height: 480 } });
 
   test("renders on mobile viewport without overflow", async ({ mount, page }) => {
     await mount(<MarkdownShowcase />);
@@ -153,7 +153,7 @@ test.describe("Markdown Showcase - Mobile", () => {
     // Check no horizontal scroll
     const box = await showcase.boundingBox();
     expect(box).not.toBeNull();
-    expect(box!.width).toBeLessThanOrEqual(375);
+    expect(box!.width).toBeLessThanOrEqual(320);
   });
 
   test("visual snapshot - mobile showcase", async ({ mount, page }) => {
@@ -174,7 +174,7 @@ test.describe("Markdown Showcase - Mobile", () => {
 // =============================================================================
 
 test.describe("Markdown Showcase - Tablet", () => {
-  test.use({ viewport: { width: 768, height: 1024 } });
+  test.use({ viewport: { width: 480, height: 640 } });
 
   test("visual snapshot - tablet showcase", async ({ mount, page }) => {
     await mount(<MarkdownShowcase />);

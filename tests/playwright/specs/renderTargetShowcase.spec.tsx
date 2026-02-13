@@ -188,7 +188,7 @@ test.describe("Render Target Showcase - Desktop Dark Mode", () => {
 // =============================================================================
 
 test.describe("Render Target Showcase - Mobile", () => {
-  test.use({ viewport: { width: 375, height: 667 } });
+  test.use({ viewport: { width: 320, height: 480 } });
 
   test("renders on mobile viewport without overflow", async ({ mount, page }) => {
     await mount(<RenderTargetShowcase />);
@@ -198,7 +198,7 @@ test.describe("Render Target Showcase - Mobile", () => {
 
     const box = await showcase.boundingBox();
     expect(box).not.toBeNull();
-    expect(box!.width).toBeLessThanOrEqual(375);
+    expect(box!.width).toBeLessThanOrEqual(320);
   });
 
   test("visual snapshot - mobile showcase", async ({ mount, page }) => {
@@ -219,7 +219,7 @@ test.describe("Render Target Showcase - Mobile", () => {
 // =============================================================================
 
 test.describe("Render Target Showcase - Tablet", () => {
-  test.use({ viewport: { width: 768, height: 1024 } });
+  test.use({ viewport: { width: 480, height: 640 } });
 
   test("visual snapshot - tablet showcase", async ({ mount, page }) => {
     await mount(<RenderTargetShowcase />);

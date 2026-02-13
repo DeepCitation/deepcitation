@@ -80,7 +80,7 @@ test.describe("Drawer Showcase - Desktop", () => {
 // =============================================================================
 
 test.describe("Drawer Showcase - Mobile", () => {
-  test.use({ viewport: { width: 375, height: 667 } });
+  test.use({ viewport: { width: 320, height: 480 } });
 
   test("trigger renders without overflow on mobile", async ({ mount, page }) => {
     await mount(<CitationDrawerShowcase />);
@@ -93,7 +93,7 @@ test.describe("Drawer Showcase - Mobile", () => {
     for (let i = 0; i < Math.min(count, 3); i++) {
       const box = await triggers.nth(i).boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.width).toBeLessThanOrEqual(375);
+      expect(box!.width).toBeLessThanOrEqual(320);
     }
   });
 
@@ -117,7 +117,7 @@ test.describe("Drawer Showcase - Mobile", () => {
 // =============================================================================
 
 test.describe("Drawer Showcase - Tablet", () => {
-  test.use({ viewport: { width: 768, height: 1024 } });
+  test.use({ viewport: { width: 480, height: 640 } });
 
   test("visual snapshot - drawer showcase tablet", async ({ mount, page }) => {
     await mount(<CitationDrawerShowcase />);
@@ -165,7 +165,7 @@ test.describe("Drawer Showcase - Desktop Dark Mode", () => {
 
 test.describe("Drawer Showcase - Mobile Dark Mode", () => {
   test.use({
-    viewport: { width: 375, height: 667 },
+    viewport: { width: 320, height: 480 },
     colorScheme: "dark",
   });
 
