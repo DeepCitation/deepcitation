@@ -326,6 +326,75 @@ describe("DeepCitation Client", () => {
 
       expect(result.verifications).toEqual({});
     });
+
+    it("passes generateProofUrls and proofConfig through to verifyAttachment", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verifications: {
+            key1: {
+              status: "found",
+              proofUrl: "https://proof.example.com/abc",
+            },
+          },
+        }),
+      } as Response);
+
+      const llmOutput =
+        "<cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test content' anchor_text='Test' line_ids='1' />";
+
+      await client.verify({
+        llmOutput,
+        generateProofUrls: true,
+        proofConfig: {
+          access: "signed",
+          signedUrlExpiry: "7d",
+          imageFormat: "png",
+        },
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.data.generateProofUrls).toBe(true);
+      expect(requestBody.data.proofConfig).toEqual({
+        access: "signed",
+        signedUrlExpiry: "7d",
+        imageFormat: "png",
+      });
+    });
+
+    it("omits proofConfig from request when generateProofUrls is false", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      // Suppress expected warning
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verifications: {
+            key1: { status: "found" },
+          },
+        }),
+      } as Response);
+
+      const llmOutput =
+        "<cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test content' anchor_text='Test' line_ids='1' />";
+
+      await client.verify({
+        llmOutput,
+        proofConfig: { access: "public" },
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.data.generateProofUrls).toBeUndefined();
+      expect(requestBody.data.proofConfig).toBeUndefined();
+
+      warnSpy.mockRestore();
+    });
   });
 
   describe("verifyAttachment", () => {
