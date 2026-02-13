@@ -18,11 +18,13 @@ import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/sea
 import type { Verification } from "../types/verification.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import {
+  ANCHOR_HIGHLIGHT_STYLE,
   DOT_COLORS,
   DOT_INDICATOR_SIZE_STYLE,
   ERROR_COLOR_STYLE,
   getPortalContainer,
   INDICATOR_SIZE_STYLE,
+  MIN_WORD_DIFFERENCE,
   MISS_WAVY_UNDERLINE_STYLE,
   PARTIAL_COLOR_STYLE,
   PENDING_COLOR_STYLE,
@@ -929,59 +931,45 @@ function AnchorTextFocusedImage({
 
   return (
     <div className="relative">
-      {/* Image container - clickable to zoom */}
-      <button
-        type="button"
-        className="group block cursor-zoom-in relative w-full"
-        onClick={e => {
-          e.preventDefault();
-          e.stopPropagation();
-          onImageClick?.();
-        }}
-        aria-label="Click to view full size"
-      >
-        <div
-          className="overflow-hidden rounded-t-md"
-          style={{
-            maxWidth,
-            maxHeight,
-          }}
-        >
-          <img
-            src={verification.document?.verificationImageBase64 as string}
-            alt="Citation verification"
-            className="block w-full h-auto"
-            style={{
-              maxHeight,
-              objectFit: "contain",
-            }}
-            loading="eager"
-            decoding="async"
-          />
-        </div>
-      </button>
-
-      {/* Action bar - always visible below image */}
-      <div className="flex items-center justify-between px-2 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-b-md border-t border-gray-200 dark:border-gray-700">
-        {/* Zoom button on left - using text-gray-700 for WCAG AA contrast (7.0:1 ratio on gray-100) */}
+      {/* Image container - clickable to zoom, with hover overlay */}
+      <div className="relative group">
         <button
           type="button"
+          className="block relative w-full"
+          style={{ cursor: 'zoom-in' }}
           onClick={e => {
             e.preventDefault();
             e.stopPropagation();
             onImageClick?.();
           }}
-          className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
-          aria-label="Expand image"
+          aria-label="Click to view full size"
         >
-          <span className="size-3.5">
-            <ZoomInIcon />
-          </span>
-          <span>Expand</span>
+          <div
+            className="overflow-hidden rounded-t-md"
+            style={{
+              maxWidth,
+              maxHeight,
+            }}
+          >
+            <img
+              src={verification.document?.verificationImageBase64 as string}
+              alt="Citation verification"
+              className="block w-full h-auto"
+              style={{
+                maxHeight,
+                objectFit: "contain",
+              }}
+              loading="eager"
+              decoding="async"
+            />
+          </div>
         </button>
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none rounded-t-md" />
+      </div>
 
-        {/* View page button on right (only shown when page data with source URL is provided) */}
-        {showViewPageButton && (
+      {/* Action bar - only shown when View page button is available */}
+      {showViewPageButton && (
+        <div className="flex items-center justify-end px-2 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-b-md border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
             onClick={e => {
@@ -994,8 +982,8 @@ function AnchorTextFocusedImage({
           >
             <span>View page</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

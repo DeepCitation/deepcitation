@@ -183,7 +183,7 @@ export const DOT_COLORS = {
   green: "bg-green-600 dark:bg-green-500",
   amber: "bg-amber-500 dark:bg-amber-400",
   red: "bg-red-500 dark:bg-red-400",
-  gray: "bg-gray-400 dark:bg-gray-500",
+  gray: "bg-gray-400 dark:bg-gray-300",
 } as const;
 
 /**
