@@ -1047,7 +1047,10 @@ function HighlightedPhrase({ fullPhrase, anchorText }: { fullPhrase: string; anc
   if (!anchorText || !fullPhrase.includes(anchorText)) {
     return <span className="italic text-gray-600 dark:text-gray-300">&ldquo;{fullPhrase}&rdquo;</span>;
   }
-  const wc = (s: string) => s.trim().split(/\s+/).length;
+  const wc = (s: string) => {
+    const trimmed = s.trim();
+    return trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
+  };
   if (wc(fullPhrase) - wc(anchorText) < MIN_WORD_DIFFERENCE) {
     return <span className="italic text-gray-600 dark:text-gray-300">&ldquo;{fullPhrase}&rdquo;</span>;
   }

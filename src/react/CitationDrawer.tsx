@@ -751,6 +751,7 @@ export function CitationDrawer({
   position = "bottom",
   renderCitationItem,
   indicatorVariant = "icon",
+  sourceLabelMap,
 }: CitationDrawerProps) {
   // Flatten all citations for total count
   const totalCitations = useMemo(() => {
@@ -793,7 +794,7 @@ export function CitationDrawer({
     // Multi-citation groups: collapsible header + items
     return (
       <div key={key}>
-        <SourceGroupHeader group={group} />
+        <SourceGroupHeader group={group} sourceLabelMap={sourceLabelMap} />
         <div>
           {group.citations.map((item, index) =>
             renderCitationItem ? (
@@ -807,6 +808,7 @@ export function CitationDrawer({
                 onReadMore={onReadMore}
                 indicatorVariant={indicatorVariant}
                 hideSourceName
+                sourceLabelMap={sourceLabelMap}
               />
             ),
           )}
