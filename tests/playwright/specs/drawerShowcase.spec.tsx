@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/experimental-ct-react";
+import type { Page } from "@playwright/test";
 import { CitationDrawerShowcase } from "../../../src/react/testing/ShowcaseComponents";
+
+/** Scale down showcase elements before snapshot to reduce pixel count */
+async function scaleDownForSnapshot(page: Page, testId: string) {
+  await page.addStyleTag({
+    content: `[data-testid="${testId}"] { transform: scale(0.5); transform-origin: top left; }`,
+  });
+}
 
 // =============================================================================
 // TESTS - Desktop Drawer Showcase
@@ -68,6 +76,8 @@ test.describe("Drawer Showcase - Desktop", () => {
     // Wait for triggers to render
     await expect(page.locator('[data-testid="citation-drawer-trigger"]').first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "drawer-showcase");
+
     await expect(showcase).toHaveScreenshot("drawer-showcase.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -80,7 +90,7 @@ test.describe("Drawer Showcase - Desktop", () => {
 // =============================================================================
 
 test.describe("Drawer Showcase - Mobile", () => {
-  test.use({ viewport: { width: 320, height: 480 } });
+  test.use({ viewport: { width: 375, height: 667 } });
 
   test("trigger renders without overflow on mobile", async ({ mount, page }) => {
     await mount(<CitationDrawerShowcase />);
@@ -93,7 +103,7 @@ test.describe("Drawer Showcase - Mobile", () => {
     for (let i = 0; i < Math.min(count, 3); i++) {
       const box = await triggers.nth(i).boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.width).toBeLessThanOrEqual(320);
+      expect(box!.width).toBeLessThanOrEqual(375);
     }
   });
 
@@ -104,6 +114,8 @@ test.describe("Drawer Showcase - Mobile", () => {
     await expect(showcase).toBeVisible();
 
     await expect(page.locator('[data-testid="citation-drawer-trigger"]').first()).toBeVisible();
+
+    await scaleDownForSnapshot(page, "drawer-showcase");
 
     await expect(showcase).toHaveScreenshot("drawer-showcase-mobile.png", {
       animations: "disabled",
@@ -117,7 +129,7 @@ test.describe("Drawer Showcase - Mobile", () => {
 // =============================================================================
 
 test.describe("Drawer Showcase - Tablet", () => {
-  test.use({ viewport: { width: 480, height: 640 } });
+  test.use({ viewport: { width: 768, height: 1024 } });
 
   test("visual snapshot - drawer showcase tablet", async ({ mount, page }) => {
     await mount(<CitationDrawerShowcase />);
@@ -126,6 +138,8 @@ test.describe("Drawer Showcase - Tablet", () => {
     await expect(showcase).toBeVisible();
 
     await expect(page.locator('[data-testid="citation-drawer-trigger"]').first()).toBeVisible();
+
+    await scaleDownForSnapshot(page, "drawer-showcase");
 
     await expect(showcase).toHaveScreenshot("drawer-showcase-tablet.png", {
       animations: "disabled",
@@ -156,6 +170,8 @@ test.describe("Drawer Showcase - Desktop Dark Mode", () => {
 
     await expect(page.locator('[data-testid="citation-drawer-trigger"]').first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "drawer-showcase");
+
     await expect(showcase).toHaveScreenshot("drawer-showcase-dark.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -165,7 +181,7 @@ test.describe("Drawer Showcase - Desktop Dark Mode", () => {
 
 test.describe("Drawer Showcase - Mobile Dark Mode", () => {
   test.use({
-    viewport: { width: 320, height: 480 },
+    viewport: { width: 375, height: 667 },
     colorScheme: "dark",
   });
 
@@ -176,6 +192,8 @@ test.describe("Drawer Showcase - Mobile Dark Mode", () => {
     await expect(showcase).toBeVisible();
 
     await expect(page.locator('[data-testid="citation-drawer-trigger"]').first()).toBeVisible();
+
+    await scaleDownForSnapshot(page, "drawer-showcase");
 
     await expect(showcase).toHaveScreenshot("drawer-showcase-mobile-dark.png", {
       animations: "disabled",

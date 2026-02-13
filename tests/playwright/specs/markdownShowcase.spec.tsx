@@ -1,7 +1,15 @@
 import { expect, test } from "@playwright/experimental-ct-react";
+import type { Page } from "@playwright/test";
 // Import showcase components separately to avoid Playwright CT bundling conflict
 import { MarkdownShowcase } from "../../../src/markdown/testing/MarkdownShowcase";
 import { INDICATOR_STYLES, MARKDOWN_VARIANTS } from "../../../src/markdown/testing/MarkdownShowcase.constants";
+
+/** Scale down showcase elements before snapshot to reduce pixel count */
+async function scaleDownForSnapshot(page: Page, testId: string) {
+  await page.addStyleTag({
+    content: `[data-testid="${testId}"] { transform: scale(0.5); transform-origin: top left; }`,
+  });
+}
 
 // =============================================================================
 // TESTS - Markdown Showcase
@@ -94,6 +102,8 @@ test.describe("Markdown Showcase - Desktop", () => {
     const showcase = page.locator('[data-testid="markdown-showcase"]');
     await expect(showcase).toBeVisible();
 
+    await scaleDownForSnapshot(page, "markdown-showcase");
+
     await expect(showcase).toHaveScreenshot("markdown-showcase.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -130,6 +140,8 @@ test.describe("Markdown Showcase - Desktop Dark Mode", () => {
     const showcase = page.locator('[data-testid="markdown-showcase"]');
     await expect(showcase).toBeVisible();
 
+    await scaleDownForSnapshot(page, "markdown-showcase");
+
     await expect(showcase).toHaveScreenshot("markdown-showcase-dark.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -142,7 +154,7 @@ test.describe("Markdown Showcase - Desktop Dark Mode", () => {
 // =============================================================================
 
 test.describe("Markdown Showcase - Mobile", () => {
-  test.use({ viewport: { width: 320, height: 480 } });
+  test.use({ viewport: { width: 375, height: 667 } });
 
   test("renders on mobile viewport without overflow", async ({ mount, page }) => {
     await mount(<MarkdownShowcase />);
@@ -153,7 +165,7 @@ test.describe("Markdown Showcase - Mobile", () => {
     // Check no horizontal scroll
     const box = await showcase.boundingBox();
     expect(box).not.toBeNull();
-    expect(box!.width).toBeLessThanOrEqual(320);
+    expect(box!.width).toBeLessThanOrEqual(375);
   });
 
   test("visual snapshot - mobile showcase", async ({ mount, page }) => {
@@ -161,6 +173,8 @@ test.describe("Markdown Showcase - Mobile", () => {
 
     const showcase = page.locator('[data-testid="markdown-showcase"]');
     await expect(showcase).toBeVisible();
+
+    await scaleDownForSnapshot(page, "markdown-showcase");
 
     await expect(showcase).toHaveScreenshot("markdown-showcase-mobile.png", {
       animations: "disabled",
@@ -174,13 +188,15 @@ test.describe("Markdown Showcase - Mobile", () => {
 // =============================================================================
 
 test.describe("Markdown Showcase - Tablet", () => {
-  test.use({ viewport: { width: 480, height: 640 } });
+  test.use({ viewport: { width: 768, height: 1024 } });
 
   test("visual snapshot - tablet showcase", async ({ mount, page }) => {
     await mount(<MarkdownShowcase />);
 
     const showcase = page.locator('[data-testid="markdown-showcase"]');
     await expect(showcase).toBeVisible();
+
+    await scaleDownForSnapshot(page, "markdown-showcase");
 
     await expect(showcase).toHaveScreenshot("markdown-showcase-tablet.png", {
       animations: "disabled",

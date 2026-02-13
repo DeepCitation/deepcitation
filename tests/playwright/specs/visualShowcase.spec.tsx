@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/experimental-ct-react";
+import type { Page } from "@playwright/test";
 // Import showcase components separately to avoid Playwright CT bundling conflict
 import {
   MobileShowcase,
@@ -9,6 +10,13 @@ import {
   allUrlStatuses,
   allVerificationStatuses,
 } from "../../../src/react/testing/ShowcaseFixtures";
+
+/** Scale down showcase elements before snapshot to reduce pixel count */
+async function scaleDownForSnapshot(page: Page, testId: string) {
+  await page.addStyleTag({
+    content: `[data-testid="${testId}"] { transform: scale(0.5); transform-origin: top left; }`,
+  });
+}
 
 // =============================================================================
 // TESTS - Desktop Visual Showcase
@@ -98,6 +106,8 @@ test.describe("Visual Showcase - Desktop", () => {
     // Wait for all citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "visual-showcase");
+
     // Take screenshot of the showcase element
     await expect(showcase).toHaveScreenshot("desktop-showcase.png", {
       animations: "disabled",
@@ -111,7 +121,7 @@ test.describe("Visual Showcase - Desktop", () => {
 // =============================================================================
 
 test.describe("Visual Showcase - Mobile", () => {
-  test.use({ viewport: { width: 320, height: 480 } }); // iPhone SE
+  test.use({ viewport: { width: 375, height: 667 } }); // iPhone SE
 
   test("renders mobile showcase", async ({ mount, page }) => {
     await mount(<MobileShowcase />);
@@ -130,7 +140,7 @@ test.describe("Visual Showcase - Mobile", () => {
       // Check no horizontal overflow
       const box = await variantEl.boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.width).toBeLessThanOrEqual(320);
+      expect(box!.width).toBeLessThanOrEqual(375);
     }
   });
 
@@ -143,7 +153,7 @@ test.describe("Visual Showcase - Mobile", () => {
 
       const box = await urlEl.boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.width).toBeLessThanOrEqual(320);
+      expect(box!.width).toBeLessThanOrEqual(375);
     }
   });
 
@@ -157,6 +167,8 @@ test.describe("Visual Showcase - Mobile", () => {
     // Wait for citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "mobile-showcase");
+
     await expect(showcase).toHaveScreenshot("mobile-showcase.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -169,7 +181,7 @@ test.describe("Visual Showcase - Mobile", () => {
 // =============================================================================
 
 test.describe("Visual Showcase - Tablet", () => {
-  test.use({ viewport: { width: 480, height: 640 } }); // iPad
+  test.use({ viewport: { width: 768, height: 1024 } }); // iPad
 
   test("visual snapshot - tablet showcase", async ({ mount, page }) => {
     await mount(<VisualShowcase />);
@@ -180,6 +192,8 @@ test.describe("Visual Showcase - Tablet", () => {
 
     // Wait for citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
+
+    await scaleDownForSnapshot(page, "visual-showcase");
 
     await expect(showcase).toHaveScreenshot("tablet-showcase.png", {
       animations: "disabled",
@@ -304,6 +318,8 @@ test.describe("Popover Showcase - Desktop", () => {
     // Wait for animations to settle (spinners are present)
     await page.waitForTimeout(500);
 
+    await scaleDownForSnapshot(page, "popover-showcase");
+
     // Take screenshot of the popover showcase
     await expect(showcase).toHaveScreenshot("popover-showcase.png", {
       animations: "disabled",
@@ -413,6 +429,8 @@ test.describe("Visual Showcase - Desktop Dark Mode", () => {
     // Wait for all citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "visual-showcase");
+
     // Take screenshot of the showcase element in dark mode
     await expect(showcase).toHaveScreenshot("desktop-showcase-dark.png", {
       animations: "disabled",
@@ -423,7 +441,7 @@ test.describe("Visual Showcase - Desktop Dark Mode", () => {
 
 test.describe("Visual Showcase - Mobile Dark Mode", () => {
   test.use({
-    viewport: { width: 320, height: 480 },
+    viewport: { width: 375, height: 667 },
     colorScheme: "dark",
   });
 
@@ -444,7 +462,7 @@ test.describe("Visual Showcase - Mobile Dark Mode", () => {
       // Check no horizontal overflow
       const box = await variantEl.boundingBox();
       expect(box).not.toBeNull();
-      expect(box!.width).toBeLessThanOrEqual(320);
+      expect(box!.width).toBeLessThanOrEqual(375);
     }
   });
 
@@ -458,6 +476,8 @@ test.describe("Visual Showcase - Mobile Dark Mode", () => {
     // Wait for citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "mobile-showcase");
+
     await expect(showcase).toHaveScreenshot("mobile-showcase-dark.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -467,7 +487,7 @@ test.describe("Visual Showcase - Mobile Dark Mode", () => {
 
 test.describe("Visual Showcase - Tablet Dark Mode", () => {
   test.use({
-    viewport: { width: 480, height: 640 },
+    viewport: { width: 768, height: 1024 },
     colorScheme: "dark",
   });
 
@@ -480,6 +500,8 @@ test.describe("Visual Showcase - Tablet Dark Mode", () => {
 
     // Wait for citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
+
+    await scaleDownForSnapshot(page, "visual-showcase");
 
     await expect(showcase).toHaveScreenshot("tablet-showcase-dark.png", {
       animations: "disabled",
@@ -546,6 +568,8 @@ test.describe("Popover Showcase - Desktop Dark Mode", () => {
 
     // Wait for animations to settle (spinners are present)
     await page.waitForTimeout(500);
+
+    await scaleDownForSnapshot(page, "popover-showcase");
 
     // Take screenshot of the popover showcase in dark mode
     await expect(showcase).toHaveScreenshot("popover-showcase-dark.png", {

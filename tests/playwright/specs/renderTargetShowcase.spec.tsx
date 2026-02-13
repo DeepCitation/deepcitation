@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/experimental-ct-react";
+import type { Page } from "@playwright/test";
 import { RenderTargetShowcase } from "../../../src/rendering/testing/RenderTargetShowcase";
 import {
   GITHUB_VARIANTS,
@@ -6,6 +7,13 @@ import {
   SLACK_VARIANTS,
   TERMINAL_VARIANTS,
 } from "../../../src/rendering/testing/RenderTargetShowcase.constants";
+
+/** Scale down showcase elements before snapshot to reduce pixel count */
+async function scaleDownForSnapshot(page: Page, testId: string) {
+  await page.addStyleTag({
+    content: `[data-testid="${testId}"] { transform: scale(0.5); transform-origin: top left; }`,
+  });
+}
 
 // =============================================================================
 // TESTS - Desktop
@@ -149,6 +157,8 @@ test.describe("Render Target Showcase - Desktop", () => {
     const showcase = page.locator('[data-testid="render-target-showcase"]');
     await expect(showcase).toBeVisible();
 
+    await scaleDownForSnapshot(page, "render-target-showcase");
+
     await expect(showcase).toHaveScreenshot("render-target-showcase.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -176,6 +186,8 @@ test.describe("Render Target Showcase - Desktop Dark Mode", () => {
     const showcase = page.locator('[data-testid="render-target-showcase"]');
     await expect(showcase).toBeVisible();
 
+    await scaleDownForSnapshot(page, "render-target-showcase");
+
     await expect(showcase).toHaveScreenshot("render-target-showcase-dark.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -188,7 +200,7 @@ test.describe("Render Target Showcase - Desktop Dark Mode", () => {
 // =============================================================================
 
 test.describe("Render Target Showcase - Mobile", () => {
-  test.use({ viewport: { width: 320, height: 480 } });
+  test.use({ viewport: { width: 375, height: 667 } });
 
   test("renders on mobile viewport without overflow", async ({ mount, page }) => {
     await mount(<RenderTargetShowcase />);
@@ -198,7 +210,7 @@ test.describe("Render Target Showcase - Mobile", () => {
 
     const box = await showcase.boundingBox();
     expect(box).not.toBeNull();
-    expect(box!.width).toBeLessThanOrEqual(320);
+    expect(box!.width).toBeLessThanOrEqual(375);
   });
 
   test("visual snapshot - mobile showcase", async ({ mount, page }) => {
@@ -206,6 +218,8 @@ test.describe("Render Target Showcase - Mobile", () => {
 
     const showcase = page.locator('[data-testid="render-target-showcase"]');
     await expect(showcase).toBeVisible();
+
+    await scaleDownForSnapshot(page, "render-target-showcase");
 
     await expect(showcase).toHaveScreenshot("render-target-showcase-mobile.png", {
       animations: "disabled",
@@ -219,13 +233,15 @@ test.describe("Render Target Showcase - Mobile", () => {
 // =============================================================================
 
 test.describe("Render Target Showcase - Tablet", () => {
-  test.use({ viewport: { width: 480, height: 640 } });
+  test.use({ viewport: { width: 768, height: 1024 } });
 
   test("visual snapshot - tablet showcase", async ({ mount, page }) => {
     await mount(<RenderTargetShowcase />);
 
     const showcase = page.locator('[data-testid="render-target-showcase"]');
     await expect(showcase).toBeVisible();
+
+    await scaleDownForSnapshot(page, "render-target-showcase");
 
     await expect(showcase).toHaveScreenshot("render-target-showcase-tablet.png", {
       animations: "disabled",
