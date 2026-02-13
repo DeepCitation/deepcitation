@@ -338,13 +338,8 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
   const pageNumber = verification?.document?.verifiedPageNumber ?? citation.pageNumber;
   const lineIds = verification?.document?.verifiedLineIds ?? citation.lineIds;
 
-  // Display text: only use label (never show attachmentId to users)
-  const displayName = label || null;
-
-  // Only show if we have something meaningful to display
-  if (!displayName && !pageNumber) {
-    return null;
-  }
+  // Display text: use label, fall back to "Document" (never show attachmentId to users)
+  const displayName = label || "Document";
 
   // Format page/line text
   const pageLineText = formatPageLineText(pageNumber, lineIds);
@@ -502,8 +497,7 @@ function getStatusHeaderText(status?: SearchStatus | null): string {
     case "found":
     case "found_anchor_text_only":
     case "found_phrase_missed_anchor_text":
-      // Icon (checkmark) is self-explanatory - no text needed
-      return "";
+      return "Verified";
     case "found_on_other_page":
       return "Found on different page";
     case "found_on_other_line":
@@ -512,8 +506,7 @@ function getStatusHeaderText(status?: SearchStatus | null): string {
     case "first_word_found":
       return "Partial match";
     case "not_found":
-      // Icon (X) is self-explanatory - no text needed
-      return "";
+      return "Not found";
     case "pending":
     case "loading":
       return "Verifying...";
@@ -746,7 +739,7 @@ export function StatusHeader({
     return () => clearTimeout(timeoutId);
   }, [copyState]);
 
-  const handleCopy = useCallback(
+  const _handleCopy = useCallback(
     async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -777,12 +770,10 @@ export function StatusHeader({
           ? XCircleIcon
           : SpinnerIcon;
 
-  // Consistent single-row layout: icon + text + copy button + page badge
-  // Display priority: headerText (status description) > anchorText (quoted phrase)
-  const displayText = headerText || anchorText || null;
-  const shouldShowAsQuoted = !headerText && !!anchorText; // Show with quote styling when displaying anchorText
-  // Show copy button whenever we have anchor text - users may want to copy even when headerText is displayed
-  const shouldShowCopyButton = showCopyButton && anchorText;
+  // Single-row layout: icon + status text + page badge
+  // Status text is always provided by getStatusHeaderText; anchor text is shown
+  // in the HighlightedPhrase area below, not echoed here
+  const displayText = headerText || null;
 
   return (
     <div
@@ -806,33 +797,7 @@ export function StatusHeader({
             <IconComponent />
           </span>
         )}
-        {displayText &&
-          (shouldShowAsQuoted ? (
-            <QuotedText className={cn("font-medium truncate text-gray-600 dark:text-gray-300")}>
-              {displayText}
-            </QuotedText>
-          ) : (
-            <span className="font-medium truncate text-gray-800 dark:text-gray-100">{displayText}</span>
-          ))}
-        {/* Copy button - icon only, shown next to anchor text */}
-        {shouldShowCopyButton && (
-          <button
-            type="button"
-            onClick={handleCopy}
-            className={cn(
-              "shrink-0 p-0.5 rounded transition-colors cursor-pointer",
-              copyState === "copied"
-                ? "text-green-600 dark:text-green-400"
-                : copyState === "error"
-                  ? "text-red-500 dark:text-red-400"
-                  : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300",
-            )}
-            aria-label={copyState === "copied" ? "Copied!" : "Copy quoted text"}
-            title={copyState === "copied" ? "Copied!" : "Copy quote"}
-          >
-            <span className="size-3.5 block">{copyState === "copied" ? <CheckIcon /> : <CopyIcon />}</span>
-          </button>
-        )}
+        {displayText && <span className="font-medium truncate text-gray-800 dark:text-gray-100">{displayText}</span>}
       </div>
       {!hidePageBadge && <PageBadge expectedPage={expectedPage} foundPage={foundPage} />}
     </div>
@@ -1021,6 +986,80 @@ function VerificationLogSummary({
 }
 
 // =============================================================================
+// SEARCH SUMMARY BUILDER
+// =============================================================================
+
+interface SearchSummary {
+  totalAttempts: number;
+  pageRange: string; // "page 3" or "pages 3-7"
+  includesFullDocScan: boolean;
+  closestMatch?: { text: string; page?: number };
+}
+
+/**
+ * Build a human-readable summary of search attempts for not-found states.
+ * Computes page range, full doc scan presence, and closest match if any.
+ *
+ * NOTE: Utility function prepared for future task #4 (enhance not-found display).
+ * Currently unused but ready for integration into AuditSearchDisplay component.
+ * See plans/drawer-trigger-copy-polish.md for remaining tasks.
+ */
+function _buildSearchSummary(searchAttempts: SearchAttempt[], verification?: Verification | null): SearchSummary {
+  const totalAttempts = searchAttempts.length;
+
+  // Collect unique pages searched
+  const pagesSearched = new Set<number>();
+  let includesFullDocScan = false;
+  for (const attempt of searchAttempts) {
+    if (attempt.pageSearched != null) {
+      pagesSearched.add(attempt.pageSearched);
+    }
+    if (attempt.searchScope === "document") {
+      includesFullDocScan = true;
+    }
+  }
+
+  // Format page range
+  let pageRange: string;
+  if (pagesSearched.size === 0) {
+    pageRange = "";
+  } else if (pagesSearched.size === 1) {
+    const [page] = pagesSearched;
+    pageRange = `page ${page}`;
+  } else {
+    const sorted = Array.from(pagesSearched).sort((a, b) => a - b);
+    pageRange = `pages ${sorted[0]}-${sorted[sorted.length - 1]}`;
+  }
+
+  // Find closest match: look for matchedText on unsuccessful attempts, or rejected matches
+  let closestMatch: SearchSummary["closestMatch"];
+
+  // First check verification.verifiedMatchSnippet
+  if (verification?.verifiedMatchSnippet) {
+    const page = verification.document?.verifiedPageNumber ?? undefined;
+    closestMatch = {
+      text: verification.verifiedMatchSnippet,
+      page: page != null && page > 0 ? page : undefined,
+    };
+  }
+
+  // If no snippet from verification, look through search attempts for rejected/partial matches
+  if (!closestMatch) {
+    for (const attempt of searchAttempts) {
+      if (!attempt.success && attempt.matchedText) {
+        closestMatch = {
+          text: attempt.matchedText,
+          page: attempt.pageSearched,
+        };
+        break; // Take the first one found
+      }
+    }
+  }
+
+  return { totalAttempts, pageRange, includesFullDocScan, closestMatch };
+}
+
+// =============================================================================
 // AUDIT-FOCUSED SEARCH DISPLAY
 // =============================================================================
 
@@ -1032,12 +1071,16 @@ interface AuditSearchDisplayProps {
   anchorText?: string;
   /** Verification status (determines display mode) */
   status?: SearchStatus | null;
+  /** Full verification object (for closest match extraction) */
+  verification?: Verification | null;
 }
 
 interface SearchAttemptRowProps {
   attempt: SearchAttempt;
   index: number;
   totalCount: number;
+  /** Overall verification status; when not_found, suppresses green checkmarks on individual rows */
+  overallStatus?: SearchStatus | null;
 }
 
 /**
@@ -1045,7 +1088,7 @@ interface SearchAttemptRowProps {
  * Displays as: "1. "phrase..."   Method · Pg X"
  * Also shows search variations if present.
  */
-function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps) {
+function SearchAttemptRow({ attempt, index, totalCount, overallStatus }: SearchAttemptRowProps) {
   // Format the phrase for display (truncate if too long), with null safety
   const phrase = attempt.searchPhrase ?? "";
   const displayPhrase =
@@ -1085,16 +1128,18 @@ function SearchAttemptRow({ attempt, index, totalCount }: SearchAttemptRowProps)
         {index}.
       </span>
 
-      {/* Status icon */}
+      {/* Status icon - suppress green when overall verification failed */}
       <span
         className={cn(
           "size-3 max-w-3 max-h-3 mt-0.5 shrink-0",
-          attempt.success ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500",
+          attempt.success && overallStatus !== "not_found"
+            ? "text-green-600 dark:text-green-400"
+            : "text-gray-400 dark:text-gray-500",
         )}
         role="img"
         aria-label={attempt.success ? "Found" : "Not found"}
       >
-        {attempt.success ? <CheckIcon /> : <MissIcon />}
+        {attempt.success && overallStatus !== "not_found" ? <CheckIcon /> : <MissIcon />}
       </span>
 
       {/* Phrase and details */}

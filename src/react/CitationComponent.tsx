@@ -18,11 +18,13 @@ import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/sea
 import type { Verification } from "../types/verification.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import {
+  ANCHOR_HIGHLIGHT_STYLE,
   DOT_COLORS,
   DOT_INDICATOR_SIZE_STYLE,
   ERROR_COLOR_STYLE,
   getPortalContainer,
   INDICATOR_SIZE_STYLE,
+  MIN_WORD_DIFFERENCE,
   MISS_WAVY_UNDERLINE_STYLE,
   PARTIAL_COLOR_STYLE,
   PENDING_COLOR_STYLE,
@@ -31,7 +33,7 @@ import {
   Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
-import { CheckIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
+import { CheckIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import type {
@@ -705,7 +707,11 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
   // Register this overlay as open globally (blocks hover on other citations)
   useEffect(() => {
     registerOverlay();
-    return () => unregisterOverlay();
+    return () => {
+      // Delay unregister so click-outside handlers still see overlay as open
+      // during the current event loop tick
+      setTimeout(() => unregisterOverlay(), 0);
+    };
   }, [registerOverlay, unregisterOverlay]);
 
   // Auto-focus the backdrop when the overlay opens for keyboard accessibility.
@@ -719,7 +725,10 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -735,9 +744,16 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
       tabIndex={-1}
       className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-[50ms] outline-none"
       style={{ zIndex: `var(${Z_INDEX_IMAGE_OVERLAY_VAR}, ${Z_INDEX_OVERLAY_DEFAULT})` } as React.CSSProperties}
-      onClick={onClose}
+      onClick={e => {
+        e.stopPropagation();
+        e.preventDefault();
+        onClose();
+      }}
       onKeyDown={e => {
-        if (e.key === "Escape") onClose();
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          onClose();
+        }
       }}
       role="dialog"
       aria-modal="true"
@@ -749,6 +765,9 @@ function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
           alt={alt}
           className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl"
           draggable={false}
+          onClick={e => {
+            e.stopPropagation();
+          }}
         />
       </div>
     </div>,
@@ -912,59 +931,45 @@ function AnchorTextFocusedImage({
 
   return (
     <div className="relative">
-      {/* Image container - clickable to zoom */}
-      <button
-        type="button"
-        className="group block cursor-zoom-in relative w-full"
-        onClick={e => {
-          e.preventDefault();
-          e.stopPropagation();
-          onImageClick?.();
-        }}
-        aria-label="Click to view full size"
-      >
-        <div
-          className="overflow-hidden rounded-t-md"
-          style={{
-            maxWidth,
-            maxHeight,
-          }}
-        >
-          <img
-            src={verification.document?.verificationImageBase64 as string}
-            alt="Citation verification"
-            className="block w-full h-auto"
-            style={{
-              maxHeight,
-              objectFit: "contain",
-            }}
-            loading="eager"
-            decoding="async"
-          />
-        </div>
-      </button>
-
-      {/* Action bar - always visible below image */}
-      <div className="flex items-center justify-between px-2 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-b-md border-t border-gray-200 dark:border-gray-700">
-        {/* Zoom button on left - using text-gray-700 for WCAG AA contrast (7.0:1 ratio on gray-100) */}
+      {/* Image container - clickable to zoom, with hover overlay */}
+      <div className="relative group">
         <button
           type="button"
+          className="block relative w-full"
+          style={{ cursor: "zoom-in" }}
           onClick={e => {
             e.preventDefault();
             e.stopPropagation();
             onImageClick?.();
           }}
-          className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
-          aria-label="Expand image"
+          aria-label="Click to view full size"
         >
-          <span className="size-3.5">
-            <ZoomInIcon />
-          </span>
-          <span>Expand</span>
+          <div
+            className="overflow-hidden rounded-t-md"
+            style={{
+              maxWidth,
+              maxHeight,
+            }}
+          >
+            <img
+              src={verification.document?.verificationImageBase64 as string}
+              alt="Citation verification"
+              className="block w-full h-auto"
+              style={{
+                maxHeight,
+                objectFit: "contain",
+              }}
+              loading="eager"
+              decoding="async"
+            />
+          </div>
         </button>
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none rounded-t-md" />
+      </div>
 
-        {/* View page button on right (only shown when page data with source URL is provided) */}
-        {showViewPageButton && (
+      {/* Action bar - only shown when View page button is available */}
+      {showViewPageButton && (
+        <div className="flex items-center justify-end px-2 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-b-md border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
             onClick={e => {
@@ -977,8 +982,8 @@ function AnchorTextFocusedImage({
           >
             <span>View page</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1010,7 +1015,7 @@ function getHumanizingMessage(
 
   switch (status) {
     case "not_found":
-      return `We couldn't find ${displayText} in this document.`;
+      return "We couldn't find this phrase in the document.";
     case "found_on_other_page":
       if (expectedPage && foundPage) {
         return `Found ${displayText} on page ${foundPage} instead of page ${expectedPage}.`;
@@ -1027,6 +1032,36 @@ function getHumanizingMessage(
     default:
       return null;
   }
+}
+
+// =============================================================================
+// HIGHLIGHTED PHRASE DISPLAY
+// =============================================================================
+
+/**
+ * Renders fullPhrase with the anchorText substring highlighted using the same
+ * amber highlight style used in the API-side proof images.
+ * Only highlights when fullPhrase has enough additional context beyond anchorText.
+ */
+function HighlightedPhrase({ fullPhrase, anchorText }: { fullPhrase: string; anchorText?: string }) {
+  if (!anchorText || !fullPhrase.includes(anchorText)) {
+    return <span className="italic text-gray-600 dark:text-gray-300">&ldquo;{fullPhrase}&rdquo;</span>;
+  }
+  const wc = (s: string) => {
+    const trimmed = s.trim();
+    return trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
+  };
+  if (wc(fullPhrase) - wc(anchorText) < MIN_WORD_DIFFERENCE) {
+    return <span className="italic text-gray-600 dark:text-gray-300">&ldquo;{fullPhrase}&rdquo;</span>;
+  }
+  const idx = fullPhrase.indexOf(anchorText);
+  return (
+    <span className="italic text-gray-600 dark:text-gray-300">
+      &ldquo;{fullPhrase.slice(0, idx)}
+      <span style={ANCHOR_HIGHLIGHT_STYLE}>{anchorText}</span>
+      {fullPhrase.slice(idx + anchorText.length)}&rdquo;
+    </span>
+  );
 }
 
 // =============================================================================
@@ -1137,7 +1172,7 @@ function DefaultPopoverContent({
             status={searchStatus}
             sourceLabel={sourceLabel}
           />
-          {/* Status header with anchorText - skip for URL citations since SourceContextHeader already shows status icon + URL */}
+          {/* Status header - skip for URL citations since SourceContextHeader already shows status icon + URL */}
           {!isUrlCitation(citation) && (
             <StatusHeader
               status={searchStatus}
@@ -1147,6 +1182,13 @@ function DefaultPopoverContent({
               anchorText={anchorText}
               indicatorVariant={indicatorVariant}
             />
+          )}
+
+          {/* Full phrase with highlighted anchor text */}
+          {fullPhrase && (
+            <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
+              <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} />
+            </div>
           )}
 
           {/* Verification image */}
@@ -1210,6 +1252,12 @@ function DefaultPopoverContent({
                   {humanizingMessage}
                 </div>
               )}
+              {/* Full phrase with highlighted anchor text */}
+              {fullPhrase && (
+                <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
+                  <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} />
+                </div>
+              )}
               <div className="p-2">
                 <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
               </div>
@@ -1231,6 +1279,12 @@ function DefaultPopoverContent({
               {/* Humanizing message provides additional context below the header */}
               {humanizingMessage && (
                 <div className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{humanizingMessage}</div>
+              )}
+              {/* Full phrase with highlighted anchor text */}
+              {fullPhrase && (
+                <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
+                  <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} />
+                </div>
               )}
             </>
           )}

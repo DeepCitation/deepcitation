@@ -48,6 +48,11 @@ export interface CitationDrawerTriggerProps {
    * @default "icon"
    */
   indicatorVariant?: "icon" | "dot";
+  /**
+   * Map of attachmentId or URL to friendly display label.
+   * Used to override source names in tooltips and the default label.
+   */
+  sourceLabelMap?: Record<string, string>;
 }
 
 // =========
@@ -60,6 +65,37 @@ const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => 
 
 /** Delay in ms before hiding tooltip on mouse leave (prevents flicker) */
 const TOOLTIP_HIDE_DELAY_MS = 80;
+
+/**
+ * Detect if the primary pointing device is coarse (touch).
+ * Uses media query (pointer: coarse) which identifies touch as primary input method.
+ *
+ * NOTE: Not 100% reliable for hybrid devices:
+ * - iPads with keyboard/mouse can switch between coarse/fine
+ * - Some Windows touchscreens report (pointer: fine) when mouse is primary
+ *
+ * Trade-off: Fails safely — if detected as non-touch when it's hybrid, hover
+ * spread animation shows but doesn't break functionality. Direct drawer open
+ * on touch devices (optimal UX) is the goal, but graceful degradation is fine.
+ */
+function getIsTouchDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(pointer: coarse)").matches ?? false;
+}
+
+function useIsTouchDevice(): boolean {
+  const [isTouchDevice, setIsTouchDevice] = useState(() => getIsTouchDevice());
+  useEffect(() => {
+    setIsTouchDevice(getIsTouchDevice());
+    if (typeof window !== "undefined" && window.matchMedia) {
+      const mediaQuery = window.matchMedia("(pointer: coarse)");
+      const handleChange = () => setIsTouchDevice(getIsTouchDevice());
+      mediaQuery.addEventListener?.("change", handleChange);
+      return () => mediaQuery.removeEventListener?.("change", handleChange);
+    }
+  }, []);
+  return isTouchDevice;
+}
 
 /** Icon overlap when bar is expanded (rem scales with root font size) */
 const ICON_MARGIN_EXPANDED = "-0.25rem";
@@ -406,38 +442,62 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
     const [isHovered, setIsHovered] = useState(false);
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const isTouchDevice = useIsTouchDevice();
 
     const displayLabel = label ?? generateDefaultLabel(citationGroups);
 
     // Flatten citation groups into individual items for per-citation icons
     const flatCitations = useMemo(() => flattenCitations(citationGroups), [citationGroups]);
 
-    const handleMouseEnter = useCallback(() => setIsHovered(true), []);
+    // On touch devices, skip the hover-spread animation — tap goes straight to drawer
+    const handleMouseEnter = useCallback(() => {
+      if (!isTouchDevice) setIsHovered(true);
+    }, [isTouchDevice]);
     const handleMouseLeave = useCallback(() => {
-      setIsHovered(false);
-      setHoveredIndex(null);
-      clearTimeout(leaveTimeoutRef.current);
-    }, []);
-    const handleFocus = useCallback(() => {
-      clearTimeout(leaveTimeoutRef.current);
-      setIsHovered(true);
-    }, []);
-    const handleBlur = useCallback(() => {
-      leaveTimeoutRef.current = setTimeout(() => {
+      if (!isTouchDevice) {
         setIsHovered(false);
         setHoveredIndex(null);
-      }, TOOLTIP_HIDE_DELAY_MS);
-    }, []);
+        clearTimeout(leaveTimeoutRef.current);
+      }
+    }, [isTouchDevice]);
+    const handleFocus = useCallback(() => {
+      if (!isTouchDevice) {
+        clearTimeout(leaveTimeoutRef.current);
+        setIsHovered(true);
+      }
+    }, [isTouchDevice]);
+    const handleBlur = useCallback(() => {
+      if (!isTouchDevice) {
+        leaveTimeoutRef.current = setTimeout(() => {
+          setIsHovered(false);
+          setHoveredIndex(null);
+        }, TOOLTIP_HIDE_DELAY_MS);
+      }
+    }, [isTouchDevice]);
 
-    const handleIconHover = useCallback((index: number) => {
-      clearTimeout(leaveTimeoutRef.current);
-      setHoveredIndex(index);
-    }, []);
+    const handleIconHover = useCallback(
+      (index: number) => {
+        if (!isTouchDevice) {
+          clearTimeout(leaveTimeoutRef.current);
+          setHoveredIndex(index);
+        }
+      },
+      [isTouchDevice],
+    );
 
     const handleIconLeave = useCallback(() => {
-      clearTimeout(leaveTimeoutRef.current);
-      leaveTimeoutRef.current = setTimeout(() => setHoveredIndex(null), TOOLTIP_HIDE_DELAY_MS);
-    }, []);
+      if (!isTouchDevice) {
+        clearTimeout(leaveTimeoutRef.current);
+        leaveTimeoutRef.current = setTimeout(() => setHoveredIndex(null), TOOLTIP_HIDE_DELAY_MS);
+      }
+    }, [isTouchDevice]);
+
+    // On touch devices, tap opens the drawer directly (bypassing spread animation)
+    const handleTouchStart = useCallback(() => {
+      if (isTouchDevice) {
+        onClick?.();
+      }
+    }, [isTouchDevice, onClick]);
 
     // Clean up timeout on unmount
     useEffect(() => {
@@ -451,6 +511,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         ref={ref}
         type="button"
         onClick={onClick}
+        onTouchStart={handleTouchStart}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onFocus={handleFocus}
@@ -459,8 +520,8 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
           "inline-flex items-center gap-2 px-2 py-1",
           "bg-white dark:bg-gray-900",
           "border border-gray-200 dark:border-gray-700 rounded-md",
-          "transition-all duration-200 overflow-hidden",
-          "hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800",
+          "cursor-pointer transition-all transition-colors duration-200 overflow-hidden",
+          "hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50",
           "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
           className,
         )}

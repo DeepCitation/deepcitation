@@ -66,6 +66,12 @@ export interface CitationDrawerProps {
    * @default "icon"
    */
   indicatorVariant?: "icon" | "dot";
+  /**
+   * Map of attachmentId or URL to friendly display label.
+   * Used to override the default source name in group headers and citation rows.
+   * Lookup tries citation.attachmentId first, then citation.url.
+   */
+  sourceLabelMap?: Record<string, string>;
 }
 
 /**
@@ -89,4 +95,15 @@ export interface CitationDrawerItemProps {
    * @default "icon"
    */
   indicatorVariant?: "icon" | "dot";
+  /**
+   * Map of attachmentId or URL to friendly display label.
+   * Used to override the default source name display.
+   */
+  sourceLabelMap?: Record<string, string>;
+  /**
+   * Whether this item is rendered within a group context (group header shows source name).
+   * When true, the source name line is hidden to avoid repetition.
+   * @default false
+   */
+  hideSourceName?: boolean;
 }

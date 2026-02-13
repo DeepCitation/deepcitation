@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
-import type { CitationDrawerItemProps, CitationDrawerProps, SourceCitationGroup } from "./CitationDrawer.types.js";
+import type {
+  CitationDrawerItem,
+  CitationDrawerItemProps,
+  CitationDrawerProps,
+  SourceCitationGroup,
+} from "./CitationDrawer.types.js";
 import { extractDomain, getStatusInfo } from "./CitationDrawer.utils.js";
 import {
   COPY_FEEDBACK_DURATION_MS,
@@ -175,6 +180,56 @@ function DrawerVerificationSummary({
 }
 
 // =========
+// Utilities: sourceLabelMap lookup
+// =========
+
+/**
+ * Look up a friendly display label from the sourceLabelMap for a citation.
+ * Tries citation.attachmentId first, then citation.url.
+ */
+function lookupSourceLabel(
+  citation: { attachmentId?: string; url?: string } | undefined,
+  sourceLabelMap: Record<string, string> | undefined,
+): string | undefined {
+  if (!sourceLabelMap || !citation) return undefined;
+  if (citation.attachmentId && sourceLabelMap[citation.attachmentId]) {
+    return sourceLabelMap[citation.attachmentId];
+  }
+  if (citation.url && sourceLabelMap[citation.url]) {
+    return sourceLabelMap[citation.url];
+  }
+  return undefined;
+}
+
+/**
+ * Count words in a string (splits on whitespace).
+ */
+function wordCount(str: string): number {
+  return str.trim().split(/\s+/).length;
+}
+
+/**
+ * Render fullPhrase with anchorText highlighted in bold.
+ * Returns a React fragment with the anchorText portion wrapped in <strong>.
+ * If anchorText is not a substring of fullPhrase, returns fullPhrase as-is.
+ */
+function renderPhraseWithHighlight(fullPhrase: string, anchorText: string): React.ReactNode {
+  const idx = fullPhrase.indexOf(anchorText);
+  if (idx === -1) return fullPhrase;
+
+  const before = fullPhrase.slice(0, idx);
+  const after = fullPhrase.slice(idx + anchorText.length);
+
+  return (
+    <>
+      {before}
+      <strong>{anchorText}</strong>
+      {after}
+    </>
+  );
+}
+
+// =========
 // SourceGroupHeader
 // =========
 
@@ -183,14 +238,21 @@ function DrawerVerificationSummary({
  * Shows favicon (or letter avatar for documents), source name,
  * external link for URL sources, and citation count.
  */
-function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
-  const sourceName = group.sourceName || "Source";
+function SourceGroupHeader({
+  group,
+  sourceLabelMap,
+}: {
+  group: SourceCitationGroup;
+  sourceLabelMap?: Record<string, string>;
+}) {
+  const firstCitation = group.citations[0]?.citation;
+  const labelOverride = lookupSourceLabel(firstCitation, sourceLabelMap);
+  const sourceName = labelOverride || group.sourceName || "Source";
   const citationCount = group.citations.length;
   const isUrlSource = !!group.sourceDomain;
 
   // For URL sources, get a link to visit
-  const firstCit = group.citations[0]?.citation;
-  const sourceUrl = isUrlSource && firstCit?.type === "url" ? firstCit.url : undefined;
+  const sourceUrl = isUrlSource && firstCitation?.type === "url" ? firstCitation.url : undefined;
   const safeSourceUrl = sourceUrl ? sanitizeUrl(sourceUrl) : null;
 
   return (
@@ -233,10 +295,10 @@ function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
         </a>
       )}
 
-      {/* Citation count badge */}
-      <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
-        {citationCount} citation{citationCount !== 1 ? "s" : ""}
-      </span>
+      {/* Citation count badge — only shown when > 1 (single item is self-evident) */}
+      {citationCount > 1 && (
+        <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{citationCount} citations</span>
+      )}
     </div>
   );
 }
@@ -286,6 +348,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   onReadMore,
   className,
   indicatorVariant = "icon",
+  hideSourceName = false,
 }: CitationDrawerItemProps) {
   const { citation, verification } = item;
   const statusInfo = useMemo(() => getStatusInfo(verification, indicatorVariant), [verification, indicatorVariant]);
@@ -313,6 +376,17 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     verification?.url?.actualContentSnippet ||
     verification?.verifiedMatchSnippet;
   const _faviconUrl = citation.type === "url" ? citation.faviconUrl : undefined;
+
+  // Merge anchor text + fullPhrase when anchor is a substring of fullPhrase
+  // and fullPhrase has 2+ more words. Avoids stuttered display of near-duplicates.
+  const anchorText = citation.anchorText?.toString();
+  const fullPhrase = citation.fullPhrase;
+  const shouldMergePhrase =
+    anchorText &&
+    fullPhrase &&
+    anchorText !== fullPhrase &&
+    fullPhrase.includes(anchorText) &&
+    wordCount(fullPhrase) - wordCount(anchorText) >= 2;
 
   // Page number for document citations
   const pageNumber =
@@ -412,15 +486,23 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Source name (for URL citations) */}
-            {sourceName && <div className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">{sourceName}</div>}
-            {/* Anchor text with page number, copy button, and timestamp */}
+            {/* Source name — hidden when inside a group (group header shows it) */}
+            {!hideSourceName && sourceName && (
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">{sourceName}</div>
+            )}
+            {/* Title/phrase row with page number, copy button, and timestamp */}
             <div className="flex items-center gap-1.5">
-              {articleTitle && (
-                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{articleTitle}</h4>
+              {shouldMergePhrase ? (
+                <div className="text-sm text-gray-900 dark:text-gray-100 truncate">
+                  {renderPhraseWithHighlight(fullPhrase, anchorText)}
+                </div>
+              ) : (
+                articleTitle && (
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{articleTitle}</h4>
+                )
               )}
-              {/* Copy anchor text button — always in DOM, opacity on hover (no layout shift) */}
-              {articleTitle && (
+              {/* Copy button — always in DOM, opacity on hover (no layout shift) */}
+              {(articleTitle || shouldMergePhrase) && (
                 <button
                   type="button"
                   onClick={handleCopyAnchor}
@@ -443,8 +525,8 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0 ml-auto">{checkedDate}</span>
               )}
             </div>
-            {/* Snippet/description */}
-            {snippet && snippet !== articleTitle && (
+            {/* Snippet/description — skip when merged with title above */}
+            {!shouldMergePhrase && snippet && snippet !== articleTitle && (
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{snippet}</div>
             )}
             {/* Capture date for URL citations (absolute timestamp for audit precision) */}
@@ -543,6 +625,103 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 });
 
 // =========
+// CompactSingleCitationRow — merged header+item for single-citation groups
+// =========
+
+/**
+ * Compact row for groups with exactly 1 citation.
+ * Merges group header and citation item into one line:
+ * [favicon/letter] Source Name · status-icon · "anchor text" · p.N
+ */
+function CompactSingleCitationRow({
+  group,
+  sourceLabelMap,
+  isLast = false,
+  onClick,
+  indicatorVariant = "icon",
+}: {
+  group: SourceCitationGroup;
+  sourceLabelMap?: Record<string, string>;
+  isLast?: boolean;
+  onClick?: (item: CitationDrawerItem) => void;
+  indicatorVariant?: "icon" | "dot";
+}) {
+  const item = group.citations[0];
+  const { citation, verification } = item;
+  const statusInfo = getStatusInfo(verification, indicatorVariant);
+  const isPending = !verification?.status || verification.status === "pending" || verification.status === "loading";
+
+  const labelOverride = lookupSourceLabel(citation, sourceLabelMap);
+  const sourceName = labelOverride || group.sourceName || "Source";
+  const isUrlSource = !!group.sourceDomain;
+
+  const anchorText = citation.anchorText?.toString() || citation.fullPhrase;
+  const displayText = anchorText ? (anchorText.length > 50 ? `${anchorText.slice(0, 50)}...` : anchorText) : null;
+
+  const pageNumber =
+    (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
+
+  const handleClick = useCallback(() => onClick?.(item), [item, onClick]);
+
+  return (
+    <div
+      className={cn(
+        "px-4 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors",
+        "hover:bg-gray-50 dark:hover:bg-gray-800/50",
+        !isLast && "border-b border-gray-200 dark:border-gray-700",
+      )}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+    >
+      {/* Favicon or letter avatar */}
+      <div className="shrink-0">
+        {isUrlSource ? (
+          <FaviconImage faviconUrl={group.sourceFavicon || null} domain={group.sourceDomain || null} alt={sourceName} />
+        ) : (
+          <div className="w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+            <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400">
+              {sourceName.charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Source name */}
+      <span className="text-sm text-gray-600 dark:text-gray-400 shrink-0 truncate max-w-[120px]">{sourceName}</span>
+
+      {/* Status indicator */}
+      <span
+        className={cn(
+          "inline-flex w-4 h-4 items-center justify-center shrink-0",
+          statusInfo.color,
+          isPending && indicatorVariant !== "dot" && "animate-spin",
+        )}
+        title={statusInfo.label}
+      >
+        {statusInfo.icon}
+      </span>
+
+      {/* Anchor text */}
+      {displayText && (
+        <span className="text-sm text-gray-900 dark:text-gray-100 truncate flex-1 min-w-0">{displayText}</span>
+      )}
+
+      {/* Page number */}
+      {pageNumber != null && pageNumber > 0 && (
+        <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">p.{pageNumber}</span>
+      )}
+    </div>
+  );
+}
+
+// =========
 // CitationDrawer
 // =========
 
@@ -577,6 +756,7 @@ export function CitationDrawer({
   position = "bottom",
   renderCitationItem,
   indicatorVariant = "icon",
+  sourceLabelMap,
 }: CitationDrawerProps) {
   // Flatten all citations for total count
   const totalCitations = useMemo(() => {
@@ -601,10 +781,25 @@ export function CitationDrawer({
   if (!isOpen) return null;
 
   const renderGroup = (group: SourceCitationGroup, groupIndex: number, isLastGroup: boolean) => {
+    const key = `${group.sourceDomain ?? group.sourceName}-${groupIndex}`;
+
+    // Single-citation groups: render as one compact row (no header + item split)
+    if (group.citations.length === 1 && !renderCitationItem) {
+      return (
+        <CompactSingleCitationRow
+          key={key}
+          group={group}
+          isLast={isLastGroup}
+          onClick={onCitationClick}
+          indicatorVariant={indicatorVariant}
+        />
+      );
+    }
+
+    // Multi-citation groups: collapsible header + items
     return (
-      <div key={`${group.sourceDomain ?? group.sourceName}-${groupIndex}`}>
-        {/* Always show group header — it's the only source identity */}
-        <SourceGroupHeader group={group} />
+      <div key={key}>
+        <SourceGroupHeader group={group} sourceLabelMap={sourceLabelMap} />
         <div>
           {group.citations.map((item, index) =>
             renderCitationItem ? (
@@ -617,6 +812,8 @@ export function CitationDrawer({
                 onClick={onCitationClick}
                 onReadMore={onReadMore}
                 indicatorVariant={indicatorVariant}
+                hideSourceName
+                sourceLabelMap={sourceLabelMap}
               />
             ),
           )}
