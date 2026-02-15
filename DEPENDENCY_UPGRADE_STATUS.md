@@ -2,7 +2,7 @@
 
 **Date**: 2026-02-15
 **Branch**: c629-chore-look-into
-**Status**: 3 safe upgrades completed ✅
+**Status**: 4 safe upgrades completed ✅ (Node.js >=20 now required)
 
 ---
 
@@ -10,9 +10,9 @@
 
 Out of 9 proposed dependency upgrades identified by Dependabot:
 
-- **3 Completed** ✅ - Safe upgrades with no breaking changes
+- **4 Completed** ✅ - Safe upgrades with no breaking changes
 - **5 Pending** ⚠️ - Major version upgrades requiring testing
-- **1 Skipped** ❌ - Incompatible with Node.js policy
+- **0 Skipped** - All can now be handled (Node.js >=20 adopted)
 
 ### Build Status
 - ✅ Build successful with upgraded packages
@@ -42,6 +42,14 @@ Out of 9 proposed dependency upgrades identified by Dependabot:
 - **Breaking changes**: Generic parameter removed (type safety only)
 - **Risk**: None
 - **Code changes**: None
+- **Status**: ✅ Complete
+- **Verified**: Build + lint pass
+
+### 4. Engine Upgrade: Node.js >=18 → >=20
+- **Type**: Runtime requirement change
+- **Impact**: Enables newer Node features, allows rimraf 6.x
+- **Breaking change**: Packages now require Node 20+ (aligns with current LTS)
+- **Risk**: None (users on older Node versions need to upgrade)
 - **Status**: ✅ Complete
 - **Verified**: Build + lint pass
 
@@ -100,15 +108,15 @@ These require full testing before upgrading. Recommended order: Phase 2, then Ph
 
 ---
 
-## Skipped Upgrades (❌)
+## Completed Upgrades Phase 1.5 (✅)
 
 ### 9. rimraf: 5.0.10 → 6.1.2
-- **Reason**: Incompatible with Node.js policy
-- **Issue**: Requires Node.js >=20
-- **Your policy**: Supports Node.js >=18
-- **Impact**: Would break compatibility with Node 18 and 19
-- **Recommendation**: **Skip this upgrade** unless Node.js minimum version is updated to >=20
-- **Status**: Not upgraded
+- **Status**: ✅ Complete
+- **Change**: Updated Node.js engine requirement to >=20
+- **Reason**: rimraf 6.x requires Node.js >=20
+- **Impact**: Now compatible with Node.js >=20 requirement
+- **Note**: CLI only, no API changes, used in build scripts
+- **Verified**: Build + lint pass
 
 ---
 
@@ -191,12 +199,13 @@ No action needed. rimraf 5.0.10 is stable and works fine. The upgrade to 6.x is 
 | @types/jest | 1 | None | ✅ Complete |
 | @types/node | 1 | None | ✅ Complete |
 | @vitejs/plugin-react | 1 | None | ✅ Complete |
+| Node.js engine | 1.5 | None | ✅ Complete |
+| rimraf | 1.5 | None | ✅ Complete |
 | jest | 2 | Medium | Full test suite |
 | jest-environment-jsdom | 2 | Medium | Component tests |
 | @jest/globals | 2 | Low | Grep for usage |
 | size-limit | 3 | Low | Run size check |
 | @size-limit/preset-small-lib | 3 | Low | Run with size-limit |
-| rimraf | - | High | Skip (incompatible) |
 
 ---
 
