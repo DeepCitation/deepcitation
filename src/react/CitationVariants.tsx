@@ -223,7 +223,8 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
 
     // High-contrast hover states: light mode darkens, dark mode lightens
     const hoverClass = useMemo(() => {
-      if (isPartialMatch) return "hover:bg-amber-700 hover:text-white dark:hover:bg-amber-200 dark:hover:text-amber-900";
+      if (isPartialMatch)
+        return "hover:bg-amber-700 hover:text-white dark:hover:bg-amber-200 dark:hover:text-amber-900";
       if (isMiss) return "hover:bg-red-700 hover:text-white dark:hover:bg-red-200 dark:hover:text-red-900";
       if (isVerified) return "hover:bg-green-700 hover:text-white dark:hover:bg-green-200 dark:hover:text-green-900";
       if (isPending) return "hover:bg-gray-700 hover:text-white dark:hover:bg-gray-200 dark:hover:text-gray-900";

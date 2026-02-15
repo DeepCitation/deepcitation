@@ -30,6 +30,8 @@ import {
   POPOVER_CONTAINER_BASE_CLASSES,
   POPOVER_WIDTH_DEFAULT,
   POPOVER_WIDTH_VAR,
+  VERIFICATION_IMAGE_MAX_HEIGHT,
+  VERIFICATION_IMAGE_MAX_WIDTH,
   VERIFIED_COLOR_STYLE,
   Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
@@ -926,8 +928,8 @@ function AnchorTextFocusedImage({
   onImageClick,
   page,
   onViewPageClick,
-  maxWidth = "min(70vw, 480px)",
-  maxHeight = "min(50vh, 360px)",
+  maxWidth = VERIFICATION_IMAGE_MAX_WIDTH,
+  maxHeight = VERIFICATION_IMAGE_MAX_HEIGHT,
 }: {
   verification: Verification;
   onImageClick?: () => void;

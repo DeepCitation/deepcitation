@@ -260,7 +260,7 @@ function SourceGroupHeader({
       className="w-full px-4 py-2.5 flex items-center gap-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700"
       role="heading"
       aria-level={3}
-      aria-label={`Source: ${sourceName}${citationCount > 1 ? `, ${citationCount} citations` : ""}`}
+      aria-label={`Source: ${sourceName}${isUrlSource && group.sourceDomain && group.sourceDomain !== sourceName ? ` (${group.sourceDomain})` : ""}${citationCount > 1 ? `, ${citationCount} citations` : ""}`}
     >
       {/* Favicon for URL sources, letter avatar for documents */}
       <div className="shrink-0">
