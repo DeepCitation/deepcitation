@@ -277,13 +277,9 @@ function SourceGroupHeader({
 
       {/* Source name and domain (for URL sources, show domain in muted text) */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 text-left truncate">
-          {sourceName}
-        </span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 text-left truncate">{sourceName}</span>
         {isUrlSource && group.sourceDomain && group.sourceDomain !== sourceName && (
-          <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-            {group.sourceDomain}
-          </span>
+          <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{group.sourceDomain}</span>
         )}
       </div>
 

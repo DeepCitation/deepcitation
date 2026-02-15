@@ -196,23 +196,23 @@ test.describe("SuperscriptCitation", () => {
     expect(text).toMatch(/^\[1.*\]$/); // Starts with [ and ends with ]
   });
 
-  test("renders with brackets by default", async ({ mount, page }) => {
-    // Default is hideBrackets=false, meaning brackets ARE shown
+  test("renders without brackets by default", async ({ mount, page }) => {
+    // Default is hideBrackets=true, meaning brackets are NOT shown
     await mount(<SuperscriptCitation citation={baseCitation} />);
-    const sup = page.locator('[data-variant="superscript"]');
-
-    const text = await sup.textContent();
-    expect(text).toContain("[");
-    expect(text).toContain("]");
-  });
-
-  test("renders without brackets when hideBrackets is true", async ({ mount, page }) => {
-    await mount(<SuperscriptCitation citation={baseCitation} hideBrackets={true} />);
     const sup = page.locator('[data-variant="superscript"]');
 
     const text = await sup.textContent();
     expect(text).not.toContain("[");
     expect(text).not.toContain("]");
+  });
+
+  test("renders with brackets when hideBrackets is false", async ({ mount, page }) => {
+    await mount(<SuperscriptCitation citation={baseCitation} hideBrackets={false} />);
+    const sup = page.locator('[data-variant="superscript"]');
+
+    const text = await sup.textContent();
+    expect(text).toContain("[");
+    expect(text).toContain("]");
   });
 
   test("renders with miss state", async ({ mount, page }) => {
