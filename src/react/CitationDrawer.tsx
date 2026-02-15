@@ -717,7 +717,9 @@ function CompactSingleCitationRow({
 
       {/* Anchor text */}
       {displayText && (
-        <span className="text-sm text-gray-900 dark:text-gray-100 truncate flex-1 min-w-0">{displayText}</span>
+        <span className="text-sm text-gray-900 dark:text-gray-100 truncate flex-1 min-w-0" title={displayText}>
+          {displayText}
+        </span>
       )}
 
       {/* Page number */}

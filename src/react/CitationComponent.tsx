@@ -1610,6 +1610,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return () => {
         if (repositionGraceTimerRef.current) {
           clearTimeout(repositionGraceTimerRef.current);
+          repositionGraceTimerRef.current = null;
         }
       };
     }, [isHovering]);
