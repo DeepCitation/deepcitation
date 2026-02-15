@@ -124,11 +124,6 @@ export {
   SplitDiffDisplay,
   type SplitDiffDisplayProps,
 } from "./SplitDiffDisplay.js";
-// Status Indicator Wrapper (Shared component for icon indicators)
-export {
-  StatusIndicatorWrapper,
-  type StatusIndicatorWrapperProps,
-} from "./StatusIndicatorWrapper.js";
 // Status Message Utilities
 export { getContextualStatusMessage } from "./statusMessage.js";
 // Types - Useful for implementing your own citation components

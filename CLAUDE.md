@@ -291,12 +291,15 @@ The `chip` variant displays citations as rounded pill badges with status-specifi
 ```
 
 **Border Styles by Status:**
-| Status      | Border Style | Border Color (Light/Dark)              |
-|-------------|--------------|----------------------------------------|
-| **Verified**| Solid        | Green (green-300 / green-600)          |
-| **Partial** | Solid        | Amber (amber-300 / amber-600)          |
-| **Not Found** | **Dashed** | Red (red-300 / red-500)                |
-| **Pending** | Solid        | Gray (gray-300 / gray-600)             |
+
+| Status      | Border Style | Color (Light Mode) | Color (Dark Mode) |
+|-------------|---------------|--------------------|-------------------|
+| **Verified**| Solid         | `green-300`        | `green-600`       |
+| **Partial** | Solid         | `amber-300`        | `amber-600`       |
+| **Not Found** | **Dashed** | `red-300`          | `red-500`         |
+| **Pending** | Solid         | `gray-300`         | `gray-600`        |
+
+**Key Difference**: The `not_found` status uses a `border-dashed` style while all others use `border-solid`, providing a secondary visual cue ("broken" appearance) in addition to the red color.
 
 **Testing Considerations:**
 

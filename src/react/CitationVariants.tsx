@@ -201,7 +201,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
     );
 
     // Status-dependent styling classes with early returns for readability
-    // Check partial first since isVerified is true when isPartialMatch is true
+    // Note: Check partial before verified, since partial matches also have isVerified=true
     const statusClass = useMemo(() => {
       if (isPartialMatch) return "bg-amber-100 dark:bg-amber-900/30";
       if (isMiss) return "bg-red-100 dark:bg-red-900/30";
@@ -238,9 +238,15 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
     }, [isPartialMatch, isMiss, isVerified, isPending]);
 
     // Build accessible label that includes status for screen readers
-    const ariaLabel = displayText
-      ? `Citation: ${displayText}${isMiss ? " (not found)" : isPartialMatch ? " (partial match)" : isVerified ? " (verified)" : ""}`
-      : undefined;
+    const getStatusLabel = () => {
+      if (isMiss) return " (not found)";
+      if (isPartialMatch) return " (partial match)";
+      if (isVerified) return " (verified)";
+      if (isPending) return " (pending verification)";
+      return "";
+    };
+
+    const ariaLabel = displayText ? `Citation: ${displayText}${getStatusLabel()}` : undefined;
 
     return (
       <>
