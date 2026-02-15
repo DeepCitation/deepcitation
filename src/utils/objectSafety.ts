@@ -9,17 +9,22 @@
  */
 
 /**
- * Set of dangerous property names that can cause prototype pollution.
- * These keys should never be allowed in user-controlled object assignments.
+ * Set of property names that can cause prototype pollution.
+ * These are the core vectors for prototype pollution attacks:
+ * - `__proto__`: Direct access to object's internal prototype
+ * - `constructor`: Indirect access to constructor.prototype
+ * - `prototype`: Modifies constructor's prototype for all instances
+ *
+ * Additional dangerous keys that could be added for method hijacking:
+ * - toString, valueOf, hasOwnProperty, isPrototypeOf, toLocaleString
+ *
+ * However, we focus on the main prototype pollution vectors to avoid
+ * over-blocking legitimate use cases.
  */
 const DANGEROUS_KEYS = new Set([
   "__proto__",
   "constructor",
   "prototype",
-  "toString", // Can break string coercion
-  "valueOf", // Can break primitive coercion
-  "hasOwnProperty", // Used in many property checks
-  "isPrototypeOf", // Prototype chain manipulation
 ]);
 
 /**
