@@ -35,7 +35,7 @@ const PopoverContent = React.forwardRef<
         "w-fit max-w-[min(400px,calc(100vw-2rem))] max-h-[calc(100vh-4rem)]",
         "overflow-auto",
         "border-gray-200 dark:border-gray-700 dark:bg-gray-900",
-        // Animations
+        // Animations - smooth 200ms entry for snappy feel
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -43,6 +43,7 @@ const PopoverContent = React.forwardRef<
         "data-[side=left]:slide-in-from-right-2",
         "data-[side=right]:slide-in-from-left-2",
         "data-[side=top]:slide-in-from-bottom-2",
+        "duration-200",
         className,
       )}
       {...props}

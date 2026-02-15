@@ -221,24 +221,24 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
             : "bg-blue-100 dark:bg-blue-900/30";
 
     const borderClass = isPartialMatch
-      ? "border-amber-200 dark:border-amber-700"
+      ? "border-amber-300 dark:border-amber-600 hover:border-amber-500 dark:hover:border-amber-500"
       : isMiss
-        ? "border-red-200 dark:border-red-700"
+        ? "border-red-300 dark:border-red-600 hover:border-red-500 dark:hover:border-red-500"
         : isVerified
-          ? "border-green-200 dark:border-green-700"
+          ? "border-green-300 dark:border-green-600 hover:border-green-600 dark:hover:border-green-500"
           : isPending
-            ? "border-gray-200 dark:border-gray-700"
-            : "border-blue-200 dark:border-blue-700";
+            ? "border-gray-300 dark:border-gray-600 hover:border-gray-500 dark:hover:border-gray-500"
+            : "border-blue-300 dark:border-blue-600 hover:border-blue-500 dark:hover:border-blue-500";
 
     const hoverClass = isPartialMatch
-      ? "hover:bg-amber-200 dark:hover:bg-amber-800/40"
+      ? "hover:bg-amber-50 dark:hover:bg-amber-950/30"
       : isMiss
-        ? "hover:bg-red-200 dark:hover:bg-red-800/40"
+        ? "hover:bg-red-50 dark:hover:bg-red-950/30"
         : isVerified
-          ? "hover:bg-green-200 dark:hover:bg-green-800/40"
+          ? "hover:bg-green-50 dark:hover:bg-green-950/30"
           : isPending
-            ? "hover:bg-gray-200 dark:hover:bg-gray-700"
-            : "hover:bg-blue-200 dark:hover:bg-blue-800/40";
+            ? "hover:bg-gray-100 dark:hover:bg-gray-800/60"
+            : "hover:bg-blue-50 dark:hover:bg-blue-950/30";
 
     const textColorClass = isPartialMatch
       ? "text-amber-500 dark:text-amber-400"
@@ -261,7 +261,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="chip"
           className={classNames(
-            "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full font-normal cursor-pointer transition-colors text-[0.9em]",
+            "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full font-normal cursor-pointer transition-colors duration-150 text-[0.9em]",
             "border",
             statusClass,
             borderClass,

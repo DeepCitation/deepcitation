@@ -975,7 +975,7 @@ function AnchorTextFocusedImage({
             />
           </div>
         </button>
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none rounded-t-md" />
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150 pointer-events-none rounded-t-md" />
       </div>
 
       {/* Action bar - only shown when View page button is available */}
@@ -988,7 +988,7 @@ function AnchorTextFocusedImage({
               e.stopPropagation();
               onViewPageClick(page);
             }}
-            className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-150 cursor-pointer"
             aria-label="View full page"
           >
             <span>View page</span>
