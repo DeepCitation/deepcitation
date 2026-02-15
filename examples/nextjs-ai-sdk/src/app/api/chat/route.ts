@@ -1,6 +1,6 @@
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import { type FileDataPart, wrapCitationPrompt } from "@deepcitation/deepcitation-js";
+import { sanitizeForLog, type FileDataPart, wrapCitationPrompt } from "@deepcitation/deepcitation-js";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 export const maxDuration = 60;
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
   const hasDocuments = fileDataParts.length > 0;
 
-  console.log(`[Chat API] ${fileDataParts.length} files, provider=${provider}`);
+  console.log(`[Chat API] ${fileDataParts.length} files, provider=${sanitizeForLog(provider)}`);
 
   // Helper to extract text content from UI message parts
   const getMessageContent = (msg: UIMessage): string => {

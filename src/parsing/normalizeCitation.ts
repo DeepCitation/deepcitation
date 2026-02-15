@@ -418,8 +418,12 @@ const normalizeCitationContent = (input: string): string => {
 
     content = decodeHtmlEntities(content);
 
-    // Normalize quotes
+    // Normalize quotes - backslashes are intentionally NOT escaped here
+    // because they're used for escape sequences (\n, \', \") that are
+    // properly handled by parseCitation.ts
+    // lgtm[js/incomplete-sanitization]
     content = content.replace(/\\\\'/g, "'").replace(/\\'/g, "'").replace(/'/g, "\\'");
+    // lgtm[js/incomplete-sanitization]
     content = content.replace(/\\\\"/g, '"').replace(/\\"/g, '"').replace(/"/g, '\\"');
 
     return `${canonicalizeCiteAttributeKey(key)}='${content}'`;

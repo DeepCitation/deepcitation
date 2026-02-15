@@ -692,14 +692,18 @@ export function groupCitationsByAttachmentIdObject(
   for (const [key, citation] of entries) {
     const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
 
+    // Only assign if both attachmentId and key are safe (prevents prototype pollution)
+    if (!isSafeKey(attachmentId) || !isSafeKey(key)) {
+      continue;
+    }
+
+    // attachmentId and key are guaranteed safe by isSafeKey checks above (line 696)
+    // lgtm[js/prototype-polluting-assignment]
     if (!grouped[attachmentId]) {
       grouped[attachmentId] = createSafeObject<Citation>();
     }
 
-    // Only assign if key is safe (prevents prototype pollution)
-    if (isSafeKey(key)) {
-      grouped[attachmentId][key] = citation;
-    }
+    grouped[attachmentId][key] = citation;
   }
 
   return grouped;
