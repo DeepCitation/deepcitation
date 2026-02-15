@@ -118,9 +118,9 @@ test.describe("Popover Image Width Constraint", () => {
     await expect(image).toBeVisible();
 
     // Check that image has max-height constraint via inline style
-    // Implementation uses: maxHeight: "min(50vh, 300px)"
+    // Implementation uses: maxHeight: "min(50vh, 360px)"
     const maxHeight = await image.evaluate(el => (el as HTMLElement).style.maxHeight);
-    expect(maxHeight).toContain("300px");
+    expect(maxHeight).toContain("360px");
   });
 
   test("image uses object-fit contain to maintain aspect ratio", async ({ mount, page }) => {
