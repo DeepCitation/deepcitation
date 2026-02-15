@@ -274,6 +274,44 @@ The `linter` variant displays citations as inline text with semantic underlines,
 }
 ```
 
+#### Chip Variant
+
+The `chip` variant displays citations as rounded pill badges with status-specific styling. For **not found** citations, the chip uses a **dashed border** to provide a subtle visual distinction even when status indicators are hidden.
+
+**Visual Design Rationale:**
+- **Dashed border** = "broken" or "incomplete" — a familiar UI pattern for missing/unavailable content
+- Works with or without the status indicator icon
+- Maintains accessibility through color coding (red) while adding a shape-based visual cue
+- More suitable than wavy underline for pill/badge components where borders are the primary visual element
+
+```tsx
+// Chip variant with not_found status displays dashed red border
+<CitationComponent citation={citation} verification={{ status: "not_found" }} variant="chip" />
+// Renders: pill badge with dashed red border (vs solid border for verified)
+```
+
+**Border Styles by Status:**
+
+| Status      | Border Style | Color (Light Mode) | Color (Dark Mode) |
+|-------------|---------------|--------------------|-------------------|
+| **Verified**| Solid         | `green-300`        | `green-600`       |
+| **Partial** | Solid         | `amber-300`        | `amber-600`       |
+| **Not Found** | **Dashed** | `red-300`          | `red-500`         |
+| **Pending** | Solid         | `gray-300`         | `gray-600`        |
+
+**Key Difference**: The `not_found` status uses a `border-dashed` style while all others use `border-solid`, providing a secondary visual cue ("broken" appearance) in addition to the red color.
+
+**Testing Considerations:**
+
+The dashed border pattern is a key visual cue for the not_found state. When making changes to chip variant styling, consider:
+
+- **Visual regression tests**: Use Playwright component tests to capture snapshots of all status states
+- **Cross-browser testing**: Dashed border rendering can vary across browsers (Firefox, Safari, Chrome)
+- **Accessibility validation**: Verify screen readers announce the complete citation state including verification status
+- **Dark mode verification**: Test contrast ratios for border visibility against background colors
+
+See the existing Playwright test suite in `src/__tests__/` for examples of visual regression testing patterns.
+
 #### Variant (Visual Style)
 
 | Variant       | Output Example          | Description                                    |

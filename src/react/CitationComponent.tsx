@@ -21,7 +21,6 @@ import {
   ANCHOR_HIGHLIGHT_STYLE,
   DOT_COLORS,
   DOT_INDICATOR_SIZE_STYLE,
-  ERROR_COLOR_STYLE,
   getPortalContainer,
   INDICATOR_SIZE_STYLE,
   MIN_WORD_DIFFERENCE,
@@ -36,6 +35,7 @@ import {
 import { CheckIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
+import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
 import type {
   BaseCitationProps,
   CitationBehaviorActions,
@@ -864,14 +864,9 @@ const PendingIndicator = () => (
  * Dynamic sizing via em units for font-proportional scaling.
  */
 const MissIndicator = () => (
-  <span
-    className="inline-flex items-center ml-0.5 [text-decoration:none]"
-    style={{ ...INDICATOR_SIZE_STYLE, ...ERROR_COLOR_STYLE }}
-    data-dc-indicator="error"
-    aria-hidden="true"
-  >
+  <StatusIndicatorWrapper className="[text-decoration:none]" dataIndicator="error">
     <XIcon />
-  </span>
+  </StatusIndicatorWrapper>
 );
 
 // =============================================================================

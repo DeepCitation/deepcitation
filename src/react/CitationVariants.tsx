@@ -2,14 +2,9 @@ import React, { forwardRef, memo, type ReactNode, useCallback, useMemo } from "r
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import {
-  ERROR_COLOR_STYLE,
-  INDICATOR_SIZE_STYLE,
-  MISS_WAVY_UNDERLINE_STYLE,
-  PARTIAL_COLOR_STYLE,
-  VERIFIED_COLOR_STYLE,
-} from "./constants.js";
+import { MISS_WAVY_UNDERLINE_STYLE, PARTIAL_COLOR_STYLE, VERIFIED_COLOR_STYLE } from "./constants.js";
 import { XIcon } from "./icons.js";
+import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
 import type { BaseCitationProps, CitationEventHandlers, CitationVariant as CitationVariantType } from "./types.js";
 import {
   classNames,
@@ -144,13 +139,9 @@ function StatusIndicators({
       {isVerified && !isPartialMatch && renderVerifiedIndicator(status)}
       {isMiss && (
         <>
-          <span
-            className="ml-0.5 shrink-0"
-            style={{ ...INDICATOR_SIZE_STYLE, ...ERROR_COLOR_STYLE }}
-            aria-hidden="true"
-          >
+          <StatusIndicatorWrapper>
             <XIcon />
-          </span>
+          </StatusIndicatorWrapper>
           <span className="sr-only">not found</span>
         </>
       )}
@@ -209,46 +200,53 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       [citation, fallbackDisplay],
     );
 
-    // Check partial first since isVerified is true when isPartialMatch is true
-    const statusClass = isPartialMatch
-      ? "bg-amber-100 dark:bg-amber-900/30"
-      : isMiss
-        ? "bg-red-100 dark:bg-red-900/30"
-        : isVerified
-          ? "bg-green-100 dark:bg-green-900/30"
-          : isPending
-            ? "bg-gray-100 dark:bg-gray-800"
-            : "bg-blue-100 dark:bg-blue-900/30";
+    // Status-dependent styling classes with early returns for readability
+    // Note: Check partial before verified, since partial matches also have isVerified=true
+    const statusClass = useMemo(() => {
+      if (isPartialMatch) return "bg-amber-100 dark:bg-amber-900/30";
+      if (isMiss) return "bg-red-100 dark:bg-red-900/30";
+      if (isVerified) return "bg-green-100 dark:bg-green-900/30";
+      if (isPending) return "bg-gray-100 dark:bg-gray-800";
+      return "bg-blue-100 dark:bg-blue-900/30";
+    }, [isPartialMatch, isMiss, isVerified, isPending]);
 
-    const borderClass = isPartialMatch
-      ? "border-amber-300 dark:border-amber-600 hover:border-amber-500 dark:hover:border-amber-500"
-      : isMiss
-        ? "border-red-300 dark:border-red-600 hover:border-red-500 dark:hover:border-red-500"
-        : isVerified
-          ? "border-green-300 dark:border-green-600 hover:border-green-600 dark:hover:border-green-500"
-          : isPending
-            ? "border-gray-300 dark:border-gray-600 hover:border-gray-500 dark:hover:border-gray-500"
-            : "border-blue-300 dark:border-blue-600 hover:border-blue-500 dark:hover:border-blue-500";
+    const borderClass = useMemo(() => {
+      if (isPartialMatch)
+        return "border-amber-300 dark:border-amber-600 hover:border-amber-500 dark:hover:border-amber-500";
+      if (isMiss)
+        return "border-dashed border-red-300 dark:border-red-500 hover:border-red-500 dark:hover:border-red-400";
+      if (isVerified)
+        return "border-green-300 dark:border-green-600 hover:border-green-600 dark:hover:border-green-500";
+      if (isPending) return "border-gray-300 dark:border-gray-600 hover:border-gray-500 dark:hover:border-gray-500";
+      return "border-blue-300 dark:border-blue-600 hover:border-blue-500 dark:hover:border-blue-500";
+    }, [isPartialMatch, isMiss, isVerified, isPending]);
 
-    const hoverClass = isPartialMatch
-      ? "hover:bg-amber-50 dark:hover:bg-amber-950/30"
-      : isMiss
-        ? "hover:bg-red-50 dark:hover:bg-red-950/30"
-        : isVerified
-          ? "hover:bg-green-50 dark:hover:bg-green-950/30"
-          : isPending
-            ? "hover:bg-gray-100 dark:hover:bg-gray-800/60"
-            : "hover:bg-blue-50 dark:hover:bg-blue-950/30";
+    const hoverClass = useMemo(() => {
+      if (isPartialMatch) return "hover:bg-amber-50 dark:hover:bg-amber-950/30";
+      if (isMiss) return "hover:bg-red-50 dark:hover:bg-red-950/30";
+      if (isVerified) return "hover:bg-green-50 dark:hover:bg-green-950/30";
+      if (isPending) return "hover:bg-gray-100 dark:hover:bg-gray-800/60";
+      return "hover:bg-blue-50 dark:hover:bg-blue-950/30";
+    }, [isPartialMatch, isMiss, isVerified, isPending]);
 
-    const textColorClass = isPartialMatch
-      ? "text-amber-500 dark:text-amber-400"
-      : isMiss
-        ? "text-red-600 dark:text-red-400"
-        : isVerified
-          ? "text-green-600 dark:text-green-500"
-          : isPending
-            ? "text-gray-500 dark:text-gray-400"
-            : "text-blue-600 dark:text-blue-400";
+    const textColorClass = useMemo(() => {
+      if (isPartialMatch) return "text-amber-500 dark:text-amber-400";
+      if (isMiss) return "text-red-600 dark:text-red-400";
+      if (isVerified) return "text-green-600 dark:text-green-500";
+      if (isPending) return "text-gray-500 dark:text-gray-400";
+      return "text-blue-600 dark:text-blue-400";
+    }, [isPartialMatch, isMiss, isVerified, isPending]);
+
+    // Build accessible label that includes status for screen readers
+    const getStatusLabel = () => {
+      if (isMiss) return " (not found)";
+      if (isPartialMatch) return " (partial match)";
+      if (isVerified) return " (verified)";
+      if (isPending) return " (pending verification)";
+      return "";
+    };
+
+    const ariaLabel = displayText ? `Citation: ${displayText}${getStatusLabel()}` : undefined;
 
     return (
       <>
@@ -269,7 +267,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
             className,
           )}
           {...events}
-          aria-label={displayText ? `Citation: ${displayText}` : undefined}
+          aria-label={ariaLabel}
         >
           {showIcon && (icon || <span className="text-[0.9em]">📄</span>)}
           <span className={classNames(textColorClass, isMiss && "opacity-70")}>{displayText}</span>
