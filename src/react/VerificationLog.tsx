@@ -439,8 +439,6 @@ export interface StatusHeaderProps {
   anchorText?: string;
   /** Whether to hide the page badge (to avoid duplication when SourceContextHeader shows it) */
   hidePageBadge?: boolean;
-  /** Whether to show copy button next to anchor text */
-  showCopyButton?: boolean;
   /**
    * Visual style for status indicators.
    * - `"icon"`: Icon-based indicators (default)
@@ -725,7 +723,6 @@ export function StatusHeader({
   compact = false,
   anchorText,
   hidePageBadge = false,
-  showCopyButton = true,
   indicatorVariant = "icon",
 }: StatusHeaderProps) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");

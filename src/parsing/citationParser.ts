@@ -22,6 +22,7 @@ import {
 } from "../prompts/citationPrompts.js";
 import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
+import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
 
 /**
  * Map of compact keys to their full CitationData equivalents.
@@ -68,11 +69,16 @@ function expandCompactKeys(
   data: CompactCitationData | CitationData | Record<string, unknown>,
   attachmentId?: string,
 ): CitationData {
-  const result: Record<string, unknown> = {};
+  const result = createSafeObject<unknown>();
 
   for (const [key, value] of Object.entries(data)) {
     // Check if this is a compact key
     const fullKey = COMPACT_KEY_MAP[key] || key;
+
+    // Only assign if key is safe (prevents prototype pollution)
+    if (!isSafeKey(fullKey)) {
+      continue;
+    }
 
     // Handle timestamps specially (nested object with s/e keys)
     if ((key === "t" || key === "timestamps") && value && typeof value === "object") {

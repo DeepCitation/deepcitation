@@ -162,5 +162,37 @@ export {
   NOT_FOUND_VERIFICATION_INDEX,
   PENDING_VERIFICATION_INDEX,
 } from "./types/verification.js";
+export {
+  createLogEntry,
+  sanitizeForLog,
+  sanitizeJsonForLog,
+} from "./utils/logSafety.js";
+export {
+  createSafeObject,
+  isSafeKey,
+  safeAssign,
+  safeAssignBulk,
+  safeMerge,
+  setObjectSafetyWarning,
+} from "./utils/objectSafety.js";
+// Security utilities
+export {
+  MAX_REGEX_INPUT_LENGTH,
+  safeExec,
+  safeMatch,
+  safeReplace,
+  safeReplaceAll,
+  safeSearch,
+  safeSplit,
+  safeTest,
+  validateRegexInput,
+} from "./utils/regexSafety.js";
 // Utilities
 export { sha1Hash } from "./utils/sha.js";
+export {
+  detectSourceType,
+  extractDomain,
+  isApprovedDomain,
+  isDomainMatch,
+  isSafeDomain,
+} from "./utils/urlSafety.js";

@@ -1,6 +1,7 @@
 import { generateCitationKey } from "../react/utils.js";
 import type { Citation, CitationRecord, CitationStatus, DocumentCitation, UrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
 import { getAllCitationsFromDeferredResponse, hasDeferredCitations } from "./citationParser.js";
 import { normalizeCitations } from "./normalizeCitation.js";
 
@@ -692,10 +693,13 @@ export function groupCitationsByAttachmentIdObject(
     const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
 
     if (!grouped[attachmentId]) {
-      grouped[attachmentId] = {};
+      grouped[attachmentId] = createSafeObject<Citation>();
     }
 
-    grouped[attachmentId][key] = citation;
+    // Only assign if key is safe (prevents prototype pollution)
+    if (isSafeKey(key)) {
+      grouped[attachmentId][key] = citation;
+    }
   }
 
   return grouped;
