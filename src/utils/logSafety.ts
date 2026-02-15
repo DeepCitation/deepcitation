@@ -128,13 +128,13 @@ export function safeLog(
 function stringifyWithDepthLimit(value: unknown, maxDepth: number): string {
   const seen = new WeakSet<object>();
 
-  function stringify(obj: unknown, depth: number): string | undefined {
+  function stringify(obj: unknown, depth: number): string {
     if (depth > maxDepth) {
       return '"[Omitted - too deep]"';
     }
 
     if (obj === null) return "null";
-    if (obj === undefined) return undefined;
+    if (obj === undefined) return "null"; // Undefined becomes null in JSON
 
     const type = typeof obj;
     if (type === "string") return JSON.stringify(obj);

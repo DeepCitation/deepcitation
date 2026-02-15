@@ -99,11 +99,10 @@ export function safeExec(regex: RegExp, input: string): RegExpExecArray | null {
 export function safeReplace(
   input: string,
   regex: RegExp,
-  replacement: string | ((substring: string, ...args: string[]) => string),
+  replacement: string | ((substring: string, ...args: any[]) => string),
 ): string {
   validateRegexInput(input);
-  // TypeScript requires explicit handling for overloaded replace signatures
-  return input.replace(regex, replacement as string | ((substring: string, ...args: string[]) => string));
+  return input.replace(regex, replacement as any);
 }
 
 /**
@@ -123,14 +122,13 @@ export function safeReplace(
 export function safeReplaceAll(
   input: string,
   regex: RegExp,
-  replacement: string | ((substring: string, ...args: string[]) => string),
+  replacement: string | ((substring: string, ...args: any[]) => string),
 ): string {
   validateRegexInput(input);
   if (!regex.global) {
     throw new Error("safeReplaceAll requires a regex with the g flag");
   }
-  // TypeScript requires explicit handling for overloaded replaceAll signatures
-  return input.replaceAll(regex, replacement as string | ((substring: string, ...args: string[]) => string));
+  return input.replaceAll(regex, replacement as any);
 }
 
 /**
