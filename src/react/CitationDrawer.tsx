@@ -699,10 +699,7 @@ function CompactSingleCitationRow({
       </div>
 
       {/* Source name */}
-      <span
-        className="text-sm text-gray-600 dark:text-gray-400 truncate flex-1 min-w-0"
-        title={sourceName}
-      >
+      <span className="text-sm text-gray-600 dark:text-gray-400 truncate flex-1 min-w-0" title={sourceName}>
         {sourceName}
       </span>
 
