@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/experimental-ct-react";
 import { CitationDrawerShowcase } from "../../../src/react/testing/ShowcaseComponents";
+import { scaleDownForSnapshot } from "../snapshotHelpers";
 
 // =============================================================================
 // TESTS - Desktop Drawer Showcase
@@ -68,6 +69,8 @@ test.describe("Drawer Showcase - Desktop", () => {
     // Wait for triggers to render
     await expect(page.locator('[data-testid="citation-drawer-trigger"]').first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "drawer-showcase");
+
     await expect(showcase).toHaveScreenshot("drawer-showcase.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -105,6 +108,8 @@ test.describe("Drawer Showcase - Mobile", () => {
 
     await expect(page.locator('[data-testid="citation-drawer-trigger"]').first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "drawer-showcase");
+
     await expect(showcase).toHaveScreenshot("drawer-showcase-mobile.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -126,6 +131,8 @@ test.describe("Drawer Showcase - Tablet", () => {
     await expect(showcase).toBeVisible();
 
     await expect(page.locator('[data-testid="citation-drawer-trigger"]').first()).toBeVisible();
+
+    await scaleDownForSnapshot(page, "drawer-showcase");
 
     await expect(showcase).toHaveScreenshot("drawer-showcase-tablet.png", {
       animations: "disabled",
@@ -156,6 +163,8 @@ test.describe("Drawer Showcase - Desktop Dark Mode", () => {
 
     await expect(page.locator('[data-testid="citation-drawer-trigger"]').first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "drawer-showcase");
+
     await expect(showcase).toHaveScreenshot("drawer-showcase-dark.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -176,6 +185,8 @@ test.describe("Drawer Showcase - Mobile Dark Mode", () => {
     await expect(showcase).toBeVisible();
 
     await expect(page.locator('[data-testid="citation-drawer-trigger"]').first()).toBeVisible();
+
+    await scaleDownForSnapshot(page, "drawer-showcase");
 
     await expect(showcase).toHaveScreenshot("drawer-showcase-mobile-dark.png", {
       animations: "disabled",

@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/experimental-ct-react";
 // Import showcase components separately to avoid Playwright CT bundling conflict
 import { MarkdownShowcase } from "../../../src/markdown/testing/MarkdownShowcase";
 import { INDICATOR_STYLES, MARKDOWN_VARIANTS } from "../../../src/markdown/testing/MarkdownShowcase.constants";
+import { scaleDownForSnapshot } from "../snapshotHelpers";
 
 // =============================================================================
 // TESTS - Markdown Showcase
@@ -94,6 +95,8 @@ test.describe("Markdown Showcase - Desktop", () => {
     const showcase = page.locator('[data-testid="markdown-showcase"]');
     await expect(showcase).toBeVisible();
 
+    await scaleDownForSnapshot(page, "markdown-showcase");
+
     await expect(showcase).toHaveScreenshot("markdown-showcase.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -130,6 +133,8 @@ test.describe("Markdown Showcase - Desktop Dark Mode", () => {
     const showcase = page.locator('[data-testid="markdown-showcase"]');
     await expect(showcase).toBeVisible();
 
+    await scaleDownForSnapshot(page, "markdown-showcase");
+
     await expect(showcase).toHaveScreenshot("markdown-showcase-dark.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -162,6 +167,8 @@ test.describe("Markdown Showcase - Mobile", () => {
     const showcase = page.locator('[data-testid="markdown-showcase"]');
     await expect(showcase).toBeVisible();
 
+    await scaleDownForSnapshot(page, "markdown-showcase");
+
     await expect(showcase).toHaveScreenshot("markdown-showcase-mobile.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -181,6 +188,8 @@ test.describe("Markdown Showcase - Tablet", () => {
 
     const showcase = page.locator('[data-testid="markdown-showcase"]');
     await expect(showcase).toBeVisible();
+
+    await scaleDownForSnapshot(page, "markdown-showcase");
 
     await expect(showcase).toHaveScreenshot("markdown-showcase-tablet.png", {
       animations: "disabled",

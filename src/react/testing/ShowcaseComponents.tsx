@@ -757,7 +757,7 @@ export function VisualShowcase() {
         description="Citations with different search attempt histories - helps auditors understand why verification failed"
         data-testid="audit-log-section"
       >
-        <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
           <ShowcaseCard
             className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10"
             data-audit="not-found"

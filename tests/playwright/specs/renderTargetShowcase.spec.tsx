@@ -6,6 +6,7 @@ import {
   SLACK_VARIANTS,
   TERMINAL_VARIANTS,
 } from "../../../src/rendering/testing/RenderTargetShowcase.constants";
+import { scaleDownForSnapshot } from "../snapshotHelpers";
 
 // =============================================================================
 // TESTS - Desktop
@@ -149,6 +150,8 @@ test.describe("Render Target Showcase - Desktop", () => {
     const showcase = page.locator('[data-testid="render-target-showcase"]');
     await expect(showcase).toBeVisible();
 
+    await scaleDownForSnapshot(page, "render-target-showcase");
+
     await expect(showcase).toHaveScreenshot("render-target-showcase.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -175,6 +178,8 @@ test.describe("Render Target Showcase - Desktop Dark Mode", () => {
 
     const showcase = page.locator('[data-testid="render-target-showcase"]');
     await expect(showcase).toBeVisible();
+
+    await scaleDownForSnapshot(page, "render-target-showcase");
 
     await expect(showcase).toHaveScreenshot("render-target-showcase-dark.png", {
       animations: "disabled",
@@ -207,6 +212,8 @@ test.describe("Render Target Showcase - Mobile", () => {
     const showcase = page.locator('[data-testid="render-target-showcase"]');
     await expect(showcase).toBeVisible();
 
+    await scaleDownForSnapshot(page, "render-target-showcase");
+
     await expect(showcase).toHaveScreenshot("render-target-showcase-mobile.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -226,6 +233,8 @@ test.describe("Render Target Showcase - Tablet", () => {
 
     const showcase = page.locator('[data-testid="render-target-showcase"]');
     await expect(showcase).toBeVisible();
+
+    await scaleDownForSnapshot(page, "render-target-showcase");
 
     await expect(showcase).toHaveScreenshot("render-target-showcase-tablet.png", {
       animations: "disabled",

@@ -182,36 +182,35 @@ test.describe("Popover Image Width Constraint", () => {
 const skipVisualTests = !!process.env.CI && !process.env.UPDATE_SNAPSHOTS;
 
 test.describe("Popover Visual States", () => {
-  test("visual comparison of all popover states", async ({ mount, page }) => {
+  test("visual comparison of all popover states combined in grid", async ({ mount, page }) => {
     test.skip(skipVisualTests, "Skipping visual test - no baseline for this platform");
     await mount(
       <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "200px",
-          padding: "120px 50px",
-          minHeight: "800px",
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: "120px",
+          padding: "100px 50px",
         }}
       >
-        <div>
-          <strong>Verified with wide image:</strong>{" "}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
+          <strong>Verified</strong>
           <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
         </div>
-        <div>
-          <strong>Partial match with wide image:</strong>{" "}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
+          <strong>Partial</strong>
           <CitationComponent citation={baseCitation} verification={verificationWithPartialMatch} />
         </div>
-        <div>
-          <strong>Not found (no image):</strong>{" "}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
+          <strong>Not Found</strong>
           <CitationComponent citation={baseCitation} verification={verificationWithMiss} />
         </div>
       </div>,
     );
 
     // Take screenshot of the page for visual verification
-    // This allows manual inspection of all states
-    await expect(page).toHaveScreenshot("popover-states-overview.png", {
+    // This allows manual inspection of all states in a compact grid layout
+    await expect(page).toHaveScreenshot("popover-states-grid.png", {
       fullPage: true,
     });
   });

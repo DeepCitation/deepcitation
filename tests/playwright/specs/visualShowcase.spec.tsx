@@ -9,6 +9,7 @@ import {
   allUrlStatuses,
   allVerificationStatuses,
 } from "../../../src/react/testing/ShowcaseFixtures";
+import { scaleDownForSnapshot } from "../snapshotHelpers";
 
 // =============================================================================
 // TESTS - Desktop Visual Showcase
@@ -98,6 +99,8 @@ test.describe("Visual Showcase - Desktop", () => {
     // Wait for all citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "visual-showcase");
+
     // Take screenshot of the showcase element
     await expect(showcase).toHaveScreenshot("desktop-showcase.png", {
       animations: "disabled",
@@ -157,6 +160,8 @@ test.describe("Visual Showcase - Mobile", () => {
     // Wait for citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "mobile-showcase");
+
     await expect(showcase).toHaveScreenshot("mobile-showcase.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -180,6 +185,8 @@ test.describe("Visual Showcase - Tablet", () => {
 
     // Wait for citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
+
+    await scaleDownForSnapshot(page, "visual-showcase");
 
     await expect(showcase).toHaveScreenshot("tablet-showcase.png", {
       animations: "disabled",
@@ -304,6 +311,8 @@ test.describe("Popover Showcase - Desktop", () => {
     // Wait for animations to settle (spinners are present)
     await page.waitForTimeout(500);
 
+    await scaleDownForSnapshot(page, "popover-showcase");
+
     // Take screenshot of the popover showcase
     await expect(showcase).toHaveScreenshot("popover-showcase.png", {
       animations: "disabled",
@@ -413,6 +422,8 @@ test.describe("Visual Showcase - Desktop Dark Mode", () => {
     // Wait for all citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "visual-showcase");
+
     // Take screenshot of the showcase element in dark mode
     await expect(showcase).toHaveScreenshot("desktop-showcase-dark.png", {
       animations: "disabled",
@@ -458,6 +469,8 @@ test.describe("Visual Showcase - Mobile Dark Mode", () => {
     // Wait for citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
 
+    await scaleDownForSnapshot(page, "mobile-showcase");
+
     await expect(showcase).toHaveScreenshot("mobile-showcase-dark.png", {
       animations: "disabled",
       maxDiffPixelRatio: 0.1,
@@ -480,6 +493,8 @@ test.describe("Visual Showcase - Tablet Dark Mode", () => {
 
     // Wait for citations to render
     await expect(page.locator("[data-citation-id]").first()).toBeVisible();
+
+    await scaleDownForSnapshot(page, "visual-showcase");
 
     await expect(showcase).toHaveScreenshot("tablet-showcase-dark.png", {
       animations: "disabled",
@@ -546,6 +561,8 @@ test.describe("Popover Showcase - Desktop Dark Mode", () => {
 
     // Wait for animations to settle (spinners are present)
     await page.waitForTimeout(500);
+
+    await scaleDownForSnapshot(page, "popover-showcase");
 
     // Take screenshot of the popover showcase in dark mode
     await expect(showcase).toHaveScreenshot("popover-showcase-dark.png", {
