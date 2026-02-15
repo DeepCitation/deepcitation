@@ -90,12 +90,12 @@ test.describe("Popover Image Width Constraint", () => {
     const container = popover.locator(".shadow-md.rounded-lg");
     await expect(container).toBeVisible();
 
-    // The container should have a constrained width (384px with safe margins to prevent scrollbar)
+    // The container should have a constrained width (480px with safe margins to prevent scrollbar)
     // Use getComputedStyle to get the resolved value, not the inline style attribute
     const containerWidth = await container.evaluate(el =>
       window.getComputedStyle(el as HTMLElement).width
     );
-    expect(containerWidth).toBe("384px");
+    expect(containerWidth).toBe("480px");
   });
 
   test("popover image has max height constraint", async ({ mount, page }) => {
@@ -118,9 +118,9 @@ test.describe("Popover Image Width Constraint", () => {
     await expect(image).toBeVisible();
 
     // Check that image has max-height constraint via inline style
-    // Implementation uses: maxHeight: "min(50vh, 300px)"
+    // Implementation uses: maxHeight: "min(50vh, 360px)"
     const maxHeight = await image.evaluate(el => (el as HTMLElement).style.maxHeight);
-    expect(maxHeight).toContain("300px");
+    expect(maxHeight).toContain("360px");
   });
 
   test("image uses object-fit contain to maintain aspect ratio", async ({ mount, page }) => {

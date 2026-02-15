@@ -221,16 +221,18 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       return "border-blue-300 dark:border-blue-600 hover:border-blue-500 dark:hover:border-blue-500";
     }, [isPartialMatch, isMiss, isVerified, isPending]);
 
+    // High-contrast hover states: light mode darkens, dark mode lightens
     const hoverClass = useMemo(() => {
-      if (isPartialMatch) return "hover:bg-amber-50 dark:hover:bg-amber-950/30";
-      if (isMiss) return "hover:bg-red-50 dark:hover:bg-red-950/30";
-      if (isVerified) return "hover:bg-green-50 dark:hover:bg-green-950/30";
-      if (isPending) return "hover:bg-gray-100 dark:hover:bg-gray-800/60";
-      return "hover:bg-blue-50 dark:hover:bg-blue-950/30";
+      if (isPartialMatch)
+        return "hover:bg-amber-700 hover:text-white dark:hover:bg-amber-200 dark:hover:text-amber-900";
+      if (isMiss) return "hover:bg-red-700 hover:text-white dark:hover:bg-red-200 dark:hover:text-red-900";
+      if (isVerified) return "hover:bg-green-700 hover:text-white dark:hover:bg-green-200 dark:hover:text-green-900";
+      if (isPending) return "hover:bg-gray-700 hover:text-white dark:hover:bg-gray-200 dark:hover:text-gray-900";
+      return "hover:bg-blue-700 hover:text-white dark:hover:bg-blue-200 dark:hover:text-blue-900";
     }, [isPartialMatch, isMiss, isVerified, isPending]);
 
     const textColorClass = useMemo(() => {
-      if (isPartialMatch) return "text-amber-500 dark:text-amber-400";
+      if (isPartialMatch) return "text-amber-600 dark:text-amber-400";
       if (isMiss) return "text-red-600 dark:text-red-400";
       if (isVerified) return "text-green-600 dark:text-green-500";
       if (isPending) return "text-gray-500 dark:text-gray-400";
@@ -316,7 +318,7 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
       pendingContent = TWO_DOTS_THINKING_CONTENT,
       renderVerifiedIndicator = () => <DefaultVerifiedIndicator />,
       renderPartialIndicator = () => <DefaultPartialIndicator />,
-      hideBrackets = false,
+      hideBrackets = true,
     },
     ref,
   ) => {

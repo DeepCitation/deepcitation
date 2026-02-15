@@ -114,13 +114,17 @@ export const PENDING_COLOR_DEFAULT = "#9ca3af";
  * @example
  * ```css
  * :root {
- *   --dc-popover-width: 500px; // Override default 384px
+ *   --dc-popover-width: 500px; // Override default 480px
  * }
  * ```
  */
 export const POPOVER_WIDTH_VAR = "--dc-popover-width";
 /** Default popover width */
-export const POPOVER_WIDTH_DEFAULT = "384px";
+export const POPOVER_WIDTH_DEFAULT = "480px";
+/** Default max width for verification images (responsive with fallback) */
+export const VERIFICATION_IMAGE_MAX_WIDTH = "min(70vw, 480px)";
+/** Default max height for verification images (responsive with fallback) */
+export const VERIFICATION_IMAGE_MAX_HEIGHT = "min(50vh, 360px)";
 
 /** Inline style for verified indicator color, using CSS custom property with fallback */
 export const VERIFIED_COLOR_STYLE: React.CSSProperties = {

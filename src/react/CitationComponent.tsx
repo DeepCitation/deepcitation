@@ -28,6 +28,10 @@ import {
   PARTIAL_COLOR_STYLE,
   PENDING_COLOR_STYLE,
   POPOVER_CONTAINER_BASE_CLASSES,
+  POPOVER_WIDTH_DEFAULT,
+  POPOVER_WIDTH_VAR,
+  VERIFICATION_IMAGE_MAX_HEIGHT,
+  VERIFICATION_IMAGE_MAX_WIDTH,
   VERIFIED_COLOR_STYLE,
   Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
@@ -81,7 +85,7 @@ const HOVER_CLOSE_DELAY_MS = 150;
 const REPOSITION_GRACE_PERIOD_MS = 300;
 
 /** Popover container width. Customizable via CSS custom property `--dc-popover-width`. */
-const POPOVER_WIDTH = "var(--dc-popover-width, 384px)";
+const POPOVER_WIDTH = `var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT})`;
 
 /** Popover container max width (viewport-relative, with safe margin to prevent scrollbar) */
 const POPOVER_MAX_WIDTH = "calc(100vw - 32px)";
@@ -924,8 +928,8 @@ function AnchorTextFocusedImage({
   onImageClick,
   page,
   onViewPageClick,
-  maxWidth = "min(70vw, 384px)",
-  maxHeight = "min(50vh, 300px)",
+  maxWidth = VERIFICATION_IMAGE_MAX_WIDTH,
+  maxHeight = VERIFICATION_IMAGE_MAX_HEIGHT,
 }: {
   verification: Verification;
   onImageClick?: () => void;
@@ -1150,7 +1154,7 @@ function DefaultPopoverContent({
   if (isLoading || isPending) {
     const searchingPhrase = fullPhrase || anchorText;
     return (
-      <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[200px] max-w-[400px]`}>
+      <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[200px] max-w-[480px]`}>
         {/* Source context header */}
         <SourceContextHeader
           citation={citation}
@@ -1941,6 +1945,65 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
       return () => {
         document.removeEventListener("touchstart", handleOutsideTouch, {
+          capture: true,
+        });
+      };
+    }, [isMobile, isHovering]);
+
+    // Desktop click-outside dismiss handler
+    //
+    // On desktop, clicking outside the citation trigger or popover should dismiss the popover.
+    // This handler bypasses the repositionGraceRef check to ensure clicks are always respected,
+    // even during the grace period after content expansion. The grace period is meant to prevent
+    // spurious mouseleave events from repositioning, not to block intentional clicks.
+    //
+    // Why separate from mobile handler:
+    // - Desktop uses mousedown (not touchstart) for better UX consistency with other web apps
+    // - Mobile has its own touch handler above with different timing characteristics
+    //
+    // Note: We still check isAnyOverlayOpenRef to keep the popover open when image overlay is shown.
+    useEffect(() => {
+      if (isMobile || !isHovering) return;
+
+      const handleOutsideClick = (e: MouseEvent) => {
+        // Don't dismiss popover while an image overlay is open - user expects to return
+        // to the popover after closing the zoomed image. Uses ref to avoid stale closure.
+        if (isAnyOverlayOpenRef.current) {
+          return;
+        }
+
+        // Type guard for mouse event target
+        const target = e.target;
+        if (!(target instanceof Node)) {
+          return;
+        }
+
+        // Check if click is inside the trigger element
+        if (triggerRef.current?.contains(target)) {
+          return;
+        }
+
+        // Check if click is inside the popover content (works with portaled content)
+        if (popoverContentRef.current?.contains(target)) {
+          return;
+        }
+
+        // Click is outside both - dismiss the popover immediately (bypass grace period)
+        setIsHovering(false);
+        // Clear any pending hover close timeout since we're closing immediately
+        if (hoverCloseTimeoutRef.current) {
+          clearTimeout(hoverCloseTimeoutRef.current);
+          hoverCloseTimeoutRef.current = null;
+        }
+      };
+
+      // Use mousedown with capture phase to detect clicks before they bubble
+      document.addEventListener("mousedown", handleOutsideClick, {
+        capture: true,
+      });
+
+      return () => {
+        document.removeEventListener("mousedown", handleOutsideClick, {
           capture: true,
         });
       };

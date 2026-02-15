@@ -260,6 +260,7 @@ function SourceGroupHeader({
       className="w-full px-4 py-2.5 flex items-center gap-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700"
       role="heading"
       aria-level={3}
+      aria-label={`Source: ${sourceName}${isUrlSource && group.sourceDomain && group.sourceDomain !== sourceName ? ` (${group.sourceDomain})` : ""}${citationCount > 1 ? `, ${citationCount} citations` : ""}`}
     >
       {/* Favicon for URL sources, letter avatar for documents */}
       <div className="shrink-0">
@@ -274,10 +275,13 @@ function SourceGroupHeader({
         )}
       </div>
 
-      {/* Source name */}
-      <span className="flex-1 text-sm font-medium text-gray-700 dark:text-gray-200 text-left truncate">
-        {sourceName}
-      </span>
+      {/* Source name and domain (for URL sources, show domain in muted text) */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 text-left truncate">{sourceName}</span>
+        {isUrlSource && group.sourceDomain && group.sourceDomain !== sourceName && (
+          <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{group.sourceDomain}</span>
+        )}
+      </div>
 
       {/* External link for URL sources */}
       {safeSourceUrl && (
