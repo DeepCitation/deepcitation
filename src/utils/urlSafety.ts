@@ -74,11 +74,11 @@ function extractRootDomain(hostname: string): string {
     return hostname;
   }
 
-  // Check if last 3 parts form a known multi-part TLD (e.g., co.uk)
+  // Check if last 2 parts form a known multi-part TLD (e.g., co.uk)
   if (parts.length >= 3) {
-    const lastThreeParts = parts.slice(-3).join(".");
-    if (MULTI_PART_TLDS.has(lastThreeParts.slice(lastThreeParts.indexOf(".") + 1))) {
-      // Found multi-part TLD, include it with one more part for the domain name
+    const tld = parts.slice(-2).join("."); // e.g., "co.uk"
+    if (MULTI_PART_TLDS.has(tld)) {
+      // Found multi-part TLD, return domain + TLD (3 parts total)
       return parts.slice(-3).join(".");
     }
   }
@@ -140,79 +140,42 @@ export function isDomainMatch(url: string, domain: string): boolean {
  * ```
  */
 export function detectSourceType(url: string): "social" | "video" | "code" | "news" | "web" {
+  // Extract domain once and create matcher function to avoid repeated URL parsing
+  const extracted = extractDomain(url);
+  if (!extracted) return "web";
+
+  const rootDomain = extractRootDomain(extracted);
+  const matches = (domain: string) => extracted === domain || rootDomain === domain;
+
   // Social media platforms
-  if (isDomainMatch(url, "twitter.com") || isDomainMatch(url, "x.com")) {
-    return "social";
-  }
-  if (isDomainMatch(url, "facebook.com") || isDomainMatch(url, "fb.com")) {
-    return "social";
-  }
-  if (isDomainMatch(url, "instagram.com")) {
-    return "social";
-  }
-  if (isDomainMatch(url, "linkedin.com")) {
-    return "social";
-  }
-  if (isDomainMatch(url, "tiktok.com")) {
-    return "social";
-  }
-  if (isDomainMatch(url, "reddit.com")) {
-    return "social";
-  }
-  if (isDomainMatch(url, "mastodon.social") || isDomainMatch(url, "threads.net")) {
-    return "social";
-  }
+  if (matches("twitter.com") || matches("x.com")) return "social";
+  if (matches("facebook.com") || matches("fb.com")) return "social";
+  if (matches("instagram.com")) return "social";
+  if (matches("linkedin.com")) return "social";
+  if (matches("tiktok.com")) return "social";
+  if (matches("reddit.com")) return "social";
+  if (matches("mastodon.social") || matches("threads.net")) return "social";
 
   // Video platforms
-  if (isDomainMatch(url, "youtube.com") || isDomainMatch(url, "youtu.be")) {
-    return "video";
-  }
-  if (isDomainMatch(url, "twitch.tv")) {
-    return "video";
-  }
-  if (isDomainMatch(url, "vimeo.com")) {
-    return "video";
-  }
-  if (isDomainMatch(url, "dailymotion.com")) {
-    return "video";
-  }
+  if (matches("youtube.com") || matches("youtu.be")) return "video";
+  if (matches("twitch.tv")) return "video";
+  if (matches("vimeo.com")) return "video";
+  if (matches("dailymotion.com")) return "video";
 
   // Code/Developer platforms
-  if (isDomainMatch(url, "github.com")) {
-    return "code";
-  }
-  if (isDomainMatch(url, "gitlab.com")) {
-    return "code";
-  }
-  if (isDomainMatch(url, "bitbucket.org")) {
-    return "code";
-  }
-  if (isDomainMatch(url, "stackoverflow.com")) {
-    return "code";
-  }
+  if (matches("github.com")) return "code";
+  if (matches("gitlab.com")) return "code";
+  if (matches("bitbucket.org")) return "code";
+  if (matches("stackoverflow.com")) return "code";
 
   // News platforms
-  if (isDomainMatch(url, "bbc.com") || isDomainMatch(url, "bbc.co.uk")) {
-    return "news";
-  }
-  if (isDomainMatch(url, "cnn.com")) {
-    return "news";
-  }
-  if (isDomainMatch(url, "reuters.com")) {
-    return "news";
-  }
-  if (isDomainMatch(url, "apnews.com")) {
-    return "news";
-  }
-  if (isDomainMatch(url, "theguardian.com")) {
-    return "news";
-  }
-  if (isDomainMatch(url, "nytimes.com")) {
-    return "news";
-  }
-  if (isDomainMatch(url, "wsj.com")) {
-    return "news";
-  }
+  if (matches("bbc.com") || matches("bbc.co.uk")) return "news";
+  if (matches("cnn.com")) return "news";
+  if (matches("reuters.com")) return "news";
+  if (matches("apnews.com")) return "news";
+  if (matches("theguardian.com")) return "news";
+  if (matches("nytimes.com")) return "news";
+  if (matches("wsj.com")) return "news";
 
   // Default to generic web source
   return "web";

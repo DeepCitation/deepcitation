@@ -12,8 +12,18 @@
  * Maximum safe input length for regex operations.
  * Prevents catastrophic backtracking attacks on polynomial regex patterns.
  * 100KB is a reasonable limit for citation processing without impact on legitimate use.
+ *
+ * **Important**: JavaScript string length is measured in UTF-16 code units, not bytes or Unicode code points.
+ * - ASCII characters (a-z, 0-9): 1 code unit each
+ * - Most Unicode characters (é, ñ, 中, Ω): 1 code unit each
+ * - Emoji and rare characters (😀, 𝕏, 🎯): 2 code units each (surrogate pairs)
+ *
+ * For most text (primarily Latin script + common Unicode), this limit provides ~100KB of memory.
+ * For text with many emoji/rare characters, the actual byte size may be lower (~50KB).
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/length
  */
-export const MAX_REGEX_INPUT_LENGTH = 100_000; // 100KB
+export const MAX_REGEX_INPUT_LENGTH = 100_000; // ~100KB in UTF-16 code units
 
 /**
  * Validates that input is safe for regex operations.

@@ -36,10 +36,13 @@ export function sanitizeForLog(value: unknown, maxLength = 1000): string {
       .replace(/\r?\n/g, "\\n")
       // Replace tabs with literal \t
       .replace(/\t/g, "\\t")
-      // Remove ANSI color codes (ESC [ ... m)
-      .replace(/\x1b\[[0-9;]*m/g, "")
-      // Remove other ANSI control codes
-      .replace(/\x1b[^\w]/g, "")
+      // Remove all ANSI escape sequences (comprehensive pattern)
+      // Matches: ESC [ ... (any letter), ESC ] ... BEL/ST, ESC ( ... ), etc.
+      // See: https://en.wikipedia.org/wiki/ANSI_escape_code
+      .replace(
+        /\x1b(?:\[[0-9;]*[a-zA-Z]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[()][0-9A-Za-z]|\[[0-9;?]*[hl])/g,
+        "",
+      )
       // Truncate to prevent log spam
       .slice(0, maxLength)
   );
@@ -134,7 +137,7 @@ function stringifyWithDepthLimit(value: unknown, maxDepth: number): string {
     }
 
     if (obj === null) return "null";
-    if (obj === undefined) return "null"; // Undefined becomes null in JSON
+    if (obj === undefined) return "null"; // Undefined in arrays becomes null (objects filter it out)
 
     const type = typeof obj;
     if (type === "string") return JSON.stringify(obj);
@@ -152,6 +155,7 @@ function stringifyWithDepthLimit(value: unknown, maxDepth: number): string {
       }
 
       const entries = Object.entries(obj)
+        .filter(([, val]) => val !== undefined) // Skip undefined values like native JSON.stringify
         .map(([key, val]) => `${JSON.stringify(key)}:${stringify(val, depth + 1)}`)
         .join(",");
       return `{${entries}}`;

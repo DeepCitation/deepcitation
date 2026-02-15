@@ -2,6 +2,7 @@ import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationStatus } from "./parseCitation.js";
+import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
 
 /**
  * Module-level compiled regexes for hot-path operations.
@@ -483,14 +484,18 @@ const normalizeCitationContent = (input: string): string => {
   const reorderCiteTagAttributes = (tag: string): string => {
     // Match both single-quoted and double-quoted attributes
     const attrRegex = /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(['"])((?:[^'"\\\n]|\\.)*)(?:\2)/g;
-    const attrs: Record<string, string> = {};
+    // Use safe object to prevent prototype pollution
+    const attrs = createSafeObject<string>();
     let match: RegExpExecArray | null;
 
     while ((match = attrRegex.exec(tag)) !== null) {
       const rawKey = match[1];
       const value = match[3]; // match[2] is the quote character
       const key = canonicalizeCiteAttributeKey(rawKey);
-      attrs[key] = value;
+      // Additional safety check - canonicalizeCiteAttributeKey should only return safe keys
+      if (isSafeKey(key)) {
+        attrs[key] = value;
+      }
     }
 
     // If we didn't find any parsable attrs, don't touch the tag.

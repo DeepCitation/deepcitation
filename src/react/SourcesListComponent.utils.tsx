@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import type { SourceType } from "../types/citation.js";
 import type { SourcesListItemProps } from "./types.js";
 import { extractDomain } from "./urlUtils.js";
+import { isDomainMatch } from "../utils/urlSafety.js";
 
 // ============================================================================
 // Utility Functions
@@ -26,45 +27,44 @@ export function detectSourceType(url: string): SourceType {
   }
 
   try {
-    const domain = extractDomain(url).toLowerCase();
-
-    // Social media
-    if (domain.includes("twitter.com") || domain === "x.com" || domain.endsWith(".x.com")) return "social";
-    if (domain.includes("facebook.com") || domain.includes("instagram.com")) return "social";
-    if (domain.includes("linkedin.com")) return "social";
-    if (domain.includes("threads.net") || domain.includes("mastodon")) return "social";
+    // Social media - use safe domain matching to prevent spoofing
+    if (isDomainMatch(url, "twitter.com") || isDomainMatch(url, "x.com")) return "social";
+    if (isDomainMatch(url, "facebook.com") || isDomainMatch(url, "instagram.com")) return "social";
+    if (isDomainMatch(url, "linkedin.com")) return "social";
+    if (isDomainMatch(url, "threads.net") || url.includes("mastodon")) return "social";
 
     // Video platforms
-    if (domain.includes("youtube.com") || domain.includes("youtu.be")) return "video";
-    if (domain.includes("twitch.tv")) return "video";
-    if (domain.includes("vimeo.com") || domain.includes("tiktok.com")) return "video";
+    if (isDomainMatch(url, "youtube.com") || isDomainMatch(url, "youtu.be")) return "video";
+    if (isDomainMatch(url, "twitch.tv")) return "video";
+    if (isDomainMatch(url, "vimeo.com") || isDomainMatch(url, "tiktok.com")) return "video";
 
     // Code repositories
-    if (domain.includes("github.com") || domain.includes("gitlab.com")) return "code";
-    if (domain.includes("bitbucket.org") || domain.includes("stackoverflow.com")) return "code";
+    if (isDomainMatch(url, "github.com") || isDomainMatch(url, "gitlab.com")) return "code";
+    if (isDomainMatch(url, "bitbucket.org") || isDomainMatch(url, "stackoverflow.com")) return "code";
 
     // Academic
-    if (domain.includes("arxiv.org") || domain.includes("scholar.google")) return "academic";
-    if (domain.includes("pubmed") || domain.includes("doi.org")) return "academic";
-    if (domain.includes("researchgate.net") || domain.includes("academia.edu")) return "academic";
+    if (isDomainMatch(url, "arxiv.org") || url.includes("scholar.google")) return "academic";
+    if (url.includes("pubmed") || isDomainMatch(url, "doi.org")) return "academic";
+    if (isDomainMatch(url, "researchgate.net") || isDomainMatch(url, "academia.edu")) return "academic";
 
     // News
-    if (domain.includes("news.") || domain.includes("reuters.com")) return "news";
-    if (domain.includes("bbc.com") || domain.includes("cnn.com")) return "news";
-    if (domain.includes("nytimes.com") || domain.includes("wsj.com")) return "news";
-    if (domain.includes("theguardian.com") || domain.includes("washingtonpost.com")) return "news";
+    if (url.includes("news.") || isDomainMatch(url, "reuters.com")) return "news";
+    if (isDomainMatch(url, "bbc.com") || isDomainMatch(url, "cnn.com")) return "news";
+    if (isDomainMatch(url, "bbc.co.uk") || isDomainMatch(url, "nytimes.com")) return "news";
+    if (isDomainMatch(url, "wsj.com") || isDomainMatch(url, "theguardian.com")) return "news";
+    if (isDomainMatch(url, "washingtonpost.com")) return "news";
 
     // Reference
-    if (domain.includes("wikipedia.org") || domain.includes("britannica.com")) return "reference";
-    if (domain.includes("merriam-webster.com") || domain.includes("dictionary.com")) return "reference";
+    if (isDomainMatch(url, "wikipedia.org") || isDomainMatch(url, "britannica.com")) return "reference";
+    if (url.includes("merriam-webster") || url.includes("dictionary.com")) return "reference";
 
     // Forums
-    if (domain.includes("reddit.com") || domain.includes("quora.com")) return "forum";
-    if (domain.includes("discourse") || domain.includes("forum")) return "forum";
+    if (isDomainMatch(url, "reddit.com") || isDomainMatch(url, "quora.com")) return "forum";
+    if (url.includes("discourse") || url.includes("forum")) return "forum";
 
     // Commerce
-    if (domain.includes("amazon.") || domain.includes("ebay.")) return "commerce";
-    if (domain.includes("shopify") || domain.includes("etsy.com")) return "commerce";
+    if (url.includes("amazon.") || url.includes("ebay.")) return "commerce";
+    if (url.includes("shopify") || isDomainMatch(url, "etsy.com")) return "commerce";
 
     // PDF check (by extension in URL)
     if (url.toLowerCase().endsWith(".pdf")) return "pdf";
