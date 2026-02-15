@@ -8,7 +8,6 @@
  */
 
 import * as PopoverPrimitive from "@radix-ui/react-popover";
-import type * as React from "react";
 
 export const Popover: typeof PopoverPrimitive.Root = PopoverPrimitive.Root;
 

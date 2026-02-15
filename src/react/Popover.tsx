@@ -50,7 +50,8 @@ const PopoverContent = React.forwardRef<
     />
   </PopoverPrimitive.Portal>
 )) as React.ForwardRefExoticComponent<
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & React.RefAttributes<React.ElementRef<typeof PopoverPrimitive.Content>>
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> &
+    React.RefAttributes<React.ElementRef<typeof PopoverPrimitive.Content>>
 >;
 PopoverContent.displayName = PopoverPrimitive.Content.displayName;
 
