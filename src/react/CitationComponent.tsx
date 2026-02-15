@@ -2436,7 +2436,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           {prefetchElement}
           <Popover
             open={isHovering}
-            onOpenChange={(open) => {
+            onOpenChange={open => {
               // Only handle close (Escape key) - don't interfere with our custom hover logic
               if (!open && !isAnyOverlayOpenRef.current) {
                 setIsHovering(false);
