@@ -120,7 +120,7 @@ export const PENDING_COLOR_DEFAULT = "#9ca3af";
  */
 export const POPOVER_WIDTH_VAR = "--dc-popover-width";
 /** Default popover width */
-export const POPOVER_WIDTH_DEFAULT = "384px";
+export const POPOVER_WIDTH_DEFAULT = "480px";
 
 /** Inline style for verified indicator color, using CSS custom property with fallback */
 export const VERIFIED_COLOR_STYLE: React.CSSProperties = {

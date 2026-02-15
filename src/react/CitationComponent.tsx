@@ -28,6 +28,8 @@ import {
   PARTIAL_COLOR_STYLE,
   PENDING_COLOR_STYLE,
   POPOVER_CONTAINER_BASE_CLASSES,
+  POPOVER_WIDTH_DEFAULT,
+  POPOVER_WIDTH_VAR,
   VERIFIED_COLOR_STYLE,
   Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
@@ -81,7 +83,7 @@ const HOVER_CLOSE_DELAY_MS = 150;
 const REPOSITION_GRACE_PERIOD_MS = 300;
 
 /** Popover container width. Customizable via CSS custom property `--dc-popover-width`. */
-const POPOVER_WIDTH = "var(--dc-popover-width, 480px)";
+const POPOVER_WIDTH = `var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT})`;
 
 /** Popover container max width (viewport-relative, with safe margin to prevent scrollbar) */
 const POPOVER_MAX_WIDTH = "calc(100vw - 32px)";

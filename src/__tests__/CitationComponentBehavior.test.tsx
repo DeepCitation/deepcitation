@@ -2521,4 +2521,161 @@ describe("CitationComponent interactionMode", () => {
       await waitForPopoverDismissed(container);
     });
   });
+
+  // ==========================================================================
+  // DESKTOP CLICK-OUTSIDE DISMISS TESTS
+  // Tests for the desktop mousedown click-outside handler
+  // ==========================================================================
+
+  describe("desktop click-outside dismiss", () => {
+    it("dismisses popover when clicking outside on desktop", async () => {
+      // Mock matchMedia to simulate desktop (pointer: fine)
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: jest.fn().mockImplementation(query => ({
+          matches: query === "(pointer: fine)", // Desktop
+          media: query,
+          onchange: null,
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+
+      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
+
+      const trigger = container.querySelector("[data-citation-id]") as HTMLElement;
+
+      // Click to open popover
+      await act(async () => {
+        fireEvent.click(trigger);
+      });
+
+      await waitForPopoverVisible(container);
+
+      // Click outside (on document body)
+      await act(async () => {
+        fireEvent.mouseDown(document.body);
+      });
+
+      // Popover should close immediately (no delay)
+      await waitForPopoverDismissed(container);
+    });
+
+    it("does not dismiss when clicking inside trigger", async () => {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: jest.fn().mockImplementation(query => ({
+          matches: query === "(pointer: fine)",
+          media: query,
+          onchange: null,
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+
+      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
+
+      const trigger = container.querySelector("[data-citation-id]") as HTMLElement;
+
+      // Click to open popover
+      await act(async () => {
+        fireEvent.click(trigger);
+      });
+
+      await waitForPopoverVisible(container);
+
+      // Click on the trigger again (should toggle details, not close)
+      await act(async () => {
+        fireEvent.mouseDown(trigger);
+      });
+
+      // Popover should still be open
+      expect(container.querySelector('[data-state="open"]')).toBeInTheDocument();
+    });
+
+    it("does not dismiss when clicking inside popover content", async () => {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: jest.fn().mockImplementation(query => ({
+          matches: query === "(pointer: fine)",
+          media: query,
+          onchange: null,
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+
+      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
+
+      const trigger = container.querySelector("[data-citation-id]") as HTMLElement;
+
+      // Click to open popover
+      await act(async () => {
+        fireEvent.click(trigger);
+      });
+
+      await waitForPopoverVisible(container);
+
+      const popoverContent = container.querySelector('[data-state="open"]') as HTMLElement;
+
+      // Click inside popover content
+      await act(async () => {
+        fireEvent.mouseDown(popoverContent);
+      });
+
+      // Popover should still be open
+      expect(container.querySelector('[data-state="open"]')).toBeInTheDocument();
+    });
+
+    it("dismisses even during grace period after content expansion", async () => {
+      Object.defineProperty(window, "matchMedia", {
+        writable: true,
+        value: jest.fn().mockImplementation(query => ({
+          matches: query === "(pointer: fine)",
+          media: query,
+          onchange: null,
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+
+      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
+
+      const trigger = container.querySelector("[data-citation-id]") as HTMLElement;
+
+      // Click to open popover
+      await act(async () => {
+        fireEvent.click(trigger);
+      });
+
+      await waitForPopoverVisible(container);
+
+      // Find and click expand button to trigger grace period
+      const expandButton = Array.from(container.querySelectorAll("button")).find(
+        btn => btn.textContent === "Show search details" || btn.textContent === "Hide search details",
+      );
+
+      if (expandButton) {
+        await act(async () => {
+          fireEvent.click(expandButton);
+        });
+      }
+
+      // Immediately click outside (during grace period)
+      await act(async () => {
+        fireEvent.mouseDown(document.body);
+      });
+
+      // Should dismiss immediately despite grace period
+      await waitForPopoverDismissed(container);
+    });
+
+    // Note: Testing the image overlay protection is complex due to interaction modes.
+    // The handler checks isAnyOverlayOpenRef which is set by the CitationOverlayContext.
+    // This is covered by integration tests and visual testing.
+  });
 });
