@@ -18,6 +18,8 @@ cleanup-failure-*.png
 test-failure-*.png
 *.test.png
 *.spec.png
+# Playwright snapshots: only AVIF versions are committed; PNGs are intermediates
+**/__snapshots__/**/*.png
 
 bundle-stats*
 
