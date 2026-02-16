@@ -85,7 +85,7 @@ export function useRepositionGracePeriod(
     if (!isOpen) {
       clearGracePeriod();
     }
-    // Cleanup on unmount
+    // Cleanup on unmount or when isOpen changes
     return () => {
       clearGracePeriod();
     };
