@@ -55,7 +55,7 @@ export type UrlAccessStatus =
  * ```typescript
  * if (verification.document) {
  *   const pageNumber = verification.document.verifiedPageNumber;
- *   const image = verification.document.verificationImageBase64;
+ *   const image = verification.document.verificationImageSrc;
  *   console.log(`Verified on page ${pageNumber}`);
  * }
  * ```
@@ -67,6 +67,14 @@ export interface DocumentVerificationResult {
   hitIndexWithinPage?: number | null;
   phraseMatchDeepItem?: DeepTextItem;
   anchorTextMatchDeepItems?: DeepTextItem[];
+  /**
+   * Image source for the verification snippet. Can be a base64 data URI, a URL, or a local path.
+   */
+  verificationImageSrc?: string | null;
+  /**
+   * @deprecated Use `verificationImageSrc` instead. This field may contain a base64 data URI,
+   * URL, or file path — not necessarily base64-encoded data despite the name.
+   */
   verificationImageBase64?: string | null;
   verificationImageDimensions?: { width: number; height: number } | null;
 }

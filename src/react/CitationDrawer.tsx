@@ -397,7 +397,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
 
   // Proof image (only shown in expanded view)
-  const rawProofImage = verification?.document?.verificationImageBase64;
+  const rawProofImage = verification?.document?.verificationImageSrc ?? verification?.document?.verificationImageBase64;
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
   // Pending state
