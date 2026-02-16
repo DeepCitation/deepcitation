@@ -12,7 +12,7 @@ import { SpinnerIcon } from "../icons";
 import type { UrlCitationMeta } from "../types";
 import { UrlCitationComponent } from "../UrlCitationComponent";
 import { QuoteBox, StatusHeader, VerificationLog } from "../VerificationLog";
-import { allUrlStatuses, allVerificationStatuses } from "./ShowcaseFixtures";
+import { allUrlStatuses, allVerificationStatuses, urlAccessFailureFixtures } from "./ShowcaseFixtures";
 
 // =============================================================================
 // SHOWCASE LABEL COMPONENTS
@@ -1647,6 +1647,85 @@ export function PopoverShowcase() {
               <CitationComponent citation={urlCitation} verification={pendingVerification} variant="brackets" />
             </div>
           </div>
+        </ShowcaseCard>
+      </ShowcaseSection>
+
+      {/* ========================================================================
+          SECTION: URL Access Failure Popovers
+          ======================================================================== */}
+      <ShowcaseSection
+        title="9b. URL Access Failure Popovers"
+        description="Click each citation to see detailed explanations of why the URL couldn't be accessed, with actionable suggestions"
+        data-testid="popover-url-access-failure-section"
+      >
+        <ShowcaseCard>
+          <ShowcaseLabel
+            component="CitationComponent"
+            variant="url"
+            state="blocked"
+            uxIntent="Blocked URLs show amber explanation with actionable suggestion to resolve"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            {urlAccessFailureFixtures
+              .filter(f => f.category === "blocked")
+              .map(fixture => (
+                <div
+                  key={fixture.label}
+                  className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                  data-interactive-popover={`url-${fixture.label.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">{fixture.label}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2">{fixture.description}</p>
+                  <CitationComponent citation={fixture.citation} verification={fixture.verification} variant="linter" />
+                </div>
+              ))}
+          </div>
+          <InteractionLabel click="Opens popover with amber explanation banner" hover="Underline style change" />
+        </ShowcaseCard>
+
+        <ShowcaseCard>
+          <ShowcaseLabel
+            component="CitationComponent"
+            variant="url"
+            state="error"
+            uxIntent="Error URLs show red explanation with guidance on what went wrong"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            {urlAccessFailureFixtures
+              .filter(f => f.category === "error")
+              .map(fixture => (
+                <div
+                  key={fixture.label}
+                  className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                  data-interactive-popover={`url-${fixture.label.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">{fixture.label}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-2">{fixture.description}</p>
+                  <CitationComponent citation={fixture.citation} verification={fixture.verification} variant="linter" />
+                </div>
+              ))}
+          </div>
+          <InteractionLabel click="Opens popover with red error explanation banner" hover="Wavy underline style" />
+        </ShowcaseCard>
+
+        <ShowcaseCard>
+          <ShowcaseLabel
+            component="CitationComponent"
+            variant="url / chip"
+            state="all failures"
+            uxIntent="Chip variant shows same explanations with chip styling"
+          />
+          <div className="flex flex-wrap gap-3 mt-4">
+            {urlAccessFailureFixtures.map(fixture => (
+              <div
+                key={fixture.label}
+                data-interactive-popover={`url-chip-${fixture.label.toLowerCase().replace(/\s+/g, "-")}`}
+              >
+                <CitationComponent citation={fixture.citation} verification={fixture.verification} variant="chip" />
+              </div>
+            ))}
+          </div>
+          <InteractionLabel click="Opens popover with access failure explanation" hover="Background color change" />
         </ShowcaseCard>
       </ShowcaseSection>
 

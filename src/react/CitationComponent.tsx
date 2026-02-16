@@ -15,7 +15,7 @@ const Activity =
 import type { SourcePage } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
-import type { Verification } from "../types/verification.js";
+import type { UrlAccessStatus, Verification } from "../types/verification.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import {
   ANCHOR_HIGHLIGHT_STYLE,
@@ -52,6 +52,7 @@ import type {
   CitationRenderProps,
   CitationVariant,
   IndicatorVariant,
+  UrlFetchStatus,
 } from "./types.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 import { QuotedText, SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";
@@ -1047,6 +1048,238 @@ function getHumanizingMessage(
 }
 
 // =============================================================================
+// URL ACCESS EXPLANATIONS
+// =============================================================================
+
+/** Structured explanation for URL access failures shown in the popover. */
+interface UrlAccessExplanation {
+  /** Short status title, e.g., "Paywall Detected" */
+  title: string;
+  /** 1-sentence explanation of what happened */
+  description: string;
+  /** Actionable suggestion for the user, or null if nothing can be done */
+  suggestion: string | null;
+  /** Color scheme: "amber" for blocked (potentially resolvable), "red" for errors */
+  colorScheme: "amber" | "red";
+}
+
+/**
+ * Maps UrlAccessStatus (from verification API response) to UrlFetchStatus (UI layer).
+ * Used when the verification object has url-specific access data.
+ *
+ * For the generic "blocked" status, uses the error message to infer the specific
+ * block type (paywall, login, rate limit, geo-restriction, or anti-bot fallback).
+ */
+function mapUrlAccessStatusToFetchStatus(status: UrlAccessStatus, errorMessage?: string | null): UrlFetchStatus {
+  switch (status) {
+    case "accessible":
+      return "verified";
+    case "redirected":
+      return "redirected";
+    case "redirected_same_domain":
+      return "redirected_valid";
+    case "not_found":
+      return "error_not_found";
+    case "forbidden":
+      return "blocked_login";
+    case "server_error":
+      return "error_server";
+    case "timeout":
+      return "error_timeout";
+    case "blocked":
+      return inferBlockedType(errorMessage);
+    case "network_error":
+      return "error_network";
+    case "pending":
+      return "pending";
+    case "unknown":
+      return "unknown";
+  }
+}
+
+/**
+ * Infer specific blocked type from the error message when the API returns
+ * the generic "blocked" status. Falls back to "blocked_antibot" (site protection)
+ * as the most common cause.
+ */
+function inferBlockedType(errorMessage?: string | null): UrlFetchStatus {
+  if (!errorMessage) return "blocked_antibot";
+  const msg = errorMessage.toLowerCase();
+  if (msg.includes("paywall") || msg.includes("subscribe") || msg.includes("subscription")) {
+    return "blocked_paywall";
+  }
+  if (msg.includes("login") || msg.includes("sign in") || msg.includes("sign-in") || msg.includes("authenticate")) {
+    return "blocked_login";
+  }
+  if (msg.includes("rate limit") || msg.includes("429") || msg.includes("too many")) {
+    return "blocked_rate_limit";
+  }
+  if (msg.includes("geo") || msg.includes("region") || msg.includes("country") || msg.includes("available in")) {
+    return "blocked_geo";
+  }
+  return "blocked_antibot";
+}
+
+/**
+ * Maps SearchStatus (from verification response) to UrlFetchStatus (UI layer).
+ * Used as fallback when verification.url.urlAccessStatus is not available.
+ */
+function mapSearchStatusToFetchStatus(status: SearchStatus | null | undefined): UrlFetchStatus {
+  if (!status) return "pending";
+  switch (status) {
+    case "found":
+    case "found_anchor_text_only":
+    case "found_phrase_missed_anchor_text":
+      return "verified";
+    case "found_on_other_page":
+    case "found_on_other_line":
+    case "partial_text_found":
+    case "first_word_found":
+      return "partial";
+    case "not_found":
+      return "error_not_found";
+    case "loading":
+    case "pending":
+    case "timestamp_wip":
+    case "skipped":
+      return "pending";
+    default: {
+      const _exhaustiveCheck: never = status;
+      return _exhaustiveCheck;
+    }
+  }
+}
+
+/**
+ * Get a structured explanation for URL access failures.
+ * Returns null for success/pending/unknown statuses (no explanation needed).
+ */
+function getUrlAccessExplanation(
+  fetchStatus: UrlFetchStatus,
+  errorMessage?: string | null,
+): UrlAccessExplanation | null {
+  switch (fetchStatus) {
+    // Blocked scenarios (amber — potentially resolvable by the user)
+    case "blocked_paywall":
+      return {
+        title: "Paywall Detected",
+        description: errorMessage || "This site requires a paid subscription to access.",
+        suggestion: "You can verify this citation by visiting the URL directly if you have a subscription.",
+        colorScheme: "amber",
+      };
+    case "blocked_login":
+      return {
+        title: "Login Required",
+        description: errorMessage || "This page requires authentication to view its content.",
+        suggestion: "Log in to the site and visit the URL to verify this citation.",
+        colorScheme: "amber",
+      };
+    case "blocked_geo":
+      return {
+        title: "Region Restricted",
+        description: errorMessage || "This content isn't available from our verification server's location.",
+        suggestion: "Try visiting the URL directly — it may be accessible from your location.",
+        colorScheme: "amber",
+      };
+    case "blocked_antibot":
+      return {
+        title: "Blocked by Site Protection",
+        description: errorMessage || "This site's bot protection prevented our crawler from accessing the page.",
+        suggestion: "Visit the URL directly in your browser to verify this citation.",
+        colorScheme: "amber",
+      };
+    case "blocked_rate_limit":
+      return {
+        title: "Rate Limited",
+        description: errorMessage || "Too many requests were sent to this site.",
+        suggestion: "Try again later — the rate limit should reset shortly.",
+        colorScheme: "amber",
+      };
+
+    // Error scenarios (red — likely can't be resolved without fixing the URL)
+    case "error_not_found":
+      return {
+        title: "Page Not Found",
+        description: errorMessage || "This URL returned a 404 error — the page may have been moved or deleted.",
+        suggestion: "Check if the URL is correct, or search the site for the content.",
+        colorScheme: "red",
+      };
+    case "error_server":
+      return {
+        title: "Server Error",
+        description: errorMessage || "The website returned a server error and could not be accessed.",
+        suggestion: "Try again later — the site may be experiencing temporary issues.",
+        colorScheme: "red",
+      };
+    case "error_timeout":
+      return {
+        title: "Connection Timed Out",
+        description: errorMessage || "The website took too long to respond to our verification request.",
+        suggestion: "Try again later — the site may be under heavy load.",
+        colorScheme: "red",
+      };
+    case "error_network":
+      return {
+        title: "Network Error",
+        description: errorMessage || "Could not connect to this website — the domain may be unreachable.",
+        suggestion: "Check if the URL is correct and that the site is still online.",
+        colorScheme: "red",
+      };
+
+    // Non-error statuses — no explanation needed
+    default:
+      return null;
+  }
+}
+
+/**
+ * Renders a colored banner explaining why a URL could not be accessed.
+ * Amber background for blocked states (potentially resolvable), red for errors.
+ * Includes ARIA role="status" and a leading icon so screen readers and
+ * color-blind users can distinguish severity without relying on color alone.
+ */
+function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessExplanation }) {
+  const isAmber = explanation.colorScheme === "amber";
+  return (
+    <div
+      className={cn(
+        "px-4 py-3 border-b",
+        isAmber
+          ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+          : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800",
+      )}
+      role="status"
+      aria-label={`${isAmber ? "Warning" : "Error"}: ${explanation.title}`}
+    >
+      <div
+        className={cn(
+          "text-sm font-medium mb-1 flex items-center gap-1.5",
+          isAmber ? "text-amber-800 dark:text-amber-200" : "text-red-800 dark:text-red-200",
+        )}
+      >
+        <span className="shrink-0 text-xs" aria-hidden="true">
+          {isAmber ? "\u26A0" : "\u2718"}
+        </span>
+        {explanation.title}
+      </div>
+      <p className={cn("text-xs", isAmber ? "text-amber-700 dark:text-amber-300" : "text-red-700 dark:text-red-300")}>
+        {explanation.description}
+      </p>
+      {explanation.suggestion && (
+        <p
+          className={cn(
+            "text-xs mt-1.5 opacity-80",
+            isAmber ? "text-amber-700 dark:text-amber-300" : "text-red-700 dark:text-red-300",
+          )}
+        >
+          {explanation.suggestion}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
 // HIGHLIGHTED PHRASE DISPLAY
 // =============================================================================
 
@@ -1147,6 +1380,17 @@ function DefaultPopoverContent({
     () => getHumanizingMessage(searchStatus, anchorText, expectedPage ?? undefined, foundPage),
     [searchStatus, anchorText, expectedPage, foundPage],
   );
+
+  // Get URL access explanation for blocked/error states (URL citations only)
+  const urlAccessExplanation = useMemo(() => {
+    if (!isUrlCitation(citation)) return null;
+    const urlAccessStatus = verification?.url?.urlAccessStatus;
+    const errorMsg = verification?.url?.urlVerificationError;
+    const fetchStatus = urlAccessStatus
+      ? mapUrlAccessStatusToFetchStatus(urlAccessStatus, errorMsg)
+      : mapSearchStatusToFetchStatus(searchStatus);
+    return getUrlAccessExplanation(fetchStatus, verification?.url?.urlVerificationError);
+  }, [citation, verification, searchStatus]);
 
   // Loading/pending state view
   if (isLoading || isPending) {
@@ -1268,8 +1512,10 @@ function DefaultPopoverContent({
                   indicatorVariant={indicatorVariant}
                 />
               )}
-              {/* Humanizing message for partial matches with images */}
-              {humanizingMessage && (
+              {/* URL access explanation (for URL citations with access failures) */}
+              {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
+              {/* Humanizing message for document citations */}
+              {!urlAccessExplanation && humanizingMessage && (
                 <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
                   {humanizingMessage}
                 </div>
@@ -1298,8 +1544,10 @@ function DefaultPopoverContent({
                   indicatorVariant={indicatorVariant}
                 />
               )}
-              {/* Humanizing message provides additional context below the header */}
-              {humanizingMessage && (
+              {/* URL access explanation (for URL citations with access failures) */}
+              {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
+              {/* Humanizing message for document citations */}
+              {!urlAccessExplanation && humanizingMessage && (
                 <div className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{humanizingMessage}</div>
               )}
               {/* Full phrase with highlighted anchor text */}
@@ -1311,8 +1559,8 @@ function DefaultPopoverContent({
             </>
           )}
 
-          {/* Verification log (collapsible) */}
-          {showVerificationLog && verification?.searchAttempts && (
+          {/* Verification log (collapsible) — skip for URL access failures since search attempts are document-oriented */}
+          {showVerificationLog && !urlAccessExplanation && verification?.searchAttempts && (
             <VerificationLog
               searchAttempts={verification.searchAttempts}
               status={searchStatus}
@@ -1339,7 +1587,7 @@ function DefaultPopoverContent({
   const hasSnippet = verification?.verifiedMatchSnippet;
   const pageNumber = verification?.document?.verifiedPageNumber;
 
-  if (!hasSnippet && !statusLabel) return null;
+  if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
 
   return (
     <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[180px] max-w-full`}>
@@ -1350,8 +1598,10 @@ function DefaultPopoverContent({
         status={searchStatus}
         sourceLabel={sourceLabel}
       />
+      {/* URL access explanation (for URL citations with access failures) */}
+      {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
       <div className="p-3 flex flex-col gap-2">
-        {statusLabel && (
+        {!urlAccessExplanation && statusLabel && (
           <span
             className={cn(
               "text-xs font-medium",
