@@ -2709,6 +2709,9 @@ describe("CitationComponent proof URL links", () => {
 
     // Should not have any javascript: protocol links
     const links = container.querySelectorAll("a");
+    // codeql[js/incomplete-url-scheme-check] False positive: Test assertion verifying security
+    // This test checks that our security code (sanitizeUrl) blocks javascript: URLs.
+    // Production code uses whitelist approach (http/https only) which blocks ALL dangerous protocols.
     const javascriptLinks = Array.from(links).filter(link => link.getAttribute("href")?.startsWith("javascript:"));
     expect(javascriptLinks.length).toBe(0);
   });
@@ -2759,6 +2762,9 @@ describe("CitationComponent proof URL links", () => {
 
     // Should not have any links with evil.com
     const links = container.querySelectorAll("a");
+    // codeql[js/incomplete-url-substring-sanitization] False positive: Test assertion verifying security
+    // This test checks that our security code (isApprovedDomain) blocks untrusted domains.
+    // Production code uses proper URL parsing and domain validation, not substring matching.
     const evilLinks = Array.from(links).filter(link => link.getAttribute("href")?.includes("evil.com"));
     expect(evilLinks.length).toBe(0);
   });
