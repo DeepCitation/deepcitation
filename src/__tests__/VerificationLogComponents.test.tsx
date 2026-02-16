@@ -564,7 +564,7 @@ describe("SourceContextHeader", () => {
       expect(queryByRole("link")).toBeNull();
     });
 
-    it("renders link for valid https proof URL", () => {
+    it("renders link for valid https proof URL from deepcitation.com", () => {
       const citation: Citation = {
         type: "document",
         attachmentId: "abc123",
@@ -583,7 +583,7 @@ describe("SourceContextHeader", () => {
       expect(link).toHaveAttribute("href", "https://cdn.deepcitation.com/proof/456");
     });
 
-    it("renders link for valid http proof URL", () => {
+    it("blocks proof URL from untrusted domain", () => {
       const citation: Citation = {
         type: "document",
         attachmentId: "abc123",
@@ -593,13 +593,13 @@ describe("SourceContextHeader", () => {
       const verification: Verification = {
         label: "Document.pdf",
         document: { verifiedPageNumber: 5 },
-        proof: { proofUrl: "http://api.deepcitation.com/proof/789" },
+        proof: { proofUrl: "https://evil.com/fake-proof" },
       };
 
-      const { getByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
+      const { queryByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
 
-      const link = getByRole("link");
-      expect(link).toHaveAttribute("href", "http://api.deepcitation.com/proof/789");
+      // Should render static text, not a link (untrusted domain blocked)
+      expect(queryByRole("link")).toBeNull();
     });
   });
 });

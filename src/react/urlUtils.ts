@@ -27,6 +27,52 @@ export function sanitizeUrl(url: string): string | null {
 }
 
 /**
+ * Validates that a proof URL is safe to use in anchor tags.
+ * Checks both protocol safety and domain trust.
+ *
+ * Blocks:
+ * - Dangerous protocols (javascript:, data:, vbscript:, etc.)
+ * - URLs from untrusted domains (only allows deepcitation.com)
+ *
+ * @param url - The proof URL to validate
+ * @returns The original URL if safe, or null if blocked
+ *
+ * @example
+ * ```typescript
+ * // Valid proof URLs
+ * isValidProofUrl('https://api.deepcitation.com/proof/123'); // returns URL
+ * isValidProofUrl('https://cdn.deepcitation.com/img.png');   // returns URL
+ *
+ * // Blocked URLs
+ * isValidProofUrl('javascript:alert("XSS")');                // null (dangerous protocol)
+ * isValidProofUrl('https://evil.com/proof');                 // null (untrusted domain)
+ * ```
+ */
+export function isValidProofUrl(url: string): string | null {
+  // First check protocol safety
+  const safeUrl = sanitizeUrl(url);
+  if (!safeUrl) {
+    return null;
+  }
+
+  // Then check domain trust
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Only allow deepcitation.com and its subdomains
+    if (hostname === "deepcitation.com" || hostname.endsWith(".deepcitation.com")) {
+      return url;
+    }
+
+    // Block all other domains
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Opens a URL in a new tab, but only if it uses a safe protocol.
  * Silently no-ops for javascript:, data:, vbscript:, etc.
  */

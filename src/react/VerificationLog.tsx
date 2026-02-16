@@ -16,7 +16,7 @@ import {
 } from "./icons.js";
 import type { UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
-import { sanitizeUrl } from "./urlUtils.js";
+import { isValidProofUrl } from "./urlUtils.js";
 import { cn, isUrlCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
 
@@ -358,7 +358,7 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
       </div>
       {pageLineText && (() => {
         const safeProofUrl = verification?.proof?.proofUrl
-          ? sanitizeUrl(verification.proof.proofUrl)
+          ? isValidProofUrl(verification.proof.proofUrl)
           : null;
         return safeProofUrl ? (
           <a

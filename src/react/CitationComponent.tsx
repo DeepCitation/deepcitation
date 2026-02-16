@@ -41,7 +41,7 @@ import { CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon } from "./
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
-import { sanitizeUrl } from "./urlUtils.js";
+import { isValidProofUrl } from "./urlUtils.js";
 import type {
   BaseCitationProps,
   CitationBehaviorActions,
@@ -1622,7 +1622,7 @@ function DefaultPopoverContent({
         )}
         {pageNumber && pageNumber > 0 && (() => {
           const safeProofUrl = verification?.proof?.proofUrl
-            ? sanitizeUrl(verification.proof.proofUrl)
+            ? isValidProofUrl(verification.proof.proofUrl)
             : null;
           return safeProofUrl ? (
             <a
