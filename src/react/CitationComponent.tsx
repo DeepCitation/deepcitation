@@ -37,10 +37,11 @@ import {
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
 import { useRepositionGracePeriod } from "./hooks/useRepositionGracePeriod.js";
-import { CheckIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
+import { CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
+import { sanitizeUrl } from "./urlUtils.js";
 import type {
   BaseCitationProps,
   CitationBehaviorActions,
@@ -1619,9 +1620,27 @@ function DefaultPopoverContent({
             {verification.verifiedMatchSnippet}
           </QuotedText>
         )}
-        {pageNumber && pageNumber > 0 && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
-        )}
+        {pageNumber && pageNumber > 0 && (() => {
+          const safeProofUrl = verification?.proof?.proofUrl
+            ? sanitizeUrl(verification.proof.proofUrl)
+            : null;
+          return safeProofUrl ? (
+            <a
+              href={safeProofUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span>Page {pageNumber}</span>
+              <span className="w-3 h-3">
+                <ExternalLinkIcon />
+              </span>
+            </a>
+          ) : (
+            <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
+          );
+        })()}
       </div>
     </div>
   );

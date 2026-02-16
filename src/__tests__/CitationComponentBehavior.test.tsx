@@ -2645,3 +2645,183 @@ describe("CitationComponent interactionMode", () => {
     // This is covered by integration tests and visual testing.
   });
 });
+
+// =============================================================================
+// PROOF URL LINK TESTS
+// =============================================================================
+
+describe("CitationComponent proof URL links", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const baseCitation: Citation = {
+    type: "document",
+    attachmentId: "abc123",
+    citationNumber: 1,
+    pageNumber: 5,
+    anchorText: "test citation",
+    fullPhrase: "This is a test citation phrase",
+  };
+
+  it("renders page number as clickable link when proof URL exists", async () => {
+    const verification: Verification = {
+      status: "found",
+      label: "Document.pdf",
+      verifiedMatchSnippet: "test citation phrase",
+      document: { verifiedPageNumber: 5 },
+      proof: { proofUrl: "https://api.deepcitation.com/proof/123" },
+    };
+
+    const { container } = render(
+      <CitationComponent citation={baseCitation} verification={verification} />,
+    );
+
+    // Click to open popover
+    const trigger = container.querySelector("[data-citation-id]");
+    await act(async () => {
+      fireEvent.click(trigger as HTMLElement);
+    });
+
+    await waitForPopoverVisible(container);
+
+    // Find the page number link
+    const link = container.querySelector('a[href="https://api.deepcitation.com/proof/123"]');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link?.textContent).toContain("Page 5");
+  });
+
+  it("renders static text when proof URL is not available", async () => {
+    const verification: Verification = {
+      status: "found",
+      label: "Document.pdf",
+      verifiedMatchSnippet: "test citation phrase",
+      document: { verifiedPageNumber: 5 },
+    };
+
+    const { container } = render(
+      <CitationComponent citation={baseCitation} verification={verification} />,
+    );
+
+    // Click to open popover
+    const trigger = container.querySelector("[data-citation-id]");
+    await act(async () => {
+      fireEvent.click(trigger as HTMLElement);
+    });
+
+    await waitForPopoverVisible(container);
+
+    // Should not have any links in the popover
+    const links = container.querySelectorAll("a");
+    const proofLinks = Array.from(links).filter(link => link.textContent?.includes("Page 5"));
+    expect(proofLinks.length).toBe(0);
+  });
+
+  it("does not render link for unsafe proof URL (javascript: protocol)", async () => {
+    const verification: Verification = {
+      status: "found",
+      label: "Document.pdf",
+      verifiedMatchSnippet: "test citation phrase",
+      document: { verifiedPageNumber: 5 },
+      proof: { proofUrl: "javascript:alert('XSS')" },
+    };
+
+    const { container } = render(
+      <CitationComponent citation={baseCitation} verification={verification} />,
+    );
+
+    // Click to open popover
+    const trigger = container.querySelector("[data-citation-id]");
+    await act(async () => {
+      fireEvent.click(trigger as HTMLElement);
+    });
+
+    await waitForPopoverVisible(container);
+
+    // Should not have any javascript: protocol links
+    const links = container.querySelectorAll("a");
+    const javascriptLinks = Array.from(links).filter(link => link.getAttribute("href")?.startsWith("javascript:"));
+    expect(javascriptLinks.length).toBe(0);
+  });
+
+  it("does not render link for unsafe proof URL (data: protocol)", async () => {
+    const verification: Verification = {
+      status: "found",
+      label: "Document.pdf",
+      verifiedMatchSnippet: "test citation phrase",
+      document: { verifiedPageNumber: 5 },
+      proof: { proofUrl: "data:text/html,<script>alert('XSS')</script>" },
+    };
+
+    const { container } = render(
+      <CitationComponent citation={baseCitation} verification={verification} />,
+    );
+
+    // Click to open popover
+    const trigger = container.querySelector("[data-citation-id]");
+    await act(async () => {
+      fireEvent.click(trigger as HTMLElement);
+    });
+
+    await waitForPopoverVisible(container);
+
+    // Should not have any data: protocol links
+    const links = container.querySelectorAll("a");
+    const dataLinks = Array.from(links).filter(link => link.getAttribute("href")?.startsWith("data:"));
+    expect(dataLinks.length).toBe(0);
+  });
+
+  it("renders link for valid https proof URL", async () => {
+    const verification: Verification = {
+      status: "found",
+      label: "Document.pdf",
+      verifiedMatchSnippet: "test citation phrase",
+      document: { verifiedPageNumber: 5 },
+      proof: { proofUrl: "https://cdn.deepcitation.com/proof/456" },
+    };
+
+    const { container } = render(
+      <CitationComponent citation={baseCitation} verification={verification} />,
+    );
+
+    // Click to open popover
+    const trigger = container.querySelector("[data-citation-id]");
+    await act(async () => {
+      fireEvent.click(trigger as HTMLElement);
+    });
+
+    await waitForPopoverVisible(container);
+
+    // Find the proof URL link
+    const link = container.querySelector('a[href="https://cdn.deepcitation.com/proof/456"]');
+    expect(link).toBeInTheDocument();
+  });
+
+  it("renders link for valid http proof URL", async () => {
+    const verification: Verification = {
+      status: "found",
+      label: "Document.pdf",
+      verifiedMatchSnippet: "test citation phrase",
+      document: { verifiedPageNumber: 5 },
+      proof: { proofUrl: "http://api.deepcitation.com/proof/789" },
+    };
+
+    const { container } = render(
+      <CitationComponent citation={baseCitation} verification={verification} />,
+    );
+
+    // Click to open popover
+    const trigger = container.querySelector("[data-citation-id]");
+    await act(async () => {
+      fireEvent.click(trigger as HTMLElement);
+    });
+
+    await waitForPopoverVisible(container);
+
+    // Find the proof URL link
+    const link = container.querySelector('a[href="http://api.deepcitation.com/proof/789"]');
+    expect(link).toBeInTheDocument();
+  });
+});
