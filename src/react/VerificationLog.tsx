@@ -241,6 +241,38 @@ export function FaviconImage({
 }
 
 /**
+ * Displays page/line location text, optionally as a clickable link to the proof image.
+ * Falls back to static text if proof URL is unavailable or fails validation.
+ * Uses smaller icon size (w-2.5 h-2.5) to match the smaller font size (text-[10px]).
+ */
+function PageLineLink({ pageLineText, proofUrl }: { pageLineText: string; proofUrl?: string }) {
+  const safeProofUrl = proofUrl ? isValidProofUrl(proofUrl) : null;
+
+  if (safeProofUrl) {
+    return (
+      <a
+        href={safeProofUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 hover:underline shrink-0 uppercase tracking-wide cursor-pointer"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span>{pageLineText}</span>
+        <span className="w-2.5 h-2.5">
+          <ExternalLinkIcon />
+        </span>
+      </a>
+    );
+  }
+
+  return (
+    <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">
+      {pageLineText}
+    </span>
+  );
+}
+
+/**
  * SourceContextHeader displays source information (favicon + source info) for citations.
  * Shown at the top of popovers to give auditors immediate visibility into citation sources.
  *
@@ -356,29 +388,7 @@ export function SourceContextHeader({ citation, verification, status, sourceLabe
           </span>
         )}
       </div>
-      {pageLineText && (() => {
-        const safeProofUrl = verification?.proof?.proofUrl
-          ? isValidProofUrl(verification.proof.proofUrl)
-          : null;
-        return safeProofUrl ? (
-          <a
-            href={safeProofUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 hover:underline shrink-0 uppercase tracking-wide cursor-pointer"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span>{pageLineText}</span>
-            <span className="w-2.5 h-2.5">
-              <ExternalLinkIcon />
-            </span>
-          </a>
-        ) : (
-          <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">
-            {pageLineText}
-          </span>
-        );
-      })()}
+      {pageLineText && <PageLineLink pageLineText={pageLineText} proofUrl={verification?.proof?.proofUrl} />}
     </div>
   );
 }

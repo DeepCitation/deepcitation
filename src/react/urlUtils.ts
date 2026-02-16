@@ -26,9 +26,17 @@ export function sanitizeUrl(url: string): string | null {
   }
 }
 
+import { isApprovedDomain } from "../utils/urlSafety.js";
+
+/**
+ * Approved domains for proof URLs.
+ * Only deepcitation.com and its subdomains are allowed.
+ */
+const APPROVED_PROOF_DOMAINS = new Set(["deepcitation.com"]);
+
 /**
  * Validates that a proof URL is safe to use in anchor tags.
- * Checks both protocol safety and domain trust.
+ * Uses canonical security utilities to check both protocol safety and domain trust.
  *
  * Blocks:
  * - Dangerous protocols (javascript:, data:, vbscript:, etc.)
@@ -46,30 +54,36 @@ export function sanitizeUrl(url: string): string | null {
  * // Blocked URLs
  * isValidProofUrl('javascript:alert("XSS")');                // null (dangerous protocol)
  * isValidProofUrl('https://evil.com/proof');                 // null (untrusted domain)
+ * isValidProofUrl('');                                       // null (empty string)
  * ```
  */
 export function isValidProofUrl(url: string): string | null {
+  // Handle empty string edge case
+  if (!url || typeof url !== "string" || url.trim() === "") {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[DeepCitation] Proof URL is empty or invalid");
+    }
+    return null;
+  }
+
   // First check protocol safety
   const safeUrl = sanitizeUrl(url);
   if (!safeUrl) {
-    return null;
-  }
-
-  // Then check domain trust
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname.toLowerCase();
-
-    // Only allow deepcitation.com and its subdomains
-    if (hostname === "deepcitation.com" || hostname.endsWith(".deepcitation.com")) {
-      return url;
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[DeepCitation] Blocked unsafe proof URL protocol:", url);
     }
-
-    // Block all other domains
-    return null;
-  } catch {
     return null;
   }
+
+  // Then check domain trust using canonical utility
+  if (!isApprovedDomain(url, APPROVED_PROOF_DOMAINS)) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[DeepCitation] Blocked proof URL from untrusted domain:", url);
+    }
+    return null;
+  }
+
+  return url;
 }
 
 /**

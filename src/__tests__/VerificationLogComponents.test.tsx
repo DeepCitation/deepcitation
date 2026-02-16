@@ -601,6 +601,27 @@ describe("SourceContextHeader", () => {
       // Should render static text, not a link (untrusted domain blocked)
       expect(queryByRole("link")).toBeNull();
     });
+
+    it("handles empty proof URL gracefully", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 5,
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        label: "Document.pdf",
+        document: { verifiedPageNumber: 5 },
+        proof: { proofUrl: "" },
+      };
+
+      const { queryByRole, container } = render(<SourceContextHeader citation={citation} verification={verification} />);
+
+      // Should render static text, not a link (empty string blocked)
+      expect(queryByRole("link")).toBeNull();
+      // Should not crash
+      expect(container).toBeInTheDocument();
+    });
   });
 });
 

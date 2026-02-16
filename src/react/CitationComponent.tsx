@@ -1346,6 +1346,33 @@ interface PopoverContentProps {
   indicatorVariant?: "icon" | "dot";
 }
 
+/**
+ * Displays a page number, optionally as a clickable link to the proof image.
+ * Falls back to static text if proof URL is unavailable or fails validation.
+ */
+function PageNumberLink({ pageNumber, proofUrl }: { pageNumber: number; proofUrl?: string }) {
+  const safeProofUrl = proofUrl ? isValidProofUrl(proofUrl) : null;
+
+  if (safeProofUrl) {
+    return (
+      <a
+        href={safeProofUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span>Page {pageNumber}</span>
+        <span className="w-3 h-3">
+          <ExternalLinkIcon />
+        </span>
+      </a>
+    );
+  }
+
+  return <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>;
+}
+
 function DefaultPopoverContent({
   citation,
   verification,
@@ -1620,27 +1647,9 @@ function DefaultPopoverContent({
             {verification.verifiedMatchSnippet}
           </QuotedText>
         )}
-        {pageNumber && pageNumber > 0 && (() => {
-          const safeProofUrl = verification?.proof?.proofUrl
-            ? isValidProofUrl(verification.proof.proofUrl)
-            : null;
-          return safeProofUrl ? (
-            <a
-              href={safeProofUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span>Page {pageNumber}</span>
-              <span className="w-3 h-3">
-                <ExternalLinkIcon />
-              </span>
-            </a>
-          ) : (
-            <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
-          );
-        })()}
+        {pageNumber && pageNumber > 0 && (
+          <PageNumberLink pageNumber={pageNumber} proofUrl={verification?.proof?.proofUrl} />
+        )}
       </div>
     </div>
   );
