@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/experimental-ct-react";
-import { CitationComponent } from "../../../src/react/CitationComponent";
+import {
+  CitationComponent,
+  HOVER_CLOSE_DELAY_MS,
+  REPOSITION_GRACE_PERIOD_MS,
+} from "../../../src/react/CitationComponent";
 import type { Citation } from "../../../src/types/citation";
 import type { Verification } from "../../../src/types/verification";
 
@@ -120,9 +124,7 @@ test.describe("Citation Popover - Basic Behavior", () => {
 // =============================================================================
 
 test.describe("Citation Popover - Grace Period Behavior", () => {
-  // Grace period constant (must match REPOSITION_GRACE_PERIOD_MS in CitationComponent)
-  const GRACE_PERIOD_MS = 300;
-  const HOVER_CLOSE_DELAY_MS = 150;
+  // Use constants imported from CitationComponent to ensure tests stay in sync
 
   test("expands verification details without dismissing popover", async ({ mount, page }) => {
     await mount(<CitationComponent citation={baseCitation} verification={verificationWithDetails} />);
@@ -143,7 +145,7 @@ test.describe("Citation Popover - Grace Period Behavior", () => {
     await expect(popover).toBeVisible();
 
     // Wait longer than grace period + hover delay to ensure popover stays open
-    await page.waitForTimeout(GRACE_PERIOD_MS + HOVER_CLOSE_DELAY_MS + 100);
+    await page.waitForTimeout(REPOSITION_GRACE_PERIOD_MS + HOVER_CLOSE_DELAY_MS + 100);
 
     // Popover should STILL be visible (grace period prevents spurious dismissal)
     await expect(popover).toBeVisible();

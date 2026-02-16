@@ -79,11 +79,11 @@ const deprecationWarned = new Set<string>();
 const SPINNER_TIMEOUT_MS = 5000;
 
 /** Delay in ms before closing popover on mouse leave (allows moving to popover content). */
-const HOVER_CLOSE_DELAY_MS = 150;
+export const HOVER_CLOSE_DELAY_MS = 150;
 
 /** Grace period in ms after content resize to prevent spurious mouseleave-triggered closes.
  * Set to 2x HOVER_CLOSE_DELAY_MS to cover popover reposition animation + user reaction time. */
-const REPOSITION_GRACE_PERIOD_MS = 300;
+export const REPOSITION_GRACE_PERIOD_MS = 300;
 
 /** Popover container width. Customizable via CSS custom property `--dc-popover-width`. */
 const POPOVER_WIDTH = `var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT})`;
@@ -1766,7 +1766,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       isAnyOverlayOpen,
     ]);
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: repositionGraceRef is a stable ref from hook
+    // biome-ignore lint/correctness/useExhaustiveDependencies: repositionGraceRef is a stable ref object (only .current mutates)
     const handleMouseLeave = useCallback(() => {
       // Don't close the popover if an image overlay is open - user expects to return to popover
       // after closing the zoomed image
@@ -1804,7 +1804,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       clearGracePeriod();
     }, [cancelHoverCloseTimeout, clearGracePeriod]);
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: repositionGraceRef is a stable ref from hook
+    // biome-ignore lint/correctness/useExhaustiveDependencies: repositionGraceRef is a stable ref object (only .current mutates)
     const handlePopoverMouseLeave = useCallback(() => {
       isOverPopoverRef.current = false;
       // Don't close the popover if an image overlay is open - user expects to return to popover
@@ -1845,8 +1845,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       };
     }, []);
 
-    // Escape key handling is managed by Radix Popover (via PopoverContent)
-    // and ImageOverlay - no custom handler needed here
+    // Escape key handling is managed by Radix Popover via onOpenChange prop (line 2354)
+    // and ImageOverlay - no custom keydown handler needed here
 
     // Mobile click-outside dismiss handler
     //
