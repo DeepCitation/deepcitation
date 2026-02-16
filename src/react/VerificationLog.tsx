@@ -245,7 +245,7 @@ export function FaviconImage({
  * Falls back to static text if proof URL is unavailable or fails validation.
  * Uses smaller icon size (w-2.5 h-2.5) to match the smaller font size (text-[10px]).
  */
-function PageLineLink({ pageLineText, proofUrl }: { pageLineText: string; proofUrl?: string }) {
+function PageLineLink({ pageLineText, proofUrl }: { pageLineText: string; proofUrl?: string }): React.ReactNode {
   const safeProofUrl = proofUrl ? isValidProofUrl(proofUrl) : null;
 
   if (safeProofUrl) {

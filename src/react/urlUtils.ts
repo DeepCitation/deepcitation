@@ -7,6 +7,7 @@
 
 import type { UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus, isVerifiedStatus } from "./urlStatus.js";
+import { isApprovedDomain } from "../utils/urlSafety.js";
 
 /**
  * Validates that a URL uses a safe protocol (http: or https:).
@@ -25,8 +26,6 @@ export function sanitizeUrl(url: string): string | null {
     return null;
   }
 }
-
-import { isApprovedDomain } from "../utils/urlSafety.js";
 
 /**
  * Approved domains for proof URLs.
@@ -59,7 +58,7 @@ const APPROVED_PROOF_DOMAINS = new Set(["deepcitation.com"]);
  */
 export function isValidProofUrl(url: string): string | null {
   // Handle empty string edge case
-  if (!url || typeof url !== "string" || url.trim() === "") {
+  if (!url || url.trim() === "") {
     if (process.env.NODE_ENV === "development") {
       console.warn("[DeepCitation] Proof URL is empty or invalid");
     }

@@ -1350,7 +1350,7 @@ interface PopoverContentProps {
  * Displays a page number, optionally as a clickable link to the proof image.
  * Falls back to static text if proof URL is unavailable or fails validation.
  */
-function PageNumberLink({ pageNumber, proofUrl }: { pageNumber: number; proofUrl?: string }) {
+function PageNumberLink({ pageNumber, proofUrl }: { pageNumber: number; proofUrl?: string }): React.ReactNode {
   const safeProofUrl = proofUrl ? isValidProofUrl(proofUrl) : null;
 
   if (safeProofUrl) {
