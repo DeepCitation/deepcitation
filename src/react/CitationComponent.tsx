@@ -88,9 +88,6 @@ export const REPOSITION_GRACE_PERIOD_MS = 300;
 /** Popover container width. Customizable via CSS custom property `--dc-popover-width`. */
 const POPOVER_WIDTH = `var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT})`;
 
-/** Popover container max width (viewport-relative, with safe margin to prevent scrollbar) */
-const POPOVER_MAX_WIDTH = "calc(100vw - 32px)";
-
 /** Debounce threshold for ignoring click events after touch (ms) */
 const TOUCH_CLICK_DEBOUNCE_MS = 100;
 
@@ -1189,7 +1186,7 @@ function DefaultPopoverContent({
   if (isCleanSuccess && hasImage && verification) {
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
-        <div className={POPOVER_CONTAINER_BASE_CLASSES} style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
+        <div className={POPOVER_CONTAINER_BASE_CLASSES} style={{ width: POPOVER_WIDTH, maxWidth: "100%" }}>
           {/* Source context header */}
           <SourceContextHeader
             citation={citation}
@@ -1211,7 +1208,7 @@ function DefaultPopoverContent({
 
           {/* Full phrase with highlighted anchor text */}
           {fullPhrase && (
-            <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
+            <div className="px-3 py-2 text-sm leading-relaxed break-words border-b border-gray-100 dark:border-gray-800">
               <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}
@@ -1248,7 +1245,7 @@ function DefaultPopoverContent({
   if (isMiss || isPartialMatch) {
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
-        <div className={POPOVER_CONTAINER_BASE_CLASSES} style={{ width: POPOVER_WIDTH, maxWidth: POPOVER_MAX_WIDTH }}>
+        <div className={POPOVER_CONTAINER_BASE_CLASSES} style={{ width: POPOVER_WIDTH, maxWidth: "100%" }}>
           {/* Source context header */}
           <SourceContextHeader
             citation={citation}
@@ -1279,7 +1276,7 @@ function DefaultPopoverContent({
               )}
               {/* Full phrase with highlighted anchor text */}
               {fullPhrase && (
-                <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
+                <div className="px-3 py-2 text-sm leading-relaxed break-words border-b border-gray-100 dark:border-gray-800">
                   <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
                 </div>
               )}
@@ -1307,7 +1304,7 @@ function DefaultPopoverContent({
               )}
               {/* Full phrase with highlighted anchor text */}
               {fullPhrase && (
-                <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
+                <div className="px-3 py-2 text-sm leading-relaxed break-words border-b border-gray-100 dark:border-gray-800">
                   <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
                 </div>
               )}

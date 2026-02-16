@@ -8,7 +8,12 @@
 
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as React from "react";
-import { Z_INDEX_BACKDROP_DEFAULT, Z_INDEX_POPOVER_VAR } from "./constants.js";
+import {
+  POPOVER_WIDTH_DEFAULT,
+  POPOVER_WIDTH_VAR,
+  Z_INDEX_BACKDROP_DEFAULT,
+  Z_INDEX_POPOVER_VAR,
+} from "./constants.js";
 
 function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
@@ -27,13 +32,21 @@ const PopoverContent = React.forwardRef<
       // This prevents confusing UX where the popover shifts position when expanding/collapsing
       // sections like search details. The popover may be partially offscreen but stays in place.
       sticky={sticky}
-      style={{ zIndex: `var(${Z_INDEX_POPOVER_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})`, ...style } as React.CSSProperties}
+      style={
+        {
+          zIndex: `var(${Z_INDEX_POPOVER_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})`,
+          // Max width respects the CSS custom property (--dc-popover-width) and caps to viewport.
+          // This must match the inner content width to prevent horizontal scrollbar.
+          maxWidth: `min(var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT}), calc(100vw - 2rem))`,
+          ...style,
+        } as React.CSSProperties
+      }
       className={cn(
-        // Base styling: fit-content dimensions, viewport-aware max for both width and height
+        // Base styling: fit-content dimensions, viewport-aware max height
         // Ensures popover never exceeds screen bounds, leaving room for positioning
         "rounded-lg border bg-white shadow-xl outline-none",
-        "w-fit max-w-[min(400px,calc(100vw-2rem))] max-h-[calc(100vh-4rem)]",
-        "overflow-auto",
+        "w-fit max-h-[calc(100vh-4rem)]",
+        "overflow-y-auto overflow-x-hidden",
         "border-gray-200 dark:border-gray-700 dark:bg-gray-900",
         // Animations - smooth 200ms entry for snappy feel
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
