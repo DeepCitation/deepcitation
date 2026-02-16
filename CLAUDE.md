@@ -506,6 +506,74 @@ interface CitationBehaviorConfig {
 }
 ```
 
+#### Analytics Tracking
+
+Track citation interactions for feature adoption metrics using `behaviorConfig`:
+
+```tsx
+import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+
+// Track citation clicks
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  behaviorConfig={{
+    onClick: (context, event) => {
+      // Track citation click
+      analytics?.track('citation_clicked', {
+        citationKey: context.citationKey,
+        hasVerification: !!context.verification,
+        verificationStatus: context.verification?.status,
+        citationType: context.citation.type,
+      });
+
+      // Return undefined to allow default behavior to continue
+      return undefined;
+    },
+    onHover: {
+      onEnter: (context) => {
+        // Track hover interactions
+        analytics?.track('citation_hovered', {
+          citationKey: context.citationKey,
+        });
+      },
+    },
+  }}
+/>
+
+// Track proof link clicks (page numbers in popovers)
+// Note: Proof links use stopPropagation(), so they won't trigger citation onClick
+// To track proof link clicks, use a global click listener or wrap the component:
+
+function TrackedCitationComponent({ citation, verification, analytics }) {
+  useEffect(() => {
+    const handleProofLinkClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest('a[href^="https://api.deepcitation.com/proof"]');
+      if (link) {
+        analytics?.track('proof_link_clicked', {
+          source: 'page_number',
+          proofUrl: link.getAttribute('href'),
+          citationType: citation.type,
+        });
+      }
+    };
+
+    document.addEventListener('click', handleProofLinkClick);
+    return () => document.removeEventListener('click', handleProofLinkClick);
+  }, [citation, analytics]);
+
+  return <CitationComponent citation={citation} verification={verification} />;
+}
+```
+
+**Common Tracking Events:**
+- `citation_clicked` - User clicks a citation to open popover
+- `citation_hovered` - User hovers over a citation (if using hover mode)
+- `proof_link_clicked` - User clicks page number link to view proof image
+- `search_details_expanded` - User clicks to expand verification search details
+- `image_overlay_opened` - User clicks to view full-size verification image
+
 ### 9. Custom Source Labels
 
 The `sourceLabel` prop allows you to override the filename or URL title displayed in the citation popover header. This is useful when you want to show a more user-friendly name instead of the raw filename or URL.
