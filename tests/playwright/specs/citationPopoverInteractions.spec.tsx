@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/experimental-ct-react";
+import { CitationComponent } from "../../../src/react";
 import {
-  CitationComponent,
   HOVER_CLOSE_DELAY_MS,
   REPOSITION_GRACE_PERIOD_MS,
 } from "../../../src/react/CitationComponent";
