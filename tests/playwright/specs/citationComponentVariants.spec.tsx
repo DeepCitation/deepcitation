@@ -580,3 +580,126 @@ test.describe("CitationComponent - Indicator Scaling", () => {
     await expect(citations).toHaveCount(16); // 4 states × 4 font sizes
   });
 });
+
+// =============================================================================
+// TEXT COLOR INHERITANCE TESTS
+// =============================================================================
+
+test.describe("CitationComponent - Text Color Inheritance", () => {
+  test("linter variant inherits parent text color when verified", async ({ mount, page }) => {
+    await mount(
+      <div style={{ color: "rgb(22, 163, 74)" }}>
+        <CitationComponent citation={baseCitation} variant="linter" verification={verifiedVerification} />
+      </div>,
+    );
+    const citation = page.locator("[data-citation-id]");
+    const linterSpan = citation.locator("span").first();
+
+    const color = await linterSpan.evaluate(el => getComputedStyle(el).color);
+    expect(color).toBe("rgb(22, 163, 74)");
+  });
+
+  test("text variant inherits parent text color when verified", async ({ mount, page }) => {
+    await mount(
+      <div style={{ color: "rgb(22, 163, 74)" }}>
+        <CitationComponent citation={baseCitation} variant="text" verification={verifiedVerification} />
+      </div>,
+    );
+    const citation = page.locator("[data-citation-id]");
+    const textSpan = citation.locator("span").first();
+
+    const color = await textSpan.evaluate(el => getComputedStyle(el).color);
+    expect(color).toBe("rgb(22, 163, 74)");
+  });
+
+  test("linter variant inherits parent text color when miss (with opacity)", async ({ mount, page }) => {
+    await mount(
+      <div style={{ color: "rgb(22, 163, 74)" }}>
+        <CitationComponent citation={baseCitation} variant="linter" verification={missVerification} />
+      </div>,
+    );
+    const citation = page.locator("[data-citation-id]");
+    const linterSpan = citation.locator("span").first();
+
+    const color = await linterSpan.evaluate(el => getComputedStyle(el).color);
+    expect(color).toBe("rgb(22, 163, 74)");
+  });
+
+  test("linter variant inherits parent text color when pending", async ({ mount, page }) => {
+    await mount(
+      <div style={{ color: "rgb(22, 163, 74)" }}>
+        <CitationComponent citation={baseCitation} variant="linter" verification={pendingVerification} />
+      </div>,
+    );
+    const citation = page.locator("[data-citation-id]");
+    const linterSpan = citation.locator("span").first();
+
+    const color = await linterSpan.evaluate(el => getComputedStyle(el).color);
+    expect(color).toBe("rgb(22, 163, 74)");
+  });
+
+  test("chip variant does NOT inherit parent text color", async ({ mount, page }) => {
+    await mount(
+      <div style={{ color: "rgb(22, 163, 74)" }}>
+        <CitationComponent citation={baseCitation} variant="chip" verification={verifiedVerification} />
+      </div>,
+    );
+    const citation = page.locator("[data-citation-id]");
+    // Chip has its own inner span with explicit text-gray-700
+    const chipSpan = citation.locator("span").first();
+
+    const color = await chipSpan.evaluate(el => getComputedStyle(el).color);
+    expect(color).not.toBe("rgb(22, 163, 74)");
+  });
+
+  test("brackets variant does NOT inherit parent text color", async ({ mount, page }) => {
+    await mount(
+      <div style={{ color: "rgb(22, 163, 74)" }}>
+        <CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />
+      </div>,
+    );
+    const citation = page.locator("[data-citation-id]");
+    const bracketsSpan = citation.locator("span").first();
+
+    const color = await bracketsSpan.evaluate(el => getComputedStyle(el).color);
+    expect(color).not.toBe("rgb(22, 163, 74)");
+  });
+
+  test("className prop can override inherited color for linter", async ({ mount, page }) => {
+    await mount(
+      <div style={{ color: "rgb(22, 163, 74)" }}>
+        <CitationComponent
+          citation={baseCitation}
+          variant="linter"
+          verification={verifiedVerification}
+          className="text-red-500"
+        />
+      </div>,
+    );
+    const citation = page.locator("[data-citation-id]");
+    const linterSpan = citation.locator("span").first();
+
+    // className sets color on wrapper, linter span inherits it (not the div's green)
+    const color = await linterSpan.evaluate(el => getComputedStyle(el).color);
+    expect(color).not.toBe("rgb(22, 163, 74)");
+  });
+
+  test("superscript anchor text inherits parent color, sup element does not", async ({ mount, page }) => {
+    await mount(
+      <div style={{ color: "rgb(22, 163, 74)" }}>
+        <CitationComponent citation={baseCitation} variant="superscript" verification={verifiedVerification} />
+      </div>,
+    );
+    const citation = page.locator("[data-citation-id]");
+
+    // Anchor text (first span child) inherits parent green
+    const anchorSpan = citation.locator("span").first();
+    const anchorColor = await anchorSpan.evaluate(el => getComputedStyle(el).color);
+    expect(anchorColor).toBe("rgb(22, 163, 74)");
+
+    // <sup> element has its own explicit color (not inherited green)
+    const supElement = citation.locator("sup");
+    const supColor = await supElement.evaluate(el => getComputedStyle(el).color);
+    expect(supColor).not.toBe("rgb(22, 163, 74)");
+  });
+});
