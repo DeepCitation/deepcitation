@@ -1276,7 +1276,7 @@ function DefaultPopoverContent({
               )}
               {/* Full phrase with highlighted anchor text */}
               {fullPhrase && (
-                <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
+                <div className="px-3 py-2 text-sm leading-relaxed break-words border-b border-gray-100 dark:border-gray-800">
                   <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
                 </div>
               )}
@@ -1304,7 +1304,7 @@ function DefaultPopoverContent({
               )}
               {/* Full phrase with highlighted anchor text */}
               {fullPhrase && (
-                <div className="px-3 py-2 text-sm leading-relaxed border-b border-gray-100 dark:border-gray-800">
+                <div className="px-3 py-2 text-sm leading-relaxed break-words border-b border-gray-100 dark:border-gray-800">
                   <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
                 </div>
               )}
