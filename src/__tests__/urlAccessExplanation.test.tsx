@@ -63,7 +63,7 @@ describe("URL Access Explanation in CitationComponent", () => {
       // Click to open popover
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -80,7 +80,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -97,7 +97,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -114,7 +114,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -131,7 +131,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -148,7 +148,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -168,7 +168,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -182,7 +182,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -196,7 +196,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -210,7 +210,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -233,7 +233,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -263,7 +263,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -300,7 +300,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -322,7 +322,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -338,7 +338,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 
@@ -353,7 +353,7 @@ describe("URL Access Explanation in CitationComponent", () => {
 
       const trigger = container.querySelector("[data-citation-id]");
       await act(async () => {
-        fireEvent.click(trigger!);
+        fireEvent.click(trigger as HTMLElement);
       });
       await waitForPopoverVisible(container);
 

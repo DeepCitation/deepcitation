@@ -37,7 +37,7 @@ import {
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
 import { useRepositionGracePeriod } from "./hooks/useRepositionGracePeriod.js";
-import { CheckIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
+import { CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
@@ -54,6 +54,7 @@ import type {
   IndicatorVariant,
   UrlFetchStatus,
 } from "./types.js";
+import { isValidProofUrl } from "./urlUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 import { QuotedText, SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";
 
@@ -1348,6 +1349,33 @@ interface PopoverContentProps {
   indicatorVariant?: "icon" | "dot";
 }
 
+/**
+ * Displays a page number, optionally as a clickable link to the proof image.
+ * Falls back to static text if proof URL is unavailable or fails validation.
+ */
+function PageNumberLink({ pageNumber, proofUrl }: { pageNumber: number; proofUrl?: string }): React.ReactNode {
+  const safeProofUrl = proofUrl ? isValidProofUrl(proofUrl) : null;
+
+  if (safeProofUrl) {
+    return (
+      <a
+        href={safeProofUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+        onClick={e => e.stopPropagation()}
+      >
+        <span>Page {pageNumber}</span>
+        <span className="w-3 h-3">
+          <ExternalLinkIcon />
+        </span>
+      </a>
+    );
+  }
+
+  return <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>;
+}
+
 function DefaultPopoverContent({
   citation,
   verification,
@@ -1623,7 +1651,7 @@ function DefaultPopoverContent({
           </QuotedText>
         )}
         {pageNumber && pageNumber > 0 && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
+          <PageNumberLink pageNumber={pageNumber} proofUrl={verification?.proof?.proofUrl} />
         )}
       </div>
     </div>

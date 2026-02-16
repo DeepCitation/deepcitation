@@ -2645,3 +2645,125 @@ describe("CitationComponent interactionMode", () => {
     // This is covered by integration tests and visual testing.
   });
 });
+
+// =============================================================================
+// PROOF URL LINK TESTS
+// =============================================================================
+
+describe("CitationComponent proof URL links", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const baseCitation: Citation = {
+    type: "document",
+    attachmentId: "abc123",
+    citationNumber: 1,
+    pageNumber: 5,
+    anchorText: "test citation",
+    fullPhrase: "This is a test citation phrase",
+  };
+
+  it("renders static text when proof URL is not available", async () => {
+    const verification: Verification = {
+      status: "found",
+      label: "Document.pdf",
+      verifiedMatchSnippet: "test citation phrase",
+      document: { verifiedPageNumber: 5 },
+    };
+
+    const { container } = render(<CitationComponent citation={baseCitation} verification={verification} />);
+
+    // Click to open popover
+    const trigger = container.querySelector("[data-citation-id]");
+    await act(async () => {
+      fireEvent.click(trigger as HTMLElement);
+    });
+
+    await waitForPopoverVisible(container);
+
+    // Should not have any links in the popover
+    const links = container.querySelectorAll("a");
+    const proofLinks = Array.from(links).filter(link => link.textContent?.includes("Page 5"));
+    expect(proofLinks.length).toBe(0);
+  });
+
+  it("does not render link for unsafe proof URL (javascript: protocol)", async () => {
+    const verification: Verification = {
+      status: "found",
+      label: "Document.pdf",
+      verifiedMatchSnippet: "test citation phrase",
+      document: { verifiedPageNumber: 5 },
+      proof: { proofUrl: "javascript:alert('XSS')" },
+    };
+
+    const { container } = render(<CitationComponent citation={baseCitation} verification={verification} />);
+
+    // Click to open popover
+    const trigger = container.querySelector("[data-citation-id]");
+    await act(async () => {
+      fireEvent.click(trigger as HTMLElement);
+    });
+
+    await waitForPopoverVisible(container);
+
+    // Should not have any javascript: protocol links
+    const links = container.querySelectorAll("a");
+    // This test checks that our security code (sanitizeUrl) blocks javascript: URLs.
+    // Production code uses whitelist approach (http/https only) which blocks ALL dangerous protocols.
+    const javascriptLinks = Array.from(links).filter(link => link.getAttribute("href")?.startsWith("javascript:")); // codeql[js/incomplete-url-scheme-check]
+    expect(javascriptLinks.length).toBe(0);
+  });
+
+  it("does not render link for unsafe proof URL (data: protocol)", async () => {
+    const verification: Verification = {
+      status: "found",
+      label: "Document.pdf",
+      verifiedMatchSnippet: "test citation phrase",
+      document: { verifiedPageNumber: 5 },
+      proof: { proofUrl: "data:text/html,<script>alert('XSS')</script>" },
+    };
+
+    const { container } = render(<CitationComponent citation={baseCitation} verification={verification} />);
+
+    // Click to open popover
+    const trigger = container.querySelector("[data-citation-id]");
+    await act(async () => {
+      fireEvent.click(trigger as HTMLElement);
+    });
+
+    await waitForPopoverVisible(container);
+
+    // Should not have any data: protocol links
+    const links = container.querySelectorAll("a");
+    const dataLinks = Array.from(links).filter(link => link.getAttribute("href")?.startsWith("data:"));
+    expect(dataLinks.length).toBe(0);
+  });
+
+  it("blocks proof URL from untrusted domain", async () => {
+    const verification: Verification = {
+      status: "found",
+      label: "Document.pdf",
+      verifiedMatchSnippet: "test citation phrase",
+      document: { verifiedPageNumber: 5 },
+      proof: { proofUrl: "https://evil.com/fake-proof" },
+    };
+
+    const { container } = render(<CitationComponent citation={baseCitation} verification={verification} />);
+
+    // Click to open popover
+    const trigger = container.querySelector("[data-citation-id]");
+    await act(async () => {
+      fireEvent.click(trigger as HTMLElement);
+    });
+
+    await waitForPopoverVisible(container);
+
+    // Should not have any links with evil.com
+    const links = container.querySelectorAll("a");
+    // This test checks that our security code (isApprovedDomain) blocks untrusted domains.
+    // Production code uses proper URL parsing and domain validation, not substring matching.
+    const evilLinks = Array.from(links).filter(link => link.getAttribute("href")?.includes("evil.com")); // codeql[js/incomplete-url-substring-sanitization]
+    expect(evilLinks.length).toBe(0);
+  });
+});

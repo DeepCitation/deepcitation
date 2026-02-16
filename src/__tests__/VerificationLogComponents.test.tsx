@@ -480,6 +480,151 @@ describe("SourceContextHeader", () => {
       expect(container.textContent).toContain("p.10");
     });
   });
+
+  // ==========================================================================
+  // PROOF URL LINK TESTS
+  // ==========================================================================
+
+  describe("Proof URL links", () => {
+    it("renders page/line text as clickable link when proof URL exists", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 5,
+        lineIds: [12, 13],
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        label: "Document.pdf",
+        document: { verifiedPageNumber: 5 },
+        proof: { proofUrl: "https://api.deepcitation.com/proof/123" },
+      };
+
+      const { getByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
+
+      const link = getByRole("link");
+      expect(link).toHaveAttribute("href", "https://api.deepcitation.com/proof/123");
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    });
+
+    it("renders static text when proof URL is not available", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 5,
+        lineIds: [12, 13],
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        label: "Document.pdf",
+        document: { verifiedPageNumber: 5 },
+      };
+
+      const { queryByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
+
+      expect(queryByRole("link")).toBeNull();
+    });
+
+    it("does not render link for unsafe proof URL (javascript: protocol)", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 5,
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        label: "Document.pdf",
+        document: { verifiedPageNumber: 5 },
+        proof: { proofUrl: "javascript:alert('XSS')" },
+      };
+
+      const { queryByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
+
+      // Should render static text, not a link
+      expect(queryByRole("link")).toBeNull();
+    });
+
+    it("does not render link for unsafe proof URL (data: protocol)", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 5,
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        label: "Document.pdf",
+        document: { verifiedPageNumber: 5 },
+        proof: { proofUrl: "data:text/html,<script>alert('XSS')</script>" },
+      };
+
+      const { queryByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
+
+      // Should render static text, not a link
+      expect(queryByRole("link")).toBeNull();
+    });
+
+    it("renders link for valid https proof URL from deepcitation.com", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 5,
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        label: "Document.pdf",
+        document: { verifiedPageNumber: 5 },
+        proof: { proofUrl: "https://cdn.deepcitation.com/proof/456" },
+      };
+
+      const { getByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
+
+      const link = getByRole("link");
+      expect(link).toHaveAttribute("href", "https://cdn.deepcitation.com/proof/456");
+    });
+
+    it("blocks proof URL from untrusted domain", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 5,
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        label: "Document.pdf",
+        document: { verifiedPageNumber: 5 },
+        proof: { proofUrl: "https://evil.com/fake-proof" },
+      };
+
+      const { queryByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
+
+      // Should render static text, not a link (untrusted domain blocked)
+      expect(queryByRole("link")).toBeNull();
+    });
+
+    it("handles empty proof URL gracefully", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 5,
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        label: "Document.pdf",
+        document: { verifiedPageNumber: 5 },
+        proof: { proofUrl: "" },
+      };
+
+      const { queryByRole, container } = render(
+        <SourceContextHeader citation={citation} verification={verification} />,
+      );
+
+      // Should render static text, not a link (empty string blocked)
+      expect(queryByRole("link")).toBeNull();
+      // Should not crash
+      expect(container).toBeInTheDocument();
+    });
+  });
 });
 
 // =============================================================================

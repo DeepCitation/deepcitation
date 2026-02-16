@@ -5,6 +5,7 @@
  * These are separated from the component file to comply with Fast Refresh rules.
  */
 
+import { isApprovedDomain } from "../utils/urlSafety.js";
 import type { UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus, isVerifiedStatus } from "./urlStatus.js";
 
@@ -24,6 +25,64 @@ export function sanitizeUrl(url: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Approved domains for proof URLs.
+ * Only deepcitation.com and its subdomains are allowed.
+ */
+const APPROVED_PROOF_DOMAINS = new Set(["deepcitation.com"]);
+
+/**
+ * Validates that a proof URL is safe to use in anchor tags.
+ * Uses canonical security utilities to check both protocol safety and domain trust.
+ *
+ * Blocks:
+ * - Dangerous protocols (javascript:, data:, vbscript:, etc.)
+ * - URLs from untrusted domains (only allows deepcitation.com)
+ *
+ * @param url - The proof URL to validate
+ * @returns The original URL if safe, or null if blocked
+ *
+ * @example
+ * ```typescript
+ * // Valid proof URLs
+ * isValidProofUrl('https://api.deepcitation.com/proof/123'); // returns URL
+ * isValidProofUrl('https://cdn.deepcitation.com/img.png');   // returns URL
+ *
+ * // Blocked URLs
+ * isValidProofUrl('javascript:alert("XSS")');                // null (dangerous protocol)
+ * isValidProofUrl('https://evil.com/proof');                 // null (untrusted domain)
+ * isValidProofUrl('');                                       // null (empty string)
+ * ```
+ */
+export function isValidProofUrl(url: string): string | null {
+  // Handle empty string edge case
+  if (!url || url.trim() === "") {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[DeepCitation] Proof URL is empty or invalid");
+    }
+    return null;
+  }
+
+  // First check protocol safety
+  const safeUrl = sanitizeUrl(url);
+  if (!safeUrl) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[DeepCitation] Blocked unsafe proof URL protocol:", url);
+    }
+    return null;
+  }
+
+  // Then check domain trust using canonical utility
+  if (!isApprovedDomain(url, APPROVED_PROOF_DOMAINS)) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[DeepCitation] Blocked proof URL from untrusted domain:", url);
+    }
+    return null;
+  }
+
+  return url;
 }
 
 /**

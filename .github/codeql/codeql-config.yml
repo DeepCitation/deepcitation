@@ -1,0 +1,16 @@
+name: "CodeQL config"
+
+# Use security-extended query suite
+queries:
+  - uses: security-extended
+
+# Exclude test files from analysis
+# Test assertions that verify security features can trigger false positives
+# (e.g., checking that javascript: URLs are blocked, checking domain validation)
+paths-ignore:
+  - "src/__tests__/**"
+  - "tests/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
