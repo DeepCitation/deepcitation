@@ -220,7 +220,9 @@ function CitationTooltip({
   const displayAnchorText = anchorText ? (anchorText.length > 60 ? `${anchorText.slice(0, 60)}...` : anchorText) : null;
 
   // Find proof image for this specific citation, validating the source
-  const rawProofImage = showProofThumbnail ? (item.verification?.document?.verificationImageSrc ?? item.verification?.document?.verificationImageBase64) : null;
+  const rawProofImage = showProofThumbnail
+    ? (item.verification?.document?.verificationImageSrc ?? item.verification?.document?.verificationImageBase64)
+    : null;
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
   const handleProofClick = (e: React.MouseEvent) => {
