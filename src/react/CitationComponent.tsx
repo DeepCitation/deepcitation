@@ -36,6 +36,7 @@ import {
   Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
+import { useRepositionGracePeriod } from "./hooks/useRepositionGracePeriod.js";
 import { CheckIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
@@ -1460,16 +1461,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const [expandedImageSrc, setExpandedImageSrc] = useState<string | null>(null);
     const [isPhrasesExpanded, setIsPhrasesExpanded] = useState(false);
 
-    /**
-     * Grace period flag to prevent popover from closing during content resize/reposition.
-     * When popover content changes size (e.g., expanding search details), the popover
-     * repositions and the cursor may end up outside the popover, triggering a mouseleave.
-     * This ref suppresses the close during the repositioning window (REPOSITION_GRACE_PERIOD_MS).
-     * Cleared after timeout expires or when cursor re-enters popover.
-     */
-    const repositionGraceRef = useRef(false);
-    /** Timer handle for clearing the reposition grace period. */
-    const repositionGraceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Grace period hook to prevent popover dismissal during content resize/reposition
+    const { isInGracePeriod: repositionGraceRef, clearGracePeriod } = useRepositionGracePeriod(
+      isPhrasesExpanded,
+      isHovering,
+      REPOSITION_GRACE_PERIOD_MS,
+    );
 
     // Track if popover was already open before current interaction (for mobile/lazy mode).
     // Lifecycle:
@@ -1582,42 +1579,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         }
       };
     }, [isLoading, isPending, hasDefinitiveResult]);
-
-    // When popover content resizes (details expand/collapse), the popover repositions
-    // and the cursor may land outside the new bounds, firing a spurious mouseleave.
-    // Set a grace period to suppress the close during repositioning.
-    const prevIsPhrasesExpandedRef = useRef(isPhrasesExpanded);
-    useEffect(() => {
-      if (prevIsPhrasesExpandedRef.current !== isPhrasesExpanded && isHovering) {
-        repositionGraceRef.current = true;
-        if (repositionGraceTimerRef.current) {
-          clearTimeout(repositionGraceTimerRef.current); // Clear any existing grace period
-        }
-        repositionGraceTimerRef.current = setTimeout(() => {
-          repositionGraceRef.current = false;
-          repositionGraceTimerRef.current = null;
-        }, REPOSITION_GRACE_PERIOD_MS);
-      }
-      prevIsPhrasesExpandedRef.current = isPhrasesExpanded;
-    }, [isPhrasesExpanded, isHovering]);
-
-    // Cleanup grace timer on unmount and when popover closes
-    useEffect(() => {
-      // Clear grace period when popover closes (prevents stale state on next open)
-      if (!isHovering) {
-        repositionGraceRef.current = false;
-        if (repositionGraceTimerRef.current) {
-          clearTimeout(repositionGraceTimerRef.current);
-          repositionGraceTimerRef.current = null;
-        }
-      }
-      return () => {
-        if (repositionGraceTimerRef.current) {
-          clearTimeout(repositionGraceTimerRef.current);
-          repositionGraceTimerRef.current = null;
-        }
-      };
-    }, [isHovering]);
 
     const displayText = useMemo(() => {
       return getDisplayText(citation, resolvedContent, fallbackDisplay);
@@ -1805,6 +1766,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       isAnyOverlayOpen,
     ]);
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: repositionGraceRef is a stable ref from hook
     const handleMouseLeave = useCallback(() => {
       // Don't close the popover if an image overlay is open - user expects to return to popover
       // after closing the zoomed image
@@ -1839,9 +1801,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       cancelHoverCloseTimeout();
       isOverPopoverRef.current = true;
       // Clear reposition grace period since cursor is back inside the popover
-      repositionGraceRef.current = false;
-    }, [cancelHoverCloseTimeout]);
+      clearGracePeriod();
+    }, [cancelHoverCloseTimeout, clearGracePeriod]);
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: repositionGraceRef is a stable ref from hook
     const handlePopoverMouseLeave = useCallback(() => {
       isOverPopoverRef.current = false;
       // Don't close the popover if an image overlay is open - user expects to return to popover
@@ -1881,6 +1844,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         }
       };
     }, []);
+
+    // Escape key handling is managed by Radix Popover (via PopoverContent)
+    // and ImageOverlay - no custom handler needed here
 
     // Mobile click-outside dismiss handler
     //
@@ -2468,7 +2434,15 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           )}
           {/* Hidden prefetch layer - pre-renders image content using Activity */}
           {prefetchElement}
-          <Popover open={isHovering}>
+          <Popover
+            open={isHovering}
+            onOpenChange={open => {
+              // Only handle close (Escape key) - don't interfere with our custom hover logic
+              if (!open && !isAnyOverlayOpenRef.current) {
+                setIsHovering(false);
+              }
+            }}
+          >
             <PopoverTrigger asChild>
               <span ref={setTriggerRef} {...triggerProps}>
                 {renderCitationContent()}
