@@ -20,6 +20,17 @@ npm run test:ct    # Playwright component tests
 npm run size       # Check bundle size
 ```
 
+## Pre-Submission Checklist
+
+Before opening a PR, run and confirm these pass:
+
+1. `npm run build` — TypeScript + CSS compilation
+2. `bun run test` — all unit tests pass
+3. `npm run size` — bundle stays within limits (react module ≤ 15KB)
+4. Verify all new public functions/types are exported from `src/index.ts` or `src/react/index.ts`
+5. If you extracted a constant or utility to a shared location, grep for and remove ALL remaining duplicates
+6. PR description must match the actual diff — run `git diff main...HEAD --stat` to verify
+
 ## Project Structure
 
 ```
@@ -41,7 +52,9 @@ examples/             # Usage examples (nextjs-ai-sdk, basic-verification)
 - ESM modules
 - Tests colocated in `src/__tests__/`
 - React components use Tailwind CSS
-- Keep bundle size under limits (see size-limit in package.json)
+- Keep bundle size under limits — react module ≤ 15KB (see size-limit in package.json)
+- Prefer lightweight custom implementations over heavy dependencies (e.g., Radix UI was removed in favor of a custom popover to save ~15KB)
+- Always run `npm run size` before submitting
 
 ## Important Notes
 
@@ -58,6 +71,42 @@ examples/             # Usage examples (nextjs-ai-sdk, basic-verification)
   - Use lazy mode for dense citation layouts
 - **UrlCitationComponent** always opens URL on click (no config needed)
 - Status indicators use `XCircleIcon` SVG for not-found states (centered, not subscript)
+
+## Popover Timing Constants
+
+The popover uses carefully calibrated timing values exported from `src/react/CitationComponent.tsx`. These are tested by both unit tests (`src/__tests__/useRepositionGracePeriod.test.ts`, 9 test cases) and Playwright interaction tests (`tests/playwright/specs/citationPopoverInteractions.spec.tsx`).
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `HOVER_CLOSE_DELAY_MS` | 150ms | Delay before closing popover on mouse leave |
+| `REPOSITION_GRACE_PERIOD_MS` | 300ms | Grace period after content resize to prevent spurious close. Set to 2× hover delay. |
+| `SPINNER_TIMEOUT_MS` | 5000ms | Auto-hide spinner if verification is still pending |
+| `TOUCH_CLICK_DEBOUNCE_MS` | 100ms | Debounce threshold for ignoring synthetic click events after touch on mobile |
+
+**These values are deliberate and well-tested.** Do NOT flag the grace period mechanism as a race condition unless you can reproduce an actual bug with a failing test case.
+
+## CSS Rules for Popovers
+
+Popover and modal components must prevent horizontal overflow. These rules address recurring issues (PRs #243, #244, #247):
+
+- **Max-width**: Use `max-w-[min(400px,calc(100vw-2rem))]` to prevent viewport overflow. Never set fixed widths without a viewport-relative fallback.
+- **Image containment**: Verification images must use `max-width` + `object-contain`. See `VERIFICATION_IMAGE_MAX_WIDTH` and `VERIFICATION_IMAGE_MAX_HEIGHT` in `src/react/constants.ts`.
+- **Overflow direction**: Containers use `overflow-y-auto overflow-x-hidden`, never bare `overflow-hidden` which clips scrollable content.
+- **Transitions**: 150ms for user interactions, 200ms for popovers.
+- **Regression test**: Run `tests/playwright/specs/popoverImageWidth.spec.tsx` after any popover/image dimension changes.
+
+## SSR Safety
+
+Any code that accesses `document`, `window`, or other DOM APIs must guard against server-side rendering:
+
+```typescript
+// Pattern for SSR-safe DOM access
+if (typeof document !== 'undefined') {
+  // safe to access DOM
+}
+```
+
+For portal rendering, use `getPortalContainer()` from `src/react/constants.ts` — it handles the SSR check internally.
 
 ## User Goals in Citation Progressive Disclosure
 
@@ -132,6 +181,35 @@ npm test                    # Unit tests
 npm run test:ct             # Playwright component tests
 npm run test:ct:ui          # Component tests with UI
 ```
+
+### Testing Rules
+
+- **Tests must validate existing implemented behavior**, not aspirational or planned features. If a feature doesn't exist yet, don't write tests for it.
+- Do NOT recommend generic improvements like "add cross-browser testing" or "accessibility validation" without identifying a specific gap in the existing suite.
+
+### Existing Test Coverage
+
+**Unit tests** (`src/__tests__/`, 28 files): Citation parsing, normalization, edge cases, security utilities (ReDoS, prototype pollution, URL safety, log injection), React hooks (`useRepositionGracePeriod`, `useSmartDiff`), component rendering, markdown rendering, prompt compression, SHA hashing, client error handling, date utilities, rendering targets (Slack, GitHub, HTML, terminal).
+
+**Playwright component tests** (`tests/playwright/specs/`, 9 specs): Visual showcase snapshots (desktop, mobile, tablet, dark mode), popover image width/overflow, citation popover interactions (open, close, expand, grace period, hover, touch), citation variant rendering, URL citations, drawer showcase, markdown showcase, render target showcase.
+
+**Snapshot format**: AVIF, with per-platform snapshots (chromium-linux, chromium-win32).
+
+### When to Add Tests
+
+- **New component**: Unit test in `src/__tests__/` + Playwright visual test in `tests/playwright/specs/`
+- **New hook**: Unit test using `renderHook` from `@testing-library/react`
+- **Styling change**: Run `npm run test:ct` and update snapshots if intentional (`npm run test:ct -- --update-snapshots`)
+- **Security change**: Add test cases in `src/__tests__/security.test.ts`
+- **New rendering target**: Add test in `src/__tests__/rendering/`
+
+## PR Description Guidelines
+
+- PR description must match the actual diff. Do not mention specific version numbers, file names, or changes not present in the diff.
+- Run `git diff main...HEAD --stat` to verify scope before writing the description.
+- Call out security-related changes explicitly (anything in `src/utils/`, input validation, URL handling).
+- Flag breaking changes to exported types, function signatures, or component props.
+- Describe what changed and why, not just which files were touched.
 
 ## Documentation
 
