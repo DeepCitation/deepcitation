@@ -2264,24 +2264,33 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     );
 
     // Early return for miss with fallback display (only when showing anchorText)
+    // Inline variants inherit color (dimmed via opacity), others use explicit gray.
     if (fallbackDisplay !== null && fallbackDisplay !== undefined && resolvedContent === "anchorText" && isMiss) {
-      return <span className={cn("text-gray-400 dark:text-gray-500", className)}>{fallbackDisplay}</span>;
+      const isInlineFallback = variant === "text" || variant === "linter";
+      const fallbackClasses = isInlineFallback ? "opacity-50" : "text-gray-400 dark:text-gray-500";
+      return <span className={cn(fallbackClasses, className)}>{fallbackDisplay}</span>;
     }
 
-    // Status classes for text styling
-    // Variants that display inline text (text, superscript, linter) need
-    // a default text color that works in both light and dark modes
-    const needsDefaultTextColor = variant === "text" || variant === "superscript" || variant === "linter";
+    // Inline variants (text, linter) inherit text color from their parent element.
+    // This allows citations to blend seamlessly into styled text (e.g., colored headers).
+    // Self-contained variants (chip, badge, brackets) set their own text color.
+    // Superscript is excluded: its anchor text inherits naturally, and its <sup> element
+    // is a distinct UI element (footnote reference) that keeps its own styling.
+    const isInlineVariant = variant === "text" || variant === "linter";
 
     const statusClasses = cn(
-      // Default text color for inline variants (ensures dark mode compatibility)
-      needsDefaultTextColor && !isMiss && !shouldShowSpinner && "text-gray-900 dark:text-gray-100",
       // Found status (text color) - verified or partial match, for brackets variant
       (isVerified || isPartialMatch) &&
         variant === "brackets" &&
         "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline",
-      isMiss && "opacity-70 text-gray-700 dark:text-gray-200",
-      shouldShowSpinner && "text-gray-500 dark:text-gray-400",
+      // Miss state: opacity dims the inherited/explicit color
+      isMiss && "opacity-70",
+      // Explicit gray only for non-inline variants (inline variants inherit from parent)
+      isMiss && !isInlineVariant && "text-gray-700 dark:text-gray-200",
+      // Pending/spinner: muted color for non-inline variants only.
+      // Inline variants inherit color; the spinner icon signals loading.
+      // (Linter handles pending color in its own inline styles.)
+      shouldShowSpinner && !isInlineVariant && "text-gray-500 dark:text-gray-400",
     );
 
     // Render indicator based on status priority:
@@ -2478,7 +2487,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           textDecorationThickness: "2px",
           textUnderlineOffset: "3px",
           borderRadius: "2px",
-          // Inherit font properties to avoid size changes
+          // Inherit text color from parent to blend with styled contexts.
+          // The spinner icon and dotted underline signal pending state.
+          color: "inherit",
           fontSize: "inherit",
           fontFamily: "inherit",
           lineHeight: "inherit",
@@ -2502,11 +2513,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
         const linterClasses = cn(
           "cursor-pointer font-normal",
-          // Text color: let the underline convey status, keep text readable
-          // Miss state uses same color as verified/partial - wavy red underline is the signal
-          (isVerifiedState || isPartialState || isMissState) && "text-gray-700 dark:text-gray-200",
-          // Only pending is slightly muted
-          isPendingState && "text-gray-500 dark:text-gray-400",
+          // Text color handled in linterStyles (inherit or muted gray for pending).
           // Verified: subtle green background wash on hover only (10% opacity)
           isVerifiedState && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
           // Partial: subtle amber background on hover (using amber-500 to match component)
