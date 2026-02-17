@@ -93,13 +93,14 @@ export function useDragToPan(): {
       });
     };
 
-    el.addEventListener("scroll", onScroll, { passive: true });
+    const listenerOptions = { passive: true } as const;
+    el.addEventListener("scroll", onScroll, listenerOptions);
 
     // Initial measurement
     updateScrollState();
 
     return () => {
-      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scroll", onScroll, listenerOptions);
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [updateScrollState]);

@@ -1,4 +1,4 @@
-import React, { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 // React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
@@ -997,26 +997,30 @@ function resolveHighlightBox(
 
   const imgDims = verification.document?.verificationImageDimensions;
 
+  // Helper: scale a DeepTextItem from PDF space to image pixel space.
+  // If the scaled result falls outside the image bounds, assumes coordinates
+  // are already in image space and returns them unscaled.
+  const scaleItem = (item: { x: number; width: number }) => {
+    if (imgDims && matchPage?.dimensions && matchPage.dimensions.width > 0) {
+      const scale = imgDims.width / matchPage.dimensions.width;
+      const scaledX = item.x * scale;
+      const scaledWidth = item.width * scale;
+      // Sanity check: if scaled coords are within image bounds, use them
+      if (scaledX >= 0 && scaledX + scaledWidth <= imgDims.width * 1.05) {
+        return { x: scaledX, width: scaledWidth };
+      }
+    }
+    // Assume image coordinates if scaling is unavailable or produces out-of-bounds values
+    return { x: item.x, width: item.width };
+  };
+
   // 2. Anchor text match deep items (may be in PDF space, scale if we have dimensions)
   const anchorItem = verification.document?.anchorTextMatchDeepItems?.[0];
-  if (anchorItem) {
-    if (imgDims && matchPage?.dimensions) {
-      const scale = imgDims.width / matchPage.dimensions.width;
-      return { x: anchorItem.x * scale, width: anchorItem.width * scale };
-    }
-    // Assume image coordinates if no page dimensions for scaling
-    return { x: anchorItem.x, width: anchorItem.width };
-  }
+  if (anchorItem) return scaleItem(anchorItem);
 
   // 3. Phrase match deep item
   const phraseItem = verification.document?.phraseMatchDeepItem;
-  if (phraseItem) {
-    if (imgDims && matchPage?.dimensions) {
-      const scale = imgDims.width / matchPage.dimensions.width;
-      return { x: phraseItem.x * scale, width: phraseItem.width * scale };
-    }
-    return { x: phraseItem.x, width: phraseItem.width };
-  }
+  if (phraseItem) return scaleItem(phraseItem);
 
   return null;
 }
@@ -1062,8 +1066,10 @@ function AnchorTextFocusedImage({
   const [imageLoaded, setImageLoaded] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
 
-  // Compute and apply initial scroll position after image loads
-  useEffect(() => {
+  // Set initial scroll position after image loads.
+  // useLayoutEffect guarantees refs are populated and runs before paint,
+  // so the strip appears at the correct offset without a flash of misposition.
+  useLayoutEffect(() => {
     if (!imageLoaded) return;
     const container = containerRef.current;
     const img = imageRef.current;
@@ -1080,16 +1086,9 @@ function AnchorTextFocusedImage({
     const { scrollLeft } = computeKeyholeOffset(displayedWidth, containerWidth, highlightBox);
     container.scrollLeft = scrollLeft;
 
-    // Force a scroll state update after setting initial position
-    // Use RAF to ensure the scroll has been applied
-    const rafId = requestAnimationFrame(() => {
-      const { scrollLeft: sl, scrollWidth: sw, clientWidth: cw } = container;
-      // Trigger scroll event manually since programmatic scrollLeft doesn't always fire it
-      container.dispatchEvent(new Event("scroll"));
-      void sl; void sw; void cw; // referenced for clarity
-    });
-    return () => cancelAnimationFrame(rafId);
-  }, [imageLoaded, highlightBox, containerRef]);
+    // Trigger scroll event so useDragToPan updates fade state for initial position
+    container.dispatchEvent(new Event("scroll"));
+  }, [imageLoaded, highlightBox]); // containerRef excluded: stable ref, and useLayoutEffect guarantees DOM is ready
 
   // Compute fade mask based on scroll state
   const maskImage = useMemo(
