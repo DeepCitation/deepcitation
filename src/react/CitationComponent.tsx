@@ -1,4 +1,4 @@
-import React, { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 // React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
@@ -17,12 +17,17 @@ import type { CitationStatus } from "../types/citation.js";
 import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
 import type { UrlAccessStatus, Verification } from "../types/verification.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
+import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
 import {
   ANCHOR_HIGHLIGHT_STYLE,
+  buildKeyholeMaskImage,
   DOT_COLORS,
   DOT_INDICATOR_SIZE_STYLE,
   getPortalContainer,
   INDICATOR_SIZE_STYLE,
+  KEYHOLE_FADE_WIDTH,
+  KEYHOLE_STRIP_HEIGHT_DEFAULT,
+  KEYHOLE_STRIP_HEIGHT_VAR,
   MIN_WORD_DIFFERENCE,
   MISS_WAVY_UNDERLINE_STYLE,
   PARTIAL_COLOR_STYLE,
@@ -30,14 +35,13 @@ import {
   POPOVER_CONTAINER_BASE_CLASSES,
   POPOVER_WIDTH_DEFAULT,
   POPOVER_WIDTH_VAR,
-  VERIFICATION_IMAGE_MAX_HEIGHT,
-  VERIFICATION_IMAGE_MAX_WIDTH,
   VERIFIED_COLOR_STYLE,
   Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
+import { useDragToPan } from "./hooks/useDragToPan.js";
 import { useRepositionGracePeriod } from "./hooks/useRepositionGracePeriod.js";
-import { CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
+import { CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
@@ -911,80 +915,191 @@ const PendingDot = () => <DotIndicator color="gray" pulse label="Verifying" />;
 const MissDot = () => <DotIndicator color="red" label="Not found" />;
 
 // =============================================================================
-// VERIFICATION IMAGE COMPONENT
+// VERIFICATION IMAGE COMPONENT — "Keyhole" Crop & Fade
 // =============================================================================
 
 /**
- * Displays a verification image that fits within the container dimensions.
- * The image is scaled to fit (without distortion) and can be clicked to expand.
- * Includes an action bar with zoom button and optional "View page" button.
+ * Resolves the best available highlight bounding box from verification data.
+ * Tries in order: matching page highlightBox → anchorTextMatchDeepItems → phraseMatchDeepItem.
  *
- * Note: This component uses simple object-fit: contain for predictable sizing.
- * Previous scroll-to-anchor-text logic was removed for simplicity - users can
- * click to see the full-size image if more detail is needed.
+ * When the highlight coordinates come from source PDF space, they need to be scaled
+ * to the verification image pixel space using the ratio of image dimensions to page dimensions.
+ */
+function resolveHighlightBox(verification: Verification): { x: number; width: number } | null {
+  // 1. Prefer highlightBox from matching verification page (already in image coordinates)
+  const matchPage = verification.pages?.find(p => p.isMatchPage);
+  if (matchPage?.highlightBox) {
+    return { x: matchPage.highlightBox.x, width: matchPage.highlightBox.width };
+  }
+
+  const imgDims = verification.document?.verificationImageDimensions;
+
+  // Helper: scale a DeepTextItem from PDF space to image pixel space.
+  // If the scaled result falls outside the image bounds, assumes coordinates
+  // are already in image space and returns them unscaled.
+  const scaleItem = (item: { x: number; width: number }) => {
+    if (imgDims && matchPage?.dimensions && matchPage.dimensions.width > 0) {
+      const scale = imgDims.width / matchPage.dimensions.width;
+      const scaledX = item.x * scale;
+      const scaledWidth = item.width * scale;
+      // Sanity check: if scaled coords are within image bounds, use them
+      if (scaledX >= 0 && scaledX + scaledWidth <= imgDims.width * 1.05) {
+        return { x: scaledX, width: scaledWidth };
+      }
+    }
+    // Assume image coordinates if scaling is unavailable or produces out-of-bounds values
+    return { x: item.x, width: item.width };
+  };
+
+  // 2. Anchor text match deep items (may be in PDF space, scale if we have dimensions)
+  const anchorItem = verification.document?.anchorTextMatchDeepItems?.[0];
+  if (anchorItem) return scaleItem(anchorItem);
+
+  // 3. Phrase match deep item
+  const phraseItem = verification.document?.phraseMatchDeepItem;
+  if (phraseItem) return scaleItem(phraseItem);
+
+  return null;
+}
+
+/** CSS to hide native scrollbars on the keyhole strip. */
+const KEYHOLE_SCROLLBAR_HIDE: React.CSSProperties = {
+  scrollbarWidth: "none", // Firefox
+  msOverflowStyle: "none", // IE/Edge
+};
+
+/**
+ * Displays a verification image as a "keyhole" strip — a fixed-height horizontal
+ * window showing the image at 100% natural scale, cropped and centered on the
+ * match region. CSS gradient fades indicate overflow on each edge.
+ *
+ * - **Never squashes or stretches** the image.
+ * - **Drag to pan** horizontally (mouse). Touch uses native overflow scroll.
+ * - **Click** to expand to full-size overlay.
+ * - **Hover** shows a darkened overlay with magnifying glass icon.
+ *
+ * Falls back to horizontal centering when no bounding box data is available.
  */
 function AnchorTextFocusedImage({
   verification,
   onImageClick,
   page,
   onViewPageClick,
-  maxWidth = VERIFICATION_IMAGE_MAX_WIDTH,
-  maxHeight = VERIFICATION_IMAGE_MAX_HEIGHT,
 }: {
   verification: Verification;
   onImageClick?: () => void;
-  /** Optional page data with source URL. When provided with a source, shows "View page" button. */
   page?: SourcePage | null;
-  /** Optional callback for "View page" button. Called with the page when clicked. */
   onViewPageClick?: (page: SourcePage) => void;
-  maxWidth?: string;
-  maxHeight?: string;
 }) {
-  // Show "View page" button only when we have page data with a source URL
   const showViewPageButton = page?.source && onViewPageClick;
+
+  // Resolve highlight region from verification data
+  const highlightBox = useMemo(() => resolveHighlightBox(verification), [verification]);
+
+  // Drag-to-pan hook for mouse interaction
+  const { containerRef, isDragging, handlers, scrollState, wasDragging } = useDragToPan();
+
+  // Track image load to compute initial scroll position
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  // Set initial scroll position after image loads.
+  // useLayoutEffect guarantees refs are populated and runs before paint,
+  // so the strip appears at the correct offset without a flash of misposition.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef and imageRef are stable refs that never change identity; useLayoutEffect guarantees the DOM nodes they point to are ready
+  useLayoutEffect(() => {
+    if (!imageLoaded) return;
+    const container = containerRef.current;
+    const img = imageRef.current;
+    if (!container || !img) return;
+
+    // The image renders at natural aspect ratio constrained by strip height.
+    // Its displayed width = naturalWidth * (stripHeight / naturalHeight).
+    const stripHeight = container.clientHeight;
+    const displayedWidth =
+      img.naturalHeight > 0 ? img.naturalWidth * (stripHeight / img.naturalHeight) : img.naturalWidth;
+    const containerWidth = container.clientWidth;
+
+    const { scrollLeft } = computeKeyholeOffset(displayedWidth, containerWidth, highlightBox);
+    container.scrollLeft = scrollLeft;
+
+    // Trigger scroll event so useDragToPan updates fade state for initial position
+    container.dispatchEvent(new Event("scroll"));
+  }, [imageLoaded, highlightBox]);
+
+  // Compute fade mask based on scroll state
+  const maskImage = useMemo(
+    () => buildKeyholeMaskImage(scrollState.canScrollLeft, scrollState.canScrollRight, KEYHOLE_FADE_WIDTH),
+    [scrollState.canScrollLeft, scrollState.canScrollRight],
+  );
+
+  const imageSrc = (verification.document?.verificationImageSrc ??
+    verification.document?.verificationImageBase64) as string;
+
+  const stripHeightStyle = `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
 
   return (
     <div className="relative">
-      {/* Image container - clickable to zoom, with hover overlay */}
+      {/* Keyhole strip container — clickable to expand, draggable to pan */}
       <div className="relative group">
         <button
           type="button"
           className="block relative w-full"
-          style={{ cursor: "zoom-in" }}
+          style={{ cursor: isDragging ? "grabbing" : "zoom-in" }}
           onClick={e => {
             e.preventDefault();
             e.stopPropagation();
+            // Suppress click if user was dragging
+            if (wasDragging.current) {
+              wasDragging.current = false;
+              return;
+            }
             onImageClick?.();
           }}
-          aria-label="Click to view full size"
+          aria-label="Click to view full size, drag to pan"
         >
           <div
-            className="overflow-hidden rounded-t-md"
+            ref={containerRef}
+            data-dc-keyhole=""
+            className="overflow-x-auto overflow-y-hidden rounded-t-md"
             style={{
-              maxWidth,
-              maxHeight,
+              height: stripHeightStyle,
+              WebkitMaskImage: maskImage,
+              maskImage,
+              ...KEYHOLE_SCROLLBAR_HIDE,
+              cursor: isDragging ? "grabbing" : "grab",
             }}
+            {...handlers}
           >
+            {/* Hide webkit scrollbar via inline style tag scoped to this container */}
+            <style>{`[data-dc-keyhole]::-webkit-scrollbar { display: none; }`}</style>
             <img
-              src={
-                (verification.document?.verificationImageSrc ??
-                  verification.document?.verificationImageBase64) as string
-              }
+              ref={imageRef}
+              src={imageSrc}
               alt="Citation verification"
-              className="block w-full h-auto"
-              style={{
-                maxHeight,
-                objectFit: "contain",
-              }}
+              className="block h-full w-auto max-w-none select-none"
+              style={{ height: stripHeightStyle }}
               loading="eager"
               decoding="async"
+              draggable={false}
+              onLoad={() => setImageLoaded(true)}
+              onError={handleImageError}
             />
           </div>
         </button>
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150 pointer-events-none rounded-t-md" />
+
+        {/* Hover overlay with magnifying glass icon */}
+        <div
+          className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-150 pointer-events-none rounded-t-md flex items-center justify-center"
+          aria-hidden="true"
+        >
+          <span className="w-5 h-5 text-white opacity-0 group-hover:opacity-80 transition-opacity duration-150 drop-shadow-md">
+            <ZoomInIcon />
+          </span>
+        </div>
       </div>
 
-      {/* Action bar - only shown when View page button is available */}
+      {/* Action bar — only shown when View page button is available */}
       {showViewPageButton && (
         <div className="flex items-center justify-end px-2 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-b-md border-t border-gray-200 dark:border-gray-700">
           <button

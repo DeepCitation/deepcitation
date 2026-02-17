@@ -126,6 +126,43 @@ export const VERIFICATION_IMAGE_MAX_WIDTH = "min(70vw, 480px)";
 /** Default max height for verification images (responsive with fallback) */
 export const VERIFICATION_IMAGE_MAX_HEIGHT = "min(50vh, 360px)";
 
+// =============================================================================
+// KEYHOLE IMAGE STRIP
+// =============================================================================
+//
+// The keyhole strip shows verification images at 100% natural scale in a
+// fixed-height horizontal window, cropped and centered on the match region.
+// This prevents squashing/stretching text, preserving legibility and trust.
+
+/** CSS custom property for keyhole strip height override */
+export const KEYHOLE_STRIP_HEIGHT_VAR = "--dc-keyhole-strip-height";
+
+/** Default height of the keyhole image strip in pixels */
+export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 60;
+
+/** Default fade gradient width in pixels (the translucent region on each edge) */
+export const KEYHOLE_FADE_WIDTH = 32;
+
+/**
+ * Builds a CSS mask-image linear-gradient for the keyhole strip.
+ * Fades edges to transparent to indicate "there's more content" in that direction.
+ *
+ * @param fadeLeft - Whether to fade the left edge
+ * @param fadeRight - Whether to fade the right edge
+ * @param fadeWidthPx - Width of the fade region in pixels
+ * @returns CSS linear-gradient string for mask-image
+ */
+export function buildKeyholeMaskImage(
+  fadeLeft: boolean,
+  fadeRight: boolean,
+  fadeWidthPx: number = KEYHOLE_FADE_WIDTH,
+): string {
+  if (!fadeLeft && !fadeRight) return "none";
+  const left = fadeLeft ? `transparent, black ${fadeWidthPx}px` : "black 0px";
+  const right = fadeRight ? `black calc(100% - ${fadeWidthPx}px), transparent` : "black 100%";
+  return `linear-gradient(to right, ${left}, ${right})`;
+}
+
 /** Inline style for verified indicator color, using CSS custom property with fallback */
 export const VERIFIED_COLOR_STYLE: React.CSSProperties = {
   color: `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`,

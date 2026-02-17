@@ -38,11 +38,28 @@ const verificationWithDetails: Verification = {
   ],
 };
 
+// Valid 4x4 gray PNG for testing (not truncated)
+const testImageBase64 = (() => {
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 50;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.fillStyle = "#cccccc";
+      ctx.fillRect(0, 0, 400, 50);
+      return canvas.toDataURL("image/png");
+    }
+  }
+  // Fallback: valid 1x1 gray PNG
+  return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mO8cuXKfwYGBgYGAAi7Av7W3NgAAAAASUVORK5CYII=";
+})();
+
 const verifiedVerification: Verification = {
   status: "found",
   document: {
     verifiedPageNumber: 5,
-    verificationImageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
+    verificationImageBase64: testImageBase64,
   },
 };
 
