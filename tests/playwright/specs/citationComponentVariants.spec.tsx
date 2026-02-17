@@ -402,7 +402,7 @@ test.describe("CitationComponent - Popover", () => {
     ...verifiedVerification,
     document: {
       ...verifiedVerification.document,
-      verificationImageBase64:
+      verificationImageSrc:
         "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
     },
   };

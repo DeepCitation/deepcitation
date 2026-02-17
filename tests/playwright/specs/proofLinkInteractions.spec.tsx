@@ -22,7 +22,7 @@ const verificationWithProof: Verification = {
   label: "Q4_Report.pdf",
   document: {
     verifiedPageNumber: 5,
-    verificationImageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
+    verificationImageSrc: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
   },
   proof: {
     proofUrl: "https://api.deepcitation.com/proof/test123",
@@ -79,7 +79,7 @@ test.describe("Proof Link Interactions", () => {
       label: "Document.pdf",
       document: {
         verifiedPageNumber: 5,
-        verificationImageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
+        verificationImageSrc: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
       },
     };
 
@@ -211,7 +211,7 @@ test.describe("Proof Link Security", () => {
       label: "Document.pdf",
       document: {
         verifiedPageNumber: 5,
-        verificationImageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
+        verificationImageSrc: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
       },
       proof: {
         proofUrl: "javascript:alert('XSS')",
@@ -242,7 +242,7 @@ test.describe("Proof Link Security", () => {
       label: "Document.pdf",
       document: {
         verifiedPageNumber: 5,
-        verificationImageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
+        verificationImageSrc: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
       },
       proof: {
         proofUrl: "https://evil.com/fake-proof",
@@ -273,7 +273,7 @@ test.describe("Proof Link Security", () => {
       label: "Document.pdf",
       document: {
         verifiedPageNumber: 5,
-        verificationImageBase64: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
+        verificationImageSrc: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
       },
       proof: {
         proofUrl: "https://cdn.deepcitation.com/proof/test123",

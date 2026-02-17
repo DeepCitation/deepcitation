@@ -59,7 +59,7 @@ const verifiedVerification: Verification = {
   status: "found",
   document: {
     verifiedPageNumber: 5,
-    verificationImageBase64: testImageBase64,
+    verificationImageSrc: testImageBase64,
   },
 };
 
