@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { useDragToPan } from "../react/hooks/useDragToPan";
 
 describe("useDragToPan", () => {

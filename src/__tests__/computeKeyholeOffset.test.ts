@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { computeKeyholeOffset } from "../react/CitationComponent";
+import { computeKeyholeOffset } from "../react/computeKeyholeOffset";
 
 describe("computeKeyholeOffset", () => {
   // =========================================================================

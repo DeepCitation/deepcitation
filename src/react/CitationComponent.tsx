@@ -17,6 +17,7 @@ import type { CitationStatus } from "../types/citation.js";
 import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
 import type { UrlAccessStatus, Verification } from "../types/verification.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
+import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
 import {
   ANCHOR_HIGHLIGHT_STYLE,
   buildKeyholeMaskImage,
@@ -918,77 +919,13 @@ const MissDot = () => <DotIndicator color="red" label="Not found" />;
 // =============================================================================
 
 /**
- * Computes the initial scrollLeft position for the keyhole strip image.
- * Centers the view on the highlight region when bounding box data is available.
- *
- * @param imageNaturalWidth - The natural (unscaled) width of the image in pixels
- * @param containerWidth - The rendered width of the strip container in pixels
- * @param highlightBox - Bounding box of the matched text (in image pixel coordinates)
- * @returns scrollLeft value and which edges should fade
- */
-function computeKeyholeOffset(
-  imageNaturalWidth: number,
-  containerWidth: number,
-  highlightBox?: { x: number; width: number } | null,
-): { scrollLeft: number; fadeLeft: boolean; fadeRight: boolean } {
-  // Image fits within container — no scrolling, no fades
-  if (imageNaturalWidth <= containerWidth) {
-    return { scrollLeft: 0, fadeLeft: false, fadeRight: false };
-  }
-
-  const maxScroll = imageNaturalWidth - containerWidth;
-
-  // No highlight data — center the image
-  if (!highlightBox) {
-    const scrollLeft = Math.max(0, maxScroll / 2);
-    return {
-      scrollLeft,
-      fadeLeft: scrollLeft > 2,
-      fadeRight: scrollLeft + containerWidth < imageNaturalWidth - 2,
-    };
-  }
-
-  const highlightCenterX = highlightBox.x + highlightBox.width / 2;
-  const highlightLeft = highlightBox.x;
-  const highlightRight = highlightBox.x + highlightBox.width;
-
-  let scrollLeft: number;
-
-  // Smart alignment based on highlight position within the image
-  if (highlightLeft < imageNaturalWidth * 0.15) {
-    // Match near start of line → align left
-    scrollLeft = 0;
-  } else if (highlightRight > imageNaturalWidth * 0.85) {
-    // Match near end of line → align right
-    scrollLeft = maxScroll;
-  } else {
-    // Match in middle → center on highlight
-    scrollLeft = highlightCenterX - containerWidth / 2;
-  }
-
-  // Clamp to valid range
-  scrollLeft = Math.max(0, Math.min(scrollLeft, maxScroll));
-
-  return {
-    scrollLeft,
-    fadeLeft: scrollLeft > 2,
-    fadeRight: scrollLeft + containerWidth < imageNaturalWidth - 2,
-  };
-}
-
-// Export for testing
-export { computeKeyholeOffset };
-
-/**
  * Resolves the best available highlight bounding box from verification data.
  * Tries in order: matching page highlightBox → anchorTextMatchDeepItems → phraseMatchDeepItem.
  *
  * When the highlight coordinates come from source PDF space, they need to be scaled
  * to the verification image pixel space using the ratio of image dimensions to page dimensions.
  */
-function resolveHighlightBox(
-  verification: Verification,
-): { x: number; width: number } | null {
+function resolveHighlightBox(verification: Verification): { x: number; width: number } | null {
   // 1. Prefer highlightBox from matching verification page (already in image coordinates)
   const matchPage = verification.pages?.find(p => p.isMatchPage);
   if (matchPage?.highlightBox) {
@@ -1069,6 +1006,7 @@ function AnchorTextFocusedImage({
   // Set initial scroll position after image loads.
   // useLayoutEffect guarantees refs are populated and runs before paint,
   // so the strip appears at the correct offset without a flash of misposition.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef and imageRef are stable refs that never change identity; useLayoutEffect guarantees the DOM nodes they point to are ready
   useLayoutEffect(() => {
     if (!imageLoaded) return;
     const container = containerRef.current;
@@ -1078,9 +1016,8 @@ function AnchorTextFocusedImage({
     // The image renders at natural aspect ratio constrained by strip height.
     // Its displayed width = naturalWidth * (stripHeight / naturalHeight).
     const stripHeight = container.clientHeight;
-    const displayedWidth = img.naturalHeight > 0
-      ? img.naturalWidth * (stripHeight / img.naturalHeight)
-      : img.naturalWidth;
+    const displayedWidth =
+      img.naturalHeight > 0 ? img.naturalWidth * (stripHeight / img.naturalHeight) : img.naturalWidth;
     const containerWidth = container.clientWidth;
 
     const { scrollLeft } = computeKeyholeOffset(displayedWidth, containerWidth, highlightBox);
@@ -1088,7 +1025,7 @@ function AnchorTextFocusedImage({
 
     // Trigger scroll event so useDragToPan updates fade state for initial position
     container.dispatchEvent(new Event("scroll"));
-  }, [imageLoaded, highlightBox]); // containerRef excluded: stable ref, and useLayoutEffect guarantees DOM is ready
+  }, [imageLoaded, highlightBox]);
 
   // Compute fade mask based on scroll state
   const maskImage = useMemo(
@@ -1121,7 +1058,6 @@ function AnchorTextFocusedImage({
           }}
           aria-label="Click to view full size, drag to pan"
         >
-          {/* biome-ignore lint/a11y/useSemanticElements: scrollable strip needs div for overflow + drag handlers */}
           <div
             ref={containerRef}
             data-dc-keyhole=""
