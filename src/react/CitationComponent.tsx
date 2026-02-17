@@ -30,8 +30,8 @@ import {
   EXPANDED_POPOVER_WIDTH_DEFAULT,
   EXPANDED_POPOVER_WIDTH_VAR,
   getPortalContainer,
-  isValidProofImageSrc,
   INDICATOR_SIZE_STYLE,
+  isValidProofImageSrc,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
   KEYHOLE_STRIP_HEIGHT_VAR,
@@ -47,6 +47,7 @@ import {
   Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
+import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
 import { useRepositionGracePeriod } from "./hooks/useRepositionGracePeriod.js";
 import { ArrowLeftIcon, CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
@@ -68,8 +69,13 @@ import type {
 } from "./types.js";
 import { isValidProofUrl } from "./urlUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
-import { formatCaptureDate } from "./dateUtils.js";
-import { buildSearchSummary, QuotedText, SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";
+import {
+  buildSearchSummary,
+  QuotedText,
+  SourceContextHeader,
+  StatusHeader,
+  VerificationLog,
+} from "./VerificationLog.js";
 
 // Re-export types for convenience
 export type {
@@ -945,6 +951,7 @@ export interface ExpandedImageSource {
  * 2. proof.proofImageUrl (good: CDN image, no overlay data)
  * 3. document.verificationImageSrc (baseline: keyhole image at full size)
  */
+// biome-ignore lint/style/useComponentExportOnlyModules: exported for testing
 export function resolveExpandedImage(verification: Verification | null | undefined): ExpandedImageSource | null {
   if (!verification) return null;
 
@@ -1549,11 +1556,7 @@ function EvidenceTrayFooter({
   return (
     <div className="flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-400 dark:text-gray-500">
       <span>{outcomeLabel}</span>
-      {dateStr && (
-        <span title={formatted?.tooltip ?? dateStr}>
-          {dateStr}
-        </span>
-      )}
+      {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
     </div>
   );
 }
@@ -1569,10 +1572,7 @@ function SearchAnalysisSummary({
   searchAttempts: SearchAttempt[];
   verification?: Verification | null;
 }) {
-  const summary = useMemo(
-    () => buildSearchSummary(searchAttempts, verification),
-    [searchAttempts, verification],
-  );
+  const summary = useMemo(() => buildSearchSummary(searchAttempts, verification), [searchAttempts, verification]);
 
   // Build 1-2 sentence summary
   let description: string;
@@ -1719,8 +1719,8 @@ function ExpandedPageViewer({
     // Calculate highlight center position relative to rendered image
     const renderedWidth = img.clientWidth;
     const renderedHeight = img.clientHeight;
-    const highlightCenterX = (highlightBox.x + highlightBox.width / 2) / dimensions.width * renderedWidth;
-    const highlightCenterY = (highlightBox.y + highlightBox.height / 2) / dimensions.height * renderedHeight;
+    const highlightCenterX = ((highlightBox.x + highlightBox.width / 2) / dimensions.width) * renderedWidth;
+    const highlightCenterY = ((highlightBox.y + highlightBox.height / 2) / dimensions.height) * renderedHeight;
 
     // Scroll to center highlight in viewport
     container.scrollLeft = Math.max(0, highlightCenterX - container.clientWidth / 2);
@@ -1747,10 +1747,7 @@ function ExpandedPageViewer({
       </div>
 
       {/* Scrollable image container */}
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-auto relative bg-gray-50 dark:bg-gray-900"
-      >
+      <div ref={scrollContainerRef} className="flex-1 overflow-auto relative bg-gray-50 dark:bg-gray-900">
         <div className="relative inline-block min-w-full">
           <img
             ref={imageRef}
@@ -2137,7 +2134,8 @@ function DefaultPopoverContent({
               onImageClick={onImageClick}
             />
           ) : (
-            isMiss && !isUrlCitation(citation) && (
+            isMiss &&
+            !isUrlCitation(citation) && (
               <OpenDocumentButton pageNumber={expectedPage ?? undefined} proofUrl={verification?.proof?.proofUrl} />
             )
           )}
@@ -2372,8 +2370,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const { isMiss, isPartialMatch, isVerified, isPending } = status;
 
     // Resolve the image source, preferring the new field name with fallback to deprecated one
-    const resolvedImageSrc =
-      verification?.document?.verificationImageSrc ?? null;
+    const resolvedImageSrc = verification?.document?.verificationImageSrc ?? null;
 
     // Spinner timeout: auto-hide after SPINNER_TIMEOUT_MS if still pending
     const [spinnerTimedOut, setSpinnerTimedOut] = useState(false);

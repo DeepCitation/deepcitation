@@ -354,7 +354,13 @@ export function PagePill({ pageNumber, colorScheme, onClick }: PagePillProps) {
  *
  * The `sourceLabel` prop allows overriding the displayed source name for both types.
  */
-export function SourceContextHeader({ citation, verification, status, sourceLabel, onExpand }: SourceContextHeaderProps) {
+export function SourceContextHeader({
+  citation,
+  verification,
+  status,
+  sourceLabel,
+  onExpand,
+}: SourceContextHeaderProps) {
   const isUrl = isUrlCitation(citation);
 
   if (isUrl) {
@@ -1104,6 +1110,7 @@ export interface SearchSummary {
  * Computes page range, full doc scan presence, and closest match if any.
  * See plans/drawer-trigger-copy-polish.md for remaining tasks.
  */
+// biome-ignore lint/style/useComponentExportOnlyModules: used by CitationComponent for SearchAnalysisSummary
 export function buildSearchSummary(searchAttempts: SearchAttempt[], verification?: Verification | null): SearchSummary {
   const totalAttempts = searchAttempts.length;
 
