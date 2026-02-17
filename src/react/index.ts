@@ -124,6 +124,8 @@ export {
   SplitDiffDisplay,
   type SplitDiffDisplayProps,
 } from "./SplitDiffDisplay.js";
+// Search Summary Utilities
+export { buildSearchSummary, type SearchSummary } from "./searchSummaryUtils.js";
 // Status Message Utilities
 export { getContextualStatusMessage } from "./statusMessage.js";
 // Types - Useful for implementing your own citation components
@@ -217,8 +219,6 @@ export {
   isDocumentCitation,
   isUrlCitation,
 } from "./utils.js";
-// Search Summary Utilities
-export { buildSearchSummary, type SearchSummary } from "./searchSummaryUtils.js";
 // Verification Log Components (Search attempt timeline display)
 export {
   type AmbiguityInfo,

@@ -54,6 +54,7 @@ import { ArrowLeftIcon, CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, X
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
+import { buildSearchSummary } from "./searchSummaryUtils.js";
 import type {
   BaseCitationProps,
   CitationBehaviorActions,
@@ -70,7 +71,6 @@ import type {
 import { isValidProofUrl } from "./urlUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 import { QuotedText, SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";
-import { buildSearchSummary } from "./searchSummaryUtils.js";
 
 // Re-export types for convenience
 export type {
@@ -1703,7 +1703,6 @@ function ExpandedPageViewer({
   const isMiss = verification?.status === "not_found";
 
   // Auto-scroll to center highlight on mount
-  // biome-ignore lint/correctness/useExhaustiveDependencies: refs are stable
   useLayoutEffect(() => {
     if (!imageLoaded || !highlightBox || !dimensions) return;
     if (dimensions.width <= 0 || dimensions.height <= 0) return;
