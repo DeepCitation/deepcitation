@@ -14,7 +14,10 @@ jobs:
   claude-review:
     # Only run for PRs from the same repo (not forks) to prevent prompt injection
     # via crafted diffs from untrusted contributors.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Skip Dependabot PRs since they only update dependencies.
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
 
     runs-on: ubuntu-latest
     permissions:
