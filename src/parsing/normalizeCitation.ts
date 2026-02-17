@@ -170,9 +170,8 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
       // Build a Citation object from parsed attributes to generate the key
       const parsePageNumber = (startPageId?: string): number | undefined => {
         if (!startPageId) return undefined;
-        // Security: validate input length before regex operations to prevent ReDoS
-        validateRegexInput(startPageId);
         // Performance fix: use module-level compiled regex
+        // Note: parent replaceCitations() already validated the full input
         const match = startPageId.match(PAGE_NUMBER_REGEX);
         return match ? parseInt(match[1], 10) : undefined;
       };
@@ -180,9 +179,7 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
       const parseLineIds = (lineIdsStr?: string): number[] | undefined => {
         if (!lineIdsStr) return undefined;
 
-        // Security: validate input length before regex operations to prevent ReDoS
-        validateRegexInput(lineIdsStr);
-
+        // Note: parent replaceCitations() already validated the full input
         // Performance fix: limit range expansion to prevent memory exhaustion
         const MAX_RANGE_SIZE = 1000;
         const SAMPLE_COUNT = 50;

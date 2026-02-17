@@ -16,7 +16,6 @@ import type { SourcePage } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
 import type { UrlAccessStatus, Verification } from "../types/verification.js";
-import { validateRegexInput } from "../utils/regexSafety.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import {
   ANCHOR_HIGHLIGHT_STYLE,
@@ -259,7 +258,6 @@ function getDefaultContent(variant: CitationVariant): CitationContent {
  * Handles cases where LLM output includes brackets in anchorText.
  */
 function stripBrackets(text: string): string {
-  validateRegexInput(text);
   return text.replace(/^\[+\s*/, "").replace(/\s*\]+$/, "");
 }
 
