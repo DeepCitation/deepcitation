@@ -271,7 +271,7 @@ describe("DeepCitation Client", () => {
             citation_key_1: {
               document: {
                 verifiedPageNumber: 1,
-                verificationImageBase64: "base64data",
+                verificationImageSrc: "base64data",
               },
               status: "found",
               verifiedMatchSnippet: "Revenue grew 15%",

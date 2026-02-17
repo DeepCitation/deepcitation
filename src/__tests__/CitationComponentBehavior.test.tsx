@@ -52,7 +52,7 @@ describe("CitationComponent behaviorConfig", () => {
 
   const verificationWithImage: Verification = {
     document: {
-      verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
+      verificationImageSrc: "data:image/png;base64,iVBORw0KGgo=",
     },
     verifiedMatchSnippet: "test citation phrase",
     status: "found",
@@ -1225,7 +1225,7 @@ describe("CitationComponent mobile/touch detection", () => {
 
   const verificationWithImage: Verification = {
     document: {
-      verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
+      verificationImageSrc: "data:image/png;base64,iVBORw0KGgo=",
     },
     verifiedMatchSnippet: "test citation phrase",
     status: "found",
@@ -1863,7 +1863,7 @@ describe("CitationComponent interactionMode", () => {
 
   const verificationWithImage: Verification = {
     document: {
-      verificationImageBase64: "data:image/png;base64,iVBORw0KGgo=",
+      verificationImageSrc: "data:image/png;base64,iVBORw0KGgo=",
     },
     verifiedMatchSnippet: "test citation phrase",
     status: "found",

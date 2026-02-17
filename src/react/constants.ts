@@ -363,3 +363,25 @@ export const ANCHOR_HIGHLIGHT_STYLE: React.CSSProperties = {
  * required to show the highlight. Matches API-side MIN_WORD_DIFFERENCE.
  */
 export const MIN_WORD_DIFFERENCE = 2;
+
+// =============================================================================
+// EVIDENCE TRAY & EXPANDED VIEW
+// =============================================================================
+
+/** Border class for evidence tray in verified/partial states */
+export const EVIDENCE_TRAY_BORDER_SOLID = "border border-gray-200 dark:border-gray-700";
+
+/** Border class for evidence tray in not-found state (dashed = "broken") */
+export const EVIDENCE_TRAY_BORDER_DASHED = "border border-dashed border-gray-300 dark:border-gray-600";
+
+/** CSS custom property for expanded popover width */
+export const EXPANDED_POPOVER_WIDTH_VAR = "--dc-expanded-width";
+/** Default expanded popover width */
+export const EXPANDED_POPOVER_WIDTH_DEFAULT = "85vw";
+/** Maximum expanded popover width */
+export const EXPANDED_POPOVER_MAX_WIDTH = "1200px";
+/** Default expanded popover height */
+export const EXPANDED_POPOVER_HEIGHT = "80vh";
+
+/** Transition duration for popover morph animation */
+export const POPOVER_MORPH_DURATION_MS = 300;

@@ -929,7 +929,7 @@ describe("CitationDrawerTrigger", () => {
             verification: {
               status: "found",
               document: {
-                verificationImageBase64: "data:image/png;base64,abc123",
+                verificationImageSrc: "data:image/png;base64,abc123",
               },
             },
           },
@@ -1013,7 +1013,7 @@ describe("CitationDrawerTrigger", () => {
             verification: {
               status: "found",
               document: {
-                verificationImageBase64: "javascript:alert('xss')",
+                verificationImageSrc: "javascript:alert('xss')",
               },
             },
           },

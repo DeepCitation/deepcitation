@@ -1,6 +1,5 @@
-import type { SourcePage } from "../types/boxes.js";
 import type { Citation } from "../types/citation.js";
-import type { Verification } from "../types/verification.js";
+import type { Verification, VerificationPage } from "../types/verification.js";
 
 /**
  * A single citation item with its verification result for the drawer.
@@ -13,7 +12,7 @@ export interface CitationDrawerItem {
   /** Verification result if available */
   verification: Verification | null;
   /** Optional page render for the citation's verified page */
-  page?: SourcePage | null;
+  page?: VerificationPage | null;
 }
 
 /**

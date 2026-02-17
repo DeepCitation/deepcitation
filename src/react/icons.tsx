@@ -309,6 +309,51 @@ export const ZoomInIcon = ({ className }: { className?: string }) => (
 );
 
 /**
+ * Chevron right icon for expansion indicators (e.g., page pill)
+ * Size is controlled by parent container
+ */
+export const ChevronRightIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    width="100%"
+    height="100%"
+  >
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+);
+
+/**
+ * Arrow left icon for back navigation
+ * Size is controlled by parent container
+ */
+export const ArrowLeftIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    width="100%"
+    height="100%"
+  >
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
+  </svg>
+);
+
+/**
  * Copy icon for clipboard operations
  * Size is controlled by parent container
  */

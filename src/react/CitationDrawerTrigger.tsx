@@ -221,7 +221,7 @@ function CitationTooltip({
 
   // Find proof image for this specific citation, validating the source
   const rawProofImage = showProofThumbnail
-    ? (item.verification?.document?.verificationImageSrc ?? item.verification?.document?.verificationImageBase64)
+    ? item.verification?.document?.verificationImageSrc
     : null;
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 

@@ -151,6 +151,7 @@ export type {
 export type {
   ContentMatchStatus,
   DocumentVerificationResult,
+  ProofHosting,
   ProofUrl,
   UrlAccessStatus,
   UrlVerificationResult,

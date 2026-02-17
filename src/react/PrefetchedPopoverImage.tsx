@@ -59,7 +59,7 @@ interface PrefetchedPopoverImageProps {
  * ```tsx
  * <PrefetchedPopoverImage
  *   isVisible={isHovering}
- *   src={verification.verificationImageBase64}
+ *   src={verification.document?.verificationImageSrc}
  *   alt="Citation verification"
  *   onClick={() => setExpandedImageSrc(src)}
  * />
