@@ -66,11 +66,11 @@ const verificationWithMiss: Verification = {
 };
 
 // =============================================================================
-// POPOVER IMAGE WIDTH TESTS
+// POPOVER IMAGE — KEYHOLE STRIP TESTS
 // =============================================================================
 
-test.describe("Popover Image Width Constraint", () => {
-  test("popover image has constrained max dimensions", async ({ mount, page }) => {
+test.describe("Popover Image Keyhole Strip", () => {
+  test("popover container has constrained width", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
         <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
@@ -78,21 +78,16 @@ test.describe("Popover Image Width Constraint", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    // Click to open popover (lazy mode - hover no longer shows popover)
     await citation.click();
 
-    // Wait for popover to appear
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
 
-    // Find the inner popover container with fixed-width styling
-    // Use shadow-md to distinguish from Radix's shadow-xl dialog wrapper
+    // Find the inner popover container
     const container = popover.locator(".shadow-md.rounded-lg");
     await expect(container).toBeVisible();
 
-    // The container should have a constrained width (~480px, minus outer shell border).
-    // The outer Radix popover has max-width: 480px with a 1px border, so the inner
-    // container's computed width is slightly less (478px) due to the border box model.
+    // The container should have a constrained width (~480px)
     const containerWidth = await container.evaluate(el =>
       parseFloat(window.getComputedStyle(el as HTMLElement).width)
     );
@@ -100,7 +95,7 @@ test.describe("Popover Image Width Constraint", () => {
     expect(containerWidth).toBeLessThanOrEqual(480);
   });
 
-  test("popover image has max height constraint", async ({ mount, page }) => {
+  test("keyhole strip has fixed height", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
         <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
@@ -108,24 +103,23 @@ test.describe("Popover Image Width Constraint", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    // Click to open popover (lazy mode - hover no longer shows popover)
     await citation.click();
 
-    // Wait for popover to appear
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
 
-    // Find the image
-    const image = popover.locator("img");
-    await expect(image).toBeVisible();
+    // Find the keyhole strip container (has data-dc-keyhole attribute)
+    const strip = popover.locator("[data-dc-keyhole]");
+    await expect(strip).toBeVisible();
 
-    // Check that image has max-height constraint via inline style
-    // Implementation uses: maxHeight: "min(50vh, 360px)"
-    const maxHeight = await image.evaluate(el => (el as HTMLElement).style.maxHeight);
-    expect(maxHeight).toContain("360px");
+    // Strip should have a fixed height of 60px (default)
+    const stripHeight = await strip.evaluate(el =>
+      parseFloat(window.getComputedStyle(el as HTMLElement).height)
+    );
+    expect(stripHeight).toBe(60);
   });
 
-  test("image uses object-fit contain to maintain aspect ratio", async ({ mount, page }) => {
+  test("image renders at natural scale (not squashed)", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
         <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
@@ -133,24 +127,24 @@ test.describe("Popover Image Width Constraint", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    // Click to open popover (lazy mode - hover no longer shows popover)
     await citation.click();
 
-    // Wait for popover to appear
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
 
-    // Find the image
     const image = popover.locator("img");
     await expect(image).toBeVisible();
 
-    // Check that image uses object-fit: contain to maintain aspect ratio
-    // Implementation uses inline style: objectFit: "contain"
+    // Image should have max-w-none class (no max-width constraint)
+    const hasMaxWNone = await image.evaluate(el => el.classList.contains("max-w-none"));
+    expect(hasMaxWNone).toBe(true);
+
+    // Image should NOT use object-fit (no squashing)
     const objectFit = await image.evaluate(el => (el as HTMLElement).style.objectFit);
-    expect(objectFit).toBe("contain");
+    expect(objectFit).toBe("");
   });
 
-  test("image fills container width", async ({ mount, page }) => {
+  test("strip container has horizontal overflow scroll", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
         <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
@@ -158,21 +152,49 @@ test.describe("Popover Image Width Constraint", () => {
     );
 
     const citation = page.locator("[data-citation-id]");
-    // Click to open popover (lazy mode - hover no longer shows popover)
     await citation.click();
 
-    // Wait for popover to appear
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
 
-    // Find the image
-    const image = popover.locator("img");
-    await expect(image).toBeVisible();
+    // Find the keyhole strip container
+    const strip = popover.locator("[data-dc-keyhole]");
+    await expect(strip).toBeVisible();
 
-    // Check that image uses w-full class to fill container width
-    // Implementation uses: className="block rounded-md w-full"
-    const hasWFullClass = await image.evaluate(el => el.classList.contains("w-full"));
-    expect(hasWFullClass).toBe(true);
+    // Container should have overflow-x: auto
+    const overflowX = await strip.evaluate(el =>
+      window.getComputedStyle(el as HTMLElement).overflowX
+    );
+    expect(overflowX).toBe("auto");
+
+    // Container should have overflow-y: hidden
+    const overflowY = await strip.evaluate(el =>
+      window.getComputedStyle(el as HTMLElement).overflowY
+    );
+    expect(overflowY).toBe("hidden");
+  });
+
+  test("strip has hidden scrollbar", async ({ mount, page }) => {
+    await mount(
+      <div style={{ padding: "100px" }}>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
+    );
+
+    const citation = page.locator("[data-citation-id]");
+    await citation.click();
+
+    const popover = page.locator("[data-radix-popper-content-wrapper]");
+    await expect(popover).toBeVisible();
+
+    const strip = popover.locator("[data-dc-keyhole]");
+    await expect(strip).toBeVisible();
+
+    // Scrollbar should be hidden via scrollbar-width: none
+    const scrollbarWidth = await strip.evaluate(el =>
+      window.getComputedStyle(el as HTMLElement).scrollbarWidth
+    );
+    expect(scrollbarWidth).toBe("none");
   });
 });
 
