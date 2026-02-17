@@ -462,7 +462,6 @@ export function SourceContextHeader({
   const proofUrl = verification?.proof?.proofUrl;
   const hasProofUrl = proofUrl && isValidProofUrl(proofUrl);
   const showPagePill = onExpand && pageNumber && pageNumber > 0;
-  const showPageLink = pageLineText && !showPagePill; // Only show link as fallback
 
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
@@ -479,10 +478,9 @@ export function SourceContextHeader({
       {/* Show both PagePill (in-popover expansion) AND PageLineLink (external proof) when available */}
       <div className="flex items-center gap-2">
         {showPagePill && <PagePill pageNumber={pageNumber} colorScheme={colorScheme} onClick={onExpand} />}
-        {showPageLink && <PageLineLink pageLineText={pageLineText} proofUrl={proofUrl} />}
-        {/* Show external proof link even when PagePill is shown */}
-        {showPagePill && hasProofUrl && pageLineText && (
-          <PageLineLink pageLineText={pageLineText} proofUrl={proofUrl} />
+        {/* Show PageLineLink when: has proof URL OR no pill (fallback to static text) */}
+        {pageLineText && (hasProofUrl || !showPagePill) && (
+          <PageLineLink pageLineText={pageLineText} proofUrl={hasProofUrl ? proofUrl : undefined} />
         )}
       </div>
     </div>
