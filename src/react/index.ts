@@ -221,7 +221,6 @@ export {
 export {
   AttemptingToVerify,
   type AttemptingToVerifyProps,
-  buildSearchSummary,
   FaviconImage,
   QuoteBox,
   type QuoteBoxProps,
