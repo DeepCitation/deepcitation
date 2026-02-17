@@ -955,9 +955,9 @@ function getOutcomeSummary(status: SearchStatus | null | undefined, searchAttemp
 }
 
 /**
- * Clickable summary header with status-aware language.
- * - For found/partial: "How we verified this · Exact match"
- * - For not_found: "Search attempts · 0/8 searches tried"
+ * Clickable summary footer — demoted text link for audit details.
+ * Uses unified "Verification details" label across all states.
+ * The parenthetical changes based on status: "(Exact match)" vs "(16 attempts)".
  */
 function VerificationLogSummary({
   status,
@@ -969,9 +969,6 @@ function VerificationLogSummary({
   const isMiss = status === "not_found";
   const outcomeSummary = getOutcomeSummary(status, searchAttempts);
 
-  // Use different headers based on verification outcome
-  const headerText = isMiss ? "Search attempts" : "How we verified this";
-
   // Format the verified date for display
   const formatted = formatCaptureDate(verifiedAt);
   const dateStr = formatted?.display ?? "";
@@ -982,9 +979,9 @@ function VerificationLogSummary({
       onClick={onToggle}
       aria-expanded={isExpanded}
       aria-controls="verification-log-timeline"
-      className="w-full px-4 py-2 flex items-center justify-between text-xs hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer"
+      className="w-full px-4 py-1.5 flex items-center justify-between text-xs transition-colors cursor-pointer group"
     >
-      <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
         <svg
           className={cn("size-3 transition-transform duration-200", isExpanded && "rotate-90")}
           viewBox="0 0 24 24"
@@ -995,8 +992,8 @@ function VerificationLogSummary({
         >
           <path d="M9 6l6 6-6 6" />
         </svg>
-        <span>{headerText}</span>
-        <span className="text-gray-400 dark:text-gray-500">· {outcomeSummary}</span>
+        <span>Verification details</span>
+        <span className="text-gray-400/70 dark:text-gray-600">({outcomeSummary})</span>
       </div>
       {dateStr && (
         <span

@@ -2286,7 +2286,10 @@ describe("CitationComponent interactionMode", () => {
       // Need to wait for the button to appear in the popover
       const expandButton = await waitFor(() => {
         const button = Array.from(container.querySelectorAll("button")).find(
-          btn => btn.textContent?.includes("How we verified this") || btn.textContent?.includes("Search attempts"),
+          btn =>
+            btn.textContent?.includes("Verification details") ||
+            btn.textContent?.includes("How we verified this") ||
+            btn.textContent?.includes("Search attempts"),
         );
         if (!button) throw new Error("Expand button not found");
         return button;
@@ -2328,7 +2331,10 @@ describe("CitationComponent interactionMode", () => {
       // Expand details (triggers grace period)
       const expandButton = await waitFor(() => {
         const button = Array.from(container.querySelectorAll("button")).find(
-          btn => btn.textContent?.includes("How we verified this") || btn.textContent?.includes("Search attempts"),
+          btn =>
+            btn.textContent?.includes("Verification details") ||
+            btn.textContent?.includes("How we verified this") ||
+            btn.textContent?.includes("Search attempts"),
         );
         if (!button) throw new Error("Expand button not found");
         return button;
@@ -2375,7 +2381,10 @@ describe("CitationComponent interactionMode", () => {
       // Expand details (triggers grace period)
       const expandButton = await waitFor(() => {
         const button = Array.from(container.querySelectorAll("button")).find(
-          btn => btn.textContent?.includes("How we verified this") || btn.textContent?.includes("Search attempts"),
+          btn =>
+            btn.textContent?.includes("Verification details") ||
+            btn.textContent?.includes("How we verified this") ||
+            btn.textContent?.includes("Search attempts"),
         );
         if (!button) throw new Error("Expand button not found");
         return button;
@@ -2422,7 +2431,10 @@ describe("CitationComponent interactionMode", () => {
 
       const expandButton = await waitFor(() => {
         const button = Array.from(container.querySelectorAll("button")).find(
-          btn => btn.textContent?.includes("How we verified this") || btn.textContent?.includes("Search attempts"),
+          btn =>
+            btn.textContent?.includes("Verification details") ||
+            btn.textContent?.includes("How we verified this") ||
+            btn.textContent?.includes("Search attempts"),
         );
         if (!button) throw new Error("Expand button not found");
         return button;
@@ -2484,7 +2496,10 @@ describe("CitationComponent interactionMode", () => {
 
       const expandButton = await waitFor(() => {
         const button = Array.from(container.querySelectorAll("button")).find(
-          btn => btn.textContent?.includes("How we verified this") || btn.textContent?.includes("Search attempts"),
+          btn =>
+            btn.textContent?.includes("Verification details") ||
+            btn.textContent?.includes("How we verified this") ||
+            btn.textContent?.includes("Search attempts"),
         );
         if (!button) throw new Error("Expand button not found");
         return button;

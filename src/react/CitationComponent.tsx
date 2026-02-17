@@ -1147,7 +1147,7 @@ function getHumanizingMessage(
 
   switch (status) {
     case "not_found":
-      return "We couldn't find this phrase in the document.";
+      return null; // Redundant — the red icon + "Not found" header already conveys this
     case "found_on_other_page":
       if (expectedPage && foundPage) {
         return `Found ${displayText} on page ${foundPage} instead of page ${expectedPage}.`;
@@ -1491,6 +1491,48 @@ function PageNumberLink({ pageNumber, proofUrl }: { pageNumber: number; proofUrl
   return <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>;
 }
 
+/**
+ * Prominent "Open Document" button for not-found states.
+ * Fills the Evidence Area where a proof image would appear for verified citations,
+ * giving the user a clear next action when the system couldn't find the phrase.
+ */
+function OpenDocumentButton({ pageNumber, proofUrl }: { pageNumber?: number; proofUrl?: string }): React.ReactNode {
+  const safeProofUrl = proofUrl ? isValidProofUrl(proofUrl) : null;
+  const label = pageNumber && pageNumber > 0 ? `Open Document to Page ${pageNumber}` : "Open Document";
+
+  if (safeProofUrl) {
+    return (
+      <div className="px-3 pb-3 pt-1">
+        <a
+          href={safeProofUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium rounded-md border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+          onClick={e => e.stopPropagation()}
+        >
+          <span>{label}</span>
+          <span className="w-3.5 h-3.5">
+            <ExternalLinkIcon />
+          </span>
+        </a>
+      </div>
+    );
+  }
+
+  // No proof URL — show static label (user must open their own copy)
+  if (pageNumber && pageNumber > 0) {
+    return (
+      <div className="px-3 pb-3 pt-1">
+        <span className="flex items-center justify-center w-full px-4 py-2 text-sm text-gray-500 dark:text-gray-400 rounded-md border border-dashed border-gray-200 dark:border-gray-700">
+          Check Page {pageNumber} in original document
+        </span>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 function DefaultPopoverContent({
   citation,
   verification,
@@ -1598,7 +1640,7 @@ function DefaultPopoverContent({
 
           {/* Full phrase with highlighted anchor text */}
           {fullPhrase && (
-            <div className="px-3 py-2 text-sm leading-relaxed break-words border-b border-gray-100 dark:border-gray-800">
+            <div className="mx-3 my-2 px-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50">
               <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}
@@ -1668,7 +1710,7 @@ function DefaultPopoverContent({
               )}
               {/* Full phrase with highlighted anchor text */}
               {fullPhrase && (
-                <div className="px-3 py-2 text-sm leading-relaxed break-words border-b border-gray-100 dark:border-gray-800">
+                <div className="mx-3 my-2 px-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50">
                   <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
                 </div>
               )}
@@ -1694,13 +1736,17 @@ function DefaultPopoverContent({
               {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
               {/* Humanizing message for document citations */}
               {!urlAccessExplanation && humanizingMessage && (
-                <div className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">{humanizingMessage}</div>
+                <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">{humanizingMessage}</div>
               )}
               {/* Full phrase with highlighted anchor text */}
               {fullPhrase && (
-                <div className="px-3 py-2 text-sm leading-relaxed break-words border-b border-gray-100 dark:border-gray-800">
+                <div className="mx-3 my-2 px-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50">
                   <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
                 </div>
+              )}
+              {/* Evidence area: "Open Document" button for not_found document citations */}
+              {isMiss && !isUrlCitation(citation) && (
+                <OpenDocumentButton pageNumber={expectedPage ?? undefined} proofUrl={verification?.proof?.proofUrl} />
               )}
             </>
           )}
