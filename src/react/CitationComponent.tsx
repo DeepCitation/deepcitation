@@ -16,6 +16,7 @@ import type { SourcePage } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
 import type { UrlAccessStatus, Verification } from "../types/verification.js";
+import { validateRegexInput } from "../utils/regexSafety.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import {
   ANCHOR_HIGHLIGHT_STYLE,
@@ -54,7 +55,6 @@ import type {
   IndicatorVariant,
   UrlFetchStatus,
 } from "./types.js";
-import { validateRegexInput } from "../utils/regexSafety.js";
 import { isValidProofUrl } from "./urlUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 import { QuotedText, SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";

@@ -434,7 +434,7 @@ const normalizeCitationContent = (input: string): string => {
     // a quote character and replace with a consistently escaped quote.
     // This avoids CodeQL js/incomplete-sanitization warnings from chained .replace()
     // calls where earlier replacements can reintroduce patterns matched by later ones.
-    content = content.replace(/\\*(['"])/g, (_, quote) => `\\${quote}`);
+    content = content.replace(/\\*(['"])/g, (_: string, quote: string) => `\\${quote}`);
 
     return `${canonicalizeCiteAttributeKey(key)}='${content}'`;
   });
