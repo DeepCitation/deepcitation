@@ -488,7 +488,7 @@ describe("CitationComponent behaviorConfig", () => {
       // Custom action: popover should open in expanded (image) view
       expect(document.querySelector("[role='dialog']")).toBeInTheDocument();
       // ExpandedPageViewer renders with a back button — verify we're in the expanded state, not summary
-      expect(document.querySelector("[role='dialog']")?.textContent).toContain("Back to summary");
+      expect(document.querySelector("[role='dialog']")?.textContent).toContain("Back");
     });
 
     it("can apply setImageExpanded with string src", async () => {

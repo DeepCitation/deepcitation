@@ -258,15 +258,15 @@ interface PagePillProps {
 
 /** Page pill color classes by status */
 const PAGE_PILL_COLORS = {
-  green: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700",
-  amber: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700",
+  green: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600",
+  amber: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600",
   red: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600",
   gray: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600",
 } as const;
 
 /**
  * Compact badge showing page number with chevron-right expansion indicator.
- * Verified → brand/blue; not-found → neutral/dark.
+ * Uses neutral gray for all states — status is conveyed by the icon in StatusHeader.
  * Click triggers in-popover expansion to full page view.
  */
 export function PagePill({ pageNumber, colorScheme, onClick }: PagePillProps) {

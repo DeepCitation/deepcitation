@@ -1315,13 +1315,22 @@ function SearchAnalysisSummary({
     description += ".";
   }
 
+  // Format verified date for compact display
+  const formatted = formatCaptureDate(verification?.verifiedAt);
+  const dateStr = formatted?.display ?? "";
+
   return (
     <div className="px-3 py-2">
-      <div className="flex items-center gap-2 mb-1">
-        {searchAttempts.length > 0 ? (
+      {/* Compact single-line summary with inline Details toggle */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate" title={description}>
+          {description}
+          {dateStr && <> · {dateStr}</>}
+        </span>
+        {searchAttempts.length > 0 && (
           <button
             type="button"
-            className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition-colors"
+            className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors shrink-0 flex items-center gap-0.5"
             onClick={e => {
               e.stopPropagation();
               setShowDetails(s => !s);
@@ -1338,15 +1347,10 @@ function SearchAnalysisSummary({
             >
               <path d="M9 6l6 6-6 6" />
             </svg>
-            <span>Verification details</span>
+            <span>Details</span>
           </button>
-        ) : (
-          <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-            Search analysis
-          </div>
         )}
       </div>
-      <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{description}</p>
       {showDetails && (
         <div className="mt-2">
           <VerificationLogTimeline searchAttempts={searchAttempts} status={verification?.status} />
@@ -1408,12 +1412,14 @@ function EvidenceTray({
         </>
       ) : null}
 
-      {/* Footer: outcome + date */}
-      <EvidenceTrayFooter
-        status={verification?.status}
-        searchAttempts={searchAttempts}
-        verifiedAt={verification?.verifiedAt}
-      />
+      {/* Footer: outcome + date (skip for miss — compressed summary has this info) */}
+      {!isMiss && (
+        <EvidenceTrayFooter
+          status={verification?.status}
+          searchAttempts={searchAttempts}
+          verifiedAt={verification?.verifiedAt}
+        />
+      )}
     </>
   );
 
@@ -1463,21 +1469,51 @@ function EvidenceTray({
 // EXPANDED PAGE VIEWER
 // =============================================================================
 
-/**
- * Full-page image viewer shown in the expanded popover state.
- * Renders the page at natural scale in a scrollable container with percentage-based highlight overlay.
- * Auto-scrolls to center the highlight on mount.
- */
+/** Status text/color mapping for expanded header */
+type ColorScheme = "green" | "amber" | "red" | "gray";
+const EXPANDED_STATUS_DISPLAY: Record<ColorScheme, { text: string; className: string }> = {
+  green: { text: "Verified", className: "text-green-600 dark:text-green-400" },
+  amber: { text: "Partial", className: "text-amber-500 dark:text-amber-400" },
+  red: { text: "Not found", className: "text-red-500 dark:text-red-400" },
+  gray: { text: "Pending", className: "text-gray-400 dark:text-gray-500" },
+};
+
+/** Map SearchStatus to color scheme (mirrors VerificationLog's getStatusColorScheme) */
+function expandedHeaderColorScheme(status?: SearchStatus | null): ColorScheme {
+  if (!status) return "gray";
+  switch (status) {
+    case "found":
+    case "found_anchor_text_only":
+    case "found_phrase_missed_anchor_text":
+      return "green";
+    case "found_on_other_page":
+    case "found_on_other_line":
+    case "partial_text_found":
+    case "first_word_found":
+      return "amber";
+    case "not_found":
+      return "red";
+    default:
+      return "gray";
+  }
+}
+
 function ExpandedPageViewer({
   expandedImage,
   searchAttempts,
   verification,
   onBack,
+  sourceLabel,
+  citation,
+  status,
 }: {
   expandedImage: ExpandedImageSource;
   searchAttempts?: SearchAttempt[];
   verification?: Verification | null;
   onBack: () => void;
+  sourceLabel?: string;
+  citation?: BaseCitationProps["citation"];
+  status?: SearchStatus | null;
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -1485,6 +1521,17 @@ function ExpandedPageViewer({
 
   const { highlightBox, dimensions } = expandedImage;
   const isMiss = verification?.status === "not_found";
+
+  // Derive display info for header
+  const displayName = sourceLabel || verification?.label || "Document";
+  // Shows the verified (found) page when available, falling back to the citation's expected page.
+  // For partial matches (found_on_other_page), this shows the actual found page — intentional,
+  // since the expanded view shows that page's image.
+  const pageNumber =
+    verification?.document?.verifiedPageNumber ??
+    (citation && !isUrlCitation(citation) ? citation.pageNumber : undefined);
+  const colorScheme = expandedHeaderColorScheme(status);
+  const statusDisplay = EXPANDED_STATUS_DISPLAY[colorScheme];
 
   // Auto-scroll to center highlight on mount
   useLayoutEffect(() => {
@@ -1507,7 +1554,7 @@ function ExpandedPageViewer({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Back button header */}
+      {/* Context-rich header: Back + source name + status + page */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
         <button
           type="button"
@@ -1515,25 +1562,32 @@ function ExpandedPageViewer({
             e.stopPropagation();
             onBack();
           }}
-          className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer shrink-0"
         >
           <span className="size-3.5">
             <ArrowLeftIcon />
           </span>
-          <span>Back to summary</span>
+          <span>Back</span>
         </button>
+        <div className="flex-1" />
+        <span className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[200px]" title={displayName}>
+          {displayName}
+        </span>
+        <span className={cn("text-xs font-medium", statusDisplay.className)}>{statusDisplay.text}</span>
+        {pageNumber != null && pageNumber > 0 && (
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0">p.{pageNumber}</span>
+        )}
       </div>
 
       {/* Scrollable image container */}
       <div ref={scrollContainerRef} className="flex-1 overflow-auto relative bg-gray-50 dark:bg-gray-900">
-        <div className="relative inline-block min-w-full">
+        <div className="relative w-full">
           {isValidProofImageSrc(expandedImage.src) && (
             <img
               ref={imageRef}
               src={expandedImage.src}
               alt="Full page verification"
-              className="block max-w-none"
-              style={{ maxHeight: "none" }}
+              className="block w-full"
               onLoad={() => setImageLoaded(true)}
               onError={handleImageError}
             />
@@ -1678,6 +1732,9 @@ function DefaultPopoverContent({
           searchAttempts={verification?.searchAttempts}
           verification={verification}
           onBack={handleBack}
+          sourceLabel={sourceLabel}
+          citation={citation}
+          status={searchStatus}
         />
       </div>
     );
@@ -2851,6 +2908,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               id={popoverId}
               side={popoverPosition === "bottom" ? "bottom" : "top"}
               aria-label={popoverViewState === "expanded" ? "Full size verification image" : undefined}
+              style={
+                popoverViewState === "expanded"
+                  ? { maxWidth: `min(${EXPANDED_POPOVER_MAX_WIDTH}, calc(100vw - 2rem))` }
+                  : undefined
+              }
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
               onEscapeKeyDown={(e: KeyboardEvent) => {
