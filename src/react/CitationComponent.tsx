@@ -1318,20 +1318,32 @@ function SearchAnalysisSummary({
   return (
     <div className="px-3 py-2">
       <div className="flex items-center gap-2 mb-1">
-        <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-          Search analysis
-        </div>
-        {searchAttempts.length > 0 && (
+        {searchAttempts.length > 0 ? (
           <button
             type="button"
-            className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+            className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition-colors"
             onClick={e => {
               e.stopPropagation();
               setShowDetails(s => !s);
             }}
+            aria-expanded={showDetails}
           >
-            {showDetails ? "Hide details" : "Show details"}
+            <svg
+              className={cn("size-2.5 transition-transform duration-200", showDetails && "rotate-90")}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              aria-hidden="true"
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+            <span>Verification details</span>
           </button>
+        ) : (
+          <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            Search analysis
+          </div>
         )}
       </div>
       <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{description}</p>
@@ -2838,6 +2850,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               ref={setPopoverContentRef}
               id={popoverId}
               side={popoverPosition === "bottom" ? "bottom" : "top"}
+              aria-label={popoverViewState === "expanded" ? "Full size verification image" : undefined}
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
               onEscapeKeyDown={(e: KeyboardEvent) => {

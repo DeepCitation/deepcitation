@@ -187,11 +187,8 @@ test.describe("Proof Link Interactions", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible({ timeout: 10000 });
 
-    // Click to expand search details
-    await citation.click();
-
-    // Find page/line link in verification log
-    const pageLineLink = popover.getByRole("link").filter({ hasText: "P.5" });
+    // Find page link in the popover header (proof URL link is visible on open)
+    const pageLineLink = popover.getByRole("link").filter({ hasText: "p.5" });
     await expect(pageLineLink).toBeVisible();
     await expect(pageLineLink).toHaveAttribute(
       "href",

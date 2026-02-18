@@ -17,7 +17,7 @@ import {
 } from "./icons.js";
 import type { UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
-import { sanitizeUrl } from "./urlUtils.js";
+import { isValidProofUrl, sanitizeUrl } from "./urlUtils.js";
 import { cn, isUrlCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
 
@@ -426,7 +426,10 @@ export function SourceContextHeader({
   // Derive color scheme for PagePill
   const colorScheme = getStatusColorScheme(status);
 
-  const showPagePill = onExpand && pageNumber && pageNumber > 0;
+  // Proof URL link takes priority over expand button: clicking opens proof in new tab
+  const validProofUrl = verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
+  const showProofLink = validProofUrl && pageNumber && pageNumber > 0;
+  const showPagePill = !showProofLink && onExpand && pageNumber && pageNumber > 0;
 
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
@@ -441,8 +444,22 @@ export function SourceContextHeader({
         )}
       </div>
       <div className="flex items-center gap-2">
+        {showProofLink && (
+          <a
+            href={validProofUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded border cursor-pointer transition-colors hover:opacity-80 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700"
+          >
+            <span>p.{pageNumber}</span>
+            <span className="size-2.5">
+              <ExternalLinkIcon />
+            </span>
+          </a>
+        )}
         {showPagePill && <PagePill pageNumber={pageNumber} colorScheme={colorScheme} onClick={onExpand} />}
-        {!showPagePill && pageLineText && (
+        {!showProofLink && !showPagePill && pageLineText && (
           <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">
             {pageLineText}
           </span>
