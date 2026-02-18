@@ -88,10 +88,6 @@ const deprecationWarned = new Set<string>();
 /** Auto-hide spinner after this duration if verification is still pending. */
 const SPINNER_TIMEOUT_MS = 5000;
 
-/** Delay in ms before closing popover on mouse leave (allows moving to popover content). */
-export const HOVER_CLOSE_DELAY_MS = 150;
-
-
 /** Popover container width. Customizable via CSS custom property `--dc-popover-width`. */
 const POPOVER_WIDTH = `var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT})`;
 
@@ -2242,23 +2238,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       [isHovering, handleTapAction],
     );
 
-    // Hover handlers with delay for popover accessibility
-    // Use a timeout to allow user to move mouse from trigger to popover
-    const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isOverPopoverRef = useRef(false);
-
-    const cancelHoverCloseTimeout = useCallback(() => {
-      if (hoverCloseTimeoutRef.current) {
-        clearTimeout(hoverCloseTimeoutRef.current);
-        hoverCloseTimeoutRef.current = null;
-      }
-    }, []);
-
     const handleMouseEnter = useCallback(() => {
       // Don't trigger hover popover if any image overlay is expanded
       if (isAnyOverlayOpen) return;
-
-      cancelHoverCloseTimeout();
       // Don't show popover on hover - only on click (lazy mode behavior)
       if (behaviorConfig?.onHover?.onEnter) {
         behaviorConfig.onHover.onEnter(getBehaviorContext());
@@ -2270,14 +2252,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       citation,
       citationKey,
       getBehaviorContext,
-      cancelHoverCloseTimeout,
       isAnyOverlayOpen,
     ]);
 
     const handleMouseLeave = useCallback(() => {
       // Popover is click-to-open, so it should only close on click (not on hover-away).
       // Fire external callbacks for consumers tracking hover state, but do not close the popover.
-      cancelHoverCloseTimeout();
       if (behaviorConfig?.onHover?.onLeave) {
         behaviorConfig.onHover.onLeave(getBehaviorContext());
       }
@@ -2288,35 +2268,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       citation,
       citationKey,
       getBehaviorContext,
-      cancelHoverCloseTimeout,
     ]);
-
-    // Popover content hover handlers
-    const handlePopoverMouseEnter = useCallback(() => {
-      cancelHoverCloseTimeout();
-      isOverPopoverRef.current = true;
-    }, [cancelHoverCloseTimeout]);
-
-    const handlePopoverMouseLeave = useCallback(() => {
-      // Popover is click-to-open, so it persists when the mouse leaves the popover content.
-      isOverPopoverRef.current = false;
-    }, []);
-
-    // Cleanup hover timeout on unmount
-    useEffect(() => {
-      return () => {
-        if (hoverCloseTimeoutRef.current) {
-          clearTimeout(hoverCloseTimeoutRef.current);
-        }
-      };
-    }, []);
 
     // Escape key handling is managed by Radix Popover via onOpenChange and onEscapeKeyDown props
 
     // Mobile click-outside dismiss handler
     //
     // On mobile, tapping outside the citation trigger or popover should dismiss the popover.
-    // Desktop relies on mouse leave events (handleMouseLeave) which don't exist on mobile.
+    // Desktop uses a document-level mousedown listener (below) for click-outside dismiss.
     //
     // Why custom handling instead of Radix's built-in click-outside behavior:
     // The PopoverContent has onPointerDownOutside and onInteractOutside handlers that call
@@ -2418,13 +2377,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           return;
         }
 
-        // Click is outside both - dismiss the popover immediately (bypass grace period)
+        // Click is outside both - dismiss the popover
         setIsHovering(false);
-        // Clear any pending hover close timeout since we're closing immediately
-        if (hoverCloseTimeoutRef.current) {
-          clearTimeout(hoverCloseTimeoutRef.current);
-          hoverCloseTimeoutRef.current = null;
-        }
       };
 
       // Use mousedown with capture phase to detect clicks before they bubble
@@ -2921,8 +2875,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                   setPopoverViewState("summary");
                 }
               }}
-              onMouseEnter={handlePopoverMouseEnter}
-              onMouseLeave={handlePopoverMouseLeave}
               onClick={(e: React.MouseEvent) => {
                 // Clicking directly on the popover backdrop (not on inner content) dismisses it.
                 // e.target === e.currentTarget means the click hit the dialog's own element,

@@ -12,12 +12,6 @@ mock.module("react-dom", () => ({
   createPortal: (node: React.ReactNode) => node,
 }));
 
-// Hover close delay must match HOVER_CLOSE_DELAY_MS in CitationComponent
-const HOVER_CLOSE_DELAY_MS = 150;
-
-// Helper to wait for hover close delay
-const waitForHoverCloseDelay = () => new Promise(resolve => setTimeout(resolve, HOVER_CLOSE_DELAY_MS + 50));
-
 // Helper to wait for popover to become visible
 const waitForPopoverVisible = async (container: HTMLElement) => {
   await act(async () => {
@@ -491,8 +485,10 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      // Custom action: image should be expanded
+      // Custom action: popover should open in expanded (image) view
       expect(document.querySelector("[role='dialog']")).toBeInTheDocument();
+      // ExpandedPageViewer renders with a back button — verify we're in the expanded state, not summary
+      expect(document.querySelector("[role='dialog']")?.textContent).toContain("Back to summary");
     });
 
     it("can apply setImageExpanded with string src", async () => {
@@ -702,11 +698,8 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       const citation = container.querySelector("[data-citation-id]");
-      fireEvent.mouseLeave(citation as HTMLElement);
-
-      // Wait for hover close delay
       await act(async () => {
-        await waitForHoverCloseDelay();
+        fireEvent.mouseLeave(citation as HTMLElement);
       });
 
       expect(onLeave).toHaveBeenCalledTimes(1);
@@ -747,11 +740,8 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       const citation = container.querySelector("[data-citation-id]");
-      fireEvent.mouseLeave(citation as HTMLElement);
-
-      // Wait for hover close delay
       await act(async () => {
-        await waitForHoverCloseDelay();
+        fireEvent.mouseLeave(citation as HTMLElement);
       });
 
       const context = onLeave.mock.calls[0][0] as CitationBehaviorContext;
@@ -795,11 +785,8 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       const citation = container.querySelector("[data-citation-id]");
-      fireEvent.mouseLeave(citation as HTMLElement);
-
-      // Wait for hover close delay
       await act(async () => {
-        await waitForHoverCloseDelay();
+        fireEvent.mouseLeave(citation as HTMLElement);
       });
 
       expect(behaviorOnLeave).toHaveBeenCalledTimes(1);
@@ -842,12 +829,9 @@ describe("CitationComponent behaviorConfig", () => {
       const citation = container.querySelector("[data-citation-id]");
 
       // Should not throw when entering without onEnter handler
-      fireEvent.mouseEnter(citation as HTMLElement);
-      fireEvent.mouseLeave(citation as HTMLElement);
-
-      // Wait for hover close delay
       await act(async () => {
-        await waitForHoverCloseDelay();
+        fireEvent.mouseEnter(citation as HTMLElement);
+        fireEvent.mouseLeave(citation as HTMLElement);
       });
 
       expect(onLeave).toHaveBeenCalledTimes(1);
@@ -910,11 +894,6 @@ describe("CitationComponent behaviorConfig", () => {
 
       await act(async () => {
         fireEvent.mouseLeave(citation as HTMLElement);
-      });
-
-      // Wait for hover close delay
-      await act(async () => {
-        await waitForHoverCloseDelay();
       });
 
       expect(onLeave).toHaveBeenCalledTimes(1);
@@ -1159,43 +1138,6 @@ describe("CitationComponent behaviorConfig", () => {
     });
   });
 
-  // ==========================================================================
-  // IMAGE OVERLAY KEYBOARD ACCESSIBILITY TESTS
-  // Tests that verify keyboard accessibility attributes are present on the image overlay
-  // ==========================================================================
-
-  describe("ImageOverlay keyboard accessibility attributes", () => {
-    it("should render image with keyboard accessibility attributes in component code", () => {
-      // This test verifies the implementation by checking that the CitationComponent
-      // code includes the required accessibility attributes for the image overlay.
-      // We test the component's internal structure rather than end-to-end interaction
-      // because the overlay rendering involves complex portal and async state management.
-
-      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
-
-      // Verify component rendered
-      expect(container.querySelector("[data-citation-id]")).toBeInTheDocument();
-
-      // The actual keyboard accessibility implementation is in CitationComponent.tsx lines 762-778:
-      // - tabIndex={0} makes image focusable
-      // - role="button" provides semantic meaning
-      // - aria-label describes the action
-      // - onKeyDown handles Enter and Space keys
-      // - e.preventDefault() prevents Space from scrolling
-      // - focus:ring styles provide visible focus indicator
-    });
-
-    it("should handle keyboard events in onClick handler signature", () => {
-      // Verify the component accepts and renders with verification image
-      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
-
-      const trigger = container.querySelector("[data-citation-id]");
-      expect(trigger).toBeInTheDocument();
-
-      // The keyboard event handling is implemented in the ImageOverlay component
-      // with proper Enter/Space key detection and preventDefault() to avoid scroll jumps
-    });
-  });
 });
 
 // =============================================================================
@@ -1869,12 +1811,6 @@ describe("CitationComponent interactionMode", () => {
     verifiedMatchSnippet: "test citation phrase",
     status: "found",
   };
-
-  // Hover close delay must match HOVER_CLOSE_DELAY_MS in CitationComponent
-  const HOVER_CLOSE_DELAY_MS = 150;
-
-  // Helper to wait for hover close delay
-  const _waitForHoverCloseDelay = () => new Promise(resolve => setTimeout(resolve, HOVER_CLOSE_DELAY_MS + 50));
 
   describe("deprecated eager mode (now uses lazy behavior)", () => {
     it("does NOT show popover on hover (deprecated eager mode uses lazy behavior)", async () => {
