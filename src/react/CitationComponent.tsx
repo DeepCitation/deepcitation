@@ -1,6 +1,4 @@
 import React, { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-
 // React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
 const Activity =
   (
@@ -29,7 +27,6 @@ import {
   EXPANDED_POPOVER_MAX_WIDTH,
   EXPANDED_POPOVER_WIDTH_DEFAULT,
   EXPANDED_POPOVER_WIDTH_VAR,
-  getPortalContainer,
   INDICATOR_SIZE_STYLE,
   isValidProofImageSrc,
   KEYHOLE_FADE_WIDTH,
@@ -44,8 +41,6 @@ import {
   POPOVER_WIDTH_DEFAULT,
   POPOVER_WIDTH_VAR,
   VERIFIED_COLOR_STYLE,
-  Z_INDEX_IMAGE_OVERLAY_VAR,
-  Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
@@ -68,7 +63,7 @@ import type {
   UrlFetchStatus,
 } from "./types.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
-import { SourceContextHeader, StatusHeader } from "./VerificationLog.js";
+import { SourceContextHeader, StatusHeader, VerificationLogTimeline } from "./VerificationLog.js";
 
 // Re-export types for convenience
 export type {
@@ -536,106 +531,6 @@ function getStatusFromVerification(verification: Verification | null | undefined
 }
 
 // =============================================================================
-// IMAGE OVERLAY COMPONENT
-// =============================================================================
-
-interface ImageOverlayProps {
-  src: string;
-  alt: string;
-  onClose: () => void;
-}
-
-/**
- * Full-screen image overlay for zoomed verification images.
- * Click anywhere or press Escape to close.
- */
-function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
-  const { registerOverlay, unregisterOverlay } = useCitationOverlay();
-  const backdropRef = useRef<HTMLDivElement>(null);
-
-  // Register this overlay as open globally (blocks hover on other citations)
-  useEffect(() => {
-    registerOverlay();
-    return () => {
-      // Delay unregister so click-outside handlers still see overlay as open
-      // during the current event loop tick
-      setTimeout(() => unregisterOverlay(), 0);
-    };
-  }, [registerOverlay, unregisterOverlay]);
-
-  // Auto-focus the backdrop when the overlay opens for keyboard accessibility.
-  // Uses rAF to ensure the portal has been painted before focusing.
-  useEffect(() => {
-    const rafId = requestAnimationFrame(() => {
-      backdropRef.current?.focus();
-    });
-    return () => cancelAnimationFrame(rafId);
-  }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  // SSR-safe: skip portal if document.body unavailable
-  const portalContainer = getPortalContainer();
-  if (!portalContainer) return null;
-
-  return createPortal(
-    <div
-      ref={backdropRef}
-      tabIndex={-1}
-      className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-[50ms] outline-none"
-      style={{ zIndex: `var(${Z_INDEX_IMAGE_OVERLAY_VAR}, ${Z_INDEX_OVERLAY_DEFAULT})` } as React.CSSProperties}
-      onClick={e => {
-        e.stopPropagation();
-        e.preventDefault();
-        onClose();
-      }}
-      onKeyDown={e => {
-        if (e.key === "Escape") {
-          e.stopPropagation();
-          onClose();
-        }
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Full size verification image"
-    >
-      <div className="relative max-w-[95vw] max-h-[95vh] cursor-zoom-out animate-in zoom-in-95 duration-[50ms]">
-        <img
-          src={src}
-          alt={alt}
-          className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          draggable={false}
-          tabIndex={0}
-          role="button"
-          aria-label="Click to close full size image"
-          onClick={e => {
-            e.stopPropagation();
-            onClose();
-          }}
-          onKeyDown={e => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              e.stopPropagation();
-              onClose();
-            }
-          }}
-        />
-      </div>
-    </div>,
-    portalContainer,
-  );
-}
-
-// =============================================================================
 // INDICATOR COMPONENTS
 // =============================================================================
 //
@@ -769,6 +664,10 @@ export interface ExpandedImageSource {
  * 1. matchPage from verification.pages (best: has image, dimensions, highlight, textItems)
  * 2. proof.proofImageUrl (good: CDN image, no overlay data)
  * 3. document.verificationImageSrc (baseline: keyhole image at full size)
+ *
+ * NOTE: All three sources come from the same server-generated verification object.
+ * verificationImageSrc is already rendered unvalidated in AnchorTextFocusedImage,
+ * so skipping isValidProofImageSrc here does not increase the attack surface.
  */
 // biome-ignore lint/style/useComponentExportOnlyModules: exported for testing
 export function resolveExpandedImage(verification: Verification | null | undefined): ExpandedImageSource | null {
@@ -776,7 +675,7 @@ export function resolveExpandedImage(verification: Verification | null | undefin
 
   // 1. Best: matching page from verification.pages array
   const matchPage = verification.pages?.find(p => p.isMatchPage);
-  if (matchPage?.source && isValidProofImageSrc(matchPage.source)) {
+  if (matchPage?.source) {
     return {
       src: matchPage.source,
       dimensions: matchPage.dimensions,
@@ -786,7 +685,7 @@ export function resolveExpandedImage(verification: Verification | null | undefin
   }
 
   // 2. Good: CDN-hosted proof image
-  if (verification.proof?.proofImageUrl && isValidProofImageSrc(verification.proof.proofImageUrl)) {
+  if (verification.proof?.proofImageUrl) {
     return {
       src: verification.proof.proofImageUrl,
       dimensions: null,
@@ -796,7 +695,7 @@ export function resolveExpandedImage(verification: Verification | null | undefin
   }
 
   // 3. Baseline: keyhole verification image at full size
-  if (verification.document?.verificationImageSrc && isValidProofImageSrc(verification.document.verificationImageSrc)) {
+  if (verification.document?.verificationImageSrc) {
     return {
       src: verification.document.verificationImageSrc,
       dimensions: verification.document.verificationImageDimensions ?? null,
@@ -1382,7 +1281,7 @@ function EvidenceTrayFooter({
 
 /**
  * Search analysis summary for not-found evidence tray.
- * Shows attempt count and human-readable summary.
+ * Shows attempt count, human-readable summary, and an expandable search details log.
  */
 function SearchAnalysisSummary({
   searchAttempts,
@@ -1391,12 +1290,13 @@ function SearchAnalysisSummary({
   searchAttempts: SearchAttempt[];
   verification?: Verification | null;
 }) {
+  const [showDetails, setShowDetails] = useState(false);
   const summary = useMemo(() => buildSearchSummary(searchAttempts, verification), [searchAttempts, verification]);
 
   // Build 1-2 sentence summary
   let description: string;
   if (summary.includesFullDocScan) {
-    description = `Searched ${summary.pageRange || "the document"} including a full document scan.`;
+    description = "Searched the full document.";
   } else if (summary.pageRange) {
     description = `Searched ${summary.pageRange}.`;
   } else {
@@ -1417,10 +1317,29 @@ function SearchAnalysisSummary({
 
   return (
     <div className="px-3 py-2">
-      <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
-        Search analysis
+      <div className="flex items-center gap-2 mb-1">
+        <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          Search analysis
+        </div>
+        {searchAttempts.length > 0 && (
+          <button
+            type="button"
+            className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+            onClick={e => {
+              e.stopPropagation();
+              setShowDetails(s => !s);
+            }}
+          >
+            {showDetails ? "Hide details" : "Show details"}
+          </button>
+        )}
       </div>
       <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{description}</p>
+      {showDetails && (
+        <div className="mt-2">
+          <VerificationLogTimeline searchAttempts={searchAttempts} status={verification?.status} />
+        </div>
+      )}
     </div>
   );
 }
@@ -1436,11 +1355,13 @@ function EvidenceTray({
   status,
   onExpand,
   onImageClick,
+  proofImageSrc,
 }: {
   verification: Verification | null;
   status: CitationStatus;
   onExpand?: () => void;
   onImageClick?: () => void;
+  proofImageSrc?: string;
 }) {
   const hasImage = verification?.document?.verificationImageSrc;
   const isMiss = status.isMiss;
@@ -1457,7 +1378,19 @@ function EvidenceTray({
       {hasImage && verification ? (
         <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
       ) : isMiss && searchAttempts.length > 0 ? (
-        <SearchAnalysisSummary searchAttempts={searchAttempts} verification={verification} />
+        <>
+          {proofImageSrc && (
+            <div className="overflow-hidden" style={{ height: 72 }}>
+              <img
+                src={proofImageSrc}
+                className="w-full h-full object-cover object-top"
+                draggable={false}
+                alt="Searched page"
+              />
+            </div>
+          )}
+          <SearchAnalysisSummary searchAttempts={searchAttempts} verification={verification} />
+        </>
       ) : null}
 
       {/* Footer: outcome + date */}
@@ -1871,6 +1804,7 @@ function DefaultPopoverContent({
               status={status}
               onExpand={handleExpand}
               onImageClick={onImageClick}
+              proofImageSrc={expandedImage?.src}
             />
           ) : (
             /* Show EvidenceTray for miss with search analysis (no image), or null */
@@ -1879,6 +1813,7 @@ function DefaultPopoverContent({
                 verification={verification}
                 status={status}
                 onExpand={canExpand ? handleExpand : undefined}
+                proofImageSrc={expandedImage?.src}
               />
             ) : null
           )}
@@ -2014,7 +1949,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return getDefaultContent(variant);
     }, [contentProp, variant]);
     const [isHovering, setIsHovering] = useState(false);
-    const [expandedImageSrc, setExpandedImageSrc] = useState<string | null>(null);
     const [popoverViewState, setPopoverViewState] = useState<PopoverViewState>("summary");
 
     // Reset expanded view state when popover closes
@@ -2150,26 +2084,24 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         citationKey,
         verification: verification ?? null,
         isTooltipExpanded: isHovering,
-        isImageExpanded: !!expandedImageSrc,
+        isImageExpanded: popoverViewState === "expanded",
         hasImage: !!resolvedImageSrc,
       }),
-      [citation, citationKey, verification, isHovering, expandedImageSrc, resolvedImageSrc],
+      [citation, citationKey, verification, isHovering, popoverViewState, resolvedImageSrc],
     );
 
     // Apply behavior actions from custom handler
     const applyBehaviorActions = useCallback(
       (actions: CitationBehaviorActions) => {
         if (actions.setImageExpanded !== undefined) {
-          if (typeof actions.setImageExpanded === "string") {
-            setExpandedImageSrc(actions.setImageExpanded);
-          } else if (actions.setImageExpanded === true && resolvedImageSrc) {
-            setExpandedImageSrc(resolvedImageSrc);
-          } else if (actions.setImageExpanded === false) {
-            setExpandedImageSrc(null);
+          if (actions.setImageExpanded === false) {
+            setPopoverViewState("summary");
+          } else if (actions.setImageExpanded) {
+            setPopoverViewState("expanded");
           }
         }
       },
-      [resolvedImageSrc],
+      [],
     );
 
     // Shared tap/click action handler - used by both click and touch handlers.
@@ -2178,15 +2110,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Action types:
     // - "showPopover": Show the popover (first tap/click when popover is closed)
     // - "hidePopover": Hide the popover (for lazy mode toggle behavior)
-    // - "expandImage": Open the full-size image overlay
+    // - "expandImage": Transition popover to expanded view
     //
     // Dependency chain explanation:
-    // - getBehaviorContext: Captures current state (citation, verification, isHovering, expandedImageSrc)
+    // - getBehaviorContext: Captures current state (citation, verification, isHovering, popoverViewState)
     //   and is itself a useCallback that updates when those values change
-    // - applyBehaviorActions: Handles setExpandedImageSrc based on custom behavior results
+    // - applyBehaviorActions: Handles setImageExpanded by updating popoverViewState
     // - behaviorConfig/eventHandlers: User-provided callbacks that may change
     // - citation/citationKey: Core data passed to callbacks
-    // - verification?.verificationImageSrc: Used for image expansion
     // - State setters (setIsHovering, etc.): Stable references included for exhaustive-deps
     const handleTapAction = useCallback(
       (
@@ -2220,9 +2151,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             setIsHovering(false);
             break;
           case "expandImage":
-            if (resolvedImageSrc) {
-              setExpandedImageSrc(resolvedImageSrc);
-            }
+            setPopoverViewState("expanded");
             break;
         }
       },
@@ -2385,8 +2314,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       };
     }, []);
 
-    // Escape key handling is managed by Radix Popover via onOpenChange prop (line 2354)
-    // and ImageOverlay - no custom keydown handler needed here
+    // Escape key handling is managed by Radix Popover via onOpenChange and onEscapeKeyDown props
 
     // Mobile click-outside dismiss handler
     //
@@ -2863,15 +2791,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     const hasImage = !!resolvedImageSrc;
 
-    // Image overlay
-    const imageOverlay = expandedImageSrc ? (
-      <ImageOverlay
-        src={expandedImageSrc}
-        alt="Citation verification - full size"
-        onClose={() => setExpandedImageSrc(null)}
-      />
-    ) : null;
-
     // Shared trigger element props
     // All variants use status-aware hover colors (green/amber/red/gray)
     // Cursor is always pointer since click toggles popover/details
@@ -2941,9 +2860,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             viewState={popoverViewState}
             onViewStateChange={setPopoverViewState}
             onImageClick={() => {
-              if (resolvedImageSrc) {
-                setExpandedImageSrc(resolvedImageSrc);
-              }
+              setPopoverViewState("expanded");
             }}
           />
         </CitationErrorBoundary>
@@ -3012,7 +2929,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               {popoverContentElement}
             </PopoverContent>
           </Popover>
-          {imageOverlay}
         </>
       );
     }
@@ -3030,7 +2946,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         <span ref={setTriggerRef} {...triggerProps}>
           {renderCitationContent()}
         </span>
-        {imageOverlay}
       </>
     );
   },

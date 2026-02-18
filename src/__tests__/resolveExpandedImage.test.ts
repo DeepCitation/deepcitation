@@ -2,7 +2,9 @@
  * Tests for resolveExpandedImage() — the three-tier fallback resolver
  * for the expanded page viewer's image source.
  *
- * Security: validates that all sources pass isValidProofImageSrc() before use.
+ * Trust model: all three sources (pages[].source, proof.proofImageUrl,
+ * document.verificationImageSrc) are server-generated and trusted equally.
+ * No isValidProofImageSrc() validation is applied; dev/localhost URLs work.
  * Correctness: validates cascade priority (matchPage → proofImageUrl → verificationImageSrc).
  */
 
@@ -10,13 +12,13 @@ import { describe, expect, it } from "@jest/globals";
 import { resolveExpandedImage } from "../react/CitationComponent";
 import type { Verification } from "../types/verification";
 
-// Trusted image host for tests (matches TRUSTED_IMAGE_HOSTS in constants.ts)
+// Representative image URLs for tests
 const TRUSTED_IMG = "https://api.deepcitation.com/proof/img.png";
 const TRUSTED_CDN_IMG = "https://cdn.deepcitation.com/proof/page1.avif";
 
-// Untrusted sources that should be rejected
-const UNTRUSTED_HTTP = "http://evil.com/image.png";
-const UNTRUSTED_HTTPS = "https://evil.com/image.png";
+// Dev/localhost URLs — must be accepted (the main motivation for removing validation)
+const LOCALHOST_IMG = "http://localhost:3000/proof/img.png";
+const DEV_HTTPS_IMG = "https://dev.example.com/proof/img.png";
 const SVG_DATA_URI = "data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9ImFsZXJ0KDEpIj48L3N2Zz4=";
 const JAVASCRIPT_URI = "javascript:alert(1)";
 
@@ -133,38 +135,44 @@ describe("resolveExpandedImage", () => {
     });
   });
 
-  describe("security: image source validation", () => {
-    it("rejects untrusted HTTP matchPage source", () => {
+  describe("trust model: all server-generated sources accepted without validation", () => {
+    it("accepts localhost matchPage source (dev environment)", () => {
       const verification: Verification = {
         status: "found",
         pages: [
           {
             pageNumber: 1,
             isMatchPage: true,
-            source: UNTRUSTED_HTTP,
+            source: LOCALHOST_IMG,
           },
         ],
       };
 
-      expect(resolveExpandedImage(verification)).toBeNull();
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      if (!result) throw new Error("Expected result");
+      expect(result.src).toBe(LOCALHOST_IMG);
     });
 
-    it("rejects untrusted HTTPS matchPage source", () => {
+    it("accepts non-CDN HTTPS matchPage source", () => {
       const verification: Verification = {
         status: "found",
         pages: [
           {
             pageNumber: 1,
             isMatchPage: true,
-            source: UNTRUSTED_HTTPS,
+            source: DEV_HTTPS_IMG,
           },
         ],
       };
 
-      expect(resolveExpandedImage(verification)).toBeNull();
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      if (!result) throw new Error("Expected result");
+      expect(result.src).toBe(DEV_HTTPS_IMG);
     });
 
-    it("rejects SVG data URI in matchPage source (XSS vector)", () => {
+    it("accepts SVG data URI in matchPage source (SVG is sandboxed in img tag)", () => {
       const verification: Verification = {
         status: "found",
         pages: [
@@ -176,22 +184,28 @@ describe("resolveExpandedImage", () => {
         ],
       };
 
-      expect(resolveExpandedImage(verification)).toBeNull();
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      if (!result) throw new Error("Expected result");
+      expect(result.src).toBe(SVG_DATA_URI);
     });
 
-    it("rejects javascript: URI in proofImageUrl", () => {
+    it("accepts javascript: URI in proofImageUrl (inert in img src)", () => {
       const verification: Verification = {
         status: "found",
         proof: { proofImageUrl: JAVASCRIPT_URI },
       };
 
-      expect(resolveExpandedImage(verification)).toBeNull();
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      if (!result) throw new Error("Expected result");
+      expect(result.src).toBe(JAVASCRIPT_URI);
     });
 
-    it("rejects untrusted proofImageUrl and falls through to verificationImageSrc", () => {
+    it("uses proofImageUrl without falling through to verificationImageSrc", () => {
       const verification: Verification = {
         status: "found",
-        proof: { proofImageUrl: UNTRUSTED_HTTPS },
+        proof: { proofImageUrl: DEV_HTTPS_IMG },
         document: {
           verificationImageSrc: TRUSTED_IMG,
           verifiedPageNumber: 1,
@@ -201,30 +215,34 @@ describe("resolveExpandedImage", () => {
       const result = resolveExpandedImage(verification);
       expect(result).not.toBeNull();
       if (!result) throw new Error("Expected result");
-      expect(result.src).toBe(TRUSTED_IMG);
+      // proofImageUrl wins (option 2 takes priority over option 3)
+      expect(result.src).toBe(DEV_HTTPS_IMG);
     });
 
-    it("rejects all untrusted sources and returns null", () => {
+    it("returns matchPage source when all sources are present", () => {
       const verification: Verification = {
         status: "found",
         pages: [
           {
             pageNumber: 1,
             isMatchPage: true,
-            source: UNTRUSTED_HTTPS,
+            source: LOCALHOST_IMG,
           },
         ],
-        proof: { proofImageUrl: UNTRUSTED_HTTP },
+        proof: { proofImageUrl: DEV_HTTPS_IMG },
         document: {
           verificationImageSrc: SVG_DATA_URI,
           verifiedPageNumber: 1,
         },
       };
 
-      expect(resolveExpandedImage(verification)).toBeNull();
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      if (!result) throw new Error("Expected result");
+      expect(result.src).toBe(LOCALHOST_IMG);
     });
 
-    it("accepts trusted data URI (e.g., data:image/png)", () => {
+    it("accepts data:image/png URI", () => {
       const pngDataUri = "data:image/png;base64,iVBORw0KGgo=";
       const verification: Verification = {
         status: "found",

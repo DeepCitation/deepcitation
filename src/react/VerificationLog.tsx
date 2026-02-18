@@ -1399,7 +1399,7 @@ interface VerificationLogTimelineProps {
  * - For found/partial: Shows only the successful match details
  * - For not_found: Shows all search attempts with clear count
  */
-function VerificationLogTimeline({ searchAttempts, fullPhrase, anchorText, status }: VerificationLogTimelineProps) {
+export function VerificationLogTimeline({ searchAttempts, fullPhrase, anchorText, status }: VerificationLogTimelineProps) {
   return (
     <div id="verification-log-timeline" style={{ maxHeight: MAX_TIMELINE_HEIGHT }} className="overflow-y-auto">
       <AuditSearchDisplay

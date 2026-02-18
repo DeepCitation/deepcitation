@@ -9,6 +9,7 @@ bun.lock
 .turbo/
 .claude/
 
+/scratch/
 /playwright/.cache/
 /test-results/
 /playwright-report/
@@ -31,3 +32,5 @@ examples/**/package-lock.json
 examples/**/local.tgz
 examples/**/.next
 examples/**/next-env.d.ts
+
+firebase-debug.log
