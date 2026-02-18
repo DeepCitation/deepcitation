@@ -426,10 +426,12 @@ export function SourceContextHeader({
   // Derive color scheme for PagePill
   const colorScheme = getStatusColorScheme(status);
 
-  // Proof URL link takes priority over expand button: clicking opens proof in new tab
+  // Proof URL link takes priority over expand button: clicking opens proof in new tab.
+  // Requires onExpand to be present — the link replaces the PagePill expand button,
+  // so it only makes sense when there is an expandable image context.
   const validProofUrl = verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
-  const showProofLink = validProofUrl && pageNumber && pageNumber > 0;
-  const showPagePill = !showProofLink && onExpand && pageNumber && pageNumber > 0;
+  const showProofLink = !!validProofUrl && !!onExpand && !!pageNumber && pageNumber > 0;
+  const showPagePill = !showProofLink && !!onExpand && !!pageNumber && pageNumber > 0;
 
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
