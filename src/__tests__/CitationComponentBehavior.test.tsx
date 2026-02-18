@@ -517,6 +517,74 @@ describe("CitationComponent behaviorConfig", () => {
       expect(overlayImage?.getAttribute("src")).toBe(customImageSrc);
     });
 
+    it("rejects setImageExpanded string with javascript: URI (does not update src)", async () => {
+      const customOnClick = jest.fn(
+        (): CitationBehaviorActions => ({
+          setImageExpanded: "javascript:alert(1)",
+        }),
+      );
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          behaviorConfig={{ onClick: customOnClick }}
+        />,
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      await act(async () => {
+        fireEvent.click(citation as HTMLElement);
+      });
+
+      // Popover opens (setImageExpanded: true path) but custom src is rejected
+      const overlayImage = document.querySelector("[role='dialog'] img");
+      expect(overlayImage?.getAttribute("src")).not.toBe("javascript:alert(1)");
+    });
+
+    it("rejects setImageExpanded string with SVG data URI", async () => {
+      const svgUri = "data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9ImFsZXJ0KDEpIj48L3N2Zz4=";
+      const customOnClick = jest.fn((): CitationBehaviorActions => ({ setImageExpanded: svgUri }));
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          behaviorConfig={{ onClick: customOnClick }}
+        />,
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      await act(async () => {
+        fireEvent.click(citation as HTMLElement);
+      });
+
+      const overlayImage = document.querySelector("[role='dialog'] img");
+      expect(overlayImage?.getAttribute("src")).not.toBe(svgUri);
+    });
+
+    it("accepts setImageExpanded with trusted CDN URL", async () => {
+      const trustedSrc = "https://cdn.deepcitation.com/proof/page1.avif";
+      const customOnClick = jest.fn((): CitationBehaviorActions => ({ setImageExpanded: trustedSrc }));
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          behaviorConfig={{ onClick: customOnClick }}
+        />,
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      await act(async () => {
+        fireEvent.click(citation as HTMLElement);
+      });
+
+      const overlayImage = document.querySelector("[role='dialog'] img");
+      expect(overlayImage).toBeInTheDocument();
+      expect(overlayImage?.getAttribute("src")).toBe(trustedSrc);
+    });
+
     it("can close image with setImageExpanded: false", async () => {
       // Use custom onClick to explicitly open image (since default behavior is lazy mode)
       const customOnClick = jest.fn(

@@ -1515,15 +1515,17 @@ function ExpandedPageViewer({
       {/* Scrollable image container */}
       <div ref={scrollContainerRef} className="flex-1 overflow-auto relative bg-gray-50 dark:bg-gray-900">
         <div className="relative inline-block min-w-full">
-          <img
-            ref={imageRef}
-            src={isValidProofImageSrc(expandedImage.src) ? expandedImage.src : undefined}
-            alt="Full page verification"
-            className="block max-w-none"
-            style={{ maxHeight: "none" }}
-            onLoad={() => setImageLoaded(true)}
-            onError={handleImageError}
-          />
+          {isValidProofImageSrc(expandedImage.src) && (
+            <img
+              ref={imageRef}
+              src={expandedImage.src}
+              alt="Full page verification"
+              className="block max-w-none"
+              style={{ maxHeight: "none" }}
+              onLoad={() => setImageLoaded(true)}
+              onError={handleImageError}
+            />
+          )}
 
           {/* Highlight overlay using percentage positioning */}
           {highlightBox && dimensions && imageLoaded && (
@@ -1604,8 +1606,10 @@ function DefaultPopoverContent({
   const expandedImage = useMemo(() => {
     const resolved = resolveExpandedImage(verification);
     if (!expandedImageSrcOverride) return resolved;
-    // Custom src provided: override, or create a minimal ExpandedImageSource if none exists
-    return resolved ? { ...resolved, src: expandedImageSrcOverride } : { src: expandedImageSrcOverride };
+    // Custom src provided: clear overlay metadata since dimensions belong to the original image
+    return resolved
+      ? { ...resolved, src: expandedImageSrcOverride, dimensions: null, highlightBox: null }
+      : { src: expandedImageSrcOverride };
   }, [verification, expandedImageSrcOverride]);
 
   // Whether this is a document citation (URL citations don't have page expansion)
@@ -2107,8 +2111,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           // Open: show popover in expanded (image) view
           setIsHovering(true);
           setPopoverViewState("expanded");
-          // If a custom image URL was provided, use it instead of the verification image
-          if (typeof actions.setImageExpanded === "string") {
+          // If a custom image URL was provided, validate before storing
+          if (typeof actions.setImageExpanded === "string" && isValidProofImageSrc(actions.setImageExpanded)) {
             setCustomExpandedSrc(actions.setImageExpanded);
           }
         }
