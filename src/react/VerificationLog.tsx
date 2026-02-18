@@ -458,9 +458,6 @@ export function SourceContextHeader({
   // Derive color scheme for PagePill
   const colorScheme = getStatusColorScheme(status);
 
-  // Determine which page actions to show
-  const proofUrl = verification?.proof?.proofUrl;
-  const hasProofUrl = proofUrl && isValidProofUrl(proofUrl);
   const showPagePill = onExpand && pageNumber && pageNumber > 0;
 
   return (
@@ -475,12 +472,12 @@ export function SourceContextHeader({
           </span>
         )}
       </div>
-      {/* Show both PagePill (in-popover expansion) AND PageLineLink (external proof) when available */}
       <div className="flex items-center gap-2">
         {showPagePill && <PagePill pageNumber={pageNumber} colorScheme={colorScheme} onClick={onExpand} />}
-        {/* Show PageLineLink when: has proof URL OR no pill (fallback to static text) */}
-        {pageLineText && (hasProofUrl || !showPagePill) && (
-          <PageLineLink pageLineText={pageLineText} proofUrl={hasProofUrl ? proofUrl : undefined} />
+        {!showPagePill && pageLineText && (
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">
+            {pageLineText}
+          </span>
         )}
       </div>
     </div>
