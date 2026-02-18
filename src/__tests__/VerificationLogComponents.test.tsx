@@ -486,7 +486,7 @@ describe("SourceContextHeader", () => {
   // ==========================================================================
 
   describe("Proof URL links", () => {
-    it("renders page/line text as clickable link when proof URL exists", () => {
+    it("renders static page text when no onExpand and proof URL exists", () => {
       const citation: Citation = {
         type: "document",
         attachmentId: "abc123",
@@ -500,12 +500,14 @@ describe("SourceContextHeader", () => {
         proof: { proofUrl: "https://api.deepcitation.com/proof/123" },
       };
 
-      const { getByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
+      const { queryByRole, container } = render(
+        <SourceContextHeader citation={citation} verification={verification} />,
+      );
 
-      const link = getByRole("link");
-      expect(link).toHaveAttribute("href", "https://api.deepcitation.com/proof/123");
-      expect(link).toHaveAttribute("target", "_blank");
-      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      // No external link — proof URLs are no longer rendered as links
+      expect(queryByRole("link")).toBeNull();
+      // Should show static page text instead
+      expect(container.textContent).toContain("p.5");
     });
 
     it("renders static text when proof URL is not available", () => {
@@ -564,7 +566,7 @@ describe("SourceContextHeader", () => {
       expect(queryByRole("link")).toBeNull();
     });
 
-    it("renders link for valid https proof URL from deepcitation.com", () => {
+    it("renders static page text for valid https proof URL from deepcitation.com (no external links)", () => {
       const citation: Citation = {
         type: "document",
         attachmentId: "abc123",
@@ -577,10 +579,14 @@ describe("SourceContextHeader", () => {
         proof: { proofUrl: "https://cdn.deepcitation.com/proof/456" },
       };
 
-      const { getByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
+      const { queryByRole, container } = render(
+        <SourceContextHeader citation={citation} verification={verification} />,
+      );
 
-      const link = getByRole("link");
-      expect(link).toHaveAttribute("href", "https://cdn.deepcitation.com/proof/456");
+      // No external link — proof URLs are no longer rendered as links
+      expect(queryByRole("link")).toBeNull();
+      // Should show static page text
+      expect(container.textContent).toContain("p.5");
     });
 
     it("blocks proof URL from untrusted domain", () => {

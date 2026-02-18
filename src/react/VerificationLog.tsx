@@ -243,38 +243,6 @@ export function FaviconImage({
   );
 }
 
-/**
- * Displays page/line location text, optionally as a clickable link to the proof image.
- * Falls back to static text if proof URL is unavailable or fails validation.
- * Uses smaller icon size (w-2.5 h-2.5) to match the smaller font size (text-[10px]).
- */
-function PageLineLink({ pageLineText, proofUrl }: { pageLineText: string; proofUrl?: string }): React.ReactNode {
-  const safeProofUrl = proofUrl ? isValidProofUrl(proofUrl) : null;
-
-  if (safeProofUrl) {
-    return (
-      <a
-        href={safeProofUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 hover:underline shrink-0 uppercase tracking-wide cursor-pointer"
-        onClick={e => e.stopPropagation()}
-      >
-        <span>{pageLineText}</span>
-        <span className="w-2.5 h-2.5">
-          <ExternalLinkIcon />
-        </span>
-      </a>
-    );
-  }
-
-  return (
-    <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">
-      {pageLineText}
-    </span>
-  );
-}
-
 // =============================================================================
 // PAGE PILL COMPONENT
 // =============================================================================
@@ -458,10 +426,12 @@ export function SourceContextHeader({
   // Derive color scheme for PagePill
   const colorScheme = getStatusColorScheme(status);
 
-  // Determine which page actions to show
-  const proofUrl = verification?.proof?.proofUrl;
-  const hasProofUrl = proofUrl && isValidProofUrl(proofUrl);
-  const showPagePill = onExpand && pageNumber && pageNumber > 0;
+  // Proof URL link takes priority over expand button: clicking opens proof in new tab.
+  // Requires onExpand to be present — the link replaces the PagePill expand button,
+  // so it only makes sense when there is an expandable image context.
+  const validProofUrl = verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
+  const showProofLink = !!validProofUrl && !!onExpand && !!pageNumber && pageNumber > 0;
+  const showPagePill = !showProofLink && !!onExpand && !!pageNumber && pageNumber > 0;
 
   return (
     <div className="flex items-center justify-between gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
@@ -475,12 +445,26 @@ export function SourceContextHeader({
           </span>
         )}
       </div>
-      {/* Show both PagePill (in-popover expansion) AND PageLineLink (external proof) when available */}
       <div className="flex items-center gap-2">
+        {showProofLink && (
+          <a
+            href={validProofUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded border cursor-pointer transition-colors hover:opacity-80 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700"
+          >
+            <span>p.{pageNumber}</span>
+            <span className="size-2.5">
+              <ExternalLinkIcon />
+            </span>
+          </a>
+        )}
         {showPagePill && <PagePill pageNumber={pageNumber} colorScheme={colorScheme} onClick={onExpand} />}
-        {/* Show PageLineLink when: has proof URL OR no pill (fallback to static text) */}
-        {pageLineText && (hasProofUrl || !showPagePill) && (
-          <PageLineLink pageLineText={pageLineText} proofUrl={hasProofUrl ? proofUrl : undefined} />
+        {!showProofLink && !showPagePill && pageLineText && (
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">
+            {pageLineText}
+          </span>
         )}
       </div>
     </div>
@@ -1402,7 +1386,12 @@ interface VerificationLogTimelineProps {
  * - For found/partial: Shows only the successful match details
  * - For not_found: Shows all search attempts with clear count
  */
-function VerificationLogTimeline({ searchAttempts, fullPhrase, anchorText, status }: VerificationLogTimelineProps) {
+export function VerificationLogTimeline({
+  searchAttempts,
+  fullPhrase,
+  anchorText,
+  status,
+}: VerificationLogTimelineProps) {
   return (
     <div id="verification-log-timeline" style={{ maxHeight: MAX_TIMELINE_HEIGHT }} className="overflow-y-auto">
       <AuditSearchDisplay

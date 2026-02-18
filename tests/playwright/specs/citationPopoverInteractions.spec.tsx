@@ -1,9 +1,5 @@
 import { expect, test } from "@playwright/experimental-ct-react";
 import { CitationComponent } from "../../../src/react";
-import {
-  HOVER_CLOSE_DELAY_MS,
-  REPOSITION_GRACE_PERIOD_MS,
-} from "../../../src/react/CitationComponent";
 import type { Citation } from "../../../src/types/citation";
 import type { Verification } from "../../../src/types/verification";
 
@@ -137,12 +133,10 @@ test.describe("Citation Popover - Basic Behavior", () => {
 });
 
 // =============================================================================
-// GRACE PERIOD BEHAVIOR TESTS
+// CLICK-TO-CLOSE BEHAVIOR TESTS
 // =============================================================================
 
-test.describe("Citation Popover - Grace Period Behavior", () => {
-  // Use constants imported from CitationComponent to ensure tests stay in sync
-
+test.describe("Citation Popover - Click-to-Close Behavior", () => {
   test("expands verification details without dismissing popover", async ({ mount, page }) => {
     await mount(<CitationComponent citation={baseCitation} verification={verificationWithDetails} />);
 
@@ -161,10 +155,8 @@ test.describe("Citation Popover - Grace Period Behavior", () => {
     // Popover should STILL be visible after expansion
     await expect(popover).toBeVisible();
 
-    // Wait longer than grace period + hover delay to ensure popover stays open
-    await page.waitForTimeout(REPOSITION_GRACE_PERIOD_MS + HOVER_CLOSE_DELAY_MS + 100);
-
-    // Popover should STILL be visible (grace period prevents spurious dismissal)
+    // Wait a moment — popover stays open because it's click-to-close, not hover-to-close
+    await page.waitForTimeout(500);
     await expect(popover).toBeVisible();
   });
 
@@ -191,24 +183,35 @@ test.describe("Citation Popover - Grace Period Behavior", () => {
     await expect(popover).toBeVisible();
   });
 
-  test("popover closes normally when grace period is not active", async ({ mount, page }) => {
+  test("popover stays open when mouse moves away (click-to-close model)", async ({ mount, page }) => {
     await mount(<CitationComponent citation={baseCitation} verification={verifiedVerification} />);
 
     const citation = page.locator("[data-citation-id]");
 
-    // Open popover
+    // Open popover via click
     await citation.click();
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
 
-    // Move mouse away from both citation and popover
+    // Move mouse away — popover should NOT close (click-to-close, not hover-to-close)
     await page.mouse.move(0, 0);
+    await page.waitForTimeout(300);
+    await expect(popover).toBeVisible();
+  });
 
-    // Wait for hover close delay (popover should close)
-    await page.waitForTimeout(HOVER_CLOSE_DELAY_MS + 100);
+  test("popover closes on second click of the same citation", async ({ mount, page }) => {
+    await mount(<CitationComponent citation={baseCitation} verification={verifiedVerification} />);
 
-    // Popover should be closed
-    await expect(popover).not.toBeVisible();
+    const citation = page.locator("[data-citation-id]");
+
+    // First click opens
+    await citation.click();
+    const popover = page.getByRole("dialog");
+    await expect(popover).toBeVisible();
+
+    // Second click closes
+    await citation.click();
+    await expect(popover).not.toBeVisible({ timeout: 1000 });
   });
 });
 
@@ -251,12 +254,12 @@ test.describe("Citation Popover - Hover Transitions", () => {
     await expect(page.getByRole("dialog")).not.toBeVisible();
   });
 
-  test("keeps popover open when mouse re-enters popover content", async ({ mount, page }) => {
+  test("popover stays open when mouse leaves popover content", async ({ mount, page }) => {
     await mount(<CitationComponent citation={baseCitation} verification={verifiedVerification} />);
 
     const citation = page.locator("[data-citation-id]");
 
-    // Open popover
+    // Open popover via click
     await citation.click();
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
@@ -264,16 +267,12 @@ test.describe("Citation Popover - Hover Transitions", () => {
     // Move mouse into popover content
     await popover.hover();
     await page.waitForTimeout(100);
-
-    // Popover should still be visible
     await expect(popover).toBeVisible();
 
-    // Move mouse outside
+    // Move mouse away — popover should NOT close (click-to-close model)
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(200);
-
-    // Popover should close after delay
-    await expect(popover).not.toBeVisible({ timeout: 500 });
+    await page.waitForTimeout(300);
+    await expect(popover).toBeVisible();
   });
 });
 

@@ -140,6 +140,9 @@ export const KEYHOLE_STRIP_HEIGHT_VAR = "--dc-keyhole-strip-height";
 /** Default height of the keyhole image strip in pixels */
 export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 60;
 
+/** Height of the miss-state proof page thumbnail shown in EvidenceTray (px) */
+export const MISS_TRAY_THUMBNAIL_HEIGHT = 72;
+
 /** Default fade gradient width in pixels (the translucent region on each edge) */
 export const KEYHOLE_FADE_WIDTH = 32;
 
@@ -316,9 +319,13 @@ export const SAFE_DATA_IMAGE_PREFIXES = [
 /** Trusted CDN hostnames for proof images. */
 export const TRUSTED_IMAGE_HOSTS = ["api.deepcitation.com", "cdn.deepcitation.com"] as const;
 
+/** Localhost hostnames allowed for development environments. */
+const DEV_HOSTNAMES = ["localhost", "127.0.0.1"] as const;
+
 /**
  * Validate that a proof image source is a trusted URL or safe data URI.
- * Blocks SVG data URIs (can contain script), case-insensitive, trims whitespace.
+ * Blocks SVG data URIs (can contain script), javascript: URIs, and untrusted hosts.
+ * Allows localhost/127.0.0.1 for development environments.
  */
 export function isValidProofImageSrc(src: unknown): src is string {
   if (typeof src !== "string") return false;
@@ -332,7 +339,9 @@ export function isValidProofImageSrc(src: unknown): src is string {
 
   try {
     const url = new URL(trimmed);
-    return url.protocol === "https:" && (TRUSTED_IMAGE_HOSTS as readonly string[]).includes(url.hostname);
+    const isLocalhost = (DEV_HOSTNAMES as readonly string[]).includes(url.hostname);
+    const isTrustedHost = (TRUSTED_IMAGE_HOSTS as readonly string[]).includes(url.hostname);
+    return (url.protocol === "https:" && isTrustedHost) || isLocalhost;
   } catch {
     return false;
   }

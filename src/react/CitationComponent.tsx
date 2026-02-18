@@ -1,5 +1,4 @@
 import React, { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 // React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
 const Activity =
@@ -29,13 +28,13 @@ import {
   EXPANDED_POPOVER_MAX_WIDTH,
   EXPANDED_POPOVER_WIDTH_DEFAULT,
   EXPANDED_POPOVER_WIDTH_VAR,
-  getPortalContainer,
   INDICATOR_SIZE_STYLE,
   isValidProofImageSrc,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
   KEYHOLE_STRIP_HEIGHT_VAR,
   MIN_WORD_DIFFERENCE,
+  MISS_TRAY_THUMBNAIL_HEIGHT,
   MISS_WAVY_UNDERLINE_STYLE,
   PARTIAL_COLOR_STYLE,
   PENDING_COLOR_STYLE,
@@ -44,13 +43,10 @@ import {
   POPOVER_WIDTH_DEFAULT,
   POPOVER_WIDTH_VAR,
   VERIFIED_COLOR_STYLE,
-  Z_INDEX_IMAGE_OVERLAY_VAR,
-  Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
-import { useRepositionGracePeriod } from "./hooks/useRepositionGracePeriod.js";
-import { ArrowLeftIcon, CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
+import { ArrowLeftIcon, CheckIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
@@ -68,9 +64,8 @@ import type {
   IndicatorVariant,
   UrlFetchStatus,
 } from "./types.js";
-import { isValidProofUrl } from "./urlUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
-import { QuotedText, SourceContextHeader, StatusHeader, VerificationLog } from "./VerificationLog.js";
+import { SourceContextHeader, StatusHeader, VerificationLogTimeline } from "./VerificationLog.js";
 
 // Re-export types for convenience
 export type {
@@ -93,13 +88,6 @@ const deprecationWarned = new Set<string>();
 
 /** Auto-hide spinner after this duration if verification is still pending. */
 const SPINNER_TIMEOUT_MS = 5000;
-
-/** Delay in ms before closing popover on mouse leave (allows moving to popover content). */
-export const HOVER_CLOSE_DELAY_MS = 150;
-
-/** Grace period in ms after content resize to prevent spurious mouseleave-triggered closes.
- * Set to 2x HOVER_CLOSE_DELAY_MS to cover popover reposition animation + user reaction time. */
-export const REPOSITION_GRACE_PERIOD_MS = 300;
 
 /** Popover container width. Customizable via CSS custom property `--dc-popover-width`. */
 const POPOVER_WIDTH = `var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT})`;
@@ -479,177 +467,6 @@ function isLowTrustMatch(matchedVariation?: MatchedVariation): boolean {
 }
 
 /**
- * Get the search phrase from a SearchAttempt.
- */
-function getSearchPhrase(attempt: SearchAttempt): string {
-  return attempt.searchPhrase || "";
-}
-
-/**
- * Get the note from a SearchAttempt.
- */
-function getSearchNote(attempt: SearchAttempt): string | undefined {
-  return attempt.note;
-}
-
-// =============================================================================
-// GROUPED SEARCH ATTEMPTS DISPLAY
-// =============================================================================
-
-/**
- * A grouped search attempt combines multiple attempts that searched the same phrase.
- * This provides a cleaner display when the same phrase is searched on multiple pages.
- */
-interface GroupedSearchAttempt {
-  /** The search phrase (normalized for grouping) */
-  phrase: string;
-  /** Type of phrase: full_phrase or anchor_text */
-  phraseType: "full_phrase" | "anchor_text" | undefined;
-  /** All pages that were searched */
-  pagesSearched: number[];
-  /** All methods used */
-  methodsUsed: Set<string>;
-  /** All variations tried (from searchVariations arrays) */
-  variationsTried: string[];
-  /** Whether any attempt succeeded */
-  anySuccess: boolean;
-  /** The successful attempt if any */
-  successfulAttempt?: SearchAttempt;
-  /** All notes from attempts (deduplicated) */
-  uniqueNotes: string[];
-  /** Total number of attempts in this group */
-  attemptCount: number;
-}
-
-/**
- * Get a human-readable label for search methods.
- */
-function _getMethodLabel(method: string): string {
-  const labels: Record<string, string> = {
-    exact_line_match: "exact location",
-    line_with_buffer: "nearby lines",
-    current_page: "expected page",
-    anchor_text_fallback: "anchor text",
-    adjacent_pages: "nearby pages",
-    expanded_window: "wider search",
-    regex_search: "entire document",
-    first_word_fallback: "first word",
-  };
-  return labels[method] || method;
-}
-
-/**
- * Format a list of page numbers into a readable string.
- * Combines consecutive pages into ranges for compact display.
- *
- * @param pages - Array of page numbers to format
- * @returns Formatted string like "pages 1-3, 5-7" or "page 2"
- *
- * @example
- * formatPageList([1, 2, 3, 5, 6, 7]) // "pages 1-3, 5-7"
- * formatPageList([2]) // "page 2"
- * formatPageList([]) // ""
- */
-function _formatPageList(pages: number[]): string {
-  if (pages.length === 0) return "";
-  const sorted = [...new Set(pages)].sort((a, b) => a - b);
-  if (sorted.length === 1) return `page ${sorted[0]}`;
-
-  const ranges: string[] = [];
-  let rangeStart = sorted[0];
-  let rangeEnd = sorted[0];
-
-  for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i] === rangeEnd + 1) {
-      rangeEnd = sorted[i];
-    } else {
-      ranges.push(rangeStart === rangeEnd ? `${rangeStart}` : `${rangeStart}-${rangeEnd}`);
-      rangeStart = sorted[i];
-      rangeEnd = sorted[i];
-    }
-  }
-  ranges.push(rangeStart === rangeEnd ? `${rangeStart}` : `${rangeStart}-${rangeEnd}`);
-
-  return `pages ${ranges.join(", ")}`;
-}
-
-/**
- * Group search attempts by unique phrase for a cleaner display.
- * Attempts with the same phrase are combined into a single group showing
- * all pages searched, methods used, and variations tried.
- *
- * @param attempts - Array of search attempts from verification
- * @returns Array of grouped attempts, sorted with successful matches first
- *
- * @example
- * const grouped = groupSearchAttempts(verification.searchAttempts);
- * grouped.forEach(group => {
- *   console.log(`"${group.phrase}" - searched ${group.pagesSearched.length} pages`);
- * });
- */
-function _groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAttempt[] {
-  const groups = new Map<string, GroupedSearchAttempt>();
-
-  for (const attempt of attempts) {
-    const phrase = getSearchPhrase(attempt);
-    // Create a key that includes phrase type to differentiate fullPhrase vs anchorText searches
-    const key = `${attempt.searchPhraseType || "unknown"}:${phrase}`;
-
-    let group = groups.get(key);
-    if (!group) {
-      group = {
-        phrase,
-        phraseType: attempt.searchPhraseType,
-        pagesSearched: [],
-        methodsUsed: new Set(),
-        variationsTried: [],
-        anySuccess: false,
-        uniqueNotes: [],
-        attemptCount: 0,
-      };
-      groups.set(key, group);
-    }
-
-    group.attemptCount++;
-    if (attempt.pageSearched != null) {
-      group.pagesSearched.push(attempt.pageSearched);
-    }
-    group.methodsUsed.add(attempt.method);
-
-    // Collect unique variations
-    if (attempt.searchVariations) {
-      for (const variation of attempt.searchVariations) {
-        if (variation !== phrase && !group.variationsTried.includes(variation)) {
-          group.variationsTried.push(variation);
-        }
-      }
-    }
-
-    // Track success
-    if (attempt.success) {
-      group.anySuccess = true;
-      group.successfulAttempt = attempt;
-    }
-
-    // Collect unique notes
-    const note = getSearchNote(attempt);
-    if (note && !group.uniqueNotes.includes(note)) {
-      group.uniqueNotes.push(note);
-    }
-  }
-
-  // Sort groups: successful first, then by phrase type (full_phrase before anchor_text)
-  return Array.from(groups.values()).sort((a, b) => {
-    if (a.anySuccess !== b.anySuccess) return a.anySuccess ? -1 : 1;
-    if (a.phraseType !== b.phraseType) {
-      if (a.phraseType === "full_phrase") return -1;
-      if (b.phraseType === "full_phrase") return 1;
-    }
-    return 0;
-  });
-}
-
-/**
  * Derive citation status from a Verification object.
  * The status comes from verification.status.
  *
@@ -709,106 +526,6 @@ function getStatusFromVerification(verification: Verification | null | undefined
     isPartialMatch;
 
   return { isVerified, isMiss, isPartialMatch, isPending };
-}
-
-// =============================================================================
-// IMAGE OVERLAY COMPONENT
-// =============================================================================
-
-interface ImageOverlayProps {
-  src: string;
-  alt: string;
-  onClose: () => void;
-}
-
-/**
- * Full-screen image overlay for zoomed verification images.
- * Click anywhere or press Escape to close.
- */
-function ImageOverlay({ src, alt, onClose }: ImageOverlayProps) {
-  const { registerOverlay, unregisterOverlay } = useCitationOverlay();
-  const backdropRef = useRef<HTMLDivElement>(null);
-
-  // Register this overlay as open globally (blocks hover on other citations)
-  useEffect(() => {
-    registerOverlay();
-    return () => {
-      // Delay unregister so click-outside handlers still see overlay as open
-      // during the current event loop tick
-      setTimeout(() => unregisterOverlay(), 0);
-    };
-  }, [registerOverlay, unregisterOverlay]);
-
-  // Auto-focus the backdrop when the overlay opens for keyboard accessibility.
-  // Uses rAF to ensure the portal has been painted before focusing.
-  useEffect(() => {
-    const rafId = requestAnimationFrame(() => {
-      backdropRef.current?.focus();
-    });
-    return () => cancelAnimationFrame(rafId);
-  }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  // SSR-safe: skip portal if document.body unavailable
-  const portalContainer = getPortalContainer();
-  if (!portalContainer) return null;
-
-  return createPortal(
-    <div
-      ref={backdropRef}
-      tabIndex={-1}
-      className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0 duration-[50ms] outline-none"
-      style={{ zIndex: `var(${Z_INDEX_IMAGE_OVERLAY_VAR}, ${Z_INDEX_OVERLAY_DEFAULT})` } as React.CSSProperties}
-      onClick={e => {
-        e.stopPropagation();
-        e.preventDefault();
-        onClose();
-      }}
-      onKeyDown={e => {
-        if (e.key === "Escape") {
-          e.stopPropagation();
-          onClose();
-        }
-      }}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Full size verification image"
-    >
-      <div className="relative max-w-[95vw] max-h-[95vh] cursor-zoom-out animate-in zoom-in-95 duration-[50ms]">
-        <img
-          src={src}
-          alt={alt}
-          className="max-w-full max-h-[95vh] object-contain rounded-lg shadow-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          draggable={false}
-          tabIndex={0}
-          role="button"
-          aria-label="Click to close full size image"
-          onClick={e => {
-            e.stopPropagation();
-            onClose();
-          }}
-          onKeyDown={e => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              e.stopPropagation();
-              onClose();
-            }
-          }}
-        />
-      </div>
-    </div>,
-    portalContainer,
-  );
 }
 
 // =============================================================================
@@ -945,6 +662,10 @@ export interface ExpandedImageSource {
  * 1. matchPage from verification.pages (best: has image, dimensions, highlight, textItems)
  * 2. proof.proofImageUrl (good: CDN image, no overlay data)
  * 3. document.verificationImageSrc (baseline: keyhole image at full size)
+ *
+ * Each source is validated with isValidProofImageSrc() before use, blocking SVG data URIs
+ * (which can contain scripts), javascript: URIs, and untrusted hosts. Localhost is allowed
+ * for development. Invalid sources are skipped and the next tier is tried.
  */
 // biome-ignore lint/style/useComponentExportOnlyModules: exported for testing
 export function resolveExpandedImage(verification: Verification | null | undefined): ExpandedImageSource | null {
@@ -1103,7 +824,9 @@ function AnchorTextFocusedImage({
     [scrollState.canScrollLeft, scrollState.canScrollRight],
   );
 
-  const imageSrc = verification.document?.verificationImageSrc as string;
+  const rawImageSrc = verification.document?.verificationImageSrc;
+  const imageSrc = isValidProofImageSrc(rawImageSrc) ? rawImageSrc : null;
+  if (!imageSrc) return null;
 
   const stripHeightStyle = `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
 
@@ -1488,21 +1211,21 @@ function HighlightedPhrase({
 }) {
   // Don't highlight when citation is "not found" - misleading to highlight text that wasn't found
   if (isMiss || !anchorText || !fullPhrase.includes(anchorText)) {
-    return <span className="italic text-gray-600 dark:text-gray-300">&ldquo;{fullPhrase}&rdquo;</span>;
+    return <span className="italic text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
   }
   const wc = (s: string) => {
     const trimmed = s.trim();
     return trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
   };
   if (wc(fullPhrase) - wc(anchorText) < MIN_WORD_DIFFERENCE) {
-    return <span className="italic text-gray-600 dark:text-gray-300">&ldquo;{fullPhrase}&rdquo;</span>;
+    return <span className="italic text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
   }
   const idx = fullPhrase.indexOf(anchorText);
   return (
     <span className="italic text-gray-600 dark:text-gray-300">
-      &ldquo;{fullPhrase.slice(0, idx)}
+      {fullPhrase.slice(0, idx)}
       <span style={ANCHOR_HIGHLIGHT_STYLE}>{anchorText}</span>
-      {fullPhrase.slice(idx + anchorText.length)}&rdquo;
+      {fullPhrase.slice(idx + anchorText.length)}
     </span>
   );
 }
@@ -1558,7 +1281,7 @@ function EvidenceTrayFooter({
 
 /**
  * Search analysis summary for not-found evidence tray.
- * Shows attempt count and human-readable summary.
+ * Shows attempt count, human-readable summary, and an expandable search details log.
  */
 function SearchAnalysisSummary({
   searchAttempts,
@@ -1567,12 +1290,13 @@ function SearchAnalysisSummary({
   searchAttempts: SearchAttempt[];
   verification?: Verification | null;
 }) {
+  const [showDetails, setShowDetails] = useState(false);
   const summary = useMemo(() => buildSearchSummary(searchAttempts, verification), [searchAttempts, verification]);
 
   // Build 1-2 sentence summary
   let description: string;
   if (summary.includesFullDocScan) {
-    description = `Searched ${summary.pageRange || "the document"} including a full document scan.`;
+    description = "Searched the full document.";
   } else if (summary.pageRange) {
     description = `Searched ${summary.pageRange}.`;
   } else {
@@ -1593,10 +1317,41 @@ function SearchAnalysisSummary({
 
   return (
     <div className="px-3 py-2">
-      <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
-        Search analysis
+      <div className="flex items-center gap-2 mb-1">
+        {searchAttempts.length > 0 ? (
+          <button
+            type="button"
+            className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition-colors"
+            onClick={e => {
+              e.stopPropagation();
+              setShowDetails(s => !s);
+            }}
+            aria-expanded={showDetails}
+          >
+            <svg
+              className={cn("size-2.5 transition-transform duration-200", showDetails && "rotate-90")}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              aria-hidden="true"
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+            <span>Verification details</span>
+          </button>
+        ) : (
+          <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            Search analysis
+          </div>
+        )}
       </div>
       <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{description}</p>
+      {showDetails && (
+        <div className="mt-2">
+          <VerificationLogTimeline searchAttempts={searchAttempts} status={verification?.status} />
+        </div>
+      )}
     </div>
   );
 }
@@ -1605,72 +1360,101 @@ function SearchAnalysisSummary({
  * Evidence tray — the "proof zone" at the bottom of the summary popover.
  * For verified/partial: Shows keyhole image with "Expand to full page" hover CTA.
  * For not-found: Shows search analysis summary with "Verify manually" hover CTA.
- * Click triggers expansion to full page view.
+ * When `onExpand` is provided, the tray is clickable. Otherwise, it's informational only.
+ *
+ * @param proofImageSrc - Full-page proof image for miss states only. Ignored when
+ *   `hasImage` is truthy (verified/partial path renders the keyhole image instead).
  */
 function EvidenceTray({
   verification,
   status,
   onExpand,
   onImageClick,
+  proofImageSrc,
 }: {
   verification: Verification | null;
   status: CitationStatus;
-  onExpand: () => void;
+  onExpand?: () => void;
   onImageClick?: () => void;
+  proofImageSrc?: string;
 }) {
   const hasImage = verification?.document?.verificationImageSrc;
   const isMiss = status.isMiss;
   const searchAttempts = verification?.searchAttempts ?? [];
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
 
-  // Determine hover CTA text
+  // Determine hover CTA text (only shown when expandable)
   const ctaText = isMiss ? "Verify manually" : "Expand to full page";
+
+  // Shared inner content
+  const content = (
+    <>
+      {/* Content: image or search analysis */}
+      {hasImage && verification ? (
+        <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
+      ) : isMiss && searchAttempts.length > 0 ? (
+        <>
+          {isValidProofImageSrc(proofImageSrc) && (
+            <div className="overflow-hidden" style={{ height: MISS_TRAY_THUMBNAIL_HEIGHT }}>
+              <img
+                src={proofImageSrc}
+                className="w-full h-full object-cover object-top"
+                draggable={false}
+                alt="Searched page"
+              />
+            </div>
+          )}
+          <SearchAnalysisSummary searchAttempts={searchAttempts} verification={verification} />
+        </>
+      ) : null}
+
+      {/* Footer: outcome + date */}
+      <EvidenceTrayFooter
+        status={verification?.status}
+        searchAttempts={searchAttempts}
+        verifiedAt={verification?.verifiedAt}
+      />
+    </>
+  );
 
   return (
     <div className="mx-3 mb-3">
-      {/* Use div with role="button" to avoid nested <button> with AnchorTextFocusedImage's inner button */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={e => {
-          e.stopPropagation();
-          onExpand();
-        }}
-        onKeyDown={e => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
+      {onExpand ? (
+        /* Interactive: clickable with hover CTA */
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={e => {
             e.stopPropagation();
             onExpand();
-          }
-        }}
-        className={cn(
-          "w-full rounded-lg overflow-hidden text-left cursor-pointer group relative",
-          "transition-opacity",
-          borderClass,
-        )}
-        aria-label={ctaText}
-      >
-        {/* Content: image or search analysis */}
-        {hasImage && verification ? (
-          <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
-        ) : isMiss && searchAttempts.length > 0 ? (
-          <SearchAnalysisSummary searchAttempts={searchAttempts} verification={verification} />
-        ) : null}
+          }}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onExpand();
+            }
+          }}
+          className={cn(
+            "w-full rounded-lg overflow-hidden text-left cursor-pointer group relative",
+            "transition-opacity",
+            borderClass,
+          )}
+          aria-label={ctaText}
+        >
+          {content}
 
-        {/* Footer: outcome + date */}
-        <EvidenceTrayFooter
-          status={verification?.status}
-          searchAttempts={searchAttempts}
-          verifiedAt={verification?.verifiedAt}
-        />
-
-        {/* Hover overlay with CTA text */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors duration-150 flex items-center justify-center pointer-events-none rounded-lg">
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white/90 dark:bg-gray-900/90 px-2 py-1 rounded shadow-sm">
-            {ctaText}
-          </span>
+          {/* Hover overlay with CTA text */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors duration-150 flex items-center justify-center pointer-events-none rounded-lg">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white/90 dark:bg-gray-900/90 px-2 py-1 rounded shadow-sm">
+              {ctaText}
+            </span>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Informational: non-clickable display */
+        <div className={cn("w-full rounded-lg overflow-hidden text-left", borderClass)}>{content}</div>
+      )}
     </div>
   );
 }
@@ -1743,15 +1527,17 @@ function ExpandedPageViewer({
       {/* Scrollable image container */}
       <div ref={scrollContainerRef} className="flex-1 overflow-auto relative bg-gray-50 dark:bg-gray-900">
         <div className="relative inline-block min-w-full">
-          <img
-            ref={imageRef}
-            src={expandedImage.src}
-            alt="Full page verification"
-            className="block max-w-none"
-            style={{ maxHeight: "none" }}
-            onLoad={() => setImageLoaded(true)}
-            onError={handleImageError}
-          />
+          {isValidProofImageSrc(expandedImage.src) && (
+            <img
+              ref={imageRef}
+              src={expandedImage.src}
+              alt="Full page verification"
+              className="block max-w-none"
+              style={{ maxHeight: "none" }}
+              onLoad={() => setImageLoaded(true)}
+              onError={handleImageError}
+            />
+          )}
 
           {/* Highlight overlay using percentage positioning */}
           {highlightBox && dimensions && imageLoaded && (
@@ -1791,8 +1577,6 @@ interface PopoverContentProps {
   status: CitationStatus;
   onImageClick?: () => void;
   isLoading?: boolean;
-  isPhrasesExpanded?: boolean;
-  onPhrasesExpandChange?: (expanded: boolean) => void;
   /** Whether the popover is currently visible (used for Activity prefetching) */
   isVisible?: boolean;
   /**
@@ -1809,75 +1593,8 @@ interface PopoverContentProps {
   viewState?: PopoverViewState;
   /** Callback when view state changes */
   onViewStateChange?: (viewState: PopoverViewState) => void;
-}
-
-/**
- * Displays a page number, optionally as a clickable link to the proof image.
- * Falls back to static text if proof URL is unavailable or fails validation.
- */
-function PageNumberLink({ pageNumber, proofUrl }: { pageNumber: number; proofUrl?: string }): React.ReactNode {
-  const safeProofUrl = proofUrl ? isValidProofUrl(proofUrl) : null;
-
-  if (safeProofUrl) {
-    return (
-      <a
-        href={safeProofUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-        onClick={e => e.stopPropagation()}
-      >
-        <span>Page {pageNumber}</span>
-        <span className="w-3 h-3">
-          <ExternalLinkIcon />
-        </span>
-      </a>
-    );
-  }
-
-  return <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>;
-}
-
-/**
- * Prominent "Open Document" button for not-found states.
- * Fills the Evidence Area where a proof image would appear for verified citations,
- * giving the user a clear next action when the system couldn't find the phrase.
- */
-function OpenDocumentButton({ pageNumber, proofUrl }: { pageNumber?: number; proofUrl?: string }): React.ReactNode {
-  const safeProofUrl = proofUrl ? isValidProofUrl(proofUrl) : null;
-  const label = pageNumber && pageNumber > 0 ? `Open Document to Page ${pageNumber}` : "Open Document";
-
-  if (safeProofUrl) {
-    return (
-      <div className="px-3 pb-3 pt-1">
-        <a
-          href={safeProofUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium rounded-md border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-          onClick={e => e.stopPropagation()}
-        >
-          <span>{label}</span>
-          <span className="w-3.5 h-3.5">
-            <ExternalLinkIcon />
-          </span>
-        </a>
-      </div>
-    );
-  }
-
-  // No proof URL — show static label (user must open their own copy)
-  if (pageNumber && pageNumber > 0) {
-    return (
-      <div className="px-3 pb-3 pt-1">
-        <span className="flex items-center justify-center w-full px-4 py-2 text-sm text-gray-500 dark:text-gray-400 rounded-md border border-dashed border-gray-200 dark:border-gray-700">
-          Check Page {pageNumber} in original document
-        </span>
-      </div>
-    );
-  }
-
-  return null;
+  /** Override the expanded image src (from behaviorConfig.onClick returning setImageExpanded: "<url>") */
+  expandedImageSrcOverride?: string | null;
 }
 
 function DefaultPopoverContent({
@@ -1886,20 +1603,26 @@ function DefaultPopoverContent({
   status,
   onImageClick,
   isLoading = false,
-  isPhrasesExpanded,
-  onPhrasesExpandChange,
   isVisible = true,
   sourceLabel,
   indicatorVariant = "icon",
   viewState = "summary",
   onViewStateChange,
+  expandedImageSrcOverride,
 }: PopoverContentProps) {
   const hasImage = verification?.document?.verificationImageSrc;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 
-  // Resolve expanded image for the full-page viewer
-  const expandedImage = useMemo(() => resolveExpandedImage(verification), [verification]);
+  // Resolve expanded image for the full-page viewer; allow caller to override the src
+  const expandedImage = useMemo(() => {
+    const resolved = resolveExpandedImage(verification);
+    if (!expandedImageSrcOverride) return resolved;
+    // Custom src provided: clear overlay metadata since dimensions belong to the original image
+    return resolved
+      ? { ...resolved, src: expandedImageSrcOverride, dimensions: null, highlightBox: null }
+      : { src: expandedImageSrcOverride };
+  }, [verification, expandedImageSrcOverride]);
 
   // Whether this is a document citation (URL citations don't have page expansion)
   const isDocCitation = !isUrlCitation(citation);
@@ -1913,17 +1636,9 @@ function DefaultPopoverContent({
     onViewStateChange?.("summary");
   }, [onViewStateChange]);
 
-  // Determine if we should show the verification log (for non-success states)
-  const showVerificationLog = isMiss || isPartialMatch;
-
-  // Determine if this is a "clean" success (no log needed)
-  const isCleanSuccess = isVerified && !isPartialMatch && !isMiss;
-
-  // Get page/line info for the log (document citations only)
+  // Get page info (document citations only)
   const expectedPage = !isUrlCitation(citation) ? citation.pageNumber : undefined;
-  const expectedLine = !isUrlCitation(citation) ? citation.lineIds?.[0] : undefined;
   const foundPage = verification?.document?.verifiedPageNumber ?? undefined;
-  const foundLine = verification?.document?.verifiedLineIds?.[0];
 
   // Get humanizing message for partial/not-found states
   const anchorText = citation.anchorText?.toString();
@@ -1950,7 +1665,7 @@ function DefaultPopoverContent({
   if (viewState === "expanded" && expandedImage) {
     return (
       <div
-        className={cn(POPOVER_CONTAINER_BASE_CLASSES, "flex flex-col")}
+        className={cn(POPOVER_CONTAINER_BASE_CLASSES, "flex flex-col animate-in fade-in-0 duration-150")}
         style={{
           width: `var(${EXPANDED_POPOVER_WIDTH_VAR}, ${EXPANDED_POPOVER_WIDTH_DEFAULT})`,
           maxWidth: EXPANDED_POPOVER_MAX_WIDTH,
@@ -2003,11 +1718,11 @@ function DefaultPopoverContent({
   // ==========================================================================
   // SUCCESS STATE (Green) - Three-zone layout: Header + Claim + Evidence
   // ==========================================================================
-  if (isCleanSuccess && hasImage && verification) {
+  if (isVerified && !isPartialMatch && !isMiss && hasImage && verification) {
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div
-          className={POPOVER_CONTAINER_BASE_CLASSES}
+          className={cn(POPOVER_CONTAINER_BASE_CLASSES, "animate-in fade-in-0 duration-150")}
           style={{
             width: POPOVER_WIDTH,
             maxWidth: "100%",
@@ -2035,7 +1750,7 @@ function DefaultPopoverContent({
           )}
 
           {fullPhrase && (
-            <div className="mx-3 my-2 px-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50">
+            <div className="mx-3 my-2 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
               <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}
@@ -2047,23 +1762,6 @@ function DefaultPopoverContent({
             onExpand={handleExpand}
             onImageClick={onImageClick}
           />
-
-          {/* Expandable search details for verified matches */}
-          {verification.searchAttempts && verification.searchAttempts.length > 0 && (
-            <VerificationLog
-              searchAttempts={verification.searchAttempts}
-              status={searchStatus}
-              expectedPage={expectedPage ?? undefined}
-              expectedLine={expectedLine}
-              foundPage={foundPage}
-              foundLine={foundLine}
-              isExpanded={isPhrasesExpanded}
-              onExpandChange={onPhrasesExpandChange}
-              fullPhrase={fullPhrase ?? undefined}
-              anchorText={anchorText}
-              verifiedAt={verification.verifiedAt}
-            />
-          )}
         </div>
       </Activity>
     );
@@ -2076,7 +1774,7 @@ function DefaultPopoverContent({
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div
-          className={POPOVER_CONTAINER_BASE_CLASSES}
+          className={cn(POPOVER_CONTAINER_BASE_CLASSES, "animate-in fade-in-0 duration-150")}
           style={{
             width: POPOVER_WIDTH,
             maxWidth: "100%",
@@ -2114,7 +1812,7 @@ function DefaultPopoverContent({
           )}
 
           {fullPhrase && (
-            <div className="mx-3 my-2 px-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50">
+            <div className="mx-3 my-2 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
               <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}
@@ -2126,30 +1824,17 @@ function DefaultPopoverContent({
               status={status}
               onExpand={handleExpand}
               onImageClick={onImageClick}
+              proofImageSrc={expandedImage?.src}
             />
-          ) : (
-            isMiss &&
-            !isUrlCitation(citation) && (
-              <OpenDocumentButton pageNumber={expectedPage ?? undefined} proofUrl={verification?.proof?.proofUrl} />
-            )
-          )}
-
-          {/* Verification log (collapsible) — skip for URL access failures since search attempts are document-oriented */}
-          {showVerificationLog && !urlAccessExplanation && verification?.searchAttempts && (
-            <VerificationLog
-              searchAttempts={verification.searchAttempts}
-              status={searchStatus}
-              expectedPage={expectedPage ?? undefined}
-              expectedLine={expectedLine}
-              foundPage={foundPage}
-              foundLine={foundLine}
-              isExpanded={isPhrasesExpanded}
-              onExpandChange={onPhrasesExpandChange}
-              fullPhrase={fullPhrase ?? undefined}
-              anchorText={anchorText}
-              verifiedAt={verification.verifiedAt}
+          ) : /* Show EvidenceTray for miss with search analysis (no image), or null */
+          isMiss && verification?.searchAttempts?.length && verification ? (
+            <EvidenceTray
+              verification={verification}
+              status={status}
+              onExpand={canExpand ? handleExpand : undefined}
+              proofImageSrc={expandedImage?.src}
             />
-          )}
+          ) : null}
         </div>
       </Activity>
     );
@@ -2190,12 +1875,15 @@ function DefaultPopoverContent({
           </span>
         )}
         {hasSnippet && (
-          <QuotedText className="text-sm text-gray-700 dark:text-gray-200">
+          <q
+            className="border-l-2 border-gray-300 dark:border-gray-600 pl-1.5 ml-0.5 text-sm text-gray-700 dark:text-gray-200"
+            style={{ quotes: "none" }}
+          >
             {verification.verifiedMatchSnippet}
-          </QuotedText>
+          </q>
         )}
         {pageNumber && pageNumber > 0 && (
-          <PageNumberLink pageNumber={pageNumber} proofUrl={verification?.proof?.proofUrl} />
+          <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
         )}
       </div>
     </div>
@@ -2213,8 +1901,7 @@ function DefaultPopoverContent({
  *
  * - **Hover**: Style effects only (no popover)
  * - **First Click**: Shows popover with verification image and details
- * - **Second Click**: Toggles search details expansion within the popover
- * - **Click Image**: Expands verification image to full-size overlay
+ * - **Second Click**: Closes the popover
  * - **Click Outside / Escape**: Closes the popover
  *
  * ## Customization
@@ -2280,21 +1967,15 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return getDefaultContent(variant);
     }, [contentProp, variant]);
     const [isHovering, setIsHovering] = useState(false);
-    const [expandedImageSrc, setExpandedImageSrc] = useState<string | null>(null);
-    const [isPhrasesExpanded, setIsPhrasesExpanded] = useState(false);
     const [popoverViewState, setPopoverViewState] = useState<PopoverViewState>("summary");
-
-    // Grace period hook to prevent popover dismissal during content resize/reposition
-    const { isInGracePeriod: repositionGraceRef, clearGracePeriod } = useRepositionGracePeriod(
-      isPhrasesExpanded,
-      isHovering,
-      REPOSITION_GRACE_PERIOD_MS,
-    );
+    // Custom image src from behaviorConfig.onClick returning setImageExpanded: "<url>"
+    const [customExpandedSrc, setCustomExpandedSrc] = useState<string | null>(null);
 
     // Reset expanded view state when popover closes
     useEffect(() => {
       if (!isHovering) {
         setPopoverViewState("summary");
+        setCustomExpandedSrc(null);
       }
     }, [isHovering]);
 
@@ -2303,7 +1984,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // 1. Set in handleTouchStart to capture isHovering state BEFORE the touch triggers any changes
     // 2. Read in handleTouchEnd/handleClick to determine if this is a "first tap" or "second tap"
     // 3. First tap (ref=false): Opens popover
-    // 4. Second tap (ref=true): Toggles search details expansion
+    // 4. Second tap (ref=true): Closes popover
     const wasPopoverOpenBeforeTap = useRef(false);
 
     // Track last touch time for touch-to-click debouncing (prevents double-firing).
@@ -2424,27 +2105,31 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         citationKey,
         verification: verification ?? null,
         isTooltipExpanded: isHovering,
-        isImageExpanded: !!expandedImageSrc,
+        isImageExpanded: popoverViewState === "expanded",
         hasImage: !!resolvedImageSrc,
       }),
-      [citation, citationKey, verification, isHovering, expandedImageSrc, resolvedImageSrc],
+      [citation, citationKey, verification, isHovering, popoverViewState, resolvedImageSrc],
     );
 
     // Apply behavior actions from custom handler
-    const applyBehaviorActions = useCallback(
-      (actions: CitationBehaviorActions) => {
-        if (actions.setImageExpanded !== undefined) {
-          if (typeof actions.setImageExpanded === "string") {
-            setExpandedImageSrc(actions.setImageExpanded);
-          } else if (actions.setImageExpanded === true && resolvedImageSrc) {
-            setExpandedImageSrc(resolvedImageSrc);
-          } else if (actions.setImageExpanded === false) {
-            setExpandedImageSrc(null);
+    const applyBehaviorActions = useCallback((actions: CitationBehaviorActions) => {
+      if (actions.setImageExpanded !== undefined) {
+        if (actions.setImageExpanded === false) {
+          // Close: collapse to summary and dismiss the popover
+          setPopoverViewState("summary");
+          setCustomExpandedSrc(null);
+          setIsHovering(false);
+        } else if (actions.setImageExpanded) {
+          // Open: show popover in expanded (image) view
+          setIsHovering(true);
+          setPopoverViewState("expanded");
+          // If a custom image URL was provided, validate before storing
+          if (typeof actions.setImageExpanded === "string" && isValidProofImageSrc(actions.setImageExpanded)) {
+            setCustomExpandedSrc(actions.setImageExpanded);
           }
         }
-      },
-      [resolvedImageSrc],
-    );
+      }
+    }, []);
 
     // Shared tap/click action handler - used by both click and touch handlers.
     // Extracts the common logic to avoid duplication.
@@ -2452,21 +2137,19 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Action types:
     // - "showPopover": Show the popover (first tap/click when popover is closed)
     // - "hidePopover": Hide the popover (for lazy mode toggle behavior)
-    // - "toggleDetails": Toggle search details/phrases expansion within popover
-    // - "expandImage": Open the full-size image overlay
+    // - "expandImage": Transition popover to expanded view
     //
     // Dependency chain explanation:
-    // - getBehaviorContext: Captures current state (citation, verification, isHovering, expandedImageSrc)
+    // - getBehaviorContext: Captures current state (citation, verification, isHovering, popoverViewState)
     //   and is itself a useCallback that updates when those values change
-    // - applyBehaviorActions: Handles setExpandedImageSrc based on custom behavior results
+    // - applyBehaviorActions: Handles setImageExpanded by updating popoverViewState
     // - behaviorConfig/eventHandlers: User-provided callbacks that may change
     // - citation/citationKey: Core data passed to callbacks
-    // - verification?.verificationImageSrc: Used for image expansion
     // - State setters (setIsHovering, etc.): Stable references included for exhaustive-deps
     const handleTapAction = useCallback(
       (
         e: React.MouseEvent | React.TouchEvent | React.KeyboardEvent,
-        action: "showPopover" | "hidePopover" | "toggleDetails" | "expandImage",
+        action: "showPopover" | "hidePopover" | "expandImage",
       ): void => {
         const context = getBehaviorContext();
 
@@ -2494,25 +2177,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           case "hidePopover":
             setIsHovering(false);
             break;
-          case "toggleDetails":
-            setIsPhrasesExpanded(prev => !prev);
-            break;
           case "expandImage":
-            if (resolvedImageSrc) {
-              setExpandedImageSrc(resolvedImageSrc);
-            }
+            setPopoverViewState("expanded");
             break;
         }
       },
-      [
-        behaviorConfig,
-        eventHandlers,
-        citation,
-        citationKey,
-        resolvedImageSrc,
-        getBehaviorContext,
-        applyBehaviorActions,
-      ],
+      [behaviorConfig, eventHandlers, citation, citationKey, getBehaviorContext, applyBehaviorActions],
     );
 
     // Click handler
@@ -2526,24 +2196,22 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           return;
         }
 
-        // On mobile: first tap shows popover, second tap toggles search details
+        // On mobile: first tap shows popover, second tap closes it
         // wasPopoverOpenBeforeTap is set in handleTouchStart before the click fires
         if (isMobile) {
           if (!wasPopoverOpenBeforeTap.current) {
             handleTapAction(e, "showPopover");
           } else {
-            handleTapAction(e, "toggleDetails");
+            handleTapAction(e, "hidePopover");
           }
           return;
         }
 
-        // Click toggles popover visibility, second click toggles search details
+        // Click toggles popover visibility
         if (!isHovering) {
-          // First click: open popover
           handleTapAction(e, "showPopover");
         } else {
-          // Popover is open: toggle search details
-          handleTapAction(e, "toggleDetails");
+          handleTapAction(e, "hidePopover");
         }
       },
       [isMobile, isHovering, handleTapAction],
@@ -2556,135 +2224,42 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           e.preventDefault();
           e.stopPropagation();
 
-          // Toggle popover, then toggle search details
+          // Toggle popover visibility
           if (!isHovering) {
             handleTapAction(e, "showPopover");
           } else {
-            handleTapAction(e, "toggleDetails");
+            handleTapAction(e, "hidePopover");
           }
         }
       },
       [isHovering, handleTapAction],
     );
 
-    // Hover handlers with delay for popover accessibility
-    // Use a timeout to allow user to move mouse from trigger to popover
-    const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isOverPopoverRef = useRef(false);
-
-    const cancelHoverCloseTimeout = useCallback(() => {
-      if (hoverCloseTimeoutRef.current) {
-        clearTimeout(hoverCloseTimeoutRef.current);
-        hoverCloseTimeoutRef.current = null;
-      }
-    }, []);
-
     const handleMouseEnter = useCallback(() => {
       // Don't trigger hover popover if any image overlay is expanded
       if (isAnyOverlayOpen) return;
-
-      cancelHoverCloseTimeout();
       // Don't show popover on hover - only on click (lazy mode behavior)
       if (behaviorConfig?.onHover?.onEnter) {
         behaviorConfig.onHover.onEnter(getBehaviorContext());
       }
       eventHandlers?.onMouseEnter?.(citation, citationKey);
-    }, [
-      eventHandlers,
-      behaviorConfig,
-      citation,
-      citationKey,
-      getBehaviorContext,
-      cancelHoverCloseTimeout,
-      isAnyOverlayOpen,
-    ]);
+    }, [eventHandlers, behaviorConfig, citation, citationKey, getBehaviorContext, isAnyOverlayOpen]);
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: repositionGraceRef is a stable ref object (only .current mutates)
     const handleMouseLeave = useCallback(() => {
-      // Don't close the popover if an image overlay is open - user expects to return to popover
-      // after closing the zoomed image
-      if (isAnyOverlayOpen) return;
-      // Don't close during repositioning grace period (content just expanded/collapsed)
-      if (repositionGraceRef.current) return;
-      // Delay closing to allow mouse to move to popover
-      cancelHoverCloseTimeout();
-      hoverCloseTimeoutRef.current = setTimeout(() => {
-        // Re-check overlay and grace state at timeout execution time (via refs) to handle
-        // edge cases where state changes during the delay period
-        if (!isOverPopoverRef.current && !isAnyOverlayOpenRef.current && !repositionGraceRef.current) {
-          setIsHovering(false);
-          if (behaviorConfig?.onHover?.onLeave) {
-            behaviorConfig.onHover.onLeave(getBehaviorContext());
-          }
-          eventHandlers?.onMouseLeave?.(citation, citationKey);
-        }
-      }, HOVER_CLOSE_DELAY_MS);
-    }, [
-      eventHandlers,
-      behaviorConfig,
-      citation,
-      citationKey,
-      getBehaviorContext,
-      cancelHoverCloseTimeout,
-      isAnyOverlayOpen,
-    ]);
+      // Popover is click-to-open, so it should only close on click (not on hover-away).
+      // Fire external callbacks for consumers tracking hover state, but do not close the popover.
+      if (behaviorConfig?.onHover?.onLeave) {
+        behaviorConfig.onHover.onLeave(getBehaviorContext());
+      }
+      eventHandlers?.onMouseLeave?.(citation, citationKey);
+    }, [eventHandlers, behaviorConfig, citation, citationKey, getBehaviorContext]);
 
-    // Popover content hover handlers
-    const handlePopoverMouseEnter = useCallback(() => {
-      cancelHoverCloseTimeout();
-      isOverPopoverRef.current = true;
-      // Clear reposition grace period since cursor is back inside the popover
-      clearGracePeriod();
-    }, [cancelHoverCloseTimeout, clearGracePeriod]);
-
-    // biome-ignore lint/correctness/useExhaustiveDependencies: repositionGraceRef is a stable ref object (only .current mutates)
-    const handlePopoverMouseLeave = useCallback(() => {
-      isOverPopoverRef.current = false;
-      // Don't close the popover if an image overlay is open - user expects to return to popover
-      // after closing the zoomed image
-      if (isAnyOverlayOpen) return;
-      // Don't close during repositioning grace period (content just expanded/collapsed,
-      // popover is shifting position and cursor may be temporarily outside)
-      if (repositionGraceRef.current) return;
-      // Delay closing to allow mouse to move back to trigger
-      cancelHoverCloseTimeout();
-      hoverCloseTimeoutRef.current = setTimeout(() => {
-        // Re-check overlay and grace state at timeout execution time (via refs) to handle
-        // edge cases where state changes during the delay period
-        if (!isAnyOverlayOpenRef.current && !repositionGraceRef.current) {
-          setIsHovering(false);
-          if (behaviorConfig?.onHover?.onLeave) {
-            behaviorConfig.onHover.onLeave(getBehaviorContext());
-          }
-          eventHandlers?.onMouseLeave?.(citation, citationKey);
-        }
-      }, HOVER_CLOSE_DELAY_MS);
-    }, [
-      eventHandlers,
-      behaviorConfig,
-      citation,
-      citationKey,
-      getBehaviorContext,
-      cancelHoverCloseTimeout,
-      isAnyOverlayOpen,
-    ]);
-
-    // Cleanup hover timeout on unmount
-    useEffect(() => {
-      return () => {
-        if (hoverCloseTimeoutRef.current) {
-          clearTimeout(hoverCloseTimeoutRef.current);
-        }
-      };
-    }, []);
-
-    // Escape key handling is managed by Radix Popover via onOpenChange prop (line 2354)
-    // and ImageOverlay - no custom keydown handler needed here
+    // Escape key handling is managed by Radix Popover via onOpenChange and onEscapeKeyDown props
 
     // Mobile click-outside dismiss handler
     //
     // On mobile, tapping outside the citation trigger or popover should dismiss the popover.
-    // Desktop relies on mouse leave events (handleMouseLeave) which don't exist on mobile.
+    // Desktop uses a document-level mousedown listener (below) for click-outside dismiss.
     //
     // Why custom handling instead of Radix's built-in click-outside behavior:
     // The PopoverContent has onPointerDownOutside and onInteractOutside handlers that call
@@ -2752,9 +2327,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Desktop click-outside dismiss handler
     //
     // On desktop, clicking outside the citation trigger or popover should dismiss the popover.
-    // This handler bypasses the repositionGraceRef check to ensure clicks are always respected,
-    // even during the grace period after content expansion. The grace period is meant to prevent
-    // spurious mouseleave events from repositioning, not to block intentional clicks.
+    // This is separate from the mouse-leave handler because clicks should always be
+    // respected immediately, even during hover close delays.
     //
     // Why separate from mobile handler:
     // - Desktop uses mousedown (not touchstart) for better UX consistency with other web apps
@@ -2787,13 +2361,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           return;
         }
 
-        // Click is outside both - dismiss the popover immediately (bypass grace period)
+        // Click is outside both - dismiss the popover
         setIsHovering(false);
-        // Clear any pending hover close timeout since we're closing immediately
-        if (hoverCloseTimeoutRef.current) {
-          clearTimeout(hoverCloseTimeoutRef.current);
-          hoverCloseTimeoutRef.current = null;
-        }
       };
 
       // Use mousedown with capture phase to detect clicks before they bubble
@@ -2825,8 +2394,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       [isMobile, eventHandlers, citation, citationKey],
     );
 
-    // Touch handler for mobile - handles tap-to-show-popover and tap-to-toggle-details.
-    // On second tap, toggles the search details expansion.
+    // Touch handler for mobile - handles tap-to-show-popover and tap-to-close.
+    // On second tap, closes the popover.
     const handleTouchEnd = useCallback(
       (e: React.TouchEvent<HTMLSpanElement>) => {
         if (isMobile) {
@@ -2842,7 +2411,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           if (!wasPopoverOpenBeforeTap.current) {
             handleTapAction(e, "showPopover");
           } else {
-            handleTapAction(e, "toggleDetails");
+            handleTapAction(e, "hidePopover");
           }
         }
       },
@@ -3157,15 +2726,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     const hasImage = !!resolvedImageSrc;
 
-    // Image overlay
-    const imageOverlay = expandedImageSrc ? (
-      <ImageOverlay
-        src={expandedImageSrc}
-        alt="Citation verification - full size"
-        onClose={() => setExpandedImageSrc(null)}
-      />
-    ) : null;
-
     // Shared trigger element props
     // All variants use status-aware hover colors (green/amber/red/gray)
     // Cursor is always pointer since click toggles popover/details
@@ -3229,17 +2789,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             verification={verification ?? null}
             status={status}
             isLoading={isLoading || shouldShowSpinner}
-            isPhrasesExpanded={isPhrasesExpanded}
-            onPhrasesExpandChange={setIsPhrasesExpanded}
             isVisible={isHovering}
             sourceLabel={sourceLabel}
             indicatorVariant={indicatorVariant}
             viewState={popoverViewState}
             onViewStateChange={setPopoverViewState}
+            expandedImageSrcOverride={customExpandedSrc}
             onImageClick={() => {
-              if (resolvedImageSrc) {
-                setExpandedImageSrc(resolvedImageSrc);
-              }
+              setPopoverViewState("expanded");
             }}
           />
         </CitationErrorBoundary>
@@ -3293,6 +2850,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               ref={setPopoverContentRef}
               id={popoverId}
               side={popoverPosition === "bottom" ? "bottom" : "top"}
+              aria-label={popoverViewState === "expanded" ? "Full size verification image" : undefined}
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
               onEscapeKeyDown={(e: KeyboardEvent) => {
@@ -3302,13 +2860,16 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                   setPopoverViewState("summary");
                 }
               }}
-              onMouseEnter={handlePopoverMouseEnter}
-              onMouseLeave={handlePopoverMouseLeave}
+              onClick={(e: React.MouseEvent) => {
+                // Clicking directly on the popover backdrop (not on inner content) dismisses it.
+                // e.target === e.currentTarget means the click hit the dialog's own element,
+                // not a child element — so this only fires when clicking the outer wrapper area.
+                if (e.target === e.currentTarget) setIsHovering(false);
+              }}
             >
               {popoverContentElement}
             </PopoverContent>
           </Popover>
-          {imageOverlay}
         </>
       );
     }
@@ -3326,7 +2887,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         <span ref={setTriggerRef} {...triggerProps}>
           {renderCitationContent()}
         </span>
-        {imageOverlay}
       </>
     );
   },

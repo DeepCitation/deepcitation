@@ -6,13 +6,13 @@ import type { Verification } from "../types/verification.js";
  * Interaction mode for citation components.
  *
  * @deprecated The interactionMode prop has been removed. The component now always uses
- * the same behavior: click to show popover, second click to toggle search details.
+ * the same behavior: click to show popover, second click to close popover.
  * This type is kept for backwards compatibility but has no effect.
  *
  * Previous behavior (now always applied):
  * - Hover: Style hover effects only (no popover)
  * - 1st click: Shows popover
- * - 2nd click: Toggles search details
+ * - 2nd click: Closes popover
  * - Click outside: Dismisses popover
  */
 export type CitationInteractionMode = "eager" | "lazy";
@@ -425,8 +425,6 @@ export interface CitationBehaviorActions {
   setTooltipExpanded?: boolean;
   /** Open or close the full-size image overlay */
   setImageExpanded?: boolean | string;
-  /** Expand or collapse the search phrases list (for miss/partial states) */
-  setPhrasesExpanded?: boolean;
 }
 
 /**

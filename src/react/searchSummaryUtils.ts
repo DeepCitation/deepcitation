@@ -16,12 +16,15 @@ export interface SearchSummary {
 export function buildSearchSummary(searchAttempts: SearchAttempt[], verification?: Verification | null): SearchSummary {
   const totalAttempts = searchAttempts.length;
 
-  // Collect unique pages searched
+  // Collect unique pages searched (including pages found by adjacent_pages method)
   const pagesSearched = new Set<number>();
   let includesFullDocScan = false;
   for (const attempt of searchAttempts) {
     if (attempt.pageSearched != null) {
       pagesSearched.add(attempt.pageSearched);
+    }
+    if (attempt.foundLocation?.page != null) {
+      pagesSearched.add(attempt.foundLocation.page);
     }
     if (attempt.searchScope === "document") {
       includesFullDocScan = true;

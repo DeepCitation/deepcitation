@@ -12,12 +12,6 @@ mock.module("react-dom", () => ({
   createPortal: (node: React.ReactNode) => node,
 }));
 
-// Hover close delay must match HOVER_CLOSE_DELAY_MS in CitationComponent
-const HOVER_CLOSE_DELAY_MS = 150;
-
-// Helper to wait for hover close delay
-const waitForHoverCloseDelay = () => new Promise(resolve => setTimeout(resolve, HOVER_CLOSE_DELAY_MS + 50));
-
 // Helper to wait for popover to become visible
 const waitForPopoverVisible = async (container: HTMLElement) => {
   await act(async () => {
@@ -247,7 +241,7 @@ describe("CitationComponent behaviorConfig", () => {
   // Simplified behavior (always lazy mode):
   // - Hover: style effects only (no popover)
   // - First Click: shows popover
-  // - Second Click: toggles search details expansion
+  // - Second Click: closes popover
   // ==========================================================================
 
   describe("default click behavior", () => {
@@ -269,7 +263,7 @@ describe("CitationComponent behaviorConfig", () => {
       await waitForPopoverVisible(container);
     });
 
-    it("toggles search details on second click (not image overlay)", async () => {
+    it("closes popover on second click", async () => {
       const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
 
       const citation = container.querySelector("[data-citation-id]");
@@ -278,13 +272,13 @@ describe("CitationComponent behaviorConfig", () => {
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      await waitForPopoverVisible(container);
 
-      // Second click - toggles search details (not image overlay)
+      // Second click - closes popover
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      await waitForPopoverDismissed(container);
     });
 
     it("does not open image overlay on click when no image is available", async () => {
@@ -491,8 +485,10 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      // Custom action: image should be expanded
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      // Custom action: popover should open in expanded (image) view
+      expect(document.querySelector("[role='dialog']")).toBeInTheDocument();
+      // ExpandedPageViewer renders with a back button — verify we're in the expanded state, not summary
+      expect(document.querySelector("[role='dialog']")?.textContent).toContain("Back to summary");
     });
 
     it("can apply setImageExpanded with string src", async () => {
@@ -516,9 +512,77 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      const overlayImage = container.querySelector("[role='dialog'] img");
+      const overlayImage = document.querySelector("[role='dialog'] img");
       expect(overlayImage).toBeInTheDocument();
       expect(overlayImage?.getAttribute("src")).toBe(customImageSrc);
+    });
+
+    it("rejects setImageExpanded string with javascript: URI (does not update src)", async () => {
+      const customOnClick = jest.fn(
+        (): CitationBehaviorActions => ({
+          setImageExpanded: "javascript:alert(1)",
+        }),
+      );
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          behaviorConfig={{ onClick: customOnClick }}
+        />,
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      await act(async () => {
+        fireEvent.click(citation as HTMLElement);
+      });
+
+      // Popover opens (setImageExpanded: true path) but custom src is rejected
+      const overlayImage = document.querySelector("[role='dialog'] img");
+      expect(overlayImage?.getAttribute("src")).not.toBe("javascript:alert(1)");
+    });
+
+    it("rejects setImageExpanded string with SVG data URI", async () => {
+      const svgUri = "data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9ImFsZXJ0KDEpIj48L3N2Zz4=";
+      const customOnClick = jest.fn((): CitationBehaviorActions => ({ setImageExpanded: svgUri }));
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          behaviorConfig={{ onClick: customOnClick }}
+        />,
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      await act(async () => {
+        fireEvent.click(citation as HTMLElement);
+      });
+
+      const overlayImage = document.querySelector("[role='dialog'] img");
+      expect(overlayImage?.getAttribute("src")).not.toBe(svgUri);
+    });
+
+    it("accepts setImageExpanded with trusted CDN URL", async () => {
+      const trustedSrc = "https://cdn.deepcitation.com/proof/page1.avif";
+      const customOnClick = jest.fn((): CitationBehaviorActions => ({ setImageExpanded: trustedSrc }));
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          behaviorConfig={{ onClick: customOnClick }}
+        />,
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      await act(async () => {
+        fireEvent.click(citation as HTMLElement);
+      });
+
+      const overlayImage = document.querySelector("[role='dialog'] img");
+      expect(overlayImage).toBeInTheDocument();
+      expect(overlayImage?.getAttribute("src")).toBe(trustedSrc);
     });
 
     it("can close image with setImageExpanded: false", async () => {
@@ -543,14 +607,14 @@ describe("CitationComponent behaviorConfig", () => {
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      expect(document.querySelector("[role='dialog']")).toBeInTheDocument();
 
-      // Click overlay to close
-      const overlay = container.querySelector("[role='dialog']");
+      // Click overlay to close (clicking the dialog backdrop itself triggers dismissal)
+      const overlay = document.querySelector("[role='dialog']");
       await act(async () => {
         fireEvent.click(overlay as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(document.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
 
     it("still calls eventHandlers.onClick when custom handler returns actions", async () => {
@@ -702,11 +766,8 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       const citation = container.querySelector("[data-citation-id]");
-      fireEvent.mouseLeave(citation as HTMLElement);
-
-      // Wait for hover close delay
       await act(async () => {
-        await waitForHoverCloseDelay();
+        fireEvent.mouseLeave(citation as HTMLElement);
       });
 
       expect(onLeave).toHaveBeenCalledTimes(1);
@@ -747,11 +808,8 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       const citation = container.querySelector("[data-citation-id]");
-      fireEvent.mouseLeave(citation as HTMLElement);
-
-      // Wait for hover close delay
       await act(async () => {
-        await waitForHoverCloseDelay();
+        fireEvent.mouseLeave(citation as HTMLElement);
       });
 
       const context = onLeave.mock.calls[0][0] as CitationBehaviorContext;
@@ -795,11 +853,8 @@ describe("CitationComponent behaviorConfig", () => {
       );
 
       const citation = container.querySelector("[data-citation-id]");
-      fireEvent.mouseLeave(citation as HTMLElement);
-
-      // Wait for hover close delay
       await act(async () => {
-        await waitForHoverCloseDelay();
+        fireEvent.mouseLeave(citation as HTMLElement);
       });
 
       expect(behaviorOnLeave).toHaveBeenCalledTimes(1);
@@ -842,12 +897,9 @@ describe("CitationComponent behaviorConfig", () => {
       const citation = container.querySelector("[data-citation-id]");
 
       // Should not throw when entering without onEnter handler
-      fireEvent.mouseEnter(citation as HTMLElement);
-      fireEvent.mouseLeave(citation as HTMLElement);
-
-      // Wait for hover close delay
       await act(async () => {
-        await waitForHoverCloseDelay();
+        fireEvent.mouseEnter(citation as HTMLElement);
+        fireEvent.mouseLeave(citation as HTMLElement);
       });
 
       expect(onLeave).toHaveBeenCalledTimes(1);
@@ -882,7 +934,7 @@ describe("CitationComponent behaviorConfig", () => {
       });
 
       // Custom action was applied
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      expect(document.querySelector("[role='dialog']")).toBeInTheDocument();
     });
 
     it("onHover works independently of click configuration", async () => {
@@ -910,11 +962,6 @@ describe("CitationComponent behaviorConfig", () => {
 
       await act(async () => {
         fireEvent.mouseLeave(citation as HTMLElement);
-      });
-
-      // Wait for hover close delay
-      await act(async () => {
-        await waitForHoverCloseDelay();
       });
 
       expect(onLeave).toHaveBeenCalledTimes(1);
@@ -954,14 +1001,14 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
       expect(contexts[0].isImageExpanded).toBe(false);
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      expect(document.querySelector("[role='dialog']")).toBeInTheDocument();
 
       // Second click - image should now be expanded
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
       expect(contexts[1].isImageExpanded).toBe(true);
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(document.querySelector("[role='dialog']")).not.toBeInTheDocument();
     });
   });
 
@@ -1158,44 +1205,6 @@ describe("CitationComponent behaviorConfig", () => {
       expect(actualHighlights.length).toBe(0);
     });
   });
-
-  // ==========================================================================
-  // IMAGE OVERLAY KEYBOARD ACCESSIBILITY TESTS
-  // Tests that verify keyboard accessibility attributes are present on the image overlay
-  // ==========================================================================
-
-  describe("ImageOverlay keyboard accessibility attributes", () => {
-    it("should render image with keyboard accessibility attributes in component code", () => {
-      // This test verifies the implementation by checking that the CitationComponent
-      // code includes the required accessibility attributes for the image overlay.
-      // We test the component's internal structure rather than end-to-end interaction
-      // because the overlay rendering involves complex portal and async state management.
-
-      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
-
-      // Verify component rendered
-      expect(container.querySelector("[data-citation-id]")).toBeInTheDocument();
-
-      // The actual keyboard accessibility implementation is in CitationComponent.tsx lines 762-778:
-      // - tabIndex={0} makes image focusable
-      // - role="button" provides semantic meaning
-      // - aria-label describes the action
-      // - onKeyDown handles Enter and Space keys
-      // - e.preventDefault() prevents Space from scrolling
-      // - focus:ring styles provide visible focus indicator
-    });
-
-    it("should handle keyboard events in onClick handler signature", () => {
-      // Verify the component accepts and renders with verification image
-      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
-
-      const trigger = container.querySelector("[data-citation-id]");
-      expect(trigger).toBeInTheDocument();
-
-      // The keyboard event handling is implemented in the ImageOverlay component
-      // with proper Enter/Space key detection and preventDefault() to avoid scroll jumps
-    });
-  });
 });
 
 // =============================================================================
@@ -1347,7 +1356,7 @@ describe("CitationComponent mobile/touch detection", () => {
   });
 
   describe("mobile tap sequence", () => {
-    it("first tap shows popover, second tap toggles search details", async () => {
+    it("first tap shows popover, second tap closes popover", async () => {
       mockTouchDevice(true);
 
       const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
@@ -1360,20 +1369,20 @@ describe("CitationComponent mobile/touch detection", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      // No image overlay yet
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      // Popover should be visible
+      await waitForPopoverVisible(container);
 
-      // Second tap - now popover is already open, should toggle search details (not image)
+      // Second tap - closes popover
       await act(async () => {
         fireEvent.touchStart(citation as HTMLElement);
         fireEvent.click(citation as HTMLElement);
       });
 
-      // No image overlay - second tap toggles details, not image
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      // Popover should be dismissed
+      await waitForPopoverDismissed(container);
     });
 
-    it("multiple taps toggle search details without opening image overlay", async () => {
+    it("multiple taps toggle popover open/closed without opening image overlay", async () => {
       mockTouchDevice(true);
 
       const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
@@ -1385,21 +1394,21 @@ describe("CitationComponent mobile/touch detection", () => {
         fireEvent.touchStart(citation as HTMLElement);
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      await waitForPopoverVisible(container);
 
-      // Second tap - toggle search details
+      // Second tap - close popover
       await act(async () => {
         fireEvent.touchStart(citation as HTMLElement);
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      await waitForPopoverDismissed(container);
 
-      // Third tap - toggle search details again
+      // Third tap - reopen popover
       await act(async () => {
         fireEvent.touchStart(citation as HTMLElement);
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      await waitForPopoverVisible(container);
     });
 
     it("mobile tap without verification image still shows popover on first tap", async () => {
@@ -1654,7 +1663,7 @@ describe("CitationComponent mobile/touch detection", () => {
       });
     });
 
-    it("tapping the trigger while popover is open toggles search details (not image overlay)", async () => {
+    it("tapping the trigger while popover is open closes the popover", async () => {
       mockTouchDevice(true);
 
       const { container } = render(
@@ -1670,20 +1679,16 @@ describe("CitationComponent mobile/touch detection", () => {
       });
 
       // Wait for popover to be visible
-      await waitFor(() => {
-        const popoverContent = container.querySelector('[data-state="open"]');
-        expect(popoverContent).toBeInTheDocument();
-      });
+      await waitForPopoverVisible(container);
 
-      // Second tap on trigger - should toggle search details (not open image overlay)
-      // In lazy/mobile mode, second tap toggles details instead of opening image
+      // Second tap on trigger - should close the popover
       await act(async () => {
         fireEvent.touchStart(citation as HTMLElement);
         fireEvent.click(citation as HTMLElement);
       });
 
-      // Image overlay should NOT be visible (second tap toggles details, not image)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      // Popover should be dismissed
+      await waitForPopoverDismissed(container);
     });
 
     it("desktop mode (isMobile=false) does not dismiss on outside click", async () => {
@@ -1874,12 +1879,6 @@ describe("CitationComponent interactionMode", () => {
     status: "found",
   };
 
-  // Hover close delay must match HOVER_CLOSE_DELAY_MS in CitationComponent
-  const HOVER_CLOSE_DELAY_MS = 150;
-
-  // Helper to wait for hover close delay
-  const _waitForHoverCloseDelay = () => new Promise(resolve => setTimeout(resolve, HOVER_CLOSE_DELAY_MS + 50));
-
   describe("deprecated eager mode (now uses lazy behavior)", () => {
     it("does NOT show popover on hover (deprecated eager mode uses lazy behavior)", async () => {
       const onEnter = jest.fn();
@@ -2019,7 +2018,7 @@ describe("CitationComponent interactionMode", () => {
       });
     });
 
-    it("toggles search details on second click (not image overlay)", async () => {
+    it("closes popover on second click", async () => {
       const { container } = render(
         <CitationComponent citation={baseCitation} verification={verificationWithImage} interactionMode="lazy" />,
       );
@@ -2030,14 +2029,13 @@ describe("CitationComponent interactionMode", () => {
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      await waitForPopoverVisible(container);
 
-      // Second click - toggles search details (not image overlay in lazy mode)
+      // Second click - closes popover
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
-      // In lazy mode, second click toggles search details, not image overlay
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      await waitForPopoverDismissed(container);
     });
 
     it("has cursor-pointer class initially (before popover is shown)", () => {
@@ -2080,7 +2078,7 @@ describe("CitationComponent interactionMode", () => {
       fireEvent.click(citation as HTMLElement);
       expect(citation).toHaveClass("cursor-pointer");
 
-      // Second click - toggles search details
+      // Second click - closes popover
       fireEvent.click(citation as HTMLElement);
       expect(citation).toHaveClass("cursor-pointer");
     });
@@ -2210,7 +2208,7 @@ describe("CitationComponent interactionMode", () => {
       });
 
       // Custom action should open image directly (bypassing lazy mode)
-      expect(container.querySelector("[role='dialog']")).toBeInTheDocument();
+      expect(document.querySelector("[role='dialog']")).toBeInTheDocument();
     });
 
     it("onHover callbacks still work in lazy mode", async () => {
@@ -2232,308 +2230,6 @@ describe("CitationComponent interactionMode", () => {
 
       // onEnter callback should still fire
       expect(onEnter).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  // ==========================================================================
-  // REPOSITION GRACE PERIOD TESTS
-  // Tests for popover not dismissing when content resizes and repositions
-  //
-  // NOTE: These tests are currently skipped because they require interacting with
-  // the VerificationLog expandable section, which has complex rendering conditions.
-  // The grace period mechanism has been manually verified to work correctly.
-  // Future work: Simplify these tests or add unit tests for the grace period logic.
-  // ==========================================================================
-
-  describe.skip("popover reposition grace period", () => {
-    // Grace period constant must match REPOSITION_GRACE_PERIOD_MS in CitationComponent
-    const REPOSITION_GRACE_PERIOD_MS = 300;
-
-    // Helper to wait for grace period to expire
-    const waitForGracePeriod = () => new Promise(resolve => setTimeout(resolve, REPOSITION_GRACE_PERIOD_MS + 50));
-
-    // Verification with search attempts to enable the expandable log section
-    // Using "not_found" status which always shows the search log
-    const verificationWithSearchAttempts: Verification = {
-      status: "not_found",
-      searchAttempts: [
-        {
-          method: "exact",
-          success: false,
-          searchPhrase: "test citation",
-          searchVariations: ["test citation"],
-        },
-      ],
-    };
-
-    it("should NOT close popover during reposition grace period after expanding details", async () => {
-      const { container } = render(
-        <CitationComponent citation={baseCitation} verification={verificationWithSearchAttempts} />,
-      );
-
-      const trigger = container.querySelector("[data-citation-id]");
-
-      // Open popover with first click
-      await act(async () => {
-        fireEvent.click(trigger as HTMLElement);
-      });
-      await waitForPopoverVisible(container);
-
-      // Verify popover is open
-      expect(container.querySelector('[data-state="open"]')).toBeInTheDocument();
-
-      // Find and click the "How we verified this" button to expand details
-      // Need to wait for the button to appear in the popover
-      const expandButton = await waitFor(() => {
-        const button = Array.from(container.querySelectorAll("button")).find(
-          btn =>
-            btn.textContent?.includes("Verification details") ||
-            btn.textContent?.includes("How we verified this") ||
-            btn.textContent?.includes("Search attempts"),
-        );
-        if (!button) throw new Error("Expand button not found");
-        return button;
-      });
-
-      await act(async () => {
-        fireEvent.click(expandButton as HTMLElement);
-      });
-
-      // Simulate cursor moving outside popover during reposition
-      const popoverContent = container.querySelector('[data-state="open"]');
-      await act(async () => {
-        fireEvent.mouseLeave(popoverContent as HTMLElement);
-        fireEvent.mouseLeave(trigger as HTMLElement);
-      });
-
-      // Wait for normal hover close delay (150ms) - should NOT close due to grace period
-      await act(async () => {
-        await waitForHoverCloseDelay();
-      });
-
-      // Popover should STILL be open (grace period is 300ms, we only waited 200ms)
-      expect(container.querySelector('[data-state="open"]')).toBeInTheDocument();
-    });
-
-    it("should clear grace period when cursor re-enters popover", async () => {
-      const { container } = render(
-        <CitationComponent citation={baseCitation} verification={verificationWithSearchAttempts} />,
-      );
-
-      const trigger = container.querySelector("[data-citation-id]");
-
-      // Open popover
-      await act(async () => {
-        fireEvent.click(trigger as HTMLElement);
-      });
-      await waitForPopoverVisible(container);
-
-      // Expand details (triggers grace period)
-      const expandButton = await waitFor(() => {
-        const button = Array.from(container.querySelectorAll("button")).find(
-          btn =>
-            btn.textContent?.includes("Verification details") ||
-            btn.textContent?.includes("How we verified this") ||
-            btn.textContent?.includes("Search attempts"),
-        );
-        if (!button) throw new Error("Expand button not found");
-        return button;
-      });
-
-      await act(async () => {
-        fireEvent.click(expandButton as HTMLElement);
-      });
-
-      // Cursor re-enters popover (should clear grace period)
-      const popoverContent = container.querySelector('[data-state="open"]');
-      await act(async () => {
-        fireEvent.mouseEnter(popoverContent as HTMLElement);
-      });
-
-      // Now mouseleave should work normally (grace period was cleared)
-      await act(async () => {
-        fireEvent.mouseLeave(popoverContent as HTMLElement);
-        fireEvent.mouseLeave(trigger as HTMLElement);
-      });
-
-      // Wait for hover close delay
-      await act(async () => {
-        await waitForHoverCloseDelay();
-      });
-
-      // Popover should close (grace period was cleared by mouseEnter)
-      await waitForPopoverDismissed(container);
-    });
-
-    it("should close popover after grace period expires", async () => {
-      const { container } = render(
-        <CitationComponent citation={baseCitation} verification={verificationWithSearchAttempts} />,
-      );
-
-      const trigger = container.querySelector("[data-citation-id]");
-
-      // Open popover
-      await act(async () => {
-        fireEvent.click(trigger as HTMLElement);
-      });
-      await waitForPopoverVisible(container);
-
-      // Expand details (triggers grace period)
-      const expandButton = await waitFor(() => {
-        const button = Array.from(container.querySelectorAll("button")).find(
-          btn =>
-            btn.textContent?.includes("Verification details") ||
-            btn.textContent?.includes("How we verified this") ||
-            btn.textContent?.includes("Search attempts"),
-        );
-        if (!button) throw new Error("Expand button not found");
-        return button;
-      });
-
-      await act(async () => {
-        fireEvent.click(expandButton as HTMLElement);
-      });
-
-      // Simulate cursor leaving popover
-      const popoverContent = container.querySelector('[data-state="open"]');
-      await act(async () => {
-        fireEvent.mouseLeave(popoverContent as HTMLElement);
-        fireEvent.mouseLeave(trigger as HTMLElement);
-      });
-
-      // Wait for grace period to expire
-      await act(async () => {
-        await waitForGracePeriod();
-      });
-
-      // Now mouseleave should trigger close (grace period expired)
-      // Wait for hover close delay after grace period
-      await act(async () => {
-        await waitForHoverCloseDelay();
-      });
-
-      // Popover should be closed
-      await waitForPopoverDismissed(container);
-    });
-
-    it("should clear grace period when popover closes", async () => {
-      const { container } = render(
-        <CitationComponent citation={baseCitation} verification={verificationWithSearchAttempts} />,
-      );
-
-      const trigger = container.querySelector("[data-citation-id]");
-
-      // Open popover and expand details
-      await act(async () => {
-        fireEvent.click(trigger as HTMLElement);
-      });
-      await waitForPopoverVisible(container);
-
-      const expandButton = await waitFor(() => {
-        const button = Array.from(container.querySelectorAll("button")).find(
-          btn =>
-            btn.textContent?.includes("Verification details") ||
-            btn.textContent?.includes("How we verified this") ||
-            btn.textContent?.includes("Search attempts"),
-        );
-        if (!button) throw new Error("Expand button not found");
-        return button;
-      });
-
-      await act(async () => {
-        fireEvent.click(expandButton as HTMLElement);
-      });
-
-      // Close popover (via mouseleave after grace period)
-      let popoverContent = container.querySelector('[data-state="open"]');
-      await act(async () => {
-        fireEvent.mouseLeave(popoverContent as HTMLElement);
-        fireEvent.mouseLeave(trigger as HTMLElement);
-      });
-
-      await act(async () => {
-        await waitForGracePeriod();
-        await waitForHoverCloseDelay();
-      });
-
-      await waitForPopoverDismissed(container);
-
-      // Re-open popover - grace period should be cleared from previous session
-      await act(async () => {
-        fireEvent.click(trigger as HTMLElement);
-      });
-      await waitForPopoverVisible(container);
-
-      // Query for the NEW popover content element after re-opening
-      popoverContent = container.querySelector('[data-state="open"]');
-
-      // Mouseleave should work normally (grace period was cleared when popover closed)
-      await act(async () => {
-        fireEvent.mouseLeave(popoverContent as HTMLElement);
-        fireEvent.mouseLeave(trigger as HTMLElement);
-      });
-
-      await act(async () => {
-        await waitForHoverCloseDelay();
-      });
-
-      // Should close without delay
-      await waitForPopoverDismissed(container);
-    });
-
-    it("should handle rapid expand/collapse without issues", async () => {
-      const { container } = render(
-        <CitationComponent citation={baseCitation} verification={verificationWithSearchAttempts} />,
-      );
-
-      const trigger = container.querySelector("[data-citation-id]");
-
-      // Open popover
-      await act(async () => {
-        fireEvent.click(trigger as HTMLElement);
-      });
-      await waitForPopoverVisible(container);
-
-      const expandButton = await waitFor(() => {
-        const button = Array.from(container.querySelectorAll("button")).find(
-          btn =>
-            btn.textContent?.includes("Verification details") ||
-            btn.textContent?.includes("How we verified this") ||
-            btn.textContent?.includes("Search attempts"),
-        );
-        if (!button) throw new Error("Expand button not found");
-        return button;
-      });
-
-      // Rapidly toggle expansion multiple times
-      await act(async () => {
-        fireEvent.click(expandButton as HTMLElement); // Expand
-      });
-
-      await act(async () => {
-        fireEvent.click(expandButton as HTMLElement); // Collapse
-      });
-
-      await act(async () => {
-        fireEvent.click(expandButton as HTMLElement); // Expand again
-      });
-
-      // Popover should still be open and functional
-      expect(container.querySelector('[data-state="open"]')).toBeInTheDocument();
-
-      // Should still respond to mouseleave after grace period
-      const popoverContent = container.querySelector('[data-state="open"]');
-      await act(async () => {
-        fireEvent.mouseLeave(popoverContent as HTMLElement);
-        fireEvent.mouseLeave(trigger as HTMLElement);
-      });
-
-      await act(async () => {
-        await waitForGracePeriod();
-        await waitForHoverCloseDelay();
-      });
-
-      await waitForPopoverDismissed(container);
     });
   });
 
@@ -2591,7 +2287,7 @@ describe("CitationComponent interactionMode", () => {
 
       await waitForPopoverVisible(container);
 
-      // Click on the trigger again (should toggle details, not close)
+      // Click on the trigger again (handled by click handler, not outside dismiss)
       await act(async () => {
         fireEvent.mouseDown(trigger);
       });
@@ -2621,38 +2317,6 @@ describe("CitationComponent interactionMode", () => {
 
       // Popover should still be open
       expect(container.querySelector('[data-state="open"]')).toBeInTheDocument();
-    });
-
-    it("dismisses even during grace period after content expansion", async () => {
-      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
-
-      const trigger = container.querySelector("[data-citation-id]") as HTMLElement;
-
-      // Click to open popover
-      await act(async () => {
-        fireEvent.click(trigger);
-      });
-
-      await waitForPopoverVisible(container);
-
-      // Find and click expand button to trigger grace period
-      const expandButton = Array.from(container.querySelectorAll("button")).find(
-        btn => btn.textContent === "Show search details" || btn.textContent === "Hide search details",
-      );
-
-      if (expandButton) {
-        await act(async () => {
-          fireEvent.click(expandButton);
-        });
-      }
-
-      // Immediately click outside (during grace period)
-      await act(async () => {
-        fireEvent.mouseDown(document.body);
-      });
-
-      // Should dismiss immediately despite grace period
-      await waitForPopoverDismissed(container);
     });
 
     // Note: Testing the image overlay protection is complex due to interaction modes.
