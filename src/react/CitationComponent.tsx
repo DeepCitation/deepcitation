@@ -29,6 +29,7 @@ import {
   EXPANDED_POPOVER_WIDTH_DEFAULT,
   EXPANDED_POPOVER_WIDTH_VAR,
   INDICATOR_SIZE_STYLE,
+  isValidProofImageSrc,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
   KEYHOLE_STRIP_HEIGHT_VAR,
@@ -662,9 +663,9 @@ export interface ExpandedImageSource {
  * 2. proof.proofImageUrl (good: CDN image, no overlay data)
  * 3. document.verificationImageSrc (baseline: keyhole image at full size)
  *
- * NOTE: All three sources come from the same server-generated verification object.
- * verificationImageSrc is already rendered unvalidated in AnchorTextFocusedImage,
- * so skipping isValidProofImageSrc here does not increase the attack surface.
+ * Each source is validated with isValidProofImageSrc() before use, blocking SVG data URIs
+ * (which can contain scripts), javascript: URIs, and untrusted hosts. Localhost is allowed
+ * for development. Invalid sources are skipped and the next tier is tried.
  */
 // biome-ignore lint/style/useComponentExportOnlyModules: exported for testing
 export function resolveExpandedImage(verification: Verification | null | undefined): ExpandedImageSource | null {
@@ -672,7 +673,7 @@ export function resolveExpandedImage(verification: Verification | null | undefin
 
   // 1. Best: matching page from verification.pages array
   const matchPage = verification.pages?.find(p => p.isMatchPage);
-  if (matchPage?.source) {
+  if (matchPage?.source && isValidProofImageSrc(matchPage.source)) {
     return {
       src: matchPage.source,
       dimensions: matchPage.dimensions,
@@ -682,7 +683,7 @@ export function resolveExpandedImage(verification: Verification | null | undefin
   }
 
   // 2. Good: CDN-hosted proof image
-  if (verification.proof?.proofImageUrl) {
+  if (verification.proof?.proofImageUrl && isValidProofImageSrc(verification.proof.proofImageUrl)) {
     return {
       src: verification.proof.proofImageUrl,
       dimensions: null,
@@ -692,7 +693,7 @@ export function resolveExpandedImage(verification: Verification | null | undefin
   }
 
   // 3. Baseline: keyhole verification image at full size
-  if (verification.document?.verificationImageSrc) {
+  if (verification.document?.verificationImageSrc && isValidProofImageSrc(verification.document.verificationImageSrc)) {
     return {
       src: verification.document.verificationImageSrc,
       dimensions: verification.document.verificationImageDimensions ?? null,
@@ -823,7 +824,9 @@ function AnchorTextFocusedImage({
     [scrollState.canScrollLeft, scrollState.canScrollRight],
   );
 
-  const imageSrc = verification.document?.verificationImageSrc as string;
+  const rawImageSrc = verification.document?.verificationImageSrc;
+  const imageSrc = isValidProofImageSrc(rawImageSrc) ? rawImageSrc : null;
+  if (!imageSrc) return null;
 
   const stripHeightStyle = `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
 
@@ -1379,7 +1382,7 @@ function EvidenceTray({
         <AnchorTextFocusedImage verification={verification} onImageClick={onImageClick} />
       ) : isMiss && searchAttempts.length > 0 ? (
         <>
-          {proofImageSrc && (
+          {isValidProofImageSrc(proofImageSrc) && (
             <div className="overflow-hidden" style={{ height: MISS_TRAY_THUMBNAIL_HEIGHT }}>
               <img
                 src={proofImageSrc}
@@ -1514,7 +1517,7 @@ function ExpandedPageViewer({
         <div className="relative inline-block min-w-full">
           <img
             ref={imageRef}
-            src={expandedImage.src}
+            src={isValidProofImageSrc(expandedImage.src) ? expandedImage.src : undefined}
             alt="Full page verification"
             className="block max-w-none"
             style={{ maxHeight: "none" }}

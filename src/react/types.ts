@@ -425,8 +425,6 @@ export interface CitationBehaviorActions {
   setTooltipExpanded?: boolean;
   /** Open or close the full-size image overlay */
   setImageExpanded?: boolean | string;
-  /** @deprecated No longer used — VerificationLog removed from popover */
-  setPhrasesExpanded?: boolean;
 }
 
 /**
