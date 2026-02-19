@@ -5,6 +5,7 @@ import type { Verification } from "../types/verification.js";
 import { COPY_FEEDBACK_DURATION_MS, DOT_COLORS } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import {
+  ArrowLeftIcon,
   CheckIcon,
   ChevronRightIcon,
   DocumentIcon,
@@ -305,6 +306,7 @@ export function SourceContextHeader({
   const lineIds = verification?.document?.verifiedLineIds ?? (isUrl ? undefined : citation.lineIds);
   const pageLineText = formatPageLineText(pageNumber, lineIds);
   const colorScheme = getStatusColorScheme(status);
+  // Show page pill when there's an expand action (summary view) or when in expanded view (informational)
   const showPagePill = (!!onExpand || !!onClose) && !!pageNumber && pageNumber > 0;
 
   // URL-specific data
@@ -314,9 +316,23 @@ export function SourceContextHeader({
   const displayName = isUrl ? undefined : sourceLabel || verification?.label || "Document";
 
   return (
-    <div className="flex items-center justify-between gap-2 px-3 py-4 mb-2 border-b border-gray-200 dark:border-gray-700">
-      {/* Left: Icon + source name */}
+    <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-gray-200 dark:border-gray-700">
+      {/* Left: Back button (expanded view) + Icon + source name */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
+        {onClose && (
+          <button
+            type="button"
+            onClick={e => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="shrink-0 flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors pr-1 border-r border-gray-200 dark:border-gray-700 mr-1"
+            aria-label="Back to citation summary"
+          >
+            <span className="size-3.5 block"><ArrowLeftIcon /></span>
+            <span>Back</span>
+          </button>
+        )}
         {isUrl ? (
           <UrlCitationComponent
             urlMeta={{
@@ -346,14 +362,13 @@ export function SourceContextHeader({
           </>
         )}
       </div>
-      {/* Right: Page pill + optional proof link */}
+      {/* Right: Page pill (expand action in summary; static in expanded) + optional proof link */}
       <div className="flex items-center gap-2">
         {showPagePill && (
           <PagePill
             pageNumber={pageNumber}
             colorScheme={colorScheme}
             onClick={onExpand}
-            onClose={onClose}
           />
         )}
         {!showPagePill && pageLineText && (

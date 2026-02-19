@@ -1793,17 +1793,8 @@ function DefaultPopoverContent({
   if (viewState === "expanded" && expandedImage) {
     return (
       <div
-        className={cn(
-          POPOVER_CONTAINER_BASE_CLASSES,
-          "flex flex-col animate-in fade-in-0 duration-150 !overflow-hidden",
-        )}
-        style={{
-          width: "100%",
-          height: "100%",
-          maxWidth: "none",
-          maxHeight: "none",
-          transition: `width ${POPOVER_MORPH_DURATION_MS}ms ease-out, max-height ${POPOVER_MORPH_DURATION_MS}ms ease-out`,
-        }}
+        className="bg-white dark:bg-gray-900 flex flex-col animate-in fade-in-0 duration-150 overflow-hidden"
+        style={{ width: "100%", height: "100%" }}
       >
         <ExpandedPageViewer
           expandedImage={expandedImage}
@@ -2179,10 +2170,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       if (!wrapper) return;
       wrapper.style.setProperty("transform", "none", "important");
       wrapper.style.setProperty("position", "fixed", "important");
-      wrapper.style.setProperty("inset", "1rem", "important");
+      wrapper.style.setProperty("inset", "0", "important");
       wrapper.style.setProperty("min-width", "unset", "important");
-      wrapper.style.setProperty("width", "calc(100vw - 2rem)", "important");
-      wrapper.style.setProperty("height", "calc(100vh - 2rem)", "important");
+      wrapper.style.setProperty("width", "100vw", "important");
+      wrapper.style.setProperty("height", "100dvh", "important");
       wrapper.style.setProperty("z-index", String(Z_INDEX_OVERLAY_DEFAULT), "important");
       return () => {
         wrapper.style.removeProperty("transform");
@@ -3038,7 +3029,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               id={popoverId}
               side={popoverPosition === "bottom" ? "bottom" : "top"}
               aria-label={popoverViewState === "expanded" ? "Full size verification image" : undefined}
-              collisionPadding={popoverViewState === "expanded" ? 16 : undefined}
+              collisionPadding={popoverViewState === "expanded" ? 0 : undefined}
               style={
                 popoverViewState === "expanded"
                   ? {
