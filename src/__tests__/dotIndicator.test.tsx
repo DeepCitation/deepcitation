@@ -193,8 +193,8 @@ describe("Dot Indicator Variant", () => {
 
   describe("DOT_INDICATOR_SIZE_STYLE", () => {
     it("is smaller than INDICATOR_SIZE_STYLE", () => {
-      expect(DOT_INDICATOR_SIZE_STYLE.width).toBe("0.45em");
-      expect(DOT_INDICATOR_SIZE_STYLE.height).toBe("0.45em");
+      expect(DOT_INDICATOR_SIZE_STYLE.width).toBe("0.4em");
+      expect(DOT_INDICATOR_SIZE_STYLE.height).toBe("0.4em");
       expect(DOT_INDICATOR_SIZE_STYLE.minWidth).toBe("6px");
       expect(DOT_INDICATOR_SIZE_STYLE.minHeight).toBe("6px");
 

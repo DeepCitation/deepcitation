@@ -22,7 +22,7 @@ function cn(...classes: (string | undefined | null | false)[]): string {
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 8, sticky = "always", style, ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 8, sticky = "always", collisionPadding = 8, style, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
@@ -32,6 +32,7 @@ const PopoverContent = React.forwardRef<
       // This prevents confusing UX where the popover shifts position when expanding/collapsing
       // sections like search details. The popover may be partially offscreen but stays in place.
       sticky={sticky}
+      collisionPadding={collisionPadding}
       style={
         {
           zIndex: `var(${Z_INDEX_POPOVER_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})`,

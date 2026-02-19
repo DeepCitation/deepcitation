@@ -1,8 +1,9 @@
 import type React from "react";
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Verification } from "../types/verification.js";
-import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
-import { computeStatusSummary, getStatusInfo, getStatusPriority } from "./CitationDrawer.utils.js";
+import type { SourceCitationGroup } from "./CitationDrawer.types.js";
+import type { FlatCitationItem } from "./CitationDrawer.utils.js";
+import { flattenCitations, getStatusInfo } from "./CitationDrawer.utils.js";
 import { isValidProofImageSrc } from "./constants.js";
 import { cn } from "./utils.js";
 
@@ -37,7 +38,7 @@ export interface CitationDrawerTriggerProps {
   className?: string;
   /** Label text override (default: auto-generated from status counts) */
   label?: string;
-  /** Maximum status icons to display (default: 10) */
+  /** Maximum status icons to display before collapsing into a +N overflow chip (default: 5) */
   maxIcons?: number;
   /** Whether to show proof image thumbnails in hover tooltips (default: true) */
   showProofThumbnails?: boolean;
@@ -104,14 +105,6 @@ const ICON_MARGIN_EXPANDED = "-0.25rem";
 // Internal types
 // =========
 
-/** Flattened citation item with source context for tooltip display */
-interface FlatCitationItem {
-  item: CitationDrawerItem;
-  sourceName: string;
-  sourceFavicon?: string;
-  group: SourceCitationGroup;
-}
-
 // =========
 // Internal utilities
 // =========
@@ -142,26 +135,6 @@ function generateDefaultLabel(citationGroups: SourceCitationGroup[]): string {
   const truncated = firstName.length > 25 ? `${firstName.slice(0, 25)}...` : firstName;
   if (citationGroups.length === 1) return truncated;
   return `${truncated} +${citationGroups.length - 1}`;
-}
-
-/**
- * Flatten citation groups into individual citation items with source context.
- * Sorted by status priority (worst first) so failures appear at the start of the icon row.
- */
-function flattenCitations(citationGroups: SourceCitationGroup[]): FlatCitationItem[] {
-  const items: FlatCitationItem[] = [];
-  for (const group of citationGroups) {
-    for (const item of group.citations) {
-      items.push({
-        item,
-        sourceName: group.sourceName?.trim() || "Source",
-        sourceFavicon: group.sourceFavicon,
-        group,
-      });
-    }
-  }
-  // Sort worst-status-first so failures appear at the leading edge
-  return items.sort((a, b) => getStatusPriority(b.item.verification) - getStatusPriority(a.item.verification));
 }
 
 // =========
@@ -223,7 +196,7 @@ function CitationTooltip({
   const rawProofImage = showProofThumbnail ? item.verification?.document?.verificationImageSrc : null;
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
-  const handleProofClick = (e: React.MouseEvent) => {
+  const handleProofClick = (e: React.SyntheticEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onSourceClick?.(group);
@@ -304,7 +277,7 @@ function CitationTooltip({
             onKeyDown={e => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                handleProofClick(e as unknown as React.MouseEvent);
+                handleProofClick(e);
               }
             }}
             aria-label={`View proof for ${sourceName}`}
@@ -329,7 +302,7 @@ function CitationTooltip({
 // StackedStatusIcons — horizontally expanding icon row (per-citation)
 // =========
 
-function StackedStatusIcons({
+export function StackedStatusIcons({
   flatCitations,
   isHovered,
   maxIcons,
@@ -391,93 +364,12 @@ function StackedStatusIcons({
             zIndex: 0,
           }}
         >
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 ring-2 ring-white dark:ring-gray-800 text-[9px] font-medium text-gray-600 dark:text-gray-300">
+          <span className="inline-flex items-center justify-center size-5 text-[10px] font-medium text-gray-600 dark:text-gray-300">
             +{overflowCount}
           </span>
         </div>
       )}
     </div>
-  );
-}
-
-// =========
-// TriggerStatusBar — 2px proportional color bar
-// =========
-
-type StatusSummary = ReturnType<typeof computeStatusSummary>;
-
-function TriggerStatusBar({ summary }: { summary: StatusSummary }) {
-  if (summary.total === 0) return null;
-
-  const segments = [
-    { status: "notFound", count: summary.notFound, color: "bg-red-500 dark:bg-red-400" },
-    { status: "partial", count: summary.partial, color: "bg-amber-500 dark:bg-amber-400" },
-    { status: "pending", count: summary.pending, color: "bg-gray-300 dark:bg-gray-600" },
-    { status: "verified", count: summary.verified, color: "bg-green-500 dark:bg-green-400" },
-  ].filter(s => s.count > 0);
-
-  return (
-    <div className="flex h-0.5 w-full rounded-full overflow-hidden" role="img" aria-label="Status breakdown">
-      {segments.map(seg => (
-        <div key={seg.status} className={seg.color} style={{ flexGrow: seg.count }} />
-      ))}
-    </div>
-  );
-}
-
-// =========
-// TriggerBadge — compact count pill
-// =========
-
-function TriggerBadge({ summary }: { summary: StatusSummary }) {
-  if (summary.total === 0) return null;
-
-  const hasNotFound = summary.notFound > 0;
-  const hasPartial = summary.partial > 0;
-
-  // Red only when not-found citations outnumber verified ones — a serious signal.
-  // Amber for minor issues (a few misses or partial matches among mostly-verified citations).
-  const isRedAlert = hasNotFound && summary.notFound > summary.verified;
-  const isAmberAlert = (hasNotFound || hasPartial) && !isRedAlert;
-
-  const colorClass = isRedAlert
-    ? "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
-    : isAmberAlert
-      ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
-      : "bg-green-50 text-green-600 dark:bg-green-950/40 dark:text-green-400";
-  const dotClass = isRedAlert
-    ? "bg-red-500 dark:bg-red-400"
-    : isAmberAlert
-      ? "bg-amber-500 dark:bg-amber-400"
-      : "bg-green-500 dark:bg-green-400";
-
-  // Descriptive badge text — worst-status-first
-  let badgeText: string;
-  const hasPending = summary.pending > 0;
-  if (hasNotFound) {
-    badgeText = `${summary.notFound} not found`;
-  } else if (hasPartial) {
-    badgeText = `${summary.partial} partial`;
-  } else if (hasPending) {
-    badgeText = `${summary.pending} verifying`;
-  } else {
-    badgeText = summary.total > 0 ? "All verified" : "";
-  }
-
-  const ariaText = `${summary.verified} of ${summary.total} citations verified`;
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none",
-        colorClass,
-      )}
-      title={ariaText}
-      aria-label={ariaText}
-    >
-      <span className={cn("inline-block w-1.5 h-1.5 rounded-full shrink-0", dotClass)} />
-      {badgeText}
-    </span>
   );
 }
 
@@ -514,7 +406,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
       isOpen,
       className,
       label,
-      maxIcons = 10,
+      maxIcons = 5,
       showProofThumbnails = true,
       indicatorVariant = "icon",
     },
@@ -529,9 +421,6 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
 
     // Flatten citation groups into individual items for per-citation icons
     const flatCitations = useMemo(() => flattenCitations(citationGroups), [citationGroups]);
-
-    // Status summary (computed once, shared by badge + status bar)
-    const statusSummary = useMemo(() => computeStatusSummary(citationGroups), [citationGroups]);
 
     // On touch devices, skip the hover-spread animation — tap goes straight to drawer
     const handleMouseEnter = useCallback(() => {
@@ -614,42 +503,32 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         aria-label={`Citations: ${displayLabel}`}
         data-testid="citation-drawer-trigger"
       >
-        <div className="flex flex-col gap-1 flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            {/* Per-citation status icons */}
-            <StackedStatusIcons
-              flatCitations={flatCitations}
-              isHovered={isHovered}
-              maxIcons={maxIcons}
-              hoveredIndex={hoveredIndex}
-              onIconHover={handleIconHover}
-              onIconLeave={handleIconLeave}
-              showProofThumbnails={showProofThumbnails}
-              onSourceClick={onSourceClick}
-              indicatorVariant={indicatorVariant}
-            />
+        {/* Per-citation status icons */}
+        <StackedStatusIcons
+          flatCitations={flatCitations}
+          isHovered={isHovered}
+          maxIcons={maxIcons}
+          hoveredIndex={hoveredIndex}
+          onIconHover={handleIconHover}
+          onIconLeave={handleIconLeave}
+          showProofThumbnails={showProofThumbnails}
+          onSourceClick={onSourceClick}
+          indicatorVariant={indicatorVariant}
+        />
 
-            {/* Badge pill — verified/total count */}
-            <TriggerBadge summary={statusSummary} />
+        {/* Label */}
+        <span className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[200px]">{displayLabel}</span>
 
-            {/* Label */}
-            <span className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[200px]">{displayLabel}</span>
-
-            {/* Chevron */}
-            <svg
-              className="w-3 h-3 text-gray-400 dark:text-gray-500 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-
-          {/* Status color bar — proportional breakdown */}
-          <TriggerStatusBar summary={statusSummary} />
-        </div>
+        {/* Chevron */}
+        <svg
+          className="w-3 h-3 text-gray-400 dark:text-gray-500 shrink-0"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
       </button>
     );
   },

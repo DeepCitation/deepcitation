@@ -138,7 +138,7 @@ export const VERIFICATION_IMAGE_MAX_HEIGHT = "min(50vh, 360px)";
 export const KEYHOLE_STRIP_HEIGHT_VAR = "--dc-keyhole-strip-height";
 
 /** Default height of the keyhole image strip in pixels */
-export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 60;
+export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 90;
 
 /** Height of the miss-state proof page thumbnail shown in EvidenceTray (px) */
 export const MISS_TRAY_THUMBNAIL_HEIGHT = 72;
@@ -238,8 +238,8 @@ export const DOT_COLORS = {
  * minWidth/minHeight ensure a minimum of 6px for visibility at very small font sizes.
  */
 export const DOT_INDICATOR_SIZE_STYLE: React.CSSProperties = {
-  width: "0.45em",
-  height: "0.45em",
+  width: "0.4em",
+  height: "0.4em",
   minWidth: "6px",
   minHeight: "6px",
 };

@@ -17,7 +17,7 @@ test.describe("Drawer Showcase - Desktop", () => {
   test("all trigger states render", async ({ mount, page }) => {
     await mount(<CitationDrawerShowcase />);
 
-    for (const state of ["all-verified", "mixed", "all-pending", "single-source", "many-sources"]) {
+    for (const state of ["all-verified", "mixed", "all-pending", "single-source", "many-sources", "overflow-trigger", "overflow-interactive"]) {
       const triggerState = page.locator(`[data-drawer-trigger-state="${state}"]`);
       await expect(triggerState).toBeVisible();
     }
@@ -198,6 +198,62 @@ test.describe("Drawer Showcase - Mobile Dark Mode", () => {
 // =============================================================================
 // TESTS - Interactive Drawer Behavior
 // =============================================================================
+
+// =============================================================================
+// TESTS - Overflow Cap
+// =============================================================================
+
+test.describe("Drawer Showcase - Overflow Cap", () => {
+  test("overflow section renders", async ({ mount, page }) => {
+    await mount(<CitationDrawerShowcase />);
+
+    const overflowSection = page.locator('[data-testid="drawer-trigger-overflow-section"]');
+    await expect(overflowSection).toBeVisible();
+  });
+
+  test("overflow trigger renders with +N chip for 8 citations", async ({ mount, page }) => {
+    await mount(<CitationDrawerShowcase />);
+
+    const overflowTrigger = page.locator('[data-drawer-trigger-state="overflow-trigger"] [data-testid="citation-drawer-trigger"]');
+    await expect(overflowTrigger).toBeVisible();
+
+    // With maxIcons=5 and 8 citations, the +3 overflow chip should appear
+    const iconGroup = overflowTrigger.locator("[role='group']");
+    await expect(iconGroup).toBeVisible();
+    await expect(iconGroup.getByText("+3")).toBeVisible();
+  });
+
+  test("overflow interactive drawer opens and shows header icons", async ({ mount, page }) => {
+    await mount(<CitationDrawerShowcase />);
+
+    const overflowTrigger = page.locator('[data-interactive-drawer="overflow-trigger"] [data-testid="citation-drawer-trigger"]');
+    await expect(overflowTrigger).toBeVisible();
+
+    await overflowTrigger.click();
+
+    const dialog = page.locator("[role='dialog']");
+    await expect(dialog).toBeVisible({ timeout: 5000 });
+
+    // Header should contain the StackedStatusIcons group (same component as trigger)
+    const headerIconGroup = dialog.locator("[role='group'][aria-label='Citation verification status']");
+    await expect(headerIconGroup).toBeVisible();
+
+    // The header icon group should also show the +3 overflow chip (same maxIcons=5 cap)
+    await expect(headerIconGroup.getByText("+3")).toBeVisible();
+  });
+
+  test("visual snapshot - overflow section", async ({ mount, page }) => {
+    await mount(<CitationDrawerShowcase />);
+
+    const overflowSection = page.locator('[data-testid="drawer-trigger-overflow-section"]');
+    await expect(overflowSection).toBeVisible();
+
+    await expect(overflowSection).toHaveScreenshot("overflow-section.png", {
+      animations: "disabled",
+      maxDiffPixelRatio: 0.1,
+    });
+  });
+});
 
 test.describe("Drawer Showcase - Interactive", () => {
   test("clicking trigger opens drawer dialog", async ({ mount, page }) => {

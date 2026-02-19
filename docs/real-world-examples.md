@@ -123,7 +123,7 @@ Showing how unverified citations (hallucinations) are visually distinct from ver
     pageNumber: 2,
   }}
   verification={{
-    status: "not_found",  // Citation not found in document
+    status: "not_found",  // Not found in document
   }}
   variant="linter"
 />

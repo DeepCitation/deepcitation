@@ -390,3 +390,34 @@ export function useCitationDrawer() {
     setCitations: setCitationsList,
   };
 }
+
+// =========
+// FlatCitationItem + flattenCitations
+// =========
+
+/** Flattened citation item with source context for icon row display */
+export interface FlatCitationItem {
+  item: CitationDrawerItem;
+  sourceName: string;
+  sourceFavicon?: string;
+  group: SourceCitationGroup;
+}
+
+/**
+ * Flatten citation groups into individual citation items with source context.
+ * Sorted by status priority (worst first) so failures appear at the start of the icon row.
+ */
+export function flattenCitations(citationGroups: SourceCitationGroup[]): FlatCitationItem[] {
+  const items: FlatCitationItem[] = [];
+  for (const group of citationGroups) {
+    for (const item of group.citations) {
+      items.push({
+        item,
+        sourceName: group.sourceName?.trim() || "Source",
+        sourceFavicon: group.sourceFavicon,
+        group,
+      });
+    }
+  }
+  return items.sort((a, b) => getStatusPriority(b.item.verification) - getStatusPriority(a.item.verification));
+}

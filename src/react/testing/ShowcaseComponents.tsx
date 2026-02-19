@@ -2015,12 +2015,129 @@ const drawerManySources: CitationDrawerItem[] = [
   },
 ];
 
+// 8 citations from different sources — with maxIcons=5 this produces 5 icons + "+3" overflow chip
+const drawerOverflow: CitationDrawerItem[] = [
+  {
+    citationKey: "do-1",
+    citation: {
+      type: "url",
+      url: "https://react.dev",
+      domain: "react.dev",
+      siteName: "React",
+      title: "React",
+      fullPhrase: "React makes it painless to create interactive UIs.",
+      anchorText: "interactive UIs",
+      citationNumber: 1,
+    },
+    verification: { status: "not_found" },
+  },
+  {
+    citationKey: "do-2",
+    citation: {
+      type: "url",
+      url: "https://docs.python.org",
+      domain: "docs.python.org",
+      siteName: "Python",
+      title: "Python Docs",
+      fullPhrase: "Python is a high-level programming language.",
+      anchorText: "high-level programming language",
+      citationNumber: 2,
+    },
+    verification: { status: "found", verifiedMatchSnippet: "Python is a high-level programming language." },
+  },
+  {
+    citationKey: "do-3",
+    citation: {
+      type: "url",
+      url: "https://developer.mozilla.org",
+      domain: "developer.mozilla.org",
+      siteName: "MDN",
+      title: "Web APIs",
+      fullPhrase: "CSS is used to style HTML elements.",
+      anchorText: "style HTML elements",
+      citationNumber: 3,
+    },
+    verification: { status: "partial_text_found", verifiedMatchSnippet: "style HTML" },
+  },
+  {
+    citationKey: "do-4",
+    citation: {
+      type: "url",
+      url: "https://nodejs.org",
+      domain: "nodejs.org",
+      siteName: "Node.js",
+      title: "Node.js",
+      fullPhrase: "Node.js is a JavaScript runtime.",
+      anchorText: "JavaScript runtime",
+      citationNumber: 4,
+    },
+    verification: { status: "found", verifiedMatchSnippet: "Node.js is a JavaScript runtime." },
+  },
+  {
+    citationKey: "do-5",
+    citation: {
+      type: "url",
+      url: "https://tailwindcss.com",
+      domain: "tailwindcss.com",
+      siteName: "Tailwind CSS",
+      title: "Tailwind CSS",
+      fullPhrase: "Tailwind uses utility classes for styling.",
+      anchorText: "utility classes",
+      citationNumber: 5,
+    },
+    verification: { status: "found", verifiedMatchSnippet: "utility classes for styling" },
+  },
+  {
+    citationKey: "do-6",
+    citation: {
+      type: "url",
+      url: "https://www.typescriptlang.org",
+      domain: "typescriptlang.org",
+      siteName: "TypeScript",
+      title: "TypeScript",
+      fullPhrase: "TypeScript adds optional static types to JavaScript.",
+      anchorText: "optional static types",
+      citationNumber: 6,
+    },
+    verification: { status: "pending" },
+  },
+  {
+    citationKey: "do-7",
+    citation: {
+      type: "url",
+      url: "https://nextjs.org",
+      domain: "nextjs.org",
+      siteName: "Next.js",
+      title: "Next.js",
+      fullPhrase: "Next.js enables server-side rendering for React apps.",
+      anchorText: "server-side rendering",
+      citationNumber: 7,
+    },
+    verification: { status: "found", verifiedMatchSnippet: "server-side rendering for React apps" },
+  },
+  {
+    citationKey: "do-8",
+    citation: {
+      type: "url",
+      url: "https://vitejs.dev",
+      domain: "vitejs.dev",
+      siteName: "Vite",
+      title: "Vite",
+      fullPhrase: "Vite offers fast cold starts and instant HMR.",
+      anchorText: "fast cold starts",
+      citationNumber: 8,
+    },
+    verification: { status: "found", verifiedMatchSnippet: "fast cold starts and instant HMR" },
+  },
+];
+
 // =========
 // CITATION DRAWER SHOWCASE
 // =========
 
 export function CitationDrawerShowcase() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [overflowDrawerOpen, setOverflowDrawerOpen] = useState(false);
   const [interactiveItems] = useState<CitationDrawerItem[]>(drawerMixed);
   const interactiveGroups = groupCitationsBySource(interactiveItems);
 
@@ -2029,6 +2146,7 @@ export function CitationDrawerShowcase() {
   const allPendingGroups = groupCitationsBySource(drawerAllPending);
   const singleGroups = groupCitationsBySource(drawerSingleSource);
   const manyGroups = groupCitationsBySource(drawerManySources);
+  const overflowGroups = groupCitationsBySource(drawerOverflow);
 
   return (
     <div className="p-6 bg-white dark:bg-gray-900 min-h-screen overflow-hidden" data-testid="drawer-showcase">
@@ -2241,8 +2359,59 @@ export function CitationDrawerShowcase() {
         </ShowcaseCard>
       </ShowcaseSection>
 
+      {/* ========
+          SECTION 5: Overflow Cap — Large Citation Sets
+          ======== */}
+      <ShowcaseSection
+        title="5. Overflow Cap — Large Citation Sets"
+        description="When citations exceed maxIcons=5, the trigger collapses remaining icons into a +N chip. The drawer header shows the same StackedStatusIcons component with the same cap."
+        data-testid="drawer-trigger-overflow-section"
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <ShowcaseCard data-drawer-trigger-state="overflow-trigger">
+            <ShowcaseLabel
+              component="CitationDrawerTrigger"
+              state="8 citations / maxIcons=5"
+              uxIntent="Icons cap at 5 — worst-status-first order ensures failures are always visible; remainder collapses into +N chip"
+            />
+            <div className="mt-3">
+              <CitationDrawerTrigger citationGroups={overflowGroups} />
+            </div>
+            <InteractionLabel
+              hover="Spreads the 5 visible icons, hover individual for source tooltip"
+              click="Opens drawer — header shows same icons with overflow cap"
+            />
+          </ShowcaseCard>
+
+          <ShowcaseCard data-drawer-trigger-state="overflow-interactive">
+            <ShowcaseLabel
+              component="CitationDrawerTrigger + CitationDrawer"
+              state="overflow + drawer header icons"
+              uxIntent="Opening the drawer reveals the same StackedStatusIcons in the header — trigger and drawer header use identical component and cap"
+            />
+            <div className="mt-3" data-interactive-drawer="overflow-trigger">
+              <CitationDrawerTrigger
+                citationGroups={overflowGroups}
+                onClick={() => setOverflowDrawerOpen(true)}
+                isOpen={overflowDrawerOpen}
+              />
+            </div>
+            <InteractionLabel
+              click="Opens drawer — compare header icons to the trigger icons above"
+              escapeKey="Closes drawer"
+            />
+          </ShowcaseCard>
+        </div>
+      </ShowcaseSection>
+
       {/* Portal-rendered drawer for interactive example */}
       <CitationDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} citationGroups={interactiveGroups} />
+      {/* Portal-rendered drawer for overflow example */}
+      <CitationDrawer
+        isOpen={overflowDrawerOpen}
+        onClose={() => setOverflowDrawerOpen(false)}
+        citationGroups={overflowGroups}
+      />
     </div>
   );
 }

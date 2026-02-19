@@ -425,7 +425,7 @@ describe("CitationDrawer", () => {
   });
 
   it("renders title", () => {
-    const { getByText } = render(
+    const { getByRole } = render(
       <CitationDrawer
         isOpen={true}
         onClose={() => {}}
@@ -434,15 +434,17 @@ describe("CitationDrawer", () => {
       />,
     );
 
-    expect(getByText("My Citations")).toBeInTheDocument();
+    // The drawer now shows source name (not title) as visible text in the header.
+    // The title prop is used as the dialog's accessible name (aria-label).
+    expect(getByRole("dialog", { name: "My Citations" })).toBeInTheDocument();
   });
 
   it("renders default title", () => {
-    const { getByText } = render(
+    const { getByRole } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Test", 1)]} />,
     );
 
-    expect(getByText("Citations")).toBeInTheDocument();
+    expect(getByRole("dialog", { name: "Citations" })).toBeInTheDocument();
   });
 
   it("calls onClose when close button clicked", () => {
@@ -487,18 +489,17 @@ describe("CitationDrawer", () => {
   it("renders all citation items", () => {
     const groups = [createGroup("Source A", 2), createGroup("Source B", 1)];
 
-    const { getAllByText, getByText } = render(
+    const { getByText } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} showMoreSection={false} />,
     );
 
-    // Default view is "By status" — all citations render flat with titles visible.
-    // "Article 1" appears twice: once from Source A (index 0) and once from Source B (index 0).
-    expect(getAllByText("Article 1")).toHaveLength(2);
+    // Source-only view: multi-citation groups render each citation with its article title.
+    // Source A (2 citations) → renders "Article 1" and "Article 2" as visible text.
+    expect(getByText("Article 1")).toBeInTheDocument();
     expect(getByText("Article 2")).toBeInTheDocument();
 
-    // Source names still appear on each citation item
-    expect(getAllByText("Source A").length).toBeGreaterThanOrEqual(1);
-    expect(getAllByText("Source B").length).toBeGreaterThanOrEqual(1);
+    // Source B (1 citation) renders as a compact row showing the source name.
+    expect(getByText("Source B")).toBeInTheDocument();
   });
 
   it("shows all items without More section (always expanded)", () => {
