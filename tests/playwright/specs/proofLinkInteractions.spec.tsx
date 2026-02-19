@@ -29,20 +29,12 @@ const verificationWithProof: Verification = {
   },
 };
 
-const verificationWithoutProof: Verification = {
-  status: "found",
-  label: "Q4_Report.pdf",
-  document: {
-    verifiedPageNumber: 5,
-  },
-};
-
 // =============================================================================
 // PROOF LINK INTERACTION TESTS
 // =============================================================================
 
 test.describe("Proof Link Interactions", () => {
-  test("page number is clickable link when proof URL exists", async ({ mount, page }) => {
+  test("summary shows PagePill button (not link) when proof URL exists", async ({ mount, page }) => {
     await mount(
       <CitationComponent
         citation={documentCitation}
@@ -54,39 +46,31 @@ test.describe("Proof Link Interactions", () => {
     const citation = page.locator("[data-citation-id]");
     await citation.click();
 
-    // Wait for popover to appear with explicit timeout
+    // Wait for popover to appear
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible({ timeout: 10000 });
 
-    // Find page number link (should have external link icon)
-    const pageLink = popover.getByRole("link", { name: /p\.5/i });
-    await expect(pageLink).toBeVisible({ timeout: 10000 });
-
-    // Verify it has correct href
-    await expect(pageLink).toHaveAttribute(
-      "href",
-      "https://api.deepcitation.com/proof/test123",
-    );
-
-    // Verify it has correct target attributes for security
-    await expect(pageLink).toHaveAttribute("target", "_blank");
-    await expect(pageLink).toHaveAttribute("rel", "noopener noreferrer");
+    // Page pill should be a button, NOT a link
+    const pagePillButton = popover.getByRole("button", { name: /expand to full page 5/i });
+    await expect(pagePillButton).toBeVisible({ timeout: 10000 });
+    await expect(popover.getByRole("link", { name: /p\.5/i })).not.toBeVisible();
   });
 
-  test("page number is static text when proof URL is missing", async ({ mount, page }) => {
-    const noProofVerification: Verification = {
+  test("page pill is static text when no onExpand (no proof image)", async ({ mount, page }) => {
+    const noImageVerification: Verification = {
       status: "found",
       label: "Document.pdf",
       document: {
         verifiedPageNumber: 5,
-        verificationImageSrc: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg",
       },
+      // Snippet required for shouldShowPopover — but no image means canExpand is false
+      verifiedMatchSnippet: "relevant text from the document",
     };
 
     await mount(
       <CitationComponent
         citation={documentCitation}
-        verification={noProofVerification}
+        verification={noImageVerification}
       />,
     );
 
@@ -103,10 +87,7 @@ test.describe("Proof Link Interactions", () => {
     await expect(popover.getByRole("link", { name: /p\.5/i })).not.toBeVisible();
   });
 
-  test("clicking page link does not close popover", async ({ mount, page, context }) => {
-    // Set up new page listener to capture proof URL navigation
-    const newPagePromise = context.waitForEvent("page");
-
+  test("clicking PagePill expands to full page view with proof link in header", async ({ mount, page }) => {
     await mount(
       <CitationComponent
         citation={documentCitation}
@@ -121,20 +102,24 @@ test.describe("Proof Link Interactions", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible({ timeout: 10000 });
 
-    // Click the page link
-    const pageLink = popover.getByRole("link", { name: /p\.5/i });
-    await pageLink.click();
+    // Click PagePill to expand
+    const pagePillButton = popover.getByRole("button", { name: /expand to full page 5/i });
+    await pagePillButton.click();
 
-    // Popover should still be visible (stopPropagation prevents close)
-    await expect(popover).toBeVisible({ timeout: 10000 });
+    // Expanded view should show proof link in header
+    const proofLink = popover.getByRole("link", { name: /open proof in new tab/i });
+    await expect(proofLink).toBeVisible({ timeout: 10000 });
 
-    // Verify new tab was opened with proof URL
-    const newPage = await newPagePromise;
-    expect(newPage.url()).toBe("https://api.deepcitation.com/proof/test123");
-    await newPage.close();
+    // Verify link attributes
+    await expect(proofLink).toHaveAttribute(
+      "href",
+      "https://api.deepcitation.com/proof/test123",
+    );
+    await expect(proofLink).toHaveAttribute("target", "_blank");
+    await expect(proofLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  test("external link icon is visible in page link", async ({ mount, page }) => {
+  test("expanded view shows Back button and page number", async ({ mount, page }) => {
     await mount(
       <CitationComponent
         citation={documentCitation}
@@ -148,52 +133,13 @@ test.describe("Proof Link Interactions", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible({ timeout: 10000 });
 
-    // Check that external link icon is present (link contains SVG)
-    const pageLink = popover.getByRole("link", { name: /p\.5/i });
-    await expect(pageLink).toBeVisible({ timeout: 10000 });
+    // Expand
+    const pagePillButton = popover.getByRole("button", { name: /expand to full page 5/i });
+    await pagePillButton.click();
 
-    // Verify link has the icon span wrapper
-    const iconWrapper = pageLink.locator("span");
-    await expect(iconWrapper).toHaveCount(2); // Text span + icon span
-  });
-
-  test("page link in verification log is also clickable", async ({ mount, page }) => {
-    const verificationWithSearchAttempts: Verification = {
-      ...verificationWithProof,
-      searchAttempts: [
-        {
-          method: "exact",
-          success: true,
-          searchPhrase: "25% revenue growth",
-          searchVariations: ["25% revenue growth"],
-          matchedLocation: {
-            pageNumber: 5,
-            lineId: 12,
-          },
-        },
-      ],
-    };
-
-    await mount(
-      <CitationComponent
-        citation={documentCitation}
-        verification={verificationWithSearchAttempts}
-      />,
-    );
-
-    const citation = page.locator("[data-citation-id]");
-    await citation.click();
-
-    const popover = page.getByRole("dialog");
-    await expect(popover).toBeVisible({ timeout: 10000 });
-
-    // Find page link in the popover header (proof URL link is visible on open)
-    const pageLineLink = popover.getByRole("link").filter({ hasText: "p.5" });
-    await expect(pageLineLink).toBeVisible();
-    await expect(pageLineLink).toHaveAttribute(
-      "href",
-      "https://api.deepcitation.com/proof/test123",
-    );
+    // Verify Back button and page number are visible in expanded header
+    await expect(popover.getByText("Back")).toBeVisible({ timeout: 10000 });
+    await expect(popover.getByText("p.5")).toBeVisible();
   });
 });
 
@@ -202,7 +148,7 @@ test.describe("Proof Link Interactions", () => {
 // =============================================================================
 
 test.describe("Proof Link Security", () => {
-  test("blocks javascript: protocol in proof URL", async ({ mount, page }) => {
+  test("blocks javascript: protocol in proof URL — no link in expanded view", async ({ mount, page }) => {
     const maliciousVerification: Verification = {
       status: "found",
       label: "Document.pdf",
@@ -228,12 +174,17 @@ test.describe("Proof Link Security", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible({ timeout: 10000 });
 
-    // Should show static text, not link
-    await expect(popover.getByText("p.5")).toBeVisible();
-    await expect(popover.getByRole("link", { name: /p\.5/i })).not.toBeVisible();
+    // Summary should show PagePill button (not proof link)
+    const pagePillButton = popover.getByRole("button", { name: /expand to full page 5/i });
+    await expect(pagePillButton).toBeVisible({ timeout: 10000 });
+
+    // Expand and verify no proof link
+    await pagePillButton.click();
+    await expect(popover.getByText("Back")).toBeVisible({ timeout: 10000 });
+    await expect(popover.getByRole("link", { name: /open proof in new tab/i })).not.toBeVisible();
   });
 
-  test("blocks proof URL from untrusted domain", async ({ mount, page }) => {
+  test("blocks proof URL from untrusted domain — no link in expanded view", async ({ mount, page }) => {
     const untrustedVerification: Verification = {
       status: "found",
       label: "Document.pdf",
@@ -259,12 +210,17 @@ test.describe("Proof Link Security", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible({ timeout: 10000 });
 
-    // Should show static text, not link
-    await expect(popover.getByText("p.5")).toBeVisible();
-    await expect(popover.getByRole("link", { name: /p\.5/i })).not.toBeVisible();
+    // Summary should show PagePill button (not proof link)
+    const pagePillButton = popover.getByRole("button", { name: /expand to full page 5/i });
+    await expect(pagePillButton).toBeVisible({ timeout: 10000 });
+
+    // Expand and verify no proof link
+    await pagePillButton.click();
+    await expect(popover.getByText("Back")).toBeVisible({ timeout: 10000 });
+    await expect(popover.getByRole("link", { name: /open proof in new tab/i })).not.toBeVisible();
   });
 
-  test("allows proof URL from deepcitation.com subdomain", async ({ mount, page }) => {
+  test("allows proof URL from deepcitation.com subdomain in expanded view", async ({ mount, page }) => {
     const cdnVerification: Verification = {
       status: "found",
       label: "Document.pdf",
@@ -287,10 +243,15 @@ test.describe("Proof Link Security", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible({ timeout: 10000 });
 
-    // Should be a valid link
-    const pageLink = popover.getByRole("link", { name: /p\.5/i });
-    await expect(pageLink).toBeVisible();
-    await expect(pageLink).toHaveAttribute(
+    // Summary shows PagePill button
+    const pagePillButton = popover.getByRole("button", { name: /expand to full page 5/i });
+    await expect(pagePillButton).toBeVisible({ timeout: 10000 });
+
+    // Expand to see proof link
+    await pagePillButton.click();
+    const proofLink = popover.getByRole("link", { name: /open proof in new tab/i });
+    await expect(proofLink).toBeVisible({ timeout: 10000 });
+    await expect(proofLink).toHaveAttribute(
       "href",
       "https://cdn.deepcitation.com/proof/test123",
     );

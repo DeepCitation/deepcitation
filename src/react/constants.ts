@@ -401,8 +401,9 @@ export const EXPANDED_POPOVER_WIDTH_VAR = "--dc-expanded-width";
 export const EXPANDED_POPOVER_WIDTH_DEFAULT = "85vw";
 /** Maximum expanded popover width */
 export const EXPANDED_POPOVER_MAX_WIDTH = "1200px";
-/** Default expanded popover height */
-export const EXPANDED_POPOVER_HEIGHT = "calc(100vh - 4rem)";
+/** Default expanded popover height — uses Radix's available height CSS var when present */
+export const EXPANDED_POPOVER_HEIGHT =
+  "min(calc(100vh - 6rem), var(--radix-popover-content-available-height, calc(100vh - 6rem)))";
 
 /** Transition duration for popover morph animation */
 export const POPOVER_MORPH_DURATION_MS = 300;

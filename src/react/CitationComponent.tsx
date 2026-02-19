@@ -46,7 +46,7 @@ import {
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
-import { ArrowLeftIcon, CheckIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
+import { ArrowLeftIcon, CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
@@ -64,6 +64,7 @@ import type {
   IndicatorVariant,
   UrlFetchStatus,
 } from "./types.js";
+import { isValidProofUrl } from "./urlUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 import { SourceContextHeader, StatusHeader, VerificationLogTimeline } from "./VerificationLog.js";
 
@@ -1506,6 +1507,7 @@ function ExpandedPageViewer({
   sourceLabel,
   citation,
   status,
+  proofUrl,
 }: {
   expandedImage: ExpandedImageSource;
   searchAttempts?: SearchAttempt[];
@@ -1514,10 +1516,22 @@ function ExpandedPageViewer({
   sourceLabel?: string;
   citation?: BaseCitationProps["citation"];
   status?: SearchStatus | null;
+  proofUrl?: string | null;
 }) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  // Track current src to prevent stale onLoad/onError from a previous image
+  const currentSrcRef = useRef(expandedImage.src);
+
+  // Reset image states when the source changes (e.g. expandedImageSrcOverride)
+  useEffect(() => {
+    currentSrcRef.current = expandedImage.src;
+    setImageLoaded(false);
+    setImageError(false);
+  }, [expandedImage.src]);
 
   const { highlightBox, dimensions } = expandedImage;
   const isMiss = verification?.status === "not_found";
@@ -1569,32 +1583,85 @@ function ExpandedPageViewer({
           </span>
           <span>Back</span>
         </button>
-        <div className="flex-1" />
-        <span className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[200px]" title={displayName}>
+        <div className="flex-1 min-w-0" />
+        <span className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[40%]" title={displayName}>
           {displayName}
         </span>
-        <span className={cn("text-xs font-medium", statusDisplay.className)}>{statusDisplay.text}</span>
+        <span className={cn("text-xs font-medium shrink-0", statusDisplay.className)}>{statusDisplay.text}</span>
         {pageNumber != null && pageNumber > 0 && (
-          <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0">p.{pageNumber}</span>
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 whitespace-nowrap">
+            p.{pageNumber}
+          </span>
+        )}
+        {proofUrl && (
+          <a
+            href={proofUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            className="shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+            aria-label="Open proof in new tab"
+          >
+            <span className="size-3.5 block">
+              <ExternalLinkIcon />
+            </span>
+          </a>
         )}
       </div>
 
       {/* Scrollable image container */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-auto relative bg-gray-50 dark:bg-gray-900">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto relative bg-gray-50 dark:bg-gray-900">
+        {/* Loading spinner */}
+        {!imageLoaded && !imageError && (
+          <div className="flex items-center justify-center h-64">
+            <span className="size-5 animate-spin text-gray-400">
+              <SpinnerIcon />
+            </span>
+          </div>
+        )}
+
+        {/* Error fallback */}
+        {imageError && (
+          <div role="alert" className="flex flex-col items-center justify-center h-64 text-gray-400 gap-3">
+            <span className="size-8" aria-hidden="true">
+              <WarningIcon />
+            </span>
+            <span className="text-sm">Image failed to load</span>
+            {proofUrl && (
+              <a
+                href={proofUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="text-xs text-blue-500 hover:text-blue-600 flex items-center gap-1"
+              >
+                Open proof in new tab
+                <span className="size-3">
+                  <ExternalLinkIcon />
+                </span>
+              </a>
+            )}
+          </div>
+        )}
+
         <div className="relative w-full">
           {isValidProofImageSrc(expandedImage.src) && (
             <img
               ref={imageRef}
               src={expandedImage.src}
               alt="Full page verification"
-              className="block w-full"
-              onLoad={() => setImageLoaded(true)}
-              onError={handleImageError}
+              className={cn("block w-full", imageError && "hidden")}
+              onLoad={() => {
+                if (expandedImage.src === currentSrcRef.current) setImageLoaded(true);
+              }}
+              onError={() => {
+                if (expandedImage.src === currentSrcRef.current) setImageError(true);
+              }}
             />
           )}
 
           {/* Highlight overlay using percentage positioning */}
-          {highlightBox && dimensions && imageLoaded && (
+          {highlightBox && dimensions && imageLoaded && !imageError && (
             <div
               className="absolute border-2 border-blue-500/60 bg-blue-500/10 rounded"
               style={{
@@ -1719,12 +1786,15 @@ function DefaultPopoverContent({
   if (viewState === "expanded" && expandedImage) {
     return (
       <div
-        className={cn(POPOVER_CONTAINER_BASE_CLASSES, "flex flex-col animate-in fade-in-0 duration-150")}
+        className={cn(
+          POPOVER_CONTAINER_BASE_CLASSES,
+          "flex flex-col animate-in fade-in-0 duration-150 !overflow-hidden",
+        )}
         style={{
           width: `var(${EXPANDED_POPOVER_WIDTH_VAR}, ${EXPANDED_POPOVER_WIDTH_DEFAULT})`,
           maxWidth: EXPANDED_POPOVER_MAX_WIDTH,
-          height: EXPANDED_POPOVER_HEIGHT,
-          transition: `width ${POPOVER_MORPH_DURATION_MS}ms ease-out, height ${POPOVER_MORPH_DURATION_MS}ms ease-out`,
+          maxHeight: EXPANDED_POPOVER_HEIGHT,
+          transition: `width ${POPOVER_MORPH_DURATION_MS}ms ease-out, max-height ${POPOVER_MORPH_DURATION_MS}ms ease-out`,
         }}
       >
         <ExpandedPageViewer
@@ -1735,6 +1805,7 @@ function DefaultPopoverContent({
           sourceLabel={sourceLabel}
           citation={citation}
           status={searchStatus}
+          proofUrl={verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null}
         />
       </div>
     );
@@ -2908,9 +2979,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               id={popoverId}
               side={popoverPosition === "bottom" ? "bottom" : "top"}
               aria-label={popoverViewState === "expanded" ? "Full size verification image" : undefined}
+              collisionPadding={popoverViewState === "expanded" ? 16 : undefined}
               style={
                 popoverViewState === "expanded"
-                  ? { maxWidth: `min(${EXPANDED_POPOVER_MAX_WIDTH}, calc(100vw - 2rem))` }
+                  ? { maxWidth: `min(${EXPANDED_POPOVER_MAX_WIDTH}, calc(100vw - 2rem))`, overflow: "hidden" }
                   : undefined
               }
               onPointerDownOutside={(e: Event) => e.preventDefault()}
