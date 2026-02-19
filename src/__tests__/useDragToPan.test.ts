@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "@jest/globals";
 import { renderHook } from "@testing-library/react";
 import { useDragToPan } from "../react/hooks/useDragToPan";
 
@@ -8,11 +8,11 @@ describe("useDragToPan", () => {
     expect(result.current.containerRef).toBeDefined();
     expect(result.current.isDragging).toBe(false);
     expect(result.current.handlers).toBeDefined();
-    expect(result.current.handlers.onMouseDown).toBeFunction();
-    expect(result.current.handlers.onMouseMove).toBeFunction();
-    expect(result.current.handlers.onMouseUp).toBeFunction();
-    expect(result.current.handlers.onMouseLeave).toBeFunction();
-    expect(result.current.scrollTo).toBeFunction();
+    expect(typeof result.current.handlers.onMouseDown).toBe("function");
+    expect(typeof result.current.handlers.onMouseMove).toBe("function");
+    expect(typeof result.current.handlers.onMouseUp).toBe("function");
+    expect(typeof result.current.handlers.onMouseLeave).toBe("function");
+    expect(typeof result.current.scrollTo).toBe("function");
     expect(result.current.wasDragging.current).toBe(false);
   });
 
