@@ -37,6 +37,7 @@ import {
   POPOVER_WIDTH_DEFAULT,
   POPOVER_WIDTH_VAR,
   VERIFIED_COLOR_STYLE,
+  Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
@@ -606,7 +607,7 @@ const DotIndicator = ({
 }) => (
   <span
     className={cn(
-      "inline-flex relative ml-1 top-[0.1em] rounded-full [text-decoration:none]",
+      "inline-block ml-1 rounded-full [text-decoration:none] [vertical-align:0.1em]",
       DOT_COLORS[color],
       pulse && "animate-pulse",
     )}
@@ -1765,7 +1766,8 @@ function DefaultPopoverContent({
   onViewStateChange,
   expandedImageSrcOverride,
 }: PopoverContentProps) {
-  const hasImage = verification?.document?.verificationImageSrc;
+  const hasImage =
+    verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 
@@ -1783,7 +1785,6 @@ function DefaultPopoverContent({
       : { src: expandedImageSrcOverride };
   }, [verification, expandedImageSrcOverride]);
 
-  const isDocCitation = !isUrlCitation(citation);
   const canExpand = !!expandedImage;
 
   const handleExpand = useCallback(() => {
@@ -2207,6 +2208,34 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const setPopoverContentRef = useCallback((element: HTMLElement | null) => {
       popoverContentRef.current = element;
     }, []);
+
+    // When the expanded view is active, Radix's popper wrapper applies transform:translate(...)
+    // to position the popover near the trigger. CSS position:fixed children are positioned
+    // relative to a transformed ancestor, not the viewport — so our inset styles land in the
+    // wrong place. We imperatively neutralize the wrapper to achieve true viewport coverage.
+    // useLayoutEffect fires synchronously after DOM mutation and before the browser paints,
+    // so the user never sees an intermediate state.
+    useLayoutEffect(() => {
+      if (popoverViewState !== "expanded") return;
+      const wrapper = popoverContentRef.current?.parentElement as HTMLElement | null;
+      if (!wrapper) return;
+      wrapper.style.setProperty("transform", "none", "important");
+      wrapper.style.setProperty("position", "fixed", "important");
+      wrapper.style.setProperty("inset", "1rem", "important");
+      wrapper.style.setProperty("min-width", "unset", "important");
+      wrapper.style.setProperty("width", "calc(100vw - 2rem)", "important");
+      wrapper.style.setProperty("height", "calc(100vh - 2rem)", "important");
+      wrapper.style.setProperty("z-index", String(Z_INDEX_OVERLAY_DEFAULT), "important");
+      return () => {
+        wrapper.style.removeProperty("transform");
+        wrapper.style.removeProperty("position");
+        wrapper.style.removeProperty("inset");
+        wrapper.style.removeProperty("min-width");
+        wrapper.style.removeProperty("width");
+        wrapper.style.removeProperty("height");
+        wrapper.style.removeProperty("z-index");
+      };
+    }, [popoverViewState]);
 
     // Ref for the trigger element (for mobile click-outside dismiss detection)
     // We need our own ref in addition to the forwarded ref to reliably check click targets
@@ -3055,10 +3084,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               style={
                 popoverViewState === "expanded"
                   ? {
-                      position: "fixed" as const,
-                      inset: "1rem",
+                      width: "100%",
+                      height: "100%",
                       maxWidth: "none",
-                      transform: "none",
+                      maxHeight: "none",
                       overflow: "hidden",
                     }
                   : undefined
