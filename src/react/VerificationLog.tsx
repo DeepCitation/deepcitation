@@ -9,7 +9,7 @@ import {
   ChevronRightIcon,
   CopyIcon,
   DocumentIcon,
-  ExternalLinkIcon,
+
   GlobeIcon,
   MissIcon,
   SpinnerIcon,
@@ -17,7 +17,7 @@ import {
 } from "./icons.js";
 import type { UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
-import { sanitizeUrl } from "./urlUtils.js";
+
 import { cn, isUrlCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
 
@@ -331,115 +331,53 @@ export function SourceContextHeader({
 }: SourceContextHeaderProps) {
   const isUrl = isUrlCitation(citation);
 
-  if (isUrl) {
-    // URL citation: show status + favicon + URL on first row, quoted text on second row
-    const faviconUrl = verification?.url?.verifiedFaviconUrl || citation.faviconUrl;
-    const domain = verification?.url?.verifiedDomain || citation.domain;
-    const url = citation.url || "";
-    const safeUrl = sanitizeUrl(url);
-
-    // Map the search status to URL fetch status for display
-    const urlFetchStatus = mapSearchStatusToUrlFetchStatus(status);
-
-    // Get status color and icon
-    const colorScheme = getStatusColorScheme(status);
-    const IconComponent =
-      colorScheme === "green"
-        ? CheckIcon
-        : colorScheme === "amber"
-          ? CheckIcon
-          : colorScheme === "red"
-            ? XCircleIcon
-            : SpinnerIcon;
-
-    // Get the anchor text to display (found text or searched-for text)
-    const anchorText = verification?.verifiedAnchorText || citation.anchorText;
-    const displayAnchorText = anchorText
-      ? anchorText.length > MAX_MATCHED_TEXT_LENGTH
-        ? `${anchorText.slice(0, MAX_MATCHED_TEXT_LENGTH)}...`
-        : anchorText
-      : null;
-
-    // Show second line only when resolved (status icon already conveys outcome)
-    const isResolved = status && status !== "pending" && status !== "loading";
-
-    return (
-      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-        {/* Row 1: Status icon + favicon + URL + external link */}
-        <div className="flex items-center gap-2">
-          <span className={cn("size-4 shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
-            <IconComponent />
-          </span>
-          <div className="flex-1 min-w-0">
-            <UrlCitationComponent
-              urlMeta={{
-                url,
-                domain,
-                // When sourceLabel is provided, use it as the title override for display
-                title: sourceLabel,
-                faviconUrl,
-                fetchStatus: urlFetchStatus,
-              }}
-              variant="chip"
-              maxDisplayLength={MAX_URL_DISPLAY_LENGTH}
-              preventTooltips={true}
-              showStatusIndicator={false}
-              // When sourceLabel is provided, prefer showing the title (custom label)
-              showTitle={!!sourceLabel}
-              className="!bg-transparent !px-0 !py-0 hover:!bg-transparent"
-            />
-          </div>
-          {safeUrl && (
-            <a
-              href={safeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
-              aria-label="Open URL in new tab"
-              onClick={e => e.stopPropagation()}
-            >
-              <ExternalLinkIcon />
-            </a>
-          )}
-        </div>
-        {/* Row 2: Quoted text we searched for with copy button (only when resolved) */}
-        {isResolved && displayAnchorText && (
-          <UrlAnchorTextRow anchorText={anchorText || ""} displayAnchorText={displayAnchorText} />
-        )}
-      </div>
-    );
-  }
-
-  // Document citation: show document icon + label + page pill (right-aligned)
-  // Note: attachmentId should never be shown to users - only show the label if available
-  // sourceLabel takes precedence over verification.label
-  const label = sourceLabel || verification?.label;
-  const pageNumber = verification?.document?.verifiedPageNumber ?? citation.pageNumber;
-  const lineIds = verification?.document?.verifiedLineIds ?? citation.lineIds;
-
-  // Display text: use label, fall back to "Document" (never show attachmentId to users)
-  const displayName = label || "Document";
-
-  // Format page/line text (for fallback when no onExpand)
+  // Common page/line data (pageNumber/lineIds only exist on DocumentCitation)
+  const pageNumber = verification?.document?.verifiedPageNumber ?? (isUrl ? undefined : citation.pageNumber);
+  const lineIds = verification?.document?.verifiedLineIds ?? (isUrl ? undefined : citation.lineIds);
   const pageLineText = formatPageLineText(pageNumber, lineIds);
-
-  // Derive color scheme for PagePill
   const colorScheme = getStatusColorScheme(status);
-
   const showPagePill = !!onExpand && !!pageNumber && pageNumber > 0;
 
+  // URL-specific data
+  const url = isUrl ? (citation.url || "") : "";
+
+  // Display name for document citations (never show attachmentId to users)
+  const displayName = isUrl ? undefined : (sourceLabel || verification?.label || "Document");
+
   return (
-    <div className="flex items-center justify-between gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+    <div className="flex items-center justify-between gap-2 p-3 border-b border-gray-200 dark:border-gray-700">
+      {/* Left: Icon + source name */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        <span className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500">
-          <DocumentIcon />
-        </span>
-        {displayName && (
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate max-w-[280px]">
-            {displayName}
-          </span>
+        {isUrl ? (
+          <UrlCitationComponent
+            urlMeta={{
+              url,
+              domain: verification?.url?.verifiedDomain || citation.domain,
+              title: sourceLabel,
+              faviconUrl: verification?.url?.verifiedFaviconUrl || citation.faviconUrl,
+              fetchStatus: mapSearchStatusToUrlFetchStatus(status),
+            }}
+            variant="chip"
+            maxDisplayLength={MAX_URL_DISPLAY_LENGTH}
+            preventTooltips={true}
+            showStatusIndicator={false}
+            showTitle={!!sourceLabel}
+            className="!bg-transparent !px-0 !py-0 !opacity-100 hover:!bg-transparent"
+          />
+        ) : (
+          <>
+            <span className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500">
+              <DocumentIcon />
+            </span>
+            {displayName && (
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate max-w-[280px]">
+                {displayName}
+              </span>
+            )}
+          </>
         )}
       </div>
+      {/* Right: Page pill + external link */}
       <div className="flex items-center gap-2">
         {showPagePill && <PagePill pageNumber={pageNumber} colorScheme={colorScheme} onClick={onExpand} />}
         {!showPagePill && pageLineText && (
@@ -823,23 +761,6 @@ export function StatusHeader({
     return () => clearTimeout(timeoutId);
   }, [copyState]);
 
-  const _handleCopy = useCallback(
-    async (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!anchorText) return;
-
-      try {
-        await navigator.clipboard.writeText(anchorText);
-        setCopyState("copied");
-      } catch (err) {
-        console.error("Failed to copy text:", err);
-        setCopyState("error");
-      }
-    },
-    [anchorText],
-  );
-
   // Select appropriate icon based on status
   // - Green (verified): CheckIcon
   // - Amber (partial): CheckIcon (de-emphasized, not aggressive warning)
@@ -862,8 +783,8 @@ export function StatusHeader({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-700 text-sm",
-        compact ? "px-3 py-1.5" : "px-4 py-2",
+        "flex items-center justify-between gap-2 text-sm",
+        compact ? "px-3 pt-2.5 pb-0.5" : "px-4 pt-3 pb-1",
       )}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">

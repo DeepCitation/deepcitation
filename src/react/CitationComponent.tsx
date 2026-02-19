@@ -1866,19 +1866,17 @@ function DefaultPopoverContent({
             onExpand={canExpand ? handleExpand : undefined}
           />
           {/* Zone 2: Claim Body — Status + highlighted phrase */}
-          {!isUrlCitation(citation) && (
-            <StatusHeader
-              status={searchStatus}
-              foundPage={foundPage}
-              expectedPage={expectedPage ?? undefined}
-              hidePageBadge
-              anchorText={anchorText}
-              indicatorVariant={indicatorVariant}
-            />
-          )}
+          <StatusHeader
+            status={searchStatus}
+            foundPage={foundPage}
+            expectedPage={expectedPage ?? undefined}
+            hidePageBadge
+            anchorText={anchorText}
+            indicatorVariant={indicatorVariant}
+          />
 
           {fullPhrase && (
-            <div className="mx-3 my-2 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
+            <div className="mx-3 mt-1 mb-2 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
               <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}
@@ -1919,16 +1917,14 @@ function DefaultPopoverContent({
           />
 
           {/* Zone 2: Claim Body — Status + highlighted phrase */}
-          {!isUrlCitation(citation) && (
-            <StatusHeader
-              status={searchStatus}
-              foundPage={foundPage}
-              expectedPage={expectedPage ?? undefined}
-              hidePageBadge
-              anchorText={anchorText}
-              indicatorVariant={indicatorVariant}
-            />
-          )}
+          <StatusHeader
+            status={searchStatus}
+            foundPage={foundPage}
+            expectedPage={expectedPage ?? undefined}
+            hidePageBadge
+            anchorText={anchorText}
+            indicatorVariant={indicatorVariant}
+          />
 
           {/* URL access explanation (for URL citations with access failures) */}
           {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
@@ -1940,7 +1936,7 @@ function DefaultPopoverContent({
           )}
 
           {fullPhrase && (
-            <div className="mx-3 my-2 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
+            <div className="mx-3 mt-1 mb-2 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
               <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}
