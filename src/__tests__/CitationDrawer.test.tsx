@@ -280,9 +280,10 @@ describe("CitationDrawerItemComponent", () => {
   it("renders snippet", () => {
     const { getAllByText } = render(<CitationDrawerItemComponent item={createItem()} />);
 
-    // Snippet appears in both summary row and always-rendered expanded detail (CSS grid animation)
+    // Snippet appears exactly twice: once in the summary row and once in the always-rendered
+    // expanded detail (CSS grid 0fr animation keeps content in DOM even when visually hidden)
     const snippets = getAllByText("The minimum tax is $175.00 for corporations...");
-    expect(snippets.length).toBeGreaterThanOrEqual(1);
+    expect(snippets).toHaveLength(2);
   });
 
   it("renders status indicator instead of favicon", () => {

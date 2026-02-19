@@ -13,6 +13,7 @@ import {
   getItemStatusCategory,
   getStatusInfo,
   groupCitationsByStatus,
+  STATUS_DISPLAY_MAP,
   sortGroupsByWorstStatus,
 } from "./CitationDrawer.utils.js";
 import {
@@ -305,6 +306,7 @@ function ViewModeToggle({ mode, onChange }: { mode: ViewMode; onChange: (mode: V
           type="button"
           role="radio"
           aria-checked={mode === m}
+          aria-label={m === "status" ? "Group citations by verification status" : "Group citations by source"}
           className={cn(
             "px-2.5 py-1 transition-colors cursor-pointer",
             m === "status" && "rounded-l-md",
@@ -447,14 +449,6 @@ function formatCheckedDate(date: Date | string | null | undefined): string | nul
 // CitationDrawerItemComponent
 // =========
 
-/** Status-colored left border classes, keyed by StatusCategory. */
-const STATUS_BORDER_MAP = {
-  notFound: "border-l-red-400 dark:border-l-red-500",
-  partial: "border-l-amber-400 dark:border-l-amber-500",
-  pending: "border-l-gray-300 dark:border-l-gray-600",
-  verified: "border-l-green-400 dark:border-l-green-500",
-} as const;
-
 /**
  * Individual citation item displayed in the drawer.
  * Shows status + anchor text summary, expands to show compact verification details.
@@ -527,7 +521,8 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const isNotFound = statusCategory === "notFound";
   const isVerified = statusCategory === "verified";
 
-  const statusBorderColor = STATUS_BORDER_MAP[statusCategory];
+  // Border color from STATUS_DISPLAY_MAP — single source of truth for status styling
+  const statusBorderColor = STATUS_DISPLAY_MAP[statusCategory].borderColor;
 
   // Verification date
   const checkedDate = formatCheckedDate(verification?.verifiedAt ?? verification?.url?.crawledAt);
@@ -953,22 +948,25 @@ export function CitationDrawer({
     return parts.join(" · ");
   }, [summary]);
 
+  // Pre-compute first not-found key as a stable derived value. The loop runs once per
+  // citationGroups change (memoized) rather than being embedded in the effect, making the
+  // key available for any future render path that needs it beyond the open-drawer trigger.
+  const firstNotFoundKey = useMemo(() => {
+    for (const group of citationGroups) {
+      for (const item of group.citations) {
+        if (getItemStatusCategory(item) === "notFound") return item.citationKey;
+      }
+    }
+    return null;
+  }, [citationGroups]);
+
   // Auto-expand first not-found item when drawer opens
   React.useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
-      // Find first not-found citation (uses canonical status logic)
-      for (const group of citationGroups) {
-        for (const item of group.citations) {
-          if (getItemStatusCategory(item) === "notFound") {
-            setAutoExpandKey(item.citationKey);
-            return;
-          }
-        }
-      }
-      setAutoExpandKey(null);
+      setAutoExpandKey(firstNotFoundKey);
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, citationGroups]);
+  }, [isOpen, firstNotFoundKey]);
 
   // Handle escape key
   React.useEffect(() => {

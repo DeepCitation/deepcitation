@@ -198,6 +198,26 @@ export interface StatusSection {
 }
 
 /**
+ * Single source of truth for status display styling.
+ * Maps each StatusCategory to a human label, text color (for section headers/labels),
+ * and border color (for citation item left borders in CitationDrawer).
+ */
+export const STATUS_DISPLAY_MAP: Record<StatusCategory, { label: string; textColor: string; borderColor: string }> = {
+  notFound: { label: "Not found", textColor: "text-red-500", borderColor: "border-l-red-400 dark:border-l-red-500" },
+  partial: {
+    label: "Partial match",
+    textColor: "text-amber-500",
+    borderColor: "border-l-amber-400 dark:border-l-amber-500",
+  },
+  pending: { label: "Verifying", textColor: "text-gray-400", borderColor: "border-l-gray-300 dark:border-l-gray-600" },
+  verified: {
+    label: "Verified",
+    textColor: "text-green-500",
+    borderColor: "border-l-green-400 dark:border-l-green-500",
+  },
+};
+
+/**
  * Summary of verification statuses across all citations.
  * Computed from citation groups for header display and progress bar.
  */
@@ -214,6 +234,7 @@ export function computeStatusSummary(groups: SourceCitationGroup[]): {
   let pending = 0;
 
   for (const group of groups) {
+    if (!group?.citations || !Array.isArray(group.citations)) continue;
     for (const item of group.citations) {
       const priority = getStatusPriority(item.verification);
       switch (priority) {
@@ -291,18 +312,15 @@ export function groupCitationsByStatus(groups: SourceCitationGroup[]): StatusSec
     }
   }
 
-  const sectionDefs: { category: StatusCategory; label: string; color: string }[] = [
-    { category: "notFound", label: "Not found", color: "text-red-500" },
-    { category: "partial", label: "Partial match", color: "text-amber-500" },
-    { category: "pending", label: "Verifying", color: "text-gray-400" },
-    { category: "verified", label: "Verified", color: "text-green-500" },
-  ];
+  const categoryOrder: StatusCategory[] = ["notFound", "partial", "pending", "verified"];
 
-  return sectionDefs
-    .filter(def => buckets[def.category].length > 0)
-    .map(def => ({
-      ...def,
-      items: buckets[def.category],
+  return categoryOrder
+    .filter(category => buckets[category].length > 0)
+    .map(category => ({
+      category,
+      label: STATUS_DISPLAY_MAP[category].label,
+      color: STATUS_DISPLAY_MAP[category].textColor,
+      items: buckets[category],
     }));
 }
 

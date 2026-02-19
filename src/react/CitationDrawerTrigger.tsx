@@ -432,25 +432,34 @@ function TriggerStatusBar({ summary }: { summary: StatusSummary }) {
 function TriggerBadge({ summary }: { summary: StatusSummary }) {
   if (summary.total === 0) return null;
 
-  const hasIssues = summary.notFound > 0 || summary.partial > 0;
-  const verifiedCount = summary.verified;
+  const hasNotFound = summary.notFound > 0;
+  const hasPartial = summary.partial > 0;
+
+  // Red only when not-found citations outnumber verified ones — a serious signal.
+  // Amber for minor issues (a few misses or partial matches among mostly-verified citations).
+  const isRedAlert = hasNotFound && summary.notFound > summary.verified;
+  const isAmberAlert = (hasNotFound || hasPartial) && !isRedAlert;
+
+  const colorClass = isRedAlert
+    ? "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
+    : isAmberAlert
+      ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+      : "bg-green-50 text-green-600 dark:bg-green-950/40 dark:text-green-400";
+  const dotClass = isRedAlert
+    ? "bg-red-500 dark:bg-red-400"
+    : isAmberAlert
+      ? "bg-amber-500 dark:bg-amber-400"
+      : "bg-green-500 dark:bg-green-400";
 
   return (
     <span
       className={cn(
         "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none",
-        hasIssues
-          ? "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
-          : "bg-green-50 text-green-600 dark:bg-green-950/40 dark:text-green-400",
+        colorClass,
       )}
     >
-      <span
-        className={cn(
-          "inline-block w-1.5 h-1.5 rounded-full",
-          hasIssues ? "bg-red-500 dark:bg-red-400" : "bg-green-500 dark:bg-green-400",
-        )}
-      />
-      {verifiedCount}/{summary.total}
+      <span className={cn("inline-block w-1.5 h-1.5 rounded-full", dotClass)} />
+      {summary.verified}/{summary.total}
     </span>
   );
 }
