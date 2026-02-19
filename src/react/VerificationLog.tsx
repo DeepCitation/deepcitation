@@ -323,7 +323,9 @@ export function SourceContextHeader({
             className="shrink-0 flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors pr-1 border-r border-gray-200 dark:border-gray-700 mr-1"
             aria-label="Back to citation summary"
           >
-            <span className="size-3.5 block"><ArrowLeftIcon /></span>
+            <span className="size-3.5 block">
+              <ArrowLeftIcon />
+            </span>
             <span>Back</span>
           </button>
         )}
@@ -359,12 +361,7 @@ export function SourceContextHeader({
       {/* Right: Page pill — expand affordance in summary, active/close in expanded */}
       <div className="flex items-center gap-2">
         {showPagePill && (
-          <PagePill
-            pageNumber={pageNumber}
-            colorScheme={colorScheme}
-            onClick={onExpand}
-            onClose={onClose}
-          />
+          <PagePill pageNumber={pageNumber} colorScheme={colorScheme} onClick={onExpand} onClose={onClose} />
         )}
         {!showPagePill && pageLineText && (
           <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">

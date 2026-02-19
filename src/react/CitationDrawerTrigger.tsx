@@ -1,9 +1,9 @@
 import type React from "react";
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Verification } from "../types/verification.js";
-import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
-import { flattenCitations, getStatusInfo } from "./CitationDrawer.utils.js";
+import type { SourceCitationGroup } from "./CitationDrawer.types.js";
 import type { FlatCitationItem } from "./CitationDrawer.utils.js";
+import { flattenCitations, getStatusInfo } from "./CitationDrawer.utils.js";
 import { isValidProofImageSrc } from "./constants.js";
 import { cn } from "./utils.js";
 
@@ -196,7 +196,7 @@ function CitationTooltip({
   const rawProofImage = showProofThumbnail ? item.verification?.document?.verificationImageSrc : null;
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
-  const handleProofClick = (e: React.MouseEvent) => {
+  const handleProofClick = (e: React.SyntheticEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onSourceClick?.(group);
@@ -277,7 +277,7 @@ function CitationTooltip({
             onKeyDown={e => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                handleProofClick(e as unknown as React.MouseEvent);
+                handleProofClick(e);
               }
             }}
             aria-label={`View proof for ${sourceName}`}

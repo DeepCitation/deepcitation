@@ -288,7 +288,8 @@ describe("resolveExpandedImage", () => {
 
   describe("URL citation screenshot (tier 3 — webPageScreenshotBase64)", () => {
     it("converts raw base64 string to data:image/jpeg;base64, URI", () => {
-      const rawBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const rawBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
       const verification: Verification = {
         status: "found",
         url: { webPageScreenshotBase64: rawBase64 },

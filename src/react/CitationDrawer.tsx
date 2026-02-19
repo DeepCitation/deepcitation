@@ -11,11 +11,13 @@ import type {
 import {
   computeStatusSummary,
   extractDomain,
+  flattenCitations,
   getItemStatusCategory,
   getStatusInfo,
   STATUS_DISPLAY_MAP,
   sortGroupsByWorstStatus,
 } from "./CitationDrawer.utils.js";
+import { StackedStatusIcons } from "./CitationDrawerTrigger.js";
 import {
   getPortalContainer,
   isValidProofImageSrc,
@@ -27,8 +29,6 @@ import {
 import { formatCaptureDate } from "./dateUtils.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { CheckIcon, ExternalLinkIcon, MissIcon } from "./icons.js";
-import { flattenCitations } from "./CitationDrawer.utils.js";
-import { StackedStatusIcons } from "./CitationDrawerTrigger.js";
 import { buildSearchSummary } from "./searchSummaryUtils.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn } from "./utils.js";
@@ -650,11 +650,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
             {/* Enhanced not-found callout with search analysis */}
             {isNotFound && searchAttempts.length > 0 && (
-              <NotFoundCallout
-                searchAttempts={searchAttempts}
-                verification={verification}
-                proofImage={proofImage}
-              />
+              <NotFoundCallout searchAttempts={searchAttempts} verification={verification} proofImage={proofImage} />
             )}
 
             {/* Verification summary — shown for non-not-found statuses */}
@@ -697,7 +693,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 </a>
               </div>
             )}
-
           </div>
         </div>
       </div>
@@ -839,9 +834,7 @@ function DrawerSourceHeading({
   fallbackTitle: string;
 }) {
   if (citationGroups.length === 0) {
-    return (
-      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{fallbackTitle}</h2>
-    );
+    return <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{fallbackTitle}</h2>;
   }
 
   const firstGroup = citationGroups[0];
@@ -986,7 +979,6 @@ export function CitationDrawer({
                 indicatorVariant={indicatorVariant}
                 hideSourceName
                 sourceLabelMap={sourceLabelMap}
-
                 style={{ animationDelay: `${delay}ms` }}
               />
             );

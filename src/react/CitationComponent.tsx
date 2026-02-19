@@ -936,7 +936,6 @@ export function AnchorTextFocusedImage({
             </div>
           )}
         </button>
-
       </div>
 
       {/* Action bar — only shown when View page button is available */}
@@ -1405,8 +1404,7 @@ function EvidenceTray({
   onImageClick?: () => void;
   proofImageSrc?: string;
 }) {
-  const hasImage =
-    verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
+  const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const isMiss = status.isMiss;
   const searchAttempts = verification?.searchAttempts ?? [];
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
@@ -1489,7 +1487,6 @@ function EvidenceTray({
 // =============================================================================
 // EXPANDED PAGE VIEWER
 // =============================================================================
-
 
 function ExpandedPageViewer({
   expandedImage,
@@ -1738,8 +1735,7 @@ function DefaultPopoverContent({
   onViewStateChange,
   expandedImageSrcOverride,
 }: PopoverContentProps) {
-  const hasImage =
-    verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
+  const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 
@@ -3015,92 +3011,86 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               Radix positioning constraints. Two modes:
               - "expanded-evidence": centered modal sized to image content (keyhole click)
               - "expanded-page": full-screen scrollable proof page viewer (expand button) */}
-          {popoverViewState !== "summary" && (() => {
-            const container = getPortalContainer();
-            if (!container) return null;
-            const handleBack = () => {
-              setPopoverViewState("summary");
-              setCustomExpandedSrc(null);
-            };
+          {popoverViewState !== "summary" &&
+            (() => {
+              const container = getPortalContainer();
+              if (!container) return null;
+              const handleBack = () => {
+                setPopoverViewState("summary");
+                setCustomExpandedSrc(null);
+              };
 
-            if (popoverViewState === "expanded-evidence") {
-              // Read the evidence/snippet image src directly — no URL threading through callbacks.
-              // isValidProofImageSrc guards the img tag; if somehow invalid, skip rendering.
-              const rawUrlScreenshot = verification?.url?.webPageScreenshotBase64;
-              const evidenceSrc =
-                verification?.document?.verificationImageSrc ??
-                (rawUrlScreenshot ? normalizeScreenshotSrc(rawUrlScreenshot) : undefined);
-              if (!evidenceSrc || !isValidProofImageSrc(evidenceSrc)) return null;
-              // Evidence image modal: centered, sizes to content, capped at viewport
-              return createPortal(
-                // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss is supplementary; keyboard exit is handled by the document-level ESC handler
-                <div
-                  className="animate-in fade-in-0 duration-150"
-                  style={{
-                    position: "fixed",
-                    inset: 0,
-                    zIndex: Z_INDEX_OVERLAY_DEFAULT,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "1rem",
-                    backgroundColor: "rgba(0, 0, 0, 0.6)",
-                  }}
-                  onClick={e => {
-                    if (e.target === e.currentTarget) handleBack();
-                  }}
-                >
+              if (popoverViewState === "expanded-evidence") {
+                // Read the evidence/snippet image src directly — no URL threading through callbacks.
+                // isValidProofImageSrc guards the img tag; if somehow invalid, skip rendering.
+                const rawUrlScreenshot = verification?.url?.webPageScreenshotBase64;
+                const evidenceSrc =
+                  verification?.document?.verificationImageSrc ??
+                  (rawUrlScreenshot ? normalizeScreenshotSrc(rawUrlScreenshot) : undefined);
+                if (!evidenceSrc || !isValidProofImageSrc(evidenceSrc)) return null;
+                // Evidence image modal: centered, sizes to content, capped at viewport
+                return createPortal(
+                  // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop dismiss is supplementary; keyboard exit is handled by the document-level ESC handler
                   <div
-                    className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl flex flex-col overflow-hidden"
-                    style={{ maxWidth: "min(900px, 95vw)", maxHeight: "90dvh" }}
+                    className="animate-in fade-in-0 duration-150"
+                    style={{
+                      position: "fixed",
+                      inset: 0,
+                      zIndex: Z_INDEX_OVERLAY_DEFAULT,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "1rem",
+                      backgroundColor: "rgba(0, 0, 0, 0.6)",
+                    }}
+                    onClick={e => {
+                      if (e.target === e.currentTarget) handleBack();
+                    }}
                   >
-                    {citation && (
-                      <SourceContextHeader
-                        citation={citation}
-                        verification={verification ?? null}
-                        status={verification?.status ?? null}
-                        sourceLabel={sourceLabel}
-                        onClose={handleBack}
-                      />
-                    )}
-                    <div className="flex-1 min-h-0 overflow-auto">
-                      <img
-                        src={evidenceSrc}
-                        alt="Evidence"
-                        className="block max-w-full h-auto"
-                        draggable={false}
-                      />
+                    <div
+                      className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl flex flex-col overflow-hidden"
+                      style={{ maxWidth: "min(900px, 95vw)", maxHeight: "90dvh" }}
+                    >
+                      {citation && (
+                        <SourceContextHeader
+                          citation={citation}
+                          verification={verification ?? null}
+                          status={verification?.status ?? null}
+                          sourceLabel={sourceLabel}
+                          onClose={handleBack}
+                        />
+                      )}
+                      <div className="flex-1 min-h-0 overflow-auto">
+                        <img src={evidenceSrc} alt="Evidence" className="block max-w-full h-auto" draggable={false} />
+                      </div>
                     </div>
-                  </div>
+                  </div>,
+                  container,
+                );
+              }
+
+              // "expanded-page": full-screen proof page viewer
+              if (!expandedImageForPortal) return null;
+              const proofUrl = verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
+              return createPortal(
+                <div
+                  className="bg-white dark:bg-gray-900 flex flex-col animate-in fade-in-0 duration-150"
+                  style={{ position: "fixed", inset: 0, zIndex: Z_INDEX_OVERLAY_DEFAULT, overflow: "hidden" }}
+                >
+                  <ExpandedPageViewer
+                    expandedImage={expandedImageForPortal}
+                    searchAttempts={verification?.searchAttempts}
+                    verification={verification ?? null}
+                    onBack={handleBack}
+                    sourceLabel={sourceLabel}
+                    citation={citation}
+                    status={verification?.status ?? null}
+                    proofUrl={proofUrl}
+                  />
                 </div>,
                 container,
               );
-            }
-
-            // "expanded-page": full-screen proof page viewer
-            if (!expandedImageForPortal) return null;
-            const proofUrl = verification?.proof?.proofUrl
-              ? isValidProofUrl(verification.proof.proofUrl)
-              : null;
-            return createPortal(
-              <div
-                className="bg-white dark:bg-gray-900 flex flex-col animate-in fade-in-0 duration-150"
-                style={{ position: "fixed", inset: 0, zIndex: Z_INDEX_OVERLAY_DEFAULT, overflow: "hidden" }}
-              >
-                <ExpandedPageViewer
-                  expandedImage={expandedImageForPortal}
-                  searchAttempts={verification?.searchAttempts}
-                  verification={verification ?? null}
-                  onBack={handleBack}
-                  sourceLabel={sourceLabel}
-                  citation={citation}
-                  status={verification?.status ?? null}
-                  proofUrl={proofUrl}
-                />
-              </div>,
-              container,
-            );
-          })()}
+            })()}
           <Popover
             open={isHovering}
             onOpenChange={open => {

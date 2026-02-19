@@ -485,10 +485,9 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      // Custom action: popover should open in expanded (image) view
-      expect(document.querySelector("[role='dialog']")).toBeInTheDocument();
-      // ExpandedPageViewer renders with a back button — verify we're in the expanded state, not summary
-      expect(document.querySelector("[role='dialog']")?.textContent).toContain("Back");
+      // Custom action: portal overlay renders in expanded-page state (no role="dialog" on portal div)
+      // ExpandedPageViewer's SourceContextHeader renders a back button with this aria-label
+      expect(document.querySelector("button[aria-label='Back to citation summary']")).toBeInTheDocument();
     });
 
     it("can apply setImageExpanded with string src", async () => {
@@ -512,7 +511,7 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      const overlayImage = document.querySelector("[role='dialog'] img");
+      const overlayImage = document.querySelector("img[alt='Full page verification']");
       expect(overlayImage).toBeInTheDocument();
       expect(overlayImage?.getAttribute("src")).toBe(customImageSrc);
     });
@@ -537,8 +536,9 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      // Popover opens (setImageExpanded: true path) but custom src is rejected
-      const overlayImage = document.querySelector("[role='dialog'] img");
+      // Expanded-page portal opens (setImageExpanded: true path) but custom src is rejected;
+      // falls back to the baseline verificationImageSrc — not the malicious URI
+      const overlayImage = document.querySelector("img[alt='Full page verification']");
       expect(overlayImage?.getAttribute("src")).not.toBe("javascript:alert(1)");
     });
 
@@ -559,7 +559,7 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      const overlayImage = document.querySelector("[role='dialog'] img");
+      const overlayImage = document.querySelector("img[alt='Full page verification']");
       expect(overlayImage?.getAttribute("src")).not.toBe(svgUri);
     });
 
@@ -580,7 +580,7 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      const overlayImage = document.querySelector("[role='dialog'] img");
+      const overlayImage = document.querySelector("img[alt='Full page verification']");
       expect(overlayImage).toBeInTheDocument();
       expect(overlayImage?.getAttribute("src")).toBe(trustedSrc);
     });
