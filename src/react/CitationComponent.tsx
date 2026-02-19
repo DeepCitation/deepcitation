@@ -18,22 +18,16 @@ import type { UrlAccessStatus, Verification, VerificationPage } from "../types/v
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
 import {
-  ANCHOR_HIGHLIGHT_STYLE,
   buildKeyholeMaskImage,
   DOT_COLORS,
   DOT_INDICATOR_SIZE_STYLE,
   EVIDENCE_TRAY_BORDER_DASHED,
   EVIDENCE_TRAY_BORDER_SOLID,
-  EXPANDED_POPOVER_HEIGHT,
-  EXPANDED_POPOVER_MAX_WIDTH,
-  EXPANDED_POPOVER_WIDTH_DEFAULT,
-  EXPANDED_POPOVER_WIDTH_VAR,
   INDICATOR_SIZE_STYLE,
   isValidProofImageSrc,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
   KEYHOLE_STRIP_HEIGHT_VAR,
-  MIN_WORD_DIFFERENCE,
   MISS_TRAY_THUMBNAIL_HEIGHT,
   MISS_WAVY_UNDERLINE_STYLE,
   PARTIAL_COLOR_STYLE,
@@ -45,6 +39,7 @@ import {
   VERIFIED_COLOR_STYLE,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
+import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
 import { ArrowLeftIcon, CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
@@ -552,7 +547,7 @@ function getStatusFromVerification(verification: Verification | null | undefined
  */
 const VerifiedIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none]"
+    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-75 duration-200"
     style={{ ...INDICATOR_SIZE_STYLE, ...VERIFIED_COLOR_STYLE }}
     data-dc-indicator="verified"
     aria-hidden="true"
@@ -568,28 +563,12 @@ const VerifiedIndicator = () => (
  */
 const PartialIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none]"
+    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-75 duration-200"
     style={{ ...INDICATOR_SIZE_STYLE, ...PARTIAL_COLOR_STYLE }}
     data-dc-indicator="partial"
     aria-hidden="true"
   >
     <CheckIcon />
-  </span>
-);
-
-/** Pending indicator - spinner for loading state (subscript-positioned)
- * Color customizable via `--dc-pending-color` CSS custom property.
- * Uses [text-decoration:none] to prevent inheriting line-through from parent.
- * Dynamic sizing via em units for font-proportional scaling.
- */
-const PendingIndicator = () => (
-  <span
-    className="inline-flex relative ml-1 top-[0.1em] animate-spin [text-decoration:none]"
-    style={{ ...INDICATOR_SIZE_STYLE, ...PENDING_COLOR_STYLE }}
-    data-dc-indicator="pending"
-    aria-hidden="true"
-  >
-    <SpinnerIcon />
   </span>
 );
 
@@ -838,7 +817,7 @@ function AnchorTextFocusedImage({
         <button
           type="button"
           className="block relative w-full"
-          style={{ cursor: isDragging ? "grabbing" : "zoom-in" }}
+          style={{ cursor: isDragging ? "grabbing" : onImageClick ? "zoom-in" : "grab" }}
           onClick={e => {
             e.preventDefault();
             e.stopPropagation();
@@ -881,15 +860,17 @@ function AnchorTextFocusedImage({
           </div>
         </button>
 
-        {/* Hover overlay with magnifying glass icon */}
-        <div
-          className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-150 pointer-events-none rounded-t-md flex items-center justify-center"
-          aria-hidden="true"
-        >
-          <span className="w-5 h-5 text-white opacity-0 group-hover:opacity-80 transition-opacity duration-150 drop-shadow-md">
-            <ZoomInIcon />
-          </span>
-        </div>
+        {/* Hover overlay with magnifying glass icon — only when expandable */}
+        {onImageClick && (
+          <div
+            className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-150 pointer-events-none rounded-t-md flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <span className="w-5 h-5 text-white opacity-0 group-hover:opacity-80 transition-opacity duration-150 drop-shadow-md">
+              <ZoomInIcon />
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Action bar — only shown when View page button is available */}
@@ -1201,35 +1182,7 @@ function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessEx
  * Only highlights when fullPhrase has enough additional context beyond anchorText.
  * When isMiss is true, renders the phrase without highlighting (since the text wasn't found).
  */
-function HighlightedPhrase({
-  fullPhrase,
-  anchorText,
-  isMiss,
-}: {
-  fullPhrase: string;
-  anchorText?: string;
-  isMiss?: boolean;
-}) {
-  // Don't highlight when citation is "not found" - misleading to highlight text that wasn't found
-  if (isMiss || !anchorText || !fullPhrase.includes(anchorText)) {
-    return <span className="italic text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
-  }
-  const wc = (s: string) => {
-    const trimmed = s.trim();
-    return trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length;
-  };
-  if (wc(fullPhrase) - wc(anchorText) < MIN_WORD_DIFFERENCE) {
-    return <span className="italic text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
-  }
-  const idx = fullPhrase.indexOf(anchorText);
-  return (
-    <span className="italic text-gray-600 dark:text-gray-300">
-      {fullPhrase.slice(0, idx)}
-      <span style={ANCHOR_HIGHLIGHT_STYLE}>{anchorText}</span>
-      {fullPhrase.slice(idx + anchorText.length)}
-    </span>
-  );
-}
+// HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
 
 // =============================================================================
 // EVIDENCE TRAY COMPONENTS
@@ -1322,36 +1275,39 @@ function SearchAnalysisSummary({
 
   return (
     <div className="px-3 py-2">
-      {/* Compact single-line summary with inline Details toggle */}
-      <div className="flex items-center justify-between gap-2">
+      {/* Compact single-line summary — entire line clickable to toggle details */}
+      {searchAttempts.length > 0 ? (
+        <button
+          type="button"
+          className="w-full flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors text-left"
+          onClick={e => {
+            e.stopPropagation();
+            setShowDetails(s => !s);
+          }}
+          aria-expanded={showDetails}
+          title={description}
+        >
+          <svg
+            className={cn("size-2.5 shrink-0 transition-transform duration-200", showDetails && "rotate-90")}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            aria-hidden="true"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+          <span className="truncate">
+            {description}
+            {dateStr && <> · {dateStr}</>}
+          </span>
+        </button>
+      ) : (
         <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate" title={description}>
           {description}
           {dateStr && <> · {dateStr}</>}
         </span>
-        {searchAttempts.length > 0 && (
-          <button
-            type="button"
-            className="text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors shrink-0 flex items-center gap-0.5"
-            onClick={e => {
-              e.stopPropagation();
-              setShowDetails(s => !s);
-            }}
-            aria-expanded={showDetails}
-          >
-            <svg
-              className={cn("size-2.5 transition-transform duration-200", showDetails && "rotate-90")}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              aria-hidden="true"
-            >
-              <path d="M9 6l6 6-6 6" />
-            </svg>
-            <span>Details</span>
-          </button>
-        )}
-      </div>
+      )}
       {showDetails && (
         <div className="mt-2">
           <VerificationLogTimeline searchAttempts={searchAttempts} status={verification?.status} />
@@ -1389,7 +1345,7 @@ function EvidenceTray({
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
 
   // Determine hover CTA text (only shown when expandable)
-  const ctaText = isMiss ? "Verify manually" : "Expand";
+  const ctaText = "Expand";
 
   // Shared inner content
   const content = (
@@ -1522,16 +1478,40 @@ function ExpandedPageViewer({
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Track current src to prevent stale onLoad/onError from a previous image
   const currentSrcRef = useRef(expandedImage.src);
 
+  // Compute the actual src — append cache-bust query on retry
+  const effectiveSrc = useMemo(() => {
+    if (!expandedImage.src || retryCount === 0) return expandedImage.src;
+    const sep = expandedImage.src.includes("?") ? "&" : "?";
+    return `${expandedImage.src}${sep}_retry=${retryCount}`;
+  }, [expandedImage.src, retryCount]);
+
   // Reset image states when the source changes (e.g. expandedImageSrcOverride)
+  // Also immediately set error state if the new src fails validation —
+  // otherwise the <img> never mounts and imageLoaded/imageError never update,
+  // causing an infinite spinner.
   useEffect(() => {
     currentSrcRef.current = expandedImage.src;
+    setRetryCount(0);
+    if (expandedImage.src && !isValidProofImageSrc(expandedImage.src)) {
+      setImageLoaded(false);
+      setImageError(true);
+    } else {
+      setImageLoaded(false);
+      setImageError(false);
+    }
+  }, [expandedImage.src]);
+
+  const handleRetry = useCallback(() => {
+    if (retryCount >= 2) return; // Max 2 retries
     setImageLoaded(false);
     setImageError(false);
-  }, [expandedImage.src]);
+    setRetryCount(c => c + 1);
+  }, [retryCount]);
 
   const { highlightBox, dimensions } = expandedImage;
   const isMiss = verification?.status === "not_found";
@@ -1569,7 +1549,14 @@ function ExpandedPageViewer({
   return (
     <div className="flex flex-col h-full">
       {/* Context-rich header: Back + source name + status + page */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
+      <div
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 border-b shrink-0",
+          isMiss
+            ? "bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-800/50"
+            : "border-gray-200 dark:border-gray-700",
+        )}
+      >
         <button
           type="button"
           onClick={e => {
@@ -1582,14 +1569,30 @@ function ExpandedPageViewer({
             <ArrowLeftIcon />
           </span>
           <span>Back</span>
+          <span
+            aria-hidden="true"
+            className="text-[9px] px-1 py-0.5 border border-gray-200 dark:border-gray-700 rounded text-gray-400 ml-0.5"
+          >
+            Esc
+          </span>
         </button>
         <div className="flex-1 min-w-0" />
         <span className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[40%]" title={displayName}>
           {displayName}
         </span>
-        <span className={cn("text-xs font-medium shrink-0", statusDisplay.className)}>{statusDisplay.text}</span>
+        <span
+          className={cn(
+            "text-xs font-medium shrink-0 px-1.5 py-0.5 rounded-full",
+            statusDisplay.className,
+            colorScheme === "green" && "bg-green-50 dark:bg-green-950/30",
+            colorScheme === "amber" && "bg-amber-50 dark:bg-amber-950/30",
+            colorScheme === "red" && "bg-red-50 dark:bg-red-950/30",
+          )}
+        >
+          {statusDisplay.text}
+        </span>
         {pageNumber != null && pageNumber > 0 && (
-          <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 whitespace-nowrap">
+          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-500 dark:text-gray-400 shrink-0 whitespace-nowrap">
             p.{pageNumber}
           </span>
         )}
@@ -1609,6 +1612,13 @@ function ExpandedPageViewer({
         )}
       </div>
 
+      {/* Not-found banner */}
+      {isMiss && (
+        <div className="text-xs text-red-600 dark:text-red-400 py-1.5 text-center bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-800/50 shrink-0">
+          Citation not found on this page
+        </div>
+      )}
+
       {/* Scrollable image container */}
       <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto relative bg-gray-50 dark:bg-gray-900">
         {/* Loading spinner */}
@@ -1627,6 +1637,15 @@ function ExpandedPageViewer({
               <WarningIcon />
             </span>
             <span className="text-sm">Image failed to load</span>
+            {retryCount < 2 && (
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="text-xs text-blue-500 hover:text-blue-600 px-2.5 py-1 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+              >
+                Retry
+              </button>
+            )}
             {proofUrl && (
               <a
                 href={proofUrl}
@@ -1645,12 +1664,12 @@ function ExpandedPageViewer({
         )}
 
         <div className="relative w-full">
-          {isValidProofImageSrc(expandedImage.src) && (
+          {isValidProofImageSrc(expandedImage.src) && !imageError && (
             <img
               ref={imageRef}
-              src={expandedImage.src}
+              src={effectiveSrc}
               alt="Full page verification"
-              className={cn("block w-full", imageError && "hidden")}
+              className={cn("block w-full", !imageLoaded && "hidden")}
               onLoad={() => {
                 if (expandedImage.src === currentSrcRef.current) setImageLoaded(true);
               }}
@@ -1660,10 +1679,10 @@ function ExpandedPageViewer({
             />
           )}
 
-          {/* Highlight overlay using percentage positioning */}
+          {/* Highlight overlay using percentage positioning — pulse on appear */}
           {highlightBox && dimensions && imageLoaded && !imageError && (
             <div
-              className="absolute border-2 border-blue-500/60 bg-blue-500/10 rounded"
+              className="absolute border-2 border-blue-500/60 bg-blue-500/10 rounded animate-[dc-highlight-pulse_0.8s_ease-out]"
               style={{
                 left: `${(highlightBox.x / dimensions.width) * 100}%`,
                 top: `${(highlightBox.y / dimensions.height) * 100}%`,
@@ -1672,6 +1691,19 @@ function ExpandedPageViewer({
               }}
             />
           )}
+          {/* Inline keyframe for highlight pulse — scoped, no global CSS needed */}
+          {highlightBox && dimensions && (
+            <style>{`
+              @keyframes dc-highlight-pulse {
+                0% { opacity: 0; box-shadow: 0 0 0 0px rgba(59,130,246,0.3); }
+                25% { opacity: 1; }
+                100% { opacity: 1; box-shadow: 0 0 0 8px rgba(59,130,246,0); }
+              }
+              @media (prefers-reduced-motion: reduce) {
+                .animate-\\[dc-highlight-pulse_0\\.8s_ease-out\\] { animation: none !important; }
+              }
+            `}</style>
+          )}
         </div>
       </div>
 
@@ -1679,6 +1711,9 @@ function ExpandedPageViewer({
       {isMiss && searchAttempts && searchAttempts.length > 0 && (
         <div className="shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <SearchAnalysisSummary searchAttempts={searchAttempts} verification={verification} />
+          <div className="px-3 pb-2 text-[10px] text-gray-400 dark:text-gray-500 text-center">
+            Scroll through the page to manually verify
+          </div>
         </div>
       )}
     </div>
@@ -1735,6 +1770,10 @@ function DefaultPopoverContent({
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 
+  // Save/restore scroll position for back navigation
+  const savedScrollTopRef = useRef(0);
+  const summaryContainerRef = useRef<HTMLDivElement>(null);
+
   // Resolve expanded image for the full-page viewer; allow caller to override the src
   const expandedImage = useMemo(() => {
     const resolved = resolveExpandedImage(verification);
@@ -1750,11 +1789,22 @@ function DefaultPopoverContent({
   const canExpand = isDocCitation && !!expandedImage;
 
   const handleExpand = useCallback(() => {
-    if (canExpand) onViewStateChange?.("expanded");
+    if (!canExpand) return;
+    // Save scroll position before entering expanded view
+    if (summaryContainerRef.current) {
+      savedScrollTopRef.current = summaryContainerRef.current.scrollTop;
+    }
+    onViewStateChange?.("expanded");
   }, [canExpand, onViewStateChange]);
 
   const handleBack = useCallback(() => {
     onViewStateChange?.("summary");
+    // Restore scroll position after returning to summary
+    requestAnimationFrame(() => {
+      if (summaryContainerRef.current) {
+        summaryContainerRef.current.scrollTop = savedScrollTopRef.current;
+      }
+    });
   }, [onViewStateChange]);
 
   // Get page info (document citations only)
@@ -1791,9 +1841,10 @@ function DefaultPopoverContent({
           "flex flex-col animate-in fade-in-0 duration-150 !overflow-hidden",
         )}
         style={{
-          width: `var(${EXPANDED_POPOVER_WIDTH_VAR}, ${EXPANDED_POPOVER_WIDTH_DEFAULT})`,
-          maxWidth: EXPANDED_POPOVER_MAX_WIDTH,
-          maxHeight: EXPANDED_POPOVER_HEIGHT,
+          width: "100%",
+          height: "100%",
+          maxWidth: "none",
+          maxHeight: "none",
           transition: `width ${POPOVER_MORPH_DURATION_MS}ms ease-out, max-height ${POPOVER_MORPH_DURATION_MS}ms ease-out`,
         }}
       >
@@ -1811,7 +1862,7 @@ function DefaultPopoverContent({
     );
   }
 
-  // Loading/pending state view
+  // Loading/pending state view — skeleton mirrors resolved layout shape
   if (isLoading || isPending) {
     const searchingPhrase = fullPhrase || anchorText;
     return (
@@ -1823,7 +1874,17 @@ function DefaultPopoverContent({
           status={searchStatus}
           sourceLabel={sourceLabel}
         />
-        <div className="p-2 flex flex-col gap-2">
+        <div className="p-3 flex flex-col gap-2.5">
+          {/* Skeleton: status bar placeholder */}
+          <div className="h-3 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+          {/* Skeleton: quote box placeholder */}
+          <div className="pl-3 border-l-[3px] border-gray-200 dark:border-gray-700 space-y-1.5">
+            <div className="h-3 w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+            <div className="h-3 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+          </div>
+          {/* Skeleton: image strip placeholder */}
+          <div className="h-[60px] w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+          {/* Actual search status */}
           <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
             <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
               <SpinnerIcon />
@@ -1832,7 +1893,7 @@ function DefaultPopoverContent({
           </span>
           {searchingPhrase && (
             <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
-              "{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}"
+              &ldquo;{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}&rdquo;
             </p>
           )}
           {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
@@ -1850,6 +1911,7 @@ function DefaultPopoverContent({
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div
+          ref={summaryContainerRef}
           className={cn(POPOVER_CONTAINER_BASE_CLASSES, "animate-in fade-in-0 duration-150")}
           style={{
             width: POPOVER_WIDTH,
@@ -1876,7 +1938,7 @@ function DefaultPopoverContent({
           />
 
           {fullPhrase && (
-            <div className="mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
+            <div className="mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-green-500 dark:border-green-600">
               <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}
@@ -1886,7 +1948,7 @@ function DefaultPopoverContent({
             verification={verification}
             status={status}
             onExpand={handleExpand}
-            onImageClick={onImageClick}
+            onImageClick={canExpand ? onImageClick : undefined}
           />
         </div>
       </Activity>
@@ -1900,6 +1962,7 @@ function DefaultPopoverContent({
     return (
       <Activity mode={isVisible ? "visible" : "hidden"}>
         <div
+          ref={summaryContainerRef}
           className={cn(POPOVER_CONTAINER_BASE_CLASSES, "animate-in fade-in-0 duration-150")}
           style={{
             width: POPOVER_WIDTH,
@@ -1936,7 +1999,12 @@ function DefaultPopoverContent({
           )}
 
           {fullPhrase && (
-            <div className="mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
+            <div
+              className={cn(
+                "mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px]",
+                isMiss ? "border-red-500 dark:border-red-400" : "border-amber-500 dark:border-amber-400",
+              )}
+            >
               <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}
@@ -1947,7 +2015,7 @@ function DefaultPopoverContent({
               verification={verification}
               status={status}
               onExpand={handleExpand}
-              onImageClick={onImageClick}
+              onImageClick={canExpand ? onImageClick : undefined}
               proofImageSrc={expandedImage?.src}
             />
           ) : /* Show EvidenceTray for miss with search analysis (no image), or null */
@@ -2171,14 +2239,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Resolve the image source, preferring the new field name with fallback to deprecated one
     const resolvedImageSrc = verification?.document?.verificationImageSrc ?? null;
 
-    // Spinner timeout: auto-hide after SPINNER_TIMEOUT_MS if still pending
-    const [spinnerTimedOut, setSpinnerTimedOut] = useState(false);
-    const spinnerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // 3-stage spinner: active (0-5s) → slow (5-15s) → stale (15s+)
+    type SpinnerStage = "active" | "slow" | "stale";
+    const [spinnerStage, setSpinnerStage] = useState<SpinnerStage>("active");
+    const spinnerTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-    // Determine if we should show spinner:
-    // - explicit isLoading prop OR isPending status
-    // - BUT NOT if we have a verification image or definitive status
-    // - AND NOT if spinner has timed out
     const hasDefinitiveResult =
       resolvedImageSrc ||
       verification?.status === "found" ||
@@ -2190,31 +2255,24 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       verification?.status === "found_on_other_line" ||
       verification?.status === "first_word_found";
 
-    const shouldShowSpinner = (isLoading || isPending) && !hasDefinitiveResult && !spinnerTimedOut;
+    const shouldShowSpinner = (isLoading || isPending) && !hasDefinitiveResult && spinnerStage !== "stale";
 
-    // Reset spinner timeout when loading state changes
     useEffect(() => {
-      // Clear any existing timeout
-      if (spinnerTimeoutRef.current) {
-        clearTimeout(spinnerTimeoutRef.current);
-        spinnerTimeoutRef.current = null;
-      }
+      for (const t of spinnerTimeoutsRef.current) clearTimeout(t);
+      spinnerTimeoutsRef.current = [];
 
-      // If we should show spinner, start timeout
       if ((isLoading || isPending) && !hasDefinitiveResult) {
-        setSpinnerTimedOut(false);
-        spinnerTimeoutRef.current = setTimeout(() => {
-          setSpinnerTimedOut(true);
-        }, SPINNER_TIMEOUT_MS);
+        setSpinnerStage("active");
+        spinnerTimeoutsRef.current.push(
+          setTimeout(() => setSpinnerStage("slow"), SPINNER_TIMEOUT_MS),
+          setTimeout(() => setSpinnerStage("stale"), SPINNER_TIMEOUT_MS * 3),
+        );
       } else {
-        // Reset timed out state when we get a result
-        setSpinnerTimedOut(false);
+        setSpinnerStage("active");
       }
 
       return () => {
-        if (spinnerTimeoutRef.current) {
-          clearTimeout(spinnerTimeoutRef.current);
-        }
+        for (const t of spinnerTimeoutsRef.current) clearTimeout(t);
       };
     }, [isLoading, isPending, hasDefinitiveResult]);
 
@@ -2590,8 +2648,28 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         return null;
       }
 
-      // Default: icon variant
-      if (shouldShowSpinner) return <PendingIndicator />;
+      // Default: icon variant — 3-stage spinner
+      if (shouldShowSpinner) {
+        return (
+          <span
+            className={cn(
+              "inline-flex relative ml-1 top-[0.1em] [text-decoration:none]",
+              spinnerStage === "active" && "animate-spin",
+              spinnerStage === "slow" && "animate-spin opacity-60",
+            )}
+            style={{
+              ...INDICATOR_SIZE_STYLE,
+              ...PENDING_COLOR_STYLE,
+              ...(spinnerStage === "slow" ? { animationDuration: "2s" } : undefined),
+            }}
+            data-dc-indicator="pending"
+            aria-hidden="true"
+            title={spinnerStage === "slow" ? "Still verifying..." : undefined}
+          >
+            <SpinnerIcon />
+          </span>
+        );
+      }
       if (isVerified && !isPartialMatch) return <VerifiedIndicator />;
       if (isPartialMatch) return <PartialIndicator />;
       if (isMiss) return <MissIndicator />;
@@ -2978,7 +3056,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               collisionPadding={popoverViewState === "expanded" ? 16 : undefined}
               style={
                 popoverViewState === "expanded"
-                  ? { maxWidth: `min(${EXPANDED_POPOVER_MAX_WIDTH}, calc(100vw - 2rem))`, overflow: "hidden" }
+                  ? {
+                      position: "fixed" as const,
+                      inset: "1rem",
+                      maxWidth: "none",
+                      transform: "none",
+                      overflow: "hidden",
+                    }
                   : undefined
               }
               onPointerDownOutside={(e: Event) => e.preventDefault()}

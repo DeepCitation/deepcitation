@@ -93,7 +93,7 @@ export function useDragToPan(): {
       });
     };
 
-    const listenerOptions = { passive: true } as const;
+    const listenerOptions: AddEventListenerOptions = { passive: true };
     el.addEventListener("scroll", onScroll, listenerOptions);
 
     // Initial measurement

@@ -398,12 +398,12 @@ export const EVIDENCE_TRAY_BORDER_DASHED = "border border-dashed border-gray-300
 /** CSS custom property for expanded popover width */
 export const EXPANDED_POPOVER_WIDTH_VAR = "--dc-expanded-width";
 /** Default expanded popover width */
-export const EXPANDED_POPOVER_WIDTH_DEFAULT = "85vw";
+export const EXPANDED_POPOVER_WIDTH_DEFAULT = "calc(100vw - 2rem)";
 /** Maximum expanded popover width */
-export const EXPANDED_POPOVER_MAX_WIDTH = "1200px";
+export const EXPANDED_POPOVER_MAX_WIDTH = "calc(100vw - 2rem)";
 /** Default expanded popover height — uses Radix's available height CSS var when present */
 export const EXPANDED_POPOVER_HEIGHT =
-  "min(calc(100vh - 6rem), var(--radix-popover-content-available-height, calc(100vh - 6rem)))";
+  "min(calc(100vh - 2rem), var(--radix-popover-content-available-height, calc(100vh - 2rem)))";
 
 /** Transition duration for popover morph animation */
 export const POPOVER_MORPH_DURATION_MS = 300;

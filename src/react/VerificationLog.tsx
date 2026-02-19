@@ -9,7 +9,6 @@ import {
   ChevronRightIcon,
   CopyIcon,
   DocumentIcon,
-
   GlobeIcon,
   MissIcon,
   SpinnerIcon,
@@ -339,10 +338,10 @@ export function SourceContextHeader({
   const showPagePill = !!onExpand && !!pageNumber && pageNumber > 0;
 
   // URL-specific data
-  const url = isUrl ? (citation.url || "") : "";
+  const url = isUrl ? citation.url || "" : "";
 
   // Display name for document citations (never show attachmentId to users)
-  const displayName = isUrl ? undefined : (sourceLabel || verification?.label || "Document");
+  const displayName = isUrl ? undefined : sourceLabel || verification?.label || "Document";
 
   return (
     <div className="flex items-center justify-between gap-2 p-3 mb-2 border-b border-gray-200 dark:border-gray-700">
@@ -781,12 +780,7 @@ export function StatusHeader({
   const displayText = headerText || null;
 
   return (
-    <div
-      className={cn(
-        "flex items-center justify-between gap-2 text-sm",
-        compact ? "px-3 pt-2.5" : "px-4 pt-3",
-      )}
-    >
+    <div className={cn("flex items-center justify-between gap-2 text-sm", compact ? "px-3 pt-2.5" : "px-4 pt-3")}>
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {indicatorVariant === "dot" ? (
           <span

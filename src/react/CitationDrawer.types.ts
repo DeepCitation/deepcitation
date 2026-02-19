@@ -1,3 +1,4 @@
+import type React from "react";
 import type { Citation } from "../types/citation.js";
 import type { Verification, VerificationPage } from "../types/verification.js";
 
@@ -110,4 +111,6 @@ export interface CitationDrawerItemProps {
    * @default false
    */
   defaultExpanded?: boolean;
+  /** Inline style (e.g. for staggered animation delays) */
+  style?: React.CSSProperties;
 }

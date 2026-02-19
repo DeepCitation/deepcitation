@@ -148,7 +148,7 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     await expect(popover).toBeVisible();
 
     // Find and click the expand button ("Verification details")
-    const expandButton = page.getByRole("button", { name: /Verification details|Details|How we verified this|Search attempts/i });
+    const expandButton = page.getByRole("button", { name: /Verification details|Details|Ran \d+ search|How we verified this|Search attempts/i });
     await expect(expandButton).toBeVisible();
     await expandButton.click();
 
@@ -170,7 +170,7 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
 
-    const expandButton = page.getByRole("button", { name: /Verification details|Details|How we verified this|Search attempts/i });
+    const expandButton = page.getByRole("button", { name: /Verification details|Details|Ran \d+ search|How we verified this|Search attempts/i });
 
     // Rapidly toggle expansion multiple times
     await expandButton.click(); // Expand
@@ -313,12 +313,12 @@ test.describe("Citation Popover - Mobile/Touch Behavior", () => {
     await expect(popover).toBeVisible();
 
     // Second tap should expand details (find the expand button)
-    const expandButton = page.getByRole("button", { name: /Verification details|Details|How we verified this|Search attempts/i });
+    const expandButton = page.getByRole("button", { name: /Verification details|Details|Ran \d+ search|How we verified this|Search attempts/i });
     await expandButton.tap();
 
     // Details should be expanded (look for expanded content)
     // The verification log should be visible
-    await expect(page.getByText("exact")).toBeVisible();
+    await expect(page.getByText(/exact/i)).toBeVisible();
   });
 
   test("tap outside closes popover", async ({ mount, page }) => {

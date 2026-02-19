@@ -61,6 +61,7 @@ src/
 │   ├── SourcesListComponent.tsx
 │   ├── UrlCitationComponent.tsx
 │   ├── constants.ts      # MISS_WAVY_UNDERLINE_STYLE, DOT_INDICATOR_*_STYLE, isValidProofImageSrc(), getPortalContainer()
+│   ├── HighlightedPhrase.tsx # HighlightedPhrase — CANONICAL LOCATION
 │   ├── dateUtils.ts      # formatCaptureDate()
 │   └── utils.ts          # generateCitationKey() — CANONICAL LOCATION
 ├── markdown/
@@ -160,6 +161,7 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `MISS_WAVY_UNDERLINE_STYLE` | `src/react/constants.ts` | Wavy underline CSS |
 | `DOT_INDICATOR_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (inline, em-based) |
 | `DOT_INDICATOR_FIXED_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (drawers/wrappers, fixed px) |
+| `HighlightedPhrase` | `src/react/HighlightedPhrase.tsx` | Shared fullPhrase highlight component |
 | `formatCaptureDate()` | `src/react/dateUtils.ts` | Date formatting for timestamps |
 | `extractDomain()`, `isDomainMatch()` | `src/utils/urlSafety.ts` | Safe domain matching (never use `url.includes()`) |
 | `sanitizeForLog()`, `createLogEntry()` | `src/utils/logSafety.ts` | Log injection prevention |

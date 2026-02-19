@@ -410,16 +410,16 @@ function TriggerStatusBar({ summary }: { summary: StatusSummary }) {
   if (summary.total === 0) return null;
 
   const segments = [
-    { count: summary.notFound, color: "bg-red-500 dark:bg-red-400" },
-    { count: summary.partial, color: "bg-amber-500 dark:bg-amber-400" },
-    { count: summary.pending, color: "bg-gray-300 dark:bg-gray-600" },
-    { count: summary.verified, color: "bg-green-500 dark:bg-green-400" },
+    { status: "notFound", count: summary.notFound, color: "bg-red-500 dark:bg-red-400" },
+    { status: "partial", count: summary.partial, color: "bg-amber-500 dark:bg-amber-400" },
+    { status: "pending", count: summary.pending, color: "bg-gray-300 dark:bg-gray-600" },
+    { status: "verified", count: summary.verified, color: "bg-green-500 dark:bg-green-400" },
   ].filter(s => s.count > 0);
 
   return (
     <div className="flex h-0.5 w-full rounded-full overflow-hidden" role="img" aria-label="Status breakdown">
       {segments.map(seg => (
-        <div key={seg.color} className={seg.color} style={{ flexGrow: seg.count }} />
+        <div key={seg.status} className={seg.color} style={{ flexGrow: seg.count }} />
       ))}
     </div>
   );
@@ -451,15 +451,32 @@ function TriggerBadge({ summary }: { summary: StatusSummary }) {
       ? "bg-amber-500 dark:bg-amber-400"
       : "bg-green-500 dark:bg-green-400";
 
+  // Descriptive badge text — worst-status-first
+  let badgeText: string;
+  const hasPending = summary.pending > 0;
+  if (hasNotFound) {
+    badgeText = `${summary.notFound} not found`;
+  } else if (hasPartial) {
+    badgeText = `${summary.partial} partial`;
+  } else if (hasPending) {
+    badgeText = `${summary.pending} verifying`;
+  } else {
+    badgeText = summary.total > 0 ? "All verified" : "";
+  }
+
+  const ariaText = `${summary.verified} of ${summary.total} citations verified`;
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none",
+        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none",
         colorClass,
       )}
+      title={ariaText}
+      aria-label={ariaText}
     >
-      <span className={cn("inline-block w-1.5 h-1.5 rounded-full", dotClass)} />
-      {summary.verified}/{summary.total}
+      <span className={cn("inline-block w-1.5 h-1.5 rounded-full shrink-0", dotClass)} />
+      {badgeText}
     </span>
   );
 }

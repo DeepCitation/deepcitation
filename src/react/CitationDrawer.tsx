@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
+import type { Verification } from "../types/verification.js";
 import type {
   CitationDrawerItem,
   CitationDrawerItemProps,
   CitationDrawerProps,
   SourceCitationGroup,
 } from "./CitationDrawer.types.js";
+import type { StatusCategory } from "./CitationDrawer.utils.js";
 import {
   computeStatusSummary,
   extractDomain,
@@ -22,13 +24,16 @@ import {
   Z_INDEX_BACKDROP_DEFAULT,
   Z_INDEX_DRAWER_BACKDROP_VAR,
   Z_INDEX_DRAWER_VAR,
+  Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
-import { CheckIcon, ExternalLinkIcon, MissIcon } from "./icons.js";
-import { sanitizeUrl } from "./urlUtils.js";
+import { HighlightedPhrase } from "./HighlightedPhrase.js";
+import { CheckIcon, ExternalLinkIcon, MissIcon, XIcon, ZoomInIcon } from "./icons.js";
+import { buildSearchSummary } from "./searchSummaryUtils.js";
+import { isValidProofUrl, sanitizeUrl } from "./urlUtils.js";
 import { cn } from "./utils.js";
-import { FaviconImage } from "./VerificationLog.js";
+import { FaviconImage, PagePill } from "./VerificationLog.js";
 
 // =========
 // Drawer-adapted method display names (subset of VerificationLog's METHOD_DISPLAY_NAMES)
@@ -215,26 +220,7 @@ function wordCount(str: string): number {
   return str.trim().split(/\s+/).length;
 }
 
-/**
- * Render fullPhrase with anchorText highlighted in bold.
- * Returns a React fragment with the anchorText portion wrapped in <strong>.
- * If anchorText is not a substring of fullPhrase, returns fullPhrase as-is.
- */
-function renderPhraseWithHighlight(fullPhrase: string, anchorText: string): React.ReactNode {
-  const idx = fullPhrase.indexOf(anchorText);
-  if (idx === -1) return fullPhrase;
-
-  const before = fullPhrase.slice(0, idx);
-  const after = fullPhrase.slice(idx + anchorText.length);
-
-  return (
-    <>
-      {before}
-      <strong>{anchorText}</strong>
-      {after}
-    </>
-  );
-}
+// HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
 
 // =========
 // StatusProgressBar — thin GitHub-language-bar-style status breakdown
@@ -256,10 +242,10 @@ function StatusProgressBar({
   pending: number;
 }) {
   const segments = [
-    { count: notFound, color: "bg-red-500 dark:bg-red-400" },
-    { count: partial, color: "bg-amber-500 dark:bg-amber-400" },
-    { count: pending, color: "bg-gray-300 dark:bg-gray-600" },
-    { count: verified, color: "bg-green-500 dark:bg-green-400" },
+    { status: "notFound", count: notFound, color: "bg-red-500 dark:bg-red-400" },
+    { status: "partial", count: partial, color: "bg-amber-500 dark:bg-amber-400" },
+    { status: "pending", count: pending, color: "bg-gray-300 dark:bg-gray-600" },
+    { status: "verified", count: verified, color: "bg-green-500 dark:bg-green-400" },
   ].filter(s => s.count > 0);
 
   if (segments.length === 0) return null;
@@ -272,7 +258,7 @@ function StatusProgressBar({
     >
       {segments.map((seg, i) => (
         <div
-          key={seg.color}
+          key={seg.status}
           className={cn(
             "transition-all duration-300",
             seg.color,
@@ -327,12 +313,48 @@ function ViewModeToggle({ mode, onChange }: { mode: ViewMode; onChange: (mode: V
 // StatusSectionHeader — header for status-grouped sections
 // =========
 
-function StatusSectionHeader({ label, count, color }: { label: string; count: number; color: string }) {
+function StatusSectionHeader({
+  label,
+  count,
+  color,
+  isCollapsed,
+  onToggle,
+}: {
+  label: string;
+  count: number;
+  color: string;
+  isCollapsed?: boolean;
+  onToggle?: () => void;
+}) {
+  if (!onToggle) {
+    return (
+      <div className="px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <span className={cn("text-xs font-medium", color)}>{label}</span>
+        <span className="text-[11px] text-gray-400 dark:text-gray-500">({count})</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+      aria-expanded={!isCollapsed}
+    >
+      <svg
+        className={cn("w-3 h-3 text-gray-400 transition-transform duration-200", isCollapsed && "-rotate-90")}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+      </svg>
       <span className={cn("text-xs font-medium", color)}>{label}</span>
       <span className="text-[11px] text-gray-400 dark:text-gray-500">({count})</span>
-    </div>
+    </button>
   );
 }
 
@@ -445,6 +467,88 @@ function formatCheckedDate(date: Date | string | null | undefined): string | nul
 }
 
 // =========
+// NotFoundCallout — enhanced not-found display aligned with popover
+// =========
+
+function NotFoundCallout({
+  searchAttempts,
+  verification,
+  proofImage,
+  onImageClick,
+}: {
+  searchAttempts: SearchAttempt[];
+  verification?: Verification | null;
+  proofImage?: string | null;
+  onImageClick?: () => void;
+}) {
+  const summary = buildSearchSummary(searchAttempts, verification);
+
+  let searchDescription: string;
+  if (summary.includesFullDocScan) {
+    searchDescription = "Searched the full document.";
+  } else if (summary.pageRange) {
+    searchDescription = `Searched ${summary.pageRange}.`;
+  } else {
+    searchDescription = `Ran ${summary.totalAttempts} ${summary.totalAttempts === 1 ? "search" : "searches"}.`;
+  }
+
+  if (summary.closestMatch) {
+    const truncated =
+      summary.closestMatch.text.length > 60
+        ? `${summary.closestMatch.text.slice(0, 60)}...`
+        : summary.closestMatch.text;
+    searchDescription += ` Closest match: "${truncated}"`;
+    if (summary.closestMatch.page) {
+      searchDescription += ` on page ${summary.closestMatch.page}`;
+    }
+    searchDescription += ".";
+  }
+
+  return (
+    <div className="px-4 py-2.5">
+      <div className="p-2.5 rounded-md border border-dashed border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-950/30">
+        <div className="flex items-start gap-2">
+          <span className="size-3.5 mt-0.5 shrink-0 text-red-500 dark:text-red-400">
+            <MissIcon />
+          </span>
+          <div className="flex-1 min-w-0">
+            <span className="text-xs font-medium text-red-700 dark:text-red-300">Citation not found</span>
+            <div className="mt-1 text-[11px] text-red-500/80 dark:text-red-400/70">{searchDescription}</div>
+          </div>
+        </div>
+
+        {/* Proof image thumbnail for context */}
+        {proofImage && onImageClick && (
+          <button
+            type="button"
+            className="mt-2 relative group/notfound cursor-zoom-in w-full"
+            onClick={e => {
+              e.stopPropagation();
+              onImageClick();
+            }}
+          >
+            <img
+              src={proofImage}
+              alt="Searched page"
+              className="w-full max-h-32 object-contain rounded border border-red-200 dark:border-red-800/50"
+              loading="lazy"
+            />
+            <div
+              className="absolute inset-0 bg-black/0 group-hover/notfound:bg-black/15 transition-colors duration-150 rounded flex items-center justify-center"
+              aria-hidden="true"
+            >
+              <span className="w-5 h-5 text-white opacity-0 group-hover/notfound:opacity-80 transition-opacity duration-150 drop-shadow-md">
+                <ZoomInIcon />
+              </span>
+            </div>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =========
 // CitationDrawerItemComponent
 // =========
 
@@ -461,16 +565,35 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   indicatorVariant = "icon",
   hideSourceName = false,
   defaultExpanded = false,
+  style,
 }: CitationDrawerItemProps) {
   const { citation, verification } = item;
   const statusInfo = useMemo(() => getStatusInfo(verification, indicatorVariant), [verification, indicatorVariant]);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [wasAutoExpanded, setWasAutoExpanded] = useState(defaultExpanded);
 
   // Sync expanded state when defaultExpanded changes from false → true
-  // (useState initializer only runs on mount; this handles async autoExpandKey updates)
+  // (useState initializer only runs on mount; this handles async autoExpandKeys updates)
   useEffect(() => {
-    if (defaultExpanded) setIsExpanded(true);
+    if (defaultExpanded) {
+      setIsExpanded(true);
+      setWasAutoExpanded(true);
+    }
   }, [defaultExpanded]);
+
+  // Close lightbox on Escape key
+  useEffect(() => {
+    if (!lightboxImage) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setLightboxImage(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxImage]);
 
   // Get display values with fallbacks
   const sourceName =
@@ -496,6 +619,12 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     anchorText !== fullPhrase &&
     fullPhrase.includes(anchorText) &&
     wordCount(fullPhrase) - wordCount(anchorText) >= 2;
+
+  // Suppress redundant snippet when it duplicates the title+anchor display
+  const isSnippetRedundant =
+    snippet === fullPhrase && articleTitle === anchorText && !!anchorText && fullPhrase?.includes(anchorText);
+  // Suppress source name when it matches the article title (already visible)
+  const isSourceRedundant = hideSourceName || !sourceName || sourceName === articleTitle;
 
   // Page number for document citations
   const pageNumber =
@@ -525,6 +654,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   // Search attempts for verification summary
   const searchAttempts = verification?.searchAttempts ?? [];
 
+  // Proof URL for document citations (manual verification link)
+  const proofUrl = verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
+
   const handleClick = useCallback(() => {
     setIsExpanded(prev => !prev);
     onClick?.(item);
@@ -544,13 +676,14 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   return (
     <div
       className={cn(
-        "cursor-pointer transition-colors border-l-[3px]",
+        "cursor-pointer transition-colors border-l-[3px] animate-in fade-in-0 slide-in-from-bottom-1 duration-200 fill-mode-backwards",
         !isLast && "border-b border-gray-200 dark:border-gray-700",
         isExpanded ? statusBorderColor : "border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
         // Mute verified items to draw attention to problems
         isVerified && !isExpanded && "opacity-75",
         className,
       )}
+      style={style}
     >
       {/* Clickable summary row */}
       <div
@@ -587,15 +720,13 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Source name — hidden when inside a group (group header shows it) */}
-            {!hideSourceName && sourceName && (
-              <div className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">{sourceName}</div>
-            )}
+            {/* Source name — hidden when inside a group or redundant with title */}
+            {!isSourceRedundant && <div className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">{sourceName}</div>}
             {/* Title/phrase row with page number and timestamp */}
             <div className="flex items-center gap-1.5">
               {shouldMergePhrase ? (
                 <div className="text-sm text-gray-900 dark:text-gray-100 truncate" title={fullPhrase}>
-                  {renderPhraseWithHighlight(fullPhrase, anchorText)}
+                  <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} />
                 </div>
               ) : (
                 articleTitle && (
@@ -608,14 +739,25 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 )
               )}
               {pageNumber != null && pageNumber > 0 && (
-                <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">p.{pageNumber}</span>
+                <PagePill
+                  pageNumber={pageNumber}
+                  colorScheme={
+                    statusCategory === "verified"
+                      ? "green"
+                      : statusCategory === "partial"
+                        ? "amber"
+                        : statusCategory === "notFound"
+                          ? "red"
+                          : "gray"
+                  }
+                />
               )}
               {checkedDate && (
                 <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0 ml-auto">{checkedDate}</span>
               )}
             </div>
-            {/* Snippet/description — skip when merged with title above */}
-            {!shouldMergePhrase && snippet && snippet !== articleTitle && (
+            {/* Snippet/description — skip when merged, redundant, or matches title */}
+            {!shouldMergePhrase && !isSnippetRedundant && snippet && snippet !== articleTitle && (
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{snippet}</div>
             )}
             {/* Capture date for URL citations (absolute timestamp for audit precision) */}
@@ -653,38 +795,60 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
             className={cn(
               "border-t border-gray-100 dark:border-gray-800",
               isNotFound ? "bg-red-50/50 dark:bg-red-950/20" : "bg-gray-50 dark:bg-gray-800/50",
+              wasAutoExpanded && isNotFound && "animate-[dc-pulse-once_1.2s_ease-out]",
             )}
+            onAnimationEnd={() => setWasAutoExpanded(false)}
           >
-            {/* Proof image — static thumbnail */}
-            {proofImage && (
-              <div className="px-4 py-2">
-                <img
-                  src={proofImage}
-                  alt="Verification proof"
-                  className="w-auto max-h-40 object-contain rounded border border-gray-200 dark:border-gray-700"
-                  loading="lazy"
-                />
+            {/* Quote box — bordered phrase with status-colored left border */}
+            {fullPhrase && (
+              <div
+                className={cn(
+                  "mx-4 mt-2.5 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-white dark:bg-gray-900/50 border-l-[3px]",
+                  statusBorderColor,
+                )}
+              >
+                <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isNotFound} />
               </div>
             )}
 
-            {/* Enhanced not-found callout */}
-            {isNotFound && searchAttempts.length > 0 && (
-              <div className="px-4 py-2.5">
-                <div className="p-2.5 rounded-md border border-dashed border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-950/30">
-                  <div className="flex items-start gap-2">
-                    <span className="size-3.5 mt-0.5 shrink-0 text-red-500 dark:text-red-400">
-                      <MissIcon />
+            {/* Proof image — clickable thumbnail with lightbox (not-found uses NotFoundCallout below) */}
+            {proofImage && !isNotFound && (
+              <div className="px-4 py-2">
+                <button
+                  type="button"
+                  className="relative group/img cursor-zoom-in"
+                  onClick={e => {
+                    e.stopPropagation();
+                    setLightboxImage(proofImage);
+                  }}
+                  aria-label="Click to view full size"
+                >
+                  <img
+                    src={proofImage}
+                    alt="Verification proof"
+                    className="w-auto max-h-40 object-contain rounded border border-gray-200 dark:border-gray-700"
+                    loading="lazy"
+                  />
+                  <div
+                    className="absolute inset-0 bg-black/0 group-hover/img:bg-black/15 transition-colors duration-150 rounded flex items-center justify-center"
+                    aria-hidden="true"
+                  >
+                    <span className="w-5 h-5 text-white opacity-0 group-hover/img:opacity-80 transition-opacity duration-150 drop-shadow-md">
+                      <ZoomInIcon />
                     </span>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-medium text-red-700 dark:text-red-300">Citation not found</span>
-                      <div className="mt-1 text-[11px] text-red-500/80 dark:text-red-400/70">
-                        Searched {searchAttempts.length} {searchAttempts.length === 1 ? "method" : "methods"} across the
-                        document
-                      </div>
-                    </div>
                   </div>
-                </div>
+                </button>
               </div>
+            )}
+
+            {/* Enhanced not-found callout with search analysis */}
+            {isNotFound && searchAttempts.length > 0 && (
+              <NotFoundCallout
+                searchAttempts={searchAttempts}
+                verification={verification}
+                proofImage={proofImage}
+                onImageClick={proofImage ? () => setLightboxImage(proofImage) : undefined}
+              />
             )}
 
             {/* Verification summary — shown for non-not-found statuses */}
@@ -727,9 +891,86 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 </a>
               </div>
             )}
+
+            {/* Proof URL link for document citations */}
+            {!sourceUrl && proofUrl && (
+              <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800">
+                <a
+                  href={proofUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  onClick={e => e.stopPropagation()}
+                >
+                  View proof page
+                  <span className="size-3 block">
+                    <ExternalLinkIcon />
+                  </span>
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Lightbox portal for full-size image viewing */}
+      {/* Inline keyframe for not-found pulse highlight — scoped, no global CSS needed */}
+      {wasAutoExpanded && isNotFound && (
+        <style>{`
+          @keyframes dc-pulse-once {
+            0% { background-color: transparent; }
+            30% { background-color: rgba(239, 68, 68, 0.08); }
+            100% { background-color: transparent; }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .animate-\\[dc-pulse-once_1\\.2s_ease-out\\] { animation: none !important; }
+          }
+        `}</style>
+      )}
+
+      {lightboxImage &&
+        (() => {
+          const container = getPortalContainer();
+          return container
+            ? createPortal(
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Full size proof image"
+                  className="fixed inset-0 flex items-center justify-center bg-black/80 cursor-zoom-out animate-in fade-in-0 duration-150"
+                  style={{ zIndex: `var(${Z_INDEX_IMAGE_OVERLAY_VAR}, 9999)` } as React.CSSProperties}
+                  onClick={() => setLightboxImage(null)}
+                  onKeyDown={e => {
+                    if (e.key === "Escape") setLightboxImage(null);
+                  }}
+                >
+                  {/* eslint-disable-next-line -- img onClick stops backdrop close; onKeyDown mirrors for a11y */}
+                  <img
+                    src={lightboxImage}
+                    alt="Verification proof full size"
+                    className="max-w-[90vw] max-h-[90vh] object-contain rounded shadow-2xl"
+                    onClick={e => e.stopPropagation()}
+                    onKeyDown={e => e.stopPropagation()}
+                  />
+                  <button
+                    type="button"
+                    autoFocus
+                    onClick={e => {
+                      e.stopPropagation();
+                      setLightboxImage(null);
+                    }}
+                    className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    aria-label="Close"
+                  >
+                    <span className="size-5 block">
+                      <XIcon />
+                    </span>
+                  </button>
+                </div>,
+                container,
+              )
+            : null;
+        })()}
     </div>
   );
 });
@@ -872,9 +1113,28 @@ export function CitationDrawer({
   indicatorVariant = "icon",
   sourceLabelMap,
 }: CitationDrawerProps): React.ReactNode {
-  const [viewMode, setViewMode] = useState<ViewMode>("status");
-  // Track the first not-found item key for auto-expand on open
-  const [autoExpandKey, setAutoExpandKey] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("dc-drawer-view-mode") : null;
+      if (stored === "source" || stored === "status") return stored;
+    } catch {
+      /* SSR or localStorage unavailable */
+    }
+    return "status";
+  });
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    try {
+      if (typeof window !== "undefined") localStorage.setItem("dc-drawer-view-mode", mode);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Track collapsed status sections (e.g. auto-collapse "Verified" when problems exist)
+  const [collapsedSections, setCollapsedSections] = useState<Set<StatusCategory>>(new Set());
+  // Track all not-found item keys for auto-expand on open
+  const [autoExpandKeys, setAutoExpandKeys] = useState<Set<string> | null>(null);
   const prevIsOpenRef = React.useRef(false);
 
   // Status summary for header and progress bar
@@ -899,25 +1159,31 @@ export function CitationDrawer({
     return parts.join(" · ");
   }, [summary]);
 
-  // Pre-compute first not-found key as a stable derived value. The loop runs once per
-  // citationGroups change (memoized) rather than being embedded in the effect, making the
-  // key available for any future render path that needs it beyond the open-drawer trigger.
-  const firstNotFoundKey = useMemo(() => {
+  // Pre-compute all not-found keys as a stable derived value. The loop runs once per
+  // citationGroups change (memoized), collecting ALL not-found items for auto-expansion.
+  const notFoundKeys = useMemo(() => {
+    const keys = new Set<string>();
     for (const group of citationGroups) {
       for (const item of group.citations) {
-        if (getItemStatusCategory(item) === "notFound") return item.citationKey;
+        if (getItemStatusCategory(item) === "notFound") keys.add(item.citationKey);
       }
     }
-    return null;
+    return keys.size > 0 ? keys : null;
   }, [citationGroups]);
 
-  // Auto-expand first not-found item when drawer opens
+  // Auto-expand all not-found items and auto-collapse verified section when drawer opens
   React.useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
-      setAutoExpandKey(firstNotFoundKey);
+      setAutoExpandKeys(notFoundKeys);
+      // Smart default: auto-collapse "Verified" section when problems exist
+      if (summary.notFound > 0 || summary.partial > 0) {
+        setCollapsedSections(new Set<StatusCategory>(["verified"]));
+      } else {
+        setCollapsedSections(new Set());
+      }
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, firstNotFoundKey]);
+  }, [isOpen, notFoundKeys, summary.notFound, summary.partial]);
 
   // Handle escape key
   React.useEffect(() => {
@@ -933,14 +1199,27 @@ export function CitationDrawer({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  const toggleSection = useCallback((category: StatusCategory) => {
+    setCollapsedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }, []);
+
   // Don't render if closed
   if (!isOpen) return null;
+
+  // Track stagger index across groups for entrance animation
+  let staggerIndex = 0;
 
   const renderGroup = (group: SourceCitationGroup, groupIndex: number, isLastGroup: boolean) => {
     const key = `${group.sourceDomain ?? group.sourceName}-${groupIndex}`;
 
     // Single-citation groups: render as one compact row (no header + item split)
     if (group.citations.length === 1 && !renderCitationItem) {
+      staggerIndex++;
       return (
         <CompactSingleCitationRow
           key={key}
@@ -957,8 +1236,10 @@ export function CitationDrawer({
       <div key={key}>
         <SourceGroupHeader group={group} sourceLabelMap={sourceLabelMap} />
         <div>
-          {group.citations.map((item, index) =>
-            renderCitationItem ? (
+          {group.citations.map((item, index) => {
+            const delay = staggerIndex * 35;
+            staggerIndex++;
+            return renderCitationItem ? (
               <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
             ) : (
               <CitationDrawerItemComponent
@@ -970,44 +1251,65 @@ export function CitationDrawer({
                 indicatorVariant={indicatorVariant}
                 hideSourceName
                 sourceLabelMap={sourceLabelMap}
-                defaultExpanded={item.citationKey === autoExpandKey}
+                defaultExpanded={autoExpandKeys?.has(item.citationKey) ?? false}
+                style={{ animationDelay: `${delay}ms` }}
               />
-            ),
-          )}
+            );
+          })}
         </div>
       </div>
     );
   };
 
   const renderStatusView = () => {
-    return statusSections.map((section, sectionIndex) => (
-      <div key={section.category}>
-        <StatusSectionHeader label={section.label} count={section.items.length} color={section.color} />
-        {section.items.map((item, index) =>
-          renderCitationItem ? (
-            <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
-          ) : (
-            <CitationDrawerItemComponent
-              key={item.citationKey}
-              item={item}
-              isLast={sectionIndex === statusSections.length - 1 && index === section.items.length - 1}
-              onClick={onCitationClick}
-              onReadMore={onReadMore}
-              indicatorVariant={indicatorVariant}
-              sourceLabelMap={sourceLabelMap}
-              defaultExpanded={item.citationKey === autoExpandKey}
-            />
-          ),
-        )}
-      </div>
-    ));
+    let statusStaggerIndex = 0;
+    return statusSections.map((section, sectionIndex) => {
+      const isCollapsed = collapsedSections.has(section.category);
+      return (
+        <div key={section.category}>
+          <StatusSectionHeader
+            label={section.label}
+            count={section.items.length}
+            color={section.color}
+            isCollapsed={isCollapsed}
+            onToggle={() => toggleSection(section.category)}
+          />
+          <div
+            className="grid transition-[grid-template-rows] duration-200 ease-out"
+            style={{ gridTemplateRows: isCollapsed ? "0fr" : "1fr" }}
+          >
+            <div className="overflow-hidden" style={{ minHeight: 0 }}>
+              {section.items.map((item, index) => {
+                const delay = statusStaggerIndex * 35;
+                statusStaggerIndex++;
+                return renderCitationItem ? (
+                  <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
+                ) : (
+                  <CitationDrawerItemComponent
+                    key={item.citationKey}
+                    item={item}
+                    isLast={sectionIndex === statusSections.length - 1 && index === section.items.length - 1}
+                    onClick={onCitationClick}
+                    onReadMore={onReadMore}
+                    indicatorVariant={indicatorVariant}
+                    sourceLabelMap={sourceLabelMap}
+                    defaultExpanded={autoExpandKeys?.has(item.citationKey) ?? false}
+                    style={{ animationDelay: `${delay}ms` }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    });
   };
 
   const drawerContent = (
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 animate-in fade-in-0 duration-150"
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm animate-in fade-in-0 duration-150"
         style={{ zIndex: `var(${Z_INDEX_DRAWER_BACKDROP_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})` } as React.CSSProperties}
         onClick={onClose}
         aria-hidden="true"
@@ -1042,7 +1344,7 @@ export function CitationDrawer({
               {totalCitations > 0 && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{summaryText}</p>}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {totalCitations > 1 && <ViewModeToggle mode={viewMode} onChange={setViewMode} />}
+              {totalCitations > 1 && <ViewModeToggle mode={viewMode} onChange={handleViewModeChange} />}
               <button
                 type="button"
                 onClick={onClose}
