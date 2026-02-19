@@ -299,7 +299,7 @@ export function PagePill({ pageNumber, colorScheme, onClick }: PagePillProps) {
         "transition-colors hover:opacity-80",
         colorClasses,
       )}
-      aria-label={`Expand page ${pageNumber}`}
+      aria-label={`Expand to full page ${pageNumber}`}
     >
       <span>p.{pageNumber}</span>
       <span className="size-2.5">
