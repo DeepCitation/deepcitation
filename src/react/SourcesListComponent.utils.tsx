@@ -37,7 +37,8 @@ export function detectSourceType(url: string): SourceType {
     if (isDomainMatch(url, "linkedin.com")) return "social";
     if (isDomainMatch(url, "threads.net")) return "social";
     // Mastodon: check domain ends with mastodon.* pattern
-    if (domain.includes(".mastodon.") || domain.endsWith(".social") && parsedUrl.pathname.includes("/@")) return "social";
+    if (domain.includes(".mastodon.") || (domain.endsWith(".social") && parsedUrl.pathname.includes("/@")))
+      return "social";
 
     // Video platforms
     if (isDomainMatch(url, "youtube.com") || isDomainMatch(url, "youtu.be")) return "video";
@@ -52,8 +53,11 @@ export function detectSourceType(url: string): SourceType {
     if (isDomainMatch(url, "arxiv.org")) return "academic";
     if (isDomainMatch(url, "scholar.google.com")) return "academic";
     // PubMed: check domain for ncbi.nlm.nih.gov or pathname for /pubmed
-    if (isDomainMatch(url, "pubmed.ncbi.nlm.nih.gov") ||
-        (isDomainMatch(url, "ncbi.nlm.nih.gov") && parsedUrl.pathname.includes("/pubmed"))) return "academic";
+    if (
+      isDomainMatch(url, "pubmed.ncbi.nlm.nih.gov") ||
+      (isDomainMatch(url, "ncbi.nlm.nih.gov") && parsedUrl.pathname.includes("/pubmed"))
+    )
+      return "academic";
     if (isDomainMatch(url, "doi.org")) return "academic";
     if (isDomainMatch(url, "researchgate.net") || isDomainMatch(url, "academia.edu")) return "academic";
 
