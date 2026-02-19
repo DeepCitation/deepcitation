@@ -645,6 +645,7 @@ export interface ExpandedImageSource {
  * @throws {Error} If the input is invalid (empty, not a string, or malformed)
  * @internal Exported for testing purposes only
  */
+// biome-ignore lint/style/useComponentExportOnlyModules: Utility function exported for testing
 export function normalizeScreenshotSrc(raw: string): string {
   // Validate input is a non-empty string
   if (!raw || typeof raw !== "string") {
