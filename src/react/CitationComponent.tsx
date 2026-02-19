@@ -1425,7 +1425,7 @@ function EvidenceTray({
   );
 
   return (
-    <div className="mx-3 mb-3">
+    <div className="m-3">
       {onExpand ? (
         /* Interactive: clickable with hover CTA */
         <div
@@ -1876,7 +1876,7 @@ function DefaultPopoverContent({
           />
 
           {fullPhrase && (
-            <div className="mx-3 mt-1 mb-2 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
+            <div className="mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
               <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}
@@ -1936,7 +1936,7 @@ function DefaultPopoverContent({
           )}
 
           {fullPhrase && (
-            <div className="mx-3 mt-1 mb-2 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
+            <div className="mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-sm leading-relaxed break-words rounded bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-gray-300 dark:border-gray-600">
               <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
             </div>
           )}

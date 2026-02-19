@@ -345,7 +345,7 @@ export function SourceContextHeader({
   const displayName = isUrl ? undefined : (sourceLabel || verification?.label || "Document");
 
   return (
-    <div className="flex items-center justify-between gap-2 p-3 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex items-center justify-between gap-2 p-3 mb-2 border-b border-gray-200 dark:border-gray-700">
       {/* Left: Icon + source name */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {isUrl ? (
