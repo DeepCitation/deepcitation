@@ -7,7 +7,14 @@ import type {
   CitationDrawerProps,
   SourceCitationGroup,
 } from "./CitationDrawer.types.js";
-import { extractDomain, getStatusInfo } from "./CitationDrawer.utils.js";
+import {
+  computeStatusSummary,
+  extractDomain,
+  getItemStatusCategory,
+  getStatusInfo,
+  groupCitationsByStatus,
+  sortGroupsByWorstStatus,
+} from "./CitationDrawer.utils.js";
 import {
   COPY_FEEDBACK_DURATION_MS,
   getPortalContainer,
@@ -230,6 +237,105 @@ function renderPhraseWithHighlight(fullPhrase: string, anchorText: string): Reac
 }
 
 // =========
+// StatusProgressBar — thin GitHub-language-bar-style status breakdown
+// =========
+
+/**
+ * Thin progress bar showing proportional status breakdown.
+ * Each segment grows proportional to its count using flex-grow.
+ */
+function StatusProgressBar({
+  verified,
+  partial,
+  notFound,
+  pending,
+}: {
+  verified: number;
+  partial: number;
+  notFound: number;
+  pending: number;
+}) {
+  const segments = [
+    { count: notFound, color: "bg-red-500 dark:bg-red-400" },
+    { count: partial, color: "bg-amber-500 dark:bg-amber-400" },
+    { count: pending, color: "bg-gray-300 dark:bg-gray-600" },
+    { count: verified, color: "bg-green-500 dark:bg-green-400" },
+  ].filter(s => s.count > 0);
+
+  if (segments.length === 0) return null;
+
+  return (
+    <div
+      className="flex h-1 w-full rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800"
+      role="img"
+      aria-label="Verification status breakdown"
+    >
+      {segments.map((seg, i) => (
+        <div
+          key={seg.color}
+          className={cn(
+            "transition-all duration-300",
+            seg.color,
+            i === 0 && "rounded-l-full",
+            i === segments.length - 1 && "rounded-r-full",
+          )}
+          style={{ flexGrow: seg.count }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// =========
+// ViewModeToggle — segmented "By status" / "By source" toggle
+// =========
+
+type ViewMode = "status" | "source";
+
+function ViewModeToggle({ mode, onChange }: { mode: ViewMode; onChange: (mode: ViewMode) => void }) {
+  return (
+    <div
+      className="inline-flex rounded-md border border-gray-200 dark:border-gray-700 text-[11px] font-medium"
+      role="radiogroup"
+      aria-label="View mode"
+    >
+      {(["status", "source"] as const).map(m => (
+        <button
+          key={m}
+          type="button"
+          role="radio"
+          aria-checked={mode === m}
+          className={cn(
+            "px-2.5 py-1 transition-colors cursor-pointer",
+            m === "status" && "rounded-l-md",
+            m === "source" && "rounded-r-md",
+            mode === m
+              ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300",
+          )}
+          onClick={() => onChange(m)}
+        >
+          {m === "status" ? "By status" : "By source"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// =========
+// StatusSectionHeader — header for status-grouped sections
+// =========
+
+function StatusSectionHeader({ label, count, color }: { label: string; count: number; color: string }) {
+  return (
+    <div className="px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <span className={cn("text-xs font-medium", color)}>{label}</span>
+      <span className="text-[11px] text-gray-400 dark:text-gray-500">({count})</span>
+    </div>
+  );
+}
+
+// =========
 // SourceGroupHeader
 // =========
 
@@ -341,6 +447,14 @@ function formatCheckedDate(date: Date | string | null | undefined): string | nul
 // CitationDrawerItemComponent
 // =========
 
+/** Status-colored left border classes, keyed by StatusCategory. */
+const STATUS_BORDER_MAP = {
+  notFound: "border-l-red-400 dark:border-l-red-500",
+  partial: "border-l-amber-400 dark:border-l-amber-500",
+  pending: "border-l-gray-300 dark:border-l-gray-600",
+  verified: "border-l-green-400 dark:border-l-green-500",
+} as const;
+
 /**
  * Individual citation item displayed in the drawer.
  * Shows status + anchor text summary, expands to show compact verification details.
@@ -353,12 +467,19 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   className,
   indicatorVariant = "icon",
   hideSourceName = false,
+  defaultExpanded = false,
 }: CitationDrawerItemProps) {
   const { citation, verification } = item;
   const statusInfo = useMemo(() => getStatusInfo(verification, indicatorVariant), [verification, indicatorVariant]);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [imageExpanded, setImageExpanded] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+
+  // Sync expanded state when defaultExpanded changes from false → true
+  // (useState initializer only runs on mount; this handles async autoExpandKey updates)
+  useEffect(() => {
+    if (defaultExpanded) setIsExpanded(true);
+  }, [defaultExpanded]);
 
   // Auto-reset copy state
   useEffect(() => {
@@ -400,8 +521,13 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const rawProofImage = verification?.document?.verificationImageSrc;
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
-  // Pending state
-  const isPending = !verification?.status || verification.status === "pending" || verification.status === "loading";
+  // Status category (uses canonical logic from getItemStatusCategory)
+  const statusCategory = getItemStatusCategory(item);
+  const isPending = statusCategory === "pending";
+  const isNotFound = statusCategory === "notFound";
+  const isVerified = statusCategory === "verified";
+
+  const statusBorderColor = STATUS_BORDER_MAP[statusCategory];
 
   // Verification date
   const checkedDate = formatCheckedDate(verification?.verifiedAt ?? verification?.url?.crawledAt);
@@ -446,12 +572,11 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   return (
     <div
       className={cn(
-        "cursor-pointer transition-colors",
+        "cursor-pointer transition-colors border-l-[3px]",
         !isLast && "border-b border-gray-200 dark:border-gray-700",
-        // 3px border for visual distinction (2px too subtle, 4px too heavy)
-        isExpanded
-          ? "border-l-[3px] border-l-blue-400 dark:border-l-blue-500"
-          : "border-l-[3px] border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
+        isExpanded ? statusBorderColor : "border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
+        // Mute verified items to draw attention to problems
+        isVerified && !isExpanded && "opacity-75",
         className,
       )}
     >
@@ -563,72 +688,102 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
         </div>
       </div>
 
-      {/* Expanded detail view */}
-      {isExpanded && (
-        <div className="border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-          {/* Proof image — click to expand/collapse */}
-          {proofImage && (
-            <div className="px-4 py-2">
-              <button
-                type="button"
-                className={cn(
-                  "relative group/img block rounded border border-gray-200 dark:border-gray-700 overflow-hidden transition-all",
-                  imageExpanded ? "cursor-zoom-out" : "cursor-zoom-in",
-                )}
-                onClick={e => {
-                  e.stopPropagation();
-                  setImageExpanded(prev => !prev);
-                }}
-                aria-label={imageExpanded ? "Collapse proof image" : "Expand proof image"}
-              >
-                <img
-                  src={proofImage}
-                  alt="Verification proof"
+      {/* Expanded detail view — CSS grid animation for smooth height transition */}
+      <div
+        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        style={{ gridTemplateRows: isExpanded ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden" style={{ minHeight: 0 }}>
+          <div
+            className={cn(
+              "border-t border-gray-100 dark:border-gray-800",
+              isNotFound ? "bg-red-50/50 dark:bg-red-950/20" : "bg-gray-50 dark:bg-gray-800/50",
+            )}
+          >
+            {/* Proof image — click to expand/collapse */}
+            {proofImage && (
+              <div className="px-4 py-2">
+                <button
+                  type="button"
                   className={cn(
-                    "w-auto object-contain transition-[max-height] duration-200",
-                    imageExpanded ? "max-h-[600px]" : "max-h-40",
+                    "relative group/img block rounded border border-gray-200 dark:border-gray-700 overflow-hidden transition-all",
+                    imageExpanded ? "cursor-zoom-out" : "cursor-zoom-in",
                   )}
-                  loading="lazy"
-                />
-                {/* Hover overlay with zoom hint (only when collapsed) */}
-                {!imageExpanded && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/img:bg-black/10 transition-colors">
-                    <span className="opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center gap-1 text-xs text-white bg-black/60 rounded px-2 py-1">
-                      <span className="size-3.5">
-                        <ZoomInIcon />
+                  onClick={e => {
+                    e.stopPropagation();
+                    setImageExpanded(prev => !prev);
+                  }}
+                  aria-label={imageExpanded ? "Collapse proof image" : "Expand proof image"}
+                >
+                  <img
+                    src={proofImage}
+                    alt="Verification proof"
+                    className={cn(
+                      "w-auto object-contain transition-[max-height] duration-200",
+                      imageExpanded ? "max-h-[600px]" : "max-h-40",
+                    )}
+                    loading="lazy"
+                  />
+                  {/* Hover overlay with zoom hint (only when collapsed) */}
+                  {!imageExpanded && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/img:bg-black/10 transition-colors">
+                      <span className="opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center gap-1 text-xs text-white bg-black/60 rounded px-2 py-1">
+                        <span className="size-3.5">
+                          <ZoomInIcon />
+                        </span>
+                        Expand
                       </span>
-                      Expand
+                    </div>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Enhanced not-found callout */}
+            {isNotFound && searchAttempts.length > 0 && (
+              <div className="px-4 py-2.5">
+                <div className="p-2.5 rounded-md border border-dashed border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-950/30">
+                  <div className="flex items-start gap-2">
+                    <span className="size-3.5 mt-0.5 shrink-0 text-red-500 dark:text-red-400">
+                      <MissIcon />
                     </span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-medium text-red-700 dark:text-red-300">Citation not found</span>
+                      <div className="mt-1 text-[11px] text-red-500/80 dark:text-red-400/70">
+                        Searched {searchAttempts.length} {searchAttempts.length === 1 ? "method" : "methods"} across the
+                        document
+                      </div>
+                    </div>
                   </div>
-                )}
-              </button>
-            </div>
-          )}
+                </div>
+              </div>
+            )}
 
-          {/* Verification summary — shown directly, no nested collapse */}
-          {searchAttempts.length > 0 && (
-            <DrawerVerificationSummary searchAttempts={searchAttempts} status={verification?.status} />
-          )}
+            {/* Verification summary — shown for non-not-found statuses */}
+            {!isNotFound && searchAttempts.length > 0 && (
+              <DrawerVerificationSummary searchAttempts={searchAttempts} status={verification?.status} />
+            )}
 
-          {/* Snippet fallback when no search attempts (shows full phrase context) */}
-          {searchAttempts.length === 0 && snippet && snippet !== articleTitle && (
-            <div className="px-4 py-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-4">
-                {snippet}
-                {onReadMore && snippet.length > 100 && (
-                  <button
-                    type="button"
-                    onClick={handleReadMore}
-                    className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                  >
-                    Read more
-                  </button>
-                )}
-              </p>
-            </div>
-          )}
+            {/* Snippet fallback when no search attempts (shows full phrase context) */}
+            {searchAttempts.length === 0 && snippet && snippet !== articleTitle && (
+              <div className="px-4 py-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-4">
+                  {snippet}
+                  {onReadMore && snippet.length > 100 && (
+                    <button
+                      type="button"
+                      onClick={handleReadMore}
+                      className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      Read more
+                    </button>
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 });
@@ -771,10 +926,49 @@ export function CitationDrawer({
   indicatorVariant = "icon",
   sourceLabelMap,
 }: CitationDrawerProps): React.ReactNode {
+  const [viewMode, setViewMode] = useState<ViewMode>("status");
+  // Track the first not-found item key for auto-expand on open
+  const [autoExpandKey, setAutoExpandKey] = useState<string | null>(null);
+  const prevIsOpenRef = React.useRef(false);
+
+  // Status summary for header and progress bar
+  const summary = useMemo(() => computeStatusSummary(citationGroups), [citationGroups]);
+
+  // Sorted groups for "By source" view
+  const sortedGroups = useMemo(() => sortGroupsByWorstStatus(citationGroups), [citationGroups]);
+
+  // Status sections for "By status" view
+  const statusSections = useMemo(() => groupCitationsByStatus(citationGroups), [citationGroups]);
+
   // Flatten all citations for total count
-  const totalCitations = useMemo(() => {
-    return citationGroups.reduce((sum, g) => sum + g.citations.length, 0);
-  }, [citationGroups]);
+  const totalCitations = summary.total;
+
+  // Build status summary text
+  const summaryText = useMemo(() => {
+    const parts: string[] = [];
+    if (summary.notFound > 0) parts.push(`${summary.notFound} not found`);
+    if (summary.partial > 0) parts.push(`${summary.partial} partial`);
+    if (summary.pending > 0) parts.push(`${summary.pending} verifying`);
+    if (summary.verified > 0) parts.push(`${summary.verified} verified`);
+    return parts.join(" · ");
+  }, [summary]);
+
+  // Auto-expand first not-found item when drawer opens
+  React.useEffect(() => {
+    if (isOpen && !prevIsOpenRef.current) {
+      // Find first not-found citation (uses canonical status logic)
+      for (const group of citationGroups) {
+        for (const item of group.citations) {
+          if (getItemStatusCategory(item) === "notFound") {
+            setAutoExpandKey(item.citationKey);
+            return;
+          }
+        }
+      }
+      setAutoExpandKey(null);
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, citationGroups]);
 
   // Handle escape key
   React.useEffect(() => {
@@ -809,7 +1003,7 @@ export function CitationDrawer({
       );
     }
 
-    // Multi-citation groups: collapsible header + items
+    // Multi-citation groups: header + items
     return (
       <div key={key}>
         <SourceGroupHeader group={group} sourceLabelMap={sourceLabelMap} />
@@ -827,12 +1021,37 @@ export function CitationDrawer({
                 indicatorVariant={indicatorVariant}
                 hideSourceName
                 sourceLabelMap={sourceLabelMap}
+                defaultExpanded={item.citationKey === autoExpandKey}
               />
             ),
           )}
         </div>
       </div>
     );
+  };
+
+  const renderStatusView = () => {
+    return statusSections.map((section, sectionIndex) => (
+      <div key={section.category}>
+        <StatusSectionHeader label={section.label} count={section.items.length} color={section.color} />
+        {section.items.map((item, index) =>
+          renderCitationItem ? (
+            <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
+          ) : (
+            <CitationDrawerItemComponent
+              key={item.citationKey}
+              item={item}
+              isLast={sectionIndex === statusSections.length - 1 && index === section.items.length - 1}
+              onClick={onCitationClick}
+              onReadMore={onReadMore}
+              indicatorVariant={indicatorVariant}
+              sourceLabelMap={sourceLabelMap}
+              defaultExpanded={item.citationKey === autoExpandKey}
+            />
+          ),
+        )}
+      </div>
+    ));
   };
 
   const drawerContent = (
@@ -859,41 +1078,56 @@ export function CitationDrawer({
         aria-modal="true"
         aria-label={title}
       >
-        {/* Handle bar (mobile) — reduced padding */}
+        {/* Handle bar (mobile) */}
         {position === "bottom" && (
           <div className="flex justify-center pt-2 pb-0.5 shrink-0">
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
           </div>
         )}
 
-        {/* Header — reduced padding */}
-        <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between shrink-0">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            aria-label="Close"
-          >
-            <svg
-              className="w-5 h-5 text-gray-500 dark:text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        {/* Header with summary, progress bar, and view toggle */}
+        <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+              {totalCitations > 0 && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{summaryText}</p>}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {totalCitations > 1 && <ViewModeToggle mode={viewMode} onChange={setViewMode} />}
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-500 dark:text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {totalCitations > 0 && (
+            <div className="mt-2">
+              <StatusProgressBar {...summary} />
+            </div>
+          )}
         </div>
 
-        {/* Citation list — always fully expanded and scrollable */}
+        {/* Citation list */}
         <div className="flex-1 overflow-y-auto">
           {totalCitations === 0 ? (
             <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No citations to display</div>
+          ) : viewMode === "status" ? (
+            renderStatusView()
           ) : (
-            citationGroups.map((group, groupIndex) =>
-              renderGroup(group, groupIndex, groupIndex === citationGroups.length - 1),
+            sortedGroups.map((group, groupIndex) =>
+              renderGroup(group, groupIndex, groupIndex === sortedGroups.length - 1),
             )
           )}
         </div>

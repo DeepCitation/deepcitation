@@ -278,9 +278,11 @@ describe("CitationDrawerItemComponent", () => {
   });
 
   it("renders snippet", () => {
-    const { getByText } = render(<CitationDrawerItemComponent item={createItem()} />);
+    const { getAllByText } = render(<CitationDrawerItemComponent item={createItem()} />);
 
-    expect(getByText("The minimum tax is $175.00 for corporations...")).toBeInTheDocument();
+    // Snippet appears in both summary row and always-rendered expanded detail (CSS grid animation)
+    const snippets = getAllByText("The minimum tax is $175.00 for corporations...");
+    expect(snippets.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders status indicator instead of favicon", () => {
@@ -488,16 +490,14 @@ describe("CitationDrawer", () => {
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} showMoreSection={false} />,
     );
 
-    // Source A has 2 citations (rendered as expanded items, shows titles)
-    // Source B has 1 citation (renders as CompactSingleCitationRow, no title shown)
-    // So "Article 1" appears only once (from Source A)
-    // And "Article 2" appears once (from Source A)
-    expect(getAllByText("Article 1")).toHaveLength(1);
+    // Default view is "By status" — all citations render flat with titles visible.
+    // "Article 1" appears twice: once from Source A (index 0) and once from Source B (index 0).
+    expect(getAllByText("Article 1")).toHaveLength(2);
     expect(getByText("Article 2")).toBeInTheDocument();
 
-    // But both source groups should be present
-    expect(getByText("Source A")).toBeInTheDocument();
-    expect(getByText("Source B")).toBeInTheDocument();
+    // Source names still appear on each citation item
+    expect(getAllByText("Source A").length).toBeGreaterThanOrEqual(1);
+    expect(getAllByText("Source B").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows all items without More section (always expanded)", () => {

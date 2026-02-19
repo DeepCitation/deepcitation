@@ -2,7 +2,7 @@ import type React from "react";
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Verification } from "../types/verification.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
-import { getStatusInfo } from "./CitationDrawer.utils.js";
+import { computeStatusSummary, getStatusInfo, getStatusPriority } from "./CitationDrawer.utils.js";
 import { isValidProofImageSrc } from "./constants.js";
 import { cn } from "./utils.js";
 
@@ -148,6 +148,7 @@ function generateDefaultLabel(citationGroups: SourceCitationGroup[]): string {
 
 /**
  * Flatten citation groups into individual citation items with source context.
+ * Sorted by status priority (worst first) so failures appear at the start of the icon row.
  */
 function flattenCitations(citationGroups: SourceCitationGroup[]): FlatCitationItem[] {
   const items: FlatCitationItem[] = [];
@@ -161,7 +162,8 @@ function flattenCitations(citationGroups: SourceCitationGroup[]): FlatCitationIt
       });
     }
   }
-  return items;
+  // Sort worst-status-first so failures appear at the leading edge
+  return items.sort((a, b) => getStatusPriority(b.item.verification) - getStatusPriority(a.item.verification));
 }
 
 // =========
@@ -401,6 +403,61 @@ function StackedStatusIcons({
 }
 
 // =========
+// TriggerStatusBar — 2px proportional color bar
+// =========
+
+type StatusSummary = ReturnType<typeof computeStatusSummary>;
+
+function TriggerStatusBar({ summary }: { summary: StatusSummary }) {
+  if (summary.total === 0) return null;
+
+  const segments = [
+    { count: summary.notFound, color: "bg-red-500 dark:bg-red-400" },
+    { count: summary.partial, color: "bg-amber-500 dark:bg-amber-400" },
+    { count: summary.pending, color: "bg-gray-300 dark:bg-gray-600" },
+    { count: summary.verified, color: "bg-green-500 dark:bg-green-400" },
+  ].filter(s => s.count > 0);
+
+  return (
+    <div className="flex h-0.5 w-full rounded-full overflow-hidden" role="img" aria-label="Status breakdown">
+      {segments.map(seg => (
+        <div key={seg.color} className={seg.color} style={{ flexGrow: seg.count }} />
+      ))}
+    </div>
+  );
+}
+
+// =========
+// TriggerBadge — compact count pill
+// =========
+
+function TriggerBadge({ summary }: { summary: StatusSummary }) {
+  if (summary.total === 0) return null;
+
+  const hasIssues = summary.notFound > 0 || summary.partial > 0;
+  const verifiedCount = summary.verified;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none",
+        hasIssues
+          ? "bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400"
+          : "bg-green-50 text-green-600 dark:bg-green-950/40 dark:text-green-400",
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block w-1.5 h-1.5 rounded-full",
+          hasIssues ? "bg-red-500 dark:bg-red-400" : "bg-green-500 dark:bg-green-400",
+        )}
+      />
+      {verifiedCount}/{summary.total}
+    </span>
+  );
+}
+
+// =========
 // CitationDrawerTrigger
 // =========
 
@@ -448,6 +505,9 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
 
     // Flatten citation groups into individual items for per-citation icons
     const flatCitations = useMemo(() => flattenCitations(citationGroups), [citationGroups]);
+
+    // Status summary (computed once, shared by badge + status bar)
+    const statusSummary = useMemo(() => computeStatusSummary(citationGroups), [citationGroups]);
 
     // On touch devices, skip the hover-spread animation — tap goes straight to drawer
     const handleMouseEnter = useCallback(() => {
@@ -530,32 +590,42 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         aria-label={`Citations: ${displayLabel}`}
         data-testid="citation-drawer-trigger"
       >
-        {/* Per-citation status icons */}
-        <StackedStatusIcons
-          flatCitations={flatCitations}
-          isHovered={isHovered}
-          maxIcons={maxIcons}
-          hoveredIndex={hoveredIndex}
-          onIconHover={handleIconHover}
-          onIconLeave={handleIconLeave}
-          showProofThumbnails={showProofThumbnails}
-          onSourceClick={onSourceClick}
-          indicatorVariant={indicatorVariant}
-        />
+        <div className="flex flex-col gap-1 flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            {/* Per-citation status icons */}
+            <StackedStatusIcons
+              flatCitations={flatCitations}
+              isHovered={isHovered}
+              maxIcons={maxIcons}
+              hoveredIndex={hoveredIndex}
+              onIconHover={handleIconHover}
+              onIconLeave={handleIconLeave}
+              showProofThumbnails={showProofThumbnails}
+              onSourceClick={onSourceClick}
+              indicatorVariant={indicatorVariant}
+            />
 
-        {/* Label */}
-        <span className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[200px]">{displayLabel}</span>
+            {/* Badge pill — verified/total count */}
+            <TriggerBadge summary={statusSummary} />
 
-        {/* Chevron */}
-        <svg
-          className="w-3 h-3 text-gray-400 dark:text-gray-500 shrink-0"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
+            {/* Label */}
+            <span className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[200px]">{displayLabel}</span>
+
+            {/* Chevron */}
+            <svg
+              className="w-3 h-3 text-gray-400 dark:text-gray-500 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+
+          {/* Status color bar — proportional breakdown */}
+          <TriggerStatusBar summary={statusSummary} />
+        </div>
       </button>
     );
   },

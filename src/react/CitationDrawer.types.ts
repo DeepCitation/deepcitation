@@ -105,4 +105,9 @@ export interface CitationDrawerItemProps {
    * @default false
    */
   hideSourceName?: boolean;
+  /**
+   * Whether the item should start in expanded state (e.g., auto-expand first failure).
+   * @default false
+   */
+  defaultExpanded?: boolean;
 }

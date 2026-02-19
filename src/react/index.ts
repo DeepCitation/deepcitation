@@ -25,6 +25,10 @@ export {
   CitationDrawer,
   CitationDrawerItemComponent,
 } from "./CitationDrawer.js";
+// StatusCategory, StatusSection types exported for consumers building custom drawer UIs.
+// Functions (computeStatusSummary, groupCitationsByStatus, sortGroupsByWorstStatus)
+// are NOT re-exported per CLAUDE.md — import directly from CitationDrawer.utils.js.
+export type { StatusCategory, StatusSection } from "./CitationDrawer.utils.js";
 export {
   groupCitationsBySource,
   useCitationDrawer,
