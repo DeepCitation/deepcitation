@@ -286,6 +286,60 @@ describe("resolveExpandedImage", () => {
     });
   });
 
+  describe("URL citation screenshot (tier 3 — webPageScreenshotBase64)", () => {
+    it("converts raw base64 string to data:image/jpeg;base64, URI", () => {
+      const rawBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const verification: Verification = {
+        status: "found",
+        url: { webPageScreenshotBase64: rawBase64 },
+      };
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      expect(result?.src).toBe(`data:image/jpeg;base64,${rawBase64}`);
+      expect(result?.dimensions).toBeNull();
+      expect(result?.highlightBox).toBeNull();
+      expect(result?.textItems).toEqual([]);
+    });
+
+    it("accepts full data URI string as-is", () => {
+      const dataUri = "data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ";
+      const verification: Verification = {
+        status: "found",
+        url: { webPageScreenshotBase64: dataUri },
+      };
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      expect(result?.src).toBe(dataUri);
+    });
+
+    it("falls through to verificationImageSrc when URL screenshot is an SVG data URI", () => {
+      const verification: Verification = {
+        status: "found",
+        url: { webPageScreenshotBase64: SVG_DATA_URI },
+        document: { verificationImageSrc: TRUSTED_IMG, verifiedPageNumber: 1 },
+      };
+      // SVG data URI is rejected by isValidProofImageSrc; tier 4 (verificationImageSrc) is used
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      expect(result?.src).toBe(TRUSTED_IMG);
+    });
+
+    it("confirms cascade: matchPage > proofImageUrl > webPageScreenshotBase64 > verificationImageSrc", () => {
+      const rawBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ";
+      // tier 1 invalid, tier 2 invalid — should land on tier 3 (URL screenshot)
+      const verification: Verification = {
+        status: "found",
+        pages: [{ pageNumber: 1, isMatchPage: true, source: UNTRUSTED_HTTPS_IMG }],
+        proof: { proofImageUrl: UNTRUSTED_HTTPS_IMG },
+        url: { webPageScreenshotBase64: rawBase64 },
+        document: { verificationImageSrc: TRUSTED_IMG, verifiedPageNumber: 1 },
+      };
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      expect(result?.src).toBe(`data:image/jpeg;base64,${rawBase64}`);
+    });
+  });
+
   describe("optional fields", () => {
     it("defaults highlightBox to null when matchPage has none", () => {
       const verification: Verification = {

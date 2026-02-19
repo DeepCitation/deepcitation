@@ -42,7 +42,7 @@ import {
 import { formatCaptureDate } from "./dateUtils.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
-import { ArrowLeftIcon, CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
+import { ArrowLeftIcon, CheckIcon, ExpandArrowsIcon, ExternalLinkIcon, HandIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
@@ -638,6 +638,14 @@ export interface ExpandedImageSource {
 }
 
 /**
+ * Normalizes a webPageScreenshotBase64 field to a usable data URI.
+ * The field may arrive as raw base64 or as a complete data URI; both forms are accepted.
+ */
+function normalizeScreenshotSrc(raw: string): string {
+  return raw.startsWith("data:") ? raw : `data:image/jpeg;base64,${raw}`;
+}
+
+/**
  * Single resolver for the best available full-page image from verification data.
  * Tries in order:
  * 1. matchPage from verification.pages (best: has image, dimensions, highlight, textItems)
@@ -677,7 +685,7 @@ export function resolveExpandedImage(verification: Verification | null | undefin
   // 3. URL screenshot — base64-encoded page screenshot (URL citations)
   const urlScreenshot = verification.url?.webPageScreenshotBase64;
   if (urlScreenshot) {
-    const src = urlScreenshot.startsWith("data:") ? urlScreenshot : `data:image/jpeg;base64,${urlScreenshot}`;
+    const src = normalizeScreenshotSrc(urlScreenshot);
     if (isValidProofImageSrc(src)) {
       return { src, dimensions: null, highlightBox: null, textItems: [] };
     }
@@ -815,20 +823,24 @@ export function AnchorTextFocusedImage({
     [scrollState.canScrollLeft, scrollState.canScrollRight],
   );
 
-  const rawImageSrc = verification.document?.verificationImageSrc;
+  const rawUrlScreenshot = verification.url?.webPageScreenshotBase64;
+  const rawImageSrc =
+    verification.document?.verificationImageSrc ??
+    (rawUrlScreenshot ? normalizeScreenshotSrc(rawUrlScreenshot) : undefined);
   const imageSrc = isValidProofImageSrc(rawImageSrc) ? rawImageSrc : null;
   if (!imageSrc) return null;
 
   const stripHeightStyle = `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
+  const isPannable = scrollState.canScrollLeft || scrollState.canScrollRight;
 
   return (
     <div className="relative">
       {/* Keyhole strip container — clickable to expand, draggable to pan */}
-      <div className="relative group">
+      <div className="relative group/keyhole">
         <button
           type="button"
           className="block relative w-full"
-          style={{ cursor: isDragging ? "grabbing" : onImageClick ? "zoom-in" : "grab" }}
+          style={{ cursor: isDragging ? "grabbing" : isPannable ? "grab" : onImageClick ? "zoom-in" : "default" }}
           onClick={e => {
             e.preventDefault();
             e.stopPropagation();
@@ -839,7 +851,10 @@ export function AnchorTextFocusedImage({
             }
             onImageClick?.();
           }}
-          aria-label="Click to view full size, drag to pan"
+          aria-label={
+            [isPannable && "Drag to pan", onImageClick && "click to view full size"].filter(Boolean).join(", ") ||
+            "Verification image"
+          }
         >
           <div
             ref={containerRef}
@@ -850,7 +865,7 @@ export function AnchorTextFocusedImage({
               WebkitMaskImage: maskImage,
               maskImage,
               ...KEYHOLE_SCROLLBAR_HIDE,
-              cursor: isDragging ? "grabbing" : onImageClick ? "zoom-in" : "grab",
+              cursor: isDragging ? "grabbing" : isPannable ? "grab" : onImageClick ? "zoom-in" : "default",
             }}
             {...handlers}
           >
@@ -869,6 +884,40 @@ export function AnchorTextFocusedImage({
               onError={handleImageError}
             />
           </div>
+
+          {/* Corner affordance icon — hand if pannable, expand arrows if only expandable */}
+          {(isPannable || onImageClick) && (
+            <div
+              className="absolute bottom-1.5 right-1.5 size-4 p-0.5 rounded bg-black/30 text-white opacity-50 group-hover/keyhole:opacity-80 transition-opacity duration-150 pointer-events-none"
+              aria-hidden="true"
+            >
+              {isPannable ? <HandIcon /> : <ExpandArrowsIcon />}
+            </div>
+          )}
+
+          {/* Left pan hint — shown on hover when the image can scroll leftward */}
+          {scrollState.canScrollLeft && (
+            <div
+              className="absolute left-0 top-0 h-full flex items-center pl-1.5 opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 pointer-events-none"
+              aria-hidden="true"
+            >
+              <span className="text-[9px] font-semibold text-white bg-black/50 px-1.5 py-0.5 rounded leading-none">
+                ← Drag
+              </span>
+            </div>
+          )}
+
+          {/* Right pan hint — shown on hover when the image can scroll rightward */}
+          {scrollState.canScrollRight && (
+            <div
+              className="absolute right-0 top-0 h-full flex items-center pr-1.5 opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 pointer-events-none"
+              aria-hidden="true"
+            >
+              <span className="text-[9px] font-semibold text-white bg-black/50 px-1.5 py-0.5 rounded leading-none">
+                Drag →
+              </span>
+            </div>
+          )}
         </button>
 
       </div>
@@ -1339,13 +1388,11 @@ function EvidenceTray({
   onImageClick?: () => void;
   proofImageSrc?: string;
 }) {
-  const hasImage = verification?.document?.verificationImageSrc;
+  const hasImage =
+    verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const isMiss = status.isMiss;
   const searchAttempts = verification?.searchAttempts ?? [];
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
-
-  // Determine hover CTA text (only shown when expandable)
-  const ctaText = hasImage ? "Drag to pan · click to expand" : "Click to expand";
 
   // Shared inner content
   const content = (
@@ -1403,15 +1450,15 @@ function EvidenceTray({
             "transition-opacity",
             borderClass,
           )}
-          aria-label={ctaText}
+          aria-label="Expand for details"
         >
           {content}
 
-          {/* Hover overlay with CTA text */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors duration-150 flex items-center justify-center pointer-events-none rounded-xs">
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-white/90 dark:bg-gray-900/90 px-2 py-1 rounded shadow-sm">
-              {ctaText}
-            </span>
+          {/* Hover overlay — expand icon in corner */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors duration-150 flex items-end justify-end p-1.5 pointer-events-none rounded-xs">
+            <div className="size-5 opacity-0 group-hover:opacity-90 transition-opacity duration-150 bg-white/80 dark:bg-gray-900/80 rounded shadow-sm p-0.5 text-gray-500 dark:text-gray-400">
+              <ExpandArrowsIcon />
+            </div>
           </div>
         </div>
       ) : (
@@ -1539,7 +1586,8 @@ function ExpandedPageViewer({
     const renderedWidth = img.clientWidth;
     const renderedHeight = img.clientHeight;
     const highlightCenterX = ((highlightBox.x + highlightBox.width / 2) / dimensions.width) * renderedWidth;
-    const highlightCenterY = ((highlightBox.y + highlightBox.height / 2) / dimensions.height) * renderedHeight;
+    // PDF y=0 is at bottom; flip to CSS y=0 at top
+    const highlightCenterY = (1 - (highlightBox.y + highlightBox.height / 2) / dimensions.height) * renderedHeight;
 
     // Scroll to center highlight in viewport
     container.scrollLeft = Math.max(0, highlightCenterX - container.clientWidth / 2);
@@ -1615,7 +1663,7 @@ function ExpandedPageViewer({
       {/* Not-found banner */}
       {isMiss && (
         <div className="text-xs text-red-600 dark:text-red-400 py-1.5 text-center bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-800/50 shrink-0">
-          Citation not found on this page
+          Not found on this page
         </div>
       )}
 
@@ -1685,7 +1733,8 @@ function ExpandedPageViewer({
               className="absolute border-2 border-blue-500/60 bg-blue-500/10 rounded animate-[dc-highlight-pulse_0.8s_ease-out]"
               style={{
                 left: `${(highlightBox.x / dimensions.width) * 100}%`,
-                top: `${(highlightBox.y / dimensions.height) * 100}%`,
+                // PDF y=0 is at bottom; flip to CSS y=0 at top
+                top: `${(1 - (highlightBox.y + highlightBox.height) / dimensions.height) * 100}%`,
                 width: `${(highlightBox.width / dimensions.width) * 100}%`,
                 height: `${(highlightBox.height / dimensions.height) * 100}%`,
               }}

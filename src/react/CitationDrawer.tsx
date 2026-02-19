@@ -29,7 +29,7 @@ import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { CheckIcon, ExternalLinkIcon, MissIcon } from "./icons.js";
 import { flattenCitations, StackedStatusIcons } from "./CitationDrawerTrigger.js";
 import { buildSearchSummary } from "./searchSummaryUtils.js";
-import { isValidProofUrl, sanitizeUrl } from "./urlUtils.js";
+import { sanitizeUrl } from "./urlUtils.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
 
@@ -372,7 +372,7 @@ function NotFoundCallout({
             <MissIcon />
           </span>
           <div className="flex-1 min-w-0">
-            <span className="text-xs font-medium text-red-700 dark:text-red-300">Citation not found</span>
+            <span className="text-xs font-medium text-red-700 dark:text-red-300">Not found</span>
             <div className="mt-1 text-[11px] text-red-500/80 dark:text-red-400/70">{searchDescription}</div>
           </div>
         </div>
@@ -460,8 +460,17 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const pageNumber =
     (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
 
-  // Proof image (only shown in expanded view)
-  const rawProofImage = verification?.document?.verificationImageSrc;
+  // Proof image (only shown in expanded view) — prefer document verificationImageSrc,
+  // fall back to URL screenshot for URL citations
+  const rawProofImageDoc = verification?.document?.verificationImageSrc;
+  const rawUrlScreenshot = verification?.url?.webPageScreenshotBase64;
+  const rawProofImage =
+    rawProofImageDoc ??
+    (rawUrlScreenshot
+      ? rawUrlScreenshot.startsWith("data:")
+        ? rawUrlScreenshot
+        : `data:image/jpeg;base64,${rawUrlScreenshot}`
+      : undefined);
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
   // Status category (uses canonical logic from getItemStatusCategory)
@@ -483,9 +492,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
   // Search attempts for verification summary
   const searchAttempts = verification?.searchAttempts ?? [];
-
-  // Proof URL for document citations (manual verification link)
-  const proofUrl = verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
 
   const handleClick = useCallback(() => {
     setIsExpanded(prev => !prev);
@@ -691,23 +697,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               </div>
             )}
 
-            {/* Proof URL link for document citations */}
-            {!sourceUrl && proofUrl && (
-              <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800">
-                <a
-                  href={proofUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                  onClick={e => e.stopPropagation()}
-                >
-                  View proof page
-                  <span className="size-3 block">
-                    <ExternalLinkIcon />
-                  </span>
-                </a>
-              </div>
-            )}
           </div>
         </div>
       </div>
