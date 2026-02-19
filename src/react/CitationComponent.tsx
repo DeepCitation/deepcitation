@@ -642,9 +642,28 @@ export interface ExpandedImageSource {
 /**
  * Normalizes a webPageScreenshotBase64 field to a usable data URI.
  * The field may arrive as raw base64 or as a complete data URI; both forms are accepted.
+ * @throws {Error} If the input is invalid (empty, not a string, or malformed)
+ * @internal Exported for testing purposes only
  */
-function normalizeScreenshotSrc(raw: string): string {
-  return raw.startsWith("data:") ? raw : `data:image/jpeg;base64,${raw}`;
+// biome-ignore lint/style/useComponentExportOnlyModules: Utility function exported for testing
+export function normalizeScreenshotSrc(raw: string): string {
+  // Validate input is a non-empty string
+  if (!raw || typeof raw !== "string") {
+    throw new Error("normalizeScreenshotSrc: Invalid screenshot data - expected non-empty string");
+  }
+
+  // Already a data URI - return as-is
+  if (raw.startsWith("data:")) {
+    return raw;
+  }
+
+  // Validate base64 format (basic check - should only contain valid base64 chars + max 2 padding chars)
+  // This prevents injection of malicious strings that would bypass isValidProofImageSrc()
+  if (!/^[A-Za-z0-9+/]+(={0,2})?$/.test(raw.slice(0, 100))) {
+    throw new Error("normalizeScreenshotSrc: Invalid base64 format detected");
+  }
+
+  return `data:image/jpeg;base64,${raw}`;
 }
 
 /**

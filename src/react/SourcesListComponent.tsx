@@ -161,6 +161,9 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
         onKeyDown={e => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
+            // Safe cast: handleClick expects MouseEvent but only uses common Event properties.
+            // Both KeyboardEvent and MouseEvent share preventDefault/stopPropagation.
+            // No mouse-specific properties (clientX/clientY) are accessed.
             handleClick(e as unknown as React.MouseEvent<HTMLDivElement>);
           }
         }}

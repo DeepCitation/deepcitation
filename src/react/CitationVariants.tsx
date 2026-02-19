@@ -100,6 +100,9 @@ function useCitationEvents(
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         e.stopPropagation();
+        // Safe cast: onClick handler expects MouseEvent but only uses common Event properties
+        // (target, preventDefault, stopPropagation) that exist on both KeyboardEvent and MouseEvent.
+        // The handler doesn't access mouse-specific properties like clientX/clientY.
         eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
       }
     },

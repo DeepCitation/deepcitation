@@ -158,6 +158,9 @@ export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           e.stopPropagation();
+          // Safe cast: onCitationClick expects MouseEvent but only uses common Event properties
+          // (target, preventDefault, stopPropagation) that exist on both KeyboardEvent and MouseEvent.
+          // The handler doesn't access mouse-specific properties like clientX/clientY.
           onCitationClick?.(citation, citationKey, e as unknown as MouseEvent<HTMLSpanElement>);
         }
       },
