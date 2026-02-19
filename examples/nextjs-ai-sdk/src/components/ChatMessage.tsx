@@ -161,7 +161,7 @@ function processContentWithCitations(
       // Render markdown for text parts
       elements.push(
         <ReactMarkdown
-          key={index}
+          key={`text-${part.content.slice(0, 20)}`}
           remarkPlugins={[remarkGfm]}
           components={{
             // Render inline to avoid extra <p> tags breaking layout
@@ -186,11 +186,11 @@ function processContentWithCitations(
         }
 
         elements.push(
-          <CitationComponent key={`citation-${index}`} citation={citation} verification={verification} />,
+          <CitationComponent key={`citation-${citationKey}`} citation={citation} verification={verification} />,
         );
       } catch (err) {
         console.warn("[ChatMessage] Failed to parse citation tag:", part.content, err);
-        elements.push(<span key={`citation-${index}`}>{part.content}</span>);
+        elements.push(<span key={`citation-fallback-${part.content.slice(0, 30)}`}>{part.content}</span>);
       }
     }
   });

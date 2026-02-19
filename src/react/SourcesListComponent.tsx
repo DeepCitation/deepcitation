@@ -68,6 +68,36 @@ const SpinnerIcon = () => (
 );
 
 // ============================================================================
+// VerificationBadge Component (extracted from inline renderVerificationBadge)
+// ============================================================================
+
+const VERIFICATION_STATUS_CONFIG = {
+  verified: { icon: '✓', className: 'text-green-600 dark:text-green-500' },
+  partial: { icon: '~', className: 'text-amber-500 dark:text-amber-400' },
+  pending: { icon: '…', className: 'text-gray-400 dark:text-gray-500' },
+  failed: { icon: '✗', className: 'text-red-500 dark:text-red-400' },
+  unknown: { icon: '?', className: 'text-gray-400 dark:text-gray-500' },
+} as const;
+
+type VerificationStatusType = keyof typeof VERIFICATION_STATUS_CONFIG;
+
+const VerificationBadge = ({
+  showVerificationIndicator,
+  verificationStatus,
+}: {
+  showVerificationIndicator: boolean;
+  verificationStatus?: VerificationStatusType;
+}) => {
+  if (!showVerificationIndicator || !verificationStatus) return null;
+  const config = VERIFICATION_STATUS_CONFIG[verificationStatus];
+  return (
+    <span className={classNames('text-sm ml-1', config.className)} aria-label={verificationStatus}>
+      {config.icon}
+    </span>
+  );
+};
+
+// ============================================================================
 // SourcesListItem Component
 // ============================================================================
 
@@ -122,27 +152,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
     const favicon = useMemo(() => getFaviconUrl(url, faviconUrl), [url, faviconUrl]);
     const detectedType = useMemo(() => sourceType || detectSourceType(url), [sourceType, url]);
 
-    const renderVerificationBadge = () => {
-      if (!showVerificationIndicator || !verificationStatus) return null;
 
-      const statusConfig = {
-        verified: {
-          icon: "✓",
-          className: "text-green-600 dark:text-green-500",
-        },
-        partial: { icon: "~", className: "text-amber-500 dark:text-amber-400" },
-        pending: { icon: "…", className: "text-gray-400 dark:text-gray-500" },
-        failed: { icon: "✗", className: "text-red-500 dark:text-red-400" },
-        unknown: { icon: "?", className: "text-gray-400 dark:text-gray-500" },
-      };
-
-      const config = statusConfig[verificationStatus];
-      return (
-        <span className={classNames("text-sm ml-1", config.className)} aria-label={verificationStatus}>
-          {config.icon}
-        </span>
-      );
-    };
 
     return (
       <div
@@ -203,7 +213,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
             <span className="text-gray-900 dark:text-gray-100 font-medium text-sm leading-tight line-clamp-2">
               {title}
             </span>
-            {renderVerificationBadge()}
+            <VerificationBadge showVerificationIndicator={showVerificationIndicator} verificationStatus={verificationStatus} />
           </div>
 
           {/* Platform/Domain */}
@@ -297,6 +307,150 @@ export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>
 SourcesTrigger.displayName = "SourcesTrigger";
 
 // ============================================================================
+// SourcesListHeader Component (extracted from inline renderHeader)
+// ============================================================================
+
+interface SourcesListHeaderProps {
+  header: SourcesListProps['header'];
+  sources: SourcesListItemProps[];
+  variant: string;
+  handleClose: () => void;
+}
+
+const SourcesListHeader = ({ header: headerConfig = {}, sources, variant, handleClose }: SourcesListHeaderProps) => {
+  const { title = 'Sources', showCloseButton = true, showCount = true, renderHeader: customRender } = headerConfig;
+
+  if (customRender) {
+    return customRender({
+      title,
+      count: sources.length,
+      onClose: handleClose,
+    });
+  }
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      {showCloseButton && variant !== 'inline' && (
+        <button
+          type="button"
+          onClick={handleClose}
+          className="p-1 -ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+          aria-label="Close sources"
+        >
+          <CloseIcon />
+        </button>
+      )}
+      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex-1 text-center">
+        {title}
+        {showCount && (
+          <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({sources.length})</span>
+        )}
+      </h2>
+      {/* Spacer for centering when close button is present */}
+      {showCloseButton && variant !== 'inline' && <div className="w-8" />}
+    </div>
+  );
+};
+
+// ============================================================================
+// SourcesListContentArea Component (extracted from inline renderListContent)
+// ============================================================================
+
+interface SourcesListContentAreaProps {
+  isLoading: boolean;
+  sources: SourcesListItemProps[];
+  emptyMessage: string;
+  groupByDomain: boolean;
+  groupedSources: Record<string, SourcesListItemProps[]> | null;
+  listClassName?: string;
+  onSourceClick?: SourcesListItemProps['onClick'];
+  showVerificationIndicators: boolean;
+  showCitationBadges: boolean;
+  renderItem?: (source: SourcesListItemProps, index: number) => React.ReactNode;
+  renderEmpty?: () => React.ReactNode;
+  renderLoading?: () => React.ReactNode;
+}
+
+const SourcesListContentArea = ({
+  isLoading,
+  sources,
+  emptyMessage,
+  groupByDomain,
+  groupedSources,
+  listClassName,
+  onSourceClick,
+  showVerificationIndicators,
+  showCitationBadges,
+  renderItem,
+  renderEmpty,
+  renderLoading,
+}: SourcesListContentAreaProps) => {
+  if (isLoading) {
+    if (renderLoading) return renderLoading();
+    return (
+      <div className="flex items-center justify-center py-8 text-gray-500 dark:text-gray-400">
+        <SpinnerIcon />
+        <span className="ml-2 text-sm">Loading sources...</span>
+      </div>
+    );
+  }
+
+  if (sources.length === 0) {
+    if (renderEmpty) return renderEmpty();
+    return (
+      <div className="flex items-center justify-center py-8 text-gray-500 dark:text-gray-400 text-sm">
+        {emptyMessage}
+      </div>
+    );
+  }
+
+  if (groupByDomain && groupedSources) {
+    return (
+      <div className={listClassName}>
+        {Object.entries(groupedSources).map(([domain, domainSources]) => (
+          <div key={domain}>
+            <div className="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/50">
+              {getPlatformName(domainSources[0].url, domain)}
+            </div>
+            {domainSources.map((source, index) =>
+              renderItem ? (
+                renderItem(source, index)
+              ) : (
+                <SourcesListItem
+                  key={source.id}
+                  {...source}
+                  onClick={onSourceClick}
+                  showVerificationIndicator={showVerificationIndicators}
+                  showCitationBadges={showCitationBadges}
+                />
+              ),
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className={listClassName}>
+      {sources.map((source, index) =>
+        renderItem ? (
+          renderItem(source, index)
+        ) : (
+          <SourcesListItem
+            key={source.id}
+            {...source}
+            onClick={onSourceClick}
+            showVerificationIndicator={showVerificationIndicators}
+            showCitationBadges={showCitationBadges}
+          />
+        ),
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
 // SourcesListComponent
 // ============================================================================
 
@@ -351,7 +505,9 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
     ref,
   ) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [mounted, setMounted] = useState(false);
+    // Lazy-init: true on client (portals available), false during SSR — avoids a
+    // useEffect + setState flash that would render null then immediately re-render.
+    const [mounted] = useState(() => typeof document !== "undefined");
 
     // Handle ESC key to close
     useEffect(() => {
@@ -366,11 +522,6 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
       document.addEventListener("keydown", handleKeyDown);
       return () => document.removeEventListener("keydown", handleKeyDown);
     }, [isOpen, onOpenChange, variant]);
-
-    // Portal mounting
-    useEffect(() => {
-      setMounted(true);
-    }, []);
 
     // Group sources by domain if requested
     const groupedSources = useMemo(() => {
@@ -398,108 +549,27 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
       [handleClose],
     );
 
-    // Render header
-    const renderHeader = () => {
-      const { title = "Sources", showCloseButton = true, showCount = true, renderHeader: customRender } = header;
-
-      if (customRender) {
-        return customRender({
-          title,
-          count: sources.length,
-          onClose: handleClose,
-        });
-      }
-
-      return (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          {showCloseButton && variant !== "inline" && (
-            <button
-              type="button"
-              onClick={handleClose}
-              className="p-1 -ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-              aria-label="Close sources"
-            >
-              <CloseIcon />
-            </button>
-          )}
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex-1 text-center">
-            {title}
-            {showCount && (
-              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({sources.length})</span>
-            )}
-          </h2>
-          {/* Spacer for centering when close button is present */}
-          {showCloseButton && variant !== "inline" && <div className="w-8" />}
-        </div>
-      );
-    };
+    const headerElement = (
+      <SourcesListHeader header={header} sources={sources} variant={variant} handleClose={handleClose} />
+    );
 
     // Render list content
-    const renderListContent = () => {
-      if (isLoading) {
-        if (renderLoading) return renderLoading();
-        return (
-          <div className="flex items-center justify-center py-8 text-gray-500 dark:text-gray-400">
-            <SpinnerIcon />
-            <span className="ml-2 text-sm">Loading sources...</span>
-          </div>
-        );
-      }
-
-      if (sources.length === 0) {
-        if (renderEmpty) return renderEmpty();
-        return (
-          <div className="flex items-center justify-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-            {emptyMessage}
-          </div>
-        );
-      }
-
-      if (groupByDomain && groupedSources) {
-        return (
-          <div className={listClassName}>
-            {Object.entries(groupedSources).map(([domain, domainSources]) => (
-              <div key={domain}>
-                <div className="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/50">
-                  {getPlatformName(domainSources[0].url, domain)}
-                </div>
-                {domainSources.map((source, index) =>
-                  renderItem ? (
-                    renderItem(source, index)
-                  ) : (
-                    <SourcesListItem
-                      key={source.id}
-                      {...source}
-                      onClick={onSourceClick}
-                      showVerificationIndicator={showVerificationIndicators}
-                      showCitationBadges={showCitationBadges}
-                    />
-                  ),
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      }
-
-      return (
-        <div className={listClassName}>
-          {sources.map((source, index) =>
-            renderItem ? (
-              renderItem(source, index)
-            ) : (
-              <SourcesListItem
-                key={source.id}
-                {...source}
-                onClick={onSourceClick}
-                showVerificationIndicator={showVerificationIndicators}
-                showCitationBadges={showCitationBadges}
-              />
-            ),
-          )}
-        </div>
-      );
-    };
+    const listContentElement = (
+      <SourcesListContentArea
+        isLoading={isLoading}
+        sources={sources}
+        emptyMessage={emptyMessage}
+        groupByDomain={groupByDomain}
+        groupedSources={groupedSources}
+        listClassName={listClassName}
+        onSourceClick={onSourceClick}
+        showVerificationIndicators={showVerificationIndicators}
+        showCitationBadges={showCitationBadges}
+        renderItem={renderItem}
+        renderEmpty={renderEmpty}
+        renderLoading={renderLoading}
+      />
+    );
 
     // Calculate max height style
     const maxHeightStyle = maxHeight
@@ -520,9 +590,9 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
           )}
           style={maxHeightStyle}
         >
-          {renderHeader()}
+          {headerElement}
           <div className="overflow-y-auto" style={maxHeightStyle}>
-            {renderListContent()}
+            {listContentElement}
           </div>
         </div>
       );
@@ -538,9 +608,9 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
             className,
           )}
         >
-          {renderHeader()}
+          {headerElement}
           <div className="overflow-y-auto" style={maxHeightStyle || { maxHeight: "400px" }}>
-            {renderListContent()}
+            {listContentElement}
           </div>
         </div>
       );
@@ -583,8 +653,8 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
             <div className="flex justify-center py-2">
               <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
             </div>
-            {renderHeader()}
-            <div className="overflow-y-auto flex-1">{renderListContent()}</div>
+            {headerElement}
+            <div className="overflow-y-auto flex-1">{listContentElement}</div>
           </div>
         ) : (
           <div
@@ -597,8 +667,8 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
               className,
             )}
           >
-            {renderHeader()}
-            <div className="overflow-y-auto flex-1">{renderListContent()}</div>
+            {headerElement}
+            <div className="overflow-y-auto flex-1">{listContentElement}</div>
           </div>
         )}
       </div>

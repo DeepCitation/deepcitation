@@ -4,7 +4,7 @@ import { renderCitationsForSlack } from "@deepcitation/deepcitation-js/slack";
 import { renderCitationsForGitHub } from "@deepcitation/deepcitation-js/github";
 import { renderCitationsAsHtml } from "@deepcitation/deepcitation-js/html";
 import { renderCitationsForTerminal } from "@deepcitation/deepcitation-js/terminal";
-import { useMemo, useState } from "react";
+import { useMemo, useReducer } from "react";
 import {
   SAMPLE_LLM_OUTPUT,
   SAMPLE_VERIFICATIONS,
@@ -17,13 +17,43 @@ import {
 
 type ActiveRenderer = "slack" | "github" | "html" | "terminal";
 
+type ShowcaseState = {
+  includeSources: boolean;
+  slackVariant: (typeof SLACK_VARIANTS)[number];
+  githubVariant: (typeof GITHUB_VARIANTS)[number];
+  htmlVariant: (typeof HTML_VARIANTS)[number];
+  terminalVariant: (typeof TERMINAL_VARIANTS)[number];
+  activeTab: ActiveRenderer;
+};
+
+type ShowcaseAction =
+  | { type: "SET_INCLUDE_SOURCES"; value: boolean }
+  | { type: "SET_VARIANT"; key: "slackVariant" | "githubVariant" | "htmlVariant" | "terminalVariant"; value: string }
+  | { type: "SET_ACTIVE_TAB"; value: ActiveRenderer };
+
+function showcaseReducer(state: ShowcaseState, action: ShowcaseAction): ShowcaseState {
+  switch (action.type) {
+    case "SET_INCLUDE_SOURCES":
+      return { ...state, includeSources: action.value };
+    case "SET_VARIANT":
+      return { ...state, [action.key]: action.value };
+    case "SET_ACTIVE_TAB":
+      return { ...state, activeTab: action.value };
+  }
+}
+
+const initialState: ShowcaseState = {
+  includeSources: true,
+  slackVariant: SLACK_VARIANTS[0],
+  githubVariant: GITHUB_VARIANTS[0],
+  htmlVariant: HTML_VARIANTS[0],
+  terminalVariant: TERMINAL_VARIANTS[0],
+  activeTab: "slack",
+};
+
 export default function RenderersShowcasePage() {
-  const [includeSources, setIncludeSources] = useState(true);
-  const [slackVariant, setSlackVariant] = useState<(typeof SLACK_VARIANTS)[number]>(SLACK_VARIANTS[0]);
-  const [githubVariant, setGithubVariant] = useState<(typeof GITHUB_VARIANTS)[number]>(GITHUB_VARIANTS[0]);
-  const [htmlVariant, setHtmlVariant] = useState<(typeof HTML_VARIANTS)[number]>(HTML_VARIANTS[0]);
-  const [terminalVariant, setTerminalVariant] = useState<(typeof TERMINAL_VARIANTS)[number]>(TERMINAL_VARIANTS[0]);
-  const [activeTab, setActiveTab] = useState<ActiveRenderer>("slack");
+  const [state, dispatch] = useReducer(showcaseReducer, initialState);
+  const { includeSources, slackVariant, githubVariant, htmlVariant, terminalVariant, activeTab } = state;
 
   const commonOptions = useMemo(() => ({
     verifications: SAMPLE_VERIFICATIONS,
@@ -73,7 +103,7 @@ export default function RenderersShowcasePage() {
             <input
               type="checkbox"
               checked={includeSources}
-              onChange={e => setIncludeSources(e.target.checked)}
+              onChange={e => dispatch({ type: "SET_INCLUDE_SOURCES", value: e.target.checked })}
               className="rounded border-gray-300"
             />
             Include sources section
@@ -97,7 +127,7 @@ export default function RenderersShowcasePage() {
               key={tab.key}
               role="tab"
               aria-selected={activeTab === tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => dispatch({ type: "SET_ACTIVE_TAB", value: tab.key })}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.key
                   ? "border-blue-600 text-blue-600"
@@ -119,7 +149,7 @@ export default function RenderersShowcasePage() {
               description="Output formatted for Slack's mrkdwn syntax"
               variants={SLACK_VARIANTS}
               selectedVariant={slackVariant}
-              onVariantChange={setSlackVariant}
+              onVariantChange={v => dispatch({ type: "SET_VARIANT", key: "slackVariant", value: v })}
               output={slackOutput.full}
             />
           )}
@@ -131,7 +161,7 @@ export default function RenderersShowcasePage() {
               description="Output formatted for GitHub issues, PRs, and comments"
               variants={GITHUB_VARIANTS}
               selectedVariant={githubVariant}
-              onVariantChange={setGithubVariant}
+              onVariantChange={v => dispatch({ type: "SET_VARIANT", key: "githubVariant", value: v })}
               output={githubOutput.full}
             />
           )}
@@ -147,7 +177,7 @@ export default function RenderersShowcasePage() {
                 <VariantSelector
                   variants={HTML_VARIANTS}
                   selected={htmlVariant}
-                  onChange={setHtmlVariant}
+                  onChange={v => dispatch({ type: "SET_VARIANT", key: "htmlVariant", value: v })}
                   label="HTML variant"
                 />
               </div>
@@ -187,7 +217,7 @@ export default function RenderersShowcasePage() {
                 <VariantSelector
                   variants={TERMINAL_VARIANTS}
                   selected={terminalVariant}
-                  onChange={setTerminalVariant}
+                  onChange={v => dispatch({ type: "SET_VARIANT", key: "terminalVariant", value: v })}
                   label="Terminal variant"
                 />
               </div>

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
 import { cleanup, render } from "@testing-library/react";
-import { StatusHeader } from "../react/index";
+import { StatusHeader } from "../react/VerificationLog";
 
 describe("StatusHeader", () => {
   afterEach(() => {

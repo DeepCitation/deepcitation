@@ -106,6 +106,40 @@ const ModeToggle = ({
   </div>
 );
 
+// =============================================================================
+// FoundContentTab (extracted from inline renderFoundContent)
+// =============================================================================
+
+interface FoundContentTabProps {
+  actual: string;
+  emptyText: string;
+  maxCollapsedLength: number;
+  verifiedKeySpan?: string;
+  renderCopyButton?: (text: string, position: 'expected' | 'found') => React.ReactNode;
+}
+
+const FoundContentTab = ({ actual, emptyText, maxCollapsedLength, verifiedKeySpan, renderCopyButton }: FoundContentTabProps) => (
+  <div data-testid="tab-content-found" className="mt-3">
+    {actual ? (
+      <div className="relative">
+        {renderCopyButton && <div className="absolute top-2 right-2">{renderCopyButton(actual, 'found')}</div>}
+        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-words">
+          <CollapsibleText
+            text={actual}
+            maxLength={maxCollapsedLength}
+            anchorText={verifiedKeySpan}
+            anchorTextClass="bg-green-200 dark:bg-green-800/50 px-0.5 rounded border-b-2 border-green-400 dark:border-green-500"
+          />
+        </div>
+      </div>
+    ) : (
+      <span data-testid="empty-text" className="text-sm text-gray-500 dark:text-gray-400 italic">
+        {emptyText}
+      </span>
+    )}
+  </div>
+);
+
 export const VerificationTabs: React.FC<VerificationTabsProps> = ({
   expected,
   actual,
@@ -139,39 +173,19 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
     }
   }, [isHighVariance, defaultMode]);
 
-  useEffect(() => {
-    if (isHighVariance) {
-      setActiveTab("diff"); // Stay on diff tab but use split view
-    } else {
-      setActiveTab("diff");
-    }
-  }, [isHighVariance]);
-
   // Get contextual status message
   const statusMessage = useMemo(() => {
     return getContextualStatusMessage(status, expectedPage, actualPage);
   }, [status, expectedPage, actualPage]);
 
-  const renderFoundContent = () => (
-    <div data-testid="tab-content-found" className="mt-3">
-      {actual ? (
-        <div className="relative">
-          {renderCopyButton && <div className="absolute top-2 right-2">{renderCopyButton(actual, "found")}</div>}
-          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-words">
-            <CollapsibleText
-              text={actual}
-              maxLength={maxCollapsedLength}
-              anchorText={verifiedKeySpan}
-              anchorTextClass="bg-green-200 dark:bg-green-800/50 px-0.5 rounded border-b-2 border-green-400 dark:border-green-500"
-            />
-          </div>
-        </div>
-      ) : (
-        <span data-testid="empty-text" className="text-sm text-gray-500 dark:text-gray-400 italic">
-          {emptyText}
-        </span>
-      )}
-    </div>
+  const foundContentElement = (
+    <FoundContentTab
+      actual={actual}
+      emptyText={emptyText}
+      maxCollapsedLength={maxCollapsedLength}
+      verifiedKeySpan={verifiedKeySpan}
+      renderCopyButton={renderCopyButton}
+    />
   );
 
   const isExactMatch = !hasDiff && Boolean(actual) && Boolean(expected);
@@ -193,7 +207,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
           <span>Exact match</span>
         </div>
 
-        <div>{renderFoundContent()}</div>
+        <div>{foundContentElement}</div>
       </div>
     );
   }
@@ -239,7 +253,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
       </div>
 
       <div data-testid="tabs-content">
-        {activeTab === "found" && renderFoundContent()}
+        {activeTab === "found" && foundContentElement}
 
         {activeTab === "expected" && (
           <div data-testid="tab-content-expected" className="mt-3">
@@ -289,19 +303,20 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
               <div data-testid="diff-result" className="space-y-2">
                 {showMatchQuality && <MatchQualityBar similarity={similarity} className="mb-2" />}
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm font-mono whitespace-pre-wrap break-words">
-                  {diffResult.map((block, i) => (
+                  {diffResult.map((block, blockIdx) => (
                     <div
-                      key={i}
+                      key={`${block.type}-${blockIdx}`}
                       className={cn(
                         block.type === "added" && "bg-green-50 dark:bg-green-900/20",
                         block.type === "removed" && "bg-red-50 dark:bg-red-900/20",
                       )}
                     >
-                      {block.parts.map((part, j) => {
+                      {block.parts.map((part, partIdx) => {
+                        const partKey = `${part.added ? "add" : part.removed ? "rm" : "eq"}-${partIdx}`;
                         if (part.removed) {
                           return (
                             <span
-                              key={j}
+                              key={partKey}
                               data-diff-type="removed"
                               className="bg-red-200 dark:bg-red-800/50 text-red-800 dark:text-red-200 line-through"
                               title="Expected but not found"
@@ -313,7 +328,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                         if (part.added) {
                           return (
                             <span
-                              key={j}
+                              key={partKey}
                               data-diff-type="added"
                               className="bg-green-200 dark:bg-green-800/50 text-green-800 dark:text-green-200"
                               title="Actually found in source"
@@ -323,7 +338,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                           );
                         }
                         return (
-                          <span key={j} className="text-gray-700 dark:text-gray-300">
+                          <span key={partKey} className="text-gray-700 dark:text-gray-300">
                             {part.value}
                           </span>
                         );
