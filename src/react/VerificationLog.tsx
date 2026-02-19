@@ -9,7 +9,6 @@ import {
   CheckIcon,
   ChevronRightIcon,
   DocumentIcon,
-  ExternalLinkIcon,
   GlobeIcon,
   MissIcon,
   SpinnerIcon,
@@ -103,8 +102,6 @@ export interface SourceContextHeaderProps {
    * instead of the chevron-right expand affordance.
    */
   onClose?: () => void;
-  /** External proof URL shown as an icon link on the right side (expanded view) */
-  proofUrl?: string | null;
 }
 
 /**
@@ -222,23 +219,24 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose }: PagePill
 
   const colorClasses = PAGE_PILL_COLORS[colorScheme];
 
-  // Active/expanded state: show page number + X to close
+  // Active/expanded state: entire pill is a button to close, shows X instead of chevron
   if (onClose) {
     return (
-      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded border bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+      <button
+        type="button"
+        onClick={e => {
+          e.stopPropagation();
+          onClose();
+        }}
+        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded border cursor-pointer transition-colors bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+        aria-label={`Close page ${pageNumber} view`}
+        title="Close expanded view (Esc)"
+      >
         <span>p.{pageNumber}</span>
-        <button
-          type="button"
-          onClick={e => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className="ml-0.5 size-2.5 flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
-          aria-label={`Close page ${pageNumber} view`}
-        >
+        <span className="size-2.5">
           <XIcon />
-        </button>
-      </span>
+        </span>
+      </button>
     );
   }
 
@@ -297,7 +295,6 @@ export function SourceContextHeader({
   sourceLabel,
   onExpand,
   onClose,
-  proofUrl,
 }: SourceContextHeaderProps) {
   const isUrl = isUrlCitation(citation);
 
@@ -362,33 +359,20 @@ export function SourceContextHeader({
           </>
         )}
       </div>
-      {/* Right: Page pill (expand action in summary; static in expanded) + optional proof link */}
+      {/* Right: Page pill — expand affordance in summary, active/close in expanded */}
       <div className="flex items-center gap-2">
         {showPagePill && (
           <PagePill
             pageNumber={pageNumber}
             colorScheme={colorScheme}
             onClick={onExpand}
+            onClose={onClose}
           />
         )}
         {!showPagePill && pageLineText && (
           <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">
             {pageLineText}
           </span>
-        )}
-        {proofUrl && (
-          <a
-            href={proofUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-            className="shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
-            aria-label="Open proof in new tab"
-          >
-            <span className="size-3.5 block">
-              <ExternalLinkIcon />
-            </span>
-          </a>
         )}
       </div>
     </div>
