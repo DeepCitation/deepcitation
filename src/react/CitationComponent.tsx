@@ -1696,14 +1696,13 @@ function ExpandedPageViewer({
 // POPOVER CONTENT COMPONENT
 // =============================================================================
 
-/** Popover view state: summary (default) or expanded (full page) */
-type PopoverViewState = "summary" | "expanded";
+/** Popover view state: summary (default), evidence image modal, or full proof page */
+type PopoverViewState = "summary" | "expanded-evidence" | "expanded-page";
 
 interface PopoverContentProps {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   status: CitationStatus;
-  onImageClick?: (snippetSrc?: string) => void;
   isLoading?: boolean;
   /** Whether the popover is currently visible (used for Activity prefetching) */
   isVisible?: boolean;
@@ -1729,7 +1728,6 @@ function DefaultPopoverContent({
   citation,
   verification,
   status,
-  onImageClick,
   isLoading = false,
   isVisible = true,
   sourceLabel,
@@ -1765,7 +1763,7 @@ function DefaultPopoverContent({
     if (summaryContainerRef.current) {
       savedScrollTopRef.current = summaryContainerRef.current.scrollTop;
     }
-    onViewStateChange?.("expanded");
+    onViewStateChange?.("expanded-page");
   }, [canExpand, onViewStateChange]);
 
   const handleBack = useCallback(() => {
@@ -1778,12 +1776,10 @@ function DefaultPopoverContent({
     });
   }, [onViewStateChange]);
 
-  // Wraps onImageClick to pass the verification snippet image src when the keyhole is clicked.
-  // This lets CitationComponent show the evidence/snippet image rather than the full proof page.
+  // Transitions to the evidence image modal when the keyhole strip is clicked.
   const handleKeyholeClick = useCallback(() => {
-    const snippetSrc = verification?.document?.verificationImageSrc ?? undefined;
-    onImageClick?.(snippetSrc);
-  }, [verification, onImageClick]);
+    onViewStateChange?.("expanded-evidence");
+  }, [onViewStateChange]);
 
   // Get page info (document citations only)
   const expectedPage = !isUrlCitation(citation) ? citation.pageNumber : undefined;
@@ -1812,8 +1808,8 @@ function DefaultPopoverContent({
   // EXPANDED STATE — rendered as portal overlay in CitationComponent
   // ==========================================================================
   // Return a tiny invisible placeholder so Radix keeps the popover open without
-  // interfering with the full-screen portal overlay rendered by CitationComponent.
-  if (viewState === "expanded") {
+  // interfering with the portal overlay rendered by CitationComponent.
+  if (viewState !== "summary") {
     return <div aria-hidden style={{ width: "1px", height: "1px", overflow: "hidden" }} />;
   }
 
@@ -1903,7 +1899,7 @@ function DefaultPopoverContent({
             verification={verification}
             status={status}
             onExpand={handleExpand}
-            onImageClick={canExpand ? onImageClick : undefined}
+            onImageClick={handleKeyholeClick}
           />
         </div>
       </Activity>
@@ -2118,8 +2114,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Custom image src from behaviorConfig.onClick returning setImageExpanded: "<url>"
     const [customExpandedSrc, setCustomExpandedSrc] = useState<string | null>(null);
 
-    // Compute the image to show in the expanded portal overlay.
-    // Prefer customExpandedSrc (snippet image set on keyhole click) over the full proof image.
+    // Compute the image to show in the expanded-page portal overlay.
+    // customExpandedSrc can override the src when set via behaviorConfig.onClick → setImageExpanded: "url".
     const expandedImageForPortal = useMemo(() => {
       const resolved = resolveExpandedImage(verification ?? null);
       if (!customExpandedSrc) return resolved;
@@ -2130,7 +2126,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // Close the expanded portal overlay on ESC key (capture phase to intercept before Radix).
     useEffect(() => {
-      if (popoverViewState !== "expanded") return;
+      if (popoverViewState === "summary") return;
       const handler = (e: KeyboardEvent) => {
         if (e.key === "Escape") {
           e.preventDefault();
@@ -2180,6 +2176,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // When an image overlay is open, we don't want outside taps to close the popover.
     const isAnyOverlayOpenRef = useRef(isAnyOverlayOpen);
     isAnyOverlayOpenRef.current = isAnyOverlayOpen;
+
+    // Ref to track whether this citation's own portal expanded view is open.
+    // mousedown fires before React synthetic click events, so we must check via a ref
+    // (not state) to get the live value when the outside-click guard runs.
+    const isExpandedViewRef = useRef(popoverViewState !== "summary");
+    isExpandedViewRef.current = popoverViewState !== "summary";
 
     // Ref for the popover content element (for mobile click-outside dismiss detection)
     const popoverContentRef = useRef<HTMLElement | null>(null);
@@ -2266,7 +2268,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         citationKey,
         verification: verification ?? null,
         isTooltipExpanded: isHovering,
-        isImageExpanded: popoverViewState === "expanded",
+        isImageExpanded: popoverViewState !== "summary",
         hasImage: !!resolvedImageSrc,
       }),
       [citation, citationKey, verification, isHovering, popoverViewState, resolvedImageSrc],
@@ -2281,9 +2283,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           setCustomExpandedSrc(null);
           setIsHovering(false);
         } else if (actions.setImageExpanded) {
-          // Open: show popover in expanded (image) view
+          // Open: show popover in expanded (full page) view
           setIsHovering(true);
-          setPopoverViewState("expanded");
+          setPopoverViewState("expanded-page");
           // If a custom image URL was provided, validate before storing
           if (typeof actions.setImageExpanded === "string" && isValidProofImageSrc(actions.setImageExpanded)) {
             setCustomExpandedSrc(actions.setImageExpanded);
@@ -2339,7 +2341,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             setIsHovering(false);
             break;
           case "expandImage":
-            setPopoverViewState("expanded");
+            setPopoverViewState("expanded-page");
             break;
         }
       },
@@ -2448,7 +2450,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       const handleOutsideTouch = (e: TouchEvent) => {
         // Don't dismiss popover while an image overlay is open - user expects to return
         // to the popover after closing the zoomed image. Uses ref to avoid stale closure.
-        if (isAnyOverlayOpenRef.current) {
+        if (isAnyOverlayOpenRef.current || isExpandedViewRef.current) {
           return;
         }
 
@@ -2502,7 +2504,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       const handleOutsideClick = (e: MouseEvent) => {
         // Don't dismiss popover while an image overlay is open - user expects to return
         // to the popover after closing the zoomed image. Uses ref to avoid stale closure.
-        if (isAnyOverlayOpenRef.current) {
+        if (isAnyOverlayOpenRef.current || isExpandedViewRef.current) {
           return;
         }
 
@@ -2976,10 +2978,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             viewState={popoverViewState}
             onViewStateChange={setPopoverViewState}
             expandedImageSrcOverride={customExpandedSrc}
-            onImageClick={(snippetSrc) => {
-              setCustomExpandedSrc(snippetSrc && isValidProofImageSrc(snippetSrc) ? snippetSrc : null);
-              setPopoverViewState("expanded");
-            }}
           />
         </CitationErrorBoundary>
       );
@@ -2998,7 +2996,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               isVisible={false}
               sourceLabel={sourceLabel}
               indicatorVariant={indicatorVariant}
-              onImageClick={() => {}}
             />
           </CitationErrorBoundary>
         ) : null;
@@ -3014,11 +3011,76 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           )}
           {/* Hidden prefetch layer - pre-renders image content using Activity */}
           {prefetchElement}
-          {/* Expanded view portal — full-screen overlay rendered directly to document.body,
-              independent of Radix positioning constraints. */}
-          {popoverViewState === "expanded" && expandedImageForPortal && (() => {
+          {/* Expanded view portal — rendered directly to document.body, independent of
+              Radix positioning constraints. Two modes:
+              - "expanded-evidence": centered modal sized to image content (keyhole click)
+              - "expanded-page": full-screen scrollable proof page viewer (expand button) */}
+          {popoverViewState !== "summary" && (() => {
             const container = getPortalContainer();
             if (!container) return null;
+            const handleBack = () => {
+              setPopoverViewState("summary");
+              setCustomExpandedSrc(null);
+            };
+
+            if (popoverViewState === "expanded-evidence") {
+              // Read the evidence/snippet image src directly — no URL threading through callbacks.
+              // isValidProofImageSrc guards the img tag; if somehow invalid, skip rendering.
+              const rawUrlScreenshot = verification?.url?.webPageScreenshotBase64;
+              const evidenceSrc =
+                verification?.document?.verificationImageSrc ??
+                (rawUrlScreenshot ? normalizeScreenshotSrc(rawUrlScreenshot) : undefined);
+              if (!evidenceSrc || !isValidProofImageSrc(evidenceSrc)) return null;
+              // Evidence image modal: centered, sizes to content, capped at viewport
+              return createPortal(
+                <div
+                  className="animate-in fade-in-0 duration-150"
+                  style={{
+                    position: "fixed",
+                    inset: 0,
+                    zIndex: Z_INDEX_OVERLAY_DEFAULT,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "1rem",
+                    backgroundColor: "rgba(0, 0, 0, 0.6)",
+                  }}
+                  onClick={e => {
+                    if (e.target === e.currentTarget) handleBack();
+                  }}
+                >
+                  <div
+                    className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl flex flex-col overflow-hidden"
+                    style={{ maxWidth: "min(900px, 95vw)", maxHeight: "90dvh" }}
+                  >
+                    {citation && (
+                      <SourceContextHeader
+                        citation={citation}
+                        verification={verification ?? null}
+                        status={verification?.status ?? null}
+                        sourceLabel={sourceLabel}
+                        onClose={handleBack}
+                      />
+                    )}
+                    <div className="flex-1 min-h-0 overflow-auto">
+                      <img
+                        src={evidenceSrc}
+                        alt="Evidence"
+                        className="block max-w-full h-auto"
+                        draggable={false}
+                      />
+                    </div>
+                  </div>
+                </div>,
+                container,
+              );
+            }
+
+            // "expanded-page": full-screen proof page viewer
+            if (!expandedImageForPortal) return null;
+            const proofUrl = verification?.proof?.proofUrl
+              ? isValidProofUrl(verification.proof.proofUrl)
+              : null;
             return createPortal(
               <div
                 className="bg-white dark:bg-gray-900 flex flex-col animate-in fade-in-0 duration-150"
@@ -3028,14 +3090,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                   expandedImage={expandedImageForPortal}
                   searchAttempts={verification?.searchAttempts}
                   verification={verification ?? null}
-                  onBack={() => {
-                    setPopoverViewState("summary");
-                    setCustomExpandedSrc(null);
-                  }}
+                  onBack={handleBack}
                   sourceLabel={sourceLabel}
                   citation={citation}
                   status={verification?.status ?? null}
-                  proofUrl={verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null}
+                  proofUrl={proofUrl}
                 />
               </div>,
               container,
@@ -3045,7 +3104,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             open={isHovering}
             onOpenChange={open => {
               // Only handle close (Escape key) - don't interfere with our custom hover logic
-              if (!open && !isAnyOverlayOpenRef.current) {
+              if (!open && !isAnyOverlayOpenRef.current && !isExpandedViewRef.current) {
                 setIsHovering(false);
               }
             }}
