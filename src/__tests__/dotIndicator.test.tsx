@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, mock } from "@jest/globals";
 import { cleanup, render } from "@testing-library/react";
 import type React from "react";
 import { INDICATOR_SETS } from "../markdown/types";
@@ -10,8 +10,7 @@ import type { Citation } from "../types/citation";
 import type { Verification } from "../types/verification";
 
 // Mock createPortal to render content in place instead of portal
-jest.mock("react-dom", () => ({
-  ...jest.requireActual("react-dom"),
+mock.module("react-dom", () => ({
   createPortal: (node: React.ReactNode) => node,
 }));
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, mock } from "@jest/globals";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import type React from "react";
 import { CitationComponent } from "../react/CitationComponent";
@@ -8,8 +8,7 @@ import type { Verification } from "../types/verification";
 
 // Mock createPortal to render content in place instead of portal
 // This allows us to query overlay elements in the same container
-jest.mock("react-dom", () => ({
-  ...jest.requireActual("react-dom"),
+mock.module("react-dom", () => ({
   createPortal: (node: React.ReactNode) => node,
 }));
 
