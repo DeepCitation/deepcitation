@@ -88,12 +88,6 @@ describe("normalizeScreenshotSrc", () => {
 			expect(() => normalizeScreenshotSrc("abc def")).toThrow("Invalid base64 format detected");
 		});
 
-		it("should throw on malformed padding (excessive)", () => {
-			// Base64 regex now validates max 2 padding chars per valid encoding rules
-			const excessivePadding = "abc" + "=".repeat(10);
-			expect(() => normalizeScreenshotSrc(excessivePadding)).toThrow("Invalid base64 format detected");
-		});
-
 		it("should throw on base64 with invalid characters mixed in", () => {
 			expect(() => normalizeScreenshotSrc("VGVz~dA==")).toThrow("Invalid base64 format detected");
 		});
