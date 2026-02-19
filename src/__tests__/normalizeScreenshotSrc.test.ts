@@ -92,8 +92,10 @@ describe("normalizeScreenshotSrc", () => {
 			// While the current regex allows unlimited padding, this documents expected behavior
 			// if we tighten the regex in the future
 			const excessivePadding = "abc" + "=".repeat(10);
-			// Currently this might pass, but documenting the security concern
-			// Future: should throw "Invalid base64 format detected"
+			// Currently this passes: normalizeScreenshotSrc treats it as valid base64 content.
+			// If the regex is tightened in the future, this expectation should be updated to assert a throw.
+			const result = normalizeScreenshotSrc(excessivePadding);
+			expect(result).toBe(`data:image/jpeg;base64,${excessivePadding}`);
 		});
 
 		it("should throw on base64 with invalid characters mixed in", () => {
