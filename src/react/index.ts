@@ -18,7 +18,9 @@ export {
   CitationComponent,
   type CitationComponentProps,
   type CitationVariant,
+  type ExpandedImageSource,
   MemoizedCitationComponent,
+  resolveExpandedImage,
 } from "./CitationComponent.js";
 // Citation Drawer (ChatGPT-style bottom sheet)
 export {

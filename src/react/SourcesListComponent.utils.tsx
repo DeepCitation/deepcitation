@@ -27,11 +27,17 @@ export function detectSourceType(url: string): SourceType {
   }
 
   try {
+    // Parse URL to safely check pathname and domain
+    const parsedUrl = new URL(url);
+    const domain = extractDomain(url);
+
     // Social media - use safe domain matching to prevent spoofing
     if (isDomainMatch(url, "twitter.com") || isDomainMatch(url, "x.com")) return "social";
     if (isDomainMatch(url, "facebook.com") || isDomainMatch(url, "instagram.com")) return "social";
     if (isDomainMatch(url, "linkedin.com")) return "social";
-    if (isDomainMatch(url, "threads.net") || url.includes("mastodon")) return "social";
+    if (isDomainMatch(url, "threads.net")) return "social";
+    // Mastodon: check domain ends with mastodon.* pattern
+    if (domain.includes(".mastodon.") || domain.endsWith(".social") && parsedUrl.pathname.includes("/@")) return "social";
 
     // Video platforms
     if (isDomainMatch(url, "youtube.com") || isDomainMatch(url, "youtu.be")) return "video";
@@ -43,12 +49,18 @@ export function detectSourceType(url: string): SourceType {
     if (isDomainMatch(url, "bitbucket.org") || isDomainMatch(url, "stackoverflow.com")) return "code";
 
     // Academic
-    if (isDomainMatch(url, "arxiv.org") || url.includes("scholar.google")) return "academic";
-    if (url.includes("pubmed") || isDomainMatch(url, "doi.org")) return "academic";
+    if (isDomainMatch(url, "arxiv.org")) return "academic";
+    if (isDomainMatch(url, "scholar.google.com")) return "academic";
+    // PubMed: check domain for ncbi.nlm.nih.gov or pathname for /pubmed
+    if (isDomainMatch(url, "pubmed.ncbi.nlm.nih.gov") ||
+        (isDomainMatch(url, "ncbi.nlm.nih.gov") && parsedUrl.pathname.includes("/pubmed"))) return "academic";
+    if (isDomainMatch(url, "doi.org")) return "academic";
     if (isDomainMatch(url, "researchgate.net") || isDomainMatch(url, "academia.edu")) return "academic";
 
     // News
-    if (url.includes("news.") || isDomainMatch(url, "reuters.com")) return "news";
+    // Safe check: domain starts with "news." subdomain pattern
+    if (domain.startsWith("news.")) return "news";
+    if (isDomainMatch(url, "reuters.com")) return "news";
     if (isDomainMatch(url, "bbc.com") || isDomainMatch(url, "cnn.com")) return "news";
     if (isDomainMatch(url, "bbc.co.uk") || isDomainMatch(url, "nytimes.com")) return "news";
     if (isDomainMatch(url, "wsj.com") || isDomainMatch(url, "theguardian.com")) return "news";
@@ -60,14 +72,16 @@ export function detectSourceType(url: string): SourceType {
 
     // Forums
     if (isDomainMatch(url, "reddit.com") || isDomainMatch(url, "quora.com")) return "forum";
-    if (url.includes("discourse") || url.includes("forum")) return "forum";
+    // Safe check: pathname contains /discourse or /forum indicators
+    if (parsedUrl.pathname.includes("/discourse") || parsedUrl.pathname.includes("/forum")) return "forum";
 
     // Commerce
     // Note: amazon and ebay have many regional TLDs (amazon.com, amazon.co.uk, etc.)
     // so we check if domain starts with these prefixes
-    const domain = extractDomain(url);
     if (domain.startsWith("amazon.") || domain.startsWith("ebay.")) return "commerce";
-    if (domain.includes("shopify") || isDomainMatch(url, "etsy.com")) return "commerce";
+    // Shopify: check for shopify in domain
+    if (domain.includes(".myshopify.") || domain.endsWith(".myshopify.com")) return "commerce";
+    if (isDomainMatch(url, "etsy.com")) return "commerce";
 
     // PDF check (by extension in URL)
     if (url.toLowerCase().endsWith(".pdf")) return "pdf";
