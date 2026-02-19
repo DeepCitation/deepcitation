@@ -1,4 +1,5 @@
 import React, { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
 const Activity =
@@ -23,6 +24,7 @@ import {
   DOT_INDICATOR_SIZE_STYLE,
   EVIDENCE_TRAY_BORDER_DASHED,
   EVIDENCE_TRAY_BORDER_SOLID,
+  getPortalContainer,
   INDICATOR_SIZE_STYLE,
   isValidProofImageSrc,
   KEYHOLE_FADE_WIDTH,
@@ -1701,7 +1703,7 @@ interface PopoverContentProps {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   status: CitationStatus;
-  onImageClick?: () => void;
+  onImageClick?: (snippetSrc?: string) => void;
   isLoading?: boolean;
   /** Whether the popover is currently visible (used for Activity prefetching) */
   isVisible?: boolean;
@@ -1776,6 +1778,13 @@ function DefaultPopoverContent({
     });
   }, [onViewStateChange]);
 
+  // Wraps onImageClick to pass the verification snippet image src when the keyhole is clicked.
+  // This lets CitationComponent show the evidence/snippet image rather than the full proof page.
+  const handleKeyholeClick = useCallback(() => {
+    const snippetSrc = verification?.document?.verificationImageSrc ?? undefined;
+    onImageClick?.(snippetSrc);
+  }, [verification, onImageClick]);
+
   // Get page info (document citations only)
   const expectedPage = !isUrlCitation(citation) ? citation.pageNumber : undefined;
   const foundPage = verification?.document?.verifiedPageNumber ?? undefined;
@@ -1800,26 +1809,12 @@ function DefaultPopoverContent({
   }, [citation, verification, searchStatus]);
 
   // ==========================================================================
-  // EXPANDED STATE — Full page viewer
+  // EXPANDED STATE — rendered as portal overlay in CitationComponent
   // ==========================================================================
-  if (viewState === "expanded" && expandedImage) {
-    return (
-      <div
-        className="bg-white dark:bg-gray-900 flex flex-col animate-in fade-in-0 duration-150 overflow-hidden"
-        style={{ width: "100%", height: "100%" }}
-      >
-        <ExpandedPageViewer
-          expandedImage={expandedImage}
-          searchAttempts={verification?.searchAttempts}
-          verification={verification}
-          onBack={handleBack}
-          sourceLabel={sourceLabel}
-          citation={citation}
-          status={searchStatus}
-          proofUrl={verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null}
-        />
-      </div>
-    );
+  // Return a tiny invisible placeholder so Radix keeps the popover open without
+  // interfering with the full-screen portal overlay rendered by CitationComponent.
+  if (viewState === "expanded") {
+    return <div aria-hidden style={{ width: "1px", height: "1px", overflow: "hidden" }} />;
   }
 
   // Loading/pending state view — skeleton mirrors resolved layout shape
@@ -1975,7 +1970,7 @@ function DefaultPopoverContent({
               verification={verification}
               status={status}
               onExpand={handleExpand}
-              onImageClick={canExpand ? onImageClick : undefined}
+              onImageClick={canExpand ? handleKeyholeClick : undefined}
               proofImageSrc={expandedImage?.src}
             />
           ) : /* Show EvidenceTray for miss with search analysis (no image), or null */
@@ -2123,6 +2118,30 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Custom image src from behaviorConfig.onClick returning setImageExpanded: "<url>"
     const [customExpandedSrc, setCustomExpandedSrc] = useState<string | null>(null);
 
+    // Compute the image to show in the expanded portal overlay.
+    // Prefer customExpandedSrc (snippet image set on keyhole click) over the full proof image.
+    const expandedImageForPortal = useMemo(() => {
+      const resolved = resolveExpandedImage(verification ?? null);
+      if (!customExpandedSrc) return resolved;
+      return resolved
+        ? { ...resolved, src: customExpandedSrc, dimensions: null, highlightBox: null }
+        : { src: customExpandedSrc };
+    }, [verification, customExpandedSrc]);
+
+    // Close the expanded portal overlay on ESC key (capture phase to intercept before Radix).
+    useEffect(() => {
+      if (popoverViewState !== "expanded") return;
+      const handler = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setPopoverViewState("summary");
+          setCustomExpandedSrc(null);
+        }
+      };
+      document.addEventListener("keydown", handler, true);
+      return () => document.removeEventListener("keydown", handler, true);
+    }, [popoverViewState]);
+
     // Reset expanded view state when popover closes
     useEffect(() => {
       if (!isHovering) {
@@ -2169,34 +2188,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const setPopoverContentRef = useCallback((element: HTMLElement | null) => {
       popoverContentRef.current = element;
     }, []);
-
-    // When the expanded view is active, Radix's popper wrapper applies transform:translate(...)
-    // to position the popover near the trigger. CSS position:fixed children are positioned
-    // relative to a transformed ancestor, not the viewport — so our inset styles land in the
-    // wrong place. We imperatively neutralize the wrapper to achieve true viewport coverage.
-    // useLayoutEffect fires synchronously after DOM mutation and before the browser paints,
-    // so the user never sees an intermediate state.
-    useLayoutEffect(() => {
-      if (popoverViewState !== "expanded") return;
-      const wrapper = popoverContentRef.current?.parentElement as HTMLElement | null;
-      if (!wrapper) return;
-      wrapper.style.setProperty("transform", "none", "important");
-      wrapper.style.setProperty("position", "fixed", "important");
-      wrapper.style.setProperty("inset", "0", "important");
-      wrapper.style.setProperty("min-width", "unset", "important");
-      wrapper.style.setProperty("width", "100vw", "important");
-      wrapper.style.setProperty("height", "100dvh", "important");
-      wrapper.style.setProperty("z-index", String(Z_INDEX_OVERLAY_DEFAULT), "important");
-      return () => {
-        wrapper.style.removeProperty("transform");
-        wrapper.style.removeProperty("position");
-        wrapper.style.removeProperty("inset");
-        wrapper.style.removeProperty("min-width");
-        wrapper.style.removeProperty("width");
-        wrapper.style.removeProperty("height");
-        wrapper.style.removeProperty("z-index");
-      };
-    }, [popoverViewState]);
 
     // Ref for the trigger element (for mobile click-outside dismiss detection)
     // We need our own ref in addition to the forwarded ref to reliably check click targets
@@ -2985,7 +2976,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             viewState={popoverViewState}
             onViewStateChange={setPopoverViewState}
             expandedImageSrcOverride={customExpandedSrc}
-            onImageClick={() => {
+            onImageClick={(snippetSrc) => {
+              setCustomExpandedSrc(snippetSrc && isValidProofImageSrc(snippetSrc) ? snippetSrc : null);
               setPopoverViewState("expanded");
             }}
           />
@@ -3022,6 +3014,33 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           )}
           {/* Hidden prefetch layer - pre-renders image content using Activity */}
           {prefetchElement}
+          {/* Expanded view portal — full-screen overlay rendered directly to document.body,
+              independent of Radix positioning constraints. */}
+          {popoverViewState === "expanded" && expandedImageForPortal && (() => {
+            const container = getPortalContainer();
+            if (!container) return null;
+            return createPortal(
+              <div
+                className="bg-white dark:bg-gray-900 flex flex-col animate-in fade-in-0 duration-150"
+                style={{ position: "fixed", inset: 0, zIndex: Z_INDEX_OVERLAY_DEFAULT, overflow: "hidden" }}
+              >
+                <ExpandedPageViewer
+                  expandedImage={expandedImageForPortal}
+                  searchAttempts={verification?.searchAttempts}
+                  verification={verification ?? null}
+                  onBack={() => {
+                    setPopoverViewState("summary");
+                    setCustomExpandedSrc(null);
+                  }}
+                  sourceLabel={sourceLabel}
+                  citation={citation}
+                  status={verification?.status ?? null}
+                  proofUrl={verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null}
+                />
+              </div>,
+              container,
+            );
+          })()}
           <Popover
             open={isHovering}
             onOpenChange={open => {
@@ -3040,28 +3059,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               ref={setPopoverContentRef}
               id={popoverId}
               side={popoverPosition === "bottom" ? "bottom" : "top"}
-              aria-label={popoverViewState === "expanded" ? "Full size verification image" : undefined}
-              collisionPadding={popoverViewState === "expanded" ? 0 : undefined}
-              style={
-                popoverViewState === "expanded"
-                  ? {
-                      width: "100%",
-                      height: "100%",
-                      maxWidth: "none",
-                      maxHeight: "none",
-                      overflow: "hidden",
-                    }
-                  : undefined
-              }
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
-              onEscapeKeyDown={(e: KeyboardEvent) => {
-                // ESC navigation stack: expanded → summary → close
-                if (popoverViewState === "expanded") {
-                  e.preventDefault();
-                  setPopoverViewState("summary");
-                }
-              }}
               onClick={(e: React.MouseEvent) => {
                 // Clicking directly on the popover backdrop (not on inner content) dismisses it.
                 // e.target === e.currentTarget means the click hit the dialog's own element,
