@@ -83,8 +83,8 @@ export function detectSourceType(url: string): SourceType {
     // Note: amazon and ebay have many regional TLDs (amazon.com, amazon.co.uk, etc.)
     // so we check if domain starts with these prefixes
     if (domain.startsWith("amazon.") || domain.startsWith("ebay.")) return "commerce";
-    // Shopify: check for shopify in domain
-    if (domain.includes(".myshopify.") || domain.endsWith(".myshopify.com")) return "commerce";
+    // Shopify: all Shopify stores use .myshopify.com subdomain pattern
+    if (domain.endsWith(".myshopify.com")) return "commerce";
     if (isDomainMatch(url, "etsy.com")) return "commerce";
 
     // PDF check (by extension in URL)
