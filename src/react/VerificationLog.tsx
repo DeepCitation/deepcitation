@@ -170,7 +170,7 @@ export function FaviconImage({
     <img
       src={effectiveFaviconUrl}
       alt={alt?.trim() || "Source"}
-      className="w-4 h-4 shrink-0 rounded-xs"
+      className="w-4 h-4 shrink-0"
       onError={() => setHasError(true)}
       loading="lazy"
     />

@@ -41,7 +41,7 @@ import {
 import { formatCaptureDate } from "./dateUtils.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
-import { ArrowLeftIcon, CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon } from "./icons.js";
+import { ArrowLeftIcon, CheckIcon, ExternalLinkIcon, SpinnerIcon, WarningIcon, XIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
@@ -751,7 +751,7 @@ const KEYHOLE_SCROLLBAR_HIDE: React.CSSProperties = {
  *
  * Falls back to horizontal centering when no bounding box data is available.
  */
-function AnchorTextFocusedImage({
+export function AnchorTextFocusedImage({
   verification,
   onImageClick,
   page,
@@ -839,7 +839,7 @@ function AnchorTextFocusedImage({
               WebkitMaskImage: maskImage,
               maskImage,
               ...KEYHOLE_SCROLLBAR_HIDE,
-              cursor: isDragging ? "grabbing" : "grab",
+              cursor: isDragging ? "grabbing" : onImageClick ? "zoom-in" : "grab",
             }}
             {...handlers}
           >
@@ -860,17 +860,6 @@ function AnchorTextFocusedImage({
           </div>
         </button>
 
-        {/* Hover overlay with magnifying glass icon — only when expandable */}
-        {onImageClick && (
-          <div
-            className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-150 pointer-events-none rounded-t-md flex items-center justify-center"
-            aria-hidden="true"
-          >
-            <span className="w-5 h-5 text-white opacity-0 group-hover:opacity-80 transition-opacity duration-150 drop-shadow-md">
-              <ZoomInIcon />
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Action bar — only shown when View page button is available */}
@@ -1345,7 +1334,7 @@ function EvidenceTray({
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
 
   // Determine hover CTA text (only shown when expandable)
-  const ctaText = "Expand";
+  const ctaText = hasImage ? "Drag to pan · click to expand" : "Click to expand";
 
   // Shared inner content
   const content = (

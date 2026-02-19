@@ -22,12 +22,11 @@ import {
   Z_INDEX_BACKDROP_DEFAULT,
   Z_INDEX_DRAWER_BACKDROP_VAR,
   Z_INDEX_DRAWER_VAR,
-  Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
-import { CheckIcon, ExternalLinkIcon, MissIcon, XIcon, ZoomInIcon } from "./icons.js";
+import { CheckIcon, ExternalLinkIcon, MissIcon } from "./icons.js";
 import { flattenCitations, StackedStatusIcons } from "./CitationDrawerTrigger.js";
 import { buildSearchSummary } from "./searchSummaryUtils.js";
 import { isValidProofUrl, sanitizeUrl } from "./urlUtils.js";
@@ -337,12 +336,10 @@ function NotFoundCallout({
   searchAttempts,
   verification,
   proofImage,
-  onImageClick,
 }: {
   searchAttempts: SearchAttempt[];
   verification?: Verification | null;
   proofImage?: string | null;
-  onImageClick?: () => void;
 }) {
   const summary = buildSearchSummary(searchAttempts, verification);
 
@@ -381,30 +378,13 @@ function NotFoundCallout({
         </div>
 
         {/* Proof image thumbnail for context */}
-        {proofImage && onImageClick && (
-          <button
-            type="button"
-            className="mt-2 relative group/notfound cursor-zoom-in w-full"
-            onClick={e => {
-              e.stopPropagation();
-              onImageClick();
-            }}
-          >
-            <img
-              src={proofImage}
-              alt="Searched page"
-              className="w-full max-h-32 object-contain rounded border border-red-200 dark:border-red-800/50"
-              loading="lazy"
-            />
-            <div
-              className="absolute inset-0 bg-black/0 group-hover/notfound:bg-black/15 transition-colors duration-150 rounded flex items-center justify-center"
-              aria-hidden="true"
-            >
-              <span className="w-5 h-5 text-white opacity-0 group-hover/notfound:opacity-80 transition-opacity duration-150 drop-shadow-md">
-                <ZoomInIcon />
-              </span>
-            </div>
-          </button>
+        {proofImage && (
+          <img
+            src={proofImage}
+            alt="Searched page"
+            className="mt-2 w-full rounded border border-red-200 dark:border-red-800/50"
+            loading="lazy"
+          />
         )}
       </div>
     </div>
@@ -434,7 +414,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const { citation, verification } = item;
   const statusInfo = useMemo(() => getStatusInfo(verification, indicatorVariant), [verification, indicatorVariant]);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [wasAutoExpanded, setWasAutoExpanded] = useState(defaultExpanded);
 
   // Sync expanded state when defaultExpanded changes from false → true
@@ -445,19 +424,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       setWasAutoExpanded(true);
     }
   }, [defaultExpanded]);
-
-  // Close lightbox on Escape key
-  useEffect(() => {
-    if (!lightboxImage) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        setLightboxImage(null);
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [lightboxImage]);
 
   // Get display values with fallbacks
   const sourceName =
@@ -663,33 +629,15 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
             )}
             onAnimationEnd={() => setWasAutoExpanded(false)}
           >
-            {/* Proof image — clickable thumbnail with lightbox (not-found uses NotFoundCallout below) */}
-            {proofImage && !isNotFound && (
+            {/* Proof image — static display at full width (not-found uses NotFoundCallout below) */}
+            {!isNotFound && proofImage && (
               <div className="px-4 py-2">
-                <button
-                  type="button"
-                  className="relative group/img cursor-zoom-in"
-                  onClick={e => {
-                    e.stopPropagation();
-                    setLightboxImage(proofImage);
-                  }}
-                  aria-label="Click to view full size"
-                >
-                  <img
-                    src={proofImage}
-                    alt="Verification proof"
-                    className="w-auto max-h-40 object-contain rounded border border-gray-200 dark:border-gray-700"
-                    loading="lazy"
-                  />
-                  <div
-                    className="absolute inset-0 bg-black/0 group-hover/img:bg-black/15 transition-colors duration-150 rounded flex items-center justify-center"
-                    aria-hidden="true"
-                  >
-                    <span className="w-5 h-5 text-white opacity-0 group-hover/img:opacity-80 transition-opacity duration-150 drop-shadow-md">
-                      <ZoomInIcon />
-                    </span>
-                  </div>
-                </button>
+                <img
+                  src={proofImage}
+                  alt="Verification proof"
+                  className="w-full rounded border border-gray-200 dark:border-gray-700"
+                  loading="lazy"
+                />
               </div>
             )}
 
@@ -699,7 +647,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 searchAttempts={searchAttempts}
                 verification={verification}
                 proofImage={proofImage}
-                onImageClick={proofImage ? () => setLightboxImage(proofImage) : undefined}
               />
             )}
 
@@ -765,7 +712,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
         </div>
       </div>
 
-      {/* Lightbox portal for full-size image viewing */}
       {/* Inline keyframe for not-found pulse highlight — scoped, no global CSS needed */}
       {wasAutoExpanded && isNotFound && (
         <style>{`
@@ -779,50 +725,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           }
         `}</style>
       )}
-
-      {lightboxImage &&
-        (() => {
-          const container = getPortalContainer();
-          return container
-            ? createPortal(
-                <div
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Full size proof image"
-                  className="fixed inset-0 flex items-center justify-center bg-black/80 cursor-zoom-out animate-in fade-in-0 duration-150"
-                  style={{ zIndex: `var(${Z_INDEX_IMAGE_OVERLAY_VAR}, 9999)` } as React.CSSProperties}
-                  onClick={() => setLightboxImage(null)}
-                  onKeyDown={e => {
-                    if (e.key === "Escape") setLightboxImage(null);
-                  }}
-                >
-                  {/* eslint-disable-next-line -- img onClick stops backdrop close; onKeyDown mirrors for a11y */}
-                  <img
-                    src={lightboxImage}
-                    alt="Verification proof full size"
-                    className="max-w-[90vw] max-h-[90vh] object-contain rounded shadow-2xl"
-                    onClick={e => e.stopPropagation()}
-                    onKeyDown={e => e.stopPropagation()}
-                  />
-                  <button
-                    type="button"
-                    autoFocus
-                    onClick={e => {
-                      e.stopPropagation();
-                      setLightboxImage(null);
-                    }}
-                    className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                    aria-label="Close"
-                  >
-                    <span className="size-5 block">
-                      <XIcon />
-                    </span>
-                  </button>
-                </div>,
-                container,
-              )
-            : null;
-        })()}
     </div>
   );
 });
@@ -1098,7 +1000,7 @@ export function CitationDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                 aria-label="Close"
               >
                 <svg

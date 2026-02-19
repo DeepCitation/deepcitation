@@ -138,7 +138,7 @@ export const VERIFICATION_IMAGE_MAX_HEIGHT = "min(50vh, 360px)";
 export const KEYHOLE_STRIP_HEIGHT_VAR = "--dc-keyhole-strip-height";
 
 /** Default height of the keyhole image strip in pixels */
-export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 60;
+export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 90;
 
 /** Height of the miss-state proof page thumbnail shown in EvidenceTray (px) */
 export const MISS_TRAY_THUMBNAIL_HEIGHT = 72;
