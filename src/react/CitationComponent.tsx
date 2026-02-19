@@ -852,8 +852,9 @@ export function AnchorTextFocusedImage({
             onImageClick?.();
           }}
           aria-label={
-            [isPannable && "Drag to pan", onImageClick && "click to view full size"].filter(Boolean).join(", ") ||
-            "Verification image"
+            [isPannable && "Drag or click arrows to pan", onImageClick && "click to view full size"]
+              .filter(Boolean)
+              .join(", ") || "Verification image"
           }
         >
           <div
@@ -895,26 +896,38 @@ export function AnchorTextFocusedImage({
             </div>
           )}
 
-          {/* Left pan hint — shown on hover when the image can scroll leftward */}
+          {/* Left pan hint — clicking pans the image left */}
           {scrollState.canScrollLeft && (
             <div
-              className="absolute left-0 top-0 h-full flex items-center pl-1.5 opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 pointer-events-none"
-              aria-hidden="true"
+              className="absolute left-0 top-0 h-full flex items-center pl-1.5 opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 cursor-pointer"
+              aria-label="Pan image left"
+              onClick={e => {
+                e.stopPropagation();
+                const el = containerRef.current;
+                if (!el) return;
+                el.scrollTo({ left: el.scrollLeft - Math.max(el.clientWidth * 0.5, 80), behavior: "smooth" });
+              }}
             >
               <span className="text-[9px] font-semibold text-white bg-black/50 px-1.5 py-0.5 rounded leading-none">
-                ← Drag
+                ← Pan
               </span>
             </div>
           )}
 
-          {/* Right pan hint — shown on hover when the image can scroll rightward */}
+          {/* Right pan hint — clicking pans the image right */}
           {scrollState.canScrollRight && (
             <div
-              className="absolute right-0 top-0 h-full flex items-center pr-1.5 opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 pointer-events-none"
-              aria-hidden="true"
+              className="absolute right-0 top-0 h-full flex items-center pr-1.5 opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 cursor-pointer"
+              aria-label="Pan image right"
+              onClick={e => {
+                e.stopPropagation();
+                const el = containerRef.current;
+                if (!el) return;
+                el.scrollTo({ left: el.scrollLeft + Math.max(el.clientWidth * 0.5, 80), behavior: "smooth" });
+              }}
             >
               <span className="text-[9px] font-semibold text-white bg-black/50 px-1.5 py-0.5 rounded leading-none">
-                Drag →
+                Pan →
               </span>
             </div>
           )}
