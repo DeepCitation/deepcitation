@@ -260,30 +260,45 @@ describe("CitationDrawerItemComponent", () => {
       faviconUrl: "https://delaware.gov/favicon.ico",
       title: "How to Calculate Franchise Taxes",
       description: "The minimum tax is $175.00 for corporations...",
+      anchorText: "minimum tax is $175.00",
+      fullPhrase: "The minimum tax is $175.00 for corporations using the Authorized Shares method.",
     },
     verification: { status: "found" },
     ...overrides,
   });
 
-  it("renders source name", () => {
-    const { getByText } = render(<CitationDrawerItemComponent item={createItem()} />);
+  it("renders fullPhrase with anchorText highlighted", () => {
+    const { container } = render(<CitationDrawerItemComponent item={createItem()} />);
 
-    expect(getByText("Delaware Corporations")).toBeInTheDocument();
+    // HighlightedPhrase renders the fullPhrase; anchorText is highlighted via <mark>
+    expect(container.textContent).toContain(
+      "The minimum tax is $175.00 for corporations using the Authorized Shares method.",
+    );
   });
 
-  it("renders article title", () => {
-    const { getByText } = render(<CitationDrawerItemComponent item={createItem()} />);
+  it("renders anchorText as highlighted portion", () => {
+    const { container } = render(<CitationDrawerItemComponent item={createItem()} />);
 
-    expect(getByText("How to Calculate Franchise Taxes")).toBeInTheDocument();
+    // HighlightedPhrase highlights anchorText via a nested <span> with inline style.
+    // Find the span whose text content is exactly the anchorText within the phrase.
+    const allSpans = container.querySelectorAll("span");
+    const highlighted = Array.from(allSpans).find(
+      el => el.textContent === "minimum tax is $175.00" && el.getAttribute("style"),
+    );
+    expect(highlighted).toBeTruthy();
   });
 
-  it("renders snippet", () => {
-    const { getAllByText } = render(<CitationDrawerItemComponent item={createItem()} />);
+  it("falls back to anchorText when fullPhrase is missing", () => {
+    const item = createItem({
+      citation: {
+        type: "url",
+        siteName: "Test",
+        anchorText: "fallback anchor text",
+      },
+    });
+    const { container } = render(<CitationDrawerItemComponent item={item} />);
 
-    // Snippet appears exactly twice: once in the summary row and once in the always-rendered
-    // expanded detail (CSS grid 0fr animation keeps content in DOM even when visually hidden)
-    const snippets = getAllByText("The minimum tax is $175.00 for corporations...");
-    expect(snippets).toHaveLength(2);
+    expect(container.textContent).toContain("fallback anchor text");
   });
 
   it("renders status indicator instead of favicon", () => {
@@ -401,6 +416,7 @@ describe("CitationDrawer", () => {
         type: "url" as const,
         siteName: name,
         title: `Article ${i + 1}`,
+        anchorText: `Article ${i + 1}`,
         description: `Snippet for article ${i + 1}`,
       },
       verification: { status: "found" as const },
@@ -489,16 +505,16 @@ describe("CitationDrawer", () => {
   it("renders all citation items", () => {
     const groups = [createGroup("Source A", 2), createGroup("Source B", 1)];
 
-    const { getByText } = render(
+    const { getAllByText, getByText } = render(
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} showMoreSection={false} />,
     );
 
-    // Source-only view: multi-citation groups render each citation with its article title.
-    // Source A (2 citations) → renders "Article 1" and "Article 2" as visible text.
-    expect(getByText("Article 1")).toBeInTheDocument();
-    expect(getByText("Article 2")).toBeInTheDocument();
+    // Multi-citation group: each item renders anchorText via HighlightedPhrase.
+    // Text appears in both summary row and collapsed expanded detail (CSS grid 0fr).
+    expect(getAllByText("Article 1").length).toBeGreaterThanOrEqual(1);
+    expect(getAllByText("Article 2").length).toBeGreaterThanOrEqual(1);
 
-    // Source B (1 citation) renders as a compact row showing the source name.
+    // Single-citation group: CompactSingleCitationRow shows source name + anchorText.
     expect(getByText("Source B")).toBeInTheDocument();
   });
 
@@ -507,7 +523,7 @@ describe("CitationDrawer", () => {
 
     const { getByText } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
 
-    // All items should be visible (no More section, always expanded)
+    // All items should be visible (anchorText rendered via HighlightedPhrase)
     expect(getByText("Article 1")).toBeInTheDocument();
     expect(getByText("Article 4")).toBeInTheDocument();
     expect(getByText("Article 5")).toBeInTheDocument();

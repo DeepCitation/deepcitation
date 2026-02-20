@@ -23,11 +23,12 @@ const INITIAL_SCROLL_STATE: ScrollState = {
 const DRAG_THRESHOLD = 5;
 
 /**
- * Hook for horizontal drag-to-pan on a scrollable container.
+ * Hook for drag-to-pan on a scrollable container.
  *
  * - **Mouse**: drag to pan (grab cursor). Click suppression when drag > 5px.
- * - **Touch**: relies on native overflow-x scrolling (no manual touch handling).
+ * - **Touch**: relies on native overflow scrolling (no manual touch handling).
  * - **Scroll state**: tracks canScrollLeft/canScrollRight for fade mask updates.
+ * - **direction**: `"x"` (default) for horizontal-only; `"xy"` for both axes.
  *
  * @example
  * ```tsx
@@ -41,7 +42,7 @@ const DRAG_THRESHOLD = 5;
  * if (wasDragging.current) { wasDragging.current = false; return; }
  * ```
  */
-export function useDragToPan(): {
+export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
   containerRef: React.RefObject<HTMLDivElement | null>;
   isDragging: boolean;
   handlers: {
@@ -55,6 +56,7 @@ export function useDragToPan(): {
   /** Ref that is true after a drag gesture ended. Consumer should check and reset in click handler. */
   wasDragging: React.MutableRefObject<boolean>;
 } {
+  const { direction = "x" } = options;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [scrollState, setScrollState] = useState<ScrollState>(INITIAL_SCROLL_STATE);
@@ -62,7 +64,9 @@ export function useDragToPan(): {
   // Drag tracking via refs (avoids re-renders during active drag)
   const isPressed = useRef(false);
   const startX = useRef(0);
+  const startY = useRef(0);
   const startScrollLeft = useRef(0);
+  const startScrollTop = useRef(0);
   const dragDistance = useRef(0);
   const wasDragging = useRef(false);
 
@@ -114,7 +118,9 @@ export function useDragToPan(): {
     isPressed.current = true;
     dragDistance.current = 0;
     startX.current = e.clientX;
+    startY.current = e.clientY;
     startScrollLeft.current = el.scrollLeft;
+    startScrollTop.current = el.scrollTop;
     // Don't set isDragging yet — wait until threshold is exceeded
   }, []);
 
@@ -125,40 +131,42 @@ export function useDragToPan(): {
       if (!el) return;
 
       const dx = e.clientX - startX.current;
-      dragDistance.current = Math.abs(dx);
+      const dy = e.clientY - startY.current;
+      // For xy mode use the larger axis; for x-only keep original horizontal-only check
+      // so vertical jitter doesn't suppress clicks on the keyhole strip.
+      dragDistance.current = direction === "xy" ? Math.max(Math.abs(dx), Math.abs(dy)) : Math.abs(dx);
 
       if (dragDistance.current > DRAG_THRESHOLD) {
         if (!isDragging) setIsDragging(true);
       }
 
       el.scrollLeft = startScrollLeft.current - dx;
+      if (direction === "xy") {
+        el.scrollTop = startScrollTop.current - dy;
+      }
     },
-    [isDragging],
+    [isDragging, direction],
   );
 
-  const onMouseUp = useCallback(() => {
+  const finishDrag = useCallback(() => {
     if (!isPressed.current) return;
     isPressed.current = false;
-
     if (dragDistance.current > DRAG_THRESHOLD) {
       wasDragging.current = true;
     }
-
     setIsDragging(false);
     updateScrollState();
   }, [updateScrollState]);
 
-  const onMouseLeave = useCallback(() => {
-    if (!isPressed.current) return;
-    isPressed.current = false;
+  // Global mouseup catches releases outside the container (image drags, mouse leaving window, etc.)
+  // Without this, isPressed stays true and any future mousemove causes phantom panning.
+  useEffect(() => {
+    document.addEventListener("mouseup", finishDrag);
+    return () => document.removeEventListener("mouseup", finishDrag);
+  }, [finishDrag]);
 
-    if (dragDistance.current > DRAG_THRESHOLD) {
-      wasDragging.current = true;
-    }
-
-    setIsDragging(false);
-    updateScrollState();
-  }, [updateScrollState]);
+  const onMouseUp = finishDrag;
+  const onMouseLeave = finishDrag;
 
   const scrollTo = useCallback(
     (x: number) => {

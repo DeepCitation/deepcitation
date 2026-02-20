@@ -14,31 +14,10 @@ const baseCitation: Citation = {
   pageNumber: 5,
 };
 
-// Create a wide test image (800x100 pixels, solid gray)
-// This simulates a wide verification image that could overflow the popover
-// Using a proper PNG instead of SVG to avoid SVG scaling issues in tests
-const wideImageBase64 = (() => {
-  // Generate a simple gray PNG programmatically using canvas
-  // This creates an 800x100 gray rectangle image
-  if (typeof document !== "undefined") {
-    const canvas = document.createElement("canvas");
-    canvas.width = 800;
-    canvas.height = 100;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.fillStyle = "#cccccc";
-      ctx.fillRect(0, 0, 800, 100);
-      ctx.fillStyle = "#333333";
-      ctx.font = "14px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("Wide verification image (800px)", 400, 55);
-      return canvas.toDataURL("image/png");
-    }
-  }
-  // Fallback: minimal 1x1 gray PNG for SSR/Node environments
-  // This is a valid PNG that won't cause scaling issues
-  return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mO8cuXKfwYGBgYGAAi7Av7W3NgAAAAASUVORK5CYII=";
-})();
+// Static 800×100 gray PNG — generated offline so dimensions are reliable in both
+// Node (test compilation) and browser (Playwright runtime) environments.
+const wideImageBase64 =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAyAAAABkCAAAAABbOgtTAAABGElEQVR4nO3TMQEAIAzAsPnXhigUrC8ciYI+nQOs5nUA/MwgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwCwSAQDALBIBAMAsEgEAwC4QIk+xSYleLzlwAAAABJRU5ErkJggg==";
 
 const verificationWithWideImage: Verification = {
   status: "found",
@@ -302,7 +281,7 @@ test.describe("Popover Visual States", () => {
 // =============================================================================
 
 test.describe("Image Click to Expand", () => {
-  test("clicking image within popover opens full-size overlay", async ({ mount, page }) => {
+  test("clicking image within popover expands to inline evidence view", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "50px" }}>
         <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
@@ -317,22 +296,17 @@ test.describe("Image Click to Expand", () => {
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
 
-    // Click the image within the popover to expand to full size
-    const popoverImage = popover.locator("img");
-    await expect(popoverImage).toBeVisible();
-    await popoverImage.click();
+    // Click the keyhole strip to expand (the strip is the interactive area, not the img directly)
+    const keyholeStrip = popover.locator("[data-dc-keyhole]");
+    await expect(keyholeStrip).toBeVisible();
+    await keyholeStrip.click();
 
-    // Check that the full-size image overlay appeared
-    // Use the specific aria-label to distinguish from popover
-    const overlay = page.getByRole("dialog", { name: "Full size verification image" });
-    await expect(overlay).toBeVisible();
-
-    // The overlay image should be visible
-    const overlayImage = overlay.locator("img");
-    await expect(overlayImage).toBeVisible();
+    // The inline expanded view should now be visible (InlineExpandedImage renders this attribute)
+    const expandedView = popover.locator("[data-dc-inline-expanded]");
+    await expect(expandedView).toBeVisible({ timeout: 5000 });
   });
 
-  test("pressing Escape closes overlay", async ({ mount, page }) => {
+  test("pressing Escape closes popover from expanded state", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "50px" }}>
         <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
@@ -343,20 +317,20 @@ test.describe("Image Click to Expand", () => {
     const citation = page.locator("[data-citation-id]");
     await citation.click();
 
-    // Wait for popover and click image to expand
+    // Wait for popover and click keyhole strip to expand
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
-    const popoverImage = popover.locator("img");
-    await popoverImage.click();
+    const keyholeStrip = popover.locator("[data-dc-keyhole]");
+    await keyholeStrip.click();
 
-    // Verify overlay is open
-    const overlay = page.getByRole("dialog", { name: "Full size verification image" });
-    await expect(overlay).toBeVisible();
+    // Verify expanded view is active
+    const expandedView = popover.locator("[data-dc-inline-expanded]");
+    await expect(expandedView).toBeVisible({ timeout: 5000 });
 
     // Press Escape to close
     await page.keyboard.press("Escape");
 
-    // Overlay should be closed
-    await expect(overlay).not.toBeVisible();
+    // Popover should be closed
+    await expect(popover).not.toBeVisible();
   });
 });

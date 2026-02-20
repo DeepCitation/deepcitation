@@ -4,7 +4,7 @@ import type { Verification } from "../types/verification.js";
 import type { SourceCitationGroup } from "./CitationDrawer.types.js";
 import type { FlatCitationItem } from "./CitationDrawer.utils.js";
 import { flattenCitations, getStatusInfo } from "./CitationDrawer.utils.js";
-import { isValidProofImageSrc } from "./constants.js";
+import { isValidProofImageSrc, TOOLTIP_HIDE_DELAY_MS } from "./constants.js";
 import { cn } from "./utils.js";
 
 // =========
@@ -63,9 +63,6 @@ export interface CitationDrawerTriggerProps {
 const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
   (e.target as HTMLImageElement).style.opacity = "0";
 };
-
-/** Delay in ms before hiding tooltip on mouse leave (prevents flicker) */
-const TOOLTIP_HIDE_DELAY_MS = 80;
 
 /**
  * Detect if the primary pointing device is coarse (touch).

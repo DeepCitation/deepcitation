@@ -187,17 +187,11 @@ export const PENDING_COLOR_STYLE: React.CSSProperties = {
 };
 
 /**
- * Duration in ms to show "Copied" feedback before resetting to idle state.
- * Used for copy-to-clipboard feedback in various components.
- */
-export const COPY_FEEDBACK_DURATION_MS = 2000;
-
-/**
  * Base CSS classes for popover containers in CitationComponent.
  * Provides consistent styling for all popover states (pending, success, partial, error).
  */
 export const POPOVER_CONTAINER_BASE_CLASSES =
-  "rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md max-h-[inherit] overflow-y-auto";
+  "rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md";
 
 /**
  * Dynamic indicator size styles.
@@ -423,6 +417,31 @@ export const ANCHOR_HIGHLIGHT_STYLE: React.CSSProperties = {
 export const MIN_WORD_DIFFERENCE = 2;
 
 // =============================================================================
+// CITATION ANNOTATION OVERLAY
+// =============================================================================
+//
+// Constants for drawing citation annotations on full-page proof images.
+// Mirrors @filelasso/shared/utils/citationDrawing values — deepcitation-js
+// cannot import from shared, so the values are duplicated here.
+
+/** Border width for citation bracket outlines (px). */
+export const CITATION_BRACKET_BORDER_WIDTH = 2;
+/** Blue bracket color for exact/full-phrase matches. */
+export const CITATION_BRACKET_BLUE = "#005595";
+/** Amber bracket color for partial/anchor-text matches. */
+export const CITATION_BRACKET_AMBER = "#fbbf24";
+/** Semi-transparent overlay covering non-citation areas (spotlight effect). */
+export const SPOTLIGHT_OVERLAY_COLOR = "rgba(26, 26, 26, 0.4)";
+
+/**
+ * Calculates bracket arm width based on highlight height.
+ * Matches the backend's `getBracketWidth` (ratio = 1/5, clamped to 4–12px).
+ */
+export function getCitationBracketWidth(heightPx: number): number {
+  return Math.max(4, Math.min(heightPx * 0.2, 12));
+}
+
+// =============================================================================
 // EVIDENCE TRAY & EXPANDED VIEW
 // =============================================================================
 
@@ -442,5 +461,58 @@ export const EXPANDED_POPOVER_MAX_WIDTH = "calc(100vw - 2rem)";
 export const EXPANDED_POPOVER_HEIGHT =
   "min(calc(100vh - 2rem), var(--radix-popover-content-available-height, calc(100vh - 2rem)))";
 
-/** Transition duration for popover morph animation */
-export const POPOVER_MORPH_DURATION_MS = 300;
+// =============================================================================
+// ANIMATION & TRANSITION TIMINGS
+// =============================================================================
+//
+// Single source of truth for all UI timing values.
+//
+// Semantic duration aliases (maps to Tailwind duration classes):
+//   ANIM_FAST_MS     → duration-150  (hover/opacity fades, popover entry, chevron)
+//   ANIM_STANDARD_MS → duration-200  (drawer slide-in)
+//   ANIM_SLOW_MS     → duration-300  (drawer slide, heavy morphs)
+//
+// Expand/collapse morphs use separate constants + asymmetric easing:
+//   POPOVER_MORPH_EXPAND_MS   180ms  EASE_EXPAND   (fast start, gentle stop)
+//   POPOVER_MORPH_COLLAPSE_MS 120ms  EASE_COLLAPSE (gentle start, snap shut)
+//
+// NOTE: Tailwind duration-* classes in JSX must remain as literal strings for
+// JIT purging. These constants serve as documentary cross-references only.
+
+/** Fast transition: hover/opacity fades. Tailwind equivalent: duration-150. */
+export const ANIM_FAST_MS = 150;
+/** Standard transition: popover entry, chevron, grid. Tailwind equivalent: duration-200. */
+export const ANIM_STANDARD_MS = 200;
+/** Slow transition: drawer slide, popover morph. Tailwind equivalent: duration-300. */
+export const ANIM_SLOW_MS = 300;
+
+/** Delay in ms before hiding a tooltip on mouse leave (prevents flicker on cursor exit). */
+export const TOOLTIP_HIDE_DELAY_MS = 80;
+
+/** Debounce threshold in ms for ignoring click events immediately after touch events. */
+export const TOUCH_CLICK_DEBOUNCE_MS = 100;
+
+/**
+ * Duration in ms to show "Copied" feedback before resetting to idle state.
+ * Used for copy-to-clipboard feedback in various components.
+ */
+export const COPY_FEEDBACK_DURATION_MS = 2000;
+
+/** Auto-hide spinner after this duration if verification is still pending. */
+export const SPINNER_TIMEOUT_MS = 5000;
+
+/** Transition duration for popover morph expand (summary → expanded). */
+export const POPOVER_MORPH_EXPAND_MS = 180;
+/** Transition duration for popover morph collapse (expanded → summary). Faster = snappier close. */
+export const POPOVER_MORPH_COLLAPSE_MS = 120;
+
+/**
+ * Easing for expand transitions — fast start, gentle stop.
+ * Bézier: aggressive entry (0.16), minimal overshoot, soft landing (0, 1).
+ */
+export const EASE_EXPAND = "cubic-bezier(0.16, 0, 0, 1)";
+/**
+ * Easing for collapse transitions — gentle start, accelerating close.
+ * Bézier: slow departure (0.4), then whip shut (1, 1).
+ */
+export const EASE_COLLAPSE = "cubic-bezier(0.4, 0, 1, 1)";

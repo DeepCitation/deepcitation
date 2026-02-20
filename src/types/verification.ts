@@ -140,6 +140,9 @@ export interface VerificationPage extends SourcePage {
   isMatchPage?: boolean;
   /** Highlighted region on this page (if match found) */
   highlightBox?: ScreenBox;
+  /** Scale factors from PDF coordinate units to page image pixels.
+   *  Use to convert DeepTextItem coords: imageX = item.x * renderScale.x */
+  renderScale?: { x: number; y: number };
   /** OCR text items on this page (forward-compatible: text selection, annotations) */
   textItems?: DeepTextItem[];
 }

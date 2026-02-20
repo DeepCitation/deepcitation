@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
-import type { Verification } from "../types/verification.js";
+import type { CitationStatus } from "../types/citation.js";
+import { EvidenceTray, InlineExpandedImage } from "./CitationComponent.js";
 import type {
   CitationDrawerItem,
   CitationDrawerItemProps,
@@ -10,7 +10,6 @@ import type {
 } from "./CitationDrawer.types.js";
 import {
   computeStatusSummary,
-  extractDomain,
   flattenCitations,
   getItemStatusCategory,
   getStatusInfo,
@@ -19,6 +18,8 @@ import {
 } from "./CitationDrawer.utils.js";
 import { StackedStatusIcons } from "./CitationDrawerTrigger.js";
 import {
+  EASE_COLLAPSE,
+  EASE_EXPAND,
   getPortalContainer,
   isValidProofImageSrc,
   Z_INDEX_BACKDROP_DEFAULT,
@@ -28,167 +29,10 @@ import {
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
-import { CheckIcon, ExternalLinkIcon, MissIcon } from "./icons.js";
-import { buildSearchSummary } from "./searchSummaryUtils.js";
+import { ExternalLinkIcon } from "./icons.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
-
-// =========
-// Drawer-adapted method display names (subset of VerificationLog's METHOD_DISPLAY_NAMES)
-// =========
-
-const DRAWER_METHOD_NAMES: Record<SearchMethod, string> = {
-  exact_line_match: "Exact location",
-  line_with_buffer: "Nearby lines",
-  expanded_line_buffer: "Extended nearby",
-  current_page: "Expected page",
-  anchor_text_fallback: "Anchor text",
-  adjacent_pages: "Nearby pages",
-  expanded_window: "Wider area",
-  regex_search: "Full document",
-  first_word_fallback: "First word",
-  first_half_fallback: "First half",
-  last_half_fallback: "Last half",
-  first_quarter_fallback: "First quarter",
-  second_quarter_fallback: "Second quarter",
-  third_quarter_fallback: "Third quarter",
-  fourth_quarter_fallback: "Fourth quarter",
-  longest_word_fallback: "Longest word",
-  custom_phrase_fallback: "Custom search",
-  keyspan_fallback: "Anchor text",
-};
-
-// =========
-// DrawerVerificationSummary — flat verification display shown directly on expand
-// =========
-
-/** Get a human-readable match type from a successful attempt or status. */
-function getMatchType(status: SearchStatus | null | undefined, searchAttempts: SearchAttempt[]): string {
-  if (!status || status === "not_found") {
-    const count = searchAttempts.length;
-    return `${count} ${count === 1 ? "search" : "searches"} tried`;
-  }
-
-  const successfulAttempt = searchAttempts.find(a => a.success);
-  if (successfulAttempt?.matchedVariation) {
-    switch (successfulAttempt.matchedVariation) {
-      case "exact_full_phrase":
-        return "Exact match";
-      case "normalized_full_phrase":
-        return "Normalized match";
-      case "exact_anchor_text":
-      case "normalized_anchor_text":
-        return "Anchor text match";
-      case "partial_full_phrase":
-      case "partial_anchor_text":
-        return "Partial match";
-      case "first_word_only":
-        return "First word match";
-      default:
-        return "Match found";
-    }
-  }
-
-  switch (status) {
-    case "found":
-    case "found_phrase_missed_anchor_text":
-      return "Exact match";
-    case "found_anchor_text_only":
-      return "Anchor text match";
-    case "found_on_other_page":
-    case "found_on_other_line":
-      return "Found at different location";
-    case "partial_text_found":
-      return "Partial match";
-    case "first_word_found":
-      return "First word match";
-    default:
-      return "Match found";
-  }
-}
-
-/** Max phrase length in drawer context */
-const DRAWER_MAX_PHRASE_LENGTH = 50;
-
-/**
- * Compact verification summary for the drawer.
- * Shown directly when an item is expanded — no nested collapse/expand.
- *
- * Found/partial: single card with match info + method + location.
- * Not_found: compact list of unique methods tried.
- */
-function DrawerVerificationSummary({
-  searchAttempts,
-  status,
-}: {
-  searchAttempts: SearchAttempt[];
-  status: SearchStatus | null | undefined;
-}) {
-  if (searchAttempts.length === 0) return null;
-
-  const isMiss = status === "not_found";
-  const matchType = getMatchType(status, searchAttempts);
-  const successfulAttempt = searchAttempts.find(a => a.success);
-
-  // For found/partial: show a compact match card
-  if (!isMiss && successfulAttempt) {
-    const phrase = successfulAttempt.searchPhrase ?? "";
-    const displayPhrase =
-      phrase.length > DRAWER_MAX_PHRASE_LENGTH ? `${phrase.slice(0, DRAWER_MAX_PHRASE_LENGTH)}...` : phrase;
-    const methodName = DRAWER_METHOD_NAMES[successfulAttempt.method] ?? "Search";
-    const foundPage = successfulAttempt.foundLocation?.page ?? successfulAttempt.pageSearched;
-    const locationText = foundPage != null ? `Page ${foundPage}` : "";
-
-    return (
-      <div className="px-4 py-2.5">
-        <div className="p-2.5 bg-white dark:bg-gray-900/50 rounded-md border border-gray-100 dark:border-gray-800">
-          <div className="flex items-start gap-2">
-            <span className="size-3.5 mt-0.5 shrink-0 text-green-600 dark:text-green-400">
-              <CheckIcon />
-            </span>
-            <span className="text-xs text-gray-700 dark:text-gray-200 break-all border-l-2 border-gray-300 dark:border-gray-600 pl-1.5">
-              {displayPhrase || matchType}
-            </span>
-          </div>
-          <div className="flex items-center justify-between mt-1.5 text-[11px] text-gray-400 dark:text-gray-500 pl-[22px]">
-            <span>
-              {matchType} · {methodName}
-            </span>
-            {locationText && <span>{locationText}</span>}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // For not_found: show unique methods tried as a compact list
-  const uniqueMethods: string[] = [];
-  const seen = new Set<string>();
-  for (const attempt of searchAttempts) {
-    const name = DRAWER_METHOD_NAMES[attempt.method] ?? attempt.method;
-    if (!seen.has(name)) {
-      seen.add(name);
-      uniqueMethods.push(name);
-    }
-  }
-
-  return (
-    <div className="px-4 py-2.5">
-      <div className="p-2.5 bg-white dark:bg-gray-900/50 rounded-md border border-gray-100 dark:border-gray-800">
-        <div className="flex items-start gap-2">
-          <span className="size-3.5 mt-0.5 shrink-0 text-red-500 dark:text-red-400">
-            <MissIcon />
-          </span>
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{matchType}</span>
-        </div>
-        <div className="mt-1.5 pl-[22px] text-[11px] text-gray-400 dark:text-gray-500">
-          Searched: {uniqueMethods.join(", ")}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // =========
 // Utilities: sourceLabelMap lookup
@@ -212,14 +56,8 @@ function lookupSourceLabel(
   return undefined;
 }
 
-/**
- * Count words in a string (splits on whitespace).
- */
-function wordCount(str: string): number {
-  return str.trim().split(/\s+/).length;
-}
-
 // HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
+// EvidenceTray, InlineExpandedImage — imported from ./CitationComponent.js (canonical location)
 
 // =========
 // SourceGroupHeader
@@ -330,95 +168,37 @@ function formatCheckedDate(date: Date | string | null | undefined): string | nul
 }
 
 // =========
-// NotFoundCallout — enhanced not-found display aligned with popover
-// =========
-
-function NotFoundCallout({
-  searchAttempts,
-  verification,
-  proofImage,
-}: {
-  searchAttempts: SearchAttempt[];
-  verification?: Verification | null;
-  proofImage?: string | null;
-}) {
-  const summary = buildSearchSummary(searchAttempts, verification);
-
-  let searchDescription: string;
-  if (summary.includesFullDocScan) {
-    searchDescription = "Searched the full document.";
-  } else if (summary.pageRange) {
-    searchDescription = `Searched ${summary.pageRange}.`;
-  } else {
-    searchDescription = `Ran ${summary.totalAttempts} ${summary.totalAttempts === 1 ? "search" : "searches"}.`;
-  }
-
-  if (summary.closestMatch) {
-    const truncated =
-      summary.closestMatch.text.length > 60
-        ? `${summary.closestMatch.text.slice(0, 60)}...`
-        : summary.closestMatch.text;
-    searchDescription += ` Closest match: "${truncated}"`;
-    if (summary.closestMatch.page) {
-      searchDescription += ` on page ${summary.closestMatch.page}`;
-    }
-    searchDescription += ".";
-  }
-
-  return (
-    <div className="px-4 py-2.5">
-      <div className="p-2.5 rounded-md border border-dashed border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-950/30">
-        <div className="flex items-start gap-2">
-          <span className="size-3.5 mt-0.5 shrink-0 text-red-500 dark:text-red-400">
-            <MissIcon />
-          </span>
-          <div className="flex-1 min-w-0">
-            <span className="text-xs font-medium text-red-700 dark:text-red-300">Not found</span>
-            <div className="mt-1 text-[11px] text-red-500/80 dark:text-red-400/70">{searchDescription}</div>
-          </div>
-        </div>
-
-        {/* Proof image thumbnail for context */}
-        {proofImage && (
-          <img
-            src={proofImage}
-            alt="Searched page"
-            className="mt-2 w-full rounded border border-red-200 dark:border-red-800/50"
-            loading="lazy"
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// =========
 // CitationDrawerItemComponent
 // =========
 
 /**
  * Individual citation item displayed in the drawer.
- * Shows status + anchor text summary, expands to show compact verification details.
+ *
+ * Header (collapsed): fullPhrase with anchorText highlighted via HighlightedPhrase.
+ * Expanded: EvidenceTray (keyhole image for found; page thumbnail + search analysis for miss),
+ * matching the citation popover's evidence UX exactly. Keyhole click or tray click opens
+ * InlineExpandedImage for drag-to-pan full-page view.
  */
 export const CitationDrawerItemComponent = React.memo(function CitationDrawerItemComponent({
   item,
   isLast = false,
   onClick,
-  onReadMore,
+  onReadMore: _onReadMore, // kept in signature for backward compat; not rendered
   className,
   indicatorVariant = "icon",
-  hideSourceName = false,
+  hideSourceName: _hideSourceName, // no longer used — header is always fullPhrase
   defaultExpanded = false,
   style,
-  sourceLabelMap,
+  sourceLabelMap: _sourceLabelMap, // no longer used in summary row
 }: CitationDrawerItemProps) {
   const { citation, verification } = item;
   const statusInfo = useMemo(() => getStatusInfo(verification, indicatorVariant), [verification, indicatorVariant]);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [wasAutoExpanded, setWasAutoExpanded] = useState(defaultExpanded);
+  // Tracks the src shown in InlineExpandedImage (null = show EvidenceTray)
+  const [inlineExpandedSrc, setInlineExpandedSrc] = useState<string | null>(null);
 
   // Sync expanded state when defaultExpanded changes from false → true
-  // (useState initializer only runs on mount; this handles async autoExpandKeys updates)
   useEffect(() => {
     if (defaultExpanded) {
       setIsExpanded(true);
@@ -426,43 +206,14 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     }
   }, [defaultExpanded]);
 
-  // Get display values with fallbacks
-  const sourceName =
-    citation.type === "url"
-      ? citation.siteName || citation.domain || extractDomain(citation.url) || "Source"
-      : lookupSourceLabel(citation, sourceLabelMap) || verification?.label || "Document";
-  const articleTitle =
-    (citation.type === "url" ? citation.title : undefined) || citation.anchorText || citation.fullPhrase;
-  const snippet =
-    (citation.type === "url" ? citation.description : undefined) ||
-    citation.fullPhrase ||
-    verification?.url?.actualContentSnippet ||
-    verification?.verifiedMatchSnippet;
-  const _faviconUrl = citation.type === "url" ? citation.faviconUrl : undefined;
-
-  // Merge anchor text + fullPhrase when anchor is a substring of fullPhrase
-  // and fullPhrase has 2+ more words. Avoids stuttered display of near-duplicates.
   const anchorText = citation.anchorText?.toString();
   const fullPhrase = citation.fullPhrase;
-  const shouldMergePhrase =
-    anchorText &&
-    fullPhrase &&
-    anchorText !== fullPhrase &&
-    fullPhrase.includes(anchorText) &&
-    wordCount(fullPhrase) - wordCount(anchorText) >= 2;
-
-  // Suppress redundant snippet when it duplicates the title+anchor display
-  const isSnippetRedundant =
-    snippet === fullPhrase && articleTitle === anchorText && !!anchorText && fullPhrase?.includes(anchorText);
-  // Suppress source name when it matches the article title (already visible)
-  const isSourceRedundant = hideSourceName || !sourceName || sourceName === articleTitle;
 
   // Page number for document citations
   const pageNumber =
     (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
 
-  // Proof image (only shown in expanded view) — prefer document verificationImageSrc,
-  // fall back to URL screenshot for URL citations
+  // Proof image — evidence source for EvidenceTray and InlineExpandedImage
   const rawProofImageDoc = verification?.document?.verificationImageSrc;
   const rawUrlScreenshot = verification?.url?.webPageScreenshotBase64;
   const rawProofImage =
@@ -474,41 +225,47 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       : undefined);
   const proofImage = isValidProofImageSrc(rawProofImage) ? rawProofImage : null;
 
-  // Status category (uses canonical logic from getItemStatusCategory)
+  // Status
   const statusCategory = getItemStatusCategory(item);
   const isPending = statusCategory === "pending";
   const isNotFound = statusCategory === "notFound";
   const isVerified = statusCategory === "verified";
-
-  // Border color from STATUS_DISPLAY_MAP — single source of truth for status styling
   const statusBorderColor = STATUS_DISPLAY_MAP[statusCategory].borderColor;
+
+  // CitationStatus shape required by EvidenceTray
+  const citationStatus: CitationStatus = useMemo(
+    () => ({
+      isVerified: statusCategory === "verified" || statusCategory === "partial",
+      isMiss: statusCategory === "notFound",
+      isPartialMatch: statusCategory === "partial",
+      isPending: statusCategory === "pending",
+    }),
+    [statusCategory],
+  );
 
   // Verification date
   const checkedDate = formatCheckedDate(verification?.verifiedAt ?? verification?.url?.crawledAt);
 
-  // Crawl date for URL citations (absolute format for audit precision)
+  // Crawl date for URL citations
   const isDocument = citation.type === "document" || (!citation.type && citation.attachmentId);
   const formattedCrawlDate =
     !isDocument && verification?.url?.crawledAt ? formatCaptureDate(verification.url.crawledAt) : null;
 
-  // Search attempts for verification summary
-  const searchAttempts = verification?.searchAttempts ?? [];
+  // Source URL for "open page" link (URL citations only)
+  const sourceUrl = citation.type === "url" && citation.url ? sanitizeUrl(citation.url) : null;
 
   const handleClick = useCallback(() => {
-    setIsExpanded(prev => !prev);
+    setIsExpanded(prev => {
+      if (prev) setInlineExpandedSrc(null); // reset inline expansion when collapsing
+      return !prev;
+    });
     onClick?.(item);
   }, [item, onClick]);
 
-  const handleReadMore = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onReadMore?.(item);
-    },
-    [item, onReadMore],
-  );
-
-  // Source URL for "open page" link (URL citations only)
-  const sourceUrl = citation.type === "url" && citation.url ? sanitizeUrl(citation.url) : null;
+  // Opens InlineExpandedImage with the proof image (used by both keyhole click and tray click)
+  const handleExpand = useCallback(() => {
+    if (proofImage) setInlineExpandedSrc(proofImage);
+  }, [proofImage]);
 
   return (
     <div
@@ -524,11 +281,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     >
       {/* Clickable summary row */}
       <div
-        className={cn(
-          "group px-4 py-3",
-          // Blue-tinted highlight when expanded so the summary stands out from the detail area
-          isExpanded && "bg-blue-50/60 dark:bg-blue-950/30",
-        )}
+        className={cn("group px-4 py-3", isExpanded && "bg-blue-50/60 dark:bg-blue-950/30")}
         onClick={handleClick}
         role="button"
         tabIndex={0}
@@ -555,26 +308,19 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
             </span>
           </div>
 
-          {/* Content */}
+          {/* Header: fullPhrase with anchorText highlighted */}
           <div className="flex-1 min-w-0">
-            {/* Source name — hidden when inside a group or redundant with title */}
-            {!isSourceRedundant && <div className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">{sourceName}</div>}
-            {/* Title/phrase row with page number and timestamp */}
-            <div className="flex items-center gap-1.5">
-              {shouldMergePhrase ? (
-                <div className="text-sm text-gray-900 dark:text-gray-100 truncate" title={fullPhrase}>
-                  <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} />
-                </div>
-              ) : (
-                articleTitle && (
-                  <h4
-                    className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2"
-                    title={articleTitle}
-                  >
-                    {articleTitle}
-                  </h4>
-                )
-              )}
+            <div className="flex items-start gap-1.5 flex-wrap">
+              <div
+                className="text-sm text-gray-900 dark:text-gray-100 line-clamp-2 flex-1 min-w-0"
+                title={fullPhrase || anchorText}
+              >
+                <HighlightedPhrase
+                  fullPhrase={fullPhrase || anchorText || ""}
+                  anchorText={anchorText}
+                  isMiss={isNotFound}
+                />
+              </div>
               {pageNumber != null && pageNumber > 0 && (
                 <PagePill
                   pageNumber={pageNumber}
@@ -590,14 +336,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 />
               )}
               {checkedDate && (
-                <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0 ml-auto">{checkedDate}</span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">{checkedDate}</span>
               )}
             </div>
-            {/* Snippet/description — skip when merged, redundant, or matches title */}
-            {!shouldMergePhrase && !isSnippetRedundant && snippet && snippet !== articleTitle && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{snippet}</div>
-            )}
-            {/* Capture date for URL citations (absolute timestamp for audit precision) */}
             {formattedCrawlDate && (
               <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500" title={formattedCrawlDate.tooltip}>
                 Retrieved {formattedCrawlDate.display}
@@ -609,7 +350,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           <svg
             aria-hidden="true"
             className={cn(
-              "w-4 h-4 shrink-0 mt-1 transition-transform duration-200",
+              "w-4 h-4 shrink-0 mt-1 transition-transform duration-150",
               isExpanded ? "rotate-180 text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500",
             )}
             fill="none"
@@ -624,56 +365,31 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
       {/* Expanded detail view — CSS grid animation for smooth height transition */}
       <div
-        className="grid transition-[grid-template-rows] duration-200 ease-out"
-        style={{ gridTemplateRows: isExpanded ? "1fr" : "0fr" }}
+        className="grid transition-[grid-template-rows] duration-150"
+        style={{
+          gridTemplateRows: isExpanded ? "1fr" : "0fr",
+          transitionTimingFunction: isExpanded ? EASE_EXPAND : EASE_COLLAPSE,
+        }}
       >
         <div className="overflow-hidden" style={{ minHeight: 0 }}>
           <div
             className={cn(
               "border-t border-gray-100 dark:border-gray-800",
-              isNotFound ? "bg-red-50/50 dark:bg-red-950/20" : "bg-gray-50 dark:bg-gray-800/50",
               wasAutoExpanded && isNotFound && "animate-[dc-pulse-once_1.2s_ease-out]",
             )}
             onAnimationEnd={() => setWasAutoExpanded(false)}
           >
-            {/* Proof image — static display at full width (not-found uses NotFoundCallout below) */}
-            {!isNotFound && proofImage && (
-              <div className="px-4 py-2">
-                <img
-                  src={proofImage}
-                  alt="Verification proof"
-                  className="w-full rounded border border-gray-200 dark:border-gray-700"
-                  loading="lazy"
-                />
-              </div>
-            )}
-
-            {/* Enhanced not-found callout with search analysis */}
-            {isNotFound && searchAttempts.length > 0 && (
-              <NotFoundCallout searchAttempts={searchAttempts} verification={verification} proofImage={proofImage} />
-            )}
-
-            {/* Verification summary — shown for non-not-found statuses */}
-            {!isNotFound && searchAttempts.length > 0 && (
-              <DrawerVerificationSummary searchAttempts={searchAttempts} status={verification?.status} />
-            )}
-
-            {/* Snippet fallback when no search attempts (shows full phrase context) */}
-            {searchAttempts.length === 0 && snippet && snippet !== articleTitle && (
-              <div className="px-4 py-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-4">
-                  {snippet}
-                  {onReadMore && snippet.length > 100 && (
-                    <button
-                      type="button"
-                      onClick={handleReadMore}
-                      className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                    >
-                      Read more
-                    </button>
-                  )}
-                </p>
-              </div>
+            {/* Evidence area: popover-identical UX — keyhole for found, thumbnail+analysis for miss */}
+            {!inlineExpandedSrc ? (
+              <EvidenceTray
+                verification={verification ?? null}
+                status={citationStatus}
+                onImageClick={proofImage ? handleExpand : undefined}
+                onExpand={proofImage ? handleExpand : undefined}
+                proofImageSrc={proofImage ?? undefined}
+              />
+            ) : (
+              <InlineExpandedImage src={inlineExpandedSrc} onCollapse={() => setInlineExpandedSrc(null)} />
             )}
 
             {/* Open page — consistent action for all expanded URL citations */}
