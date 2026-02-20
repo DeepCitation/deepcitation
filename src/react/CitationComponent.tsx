@@ -888,13 +888,13 @@ const CitationContentDisplay = ({
 
     if (isMissState) {
       linterStyles.textDecorationStyle = "wavy";
-      linterStyles.textDecorationColor = "var(--dc-linter-error, #ef4444)";
+      linterStyles.textDecorationColor = "var(--dc-linter-error, #c0605f)";
     } else if (isPartialState) {
       linterStyles.textDecorationStyle = "dashed";
       linterStyles.textDecorationColor = "var(--dc-linter-warning, #f59e0b)";
     } else if (isVerifiedState) {
       linterStyles.textDecorationStyle = "solid";
-      linterStyles.textDecorationColor = "var(--dc-linter-success, #16a34a)";
+      linterStyles.textDecorationColor = "var(--dc-linter-success, #4a7c5f)";
     } else {
       linterStyles.textDecorationStyle = "dotted";
       linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)";

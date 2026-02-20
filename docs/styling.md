@@ -28,9 +28,9 @@ Override these CSS variables to theme all DeepCitation components at once:
   --dc-wavy-underline-color: #ef4444;  /* Default: red-500 */
 
   /* Linter variant underline colors */
-  --dc-linter-success: #16a34a;   /* Solid green underline for verified */
+  --dc-linter-success: #4a7c5f;   /* Solid muted green underline for verified */
   --dc-linter-warning: #f59e0b;   /* Dashed amber underline for partial */
-  --dc-linter-error: #ef4444;     /* Wavy red underline for not found */
+  --dc-linter-error: #c0605f;     /* Wavy muted red underline for not found */
   --dc-linter-pending: #9ca3af;   /* Dotted gray underline for pending */
 
   /* Popover dimensions */
@@ -47,9 +47,9 @@ Override these CSS variables to theme all DeepCitation components at once:
     --dc-partial-color: #fbbf24;      /* amber-400 */
     --dc-error-color: #f87171;        /* red-400 */
     --dc-pending-color: #6b7280;      /* gray-500 */
-    --dc-linter-success: #4ade80;
+    --dc-linter-success: #6aab85;
     --dc-linter-warning: #fbbf24;
-    --dc-linter-error: #f87171;
+    --dc-linter-error: #d47d7c;
     --dc-linter-pending: #6b7280;
   }
 }
