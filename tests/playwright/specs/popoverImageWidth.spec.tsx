@@ -302,7 +302,7 @@ test.describe("Popover Visual States", () => {
 // =============================================================================
 
 test.describe("Image Click to Expand", () => {
-  test("clicking image within popover opens full-size overlay", async ({ mount, page }) => {
+  test("clicking image within popover expands to inline evidence view", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "50px" }}>
         <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
@@ -317,22 +317,17 @@ test.describe("Image Click to Expand", () => {
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
 
-    // Click the image within the popover to expand to full size
+    // Click the image within the popover to expand inline
     const popoverImage = popover.locator("img");
     await expect(popoverImage).toBeVisible();
     await popoverImage.click();
 
-    // Check that the full-size image overlay appeared
-    // Use the specific aria-label to distinguish from popover
-    const overlay = page.getByRole("dialog", { name: "Full size verification image" });
-    await expect(overlay).toBeVisible();
-
-    // The overlay image should be visible
-    const overlayImage = overlay.locator("img");
-    await expect(overlayImage).toBeVisible();
+    // The inline expanded image should now be visible (replaces evidence tray)
+    const expandedImage = popover.locator("img[alt='Verification evidence']");
+    await expect(expandedImage).toBeVisible();
   });
 
-  test("pressing Escape closes overlay", async ({ mount, page }) => {
+  test("pressing Escape closes popover from expanded state", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "50px" }}>
         <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
@@ -349,14 +344,14 @@ test.describe("Image Click to Expand", () => {
     const popoverImage = popover.locator("img");
     await popoverImage.click();
 
-    // Verify overlay is open
-    const overlay = page.getByRole("dialog", { name: "Full size verification image" });
-    await expect(overlay).toBeVisible();
+    // Verify expanded image is visible
+    const expandedImage = popover.locator("img[alt='Verification evidence']");
+    await expect(expandedImage).toBeVisible();
 
     // Press Escape to close
     await page.keyboard.press("Escape");
 
-    // Overlay should be closed
-    await expect(overlay).not.toBeVisible();
+    // Popover should be closed
+    await expect(popover).not.toBeVisible();
   });
 });

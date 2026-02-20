@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CitationStatus } from "../types/citation.js";
+import { EvidenceTray, InlineExpandedImage } from "./CitationComponent.js";
 import type {
   CitationDrawerItem,
   CitationDrawerItemProps,
@@ -16,7 +17,6 @@ import {
   sortGroupsByWorstStatus,
 } from "./CitationDrawer.utils.js";
 import { StackedStatusIcons } from "./CitationDrawerTrigger.js";
-import { EvidenceTray, InlineExpandedImage } from "./CitationComponent.js";
 import {
   EASE_COLLAPSE,
   EASE_EXPAND,
@@ -281,10 +281,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     >
       {/* Clickable summary row */}
       <div
-        className={cn(
-          "group px-4 py-3",
-          isExpanded && "bg-blue-50/60 dark:bg-blue-950/30",
-        )}
+        className={cn("group px-4 py-3", isExpanded && "bg-blue-50/60 dark:bg-blue-950/30")}
         onClick={handleClick}
         role="button"
         tabIndex={0}

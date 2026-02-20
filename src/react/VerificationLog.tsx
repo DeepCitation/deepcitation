@@ -251,10 +251,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose }: PagePill
   if (!onClick) {
     return (
       <span
-        className={cn(
-          "inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border",
-          colorClasses,
-        )}
+        className={cn("inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border", colorClasses)}
       >
         p.{pageNumber}
       </span>
