@@ -289,12 +289,12 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose }: PagePill
           e.stopPropagation();
           onClose();
         }}
-        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded border cursor-pointer transition-colors bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+        className="relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border cursor-pointer transition-colors bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40 after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]"
         aria-label={`Close page ${pageNumber} view`}
         title="Close expanded view (Esc)"
       >
         <span>p.{pageNumber}</span>
-        <span className="size-2.5">
+        <span className="size-3">
           <XIcon />
         </span>
       </button>
@@ -305,7 +305,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose }: PagePill
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded border",
+          "inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border",
           colorClasses,
         )}
       >
@@ -322,14 +322,15 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose }: PagePill
         onClick();
       }}
       className={cn(
-        "inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded border cursor-pointer",
+        "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border cursor-pointer",
         "transition-colors hover:opacity-80",
+        "after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]",
         colorClasses,
       )}
       aria-label={`Expand to full page ${pageNumber}`}
     >
       <span>p.{pageNumber}</span>
-      <span className="size-2.5">
+      <span className="size-3">
         <ChevronRightIcon />
       </span>
     </button>
@@ -384,10 +385,10 @@ export function SourceContextHeader({
               e.stopPropagation();
               onClose();
             }}
-            className="shrink-0 flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors pr-1 border-r border-gray-200 dark:border-gray-700 mr-1"
+            className="shrink-0 flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors pr-1 border-r border-gray-200 dark:border-gray-700 mr-1 min-h-[44px] px-1"
             aria-label="Back to citation summary"
           >
-            <span className="size-3.5 block">
+            <span className="size-4 block">
               <ArrowLeftIcon />
             </span>
             <span>Back</span>
