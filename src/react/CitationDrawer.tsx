@@ -815,6 +815,76 @@ function CompactSingleCitationRow({
   );
 }
 
+// =============================================================================
+// DrawerSourceGroup — extracted from inline renderGroup()
+// =============================================================================
+
+interface DrawerSourceGroupProps {
+  group: SourceCitationGroup;
+  groupIndex: number;
+  isLastGroup: boolean;
+  staggerOffset: number;
+  onCitationClick?: (item: CitationDrawerItem) => void;
+  onReadMore?: (item: CitationDrawerItem) => void;
+  indicatorVariant: "icon" | "dot";
+  sourceLabelMap?: Record<string, string>;
+  renderCitationItem?: (item: CitationDrawerItem) => React.ReactNode;
+}
+
+function DrawerSourceGroup({
+  group,
+  groupIndex,
+  isLastGroup,
+  staggerOffset,
+  onCitationClick,
+  onReadMore,
+  indicatorVariant,
+  sourceLabelMap,
+  renderCitationItem,
+}: DrawerSourceGroupProps) {
+  const key = `${group.sourceDomain ?? group.sourceName}-${groupIndex}`;
+
+  // Single-citation groups: render as one compact row (no header + item split)
+  if (group.citations.length === 1 && !renderCitationItem) {
+    return (
+      <CompactSingleCitationRow
+        key={key}
+        group={group}
+        isLast={isLastGroup}
+        onClick={onCitationClick}
+        indicatorVariant={indicatorVariant}
+      />
+    );
+  }
+
+  // Multi-citation groups: header + items
+  return (
+    <div key={key}>
+      <SourceGroupHeader group={group} sourceLabelMap={sourceLabelMap} />
+      <div>
+        {group.citations.map((item, index) => {
+          const delay = (staggerOffset + index) * 35;
+          return renderCitationItem ? (
+            <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
+          ) : (
+            <CitationDrawerItemComponent
+              key={item.citationKey}
+              item={item}
+              isLast={isLastGroup && index === group.citations.length - 1}
+              onClick={onCitationClick}
+              onReadMore={onReadMore}
+              indicatorVariant={indicatorVariant}
+              hideSourceName
+              sourceLabelMap={sourceLabelMap}
+              style={{ animationDelay: `${delay}ms` }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // =========
 // DrawerSourceHeading — favicon + name label for the drawer header
 // =========
@@ -938,55 +1008,18 @@ export function CitationDrawer({
   // Don't render if closed
   if (!isOpen) return null;
 
-  // Track stagger index across groups for entrance animation
-  let staggerIndex = 0;
-
-  const renderGroup = (group: SourceCitationGroup, groupIndex: number, isLastGroup: boolean) => {
-    const key = `${group.sourceDomain ?? group.sourceName}-${groupIndex}`;
-
-    // Single-citation groups: render as one compact row (no header + item split)
-    if (group.citations.length === 1 && !renderCitationItem) {
-      staggerIndex++;
-      return (
-        <CompactSingleCitationRow
-          key={key}
-          group={group}
-          isLast={isLastGroup}
-          onClick={onCitationClick}
-          indicatorVariant={indicatorVariant}
-          sourceLabelMap={sourceLabelMap}
-        />
+  // Pre-compute stagger offsets for each group (cumulative citation count)
+  const staggerOffsets = sortedGroups.reduce<number[]>((acc, _group, idx) => {
+    if (idx === 0) {
+      acc.push(0);
+    } else {
+      const prevGroup = sortedGroups[idx - 1];
+      acc.push(
+        acc[idx - 1] + (prevGroup.citations.length === 1 && !renderCitationItem ? 1 : prevGroup.citations.length),
       );
     }
-
-    // Multi-citation groups: header + items
-    return (
-      <div key={key}>
-        <SourceGroupHeader group={group} sourceLabelMap={sourceLabelMap} />
-        <div>
-          {group.citations.map((item, index) => {
-            const delay = staggerIndex * 35;
-            staggerIndex++;
-            return renderCitationItem ? (
-              <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
-            ) : (
-              <CitationDrawerItemComponent
-                key={item.citationKey}
-                item={item}
-                isLast={isLastGroup && index === group.citations.length - 1}
-                onClick={onCitationClick}
-                onReadMore={onReadMore}
-                indicatorVariant={indicatorVariant}
-                hideSourceName
-                sourceLabelMap={sourceLabelMap}
-                style={{ animationDelay: `${delay}ms` }}
-              />
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
+    return acc;
+  }, []);
 
   const drawerContent = (
     <>
@@ -1069,9 +1102,20 @@ export function CitationDrawer({
           {totalCitations === 0 ? (
             <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No citations to display</div>
           ) : (
-            sortedGroups.map((group, groupIndex) =>
-              renderGroup(group, groupIndex, groupIndex === sortedGroups.length - 1),
-            )
+            sortedGroups.map((group, groupIndex) => (
+              <DrawerSourceGroup
+                key={`${group.sourceDomain ?? group.sourceName}-${groupIndex}`}
+                group={group}
+                groupIndex={groupIndex}
+                isLastGroup={groupIndex === sortedGroups.length - 1}
+                staggerOffset={staggerOffsets[groupIndex] ?? 0}
+                onCitationClick={onCitationClick}
+                onReadMore={onReadMore}
+                indicatorVariant={indicatorVariant}
+                sourceLabelMap={sourceLabelMap}
+                renderCitationItem={renderCitationItem}
+              />
+            ))
           )}
         </div>
       </div>

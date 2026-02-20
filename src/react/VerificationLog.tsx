@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
@@ -8,6 +8,7 @@ import {
   ArrowLeftIcon,
   CheckIcon,
   ChevronRightIcon,
+  CopyIcon,
   DocumentIcon,
   GlobeIcon,
   MissIcon,
@@ -69,6 +70,69 @@ const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   custom_phrase_fallback: "Custom search",
   keyspan_fallback: "Anchor text",
 };
+
+// =============================================================================
+// URL ANCHOR TEXT ROW (with copy button)
+// =============================================================================
+
+/**
+ * Row showing quoted anchor text with copy button for URL citations.
+ * Matches the style of StatusHeader's copy button for document citations.
+ */
+function UrlAnchorTextRow({ anchorText, displayAnchorText }: { anchorText: string; displayAnchorText: string }) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const copyResetTimerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Cleanup timer on unmount to prevent memory leak
+  useEffect(() => {
+    return () => clearTimeout(copyResetTimerRef.current);
+  }, []);
+
+  const handleCopy = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!anchorText) return;
+
+      // Clear any pending reset timer before starting a new copy
+      clearTimeout(copyResetTimerRef.current);
+
+      try {
+        await navigator.clipboard.writeText(anchorText);
+        setCopyState("copied");
+      } catch (err) {
+        console.error("Failed to copy text:", err);
+        setCopyState("error");
+      }
+
+      // Auto-reset copy state after feedback duration
+      copyResetTimerRef.current = setTimeout(() => setCopyState("idle"), COPY_FEEDBACK_DURATION_MS);
+    },
+    [anchorText],
+  );
+
+  return (
+    <div className="mt-1 pl-6 flex items-center gap-1.5">
+      <QuotedText className="text-xs text-gray-500 dark:text-gray-400 truncate">{displayAnchorText}</QuotedText>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className={cn(
+          "shrink-0 p-0.5 rounded transition-colors cursor-pointer",
+          copyState === "copied"
+            ? "text-green-600 dark:text-green-400"
+            : copyState === "error"
+              ? "text-red-500 dark:text-red-400"
+              : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300",
+        )}
+        aria-label={copyState === "copied" ? "Copied!" : "Copy quoted text"}
+        title={copyState === "copied" ? "Copied!" : "Copy quote"}
+      >
+        <span className="size-3.5 block">{copyState === "copied" ? <CheckIcon /> : <CopyIcon />}</span>
+      </button>
+    </div>
+  );
+}
 
 // =============================================================================
 // SOURCE CONTEXT HEADER COMPONENT
@@ -671,16 +735,8 @@ export function StatusHeader({
   hidePageBadge = false,
   indicatorVariant = "icon",
 }: StatusHeaderProps) {
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const colorScheme = getStatusColorScheme(status);
   const headerText = getStatusHeaderText(status);
-
-  // Auto-reset copy state after feedback duration
-  useEffect(() => {
-    if (copyState === "idle") return;
-    const timeoutId = setTimeout(() => setCopyState("idle"), COPY_FEEDBACK_DURATION_MS);
-    return () => clearTimeout(timeoutId);
-  }, [copyState]);
 
   // Select appropriate icon based on status
   // - Green (verified): CheckIcon
@@ -1005,9 +1061,9 @@ function SearchAttemptRow({ attempt, index, totalCount, overallStatus }: SearchA
         {variations.length > 0 && (
           <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
             {variationTypeLabel ?? "Also tried"}:{" "}
-            {variations.slice(0, 3).map((v, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && ", "}
+            {variations.slice(0, 3).map((v, vIdx) => (
+              <React.Fragment key={`variation-${vIdx}-${v.slice(0, 20)}`}>
+                {vIdx > 0 && ", "}
                 <QuotedText mono>{v}</QuotedText>
               </React.Fragment>
             ))}
@@ -1110,8 +1166,8 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
             Searched for
           </div>
           <div className="space-y-1">
-            {fallbackPhrases.map((phrase, i) => (
-              <div key={i} className="flex items-start gap-2">
+            {fallbackPhrases.map(phrase => (
+              <div key={`fallback-${phrase.slice(0, 40)}`} className="flex items-start gap-2">
                 <span className="size-3 max-w-3 max-h-3 mt-0.5 text-gray-400 dark:text-gray-500 shrink-0">
                   <MissIcon />
                 </span>
@@ -1176,8 +1232,13 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
           {searchAttempts.length} {searchAttempts.length === 1 ? "search" : "searches"} tried
         </div>
         <div className="space-y-0.5">
-          {searchAttempts.map((attempt, i) => (
-            <SearchAttemptRow key={i} attempt={attempt} index={i + 1} totalCount={searchAttempts.length} />
+          {searchAttempts.map((attempt, attemptIdx) => (
+            <SearchAttemptRow
+              key={`${attempt.method}-${attempt.pageSearched ?? "doc"}-${attemptIdx}`}
+              attempt={attempt}
+              index={attemptIdx + 1}
+              totalCount={searchAttempts.length}
+            />
           ))}
         </div>
       </div>

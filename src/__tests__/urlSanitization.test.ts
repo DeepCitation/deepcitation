@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { safeWindowOpen, sanitizeUrl } from "../react/urlUtils.js";
 
 describe("sanitizeUrl", () => {
@@ -85,11 +85,11 @@ describe("sanitizeUrl", () => {
 });
 
 describe("safeWindowOpen", () => {
-  let openSpy: ReturnType<typeof vi.spyOn>;
+  let openSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     // Use spyOn which works in both vitest and bun test (happy-dom provides window)
-    openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+    openSpy = jest.spyOn(window, "open").mockImplementation(() => null);
   });
 
   afterEach(() => {

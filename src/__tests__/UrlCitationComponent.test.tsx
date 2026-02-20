@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
+import { afterEach, describe, expect, it, mock } from "@jest/globals";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import type React from "react";
 import type { UrlCitationMeta } from "../react/types";

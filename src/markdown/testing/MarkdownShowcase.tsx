@@ -3,7 +3,8 @@ import { useMemo } from "react";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
 import type { Citation } from "../../types/citation.js";
 import type { Verification } from "../../types/verification.js";
-import { getIndicator, humanizeLinePosition, renderCitationsAsMarkdown, toMarkdown } from "../index.js";
+import { getIndicator, humanizeLinePosition } from "../markdownVariants.js";
+import { renderCitationsAsMarkdown, toMarkdown } from "../renderMarkdown.js";
 import type { MarkdownVariant } from "../types.js";
 import { INDICATOR_STYLES, MARKDOWN_VARIANTS, STATUS_TYPES } from "./MarkdownShowcase.constants.js";
 

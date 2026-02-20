@@ -34,7 +34,7 @@ describe("SourcesListComponent utilities", () => {
     });
 
     it("detects news sources", () => {
-      expect(detectSourceType("https://news.example.com/article")).toBe("news");
+      expect(detectSourceType("https://news.google.com/article")).toBe("news");
       expect(detectSourceType("https://reuters.com/article")).toBe("news");
       expect(detectSourceType("https://bbc.com/news/123")).toBe("news");
       expect(detectSourceType("https://cnn.com/politics/123")).toBe("news");

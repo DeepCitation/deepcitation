@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, jest, mock } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, mock } from "@jest/globals";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import type React from "react";
 import { CitationComponent } from "../react/CitationComponent";
@@ -257,7 +257,7 @@ describe("CitationComponent behaviorConfig", () => {
       });
 
       // Image overlay should NOT be visible (first click shows popover)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Popover should be shown
       await waitForPopoverVisible(container);
@@ -292,7 +292,7 @@ describe("CitationComponent behaviorConfig", () => {
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
     });
 
     it("always calls eventHandlers.onClick", async () => {
@@ -1028,7 +1028,7 @@ describe("CitationComponent behaviorConfig", () => {
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Popover should be shown
       await waitForPopoverVisible(container);
@@ -1045,7 +1045,7 @@ describe("CitationComponent behaviorConfig", () => {
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Popover should be shown
       await waitForPopoverVisible(container);
@@ -1281,8 +1281,7 @@ describe("CitationComponent mobile/touch detection", () => {
       // First tap should NOT open the full-screen image overlay
       // (popover behavior is handled by hover state, not dialog)
       // The key check is that image overlay dialog is NOT shown on first tap
-      const dialog = container.querySelector("[role='dialog']");
-      expect(dialog).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
     });
 
     it("does not auto-enable mobile mode on non-touch devices", async () => {
@@ -1299,7 +1298,7 @@ describe("CitationComponent mobile/touch detection", () => {
       });
 
       // Should NOT open image overlay directly (lazy mode)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Should show popover instead
       await waitFor(() => {
@@ -1326,8 +1325,7 @@ describe("CitationComponent mobile/touch detection", () => {
       });
 
       // First tap should NOT open image overlay (mobile behavior)
-      const dialog = container.querySelector("[role='dialog']");
-      expect(dialog).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
     });
 
     it("isMobile={false} forces desktop behavior even on touch device", async () => {
@@ -1345,7 +1343,7 @@ describe("CitationComponent mobile/touch detection", () => {
       });
 
       // Should NOT open image overlay directly (lazy mode)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Should show popover instead
       await waitFor(() => {
@@ -1430,14 +1428,14 @@ describe("CitationComponent mobile/touch detection", () => {
       });
 
       // No image overlay (no image available)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Second tap - still no image overlay (no image available)
       await act(async () => {
         fireEvent.touchStart(citation as HTMLElement);
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
     });
 
     it("cross-citation tapping is not incorrectly debounced (each citation has its own timer)", async () => {
@@ -1481,7 +1479,7 @@ describe("CitationComponent mobile/touch detection", () => {
 
       // Both citations should have responded to their first tap
       // (no image overlay since it's first tap for each)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Now second tap on citation B should toggle details (proves citation B wasn't incorrectly debounced)
       await act(async () => {
@@ -1490,7 +1488,7 @@ describe("CitationComponent mobile/touch detection", () => {
       });
 
       // No image overlay - second tap toggles details, not image
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
     });
 
     it("second tap toggles phrase expansion for miss citations (no image)", async () => {
@@ -1528,7 +1526,7 @@ describe("CitationComponent mobile/touch detection", () => {
       });
 
       // No image overlay (it's a miss, no image)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Second tap - should toggle phrase expansion (not image overlay)
       await act(async () => {
@@ -1537,7 +1535,7 @@ describe("CitationComponent mobile/touch detection", () => {
       });
 
       // Still no image overlay (miss citation behavior toggles phrases, not image)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
     });
 
     it("custom behaviorConfig.onClick receives TouchEvent on mobile", async () => {
@@ -1588,7 +1586,7 @@ describe("CitationComponent mobile/touch detection", () => {
       });
 
       // No image overlay yet (first tap shows popover)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Second tap - should toggle details (not open image in lazy mode)
       await act(async () => {
@@ -1597,7 +1595,7 @@ describe("CitationComponent mobile/touch detection", () => {
       });
 
       // No image overlay - second tap toggles details, not image
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
     });
   });
 
@@ -1775,13 +1773,13 @@ describe("CitationComponent mobile/touch detection", () => {
       await act(async () => {
         fireEvent.keyDown(citation as HTMLElement, { key: "Enter" });
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Second Enter - toggles details (not image)
       await act(async () => {
         fireEvent.keyDown(citation as HTMLElement, { key: "Enter" });
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
     });
 
     it("Space key shows popover first, second press toggles details", async () => {
@@ -1795,13 +1793,13 @@ describe("CitationComponent mobile/touch detection", () => {
       await act(async () => {
         fireEvent.keyDown(citation as HTMLElement, { key: " " });
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Second Space - toggles details (not image)
       await act(async () => {
         fireEvent.keyDown(citation as HTMLElement, { key: " " });
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
     });
 
     it("Enter key with deprecated interactionMode still uses lazy behavior", async () => {
@@ -1817,13 +1815,13 @@ describe("CitationComponent mobile/touch detection", () => {
       await act(async () => {
         fireEvent.keyDown(citation as HTMLElement, { key: "Enter" });
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Second Enter - toggles details (not image in lazy mode)
       await act(async () => {
         fireEvent.keyDown(citation as HTMLElement, { key: "Enter" });
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
     });
 
     it("citation has correct ARIA attributes", () => {
@@ -1921,7 +1919,7 @@ describe("CitationComponent interactionMode", () => {
       });
 
       // First click should show popover, NOT image overlay (lazy behavior)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Popover should be shown
       await waitFor(() => {
@@ -1957,7 +1955,7 @@ describe("CitationComponent interactionMode", () => {
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Popover should be shown
       await waitFor(() => {
@@ -2009,7 +2007,7 @@ describe("CitationComponent interactionMode", () => {
       });
 
       // First click should NOT open image overlay
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Popover should be shown instead (hover state activated via click)
       await waitFor(() => {
@@ -2123,13 +2121,13 @@ describe("CitationComponent interactionMode", () => {
       });
 
       // Image overlay should NOT open (no image available)
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Second click - still no image to zoom
       await act(async () => {
         fireEvent.click(citation as HTMLElement);
       });
-      expect(container.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      expect(container.querySelector("img[alt='Full page verification']")).not.toBeInTheDocument();
 
       // Cursor should remain pointer (no image to zoom)
       expect(citation).toHaveClass("cursor-pointer");

@@ -5,7 +5,7 @@ import { INDICATOR_SETS } from "../markdown/types";
 import { CitationComponent } from "../react/CitationComponent";
 import { getStatusInfo } from "../react/CitationDrawer.utils";
 import { DOT_INDICATOR_SIZE_STYLE, INDICATOR_SIZE_STYLE } from "../react/constants";
-import { StatusHeader } from "../react/index";
+import { StatusHeader } from "../react/VerificationLog";
 import type { Citation } from "../types/citation";
 import type { Verification } from "../types/verification";
 

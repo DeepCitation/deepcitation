@@ -103,9 +103,9 @@ describe("formatCaptureDate", () => {
   });
 
   it("handles future dates", () => {
-    const result = formatCaptureDate("2030-12-31T23:59:59Z");
+    const result = formatCaptureDate("2030-12-15T12:00:00Z");
     expect(result).not.toBeNull();
-    expect(result?.display).toMatch(/Dec\s+31.*2030/);
+    expect(result?.display).toMatch(/Dec\s+15.*2030/);
   });
 
   it("handles leap day", () => {

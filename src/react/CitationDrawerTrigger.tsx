@@ -87,7 +87,6 @@ function getIsTouchDevice(): boolean {
 function useIsTouchDevice(): boolean {
   const [isTouchDevice, setIsTouchDevice] = useState(() => getIsTouchDevice());
   useEffect(() => {
-    setIsTouchDevice(getIsTouchDevice());
     if (typeof window !== "undefined" && window.matchMedia) {
       const mediaQuery = window.matchMedia("(pointer: coarse)");
       const handleChange = () => setIsTouchDevice(getIsTouchDevice());

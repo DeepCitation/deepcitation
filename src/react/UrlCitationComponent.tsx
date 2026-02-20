@@ -3,7 +3,7 @@ import { forwardRef, memo, useCallback, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import { DOT_COLORS, DOT_INDICATOR_FIXED_SIZE_STYLE, MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
-import type { UrlCitationProps } from "./types.js";
+import type { UrlCitationProps, UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { extractDomain, getUrlPath, STATUS_ICONS, safeWindowOpen, truncateString } from "./urlUtils.js";
 import { classNames, generateCitationInstanceId, generateCitationKey } from "./utils.js";
@@ -87,6 +87,168 @@ const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl
       onError={handleFaviconError}
     />
   );
+};
+
+// =============================================================================
+// Extracted sub-components (moved out of forwardRef to avoid inline definitions)
+// =============================================================================
+
+interface ExternalLinkButtonProps {
+  showExternalLinkIndicator: boolean;
+  handleExternalLinkClick: (e: React.MouseEvent) => void;
+}
+
+const ExternalLinkButton = ({ showExternalLinkIndicator, handleExternalLinkClick }: ExternalLinkButtonProps) => {
+  if (!showExternalLinkIndicator) return null;
+  return (
+    <button
+      type="button"
+      onClick={handleExternalLinkClick}
+      className="inline-flex items-center justify-center w-3.5 h-3.5 ml-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+      aria-label="Open in new tab"
+      title="Open in new tab"
+    >
+      <ExternalLinkIcon className="w-full h-full" />
+    </button>
+  );
+};
+
+interface UrlStatusIndicatorProps {
+  indicatorVariant: "icon" | "dot";
+  isVerified: boolean;
+  isPartial: boolean;
+  isBlocked: boolean;
+  isError: boolean;
+  isPending: boolean;
+  fetchStatus: UrlFetchStatus;
+  errorMessage?: string;
+  statusInfo: { label: string };
+  renderBlockedIndicator?: (status: UrlFetchStatus, errorMessage?: string) => React.ReactNode;
+}
+
+const UrlStatusIndicator = ({
+  indicatorVariant,
+  isVerified,
+  isPartial,
+  isBlocked,
+  isError,
+  isPending,
+  fetchStatus,
+  errorMessage,
+  statusInfo,
+  renderBlockedIndicator,
+}: UrlStatusIndicatorProps) => {
+  // Dot variant: simple colored dots for all statuses
+  if (indicatorVariant === "dot") {
+    if (isVerified) {
+      return (
+        <StatusIconWrapper ariaLabel="Verified">
+          <span
+            className={classNames("rounded-full", DOT_COLORS.green)}
+            style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+            aria-hidden="true"
+          />
+        </StatusIconWrapper>
+      );
+    }
+    if (isPartial) {
+      return (
+        <StatusIconWrapper ariaLabel="Partial match">
+          <span
+            className={classNames("rounded-full", DOT_COLORS.amber)}
+            style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+            aria-hidden="true"
+          />
+        </StatusIconWrapper>
+      );
+    }
+    if (isBlocked) {
+      if (renderBlockedIndicator) return <>{renderBlockedIndicator(fetchStatus, errorMessage)}</>;
+      return (
+        <StatusIconWrapper ariaLabel={statusInfo.label}>
+          <span
+            className={classNames("rounded-full", DOT_COLORS.amber)}
+            style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+            aria-hidden="true"
+          />
+        </StatusIconWrapper>
+      );
+    }
+    if (isError) {
+      if (renderBlockedIndicator) return <>{renderBlockedIndicator(fetchStatus, errorMessage)}</>;
+      return (
+        <StatusIconWrapper ariaLabel={statusInfo.label}>
+          <span
+            className={classNames("rounded-full", DOT_COLORS.red)}
+            style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+            aria-hidden="true"
+          />
+        </StatusIconWrapper>
+      );
+    }
+    if (isPending) {
+      return (
+        <StatusIconWrapper ariaLabel="Verification in progress">
+          <PendingDot />
+        </StatusIconWrapper>
+      );
+    }
+    return null;
+  }
+
+  // Default: icon variant
+  // Verified: Green checkmark
+  if (isVerified) {
+    return (
+      <StatusIconWrapper ariaLabel="Verified">
+        <VerifiedCheck />
+      </StatusIconWrapper>
+    );
+  }
+
+  // Partial: Amber check
+  if (isPartial) {
+    return (
+      <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel="Partial match">
+        <CheckIcon className="w-full h-full" />
+      </StatusIconWrapper>
+    );
+  }
+
+  // Blocked: Lock icon
+  if (isBlocked) {
+    if (renderBlockedIndicator) {
+      return <>{renderBlockedIndicator(fetchStatus, errorMessage)}</>;
+    }
+    return (
+      <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel={statusInfo.label}>
+        <LockIcon className="w-full h-full" />
+      </StatusIconWrapper>
+    );
+  }
+
+  // Error: X in circle icon (centered, not subscript)
+  if (isError) {
+    if (renderBlockedIndicator) {
+      return <>{renderBlockedIndicator(fetchStatus, errorMessage)}</>;
+    }
+    return (
+      <StatusIconWrapper className="text-red-500 dark:text-red-400" ariaLabel={statusInfo.label}>
+        <XCircleIcon className="w-full h-full" />
+      </StatusIconWrapper>
+    );
+  }
+
+  // Pending: Pulsing dot
+  if (isPending) {
+    return (
+      <StatusIconWrapper ariaLabel="Verification in progress">
+        <PendingDot />
+      </StatusIconWrapper>
+    );
+  }
+
+  return null;
 };
 
 /**
@@ -246,135 +408,27 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       [onUrlClick, url, eventHandlers, citation, citationKey],
     );
 
-    // External link button that appears on hover or focus
-    const renderExternalLinkButton = () => {
-      if (!showExternalLinkIndicator) return null;
-      return (
-        <button
-          type="button"
-          onClick={handleExternalLinkClick}
-          className="inline-flex items-center justify-center w-3.5 h-3.5 ml-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
-          aria-label="Open in new tab"
-          title="Open in new tab"
-        >
-          <ExternalLinkIcon className="w-full h-full" />
-        </button>
-      );
-    };
+    const externalLinkButtonElement = (
+      <ExternalLinkButton
+        showExternalLinkIndicator={showExternalLinkIndicator}
+        handleExternalLinkClick={handleExternalLinkClick}
+      />
+    );
 
-    const renderStatusIndicator = () => {
-      // Dot variant: simple colored dots for all statuses
-      if (indicatorVariant === "dot") {
-        if (isVerified) {
-          return (
-            <StatusIconWrapper ariaLabel="Verified">
-              <span
-                className={classNames("rounded-full", DOT_COLORS.green)}
-                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
-                aria-hidden="true"
-              />
-            </StatusIconWrapper>
-          );
-        }
-        if (isPartial) {
-          return (
-            <StatusIconWrapper ariaLabel="Partial match">
-              <span
-                className={classNames("rounded-full", DOT_COLORS.amber)}
-                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
-                aria-hidden="true"
-              />
-            </StatusIconWrapper>
-          );
-        }
-        if (isBlocked) {
-          if (renderBlockedIndicator) return renderBlockedIndicator(fetchStatus, errorMessage);
-          return (
-            <StatusIconWrapper ariaLabel={statusInfo.label}>
-              <span
-                className={classNames("rounded-full", DOT_COLORS.amber)}
-                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
-                aria-hidden="true"
-              />
-            </StatusIconWrapper>
-          );
-        }
-        if (isError) {
-          if (renderBlockedIndicator) return renderBlockedIndicator(fetchStatus, errorMessage);
-          return (
-            <StatusIconWrapper ariaLabel={statusInfo.label}>
-              <span
-                className={classNames("rounded-full", DOT_COLORS.red)}
-                style={DOT_INDICATOR_FIXED_SIZE_STYLE}
-                aria-hidden="true"
-              />
-            </StatusIconWrapper>
-          );
-        }
-        if (isPending) {
-          return (
-            <StatusIconWrapper ariaLabel="Verification in progress">
-              <PendingDot />
-            </StatusIconWrapper>
-          );
-        }
-        return null;
-      }
-
-      // Default: icon variant
-      // Verified: Green checkmark
-      if (isVerified) {
-        return (
-          <StatusIconWrapper ariaLabel="Verified">
-            <VerifiedCheck />
-          </StatusIconWrapper>
-        );
-      }
-
-      // Partial: Amber check
-      if (isPartial) {
-        return (
-          <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel="Partial match">
-            <CheckIcon className="w-full h-full" />
-          </StatusIconWrapper>
-        );
-      }
-
-      // Blocked: Lock icon
-      if (isBlocked) {
-        if (renderBlockedIndicator) {
-          return renderBlockedIndicator(fetchStatus, errorMessage);
-        }
-        return (
-          <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel={statusInfo.label}>
-            <LockIcon className="w-full h-full" />
-          </StatusIconWrapper>
-        );
-      }
-
-      // Error: X in circle icon (centered, not subscript)
-      if (isError) {
-        if (renderBlockedIndicator) {
-          return renderBlockedIndicator(fetchStatus, errorMessage);
-        }
-        return (
-          <StatusIconWrapper className="text-red-500 dark:text-red-400" ariaLabel={statusInfo.label}>
-            <XCircleIcon className="w-full h-full" />
-          </StatusIconWrapper>
-        );
-      }
-
-      // Pending: Pulsing dot
-      if (isPending) {
-        return (
-          <StatusIconWrapper ariaLabel="Verification in progress">
-            <PendingDot />
-          </StatusIconWrapper>
-        );
-      }
-
-      return null;
-    };
+    const statusIndicatorElement = (
+      <UrlStatusIndicator
+        indicatorVariant={indicatorVariant}
+        isVerified={isVerified}
+        isPartial={isPartial}
+        isBlocked={isBlocked}
+        isError={isError}
+        isPending={isPending}
+        fetchStatus={fetchStatus}
+        errorMessage={errorMessage}
+        statusInfo={statusInfo}
+        renderBlockedIndicator={renderBlockedIndicator}
+      />
+    );
 
     // Badge variant (default) - matches the HTML design
     // Changed from <a> to <span> to prevent default link behavior
@@ -426,8 +480,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             >
               {displayText}
             </span>
-            {showStatusIndicator && renderStatusIndicator()}
-            {renderExternalLinkButton()}
+            {showStatusIndicator && statusIndicatorElement}
+            {externalLinkButtonElement}
           </span>
         </>
       );
@@ -467,8 +521,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             <span className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-700 dark:text-gray-300">
               {displayText}
             </span>
-            {showStatusIndicator && renderStatusIndicator()}
-            {renderExternalLinkButton()}
+            {showStatusIndicator && statusIndicatorElement}
+            {externalLinkButtonElement}
           </span>
         </>
       );
@@ -507,8 +561,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           >
             {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
             <span>{displayText}</span>
-            {showStatusIndicator && renderStatusIndicator()}
-            {renderExternalLinkButton()}
+            {showStatusIndicator && statusIndicatorElement}
+            {externalLinkButtonElement}
           </span>
         </>
       );
@@ -548,8 +602,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           >
             {displayText}
           </span>
-          {showStatusIndicator && renderStatusIndicator()}
-          {renderExternalLinkButton()}]
+          {showStatusIndicator && statusIndicatorElement}
+          {externalLinkButtonElement}]
         </span>
       </>
     );

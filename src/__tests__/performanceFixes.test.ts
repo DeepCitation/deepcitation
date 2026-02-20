@@ -14,7 +14,7 @@
  * 10. Image prefetch deduplication
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { normalizeCitations } from "../parsing/normalizeCitation.js";
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import { cleanRepeatingLastSentence } from "../parsing/parseWorkAround.js";
@@ -244,10 +244,10 @@ Line3' anchor_text='Test' line_ids='1' />`;
 });
 
 describe("Data Loss Fix - Citations Without AttachmentId", () => {
-  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+  let consoleWarnSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
-    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   afterEach(() => {

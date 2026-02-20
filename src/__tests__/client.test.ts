@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { DeepCitation } from "../client/DeepCitation.js";
 
 // Mock global fetch
-const mockFetch = vi.fn() as ReturnType<typeof vi.fn>;
+const mockFetch = jest.fn() as jest.Mock;
 global.fetch = mockFetch;
 
 describe("DeepCitation Client", () => {
@@ -369,7 +369,7 @@ describe("DeepCitation Client", () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
       // Suppress expected warning
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
       mockFetch.mockResolvedValueOnce({
         ok: true,

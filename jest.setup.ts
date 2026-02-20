@@ -1,4 +1,11 @@
 import "@testing-library/jest-dom";
+import { TextEncoder, TextDecoder } from "util";
+
+// Polyfill TextEncoder/TextDecoder for jsdom environment (needed by sha.ts)
+if (typeof globalThis.TextEncoder === "undefined") {
+  globalThis.TextEncoder = TextEncoder;
+  globalThis.TextDecoder = TextDecoder as typeof globalThis.TextDecoder;
+}
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 

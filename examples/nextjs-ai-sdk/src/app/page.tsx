@@ -269,9 +269,9 @@ export default function Home() {
 
           {fileDataParts.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {fileDataParts.map((file, i) => (
+              {fileDataParts.map(file => (
                 <span
-                  key={i}
+                  key={file.attachmentId}
                   className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm text-gray-700"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

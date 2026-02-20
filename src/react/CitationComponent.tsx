@@ -127,9 +127,6 @@ function useIsTouchDevice(): boolean {
   const [isTouchDevice, setIsTouchDevice] = useState(() => getIsTouchDevice());
 
   useEffect(() => {
-    // Update state with current value on mount (handles SSR hydration)
-    setIsTouchDevice(getIsTouchDevice());
-
     // Listen for changes in pointer capability (e.g., tablet mode changes)
     if (typeof window !== "undefined" && window.matchMedia) {
       const mediaQuery = window.matchMedia("(pointer: coarse)");
@@ -626,6 +623,319 @@ const VerifiedDot = () => <DotIndicator color="green" label="Verified" />;
 const PartialDot = () => <DotIndicator color="amber" label="Partial match" />;
 const PendingDot = () => <DotIndicator color="gray" pulse label="Verifying" />;
 const MissDot = () => <DotIndicator color="red" label="Not found" />;
+
+// =============================================================================
+// SPINNER STAGE TYPE (used by CitationStatusIndicator and parent component)
+// =============================================================================
+
+type SpinnerStage = "active" | "slow" | "stale";
+
+// =============================================================================
+// CITATION STATUS INDICATOR (extracted from inline renderStatusIndicator)
+// =============================================================================
+
+interface CitationStatusIndicatorProps {
+  renderIndicator?: (status: CitationStatus) => React.ReactNode;
+  status: CitationStatus;
+  showIndicator: boolean;
+  indicatorVariant: IndicatorVariant;
+  shouldShowSpinner: boolean;
+  isVerified: boolean;
+  isPartialMatch: boolean;
+  isMiss: boolean;
+  spinnerStage: SpinnerStage;
+}
+
+/**
+ * Renders the appropriate status indicator based on citation verification state.
+ * Renders in priority order:
+ * 1. Custom renderIndicator (if provided)
+ * 2. Spinner (for pending/loading states)
+ * 3. Verified checkmark (green)
+ * 4. Partial match checkmark (amber)
+ * 5. Miss X icon (red)
+ */
+const CitationStatusIndicator = ({
+  renderIndicator,
+  status,
+  showIndicator,
+  indicatorVariant,
+  shouldShowSpinner,
+  isVerified,
+  isPartialMatch,
+  isMiss,
+  spinnerStage,
+}: CitationStatusIndicatorProps): React.ReactNode => {
+  if (renderIndicator) return renderIndicator(status);
+  if (!showIndicator) return null;
+
+  if (indicatorVariant === "dot") {
+    if (shouldShowSpinner) return <PendingDot />;
+    if (isVerified && !isPartialMatch) return <VerifiedDot />;
+    if (isPartialMatch) return <PartialDot />;
+    if (isMiss) return <MissDot />;
+    return null;
+  }
+
+  // Default: icon variant — 3-stage spinner
+  if (shouldShowSpinner) {
+    return (
+      <span
+        className={cn(
+          "inline-flex relative ml-1 top-[0.1em] [text-decoration:none]",
+          spinnerStage === "active" && "animate-spin",
+          spinnerStage === "slow" && "animate-spin opacity-60",
+        )}
+        style={{
+          ...INDICATOR_SIZE_STYLE,
+          ...PENDING_COLOR_STYLE,
+          ...(spinnerStage === "slow" ? { animationDuration: "2s" } : undefined),
+        }}
+        data-dc-indicator="pending"
+        aria-hidden="true"
+        title={spinnerStage === "slow" ? "Still verifying..." : undefined}
+      >
+        <SpinnerIcon />
+      </span>
+    );
+  }
+  if (isVerified && !isPartialMatch) return <VerifiedIndicator />;
+  if (isPartialMatch) return <PartialIndicator />;
+  if (isMiss) return <MissIndicator />;
+  return null;
+};
+
+// =============================================================================
+// CITATION CONTENT DISPLAY (extracted from inline renderCitationContent)
+// =============================================================================
+
+interface CitationContentDisplayProps {
+  renderContent?: (props: CitationRenderProps) => React.ReactNode;
+  citation: CitationRenderProps["citation"];
+  status: CitationStatus;
+  citationKey: string;
+  displayText: string;
+  resolvedContent: CitationContent;
+  variant: CitationVariant;
+  statusClasses: string;
+  isVerified: boolean;
+  isPartialMatch: boolean;
+  isMiss: boolean;
+  shouldShowSpinner: boolean;
+  showIndicator: boolean;
+  faviconUrl?: string;
+  additionalCount?: number;
+  indicatorProps: CitationStatusIndicatorProps;
+}
+
+/**
+ * Renders the citation content based on the selected variant (chip, superscript, text, badge, linter, brackets).
+ * Each variant has its own visual treatment and hover behavior.
+ */
+const CitationContentDisplay = ({
+  renderContent,
+  citation,
+  status,
+  citationKey,
+  displayText,
+  resolvedContent,
+  variant,
+  statusClasses,
+  isVerified,
+  isPartialMatch,
+  isMiss,
+  shouldShowSpinner,
+  showIndicator,
+  faviconUrl,
+  additionalCount,
+  indicatorProps,
+}: CitationContentDisplayProps): React.ReactNode => {
+  const indicator = <CitationStatusIndicator {...indicatorProps} />;
+
+  if (renderContent) {
+    return renderContent({
+      citation,
+      status,
+      citationKey,
+      displayText,
+      isMergedDisplay: resolvedContent === "anchorText",
+    });
+  }
+
+  // Content type: indicator only
+  if (resolvedContent === "indicator") {
+    return <span>{indicator}</span>;
+  }
+
+  // Variant: chip (pill/badge style with neutral gray background)
+  if (variant === "chip") {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal transition-colors",
+          "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+          ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner),
+        )}
+      >
+        <span
+          className={cn(
+            "max-w-60 overflow-hidden text-ellipsis whitespace-nowrap",
+            isMiss && !shouldShowSpinner && "opacity-70",
+          )}
+        >
+          {displayText}
+        </span>
+        {indicator}
+      </span>
+    );
+  }
+
+  // Variant: superscript (footnote style)
+  if (variant === "superscript") {
+    const anchorTextDisplay = citation.anchorText?.toString() || "";
+    const citationNumber = citation.citationNumber?.toString() || "1";
+
+    const supStatusClasses = cn(
+      !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
+      shouldShowSpinner && "text-gray-500 dark:text-gray-400",
+    );
+    return (
+      <>
+        {anchorTextDisplay && <span className="font-normal">{anchorTextDisplay}</span>}
+        <sup
+          className={cn(
+            "text-xs font-medium transition-colors inline-flex items-baseline px-0.5 rounded",
+            supStatusClasses,
+            ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner),
+          )}
+        >
+          [<span>{citationNumber}</span>
+          {indicator}]
+        </sup>
+      </>
+    );
+  }
+
+  // Variant: text
+  if (variant === "text") {
+    return (
+      <span className={cn("font-normal", statusClasses)}>
+        {displayText}
+        {indicator}
+      </span>
+    );
+  }
+
+  // Variant: badge (ChatGPT-style source chip)
+  if (variant === "badge") {
+    const faviconSrc = faviconUrl || (isUrlCitation(citation) ? citation.faviconUrl : undefined);
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
+          "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+          "transition-colors cursor-pointer",
+          isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
+          isPartialMatch && !shouldShowSpinner && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
+          isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
+          (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
+            "hover:bg-gray-200 dark:hover:bg-gray-700",
+        )}
+      >
+        {faviconSrc && (
+          <img
+            src={faviconSrc}
+            alt=""
+            className="w-4 h-4 rounded-sm object-contain"
+            loading="lazy"
+            onError={handleImageError}
+          />
+        )}
+        <span
+          className={cn(
+            "max-w-40 overflow-hidden text-ellipsis whitespace-nowrap",
+            isMiss && !shouldShowSpinner && "opacity-70",
+          )}
+          style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
+        >
+          {displayText}
+        </span>
+        {additionalCount !== undefined && additionalCount > 0 && (
+          <span className="text-gray-500 dark:text-gray-400">+{additionalCount}</span>
+        )}
+        {indicator}
+      </span>
+    );
+  }
+
+  // Variant: linter
+  if (variant === "linter") {
+    const isVerifiedState = isVerified && !isPartialMatch && !shouldShowSpinner;
+    const isPartialState = isPartialMatch && !shouldShowSpinner;
+    const isMissState = isMiss && !shouldShowSpinner;
+    const isPendingState = shouldShowSpinner;
+
+    const linterStyles: React.CSSProperties = {
+      textDecoration: "underline",
+      textDecorationThickness: "2px",
+      textUnderlineOffset: "3px",
+      borderRadius: "2px",
+      color: "inherit",
+      fontSize: "inherit",
+      fontFamily: "inherit",
+      lineHeight: "inherit",
+    };
+
+    if (isMissState) {
+      linterStyles.textDecorationStyle = "wavy";
+      linterStyles.textDecorationColor = "var(--dc-linter-error, #ef4444)";
+    } else if (isPartialState) {
+      linterStyles.textDecorationStyle = "dashed";
+      linterStyles.textDecorationColor = "var(--dc-linter-warning, #f59e0b)";
+    } else if (isVerifiedState) {
+      linterStyles.textDecorationStyle = "solid";
+      linterStyles.textDecorationColor = "var(--dc-linter-success, #16a34a)";
+    } else {
+      linterStyles.textDecorationStyle = "dotted";
+      linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)";
+    }
+
+    const linterClasses = cn(
+      "cursor-pointer font-normal",
+      isVerifiedState && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
+      isPartialState && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
+      isMissState && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
+      isPendingState && "bg-gray-500/[0.05] hover:bg-gray-500/10 dark:bg-gray-400/[0.05] dark:hover:bg-gray-400/10",
+    );
+
+    return (
+      <span className={linterClasses} style={linterStyles}>
+        {displayText}
+        {showIndicator && indicator}
+      </span>
+    );
+  }
+
+  // Variant: brackets (default)
+  return (
+    <span
+      className={cn(
+        "inline-flex items-baseline gap-0.5 whitespace-nowrap",
+        "font-mono font-normal text-xs leading-tight",
+        "text-gray-500 dark:text-gray-400",
+        "transition-colors",
+      )}
+      aria-hidden="true"
+    >
+      [
+      <span className={cn("max-w-80 overflow-hidden text-ellipsis", statusClasses)}>
+        {displayText}
+        {indicator}
+      </span>
+      ]
+    </span>
+  );
+};
 
 // =============================================================================
 // EXPANDED IMAGE RESOLVER
@@ -2153,13 +2463,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return () => document.removeEventListener("keydown", handler, true);
     }, [popoverViewState]);
 
-    // Reset expanded view state when popover closes
-    useEffect(() => {
-      if (!isHovering) {
-        setPopoverViewState("summary");
-        setCustomExpandedSrc(null);
-      }
-    }, [isHovering]);
+    // Dismiss the popover and reset its view state in one step.
+    // Replaces the old useEffect that watched isHovering — moving the reset into
+    // the event handler avoids an extra render cycle (flash).
+    const closePopover = useCallback(() => {
+      setIsHovering(false);
+      setPopoverViewState("summary");
+      setCustomExpandedSrc(null);
+    }, []);
 
     // Track if popover was already open before current interaction (for mobile/lazy mode).
     // Lifecycle:
@@ -2236,7 +2547,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const resolvedImageSrc = verification?.document?.verificationImageSrc ?? null;
 
     // 3-stage spinner: active (0-5s) → slow (5-15s) → stale (15s+)
-    type SpinnerStage = "active" | "slow" | "stale";
     const [spinnerStage, setSpinnerStage] = useState<SpinnerStage>("active");
     const spinnerTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -2290,24 +2600,25 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     );
 
     // Apply behavior actions from custom handler
-    const applyBehaviorActions = useCallback((actions: CitationBehaviorActions) => {
-      if (actions.setImageExpanded !== undefined) {
-        if (actions.setImageExpanded === false) {
-          // Close: collapse to summary and dismiss the popover
-          setPopoverViewState("summary");
-          setCustomExpandedSrc(null);
-          setIsHovering(false);
-        } else if (actions.setImageExpanded) {
-          // Open: show popover in expanded (full page) view
-          setIsHovering(true);
-          setPopoverViewState("expanded-page");
-          // If a custom image URL was provided, validate before storing
-          if (typeof actions.setImageExpanded === "string" && isValidProofImageSrc(actions.setImageExpanded)) {
-            setCustomExpandedSrc(actions.setImageExpanded);
+    const applyBehaviorActions = useCallback(
+      (actions: CitationBehaviorActions) => {
+        if (actions.setImageExpanded !== undefined) {
+          if (actions.setImageExpanded === false) {
+            // Close: collapse to summary and dismiss the popover
+            closePopover();
+          } else if (actions.setImageExpanded) {
+            // Open: show popover in expanded (full page) view
+            setIsHovering(true);
+            setPopoverViewState("expanded-page");
+            // If a custom image URL was provided, validate before storing
+            if (typeof actions.setImageExpanded === "string" && isValidProofImageSrc(actions.setImageExpanded)) {
+              setCustomExpandedSrc(actions.setImageExpanded);
+            }
           }
         }
-      }
-    }, []);
+      },
+      [closePopover],
+    );
 
     // Shared tap/click action handler - used by both click and touch handlers.
     // Extracts the common logic to avoid duplication.
@@ -2353,14 +2664,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             setIsHovering(true);
             break;
           case "hidePopover":
-            setIsHovering(false);
+            closePopover();
             break;
           case "expandImage":
             setPopoverViewState("expanded-page");
             break;
         }
       },
-      [behaviorConfig, eventHandlers, citation, citationKey, getBehaviorContext, applyBehaviorActions],
+      [behaviorConfig, eventHandlers, citation, citationKey, getBehaviorContext, applyBehaviorActions, closePopover],
     );
 
     // Click handler
@@ -2486,7 +2797,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         }
 
         // Touch is outside both - dismiss the popover
-        setIsHovering(false);
+        closePopover();
       };
 
       // Use touchstart with capture phase to detect touches before they're handled
@@ -2500,7 +2811,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           capture: true,
         });
       };
-    }, [isMobile, isHovering]);
+    }, [isMobile, isHovering, closePopover]);
 
     // Desktop click-outside dismiss handler
     //
@@ -2540,7 +2851,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         }
 
         // Click is outside both - dismiss the popover
-        setIsHovering(false);
+        closePopover();
       };
 
       // Use mousedown with capture phase to detect clicks before they bubble
@@ -2553,7 +2864,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           capture: true,
         });
       };
-    }, [isMobile, isHovering]);
+    }, [isMobile, isHovering, closePopover]);
 
     // Touch start handler for mobile - captures popover state before touch ends.
     // Reads isHoveringRef.current (which is kept in sync with isHovering state above)
@@ -2625,285 +2936,40 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       shouldShowSpinner && !isInlineVariant && "text-gray-500 dark:text-gray-400",
     );
 
-    // Render indicator based on status priority:
-    // 1. If showIndicator is false, return null (unless custom renderIndicator provided)
-    // 2. Custom renderIndicator (if provided)
-    // 3. shouldShowSpinner → Spinner (respects timeout and definitive results)
-    // 4. Verified (not partial) → Green checkmark
-    // 5. Partial match → Amber checkmark
-    // 6. Miss → Warning triangle
-    const renderStatusIndicator = () => {
-      if (renderIndicator) return renderIndicator(status);
-      if (!showIndicator) return null;
-
-      if (indicatorVariant === "dot") {
-        if (shouldShowSpinner) return <PendingDot />;
-        if (isVerified && !isPartialMatch) return <VerifiedDot />;
-        if (isPartialMatch) return <PartialDot />;
-        if (isMiss) return <MissDot />;
-        return null;
-      }
-
-      // Default: icon variant — 3-stage spinner
-      if (shouldShowSpinner) {
-        return (
-          <span
-            className={cn(
-              "inline-flex relative ml-1 top-[0.1em] [text-decoration:none]",
-              spinnerStage === "active" && "animate-spin",
-              spinnerStage === "slow" && "animate-spin opacity-60",
-            )}
-            style={{
-              ...INDICATOR_SIZE_STYLE,
-              ...PENDING_COLOR_STYLE,
-              ...(spinnerStage === "slow" ? { animationDuration: "2s" } : undefined),
-            }}
-            data-dc-indicator="pending"
-            aria-hidden="true"
-            title={spinnerStage === "slow" ? "Still verifying..." : undefined}
-          >
-            <SpinnerIcon />
-          </span>
-        );
-      }
-      if (isVerified && !isPartialMatch) return <VerifiedIndicator />;
-      if (isPartialMatch) return <PartialIndicator />;
-      if (isMiss) return <MissIndicator />;
-      return null;
+    // Build props for the extracted CitationStatusIndicator component
+    const indicatorProps: CitationStatusIndicatorProps = {
+      renderIndicator,
+      status,
+      showIndicator,
+      indicatorVariant,
+      shouldShowSpinner,
+      isVerified,
+      isPartialMatch,
+      isMiss,
+      spinnerStage,
     };
 
-    // Render citation content
-    const renderCitationContent = () => {
-      if (renderContent) {
-        return renderContent({
-          citation,
-          status,
-          citationKey,
-          displayText,
-          isMergedDisplay: resolvedContent === "anchorText",
-        });
-      }
-
-      // Content type: indicator only
-      if (resolvedContent === "indicator") {
-        return <span>{renderStatusIndicator()}</span>;
-      }
-
-      // Variant: chip (pill/badge style with neutral gray background)
-      // Status is conveyed via the indicator icon color only
-      // Hover styling is applied here (not on parent) to keep hover contained within chip bounds
-      // Uses minimal padding (px-1.5 py-0) to fit seamlessly into text layouts without enlarging line height
-      if (variant === "chip") {
-        return (
-          <span
-            className={cn(
-              "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal transition-colors",
-              // Neutral gray background - status shown via icon color only
-              "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
-              // Status-aware hover styling (contained within the chip)
-              ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner),
-            )}
-          >
-            <span
-              className={cn(
-                "max-w-60 overflow-hidden text-ellipsis whitespace-nowrap",
-                // Miss state: reduce opacity only (no wavy underline for chip - indicator conveys status)
-                isMiss && !shouldShowSpinner && "opacity-70",
-              )}
-            >
-              {displayText}
-            </span>
-            {renderStatusIndicator()}
-          </span>
-        );
-      }
-
-      // Variant: superscript (footnote style)
-      // Shows anchor text as unstyled inline text, followed by superscript [number✓]
-      // Hover styling is applied to the superscript part only to keep hover contained
-      // Note: No wavy underline for superscript - the indicator icon conveys status
-      if (variant === "superscript") {
-        // Get anchor text for inline display (unstyled)
-        const anchorTextDisplay = citation.anchorText?.toString() || "";
-        // Get citation number for superscript
-        const citationNumber = citation.citationNumber?.toString() || "1";
-
-        const supStatusClasses = cn(
-          // Default text color for dark mode compatibility
-          !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
-          // Pending state
-          shouldShowSpinner && "text-gray-500 dark:text-gray-400",
-        );
-        return (
-          <>
-            {/* Anchor text displayed inline - font-normal prevents bold inheritance like other variants */}
-            {anchorTextDisplay && <span className="font-normal">{anchorTextDisplay}</span>}
-            {/* Superscript citation number with indicator - no wavy underline or opacity change */}
-            <sup
-              className={cn(
-                "text-xs font-medium transition-colors inline-flex items-baseline px-0.5 rounded",
-                supStatusClasses,
-                // Status-aware hover styling (contained within the superscript)
-                ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner),
-              )}
-            >
-              [<span>{citationNumber}</span>
-              {renderStatusIndicator()}]
-            </sup>
-          </>
-        );
-      }
-
-      // Variant: text (inherits parent styling except font-weight to avoid inheriting bold)
-      if (variant === "text") {
-        return (
-          <span className={cn("font-normal", statusClasses)}>
-            {displayText}
-            {renderStatusIndicator()}
-          </span>
-        );
-      }
-
-      // Variant: badge (ChatGPT-style source chip with favicon + count + status indicator)
-      if (variant === "badge") {
-        const faviconSrc = faviconUrl || (isUrlCitation(citation) ? citation.faviconUrl : undefined);
-        return (
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
-              "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-              "transition-colors cursor-pointer",
-              // Status-aware hover styling (10% opacity for all states)
-              isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-              isPartialMatch && !shouldShowSpinner && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
-              isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-              (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
-                "hover:bg-gray-200 dark:hover:bg-gray-700",
-            )}
-          >
-            {faviconSrc && (
-              <img
-                src={faviconSrc}
-                alt=""
-                className="w-4 h-4 rounded-sm object-contain"
-                loading="lazy"
-                // Performance fix: use module-level handler to avoid re-render overhead
-                onError={handleImageError}
-              />
-            )}
-            <span
-              className={cn(
-                "max-w-40 overflow-hidden text-ellipsis whitespace-nowrap",
-                // Miss state: add wavy underline for visual distinction (on text only, not indicator)
-                isMiss && !shouldShowSpinner && "opacity-70",
-              )}
-              style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
-            >
-              {displayText}
-            </span>
-            {additionalCount !== undefined && additionalCount > 0 && (
-              <span className="text-gray-500 dark:text-gray-400">+{additionalCount}</span>
-            )}
-            {renderStatusIndicator()}
-          </span>
-        );
-      }
-
-      // Variant: linter (semantic underlines like grammar/spell-check tools)
-      // Uses text-decoration-style to differentiate verification states:
-      // - Verified: solid underline with subtle green background wash
-      // - Partial: dashed underline (amber)
-      // - Not Found: wavy underline (red) - familiar from spell-checkers
-      // - Pending: dotted underline (gray)
-      //
-      // The linter variant respects showIndicator prop (default true).
-      // When showIndicator is true, the status indicator appears after the text.
-      // The underline style also conveys status visually for additional context.
-      if (variant === "linter") {
-        // Compute status states once to avoid repetition
-        const isVerifiedState = isVerified && !isPartialMatch && !shouldShowSpinner;
-        const isPartialState = isPartialMatch && !shouldShowSpinner;
-        const isMissState = isMiss && !shouldShowSpinner;
-        const isPendingState = shouldShowSpinner;
-
-        // Build inline styles for text-decoration since Tailwind doesn't support all decoration styles
-        // Using Tailwind color values to match the rest of the component:
-        // - green-600: #16a34a (verified)
-        // - amber-500: #f59e0b (partial - more yellow amber)
-        // - red-500: #ef4444 (miss)
-        // - gray-400: #9ca3af (pending)
-        //
-        // Font-size is inherited from parent to avoid layout shifts
-        const linterStyles: React.CSSProperties = {
-          textDecoration: "underline",
-          textDecorationThickness: "2px",
-          textUnderlineOffset: "3px",
-          borderRadius: "2px",
-          // Inherit text color from parent to blend with styled contexts.
-          // The spinner icon and dotted underline signal pending state.
-          color: "inherit",
-          fontSize: "inherit",
-          fontFamily: "inherit",
-          lineHeight: "inherit",
-        };
-
-        // Apply status-specific decoration styles
-        if (isMissState) {
-          linterStyles.textDecorationStyle = "wavy";
-          linterStyles.textDecorationColor = "var(--dc-linter-error, #ef4444)"; // red-500
-        } else if (isPartialState) {
-          linterStyles.textDecorationStyle = "dashed";
-          linterStyles.textDecorationColor = "var(--dc-linter-warning, #f59e0b)"; // amber-500
-        } else if (isVerifiedState) {
-          linterStyles.textDecorationStyle = "solid";
-          linterStyles.textDecorationColor = "var(--dc-linter-success, #16a34a)"; // green-600
-        } else {
-          // Pending or unknown state
-          linterStyles.textDecorationStyle = "dotted";
-          linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)"; // gray-400
-        }
-
-        const linterClasses = cn(
-          "cursor-pointer font-normal",
-          // Text color handled in linterStyles (inherit or muted gray for pending).
-          // Verified: subtle green background wash on hover only (10% opacity)
-          isVerifiedState && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-          // Partial: subtle amber background on hover (using amber-500 to match component)
-          isPartialState && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
-          // Miss: subtle red background on hover (using red-500 to match component)
-          isMissState && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-          // Pending: subtle gray background
-          isPendingState && "bg-gray-500/[0.05] hover:bg-gray-500/10 dark:bg-gray-400/[0.05] dark:hover:bg-gray-400/10",
-        );
-
-        return (
-          <span className={linterClasses} style={linterStyles}>
-            {displayText}
-            {showIndicator && renderStatusIndicator()}
-          </span>
-        );
-      }
-
-      // Variant: brackets (default)
-      return (
-        <span
-          className={cn(
-            "inline-flex items-baseline gap-0.5 whitespace-nowrap",
-            "font-mono font-normal text-xs leading-tight",
-            "text-gray-500 dark:text-gray-400",
-            "transition-colors",
-          )}
-          aria-hidden="true"
-        >
-          [
-          <span className={cn("max-w-80 overflow-hidden text-ellipsis", statusClasses)}>
-            {displayText}
-            {renderStatusIndicator()}
-          </span>
-          ]
-        </span>
-      );
-    };
+    // Build the citation content element using the extracted module-level components
+    const citationContentNode = (
+      <CitationContentDisplay
+        renderContent={renderContent}
+        citation={citation}
+        status={status}
+        citationKey={citationKey}
+        displayText={displayText}
+        resolvedContent={resolvedContent}
+        variant={variant}
+        statusClasses={statusClasses}
+        isVerified={isVerified}
+        isPartialMatch={isPartialMatch}
+        isMiss={isMiss}
+        shouldShowSpinner={shouldShowSpinner}
+        showIndicator={showIndicator}
+        faviconUrl={faviconUrl}
+        additionalCount={additionalCount}
+        indicatorProps={indicatorProps}
+      />
+    );
 
     // Popover visibility
     const isPopoverHidden = popoverPosition === "hidden";
@@ -3115,13 +3181,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             onOpenChange={open => {
               // Only handle close (Escape key) - don't interfere with our custom hover logic
               if (!open && !isAnyOverlayOpenRef.current && !isExpandedViewRef.current) {
-                setIsHovering(false);
+                closePopover();
               }
             }}
           >
             <PopoverTrigger asChild>
               <span ref={setTriggerRef} {...triggerProps}>
-                {renderCitationContent()}
+                {citationContentNode}
               </span>
             </PopoverTrigger>
             <PopoverContent
@@ -3134,7 +3200,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                 // Clicking directly on the popover backdrop (not on inner content) dismisses it.
                 // e.target === e.currentTarget means the click hit the dialog's own element,
                 // not a child element — so this only fires when clicking the outer wrapper area.
-                if (e.target === e.currentTarget) setIsHovering(false);
+                if (e.target === e.currentTarget) closePopover();
               }}
             >
               {popoverContentElement}
@@ -3155,7 +3221,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           </span>
         )}
         <span ref={setTriggerRef} {...triggerProps}>
-          {renderCitationContent()}
+          {citationContentNode}
         </span>
       </>
     );
