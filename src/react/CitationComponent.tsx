@@ -1640,7 +1640,7 @@ function EvidenceTrayFooter({
  * Search analysis summary for not-found evidence tray.
  * Shows attempt count, human-readable summary, and an expandable search details log.
  */
-function SearchAnalysisSummary({
+export function SearchAnalysisSummary({
   searchAttempts,
   verification,
 }: {
@@ -1729,7 +1729,7 @@ function SearchAnalysisSummary({
  * @param proofImageSrc - Full-page proof image for miss states only. Ignored when
  *   `hasImage` is truthy (verified/partial path renders the keyhole image instead).
  */
-function EvidenceTray({
+export function EvidenceTray({
   verification,
   status,
   onExpand,
@@ -2047,7 +2047,7 @@ function ExpandedPageViewer({
  * (Zone 1 header + Zone 2 quote) stays visible above — this component is
  * deliberately headerless. Click (without drag) to collapse.
  */
-function InlineExpandedImage({
+export function InlineExpandedImage({
   src,
   onCollapse,
   verification,
