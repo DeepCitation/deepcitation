@@ -359,7 +359,7 @@ export function isValidProofImageSrc(src: unknown): src is string {
         decoded = decodeURIComponent(decoded);
         iterations++;
         if (iterations >= MAX_DECODE_ITERATIONS) break;
-      } while (decoded !== previous);
+      } while (decoded !== previous && decoded.includes("%"));
 
       // Normalize Unicode (NFC) to handle composed characters consistently
       // Note: This does NOT convert fullwidth dots (U+FF0E) to ASCII—those are

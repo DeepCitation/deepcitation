@@ -41,6 +41,8 @@ const UNICODE_FULLWIDTH_TRAVERSAL = "/demo/\uFF0E\uFF0E/\uFF0E\uFF0E/secret";
 const UNICODE_ONE_DOT_LEADER = "/demo/\u2024\u2024/secret";
 // Double-encoded traversal — %25 = %, so %252e = %2e after first decode
 const DOUBLE_ENCODED_TRAVERSAL = "/demo/%252e%252e/%252e%252e/etc/passwd";
+// Triple-encoded traversal — tests iterative decoding thoroughly
+const TRIPLE_ENCODED_TRAVERSAL = "/demo/%25252e%25252e/etc/passwd";
 // Null byte injection — C truncation attack
 const NULL_BYTE_PATH = "/safe/path\0../../etc/passwd";
 const ENCODED_NULL_BYTE = "/safe/path%00../../etc/passwd";
@@ -326,6 +328,18 @@ describe("resolveExpandedImage", () => {
         },
       };
       // Iterative decoding should catch: %252e%252e → %2e%2e → ..
+      expect(resolveExpandedImage(verification)).toBeNull();
+    });
+
+    it("rejects triple-encoded path traversal (%25252e%25252e)", () => {
+      const verification: Verification = {
+        status: "found",
+        document: {
+          verificationImageSrc: TRIPLE_ENCODED_TRAVERSAL,
+          verifiedPageNumber: 1,
+        },
+      };
+      // Iterative decoding should catch: %25252e → %252e → %2e → ..
       expect(resolveExpandedImage(verification)).toBeNull();
     });
 
