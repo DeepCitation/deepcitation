@@ -4,6 +4,7 @@
  */
 
 import type React from "react";
+import { safeTest } from "../utils/regexSafety.js";
 
 /**
  * CSS custom property name for the wavy underline color.
@@ -343,6 +344,10 @@ export function isValidProofImageSrc(src: unknown): src is string {
   // Unicode lookalike traversal (fullwidth dots), double-encoding, and null bytes.
   if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
     try {
+      // Validate input length before expensive operations to prevent DoS
+      const MAX_PATH_LENGTH = 10_000; // Reasonable limit for URL paths
+      if (trimmed.length > MAX_PATH_LENGTH) return false;
+
       // Iteratively decode until stable to prevent double-encoded traversal (%252e%252e)
       let decoded = trimmed;
       let previous;
@@ -353,8 +358,7 @@ export function isValidProofImageSrc(src: unknown): src is string {
         previous = decoded;
         decoded = decodeURIComponent(decoded);
         iterations++;
-        // Stop if we've decoded enough times or no more percent-encoding remains
-        if (iterations >= MAX_DECODE_ITERATIONS || !decoded.includes("%")) break;
+        if (iterations >= MAX_DECODE_ITERATIONS) break;
       } while (decoded !== previous);
 
       // Normalize Unicode (NFC) to handle composed characters consistently
@@ -368,7 +372,7 @@ export function isValidProofImageSrc(src: unknown): src is string {
       // Reject Unicode lookalike dots that could be used for traversal obfuscation
       // U+FF0E (fullwidth full stop), U+2024 (one dot leader), U+FE52 (small full stop), etc.
       const dangerousUnicodeDots = /[\uFF0E\u2024\uFE52\u2025\u2026]/;
-      if (dangerousUnicodeDots.test(normalized)) return false;
+      if (safeTest(dangerousUnicodeDots, normalized)) return false;
 
       // Reject path traversal sequences
       if (normalized.includes("..")) return false;
