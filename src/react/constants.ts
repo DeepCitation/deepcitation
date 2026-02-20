@@ -354,16 +354,16 @@ export function isValidProofImageSrc(src: unknown): src is string {
         decoded = decodeURIComponent(decoded);
         iterations++;
         // Stop if we've decoded enough times or no more percent-encoding remains
-        if (iterations >= MAX_DECODE_ITERATIONS || !decoded.includes('%')) break;
+        if (iterations >= MAX_DECODE_ITERATIONS || !decoded.includes("%")) break;
       } while (decoded !== previous);
 
       // Normalize Unicode (NFC) to handle composed characters consistently
       // Note: This does NOT convert fullwidth dots (U+FF0E) to ASCII—those are
       // caught by the lookalike regex below
-      const normalized = decoded.normalize('NFC');
+      const normalized = decoded.normalize("NFC");
 
       // Reject null bytes (C truncation attack)
-      if (normalized.includes('\0')) return false;
+      if (normalized.includes("\0")) return false;
 
       // Reject Unicode lookalike dots that could be used for traversal obfuscation
       // U+FF0E (fullwidth full stop), U+2024 (one dot leader), U+FE52 (small full stop), etc.
