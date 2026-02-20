@@ -2100,11 +2100,13 @@ export function InlineExpandedImage({
       {/* Scrollable image area — click (no drag) collapses */}
       <div
         ref={containerRef}
+        data-dc-inline-expanded=""
         className="relative bg-gray-50 dark:bg-gray-900 select-none overflow-auto rounded-t-sm"
         style={{
           maxHeight: "min(600px, 80dvh)",
           overscrollBehavior: "none",
           cursor: isDragging ? "grabbing" : "zoom-out",
+          ...KEYHOLE_SCROLLBAR_HIDE,
         }}
         onDragStart={e => e.preventDefault()}
         onClick={e => {
@@ -2117,6 +2119,7 @@ export function InlineExpandedImage({
         }}
         {...panHandlers}
       >
+        <style>{`[data-dc-inline-expanded]::-webkit-scrollbar { display: none; }`}</style>
         {!imageLoaded && (
           <div className="flex items-center justify-center h-24">
             <span className="size-5 animate-spin text-gray-400">
@@ -2664,8 +2667,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Ref to track whether this citation's own portal expanded view is open.
     // mousedown fires before React synthetic click events, so we must check via a ref
     // (not state) to get the live value when the outside-click guard runs.
-    const isExpandedViewRef = useRef(popoverViewState !== "summary");
-    isExpandedViewRef.current = popoverViewState !== "summary";
+    // Only block outside-click dismiss for expanded-page (full-screen portal).
+    // expanded-evidence is inline inside the popover, so outside clicks should still close it.
+    const isExpandedViewRef = useRef(popoverViewState === "expanded-page");
+    isExpandedViewRef.current = popoverViewState === "expanded-page";
 
     // Ref for the popover content element (for mobile click-outside dismiss detection)
     const popoverContentRef = useRef<HTMLElement | null>(null);
