@@ -2034,13 +2034,6 @@ function DefaultPopoverContent({
     return getUrlAccessExplanation(fetchStatus, verification?.url?.urlVerificationError);
   }, [citation, verification, searchStatus]);
 
-  // ==========================================================================
-  // EXPANDED-PAGE STATE — return tiny placeholder; portal overlay handles rendering
-  // ==========================================================================
-  if (viewState === "expanded-page") {
-    return <div aria-hidden style={{ width: "1px", height: "1px", overflow: "hidden" }} />;
-  }
-
   // Loading/pending state view — skeleton mirrors resolved layout shape
   if (isLoading || isPending) {
     const searchingPhrase = fullPhrase || anchorText;
