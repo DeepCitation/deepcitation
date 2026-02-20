@@ -35,6 +35,17 @@ const TRAVERSAL_PATH = "/demo/../../etc/passwd";
 const ENCODED_TRAVERSAL_PATH = "/demo/%2e%2e/%2e%2e/etc/passwd";
 // Protocol-relative URL — rejected (resolves to external host)
 const PROTOCOL_RELATIVE_URL = "//evil.com/proof/img.avif";
+// Unicode fullwidth dots — rejected (U+FF0E lookalike for .)
+const UNICODE_FULLWIDTH_TRAVERSAL = "/demo/\uFF0E\uFF0E/\uFF0E\uFF0E/secret";
+// Unicode one dot leader — rejected (U+2024 lookalike)
+const UNICODE_ONE_DOT_LEADER = "/demo/\u2024\u2024/secret";
+// Double-encoded traversal — %25 = %, so %252e = %2e after first decode
+const DOUBLE_ENCODED_TRAVERSAL = "/demo/%252e%252e/%252e%252e/etc/passwd";
+// Triple-encoded traversal — tests iterative decoding thoroughly
+const TRIPLE_ENCODED_TRAVERSAL = "/demo/%25252e%25252e/etc/passwd";
+// Null byte injection — C truncation attack
+const NULL_BYTE_PATH = "/safe/path\0../../etc/passwd";
+const ENCODED_NULL_BYTE = "/safe/path%00../../etc/passwd";
 
 describe("resolveExpandedImage", () => {
   describe("null/undefined handling", () => {
@@ -282,6 +293,76 @@ describe("resolveExpandedImage", () => {
         status: "found",
         pages: [{ pageNumber: 1, isMatchPage: true, source: PROTOCOL_RELATIVE_URL }],
       };
+      expect(resolveExpandedImage(verification)).toBeNull();
+    });
+
+    it("rejects Unicode fullwidth dots (U+FF0E) traversal", () => {
+      const verification: Verification = {
+        status: "found",
+        document: {
+          verificationImageSrc: UNICODE_FULLWIDTH_TRAVERSAL,
+          verifiedPageNumber: 1,
+        },
+      };
+      // Should be rejected by the Unicode lookalike regex (\uFF0E is fullwidth dot)
+      expect(resolveExpandedImage(verification)).toBeNull();
+    });
+
+    it("rejects Unicode one dot leader (U+2024) lookalike", () => {
+      const verification: Verification = {
+        status: "found",
+        document: {
+          verificationImageSrc: UNICODE_ONE_DOT_LEADER,
+          verifiedPageNumber: 1,
+        },
+      };
+      expect(resolveExpandedImage(verification)).toBeNull();
+    });
+
+    it("rejects double-encoded path traversal (%252e%252e)", () => {
+      const verification: Verification = {
+        status: "found",
+        document: {
+          verificationImageSrc: DOUBLE_ENCODED_TRAVERSAL,
+          verifiedPageNumber: 1,
+        },
+      };
+      // Iterative decoding should catch: %252e%252e → %2e%2e → ..
+      expect(resolveExpandedImage(verification)).toBeNull();
+    });
+
+    it("rejects triple-encoded path traversal (%25252e%25252e)", () => {
+      const verification: Verification = {
+        status: "found",
+        document: {
+          verificationImageSrc: TRIPLE_ENCODED_TRAVERSAL,
+          verifiedPageNumber: 1,
+        },
+      };
+      // Iterative decoding should catch: %25252e → %252e → %2e → ..
+      expect(resolveExpandedImage(verification)).toBeNull();
+    });
+
+    it("rejects null byte injection (literal \\0)", () => {
+      const verification: Verification = {
+        status: "found",
+        document: {
+          verificationImageSrc: NULL_BYTE_PATH,
+          verifiedPageNumber: 1,
+        },
+      };
+      expect(resolveExpandedImage(verification)).toBeNull();
+    });
+
+    it("rejects URL-encoded null byte (%00)", () => {
+      const verification: Verification = {
+        status: "found",
+        document: {
+          verificationImageSrc: ENCODED_NULL_BYTE,
+          verifiedPageNumber: 1,
+        },
+      };
+      // After decoding, should contain \0 and be rejected
       expect(resolveExpandedImage(verification)).toBeNull();
     });
   });
