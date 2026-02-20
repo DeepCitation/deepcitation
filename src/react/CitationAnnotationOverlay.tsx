@@ -2,8 +2,8 @@ import type React from "react";
 import type { DeepTextItem } from "../types/boxes.js";
 import {
   ANCHOR_HIGHLIGHT_COLOR,
-  CITATION_BRACKET_BLUE,
   CITATION_BRACKET_AMBER,
+  CITATION_BRACKET_BLUE,
   CITATION_BRACKET_BORDER_WIDTH,
   getCitationBracketWidth,
   MIN_WORD_DIFFERENCE,

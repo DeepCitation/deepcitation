@@ -317,14 +317,14 @@ test.describe("Image Click to Expand", () => {
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
 
-    // Click the image within the popover to expand inline
-    const popoverImage = popover.locator("img");
-    await expect(popoverImage).toBeVisible();
-    await popoverImage.click();
+    // Click the keyhole strip to expand (the strip is the interactive area, not the img directly)
+    const keyholeStrip = popover.locator("[data-dc-keyhole]");
+    await expect(keyholeStrip).toBeVisible();
+    await keyholeStrip.click();
 
-    // The inline expanded image should now be visible (replaces evidence tray)
-    const expandedImage = popover.locator("img[alt='Verification evidence']");
-    await expect(expandedImage).toBeVisible();
+    // The inline expanded view should now be visible (InlineExpandedImage renders this attribute)
+    const expandedView = popover.locator("[data-dc-inline-expanded]");
+    await expect(expandedView).toBeVisible({ timeout: 5000 });
   });
 
   test("pressing Escape closes popover from expanded state", async ({ mount, page }) => {
@@ -338,15 +338,15 @@ test.describe("Image Click to Expand", () => {
     const citation = page.locator("[data-citation-id]");
     await citation.click();
 
-    // Wait for popover and click image to expand
+    // Wait for popover and click keyhole strip to expand
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
-    const popoverImage = popover.locator("img");
-    await popoverImage.click();
+    const keyholeStrip = popover.locator("[data-dc-keyhole]");
+    await keyholeStrip.click();
 
-    // Verify expanded image is visible
-    const expandedImage = popover.locator("img[alt='Verification evidence']");
-    await expect(expandedImage).toBeVisible();
+    // Verify expanded view is active
+    const expandedView = popover.locator("[data-dc-inline-expanded]");
+    await expect(expandedView).toBeVisible({ timeout: 5000 });
 
     // Press Escape to close
     await page.keyboard.press("Escape");
