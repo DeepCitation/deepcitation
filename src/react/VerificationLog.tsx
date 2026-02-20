@@ -32,9 +32,6 @@ const MAX_QUOTE_BOX_LENGTH = 150;
 /** Maximum length for anchor text preview in headers */
 const MAX_ANCHOR_TEXT_PREVIEW_LENGTH = 50;
 
-/** Maximum height for the scrollable timeline */
-const MAX_TIMELINE_HEIGHT = "280px";
-
 /** Maximum length for phrase display in search attempt rows */
 const MAX_PHRASE_DISPLAY_LENGTH = 60;
 
@@ -1273,7 +1270,7 @@ export function VerificationLogTimeline({
   status,
 }: VerificationLogTimelineProps) {
   return (
-    <div id="verification-log-timeline" style={{ maxHeight: MAX_TIMELINE_HEIGHT }} className="overflow-y-auto">
+    <div id="verification-log-timeline">
       <AuditSearchDisplay
         searchAttempts={searchAttempts}
         fullPhrase={fullPhrase}
