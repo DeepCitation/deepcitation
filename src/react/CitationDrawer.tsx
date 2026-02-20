@@ -9,7 +9,6 @@ import type {
 } from "./CitationDrawer.types.js";
 import {
   computeStatusSummary,
-  extractDomain,
   flattenCitations,
   getItemStatusCategory,
   getStatusInfo,
@@ -32,8 +31,6 @@ import { ExternalLinkIcon } from "./icons.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
-
-
 
 // =========
 // Utilities: sourceLabelMap lookup
@@ -167,7 +164,6 @@ function formatCheckedDate(date: Date | string | null | undefined): string | nul
 
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
-
 
 // =========
 // CitationDrawerItemComponent

@@ -1921,11 +1921,20 @@ function ExpandedPageViewer({
         />
       )}
 
-      {/* Not-found banner */}
-      {isMiss && (
-        <div className="text-xs text-red-600 dark:text-red-400 py-1.5 text-center bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-800/50 shrink-0">
-          Not found on this page
-        </div>
+      {/* Not-found: status + quote — mirrors the summary popover layout before expansion */}
+      {isMiss && citation && (
+        <>
+          <StatusHeader status={status} hidePageBadge anchorText={citation.anchorText?.toString()} />
+          {citation.fullPhrase && (
+            <div className="mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-red-500 dark:border-red-400 shrink-0">
+              <HighlightedPhrase
+                fullPhrase={citation.fullPhrase}
+                anchorText={citation.anchorText?.toString()}
+                isMiss
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Scrollable image container */}
