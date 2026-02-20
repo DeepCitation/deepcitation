@@ -485,8 +485,7 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      // Custom action: portal overlay renders in expanded-page state (no role="dialog" on portal div)
-      // ExpandedPageViewer's SourceContextHeader renders a back button with this aria-label
+      // Expanded-page portal renders with ExpandedPageViewer; back button confirms it opened
       expect(document.querySelector("button[aria-label='Back to citation summary']")).toBeInTheDocument();
     });
 
@@ -727,6 +726,91 @@ describe("CitationComponent behaviorConfig", () => {
       // Both handlers were called
       expect(behaviorConfigCalls).toHaveLength(1);
       expect(eventHandlerCalls).toHaveLength(1);
+    });
+  });
+
+  // ==========================================================================
+  // PORTAL DIALOG ACCESSIBILITY AND BACKDROP DISMISS TESTS
+  // Verifies ARIA attributes and backdrop-click dismiss on expanded-page portal
+  // ==========================================================================
+
+  describe("portal dialog accessibility and backdrop dismiss", () => {
+    it("expanded-page portal has role=dialog, aria-modal, and aria-label", async () => {
+      const customOnClick = jest.fn((): CitationBehaviorActions => ({ setImageExpanded: true }));
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          behaviorConfig={{ onClick: customOnClick }}
+        />,
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      await act(async () => {
+        fireEvent.click(citation as HTMLElement);
+      });
+
+      const dialog = document.querySelector("[role='dialog'][aria-label='Expanded page view']");
+      expect(dialog).toBeInTheDocument();
+      expect(dialog?.getAttribute("aria-modal")).toBe("true");
+    });
+
+    it("expanded-page portal closes when backdrop div is clicked directly", async () => {
+      const customOnClick = jest.fn((): CitationBehaviorActions => ({ setImageExpanded: true }));
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          behaviorConfig={{ onClick: customOnClick }}
+        />,
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      await act(async () => {
+        fireEvent.click(citation as HTMLElement);
+      });
+
+      const dialog = document.querySelector("[role='dialog'][aria-label='Expanded page view']") as HTMLElement;
+      expect(dialog).toBeInTheDocument();
+
+      // Clicking the backdrop div itself (e.target === e.currentTarget) triggers close
+      await act(async () => {
+        fireEvent.click(dialog);
+      });
+      expect(document.querySelector("[role='dialog'][aria-label='Expanded page view']")).not.toBeInTheDocument();
+    });
+
+    it("expanded-page portal does not close when clicking child content", async () => {
+      const customOnClick = jest.fn((): CitationBehaviorActions => ({ setImageExpanded: true }));
+
+      const { container } = render(
+        <CitationComponent
+          citation={baseCitation}
+          verification={verificationWithImage}
+          behaviorConfig={{ onClick: customOnClick }}
+        />,
+      );
+
+      const citation = container.querySelector("[data-citation-id]");
+      await act(async () => {
+        fireEvent.click(citation as HTMLElement);
+      });
+
+      expect(document.querySelector("[role='dialog'][aria-label='Expanded page view']")).toBeInTheDocument();
+
+      // Clicking a child element is stopped by SourceContextHeader's stopPropagation;
+      // the backdrop's e.target !== e.currentTarget guard also prevents accidental close
+      const backButton = document.querySelector("button[aria-label='Back to citation summary']") as HTMLElement;
+      expect(backButton).toBeInTheDocument();
+      // Click the header container div (parent of the back button) — propagation is stopped there
+      const headerContainer = backButton.parentElement as HTMLElement;
+      await act(async () => {
+        fireEvent.click(headerContainer);
+      });
+      // Portal is still present: stopPropagation prevents the backdrop onClick from firing
+      expect(document.querySelector("[role='dialog'][aria-label='Expanded page view']")).toBeInTheDocument();
     });
   });
 

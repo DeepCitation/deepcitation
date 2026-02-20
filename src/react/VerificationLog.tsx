@@ -101,6 +101,13 @@ export interface SourceContextHeaderProps {
    */
   onClose?: () => void;
   /**
+   * Callback for the ← Back button only — does NOT affect the page pill state.
+   * Use this when you want a back button but the page pill should stay in expand
+   * (chevron) mode rather than the active/X mode that `onClose` triggers.
+   * If both `onBack` and `onClose` are set, `onBack` takes priority for the button.
+   */
+  onBack?: () => void;
+  /**
    * Validated proof URL to link to in the expanded view header.
    * Only rendered when `onClose` is set (i.e., in expanded mode).
    * Must be pre-validated — do not pass untrusted URLs.
@@ -299,6 +306,7 @@ export function SourceContextHeader({
   sourceLabel,
   onExpand,
   onClose,
+  onBack,
   proofUrl,
 }: SourceContextHeaderProps) {
   const isUrl = isUrlCitation(citation);
@@ -318,15 +326,19 @@ export function SourceContextHeader({
   const displayName = isUrl ? undefined : sourceLabel || verification?.label || "Document";
 
   return (
-    <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-gray-200 dark:border-gray-700">
+    // biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only; no interactive affordance
+    <div
+      className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-gray-200 dark:border-gray-700"
+      onClick={e => e.stopPropagation()}
+    >
       {/* Left: Back button (expanded view) + Icon + source name */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        {onClose && (
+        {(onClose || onBack) && (
           <button
             type="button"
             onClick={e => {
               e.stopPropagation();
-              onClose();
+              (onBack ?? onClose)?.();
             }}
             className="shrink-0 flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors pr-1 border-r border-gray-200 dark:border-gray-700 mr-1"
             aria-label="Back to citation summary"
