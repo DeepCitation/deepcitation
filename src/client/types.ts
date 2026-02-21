@@ -358,7 +358,7 @@ export interface DeleteAttachmentResponse {
  * Returns full attachment metadata including pages, verifications, and optional deep text items.
  */
 export interface AttachmentResponse {
-  /** The attachment ID */
+  /** The attachment ID (returned as `id` by the API, unlike other response types which use `attachmentId`) */
   id: string;
   /** Current processing status */
   status: "ready" | "error" | "processing";

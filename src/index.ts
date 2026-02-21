@@ -15,6 +15,7 @@ export {
   ValidationError,
 } from "./client/errors.js";
 export type {
+  AttachmentResponse,
   CitationInput,
   DeepCitationConfig,
   DeepCitationLogger,

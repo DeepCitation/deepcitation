@@ -609,6 +609,61 @@ describe("DeepCitation Client", () => {
     });
   });
 
+  describe("getAttachment", () => {
+    it("returns attachment metadata on success", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: "att_abc123",
+          status: "ready",
+          source: "test.pdf",
+          originalFilename: "test.pdf",
+          mimeType: "application/pdf",
+          pageCount: 3,
+          pages: [],
+          verifications: {},
+        }),
+      } as Response);
+
+      const result = await client.getAttachment("att_abc123");
+
+      expect(result.id).toBe("att_abc123");
+      expect(result.status).toBe("ready");
+      expect(result.pageCount).toBe(3);
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/getAttachment"),
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            Authorization: "Bearer sk-dc-123",
+            "Content-Type": "application/json",
+          }),
+          body: JSON.stringify({ attachmentId: "att_abc123" }),
+        }),
+      );
+    });
+
+    it("throws ValidationError for empty attachmentId", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      await expect(client.getAttachment("")).rejects.toThrow("attachmentId is required");
+    });
+
+    it("throws error on API failure", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: "Attachment not found" }),
+      } as Response);
+
+      await expect(client.getAttachment("nonexistent")).rejects.toThrow();
+    });
+  });
+
   describe("cache key completeness", () => {
     it("differentiates citations with same text but different lineIds", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });

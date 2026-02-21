@@ -860,16 +860,24 @@ export class DeepCitation {
    *
    * @param attachmentId - The attachment ID to query
    * @returns Full attachment metadata including pages and verifications
+   * @throws {ValidationError} When attachmentId is empty or missing
+   * @throws {ValidationError} When the attachment ID does not exist (404)
+   * @throws {ServerError} When the server encounters an internal error
    *
    * @example
    * ```typescript
    * const attachment = await deepcitation.getAttachment("abc123");
-   * console.log(attachment.status); // "ready" | "error" | "processing"
-   * console.log(attachment.pageCount);
-   * console.log(Object.keys(attachment.verifications).length);
+   * if (attachment.status === "ready") {
+   *   console.log(attachment.pageCount);
+   *   console.log(Object.keys(attachment.verifications).length);
+   * }
    * ```
    */
   async getAttachment(attachmentId: string): Promise<AttachmentResponse> {
+    if (!attachmentId) {
+      throw new ValidationError("attachmentId is required");
+    }
+
     this.logger.info?.("Getting attachment", { attachmentId });
 
     const response = await fetch(`${this.apiUrl}/getAttachment`, {
