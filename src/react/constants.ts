@@ -450,8 +450,8 @@ export function getCitationBracketWidth(heightPx: number): number {
 // nothing new. Skip the expand affordance when image nearly fits.
 
 /**
- * Factor applied to keyhole strip height to decide when to suppress expansion.
- * When `naturalHeight ≤ KEYHOLE_STRIP_HEIGHT_DEFAULT × KEYHOLE_SKIP_THRESHOLD`,
+ * Factor applied to the keyhole strip's CSS-resolved height to decide when to
+ * suppress expansion. When `naturalHeight ≤ stripHeight × KEYHOLE_SKIP_THRESHOLD`,
  * the image already shows ≥ 80% of its content in the keyhole strip, so the
  * expand step would reveal almost nothing new.
  */

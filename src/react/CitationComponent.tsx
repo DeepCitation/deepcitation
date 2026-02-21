@@ -1951,14 +1951,6 @@ export function InlineExpandedImage({
   const containerSizeRef = useRef<{ width: number; height: number } | null>(null);
   const hasSetInitialZoom = useRef(false);
 
-  // Computed fit-to-screen zoom: scale so entire image fits in container
-  const fitZoom = useMemo(() => {
-    if (!naturalWidth || !naturalHeight || !containerSizeRef.current) return 1;
-    const { width: cw, height: ch } = containerSizeRef.current;
-    if (cw <= 0 || ch <= 0) return 1;
-    return Math.min(cw / naturalWidth, ch / naturalHeight);
-  }, [naturalWidth, naturalHeight, imageLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Track container size via ResizeObserver (both width and height for fit-to-screen)
   useEffect(() => {
     if (!fill) return;
@@ -1976,23 +1968,29 @@ export function InlineExpandedImage({
 
   // Reset imageLoaded synchronously when src changes (avoids a useEffect render cycle).
   // This ensures the spinner shows while the new image loads after an evidence ↔ page swap.
+  // Also reset zoom to 1 so each page starts at default scale.
   const prevSrcRef = useRef(src);
   if (prevSrcRef.current !== src) {
     prevSrcRef.current = src;
     setImageLoaded(false);
     setNaturalWidth(null);
     setNaturalHeight(null);
+    setZoom(1);
     hasSetInitialZoom.current = false;
   }
 
   // On mobile, default to fit-to-screen zoom after image loads so the entire page
   // is visible without scrolling — users can then pinch or use slider to zoom in.
   // On desktop, keep natural pixel size (zoom = 1).
+  // NOTE: Only set hasSetInitialZoom=true after a successful zoom set (or when
+  // container size is available but no zoom change is needed). If container size
+  // isn't available yet (ResizeObserver hasn't fired), skip without marking as done
+  // so the effect retries on the next render after ResizeObserver populates the ref.
   useEffect(() => {
     if (!fill || !imageLoaded || !naturalWidth || !naturalHeight || hasSetInitialZoom.current) return;
-    hasSetInitialZoom.current = true;
     const cs = containerSizeRef.current;
-    if (!cs || cs.width <= 0 || cs.height <= 0) return;
+    if (!cs || cs.width <= 0 || cs.height <= 0) return; // retry next render
+    hasSetInitialZoom.current = true;
     if (isTouchDevice) {
       // Fit to screen: scale so entire page fits in the container
       const fit = Math.min(cs.width / naturalWidth, cs.height / naturalHeight);
@@ -2048,7 +2046,9 @@ export function InlineExpandedImage({
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
-        initialDistance = getTouchDistance(e.touches);
+        const dist = getTouchDistance(e.touches);
+        if (dist < 1) return; // fingers at same point — avoid division by zero
+        initialDistance = dist;
         initialZoom = zoomRef.current;
       }
     };
@@ -2120,94 +2120,96 @@ export function InlineExpandedImage({
             : undefined
       }
     >
-      {/* Scrollable image area — click (no drag) collapses */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: drag-to-pan area; keyboard exit handled by parent popover Escape */}
-      <div
-        ref={containerRef}
-        data-dc-inline-expanded=""
-        className={cn(
-          "relative bg-gray-50 dark:bg-gray-900 select-none overflow-auto rounded-t-sm",
-          fill && "flex-1 min-h-0",
-        )}
-        style={{
-          ...(fill ? {} : { maxHeight: "min(600px, 80dvh)" }),
-          overscrollBehavior: "none",
-          cursor: isDragging ? "grabbing" : fill ? "grab" : "zoom-out",
-          ...KEYHOLE_SCROLLBAR_HIDE,
-        }}
-        onDragStart={e => e.preventDefault()}
-        onClick={e => {
-          e.stopPropagation();
-          if (wasDragging.current) {
-            wasDragging.current = false;
-            return;
-          }
-          onCollapse();
-        }}
-        {...panHandlers}
-      >
-        <style>{`[data-dc-inline-expanded]::-webkit-scrollbar { display: none; }`}</style>
-        {/* Keyed on src: remounts with a fade-in whenever the image swaps (evidence ↔ page). */}
-        <div key={src} className="animate-in fade-in-0 duration-150">
-          {!imageLoaded && (
-            <div className="flex items-center justify-center h-24">
-              <span className="size-5 animate-spin text-gray-400">
-                <SpinnerIcon />
-              </span>
-            </div>
+      {/* Wrapper: relative so zoom controls can be positioned absolutely over the scroll area */}
+      <div className={cn("relative", fill && "flex-1 min-h-0 flex flex-col")}>
+        {/* Scrollable image area — click (no drag) collapses */}
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: drag-to-pan area; keyboard exit handled by parent popover Escape */}
+        <div
+          ref={containerRef}
+          data-dc-inline-expanded=""
+          className={cn(
+            "relative bg-gray-50 dark:bg-gray-900 select-none overflow-auto rounded-t-sm",
+            fill && "flex-1 min-h-0",
           )}
-          {/* Relative wrapper: positions annotation overlay exactly over the image */}
-          <div
-            style={{
-              position: "relative",
-              display: "inline-block",
-              ...(zoomedWidth !== undefined ? { width: zoomedWidth } : {}),
-            }}
-          >
-            <img
-              src={src}
-              alt="Verification evidence"
-              className={cn("block", !imageLoaded && "hidden")}
-              style={zoomedWidth !== undefined ? { width: zoomedWidth, maxWidth: "none" } : { maxWidth: "none" }}
-              onLoad={e => {
-                const w = e.currentTarget.naturalWidth;
-                const h = e.currentTarget.naturalHeight;
-                setImageLoaded(true);
-                setNaturalWidth(w);
-                setNaturalHeight(h);
-                onNaturalSize?.(w, h);
+          style={{
+            ...(fill ? {} : { maxHeight: "min(600px, 80dvh)" }),
+            overscrollBehavior: "none",
+            cursor: isDragging ? "grabbing" : fill ? "grab" : "zoom-out",
+            ...KEYHOLE_SCROLLBAR_HIDE,
+          }}
+          onDragStart={e => e.preventDefault()}
+          onClick={e => {
+            e.stopPropagation();
+            if (wasDragging.current) {
+              wasDragging.current = false;
+              return;
+            }
+            onCollapse();
+          }}
+          {...panHandlers}
+        >
+          <style>{`[data-dc-inline-expanded]::-webkit-scrollbar { display: none; }`}</style>
+          {/* Keyed on src: remounts with a fade-in whenever the image swaps (evidence ↔ page). */}
+          <div key={src} className="animate-in fade-in-0 duration-150">
+            {!imageLoaded && (
+              <div className="flex items-center justify-center h-24">
+                <span className="size-5 animate-spin text-gray-400">
+                  <SpinnerIcon />
+                </span>
+              </div>
+            )}
+            {/* Relative wrapper: positions annotation overlay exactly over the image */}
+            <div
+              style={{
+                position: "relative",
+                display: "inline-block",
+                ...(zoomedWidth !== undefined ? { width: zoomedWidth } : {}),
               }}
-              draggable={false}
-            />
-            {imageLoaded &&
-              renderScale &&
-              naturalWidth &&
-              naturalHeight &&
-              verification?.document?.phraseMatchDeepItem && (
-                <CitationAnnotationOverlay
-                  phraseMatchDeepItem={verification.document.phraseMatchDeepItem}
-                  renderScale={renderScale}
-                  imageNaturalWidth={naturalWidth}
-                  imageNaturalHeight={naturalHeight}
-                  highlightColor={verification.highlightColor}
-                  anchorTextDeepItem={verification.document.anchorTextMatchDeepItems?.[0]}
-                  anchorText={verification.verifiedAnchorText}
-                  fullPhrase={verification.verifiedFullPhrase}
-                />
-              )}
+            >
+              <img
+                src={src}
+                alt="Verification evidence"
+                className={cn("block", !imageLoaded && "hidden")}
+                style={zoomedWidth !== undefined ? { width: zoomedWidth, maxWidth: "none" } : { maxWidth: "none" }}
+                onLoad={e => {
+                  const w = e.currentTarget.naturalWidth;
+                  const h = e.currentTarget.naturalHeight;
+                  setImageLoaded(true);
+                  setNaturalWidth(w);
+                  setNaturalHeight(h);
+                  onNaturalSize?.(w, h);
+                }}
+                draggable={false}
+              />
+              {imageLoaded &&
+                renderScale &&
+                naturalWidth &&
+                naturalHeight &&
+                verification?.document?.phraseMatchDeepItem && (
+                  <CitationAnnotationOverlay
+                    phraseMatchDeepItem={verification.document.phraseMatchDeepItem}
+                    renderScale={renderScale}
+                    imageNaturalWidth={naturalWidth}
+                    imageNaturalHeight={naturalHeight}
+                    highlightColor={verification.highlightColor}
+                    anchorTextDeepItem={verification.document.anchorTextMatchDeepItems?.[0]}
+                    anchorText={verification.verifiedAnchorText}
+                    fullPhrase={verification.verifiedFullPhrase}
+                  />
+                )}
+            </div>
           </div>
         </div>
 
-        {/* Floating zoom controls — subtle pill, bottom-right, sticky.
+        {/* Floating zoom controls — positioned absolutely over the scroll container
+            so they stay visible regardless of horizontal/vertical scroll position.
             Contains −/slider/+ with percentage label. Supports drag on slider. */}
         {showZoomControls && (
           <div
             style={{
-              position: "sticky",
+              position: "absolute",
               bottom: 8,
-              left: "100%",
-              transform: "translateX(calc(-100% - 8px))",
-              width: "fit-content",
+              right: 8,
               zIndex: 1,
               pointerEvents: "auto",
             }}
@@ -2253,8 +2255,9 @@ export function InlineExpandedImage({
                   [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0
                   [&::-moz-range-thumb]:cursor-pointer"
                 aria-label="Zoom level"
+                aria-valuetext={`${Math.round(zoom * 100)}%`}
               />
-              <span className="min-w-[3ch] text-center font-mono tabular-nums select-none text-[11px] leading-none">
+              <span className="min-w-[4ch] text-center font-mono tabular-nums select-none text-[11px] leading-none">
                 {Math.round(zoom * 100)}%
               </span>
               <button
