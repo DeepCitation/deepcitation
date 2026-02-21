@@ -4,6 +4,7 @@ import type { Citation } from "../types/index.js";
 import { sha1Hash } from "../utils/sha.js";
 import { AuthenticationError, type DeepCitationError, RateLimitError, ServerError, ValidationError } from "./errors.js";
 import type {
+  AttachmentResponse,
   CitationInput,
   ConvertFileInput,
   ConvertFileResponse,
@@ -269,7 +270,7 @@ export class DeepCitation {
     if (options?.attachmentId) formData.append("attachmentId", options.attachmentId);
     if (options?.filename) formData.append("filename", options.filename);
 
-    const response = await fetch(`${this.apiUrl}/prepareFile`, {
+    const response = await fetch(`${this.apiUrl}/prepareAttachment`, {
       method: "POST",
       headers: { Authorization: `Bearer ${this.apiKey}` },
       body: formData,
@@ -386,7 +387,7 @@ export class DeepCitation {
   async prepareConvertedFile(options: PrepareConvertedFileOptions): Promise<UploadFileResponse> {
     this.logger.info?.("Preparing converted file", { attachmentId: options.attachmentId });
 
-    const response = await fetch(`${this.apiUrl}/prepareFile`, {
+    const response = await fetch(`${this.apiUrl}/prepareAttachment`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
@@ -447,7 +448,7 @@ export class DeepCitation {
       skipCache: options.skipCache,
     });
 
-    const response = await fetch(`${this.apiUrl}/prepareFile`, {
+    const response = await fetch(`${this.apiUrl}/prepareAttachment`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
@@ -849,6 +850,44 @@ export class DeepCitation {
 
     const result = (await response.json()) as DeleteAttachmentResponse;
     this.logger.info?.("Attachment deleted", { attachmentId: result.attachmentId });
+    return result;
+  }
+
+  /**
+   * Get full attachment metadata by ID.
+   *
+   * Returns the attachment's status, pages, verifications, and optional deep text items.
+   *
+   * @param attachmentId - The attachment ID to query
+   * @returns Full attachment metadata including pages and verifications
+   *
+   * @example
+   * ```typescript
+   * const attachment = await deepcitation.getAttachment("abc123");
+   * console.log(attachment.status); // "ready" | "error" | "processing"
+   * console.log(attachment.pageCount);
+   * console.log(Object.keys(attachment.verifications).length);
+   * ```
+   */
+  async getAttachment(attachmentId: string): Promise<AttachmentResponse> {
+    this.logger.info?.("Getting attachment", { attachmentId });
+
+    const response = await fetch(`${this.apiUrl}/getAttachment`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ attachmentId }),
+    });
+
+    if (!response.ok) {
+      this.logger.error?.("Get attachment failed", { attachmentId, status: response.status });
+      throw await createApiError(response, "Get attachment");
+    }
+
+    const result = (await response.json()) as AttachmentResponse;
+    this.logger.info?.("Get attachment complete", { attachmentId: result.id, status: result.status });
     return result;
   }
 }

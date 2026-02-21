@@ -1,4 +1,4 @@
-import type { Citation, Verification } from "../types/index.js";
+import type { Citation, DeepTextItem, SourcePage, Verification } from "../types/index.js";
 
 /**
  * Logger interface for DeepCitation client observability.
@@ -351,4 +351,41 @@ export interface DeleteAttachmentResponse {
   attachmentId: string;
   /** Whether the deletion was successful */
   deleted: boolean;
+}
+
+/**
+ * Response from querying an attachment by ID.
+ * Returns full attachment metadata including pages, verifications, and optional deep text items.
+ */
+export interface AttachmentResponse {
+  /** The attachment ID */
+  id: string;
+  /** Current processing status */
+  status: "ready" | "error" | "processing";
+  /** Source identifier (e.g., filename or URL) */
+  source: string;
+  /** Original filename of the uploaded file */
+  originalFilename: string;
+  /** MIME type of the uploaded file */
+  mimeType: string;
+  /** File size in bytes (may not be available for URL-based attachments) */
+  fileSize?: number;
+  /** Number of pages in the document */
+  pageCount: number;
+  /** Total text content size in bytes */
+  textByteSize?: number;
+  /** Extracted page data with text and geometry */
+  pages: SourcePage[];
+  /** Verification results keyed by citation key */
+  verifications: Record<string, Verification>;
+  /** Deep text items by page index (Phase 1: from verification results) */
+  deepTextItems?: Record<number, DeepTextItem[]>;
+  /** ISO 8601 timestamp when the attachment was uploaded */
+  uploadedAt?: string;
+  /** ISO 8601 timestamp when processing completed */
+  processedAt?: string;
+  /** Source URL information when the attachment originated from a URL */
+  urlSource?: UrlSourceInfo;
+  /** Expiration date (ISO 8601 string), or "never" for enterprise attachments */
+  expiresAt?: string | "never";
 }

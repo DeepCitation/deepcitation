@@ -8,6 +8,7 @@ export {
   ValidationError,
 } from "./errors.js";
 export type {
+  AttachmentResponse,
   CitationInput,
   ConvertFileInput,
   ConvertFileResponse,
