@@ -3,9 +3,17 @@ import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } f
 import { createPortal } from "react-dom";
 import { getPortalContainer } from "./constants.js";
 import { detectSourceType, getFaviconUrl, getPlatformName } from "./SourcesListComponent.utils.js";
+import { formatTtc } from "./timingUtils.js";
 import type { SourcesListItemProps, SourcesListProps, SourcesTriggerProps } from "./types.js";
 import { extractDomain, safeWindowOpen } from "./urlUtils.js";
 import { classNames } from "./utils.js";
+
+/** Inline style for TtC display on source items — muted, tabular-nums */
+const TTC_TEXT_STYLE_ITEM: React.CSSProperties = {
+  fontSize: "10px",
+  fontVariantNumeric: "tabular-nums",
+  letterSpacing: "0.02em",
+};
 
 /**
  * Module-level handlers for hiding broken favicon images.
@@ -121,6 +129,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
       showVerificationIndicator = false,
       showCitationBadges = false,
       renderFavicon,
+      ttcMs,
     },
     ref,
   ) => {
@@ -238,6 +247,13 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
           </div>
         </div>
 
+        {/* TtC indicator */}
+        {ttcMs != null && (
+          <span className="shrink-0 text-gray-400 dark:text-gray-500 mt-1" style={TTC_TEXT_STYLE_ITEM}>
+            {formatTtc(ttcMs)}
+          </span>
+        )}
+
         {/* Arrow indicator */}
         <div className="shrink-0 text-gray-400 dark:text-gray-500 mt-1">
           <ChevronRightIcon />
@@ -316,9 +332,10 @@ interface SourcesListHeaderProps {
   sources: SourcesListItemProps[];
   variant: string;
   handleClose: () => void;
+  timingMetrics?: import("../types/timing.js").TimingMetrics | null;
 }
 
-const SourcesListHeader = ({ header: headerConfig = {}, sources, variant, handleClose }: SourcesListHeaderProps) => {
+const SourcesListHeader = ({ header: headerConfig = {}, sources, variant, handleClose, timingMetrics }: SourcesListHeaderProps) => {
   const { title = "Sources", showCloseButton = true, showCount = true, renderHeader: customRender } = headerConfig;
 
   if (customRender) {
@@ -347,8 +364,14 @@ const SourcesListHeader = ({ header: headerConfig = {}, sources, variant, handle
           <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({sources.length})</span>
         )}
       </h2>
-      {/* Spacer for centering when close button is present */}
-      {showCloseButton && variant !== "inline" && <div className="w-8" />}
+      {/* Aggregate TtC or spacer for centering */}
+      {timingMetrics && timingMetrics.resolvedCount > 0 ? (
+        <span className="text-gray-400 dark:text-gray-500 shrink-0" style={TTC_TEXT_STYLE_ITEM}>
+          avg rev {formatTtc(timingMetrics.avgTtcMs)}
+        </span>
+      ) : (
+        showCloseButton && variant !== "inline" && <div className="w-8" />
+      )}
     </div>
   );
 };
@@ -502,6 +525,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
       renderItem,
       renderEmpty,
       renderLoading,
+      timingMetrics,
     },
     ref,
   ) => {
@@ -551,7 +575,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
     );
 
     const headerElement = (
-      <SourcesListHeader header={header} sources={sources} variant={variant} handleClose={handleClose} />
+      <SourcesListHeader header={header} sources={sources} variant={variant} handleClose={handleClose} timingMetrics={timingMetrics} />
     );
 
     // Render list content

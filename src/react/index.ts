@@ -81,6 +81,12 @@ export {
   Z_INDEX_IMAGE_OVERLAY_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
   Z_INDEX_POPOVER_VAR,
+  TTC_COLOR_DEFAULT,
+  TTC_COLOR_VAR,
+  TTC_FAST_COLOR_DEFAULT,
+  TTC_FAST_COLOR_VAR,
+  TTC_FAST_TEXT_STYLE,
+  TTC_TEXT_STYLE,
 } from "./constants.js";
 // Icons
 export {
@@ -132,6 +138,19 @@ export {
 } from "./SplitDiffDisplay.js";
 // Search Summary Utilities
 export { buildSearchSummary, type SearchSummary } from "./searchSummaryUtils.js";
+// Time to Certainty (TtC) — timing utilities and hooks
+export {
+  computeTimingMetrics,
+  formatTtc,
+  getTtcTier,
+  REVIEW_DWELL_THRESHOLD_MS,
+  TTC_INSTANT_THRESHOLD_MS,
+  TTC_MAX_DISPLAY_MS,
+  TTC_SLOW_THRESHOLD_MS,
+  useCitationTiming,
+  useTtcMetrics,
+  type CitationTimingResult,
+} from "./timingUtils.js";
 // Status Message Utilities
 export { getContextualStatusMessage } from "./statusMessage.js";
 // Types - Useful for implementing your own citation components

@@ -48,6 +48,7 @@ import {
   TOUCH_CLICK_DEBOUNCE_MS,
   VERIFIED_COLOR_STYLE,
 } from "./constants.js";
+import { TTC_FAST_TEXT_STYLE, TTC_TEXT_STYLE } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
@@ -72,6 +73,7 @@ import type {
   UrlFetchStatus,
 } from "./types.js";
 import { isValidProofUrl } from "./urlUtils.js";
+import { formatTtc, getTtcTier, REVIEW_DWELL_THRESHOLD_MS, useCitationTiming } from "./timingUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 import { SourceContextHeader, StatusHeader, VerificationLogTimeline } from "./VerificationLog.js";
 
@@ -415,6 +417,12 @@ export interface CitationComponentProps extends BaseCitationProps {
    * @default "icon"
    */
   indicatorVariant?: IndicatorVariant;
+  /**
+   * Callback for citation lifecycle timing events (telemetry).
+   * Emits events: citation_seen, evidence_ready, popover_opened, popover_closed, citation_reviewed.
+   * Side-effect only — never replaces default behavior.
+   */
+  onTimingEvent?: (event: import("../types/timing.js").CitationTimingEvent) => void;
 }
 
 function getStatusLabel(status: CitationStatus): string {
@@ -1634,14 +1642,27 @@ function EvidenceTrayFooter({
   searchAttempts,
   verifiedAt,
   showExpandHint,
+  reviewDurationMs,
 }: {
   status?: SearchStatus | null;
   searchAttempts?: SearchAttempt[];
   verifiedAt?: Date | string | null;
   showExpandHint?: boolean;
+  /** User review duration (ms). When provided, shows retroactive receipt: "Reviewed 5.2s" */
+  reviewDurationMs?: number | null;
 }) {
   const formatted = formatCaptureDate(verifiedAt);
   const dateStr = formatted?.display ?? "";
+
+  // Format the review time receipt (retroactive — appears on next popover open after dwell ≥ 2s)
+  const reviewReceipt =
+    reviewDurationMs != null
+      ? `Reviewed ${formatTtc(reviewDurationMs)}`
+      : null;
+  const reviewStyle =
+    reviewDurationMs != null && getTtcTier(reviewDurationMs) === "fast"
+      ? TTC_FAST_TEXT_STYLE
+      : TTC_TEXT_STYLE;
 
   // Derive outcome label
   const isMiss = status === "not_found";
@@ -1675,7 +1696,11 @@ function EvidenceTrayFooter({
           </span>
         )}
       </span>
-      {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
+      <span>
+        {reviewReceipt && <span style={reviewStyle}>{reviewReceipt}</span>}
+        {reviewReceipt && dateStr && " · "}
+        {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
+      </span>
     </div>
   );
 }
@@ -1779,12 +1804,15 @@ export function EvidenceTray({
   onExpand,
   onImageClick,
   proofImageSrc,
+  reviewDurationMs,
 }: {
   verification: Verification | null;
   status: CitationStatus;
   onExpand?: () => void;
   onImageClick?: () => void;
   proofImageSrc?: string;
+  /** User review duration (ms) for retroactive TtC receipt display */
+  reviewDurationMs?: number | null;
 }) {
   const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const isMiss = status.isMiss;
@@ -1825,6 +1853,7 @@ export function EvidenceTray({
           searchAttempts={searchAttempts}
           verifiedAt={verification?.verifiedAt}
           showExpandHint={!!onImageClick && !keyholeImageFits}
+          reviewDurationMs={reviewDurationMs}
         />
       )}
     </>
@@ -2292,6 +2321,8 @@ interface PopoverContentProps {
   expandedImageSrcOverride?: string | null;
   /** Reports the expanded image's natural width (or null on collapse) so the parent can size PopoverContent. */
   onExpandedWidthChange?: (width: number | null) => void;
+  /** User review duration (ms) for retroactive TtC receipt in EvidenceTrayFooter */
+  reviewDurationMs?: number | null;
 }
 
 function DefaultPopoverContent({
@@ -2306,6 +2337,7 @@ function DefaultPopoverContent({
   onViewStateChange,
   expandedImageSrcOverride,
   onExpandedWidthChange,
+  reviewDurationMs,
 }: PopoverContentProps) {
   const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
@@ -2579,6 +2611,7 @@ function DefaultPopoverContent({
               status={status}
               onExpand={canExpandToPage ? handleExpand : undefined}
               onImageClick={handleKeyholeClick}
+              reviewDurationMs={reviewDurationMs}
             />
           )}
         </div>
@@ -2681,6 +2714,7 @@ function DefaultPopoverContent({
               onExpand={canExpandToPage ? handleExpand : undefined}
               onImageClick={handleKeyholeClick}
               proofImageSrc={expandedImage?.src}
+              reviewDurationMs={reviewDurationMs}
             />
           ) : /* Show EvidenceTray for miss with search analysis or expandable page, or null */
           isMiss && (verification?.searchAttempts?.length || canExpandToPage) && verification ? (
@@ -2689,6 +2723,7 @@ function DefaultPopoverContent({
               status={status}
               onExpand={canExpandToPage ? handleExpand : undefined}
               proofImageSrc={expandedImage?.src}
+              reviewDurationMs={reviewDurationMs}
             />
           ) : null}
         </div>
@@ -2789,6 +2824,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       showIndicator = true,
       indicatorVariant = "icon",
       sourceLabel,
+      onTimingEvent,
     },
     ref,
   ) => {
@@ -2895,6 +2931,51 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       setExpandedImageWidth(null);
     }, []);
 
+    // ========== Popover Telemetry ==========
+    // Track popover open/close for TtC telemetry events
+    useEffect(() => {
+      if (isHovering && firstSeenAtRef.current != null) {
+        popoverOpenedAtRef.current = Date.now();
+        onTimingEventRef.current?.({
+          event: "popover_opened",
+          citationKey,
+          timestamp: popoverOpenedAtRef.current,
+          elapsedSinceSeenMs: popoverOpenedAtRef.current - firstSeenAtRef.current,
+          verificationStatus: verification?.status ?? null,
+        });
+      } else if (!isHovering && popoverOpenedAtRef.current != null) {
+        const now = Date.now();
+        const dwellMs = now - popoverOpenedAtRef.current;
+
+        onTimingEventRef.current?.({
+          event: "popover_closed",
+          citationKey,
+          timestamp: now,
+          elapsedSinceSeenMs: firstSeenAtRef.current != null ? now - firstSeenAtRef.current : null,
+          popoverDurationMs: dwellMs,
+          verificationStatus: verification?.status ?? null,
+        });
+
+        // Dwell threshold: if user spent ≥2s AND hasn't already been marked reviewed
+        if (dwellMs >= REVIEW_DWELL_THRESHOLD_MS && !reviewedRef.current) {
+          reviewedRef.current = true;
+          setReviewDurationMs(dwellMs);
+          onTimingEventRef.current?.({
+            event: "citation_reviewed",
+            citationKey,
+            timestamp: now,
+            elapsedSinceSeenMs: firstSeenAtRef.current != null ? now - firstSeenAtRef.current : null,
+            popoverDurationMs: dwellMs,
+            verificationStatus: verification?.status ?? null,
+            userTtcMs: firstSeenAtRef.current != null ? now - firstSeenAtRef.current : undefined,
+          });
+        }
+
+        popoverOpenedAtRef.current = null;
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally tracking isHovering transitions
+    }, [isHovering]);
+
     // Track if popover was already open before current interaction (for mobile/lazy mode).
     // Lifecycle:
     // 1. Set in handleTouchStart to capture isHovering state BEFORE the touch triggers any changes
@@ -2955,6 +3036,16 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
+
+    // ========== TtC Timing ==========
+    const { timeToCertaintyMs, firstSeenAtRef } = useCitationTiming(citationKey, verification, onTimingEvent);
+    const popoverOpenedAtRef = useRef<number | null>(null);
+    const reviewedRef = useRef(false);
+    const [reviewDurationMs, setReviewDurationMs] = useState<number | null>(null);
+
+    // Stable ref for onTimingEvent to avoid re-triggering effects
+    const onTimingEventRef = useRef(onTimingEvent);
+    onTimingEventRef.current = onTimingEvent;
 
     // Derive status from verification object
     const status = useMemo(() => getStatusFromVerification(verification), [verification]);
@@ -3477,6 +3568,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             onViewStateChange={setPopoverViewState}
             expandedImageSrcOverride={customExpandedSrc}
             onExpandedWidthChange={setExpandedImageWidth}
+            reviewDurationMs={reviewDurationMs}
           />
         </CitationErrorBoundary>
       );
