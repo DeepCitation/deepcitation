@@ -857,19 +857,27 @@ export class DeepCitation {
    * Get full attachment metadata by ID.
    *
    * Returns the attachment's status, pages, verifications, and optional deep text items.
+   * Note: responses can be large for documents with many pages or verifications.
    *
    * @param attachmentId - The attachment ID to query
    * @returns Full attachment metadata including pages and verifications
-   * @throws {ValidationError} When attachmentId is empty or missing
-   * @throws {ValidationError} When the attachment ID does not exist (404)
-   * @throws {ServerError} When the server encounters an internal error
+   * @throws {ValidationError} When attachmentId is empty or missing (client-side)
+   * @throws {ValidationError} When the API returns a 4xx error (e.g., 404 not found, 400 bad request)
+   * @throws {ServerError} When the server encounters an internal error (5xx)
    *
    * @example
    * ```typescript
    * const attachment = await deepcitation.getAttachment("abc123");
-   * if (attachment.status === "ready") {
-   *   console.log(attachment.pageCount);
-   *   console.log(Object.keys(attachment.verifications).length);
+   * switch (attachment.status) {
+   *   case "ready":
+   *     console.log(`${attachment.pageCount} pages, ${Object.keys(attachment.verifications).length} verifications`);
+   *     break;
+   *   case "processing":
+   *     console.log("Attachment is still being processed");
+   *     break;
+   *   case "error":
+   *     console.log("Attachment processing failed");
+   *     break;
    * }
    * ```
    */

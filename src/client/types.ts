@@ -356,6 +356,8 @@ export interface DeleteAttachmentResponse {
 /**
  * Response from querying an attachment by ID.
  * Returns full attachment metadata including pages, verifications, and optional deep text items.
+ *
+ * Note: Response size can be substantial for large documents with many pages or verifications.
  */
 export interface AttachmentResponse {
   /** The attachment ID (returned as `id` by the API, unlike other response types which use `attachmentId`) */
