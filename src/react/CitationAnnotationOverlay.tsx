@@ -54,8 +54,9 @@ export function isValidOverlayGeometry(
  *
  * All outputs are clamped to [0, 100]% to prevent overlays from bleeding
  * outside the image bounds due to rounding errors in PDF coordinates.
+ *
+ * @internal Exported for testing.
  */
-/** @internal Exported for testing. */
 export function toPercentRect(
   item: DeepTextItem,
   renderScale: { x: number; y: number },
