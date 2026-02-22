@@ -1,11 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
 import {
+  computeTimingMetrics,
   formatTtc,
   getTtcTier,
-  computeTimingMetrics,
   TTC_INSTANT_THRESHOLD_MS,
-  TTC_SLOW_THRESHOLD_MS,
   TTC_MAX_DISPLAY_MS,
+  TTC_SLOW_THRESHOLD_MS,
 } from "../react/timingUtils.js";
 import type { Verification } from "../types/verification.js";
 
