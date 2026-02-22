@@ -482,25 +482,25 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // ========== Popover Telemetry ==========
     // Track popover open/close for TtC telemetry events
-    // biome-ignore lint/correctness/useExhaustiveDependencies: firstSeenAtRef/verification are stable refs or read at call-time — only isHovering transitions should trigger this effect
+    // biome-ignore lint/correctness/useExhaustiveDependencies: firstSeenAtRef is stable ref — only isHovering transitions should trigger this effect
     useEffect(() => {
       if (isHovering && firstSeenAtRef.current != null) {
-        popoverOpenedAtRef.current = Date.now();
+        popoverOpenedAtRef.current = performance.now();
         onTimingEventRef.current?.({
           event: "popover_opened",
           citationKey,
-          timestamp: popoverOpenedAtRef.current,
+          timestamp: Date.now(),
           elapsedSinceSeenMs: popoverOpenedAtRef.current - firstSeenAtRef.current,
           verificationStatus: verification?.status ?? null,
         });
       } else if (!isHovering && popoverOpenedAtRef.current != null) {
-        const now = Date.now();
+        const now = performance.now();
         const dwellMs = now - popoverOpenedAtRef.current;
 
         onTimingEventRef.current?.({
           event: "popover_closed",
           citationKey,
-          timestamp: now,
+          timestamp: Date.now(),
           elapsedSinceSeenMs: firstSeenAtRef.current != null ? now - firstSeenAtRef.current : null,
           popoverDurationMs: dwellMs,
           verificationStatus: verification?.status ?? null,
@@ -512,7 +512,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           onTimingEventRef.current?.({
             event: "citation_reviewed",
             citationKey,
-            timestamp: now,
+            timestamp: Date.now(),
             elapsedSinceSeenMs: firstSeenAtRef.current != null ? now - firstSeenAtRef.current : null,
             popoverDurationMs: dwellMs,
             verificationStatus: verification?.status ?? null,
@@ -522,7 +522,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
         popoverOpenedAtRef.current = null;
       }
-    }, [isHovering, citationKey]);
+    }, [isHovering, citationKey, verification?.status]);
 
     // Derive status from verification object
     const status = useMemo(() => getStatusFromVerification(verification), [verification]);
