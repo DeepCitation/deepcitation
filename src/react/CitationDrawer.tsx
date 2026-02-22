@@ -550,19 +550,24 @@ function DrawerSourceHeading({
   citationGroups,
   label,
   fallbackTitle,
+  sourceLabelMap,
 }: {
   citationGroups: SourceCitationGroup[];
   /** Explicit label override — same as CitationDrawerTrigger's `label` prop */
   label?: string;
   fallbackTitle: string;
+  /** Map of attachmentId/URL to friendly display label (same as group headers use) */
+  sourceLabelMap?: Record<string, string>;
 }) {
   if (citationGroups.length === 0) {
     return <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{fallbackTitle}</h2>;
   }
 
   const firstGroup = citationGroups[0];
-  // Mirror CitationDrawerTrigger: label prop wins, then group.sourceName, then fallback
-  const primaryName = label?.trim() || firstGroup.sourceName?.trim() || fallbackTitle;
+  const firstCitation = firstGroup.citations[0]?.citation;
+  const labelFromMap = lookupSourceLabel(firstCitation, sourceLabelMap);
+  // Mirror CitationDrawerTrigger: label prop wins, then sourceLabelMap, then group.sourceName, then fallback
+  const primaryName = label?.trim() || labelFromMap || firstGroup.sourceName?.trim() || fallbackTitle;
   const isUrlSource = !!firstGroup.sourceDomain;
   const overflowCount = citationGroups.length - 1;
 
@@ -709,7 +714,7 @@ export function CitationDrawer({
         <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <DrawerSourceHeading citationGroups={citationGroups} label={label} fallbackTitle={title} />
+              <DrawerSourceHeading citationGroups={citationGroups} label={label} fallbackTitle={title} sourceLabelMap={sourceLabelMap} />
               {totalCitations > 0 && (
                 <div className="mt-0.5">
                   <StackedStatusIcons
