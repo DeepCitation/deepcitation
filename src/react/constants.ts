@@ -546,3 +546,31 @@ export const EASE_EXPAND = "cubic-bezier(0.16, 0, 0, 1)";
  * Bézier: slow departure (0.4), then whip shut (1, 1).
  */
 export const EASE_COLLAPSE = "cubic-bezier(0.4, 0, 1, 1)";
+
+// =============================================================================
+// TIME TO CERTAINTY (TtC) DISPLAY
+// =============================================================================
+
+/** CSS custom property for TtC text color. */
+export const TTC_COLOR_VAR = "--dc-ttc-color";
+/** Default TtC text color (Tailwind gray-400) — intentionally muted/ambient */
+export const TTC_COLOR_DEFAULT = "#9ca3af";
+
+/** CSS custom property for TtC "fast" highlight color. */
+export const TTC_FAST_COLOR_VAR = "--dc-ttc-fast-color";
+/** Default fast TtC color (subtle green tint) */
+export const TTC_FAST_COLOR_DEFAULT = "#86efac";
+
+/** Inline style for TtC display text — muted, tabular-nums to prevent layout jitter */
+export const TTC_TEXT_STYLE: React.CSSProperties = {
+  color: `var(${TTC_COLOR_VAR}, ${TTC_COLOR_DEFAULT})`,
+  fontSize: "10px",
+  fontVariantNumeric: "tabular-nums",
+  letterSpacing: "0.02em",
+};
+
+/** Inline style for TtC fast tier — subtle green emphasis for quick verifications */
+export const TTC_FAST_TEXT_STYLE: React.CSSProperties = {
+  ...TTC_TEXT_STYLE,
+  color: `var(${TTC_FAST_COLOR_VAR}, ${TTC_FAST_COLOR_DEFAULT})`,
+};

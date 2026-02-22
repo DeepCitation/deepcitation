@@ -169,6 +169,17 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `safeMatch()`, `safeReplace()`, `safeTest()` | `src/utils/regexSafety.ts` | ReDoS prevention (input length validation) |
 | `isValidProofImageSrc()` | `src/react/constants.ts` | Image source validation (blocks SVG, untrusted hosts) |
 | `getPortalContainer()` | `src/react/constants.ts` | SSR-safe portal container |
+| `formatTtc()` | `src/react/timingUtils.ts` | TtC duration formatting |
+| `computeTimingMetrics()` | `src/react/timingUtils.ts` | Aggregate TtC metrics |
+| `getTtcTier()` | `src/react/timingUtils.ts` | Fast/normal/slow classification |
+| `useCitationTiming()` | `src/react/timingUtils.ts` | Core citation lifecycle timing hook |
+| `useTtcMetrics()` | `src/react/timingUtils.ts` | Memoized aggregate metrics hook |
+| `REVIEW_DWELL_THRESHOLD_MS` | `src/react/timingUtils.ts` | Popover dwell threshold (2s) for review detection |
+| `TTC_TEXT_STYLE` | `src/react/constants.ts` | Muted TtC display style (tabular-nums) |
+| `TTC_FAST_TEXT_STYLE` | `src/react/constants.ts` | Green-tinted TtC style for fast reviews |
+| `wordCount()` | `src/react/overlayGeometry.ts` | Safe word counting with size limits |
+| `toPercentRect()` | `src/react/overlayGeometry.ts` | PDF to CSS coordinate conversion |
+| `isValidOverlayGeometry()` | `src/react/overlayGeometry.ts` | Geometry validation |
 
 ### Example
 

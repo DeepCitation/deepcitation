@@ -150,6 +150,10 @@ export type {
   SearchStatus,
 } from "./types/search.js";
 export type {
+  CitationTimingEvent,
+  TimingMetrics,
+} from "./types/timing.js";
+export type {
   ContentMatchStatus,
   DocumentVerificationResult,
   ProofHosting,

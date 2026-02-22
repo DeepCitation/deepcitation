@@ -187,6 +187,12 @@ export interface Verification {
   /** Pages returned from verification for user inspection */
   pages?: VerificationPage[];
 
+  // ========== Timing ==========
+  /** Wall-clock ms the system took to verify this citation.
+   *  Computed client-side: (evidence ready timestamp) − (citation first rendered timestamp).
+   *  Set by CitationComponent when verification prop transitions from pending to resolved. */
+  timeToCertaintyMs?: number;
+
   // ========== Ambiguity Detection ==========
   /** Ambiguity information when multiple occurrences of the text exist */
   ambiguity?: {

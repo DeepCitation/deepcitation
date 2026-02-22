@@ -4,8 +4,9 @@ import type { Verification } from "../types/verification.js";
 import type { SourceCitationGroup } from "./CitationDrawer.types.js";
 import type { FlatCitationItem } from "./CitationDrawer.utils.js";
 import { flattenCitations, getStatusInfo } from "./CitationDrawer.utils.js";
-import { isValidProofImageSrc, TOOLTIP_HIDE_DELAY_MS } from "./constants.js";
+import { isValidProofImageSrc, TOOLTIP_HIDE_DELAY_MS, TTC_TEXT_STYLE } from "./constants.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
+import { formatTtc } from "./timingUtils.js";
 import { cn } from "./utils.js";
 
 // =========
@@ -55,6 +56,11 @@ export interface CitationDrawerTriggerProps {
    * Used to override source names in tooltips and the default label.
    */
   sourceLabelMap?: Record<string, string>;
+  /**
+   * Aggregate timing metrics. When provided and citations have been reviewed,
+   * shows average user review time (e.g., "avg rev 5.2s").
+   */
+  timingMetrics?: import("../types/timing.js").TimingMetrics;
 }
 
 // =========
@@ -376,6 +382,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
       maxIcons = 5,
       showProofThumbnails = true,
       indicatorVariant = "icon",
+      timingMetrics,
     },
     ref,
   ) => {
@@ -485,6 +492,11 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
 
         {/* Label */}
         <span className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[200px]">{displayLabel}</span>
+
+        {/* Aggregate TtC — shows average user review time when metrics are available */}
+        {timingMetrics && timingMetrics.resolvedCount > 0 && (
+          <span style={TTC_TEXT_STYLE}>avg rev {formatTtc(timingMetrics.avgTtcMs)}</span>
+        )}
 
         {/* Chevron */}
         <svg

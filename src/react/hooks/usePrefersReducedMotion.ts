@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -12,13 +12,22 @@ export function usePrefersReducedMotion(): boolean {
   // Always initialize to false to match SSR output and prevent hydration mismatches.
   // The real value is synced in useEffect after the first client paint.
   const [prefersReduced, setPrefersReduced] = useState(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     const mql = window.matchMedia(QUERY);
     setPrefersReduced(mql.matches);
-    const onChange = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
+    const onChange = (e: MediaQueryListEvent) => {
+      if (mountedRef.current) {
+        setPrefersReduced(e.matches);
+      }
+    };
     mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
+    return () => {
+      mountedRef.current = false;
+      mql.removeEventListener("change", onChange);
+    };
   }, []);
 
   return prefersReduced;

@@ -557,6 +557,8 @@ export interface SourcesListItemProps {
   showCitationBadges?: boolean;
   /** Custom render for the favicon */
   renderFavicon?: (props: SourcesListItemProps) => React.ReactNode;
+  /** Time to certainty for this source (ms). Displayed as a review time receipt. */
+  ttcMs?: number;
 }
 
 /**
@@ -614,6 +616,8 @@ export interface SourcesListProps {
   renderEmpty?: () => React.ReactNode;
   /** Custom render for loading state */
   renderLoading?: () => React.ReactNode;
+  /** Aggregate timing metrics across all sources. Shown in header when provided. */
+  timingMetrics?: import("../types/timing.js").TimingMetrics;
 }
 
 /**
