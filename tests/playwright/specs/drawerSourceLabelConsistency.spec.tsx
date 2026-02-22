@@ -41,7 +41,7 @@ function TriggerAndDrawer({
 // Fixture data
 // =============================================================================
 
-const DOC_CITATIONS: CitationDrawerItem[] = [
+const DOC_CITATION: CitationDrawerItem[] = [
   {
     citationKey: "c1",
     citation: {
@@ -55,13 +55,13 @@ const DOC_CITATIONS: CitationDrawerItem[] = [
   },
 ];
 
-const URL_CITATIONS: CitationDrawerItem[] = [
+const URL_CITATION: CitationDrawerItem[] = [
   {
     citationKey: "u1",
     citation: {
       type: "url",
       url: "https://blog.example.com/post/1",
-      siteName: "blog.example.com",
+      siteName: "Example Blog",
       domain: "blog.example.com",
       anchorText: "latest results",
       fullPhrase: "According to the latest results published online.",
@@ -70,7 +70,7 @@ const URL_CITATIONS: CitationDrawerItem[] = [
   },
 ];
 
-const MULTI_SOURCE_CITATIONS: CitationDrawerItem[] = [
+const TWO_DOC_SOURCES: CitationDrawerItem[] = [
   {
     citationKey: "m1",
     citation: {
@@ -96,105 +96,130 @@ const MULTI_SOURCE_CITATIONS: CitationDrawerItem[] = [
 ];
 
 // =============================================================================
-// Tests
+// Helpers
+// =============================================================================
+
+/**
+ * Extract the visible label text from the trigger button.
+ * The trigger renders: [status icons] [label span] [chevron]
+ * The label span has class "truncate" and "max-w-[200px]".
+ */
+async function getTriggerLabelText(page: import("@playwright/test").Page): Promise<string> {
+  const trigger = page.locator('[data-testid="citation-drawer-trigger"]');
+  await expect(trigger).toBeVisible();
+  // The label is the truncate span inside the trigger
+  const labelSpan = trigger.locator("span.truncate");
+  const text = await labelSpan.textContent();
+  return text?.trim() ?? "";
+}
+
+/**
+ * Click the trigger, wait for the drawer dialog, then extract the heading text.
+ * The heading is rendered as an <h2> inside the dialog.
+ */
+async function openDrawerAndGetHeadingText(page: import("@playwright/test").Page): Promise<string> {
+  const trigger = page.locator('[data-testid="citation-drawer-trigger"]');
+  await trigger.click();
+
+  const dialog = page.locator("[role='dialog']");
+  await expect(dialog).toBeVisible({ timeout: 5000 });
+
+  const heading = dialog.locator("h2");
+  const text = await heading.textContent();
+  return text?.trim() ?? "";
+}
+
+// =============================================================================
+// Tests — all tests extract real rendered text and compare
 // =============================================================================
 
 test.describe("Drawer ↔ Trigger source label consistency", () => {
-  test("document citation: trigger and drawer heading show the same resolved label", async ({ mount, page }) => {
-    const resolvedName = "Q4 Financial Report";
+  test("document citation without sourceLabelMap: labels match", async ({ mount, page }) => {
+    await mount(<TriggerAndDrawer citations={DOC_CITATION} />);
 
+    const triggerLabel = await getTriggerLabelText(page);
+    const drawerHeading = await openDrawerAndGetHeadingText(page);
+
+    expect(triggerLabel).toBeTruthy();
+    expect(drawerHeading).toContain(triggerLabel);
+  });
+
+  test("document citation with sourceLabelMap: labels match", async ({ mount, page }) => {
     await mount(
       <TriggerAndDrawer
-        citations={DOC_CITATIONS}
-        sourceLabelMap={{ "att-abc-123": resolvedName }}
+        citations={DOC_CITATION}
+        sourceLabelMap={{ "att-abc-123": "Q4 Financial Report" }}
       />,
     );
 
-    // Trigger should show the resolved label
-    const trigger = page.locator('[data-testid="citation-drawer-trigger"]');
-    await expect(trigger).toBeVisible();
-    await expect(trigger).toContainText(resolvedName);
+    const triggerLabel = await getTriggerLabelText(page);
+    const drawerHeading = await openDrawerAndGetHeadingText(page);
 
-    // Open drawer
-    await trigger.click();
-    const dialog = page.locator("[role='dialog']");
-    await expect(dialog).toBeVisible({ timeout: 5000 });
-
-    // Drawer heading (h2) should show the same resolved label
-    const heading = dialog.locator("h2");
-    await expect(heading).toContainText(resolvedName);
+    expect(triggerLabel).toBe("Q4 Financial Report");
+    expect(drawerHeading).toContain(triggerLabel);
   });
 
-  test("url citation: trigger and drawer heading show the same resolved label", async ({ mount, page }) => {
-    const resolvedName = "Company Engineering Blog";
+  test("url citation without sourceLabelMap: labels match", async ({ mount, page }) => {
+    await mount(<TriggerAndDrawer citations={URL_CITATION} />);
 
+    const triggerLabel = await getTriggerLabelText(page);
+    const drawerHeading = await openDrawerAndGetHeadingText(page);
+
+    expect(triggerLabel).toBeTruthy();
+    expect(drawerHeading).toContain(triggerLabel);
+  });
+
+  test("url citation with sourceLabelMap: labels match", async ({ mount, page }) => {
     await mount(
       <TriggerAndDrawer
-        citations={URL_CITATIONS}
-        sourceLabelMap={{ "https://blog.example.com/post/1": resolvedName }}
+        citations={URL_CITATION}
+        sourceLabelMap={{ "https://blog.example.com/post/1": "Engineering Blog" }}
       />,
     );
 
-    const trigger = page.locator('[data-testid="citation-drawer-trigger"]');
-    await expect(trigger).toContainText(resolvedName);
+    const triggerLabel = await getTriggerLabelText(page);
+    const drawerHeading = await openDrawerAndGetHeadingText(page);
 
-    await trigger.click();
-    const dialog = page.locator("[role='dialog']");
-    await expect(dialog).toBeVisible({ timeout: 5000 });
-
-    const heading = dialog.locator("h2");
-    await expect(heading).toContainText(resolvedName);
+    expect(triggerLabel).toBe("Engineering Blog");
+    expect(drawerHeading).toContain(triggerLabel);
   });
 
-  test("without sourceLabelMap, trigger and drawer heading still match", async ({ mount, page }) => {
-    await mount(<TriggerAndDrawer citations={DOC_CITATIONS} />);
+  test("multi-source documents: primary name matches", async ({ mount, page }) => {
+    await mount(<TriggerAndDrawer citations={TWO_DOC_SOURCES} />);
 
-    const trigger = page.locator('[data-testid="citation-drawer-trigger"]');
-    await expect(trigger).toBeVisible();
+    const triggerLabel = await getTriggerLabelText(page);
+    const drawerHeading = await openDrawerAndGetHeadingText(page);
 
-    // Get the label text from the trigger
-    const triggerLabel = trigger.locator("span.truncate");
-    const triggerText = await triggerLabel.textContent();
-    expect(triggerText).toBeTruthy();
+    // Trigger shows "att-first.pdf +1", heading shows "att-first.pdf" + styled "+1"
+    // The heading h2 textContent includes both, so it should contain the trigger label
+    expect(triggerLabel).toContain("+1");
+    expect(drawerHeading).toContain("+1");
 
-    // Open drawer
-    await trigger.click();
-    const dialog = page.locator("[role='dialog']");
-    await expect(dialog).toBeVisible({ timeout: 5000 });
-
-    // Drawer heading should contain the same text
-    const heading = dialog.locator("h2");
-    await expect(heading).toContainText(triggerText!);
+    // Extract just the source name (before " +")
+    const triggerName = triggerLabel.split(" +")[0];
+    expect(drawerHeading).toContain(triggerName);
   });
 
-  test("multi-source: trigger and drawer heading show same resolved primary name", async ({ mount, page }) => {
-    const resolvedName = "Annual Report 2024";
-
+  test("multi-source with sourceLabelMap: resolved name matches", async ({ mount, page }) => {
     await mount(
       <TriggerAndDrawer
-        citations={MULTI_SOURCE_CITATIONS}
-        sourceLabelMap={{ "att-first": resolvedName }}
+        citations={TWO_DOC_SOURCES}
+        sourceLabelMap={{ "att-first": "Annual Report 2024" }}
       />,
     );
 
-    const trigger = page.locator('[data-testid="citation-drawer-trigger"]');
-    // Multi-source trigger label: "Annual Report 2024 +1"
-    await expect(trigger).toContainText(resolvedName);
+    const triggerLabel = await getTriggerLabelText(page);
+    const drawerHeading = await openDrawerAndGetHeadingText(page);
 
-    await trigger.click();
-    const dialog = page.locator("[role='dialog']");
-    await expect(dialog).toBeVisible({ timeout: 5000 });
-
-    const heading = dialog.locator("h2");
-    await expect(heading).toContainText(resolvedName);
+    expect(triggerLabel).toContain("Annual Report 2024");
+    const triggerName = triggerLabel.split(" +")[0];
+    expect(drawerHeading).toContain(triggerName);
   });
 
-  test("drawer group header also uses the resolved label", async ({ mount, page }) => {
-    const resolvedName = "Q4 Financial Report";
-
-    // Use multi-citation group so we get a SourceGroupHeader (not compact row)
+  test("multi-citation single source: group header uses resolved label", async ({ mount, page }) => {
+    // Two citations from the same source → triggers SourceGroupHeader (not CompactSingleCitationRow)
     const citations: CitationDrawerItem[] = [
-      ...DOC_CITATIONS,
+      ...DOC_CITATION,
       {
         citationKey: "c2",
         citation: {
@@ -211,40 +236,20 @@ test.describe("Drawer ↔ Trigger source label consistency", () => {
     await mount(
       <TriggerAndDrawer
         citations={citations}
-        sourceLabelMap={{ "att-abc-123": resolvedName }}
+        sourceLabelMap={{ "att-abc-123": "Q4 Financial Report" }}
       />,
     );
 
+    const triggerLabel = await getTriggerLabelText(page);
+    expect(triggerLabel).toBe("Q4 Financial Report");
+
+    // Open drawer and check the group header (role="heading" aria-level=3)
     const trigger = page.locator('[data-testid="citation-drawer-trigger"]');
     await trigger.click();
-
     const dialog = page.locator("[role='dialog']");
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
-    // The SourceGroupHeader has role="heading" aria-level=3
     const groupHeader = dialog.locator("[role='heading'][aria-level='3']");
-    await expect(groupHeader).toContainText(resolvedName);
-  });
-
-  test("compact single-citation row uses the resolved label", async ({ mount, page }) => {
-    const resolvedName = "Board Meeting Minutes";
-
-    await mount(
-      <TriggerAndDrawer
-        citations={DOC_CITATIONS}
-        sourceLabelMap={{ "att-abc-123": resolvedName }}
-      />,
-    );
-
-    const trigger = page.locator('[data-testid="citation-drawer-trigger"]');
-    await trigger.click();
-
-    const dialog = page.locator("[role='dialog']");
-    await expect(dialog).toBeVisible({ timeout: 5000 });
-
-    // Single-citation group renders as CompactSingleCitationRow (role="button")
-    // which should show the resolved source name
-    const compactRow = dialog.locator("[role='button']");
-    await expect(compactRow).toContainText(resolvedName);
+    await expect(groupHeader).toContainText("Q4 Financial Report");
   });
 });

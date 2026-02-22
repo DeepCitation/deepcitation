@@ -12,6 +12,7 @@ import {
   computeStatusSummary,
   flattenCitations,
   getItemStatusCategory,
+  getPrimarySourceName,
   getStatusInfo,
   resolveGroupLabels,
   STATUS_DISPLAY_MAP,
@@ -532,8 +533,10 @@ function DrawerSourceHeading({
   }
 
   const firstGroup = citationGroups[0];
-  // label prop wins, then group.sourceName (pre-resolved via resolveGroupLabels), then fallback
-  const primaryName = label?.trim() || firstGroup.sourceName?.trim() || fallbackTitle;
+  // Use the same label computation as CitationDrawerTrigger:
+  // label prop wins, then getPrimarySourceName (shared canonical function).
+  // The "+N" overflow is rendered separately in a styled <span>.
+  const primaryName = label?.trim() || getPrimarySourceName(citationGroups);
   const isUrlSource = !!firstGroup.sourceDomain;
   const overflowCount = citationGroups.length - 1;
 

@@ -52,6 +52,36 @@ export function resolveGroupLabels(
 }
 
 /**
+ * Get the primary source name from citation groups.
+ * Uses the first group's sourceName, truncated to 25 chars.
+ * Falls back to "Source" if empty.
+ *
+ * This is the canonical source name computation used by both
+ * CitationDrawerTrigger and DrawerSourceHeading. The heading renders
+ * the "+N" overflow separately in a styled span, so this function
+ * returns only the primary name (no overflow suffix).
+ */
+export function getPrimarySourceName(citationGroups: SourceCitationGroup[]): string {
+  if (citationGroups.length === 0) return "Sources";
+  const firstName = citationGroups[0].sourceName?.trim() || "Source";
+  return firstName.length > 25 ? `${firstName.slice(0, 25)}...` : firstName;
+}
+
+/**
+ * Generate a smart default label from citation groups.
+ * 1 group → show source name; 2+ groups → "firstName +N"; truncate names > 25 chars.
+ *
+ * Used by CitationDrawerTrigger for the single-line label text.
+ * The drawer heading uses getPrimarySourceName() directly since it renders
+ * the "+N" overflow count in a separate styled element.
+ */
+export function generateDefaultLabel(citationGroups: SourceCitationGroup[]): string {
+  const name = getPrimarySourceName(citationGroups);
+  if (citationGroups.length <= 1) return name;
+  return `${name} +${citationGroups.length - 1}`;
+}
+
+/**
  * Groups citations by their source domain/name.
  * Returns an array of SourceCitationGroup objects.
  *

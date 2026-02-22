@@ -9,7 +9,6 @@ import {
   CheckIcon,
   ChevronRightIcon,
   DocumentIcon,
-  ExternalLinkIcon,
   GlobeIcon,
   MissIcon,
   SpinnerIcon,
@@ -380,21 +379,6 @@ export function SourceContextHeader({
       </div>
       {/* Right: Proof link (expanded view) + Page pill */}
       <div className="flex items-center gap-2">
-        {proofUrl && onClose && (
-          <a
-            href={proofUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-            aria-label="Open proof in new tab"
-            className="shrink-0 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
-            title="Open proof in new tab"
-          >
-            <span className="size-3.5 block">
-              <ExternalLinkIcon />
-            </span>
-          </a>
-        )}
         {showPagePill && (
           <PagePill
             pageNumber={pageNumber ?? undefined}

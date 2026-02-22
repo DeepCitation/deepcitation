@@ -32,6 +32,8 @@ export {
 // are NOT re-exported per CLAUDE.md — import directly from CitationDrawer.utils.js.
 export type { StatusCategory, StatusSection } from "./CitationDrawer.utils.js";
 export {
+  generateDefaultLabel,
+  getPrimarySourceName,
   groupCitationsBySource,
   lookupSourceLabel,
   resolveGroupLabels,
