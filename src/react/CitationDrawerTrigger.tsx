@@ -4,6 +4,7 @@ import type { FlatCitationItem } from "./CitationDrawer.utils.js";
 import type { SourceCitationGroup } from "./CitationDrawer.types.js";
 import { flattenCitations, getStatusInfo } from "./CitationDrawer.utils.js";
 import { isValidProofImageSrc, TOOLTIP_HIDE_DELAY_MS, TTC_TEXT_STYLE } from "./constants.js";
+import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { formatTtc } from "./timingUtils.js";
 import { cn } from "./utils.js";
 

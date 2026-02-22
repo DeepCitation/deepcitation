@@ -103,6 +103,8 @@ export {
   XCircleIcon,
   XIcon,
 } from "./icons.js";
+// Accessibility Hooks
+export { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 // Prefetch utilities (for pre-rendering images before hover)
 export {
   clearPrefetchCache,
