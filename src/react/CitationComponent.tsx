@@ -1,8 +1,21 @@
 import React, { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
-import type { MatchedVariation, SearchAttempt, SearchStatus } from "../types/search.js";
-import type { UrlAccessStatus, Verification, VerificationPage } from "../types/verification.js";
+import type { SearchAttempt, SearchStatus } from "../types/search.js";
+import type { Verification, VerificationPage } from "../types/verification.js";
+import { getStatusFromVerification, getStatusLabel, isLowTrustMatch } from "./citationStatus.js";
+import {
+  CitationStatusIndicator,
+  type CitationStatusIndicatorProps,
+  type SpinnerStage,
+} from "./CitationStatusIndicator.js";
+import { deriveOutcomeLabel } from "./outcomeLabel.js";
+import {
+  getUrlAccessExplanation,
+  mapSearchStatusToFetchStatus,
+  mapUrlAccessStatusToFetchStatus,
+  UrlAccessExplanationSection,
+} from "./urlAccessExplanation.js";
 import { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
@@ -45,7 +58,6 @@ import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { CheckIcon, SpinnerIcon, WarningIcon, XIcon, ZoomInIcon, ZoomOutIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
-import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
 import { buildSearchSummary } from "./searchSummaryUtils.js";
 import { REVIEW_DWELL_THRESHOLD_MS, useCitationTiming } from "./timingUtils.js";
 import type {
@@ -59,7 +71,6 @@ import type {
   CitationRenderProps,
   CitationVariant,
   IndicatorVariant,
-  UrlFetchStatus,
 } from "./types.js";
 import { isValidProofUrl } from "./urlUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
@@ -424,322 +435,11 @@ export interface CitationComponentProps extends BaseCitationProps {
   onTimingEvent?: (event: import("../types/timing.js").CitationTimingEvent) => void;
 }
 
-function getStatusLabel(status: CitationStatus): string {
-  if (status.isVerified && !status.isPartialMatch) return "Verified";
-  if (status.isPartialMatch) return "Partial Match";
-  if (status.isMiss) return "Not Found";
-  if (status.isPending) return "Verifying...";
-  return "";
-}
+// getStatusLabel, getTrustLevel, isLowTrustMatch, getStatusFromVerification
+// imported from ./citationStatus.js (canonical location)
 
-// =============================================================================
-// TRUST LEVEL HELPERS
-// =============================================================================
-
-/**
- * Get the trust level from a MatchedVariation.
- * Trust levels determine indicator colors:
- * - high: Green checkmark (exact or normalized full phrase)
- * - medium: Green checkmark (anchorText matches)
- * - low: Amber checkmark (partial matches)
- */
-function getTrustLevel(matchedVariation?: MatchedVariation): "high" | "medium" | "low" {
-  if (!matchedVariation) return "medium";
-  switch (matchedVariation) {
-    case "exact_full_phrase":
-    case "normalized_full_phrase":
-      return "high";
-    case "exact_anchor_text":
-    case "normalized_anchor_text":
-      return "medium";
-    case "partial_full_phrase":
-    case "partial_anchor_text":
-    case "first_word_only":
-      return "low";
-    default:
-      return "medium";
-  }
-}
-
-/**
- * Check if a match has low trust (should show amber indicator).
- */
-function isLowTrustMatch(matchedVariation?: MatchedVariation): boolean {
-  return getTrustLevel(matchedVariation) === "low";
-}
-
-/**
- * Derive citation status from a Verification object.
- * The status comes from verification.status.
- *
- * Status classification:
- * - GREEN (isVerified only): Full phrase found at expected location
- *   - "found": Exact match
- *   - "found_phrase_missed_anchor_text": Full phrase found, anchor text highlighting failed
- *
- * - AMBER (isVerified + isPartialMatch): Something found but not ideal
- *   - "found_anchor_text_only": Only anchor text found, full phrase not matched
- *   - "found_on_other_page": Found but on different page than expected
- *   - "found_on_other_line": Found but on different line than expected
- *   - "partial_text_found": Only part of the text was found
- *   - "first_word_found": Only the first word matched (lowest confidence)
- *   - Low-trust matches from matchedVariation also show amber
- *
- * - RED (isMiss): Not found
- *   - "not_found": Text not found in document
- *
- * Note: isPending is only true when status is explicitly "pending" or "loading".
- * Use the isLoading prop to show spinner when verification is in-flight.
- */
-function getStatusFromVerification(verification: Verification | null | undefined): CitationStatus {
-  const status = verification?.status;
-
-  // No verification or no status = no status flags set
-  // (use isLoading prop to explicitly show loading state)
-  if (!verification || !status) {
-    return {
-      isVerified: false,
-      isMiss: false,
-      isPartialMatch: false,
-      isPending: false,
-    };
-  }
-
-  const isMiss = status === "not_found";
-  const isPending = status === "pending" || status === "loading";
-
-  // Check if any successful search attempt has low trust
-  const hasLowTrustMatch =
-    verification.searchAttempts?.some(a => a.success && isLowTrustMatch(a.matchedVariation)) ?? false;
-
-  // Partial matches show amber indicator - something found but not ideal
-  const isPartialMatch =
-    status === "found_anchor_text_only" || // Only anchor text found, not full phrase
-    status === "found_on_other_page" ||
-    status === "found_on_other_line" ||
-    status === "partial_text_found" ||
-    status === "first_word_found" ||
-    hasLowTrustMatch; // Low-trust matches also show as partial (amber)
-
-  // Verified = we found something (either exact or partial)
-  const isVerified =
-    status === "found" ||
-    status === "found_phrase_missed_anchor_text" || // Full phrase found, just missed anchor text highlight
-    isPartialMatch;
-
-  return { isVerified, isMiss, isPartialMatch, isPending };
-}
-
-// =============================================================================
-// INDICATOR COMPONENTS
-// =============================================================================
-//
-// Status indicators show the verification state visually:
-//
-// | Status        | Indicator          | Color  | searchState.status values                    |
-// |---------------|--------------------| -------|----------------------------------------------|
-// | Pending       | Spinner            | Gray   | "pending", "loading", null/undefined         |
-// | Verified      | Checkmark (✓)      | Green  | "found", "found_anchor_text_only", etc.         |
-// | Partial Match | Checkmark (✓)      | Amber  | "found_on_other_page", "partial_text_found"  |
-// | Not Found     | X icon (✕)         | Red    | "not_found"                                  |
-//
-// Use `renderIndicator` prop to customize. Use `variant="indicator"` to show only the icon.
-// =============================================================================
-
-/** Verified indicator - green checkmark for exact matches (subscript-positioned)
- * Vertical offset (top-[0.1em]) changed from 0.15em to better align with the larger 0.85em icon size.
- * Uses [text-decoration:none] to prevent inheriting line-through from parent.
- * Dynamic sizing via em units for font-proportional scaling.
- */
-const VerifiedIndicator = () => (
-  <span
-    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-75 duration-200"
-    style={{ ...INDICATOR_SIZE_STYLE, ...VERIFIED_COLOR_STYLE }}
-    data-dc-indicator="verified"
-    aria-hidden="true"
-  >
-    <CheckIcon />
-  </span>
-);
-
-/** Partial match indicator - amber checkmark for partial/relocated matches (subscript-positioned)
- * Color customizable via `--dc-partial-color` CSS custom property.
- * Uses [text-decoration:none] to prevent inheriting line-through from parent.
- * Dynamic sizing via em units for font-proportional scaling.
- */
-const PartialIndicator = () => (
-  <span
-    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-75 duration-200"
-    style={{ ...INDICATOR_SIZE_STYLE, ...PARTIAL_COLOR_STYLE }}
-    data-dc-indicator="partial"
-    aria-hidden="true"
-  >
-    <CheckIcon />
-  </span>
-);
-
-/** Miss indicator - red X for not found (centered, not subscript)
- * Color customizable via `--dc-error-color` CSS custom property.
- * Uses simple XIcon for better visibility at all sizes.
- * The circle in XCircleIcon becomes hard to see at small font sizes.
- * Centered vertically (not subscript) to make the "not found" status more prominent.
- * aria-hidden="true" because parent component already conveys verification status.
- * Uses [text-decoration:none] to prevent inheriting line-through from parent.
- * Dynamic sizing via em units for font-proportional scaling.
- */
-const MissIndicator = () => (
-  <StatusIndicatorWrapper className="relative top-[0.1em] [text-decoration:none]" dataIndicator="error">
-    <XIcon />
-  </StatusIndicatorWrapper>
-);
-
-// =============================================================================
-// DOT INDICATOR COMPONENT (subtle colored dot, like GitHub/shadcn status dots)
-// =============================================================================
-// Smaller than icon indicators (ml-0.5 vs ml-1) because the dots are roughly
-// half the size and need less visual separation from adjacent text.
-// DOT_COLORS is imported from ./constants.js for consistency across components.
-
-/** Unified dot indicator — color + optional pulse animation. */
-const DotIndicator = ({
-  color,
-  pulse = false,
-  label,
-}: {
-  color: keyof typeof DOT_COLORS;
-  pulse?: boolean;
-  label: string;
-}) => (
-  <span
-    className={cn(
-      "inline-block ml-0.5 rounded-full [text-decoration:none] [vertical-align:0.1em]",
-      DOT_COLORS[color],
-      pulse && "animate-pulse",
-    )}
-    style={DOT_INDICATOR_SIZE_STYLE}
-    data-dc-indicator={
-      color === "red" ? "error" : color === "gray" ? "pending" : color === "amber" ? "partial" : "verified"
-    }
-    role="img"
-    aria-label={label}
-  />
-);
-
-const VerifiedDot = () => <DotIndicator color="green" label="Verified" />;
-const PartialDot = () => <DotIndicator color="amber" label="Partial match" />;
-const PendingDot = () => <DotIndicator color="gray" pulse label="Verifying" />;
-const MissDot = () => <DotIndicator color="red" label="Not found" />;
-
-// =============================================================================
-// FOOTER HINT (shared bold-then-muted hint for evidence tray / expanded image)
-// =============================================================================
-
-/** Renders hint text that appears bold/dark for 2s, then transitions to muted gray. */
-function FooterHint({ text }: { text: string }) {
-  const [highlighted, setHighlighted] = useState(true);
-  const reducedMotion = usePrefersReducedMotion();
-
-  useEffect(() => {
-    if (reducedMotion) {
-      setHighlighted(false);
-      return;
-    }
-    const timer = setTimeout(() => setHighlighted(false), FOOTER_HINT_DURATION_MS);
-    return () => clearTimeout(timer);
-  }, [reducedMotion]);
-
-  return (
-    <span
-      className={cn(
-        "font-bold transition-colors duration-500",
-        highlighted ? "text-gray-900 dark:text-gray-200" : "text-gray-400 dark:text-gray-500",
-      )}
-    >
-      {text}
-    </span>
-  );
-}
-
-// =============================================================================
-// SPINNER STAGE TYPE (used by CitationStatusIndicator and parent component)
-// =============================================================================
-
-type SpinnerStage = "active" | "slow" | "stale";
-
-// =============================================================================
-// CITATION STATUS INDICATOR (extracted from inline renderStatusIndicator)
-// =============================================================================
-
-interface CitationStatusIndicatorProps {
-  renderIndicator?: (status: CitationStatus) => React.ReactNode;
-  status: CitationStatus;
-  showIndicator: boolean;
-  indicatorVariant: IndicatorVariant;
-  shouldShowSpinner: boolean;
-  isVerified: boolean;
-  isPartialMatch: boolean;
-  isMiss: boolean;
-  spinnerStage: SpinnerStage;
-}
-
-/**
- * Renders the appropriate status indicator based on citation verification state.
- * Renders in priority order:
- * 1. Custom renderIndicator (if provided)
- * 2. Spinner (for pending/loading states)
- * 3. Verified checkmark (green)
- * 4. Partial match checkmark (amber)
- * 5. Miss X icon (red)
- */
-const CitationStatusIndicator = ({
-  renderIndicator,
-  status,
-  showIndicator,
-  indicatorVariant,
-  shouldShowSpinner,
-  isVerified,
-  isPartialMatch,
-  isMiss,
-  spinnerStage,
-}: CitationStatusIndicatorProps): React.ReactNode => {
-  if (renderIndicator) return renderIndicator(status);
-  if (!showIndicator) return null;
-
-  if (indicatorVariant === "dot") {
-    if (shouldShowSpinner) return <PendingDot />;
-    if (isVerified && !isPartialMatch) return <VerifiedDot />;
-    if (isPartialMatch) return <PartialDot />;
-    if (isMiss) return <MissDot />;
-    return null;
-  }
-
-  // Default: icon variant — 3-stage spinner
-  if (shouldShowSpinner) {
-    return (
-      <span
-        className={cn(
-          "inline-flex relative ml-1 top-[0.1em] [text-decoration:none]",
-          spinnerStage === "active" && "animate-spin",
-          spinnerStage === "slow" && "animate-spin opacity-60",
-        )}
-        style={{
-          ...INDICATOR_SIZE_STYLE,
-          ...PENDING_COLOR_STYLE,
-          ...(spinnerStage === "slow" ? { animationDuration: "2s" } : undefined),
-        }}
-        data-dc-indicator="pending"
-        aria-hidden="true"
-        title={spinnerStage === "slow" ? "Still verifying..." : undefined}
-      >
-        <SpinnerIcon />
-      </span>
-    );
-  }
-  if (isVerified && !isPartialMatch) return <VerifiedIndicator />;
-  if (isPartialMatch) return <PartialIndicator />;
-  if (isMiss) return <MissIndicator />;
-  return null;
-};
+// Indicator components, SpinnerStage, CitationStatusIndicator
+// imported from ./CitationStatusIndicator.js (canonical location)
 
 // =============================================================================
 // CITATION CONTENT DISPLAY (extracted from inline renderCitationContent)
@@ -1426,237 +1126,7 @@ function getHumanizingMessage(
   }
 }
 
-// =============================================================================
-// URL ACCESS EXPLANATIONS
-// =============================================================================
-
-/** Structured explanation for URL access failures shown in the popover. */
-interface UrlAccessExplanation {
-  /** Short status title, e.g., "Paywall Detected" */
-  title: string;
-  /** 1-sentence explanation of what happened */
-  description: string;
-  /** Actionable suggestion for the user, or null if nothing can be done */
-  suggestion: string | null;
-  /** Color scheme: "amber" for blocked (potentially resolvable), "red" for errors */
-  colorScheme: "amber" | "red";
-}
-
-/**
- * Maps UrlAccessStatus (from verification API response) to UrlFetchStatus (UI layer).
- * Used when the verification object has url-specific access data.
- *
- * For the generic "blocked" status, uses the error message to infer the specific
- * block type (paywall, login, rate limit, geo-restriction, or anti-bot fallback).
- */
-function mapUrlAccessStatusToFetchStatus(status: UrlAccessStatus, errorMessage?: string | null): UrlFetchStatus {
-  switch (status) {
-    case "accessible":
-      return "verified";
-    case "redirected":
-      return "redirected";
-    case "redirected_same_domain":
-      return "redirected_valid";
-    case "not_found":
-      return "error_not_found";
-    case "forbidden":
-      return "blocked_login";
-    case "server_error":
-      return "error_server";
-    case "timeout":
-      return "error_timeout";
-    case "blocked":
-      return inferBlockedType(errorMessage);
-    case "network_error":
-      return "error_network";
-    case "pending":
-      return "pending";
-    case "unknown":
-      return "unknown";
-  }
-}
-
-/**
- * Infer specific blocked type from the error message when the API returns
- * the generic "blocked" status. Falls back to "blocked_antibot" (site protection)
- * as the most common cause.
- */
-function inferBlockedType(errorMessage?: string | null): UrlFetchStatus {
-  if (!errorMessage) return "blocked_antibot";
-  const msg = errorMessage.toLowerCase();
-  if (msg.includes("paywall") || msg.includes("subscribe") || msg.includes("subscription")) {
-    return "blocked_paywall";
-  }
-  if (msg.includes("login") || msg.includes("sign in") || msg.includes("sign-in") || msg.includes("authenticate")) {
-    return "blocked_login";
-  }
-  if (msg.includes("rate limit") || msg.includes("429") || msg.includes("too many")) {
-    return "blocked_rate_limit";
-  }
-  if (msg.includes("geo") || msg.includes("region") || msg.includes("country") || msg.includes("available in")) {
-    return "blocked_geo";
-  }
-  return "blocked_antibot";
-}
-
-/**
- * Maps SearchStatus (from verification response) to UrlFetchStatus (UI layer).
- * Used as fallback when verification.url.urlAccessStatus is not available.
- */
-function mapSearchStatusToFetchStatus(status: SearchStatus | null | undefined): UrlFetchStatus {
-  if (!status) return "pending";
-  switch (status) {
-    case "found":
-    case "found_anchor_text_only":
-    case "found_phrase_missed_anchor_text":
-      return "verified";
-    case "found_on_other_page":
-    case "found_on_other_line":
-    case "partial_text_found":
-    case "first_word_found":
-      return "partial";
-    case "not_found":
-      return "error_not_found";
-    case "loading":
-    case "pending":
-    case "timestamp_wip":
-    case "skipped":
-      return "pending";
-    default: {
-      const _exhaustiveCheck: never = status;
-      return _exhaustiveCheck;
-    }
-  }
-}
-
-/**
- * Get a structured explanation for URL access failures.
- * Returns null for success/pending/unknown statuses (no explanation needed).
- */
-function getUrlAccessExplanation(
-  fetchStatus: UrlFetchStatus,
-  errorMessage?: string | null,
-): UrlAccessExplanation | null {
-  switch (fetchStatus) {
-    // Blocked scenarios (amber — potentially resolvable by the user)
-    case "blocked_paywall":
-      return {
-        title: "Paywall Detected",
-        description: errorMessage || "This site requires a paid subscription to access.",
-        suggestion: "You can verify this citation by visiting the URL directly if you have a subscription.",
-        colorScheme: "amber",
-      };
-    case "blocked_login":
-      return {
-        title: "Login Required",
-        description: errorMessage || "This page requires authentication to view its content.",
-        suggestion: "Log in to the site and visit the URL to verify this citation.",
-        colorScheme: "amber",
-      };
-    case "blocked_geo":
-      return {
-        title: "Region Restricted",
-        description: errorMessage || "This content isn't available from our verification server's location.",
-        suggestion: "Try visiting the URL directly — it may be accessible from your location.",
-        colorScheme: "amber",
-      };
-    case "blocked_antibot":
-      return {
-        title: "Blocked by Site Protection",
-        description: errorMessage || "This site's bot protection prevented our crawler from accessing the page.",
-        suggestion: "Visit the URL directly in your browser to verify this citation.",
-        colorScheme: "amber",
-      };
-    case "blocked_rate_limit":
-      return {
-        title: "Rate Limited",
-        description: errorMessage || "Too many requests were sent to this site.",
-        suggestion: "Try again later — the rate limit should reset shortly.",
-        colorScheme: "amber",
-      };
-
-    // Error scenarios (red — likely can't be resolved without fixing the URL)
-    case "error_not_found":
-      return {
-        title: "Page Not Found",
-        description: errorMessage || "This URL returned a 404 error — the page may have been moved or deleted.",
-        suggestion: "Check if the URL is correct, or search the site for the content.",
-        colorScheme: "red",
-      };
-    case "error_server":
-      return {
-        title: "Server Error",
-        description: errorMessage || "The website returned a server error and could not be accessed.",
-        suggestion: "Try again later — the site may be experiencing temporary issues.",
-        colorScheme: "red",
-      };
-    case "error_timeout":
-      return {
-        title: "Connection Timed Out",
-        description: errorMessage || "The website took too long to respond to our verification request.",
-        suggestion: "Try again later — the site may be under heavy load.",
-        colorScheme: "red",
-      };
-    case "error_network":
-      return {
-        title: "Network Error",
-        description: errorMessage || "Could not connect to this website — the domain may be unreachable.",
-        suggestion: "Check if the URL is correct and that the site is still online.",
-        colorScheme: "red",
-      };
-
-    // Non-error statuses — no explanation needed
-    default:
-      return null;
-  }
-}
-
-/**
- * Renders a colored banner explaining why a URL could not be accessed.
- * Amber background for blocked states (potentially resolvable), red for errors.
- * Includes ARIA role="status" and a leading icon so screen readers and
- * color-blind users can distinguish severity without relying on color alone.
- */
-function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessExplanation }) {
-  const isAmber = explanation.colorScheme === "amber";
-  return (
-    <div
-      className={cn(
-        "px-4 py-3 border-b",
-        isAmber
-          ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
-          : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800",
-      )}
-      role="status"
-      aria-label={`${isAmber ? "Warning" : "Error"}: ${explanation.title}`}
-    >
-      <div
-        className={cn(
-          "text-sm font-medium mb-1 flex items-center gap-1.5",
-          isAmber ? "text-amber-800 dark:text-amber-200" : "text-red-800 dark:text-red-200",
-        )}
-      >
-        <span className="shrink-0 text-xs" aria-hidden="true">
-          {isAmber ? "\u26A0" : "\u2718"}
-        </span>
-        {explanation.title}
-      </div>
-      <p className={cn("text-xs", isAmber ? "text-amber-700 dark:text-amber-300" : "text-red-700 dark:text-red-300")}>
-        {explanation.description}
-      </p>
-      {explanation.suggestion && (
-        <p
-          className={cn(
-            "text-xs mt-1.5 opacity-80",
-            isAmber ? "text-amber-700 dark:text-amber-300" : "text-red-700 dark:text-red-300",
-          )}
-        >
-          {explanation.suggestion}
-        </p>
-      )}
-    </div>
-  );
-}
+// URL access explanations — imported from ./urlAccessExplanation.js (canonical location)
 
 // =============================================================================
 // HIGHLIGHTED PHRASE DISPLAY
@@ -1691,27 +1161,7 @@ function EvidenceTrayFooter({
   const formatted = formatCaptureDate(verifiedAt);
   const dateStr = formatted?.display ?? "";
 
-  // Derive outcome label
-  const isMiss = status === "not_found";
-  let outcomeLabel: string;
-  if (isMiss) {
-    const count = searchAttempts?.length ?? 0;
-    outcomeLabel = `Scan complete · ${count} ${count === 1 ? "search" : "searches"}`;
-  } else {
-    const successfulAttempt = searchAttempts?.find(a => a.success);
-    if (successfulAttempt?.matchedVariation === "exact_full_phrase") {
-      outcomeLabel = "Exact match";
-    } else if (successfulAttempt?.matchedVariation === "normalized_full_phrase") {
-      outcomeLabel = "Normalized match";
-    } else if (
-      successfulAttempt?.matchedVariation === "exact_anchor_text" ||
-      successfulAttempt?.matchedVariation === "normalized_anchor_text"
-    ) {
-      outcomeLabel = "Anchor text match";
-    } else {
-      outcomeLabel = "Match found";
-    }
-  }
+  const outcomeLabel = deriveOutcomeLabel(status, searchAttempts);
 
   return (
     <div className="flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-400 dark:text-gray-500">
@@ -2144,28 +1594,9 @@ export function InlineExpandedImage({
     return () => document.removeEventListener("pointerup", unlock);
   }, [sliderLockWidth]);
 
-  // Derive footer label — matches EvidenceTrayFooter logic
   const isMiss = status?.isMiss;
   const searchAttempts = verification?.searchAttempts ?? [];
-  let outcomeLabel: string;
-  if (isMiss) {
-    const count = searchAttempts.length;
-    outcomeLabel = `Scan complete · ${count} ${count === 1 ? "search" : "searches"}`;
-  } else {
-    const successfulAttempt = searchAttempts.find(a => a.success);
-    if (successfulAttempt?.matchedVariation === "exact_full_phrase") {
-      outcomeLabel = "Exact match";
-    } else if (successfulAttempt?.matchedVariation === "normalized_full_phrase") {
-      outcomeLabel = "Normalized match";
-    } else if (
-      successfulAttempt?.matchedVariation === "exact_anchor_text" ||
-      successfulAttempt?.matchedVariation === "normalized_anchor_text"
-    ) {
-      outcomeLabel = "Anchor text match";
-    } else {
-      outcomeLabel = "Match found";
-    }
-  }
+  const outcomeLabel = deriveOutcomeLabel(verification?.status, searchAttempts);
   const formatted = formatCaptureDate(verification?.verifiedAt);
   const dateStr = formatted?.display ?? "";
 

@@ -2,6 +2,7 @@ import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { Verification } from "../types/verification.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
+import { isPartialSearchStatus } from "./citationStatus.js";
 // Import icon components for JSX rendering in getStatusInfo
 import {
   CheckIcon as CheckIconComponent,
@@ -160,11 +161,7 @@ export function getStatusInfo(
 } {
   const status = verification?.status;
 
-  const isPartial =
-    status === "partial_text_found" ||
-    status === "found_on_other_page" ||
-    status === "found_on_other_line" ||
-    status === "first_word_found";
+  const isPartial = isPartialSearchStatus(status);
 
   if (indicatorVariant === "dot") {
     if (!status || status === "pending" || status === "loading") {
@@ -245,13 +242,7 @@ export function getStatusPriority(verification: Verification | null): number {
   if (!status || status === "pending" || status === "loading") return 2;
   if (status === "not_found") return 4;
 
-  const isPartial =
-    status === "partial_text_found" ||
-    status === "found_on_other_page" ||
-    status === "found_on_other_line" ||
-    status === "first_word_found";
-
-  if (isPartial) return 3;
+  if (isPartialSearchStatus(status)) return 3;
 
   return 1; // verified
 }
