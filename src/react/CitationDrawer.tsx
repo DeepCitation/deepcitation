@@ -617,11 +617,9 @@ function DrawerSourceGroup({
  */
 function DrawerSourceHeading({
   citationGroups,
-  sourceLabelMap,
   fallbackTitle,
 }: {
   citationGroups: SourceCitationGroup[];
-  sourceLabelMap?: Record<string, string>;
   fallbackTitle: string;
 }) {
   if (citationGroups.length === 0) {
@@ -629,9 +627,7 @@ function DrawerSourceHeading({
   }
 
   const firstGroup = citationGroups[0];
-  const firstCitation = firstGroup.citations[0]?.citation;
-  const labelOverride = lookupSourceLabel(firstCitation, sourceLabelMap);
-  const primaryName = labelOverride || firstGroup.sourceName || fallbackTitle;
+  const primaryName = firstGroup.sourceName?.trim() || fallbackTitle;
   const isUrlSource = !!firstGroup.sourceDomain;
   const overflowCount = citationGroups.length - 1;
 
@@ -779,7 +775,6 @@ export function CitationDrawer({
             <div className="flex-1 min-w-0">
               <DrawerSourceHeading
                 citationGroups={citationGroups}
-                sourceLabelMap={sourceLabelMap}
                 fallbackTitle={title}
               />
               {totalCitations > 0 && (

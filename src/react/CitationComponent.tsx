@@ -2011,12 +2011,12 @@ export function InlineExpandedImage({
     hasSetInitialZoom.current = false;
   }
 
-  // Fit-to-screen: scale the page image to fit the available width on initial load.
-  // Uses the VIEWPORT width (minus popover margins + shell padding) as the reference
-  // rather than the current container — the container still reflects the previous
-  // evidence-width popover and will morph after we report the zoomed dimensions.
-  // Height may overflow; the scroll container handles vertical panning (matching the
-  // existing behaviour at 50 % zoom on wide screens where vertical scroll is expected).
+  // Fit-to-screen: scale the page image to fit both the available width AND height.
+  // Width uses the VIEWPORT (minus popover margins + shell padding) because the
+  // container still reflects the previous evidence-width popover before the morph.
+  // Height uses containerSize.height from the ResizeObserver — the flex layout
+  // (flex-1 min-h-0 under a maxHeight-constrained column) has already allocated
+  // exactly the vertical space remaining after header zones and margins.
   useEffect(() => {
     if (!fill || !imageLoaded || !naturalWidth || !naturalHeight || hasSetInitialZoom.current) return;
     if (!containerSize || containerSize.width <= 0 || containerSize.height <= 0) return;
@@ -2025,7 +2025,11 @@ export function InlineExpandedImage({
     const maxImageWidth = typeof window !== "undefined"
       ? window.innerWidth - 32 - EXPANDED_IMAGE_SHELL_PX
       : containerSize.width;
-    const fitZoom = Math.min(1, Math.max(0.1, maxImageWidth / naturalWidth));
+    const fitZoomW = maxImageWidth / naturalWidth;
+    // Max image height: the flex-allocated container height (already subtracts header
+    // zones, margins, and popover chrome from the viewport-based maxHeight).
+    const fitZoomH = containerSize.height / naturalHeight;
+    const fitZoom = Math.min(1, Math.max(0.1, Math.min(fitZoomW, fitZoomH)));
     if (fitZoom < 1) setZoom(fitZoom);
     setZoomFloor(Math.min(EXPANDED_ZOOM_MIN, fitZoom));
     // Report zoomed dimensions so the popover sizes to the displayed image,
@@ -2700,7 +2704,7 @@ function DefaultPopoverContent({
             ...(isFullPage && {
               display: "flex",
               flexDirection: "column" as const,
-              height: "100%",
+              maxHeight: "inherit",
               overflowY: "hidden" as const,
             }),
           }}
