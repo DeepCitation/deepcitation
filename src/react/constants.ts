@@ -121,6 +121,10 @@ export const PENDING_COLOR_DEFAULT = "#9ca3af";
 export const POPOVER_WIDTH_VAR = "--dc-popover-width";
 /** Default popover width */
 export const POPOVER_WIDTH_DEFAULT = "480px";
+/** Resolved popover width CSS value. Customizable via `--dc-popover-width`. */
+export const POPOVER_WIDTH = `var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT})`;
+/** Extra px beyond image natural width for the expanded popover shell (mx-3 margins + borders). */
+export const EXPANDED_IMAGE_SHELL_PX = 32;
 /** Default max width for verification images (responsive with fallback) */
 export const VERIFICATION_IMAGE_MAX_WIDTH = "min(70vw, 480px)";
 /** Default max height for verification images (responsive with fallback) */

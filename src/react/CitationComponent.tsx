@@ -33,6 +33,7 @@ import {
   EASE_EXPAND,
   EVIDENCE_TRAY_BORDER_DASHED,
   EVIDENCE_TRAY_BORDER_SOLID,
+  EXPANDED_IMAGE_SHELL_PX,
   EXPANDED_ZOOM_MAX,
   EXPANDED_ZOOM_MIN,
   EXPANDED_ZOOM_STEP,
@@ -47,8 +48,7 @@ import {
   POPOVER_CONTAINER_BASE_CLASSES,
   POPOVER_MORPH_COLLAPSE_MS,
   POPOVER_MORPH_EXPAND_MS,
-  POPOVER_WIDTH_DEFAULT,
-  POPOVER_WIDTH_VAR,
+  POPOVER_WIDTH,
   SPINNER_TIMEOUT_MS,
   TOUCH_CLICK_DEBOUNCE_MS,
 } from "./constants.js";
@@ -137,12 +137,6 @@ function releaseScrollLock() {
     document.body.style.paddingRight = scrollLockOriginalPaddingRight;
   }
 }
-
-/** Popover container width. Customizable via CSS custom property `--dc-popover-width`. */
-const POPOVER_WIDTH = `var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT})`;
-
-/** Extra px beyond image natural width for the expanded popover shell (mx-3 margins + borders). */
-const EXPANDED_IMAGE_SHELL_PX = 32;
 
 /**
  * Tolerance factor for coordinate scaling sanity checks.
@@ -347,290 +341,15 @@ export interface CitationComponentProps extends BaseCitationProps {
 // Indicator components, SpinnerStage, CitationStatusIndicator
 // imported from ./CitationStatusIndicator.js (canonical location)
 
-// =============================================================================
-// FOOTER HINT (shared bold-then-muted hint for evidence tray / expanded image)
-// =============================================================================
+// FooterHint, EvidenceTray components — imported from ./EvidenceTray.js
+// CitationContentDisplay — imported from ./CitationContentDisplay.js
 
-/** Renders hint text that appears bold/dark for 2s, then transitions to muted gray. */
-function FooterHint({ text }: { text: string }) {
-  const [highlighted, setHighlighted] = useState(true);
-  const reducedMotion = usePrefersReducedMotion();
+// ExpandedImageSource, normalizeScreenshotSrc, resolveExpandedImage,
+// AnchorTextFocusedImage, EvidenceTray, InlineExpandedImage, SearchAnalysisSummary,
+// getHumanizingMessage — imported from ./EvidenceTray.js (canonical location)
 
-  useEffect(() => {
-    if (reducedMotion) {
-      setHighlighted(false);
-      return;
-    }
-    const timer = setTimeout(() => setHighlighted(false), FOOTER_HINT_DURATION_MS);
-    return () => clearTimeout(timer);
-  }, [reducedMotion]);
-
-  return (
-    <span
-      className={cn(
-        "font-bold transition-colors duration-500",
-        highlighted ? "text-gray-900 dark:text-gray-200" : "text-gray-400 dark:text-gray-500",
-      )}
-    >
-      {text}
-    </span>
-  );
-}
-
-// =============================================================================
-// CITATION CONTENT DISPLAY (extracted from inline renderCitationContent)
-// =============================================================================
-
-interface CitationContentDisplayProps {
-  renderContent?: (props: CitationRenderProps) => React.ReactNode;
-  citation: CitationRenderProps["citation"];
-  status: CitationStatus;
-  citationKey: string;
-  displayText: string;
-  resolvedContent: CitationContent;
-  variant: CitationVariant;
-  statusClasses: string;
-  isVerified: boolean;
-  isPartialMatch: boolean;
-  isMiss: boolean;
-  shouldShowSpinner: boolean;
-  showIndicator: boolean;
-  faviconUrl?: string;
-  additionalCount?: number;
-  indicatorProps: CitationStatusIndicatorProps;
-}
-
-/**
- * Renders the citation content based on the selected variant (chip, superscript, text, badge, linter, brackets).
- * Each variant has its own visual treatment and hover behavior.
- */
-const CitationContentDisplay = ({
-  renderContent,
-  citation,
-  status,
-  citationKey,
-  displayText,
-  resolvedContent,
-  variant,
-  statusClasses,
-  isVerified,
-  isPartialMatch,
-  isMiss,
-  shouldShowSpinner,
-  showIndicator,
-  faviconUrl,
-  additionalCount,
-  indicatorProps,
-}: CitationContentDisplayProps): React.ReactNode => {
-  const indicator = <CitationStatusIndicator {...indicatorProps} />;
-
-  if (renderContent) {
-    return renderContent({
-      citation,
-      status,
-      citationKey,
-      displayText,
-      isMergedDisplay: resolvedContent === "anchorText",
-    });
-  }
-
-  // Content type: indicator only
-  if (resolvedContent === "indicator") {
-    return <span>{indicator}</span>;
-  }
-
-  // Variant: chip (pill/badge style with neutral gray background)
-  if (variant === "chip") {
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal transition-colors",
-          "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
-          ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner),
-        )}
-      >
-        <span
-          className={cn(
-            "max-w-60 overflow-hidden text-ellipsis whitespace-nowrap",
-            isMiss && !shouldShowSpinner && "opacity-70",
-          )}
-        >
-          {displayText}
-        </span>
-        {indicator}
-      </span>
-    );
-  }
-
-  // Variant: superscript (footnote style)
-  if (variant === "superscript") {
-    const anchorTextDisplay = citation.anchorText?.toString() || "";
-    const citationNumber = citation.citationNumber?.toString() || "1";
-
-    const supStatusClasses = cn(
-      !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
-      shouldShowSpinner && "text-gray-500 dark:text-gray-400",
-    );
-    return (
-      <>
-        {anchorTextDisplay && <span className="font-normal">{anchorTextDisplay}</span>}
-        <sup
-          className={cn(
-            "font-medium transition-colors px-0.5 rounded",
-            supStatusClasses,
-            ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner),
-          )}
-          style={{ fontSize: "0.65em", lineHeight: 0, position: "relative", top: "-0.65em", verticalAlign: "baseline" }}
-        >
-          [<span>{citationNumber}</span>
-          {indicator}]
-        </sup>
-      </>
-    );
-  }
-
-  // Variant: text
-  if (variant === "text") {
-    return (
-      <span className={cn("font-normal", statusClasses)}>
-        {displayText}
-        {indicator}
-      </span>
-    );
-  }
-
-  // Variant: badge (ChatGPT-style source chip)
-  if (variant === "badge") {
-    const faviconSrc = faviconUrl || (isUrlCitation(citation) ? citation.faviconUrl : undefined);
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
-          "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-          "transition-colors cursor-pointer",
-          isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-          isPartialMatch && !shouldShowSpinner && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
-          isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-          (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
-            "hover:bg-gray-200 dark:hover:bg-gray-700",
-        )}
-      >
-        {faviconSrc && (
-          <img
-            src={faviconSrc}
-            alt=""
-            className="w-4 h-4 rounded-sm object-contain"
-            loading="lazy"
-            onError={handleImageError}
-          />
-        )}
-        <span
-          className={cn(
-            "max-w-40 overflow-hidden text-ellipsis whitespace-nowrap",
-            isMiss && !shouldShowSpinner && "opacity-70",
-          )}
-          style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
-        >
-          {displayText}
-        </span>
-        {additionalCount !== undefined && additionalCount > 0 && (
-          <span className="text-gray-500 dark:text-gray-400">+{additionalCount}</span>
-        )}
-        {indicator}
-      </span>
-    );
-  }
-
-  // Variant: linter
-  if (variant === "linter") {
-    const isVerifiedState = isVerified && !isPartialMatch && !shouldShowSpinner;
-    const isPartialState = isPartialMatch && !shouldShowSpinner;
-    const isMissState = isMiss && !shouldShowSpinner;
-    const isPendingState = shouldShowSpinner;
-
-    const linterStyles: React.CSSProperties = {
-      textDecoration: "underline",
-      textDecorationThickness: "2px",
-      textUnderlineOffset: "3px",
-      borderRadius: "2px",
-      color: "inherit",
-      fontSize: "inherit",
-      fontFamily: "inherit",
-      lineHeight: "inherit",
-    };
-
-    if (isMissState) {
-      linterStyles.textDecorationStyle = "wavy";
-      linterStyles.textDecorationColor = "var(--dc-linter-error, #c0605f)";
-    } else if (isPartialState) {
-      linterStyles.textDecorationStyle = "dashed";
-      linterStyles.textDecorationColor = "var(--dc-linter-warning, #f59e0b)";
-    } else if (isVerifiedState) {
-      linterStyles.textDecorationStyle = "solid";
-      linterStyles.textDecorationColor = "var(--dc-linter-success, #4a7c5f)";
-    } else {
-      linterStyles.textDecorationStyle = "dotted";
-      linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)";
-    }
-
-    const linterClasses = cn(
-      "cursor-pointer font-normal",
-      isVerifiedState && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-      isPartialState && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
-      isMissState && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-      isPendingState && "bg-gray-500/[0.05] hover:bg-gray-500/10 dark:bg-gray-400/[0.05] dark:hover:bg-gray-400/10",
-    );
-
-    return (
-      <span className={linterClasses} style={linterStyles}>
-        {displayText}
-        {showIndicator && indicator}
-      </span>
-    );
-  }
-
-  // Variant: brackets (default)
-  return (
-    <span
-      className={cn(
-        "inline-flex items-baseline gap-0.5 whitespace-nowrap",
-        "font-mono font-normal text-xs leading-tight",
-        "text-gray-500 dark:text-gray-400",
-        "transition-colors",
-      )}
-      aria-hidden="true"
-    >
-      [
-      <span className={cn("max-w-80 overflow-hidden text-ellipsis", statusClasses)}>
-        {displayText}
-        {indicator}
-      </span>
-      ]
-    </span>
-  );
-};
-
-// =============================================================================
-// EXPANDED IMAGE RESOLVER
-// =============================================================================
-
-/** Source data for the expanded page viewer. */
-export interface ExpandedImageSource {
-  src: string;
-  dimensions?: { width: number; height: number } | null;
-  highlightBox?: ScreenBox | null;
-  renderScale?: { x: number; y: number } | null;
-  textItems?: DeepTextItem[];
-}
-
-/**
- * Normalizes a webPageScreenshotBase64 field to a usable data URI.
- * The field may arrive as raw base64 or as a complete data URI; both forms are accepted.
- * @throws {Error} If the input is invalid (empty, not a string, or malformed)
- * @internal Exported for testing purposes only
- */
-// biome-ignore lint/style/useComponentExportOnlyModules: Utility function exported for testing
-export function normalizeScreenshotSrc(raw: string): string {
+// DELETE_MARKER_START
+function normalizeScreenshotSrc(raw: string): string {
   // Validate input is a non-empty string
   if (!raw || typeof raw !== "string") {
     throw new Error("normalizeScreenshotSrc: Invalid screenshot data - expected non-empty string");
