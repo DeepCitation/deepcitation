@@ -48,7 +48,9 @@ export function formatTtc(ms: number): string {
   if (!Number.isFinite(ms) || ms < 0) return "instant";
   if (ms < TTC_INSTANT_THRESHOLD_MS) return "instant";
   if (ms >= TTC_MAX_DISPLAY_MS) return ">60s";
+  // Sub-10s: one decimal for responsive feel (e.g. "2.3s")
   if (ms < 10_000) return `${(ms / 1000).toFixed(1)}s`;
+  // 10s+: whole seconds to avoid visual noise (e.g. "15s")
   return `${Math.round(ms / 1000)}s`;
 }
 
@@ -95,6 +97,7 @@ export function computeTimingMetrics(verifications: Record<string, Verification>
 
   if (ttcValues.length === 0) return null;
 
+  // REQUIRED: array must be sorted ascending for correct median calculation below
   ttcValues.sort((a, b) => a - b);
   const sum = ttcValues.reduce((acc, v) => acc + v, 0);
   const medianIdx = Math.floor(ttcValues.length / 2);
@@ -149,12 +152,12 @@ export function useCitationTiming(
 
   // 1. On mount (or citationKey change): record firstSeenAt, reset evidenceReadyFired, emit "citation_seen"
   useEffect(() => {
-    firstSeenAtRef.current = Date.now();
+    firstSeenAtRef.current = performance.now();
     evidenceReadyFiredRef.current = false;
     onTimingEventRef.current?.({
       event: "citation_seen",
       citationKey,
-      timestamp: firstSeenAtRef.current,
+      timestamp: Date.now(),
       elapsedSinceSeenMs: null,
     });
   }, [citationKey]);
@@ -166,14 +169,14 @@ export function useCitationTiming(
   useEffect(() => {
     if (hasResult && !evidenceReadyFiredRef.current && firstSeenAtRef.current != null) {
       evidenceReadyFiredRef.current = true;
-      const now = Date.now();
-      const computed = Math.max(0, now - firstSeenAtRef.current);
+      const now = performance.now();
+      const computed = now - firstSeenAtRef.current;
       setTtcMs(computed);
 
       onTimingEventRef.current?.({
         event: "evidence_ready",
         citationKey,
-        timestamp: now,
+        timestamp: Date.now(),
         elapsedSinceSeenMs: computed,
         timeToCertaintyMs: computed,
         verificationStatus: verification?.status ?? null,

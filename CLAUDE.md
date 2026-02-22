@@ -182,6 +182,9 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `useCitationTiming()` | `src/react/timingUtils.ts` | Core citation lifecycle timing hook |
 | `useTtcMetrics()` | `src/react/timingUtils.ts` | Memoized aggregate metrics hook |
 | `REVIEW_DWELL_THRESHOLD_MS` | `src/react/timingUtils.ts` | Popover dwell threshold (2s) for review detection |
+| `TTC_INSTANT_THRESHOLD_MS` | `src/react/timingUtils.ts` | Below-threshold = "instant" (100ms) |
+| `TTC_SLOW_THRESHOLD_MS` | `src/react/timingUtils.ts` | Slow tier boundary (10s) |
+| `TTC_MAX_DISPLAY_MS` | `src/react/timingUtils.ts` | Display cap (">60s") |
 | `TTC_TEXT_STYLE` | `src/react/constants.ts` | Muted TtC display style (tabular-nums) |
 | `TTC_FAST_TEXT_STYLE` | `src/react/constants.ts` | Green-tinted TtC style for fast reviews |
 | `getPrimarySourceName()` | `src/react/CitationDrawer.utils.tsx` | Primary source name (truncated, no +N) for heading/trigger |
