@@ -1107,17 +1107,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
               onEscapeKeyDown={e => {
-                if (popoverViewState === "summary") return; // Let Radix close normally
-                e.preventDefault(); // Suppress Radix dismiss — we handle navigation instead
-                if (popoverViewState === "expanded-page") {
-                  const prev = prevBeforeExpandedPageRef.current;
-                  setPopoverViewState(prev);
-                  if (prev === "summary") setCustomExpandedSrc(null);
-                } else {
-                  // expanded-evidence → summary
-                  setPopoverViewState("summary");
-                  setCustomExpandedSrc(null);
-                }
+                // Only intercept Escape for expanded-page (full-screen) back-navigation.
+                // summary and expanded-evidence let Radix close the popover directly.
+                if (popoverViewState !== "expanded-page") return;
+                e.preventDefault();
+                const prev = prevBeforeExpandedPageRef.current;
+                setPopoverViewState(prev);
+                if (prev === "summary") setCustomExpandedSrc(null);
               }}
               style={
                 popoverViewState === "expanded-page"

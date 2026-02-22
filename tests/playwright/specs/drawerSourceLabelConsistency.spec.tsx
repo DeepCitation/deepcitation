@@ -208,13 +208,15 @@ test.describe("Drawer ↔ Trigger source label consistency", () => {
     const triggerLabel = await getTriggerLabelText(page);
     expect(triggerLabel).toBe("Q4 Financial Report");
 
-    // Open drawer and check the group header (role="heading" aria-level=3)
+    // Open drawer and check the drawer heading (h2) shows the resolved label.
+    // Single-source drawers omit per-group headers (SourceGroupHeader/aria-level=3) —
+    // the drawer's own h2 is the sole source identity for single-source views.
     const trigger = page.locator('[data-testid="citation-drawer-trigger"]');
     await trigger.click();
     const dialog = page.locator("[role='dialog']");
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
-    const groupHeader = dialog.locator("[role='heading'][aria-level='3']");
-    await expect(groupHeader).toContainText("Q4 Financial Report");
+    const heading = dialog.locator("h2");
+    await expect(heading).toContainText("Q4 Financial Report");
   });
 });

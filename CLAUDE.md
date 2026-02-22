@@ -67,7 +67,7 @@ src/
 │   ├── citationStatus.ts          # Status derivation, isPartialSearchStatus(), getTrustLevel()
 │   ├── constants.ts      # MISS_WAVY_UNDERLINE_STYLE, DOT_INDICATOR_*_STYLE, isValidProofImageSrc(), getPortalContainer()
 │   ├── outcomeLabel.ts            # deriveOutcomeLabel() — shared outcome label logic
-│   ├── urlAccessExplanation.tsx   # URL access failure mapping + UrlAccessExplanationSection
+│   ├── urlAccessExplanation.ts    # URL access failure mapping (getUrlAccessExplanation)
 │   ├── HighlightedPhrase.tsx # HighlightedPhrase — CANONICAL LOCATION
 │   ├── dateUtils.ts      # formatCaptureDate()
 │   └── utils.ts          # generateCitationKey() — CANONICAL LOCATION
@@ -203,8 +203,8 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `DefaultPopoverContent` | `src/react/DefaultPopoverContent.tsx` | Three-zone popover layout (success/partial/miss) |
 | `CitationStatusIndicator` | `src/react/CitationStatusIndicator.tsx` | Unified status indicator component |
 | `CitationContentDisplay` | `src/react/CitationContentDisplay.tsx` | Variant rendering (chip, superscript, badge, etc.) |
-| `getUrlAccessExplanation()` | `src/react/urlAccessExplanation.tsx` | URL access failure explanation mapping |
-| `UrlAccessExplanationSection` | `src/react/urlAccessExplanation.tsx` | URL access failure display component |
+| `getUrlAccessExplanation()` | `src/react/urlAccessExplanation.ts` | URL access failure explanation mapping |
+| `UrlAccessExplanationSection` | `src/react/DefaultPopoverContent.tsx` | URL access failure display component (private) |
 
 ### Example
 

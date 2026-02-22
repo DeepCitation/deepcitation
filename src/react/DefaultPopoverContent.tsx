@@ -38,16 +38,14 @@ import { isValidProofUrl } from "./urlUtils.js";
 import { cn, isUrlCitation } from "./utils.js";
 import { SourceContextHeader, StatusHeader } from "./VerificationLog.js";
 
-// React 19.2+ Activity component for prefetching - falls back to Fragment if unavailable
-const Activity =
-  (
-    React as {
-      Activity?: React.ComponentType<{
-        mode: "visible" | "hidden";
-        children: React.ReactNode;
-      }>;
-    }
-  ).Activity ?? (({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>);
+// React 19.2's Activity component is disabled here because it triggers a fiber
+// effect linked-list corruption bug during simultaneous mode transitions
+// (hidden→visible) and Radix popover unmounts. The crash manifests as
+// "Cannot read/set properties of undefined (reading/setting 'destroy')" inside
+// commitHookEffectListMount/Unmount → reconnectPassiveEffects.
+// Using a Fragment pass-through preserves identical render output without the
+// unstable Activity lifecycle. Image prefetching is handled by usePrefetchImage.
+const Activity = ({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>;
 
 // =============================================================================
 // TYPES

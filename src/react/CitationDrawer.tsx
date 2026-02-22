@@ -37,7 +37,7 @@ import { cn } from "./utils.js";
 import { FaviconImage } from "./VerificationLog.js";
 
 // HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
-// EvidenceTray, InlineExpandedImage — imported from ./CitationComponent.js (canonical location)
+// EvidenceTray, InlineExpandedImage — imported from ./EvidenceTray.js (canonical location)
 
 // =========
 // Internal escape-navigation context — NOT exported
