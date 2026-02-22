@@ -885,7 +885,17 @@ export function InlineExpandedImage({
         }
       });
     }
-  }, [fill, imageLoaded, naturalWidth, naturalHeight, containerSize, onNaturalSize, verification, renderScale, containerRef]);
+  }, [
+    fill,
+    imageLoaded,
+    naturalWidth,
+    naturalHeight,
+    containerSize,
+    onNaturalSize,
+    verification,
+    renderScale,
+    containerRef,
+  ]);
 
   // Clamp helper — shared by buttons, slider, pinch, and wheel.
   // Uses zoomFloor (not EXPANDED_ZOOM_MIN) so the lower bound respects the

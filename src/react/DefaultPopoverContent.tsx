@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type MutableRefObject, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CitationStatus } from "../types/citation.js";
 import type { SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
@@ -45,7 +45,7 @@ import { SourceContextHeader, StatusHeader } from "./VerificationLog.js";
 // commitHookEffectListMount/Unmount → reconnectPassiveEffects.
 // Using a Fragment pass-through preserves identical render output without the
 // unstable Activity lifecycle. Image prefetching is handled by usePrefetchImage.
-const Activity = ({ children }: { mode: "visible" | "hidden"; children: React.ReactNode }) => <>{children}</>;
+const Activity = ({ children }: { mode: "visible" | "hidden"; children: ReactNode }) => <>{children}</>;
 
 // =============================================================================
 // TYPES
@@ -80,7 +80,7 @@ export interface PopoverContentProps {
   /** Reports the expanded image's natural width (or null on collapse) so the parent can size PopoverContent. */
   onExpandedWidthChange?: (width: number | null) => void;
   /** Ref tracking which state preceded expanded-page, for correct Escape back-navigation. */
-  prevBeforeExpandedPageRef?: React.MutableRefObject<"summary" | "expanded-evidence">;
+  prevBeforeExpandedPageRef?: MutableRefObject<"summary" | "expanded-evidence">;
 }
 
 // =============================================================================
