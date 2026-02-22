@@ -528,6 +528,12 @@ export const TOUCH_CLICK_DEBOUNCE_MS = 100;
  */
 export const COPY_FEEDBACK_DURATION_MS = 2000;
 
+/**
+ * Duration in ms that footer hints (e.g. "Click to expand") remain bold/dark
+ * before transitioning to muted gray. Used by FooterHint component.
+ */
+export const FOOTER_HINT_DURATION_MS = 2000;
+
 /** Auto-hide spinner after this duration if verification is still pending. */
 export const SPINNER_TIMEOUT_MS = 5000;
 

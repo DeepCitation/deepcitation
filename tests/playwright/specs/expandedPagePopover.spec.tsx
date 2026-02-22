@@ -8,6 +8,7 @@ import type { Verification } from "../../../src/types/verification";
 // =============================================================================
 
 const baseCitation: Citation = {
+  type: "document",
   citationNumber: 1,
   anchorText: "Functional status",
   fullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",

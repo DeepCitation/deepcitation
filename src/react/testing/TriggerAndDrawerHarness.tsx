@@ -7,6 +7,10 @@ import { CitationDrawerTrigger } from "../CitationDrawerTrigger";
 /**
  * Test harness that wires CitationDrawerTrigger + CitationDrawer together
  * with shared props, for Playwright CT label-consistency tests.
+ *
+ * Labels are resolved once via groupCitationsBySource (which calls resolveGroupLabels
+ * internally). The resolved groups are passed directly to the trigger and drawer
+ * without a separate sourceLabelMap, so label resolution happens exactly once.
  */
 export function TriggerAndDrawer({
   citations,
@@ -24,13 +28,11 @@ export function TriggerAndDrawer({
         citationGroups={groups}
         onClick={() => setIsOpen(true)}
         isOpen={isOpen}
-        sourceLabelMap={sourceLabelMap}
       />
       <CitationDrawer
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         citationGroups={groups}
-        sourceLabelMap={sourceLabelMap}
       />
     </div>
   );

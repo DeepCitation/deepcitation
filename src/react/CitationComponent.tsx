@@ -14,6 +14,7 @@ import {
   EASE_EXPAND,
   EVIDENCE_TRAY_BORDER_DASHED,
   EVIDENCE_TRAY_BORDER_SOLID,
+  FOOTER_HINT_DURATION_MS,
   EXPANDED_ZOOM_MAX,
   EXPANDED_ZOOM_MIN,
   EXPANDED_ZOOM_STEP,
@@ -628,6 +629,36 @@ const VerifiedDot = () => <DotIndicator color="green" label="Verified" />;
 const PartialDot = () => <DotIndicator color="amber" label="Partial match" />;
 const PendingDot = () => <DotIndicator color="gray" pulse label="Verifying" />;
 const MissDot = () => <DotIndicator color="red" label="Not found" />;
+
+// =============================================================================
+// FOOTER HINT (shared bold-then-muted hint for evidence tray / expanded image)
+// =============================================================================
+
+/** Renders hint text that appears bold/dark for 2s, then transitions to muted gray. */
+function FooterHint({ text }: { text: string }) {
+  const [highlighted, setHighlighted] = useState(true);
+  const reducedMotion = usePrefersReducedMotion();
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setHighlighted(false);
+      return;
+    }
+    const timer = setTimeout(() => setHighlighted(false), FOOTER_HINT_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [reducedMotion]);
+
+  return (
+    <span
+      className={cn(
+        "font-bold transition-colors duration-500",
+        highlighted ? "text-gray-900 dark:text-gray-200" : "text-gray-400 dark:text-gray-500",
+      )}
+    >
+      {text}
+    </span>
+  );
+}
 
 // =============================================================================
 // SPINNER STAGE TYPE (used by CitationStatusIndicator and parent component)
@@ -1650,15 +1681,12 @@ function EvidenceTrayFooter({
   status,
   searchAttempts,
   verifiedAt,
-  showExpandHint,
-  showFullSizeFlash,
+  hint,
 }: {
   status?: SearchStatus | null;
   searchAttempts?: SearchAttempt[];
   verifiedAt?: Date | string | null;
-  showExpandHint?: boolean;
-  /** Briefly true when the user clicks an already-full-size keyhole image. */
-  showFullSizeFlash?: boolean;
+  hint?: { text: string; key: string | number };
 }) {
   const formatted = formatCaptureDate(verifiedAt);
   const dateStr = formatted?.display ?? "";
@@ -1689,31 +1717,7 @@ function EvidenceTrayFooter({
     <div className="flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-400 dark:text-gray-500">
       <span>
         {outcomeLabel}
-        {showFullSizeFlash ? (
-          <>
-            <style>{`
-              @keyframes dc-flash-hint {
-                0% { opacity: 0; }
-                12% { opacity: 1; }
-                75% { opacity: 1; }
-                100% { opacity: 0; }
-              }
-              @media (prefers-reduced-motion: reduce) {
-                .dc-flash-hint { animation: none !important; opacity: 1 !important; }
-              }
-            `}</style>
-            <span
-              className="dc-flash-hint font-bold text-blue-600 dark:text-blue-400"
-              style={{ animation: "dc-flash-hint 2s ease-out forwards" }}
-            >
-              {" · Already full size"}
-            </span>
-          </>
-        ) : showExpandHint ? (
-          <span className="opacity-0 group-hover/ev-tray:opacity-100 transition-opacity duration-150">
-            {" · Click to expand"}
-          </span>
-        ) : null}
+        {hint && <FooterHint key={hint.key} text={hint.text} />}
       </span>
       {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
     </div>
@@ -1832,20 +1836,10 @@ export function EvidenceTray({
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
   const [keyholeImageFits, setKeyholeImageFits] = useState(false);
 
-  // Flash state: briefly shows "Already full size" when user clicks a keyhole that already fits.
-  const [showFullSizeFlash, setShowFullSizeFlash] = useState(false);
-  const fullSizeFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleAlreadyFullSize = useCallback(() => {
-    setShowFullSizeFlash(true);
-    if (fullSizeFlashTimer.current) clearTimeout(fullSizeFlashTimer.current);
-    fullSizeFlashTimer.current = setTimeout(() => setShowFullSizeFlash(false), 2000);
-  }, []);
-  useEffect(
-    () => () => {
-      if (fullSizeFlashTimer.current) clearTimeout(fullSizeFlashTimer.current);
-    },
-    [],
-  );
+  // Incremented each time the user clicks an already-full-size keyhole.
+  // The changing key forces FooterHint to remount, restarting its 2s highlight timer.
+  const [fullSizeFlashKey, setFullSizeFlashKey] = useState(0);
+  const handleAlreadyFullSize = useCallback(() => setFullSizeFlashKey(k => k + 1), []);
 
   // Shared inner content
   const content = (
@@ -1880,8 +1874,13 @@ export function EvidenceTray({
           status={verification?.status}
           searchAttempts={searchAttempts}
           verifiedAt={verification?.verifiedAt}
-          showExpandHint={!!onImageClick && !keyholeImageFits}
-          showFullSizeFlash={showFullSizeFlash}
+          hint={
+            fullSizeFlashKey > 0
+              ? { text: " · Already full size", key: `flash-${fullSizeFlashKey}` }
+              : !!onImageClick && !keyholeImageFits
+                ? { text: " · Click to expand", key: "expand" }
+                : undefined
+          }
         />
       )}
     </>
@@ -1916,7 +1915,7 @@ export function EvidenceTray({
             }
           }}
           className={cn(
-            "w-full rounded-xs overflow-hidden text-left cursor-pointer group/ev-tray relative",
+            "w-full rounded-xs overflow-hidden text-left cursor-pointer relative",
             "transition-opacity",
             borderClass,
           )}
@@ -2177,11 +2176,21 @@ export function InlineExpandedImage({
   // Show zoom controls in fill mode when image has loaded
   const showZoomControls = fill && imageLoaded && naturalWidth !== null;
 
+  const footerEl = (
+    <div className="flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
+      <span>
+        {outcomeLabel}
+        <FooterHint text=" · Click to collapse" />
+      </span>
+      {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
+    </div>
+  );
+
   return (
     <div
       ref={outerRef}
       className={cn(
-        "mx-3 mb-3 animate-in fade-in-0 duration-150 group/expanded-img",
+        "mx-3 mb-3 animate-in fade-in-0 duration-150",
         fill && "flex-1 min-h-0 flex flex-col",
       )}
       style={
@@ -2278,6 +2287,8 @@ export function InlineExpandedImage({
                 )}
             </div>
           </div>
+          {/* In fill mode, footer sits inside the scroll area right below the page image */}
+          {fill && footerEl}
         </div>
 
         {/* Floating zoom controls — positioned absolutely over the scroll container
@@ -2361,16 +2372,8 @@ export function InlineExpandedImage({
           </div>
         )}
       </div>
-      {/* Footer — matches EvidenceTrayFooter style; shows collapse hint on hover */}
-      <div className="flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
-        <span>
-          {outcomeLabel}
-          <span className="opacity-0 group-hover/expanded-img:opacity-100 transition-opacity duration-150">
-            {" · Click to collapse"}
-          </span>
-        </span>
-        {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
-      </div>
+      {/* In non-fill mode, footer stays outside the scroll area so it's always visible */}
+      {!fill && footerEl}
     </div>
   );
 }
@@ -3035,14 +3038,23 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // at 1rem from the viewport top. floating-ui's shift middleware only shifts
     // on the main axis (horizontal for side="bottom"), not vertically. We use the
     // offset middleware instead by computing the exact vertical offset needed.
-    const expandedPageSideOffset = useMemo(() => {
-      if (popoverViewState !== "expanded-page") return undefined;
+    // useLayoutEffect runs after the DOM is committed (safe for getBoundingClientRect)
+    // and before paint, so the offset is applied before the popover is visible.
+    const [expandedPageSideOffset, setExpandedPageSideOffset] = useState<number | undefined>(undefined);
+    useLayoutEffect(() => {
+      if (popoverViewState !== "expanded-page") {
+        setExpandedPageSideOffset(undefined);
+        return;
+      }
       const triggerRect = triggerRef.current?.getBoundingClientRect();
-      if (!triggerRect) return undefined;
+      if (!triggerRect) {
+        setExpandedPageSideOffset(undefined);
+        return;
+      }
       const VIEWPORT_MARGIN = 16; // 1rem
       // For side="bottom": popover.top = trigger.bottom + sideOffset
       // We want popover.top = VIEWPORT_MARGIN
-      return VIEWPORT_MARGIN - triggerRect.bottom;
+      setExpandedPageSideOffset(VIEWPORT_MARGIN - triggerRect.bottom);
     }, [popoverViewState]);
 
     const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
