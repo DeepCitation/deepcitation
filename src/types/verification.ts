@@ -190,8 +190,8 @@ export interface Verification {
   // ========== Timing ==========
   /** Wall-clock ms the system took to verify this citation.
    *  Computed client-side: (evidence ready timestamp) − (citation first rendered timestamp).
-   *  Populated externally by the caller after receiving the resolved verification result;
-   *  CitationComponent reads this value for display but does not write back to the prop. */
+   *  Populated externally by the caller after receiving the resolved verification result.
+   *  Consumed by computeTimingMetrics() / useTtcMetrics() for telemetry aggregation. */
   timeToCertaintyMs?: number;
 
   // ========== Ambiguity Detection ==========

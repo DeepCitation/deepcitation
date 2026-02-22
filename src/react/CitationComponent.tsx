@@ -14,10 +14,10 @@ import {
   EASE_EXPAND,
   EVIDENCE_TRAY_BORDER_DASHED,
   EVIDENCE_TRAY_BORDER_SOLID,
-  FOOTER_HINT_DURATION_MS,
   EXPANDED_ZOOM_MAX,
   EXPANDED_ZOOM_MIN,
   EXPANDED_ZOOM_STEP,
+  FOOTER_HINT_DURATION_MS,
   INDICATOR_SIZE_STYLE,
   isValidProofImageSrc,
   KEYHOLE_FADE_WIDTH,
@@ -1890,11 +1890,7 @@ export function EvidenceTray({
   // - Keyhole present + fits completely → flash "already full size" hint
   // - Keyhole present + expandable → expand keyhole image
   // - No keyhole → fall back to page expansion
-  const trayAction = onImageClick
-    ? keyholeImageFits
-      ? handleAlreadyFullSize
-      : onImageClick
-    : onExpand;
+  const trayAction = onImageClick ? (keyholeImageFits ? handleAlreadyFullSize : onImageClick) : onExpand;
 
   return (
     <div className="m-3">
@@ -2189,10 +2185,7 @@ export function InlineExpandedImage({
   return (
     <div
       ref={outerRef}
-      className={cn(
-        "mx-3 mb-3 animate-in fade-in-0 duration-150",
-        fill && "flex-1 min-h-0 flex flex-col",
-      )}
+      className={cn("mx-3 mb-3 animate-in fade-in-0 duration-150", fill && "flex-1 min-h-0 flex flex-col")}
       style={
         fill
           ? undefined // fill mode: container fills popover width, image scrolls inside
@@ -2410,6 +2403,8 @@ interface PopoverContentProps {
   expandedImageSrcOverride?: string | null;
   /** Reports the expanded image's natural width (or null on collapse) so the parent can size PopoverContent. */
   onExpandedWidthChange?: (width: number | null) => void;
+  /** Ref tracking which state preceded expanded-page, for correct Escape back-navigation. */
+  prevBeforeExpandedPageRef?: React.MutableRefObject<"summary" | "expanded-evidence">;
 }
 
 function DefaultPopoverContent({
@@ -2424,6 +2419,7 @@ function DefaultPopoverContent({
   onViewStateChange,
   expandedImageSrcOverride,
   onExpandedWidthChange,
+  prevBeforeExpandedPageRef: propPrevBeforeExpandedPageRef,
 }: PopoverContentProps) {
   const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
@@ -2494,7 +2490,10 @@ function DefaultPopoverContent({
   // Tracks which state we entered expanded-page from, so onCollapse can return there.
   // "expanded-evidence" → expanded-page → back: returns to expanded-evidence (no InlineExpandedImage remount, no animation).
   // "summary" → expanded-page → back: returns to summary.
-  const prevBeforeExpandedPageRef = useRef<"summary" | "expanded-evidence">("summary");
+  // The ref may be lifted from the parent (CitationComponent) so that onEscapeKeyDown on
+  // <PopoverContent> can read the same value. Fall back to a local ref for the prefetch instance.
+  const localPrevBeforeExpandedPageRef = useRef<"summary" | "expanded-evidence">("summary");
+  const prevBeforeExpandedPageRef = propPrevBeforeExpandedPageRef ?? localPrevBeforeExpandedPageRef;
 
   const handleExpand = useCallback(() => {
     if (!canExpandToPage) return;
@@ -2939,24 +2938,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Natural width of the expanded image (propagated from DefaultPopoverContent).
     // Used to size PopoverContent so floating-ui can position it correctly.
     const [expandedImageWidth, setExpandedImageWidth] = useState<number | null>(null);
-
-    // Collapse the expanded image on ESC key (capture phase to intercept before Radix).
-    // First Escape collapses the expanded view back to summary; second Escape (handled
-    // by Radix since popoverViewState is now "summary") closes the popover.
-    // stopPropagation prevents Radix from also handling ESC and closing the popover.
-    useEffect(() => {
-      if (popoverViewState === "summary") return;
-      const handler = (e: KeyboardEvent) => {
-        if (e.key === "Escape") {
-          e.preventDefault();
-          e.stopPropagation();
-          setPopoverViewState("summary");
-          setCustomExpandedSrc(null);
-        }
-      };
-      document.addEventListener("keydown", handler, true);
-      return () => document.removeEventListener("keydown", handler, true);
-    }, [popoverViewState]);
+    // Tracks which state preceded expanded-page so Escape can navigate back correctly.
+    // Lifted here (from DefaultPopoverContent) so onEscapeKeyDown on <PopoverContent> can read it.
+    const prevBeforeExpandedPageRef = useRef<"summary" | "expanded-evidence">("summary");
 
     // Lock body scroll when the popover is open (ref-counted so overlapping
     // instances don't leave the page permanently locked). See acquireScrollLock().
@@ -3634,6 +3618,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             onViewStateChange={setPopoverViewState}
             expandedImageSrcOverride={customExpandedSrc}
             onExpandedWidthChange={setExpandedImageWidth}
+            prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
           />
         </CitationErrorBoundary>
       );
@@ -3694,6 +3679,19 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               sideOffset={expandedPageSideOffset}
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
+              onEscapeKeyDown={(e) => {
+                if (popoverViewState === "summary") return; // Let Radix close normally
+                e.preventDefault(); // Suppress Radix dismiss — we handle navigation instead
+                if (popoverViewState === "expanded-page") {
+                  const prev = prevBeforeExpandedPageRef.current;
+                  setPopoverViewState(prev);
+                  if (prev === "summary") setCustomExpandedSrc(null);
+                } else {
+                  // expanded-evidence → summary
+                  setPopoverViewState("summary");
+                  setCustomExpandedSrc(null);
+                }
+              }}
               style={
                 popoverViewState === "expanded-page"
                   ? {

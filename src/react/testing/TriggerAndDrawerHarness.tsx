@@ -24,16 +24,8 @@ export function TriggerAndDrawer({
 
   return (
     <div data-testid="harness">
-      <CitationDrawerTrigger
-        citationGroups={groups}
-        onClick={() => setIsOpen(true)}
-        isOpen={isOpen}
-      />
-      <CitationDrawer
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        citationGroups={groups}
-      />
+      <CitationDrawerTrigger citationGroups={groups} onClick={() => setIsOpen(true)} isOpen={isOpen} />
+      <CitationDrawer isOpen={isOpen} onClose={() => setIsOpen(false)} citationGroups={groups} />
     </div>
   );
 }
