@@ -778,11 +778,7 @@ export function CitationDrawer({
         <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <DrawerSourceHeading
-                citationGroups={citationGroups}
-                label={label}
-                fallbackTitle={title}
-              />
+              <DrawerSourceHeading citationGroups={citationGroups} label={label} fallbackTitle={title} />
               {totalCitations > 0 && (
                 <div className="mt-0.5">
                   <StackedStatusIcons

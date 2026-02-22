@@ -396,7 +396,12 @@ export function SourceContextHeader({
           </a>
         )}
         {showPagePill && (
-          <PagePill pageNumber={pageNumber ?? undefined} colorScheme={colorScheme} onClick={onExpand} onClose={onClose} />
+          <PagePill
+            pageNumber={pageNumber ?? undefined}
+            colorScheme={colorScheme}
+            onClick={onExpand}
+            onClose={onClose}
+          />
         )}
         {!showPagePill && pageLineText && (
           <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">

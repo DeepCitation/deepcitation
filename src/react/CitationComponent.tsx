@@ -1839,9 +1839,12 @@ export function EvidenceTray({
     if (fullSizeFlashTimer.current) clearTimeout(fullSizeFlashTimer.current);
     fullSizeFlashTimer.current = setTimeout(() => setShowFullSizeFlash(false), 2000);
   }, []);
-  useEffect(() => () => {
-    if (fullSizeFlashTimer.current) clearTimeout(fullSizeFlashTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (fullSizeFlashTimer.current) clearTimeout(fullSizeFlashTimer.current);
+    },
+    [],
+  );
 
   // Shared inner content
   const content = (
@@ -1880,8 +1883,6 @@ export function EvidenceTray({
           showFullSizeFlash={showFullSizeFlash}
         />
       )}
-
-
     </>
   );
 
@@ -2020,9 +2021,8 @@ export function InlineExpandedImage({
     if (!containerSize || containerSize.width <= 0 || containerSize.height <= 0) return;
     hasSetInitialZoom.current = true;
     // Max image width the popover can provide: viewport - 2rem outer margin - shell px.
-    const maxImageWidth = typeof window !== "undefined"
-      ? window.innerWidth - 32 - EXPANDED_IMAGE_SHELL_PX
-      : containerSize.width;
+    const maxImageWidth =
+      typeof window !== "undefined" ? window.innerWidth - 32 - EXPANDED_IMAGE_SHELL_PX : containerSize.width;
     const fitZoomW = maxImageWidth / naturalWidth;
     // Max image height: the flex-allocated container height (already subtracts header
     // zones, margins, and popover chrome from the viewport-based maxHeight).
@@ -2038,9 +2038,12 @@ export function InlineExpandedImage({
   // Clamp helper — shared by buttons, slider, pinch, and wheel.
   // Uses zoomFloor (not EXPANDED_ZOOM_MIN) so the lower bound respects the
   // fit-to-screen zoom on narrow viewports where it may be < 50%.
-  const clampZoom = useCallback((z: number) => {
-    return Math.max(zoomFloor, Math.min(EXPANDED_ZOOM_MAX, Math.round(z * 100) / 100));
-  }, [zoomFloor]);
+  const clampZoom = useCallback(
+    (z: number) => {
+      return Math.max(zoomFloor, Math.min(EXPANDED_ZOOM_MAX, Math.round(z * 100) / 100));
+    },
+    [zoomFloor],
+  );
 
   const handleZoomIn = useCallback(() => {
     setZoom(z => clampZoom(z + EXPANDED_ZOOM_STEP));
@@ -2451,11 +2454,7 @@ function DefaultPopoverContent({
       const w = verification?.document?.verificationImageDimensions?.width;
       if (w) setWidth(w);
     }
-  }, [
-    viewState,
-    verification?.document?.verificationImageDimensions?.width,
-    setWidth,
-  ]);
+  }, [viewState, verification?.document?.verificationImageDimensions?.width, setWidth]);
 
   // Callback for InlineExpandedImage onLoad — confirms/corrects the pre-set width.
   const handleExpandedImageLoad = useCallback(
@@ -2673,7 +2672,6 @@ function DefaultPopoverContent({
               status={status}
               onExpand={canExpandToPage ? handleExpand : undefined}
               onImageClick={handleKeyholeClick}
-
             />
           )}
         </div>
@@ -2777,7 +2775,6 @@ function DefaultPopoverContent({
               onExpand={canExpandToPage ? handleExpand : undefined}
               onImageClick={handleKeyholeClick}
               proofImageSrc={expandedImage?.src}
-
             />
           ) : /* Fallback for miss without keyhole image: search analysis + optional page thumbnail */
           isMiss && (verification?.searchAttempts?.length || canExpandToPage) && verification ? (
@@ -2786,7 +2783,6 @@ function DefaultPopoverContent({
               status={status}
               onExpand={canExpandToPage ? handleExpand : undefined}
               proofImageSrc={expandedImage?.src}
-
             />
           ) : null}
         </div>
@@ -2954,7 +2950,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       acquireScrollLock();
       return () => releaseScrollLock();
     }, [isHovering]);
-
 
     // Dismiss the popover and reset its view state in one step.
     // Replaces the old useEffect that watched isHovering — moving the reset into
