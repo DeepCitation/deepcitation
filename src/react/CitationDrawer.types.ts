@@ -92,8 +92,6 @@ export interface CitationDrawerItemProps {
   isLast?: boolean;
   /** Callback when item is clicked */
   onClick?: (item: CitationDrawerItem) => void;
-  /** Callback when "Read more" is clicked */
-  onReadMore?: (item: CitationDrawerItem) => void;
   /** Additional class name */
   className?: string;
   /**
@@ -103,17 +101,6 @@ export interface CitationDrawerItemProps {
    * @default "icon"
    */
   indicatorVariant?: "icon" | "dot";
-  /**
-   * Map of attachmentId or URL to friendly display label.
-   * Used to override the default source name display.
-   */
-  sourceLabelMap?: Record<string, string>;
-  /**
-   * Whether this item is rendered within a group context (group header shows source name).
-   * When true, the source name line is hidden to avoid repetition.
-   * @default false
-   */
-  hideSourceName?: boolean;
   /**
    * Whether the item should start in expanded state (e.g., auto-expand first failure).
    * @default false

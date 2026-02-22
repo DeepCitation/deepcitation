@@ -27,13 +27,12 @@ import {
   Z_INDEX_DRAWER_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
-import { formatCaptureDate } from "./dateUtils.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { ExternalLinkIcon } from "./icons.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn } from "./utils.js";
-import { FaviconImage, PagePill } from "./VerificationLog.js";
+import { FaviconImage } from "./VerificationLog.js";
 
 // =========
 // Utilities: sourceLabelMap lookup
@@ -139,36 +138,6 @@ function SourceGroupHeader({
 }
 
 // =========
-// Utilities
-// =========
-
-/**
- * Format a verification date for display.
- * Recent dates show relative time; older dates show short absolute format.
- */
-function formatCheckedDate(date: Date | string | null | undefined): string | null {
-  if (!date) return null;
-  const d = typeof date === "string" ? new Date(date) : date;
-  if (Number.isNaN(d.getTime())) return null;
-
-  const now = Date.now();
-  const diffMs = now - d.getTime();
-  if (diffMs < 0) return null; // future date
-
-  const diffMin = Math.floor(diffMs / 60_000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-
-  const diffDays = Math.floor(diffHr / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
-// =========
 // CitationDrawerItemComponent
 // =========
 
@@ -184,13 +153,10 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   item,
   isLast = false,
   onClick,
-  onReadMore: _onReadMore, // kept in signature for backward compat; not rendered
   className,
   indicatorVariant = "icon",
-  hideSourceName: _hideSourceName, // no longer used — header is always fullPhrase
   defaultExpanded = false,
   style,
-  sourceLabelMap: _sourceLabelMap, // no longer used in summary row
 }: CitationDrawerItemProps) {
   const { citation, verification } = item;
   const statusInfo = useMemo(() => getStatusInfo(verification, indicatorVariant), [verification, indicatorVariant]);
@@ -232,7 +198,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const statusCategory = getItemStatusCategory(item);
   const isPending = statusCategory === "pending";
   const isNotFound = statusCategory === "notFound";
-  const isVerified = statusCategory === "verified";
   const statusBorderColor = STATUS_DISPLAY_MAP[statusCategory].borderColor;
 
   // CitationStatus shape required by EvidenceTray
@@ -245,14 +210,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     }),
     [statusCategory],
   );
-
-  // Verification date
-  const checkedDate = formatCheckedDate(verification?.verifiedAt ?? verification?.url?.crawledAt);
-
-  // Crawl date for URL citations
-  const isDocument = citation.type === "document" || (!citation.type && citation.attachmentId);
-  const formattedCrawlDate =
-    !isDocument && verification?.url?.crawledAt ? formatCaptureDate(verification.url.crawledAt) : null;
 
   // Source URL for "open page" link (URL citations only)
   const sourceUrl = citation.type === "url" && citation.url ? sanitizeUrl(citation.url) : null;
@@ -276,8 +233,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
         "cursor-pointer transition-colors border-l-[3px] animate-in fade-in-0 slide-in-from-bottom-1 duration-200 fill-mode-backwards",
         !isLast && "border-b border-gray-200 dark:border-gray-700",
         isExpanded ? statusBorderColor : "border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
-        // Mute verified items to draw attention to problems
-        isVerified && !isExpanded && "opacity-75",
         className,
       )}
       style={style}
@@ -325,28 +280,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 />
               </div>
               {pageNumber != null && pageNumber > 0 && (
-                <PagePill
-                  pageNumber={pageNumber}
-                  colorScheme={
-                    statusCategory === "verified"
-                      ? "green"
-                      : statusCategory === "partial"
-                        ? "amber"
-                        : statusCategory === "notFound"
-                          ? "red"
-                          : "gray"
-                  }
-                />
-              )}
-              {checkedDate && (
-                <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">{checkedDate}</span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-500 shrink-0">p.{pageNumber}</span>
               )}
             </div>
-            {formattedCrawlDate && (
-              <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500" title={formattedCrawlDate.tooltip}>
-                Retrieved {formattedCrawlDate.display}
-              </p>
-            )}
           </div>
 
           {/* Expand/collapse chevron */}
@@ -546,7 +482,6 @@ interface DrawerSourceGroupProps {
   isLastGroup: boolean;
   staggerOffset: number;
   onCitationClick?: (item: CitationDrawerItem) => void;
-  onReadMore?: (item: CitationDrawerItem) => void;
   indicatorVariant: "icon" | "dot";
   sourceLabelMap?: Record<string, string>;
   renderCitationItem?: (item: CitationDrawerItem) => React.ReactNode;
@@ -558,7 +493,6 @@ function DrawerSourceGroup({
   isLastGroup,
   staggerOffset,
   onCitationClick,
-  onReadMore,
   indicatorVariant,
   sourceLabelMap,
   renderCitationItem,
@@ -584,7 +518,7 @@ function DrawerSourceGroup({
       <SourceGroupHeader group={group} sourceLabelMap={sourceLabelMap} />
       <div>
         {group.citations.map((item, index) => {
-          const delay = (staggerOffset + index) * 35;
+          const delay = Math.min((staggerOffset + index) * 35, 200);
           return renderCitationItem ? (
             <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
           ) : (
@@ -593,10 +527,7 @@ function DrawerSourceGroup({
               item={item}
               isLast={isLastGroup && index === group.citations.length - 1}
               onClick={onCitationClick}
-              onReadMore={onReadMore}
               indicatorVariant={indicatorVariant}
-              hideSourceName
-              sourceLabelMap={sourceLabelMap}
               style={{ animationDelay: `${delay}ms` }}
             />
           );
@@ -696,7 +627,7 @@ export function CitationDrawer({
   showMoreSection: _showMoreSection,
   maxVisibleItems: _maxVisibleItems,
   onCitationClick,
-  onReadMore,
+  onReadMore: _onReadMore,
   className,
   position = "bottom",
   renderCitationItem,
@@ -828,7 +759,6 @@ export function CitationDrawer({
                 isLastGroup={groupIndex === sortedGroups.length - 1}
                 staggerOffset={staggerOffsets[groupIndex] ?? 0}
                 onCitationClick={onCitationClick}
-                onReadMore={onReadMore}
                 indicatorVariant={indicatorVariant}
                 sourceLabelMap={sourceLabelMap}
                 renderCitationItem={renderCitationItem}
