@@ -23,9 +23,10 @@ import {
   POPOVER_MORPH_EXPAND_MS,
   POPOVER_WIDTH,
 } from "./constants.js";
-import { EvidenceTray, InlineExpandedImage, normalizeScreenshotSrc, resolveExpandedImage } from "./EvidenceTray.js";
+import { EvidenceTray, normalizeScreenshotSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
+import { InlineExpandedImage } from "./InlineExpandedImage.js";
 import { SpinnerIcon } from "./icons.js";
 import type { BaseCitationProps } from "./types.js";
 import {

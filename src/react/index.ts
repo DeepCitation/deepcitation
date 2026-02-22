@@ -43,12 +43,26 @@ export {
   type CitationDrawerTriggerProps,
   type CitationStatusSummary,
 } from "./CitationDrawerTrigger.js";
+// Error Boundary
+export { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 // Citation Overlay Context (for blocking hover when image is expanded)
 export {
   CitationOverlayProvider,
   useCitationOverlay,
   useHasCitationOverlayProvider,
 } from "./CitationOverlayContext.js";
+// CVA Variant Definitions (class-variance-authority)
+export {
+  BADGE_HOVER_CLASSES,
+  type CitationContainerVariants,
+  type CitationHoverVariants,
+  citationContainerVariants,
+  citationHoverVariants,
+  LINTER_HOVER_CLASSES,
+  LINTER_STYLES,
+  resolveStatusKey,
+  SUPERSCRIPT_STYLE,
+} from "./citationVariants.cva.js";
 // Constants - Shared styling and configuration
 export {
   COPY_FEEDBACK_DURATION_MS,
@@ -90,9 +104,35 @@ export {
   Z_INDEX_OVERLAY_DEFAULT,
   Z_INDEX_POPOVER_VAR,
 } from "./constants.js";
+// Evidence components
 export { type ExpandedImageSource, resolveExpandedImage } from "./EvidenceTray.js";
+// Animation lifecycle hook
+export {
+  type AnimationPhase,
+  type UseAnimationStateOptions,
+  type UseAnimationStateResult,
+  useAnimationState,
+} from "./hooks/useAnimationState.js";
+// Citation data & event hooks (extracted from CitationVariants)
+export { type UseCitationDataResult, useCitationData } from "./hooks/useCitationData.js";
+export { type UseCitationEventsResult, useCitationEvents } from "./hooks/useCitationEvents.js";
+export {
+  type UseCitationTelemetryOptions,
+  type UseCitationTelemetryResult,
+  useCitationTelemetry,
+} from "./hooks/useCitationTelemetry.js";
+export { type UsePopoverDismissOptions, usePopoverDismiss } from "./hooks/usePopoverDismiss.js";
+export {
+  type UsePopoverPositionOptions,
+  type UsePopoverPositionResult,
+  usePopoverPosition,
+} from "./hooks/usePopoverPosition.js";
 // Accessibility Hooks
 export { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
+// Extracted hooks (from CitationComponent decomposition)
+export { useScrollLock } from "./hooks/useScrollLock.js";
+export { type UseZoomControlsOptions, type UseZoomControlsResult, useZoomControls } from "./hooks/useZoomControls.js";
+export { InlineExpandedImage } from "./InlineExpandedImage.js";
 // Icons
 export {
   CheckIcon,
@@ -108,6 +148,8 @@ export {
   XCircleIcon,
   XIcon,
 } from "./icons.js";
+// Shared image utilities
+export { handleImageError } from "./imageUtils.js";
 // Prefetch utilities (for pre-rendering images before hover)
 export {
   clearPrefetchCache,
@@ -116,6 +158,7 @@ export {
   prefetchImages,
   usePrefetchImage,
 } from "./PrefetchedPopoverImage.js";
+export { SearchAnalysisSummary } from "./SearchAnalysisSummary.js";
 // Sources List Components (Anthropic-style aggregated citations)
 export {
   MemoizedSourcesListComponent,

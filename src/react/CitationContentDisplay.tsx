@@ -2,7 +2,8 @@
  * Citation content display — variant rendering logic.
  *
  * Renders variant-specific citation content (chip, superscript, text, badge,
- * linter, brackets). Shared rendering utilities live in CitationContentDisplay.utils.ts.
+ * linter, brackets). Uses CVA for class computation and shared rendering
+ * utilities from CitationContentDisplay.utils.ts.
  *
  * @packageDocumentation
  */
@@ -11,21 +12,18 @@ import type React from "react";
 import type { CitationStatus } from "../types/citation.js";
 import { getStatusHoverClasses } from "./CitationContentDisplay.utils.js";
 import { CitationStatusIndicator, type CitationStatusIndicatorProps } from "./CitationStatusIndicator.js";
+import {
+  BADGE_HOVER_CLASSES,
+  citationContainerVariants,
+  LINTER_HOVER_CLASSES,
+  LINTER_STYLES,
+  resolveStatusKey,
+  SUPERSCRIPT_STYLE,
+} from "./citationVariants.cva.js";
 import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import { handleImageError } from "./imageUtils.js";
 import type { CitationContent, CitationRenderProps, CitationVariant } from "./types.js";
 import { cn, isUrlCitation } from "./utils.js";
-
-// =============================================================================
-// MODULE-LEVEL UTILITIES
-// =============================================================================
-
-/**
- * Module-level handler for hiding broken images.
- * Performance fix: avoids creating new function references on every render.
- */
-const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-  (e.target as HTMLImageElement).style.display = "none";
-};
 
 // =============================================================================
 // CITATION CONTENT DISPLAY COMPONENT
@@ -89,13 +87,14 @@ export const CitationContentDisplay = ({
     return <span>{indicator}</span>;
   }
 
+  const statusKey = resolveStatusKey(isVerified, isPartialMatch, isMiss, shouldShowSpinner);
+
   // Variant: chip (pill/badge style with neutral gray background)
   if (variant === "chip") {
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal transition-colors",
-          "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+          citationContainerVariants({ variant: "chip" }),
           ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner),
         )}
       >
@@ -130,7 +129,7 @@ export const CitationContentDisplay = ({
             supStatusClasses,
             ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner),
           )}
-          style={{ fontSize: "0.65em", lineHeight: 0, position: "relative", top: "-0.65em", verticalAlign: "baseline" }}
+          style={SUPERSCRIPT_STYLE}
         >
           [<span>{citationNumber}</span>
           {indicator}]
@@ -142,7 +141,7 @@ export const CitationContentDisplay = ({
   // Variant: text
   if (variant === "text") {
     return (
-      <span className={cn("font-normal", statusClasses)}>
+      <span className={cn(citationContainerVariants({ variant: "text" }), statusClasses)}>
         {displayText}
         {indicator}
       </span>
@@ -155,14 +154,9 @@ export const CitationContentDisplay = ({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
-          "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-          "transition-colors cursor-pointer",
-          isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-          isPartialMatch && !shouldShowSpinner && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
-          isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-          (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
-            "hover:bg-gray-200 dark:hover:bg-gray-700",
+          citationContainerVariants({ variant: "badge" }),
+          "transition-colors",
+          BADGE_HOVER_CLASSES[statusKey],
         )}
       >
         {faviconSrc && (
@@ -193,46 +187,11 @@ export const CitationContentDisplay = ({
 
   // Variant: linter
   if (variant === "linter") {
-    const isVerifiedState = isVerified && !isPartialMatch && !shouldShowSpinner;
-    const isPartialState = isPartialMatch && !shouldShowSpinner;
-    const isMissState = isMiss && !shouldShowSpinner;
-    const isPendingState = shouldShowSpinner;
-
-    const linterStyles: React.CSSProperties = {
-      textDecoration: "underline",
-      textDecorationThickness: "2px",
-      textUnderlineOffset: "3px",
-      borderRadius: "2px",
-      color: "inherit",
-      fontSize: "inherit",
-      fontFamily: "inherit",
-      lineHeight: "inherit",
-    };
-
-    if (isMissState) {
-      linterStyles.textDecorationStyle = "wavy";
-      linterStyles.textDecorationColor = "var(--dc-linter-error, #c0605f)";
-    } else if (isPartialState) {
-      linterStyles.textDecorationStyle = "dashed";
-      linterStyles.textDecorationColor = "var(--dc-linter-warning, #f59e0b)";
-    } else if (isVerifiedState) {
-      linterStyles.textDecorationStyle = "solid";
-      linterStyles.textDecorationColor = "var(--dc-linter-success, #4a7c5f)";
-    } else {
-      linterStyles.textDecorationStyle = "dotted";
-      linterStyles.textDecorationColor = "var(--dc-linter-pending, #9ca3af)";
-    }
-
-    const linterClasses = cn(
-      "cursor-pointer font-normal",
-      isVerifiedState && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-      isPartialState && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
-      isMissState && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-      isPendingState && "bg-gray-500/[0.05] hover:bg-gray-500/10 dark:bg-gray-400/[0.05] dark:hover:bg-gray-400/10",
-    );
-
     return (
-      <span className={linterClasses} style={linterStyles}>
+      <span
+        className={cn("cursor-pointer font-normal", LINTER_HOVER_CLASSES[statusKey])}
+        style={LINTER_STYLES[statusKey]}
+      >
         {displayText}
         {showIndicator && indicator}
       </span>
@@ -241,15 +200,7 @@ export const CitationContentDisplay = ({
 
   // Variant: brackets (default)
   return (
-    <span
-      className={cn(
-        "inline-flex items-baseline gap-0.5 whitespace-nowrap",
-        "font-mono font-normal text-xs leading-tight",
-        "text-gray-500 dark:text-gray-400",
-        "transition-colors",
-      )}
-      aria-hidden="true"
-    >
+    <span className={citationContainerVariants({ variant: "brackets" })} aria-hidden="true">
       [
       <span className={cn("max-w-80 overflow-hidden text-ellipsis", statusClasses)}>
         {displayText}

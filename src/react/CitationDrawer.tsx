@@ -28,16 +28,18 @@ import {
   Z_INDEX_DRAWER_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
-import { EvidenceTray, InlineExpandedImage } from "./EvidenceTray.js";
+import { EvidenceTray } from "./EvidenceTray.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
+import { InlineExpandedImage } from "./InlineExpandedImage.js";
 import { ExternalLinkIcon } from "./icons.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn } from "./utils.js";
 import { FaviconImage } from "./VerificationLog.js";
 
 // HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
-// EvidenceTray, InlineExpandedImage — imported from ./EvidenceTray.js (canonical location)
+// EvidenceTray — imported from ./EvidenceTray.js (canonical location)
+// InlineExpandedImage — imported from ./InlineExpandedImage.js (canonical location)
 
 // =========
 // Internal escape-navigation context — NOT exported
