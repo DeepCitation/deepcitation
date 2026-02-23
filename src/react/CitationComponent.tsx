@@ -282,6 +282,71 @@ export interface CitationComponentProps extends BaseCitationProps {
 // DefaultPopoverContent, PopoverViewState — imported from ./DefaultPopoverContent.js (canonical location)
 
 // =============================================================================
+// POPOVER CONTENT RENDERER
+// =============================================================================
+
+/**
+ * Renders popover content — either a custom render prop or the default.
+ * Extracted as a named component so React can track it as a stable fiber type
+ * for proper reconciliation (avoids remounting on every parent render).
+ */
+const PopoverContentRenderer = memo(function PopoverContentRenderer({
+  renderPopoverContent,
+  citation,
+  verification,
+  status,
+  isLoading,
+  isVisible,
+  sourceLabel,
+  indicatorVariant,
+  viewState,
+  onViewStateChange,
+  expandedImageSrcOverride,
+  onExpandedWidthChange,
+  prevBeforeExpandedPageRef,
+}: {
+  renderPopoverContent?: CitationComponentProps["renderPopoverContent"];
+  citation: BaseCitationProps["citation"];
+  verification: Verification | null;
+  status: CitationStatus;
+  isLoading: boolean;
+  isVisible: boolean;
+  sourceLabel?: string;
+  indicatorVariant: "icon" | "dot";
+  viewState: PopoverViewState;
+  onViewStateChange: (viewState: PopoverViewState) => void;
+  expandedImageSrcOverride: string | null;
+  onExpandedWidthChange: (width: number | null) => void;
+  prevBeforeExpandedPageRef: React.RefObject<"summary" | "expanded-evidence">;
+}) {
+  if (renderPopoverContent) {
+    return (
+      <CitationErrorBoundary>
+        {renderPopoverContent({ citation, verification, status })}
+      </CitationErrorBoundary>
+    );
+  }
+  return (
+    <CitationErrorBoundary>
+      <DefaultPopoverContent
+        citation={citation}
+        verification={verification}
+        status={status}
+        isLoading={isLoading}
+        isVisible={isVisible}
+        sourceLabel={sourceLabel}
+        indicatorVariant={indicatorVariant}
+        viewState={viewState}
+        onViewStateChange={onViewStateChange}
+        expandedImageSrcOverride={expandedImageSrcOverride}
+        onExpandedWidthChange={onExpandedWidthChange}
+        prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
+      />
+    </CitationErrorBoundary>
+  );
+});
+
+// =============================================================================
 // MAIN COMPONENT
 // =============================================================================
 
@@ -453,19 +518,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // and before paint, so the offset is applied before the popover is visible.
     const [expandedPageSideOffset, setExpandedPageSideOffset] = useState<number | undefined>(undefined);
     useLayoutEffect(() => {
-      if (popoverViewState !== "expanded-page") {
-        setExpandedPageSideOffset(undefined);
-        return;
-      }
-      const triggerRect = triggerRef.current?.getBoundingClientRect();
-      if (!triggerRect) {
-        setExpandedPageSideOffset(undefined);
-        return;
-      }
+      // Compute sideOffset so the popover lands 1rem from viewport top in expanded-page mode.
+      // For side="bottom": popover.top = trigger.bottom + sideOffset → target VIEWPORT_MARGIN.
       const VIEWPORT_MARGIN = 16; // 1rem
-      // For side="bottom": popover.top = trigger.bottom + sideOffset
-      // We want popover.top = VIEWPORT_MARGIN
-      setExpandedPageSideOffset(VIEWPORT_MARGIN - triggerRect.bottom);
+      const triggerRect =
+        popoverViewState === "expanded-page" ? triggerRef.current?.getBoundingClientRect() : null;
+      setExpandedPageSideOffset(triggerRect ? VIEWPORT_MARGIN - triggerRect.bottom : undefined);
     }, [popoverViewState]);
 
     const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
@@ -552,14 +610,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       for (const t of spinnerTimeoutsRef.current) clearTimeout(t);
       spinnerTimeoutsRef.current = [];
 
+      // Always reset to active; schedule stage transitions only when loading.
+      setSpinnerStage("active");
       if ((isLoading || isPending) && !hasDefinitiveResult) {
-        setSpinnerStage("active");
         spinnerTimeoutsRef.current.push(
           setTimeout(() => setSpinnerStage("slow"), SPINNER_TIMEOUT_MS),
           setTimeout(() => setSpinnerStage("stale"), SPINNER_TIMEOUT_MS * 3),
         );
-      } else {
-        setSpinnerStage("active");
       }
 
       return () => {
@@ -786,9 +843,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       };
 
       // Use touchstart with capture phase to detect touches before they're handled
-      // by other handlers (like handleTouchStart on the citation trigger itself)
+      // by other handlers (like handleTouchStart on the citation trigger itself).
+      // passive: true — handler never calls preventDefault(), so allow scroll immediately.
       document.addEventListener("touchstart", handleOutsideTouch, {
         capture: true,
+        passive: true,
       });
 
       return () => {
@@ -1023,31 +1082,22 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // Render with Radix Popover
     if (shouldShowPopover) {
-      const popoverContentElement = renderPopoverContent ? (
-        <CitationErrorBoundary>
-          {renderPopoverContent({
-            citation,
-            verification: verification ?? null,
-            status,
-          })}
-        </CitationErrorBoundary>
-      ) : (
-        <CitationErrorBoundary>
-          <DefaultPopoverContent
-            citation={citation}
-            verification={verification ?? null}
-            status={status}
-            isLoading={isLoading || shouldShowSpinner}
-            isVisible={isHovering}
-            sourceLabel={sourceLabel}
-            indicatorVariant={indicatorVariant}
-            viewState={popoverViewState}
-            onViewStateChange={setPopoverViewState}
-            expandedImageSrcOverride={customExpandedSrc}
-            onExpandedWidthChange={setExpandedImageWidth}
-            prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
-          />
-        </CitationErrorBoundary>
+      const popoverContentElement = (
+        <PopoverContentRenderer
+          renderPopoverContent={renderPopoverContent}
+          citation={citation}
+          verification={verification ?? null}
+          status={status}
+          isLoading={isLoading || shouldShowSpinner}
+          isVisible={isHovering}
+          sourceLabel={sourceLabel}
+          indicatorVariant={indicatorVariant}
+          viewState={popoverViewState}
+          onViewStateChange={setPopoverViewState}
+          expandedImageSrcOverride={customExpandedSrc}
+          onExpandedWidthChange={setExpandedImageWidth}
+          prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
+        />
       );
 
       // Image prefetching is handled imperatively inside DefaultPopoverContent

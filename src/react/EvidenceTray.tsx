@@ -392,6 +392,17 @@ export function AnchorTextFocusedImage({
           type="button"
           className="block relative w-full"
           style={{ cursor: isDragging ? "grabbing" : isPannable ? "grab" : canExpand ? "zoom-in" : "default" }}
+          onKeyDown={e => {
+            const el = containerRef.current;
+            if (!el) return;
+            if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              el.scrollTo({ left: el.scrollLeft - Math.max(el.clientWidth * 0.5, 80), behavior: "smooth" });
+            } else if (e.key === "ArrowRight") {
+              e.preventDefault();
+              el.scrollTo({ left: el.scrollLeft + Math.max(el.clientWidth * 0.5, 80), behavior: "smooth" });
+            }
+          }}
           onClick={e => {
             e.preventDefault();
             // Suppress click if user was dragging
@@ -446,10 +457,9 @@ export function AnchorTextFocusedImage({
 
           {/* Left pan hint — clicking pans the image left */}
           {scrollState.canScrollLeft && (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: pan hints are inside a <button>; keyboard access is provided by the parent element
             <div
+              aria-hidden="true"
               className="absolute left-0 top-0 h-full min-w-[44px] flex items-center justify-center opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 cursor-pointer"
-              aria-label="Pan image left"
               onClick={e => {
                 e.stopPropagation();
                 const el = containerRef.current;
@@ -465,10 +475,9 @@ export function AnchorTextFocusedImage({
 
           {/* Right pan hint — clicking pans the image right */}
           {scrollState.canScrollRight && (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: pan hints are inside a <button>; keyboard access is provided by the parent element
             <div
+              aria-hidden="true"
               className="absolute right-0 top-0 h-full min-w-[44px] flex items-center justify-center opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 cursor-pointer"
-              aria-label="Pan image right"
               onClick={e => {
                 e.stopPropagation();
                 const el = containerRef.current;
@@ -770,7 +779,6 @@ export function InlineExpandedImage({
   src,
   onCollapse,
   verification,
-  status,
   fill = false,
   onNaturalSize,
   renderScale,
@@ -778,7 +786,6 @@ export function InlineExpandedImage({
   src: string;
   onCollapse: () => void;
   verification?: Verification | null;
-  status?: CitationStatus;
   /** When true, the component expands to fill its flex parent (for use inside flex-column containers). */
   fill?: boolean;
   /** Called after image load with natural pixel dimensions. */
@@ -1000,7 +1007,6 @@ export function InlineExpandedImage({
     return () => document.removeEventListener("pointerup", unlock);
   }, [sliderLockWidth]);
 
-  const _isMiss = status?.isMiss;
   const searchAttempts = verification?.searchAttempts ?? [];
   const outcomeLabel = deriveOutcomeLabel(verification?.status, searchAttempts);
   const formatted = formatCaptureDate(verification?.verifiedAt);
@@ -1036,11 +1042,11 @@ export function InlineExpandedImage({
       style={
         fill
           ? undefined // fill mode: container fills popover width, image scrolls inside
-          : zoomedWidth !== undefined
-            ? sliderLockWidth !== null
+          : zoomedWidth 
+            ? sliderLockWidth 
               ? { width: sliderLockWidth, minWidth: sliderLockWidth, maxWidth: sliderLockWidth }
               : { maxWidth: zoomedWidth }
-            : naturalWidth !== null
+            : naturalWidth 
               ? { maxWidth: naturalWidth }
               : undefined
       }
@@ -1048,10 +1054,12 @@ export function InlineExpandedImage({
       {/* Wrapper: relative so zoom controls can be positioned absolutely over the scroll area */}
       <div className={cn("relative", fill && "flex-1 min-h-0 flex flex-col")}>
         {/* Scrollable image area — click (no drag) collapses */}
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: drag-to-pan area; keyboard exit handled by parent popover Escape */}
         <div
           ref={containerRef}
           data-dc-inline-expanded=""
+          role="button"
+          tabIndex={0}
+          aria-label="Expanded verification image, click or press Enter to collapse"
           className={cn(
             "relative bg-gray-50 dark:bg-gray-900 select-none overflow-auto rounded-t-sm",
             fill && "flex-1 min-h-0",
@@ -1070,6 +1078,13 @@ export function InlineExpandedImage({
               return;
             }
             onCollapse();
+          }}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onCollapse();
+            }
           }}
           {...panHandlers}
         >
@@ -1154,10 +1169,12 @@ export function InlineExpandedImage({
               pointerEvents: "auto",
             }}
           >
-            {/* biome-ignore lint/a11y/useKeyWithClickEvents: zoom controls are auxiliary UI, main interaction is drag-to-pan */}
             <div
+              role="toolbar"
+              aria-label="Zoom controls"
               className="flex items-center gap-0.5 bg-black/40 backdrop-blur-sm text-white/80 rounded-full px-1 py-0.5 shadow-sm"
               onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
             >
               <button
                 type="button"
