@@ -282,6 +282,33 @@ export interface CitationComponentProps extends BaseCitationProps {
 // DefaultPopoverContent, PopoverViewState — imported from ./DefaultPopoverContent.js (canonical location)
 
 // =============================================================================
+// SPINNER STAGE HOOK
+// =============================================================================
+
+/** Manages the 3-stage spinner progression: active (0–5s) → slow (5–15s) → stale (15s+). */
+function useSpinnerStage(isLoading: boolean, isPending: boolean, hasDefinitiveResult: boolean): SpinnerStage {
+  const [stage, setStage] = useState<SpinnerStage>("active");
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    for (const t of timeoutsRef.current) clearTimeout(t);
+    timeoutsRef.current = [];
+    setStage("active");
+    if ((isLoading || isPending) && !hasDefinitiveResult) {
+      timeoutsRef.current.push(
+        setTimeout(() => setStage("slow"), SPINNER_TIMEOUT_MS),
+        setTimeout(() => setStage("stale"), SPINNER_TIMEOUT_MS * 3),
+      );
+    }
+    return () => {
+      for (const t of timeoutsRef.current) clearTimeout(t);
+    };
+  }, [isLoading, isPending, hasDefinitiveResult]);
+
+  return stage;
+}
+
+// =============================================================================
 // POPOVER CONTENT RENDERER
 // =============================================================================
 
@@ -320,9 +347,10 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   prevBeforeExpandedPageRef: React.RefObject<"summary" | "expanded-evidence">;
 }) {
   if (renderPopoverContent) {
+    const CustomContent = renderPopoverContent;
     return (
       <CitationErrorBoundary>
-        {renderPopoverContent({ citation, verification, status })}
+        <CustomContent citation={citation} verification={verification} status={status} />
       </CitationErrorBoundary>
     );
   }
@@ -589,10 +617,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Resolve the image source, preferring the new field name with fallback to deprecated one
     const resolvedImageSrc = verification?.document?.verificationImageSrc ?? null;
 
-    // 3-stage spinner: active (0-5s) → slow (5-15s) → stale (15s+)
-    const [spinnerStage, setSpinnerStage] = useState<SpinnerStage>("active");
-    const spinnerTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
     const hasDefinitiveResult =
       resolvedImageSrc ||
       verification?.status === "found" ||
@@ -604,25 +628,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       verification?.status === "found_on_other_line" ||
       verification?.status === "first_word_found";
 
+    // 3-stage spinner: active (0–5s) → slow (5–15s) → stale (15s+)
+    const spinnerStage = useSpinnerStage(isLoading, isPending, !!hasDefinitiveResult);
     const shouldShowSpinner = (isLoading || isPending) && !hasDefinitiveResult && spinnerStage !== "stale";
-
-    useEffect(() => {
-      for (const t of spinnerTimeoutsRef.current) clearTimeout(t);
-      spinnerTimeoutsRef.current = [];
-
-      // Always reset to active; schedule stage transitions only when loading.
-      setSpinnerStage("active");
-      if ((isLoading || isPending) && !hasDefinitiveResult) {
-        spinnerTimeoutsRef.current.push(
-          setTimeout(() => setSpinnerStage("slow"), SPINNER_TIMEOUT_MS),
-          setTimeout(() => setSpinnerStage("stale"), SPINNER_TIMEOUT_MS * 3),
-        );
-      }
-
-      return () => {
-        for (const t of spinnerTimeoutsRef.current) clearTimeout(t);
-      };
-    }, [isLoading, isPending, hasDefinitiveResult]);
 
     const displayText = useMemo(() => {
       return getDisplayText(citation, resolvedContent, fallbackDisplay);

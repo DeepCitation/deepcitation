@@ -56,7 +56,9 @@ async function expandToFullPage(page: import("@playwright/test").Page) {
   await expect(expandButton).toBeVisible({ timeout: 5000 });
   await expandButton.click();
 
-  const expandedView = popover.locator("[data-dc-inline-expanded]");
+  // Triple always-render pattern: both evidence and page InlineExpandedImage instances exist
+  // in the DOM simultaneously; filter to the visible one (parent display:none hides inactive views).
+  const expandedView = popover.locator("[data-dc-inline-expanded]").filter({ visible: true });
   await expect(expandedView).toBeVisible({ timeout: 5000 });
 
   // Let layout, zoom calculation, and onNaturalSize callback settle
@@ -98,7 +100,8 @@ test.describe("Expanded-Page Basics", () => {
 
     const { popover } = await expandToFullPage(page);
 
-    const img = popover.locator("[data-dc-inline-expanded] img");
+    // Triple always-render: filter to visible InlineExpandedImage before locating img inside.
+    const img = popover.locator("[data-dc-inline-expanded]").filter({ visible: true }).locator("img");
     await expect(img).toBeVisible();
 
     const renderedWidth = await img.evaluate(el => (el as HTMLImageElement).getBoundingClientRect().width);
@@ -234,7 +237,8 @@ test.describe("Expanded-Page Viewport Containment", () => {
 
       // At 768px viewport, image should fill most of the width
       // (800px natural, capped to ~768 - 2rem = 736px)
-      const img = popover.locator("[data-dc-inline-expanded] img");
+      // Triple always-render: filter to visible InlineExpandedImage before locating img inside.
+    const img = popover.locator("[data-dc-inline-expanded]").filter({ visible: true }).locator("img");
       await expect(img).toBeVisible();
       const renderedWidth = await img.evaluate(el => (el as HTMLImageElement).getBoundingClientRect().width);
       expect(renderedWidth).toBeGreaterThan(500);

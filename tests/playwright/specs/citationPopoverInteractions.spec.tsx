@@ -125,9 +125,9 @@ test.describe("Citation Popover - Basic Behavior", () => {
     const citation = page.locator("[data-citation-id]");
     await citation.click();
 
-    // Image should be visible in popover
+    // Image should be visible in popover (keyhole strip — other imgs are hidden by display:none)
     const popover = page.getByRole("dialog");
-    const image = popover.locator("img");
+    const image = popover.locator("[data-dc-keyhole] img");
     await expect(image).toBeVisible();
   });
 });

@@ -111,7 +111,8 @@ test.describe("Popover Image Keyhole Strip", () => {
     const popover = page.locator("[data-radix-popper-content-wrapper]");
     await expect(popover).toBeVisible();
 
-    const image = popover.locator("img");
+    // Use keyhole-strip img — triple always-render pattern puts extra imgs in DOM (display:none)
+    const image = popover.locator("[data-dc-keyhole] img");
     await expect(image).toBeVisible();
 
     // Image should have max-w-none class (no max-width constraint)
@@ -301,8 +302,8 @@ test.describe("Image Click to Expand", () => {
     await expect(keyholeStrip).toBeVisible();
     await keyholeStrip.click();
 
-    // The inline expanded view should now be visible (InlineExpandedImage renders this attribute)
-    const expandedView = popover.locator("[data-dc-inline-expanded]");
+    // Triple always-render: both evidence and page InlineExpandedImage exist in DOM; filter to visible.
+    const expandedView = popover.locator("[data-dc-inline-expanded]").filter({ visible: true });
     await expect(expandedView).toBeVisible({ timeout: 5000 });
   });
 
@@ -323,8 +324,8 @@ test.describe("Image Click to Expand", () => {
     const keyholeStrip = popover.locator("[data-dc-keyhole]");
     await keyholeStrip.click();
 
-    // Verify expanded view is active
-    const expandedView = popover.locator("[data-dc-inline-expanded]");
+    // Verify expanded view is active (filter to visible — triple always-render pattern)
+    const expandedView = popover.locator("[data-dc-inline-expanded]").filter({ visible: true });
     await expect(expandedView).toBeVisible({ timeout: 5000 });
 
     // Press Escape to close

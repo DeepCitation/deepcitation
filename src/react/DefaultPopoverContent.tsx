@@ -294,7 +294,13 @@ function EvidenceZone({
         </div>
       )}
       {expandedImage?.src && (
-        <div style={viewState !== "expanded-page" ? { display: "none" } : undefined}>
+        // flex-1 min-h-0 flex flex-col: propagates the bounded height from the flex-column
+        // PopoverLayoutShell so InlineExpandedImage's own flex-1 min-h-0 can take effect.
+        // display:none on inactive view (style overrides the flex classes when hidden).
+        <div
+          className="flex-1 min-h-0 flex flex-col"
+          style={viewState !== "expanded-page" ? { display: "none" } : undefined}
+        >
           <InlineExpandedImage
             src={expandedImage.src}
             onCollapse={() => onViewStateChange?.(prevBeforeExpandedPageRef.current)}
@@ -306,6 +312,124 @@ function EvidenceZone({
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Loading/pending skeleton view.
+ * Mirrors the resolved layout shape so the popover doesn't jump when verification arrives.
+ */
+function PopoverLoadingView({
+  citation,
+  verification,
+  sourceLabel,
+}: {
+  citation: BaseCitationProps["citation"];
+  verification: Verification | null;
+  sourceLabel?: string;
+}) {
+  const anchorText = citation.anchorText?.toString();
+  const fullPhrase = citation.fullPhrase;
+  const searchStatus = verification?.status;
+  const searchingPhrase = fullPhrase || anchorText;
+  return (
+    <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[200px] max-w-[480px]`}>
+      <SourceContextHeader
+        citation={citation}
+        verification={verification}
+        status={searchStatus}
+        sourceLabel={sourceLabel}
+      />
+      <div className="p-3 flex flex-col gap-2.5">
+        {/* Skeleton: status bar placeholder */}
+        <div className="h-3 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        {/* Skeleton: quote box placeholder */}
+        <div className="pl-3 border-l-[3px] border-gray-200 dark:border-gray-700 space-y-1.5">
+          <div className="h-3 w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-3 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        </div>
+        {/* Skeleton: image strip placeholder */}
+        <div className="h-[60px] w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        {/* Actual search status */}
+        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+          <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
+            <SpinnerIcon />
+          </span>
+          Searching...
+        </span>
+        {searchingPhrase && (
+          <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
+            &ldquo;{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}&rdquo;
+          </p>
+        )}
+        {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">Looking on p.{citation.pageNumber}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Fallback text-only view for verified/partial-match citations without an evidence image.
+ * Returns null when there is nothing meaningful to display.
+ */
+function PopoverFallbackView({
+  citation,
+  verification,
+  sourceLabel,
+  status,
+  urlAccessExplanation,
+}: {
+  citation: BaseCitationProps["citation"];
+  verification: Verification | null;
+  sourceLabel?: string;
+  status: CitationStatus;
+  urlAccessExplanation: UrlAccessExplanation | null;
+}) {
+  const searchStatus = verification?.status;
+  const statusLabel = getStatusLabel(status);
+  const hasSnippet = verification?.verifiedMatchSnippet;
+  const pageNumber = verification?.document?.verifiedPageNumber;
+
+  if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
+
+  return (
+    <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[180px] max-w-full`}>
+      <SourceContextHeader
+        citation={citation}
+        verification={verification}
+        status={searchStatus}
+        sourceLabel={sourceLabel}
+      />
+      {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
+      <div className="p-3 flex flex-col gap-2">
+        {!urlAccessExplanation && statusLabel && (
+          <span
+            className={cn(
+              "text-xs font-medium",
+              status.isVerified && !status.isPartialMatch && "text-green-600 dark:text-green-400",
+              status.isPartialMatch && "text-amber-500 dark:text-amber-400",
+              status.isMiss && "text-red-500 dark:text-red-400",
+              status.isPending && "text-gray-500 dark:text-gray-400",
+            )}
+          >
+            {statusLabel}
+          </span>
+        )}
+        {hasSnippet && (
+          <q
+            className="border-l-2 border-gray-300 dark:border-gray-600 pl-1.5 ml-0.5 text-sm text-gray-700 dark:text-gray-200"
+            style={{ quotes: "none" }}
+          >
+            {hasSnippet}
+          </q>
+        )}
+        {pageNumber && pageNumber > 0 && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -471,44 +595,7 @@ export function DefaultPopoverContent({
 
   // Loading/pending state view — skeleton mirrors resolved layout shape
   if (isLoading || isPending) {
-    const searchingPhrase = fullPhrase || anchorText;
-    return (
-      <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[200px] max-w-[480px]`}>
-        {/* Source context header */}
-        <SourceContextHeader
-          citation={citation}
-          verification={verification}
-          status={searchStatus}
-          sourceLabel={sourceLabel}
-        />
-        <div className="p-3 flex flex-col gap-2.5">
-          {/* Skeleton: status bar placeholder */}
-          <div className="h-3 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          {/* Skeleton: quote box placeholder */}
-          <div className="pl-3 border-l-[3px] border-gray-200 dark:border-gray-700 space-y-1.5">
-            <div className="h-3 w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-            <div className="h-3 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          </div>
-          {/* Skeleton: image strip placeholder */}
-          <div className="h-[60px] w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          {/* Actual search status */}
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-            <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
-              <SpinnerIcon />
-            </span>
-            Searching...
-          </span>
-          {searchingPhrase && (
-            <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
-              &ldquo;{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}&rdquo;
-            </p>
-          )}
-          {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">Looking on p.{citation.pageNumber}</span>
-          )}
-        </div>
-      </div>
-    );
+    return <PopoverLoadingView citation={citation} verification={verification} sourceLabel={sourceLabel} />;
   }
 
   // ==========================================================================
@@ -665,49 +752,13 @@ export function DefaultPopoverContent({
   // ==========================================================================
   // FALLBACK: Text-only view (verified/partial match without image)
   // ==========================================================================
-  const statusLabel = getStatusLabel(status);
-  const hasSnippet = verification?.verifiedMatchSnippet;
-  const pageNumber = verification?.document?.verifiedPageNumber;
-
-  if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
-
   return (
-    <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[180px] max-w-full`}>
-      {/* Source context header */}
-      <SourceContextHeader
-        citation={citation}
-        verification={verification}
-        status={searchStatus}
-        sourceLabel={sourceLabel}
-      />
-      {/* URL access explanation (for URL citations with access failures) */}
-      {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
-      <div className="p-3 flex flex-col gap-2">
-        {!urlAccessExplanation && statusLabel && (
-          <span
-            className={cn(
-              "text-xs font-medium",
-              status.isVerified && !status.isPartialMatch && "text-green-600 dark:text-green-400",
-              status.isPartialMatch && "text-amber-500 dark:text-amber-400",
-              status.isMiss && "text-red-500 dark:text-red-400",
-              status.isPending && "text-gray-500 dark:text-gray-400",
-            )}
-          >
-            {statusLabel}
-          </span>
-        )}
-        {hasSnippet && (
-          <q
-            className="border-l-2 border-gray-300 dark:border-gray-600 pl-1.5 ml-0.5 text-sm text-gray-700 dark:text-gray-200"
-            style={{ quotes: "none" }}
-          >
-            {verification.verifiedMatchSnippet}
-          </q>
-        )}
-        {pageNumber && pageNumber > 0 && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
-        )}
-      </div>
-    </div>
+    <PopoverFallbackView
+      citation={citation}
+      verification={verification}
+      sourceLabel={sourceLabel}
+      status={status}
+      urlAccessExplanation={urlAccessExplanation}
+    />
   );
 }
