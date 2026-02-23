@@ -1,13 +1,18 @@
-import { forwardRef, memo, type ReactNode, useMemo } from "react";
-import type { CitationStatus } from "../types/citation.js";
+import React, { forwardRef, memo, type ReactNode, useCallback, useMemo } from "react";
+import { getCitationStatus } from "../parsing/parseCitation.js";
+import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { MISS_WAVY_UNDERLINE_STYLE, PARTIAL_COLOR_STYLE, VERIFIED_COLOR_STYLE } from "./constants.js";
-import { useCitationData } from "./hooks/useCitationData.js";
-import { useCitationEvents } from "./hooks/useCitationEvents.js";
 import { XIcon } from "./icons.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
 import type { BaseCitationProps, CitationEventHandlers, CitationVariant as CitationVariantType } from "./types.js";
-import { classNames, getCitationDisplayText, getCitationNumber } from "./utils.js";
+import {
+  classNames,
+  generateCitationInstanceId,
+  generateCitationKey,
+  getCitationDisplayText,
+  getCitationNumber,
+} from "./utils.js";
 
 const TWO_DOTS_THINKING_CONTENT = "..";
 
@@ -32,6 +37,18 @@ export interface CitationVariantProps extends BaseCitationProps {
 }
 
 /**
+ * Hook to get common citation data.
+ * NOTE: Status is not memoized because verification may be mutated in place.
+ */
+function useCitationData(citation: Citation, verification?: Verification | null) {
+  const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
+  const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
+  // Don't memoize - object reference as dependency causes stale values on mutation
+  const status = getCitationStatus(verification ?? null);
+  return { citationKey, citationInstanceId, status };
+}
+
+/**
  * Default verified indicator (checkmark).
  * Color is customizable via CSS custom property `--dc-verified-color`.
  */
@@ -50,6 +67,56 @@ const DefaultPartialIndicator = () => (
     *
   </span>
 );
+
+/**
+ * Hook for shared citation event handlers.
+ * Extracts the duplicated click/hover/keyboard logic from each variant.
+ */
+function useCitationEvents(
+  citation: Citation,
+  citationKey: string,
+  eventHandlers: CitationEventHandlers | undefined,
+  preventTooltips: boolean,
+) {
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      eventHandlers?.onClick?.(citation, citationKey, e as React.MouseEvent<HTMLSpanElement>);
+    },
+    [eventHandlers, citation, citationKey],
+  );
+
+  const handleMouseEnter = useCallback(() => {
+    eventHandlers?.onMouseEnter?.(citation, citationKey);
+  }, [eventHandlers, citation, citationKey]);
+
+  const handleMouseLeave = useCallback(() => {
+    eventHandlers?.onMouseLeave?.(citation, citationKey);
+  }, [eventHandlers, citation, citationKey]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        e.stopPropagation();
+        // Safe cast: onClick handler expects MouseEvent but only uses common Event properties
+        // (target, preventDefault, stopPropagation) that exist on both KeyboardEvent and MouseEvent.
+        // The handler doesn't access mouse-specific properties like clientX/clientY.
+        eventHandlers?.onClick?.(citation, citationKey, e as unknown as React.MouseEvent<HTMLSpanElement>);
+      }
+    },
+    [eventHandlers, citation, citationKey],
+  );
+
+  return {
+    onMouseEnter: preventTooltips ? undefined : handleMouseEnter,
+    onMouseLeave: preventTooltips ? undefined : handleMouseLeave,
+    onMouseDown: handleClick,
+    onClick: (e: React.MouseEvent) => e.stopPropagation(),
+    onKeyDown: handleKeyDown,
+  };
+}
 
 /**
  * Shared status indicator rendering for citation variants.

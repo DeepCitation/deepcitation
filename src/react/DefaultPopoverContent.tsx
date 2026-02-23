@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import { type MutableRefObject, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CitationStatus } from "../types/citation.js";
 import type { SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
@@ -23,10 +23,9 @@ import {
   POPOVER_MORPH_EXPAND_MS,
   POPOVER_WIDTH,
 } from "./constants.js";
-import { EvidenceTray, normalizeScreenshotSrc, resolveExpandedImage } from "./EvidenceTray.js";
+import { EvidenceTray, InlineExpandedImage, normalizeScreenshotSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
-import { InlineExpandedImage } from "./InlineExpandedImage.js";
 import { SpinnerIcon } from "./icons.js";
 import type { BaseCitationProps } from "./types.js";
 import {
@@ -45,7 +44,8 @@ import { SourceContextHeader, StatusHeader } from "./VerificationLog.js";
 // "Cannot read/set properties of undefined (reading/setting 'destroy')" inside
 // commitHookEffectListMount/Unmount → reconnectPassiveEffects.
 // Using a Fragment pass-through preserves identical render output without the
-// unstable Activity lifecycle. Image prefetching is handled by usePrefetchImage.
+// unstable Activity lifecycle. Image prefetching is handled imperatively
+// via `new Image().src` in the useEffect below.
 const Activity = ({ children }: { mode: "visible" | "hidden"; children: ReactNode }) => <>{children}</>;
 
 // =============================================================================
@@ -81,7 +81,7 @@ export interface PopoverContentProps {
   /** Reports the expanded image's natural width (or null on collapse) so the parent can size PopoverContent. */
   onExpandedWidthChange?: (width: number | null) => void;
   /** Ref tracking which state preceded expanded-page, for correct Escape back-navigation. */
-  prevBeforeExpandedPageRef?: MutableRefObject<"summary" | "expanded-evidence">;
+  prevBeforeExpandedPageRef?: RefObject<"summary" | "expanded-evidence">;
 }
 
 // =============================================================================
@@ -171,6 +171,262 @@ function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessEx
           {explanation.suggestion}
         </p>
       )}
+    </div>
+  );
+}
+
+// =============================================================================
+// EXTRACTED SUB-COMPONENTS
+// =============================================================================
+
+/**
+ * Animated popover container with width morphing between summary and expanded states.
+ * Shared by both the success and partial/miss three-zone layouts.
+ */
+function PopoverLayoutShell({
+  isVisible,
+  isExpanded,
+  isFullPage,
+  expandedNaturalWidth,
+  morphTransition,
+  children,
+}: {
+  isVisible: boolean;
+  isExpanded: boolean;
+  isFullPage: boolean;
+  expandedNaturalWidth: number | null;
+  morphTransition: string;
+  children: ReactNode;
+}) {
+  return (
+    <Activity mode={isVisible ? "visible" : "hidden"}>
+      <div
+        className={cn(POPOVER_CONTAINER_BASE_CLASSES, "animate-in fade-in-0 duration-150")}
+        style={{
+          width: isExpanded
+            ? expandedNaturalWidth !== null
+              ? `max(${POPOVER_WIDTH}, min(${expandedNaturalWidth + EXPANDED_IMAGE_SHELL_PX}px, calc(100dvw - 2rem)))`
+              : "calc(100dvw - 2rem)"
+            : POPOVER_WIDTH,
+          maxWidth: "100%",
+          transition: morphTransition,
+          ...(isFullPage && {
+            display: "flex",
+            flexDirection: "column" as const,
+            height: "100%",
+            overflowY: "hidden" as const,
+          }),
+        }}
+      >
+        {children}
+      </div>
+    </Activity>
+  );
+}
+
+/**
+ * Highlighted phrase quote block with a colored left border.
+ * Border color reflects verification status: green (success), amber (partial), red (miss).
+ */
+function ClaimQuote({
+  fullPhrase,
+  anchorText,
+  isMiss,
+  borderColor,
+}: {
+  fullPhrase: string;
+  anchorText?: string;
+  isMiss: boolean;
+  borderColor: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-gray-50 dark:bg-gray-800/50 border-l-[3px]",
+        borderColor,
+      )}
+    >
+      <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
+    </div>
+  );
+}
+
+/**
+ * Zone 3: Triple always-render evidence display pattern.
+ *
+ * Renders all three view states (summary, expanded-evidence, expanded-page)
+ * simultaneously, hiding inactive ones with display:none. This keeps the hook
+ * tree stable — React 19's StrictMode corrupts the fiber effect linked list
+ * when conditionally swapping components with different hook counts inside a portal.
+ */
+function EvidenceZone({
+  viewState,
+  evidenceSrc,
+  expandedImage,
+  onViewStateChange,
+  handleExpandedImageLoad,
+  prevBeforeExpandedPageRef,
+  verification,
+  summaryContent,
+}: {
+  viewState: PopoverViewState;
+  evidenceSrc: string | null;
+  expandedImage: { src: string; renderScale?: { x: number; y: number } | null } | null;
+  onViewStateChange?: (viewState: PopoverViewState) => void;
+  handleExpandedImageLoad: (width: number, height: number) => void;
+  prevBeforeExpandedPageRef: RefObject<"summary" | "expanded-evidence">;
+  verification: Verification | null;
+  summaryContent: ReactNode;
+}) {
+  return (
+    <>
+      <div style={viewState !== "summary" ? { display: "none" } : undefined}>{summaryContent}</div>
+      {evidenceSrc && (
+        <div style={viewState !== "expanded-evidence" ? { display: "none" } : undefined}>
+          <InlineExpandedImage
+            src={evidenceSrc}
+            onCollapse={() => onViewStateChange?.("summary")}
+            verification={verification}
+            onNaturalSize={handleExpandedImageLoad}
+          />
+        </div>
+      )}
+      {expandedImage?.src && (
+        // flex-1 min-h-0 flex flex-col: propagates the bounded height from the flex-column
+        // PopoverLayoutShell so InlineExpandedImage's own flex-1 min-h-0 can take effect.
+        // display:none on inactive view (style overrides the flex classes when hidden).
+        <div
+          className="flex-1 min-h-0 flex flex-col"
+          style={viewState !== "expanded-page" ? { display: "none" } : undefined}
+        >
+          <InlineExpandedImage
+            src={expandedImage.src}
+            onCollapse={() => onViewStateChange?.(prevBeforeExpandedPageRef.current)}
+            verification={verification}
+            fill
+            onNaturalSize={handleExpandedImageLoad}
+            renderScale={expandedImage.renderScale}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * Loading/pending skeleton view.
+ * Mirrors the resolved layout shape so the popover doesn't jump when verification arrives.
+ */
+function PopoverLoadingView({
+  citation,
+  verification,
+  sourceLabel,
+}: {
+  citation: BaseCitationProps["citation"];
+  verification: Verification | null;
+  sourceLabel?: string;
+}) {
+  const anchorText = citation.anchorText?.toString();
+  const fullPhrase = citation.fullPhrase;
+  const searchStatus = verification?.status;
+  const searchingPhrase = fullPhrase || anchorText;
+  return (
+    <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[200px] max-w-[480px]`}>
+      <SourceContextHeader
+        citation={citation}
+        verification={verification}
+        status={searchStatus}
+        sourceLabel={sourceLabel}
+      />
+      <div className="p-3 flex flex-col gap-2.5">
+        {/* Skeleton: status bar placeholder */}
+        <div className="h-3 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        {/* Skeleton: quote box placeholder */}
+        <div className="pl-3 border-l-[3px] border-gray-200 dark:border-gray-700 space-y-1.5">
+          <div className="h-3 w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-3 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        </div>
+        {/* Skeleton: image strip placeholder */}
+        <div className="h-[60px] w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+        {/* Actual search status */}
+        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+          <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
+            <SpinnerIcon />
+          </span>
+          Searching...
+        </span>
+        {searchingPhrase && (
+          <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
+            &ldquo;{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}&rdquo;
+          </p>
+        )}
+        {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">Looking on p.{citation.pageNumber}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Fallback text-only view for verified/partial-match citations without an evidence image.
+ * Returns null when there is nothing meaningful to display.
+ */
+function PopoverFallbackView({
+  citation,
+  verification,
+  sourceLabel,
+  status,
+  urlAccessExplanation,
+}: {
+  citation: BaseCitationProps["citation"];
+  verification: Verification | null;
+  sourceLabel?: string;
+  status: CitationStatus;
+  urlAccessExplanation: UrlAccessExplanation | null;
+}) {
+  const searchStatus = verification?.status;
+  const statusLabel = getStatusLabel(status);
+  const hasSnippet = verification?.verifiedMatchSnippet;
+  const pageNumber = verification?.document?.verifiedPageNumber;
+
+  if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
+
+  return (
+    <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[180px] max-w-full`}>
+      <SourceContextHeader
+        citation={citation}
+        verification={verification}
+        status={searchStatus}
+        sourceLabel={sourceLabel}
+      />
+      {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
+      <div className="p-3 flex flex-col gap-2">
+        {!urlAccessExplanation && statusLabel && (
+          <span
+            className={cn(
+              "text-xs font-medium",
+              status.isVerified && !status.isPartialMatch && "text-green-600 dark:text-green-400",
+              status.isPartialMatch && "text-amber-500 dark:text-amber-400",
+              status.isMiss && "text-red-500 dark:text-red-400",
+              status.isPending && "text-gray-500 dark:text-gray-400",
+            )}
+          >
+            {statusLabel}
+          </span>
+        )}
+        {hasSnippet && (
+          <q
+            className="border-l-2 border-gray-300 dark:border-gray-600 pl-1.5 ml-0.5 text-sm text-gray-700 dark:text-gray-200"
+            style={{ quotes: "none" }}
+          >
+            {hasSnippet}
+          </q>
+        )}
+        {pageNumber && pageNumber > 0 && (
+          <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -337,44 +593,7 @@ export function DefaultPopoverContent({
 
   // Loading/pending state view — skeleton mirrors resolved layout shape
   if (isLoading || isPending) {
-    const searchingPhrase = fullPhrase || anchorText;
-    return (
-      <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[200px] max-w-[480px]`}>
-        {/* Source context header */}
-        <SourceContextHeader
-          citation={citation}
-          verification={verification}
-          status={searchStatus}
-          sourceLabel={sourceLabel}
-        />
-        <div className="p-3 flex flex-col gap-2.5">
-          {/* Skeleton: status bar placeholder */}
-          <div className="h-3 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          {/* Skeleton: quote box placeholder */}
-          <div className="pl-3 border-l-[3px] border-gray-200 dark:border-gray-700 space-y-1.5">
-            <div className="h-3 w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-            <div className="h-3 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          </div>
-          {/* Skeleton: image strip placeholder */}
-          <div className="h-[60px] w-full animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
-          {/* Actual search status */}
-          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-            <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
-              <SpinnerIcon />
-            </span>
-            Searching...
-          </span>
-          {searchingPhrase && (
-            <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
-              &ldquo;{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}&rdquo;
-            </p>
-          )}
-          {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">Looking on p.{citation.pageNumber}</span>
-          )}
-        </div>
-      </div>
-    );
+    return <PopoverLoadingView citation={citation} verification={verification} sourceLabel={sourceLabel} />;
   }
 
   // ==========================================================================
@@ -386,82 +605,59 @@ export function DefaultPopoverContent({
     const validProofUrl =
       isFullPage && verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
     return (
-      <Activity mode={isVisible ? "visible" : "hidden"}>
-        <div
-          className={cn(POPOVER_CONTAINER_BASE_CLASSES, "animate-in fade-in-0 duration-150")}
-          style={{
-            width: isExpanded
-              ? expandedNaturalWidth !== null
-                ? `max(${POPOVER_WIDTH}, min(${expandedNaturalWidth + EXPANDED_IMAGE_SHELL_PX}px, calc(100dvw - 2rem)))`
-                : "calc(100dvw - 2rem)"
-              : POPOVER_WIDTH,
-            maxWidth: "100%",
-            transition: morphTransition(isExpanded),
-            // Full-page only: flex column layout. height: 100% propagates the
-            // definite height from PopoverContent so flex-1 children can fill it.
-            ...(isFullPage && {
-              display: "flex",
-              flexDirection: "column" as const,
-              height: "100%",
-              overflowY: "hidden" as const,
-            }),
-          }}
-        >
-          {/* Zone 1: Metadata Header */}
-          <SourceContextHeader
-            citation={citation}
-            verification={verification}
-            status={searchStatus}
-            sourceLabel={sourceLabel}
-            onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
-            onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
-            proofUrl={validProofUrl}
-          />
-          {/* Zone 2: Claim Body — Status + highlighted phrase */}
-          <StatusHeader
-            status={searchStatus}
-            foundPage={foundPage}
-            expectedPage={expectedPage ?? undefined}
-            hidePageBadge
+      <PopoverLayoutShell
+        isVisible={isVisible}
+        isExpanded={isExpanded}
+        isFullPage={isFullPage}
+        expandedNaturalWidth={expandedNaturalWidth}
+        morphTransition={morphTransition(isExpanded)}
+      >
+        {/* Zone 1: Metadata Header */}
+        <SourceContextHeader
+          citation={citation}
+          verification={verification}
+          status={searchStatus}
+          sourceLabel={sourceLabel}
+          onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
+          onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
+          proofUrl={validProofUrl}
+        />
+        {/* Zone 2: Claim Body — Status + highlighted phrase */}
+        <StatusHeader
+          status={searchStatus}
+          foundPage={foundPage}
+          expectedPage={expectedPage ?? undefined}
+          hidePageBadge
+          anchorText={anchorText}
+          indicatorVariant={indicatorVariant}
+        />
+        {fullPhrase && (
+          <ClaimQuote
+            fullPhrase={fullPhrase}
             anchorText={anchorText}
-            indicatorVariant={indicatorVariant}
+            isMiss={isMiss}
+            borderColor="border-green-500 dark:border-green-600"
           />
-
-          {fullPhrase && (
-            <div className="mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-gray-50 dark:bg-gray-800/50 border-l-[3px] border-green-500 dark:border-green-600">
-              <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
-            </div>
-          )}
-
-          {/* Zone 3: Expanded keyhole image OR expanded page OR normal evidence tray */}
-          {viewState === "expanded-evidence" && evidenceSrc ? (
-            <InlineExpandedImage
-              src={evidenceSrc}
-              onCollapse={() => onViewStateChange?.("summary")}
-              verification={verification}
-              status={status}
-              onNaturalSize={handleExpandedImageLoad}
-            />
-          ) : viewState === "expanded-page" && expandedImage?.src ? (
-            <InlineExpandedImage
-              src={expandedImage.src}
-              onCollapse={() => onViewStateChange?.(prevBeforeExpandedPageRef.current)}
-              verification={verification}
-              status={status}
-              fill
-              onNaturalSize={handleExpandedImageLoad}
-              renderScale={expandedImage.renderScale}
-            />
-          ) : (
+        )}
+        {/* Zone 3: Evidence */}
+        <EvidenceZone
+          viewState={viewState}
+          evidenceSrc={evidenceSrc}
+          expandedImage={expandedImage}
+          onViewStateChange={onViewStateChange}
+          handleExpandedImageLoad={handleExpandedImageLoad}
+          prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
+          verification={verification}
+          summaryContent={
             <EvidenceTray
               verification={verification}
               status={status}
               onExpand={canExpandToPage ? handleExpand : undefined}
               onImageClick={handleKeyholeClick}
             />
-          )}
-        </div>
-      </Activity>
+          }
+        />
+      </PopoverLayoutShell>
     );
   }
 
@@ -473,155 +669,94 @@ export function DefaultPopoverContent({
     const isFullPage = viewState === "expanded-page";
     const validProofUrl =
       isFullPage && verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
+
+    // Summary content differs from success: conditional EvidenceTray based on image/search state
+    const summaryContent =
+      hasImage && verification ? (
+        <EvidenceTray
+          verification={verification}
+          status={status}
+          onExpand={canExpandToPage ? handleExpand : undefined}
+          onImageClick={handleKeyholeClick}
+          proofImageSrc={expandedImage?.src}
+        />
+      ) : isMiss && (verification?.searchAttempts?.length || canExpandToPage) && verification ? (
+        <EvidenceTray
+          verification={verification}
+          status={status}
+          onExpand={canExpandToPage ? handleExpand : undefined}
+          proofImageSrc={expandedImage?.src}
+        />
+      ) : null;
+
     return (
-      <Activity mode={isVisible ? "visible" : "hidden"}>
-        <div
-          className={cn(POPOVER_CONTAINER_BASE_CLASSES, "animate-in fade-in-0 duration-150")}
-          style={{
-            width: isExpanded
-              ? expandedNaturalWidth !== null
-                ? `max(${POPOVER_WIDTH}, min(${expandedNaturalWidth + EXPANDED_IMAGE_SHELL_PX}px, calc(100dvw - 2rem)))`
-                : "calc(100dvw - 2rem)"
-              : POPOVER_WIDTH,
-            maxWidth: "100%",
-            transition: morphTransition(isExpanded),
-            ...(isFullPage && {
-              display: "flex",
-              flexDirection: "column" as const,
-              height: "100%",
-              overflowY: "hidden" as const,
-            }),
-          }}
-        >
-          {/* Zone 1: Metadata Header */}
-          <SourceContextHeader
-            citation={citation}
-            verification={verification}
-            status={searchStatus}
-            sourceLabel={sourceLabel}
-            onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
-            onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
-            proofUrl={validProofUrl}
-          />
-
-          {/* Zone 2: Claim Body — Status + highlighted phrase */}
-          <StatusHeader
-            status={searchStatus}
-            foundPage={foundPage}
-            expectedPage={expectedPage ?? undefined}
-            hidePageBadge
+      <PopoverLayoutShell
+        isVisible={isVisible}
+        isExpanded={isExpanded}
+        isFullPage={isFullPage}
+        expandedNaturalWidth={expandedNaturalWidth}
+        morphTransition={morphTransition(isExpanded)}
+      >
+        {/* Zone 1: Metadata Header */}
+        <SourceContextHeader
+          citation={citation}
+          verification={verification}
+          status={searchStatus}
+          sourceLabel={sourceLabel}
+          onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
+          onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
+          proofUrl={validProofUrl}
+        />
+        {/* Zone 2: Claim Body — Status + highlighted phrase */}
+        <StatusHeader
+          status={searchStatus}
+          foundPage={foundPage}
+          expectedPage={expectedPage ?? undefined}
+          hidePageBadge
+          anchorText={anchorText}
+          indicatorVariant={indicatorVariant}
+        />
+        {/* URL access explanation (for URL citations with access failures) */}
+        {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
+        {/* Humanizing message for document citations */}
+        {!urlAccessExplanation && humanizingMessage && (
+          <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
+            {humanizingMessage}
+          </div>
+        )}
+        {fullPhrase && (
+          <ClaimQuote
+            fullPhrase={fullPhrase}
             anchorText={anchorText}
-            indicatorVariant={indicatorVariant}
+            isMiss={isMiss}
+            borderColor={isMiss ? "border-red-500 dark:border-red-400" : "border-amber-500 dark:border-amber-400"}
           />
-
-          {/* URL access explanation (for URL citations with access failures) */}
-          {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
-          {/* Humanizing message for document citations */}
-          {!urlAccessExplanation && humanizingMessage && (
-            <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
-              {humanizingMessage}
-            </div>
-          )}
-
-          {fullPhrase && (
-            <div
-              className={cn(
-                "mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-gray-50 dark:bg-gray-800/50 border-l-[3px]",
-                isMiss ? "border-red-500 dark:border-red-400" : "border-amber-500 dark:border-amber-400",
-              )}
-            >
-              <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
-            </div>
-          )}
-
-          {/* Zone 3: Expanded keyhole image OR expanded page OR normal evidence tray.
-              Same structure as the success block — page view does not depend on status. */}
-          {viewState === "expanded-evidence" && evidenceSrc ? (
-            <InlineExpandedImage
-              src={evidenceSrc}
-              onCollapse={() => onViewStateChange?.("summary")}
-              verification={verification}
-              status={status}
-              onNaturalSize={handleExpandedImageLoad}
-            />
-          ) : viewState === "expanded-page" && expandedImage?.src ? (
-            <InlineExpandedImage
-              src={expandedImage.src}
-              onCollapse={() => onViewStateChange?.(prevBeforeExpandedPageRef.current)}
-              verification={verification}
-              status={status}
-              fill
-              onNaturalSize={handleExpandedImageLoad}
-              renderScale={expandedImage.renderScale}
-            />
-          ) : hasImage && verification ? (
-            <EvidenceTray
-              verification={verification}
-              status={status}
-              onExpand={canExpandToPage ? handleExpand : undefined}
-              onImageClick={handleKeyholeClick}
-              proofImageSrc={expandedImage?.src}
-            />
-          ) : /* Fallback for miss without keyhole image: search analysis + optional page thumbnail */
-          isMiss && (verification?.searchAttempts?.length || canExpandToPage) && verification ? (
-            <EvidenceTray
-              verification={verification}
-              status={status}
-              onExpand={canExpandToPage ? handleExpand : undefined}
-              proofImageSrc={expandedImage?.src}
-            />
-          ) : null}
-        </div>
-      </Activity>
+        )}
+        {/* Zone 3: Evidence */}
+        <EvidenceZone
+          viewState={viewState}
+          evidenceSrc={evidenceSrc}
+          expandedImage={expandedImage}
+          onViewStateChange={onViewStateChange}
+          handleExpandedImageLoad={handleExpandedImageLoad}
+          prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
+          verification={verification}
+          summaryContent={summaryContent}
+        />
+      </PopoverLayoutShell>
     );
   }
 
   // ==========================================================================
   // FALLBACK: Text-only view (verified/partial match without image)
   // ==========================================================================
-  const statusLabel = getStatusLabel(status);
-  const hasSnippet = verification?.verifiedMatchSnippet;
-  const pageNumber = verification?.document?.verifiedPageNumber;
-
-  if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
-
   return (
-    <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[180px] max-w-full`}>
-      {/* Source context header */}
-      <SourceContextHeader
-        citation={citation}
-        verification={verification}
-        status={searchStatus}
-        sourceLabel={sourceLabel}
-      />
-      {/* URL access explanation (for URL citations with access failures) */}
-      {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
-      <div className="p-3 flex flex-col gap-2">
-        {!urlAccessExplanation && statusLabel && (
-          <span
-            className={cn(
-              "text-xs font-medium",
-              status.isVerified && !status.isPartialMatch && "text-green-600 dark:text-green-400",
-              status.isPartialMatch && "text-amber-500 dark:text-amber-400",
-              status.isMiss && "text-red-500 dark:text-red-400",
-              status.isPending && "text-gray-500 dark:text-gray-400",
-            )}
-          >
-            {statusLabel}
-          </span>
-        )}
-        {hasSnippet && (
-          <q
-            className="border-l-2 border-gray-300 dark:border-gray-600 pl-1.5 ml-0.5 text-sm text-gray-700 dark:text-gray-200"
-            style={{ quotes: "none" }}
-          >
-            {verification.verifiedMatchSnippet}
-          </q>
-        )}
-        {pageNumber && pageNumber > 0 && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
-        )}
-      </div>
-    </div>
+    <PopoverFallbackView
+      citation={citation}
+      verification={verification}
+      sourceLabel={sourceLabel}
+      status={status}
+      urlAccessExplanation={urlAccessExplanation}
+    />
   );
 }

@@ -1,19 +1,12 @@
 /**
- * DeepCitation React — Public API Surface
+ * DeepCitation React Utilities
  *
- * This is the package entry point for `@deepcitation/deepcitation-js/react`.
- * It re-exports consumer-facing components, hooks, and utilities.
+ * Note: UI components have been moved to a shadcn-style copy-paste pattern.
+ * See the documentation at https://deepcitation.com/docs/components for
+ * ready-to-use React components.
  *
- * Internal implementation details (extracted hooks, CVA variants, error
- * boundaries, helper components) are NOT re-exported here per CLAUDE.md.
- * Import them directly from their canonical locations:
- *
- * - Hooks: `./hooks/useScrollLock.js`, `./hooks/useZoomControls.js`, etc.
- * - Variants: `./citationVariants.cva.js`
- * - Error boundary: `./CitationErrorBoundary.js`
- * - InlineExpandedImage: `./InlineExpandedImage.js`
- * - SearchAnalysisSummary: `./SearchAnalysisSummary.js`
- * - Image utilities: `./imageUtils.js`
+ * This module exports utilities and types that are useful for building
+ * your own citation components.
  *
  * @packageDocumentation
  */
@@ -56,8 +49,6 @@ export {
   useCitationOverlay,
   useHasCitationOverlayProvider,
 } from "./CitationOverlayContext.js";
-// Variant types only — import variant functions directly from ./citationVariants.cva.js
-export type { CitationContainerVariants, CitationHoverVariants } from "./citationVariants.cva.js";
 // Constants - Shared styling and configuration
 export {
   COPY_FEEDBACK_DURATION_MS,
@@ -99,18 +90,9 @@ export {
   Z_INDEX_OVERLAY_DEFAULT,
   Z_INDEX_POPOVER_VAR,
 } from "./constants.js";
-// Evidence utilities
 export { type ExpandedImageSource, resolveExpandedImage } from "./EvidenceTray.js";
-// Hook types — import hook functions directly from their canonical files in ./hooks/
-export type { AnimationPhase, UseAnimationStateOptions, UseAnimationStateResult } from "./hooks/useAnimationState.js";
-export type { UseCitationDataResult } from "./hooks/useCitationData.js";
-export type { UseCitationEventsResult } from "./hooks/useCitationEvents.js";
-export type { UseCitationTelemetryOptions, UseCitationTelemetryResult } from "./hooks/useCitationTelemetry.js";
-export type { UsePopoverDismissOptions } from "./hooks/usePopoverDismiss.js";
-export type { UsePopoverPositionOptions, UsePopoverPositionResult } from "./hooks/usePopoverPosition.js";
 // Accessibility Hooks
 export { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
-export type { UseZoomControlsOptions, UseZoomControlsResult } from "./hooks/useZoomControls.js";
 // Icons
 export {
   CheckIcon,

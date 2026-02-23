@@ -1,10 +1,10 @@
 /**
- * Evidence tray components — keyhole viewer and related display logic
- * for the citation popover "proof zone".
+ * Evidence tray components — keyhole viewer, expanded image, and related
+ * display logic for the citation popover "proof zone".
  *
- * Sub-components extracted for better composability:
- * - InlineExpandedImage → ./InlineExpandedImage.tsx (canonical)
- * - SearchAnalysisSummary → ./SearchAnalysisSummary.tsx (canonical)
+ * Contains all evidence-display components that were previously in
+ * CitationComponent.tsx: image resolution, keyhole viewer, evidence tray,
+ * expanded page viewer, search analysis, and supporting utilities.
  *
  * @packageDocumentation
  */
@@ -15,11 +15,16 @@ import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { SearchAttempt, SearchStatus } from "../types/search.js";
 import type { Verification, VerificationPage } from "../types/verification.js";
+import { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
 import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
 import {
   buildKeyholeMaskImage,
   EVIDENCE_TRAY_BORDER_DASHED,
   EVIDENCE_TRAY_BORDER_SOLID,
+  EXPANDED_IMAGE_SHELL_PX,
+  EXPANDED_ZOOM_MAX,
+  EXPANDED_ZOOM_MIN,
+  EXPANDED_ZOOM_STEP,
   FOOTER_HINT_DURATION_MS,
   isValidProofImageSrc,
   KEYHOLE_FADE_WIDTH,
@@ -31,20 +36,30 @@ import {
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
-import { handleImageError } from "./imageUtils.js";
+import { SpinnerIcon, ZoomInIcon, ZoomOutIcon } from "./icons.js";
 import { deriveOutcomeLabel } from "./outcomeLabel.js";
-import { SearchAnalysisSummary } from "./SearchAnalysisSummary.js";
+import { computeAnnotationOriginPercent, computeAnnotationScrollTarget } from "./overlayGeometry.js";
+import { buildSearchSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
+import { VerificationLogTimeline } from "./VerificationLog.js";
 
 // =============================================================================
 // MODULE-LEVEL UTILITIES
 // =============================================================================
 
 /**
+ * Module-level handler for hiding broken images.
+ * Performance fix: avoids creating new function references on every render.
+ */
+const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
+  (e.target as HTMLImageElement).style.display = "none";
+};
+
+/**
  * Tolerance factor for coordinate scaling sanity checks.
  * PDF text coordinates are extracted at a different resolution than the proof image,
  * so converting between coordinate spaces introduces floating-point rounding errors.
- * A 5% tolerance (1.05x) absorbs these rounding differences — empirically sufficient
+ * A 5% tolerance (1.05×) absorbs these rounding differences — empirically sufficient
  * to avoid false rejections while still catching genuinely out-of-bounds coordinates
  * that would indicate a dimension mismatch between the PDF and proof image.
  */
@@ -81,13 +96,8 @@ export function normalizeScreenshotSrc(raw: string): string {
     return raw;
   }
 
-  // Partial base64 validation: check only the first 100 chars for valid base64 alphabet.
-  // Full validation of the entire string is unnecessary because:
-  //   1. The result is always passed through isValidProofImageSrc() which blocks SVG data
-  //      URIs, javascript: URIs, and untrusted hosts (defense-in-depth).
-  //   2. Invalid base64 after the first 100 chars will simply produce a broken image, not
-  //      a security issue — the data: URI prefix is fixed to "image/jpeg".
-  //   3. Screenshot base64 strings can be 100KB+; full regex validation would risk ReDoS.
+  // Validate base64 format (basic check - should only contain valid base64 chars + max 2 padding chars)
+  // This prevents injection of malicious strings that would bypass isValidProofImageSrc()
   if (!/^[A-Za-z0-9+/]+(={0,2})?$/.test(raw.slice(0, 100))) {
     throw new Error("normalizeScreenshotSrc: Invalid base64 format detected");
   }
@@ -178,9 +188,13 @@ export function resolveExpandedImage(verification: Verification | null | undefin
 
 /**
  * Resolves the best available highlight bounding box from verification data.
- * Tries in order: matching page highlightBox -> anchorTextMatchDeepItems -> phraseMatchDeepItem.
+ * Tries in order: matching page highlightBox → anchorTextMatchDeepItems → phraseMatchDeepItem.
+ *
+ * When the highlight coordinates come from source PDF space, they need to be scaled
+ * to the verification image pixel space using the ratio of image dimensions to page dimensions.
  */
 function resolveHighlightBox(verification: Verification): { x: number; width: number } | null {
+  // 1. Prefer highlightBox from matching verification page (already in image coordinates)
   const matchPage = verification.pages?.find(p => p.isMatchPage);
   if (matchPage?.highlightBox) {
     return { x: matchPage.highlightBox.x, width: matchPage.highlightBox.width };
@@ -188,21 +202,28 @@ function resolveHighlightBox(verification: Verification): { x: number; width: nu
 
   const imgDims = verification.document?.verificationImageDimensions;
 
+  // Helper: scale a DeepTextItem from PDF space to image pixel space.
+  // If the scaled result falls outside the image bounds, assumes coordinates
+  // are already in image space and returns them unscaled.
   const scaleItem = (item: { x: number; width: number }) => {
     if (imgDims && matchPage?.dimensions && matchPage.dimensions.width > 0) {
       const scale = imgDims.width / matchPage.dimensions.width;
       const scaledX = item.x * scale;
       const scaledWidth = item.width * scale;
+      // Sanity check: if scaled coords are within image bounds, use them
       if (scaledX >= 0 && scaledX + scaledWidth <= imgDims.width * SCALING_TOLERANCE) {
         return { x: scaledX, width: scaledWidth };
       }
     }
+    // Assume image coordinates if scaling is unavailable or produces out-of-bounds values
     return { x: item.x, width: item.width };
   };
 
+  // 2. Anchor text match deep items (may be in PDF space, scale if we have dimensions)
   const anchorItem = verification.document?.anchorTextMatchDeepItems?.[0];
   if (anchorItem) return scaleItem(anchorItem);
 
+  // 3. Phrase match deep item
   const phraseItem = verification.document?.phraseMatchDeepItem;
   if (phraseItem) return scaleItem(phraseItem);
 
@@ -211,12 +232,12 @@ function resolveHighlightBox(verification: Verification): { x: number; width: nu
 
 /** CSS to hide native scrollbars on the keyhole strip. */
 const KEYHOLE_SCROLLBAR_HIDE: React.CSSProperties = {
-  scrollbarWidth: "none",
-  msOverflowStyle: "none",
+  scrollbarWidth: "none", // Firefox
+  msOverflowStyle: "none", // IE/Edge
 };
 
 // =============================================================================
-// FOOTER HINT (shared bold-then-muted hint for evidence tray)
+// FOOTER HINT (shared bold-then-muted hint for evidence tray / expanded image)
 // =============================================================================
 
 /** Renders hint text that appears bold/dark for 2s, then transitions to muted gray. */
@@ -294,6 +315,8 @@ export function AnchorTextFocusedImage({
   const imageRef = useRef<HTMLImageElement>(null);
 
   // Set initial scroll position after image loads.
+  // useLayoutEffect guarantees refs are populated and runs before paint,
+  // so the strip appears at the correct offset without a flash of misposition.
   // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef and imageRef are stable refs that never change identity; useLayoutEffect guarantees the DOM nodes they point to are ready
   useLayoutEffect(() => {
     if (!imageLoaded) return;
@@ -301,11 +324,18 @@ export function AnchorTextFocusedImage({
     const img = imageRef.current;
     if (!container || !img) return;
 
+    // The image renders at natural aspect ratio constrained by strip height.
+    // Its displayed width = naturalWidth * (stripHeight / naturalHeight).
     const stripHeight = container.clientHeight;
     const displayedWidth =
       img.naturalHeight > 0 ? img.naturalWidth * (stripHeight / img.naturalHeight) : img.naturalWidth;
     const containerWidth = container.clientWidth;
 
+    // Detect whether the image nearly fits within the keyhole (minimal cropping).
+    // Uses KEYHOLE_SKIP_THRESHOLD (1.25) so images within ~80% of keyhole height
+    // are treated as "fits" — expanding would reveal almost nothing new.
+    // displayedWidth <= containerWidth → image is narrow enough to show in full horizontally.
+    // When both are true, the keyhole already reveals nearly everything — expand adds no value.
     if (displayedWidth > 0) {
       const imageFitsCompletely =
         img.naturalHeight > 0 &&
@@ -347,10 +377,13 @@ export function AnchorTextFocusedImage({
 
   const stripHeightStyle = `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
   const isPannable = scrollState.canScrollLeft || scrollState.canScrollRight;
+  // When the image fits entirely in the keyhole, expanding would show nothing new — suppress affordances.
   const canExpand = !imageFitInfo?.imageFitsCompletely && !!onImageClick;
 
   return (
     <div className="relative">
+      {/* Keyhole strip container — clickable to expand, draggable to pan.
+          maxWidth clamps to the image's rendered width so no blank space appears to the right. */}
       <div
         className="relative group/keyhole"
         style={imageFitInfo ? { maxWidth: imageFitInfo.displayedWidth } : undefined}
@@ -359,8 +392,20 @@ export function AnchorTextFocusedImage({
           type="button"
           className="block relative w-full"
           style={{ cursor: isDragging ? "grabbing" : isPannable ? "grab" : canExpand ? "zoom-in" : "default" }}
+          onKeyDown={e => {
+            const el = containerRef.current;
+            if (!el) return;
+            if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              el.scrollTo({ left: el.scrollLeft - Math.max(el.clientWidth * 0.5, 80), behavior: "smooth" });
+            } else if (e.key === "ArrowRight") {
+              e.preventDefault();
+              el.scrollTo({ left: el.scrollLeft + Math.max(el.clientWidth * 0.5, 80), behavior: "smooth" });
+            }
+          }}
           onClick={e => {
             e.preventDefault();
+            // Suppress click if user was dragging
             if (wasDragging.current) {
               wasDragging.current = false;
               e.stopPropagation();
@@ -370,6 +415,7 @@ export function AnchorTextFocusedImage({
               e.stopPropagation();
               onImageClick?.();
             } else if (imageFitInfo?.imageFitsCompletely) {
+              // Image already fits — flash a hint instead of silently doing nothing.
               e.stopPropagation();
               onAlreadyFullSize?.();
             }
@@ -393,6 +439,7 @@ export function AnchorTextFocusedImage({
             }}
             {...handlers}
           >
+            {/* Hide webkit scrollbar via inline style tag scoped to this container */}
             <style>{`[data-dc-keyhole]::-webkit-scrollbar { display: none; }`}</style>
             <img
               ref={imageRef}
@@ -408,11 +455,11 @@ export function AnchorTextFocusedImage({
             />
           </div>
 
+          {/* Left pan hint — clicking pans the image left */}
           {scrollState.canScrollLeft && (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: pan hints are inside a <button>; keyboard access is provided by the parent element
             <div
+              aria-hidden="true"
               className="absolute left-0 top-0 h-full min-w-[44px] flex items-center justify-center opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 cursor-pointer"
-              aria-label="Pan image left"
               onClick={e => {
                 e.stopPropagation();
                 const el = containerRef.current;
@@ -426,11 +473,11 @@ export function AnchorTextFocusedImage({
             </div>
           )}
 
+          {/* Right pan hint — clicking pans the image right */}
           {scrollState.canScrollRight && (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: pan hints are inside a <button>; keyboard access is provided by the parent element
             <div
+              aria-hidden="true"
               className="absolute right-0 top-0 h-full min-w-[44px] flex items-center justify-center opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 cursor-pointer"
-              aria-label="Pan image right"
               onClick={e => {
                 e.stopPropagation();
                 const el = containerRef.current;
@@ -446,6 +493,7 @@ export function AnchorTextFocusedImage({
         </button>
       </div>
 
+      {/* Action bar — only shown when View page button is available */}
       {showViewPageButton && (
         <div className="flex items-center justify-end px-2 bg-gray-100 dark:bg-gray-800 rounded-b-md border-t border-gray-200 dark:border-gray-700">
           <button
@@ -467,7 +515,7 @@ export function AnchorTextFocusedImage({
 }
 
 // =============================================================================
-// EVIDENCE TRAY FOOTER
+// EVIDENCE TRAY COMPONENTS
 // =============================================================================
 
 /**
@@ -500,9 +548,89 @@ function EvidenceTrayFooter({
   );
 }
 
-// =============================================================================
-// EVIDENCE TRAY (main component)
-// =============================================================================
+/**
+ * Search analysis summary for not-found evidence tray.
+ * Shows attempt count, human-readable summary, and an expandable search details log.
+ */
+export function SearchAnalysisSummary({
+  searchAttempts,
+  verification,
+}: {
+  searchAttempts: SearchAttempt[];
+  verification?: Verification | null;
+}) {
+  const [showDetails, setShowDetails] = useState(false);
+  const summary = useMemo(() => buildSearchSummary(searchAttempts, verification), [searchAttempts, verification]);
+
+  // Build 1-2 sentence summary
+  let description: string;
+  if (summary.includesFullDocScan) {
+    description = "Searched the full document.";
+  } else if (summary.pageRange) {
+    description = `Searched ${summary.pageRange}.`;
+  } else {
+    description = `Ran ${summary.totalAttempts} ${summary.totalAttempts === 1 ? "search" : "searches"}.`;
+  }
+
+  if (summary.closestMatch) {
+    const truncated =
+      summary.closestMatch.text.length > 60
+        ? `${summary.closestMatch.text.slice(0, 60)}...`
+        : summary.closestMatch.text;
+    description += ` Closest match: "${truncated}"`;
+    if (summary.closestMatch.page) {
+      description += ` on page ${summary.closestMatch.page}`;
+    }
+    description += ".";
+  }
+
+  // Format verified date for compact display
+  const formatted = formatCaptureDate(verification?.verifiedAt);
+  const dateStr = formatted?.display ?? "";
+
+  return (
+    <div className="px-3 py-2">
+      {/* Compact single-line summary — entire line clickable to toggle details */}
+      {searchAttempts.length > 0 ? (
+        <button
+          type="button"
+          className="w-full flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors text-left"
+          onClick={e => {
+            e.stopPropagation();
+            setShowDetails(s => !s);
+          }}
+          aria-expanded={showDetails}
+          title={description}
+        >
+          <svg
+            className={cn("size-2.5 shrink-0 transition-transform duration-150", showDetails && "rotate-90")}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            aria-hidden="true"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+          <span className="truncate">
+            {description}
+            {dateStr && <> · {dateStr}</>}
+          </span>
+        </button>
+      ) : (
+        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate" title={description}>
+          {description}
+          {dateStr && <> · {dateStr}</>}
+        </span>
+      )}
+      {showDetails && (
+        <div className="mt-2">
+          <VerificationLogTimeline searchAttempts={searchAttempts} status={verification?.status} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * Evidence tray — the "proof zone" at the bottom of the summary popover.
@@ -532,20 +660,26 @@ export function EvidenceTray({
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
   const [keyholeImageFits, setKeyholeImageFits] = useState(false);
 
+  // Incremented each time the user clicks an already-full-size keyhole.
+  // The changing key forces FooterHint to remount, restarting its 2s highlight timer.
   const [fullSizeFlashKey, setFullSizeFlashKey] = useState(0);
   const handleAlreadyFullSize = useCallback(() => setFullSizeFlashKey(k => k + 1), []);
 
+  // Shared inner content
   const content = (
     <>
+      {/* Content: image or search analysis.
+          Keys prevent React from reusing fibers across component-type swaps. */}
       {hasImage && verification ? (
         <AnchorTextFocusedImage
+          key="keyhole"
           verification={verification}
           onImageClick={onImageClick}
           onFitStateChange={setKeyholeImageFits}
           onAlreadyFullSize={handleAlreadyFullSize}
         />
       ) : isMiss && searchAttempts.length > 0 ? (
-        <>
+        <div key="miss-analysis">
           {isValidProofImageSrc(proofImageSrc) && (
             <div className="overflow-hidden" style={{ height: MISS_TRAY_THUMBNAIL_HEIGHT }}>
               <img
@@ -557,9 +691,10 @@ export function EvidenceTray({
             </div>
           )}
           <SearchAnalysisSummary searchAttempts={searchAttempts} verification={verification} />
-        </>
+        </div>
       ) : null}
 
+      {/* Footer: outcome + date (skip for miss — compressed summary has this info) */}
       {!isMiss && (
         <EvidenceTrayFooter
           status={verification?.status}
@@ -577,11 +712,16 @@ export function EvidenceTray({
     </>
   );
 
+  // Mirror the keyhole button's click logic:
+  // - Keyhole present + fits completely → flash "already full size" hint
+  // - Keyhole present + expandable → expand keyhole image
+  // - No keyhole → fall back to page expansion
   const trayAction = onImageClick ? (keyholeImageFits ? handleAlreadyFullSize : onImageClick) : onExpand;
 
   return (
     <div className="m-3">
       {trayAction ? (
+        /* Interactive: clickable with hover CTA */
         <div
           role="button"
           tabIndex={0}
@@ -612,8 +752,495 @@ export function EvidenceTray({
           {content}
         </div>
       ) : (
+        /* Informational: non-clickable display */
         <div className={cn("w-full rounded-xs overflow-hidden text-left", borderClass)}>{content}</div>
       )}
+    </div>
+  );
+}
+
+// =============================================================================
+// EXPANDED PAGE VIEWER
+// =============================================================================
+// INLINE EXPANDED IMAGE (Zone 3 replacement when keyhole is clicked)
+// =============================================================================
+
+/**
+ * Replaces Zone 3 (evidence tray) when the keyhole is expanded in-place.
+ * Renders the image at natural size with 2D drag-to-pan. The summary content
+ * (Zone 1 header + Zone 2 quote) stays visible above — this component is
+ * deliberately headerless. Click (without drag) to collapse.
+ *
+ * When `fill` is true (expanded-page mode), includes subtle zoom controls
+ * (−/slider/+) for both desktop and mobile. Mobile defaults to fit-to-screen.
+ * Supports pinch-to-zoom on touch devices and trackpad pinch (Ctrl+wheel).
+ */
+export function InlineExpandedImage({
+  src,
+  onCollapse,
+  verification,
+  fill = false,
+  onNaturalSize,
+  renderScale,
+}: {
+  src: string;
+  onCollapse: () => void;
+  verification?: Verification | null;
+  /** When true, the component expands to fill its flex parent (for use inside flex-column containers). */
+  fill?: boolean;
+  /** Called after image load with natural pixel dimensions. */
+  onNaturalSize?: (width: number, height: number) => void;
+  /** Scale factors for converting DeepTextItem PDF coords to image pixels. */
+  renderScale?: { x: number; y: number } | null;
+}) {
+  const { containerRef, isDragging, handlers: panHandlers, wasDragging } = useDragToPan({ direction: "xy" });
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [naturalWidth, setNaturalWidth] = useState<number | null>(null);
+  const [naturalHeight, setNaturalHeight] = useState<number | null>(null);
+  // Zoom state — only active when fill=true (expanded-page mode).
+  // 1.0 = natural pixel size. < 1.0 = fit-to-screen (shrunk to container).
+  const [zoom, setZoom] = useState(1);
+  // Ref mirror of zoom for touch event handlers (avoids stale closures in pinch gesture)
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  // Dynamic zoom floor: on narrow viewports the fit-to-screen zoom may be below
+  // EXPANDED_ZOOM_MIN (e.g. 29% for a 1700px image on a 550px viewport).
+  // This floor feeds into the slider min, zoom-out disabled check, and clampZoom
+  // so the user can't zoom below the level that fits the viewport width.
+  const [zoomFloor, setZoomFloor] = useState(EXPANDED_ZOOM_MIN);
+  // Container size as state (not ref) so that ResizeObserver updates trigger re-renders.
+  // This ensures the initial-zoom effect re-fires once the container is measured.
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
+  const hasSetInitialZoom = useRef(false);
+
+  // Track container size via ResizeObserver (both width and height for fit-to-screen).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
+  useEffect(() => {
+    if (!fill) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(entries => {
+      const rect = entries[0]?.contentRect;
+      if (rect && rect.width > 0 && rect.height > 0) {
+        setContainerSize({ width: rect.width, height: rect.height });
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [fill]);
+
+  // Reset imageLoaded synchronously when src changes (avoids a useEffect render cycle).
+  // This ensures the spinner shows while the new image loads after an evidence ↔ page swap.
+  // Also reset zoom to 1 so each page starts at default scale.
+  const prevSrcRef = useRef(src);
+  if (prevSrcRef.current !== src) {
+    prevSrcRef.current = src;
+    setImageLoaded(false);
+    setNaturalWidth(null);
+    setNaturalHeight(null);
+    setZoom(1);
+    setZoomFloor(EXPANDED_ZOOM_MIN);
+    hasSetInitialZoom.current = false;
+  }
+
+  // Fit-to-screen: scale the page image to fit both the available width AND height.
+  // Width uses the VIEWPORT (minus popover margins + shell padding) because the
+  // container still reflects the previous evidence-width popover before the morph.
+  // Height uses containerSize.height from the ResizeObserver — the flex layout
+  // (flex-1 min-h-0 under a maxHeight-constrained column) has already allocated
+  // exactly the vertical space remaining after header zones and margins.
+  useEffect(() => {
+    if (!fill || !imageLoaded || !naturalWidth || !naturalHeight || hasSetInitialZoom.current) return;
+    if (!containerSize || containerSize.width <= 0 || containerSize.height <= 0) return;
+    hasSetInitialZoom.current = true;
+    // Max image width the popover can provide: viewport - 2rem outer margin - shell px.
+    const maxImageWidth =
+      typeof window !== "undefined" ? window.innerWidth - 32 - EXPANDED_IMAGE_SHELL_PX : containerSize.width;
+    const fitZoomW = maxImageWidth / naturalWidth;
+    // Width-only zoom: fill the popover horizontally; tall images scroll vertically
+    // inside the overflow-auto container (same pattern as keyhole's horizontal scroll).
+    const fitZoom = Math.min(1, Math.max(0.1, fitZoomW));
+    if (fitZoom < 1) setZoom(fitZoom);
+    setZoomFloor(Math.min(EXPANDED_ZOOM_MIN, fitZoom));
+    // Report zoomed dimensions so the popover sizes to the displayed image,
+    // not the natural pixel width (which could be e.g. 1700px for a PDF page).
+    onNaturalSize?.(Math.round(naturalWidth * fitZoom), Math.round(naturalHeight * fitZoom));
+
+    // Auto-scroll to annotation: after fit-to-screen zoom is computed, scroll
+    // the container so the phraseMatchDeepItem annotation is centered in view.
+    // Uses rAF to wait for the DOM to reflow at the new zoom level.
+    let rafId: number | undefined;
+    const phraseItem = verification?.document?.phraseMatchDeepItem;
+    if (phraseItem && renderScale) {
+      const effectiveZoom = fitZoom < 1 ? fitZoom : 1;
+      rafId = requestAnimationFrame(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const target = computeAnnotationScrollTarget(
+          phraseItem,
+          renderScale,
+          naturalWidth,
+          naturalHeight,
+          effectiveZoom,
+          container.clientWidth,
+          container.clientHeight,
+        );
+        if (target) {
+          container.scrollLeft = target.scrollLeft;
+          container.scrollTop = target.scrollTop;
+        }
+      });
+    }
+    return () => {
+      if (rafId !== undefined) cancelAnimationFrame(rafId);
+    };
+  }, [
+    fill,
+    imageLoaded,
+    naturalWidth,
+    naturalHeight,
+    containerSize,
+    onNaturalSize,
+    verification,
+    renderScale,
+    containerRef,
+  ]);
+
+  // Clamp helper — shared by buttons, slider, pinch, and wheel.
+  // Uses zoomFloor (not EXPANDED_ZOOM_MIN) so the lower bound respects the
+  // fit-to-screen zoom on narrow viewports where it may be < 50%.
+  const clampZoom = useCallback(
+    (z: number) => {
+      return Math.max(zoomFloor, Math.min(EXPANDED_ZOOM_MAX, Math.round(z * 100) / 100));
+    },
+    [zoomFloor],
+  );
+
+  const handleZoomIn = useCallback(() => {
+    setZoom(z => clampZoom(z + EXPANDED_ZOOM_STEP));
+  }, [clampZoom]);
+  const handleZoomOut = useCallback(() => {
+    setZoom(z => clampZoom(z - EXPANDED_ZOOM_STEP));
+  }, [clampZoom]);
+
+  // Trackpad pinch zoom (Ctrl+wheel) — prevents default browser zoom.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
+  useEffect(() => {
+    if (!fill) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      // deltaY is negative for zoom-in, positive for zoom-out on trackpads
+      const delta = -e.deltaY * 0.005;
+      setZoom(z => clampZoom(z + delta));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [fill, clampZoom]);
+
+  // Touch pinch-to-zoom (two-finger gesture).
+  // Uses zoomRef to read current zoom so listeners can be registered once (on mount /
+  // fill change) rather than re-added on every zoom change during a pinch gesture.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
+  useEffect(() => {
+    if (!fill) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    let initialDistance: number | null = null;
+    let initialZoom = 1;
+
+    const getTouchDistance = (touches: TouchList): number => {
+      const [a, b] = [touches[0], touches[1]];
+      if (!a || !b) return 0;
+      const dx = a.clientX - b.clientX;
+      const dy = a.clientY - b.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const dist = getTouchDistance(e.touches);
+        if (dist < Number.EPSILON) return; // fingers at same point — avoid division by zero
+        initialDistance = dist;
+        initialZoom = zoomRef.current;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || initialDistance === null) return;
+      e.preventDefault(); // prevent native scroll while pinching
+      const currentDistance = getTouchDistance(e.touches);
+      const scale = currentDistance / initialDistance;
+      setZoom(clampZoom(initialZoom * scale));
+    };
+
+    const onTouchEnd = () => {
+      initialDistance = null;
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [fill, clampZoom]);
+
+  // Compute effective image width for zoom
+  const zoomedWidth = fill && naturalWidth ? naturalWidth * zoom : undefined;
+
+  // Lock the outer container width while the range slider is being dragged so
+  // the absolutely-positioned zoom controls don't shift under the user's cursor.
+  // When maxWidth shrinks (zoom-out), the container's right edge moves left,
+  // pulling the controls along. minWidth >= maxWidth overrides the shrink.
+  const outerRef = useRef<HTMLDivElement>(null);
+  const [sliderLockWidth, setSliderLockWidth] = useState<number | null>(null);
+  useEffect(() => {
+    if (sliderLockWidth === null) return;
+    const unlock = () => setSliderLockWidth(null);
+    document.addEventListener("pointerup", unlock, { once: true });
+    return () => document.removeEventListener("pointerup", unlock);
+  }, [sliderLockWidth]);
+
+  const searchAttempts = verification?.searchAttempts ?? [];
+  const outcomeLabel = deriveOutcomeLabel(verification?.status, searchAttempts);
+  const formatted = formatCaptureDate(verification?.verifiedAt);
+  const dateStr = formatted?.display ?? "";
+
+  // Show zoom controls in fill mode when image has loaded
+  const showZoomControls = fill && imageLoaded && naturalWidth !== null;
+
+  // Compute transform-origin from annotation position (fill mode only).
+  // Inline computation (no useMemo) — computeAnnotationOriginPercent is pure
+  // arithmetic, cheaper than the overhead of a hook in this effect-heavy component.
+  const annotationPhraseItem =
+    fill && renderScale && naturalWidth && naturalHeight ? (verification?.document?.phraseMatchDeepItem ?? null) : null;
+  const annotationOrigin =
+    annotationPhraseItem && renderScale && naturalWidth && naturalHeight
+      ? computeAnnotationOriginPercent(annotationPhraseItem, renderScale, naturalWidth, naturalHeight)
+      : null;
+
+  const footerEl = (
+    <div className="flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
+      <span>
+        {outcomeLabel}
+        <FooterHint text=" · Click to collapse" />
+      </span>
+      {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
+    </div>
+  );
+
+  return (
+    <div
+      ref={outerRef}
+      className={cn("relative mx-3 mb-3 animate-in fade-in-0 duration-150", fill && "flex-1 min-h-0 flex flex-col")}
+      style={
+        fill
+          ? undefined // fill mode: container fills popover width, image scrolls inside
+          : zoomedWidth
+            ? sliderLockWidth
+              ? { width: sliderLockWidth, minWidth: sliderLockWidth, maxWidth: sliderLockWidth }
+              : { maxWidth: zoomedWidth }
+            : naturalWidth
+              ? { maxWidth: naturalWidth }
+              : undefined
+      }
+    >
+      {/* Wrapper: relative so zoom controls can be positioned absolutely over the scroll area */}
+      <div className={cn("relative", fill && "flex-1 min-h-0 flex flex-col")}>
+        {/* Scrollable image area — click (no drag) collapses */}
+        <div
+          ref={containerRef}
+          data-dc-inline-expanded=""
+          role="button"
+          tabIndex={0}
+          aria-label="Expanded verification image, click or press Enter to collapse"
+          className={cn(
+            "relative bg-gray-50 dark:bg-gray-900 select-none overflow-auto rounded-t-sm",
+            fill && "flex-1 min-h-0",
+          )}
+          style={{
+            ...(fill ? {} : { maxHeight: "min(600px, 80dvh)" }),
+            overscrollBehavior: "none",
+            cursor: isDragging ? "grabbing" : fill ? "grab" : "zoom-out",
+            ...KEYHOLE_SCROLLBAR_HIDE,
+          }}
+          onDragStart={e => e.preventDefault()}
+          onClick={e => {
+            e.stopPropagation();
+            if (wasDragging.current) {
+              wasDragging.current = false;
+              return;
+            }
+            onCollapse();
+          }}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onCollapse();
+            }
+          }}
+          {...panHandlers}
+        >
+          <style>{`[data-dc-inline-expanded]::-webkit-scrollbar { display: none; }`}</style>
+          {/* Keyed on src: remounts with a fade-in whenever the image swaps (evidence ↔ page).
+              In fill mode with an annotation, the scale animation originates from the annotation
+              position via transform-origin, creating a "zoom from annotation" visual effect. */}
+          <div
+            key={src}
+            className={cn("animate-in fade-in-0 duration-150", fill && annotationOrigin && "zoom-in-95")}
+            style={
+              annotationOrigin
+                ? { transformOrigin: `${annotationOrigin.xPercent}% ${annotationOrigin.yPercent}%` }
+                : undefined
+            }
+          >
+            {!imageLoaded && (
+              <div className="flex items-center justify-center h-24">
+                <span className="size-5 animate-spin text-gray-400">
+                  <SpinnerIcon />
+                </span>
+              </div>
+            )}
+            {/* Relative wrapper: positions annotation overlay exactly over the image */}
+            <div
+              style={{
+                position: "relative",
+                display: "inline-block",
+                ...(zoomedWidth !== undefined ? { width: zoomedWidth } : {}),
+              }}
+            >
+              <img
+                src={src}
+                alt="Verification evidence"
+                className={cn("block", !imageLoaded && "hidden")}
+                style={zoomedWidth !== undefined ? { width: zoomedWidth, maxWidth: "none" } : { maxWidth: "none" }}
+                onLoad={e => {
+                  const w = e.currentTarget.naturalWidth;
+                  const h = e.currentTarget.naturalHeight;
+                  setImageLoaded(true);
+                  setNaturalWidth(w);
+                  setNaturalHeight(h);
+                  // In fill mode, defer reporting to the fit-to-screen effect so the
+                  // popover gets zoomed (displayed) dimensions, not the natural pixel
+                  // width which would make the popover expand to nearly full viewport.
+                  if (!fill) onNaturalSize?.(w, h);
+                }}
+                draggable={false}
+              />
+              {imageLoaded &&
+                renderScale &&
+                naturalWidth &&
+                naturalHeight &&
+                verification?.document?.phraseMatchDeepItem && (
+                  <CitationAnnotationOverlay
+                    phraseMatchDeepItem={verification.document.phraseMatchDeepItem}
+                    renderScale={renderScale}
+                    imageNaturalWidth={naturalWidth}
+                    imageNaturalHeight={naturalHeight}
+                    highlightColor={verification.highlightColor}
+                    anchorTextDeepItem={verification.document.anchorTextMatchDeepItems?.[0]}
+                    anchorText={verification.verifiedAnchorText}
+                    fullPhrase={verification.verifiedFullPhrase}
+                  />
+                )}
+            </div>
+          </div>
+          {/* In fill mode, footer sits inside the scroll area right below the page image */}
+          {fill && footerEl}
+        </div>
+
+        {/* Floating zoom controls — positioned absolutely over the scroll container
+            so they stay visible regardless of horizontal/vertical scroll position.
+            Contains −/slider/+ with percentage label. Supports drag on slider. */}
+        {showZoomControls && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 8,
+              right: 8,
+              zIndex: 1,
+              pointerEvents: "auto",
+            }}
+          >
+            <div
+              role="toolbar"
+              aria-label="Zoom controls"
+              className="flex items-center gap-0.5 bg-black/40 backdrop-blur-sm text-white/80 rounded-full px-1 py-0.5 shadow-sm"
+              onClick={e => e.stopPropagation()}
+              onKeyDown={e => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  handleZoomOut();
+                }}
+                disabled={zoom <= zoomFloor}
+                className="size-6 flex items-center justify-center rounded-full hover:bg-white/10 disabled:opacity-30 transition-colors"
+                aria-label="Zoom out"
+              >
+                <span className="size-3.5">
+                  <ZoomOutIcon />
+                </span>
+              </button>
+              {/* Range slider — draggable zoom control */}
+              <input
+                type="range"
+                min={Math.round(zoomFloor * 100)}
+                max={EXPANDED_ZOOM_MAX * 100}
+                step={5}
+                value={Math.round(zoom * 100)}
+                onChange={e => {
+                  e.stopPropagation();
+                  setZoom(clampZoom(Number(e.target.value) / 100));
+                }}
+                onClick={e => e.stopPropagation()}
+                onPointerDown={e => {
+                  e.stopPropagation();
+                  if (outerRef.current) setSliderLockWidth(outerRef.current.offsetWidth);
+                }}
+                onMouseDown={e => e.stopPropagation()}
+                onTouchStart={e => e.stopPropagation()}
+                className="w-16 h-1 appearance-none bg-white/30 rounded-full cursor-pointer
+                  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-3
+                  [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white
+                  [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer
+                  [&::-moz-range-thumb]:size-3 [&::-moz-range-thumb]:rounded-full
+                  [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0
+                  [&::-moz-range-thumb]:cursor-pointer"
+                aria-label="Zoom level"
+                aria-valuetext={`${Math.round(zoom * 100)}%`}
+              />
+              <span className="min-w-[4ch] text-center font-mono tabular-nums select-none text-[11px] leading-none">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  handleZoomIn();
+                }}
+                disabled={zoom >= EXPANDED_ZOOM_MAX}
+                className="size-6 flex items-center justify-center rounded-full hover:bg-white/10 disabled:opacity-30 transition-colors"
+                aria-label="Zoom in"
+              >
+                <span className="size-3.5">
+                  <ZoomInIcon />
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* In non-fill mode, footer stays outside the scroll area so it's always visible */}
+      {!fill && footerEl}
     </div>
   );
 }
