@@ -1,49 +1,72 @@
 /**
- * CVA (class-variance-authority) variant definitions for citation components.
+ * Variant definitions for citation components.
  *
  * Defines all visual variants (chip, brackets, text, superscript, badge, linter)
- * and their status-dependent class sets. Consumers can import these CVA configs
- * to build custom citation UIs with consistent variant styling.
+ * and their status-dependent class sets. Uses plain objects for zero-dependency
+ * variant resolution — no external CVA library needed.
  *
  * @packageDocumentation
  */
-
-import { cva, type VariantProps } from "class-variance-authority";
 
 // =============================================================================
 // CITATION CONTAINER VARIANTS
 // =============================================================================
 
+const CONTAINER_BASE = "inline-flex items-center transition-colors";
+
 /**
- * Citation container variant classes.
+ * Citation container variant class map.
  *
  * Controls the outer wrapper styling (layout, spacing, typography, background)
  * for each variant. Status-dependent hover classes are handled via
- * `citationHoverVariants` to keep concerns separate.
+ * `CITATION_HOVER_CLASSES` to keep concerns separate.
  */
-export const citationContainerVariants = cva("inline-flex items-center transition-colors", {
-  variants: {
-    variant: {
-      chip: "gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
-      brackets:
-        "items-baseline gap-0.5 whitespace-nowrap font-mono font-normal text-xs leading-tight text-gray-500 dark:text-gray-400",
-      text: "font-normal",
-      superscript: "", // Structural layout handled in component (uses <sup>)
-      badge:
-        "gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 cursor-pointer",
-      linter: "cursor-pointer font-normal",
-    },
-  },
-  defaultVariants: {
-    variant: "brackets",
-  },
-});
+const CONTAINER_VARIANT_CLASSES = {
+  chip: "gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+  brackets:
+    "items-baseline gap-0.5 whitespace-nowrap font-mono font-normal text-xs leading-tight text-gray-500 dark:text-gray-400",
+  text: "font-normal",
+  superscript: "", // Structural layout handled in component (uses <sup>)
+  badge:
+    "gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 cursor-pointer",
+  linter: "cursor-pointer font-normal",
+} as const;
 
-export type CitationContainerVariants = VariantProps<typeof citationContainerVariants>;
+/** Supported citation variant names. */
+export type CitationContainerVariant = keyof typeof CONTAINER_VARIANT_CLASSES;
+
+/** Props accepted by {@link citationContainerVariants}. */
+export type CitationContainerVariants = {
+  variant?: CitationContainerVariant | null;
+};
+
+/**
+ * Resolve container classes for a citation variant.
+ *
+ * Returns the base container classes concatenated with variant-specific classes.
+ * Defaults to "brackets" when no variant is specified.
+ */
+export function citationContainerVariants(props?: CitationContainerVariants): string {
+  const variant = props?.variant ?? "brackets";
+  const variantClasses = CONTAINER_VARIANT_CLASSES[variant];
+  return variantClasses ? `${CONTAINER_BASE} ${variantClasses}` : CONTAINER_BASE;
+}
 
 // =============================================================================
 // CITATION HOVER VARIANTS
 // =============================================================================
+
+/** Status key for hover class resolution. */
+export type HoverStatus = "verified" | "partial" | "miss" | "pending";
+
+/** Opacity level for hover class resolution. */
+export type HoverOpacity = "10" | "15";
+
+/** Props accepted by {@link citationHoverVariants}. */
+export type CitationHoverVariants = {
+  status?: HoverStatus | null;
+  opacity?: HoverOpacity | null;
+};
 
 /**
  * Status-dependent hover classes for citation variants.
@@ -54,64 +77,35 @@ export type CitationContainerVariants = VariantProps<typeof citationContainerVar
  * - 15: Contained variants (chip, superscript) where hover is on the element itself
  * - 10: Outer trigger wrapper, more subtle
  */
-export const citationHoverVariants = cva("", {
-  variants: {
-    status: {
-      verified: "",
-      partial: "",
-      miss: "",
-      pending: "hover:bg-gray-200 dark:hover:bg-gray-700",
-    },
-    opacity: {
-      "10": "",
-      "15": "",
-    },
+const CITATION_HOVER_CLASSES: Record<HoverStatus, Record<HoverOpacity, string>> = {
+  verified: {
+    "15": "hover:bg-green-600/15 dark:hover:bg-green-500/15",
+    "10": "hover:bg-green-600/10 dark:hover:bg-green-500/10",
   },
-  compoundVariants: [
-    // Verified hover (opacity 15 — contained variants)
-    {
-      status: "verified",
-      opacity: "15",
-      className: "hover:bg-green-600/15 dark:hover:bg-green-500/15",
-    },
-    // Verified hover (opacity 10 — wrapper)
-    {
-      status: "verified",
-      opacity: "10",
-      className: "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-    },
-    // Partial hover (opacity 15)
-    {
-      status: "partial",
-      opacity: "15",
-      className: "hover:bg-amber-500/15 dark:hover:bg-amber-500/15",
-    },
-    // Partial hover (opacity 10)
-    {
-      status: "partial",
-      opacity: "10",
-      className: "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
-    },
-    // Miss hover (opacity 15)
-    {
-      status: "miss",
-      opacity: "15",
-      className: "hover:bg-red-500/15 dark:hover:bg-red-400/15",
-    },
-    // Miss hover (opacity 10)
-    {
-      status: "miss",
-      opacity: "10",
-      className: "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-    },
-  ],
-  defaultVariants: {
-    status: "pending",
-    opacity: "15",
+  partial: {
+    "15": "hover:bg-amber-500/15 dark:hover:bg-amber-500/15",
+    "10": "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
   },
-});
+  miss: {
+    "15": "hover:bg-red-500/15 dark:hover:bg-red-400/15",
+    "10": "hover:bg-red-500/10 dark:hover:bg-red-400/10",
+  },
+  pending: {
+    "15": "hover:bg-gray-200 dark:hover:bg-gray-700",
+    "10": "hover:bg-gray-200 dark:hover:bg-gray-700",
+  },
+};
 
-export type CitationHoverVariants = VariantProps<typeof citationHoverVariants>;
+/**
+ * Resolve hover classes for a citation status + opacity combination.
+ *
+ * Defaults to status="pending", opacity="15" when not specified.
+ */
+export function citationHoverVariants(props?: CitationHoverVariants): string {
+  const status = props?.status ?? "pending";
+  const opacity = props?.opacity ?? "15";
+  return CITATION_HOVER_CLASSES[status]?.[opacity] ?? "";
+}
 
 // =============================================================================
 // LINTER DECORATION STYLES
