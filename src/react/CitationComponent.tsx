@@ -1039,8 +1039,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         // Miss state (show what was searched)
         isMiss);
 
-    const hasImage = !!resolvedImageSrc;
-
     // Shared trigger element props
     // All variants use status-aware hover colors (green/amber/red/gray)
     // Cursor is always pointer since click toggles popover/details
