@@ -511,7 +511,10 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      const overlayImage = document.querySelector("img[alt='Verification evidence']");
+      // Triple-render pattern: expanded-evidence and expanded-page InlineExpandedImage
+      // both exist in the DOM; the expanded-page instance (with override src) renders last.
+      const allImages = document.querySelectorAll("img[alt='Verification evidence']");
+      const overlayImage = allImages[allImages.length - 1];
       expect(overlayImage).toBeInTheDocument();
       expect(overlayImage?.getAttribute("src")).toBe(customImageSrc);
     });
@@ -580,7 +583,9 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
 
-      const overlayImage = document.querySelector("img[alt='Verification evidence']");
+      // Triple-render pattern: pick the expanded-page instance (last match).
+      const allImages = document.querySelectorAll("img[alt='Verification evidence']");
+      const overlayImage = allImages[allImages.length - 1];
       expect(overlayImage).toBeInTheDocument();
       expect(overlayImage?.getAttribute("src")).toBe(trustedSrc);
     });
