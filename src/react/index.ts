@@ -142,7 +142,7 @@ export {
   type SplitDiffDisplayProps,
 } from "./SplitDiffDisplay.js";
 // Search Summary Utilities
-export { buildSearchSummary, type SearchSummary } from "./searchSummaryUtils.js";
+export { buildSearchSummary, type SearchQueryGroup, type SearchSummary } from "./searchSummaryUtils.js";
 // Status Message Utilities
 export { getContextualStatusMessage } from "./statusMessage.js";
 // Time to Certainty (TtC) — timing utilities and hooks

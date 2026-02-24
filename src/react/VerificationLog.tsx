@@ -19,6 +19,7 @@ import type { UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
 // import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 
+import { buildSearchSummary, type SearchQueryGroup } from "./searchSummaryUtils.js";
 import { cn, isUrlCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
 
@@ -1080,6 +1081,102 @@ function RejectedMatchesSection({ rejectedMatches }: RejectedMatchesSectionProps
 }
 
 /**
+ * Single row representing a group of attempts sharing the same searchPhrase.
+ * Displays: status icon, quoted phrase, phrase label badge, location + attempt count,
+ * variations sub-line, and rejected matches sub-line.
+ */
+function QueryGroupRow({ group }: { group: SearchQueryGroup }) {
+  const phrase = group.searchPhrase;
+  const displayPhrase =
+    phrase.length === 0
+      ? "(empty)"
+      : phrase.length > MAX_PHRASE_DISPLAY_LENGTH
+        ? `${phrase.slice(0, MAX_PHRASE_DISPLAY_LENGTH)}...`
+        : phrase;
+
+  // Format location string
+  let locationText: string;
+  if (group.locations.includesDocScan) {
+    locationText = "Full document";
+  } else if (group.locations.pages.length > 0) {
+    const pages = group.locations.pages;
+    locationText =
+      pages.length === 1
+        ? `Page ${pages[0]}`
+        : `Pages ${pages[0]}-${pages[pages.length - 1]}`;
+  } else {
+    locationText = "";
+  }
+
+  const attemptsLabel = `${group.attemptCount} ${group.attemptCount === 1 ? "attempt" : "attempts"}`;
+
+  return (
+    <div className="py-1">
+      {/* Row 1: icon + phrase + badge */}
+      <div className="flex items-start gap-2">
+        <span
+          className={cn(
+            "size-3 max-w-3 max-h-3 mt-0.5 shrink-0",
+            group.anySuccess
+              ? "text-green-600 dark:text-green-400"
+              : "text-gray-400 dark:text-gray-500",
+          )}
+          role="img"
+          aria-label={group.anySuccess ? "Found" : "Not found"}
+        >
+          {group.anySuccess ? <CheckIcon /> : <MissIcon />}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">
+              {displayPhrase}
+            </QuotedText>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0 whitespace-nowrap bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+              {group.phraseLabel}
+            </span>
+          </div>
+
+          {/* Row 2: location + attempt count */}
+          <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+            {locationText}
+            {locationText && " \u00B7 "}
+            {attemptsLabel}
+          </div>
+
+          {/* Variations sub-line */}
+          {group.variations.length > 0 && (
+            <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+              {group.variationTypeLabel ?? "Also tried"}:{" "}
+              {group.variations.slice(0, 3).map((v, vIdx) => (
+                <React.Fragment key={`qg-var-${vIdx}-${v.slice(0, 20)}`}>
+                  {vIdx > 0 && ", "}
+                  <QuotedText mono>{v}</QuotedText>
+                </React.Fragment>
+              ))}
+              {group.variations.length > 3 && ` +${group.variations.length - 3} more`}
+            </div>
+          )}
+
+          {/* Rejected matches sub-line */}
+          {group.rejectedMatches.length > 0 && (
+            <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+              Rejected:{" "}
+              {group.rejectedMatches.map((m, mIdx) => (
+                <React.Fragment key={`qg-rej-${mIdx}-${m.text.slice(0, 20)}`}>
+                  {mIdx > 0 && ", "}
+                  <QuotedText mono>{m.text.length > 40 ? `${m.text.slice(0, 40)}...` : m.text}</QuotedText>
+                  {m.occurrences != null && ` (${m.occurrences}x)`}
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * "Looking for" section showing original citation text being searched.
  */
 export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: string; fullPhrase?: string }) {
@@ -1114,19 +1211,11 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
   const isMiss = status === "not_found";
   const successfulAttempt = useMemo(() => searchAttempts.find(a => a.success), [searchAttempts]);
 
-  // Collect rejected matches (found but not accepted) - only relevant for misses
-  const rejectedMatches = useMemo(() => {
-    if (!isMiss) return [];
-    const seen = new Set<string>();
-    const matches: Array<{ text: string; count?: number }> = [];
-    for (const attempt of searchAttempts) {
-      if (!attempt.success && attempt.matchedText && !seen.has(attempt.matchedText)) {
-        seen.add(attempt.matchedText);
-        matches.push({ text: attempt.matchedText });
-      }
-    }
-    return matches;
-  }, [searchAttempts, isMiss]);
+  // Query-centric summary for miss state
+  const summary = useMemo(
+    () => (isMiss ? buildSearchSummary(searchAttempts) : null),
+    [searchAttempts, isMiss],
+  );
 
   // If no search attempts, fall back to citation data
   if (searchAttempts.length === 0) {
@@ -1198,28 +1287,21 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
     );
   }
 
-  // For not_found: show all search attempts
+  // For not_found: show query-centric groups
+  const groups = summary?.queryGroups ?? [];
   return (
     <div className="px-4 py-3 space-y-4 text-sm">
-      {/* Search attempts timeline - shows what was searched and where */}
       <div>
         <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-          {searchAttempts.length} {searchAttempts.length === 1 ? "search" : "searches"} tried
+          {groups.length} {groups.length === 1 ? "query" : "queries"} · {searchAttempts.length}{" "}
+          {searchAttempts.length === 1 ? "attempt" : "attempts"}
         </div>
         <div className="space-y-0.5">
-          {searchAttempts.map((attempt, attemptIdx) => (
-            <SearchAttemptRow
-              key={`${attempt.method}-${attempt.pageSearched ?? "doc"}-${attemptIdx}`}
-              attempt={attempt}
-              index={attemptIdx + 1}
-              totalCount={searchAttempts.length}
-            />
+          {groups.map((group, gIdx) => (
+            <QueryGroupRow key={`qg-${gIdx}-${group.searchPhrase.slice(0, 30)}`} group={group} />
           ))}
         </div>
       </div>
-
-      {/* Rejected matches section */}
-      <RejectedMatchesSection rejectedMatches={rejectedMatches} />
     </div>
   );
 }
