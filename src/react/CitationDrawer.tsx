@@ -33,7 +33,7 @@ import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { ExternalLinkIcon } from "./icons.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn } from "./utils.js";
-import { FaviconImage } from "./VerificationLog.js";
+import { FaviconImage, PagePill } from "./VerificationLog.js";
 
 // HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
 // EvidenceTray, InlineExpandedImage — imported from ./EvidenceTray.js (canonical location)
@@ -89,61 +89,28 @@ function findFirstCitationKeyForPage(groups: SourceCitationGroup[], targetPage: 
   return null;
 }
 
-/** Clickable page number button used in the drawer header. */
-function PageBadgeButton({ page, onPageClick }: { page: number; onPageClick: (page: number) => void }) {
-  return (
-    <button
-      type="button"
-      className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors cursor-pointer"
-      onClick={e => {
-        e.stopPropagation();
-        onPageClick(page);
-      }}
-      aria-label={`Go to page ${page}`}
-    >
-      {page}
-    </button>
-  );
-}
-
 /**
- * Renders page number badges in the drawer header.
- * 1-3 pages: comma-separated clickable numbers.
- * 4+ pages: range with clickable first and last.
+ * Renders page number pills in the drawer header.
+ * Reuses PagePill from the popover for consistent styling and hit targets.
+ * Shows up to 3 individual pills; 4+ shows first, ellipsis, last.
  */
 function DrawerPageBadges({ pages, onPageClick }: { pages: number[]; onPageClick: (page: number) => void }) {
   if (pages.length === 0) return null;
 
-  if (pages.length === 1) {
-    return (
-      <>
-        p.
-        <PageBadgeButton page={pages[0]} onPageClick={onPageClick} />
-      </>
-    );
-  }
+  const renderPill = (page: number) => (
+    <PagePill key={page} pageNumber={page} colorScheme="gray" onClick={() => onPageClick(page)} />
+  );
 
   if (pages.length <= 3) {
-    return (
-      <>
-        p.
-        {pages.map((page, i) => (
-          <React.Fragment key={page}>
-            {i > 0 && ", "}
-            <PageBadgeButton page={page} onPageClick={onPageClick} />
-          </React.Fragment>
-        ))}
-      </>
-    );
+    return <>{pages.map(renderPill)}</>;
   }
 
-  // 4+ pages: range with clickable endpoints
+  // 4+ pages: first + ellipsis + last
   return (
     <>
-      p.
-      <PageBadgeButton page={pages[0]} onPageClick={onPageClick} />
-      {"\u2013"}
-      <PageBadgeButton page={pages[pages.length - 1]} onPageClick={onPageClick} />
+      {renderPill(pages[0])}
+      <span className="text-xs text-gray-400 dark:text-gray-500">…</span>
+      {renderPill(pages[pages.length - 1])}
     </>
   );
 }
@@ -970,9 +937,9 @@ export function CitationDrawer({
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {drawerPages.length > 0 && (
-                <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">
+                <div className="flex items-center gap-1 shrink-0">
                   <DrawerPageBadges pages={drawerPages} onPageClick={handlePageBadgeClick} />
-                </span>
+                </div>
               )}
               <button
                 type="button"
