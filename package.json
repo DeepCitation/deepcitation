@@ -21,6 +21,19 @@
   "main": "./lib/index.cjs",
   "module": "./lib/index.js",
   "types": "./lib/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "drawing": ["./lib/drawing/index.d.ts"],
+      "client": ["./lib/client/index.d.ts"],
+      "prompts": ["./lib/prompts/index.d.ts"],
+      "react": ["./lib/react/index.d.ts"],
+      "types": ["./lib/types/index.d.ts"],
+      "slack": ["./lib/rendering/slack/slackRenderer.d.ts"],
+      "github": ["./lib/rendering/github/githubRenderer.d.ts"],
+      "html": ["./lib/rendering/html/htmlRenderer.d.ts"],
+      "terminal": ["./lib/rendering/terminal/terminalRenderer.d.ts"]
+    }
+  },
   "sideEffects": false,
   "files": [
     "lib",
@@ -133,6 +146,12 @@
       "import": "./lib/client/index.js",
       "require": "./lib/client/index.cjs",
       "default": "./lib/client/index.js"
+    },
+    "./drawing": {
+      "types": "./lib/drawing/index.d.ts",
+      "import": "./lib/drawing/index.js",
+      "require": "./lib/drawing/index.cjs",
+      "default": "./lib/drawing/index.js"
     },
     "./prompts": {
       "types": "./lib/prompts/index.d.ts",

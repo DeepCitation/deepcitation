@@ -1,5 +1,5 @@
-import { ANCHOR_HIGHLIGHT_STYLE, MIN_WORD_DIFFERENCE } from "./constants.js";
-import { wordCount } from "./overlayGeometry.js";
+import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
+import { ANCHOR_HIGHLIGHT_STYLE } from "./constants.js";
 
 /**
  * Renders fullPhrase with optional anchorText highlighted using the same
@@ -23,7 +23,7 @@ export function HighlightedPhrase({
   if (!anchorText || !fullPhrase.includes(anchorText)) {
     return <span className="text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
   }
-  if (wordCount(fullPhrase) - wordCount(anchorText) < MIN_WORD_DIFFERENCE) {
+  if (!shouldHighlightAnchorText(anchorText, fullPhrase)) {
     return <span className="text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
   }
   const idx = fullPhrase.indexOf(anchorText);

@@ -394,12 +394,9 @@ export function isValidProofImageSrc(src: unknown): src is string {
   }
 }
 
-/**
- * Anchor text highlight colors — matches the proof image highlight from the API.
- * Used to highlight the anchorText substring within the fullPhrase display.
- */
-export const ANCHOR_HIGHLIGHT_COLOR = "rgba(251, 191, 36, 0.2)";
-export const ANCHOR_HIGHLIGHT_COLOR_DARK = "rgba(251, 191, 36, 0.25)";
+// Drawing constants are canonical in ../drawing/citationDrawing.ts.
+// Import only what's needed for the React-specific ANCHOR_HIGHLIGHT_STYLE.
+import { ANCHOR_HIGHLIGHT_COLOR } from "../drawing/citationDrawing.js";
 
 /**
  * CSS custom property for anchor text highlight color.
@@ -413,37 +410,6 @@ export const ANCHOR_HIGHLIGHT_STYLE: React.CSSProperties = {
   borderRadius: "2px",
   padding: "0 1px",
 };
-
-/**
- * Minimum word count difference between fullPhrase and anchorText
- * required to show the highlight. Matches API-side MIN_WORD_DIFFERENCE.
- */
-export const MIN_WORD_DIFFERENCE = 2;
-
-// =============================================================================
-// CITATION ANNOTATION OVERLAY
-// =============================================================================
-//
-// Constants for drawing citation annotations on full-page proof images.
-// Mirrors @filelasso/shared/utils/citationDrawing values — deepcitation-js
-// cannot import from shared, so the values are duplicated here.
-
-/** Border width for citation bracket outlines (px). */
-export const CITATION_BRACKET_BORDER_WIDTH = 2;
-/** Blue bracket color for exact/full-phrase matches. */
-export const CITATION_BRACKET_BLUE = "#005595";
-/** Amber bracket color for partial/anchor-text matches. */
-export const CITATION_BRACKET_AMBER = "#fbbf24";
-/** Semi-transparent overlay covering non-citation areas (spotlight effect). */
-export const SPOTLIGHT_OVERLAY_COLOR = "rgba(26, 26, 26, 0.4)";
-
-/**
- * Calculates bracket arm width based on highlight height.
- * Matches the backend's `getBracketWidth` (ratio = 1/5, clamped to 4–12px).
- */
-export function getCitationBracketWidth(heightPx: number): number {
-  return Math.max(4, Math.min(heightPx * 0.2, 12));
-}
 
 // =============================================================================
 // KEYHOLE SKIP THRESHOLD
