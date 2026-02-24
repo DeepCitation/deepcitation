@@ -10,7 +10,7 @@
  * @packageDocumentation
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CitationTimingEvent, TimingMetrics } from "../types/timing.js";
 import type { Verification } from "../types/verification.js";
 
@@ -146,9 +146,12 @@ export function useCitationTiming(
   const evidenceReadyFiredRef = useRef(false);
   const [ttcMs, setTtcMs] = useState<number | null>(null);
 
-  // Stable callback ref to avoid re-triggering effects when consumer recreates the callback
+  // Stable callback ref to avoid re-triggering effects when consumer recreates the callback.
+  // Synced in useLayoutEffect to avoid React Compiler bailout.
   const onTimingEventRef = useRef(onTimingEvent);
-  onTimingEventRef.current = onTimingEvent;
+  useLayoutEffect(() => {
+    onTimingEventRef.current = onTimingEvent;
+  }, [onTimingEvent]);
 
   // 1. On mount (or citationKey change): record firstSeenAt, reset evidenceReadyFired, emit "citation_seen"
   useEffect(() => {

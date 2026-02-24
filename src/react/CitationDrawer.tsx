@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CitationStatus } from "../types/citation.js";
 import type {
@@ -73,6 +73,29 @@ function computeUniquePageNumbers(groups: SourceCitationGroup[]): number[] {
   return Array.from(pages).sort((a, b) => a - b);
 }
 
+/** Single page pill — extracted for proper React reconciliation (avoids inline render functions). */
+function DrawerPagePill({
+  page,
+  activePage,
+  onPageClick,
+  onPageDeactivate,
+}: {
+  page: number;
+  activePage: number | null;
+  onPageClick: (page: number) => void;
+  onPageDeactivate: () => void;
+}) {
+  const isActive = page === activePage;
+  return (
+    <PagePill
+      pageNumber={page}
+      colorScheme="gray"
+      onClick={isActive ? undefined : () => onPageClick(page)}
+      onClose={isActive ? onPageDeactivate : undefined}
+    />
+  );
+}
+
 /**
  * Renders page number pills in the drawer header.
  * Reuses PagePill from the popover for consistent styling and hit targets.
@@ -92,29 +115,38 @@ function DrawerPageBadges({
 }) {
   if (pages.length === 0) return null;
 
-  const renderPill = (page: number) => {
-    const isActive = page === activePage;
-    return (
-      <PagePill
-        key={page}
-        pageNumber={page}
-        colorScheme="gray"
-        onClick={isActive ? undefined : () => onPageClick(page)}
-        onClose={isActive ? onPageDeactivate : undefined}
-      />
-    );
-  };
-
   if (pages.length <= 3) {
-    return <>{pages.map(renderPill)}</>;
+    return (
+      <>
+        {pages.map(page => (
+          <DrawerPagePill
+            key={page}
+            page={page}
+            activePage={activePage}
+            onPageClick={onPageClick}
+            onPageDeactivate={onPageDeactivate}
+          />
+        ))}
+      </>
+    );
   }
 
   // 4+ pages: first + ellipsis + last
   return (
     <>
-      {renderPill(pages[0])}
+      <DrawerPagePill
+        page={pages[0]}
+        activePage={activePage}
+        onPageClick={onPageClick}
+        onPageDeactivate={onPageDeactivate}
+      />
       <span className="text-xs text-gray-400 dark:text-gray-500">…</span>
-      {renderPill(pages[pages.length - 1])}
+      <DrawerPagePill
+        page={pages[pages.length - 1]}
+        activePage={activePage}
+        onPageClick={onPageClick}
+        onPageDeactivate={onPageDeactivate}
+      />
     </>
   );
 }
@@ -188,7 +220,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   className,
   indicatorVariant = "icon",
   defaultExpanded = false,
-  style,
+  animationDelay,
 }: CitationDrawerItemProps) {
   const { citation, verification } = item;
   const statusInfo = useMemo(() => getStatusInfo(verification, indicatorVariant), [verification, indicatorVariant]);
@@ -210,16 +242,21 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const collapseInlineSignal = escCtx?.collapseInlineSignal ?? 0;
   const onSubstateChange = escCtx?.onSubstateChange;
 
-  // Track which signal we have already acted on to avoid false-triggers on mount
+  // Track which collapseInlineSignal we have already acted on to avoid false-triggers on mount
   const seenInlineSignalRef = useRef(0);
 
-  // Collapse inline image when parent sends the signal
+  // Clear inline expansion: when collapsed, or when parent sends collapse signal (Escape)
   useEffect(() => {
+    if (!isExpanded) {
+      setInlineExpandedSrc(null);
+      seenInlineSignalRef.current = collapseInlineSignal;
+      return;
+    }
     if (collapseInlineSignal > seenInlineSignalRef.current) {
       seenInlineSignalRef.current = collapseInlineSignal;
       setInlineExpandedSrc(null);
     }
-  }, [collapseInlineSignal]);
+  }, [isExpanded, collapseInlineSignal]);
 
   // Report substate to parent so the escape handler knows what to collapse next
   useEffect(() => {
@@ -237,15 +274,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       setWasAutoExpanded(true);
     }
   }, [defaultExpanded, escCtx, citationKey]);
-
-  // Clear inlineExpandedSrc when this item becomes collapsed (accordion switch)
-  const prevExpandedRef = useRef(isExpanded);
-  useEffect(() => {
-    if (prevExpandedRef.current && !isExpanded) {
-      setInlineExpandedSrc(null);
-    }
-    prevExpandedRef.current = isExpanded;
-  }, [isExpanded]);
 
   const prefersReducedMotion = usePrefersReducedMotion();
 
@@ -318,13 +346,14 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   return (
     <div
       ref={itemRef}
+      data-dc-item={citationKey}
       className={cn(
         "cursor-pointer transition-colors border-l-[3px] animate-in fade-in-0 slide-in-from-bottom-1 duration-200 fill-mode-backwards",
         !isLast && "border-b border-gray-200 dark:border-gray-700",
         isExpanded ? statusBorderColor : "border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
         className,
       )}
-      style={style}
+      style={animationDelay ? { animationDelay: `${animationDelay}ms` } : undefined}
     >
       {/* Clickable summary row */}
       <div
@@ -588,7 +617,7 @@ function DrawerSourceGroup({
               isLast={isLastGroup && index === group.citations.length - 1}
               onClick={onCitationClick}
               indicatorVariant={indicatorVariant}
-              style={{ animationDelay: `${delay}ms` }}
+              animationDelay={delay}
             />
           );
         })}
@@ -625,7 +654,7 @@ function DrawerSourceGroup({
               isLast={isLastGroup && index === group.citations.length - 1}
               onClick={onCitationClick}
               indicatorVariant={indicatorVariant}
-              style={{ animationDelay: `${delay}ms` }}
+              animationDelay={delay}
             />
           );
         })}
@@ -834,8 +863,11 @@ export function CitationDrawer({
 
   // Ref mirrors expandedCitationKey so the escape handler reads the latest value
   // without re-registering the listener on every accordion toggle.
+  // Synced in useLayoutEffect to avoid React Compiler bailout.
   const expandedKeyRef = useRef(expandedCitationKey);
-  expandedKeyRef.current = expandedCitationKey;
+  useLayoutEffect(() => {
+    expandedKeyRef.current = expandedCitationKey;
+  }, [expandedCitationKey]);
 
   // Escape key: step back through navigation levels instead of always closing.
   // Uses refs for mutable state so the listener is registered once per open/close cycle.

@@ -325,10 +325,11 @@ export function SourceContextHeader({
   const displayName = isUrl ? undefined : sourceLabel || verification?.label || "Document";
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only; no interactive affordance
     <div
+      role="presentation"
       className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-gray-200 dark:border-gray-700"
       onClick={e => e.stopPropagation()}
+      onKeyDown={e => e.stopPropagation()}
     >
       {/* Left: Back button (expanded view) + Icon + source name */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
