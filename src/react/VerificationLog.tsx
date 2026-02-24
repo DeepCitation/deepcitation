@@ -950,8 +950,7 @@ interface AuditSearchDisplayProps {
 
 /**
  * Single row representing a group of attempts sharing the same searchPhrase.
- * Displays: status icon, quoted phrase, phrase label badge, location + attempt count,
- * variations sub-line, and rejected matches sub-line.
+ * Stripped-down display: status icon, quoted phrase, and location text only.
  */
 function QueryGroupRow({ group }: { group: SearchQueryGroup }) {
   const displayPhrase = truncatePhrase(group.searchPhrase);
@@ -967,11 +966,8 @@ function QueryGroupRow({ group }: { group: SearchQueryGroup }) {
     locationText = "";
   }
 
-  const attemptsLabel = `${group.attemptCount} ${group.attemptCount === 1 ? "attempt" : "attempts"}`;
-
   return (
     <div className="py-1">
-      {/* Row 1: icon + phrase + badge */}
       <div className="flex items-start gap-2">
         <span
           className={cn(
@@ -984,47 +980,12 @@ function QueryGroupRow({ group }: { group: SearchQueryGroup }) {
           {group.anySuccess ? <CheckIcon /> : <MissIcon />}
         </span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between gap-2">
-            <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">
-              {displayPhrase}
-            </QuotedText>
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0 whitespace-nowrap bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
-              {group.phraseLabel}
-            </span>
-          </div>
-
-          {/* Row 2: location + attempt count */}
-          <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-            {locationText}
-            {locationText && " \u00B7 "}
-            {attemptsLabel}
-          </div>
-
-          {/* Variations sub-line */}
-          {group.variations.length > 0 && (
+          <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">
+            {displayPhrase}
+          </QuotedText>
+          {locationText && (
             <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-              {group.variationTypeLabel ?? "Also tried"}:{" "}
-              {group.variations.slice(0, 3).map((v, vIdx) => (
-                <React.Fragment key={v}>
-                  {vIdx > 0 && ", "}
-                  <QuotedText mono>{v}</QuotedText>
-                </React.Fragment>
-              ))}
-              {group.variations.length > 3 && ` +${group.variations.length - 3} more`}
-            </div>
-          )}
-
-          {/* Rejected matches sub-line */}
-          {group.rejectedMatches.length > 0 && (
-            <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
-              Rejected:{" "}
-              {group.rejectedMatches.map((m, mIdx) => (
-                <React.Fragment key={m.text}>
-                  {mIdx > 0 && ", "}
-                  <QuotedText mono>{m.text.length > 40 ? `${m.text.slice(0, 40)}...` : m.text}</QuotedText>
-                  {m.occurrences != null && ` (${m.occurrences}x)`}
-                </React.Fragment>
-              ))}
+              {locationText}
             </div>
           )}
         </div>
@@ -1141,8 +1102,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
     <div className="px-4 py-3 space-y-4 text-sm">
       <div>
         <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-          {groups.length} {groups.length === 1 ? "query" : "queries"} · {searchAttempts.length}{" "}
-          {searchAttempts.length === 1 ? "attempt" : "attempts"}
+          Search details
         </div>
         <div className="space-y-0.5">
           {groups.map(group => (
