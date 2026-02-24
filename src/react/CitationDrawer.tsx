@@ -45,8 +45,6 @@ import { FaviconImage, PagePill } from "./VerificationLog.js";
 interface DrawerEscapeCtx {
   /** Increment signals all items to collapse their inline (full-page) image */
   collapseInlineSignal: number;
-  /** Increment signals all items to collapse their expanded evidence tray */
-  collapseExpandedSignal: number;
   /** Items call this whenever their expanded/inline state changes */
   onSubstateChange: (key: string, isExpanded: boolean, hasInline: boolean) => void;
   /** The currently expanded item's citation key (accordion) */
@@ -89,17 +87,50 @@ function findFirstCitationKeyForPage(groups: SourceCitationGroup[], targetPage: 
   return null;
 }
 
+/** Finds the page number for a given citation key. */
+function findPageForCitationKey(groups: SourceCitationGroup[], targetKey: string): number | null {
+  for (const group of groups) {
+    for (const { citationKey, citation, verification } of group.citations) {
+      if (citationKey !== targetKey) continue;
+      const page =
+        (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
+      return page != null && page > 0 ? page : null;
+    }
+  }
+  return null;
+}
+
 /**
  * Renders page number pills in the drawer header.
  * Reuses PagePill from the popover for consistent styling and hit targets.
+ * Active page shows blue pill with X; others show gray pill with chevron.
  * Shows up to 3 individual pills; 4+ shows first, ellipsis, last.
  */
-function DrawerPageBadges({ pages, onPageClick }: { pages: number[]; onPageClick: (page: number) => void }) {
+function DrawerPageBadges({
+  pages,
+  activePage,
+  onPageClick,
+  onPageDeactivate,
+}: {
+  pages: number[];
+  activePage: number | null;
+  onPageClick: (page: number) => void;
+  onPageDeactivate: () => void;
+}) {
   if (pages.length === 0) return null;
 
-  const renderPill = (page: number) => (
-    <PagePill key={page} pageNumber={page} colorScheme="gray" onClick={() => onPageClick(page)} />
-  );
+  const renderPill = (page: number) => {
+    const isActive = page === activePage;
+    return (
+      <PagePill
+        key={page}
+        pageNumber={page}
+        colorScheme="gray"
+        onClick={isActive ? undefined : () => onPageClick(page)}
+        onClose={isActive ? onPageDeactivate : undefined}
+      />
+    );
+  };
 
   if (pages.length <= 3) {
     return <>{pages.map(renderPill)}</>;
@@ -225,12 +256,10 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const [inlineExpandedSrc, setInlineExpandedSrc] = useState<string | null>(null);
 
   const collapseInlineSignal = escCtx?.collapseInlineSignal ?? 0;
-  const collapseExpandedSignal = escCtx?.collapseExpandedSignal ?? 0;
   const onSubstateChange = escCtx?.onSubstateChange;
 
-  // Track which signals we have already acted on to avoid false-triggers on mount
+  // Track which signal we have already acted on to avoid false-triggers on mount
   const seenInlineSignalRef = useRef(0);
-  const seenExpandedSignalRef = useRef(0);
 
   // Collapse inline image when parent sends the signal
   useEffect(() => {
@@ -239,16 +268,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       setInlineExpandedSrc(null);
     }
   }, [collapseInlineSignal]);
-
-  // Collapse expanded tray when parent sends the signal — only clear inlineExpandedSrc
-  // (expansion is now parent-controlled via expandedCitationKey)
-  useEffect(() => {
-    if (collapseExpandedSignal > seenExpandedSignalRef.current) {
-      seenExpandedSignalRef.current = collapseExpandedSignal;
-      setInlineExpandedSrc(null);
-      if (!escCtx) setLocalExpanded(false);
-    }
-  }, [collapseExpandedSignal, escCtx]);
 
   // Report substate to parent so the escape handler knows what to collapse next
   useEffect(() => {
@@ -783,18 +802,6 @@ export function CitationDrawer({
   // Page numbers for header — computed from all groups, shown top-right as clickable badges
   const drawerPages = useMemo(() => computeUniquePageNumbers(sortedGroups), [sortedGroups]);
 
-  // Handler for clicking a page badge — expands the first citation on that page + auto-opens image
-  const handlePageBadgeClick = useCallback(
-    (page: number) => {
-      const key = findFirstCitationKeyForPage(sortedGroups, page);
-      if (key) {
-        setExpandedCitationKey(key);
-        setPendingInlineExpand(key);
-      }
-    },
-    [sortedGroups],
-  );
-
   // Accordion state — only one item expanded at a time
   const [expandedCitationKey, setExpandedCitationKey] = useState<string | null>(null);
   const [pendingInlineExpand, setPendingInlineExpand] = useState<string | null>(null);
@@ -807,9 +814,30 @@ export function CitationDrawer({
     setPendingInlineExpand(null);
   }, []);
 
+  // Handler for clicking a page badge — expands the first citation on that page + auto-opens image
+  const handlePageBadgeClick = useCallback(
+    (page: number) => {
+      const key = findFirstCitationKeyForPage(sortedGroups, page);
+      if (key) {
+        setExpandedCitationKey(key);
+        setPendingInlineExpand(key);
+      }
+    },
+    [sortedGroups],
+  );
+
+  // Active page pill — derived from which citation is currently expanded
+  const activePage = useMemo(
+    () => (expandedCitationKey ? findPageForCitationKey(sortedGroups, expandedCitationKey) : null),
+    [expandedCitationKey, sortedGroups],
+  );
+
+  const handlePageDeactivate = useCallback(() => {
+    setExpandedCitationKey(null);
+  }, []);
+
   // Escape navigation — tracks substate (expanded items, inline images) to step back
   const [collapseInlineSignal, setCollapseInlineSignal] = useState(0);
-  const [collapseExpandedSignal] = useState(0);
   const expandedKeysRef = useRef(new Set<string>());
   const inlineKeysRef = useRef(new Set<string>());
 
@@ -823,7 +851,6 @@ export function CitationDrawer({
   const escCtxValue = useMemo<DrawerEscapeCtx>(
     () => ({
       collapseInlineSignal,
-      collapseExpandedSignal,
       onSubstateChange,
       expandedCitationKey,
       onItemExpand,
@@ -832,7 +859,6 @@ export function CitationDrawer({
     }),
     [
       collapseInlineSignal,
-      collapseExpandedSignal,
       onSubstateChange,
       expandedCitationKey,
       onItemExpand,
@@ -938,7 +964,12 @@ export function CitationDrawer({
             <div className="flex items-center gap-2 shrink-0">
               {drawerPages.length > 0 && (
                 <div className="flex items-center gap-1 shrink-0">
-                  <DrawerPageBadges pages={drawerPages} onPageClick={handlePageBadgeClick} />
+                  <DrawerPageBadges
+                    pages={drawerPages}
+                    activePage={activePage}
+                    onPageClick={handlePageBadgeClick}
+                    onPageDeactivate={handlePageDeactivate}
+                  />
                 </div>
               )}
               <button
