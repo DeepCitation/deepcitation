@@ -13,11 +13,11 @@ import {
   MissIcon,
   SpinnerIcon,
   XCircleIcon,
-  XIcon
+  XIcon,
 } from "./icons.js";
 import type { UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
-import { isValidProofUrl } from "./urlUtils.js";
+// import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 
 import { cn, isUrlCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
@@ -305,7 +305,7 @@ export function SourceContextHeader({
   onExpand,
   onClose,
   onBack,
-  proofUrl,
+  proofUrl: _proofUrl,
 }: SourceContextHeaderProps) {
   const isUrl = isUrlCitation(citation);
 
@@ -318,7 +318,6 @@ export function SourceContextHeader({
   // but the pill also renders with a generic "Page" label for not_found citations where
   // verifiedPageNumber is null.
   const showPagePill = !!onExpand || !!onClose;
-  const validatedProofUrl = proofUrl ? isValidProofUrl(proofUrl) : null;
   // URL-specific data
   const url = isUrl ? citation.url || "" : "";
 
