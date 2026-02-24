@@ -810,6 +810,9 @@ export function CitationDrawer({
     setPendingInlineExpand(null);
   }, []);
 
+  // ARIA announcement for page badge navigation (screen readers)
+  const [pageAnnouncement, setPageAnnouncement] = useState("");
+
   // Handler for clicking a page badge — expands the first citation on that page + auto-opens image
   const handlePageBadgeClick = useCallback(
     (page: number) => {
@@ -817,6 +820,7 @@ export function CitationDrawer({
       if (key) {
         setExpandedCitationKey(key);
         setPendingInlineExpand(key);
+        setPageAnnouncement(`Navigated to page ${page}`);
       }
     },
     [pageToKey],
@@ -989,6 +993,11 @@ export function CitationDrawer({
               </button>
             </div>
           </div>
+        </div>
+
+        {/* ARIA live region for page badge navigation announcements */}
+        <div role="status" aria-live="polite" className="sr-only">
+          {pageAnnouncement}
         </div>
 
         {/* Citation list */}
