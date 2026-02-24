@@ -75,31 +75,6 @@ function computeUniquePageNumbers(groups: SourceCitationGroup[]): number[] {
   return Array.from(pages).sort((a, b) => a - b);
 }
 
-/** Finds the citationKey of the first citation on the given page number. */
-function findFirstCitationKeyForPage(groups: SourceCitationGroup[], targetPage: number): string | null {
-  for (const group of groups) {
-    for (const { citationKey, citation, verification } of group.citations) {
-      const page =
-        (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
-      if (page === targetPage) return citationKey;
-    }
-  }
-  return null;
-}
-
-/** Finds the page number for a given citation key. */
-function findPageForCitationKey(groups: SourceCitationGroup[], targetKey: string): number | null {
-  for (const group of groups) {
-    for (const { citationKey, citation, verification } of group.citations) {
-      if (citationKey !== targetKey) continue;
-      const page =
-        (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
-      return page != null && page > 0 ? page : null;
-    }
-  }
-  return null;
-}
-
 /**
  * Renders page number pills in the drawer header.
  * Reuses PagePill from the popover for consistent styling and hit targets.
@@ -350,10 +325,13 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       escCtx.clearPendingInlineExpand();
       // Scroll the item into view after expansion
       requestAnimationFrame(() => {
-        itemRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        itemRef.current?.scrollIntoView({
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+          block: "nearest",
+        });
       });
     }
-  }, [escCtx?.pendingInlineExpand, citationKey, proofImage, escCtx]);
+  }, [escCtx?.pendingInlineExpand, citationKey, proofImage, escCtx, prefersReducedMotion]);
 
   return (
     <div
@@ -373,6 +351,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
+        data-citation-key={citationKey}
         onKeyDown={e => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -802,6 +781,23 @@ export function CitationDrawer({
   // Page numbers for header — computed from all groups, shown top-right as clickable badges
   const drawerPages = useMemo(() => computeUniquePageNumbers(sortedGroups), [sortedGroups]);
 
+  // Bidirectional page↔key lookup maps — O(1) instead of linear scans per interaction
+  const { pageToKey, keyToPage } = useMemo(() => {
+    const p2k = new Map<number, string>();
+    const k2p = new Map<string, number>();
+    for (const group of sortedGroups) {
+      for (const { citationKey, citation, verification } of group.citations) {
+        const page =
+          (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
+        if (page != null && page > 0) {
+          if (!p2k.has(page)) p2k.set(page, citationKey); // first citation per page
+          k2p.set(citationKey, page);
+        }
+      }
+    }
+    return { pageToKey: p2k, keyToPage: k2p };
+  }, [sortedGroups]);
+
   // Accordion state — only one item expanded at a time
   const [expandedCitationKey, setExpandedCitationKey] = useState<string | null>(null);
   const [pendingInlineExpand, setPendingInlineExpand] = useState<string | null>(null);
@@ -817,20 +813,17 @@ export function CitationDrawer({
   // Handler for clicking a page badge — expands the first citation on that page + auto-opens image
   const handlePageBadgeClick = useCallback(
     (page: number) => {
-      const key = findFirstCitationKeyForPage(sortedGroups, page);
+      const key = pageToKey.get(page);
       if (key) {
         setExpandedCitationKey(key);
         setPendingInlineExpand(key);
       }
     },
-    [sortedGroups],
+    [pageToKey],
   );
 
   // Active page pill — derived from which citation is currently expanded
-  const activePage = useMemo(
-    () => (expandedCitationKey ? findPageForCitationKey(sortedGroups, expandedCitationKey) : null),
-    [expandedCitationKey, sortedGroups],
-  );
+  const activePage = expandedCitationKey ? (keyToPage.get(expandedCitationKey) ?? null) : null;
 
   const handlePageDeactivate = useCallback(() => {
     setExpandedCitationKey(null);
@@ -867,7 +860,13 @@ export function CitationDrawer({
     ],
   );
 
-  // Escape key: step back through navigation levels instead of always closing
+  // Ref mirrors expandedCitationKey so the escape handler reads the latest value
+  // without re-registering the listener on every accordion toggle.
+  const expandedKeyRef = useRef(expandedCitationKey);
+  expandedKeyRef.current = expandedCitationKey;
+
+  // Escape key: step back through navigation levels instead of always closing.
+  // Uses refs for mutable state so the listener is registered once per open/close cycle.
   React.useEffect(() => {
     if (!isOpen) return;
 
@@ -877,7 +876,7 @@ export function CitationDrawer({
           // Level 3 → Level 2: collapse inline full-page images
           setCollapseInlineSignal(s => s + 1);
           inlineKeysRef.current.clear();
-        } else if (expandedCitationKey !== null) {
+        } else if (expandedKeyRef.current !== null) {
           // Level 2 → Level 1: collapse the accordion
           setExpandedCitationKey(null);
           expandedKeysRef.current.clear();
@@ -890,7 +889,7 @@ export function CitationDrawer({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, expandedCitationKey]);
+  }, [isOpen, onClose]);
 
   // Don't render if closed
   if (!isOpen) return null;

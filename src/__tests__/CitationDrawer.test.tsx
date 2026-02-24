@@ -1232,38 +1232,40 @@ describe("CitationDrawer accordion", () => {
     additionalCount: count - 1,
   });
 
+  /** Helper: select a drawer item row by its citation key. */
+  const getItem = (container: HTMLElement, key: string) =>
+    container.querySelector(`[data-citation-key="${key}"]`) as HTMLElement;
+
   it("only one item expanded at a time (accordion)", () => {
     const groups = [createGroupWithMultiple(3)];
     const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
 
-    // Find all expandable rows
-    const buttons = container.querySelectorAll("[role='button']");
-    expect(buttons.length).toBe(3);
+    const item0 = getItem(container, "item-0");
+    const item1 = getItem(container, "item-1");
 
     // Click first item
-    fireEvent.click(buttons[0]);
-    // First item should be expanded
-    expect(buttons[0]).toHaveAttribute("aria-expanded", "true");
-    expect(buttons[1]).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(item0);
+    expect(item0).toHaveAttribute("aria-expanded", "true");
+    expect(item1).toHaveAttribute("aria-expanded", "false");
 
     // Click second item — first should collapse, second should expand
-    fireEvent.click(buttons[1]);
-    expect(buttons[0]).toHaveAttribute("aria-expanded", "false");
-    expect(buttons[1]).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(item1);
+    expect(item0).toHaveAttribute("aria-expanded", "false");
+    expect(item1).toHaveAttribute("aria-expanded", "true");
   });
 
   it("clicking expanded item collapses it", () => {
     const groups = [createGroupWithMultiple(2)];
     const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
 
-    const buttons = container.querySelectorAll("[role='button']");
+    const item0 = getItem(container, "item-0");
     // Click to expand
-    fireEvent.click(buttons[0]);
-    expect(buttons[0]).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(item0);
+    expect(item0).toHaveAttribute("aria-expanded", "true");
 
     // Click again to collapse
-    fireEvent.click(buttons[0]);
-    expect(buttons[0]).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(item0);
+    expect(item0).toHaveAttribute("aria-expanded", "false");
   });
 
   it("Escape key collapses expanded item before closing drawer", () => {
@@ -1271,13 +1273,13 @@ describe("CitationDrawer accordion", () => {
     const groups = [createGroupWithMultiple(2)];
     const { container } = render(<CitationDrawer isOpen={true} onClose={onClose} citationGroups={groups} />);
 
-    const buttons = container.querySelectorAll("[role='button']");
-    fireEvent.click(buttons[0]);
-    expect(buttons[0]).toHaveAttribute("aria-expanded", "true");
+    const item0 = getItem(container, "item-0");
+    fireEvent.click(item0);
+    expect(item0).toHaveAttribute("aria-expanded", "true");
 
     // First Escape collapses the expanded item
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(buttons[0]).toHaveAttribute("aria-expanded", "false");
+    expect(item0).toHaveAttribute("aria-expanded", "false");
     expect(onClose).not.toHaveBeenCalled();
 
     // Second Escape closes the drawer
@@ -1360,11 +1362,10 @@ describe("CitationDrawer page badges", () => {
     expect(pageButton).toBeInTheDocument();
     if (pageButton) fireEvent.click(pageButton);
 
-    // The second citation item should be expanded
-    const buttons = container.querySelectorAll("[role='button']");
-    // First item should NOT be expanded
-    expect(buttons[0]).toHaveAttribute("aria-expanded", "false");
-    // Second item should be expanded
-    expect(buttons[1]).toHaveAttribute("aria-expanded", "true");
+    // The first citation (page 1) should NOT be expanded, second (page 5) should be
+    const item1 = container.querySelector("[data-citation-key='c1']") as HTMLElement;
+    const item2 = container.querySelector("[data-citation-key='c2']") as HTMLElement;
+    expect(item1).toHaveAttribute("aria-expanded", "false");
+    expect(item2).toHaveAttribute("aria-expanded", "true");
   });
 });
