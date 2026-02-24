@@ -40,7 +40,7 @@ import { normalizeCitations } from "./normalizeCitation.js";
 const PAGE_ID_FULL_REGEX = /page[_a-zA-Z]*(\d+)_index_(\d+)/;
 const PAGE_ID_SIMPLE_REGEX = /page[_a-zA-Z]*(\d+)_index_(\d+)/i;
 const SIMPLE_PAGE_INDEX_REGEX = /^(\d+)_(\d+)$/;
-const CITE_TAG_REGEX = /<cite\s+(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|[^'">/])*\/>/g;
+const CITE_TAG_REGEX = /<cite\s+(?:'[^'\\]*(?:\\.[^'\\]*)*'|"[^"\\]*(?:\\.[^"\\]*)*"|[^'">/])*\/>/g;
 
 const attributeRegexCache = new Map<string, RegExp>();
 

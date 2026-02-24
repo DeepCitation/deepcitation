@@ -5,7 +5,7 @@ import { validateRegexInput } from "../utils/regexSafety.js";
  * Regex pattern for extracting HTML attributes from cite tags.
  * Matches: name="value" or name='value'
  */
-const ATTR_REGEX_PATTERN = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
+const ATTR_REGEX_PATTERN = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])([^'"\\]*(?:\\.[^'"\\]*)*)\2/g;
 
 /**
  * Parse attributes from a cite tag string.

@@ -15,7 +15,7 @@ import type { CitationWithStatus, MarkdownOutput, RenderMarkdownOptions } from "
  * Module-level compiled regex for cite tag matching.
  * Matches self-closing <cite ... /> tags.
  */
-const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
+const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
 
 /**
  * Regex pattern for parsing cite tag attributes.
@@ -23,7 +23,7 @@ const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
  * in parseCiteAttributes. This avoids stateful lastIndex issues that occur when
  * reusing a global regex across multiple exec() calls on different strings.
  */
-const ATTR_REGEX_PATTERN = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
+const ATTR_REGEX_PATTERN = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])([^'"\\]*(?:\\.[^'"\\]*)*)\2/g;
 
 /**
  * Map of attribute key aliases to their normalized form.

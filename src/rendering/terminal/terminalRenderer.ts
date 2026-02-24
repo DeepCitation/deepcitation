@@ -11,7 +11,7 @@ import type { TerminalOutput, TerminalRenderOptions, TerminalVariant } from "./t
 /**
  * Module-level compiled regex for cite tag matching.
  */
-const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
+const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
 
 /**
  * Map CitationStatus to a status key for color mapping.

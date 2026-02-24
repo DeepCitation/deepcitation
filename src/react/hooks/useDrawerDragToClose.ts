@@ -43,6 +43,14 @@ export function useDrawerDragToClose({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
+  const isMountedRef = useRef(true);
+  useEffect(
+    () => () => {
+      isMountedRef.current = false;
+    },
+    [],
+  );
+
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       if (!enabled) return;
@@ -65,9 +73,11 @@ export function useDrawerDragToClose({
     setIsDragging(false);
 
     setDragOffset(prev => {
-      if (prev >= threshold) {
+      if (prev >= threshold && isMountedRef.current) {
         // Close — use a microtask so the state update doesn't conflict
-        queueMicrotask(() => onCloseRef.current());
+        queueMicrotask(() => {
+          if (isMountedRef.current) onCloseRef.current();
+        });
       }
       return 0;
     });
@@ -80,8 +90,8 @@ export function useDrawerDragToClose({
 
     handle.addEventListener("touchstart", handleTouchStart, { passive: true });
     document.addEventListener("touchmove", handleTouchMove, { passive: true });
-    document.addEventListener("touchend", handleTouchEnd);
-    document.addEventListener("touchcancel", handleTouchEnd);
+    document.addEventListener("touchend", handleTouchEnd, { passive: true });
+    document.addEventListener("touchcancel", handleTouchEnd, { passive: true });
 
     return () => {
       handle.removeEventListener("touchstart", handleTouchStart);

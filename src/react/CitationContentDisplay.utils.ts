@@ -72,7 +72,8 @@ export function getDefaultContent(variant: CitationVariant): CitationContent {
  * Handles cases where LLM output includes brackets in anchorText.
  */
 function stripBrackets(text: string): string {
-  return text.replace(/^\[+\s*/, "").replace(/\s*\]+$/, "");
+  if (text.length > 1000) return text;
+  return text.replace(/^\[[\s[]*/, "").replace(/[\s\]]*\]$/, "");
 }
 
 /**

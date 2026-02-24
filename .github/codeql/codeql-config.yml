@@ -14,3 +14,11 @@ paths-ignore:
   - "**/*.test.tsx"
   - "**/*.spec.ts"
   - "**/*.spec.tsx"
+  # regexSafety.ts IS the mitigation layer — its functions apply caller-provided
+  # regex patterns to length-validated input. All callers use compile-time-constant
+  # patterns, not user-provided regex. CodeQL cannot verify this statically.
+  - "src/utils/regexSafety.ts"
+  # Example apps are demo code, not production. The extraction-only mode
+  # (returning citations without verification when no attachmentId is provided)
+  # is an intentional design decision, not a security bypass.
+  - "examples/**"

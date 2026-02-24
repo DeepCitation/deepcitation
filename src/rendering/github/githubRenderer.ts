@@ -17,7 +17,7 @@ import type { GitHubOutput, GitHubRenderOptions } from "./types.js";
 /**
  * Module-level compiled regex for cite tag matching.
  */
-const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
+const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
 
 /**
  * Render LLM output with <cite /> tags as GitHub-flavored Markdown.

@@ -7,22 +7,10 @@ import { getCitationStatus } from "./parseCitation.js";
 
 /**
  * Module-level compiled regexes for hot-path operations.
- *
- * IMPORTANT: These regexes are compiled once at module load time to avoid
- * the overhead of regex compilation on every function call.
- *
- * Note on global flag (/g): Regexes with the global flag maintain internal
- * state (lastIndex). To avoid state pollution across calls, we create fresh
- * instances from these patterns when using methods that rely on lastIndex:
- *
- *   // SAFE: Create new instance from source pattern
- *   const regex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
- *
- * Performance fix: avoids regex recompilation on every function call.
+ * Compiled once at module load to avoid per-call recompilation.
  */
 const PAGE_NUMBER_REGEX = /page[_a-zA-Z]*(\d+)/;
 const _RANGE_EXPANSION_REGEX = /(\d+)-(\d+)/g;
-const CITE_TAG_REGEX = /<cite\s+[^>]*?\/>/g;
 
 export interface ReplaceCitationsOptions {
   /**
@@ -52,11 +40,14 @@ export interface ReplaceCitationsOptions {
 const parseCiteAttributes = (citeTag: string): Record<string, string | undefined> => {
   const attrs: Record<string, string | undefined> = {};
 
-  // Security: validate input length before regex operations to prevent ReDoS
+  // Security: validate input length before regex operations to prevent ReDoS.
+  // The direct length check (visible to static analysis) supplements validateRegexInput()
+  // which CodeQL cannot trace through function boundaries.
   validateRegexInput(citeTag);
+  if (citeTag.length > 5000) return attrs;
 
   // Match attribute patterns: key='value' or key="value"
-  const attrRegex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])((?:[^'"\\]|\\.)*)\2/g;
+  const attrRegex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])([^'"\\]*(?:\\.[^'"\\]*)*)\2/g;
   let match: RegExpExecArray | null;
 
   while ((match = attrRegex.exec(citeTag)) !== null) {
@@ -149,8 +140,9 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
   // Track citation index for matching with numbered verification keys
   let citationIndex = 0;
 
-  // Use module-level regex directly - replace() handles lastIndex reset automatically
-  return markdownWithCitations.replace(CITE_TAG_REGEX, match => {
+  // Linear-time cite tag replacement using indexOf instead of regex.
+  // Avoids polynomial backtracking that CodeQL flags in regex-based matching.
+  const replaceCiteTag = (match: string): string => {
     citationIndex++;
     const attrs = parseCiteAttributes(match);
 
@@ -170,6 +162,7 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
       // Build a Citation object from parsed attributes to generate the key
       const parsePageNumber = (startPageId?: string): number | undefined => {
         if (!startPageId) return undefined;
+        if (startPageId.length > 200) return undefined;
         // Performance fix: use module-level compiled regex
         // Note: parent replaceCitations() already validated the full input
         const match = startPageId.match(PAGE_NUMBER_REGEX);
@@ -178,6 +171,7 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
 
       const parseLineIds = (lineIdsStr?: string): number[] | undefined => {
         if (!lineIdsStr) return undefined;
+        if (lineIdsStr.length > 500) return undefined;
 
         // Note: parent replaceCitations() already validated the full input
         // Performance fix: limit range expansion to prevent memory exhaustion
@@ -252,7 +246,30 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
     }
 
     return output;
-  });
+  };
+
+  // Scan for <cite ... /> tags using indexOf — O(n) guaranteed
+  let result = "";
+  let lastIndex = 0;
+  let pos = 0;
+  const OPEN = "<cite ";
+
+  while (pos < markdownWithCitations.length) {
+    const start = markdownWithCitations.indexOf(OPEN, pos);
+    if (start === -1) break;
+
+    const end = markdownWithCitations.indexOf("/>", start + OPEN.length);
+    if (end === -1) break;
+
+    const tag = markdownWithCitations.substring(start, end + 2);
+    result += markdownWithCitations.substring(lastIndex, start);
+    result += replaceCiteTag(tag);
+    lastIndex = end + 2;
+    pos = end + 2;
+  }
+
+  result += markdownWithCitations.substring(lastIndex);
+  return result;
 };
 
 export const removePageNumberMetadata = (pageText: string): string => {
@@ -494,7 +511,7 @@ const normalizeCitationContent = (input: string): string => {
   // (the parser uses regexes that assume a canonical attribute order).
   const reorderCiteTagAttributes = (tag: string): string => {
     // Match both single-quoted and double-quoted attributes
-    const attrRegex = /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(['"])((?:[^'"\\\n]|\\.)*)(?:\2)/g;
+    const attrRegex = /([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(['"])([^'"\\\n]*(?:\\.[^'"\\\n]*)*)(?:\2)/g;
     // Use safe object to prevent prototype pollution
     const attrs = createSafeObject<string>();
     let match: RegExpExecArray | null;
