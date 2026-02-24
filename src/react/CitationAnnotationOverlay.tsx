@@ -61,6 +61,7 @@ export function CitationAnnotationOverlay({
 
   return (
     <div
+      data-dc-annotation-overlay=""
       style={{
         position: "absolute",
         inset: 0,
@@ -70,6 +71,7 @@ export function CitationAnnotationOverlay({
     >
       {/* Spotlight: transparent cutout with massive box-shadow covering the rest */}
       <div
+        data-dc-spotlight=""
         style={{
           position: "absolute",
           ...rect,
@@ -80,6 +82,7 @@ export function CitationAnnotationOverlay({
 
       {/* Left bracket [ */}
       <div
+        data-dc-bracket-left=""
         style={{
           position: "absolute",
           ...rect,
@@ -93,6 +96,7 @@ export function CitationAnnotationOverlay({
 
       {/* Right bracket ] — positioned at the right edge of the phrase box */}
       <div
+        data-dc-bracket-right=""
         style={{
           position: "absolute",
           top: rect.top,
@@ -109,6 +113,7 @@ export function CitationAnnotationOverlay({
       {/* Anchor text highlight (amber background) */}
       {anchorRect && (
         <div
+          data-dc-anchor-highlight=""
           style={{
             position: "absolute",
             ...anchorRect,

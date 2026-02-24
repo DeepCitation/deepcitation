@@ -1623,9 +1623,11 @@ describe("CitationComponent mobile/touch detection", () => {
       // Popover should be visible
       await waitForPopoverVisible(container);
 
-      // Tap outside (on document body) - should dismiss popover
+      // Tap outside (on document body) - should dismiss popover.
+      // Full tap gesture: touchstart + touchend (no touchmove = finger didn't move).
       await act(async () => {
-        fireEvent.touchStart(document.body);
+        fireEvent.touchStart(document.body, { touches: [{ clientX: 0, clientY: 0 }] });
+        fireEvent.touchEnd(document.body);
       });
 
       // Popover should be dismissed
@@ -1744,9 +1746,10 @@ describe("CitationComponent mobile/touch detection", () => {
           fireEvent.click(citation as HTMLElement);
         });
 
-        // Close by tapping outside
+        // Close by tapping outside (full tap: touchstart + touchend)
         await act(async () => {
-          fireEvent.touchStart(document.body);
+          fireEvent.touchStart(document.body, { touches: [{ clientX: 0, clientY: 0 }] });
+          fireEvent.touchEnd(document.body);
         });
       }
 

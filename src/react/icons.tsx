@@ -284,6 +284,32 @@ export const XIcon = ({ className }: { className?: string }) => (
 );
 
 /**
+ * Crosshair/locate icon for scrolling to an annotation
+ * Size is controlled by parent container
+ */
+export const LocateIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    width="100%"
+    height="100%"
+  >
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="2" x2="12" y2="6" />
+    <line x1="12" y1="18" x2="12" y2="22" />
+    <line x1="2" y1="12" x2="6" y2="12" />
+    <line x1="18" y1="12" x2="22" y2="12" />
+  </svg>
+);
+
+/**
  * Zoom/expand icon for enlarging images
  * Size is controlled by parent container
  */

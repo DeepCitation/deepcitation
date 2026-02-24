@@ -813,6 +813,8 @@ export function InlineExpandedImage({
   fill = false,
   onNaturalSize,
   renderScale,
+  highlightItem,
+  anchorItem,
 }: {
   src: string;
   onCollapse: () => void;
@@ -823,6 +825,10 @@ export function InlineExpandedImage({
   onNaturalSize?: (width: number, height: number) => void;
   /** Scale factors for converting DeepTextItem PDF coords to image pixels. */
   renderScale?: { x: number; y: number } | null;
+  /** Override phraseMatchDeepItem from verification.document (for direct DeepTextItem injection). */
+  highlightItem?: DeepTextItem | null;
+  /** Override anchorTextMatchDeepItems[0] from verification.document (for direct DeepTextItem injection). */
+  anchorItem?: DeepTextItem | null;
 }) {
   const { containerRef, isDragging, handlers: panHandlers, wasDragging } = useDragToPan({ direction: "xy" });
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -843,6 +849,10 @@ export function InlineExpandedImage({
   // This ensures the initial-zoom effect re-fires once the container is measured.
   const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
   const hasSetInitialZoom = useRef(false);
+
+  // Effective annotation items: override props take precedence, then verification.document, then null.
+  const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
+  const effectiveAnchorItem = anchorItem ?? verification?.document?.anchorTextMatchDeepItems?.[0] ?? null;
 
   // Track container size via ResizeObserver (both width and height for fit-to-screen).
   // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
@@ -898,17 +908,16 @@ export function InlineExpandedImage({
     onNaturalSize?.(Math.round(naturalWidth * fitZoom), Math.round(naturalHeight * fitZoom));
 
     // Auto-scroll to annotation: after fit-to-screen zoom is computed, scroll
-    // the container so the phraseMatchDeepItem annotation is centered in view.
+    // the container so the annotation is centered in view.
     // Uses rAF to wait for the DOM to reflow at the new zoom level.
     let rafId: number | undefined;
-    const phraseItem = verification?.document?.phraseMatchDeepItem;
-    if (phraseItem && renderScale) {
+    if (effectivePhraseItem && renderScale) {
       const effectiveZoom = fitZoom < 1 ? fitZoom : 1;
       rafId = requestAnimationFrame(() => {
         const container = containerRef.current;
         if (!container) return;
         const target = computeAnnotationScrollTarget(
-          phraseItem,
+          effectivePhraseItem,
           renderScale,
           naturalWidth,
           naturalHeight,
@@ -932,7 +941,7 @@ export function InlineExpandedImage({
     naturalHeight,
     containerSize,
     onNaturalSize,
-    verification,
+    effectivePhraseItem,
     renderScale,
     containerRef,
   ]);
@@ -971,9 +980,31 @@ export function InlineExpandedImage({
     return () => el.removeEventListener("wheel", onWheel);
   }, [fill, clampZoom]);
 
-  // Touch pinch-to-zoom (two-finger gesture).
+  // Touch pinch-to-zoom with midpoint anchoring (two-finger gesture).
+  // Zooms centered on the midpoint between the two fingers so the content under the
+  // pinch stays visually stable. After computing the new zoom, the container's scroll
+  // position is adjusted so the content-space point under the pinch midpoint maps back
+  // to the same viewport position.
+  //
   // Uses zoomRef to read current zoom so listeners can be registered once (on mount /
   // fill change) rather than re-added on every zoom change during a pinch gesture.
+  //
+  // After setZoom(), the DOM hasn't reflowed yet so the image width is still the old
+  // value. We store the target scroll in a ref and apply it in a useLayoutEffect that
+  // fires after React renders the new width. This ensures scroll correction happens in
+  // the same frame as the size change, preventing any visible jump.
+  const pinchScrollTarget = useRef<{ left: number; top: number } | null>(null);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
+  useLayoutEffect(() => {
+    if (!pinchScrollTarget.current) return;
+    const el = containerRef.current;
+    if (!el) return;
+    el.scrollLeft = pinchScrollTarget.current.left;
+    el.scrollTop = pinchScrollTarget.current.top;
+    pinchScrollTarget.current = null;
+  }, [zoom]);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
   useEffect(() => {
     if (!fill) return;
@@ -991,6 +1022,12 @@ export function InlineExpandedImage({
       return Math.sqrt(dx * dx + dy * dy);
     };
 
+    const getTouchMidpoint = (touches: TouchList): { x: number; y: number } => {
+      const [a, b] = [touches[0], touches[1]];
+      if (!a || !b) return { x: 0, y: 0 };
+      return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
+    };
+
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         const dist = getTouchDistance(e.touches);
@@ -1003,9 +1040,28 @@ export function InlineExpandedImage({
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length !== 2 || initialDistance === null) return;
       e.preventDefault(); // prevent native scroll while pinching
+
       const currentDistance = getTouchDistance(e.touches);
       const scale = currentDistance / initialDistance;
-      setZoom(clampZoom(initialZoom * scale));
+      const oldZoom = zoomRef.current;
+      const newZoom = clampZoom(initialZoom * scale);
+
+      // Compute midpoint-anchored scroll correction.
+      // The pinch midpoint in viewport coords should map to the same content point
+      // before and after the zoom change.
+      const mid = getTouchMidpoint(e.touches);
+      const rect = el.getBoundingClientRect();
+      // Content-space point currently under the pinch midpoint
+      const contentX = mid.x - rect.left + el.scrollLeft;
+      const contentY = mid.y - rect.top + el.scrollTop;
+      // After zoom, that content point has scaled — adjust scroll so it maps back
+      const ratio = newZoom / oldZoom;
+      pinchScrollTarget.current = {
+        left: contentX * ratio - (mid.x - rect.left),
+        top: contentY * ratio - (mid.y - rect.top),
+      };
+
+      setZoom(newZoom);
     };
 
     const onTouchEnd = () => {

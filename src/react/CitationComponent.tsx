@@ -816,45 +816,61 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     useEffect(() => {
       if (!isMobile || !isHovering) return;
 
-      const handleOutsideTouch = (e: TouchEvent) => {
-        // Don't dismiss popover while an image overlay is open - user expects to return
-        // to the popover after closing the zoomed image. Uses ref to avoid stale closure.
-        if (isAnyOverlayOpenRef.current) {
-          return;
-        }
+      // Track touch state to distinguish taps from scrolls/swipes.
+      // Only dismiss on touchend if the finger didn't move significantly (< 10px).
+      let startX = 0;
+      let startY = 0;
+      let moved = false;
+      let outsideTarget = false;
 
-        // Type guard for touch event target
-        const target = e.target;
-        if (!(target instanceof Node)) {
-          return;
-        }
+      const TAP_SLOP = 10; // px — matches iOS/Chrome tap-vs-scroll threshold
 
-        // Check if touch is inside the trigger element
-        if (triggerRef.current?.contains(target)) {
-          return;
-        }
-
-        // Check if touch is inside the popover content (works with portaled content)
-        if (popoverContentRef.current?.contains(target)) {
-          return;
-        }
-
-        // Touch is outside both - dismiss the popover
-        closePopover();
+      const isOutsidePopover = (target: EventTarget | null): boolean => {
+        if (!(target instanceof Node)) return false;
+        if (triggerRef.current?.contains(target)) return false;
+        if (popoverContentRef.current?.contains(target)) return false;
+        return true;
       };
 
-      // Use touchstart with capture phase to detect touches before they're handled
-      // by other handlers (like handleTouchStart on the citation trigger itself).
-      // passive: true — handler never calls preventDefault(), so allow scroll immediately.
-      document.addEventListener("touchstart", handleOutsideTouch, {
-        capture: true,
-        passive: true,
-      });
+      const handleTouchStart = (e: TouchEvent) => {
+        if (isAnyOverlayOpenRef.current) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+        startX = touch.clientX;
+        startY = touch.clientY;
+        moved = false;
+        outsideTarget = isOutsidePopover(e.target);
+      };
+
+      const handleTouchMove = (e: TouchEvent) => {
+        if (!outsideTarget || moved) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        if (dx * dx + dy * dy > TAP_SLOP * TAP_SLOP) {
+          moved = true;
+        }
+      };
+
+      const handleTouchEnd = () => {
+        if (outsideTarget && !moved) {
+          closePopover();
+        }
+        outsideTarget = false;
+        moved = false;
+      };
+
+      // All passive — we never preventDefault(), allowing scroll to proceed freely.
+      // Capture phase so we see touches before child handlers.
+      document.addEventListener("touchstart", handleTouchStart, { capture: true, passive: true });
+      document.addEventListener("touchmove", handleTouchMove, { capture: true, passive: true });
+      document.addEventListener("touchend", handleTouchEnd, { capture: true, passive: true });
 
       return () => {
-        document.removeEventListener("touchstart", handleOutsideTouch, {
-          capture: true,
-        });
+        document.removeEventListener("touchstart", handleTouchStart, { capture: true });
+        document.removeEventListener("touchmove", handleTouchMove, { capture: true });
+        document.removeEventListener("touchend", handleTouchEnd, { capture: true });
       };
     }, [isMobile, isHovering, closePopover]);
 
