@@ -36,7 +36,7 @@ import {
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
-import { SpinnerIcon, ZoomInIcon, ZoomOutIcon } from "./icons.js";
+import { LocateIcon, SpinnerIcon, ZoomInIcon, ZoomOutIcon } from "./icons.js";
 import { deriveOutcomeLabel } from "./outcomeLabel.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget } from "./overlayGeometry.js";
 import { buildSearchSummary } from "./searchSummaryUtils.js";
@@ -963,6 +963,23 @@ export function InlineExpandedImage({
     setZoom(z => clampZoom(z - EXPANDED_ZOOM_STEP));
   }, [clampZoom]);
 
+  // Scroll the container so the annotation is centered in view (re-center after pan/zoom).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
+  const handleScrollToAnnotation = useCallback(() => {
+    if (!containerRef.current || !effectivePhraseItem || !renderScale || !naturalWidth || !naturalHeight) return;
+    const container = containerRef.current;
+    const target = computeAnnotationScrollTarget(
+      effectivePhraseItem,
+      renderScale,
+      naturalWidth,
+      naturalHeight,
+      zoomRef.current,
+      container.clientWidth,
+      container.clientHeight,
+    );
+    if (target) container.scrollTo({ left: target.scrollLeft, top: target.scrollTop, behavior: "smooth" });
+  }, [effectivePhraseItem, renderScale, naturalWidth, naturalHeight]);
+
   // Trackpad pinch zoom (Ctrl+wheel) — prevents default browser zoom.
   // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
   useEffect(() => {
@@ -1101,12 +1118,12 @@ export function InlineExpandedImage({
 
   // Show zoom controls in fill mode when image has loaded
   const showZoomControls = fill && imageLoaded && naturalWidth !== null;
+  const showScrollToAnnotation = showZoomControls && !!effectivePhraseItem && !!renderScale;
 
   // Compute transform-origin from annotation position (fill mode only).
   // Inline computation (no useMemo) — computeAnnotationOriginPercent is pure
   // arithmetic, cheaper than the overhead of a hook in this effect-heavy component.
-  const annotationPhraseItem =
-    fill && renderScale && naturalWidth && naturalHeight ? (verification?.document?.phraseMatchDeepItem ?? null) : null;
+  const annotationPhraseItem = fill && renderScale && naturalWidth && naturalHeight ? effectivePhraseItem : null;
   const annotationOrigin =
     annotationPhraseItem && renderScale && naturalWidth && naturalHeight
       ? computeAnnotationOriginPercent(annotationPhraseItem, renderScale, naturalWidth, naturalHeight)
@@ -1221,22 +1238,18 @@ export function InlineExpandedImage({
                 }}
                 draggable={false}
               />
-              {imageLoaded &&
-                renderScale &&
-                naturalWidth &&
-                naturalHeight &&
-                verification?.document?.phraseMatchDeepItem && (
-                  <CitationAnnotationOverlay
-                    phraseMatchDeepItem={verification.document.phraseMatchDeepItem}
-                    renderScale={renderScale}
-                    imageNaturalWidth={naturalWidth}
-                    imageNaturalHeight={naturalHeight}
-                    highlightColor={verification.highlightColor}
-                    anchorTextDeepItem={verification.document.anchorTextMatchDeepItems?.[0]}
-                    anchorText={verification.verifiedAnchorText}
-                    fullPhrase={verification.verifiedFullPhrase}
-                  />
-                )}
+              {imageLoaded && renderScale && naturalWidth && naturalHeight && effectivePhraseItem && (
+                <CitationAnnotationOverlay
+                  phraseMatchDeepItem={effectivePhraseItem}
+                  renderScale={renderScale}
+                  imageNaturalWidth={naturalWidth}
+                  imageNaturalHeight={naturalHeight}
+                  highlightColor={verification?.highlightColor}
+                  anchorTextDeepItem={effectiveAnchorItem}
+                  anchorText={verification?.verifiedAnchorText}
+                  fullPhrase={verification?.verifiedFullPhrase}
+                />
+              )}
             </div>
           </div>
           {/* In fill mode, footer sits inside the scroll area right below the page image */}
@@ -1308,6 +1321,22 @@ export function InlineExpandedImage({
               <span className="min-w-[4ch] text-center font-mono tabular-nums select-none text-[11px] leading-none">
                 {Math.round(zoom * 100)}%
               </span>
+              {showScrollToAnnotation && (
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleScrollToAnnotation();
+                  }}
+                  data-dc-scroll-to-annotation=""
+                  className="size-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+                  aria-label="Scroll to annotation"
+                >
+                  <span className="size-3.5">
+                    <LocateIcon />
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={e => {

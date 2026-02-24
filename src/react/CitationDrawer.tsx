@@ -372,18 +372,20 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       >
         <div className="flex items-start gap-3">
           {/* Status indicator */}
-          <div className="shrink-0 mt-0.5" data-testid="status-indicator">
-            <span
-              className={cn(
-                "inline-flex w-5 h-5 items-center justify-center",
-                statusInfo.color,
-                isPending && indicatorVariant !== "dot" && "animate-spin",
-              )}
-              title={statusInfo.label}
-            >
-              {statusInfo.icon}
-            </span>
-          </div>
+          {indicatorVariant !== "none" && (
+            <div className="shrink-0 mt-0.5" data-testid="status-indicator">
+              <span
+                className={cn(
+                  "inline-flex w-5 h-5 items-center justify-center",
+                  statusInfo.color,
+                  isPending && indicatorVariant !== "dot" && "animate-spin",
+                )}
+                title={statusInfo.label}
+              >
+                {statusInfo.icon}
+              </span>
+            </div>
+          )}
 
           {/* Header: fullPhrase with anchorText highlighted */}
           <div className="flex-1 min-w-0">
@@ -487,7 +489,7 @@ function CompactSingleCitationRow({
   group: SourceCitationGroup;
   isLast?: boolean;
   onClick?: (item: CitationDrawerItem) => void;
-  indicatorVariant?: "icon" | "dot";
+  indicatorVariant?: "icon" | "dot" | "none";
 }) {
   const item = group.citations[0];
   const { citation, verification } = item;
@@ -538,16 +540,18 @@ function CompactSingleCitationRow({
       </span>
 
       {/* Status indicator */}
-      <span
-        className={cn(
-          "inline-flex w-4 h-4 items-center justify-center shrink-0",
-          statusInfo.color,
-          isPending && indicatorVariant !== "dot" && "animate-spin",
-        )}
-        title={statusInfo.label}
-      >
-        {statusInfo.icon}
-      </span>
+      {indicatorVariant !== "none" && (
+        <span
+          className={cn(
+            "inline-flex w-4 h-4 items-center justify-center shrink-0",
+            statusInfo.color,
+            isPending && indicatorVariant !== "dot" && "animate-spin",
+          )}
+          title={statusInfo.label}
+        >
+          {statusInfo.icon}
+        </span>
+      )}
 
       {/* Anchor text */}
       {displayText && (
@@ -569,7 +573,7 @@ interface DrawerSourceGroupProps {
   isLastGroup: boolean;
   staggerOffset: number;
   onCitationClick?: (item: CitationDrawerItem) => void;
-  indicatorVariant: "icon" | "dot";
+  indicatorVariant: "icon" | "dot" | "none";
   renderCitationItem?: (item: CitationDrawerItem) => React.ReactNode;
   /** When true, the drawer header already identifies the source — omit group headers and source names */
   isSingleGroup?: boolean;
@@ -950,7 +954,7 @@ export function CitationDrawer({
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <DrawerSourceHeading citationGroups={resolvedGroups} label={label} fallbackTitle={title} />
-              {totalCitations > 0 && (
+              {totalCitations > 0 && indicatorVariant !== "none" && (
                 <div className="mt-0.5">
                   <StackedStatusIcons
                     flatCitations={flatCitations}

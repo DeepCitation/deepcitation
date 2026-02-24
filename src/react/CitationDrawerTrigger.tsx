@@ -59,9 +59,10 @@ export interface CitationDrawerTriggerProps {
    * Visual style for status indicators.
    * - `"icon"`: Checkmarks, spinner, X icons (default)
    * - `"dot"`: Subtle colored dots (like GitHub status dots)
+   * - `"none"`: No status indicator rendered
    * @default "icon"
    */
-  indicatorVariant?: "icon" | "dot";
+  indicatorVariant?: "icon" | "dot" | "none";
   /**
    * Map of attachmentId or URL to friendly display label.
    * Used to override source names in tooltips and the default label.
@@ -122,8 +123,9 @@ function StatusIconChip({
   verification: Verification | null;
   title: string;
   size?: number;
-  indicatorVariant?: "icon" | "dot";
+  indicatorVariant?: "icon" | "dot" | "none";
 }) {
+  if (indicatorVariant === "none") return null;
   const statusInfo = getStatusInfo(verification, indicatorVariant);
   const isPending = !verification?.status || verification.status === "pending" || verification.status === "loading";
 
@@ -153,7 +155,7 @@ function CitationTooltip({
   flatItem: FlatCitationItem;
   showProofThumbnail: boolean;
   onSourceClick?: (group: SourceCitationGroup) => void;
-  indicatorVariant?: "icon" | "dot";
+  indicatorVariant?: "icon" | "dot" | "none";
 }) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [adjustedLeft, setAdjustedLeft] = useState<number | null>(null);
@@ -309,8 +311,11 @@ export function StackedStatusIcons({
   onIconLeave: () => void;
   showProofThumbnails: boolean;
   onSourceClick?: (group: SourceCitationGroup) => void;
-  indicatorVariant?: "icon" | "dot";
+  indicatorVariant?: "icon" | "dot" | "none";
 }) {
+  // None variant: no indicators at all
+  if (indicatorVariant === "none") return null;
+
   // Dot variant: one dot per status group (e.g. ●1 ●5) ordered worst-first
   if (indicatorVariant === "dot") {
     const counts = new Map<number, number>();

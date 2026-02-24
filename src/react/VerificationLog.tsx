@@ -499,7 +499,7 @@ export interface StatusHeaderProps {
    * - `"dot"`: Subtle colored dots
    * @default "icon"
    */
-  indicatorVariant?: "icon" | "dot";
+  indicatorVariant?: "icon" | "dot" | "none";
 }
 
 export interface QuoteBoxProps {

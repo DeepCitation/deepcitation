@@ -149,11 +149,11 @@ import { DOT_INDICATOR_FIXED_SIZE_STYLE } from "./constants.js";
 /**
  * Get verification status indicator info.
  * @param verification - The verification result
- * @param indicatorVariant - "icon" for SVG icons (default), "dot" for subtle colored dots
+ * @param indicatorVariant - "icon" for SVG icons (default), "dot" for subtle colored dots, "none" for no indicator
  */
 export function getStatusInfo(
   verification: Verification | null,
-  indicatorVariant: "icon" | "dot" = "icon",
+  indicatorVariant: "icon" | "dot" | "none" = "icon",
 ): {
   color: string;
   icon: React.ReactNode;
@@ -162,6 +162,18 @@ export function getStatusInfo(
   const status = verification?.status;
 
   const isPartial = isPartialSearchStatus(status);
+
+  if (indicatorVariant === "none") {
+    const label =
+      !status || status === "pending" || status === "loading"
+        ? "Verifying"
+        : status === "not_found"
+          ? "Not found"
+          : isPartial
+            ? "Partial match"
+            : "Verified";
+    return { color: "", icon: null, label };
+  }
 
   if (indicatorVariant === "dot") {
     if (!status || status === "pending" || status === "loading") {

@@ -71,7 +71,7 @@ export interface PopoverContentProps {
    * Visual style for status indicators inside the popover.
    * @default "icon"
    */
-  indicatorVariant?: "icon" | "dot";
+  indicatorVariant?: "icon" | "dot" | "none";
   /** Current view state: summary or expanded */
   viewState?: PopoverViewState;
   /** Callback when view state changes */

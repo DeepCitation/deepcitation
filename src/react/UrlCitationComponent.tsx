@@ -114,7 +114,7 @@ const ExternalLinkButton = ({ showExternalLinkIndicator, handleExternalLinkClick
 };
 
 interface UrlStatusIndicatorProps {
-  indicatorVariant: "icon" | "dot";
+  indicatorVariant: "icon" | "dot" | "none";
   isVerified: boolean;
   isPartial: boolean;
   isBlocked: boolean;

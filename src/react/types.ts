@@ -24,8 +24,9 @@ export type CitationInteractionMode = "eager" | "lazy";
  * |---------|------------------------------------------------|
  * | `"icon"`  | Icon-based indicators: checkmark, spinner, X (default) |
  * | `"dot"`   | Subtle colored dot (like GitHub status dots / shadcn badge dots) |
+ * | `"none"`  | No status indicator rendered                   |
  */
-export type IndicatorVariant = "icon" | "dot";
+export type IndicatorVariant = "icon" | "dot" | "none";
 
 /**
  * Visual style variants for citations.
