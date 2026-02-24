@@ -356,7 +356,7 @@ export function AnchorTextFocusedImage({
     const containerWidth = container.clientWidth;
 
     // Detect whether the image nearly fits within the keyhole (minimal cropping).
-    // Uses KEYHOLE_SKIP_THRESHOLD (1.25) so images within ~80% of keyhole height
+    // Uses KEYHOLE_SKIP_THRESHOLD (1.5) so images up to 50% taller than the strip
     // are treated as "fits" — expanding would reveal almost nothing new.
     // displayedWidth <= containerWidth → image is narrow enough to show in full horizontally.
     // When both are true, the keyhole already reveals nearly everything — expand adds no value.
@@ -730,6 +730,8 @@ export function EvidenceTray({
           onImageClick={onImageClick}
           onFitStateChange={setKeyholeImageFits}
           onAlreadyFullSize={handleAlreadyFullSize}
+          page={verification?.pages?.[0]}
+          onViewPageClick={onExpand ? () => onExpand() : undefined}
         />
       ) : isMiss && (searchAttempts.length > 0 || isValidProofImageSrc(proofImageSrc)) ? (
         <div key="miss-analysis">

@@ -29,7 +29,9 @@ import {
 } from "./constants.js";
 import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
+import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
+import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
 
@@ -765,6 +767,13 @@ export function CitationDrawer({
   indicatorVariant = "icon",
   sourceLabelMap,
 }: CitationDrawerProps): React.ReactNode {
+  // Drag-to-close on the handle bar (bottom sheet convention)
+  const isBottomSheet = position === "bottom";
+  const { handleRef, drawerRef, dragOffset, isDragging } = useDrawerDragToClose({
+    onClose,
+    enabled: isBottomSheet && isOpen,
+  });
+
   // Resolve source labels once at the top — all downstream components read group.sourceName directly
   const resolvedGroups = useMemo(
     () => resolveGroupLabels(citationGroups, sourceLabelMap),
@@ -879,6 +888,13 @@ export function CitationDrawer({
     expandedKeyRef.current = expandedCitationKey;
   }, [expandedCitationKey]);
 
+  // Lock body scroll while drawer is open (prevents pull-to-refresh on mobile)
+  useEffect(() => {
+    if (!isOpen) return;
+    acquireScrollLock();
+    return () => releaseScrollLock();
+  }, [isOpen]);
+
   // Escape key: step back through navigation levels instead of always closing.
   // Uses refs for mutable state so the listener is registered once per open/close cycle.
   React.useEffect(() => {
@@ -940,6 +956,7 @@ export function CitationDrawer({
 
       {/* Drawer */}
       <div
+        ref={drawerRef}
         className={cn(
           "fixed bg-white dark:bg-gray-900 flex flex-col",
           "animate-in duration-200",
@@ -947,14 +964,25 @@ export function CitationDrawer({
           position === "right" && "inset-y-0 right-0 w-full max-w-md slide-in-from-right-4",
           className,
         )}
-        style={{ zIndex: `var(${Z_INDEX_DRAWER_VAR}, ${Z_INDEX_OVERLAY_DEFAULT})` } as React.CSSProperties}
+        style={
+          {
+            zIndex: `var(${Z_INDEX_DRAWER_VAR}, ${Z_INDEX_OVERLAY_DEFAULT})`,
+            ...(dragOffset > 0 && {
+              transform: `translateY(${dragOffset}px)`,
+              transition: isDragging ? "none" : "transform 200ms ease-out",
+            }),
+          } as React.CSSProperties
+        }
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        {/* Handle bar (mobile) */}
+        {/* Handle bar (mobile) — drag-to-close target */}
         {position === "bottom" && (
-          <div className="flex justify-center pt-2 pb-0.5 shrink-0">
+          <div
+            ref={handleRef}
+            className="flex justify-center pt-3 pb-1 shrink-0 touch-none cursor-grab active:cursor-grabbing"
+          >
             <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
           </div>
         )}
@@ -1017,7 +1045,7 @@ export function CitationDrawer({
 
         {/* Citation list */}
         <DrawerEscapeContext.Provider value={escCtxValue}>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
             {totalCitations === 0 ? (
               <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">No citations to display</div>
             ) : (

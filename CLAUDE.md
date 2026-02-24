@@ -75,8 +75,9 @@ src/
 │   ├── urlAccessExplanation.ts    # URL access failure mapping (getUrlAccessExplanation)
 │   ├── HighlightedPhrase.tsx # HighlightedPhrase — CANONICAL LOCATION
 │   ├── dateUtils.ts      # formatCaptureDate()
+│   ├── scrollLock.ts     # acquireScrollLock(), releaseScrollLock() — ref-counted body scroll lock
 │   ├── hooks/             # Extracted hooks (import directly, not via index.ts)
-│   │   ├── useScrollLock.ts         # Ref-counted body scroll lock
+│   │   ├── useDrawerDragToClose.ts  # Drag-to-close gesture for bottom-sheet drawer
 │   │   ├── usePopoverDismiss.ts     # Platform-aware outside-click dismiss
 │   │   ├── usePopoverPosition.ts    # Expanded-page side offset calculation
 │   │   ├── useCitationTelemetry.ts  # Popover timing + spinner staging
@@ -233,7 +234,9 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `resolveStatusKey()` | `src/react/citationVariants.cva.ts` | Boolean flags → status key |
 | `SUPERSCRIPT_STYLE` | `src/react/citationVariants.cva.ts` | Superscript inline styles |
 | `handleImageError()` | `src/react/imageUtils.ts` | Shared image error handler |
-| `useScrollLock()` | `src/react/hooks/useScrollLock.ts` | Ref-counted body scroll lock |
+| `acquireScrollLock()`, `releaseScrollLock()` | `src/react/scrollLock.ts` | Ref-counted body scroll lock (shared by popover + drawer) |
+| `useDrawerDragToClose()` | `src/react/hooks/useDrawerDragToClose.ts` | Drag-to-close gesture for bottom-sheet drawer |
+| `DRAWER_DRAG_CLOSE_THRESHOLD_PX` | `src/react/constants.ts` | Drag distance threshold for drawer close (80px) |
 | `usePopoverDismiss()` | `src/react/hooks/usePopoverDismiss.ts` | Platform-aware outside-click dismiss |
 | `usePopoverPosition()` | `src/react/hooks/usePopoverPosition.ts` | Expanded-page side offset calculation |
 | `useCitationTelemetry()` | `src/react/hooks/useCitationTelemetry.ts` | Popover timing + spinner staging |

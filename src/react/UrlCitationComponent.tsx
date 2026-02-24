@@ -2,6 +2,7 @@ import type React from "react";
 import { forwardRef, memo, useCallback, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import { DOT_COLORS, DOT_INDICATOR_FIXED_SIZE_STYLE, MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
 import type { UrlCitationProps, UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
@@ -301,11 +302,11 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
     // Track hover and focus state for external link indicator
     const [isHovered, setIsHovered] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const isTouchDevice = useIsTouchDevice();
 
-    // Show external link when either hovered or focused
+    // Show external link when hovered, focused, or always on touch (no hover on mobile)
     const shouldShowExternalLink = showExternalLinkOnHover;
-    // Show external link when either hovered or focused (keyboard accessibility)
-    const showExternalLinkIndicator = shouldShowExternalLink && (isHovered || isFocused);
+    const showExternalLinkIndicator = shouldShowExternalLink && (isTouchDevice || isHovered || isFocused);
     const { url, domain: providedDomain, title, fetchStatus, faviconUrl, errorMessage } = urlMeta;
 
     // Derive citation from URL meta if not provided

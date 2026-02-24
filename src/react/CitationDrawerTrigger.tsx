@@ -500,13 +500,6 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
       }
     }, [isTouchDevice]);
 
-    // On touch devices, tap opens the drawer directly (bypassing spread animation)
-    const handleTouchStart = useCallback(() => {
-      if (isTouchDevice) {
-        onClick?.();
-      }
-    }, [isTouchDevice, onClick]);
-
     // Clean up timeout on unmount
     useEffect(() => {
       return () => clearTimeout(leaveTimeoutRef.current);
@@ -519,7 +512,6 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         ref={ref}
         type="button"
         onClick={onClick}
-        onTouchStart={handleTouchStart}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onFocus={handleFocus}

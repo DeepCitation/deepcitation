@@ -1,6 +1,7 @@
 import type { DeepTextItem } from "../types/boxes.js";
 import type { MatchedVariation, SearchAttempt, SearchMethod } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
+import { isDocumentCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
 
 // =============================================================================
@@ -101,13 +102,12 @@ export function deriveContextWindow(
     if (estimatedLen > MAX_TEXT_ITEMS_LENGTH) return null;
   }
 
-  // Concatenate text items with spaces
-  let fullText = "";
+  // Concatenate text items with spaces (array + join avoids intermediate strings)
+  const parts: string[] = [];
   for (const item of textItems) {
-    const t = item.text ?? "";
-    if (fullText.length > 0) fullText += " ";
-    fullText += t;
+    if (item.text) parts.push(item.text);
   }
+  const fullText = parts.join(" ");
 
   if (fullText.length === 0) return null;
 
@@ -117,6 +117,8 @@ export function deriveContextWindow(
   const idx = lowerFull.indexOf(lowerMatch);
   if (idx === -1) return null;
 
+  // idx comes from the lowercase search but matchedText.length is identical
+  // in both casings, so slicing fullText at [idx..matchEnd] preserves original casing.
   const matchEnd = idx + matchedText.length;
 
   // Expand to word boundaries: ~CONTEXT_WORD_COUNT words before and after
@@ -162,8 +164,8 @@ export function buildIntentSummary(
 
   const anchorText = verification?.citation?.anchorText?.toString();
   const expectedPage =
-    verification?.citation && "pageNumber" in verification.citation
-      ? (verification.citation as { pageNumber?: number }).pageNumber
+    verification?.citation && isDocumentCitation(verification.citation)
+      ? (verification.citation.pageNumber ?? undefined)
       : undefined;
   const status = verification?.status;
   const totalAttempts = searchAttempts.length;

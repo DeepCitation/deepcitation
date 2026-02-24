@@ -419,10 +419,13 @@ export const ANCHOR_HIGHLIGHT_STYLE: React.CSSProperties = {
 /**
  * Factor applied to the keyhole strip's CSS-resolved height to decide when to
  * suppress expansion. When `naturalHeight ≤ stripHeight × KEYHOLE_SKIP_THRESHOLD`,
- * the image already shows ≥ 80% of its content in the keyhole strip, so the
+ * the image already shows most of its content in the keyhole strip, so the
  * expand step would reveal almost nothing new.
+ *
+ * At 1.5, images up to 50% taller than the strip (up to ~135px for 90px strip)
+ * are treated as "fits completely." This avoids tiny, unhelpful expansions.
  */
-export const KEYHOLE_SKIP_THRESHOLD = 1.25;
+export const KEYHOLE_SKIP_THRESHOLD = 1.5;
 
 // =============================================================================
 // ZOOM CONTROLS (InlineExpandedImage)
@@ -561,3 +564,10 @@ export const TTC_FAST_TEXT_STYLE: React.CSSProperties = {
   ...TTC_TEXT_STYLE,
   color: `var(${TTC_FAST_COLOR_VAR}, ${TTC_FAST_COLOR_DEFAULT})`,
 };
+
+// =============================================================================
+// DRAWER DRAG-TO-CLOSE
+// =============================================================================
+
+/** Minimum downward drag distance (px) on the drawer handle to trigger close. */
+export const DRAWER_DRAG_CLOSE_THRESHOLD_PX = 80;

@@ -25,6 +25,7 @@ import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { WarningIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
+import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
 import { REVIEW_DWELL_THRESHOLD_MS, useCitationTiming } from "./timingUtils.js";
 import type {
   BaseCitationProps,
@@ -51,35 +52,7 @@ export type {
 /** Tracks which deprecation warnings have already been emitted (dev-mode only). */
 const deprecationWarned = new Set<string>();
 
-// ---------- Body scroll lock (ref-counted) ----------
-// Multiple CitationComponent instances may open simultaneously (hover overlap).
-// A simple capture-and-restore pattern breaks when locks stack. Instead we
-// ref-count: the first lock captures the original values, the last unlock
-// restores them. This prevents leaving the page permanently scroll-locked.
-let scrollLockCount = 0;
-let scrollLockOriginalOverflow = "";
-let scrollLockOriginalPaddingRight = "";
-
-function acquireScrollLock() {
-  if (scrollLockCount === 0) {
-    scrollLockOriginalOverflow = document.body.style.overflow;
-    scrollLockOriginalPaddingRight = document.body.style.paddingRight;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.overflow = "hidden";
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    }
-  }
-  scrollLockCount++;
-}
-
-function releaseScrollLock() {
-  scrollLockCount = Math.max(0, scrollLockCount - 1);
-  if (scrollLockCount === 0) {
-    document.body.style.overflow = scrollLockOriginalOverflow;
-    document.body.style.paddingRight = scrollLockOriginalPaddingRight;
-  }
-}
+// Body scroll lock — imported from scrollLock.ts (canonical location, ref-counted)
 
 // =============================================================================
 // ERROR BOUNDARY
