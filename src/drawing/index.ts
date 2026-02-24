@@ -5,27 +5,30 @@
  * All symbols are defined in `./citationDrawing.ts`.
  */
 export {
-  // Types
-  type HighlightColor,
-  // Color constants
-  CITATION_LINE_BORDER_WIDTH,
-  SIGNAL_BLUE,
-  SIGNAL_BLUE_DARK,
-  SIGNAL_AMBER,
-  OVERLAY_COLOR,
-  OVERLAY_COLOR_HEX,
   ANCHOR_HIGHLIGHT_COLOR,
   ANCHOR_HIGHLIGHT_COLOR_DARK,
-  KEYSPAN_HIGHLIGHT_COLOR,
-  KEYSPAN_HIGHLIGHT_COLOR_DARK,
+  // Padding
+  BOX_PADDING,
+  BRACKET_MAX_WIDTH,
+  BRACKET_MIN_WIDTH,
   // Bracket geometry
   BRACKET_RATIO,
-  BRACKET_MIN_WIDTH,
-  BRACKET_MAX_WIDTH,
-  getBracketWidth,
+  // Color constants
+  CITATION_LINE_BORDER_WIDTH,
+  computeKeySpanHighlight,
   getBracketColor,
+  getBracketWidth,
+  // Types
+  type HighlightColor,
+  KEYSPAN_HIGHLIGHT_COLOR,
+  KEYSPAN_HIGHLIGHT_COLOR_DARK,
+  OVERLAY_COLOR,
+  OVERLAY_COLOR_HEX,
+  SIGNAL_AMBER,
+  SIGNAL_BLUE,
+  SIGNAL_BLUE_DARK,
+  SPOTLIGHT_PADDING,
   // Highlight logic
   shouldHighlightAnchorText,
   shouldHighlightKeySpan,
-  computeKeySpanHighlight,
 } from "./citationDrawing.js";

@@ -63,6 +63,12 @@ export type UrlAccessStatus =
 export interface DocumentVerificationResult {
   verifiedPageNumber?: number | null;
   verifiedLineIds?: number[] | null;
+  /**
+   * MIME type of the source attachment (e.g. "application/pdf", "image/jpeg").
+   * When set and starting with "image/", page references like "p.1" are
+   * replaced with "View Image" in the citation popover UI.
+   */
+  mimeType?: string | null;
   totalLinesOnPage?: number | null;
   hitIndexWithinPage?: number | null;
   phraseMatchDeepItem?: DeepTextItem;

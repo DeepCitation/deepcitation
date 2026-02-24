@@ -4,6 +4,7 @@
  */
 
 import type React from "react";
+import { ANCHOR_HIGHLIGHT_COLOR } from "../drawing/citationDrawing.js";
 
 /**
  * CSS custom property name for the wavy underline color.
@@ -393,10 +394,6 @@ export function isValidProofImageSrc(src: unknown): src is string {
     return false;
   }
 }
-
-// Drawing constants are canonical in ../drawing/citationDrawing.ts.
-// Import only what's needed for the React-specific ANCHOR_HIGHLIGHT_STYLE.
-import { ANCHOR_HIGHLIGHT_COLOR } from "../drawing/citationDrawing.js";
 
 /**
  * CSS custom property for anchor text highlight color.

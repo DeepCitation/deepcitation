@@ -35,6 +35,12 @@ const MAX_ANCHOR_TEXT_PREVIEW_LENGTH = 50;
 /** Maximum length for phrase display in search attempt rows */
 const MAX_PHRASE_DISPLAY_LENGTH = 60;
 
+/** Returns true when the verification source is a raster image (not a PDF). */
+function isImageSource(verification: Verification | null | undefined): boolean {
+  const mt = verification?.document?.mimeType;
+  return typeof mt === "string" && mt.startsWith("image/");
+}
+
 /** Truncate a search phrase for display, showing "(empty)" for blank input. */
 function truncatePhrase(raw: string | undefined | null): string {
   const phrase = raw ?? "";
@@ -213,6 +219,8 @@ interface PagePillProps {
   onClick?: () => void;
   /** Callback to close from expanded view — shows X and active (blue) styling */
   onClose?: () => void;
+  /** When true, source is a raster image — label becomes "Image"/"View Image" instead of "p.X" */
+  isImage?: boolean;
 }
 
 /** Page pill color classes by status */
@@ -229,12 +237,12 @@ const PAGE_PILL_COLORS = {
  * - With `onClick`: shows chevron-right, triggers expansion to full page view
  * - With `onClose`: shows X icon with blue "active" styling, triggers close/back
  */
-export function PagePill({ pageNumber, colorScheme, onClick, onClose }: PagePillProps) {
+export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }: PagePillProps) {
   const hasPage = pageNumber !== undefined && pageNumber > 0;
   // Need either a page number to display or an action to perform
   if (!hasPage && !onClick && !onClose) return null;
 
-  const label = hasPage ? `p.${pageNumber}` : "Page";
+  const label = isImage ? (onClick ? "View Image" : "Image") : hasPage ? `p.${pageNumber}` : "Page";
   const colorClasses = PAGE_PILL_COLORS[colorScheme];
 
   // Active/expanded state: entire pill is a button to close, shows X instead of chevron
@@ -247,7 +255,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose }: PagePill
           onClose();
         }}
         className="relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border cursor-pointer transition-colors bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40 after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]"
-        aria-label={hasPage ? `Close page ${pageNumber} view` : "Close page view"}
+        aria-label={isImage ? "Close image view" : hasPage ? `Close page ${pageNumber} view` : "Close page view"}
         title="Close expanded view (Esc)"
       >
         <span>{label}</span>
@@ -281,7 +289,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose }: PagePill
         "after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]",
         colorClasses,
       )}
-      aria-label={hasPage ? `Expand to full page ${pageNumber}` : "Expand to full page"}
+      aria-label={isImage ? "View full image" : hasPage ? `Expand to full page ${pageNumber}` : "Expand to full page"}
     >
       <span>{label}</span>
       <span className="size-3">
@@ -319,7 +327,8 @@ export function SourceContextHeader({
   // Common page/line data (pageNumber/lineIds only exist on DocumentCitation)
   const pageNumber = verification?.document?.verifiedPageNumber ?? (isUrl ? undefined : citation.pageNumber);
   const lineIds = verification?.document?.verifiedLineIds ?? (isUrl ? undefined : citation.lineIds);
-  const pageLineText = formatPageLineText(pageNumber, lineIds);
+  const isImage = isImageSource(verification);
+  const pageLineText = isImage ? "Image" : formatPageLineText(pageNumber, lineIds);
   const colorScheme = getStatusColorScheme(status);
   // Show page pill when there's an expand/close action. Page number is shown when available
   // but the pill also renders with a generic "Page" label for not_found citations where
@@ -407,6 +416,7 @@ export function SourceContextHeader({
             colorScheme={colorScheme}
             onClick={onExpand}
             onClose={onClose}
+            isImage={isImage}
           />
         )}
         {!showPagePill && pageLineText && (
@@ -500,6 +510,8 @@ export interface StatusHeaderProps {
    * @default "icon"
    */
   indicatorVariant?: "icon" | "dot" | "none";
+  /** When true, source is a raster image — PageBadge shows "Image" instead of "p.X" */
+  isImage?: boolean;
 }
 
 export interface QuoteBoxProps {
@@ -576,6 +588,8 @@ interface PageBadgeProps {
   expectedPage?: number;
   /** Page where match was found */
   foundPage?: number;
+  /** When true, source is a raster image — shows "Image" instead of "p.X" */
+  isImage?: boolean;
 }
 
 /**
@@ -585,10 +599,16 @@ interface PageBadgeProps {
  * Note: Pages are 1-indexed for user display. Page 0 is treated as invalid/unset
  * since documents start at "Page 1" in user-facing contexts.
  */
-function PageBadge({ expectedPage, foundPage }: PageBadgeProps) {
+function PageBadge({ expectedPage, foundPage, isImage }: PageBadgeProps) {
   // Pages are 1-indexed for display; page 0 indicates unset/invalid
   const hasExpected = expectedPage != null && expectedPage > 0;
   const hasFound = foundPage != null && foundPage > 0;
+
+  // Image sources: show "Image" instead of page numbers
+  if (isImage && (hasExpected || hasFound)) {
+    return <span className="text-xs text-gray-500 dark:text-gray-400">Image</span>;
+  }
+
   const locationDiffers = hasExpected && hasFound && expectedPage !== foundPage;
 
   // Show arrow format when location differs (e.g., "p.5 → 7")
@@ -688,6 +708,7 @@ export function StatusHeader({
   anchorText: _anchorText,
   hidePageBadge = false,
   indicatorVariant = "icon",
+  isImage,
 }: StatusHeaderProps) {
   const colorScheme = getStatusColorScheme(status);
   const headerText = getStatusHeaderText(status);
@@ -730,7 +751,7 @@ export function StatusHeader({
         )}
         {displayText && <span className="font-medium truncate text-gray-800 dark:text-gray-100">{displayText}</span>}
       </div>
-      {!hidePageBadge && <PageBadge expectedPage={expectedPage} foundPage={foundPage} />}
+      {!hidePageBadge && <PageBadge expectedPage={expectedPage} foundPage={foundPage} isImage={isImage} />}
     </div>
   );
 }

@@ -11,6 +11,7 @@
 
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
 import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { SearchAttempt, SearchStatus } from "../types/search.js";
@@ -854,6 +855,13 @@ export function InlineExpandedImage({
   const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
   const effectiveAnchorItem = anchorItem ?? verification?.document?.anchorTextMatchDeepItems?.[0] ?? null;
 
+  // Anchor-aware scroll/zoom target: when anchor text is highlighted, center on it
+  // instead of the (potentially wider) full phrase box.
+  const anchorHighlightActive =
+    effectiveAnchorItem &&
+    shouldHighlightAnchorText(verification?.verifiedAnchorText, verification?.verifiedFullPhrase);
+  const scrollTarget = anchorHighlightActive ? effectiveAnchorItem : effectivePhraseItem;
+
   // Track container size via ResizeObserver (both width and height for fit-to-screen).
   // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
   useEffect(() => {
@@ -910,14 +918,16 @@ export function InlineExpandedImage({
     // Auto-scroll to annotation: after fit-to-screen zoom is computed, scroll
     // the container so the annotation is centered in view.
     // Uses rAF to wait for the DOM to reflow at the new zoom level.
+    // Prefers anchor text position when it will be highlighted.
     let rafId: number | undefined;
-    if (effectivePhraseItem && renderScale) {
+    const scrollItem = scrollTarget ?? effectivePhraseItem;
+    if (scrollItem && renderScale) {
       const effectiveZoom = fitZoom < 1 ? fitZoom : 1;
       rafId = requestAnimationFrame(() => {
         const container = containerRef.current;
         if (!container) return;
         const target = computeAnnotationScrollTarget(
-          effectivePhraseItem,
+          scrollItem,
           renderScale,
           naturalWidth,
           naturalHeight,
@@ -941,6 +951,7 @@ export function InlineExpandedImage({
     naturalHeight,
     containerSize,
     onNaturalSize,
+    scrollTarget,
     effectivePhraseItem,
     renderScale,
     containerRef,
@@ -964,12 +975,14 @@ export function InlineExpandedImage({
   }, [clampZoom]);
 
   // Scroll the container so the annotation is centered in view (re-center after pan/zoom).
+  // Prefers anchor text position when it will be highlighted.
   // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
   const handleScrollToAnnotation = useCallback(() => {
-    if (!containerRef.current || !effectivePhraseItem || !renderScale || !naturalWidth || !naturalHeight) return;
+    const scrollItem = scrollTarget ?? effectivePhraseItem;
+    if (!containerRef.current || !scrollItem || !renderScale || !naturalWidth || !naturalHeight) return;
     const container = containerRef.current;
     const target = computeAnnotationScrollTarget(
-      effectivePhraseItem,
+      scrollItem,
       renderScale,
       naturalWidth,
       naturalHeight,
@@ -978,7 +991,7 @@ export function InlineExpandedImage({
       container.clientHeight,
     );
     if (target) container.scrollTo({ left: target.scrollLeft, top: target.scrollTop, behavior: "smooth" });
-  }, [effectivePhraseItem, renderScale, naturalWidth, naturalHeight]);
+  }, [scrollTarget, effectivePhraseItem, renderScale, naturalWidth, naturalHeight]);
 
   // Trackpad pinch zoom (Ctrl+wheel) — prevents default browser zoom.
   // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
@@ -1121,9 +1134,12 @@ export function InlineExpandedImage({
   const showScrollToAnnotation = showZoomControls && !!effectivePhraseItem && !!renderScale;
 
   // Compute transform-origin from annotation position (fill mode only).
+  // Prefers anchor text center when it will be highlighted.
   // Inline computation (no useMemo) — computeAnnotationOriginPercent is pure
   // arithmetic, cheaper than the overhead of a hook in this effect-heavy component.
-  const annotationPhraseItem = fill && renderScale && naturalWidth && naturalHeight ? effectivePhraseItem : null;
+  const annotationOriginItem =
+    fill && renderScale && naturalWidth && naturalHeight ? (scrollTarget ?? effectivePhraseItem) : null;
+  const annotationPhraseItem = annotationOriginItem;
   const annotationOrigin =
     annotationPhraseItem && renderScale && naturalWidth && naturalHeight
       ? computeAnnotationOriginPercent(annotationPhraseItem, renderScale, naturalWidth, naturalHeight)

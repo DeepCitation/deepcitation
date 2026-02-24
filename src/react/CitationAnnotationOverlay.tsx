@@ -1,11 +1,13 @@
 import type React from "react";
 import {
   ANCHOR_HIGHLIGHT_COLOR,
+  BOX_PADDING,
   CITATION_LINE_BORDER_WIDTH,
   computeKeySpanHighlight,
   getBracketColor,
   getBracketWidth,
   OVERLAY_COLOR,
+  SPOTLIGHT_PADDING,
 } from "../drawing/citationDrawing.js";
 import type { DeepTextItem } from "../types/boxes.js";
 import { toPercentRect } from "./overlayGeometry.js";
@@ -54,9 +56,39 @@ export function CitationAnnotationOverlay({
     fullPhrase,
   );
 
-  const anchorRect = showKeySpanHighlight && anchorTextDeepItem
-    ? toPercentRect(anchorTextDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight)
-    : null;
+  // Two padding levels matching the backend rendering:
+  // 1. Bracket rect: text bbox + BOX_PADDING (2px) — small offset from text
+  // 2. Spotlight rect: bracket rect + SPOTLIGHT_PADDING (24px) — creates the
+  //    visible white gap between brackets and the dark overlay edge.
+  //    Backend equivalent: VERIFICATION_IMAGE_PADDING_EXTRA (30px canvas space).
+  const baseLeft = parseFloat(rect.left);
+  const baseTop = parseFloat(rect.top);
+  const baseWidth = parseFloat(rect.width);
+  const baseHeight = parseFloat(rect.height);
+
+  const bracketPadX = (BOX_PADDING / imageNaturalWidth) * 100;
+  const bracketPadY = (BOX_PADDING / imageNaturalHeight) * 100;
+  const bracketRect = {
+    left: `${baseLeft - bracketPadX}%`,
+    top: `${baseTop - bracketPadY}%`,
+    width: `${baseWidth + 2 * bracketPadX}%`,
+    height: `${baseHeight + 2 * bracketPadY}%`,
+  };
+
+  const spotlightPad = BOX_PADDING + SPOTLIGHT_PADDING;
+  const spotPadX = (spotlightPad / imageNaturalWidth) * 100;
+  const spotPadY = (spotlightPad / imageNaturalHeight) * 100;
+  const spotlightRect = {
+    left: `${baseLeft - spotPadX}%`,
+    top: `${baseTop - spotPadY}%`,
+    width: `${baseWidth + 2 * spotPadX}%`,
+    height: `${baseHeight + 2 * spotPadY}%`,
+  };
+
+  const anchorRect =
+    showKeySpanHighlight && anchorTextDeepItem
+      ? toPercentRect(anchorTextDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight)
+      : null;
 
   return (
     <div
@@ -73,7 +105,7 @@ export function CitationAnnotationOverlay({
         data-dc-spotlight=""
         style={{
           position: "absolute",
-          ...rect,
+          ...spotlightRect,
           boxShadow: `0 0 0 9999px ${OVERLAY_COLOR}`,
           ...NONE,
         }}
@@ -84,7 +116,7 @@ export function CitationAnnotationOverlay({
         data-dc-bracket-left=""
         style={{
           position: "absolute",
-          ...rect,
+          ...bracketRect,
           width: `${bracketW}px`,
           borderLeft: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,
           borderTop: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,
@@ -93,15 +125,15 @@ export function CitationAnnotationOverlay({
         }}
       />
 
-      {/* Right bracket ] — positioned at the right edge of the phrase box */}
+      {/* Right bracket ] — positioned at the right edge of the bracket box */}
       <div
         data-dc-bracket-right=""
         style={{
           position: "absolute",
-          top: rect.top,
-          left: `calc(${rect.left} + ${rect.width} - ${bracketW}px)`,
+          top: bracketRect.top,
+          left: `calc(${bracketRect.left} + ${bracketRect.width} - ${bracketW}px)`,
           width: `${bracketW}px`,
-          height: rect.height,
+          height: bracketRect.height,
           borderRight: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,
           borderTop: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,
           borderBottom: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,

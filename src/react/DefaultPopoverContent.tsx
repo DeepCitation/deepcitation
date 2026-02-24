@@ -38,6 +38,12 @@ import { isValidProofUrl } from "./urlUtils.js";
 import { cn, isUrlCitation } from "./utils.js";
 import { SourceContextHeader, StatusHeader } from "./VerificationLog.js";
 
+/** Returns true when the verification source is a raster image (not a PDF). */
+function isImageSource(verification: Verification | null | undefined): boolean {
+  const mt = verification?.document?.mimeType;
+  return typeof mt === "string" && mt.startsWith("image/");
+}
+
 // React 19.2's Activity component is disabled here because it triggers a fiber
 // effect linked-list corruption bug during simultaneous mode transitions
 // (hidden→visible) and Radix popover unmounts. The crash manifests as
@@ -361,7 +367,9 @@ function PopoverLoadingView({
           </p>
         )}
         {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">Looking on p.{citation.pageNumber}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {isImageSource(verification) ? "Searching image\u2026" : `Looking on p.${citation.pageNumber}`}
+          </span>
         )}
       </div>
     </div>
@@ -424,7 +432,9 @@ function PopoverFallbackView({
           </q>
         )}
         {pageNumber && pageNumber > 0 && (
-          <span className="text-xs text-gray-500 dark:text-gray-400">Page {pageNumber}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            {isImageSource(verification) ? "View Image" : `Page ${pageNumber}`}
+          </span>
         )}
       </div>
     </div>

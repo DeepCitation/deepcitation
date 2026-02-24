@@ -51,6 +51,16 @@ export const KEYSPAN_HIGHLIGHT_COLOR_DARK = ANCHOR_HIGHLIGHT_COLOR_DARK;
 // Bracket Geometry
 // =============================================================================
 
+/** Pixel padding between text bounding box and bracket marks. Matches backend boxPadding. */
+export const BOX_PADDING = 2;
+
+/**
+ * Extra pixel padding between bracket marks and the spotlight overlay edge.
+ * Creates the visible white gap between brackets and the dark overlay.
+ * Backend equivalent: VERIFICATION_IMAGE_PADDING_EXTRA (30px in canvas space).
+ */
+export const SPOTLIGHT_PADDING = 24;
+
 export const BRACKET_RATIO = 1 / 5;
 export const BRACKET_MIN_WIDTH = 4;
 export const BRACKET_MAX_WIDTH = 12;
