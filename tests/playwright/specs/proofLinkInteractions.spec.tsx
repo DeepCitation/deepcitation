@@ -87,7 +87,8 @@ test.describe("Proof Link Interactions", () => {
     await expect(popover.getByRole("link", { name: /p\.5/i })).not.toBeVisible();
   });
 
-  test("clicking PagePill expands to full page view with proof link in header", async ({ mount, page }) => {
+  // Temporarily skipped — proof link is disabled in SourceContextHeader (not ready for production)
+  test.skip("clicking PagePill expands to full page view with proof link in header", async ({ mount, page }) => {
     await mount(
       <CitationComponent
         citation={documentCitation}
@@ -220,7 +221,8 @@ test.describe("Proof Link Security", () => {
     await expect(popover.getByRole("link", { name: /open proof in new tab/i })).not.toBeVisible();
   });
 
-  test("allows proof URL from deepcitation.com subdomain in expanded view", async ({ mount, page }) => {
+  // Temporarily skipped — proof link is disabled in SourceContextHeader (not ready for production)
+  test.skip("allows proof URL from deepcitation.com subdomain in expanded view", async ({ mount, page }) => {
     const cdnVerification: Verification = {
       status: "found",
       label: "Document.pdf",
