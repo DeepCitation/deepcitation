@@ -584,10 +584,17 @@ export function SearchAnalysisSummary({
   const [showDetails, setShowDetails] = useState(false);
   const summary = useMemo(() => buildSearchSummary(searchAttempts, verification), [searchAttempts, verification]);
 
-  // Build 1-2 sentence summary
+  // Build 1-2 sentence query-centric summary
   let description: string;
-  if (summary.includesFullDocScan) {
-    description = "Searched the full document.";
+  const nQueries = summary.distinctQueries;
+  if (summary.includesFullDocScan && nQueries <= 1) {
+    description = "Full document scan.";
+  } else if (nQueries > 1 && summary.includesFullDocScan) {
+    description = `Searched ${nQueries} phrases including full document scan.`;
+  } else if (nQueries > 1 && summary.pageRange) {
+    description = `Searched ${nQueries} phrases across ${summary.pageRange}.`;
+  } else if (nQueries > 1) {
+    description = `Searched ${nQueries} phrases in ${summary.totalAttempts} attempts.`;
   } else if (summary.pageRange) {
     description = `Searched ${summary.pageRange}.`;
   } else {

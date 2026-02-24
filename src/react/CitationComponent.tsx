@@ -287,25 +287,23 @@ export interface CitationComponentProps extends BaseCitationProps {
 
 /** Manages the 3-stage spinner progression: active (0–5s) → slow (5–15s) → stale (15s+). */
 function useSpinnerStage(isLoading: boolean, isPending: boolean, hasDefinitiveResult: boolean): SpinnerStage {
+  const shouldAnimate = (isLoading || isPending) && !hasDefinitiveResult;
   const [stage, setStage] = useState<SpinnerStage>("active");
-  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    for (const t of timeoutsRef.current) clearTimeout(t);
-    timeoutsRef.current = [];
-    setStage("active");
-    if ((isLoading || isPending) && !hasDefinitiveResult) {
-      timeoutsRef.current.push(
-        setTimeout(() => setStage("slow"), SPINNER_TIMEOUT_MS),
-        setTimeout(() => setStage("stale"), SPINNER_TIMEOUT_MS * 3),
-      );
-    }
+    if (!shouldAnimate) return;
+    // Timeouts advance the stage; cleanup resets to "active" for the next cycle
+    const t1 = setTimeout(() => setStage("slow"), SPINNER_TIMEOUT_MS);
+    const t2 = setTimeout(() => setStage("stale"), SPINNER_TIMEOUT_MS * 3);
     return () => {
-      for (const t of timeoutsRef.current) clearTimeout(t);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      setStage("active");
     };
-  }, [isLoading, isPending, hasDefinitiveResult]);
+  }, [shouldAnimate]);
 
-  return stage;
+  // When not animating, always return "active" (derived, no setState needed)
+  return shouldAnimate ? stage : "active";
 }
 
 // =============================================================================
@@ -494,22 +492,15 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // because each CitationComponent instance has its own lastTouchTimeRef.
     const lastTouchTimeRef = useRef(0);
 
-    // Ref to track isHovering for touch handlers (avoids stale closure issues).
-    // This ref is kept in sync with isHovering state on every render, allowing
-    // handleTouchStart to read the current value without being recreated on every
-    // isHovering change (which would cause unnecessary callback churn).
-    // Pattern explanation: Mutating refs during render is safe here because:
-    // 1. Refs are explicitly designed to hold mutable values that don't affect rendering
-    // 2. This is a standard React pattern for keeping refs in sync with state/props
-    // 3. The mutation has no side effects - it just mirrors the state value
-    // See: https://react.dev/reference/react/useRef#referencing-a-value-with-a-ref
+    // Refs kept in sync with state/context via useLayoutEffect (runs before paint)
+    // so event handlers always read the latest value without callback churn.
+    // useLayoutEffect (not render-body assignment) avoids React Compiler bailouts.
     const isHoveringRef = useRef(isHovering);
-    isHoveringRef.current = isHovering;
-
-    // Ref to track isAnyOverlayOpen for the mobile outside-touch effect (avoids stale closure).
-    // When an image overlay is open, we don't want outside taps to close the popover.
     const isAnyOverlayOpenRef = useRef(isAnyOverlayOpen);
-    isAnyOverlayOpenRef.current = isAnyOverlayOpen;
+    useLayoutEffect(() => {
+      isHoveringRef.current = isHovering;
+      isAnyOverlayOpenRef.current = isAnyOverlayOpen;
+    }, [isHovering, isAnyOverlayOpen]);
 
     // Ref for the popover content element (for mobile click-outside dismiss detection)
     const popoverContentRef = useRef<HTMLElement | null>(null);
@@ -561,9 +552,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const popoverOpenedAtRef = useRef<number | null>(null);
     const reviewedRef = useRef(false);
 
-    // Stable ref for onTimingEvent to avoid re-triggering effects
+    // Stable ref for onTimingEvent to avoid re-triggering effects.
+    // Synced in useLayoutEffect to avoid React Compiler bailout.
     const onTimingEventRef = useRef(onTimingEvent);
-    onTimingEventRef.current = onTimingEvent;
+    useLayoutEffect(() => {
+      onTimingEventRef.current = onTimingEvent;
+    }, [onTimingEvent]);
 
     // ========== Popover Telemetry ==========
     // Track popover open/close for TtC telemetry events

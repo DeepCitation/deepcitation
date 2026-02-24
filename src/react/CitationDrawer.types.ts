@@ -106,6 +106,6 @@ export interface CitationDrawerItemProps {
    * @default false
    */
   defaultExpanded?: boolean;
-  /** Inline style (e.g. for staggered animation delays) */
-  style?: React.CSSProperties;
+  /** Stagger delay in ms for the entry animation. Passed as a primitive to avoid busting memo(). */
+  animationDelay?: number;
 }

@@ -1,52 +1,193 @@
-import type { SearchAttempt } from "../types/search.js";
+import type { SearchAttempt, SearchMethod } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
+import { getVariationLabel } from "./variationLabels.js";
+
+export interface SearchQueryGroup {
+  searchPhrase: string;
+  phraseType: "full_phrase" | "anchor_text" | "fragment";
+  phraseLabel: string;
+  methodsTried: SearchMethod[];
+  locations: {
+    pages: number[];
+    includesDocScan: boolean;
+  };
+  anySuccess: boolean;
+  variations: string[];
+  variationTypeLabel: string | null;
+  rejectedMatches: Array<{ text: string; occurrences?: number }>;
+  attemptCount: number;
+}
 
 export interface SearchSummary {
   totalAttempts: number;
-  pageRange: string; // "page 3" or "pages 3-7"
+  queryGroups: SearchQueryGroup[];
+  distinctQueries: number;
   includesFullDocScan: boolean;
   closestMatch?: { text: string; page?: number };
+  /** @deprecated Use queryGroups instead */
+  pageRange: string;
+}
+
+/** Map searchPhraseType + method to a phrase type category. */
+function derivePhraseType(attempt: SearchAttempt): SearchQueryGroup["phraseType"] {
+  if (attempt.searchPhraseType === "anchor_text") return "anchor_text";
+  if (attempt.searchPhraseType === "full_phrase") return "full_phrase";
+  // Infer from method name for fragment fallbacks
+  const method = attempt.method;
+  if (
+    method === "first_half_fallback" ||
+    method === "last_half_fallback" ||
+    method === "first_quarter_fallback" ||
+    method === "second_quarter_fallback" ||
+    method === "third_quarter_fallback" ||
+    method === "fourth_quarter_fallback" ||
+    method === "first_word_fallback" ||
+    method === "longest_word_fallback"
+  ) {
+    return "fragment";
+  }
+  if (method === "anchor_text_fallback" || method === "keyspan_fallback") return "anchor_text";
+  return "full_phrase";
+}
+
+/** Human-readable label for the phrase type. */
+function derivePhraseLabel(attempt: SearchAttempt): string {
+  if (attempt.searchPhraseType === "anchor_text") return "Anchor text";
+  if (attempt.searchPhraseType === "full_phrase") return "Full phrase";
+  // Infer from method for fragments
+  const labels: Partial<Record<SearchMethod, string>> = {
+    first_half_fallback: "First half",
+    last_half_fallback: "Last half",
+    first_quarter_fallback: "First quarter",
+    second_quarter_fallback: "Second quarter",
+    third_quarter_fallback: "Third quarter",
+    fourth_quarter_fallback: "Fourth quarter",
+    first_word_fallback: "First word",
+    longest_word_fallback: "Longest word",
+    anchor_text_fallback: "Anchor text",
+    keyspan_fallback: "Anchor text",
+    custom_phrase_fallback: "Custom phrase",
+  };
+  return labels[attempt.method] ?? "Full phrase";
 }
 
 /**
  * Build a human-readable summary of search attempts for not-found states.
- * Computes page range, full doc scan presence, and closest match if any.
- * See plans/drawer-trigger-copy-polish.md for remaining tasks.
+ * Groups attempts by distinct searchPhrase (query-centric), computes page range,
+ * full doc scan presence, and closest match if any.
  */
 export function buildSearchSummary(searchAttempts: SearchAttempt[], verification?: Verification | null): SearchSummary {
   const totalAttempts = searchAttempts.length;
 
-  // Collect unique pages searched (including pages found by adjacent_pages method)
-  const pagesSearched = new Set<number>();
-  let includesFullDocScan = false;
+  // --- Group by searchPhrase (Map preserves insertion order) ---
+  const groupMap = new Map<string, { attempts: SearchAttempt[] }>();
   for (const attempt of searchAttempts) {
-    if (attempt.pageSearched != null) {
-      pagesSearched.add(attempt.pageSearched);
+    const key = attempt.searchPhrase ?? "";
+    let entry = groupMap.get(key);
+    if (!entry) {
+      entry = { attempts: [] };
+      groupMap.set(key, entry);
     }
-    if (attempt.foundLocation?.page != null) {
-      pagesSearched.add(attempt.foundLocation.page);
-    }
-    if (attempt.searchScope === "document") {
-      includesFullDocScan = true;
-    }
+    entry.attempts.push(attempt);
   }
 
-  // Format page range
+  const queryGroups: SearchQueryGroup[] = [];
+  const allPagesSearched = new Set<number>();
+  let includesFullDocScan = false;
+
+  for (const [phrase, { attempts }] of groupMap) {
+    // Deduplicate methods (order-preserving)
+    const methodsSeen = new Set<SearchMethod>();
+    const methodsTried: SearchMethod[] = [];
+    const pages = new Set<number>();
+    let docScan = false;
+    let anySuccess = false;
+
+    // Merge variations (deduplicated)
+    const variationSet = new Set<string>();
+    let variationTypeLabel: string | null = null;
+
+    // Collect rejected matches
+    const rejectedSeen = new Set<string>();
+    const rejectedMatches: SearchQueryGroup["rejectedMatches"] = [];
+
+    for (const attempt of attempts) {
+      // Methods
+      if (!methodsSeen.has(attempt.method)) {
+        methodsSeen.add(attempt.method);
+        methodsTried.push(attempt.method);
+      }
+
+      // Pages
+      if (attempt.pageSearched != null) {
+        pages.add(attempt.pageSearched);
+        allPagesSearched.add(attempt.pageSearched);
+      }
+      if (attempt.foundLocation?.page != null) {
+        pages.add(attempt.foundLocation.page);
+        allPagesSearched.add(attempt.foundLocation.page);
+      }
+
+      // Doc scan
+      if (attempt.searchScope === "document") {
+        docScan = true;
+        includesFullDocScan = true;
+      }
+
+      // Success
+      if (attempt.success) anySuccess = true;
+
+      // Variations
+      if (attempt.searchVariations) {
+        for (const v of attempt.searchVariations) variationSet.add(v);
+      }
+      if (!variationTypeLabel && attempt.variationType) {
+        variationTypeLabel = getVariationLabel(attempt.variationType);
+      }
+
+      // Rejected matches
+      if (!attempt.success && attempt.matchedText && !rejectedSeen.has(attempt.matchedText)) {
+        rejectedSeen.add(attempt.matchedText);
+        rejectedMatches.push({
+          text: attempt.matchedText,
+          occurrences: attempt.occurrencesFound,
+        });
+      }
+    }
+
+    // Use the first attempt to derive phrase type/label (all share the same searchPhrase)
+    const firstAttempt = attempts[0];
+    queryGroups.push({
+      searchPhrase: phrase,
+      phraseType: derivePhraseType(firstAttempt),
+      phraseLabel: derivePhraseLabel(firstAttempt),
+      methodsTried,
+      locations: {
+        pages: Array.from(pages).sort((a, b) => a - b),
+        includesDocScan: docScan,
+      },
+      anySuccess,
+      variations: Array.from(variationSet),
+      variationTypeLabel,
+      rejectedMatches,
+      attemptCount: attempts.length,
+    });
+  }
+
+  // --- Backwards-compat fields ---
   let pageRange: string;
-  if (pagesSearched.size === 0) {
+  if (allPagesSearched.size === 0) {
     pageRange = "";
-  } else if (pagesSearched.size === 1) {
-    const [page] = pagesSearched;
+  } else if (allPagesSearched.size === 1) {
+    const [page] = allPagesSearched;
     pageRange = `page ${page}`;
   } else {
-    const sorted = Array.from(pagesSearched).sort((a, b) => a - b);
+    const sorted = Array.from(allPagesSearched).sort((a, b) => a - b);
     pageRange = `pages ${sorted[0]}-${sorted[sorted.length - 1]}`;
   }
 
-  // Find closest match: look for matchedText on unsuccessful attempts, or rejected matches
+  // Closest match
   let closestMatch: SearchSummary["closestMatch"];
-
-  // First check verification.verifiedMatchSnippet
   if (verification?.verifiedMatchSnippet) {
     const page = verification.document?.verifiedPageNumber ?? undefined;
     closestMatch = {
@@ -54,8 +195,6 @@ export function buildSearchSummary(searchAttempts: SearchAttempt[], verification
       page: page != null && page > 0 ? page : undefined,
     };
   }
-
-  // If no snippet from verification, look through search attempts for rejected/partial matches
   if (!closestMatch) {
     for (const attempt of searchAttempts) {
       if (!attempt.success && attempt.matchedText) {
@@ -63,10 +202,17 @@ export function buildSearchSummary(searchAttempts: SearchAttempt[], verification
           text: attempt.matchedText,
           page: attempt.pageSearched,
         };
-        break; // Take the first one found
+        break;
       }
     }
   }
 
-  return { totalAttempts, pageRange, includesFullDocScan, closestMatch };
+  return {
+    totalAttempts,
+    queryGroups,
+    distinctQueries: queryGroups.length,
+    includesFullDocScan,
+    closestMatch,
+    pageRange,
+  };
 }
