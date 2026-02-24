@@ -7,18 +7,14 @@
 export {
   ANCHOR_HIGHLIGHT_COLOR,
   ANCHOR_HIGHLIGHT_COLOR_DARK,
-  // Padding
   BOX_PADDING,
   BRACKET_MAX_WIDTH,
   BRACKET_MIN_WIDTH,
-  // Bracket geometry
   BRACKET_RATIO,
-  // Color constants
   CITATION_LINE_BORDER_WIDTH,
   computeKeySpanHighlight,
   getBracketColor,
   getBracketWidth,
-  // Types
   type HighlightColor,
   OVERLAY_COLOR,
   OVERLAY_COLOR_HEX,
@@ -26,6 +22,6 @@ export {
   SIGNAL_BLUE,
   SIGNAL_BLUE_DARK,
   SPOTLIGHT_PADDING,
-  // Highlight logic
   shouldHighlightAnchorText,
+  VERIFICATION_IMAGE_PADDING,
 } from "./citationDrawing.js";

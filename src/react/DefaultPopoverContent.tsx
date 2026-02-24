@@ -462,7 +462,7 @@ export function DefaultPopoverContent({
   // Resolve expanded image for the full-page viewer; allow caller to override the src
   const expandedImage = useMemo(() => {
     const resolved = resolveExpandedImage(verification);
-    if (!expandedImageSrcOverride) return resolved;
+    if (!expandedImageSrcOverride || !isValidProofImageSrc(expandedImageSrcOverride)) return resolved;
     // Custom src provided: clear overlay metadata since dimensions belong to the original image
     return resolved
       ? { ...resolved, src: expandedImageSrcOverride, dimensions: null, highlightBox: null, renderScale: null }

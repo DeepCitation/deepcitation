@@ -33,6 +33,7 @@ import {
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
   KEYHOLE_STRIP_HEIGHT_VAR,
   MISS_TRAY_THUMBNAIL_HEIGHT,
+  WHEEL_ZOOM_SENSITIVITY,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
@@ -994,20 +995,33 @@ export function InlineExpandedImage({
   }, [scrollTarget, effectivePhraseItem, renderScale, naturalWidth, naturalHeight]);
 
   // Trackpad pinch zoom (Ctrl+wheel) — prevents default browser zoom.
+  // Batches rapid wheel events with rAF so we apply at most one setZoom per
+  // animation frame, avoiding excessive React re-renders during fast pinches.
   // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
   useEffect(() => {
     if (!fill) return;
     const el = containerRef.current;
     if (!el) return;
+    let pendingDelta = 0;
+    let rafId: number | null = null;
+    const flushZoom = () => {
+      rafId = null;
+      const d = pendingDelta;
+      pendingDelta = 0;
+      setZoom(z => clampZoom(z + d));
+    };
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey) return;
       e.preventDefault();
       // deltaY is negative for zoom-in, positive for zoom-out on trackpads
-      const delta = -e.deltaY * 0.005;
-      setZoom(z => clampZoom(z + delta));
+      pendingDelta += -e.deltaY * WHEEL_ZOOM_SENSITIVITY;
+      if (rafId === null) rafId = requestAnimationFrame(flushZoom);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
   }, [fill, clampZoom]);
 
   // Touch pinch-to-zoom with midpoint anchoring (two-finger gesture).
@@ -1043,6 +1057,8 @@ export function InlineExpandedImage({
 
     let initialDistance: number | null = null;
     let initialZoom = 1;
+    let pendingZoom: number | null = null;
+    let rafId: number | null = null;
 
     const getTouchDistance = (touches: TouchList): number => {
       const [a, b] = [touches[0], touches[1]];
@@ -1056,6 +1072,14 @@ export function InlineExpandedImage({
       const [a, b] = [touches[0], touches[1]];
       if (!a || !b) return { x: 0, y: 0 };
       return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
+    };
+
+    const flushPinchZoom = () => {
+      rafId = null;
+      if (pendingZoom !== null) {
+        setZoom(pendingZoom);
+        pendingZoom = null;
+      }
     };
 
     const onTouchStart = (e: TouchEvent) => {
@@ -1091,11 +1115,19 @@ export function InlineExpandedImage({
         top: contentY * ratio - (mid.y - rect.top),
       };
 
-      setZoom(newZoom);
+      // Batch: store the latest zoom and schedule a single setZoom per frame
+      pendingZoom = newZoom;
+      if (rafId === null) rafId = requestAnimationFrame(flushPinchZoom);
     };
 
     const onTouchEnd = () => {
       initialDistance = null;
+      // Flush any pending zoom immediately on gesture end so the final
+      // position is applied without waiting for the next frame.
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        flushPinchZoom();
+      }
     };
 
     el.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -1105,6 +1137,7 @@ export function InlineExpandedImage({
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [fill, clampZoom]);
 
@@ -1236,7 +1269,7 @@ export function InlineExpandedImage({
               }}
             >
               <img
-                src={src}
+                src={isValidProofImageSrc(src) ? src : undefined}
                 alt="Verification evidence"
                 className={cn("block", !imageLoaded && "hidden")}
                 style={zoomedWidth !== undefined ? { width: zoomedWidth, maxWidth: "none" } : { maxWidth: "none" }}

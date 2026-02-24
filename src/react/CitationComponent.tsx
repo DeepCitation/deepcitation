@@ -16,6 +16,7 @@ import {
   isValidProofImageSrc,
   POPOVER_WIDTH,
   SPINNER_TIMEOUT_MS,
+  TAP_SLOP_PX,
   TOUCH_CLICK_DEBOUNCE_MS,
 } from "./constants.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
@@ -849,7 +850,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       let moved = false;
       let outsideTarget = false;
 
-      const TAP_SLOP = 10; // px — matches iOS/Chrome tap-vs-scroll threshold
+      // TAP_SLOP_PX imported from constants.ts
 
       const isOutsidePopover = (target: EventTarget | null): boolean => {
         if (!(target instanceof Node)) return false;
@@ -874,7 +875,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         if (!touch) return;
         const dx = touch.clientX - startX;
         const dy = touch.clientY - startY;
-        if (dx * dx + dy * dy > TAP_SLOP * TAP_SLOP) {
+        if (dx * dx + dy * dy > TAP_SLOP_PX * TAP_SLOP_PX) {
           moved = true;
         }
       };

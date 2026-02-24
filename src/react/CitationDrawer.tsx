@@ -916,6 +916,10 @@ export function CitationDrawer({
     <>
       {/* Backdrop */}
       <div
+        // backdrop-blur-sm removed intentionally: on low-end mobile devices the blur
+        // filter causes visible jank during the drawer slide-in animation (composited
+        // layer promotion + GPU shader cost). The semi-transparent overlay alone provides
+        // sufficient visual separation without the performance hit.
         className="fixed inset-0 bg-black/20 animate-in fade-in-0 duration-150"
         style={{ zIndex: `var(${Z_INDEX_DRAWER_BACKDROP_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})` } as React.CSSProperties}
         onClick={onClose}

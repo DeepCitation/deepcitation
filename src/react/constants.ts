@@ -490,6 +490,20 @@ export const TOOLTIP_HIDE_DELAY_MS = 80;
 export const TOUCH_CLICK_DEBOUNCE_MS = 100;
 
 /**
+ * Maximum distance (px) a finger can move between touchstart and touchend
+ * and still be considered a tap (not a scroll or swipe). Matches the
+ * platform tap-vs-scroll threshold used by iOS and Chrome.
+ */
+export const TAP_SLOP_PX = 10;
+
+/**
+ * Sensitivity multiplier for trackpad pinch-to-zoom (Ctrl+wheel).
+ * Maps `deltaY` pixels into a zoom delta — 0.005 gives roughly 1% zoom
+ * per pixel of wheel travel, balancing precision and responsiveness.
+ */
+export const WHEEL_ZOOM_SENSITIVITY = 0.005;
+
+/**
  * Duration in ms to show "Copied" feedback before resetting to idle state.
  * Used for copy-to-clipboard feedback in various components.
  */

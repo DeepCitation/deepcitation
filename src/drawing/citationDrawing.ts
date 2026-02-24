@@ -53,11 +53,19 @@ export const ANCHOR_HIGHLIGHT_COLOR_DARK = "rgba(251, 191, 36, 0.25)";
 export const BOX_PADDING = 2;
 
 /**
+ * Padding (px) between the verification text bounding box and the rendered
+ * image edge. Matches the backend `VERIFICATION_IMAGE_PADDING` constant so
+ * that client-side overlays align with server-rendered proof images.
+ */
+export const VERIFICATION_IMAGE_PADDING = 60;
+
+/**
  * Extra pixel padding between bracket marks and the spotlight overlay edge.
  * Creates the visible white gap between brackets and the dark overlay.
- * Backend equivalent: VERIFICATION_IMAGE_PADDING_EXTRA (30px in canvas space).
+ * Matches the backend `VERIFICATION_IMAGE_PADDING_EXTRA` constant (30px in
+ * canvas space) so overlays and proof images stay pixel-aligned.
  */
-export const SPOTLIGHT_PADDING = 24;
+export const SPOTLIGHT_PADDING = 30;
 
 export const BRACKET_RATIO = 1 / 5;
 export const BRACKET_MIN_WIDTH = 4;
@@ -86,7 +94,11 @@ export function getBracketColor(highlightColor: HighlightColor = "blue"): string
 /** Minimum extra words fullPhrase must have over anchorText to trigger highlight. */
 const MIN_WORD_DIFFERENCE = 2;
 
-/** Count whitespace-delimited words in a string. Uses safeSplit for input-length validation. */
+/**
+ * Count whitespace-delimited words in a string.
+ * Uses safeSplit for input-length validation.
+ * @throws Error if text exceeds MAX_REGEX_INPUT_LENGTH (~100KB)
+ */
 function countWords(text: string): number {
   const trimmed = text.trim();
   if (trimmed.length === 0) return 0;
@@ -107,6 +119,8 @@ function countWords(text: string): number {
  * - 2 words in 4 words -> highlight
  * - 1 word in 1 word   -> no highlight (same count)
  * - 2 words in 3 words -> no highlight (only 1 word difference)
+ *
+ * @throws Error if either input exceeds MAX_REGEX_INPUT_LENGTH (~100KB)
  */
 export function shouldHighlightAnchorText(
   anchorText: string | null | undefined,
@@ -135,6 +149,8 @@ export function shouldHighlightAnchorText(
  * Checks that the anchorTextMatchDeepItems[0] text is distinct from the
  * phraseMatchDeepItem text (case-insensitive) and that the word-difference
  * threshold is met via shouldHighlightAnchorText.
+ *
+ * @throws Error if either text input exceeds MAX_REGEX_INPUT_LENGTH (~100KB)
  */
 export function computeKeySpanHighlight<T extends { text?: string }>(
   phraseMatchDeepItem: T | undefined,
