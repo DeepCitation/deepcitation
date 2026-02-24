@@ -104,7 +104,7 @@ const ExternalLinkButton = ({ showExternalLinkIndicator, handleExternalLinkClick
     <button
       type="button"
       onClick={handleExternalLinkClick}
-      className="inline-flex items-center justify-center w-3.5 h-3.5 ml-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+      className="inline-flex items-center justify-center w-3.5 h-3.5 ml-1 text-gray-400 group-hover:text-blue-500 dark:text-gray-500 dark:group-hover:text-blue-400 transition-colors"
       aria-label="Open in new tab"
       title="Open in new tab"
     >
@@ -446,7 +446,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             data-variant="badge"
             className={classNames(
               // Base styles matching the HTML design
-              "inline-flex items-center gap-2 px-2 py-1",
+              "group inline-flex items-center gap-2 px-2 py-1",
               "bg-white dark:bg-gray-900",
               "border border-gray-200 dark:border-gray-700",
               "rounded-md",
@@ -500,7 +500,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             data-fetch-status={fetchStatus}
             data-variant="chip"
             className={classNames(
-              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm cursor-pointer transition-colors no-underline mr-0.5",
+              "group inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm cursor-pointer transition-colors no-underline mr-0.5",
               "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
               "hover:bg-gray-200 dark:hover:bg-gray-700",
               isBroken && "opacity-60",
@@ -541,7 +541,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             data-fetch-status={fetchStatus}
             data-variant="inline"
             className={classNames(
-              "inline-flex items-center gap-1 cursor-pointer transition-colors no-underline border-b border-dotted mr-0.5",
+              "group inline-flex items-center gap-1 cursor-pointer transition-colors no-underline border-b border-dotted mr-0.5",
               "text-gray-700 dark:text-gray-300 border-gray-400 dark:border-gray-500",
               "hover:border-gray-600 dark:hover:border-gray-300",
               isBroken && "opacity-60",
@@ -580,7 +580,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           data-fetch-status={fetchStatus}
           data-variant="bracket"
           className={classNames(
-            "inline-flex items-baseline gap-0.5 whitespace-nowrap cursor-pointer transition-colors mr-0.5",
+            "group inline-flex items-baseline gap-0.5 whitespace-nowrap cursor-pointer transition-colors mr-0.5",
             "font-mono text-xs leading-tight",
             "text-gray-500 dark:text-gray-400",
             isBroken && "opacity-60",

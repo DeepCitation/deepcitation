@@ -19,6 +19,7 @@ import {
   TOUCH_CLICK_DEBOUNCE_MS,
 } from "./constants.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
+import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { WarningIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
@@ -624,6 +625,30 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // 3-stage spinner: active (0–5s) → slow (5–15s) → stale (15s+)
     const spinnerStage = useSpinnerStage(isLoading, isPending, !!hasDefinitiveResult);
     const shouldShowSpinner = (isLoading || isPending) && !hasDefinitiveResult && spinnerStage !== "stale";
+
+    // Low-priority prefetch: queue image downloads as soon as verification arrives.
+    // Evidence crop (keyhole) and full-page image are both fetched at idle priority
+    // so they're already cached when the user clicks to open the popover.
+    // Data URIs are skipped — they're inline and don't need network fetching.
+    // The normal-priority prefetch in DefaultPopoverContent still fires on popover
+    // open, upgrading the browser's fetch priority if the request is still in-flight.
+    useEffect(() => {
+      if (!verification) return;
+
+      const evidence = resolveEvidenceSrc(verification);
+      if (evidence && !evidence.startsWith("data:")) {
+        const img = new Image();
+        img.fetchPriority = "low";
+        img.src = evidence;
+      }
+
+      const expanded = resolveExpandedImage(verification);
+      if (expanded?.src && !expanded.src.startsWith("data:")) {
+        const img = new Image();
+        img.fetchPriority = "low";
+        img.src = expanded.src;
+      }
+    }, [verification]);
 
     const displayText = useMemo(() => {
       return getDisplayText(citation, resolvedContent, fallbackDisplay);
