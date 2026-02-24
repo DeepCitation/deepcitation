@@ -41,16 +41,16 @@ Install the SDK using your preferred package manager:
 
 ```bash
 # npm
-npm install @deepcitation/deepcitation-js
+npm install deepcitation
 
 # yarn
-yarn add @deepcitation/deepcitation-js
+yarn add deepcitation
 
 # pnpm
-pnpm add @deepcitation/deepcitation-js
+pnpm add deepcitation
 
 # bun
-bun add @deepcitation/deepcitation-js
+bun add deepcitation
 ```
 
 ---
@@ -58,7 +58,7 @@ bun add @deepcitation/deepcitation-js
 ## Full Integration Example
 
 ```typescript
-import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "@deepcitation/deepcitation-js";
+import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "deepcitation";
 
 const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 

@@ -1,14 +1,14 @@
 <div align="center">
 
-# @deepcitation/deepcitation-js
+# deepcitation
 
 **Your RAG app cited page 47 -- but the doc only has 30 pages.**
 **Verify every citation. Show the source. Flag what's fabricated.**
 
-[![npm version](https://img.shields.io/npm/v/@deepcitation/deepcitation-js.svg)](https://www.npmjs.com/package/@deepcitation/deepcitation-js)
+[![npm version](https://img.shields.io/npm/v/deepcitation.svg)](https://www.npmjs.com/package/deepcitation)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Zero Dependencies](https://img.shields.io/badge/Zero%20Dependencies-trusted-green)](https://www.npmjs.com/package/@deepcitation/deepcitation-js)
-[![< 25KB](https://img.shields.io/badge/gzip-<25KB-brightgreen)](https://bundlephobia.com/package/@deepcitation/deepcitation-js)
+[![Zero Dependencies](https://img.shields.io/badge/Zero%20Dependencies-trusted-green)](https://www.npmjs.com/package/deepcitation)
+[![< 25KB](https://img.shields.io/badge/gzip-<25KB-brightgreen)](https://bundlephobia.com/package/deepcitation)
 
 [Documentation](https://docs.deepcitation.com) · [Get API Key](https://deepcitation.com/signup) · [Examples](./examples) · [Agent Integration](./INTEGRATION.md) · [Terms](https://deepcitation.com/legal/terms-of-service) · [Privacy](https://deepcitation.com/legal/privacy)
 
@@ -66,7 +66,7 @@ We're looking for design partners to showcase and help shape the future of citat
 ## Install
 
 ```bash
-npm install @deepcitation/deepcitation-js
+npm install deepcitation
 ```
 
 **Works with any LLM** -- OpenAI, Anthropic, Google, Mistral, local models, or any provider that returns text.
@@ -88,8 +88,8 @@ npm install @deepcitation/deepcitation-js
 ## Quick Start
 
 ```typescript
-import { DeepCitation, wrapCitationPrompt } from "@deepcitation/deepcitation-js";
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { DeepCitation, wrapCitationPrompt } from "deepcitation";
+import { CitationComponent } from "deepcitation/react";
 
 // 1. Upload sources
 const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
@@ -136,12 +136,12 @@ PDF, DOCX, XLSX, PPTX, HTML, Images (JPG, PNG, TIFF, WebP, HEIC), URLs
 ## React Components
 
 ```bash
-npm install @deepcitation/deepcitation-js react react-dom @radix-ui/react-popover
+npm install deepcitation react react-dom @radix-ui/react-popover
 ```
 
 > **Styling:** Requires Tailwind CSS, or import the bundled stylesheet:
 > ```typescript
-> import "@deepcitation/deepcitation-js/styles.css";
+> import "deepcitation/styles.css";
 > ```
 
 | Component | Description |
@@ -156,7 +156,7 @@ npm install @deepcitation/deepcitation-js react react-dom @radix-ui/react-popove
 For custom layouts, composable primitives are available. API may change:
 
 ```tsx
-import { Citation } from "@deepcitation/deepcitation-js/react";
+import { Citation } from "deepcitation/react";
 
 <Citation.Root citation={citation} verification={verification}>
   <Citation.Trigger>
@@ -171,10 +171,10 @@ import { Citation } from "@deepcitation/deepcitation-js/react";
 Render citations anywhere -- no React required:
 
 ```typescript
-import { renderCitationsForSlack } from "@deepcitation/deepcitation-js/slack";
-import { renderCitationsForGitHub } from "@deepcitation/deepcitation-js/github";
-import { renderCitationsAsHtml } from "@deepcitation/deepcitation-js/html";
-import { renderCitationsForTerminal } from "@deepcitation/deepcitation-js/terminal";
+import { renderCitationsForSlack } from "deepcitation/slack";
+import { renderCitationsForGitHub } from "deepcitation/github";
+import { renderCitationsAsHtml } from "deepcitation/html";
+import { renderCitationsForTerminal } from "deepcitation/terminal";
 ```
 
 ## Requirements
@@ -193,7 +193,7 @@ import { renderCitationsForTerminal } from "@deepcitation/deepcitation-js/termin
 |---------|-----|
 | `Error: API key is required` | Set `DEEPCITATION_API_KEY` env var or pass `apiKey` to constructor |
 | `Cannot find module '@radix-ui/react-popover'` | Install it: `npm install @radix-ui/react-popover` (only needed for React components) |
-| Citations not showing underlines/colors | Import `@deepcitation/deepcitation-js/styles.css` or configure Tailwind |
+| Citations not showing underlines/colors | Import `deepcitation/styles.css` or configure Tailwind |
 | `getAllCitationsFromLlmOutput` returns `{}` | Check that your LLM output contains `<cite ... />` tags or deferred JSON blocks -- use `wrapCitationPrompt` to add citation instructions |
 | `Object.keys(verifications).length` is 0 | Ensure the attachment was uploaded before the LLM call, and the LLM output contains citation references |
 
@@ -206,7 +206,7 @@ import {
   NetworkError,
   ValidationError,
   ServerError,
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 
 try {
   const { verifications } = await dc.verify({ llmOutput: response.content });

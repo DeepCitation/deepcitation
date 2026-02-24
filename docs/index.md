@@ -56,11 +56,11 @@ Complete working examples are available on GitHub:
 ## Quick Install
 
 ```bash
-npm install @deepcitation/deepcitation-js
+npm install deepcitation
 ```
 
 ```typescript
-import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "@deepcitation/deepcitation-js";
+import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "deepcitation";
 
 const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 

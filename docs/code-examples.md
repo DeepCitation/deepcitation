@@ -22,7 +22,7 @@ import {
   wrapCitationPrompt,
   getAllCitationsFromLlmOutput,
   groupCitationsByAttachmentId
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 
 const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
@@ -68,7 +68,7 @@ const results = await Promise.all(verificationPromises);
 Use the React component to display verified citations with hover tooltips showing visual proof:
 
 ```tsx
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "deepcitation/react";
 
 function VerifiedResponse({ citations, verifications }) {
   return (
@@ -99,7 +99,7 @@ Choose from different display variants to match your UI design:
 
 {% raw %}
 ```tsx
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "deepcitation/react";
 
 // Brackets variant (default) - [anchorText] with square brackets
 <CitationComponent
@@ -174,7 +174,7 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 Control the verification popover position or hide it entirely:
 
 ```tsx
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "deepcitation/react";
 
 // Default popover position (top)
 <CitationComponent
@@ -206,7 +206,7 @@ Add custom click and hover handlers for interactive citations:
 
 {% raw %}
 ```tsx
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "deepcitation/react";
 
 <CitationComponent
   citation={citation}

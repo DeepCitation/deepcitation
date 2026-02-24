@@ -128,13 +128,13 @@ Or define component styles in your CSS:
 Import the bundled stylesheet:
 
 ```typescript
-import "@deepcitation/deepcitation-js/styles.css";
+import "deepcitation/styles.css";
 ```
 
 Or reference the Tailwind source for your own build:
 
 ```typescript
-import "@deepcitation/deepcitation-js/tailwind.css";
+import "deepcitation/tailwind.css";
 ```
 
 ---

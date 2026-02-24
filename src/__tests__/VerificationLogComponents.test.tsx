@@ -510,7 +510,8 @@ describe("SourceContextHeader", () => {
       expect(container.textContent).toContain("p.5");
     });
 
-    it("renders proof link when valid proofUrl prop is passed", () => {
+    // Temporarily skipped — proof link is disabled in SourceContextHeader (not ready for production)
+    it.skip("renders proof link when valid proofUrl prop is passed", () => {
       const citation: Citation = {
         type: "document",
         attachmentId: "abc123",

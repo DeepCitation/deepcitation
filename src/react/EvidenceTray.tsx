@@ -106,6 +106,27 @@ export function normalizeScreenshotSrc(raw: string): string {
 }
 
 /**
+ * Resolves the evidence crop image (keyhole source) from verification data.
+ * Prefers the document verification image; falls back to the URL page screenshot.
+ * Returns `null` when no valid source is available.
+ */
+// biome-ignore lint/style/useComponentExportOnlyModules: Utility function used by CitationDrawer
+export function resolveEvidenceSrc(verification: Verification | null | undefined): string | null {
+  if (verification?.document?.verificationImageSrc) {
+    const s = verification.document.verificationImageSrc;
+    return isValidProofImageSrc(s) ? s : null;
+  }
+  const raw = verification?.url?.webPageScreenshotBase64;
+  if (!raw) return null;
+  try {
+    const s = normalizeScreenshotSrc(raw);
+    return isValidProofImageSrc(s) ? s : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Single resolver for the best available full-page image from verification data.
  * Tries in order:
  * 1. matchPage from verification.pages (best: has image, dimensions, highlight, textItems)
@@ -685,7 +706,7 @@ export function EvidenceTray({
             <div className="overflow-hidden" style={{ height: MISS_TRAY_THUMBNAIL_HEIGHT }}>
               <img
                 src={proofImageSrc}
-                className="w-full h-full object-cover object-top"
+                className="w-full h-full object-cover object-center"
                 draggable={false}
                 alt="Searched page"
               />

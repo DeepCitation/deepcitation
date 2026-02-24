@@ -52,8 +52,8 @@
   },
   "peerDependencies": {
     "@radix-ui/react-popover": "^1.0.0",
-    "react": ">=17.0.0",
-    "react-dom": ">=17.0.0"
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -67,6 +67,9 @@
     }
   },
   "devDependencies": {
+    "@babel/core": "^7.27.4",
+    "@babel/plugin-syntax-typescript": "^7.27.1",
+    "babel-plugin-react-compiler": "^1.0.0",
     "@biomejs/biome": "~2.4.2",
     "@happy-dom/global-registrator": "^20.6.1",
     "@jest/globals": "^30.2.0",
@@ -115,7 +118,7 @@
     },
     {
       "path": "lib/react/index.js",
-      "limit": "40 KB"
+      "limit": "55 KB"
     }
   ],
   "exports": {

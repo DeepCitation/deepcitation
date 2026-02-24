@@ -39,7 +39,7 @@ import {
   ValidationError,
   ServerError,
   DeepCitationError,
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 
 try {
   const { verifications } = await dc.verify({ llmOutput });
@@ -82,7 +82,7 @@ All errors extend `DeepCitationError` and include:
 Use the `isRetryable` flag to determine which errors are safe to retry:
 
 ```typescript
-import { DeepCitationError } from "@deepcitation/deepcitation-js";
+import { DeepCitationError } from "deepcitation";
 
 async function withRetry<T>(
   fn: () => Promise<T>,

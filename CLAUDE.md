@@ -214,6 +214,7 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `getStatusLabel()` | `src/react/citationStatus.ts` | Status → display string |
 | `deriveOutcomeLabel()` | `src/react/outcomeLabel.ts` | Shared outcome label (Exact match / Scan complete / etc.) |
 | `normalizeScreenshotSrc()` | `src/react/EvidenceTray.tsx` | Screenshot data URI normalization + validation |
+| `resolveEvidenceSrc()` | `src/react/EvidenceTray.tsx` | Resolve evidence crop image (keyhole source) |
 | `resolveExpandedImage()` | `src/react/EvidenceTray.tsx` | Resolve best image source for expanded view |
 | `EvidenceTray` | `src/react/EvidenceTray.tsx` | Evidence display with keyhole viewer |
 | `InlineExpandedImage` | `src/react/InlineExpandedImage.tsx` | Expanded page image viewer with zoom |

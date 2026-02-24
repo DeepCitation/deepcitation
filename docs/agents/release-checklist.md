@@ -7,7 +7,7 @@ search_exclude: true
 
 # Release Checklist
 
-Actionable checklist for preparing and publishing a release of `@deepcitation/deepcitation-js`. Copy into a GitHub issue or use in-place.
+Actionable checklist for preparing and publishing a release of `deepcitation`. Copy into a GitHub issue or use in-place.
 
 ---
 
@@ -55,13 +55,13 @@ Actionable checklist for preparing and publishing a release of `@deepcitation/de
 ## Phase 6: Post-Release Verification
 
 - [ ] **Monitor publish workflow** — watch `.github/workflows/publish.yml`. It will build, publish to npm with provenance, and append "Published to npm registry" to the release notes.
-- [ ] **Verify on npm** — `npm view @deepcitation/deepcitation-js version` returns the new version.
+- [ ] **Verify on npm** — `npm view deepcitation version` returns the new version.
 - [ ] **Test install** — in a scratch directory, install and verify imports work:
   ```bash
   mkdir /tmp/test-release && cd /tmp/test-release
   echo '{"type":"module"}' > package.json
-  npm install @deepcitation/deepcitation-js@X.Y.Z
-  node --eval "import('@deepcitation/deepcitation-js').then(m => console.log('OK:', Object.keys(m).length, 'exports'))"
+  npm install deepcitation@X.Y.Z
+  node --eval "import('deepcitation').then(m => console.log('OK:', Object.keys(m).length, 'exports'))"
   ```
 - [ ] **Update `[Unreleased]` comparison link** — at the bottom of `CHANGELOG.md`, update the comparison URL:
   ```markdown
@@ -80,7 +80,7 @@ Actionable checklist for preparing and publishing a release of `@deepcitation/de
 | Lint | `bun run lint` |
 | Size check | `bun run size` |
 | Create release | `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file notes.md` |
-| Verify npm | `npm view @deepcitation/deepcitation-js version` |
+| Verify npm | `npm view deepcitation version` |
 
 ## Notes
 

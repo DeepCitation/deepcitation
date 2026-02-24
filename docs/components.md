@@ -31,13 +31,13 @@ How well the citation matched. Green checkmark for exact match, orange checkmark
 ## Installation
 
 ```bash
-npm install @deepcitation/deepcitation-js
+npm install deepcitation
 ```
 
 Then import the component:
 
 ```typescript
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "deepcitation/react";
 ```
 
 ---
@@ -46,7 +46,7 @@ import { CitationComponent } from "@deepcitation/deepcitation-js/react";
 
 {% raw %}
 ```tsx
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "deepcitation/react";
 
 // Basic citation with verification result
 <CitationComponent
@@ -230,7 +230,7 @@ Add interactivity with mouse and touch event handlers:
 
 {% raw %}
 ```tsx
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "deepcitation/react";
 import { useState } from "react";
 
 function MyComponent() {
@@ -450,7 +450,7 @@ For fully custom citation layouts, composable primitives are available:
 
 {% raw %}
 ```tsx
-import { Citation } from "@deepcitation/deepcitation-js/react";
+import { Citation } from "deepcitation/react";
 
 <Citation.Root citation={citation} verification={verification}>
   <Citation.Trigger>

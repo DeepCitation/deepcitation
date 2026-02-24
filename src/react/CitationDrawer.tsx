@@ -27,11 +27,9 @@ import {
   Z_INDEX_DRAWER_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
-import { EvidenceTray, InlineExpandedImage, resolveExpandedImage } from "./EvidenceTray.js";
+import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
-import { ExternalLinkIcon } from "./icons.js";
-import { sanitizeUrl } from "./urlUtils.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
 
@@ -132,13 +130,8 @@ function DrawerPageBadges({
  */
 function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
   const sourceName = group.sourceName || "Source";
-  const firstCitation = group.citations[0]?.citation;
   const citationCount = group.citations.length;
   const isUrlSource = !!group.sourceDomain;
-
-  // For URL sources, get a link to visit
-  const sourceUrl = isUrlSource && firstCitation?.type === "url" ? firstCitation.url : undefined;
-  const safeSourceUrl = sourceUrl ? sanitizeUrl(sourceUrl) : null;
 
   return (
     <div
@@ -167,22 +160,6 @@ function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
           <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{group.sourceDomain}</span>
         )}
       </div>
-
-      {/* External link for URL sources */}
-      {safeSourceUrl && (
-        <a
-          href={safeSourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 p-1 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
-          aria-label={`Open ${sourceName} in new tab`}
-          onClick={e => e.stopPropagation()}
-        >
-          <span className="size-3.5 block">
-            <ExternalLinkIcon />
-          </span>
-        </a>
-      )}
 
       {/* Citation count badge — only shown when > 1 (single item is self-evident) */}
       {citationCount > 1 && (
@@ -280,6 +257,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const expandedImage = useMemo(() => resolveExpandedImage(verification), [verification]);
   const proofImage = expandedImage?.src ?? null;
 
+  // Evidence image — the verification crop (keyhole source), separate from the full page.
+  const evidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
+
   // Status
   const statusCategory = getItemStatusCategory(item);
   const isPending = statusCategory === "pending";
@@ -297,9 +277,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     [statusCategory],
   );
 
-  // Source URL for "open page" link (URL citations only)
-  const sourceUrl = citation.type === "url" && citation.url ? sanitizeUrl(citation.url) : null;
-
   const handleClick = useCallback(() => {
     if (escCtx) {
       escCtx.onItemExpand(isExpanded ? null : citationKey);
@@ -312,10 +289,15 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     onClick?.(item);
   }, [item, onClick, escCtx, isExpanded, citationKey]);
 
-  // Opens InlineExpandedImage with the proof image (used by both keyhole click and tray click)
+  // Opens InlineExpandedImage with the full page image (tray click / onExpand)
   const handleExpand = useCallback(() => {
     if (proofImage) setInlineExpandedSrc(proofImage);
   }, [proofImage]);
+
+  // Opens InlineExpandedImage with the evidence crop (keyhole click / onImageClick)
+  const handleExpandEvidence = useCallback(() => {
+    if (evidenceSrc) setInlineExpandedSrc(evidenceSrc);
+  }, [evidenceSrc]);
 
   // Auto-open InlineExpandedImage when pendingInlineExpand matches this item (page badge click)
   const itemRef = useRef<HTMLDivElement>(null);
@@ -425,7 +407,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               <EvidenceTray
                 verification={verification ?? null}
                 status={citationStatus}
-                onImageClick={proofImage ? handleExpand : undefined}
+                onImageClick={evidenceSrc ? handleExpandEvidence : undefined}
                 onExpand={proofImage ? handleExpand : undefined}
                 proofImageSrc={proofImage ?? undefined}
               />
@@ -436,24 +418,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                 verification={verification ?? undefined}
                 renderScale={expandedImage?.renderScale}
               />
-            )}
-
-            {/* Open page — consistent action for all expanded URL citations */}
-            {sourceUrl && (
-              <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800">
-                <a
-                  href={sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                  onClick={e => e.stopPropagation()}
-                >
-                  Open source page
-                  <span className="size-3 block">
-                    <ExternalLinkIcon />
-                  </span>
-                </a>
-              </div>
             )}
           </div>
         </div>
@@ -826,8 +790,11 @@ export function CitationDrawer({
     [pageToKey],
   );
 
-  // Active page pill — derived from which citation is currently expanded
-  const activePage = expandedCitationKey ? (keyToPage.get(expandedCitationKey) ?? null) : null;
+  // State mirror of inlineKeysRef so page pill reactivity works (refs don't trigger re-renders)
+  const [hasInlineOpen, setHasInlineOpen] = useState(false);
+
+  // Active page pill — only lit when the inline full-page image is visible
+  const activePage = expandedCitationKey && hasInlineOpen ? (keyToPage.get(expandedCitationKey) ?? null) : null;
 
   const handlePageDeactivate = useCallback(() => {
     setExpandedCitationKey(null);
@@ -843,6 +810,7 @@ export function CitationDrawer({
     else expandedKeysRef.current.delete(key);
     if (hasInline) inlineKeysRef.current.add(key);
     else inlineKeysRef.current.delete(key);
+    setHasInlineOpen(inlineKeysRef.current.size > 0);
   }, []);
 
   const escCtxValue = useMemo<DrawerEscapeCtx>(
@@ -880,6 +848,7 @@ export function CitationDrawer({
           // Level 3 → Level 2: collapse inline full-page images
           setCollapseInlineSignal(s => s + 1);
           inlineKeysRef.current.clear();
+          setHasInlineOpen(false);
         } else if (expandedKeyRef.current !== null) {
           // Level 2 → Level 1: collapse the accordion
           setExpandedCitationKey(null);

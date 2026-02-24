@@ -375,7 +375,7 @@ When the host can render DeepCitation components, return structured data:
 
 The host application renders this using DeepCitation React components:
 ```tsx
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "deepcitation/react";
 
 <CitationComponent
   citation={result.citations["patient-dob"]}
