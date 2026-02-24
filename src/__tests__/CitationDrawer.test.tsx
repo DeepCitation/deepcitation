@@ -1205,3 +1205,167 @@ describe("groupCitationsBySource with sourceLabelMap", () => {
     expect(groups[0].sourceName).toBe("Test");
   });
 });
+
+// =========
+// Accordion behavior
+// =========
+
+describe("CitationDrawer accordion", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const createGroupWithMultiple = (count: number): SourceCitationGroup => ({
+    sourceName: "TestSource",
+    sourceDomain: "test.com",
+    citations: Array.from({ length: count }, (_, i) => ({
+      citationKey: `item-${i}`,
+      citation: {
+        type: "url" as const,
+        siteName: "TestSource",
+        title: `Article ${i + 1}`,
+        anchorText: `Article ${i + 1}`,
+        fullPhrase: `Full phrase for article ${i + 1}`,
+      },
+      verification: { status: "found" as const },
+    })),
+    additionalCount: count - 1,
+  });
+
+  /** Helper: select a drawer item row by its citation key. */
+  const getItem = (container: HTMLElement, key: string) =>
+    container.querySelector(`[data-citation-key="${key}"]`) as HTMLElement;
+
+  it("only one item expanded at a time (accordion)", () => {
+    const groups = [createGroupWithMultiple(3)];
+    const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
+
+    const item0 = getItem(container, "item-0");
+    const item1 = getItem(container, "item-1");
+
+    // Click first item
+    fireEvent.click(item0);
+    expect(item0).toHaveAttribute("aria-expanded", "true");
+    expect(item1).toHaveAttribute("aria-expanded", "false");
+
+    // Click second item — first should collapse, second should expand
+    fireEvent.click(item1);
+    expect(item0).toHaveAttribute("aria-expanded", "false");
+    expect(item1).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("clicking expanded item collapses it", () => {
+    const groups = [createGroupWithMultiple(2)];
+    const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
+
+    const item0 = getItem(container, "item-0");
+    // Click to expand
+    fireEvent.click(item0);
+    expect(item0).toHaveAttribute("aria-expanded", "true");
+
+    // Click again to collapse
+    fireEvent.click(item0);
+    expect(item0).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("Escape key collapses expanded item before closing drawer", () => {
+    const onClose = jest.fn();
+    const groups = [createGroupWithMultiple(2)];
+    const { container } = render(<CitationDrawer isOpen={true} onClose={onClose} citationGroups={groups} />);
+
+    const item0 = getItem(container, "item-0");
+    fireEvent.click(item0);
+    expect(item0).toHaveAttribute("aria-expanded", "true");
+
+    // First Escape collapses the expanded item
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(item0).toHaveAttribute("aria-expanded", "false");
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Second Escape closes the drawer
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalled();
+  });
+});
+
+// =========
+// Clickable page badges
+// =========
+
+describe("CitationDrawer page badges", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders clickable page badges in header", () => {
+    const groups: SourceCitationGroup[] = [
+      {
+        sourceName: "Doc",
+        citations: [
+          {
+            citationKey: "c1",
+            citation: {
+              type: "document" as const,
+              pageNumber: 3,
+              anchorText: "test text",
+              fullPhrase: "This is test text on page 3",
+            },
+            verification: { status: "found" as const },
+          },
+        ],
+        additionalCount: 0,
+      },
+    ];
+
+    const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
+
+    // Should render a clickable page pill button with aria-label (PagePill uses "Expand to full page N")
+    const pageButton = container.querySelector("button[aria-label='Expand to full page 3']");
+    expect(pageButton).toBeInTheDocument();
+    expect(pageButton?.textContent).toContain("p.3");
+  });
+
+  it("clicking page badge expands the matching citation", () => {
+    const groups: SourceCitationGroup[] = [
+      {
+        sourceName: "Doc",
+        citations: [
+          {
+            citationKey: "c1",
+            citation: {
+              type: "document" as const,
+              pageNumber: 1,
+              anchorText: "first text",
+              fullPhrase: "First text on page 1",
+            },
+            verification: { status: "found" as const },
+          },
+          {
+            citationKey: "c2",
+            citation: {
+              type: "document" as const,
+              pageNumber: 5,
+              anchorText: "second text",
+              fullPhrase: "Second text on page 5",
+            },
+            verification: { status: "found" as const },
+          },
+        ],
+        additionalCount: 1,
+      },
+    ];
+
+    const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
+
+    // Click page 5 badge (PagePill uses "Expand to full page N")
+    const pageButton = container.querySelector("button[aria-label='Expand to full page 5']");
+    expect(pageButton).toBeInTheDocument();
+    if (pageButton) fireEvent.click(pageButton);
+
+    // The first citation (page 1) should NOT be expanded, second (page 5) should be
+    const item1 = container.querySelector("[data-citation-key='c1']") as HTMLElement;
+    const item2 = container.querySelector("[data-citation-key='c2']") as HTMLElement;
+    expect(item1).toHaveAttribute("aria-expanded", "false");
+    expect(item2).toHaveAttribute("aria-expanded", "true");
+  });
+});

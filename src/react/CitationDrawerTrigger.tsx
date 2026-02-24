@@ -3,8 +3,19 @@ import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, u
 import type { Verification } from "../types/verification.js";
 import type { SourceCitationGroup } from "./CitationDrawer.types.js";
 import type { FlatCitationItem } from "./CitationDrawer.utils.js";
-import { flattenCitations, generateDefaultLabel, getStatusInfo, resolveGroupLabels } from "./CitationDrawer.utils.js";
-import { isValidProofImageSrc, TOOLTIP_HIDE_DELAY_MS, TTC_TEXT_STYLE } from "./constants.js";
+import {
+  flattenCitations,
+  generateDefaultLabel,
+  getStatusInfo,
+  getStatusPriority,
+  resolveGroupLabels,
+} from "./CitationDrawer.utils.js";
+import {
+  DOT_INDICATOR_FIXED_SIZE_STYLE,
+  isValidProofImageSrc,
+  TOOLTIP_HIDE_DELAY_MS,
+  TTC_TEXT_STYLE,
+} from "./constants.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { formatTtc } from "./timingUtils.js";
 import { cn } from "./utils.js";
@@ -263,6 +274,22 @@ function CitationTooltip({
 // StackedStatusIcons — horizontally expanding icon row (per-citation)
 // =========
 
+/** Map from priority tier to dot background color class. */
+const PRIORITY_DOT_BG: Record<number, string> = {
+  4: "bg-red-500",
+  3: "bg-amber-500",
+  2: "bg-gray-400",
+  1: "bg-green-500",
+};
+
+/** Map from priority tier to dot text color class (for count label). */
+const PRIORITY_DOT_TEXT: Record<number, string> = {
+  4: "text-red-600 dark:text-red-400",
+  3: "text-amber-600 dark:text-amber-400",
+  2: "text-gray-500 dark:text-gray-400",
+  1: "text-green-600 dark:text-green-400",
+};
+
 export function StackedStatusIcons({
   flatCitations,
   isHovered,
@@ -284,6 +311,37 @@ export function StackedStatusIcons({
   onSourceClick?: (group: SourceCitationGroup) => void;
   indicatorVariant?: "icon" | "dot";
 }) {
+  // Dot variant: one dot per status group (e.g. ●1 ●5) ordered worst-first
+  if (indicatorVariant === "dot") {
+    const counts = new Map<number, number>();
+    for (const f of flatCitations) {
+      const p = getStatusPriority(f.item.verification);
+      counts.set(p, (counts.get(p) ?? 0) + 1);
+    }
+    // Sort descending by priority (worst first: 4=miss, 3=partial, 2=pending, 1=verified)
+    const groups = Array.from(counts.entries()).sort((a, b) => b[0] - a[0]);
+    return (
+      <div className="flex items-center gap-2" role="group" aria-label="Citation verification status">
+        {groups.map(([priority, count]) => (
+          <span key={priority} className="inline-flex items-center gap-1">
+            <span
+              className={cn(
+                "block rounded-full shrink-0",
+                PRIORITY_DOT_BG[priority] ?? "bg-gray-400",
+                priority === 2 && "animate-pulse",
+              )}
+              style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+            />
+            {(count > 1 || groups.length > 1) && (
+              <span className={cn("text-[10px] font-medium leading-none", PRIORITY_DOT_TEXT[priority])}>{count}</span>
+            )}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  // Icon variant: per-citation stacked icons
   const displayItems = flatCitations.slice(0, maxIcons);
   const hasOverflow = flatCitations.length > maxIcons;
   const overflowCount = flatCitations.length - maxIcons;

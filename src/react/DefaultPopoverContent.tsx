@@ -474,6 +474,7 @@ export function DefaultPopoverContent({
   // InlineExpandedImage onLoad. Used to clamp the inner container width so the
   // popover doesn't stretch wider than the image.
   const [expandedNaturalWidth, setExpandedNaturalWidth] = useState<number | null>(null);
+  const cachedPageWidthRef = useRef<number | null>(null);
 
   // Helper: update local state AND report to parent in one step.
   const setWidth = useCallback(
@@ -484,6 +485,15 @@ export function DefaultPopoverContent({
     [onExpandedWidthChange],
   );
 
+  // Cache the last known page-image width so it survives collapse→re-expand cycles.
+  // Because of the triple always-render pattern, InlineExpandedImage stays mounted and
+  // its onLoad/onNaturalSize won't re-fire when toggling from display:none back to visible.
+  useEffect(() => {
+    if (viewState === "expanded-page" && expandedNaturalWidth !== null) {
+      cachedPageWidthRef.current = expandedNaturalWidth;
+    }
+  }, [viewState, expandedNaturalWidth]);
+
   // Pre-set width from known dimensions when the view state changes.
   // For expanded states without known dimensions, keep the previous width as an estimate
   // (null → viewport-width fallback; or previous expanded width).
@@ -493,6 +503,8 @@ export function DefaultPopoverContent({
     } else if (viewState === "expanded-evidence") {
       const w = verification?.document?.verificationImageDimensions?.width;
       if (w) setWidth(w);
+    } else if (viewState === "expanded-page" && cachedPageWidthRef.current !== null) {
+      setWidth(cachedPageWidthRef.current);
     }
   }, [viewState, verification?.document?.verificationImageDimensions?.width, setWidth]);
 

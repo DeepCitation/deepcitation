@@ -17,15 +17,18 @@ export function HighlightedPhrase({
   isMiss?: boolean;
 }) {
   // Don't highlight when citation is "not found" - misleading to highlight text that wasn't found
-  if (isMiss || !anchorText || !fullPhrase.includes(anchorText)) {
-    return <span className="italic text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
+  if (isMiss) {
+    return <span className="line-through text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
+  }
+  if (!anchorText || !fullPhrase.includes(anchorText)) {
+    return <span className="text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
   }
   if (wordCount(fullPhrase) - wordCount(anchorText) < MIN_WORD_DIFFERENCE) {
-    return <span className="italic text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
+    return <span className="text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
   }
   const idx = fullPhrase.indexOf(anchorText);
   return (
-    <span className="italic text-gray-600 dark:text-gray-300">
+    <span className="text-gray-600 dark:text-gray-300">
       {fullPhrase.slice(0, idx)}
       <span style={ANCHOR_HIGHLIGHT_STYLE}>{anchorText}</span>
       {fullPhrase.slice(idx + anchorText.length)}
