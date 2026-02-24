@@ -1,5 +1,6 @@
 import type { SearchAttempt, SearchMethod } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
+import { getVariationLabel } from "./variationLabels.js";
 
 export interface SearchQueryGroup {
   searchPhrase: string;
@@ -68,21 +69,6 @@ function derivePhraseLabel(attempt: SearchAttempt): string {
     custom_phrase_fallback: "Custom phrase",
   };
   return labels[attempt.method] ?? "Full phrase";
-}
-
-/** Map VariationType to label (mirrors variationLabels.ts without importing it). */
-function variationTypeToLabel(vt: string | undefined): string | null {
-  if (!vt) return null;
-  const map: Record<string, string> = {
-    exact: "Exact match",
-    normalized: "Normalized",
-    currency: "Price formats",
-    date: "Date formats",
-    numeric: "Number formats",
-    symbol: "Symbol variants",
-    accent: "Accent variants",
-  };
-  return map[vt] ?? null;
 }
 
 /**
@@ -156,7 +142,7 @@ export function buildSearchSummary(searchAttempts: SearchAttempt[], verification
         for (const v of attempt.searchVariations) variationSet.add(v);
       }
       if (!variationTypeLabel && attempt.variationType) {
-        variationTypeLabel = variationTypeToLabel(attempt.variationType);
+        variationTypeLabel = getVariationLabel(attempt.variationType);
       }
 
       // Rejected matches

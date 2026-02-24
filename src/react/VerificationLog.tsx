@@ -36,6 +36,13 @@ const MAX_ANCHOR_TEXT_PREVIEW_LENGTH = 50;
 /** Maximum length for phrase display in search attempt rows */
 const MAX_PHRASE_DISPLAY_LENGTH = 60;
 
+/** Truncate a search phrase for display, showing "(empty)" for blank input. */
+function truncatePhrase(raw: string | undefined | null): string {
+  const phrase = raw ?? "";
+  if (phrase.length === 0) return "(empty)";
+  return phrase.length > MAX_PHRASE_DISPLAY_LENGTH ? `${phrase.slice(0, MAX_PHRASE_DISPLAY_LENGTH)}...` : phrase;
+}
+
 /** Maximum length for URL display in popover header */
 const MAX_URL_DISPLAY_LENGTH = 45;
 
@@ -969,14 +976,7 @@ interface SearchAttemptRowProps {
  * Also shows search variations if present.
  */
 function SearchAttemptRow({ attempt, index, totalCount, overallStatus }: SearchAttemptRowProps) {
-  // Format the phrase for display (truncate if too long), with null safety
-  const phrase = attempt.searchPhrase ?? "";
-  const displayPhrase =
-    phrase.length === 0
-      ? "(empty)"
-      : phrase.length > MAX_PHRASE_DISPLAY_LENGTH
-        ? `${phrase.slice(0, MAX_PHRASE_DISPLAY_LENGTH)}...`
-        : phrase;
+  const displayPhrase = truncatePhrase(attempt.searchPhrase);
 
   // Format location
   const locationText =
@@ -1086,13 +1086,7 @@ function RejectedMatchesSection({ rejectedMatches }: RejectedMatchesSectionProps
  * variations sub-line, and rejected matches sub-line.
  */
 function QueryGroupRow({ group }: { group: SearchQueryGroup }) {
-  const phrase = group.searchPhrase;
-  const displayPhrase =
-    phrase.length === 0
-      ? "(empty)"
-      : phrase.length > MAX_PHRASE_DISPLAY_LENGTH
-        ? `${phrase.slice(0, MAX_PHRASE_DISPLAY_LENGTH)}...`
-        : phrase;
+  const displayPhrase = truncatePhrase(group.searchPhrase);
 
   // Format location string
   let locationText: string;
@@ -1148,7 +1142,7 @@ function QueryGroupRow({ group }: { group: SearchQueryGroup }) {
             <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
               {group.variationTypeLabel ?? "Also tried"}:{" "}
               {group.variations.slice(0, 3).map((v, vIdx) => (
-                <React.Fragment key={`qg-var-${vIdx}-${v.slice(0, 20)}`}>
+                <React.Fragment key={vIdx}>
                   {vIdx > 0 && ", "}
                   <QuotedText mono>{v}</QuotedText>
                 </React.Fragment>
@@ -1162,7 +1156,7 @@ function QueryGroupRow({ group }: { group: SearchQueryGroup }) {
             <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
               Rejected:{" "}
               {group.rejectedMatches.map((m, mIdx) => (
-                <React.Fragment key={`qg-rej-${mIdx}-${m.text.slice(0, 20)}`}>
+                <React.Fragment key={mIdx}>
                   {mIdx > 0 && ", "}
                   <QuotedText mono>{m.text.length > 40 ? `${m.text.slice(0, 40)}...` : m.text}</QuotedText>
                   {m.occurrences != null && ` (${m.occurrences}x)`}
@@ -1248,13 +1242,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
 
   // For found/partial states: show only the successful match details
   if (!isMiss && successfulAttempt) {
-    const phrase = successfulAttempt.searchPhrase ?? "";
-    const displayPhrase =
-      phrase.length === 0
-        ? "(empty)"
-        : phrase.length > MAX_PHRASE_DISPLAY_LENGTH
-          ? `${phrase.slice(0, MAX_PHRASE_DISPLAY_LENGTH)}...`
-          : phrase;
+    const displayPhrase = truncatePhrase(successfulAttempt.searchPhrase);
 
     const methodName = METHOD_DISPLAY_NAMES[successfulAttempt.method] ?? successfulAttempt.method ?? "Search";
     const locationText = successfulAttempt.foundLocation
@@ -1298,7 +1286,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
         </div>
         <div className="space-y-0.5">
           {groups.map((group, gIdx) => (
-            <QueryGroupRow key={`qg-${gIdx}-${group.searchPhrase.slice(0, 30)}`} group={group} />
+            <QueryGroupRow key={group.searchPhrase} group={group} />
           ))}
         </div>
       </div>
