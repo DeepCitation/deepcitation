@@ -869,14 +869,11 @@ export function InlineExpandedImage({
     // Auto-scroll to annotation: after fit-to-screen zoom is computed, scroll
     // the container so the phraseMatchDeepItem annotation is centered in view.
     // Uses rAF to wait for the DOM to reflow at the new zoom level.
-    // Fire-and-forget (no cleanup return) — the containerRef null-guard prevents
-    // stale writes, and returning a conditional cleanup would change this effect's
-    // destroy behavior across renders, which can trigger a React 19 Activity bug
-    // during simultaneous mode transitions and parent unmounts.
+    let rafId: number | undefined;
     const phraseItem = verification?.document?.phraseMatchDeepItem;
     if (phraseItem && renderScale) {
       const effectiveZoom = fitZoom < 1 ? fitZoom : 1;
-      requestAnimationFrame(() => {
+      rafId = requestAnimationFrame(() => {
         const container = containerRef.current;
         if (!container) return;
         const target = computeAnnotationScrollTarget(
@@ -894,6 +891,9 @@ export function InlineExpandedImage({
         }
       });
     }
+    return () => {
+      if (rafId !== undefined) cancelAnimationFrame(rafId);
+    };
   }, [
     fill,
     imageLoaded,

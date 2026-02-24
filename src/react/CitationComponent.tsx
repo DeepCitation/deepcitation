@@ -570,7 +570,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // biome-ignore lint/correctness/useExhaustiveDependencies: firstSeenAtRef/verification are stable refs or read at call-time — only isHovering transitions should trigger this effect
     useEffect(() => {
       if (isHovering && firstSeenAtRef.current != null) {
-        popoverOpenedAtRef.current = Date.now();
+        popoverOpenedAtRef.current = performance.now();
         onTimingEventRef.current?.({
           event: "popover_opened",
           citationKey,
@@ -579,7 +579,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           verificationStatus: verification?.status ?? null,
         });
       } else if (!isHovering && popoverOpenedAtRef.current != null) {
-        const now = Date.now();
+        const now = performance.now();
         const dwellMs = now - popoverOpenedAtRef.current;
 
         onTimingEventRef.current?.({
