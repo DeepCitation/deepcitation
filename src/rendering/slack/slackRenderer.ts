@@ -11,7 +11,7 @@ import type { SlackOutput, SlackRenderOptions } from "./types.js";
 /**
  * Module-level compiled regex for cite tag matching.
  */
-const CITE_TAG_REGEX = /<cite\s+[^>]*\/>/g;
+const CITE_TAG_REGEX = /<cite\s[^>]*\/>/g;
 
 /**
  * Render LLM output with <cite /> tags as Slack mrkdwn with linked proof URLs.

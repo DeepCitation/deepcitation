@@ -22,7 +22,7 @@ import { getCitationStatus } from "./parseCitation.js";
  */
 const PAGE_NUMBER_REGEX = /page[_a-zA-Z]*(\d+)/;
 const _RANGE_EXPANSION_REGEX = /(\d+)-(\d+)/g;
-const CITE_TAG_REGEX = /<cite\s+[^>]*\/>/g;
+const CITE_TAG_REGEX = /<cite\s[^>]*\/>/g;
 
 export interface ReplaceCitationsOptions {
   /**
@@ -52,8 +52,11 @@ export interface ReplaceCitationsOptions {
 const parseCiteAttributes = (citeTag: string): Record<string, string | undefined> => {
   const attrs: Record<string, string | undefined> = {};
 
-  // Security: validate input length before regex operations to prevent ReDoS
+  // Security: validate input length before regex operations to prevent ReDoS.
+  // The direct length check (visible to static analysis) supplements validateRegexInput()
+  // which CodeQL cannot trace through function boundaries.
   validateRegexInput(citeTag);
+  if (citeTag.length > 5000) return attrs;
 
   // Match attribute patterns: key='value' or key="value"
   const attrRegex = /([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(['"])([^'"\\]*(?:\\.[^'"\\]*)*)\2/g;

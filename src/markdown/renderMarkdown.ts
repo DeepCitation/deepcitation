@@ -15,7 +15,7 @@ import type { CitationWithStatus, MarkdownOutput, RenderMarkdownOptions } from "
  * Module-level compiled regex for cite tag matching.
  * Matches self-closing <cite ... /> tags.
  */
-const CITE_TAG_REGEX = /<cite\s+[^>]*\/>/g;
+const CITE_TAG_REGEX = /<cite\s[^>]*\/>/g;
 
 /**
  * Regex pattern for parsing cite tag attributes.
