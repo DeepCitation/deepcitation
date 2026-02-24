@@ -7,22 +7,10 @@ import { getCitationStatus } from "./parseCitation.js";
 
 /**
  * Module-level compiled regexes for hot-path operations.
- *
- * IMPORTANT: These regexes are compiled once at module load time to avoid
- * the overhead of regex compilation on every function call.
- *
- * Note on global flag (/g): Regexes with the global flag maintain internal
- * state (lastIndex). To avoid state pollution across calls, we create fresh
- * instances from these patterns when using methods that rely on lastIndex:
- *
- *   // SAFE: Create new instance from source pattern
- *   const regex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
- *
- * Performance fix: avoids regex recompilation on every function call.
+ * Compiled once at module load to avoid per-call recompilation.
  */
 const PAGE_NUMBER_REGEX = /page[_a-zA-Z]*(\d+)/;
 const _RANGE_EXPANSION_REGEX = /(\d+)-(\d+)/g;
-const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
 
 export interface ReplaceCitationsOptions {
   /**
@@ -152,8 +140,9 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
   // Track citation index for matching with numbered verification keys
   let citationIndex = 0;
 
-  // Use module-level regex directly - replace() handles lastIndex reset automatically
-  return markdownWithCitations.replace(CITE_TAG_REGEX, match => {
+  // Linear-time cite tag replacement using indexOf instead of regex.
+  // Avoids polynomial backtracking that CodeQL flags in regex-based matching.
+  const replaceCiteTag = (match: string): string => {
     citationIndex++;
     const attrs = parseCiteAttributes(match);
 
@@ -257,7 +246,30 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
     }
 
     return output;
-  });
+  };
+
+  // Scan for <cite ... /> tags using indexOf — O(n) guaranteed
+  let result = "";
+  let lastIndex = 0;
+  let pos = 0;
+  const OPEN = "<cite ";
+
+  while (pos < markdownWithCitations.length) {
+    const start = markdownWithCitations.indexOf(OPEN, pos);
+    if (start === -1) break;
+
+    const end = markdownWithCitations.indexOf("/>", start + OPEN.length);
+    if (end === -1) break;
+
+    const tag = markdownWithCitations.substring(start, end + 2);
+    result += markdownWithCitations.substring(lastIndex, start);
+    result += replaceCiteTag(tag);
+    lastIndex = end + 2;
+    pos = end + 2;
+  }
+
+  result += markdownWithCitations.substring(lastIndex);
+  return result;
 };
 
 export const removePageNumberMetadata = (pageText: string): string => {
