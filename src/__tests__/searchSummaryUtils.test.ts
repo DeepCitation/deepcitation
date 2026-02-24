@@ -11,7 +11,8 @@
  */
 
 import { describe, expect, it } from "@jest/globals";
-import { buildSearchSummary } from "../react/searchSummaryUtils";
+import { buildIntentSummary, buildSearchSummary, deriveContextWindow } from "../react/searchSummaryUtils";
+import type { DeepTextItem } from "../types/boxes";
 import type { SearchAttempt } from "../types/search";
 import type { Verification } from "../types/verification";
 
@@ -359,5 +360,256 @@ describe("buildSearchSummary", () => {
       expect(summary.distinctQueries).toBe(3);
       summary.queryGroups.forEach(g => expect(g.attemptCount).toBe(1));
     });
+  });
+});
+
+// =============================================================================
+// deriveContextWindow tests
+// =============================================================================
+
+function textItem(text: string): DeepTextItem {
+  return { x: 0, y: 0, width: 100, height: 12, text };
+}
+
+describe("deriveContextWindow", () => {
+  it("returns null when textItems is undefined", () => {
+    expect(deriveContextWindow("hello", undefined)).toBeNull();
+  });
+
+  it("returns null when textItems is empty", () => {
+    expect(deriveContextWindow("hello", [])).toBeNull();
+  });
+
+  it("returns null when matchedText is empty", () => {
+    expect(deriveContextWindow("", [textItem("hello world")])).toBeNull();
+  });
+
+  it("returns null when match not found in text", () => {
+    expect(deriveContextWindow("xyz", [textItem("hello world")])).toBeNull();
+  });
+
+  it("finds match and provides context from single text item", () => {
+    const items = [textItem("The quick brown fox jumps over the lazy dog near the river")];
+    const result = deriveContextWindow("fox jumps", items);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.contextText).toContain("fox jumps");
+    const match = result.contextText.slice(result.matchStart, result.matchEnd);
+    expect(match).toBe("fox jumps");
+  });
+
+  it("provides surrounding words as context", () => {
+    const items = [textItem("word1 word2 word3 word4 word5 TARGET word6 word7 word8 word9 word10")];
+    const result = deriveContextWindow("TARGET", items);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    // Should include some words before and after
+    expect(result.contextText.length).toBeGreaterThan("TARGET".length);
+    expect(result.matchStart).toBeGreaterThan(0);
+  });
+
+  it("concatenates multiple text items with spaces", () => {
+    const items = [textItem("hello"), textItem("world"), textItem("foo")];
+    const result = deriveContextWindow("world", items);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.contextText).toContain("world");
+  });
+
+  it("performs case-insensitive match", () => {
+    const items = [textItem("The Revenue increased by 15%")];
+    const result = deriveContextWindow("revenue increased", items);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    // matchedText indices should point to the original casing in contextText
+    const match = result.contextText.slice(result.matchStart, result.matchEnd);
+    expect(match.toLowerCase()).toBe("revenue increased");
+  });
+
+  it("handles match at the beginning of text", () => {
+    const items = [textItem("Revenue increased by 15% in Q4")];
+    const result = deriveContextWindow("Revenue", items);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.matchStart).toBe(0);
+  });
+
+  it("handles match at the end of text", () => {
+    const items = [textItem("The total was Q4")];
+    const result = deriveContextWindow("Q4", items);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    const match = result.contextText.slice(result.matchStart, result.matchEnd);
+    expect(match).toBe("Q4");
+  });
+});
+
+// =============================================================================
+// buildIntentSummary tests
+// =============================================================================
+
+describe("buildIntentSummary", () => {
+  it("returns null when verification has no citation fullPhrase", () => {
+    const result = buildIntentSummary({ status: "not_found" }, []);
+    expect(result).toBeNull();
+  });
+
+  it("returns not_found outcome for not_found status", () => {
+    const verification: Verification = {
+      status: "not_found",
+      citation: { type: "document", fullPhrase: "Revenue increased by 15%", pageNumber: 4 },
+    };
+    const result = buildIntentSummary(verification, [attempt({ searchPhrase: "Revenue increased by 15%" })]);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.outcome).toBe("not_found");
+    expect(result.fullPhrase).toBe("Revenue increased by 15%");
+    expect(result.snippets).toHaveLength(0);
+  });
+
+  it("returns exact_match for exact_full_phrase matchedVariation", () => {
+    const verification: Verification = {
+      status: "found",
+      citation: { type: "document", fullPhrase: "Revenue increased by 15%", pageNumber: 4 },
+    };
+    const result = buildIntentSummary(verification, [
+      attempt({
+        searchPhrase: "Revenue increased by 15%",
+        success: true,
+        matchedVariation: "exact_full_phrase",
+        matchedText: "Revenue increased by 15%",
+      }),
+    ]);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.outcome).toBe("exact_match");
+    expect(result.snippets).toHaveLength(0);
+  });
+
+  it("returns exact_match for found status without displacement", () => {
+    const verification: Verification = {
+      status: "found",
+      citation: { type: "document", fullPhrase: "Test phrase", pageNumber: 1 },
+    };
+    const result = buildIntentSummary(verification, [
+      attempt({ searchPhrase: "Test phrase", success: true, matchedText: "Test phrase" }),
+    ]);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.outcome).toBe("exact_match");
+  });
+
+  it("returns related_found for partial match statuses", () => {
+    const verification: Verification = {
+      status: "found_on_other_page",
+      citation: { type: "document", fullPhrase: "Revenue increased by 15%", pageNumber: 4 },
+    };
+    const result = buildIntentSummary(verification, [
+      attempt({
+        searchPhrase: "Revenue increased by 15%",
+        success: true,
+        matchedText: "Revenue increased",
+        method: "adjacent_pages",
+        foundLocation: { page: 6 },
+        expectedLocation: { page: 4 },
+      }),
+    ]);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.outcome).toBe("related_found");
+    expect(result.snippets).toHaveLength(1);
+    expect(result.snippets[0].matchedText).toBe("Revenue increased");
+    expect(result.snippets[0].isProximate).toBe(false); // adjacent_pages = distal
+  });
+
+  it("classifies proximate methods correctly", () => {
+    const verification: Verification = {
+      status: "found_on_other_line",
+      citation: { type: "document", fullPhrase: "Test", pageNumber: 4 },
+    };
+    const result = buildIntentSummary(verification, [
+      attempt({
+        searchPhrase: "Test",
+        success: true,
+        matchedText: "Test",
+        method: "current_page",
+        pageSearched: 4,
+      }),
+    ]);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.snippets[0].isProximate).toBe(true);
+  });
+
+  it("classifies distal methods correctly", () => {
+    const verification: Verification = {
+      status: "partial_text_found",
+      citation: { type: "document", fullPhrase: "Test", pageNumber: 4 },
+    };
+    const result = buildIntentSummary(verification, [
+      attempt({
+        searchPhrase: "Test",
+        success: true,
+        matchedText: "Test",
+        method: "regex_search",
+        foundLocation: { page: 8 },
+        expectedLocation: { page: 4 },
+      }),
+    ]);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.snippets[0].isProximate).toBe(false);
+  });
+
+  it("falls back to verifiedMatchSnippet when no successful attempts", () => {
+    const verification: Verification = {
+      status: "found_anchor_text_only",
+      citation: { type: "document", fullPhrase: "Test phrase here", pageNumber: 4 },
+      verifiedMatchSnippet: "snippet from verification",
+      document: { verifiedPageNumber: 4 },
+    };
+    const result = buildIntentSummary(verification, []);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.outcome).toBe("related_found");
+    expect(result.snippets).toHaveLength(1);
+    expect(result.snippets[0].matchedText).toBe("snippet from verification");
+    expect(result.snippets[0].page).toBe(4);
+  });
+
+  it("uses matchedText as context fallback when textItems unavailable", () => {
+    const verification: Verification = {
+      status: "partial_text_found",
+      citation: { type: "document", fullPhrase: "Revenue increased by 15%", pageNumber: 4 },
+    };
+    const result = buildIntentSummary(verification, [
+      attempt({
+        searchPhrase: "Revenue increased by 15%",
+        success: true,
+        matchedText: "Revenue increased",
+        method: "current_page",
+      }),
+    ]);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.snippets[0].contextText).toBe("Revenue increased");
+    expect(result.snippets[0].matchStart).toBe(0);
+    expect(result.snippets[0].matchEnd).toBe("Revenue increased".length);
+  });
+
+  it("tracks totalAttempts correctly", () => {
+    const verification: Verification = {
+      status: "not_found",
+      citation: { type: "document", fullPhrase: "Test", pageNumber: 1 },
+    };
+    const attempts = [
+      attempt({ searchPhrase: "Test" }),
+      attempt({ searchPhrase: "Test" }),
+      attempt({ searchPhrase: "Test" }),
+    ];
+    const result = buildIntentSummary(verification, attempts);
+    expect(result).not.toBeNull();
+    if (result == null) return;
+    expect(result.totalAttempts).toBe(3);
   });
 });

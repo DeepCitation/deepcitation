@@ -12,11 +12,12 @@ import {
   type TouchEvent,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { CitationStatus, Citation as CitationType } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import { MISS_WAVY_UNDERLINE_STYLE, TAP_SLOP_PX } from "./constants.js";
 import { CitationContext, type CitationContextValue, useCitationContext } from "./useCitationContext.js";
 import { classNames, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 
@@ -141,10 +142,31 @@ export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>
       [onMouseLeave, disableHover, onCitationMouseLeave, citation, citationKey],
     );
 
+    // Track touch start coordinates for scroll-vs-tap detection.
+    const touchStartXRef = useRef(0);
+    const touchStartYRef = useRef(0);
+
+    const handleTouchStart = useCallback((e: TouchEvent<HTMLSpanElement>) => {
+      const touch = e.touches[0];
+      if (touch) {
+        touchStartXRef.current = touch.clientX;
+        touchStartYRef.current = touch.clientY;
+      }
+    }, []);
+
     const handleTouchEnd = useCallback(
       (e: TouchEvent<HTMLSpanElement>) => {
         onTouchEnd?.(e);
         if (isMobile) {
+          // Scroll-vs-tap: if finger moved beyond slop, this is a scroll — bail out.
+          const touch = e.changedTouches[0];
+          if (touch) {
+            const dx = touch.clientX - touchStartXRef.current;
+            const dy = touch.clientY - touchStartYRef.current;
+            if (dx * dx + dy * dy > TAP_SLOP_PX * TAP_SLOP_PX) {
+              return;
+            }
+          }
           e.preventDefault();
           e.stopPropagation();
           onCitationTouchEnd?.(citation, citationKey, e);
@@ -190,6 +212,7 @@ export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>
         onMouseDown={handleMouseDown}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={isMobile ? handleTouchStart : undefined}
         onTouchEndCapture={isMobile ? handleTouchEnd : undefined}
         {...props}
       >

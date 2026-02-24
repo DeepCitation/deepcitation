@@ -37,11 +37,12 @@ import {
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
+import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { LocateIcon, SpinnerIcon, ZoomInIcon, ZoomOutIcon } from "./icons.js";
 import { deriveOutcomeLabel } from "./outcomeLabel.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget } from "./overlayGeometry.js";
-import { buildSearchSummary } from "./searchSummaryUtils.js";
+import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
 
@@ -573,8 +574,35 @@ function EvidenceTrayFooter({
 }
 
 /**
- * Search analysis summary for not-found evidence tray.
- * Shows attempt count, human-readable summary, and an expandable search details log.
+ * Display a single match snippet with the matched text highlighted.
+ * Shows surrounding context text with the match portion bolded.
+ */
+function MatchSnippetDisplay({ snippet }: { snippet: import("./searchSummaryUtils.js").MatchSnippet }) {
+  const before = snippet.contextText.slice(0, snippet.matchStart);
+  const match = snippet.contextText.slice(snippet.matchStart, snippet.matchEnd);
+  const after = snippet.contextText.slice(snippet.matchEnd);
+
+  return (
+    <div className="text-xs text-gray-600 dark:text-gray-300 font-mono leading-relaxed">
+      {before && <span className="text-gray-400 dark:text-gray-500">...{before}</span>}
+      <strong className="text-gray-800 dark:text-gray-100 bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">
+        {match}
+      </strong>
+      {after && <span className="text-gray-400 dark:text-gray-500">{after}...</span>}
+      {snippet.page != null && (
+        <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">(p.{snippet.page})</span>
+      )}
+      {!snippet.isProximate && (
+        <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1 italic">(different section)</span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Search analysis summary for not-found / partial evidence tray.
+ * Intent-centric display: clean message for misses, snippet-based for partial matches.
+ * Collapsed "View search log" at bottom for detailed audit trail.
  */
 export function SearchAnalysisSummary({
   searchAttempts,
@@ -584,54 +612,54 @@ export function SearchAnalysisSummary({
   verification?: Verification | null;
 }) {
   const [showDetails, setShowDetails] = useState(false);
-  const summary = useMemo(() => buildSearchSummary(searchAttempts, verification), [searchAttempts, verification]);
 
-  // Build 1-2 sentence query-centric summary
-  let description: string;
-  const nQueries = summary.distinctQueries;
-  if (summary.includesFullDocScan && nQueries <= 1) {
-    description = "Full document scan.";
-  } else if (nQueries > 1 && summary.includesFullDocScan) {
-    description = `Searched ${nQueries} phrases including full document scan.`;
-  } else if (nQueries > 1 && summary.pageRange) {
-    description = `Searched ${nQueries} phrases across ${summary.pageRange}.`;
-  } else if (nQueries > 1) {
-    description = `Searched ${nQueries} phrases in ${summary.totalAttempts} attempts.`;
-  } else if (summary.pageRange) {
-    description = `Searched ${summary.pageRange}.`;
-  } else {
-    description = `Ran ${summary.totalAttempts} ${summary.totalAttempts === 1 ? "search" : "searches"}.`;
-  }
-
-  if (summary.closestMatch) {
-    const truncated =
-      summary.closestMatch.text.length > 60
-        ? `${summary.closestMatch.text.slice(0, 60)}...`
-        : summary.closestMatch.text;
-    description += ` Closest match: "${truncated}"`;
-    if (summary.closestMatch.page) {
-      description += ` on page ${summary.closestMatch.page}`;
-    }
-    description += ".";
-  }
+  const intentSummary = useMemo(() => buildIntentSummary(verification, searchAttempts), [verification, searchAttempts]);
 
   // Format verified date for compact display
   const formatted = formatCaptureDate(verification?.verifiedAt);
   const dateStr = formatted?.display ?? "";
 
+  // Primary message based on outcome
+  const primaryMessage =
+    intentSummary?.outcome === "not_found"
+      ? "Text not found in document"
+      : intentSummary?.outcome === "related_found"
+        ? "Similar text found"
+        : null;
+
+  // Snippets for related_found outcome (limit to 3)
+  const snippets = intentSummary?.snippets?.slice(0, 3) ?? [];
+
   return (
-    <div className="px-3 py-2">
-      {/* Compact single-line summary — entire line clickable to toggle details */}
-      {searchAttempts.length > 0 ? (
+    <div className="px-3 py-2 space-y-1.5">
+      {/* Primary message */}
+      {primaryMessage && (
+        <div className="text-[11px] text-gray-600 dark:text-gray-300">
+          {primaryMessage}
+          {dateStr && <span className="text-gray-400 dark:text-gray-500"> · {dateStr}</span>}
+        </div>
+      )}
+
+      {/* Snippets for related_found */}
+      {snippets.length > 0 && (
+        <div className="space-y-1">
+          {snippets.map((snippet, idx) => (
+            <MatchSnippetDisplay key={`snippet-${idx}-${snippet.matchStart}`} snippet={snippet} />
+          ))}
+        </div>
+      )}
+
+      {/* Expandable search log */}
+      {searchAttempts.length > 0 && (
         <button
           type="button"
-          className="w-full flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors text-left"
+          className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors"
           onClick={e => {
             e.stopPropagation();
             setShowDetails(s => !s);
           }}
           aria-expanded={showDetails}
-          title={description}
+          aria-label={showDetails ? "Collapse search log" : "Expand search log"}
         >
           <svg
             className={cn("size-2.5 shrink-0 transition-transform duration-150", showDetails && "rotate-90")}
@@ -643,19 +671,11 @@ export function SearchAnalysisSummary({
           >
             <path d="M9 6l6 6-6 6" />
           </svg>
-          <span className="truncate">
-            {description}
-            {dateStr && <> · {dateStr}</>}
-          </span>
+          <span>View search log</span>
         </button>
-      ) : (
-        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate" title={description}>
-          {description}
-          {dateStr && <> · {dateStr}</>}
-        </span>
       )}
       {showDetails && (
-        <div className="mt-2">
+        <div className="mt-1">
           <VerificationLogTimeline searchAttempts={searchAttempts} status={verification?.status} />
         </div>
       )}
@@ -690,6 +710,8 @@ export function EvidenceTray({
   const searchAttempts = verification?.searchAttempts ?? [];
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
   const [keyholeImageFits, setKeyholeImageFits] = useState(false);
+  const isTouch = useIsTouchDevice();
+  const tapOrClick = isTouch ? "Tap" : "Click";
 
   // Incremented each time the user clicks an already-full-size keyhole.
   // The changing key forces FooterHint to remount, restarting its 2s highlight timer.
@@ -737,7 +759,7 @@ export function EvidenceTray({
             fullSizeFlashKey > 0
               ? { text: " · Already full size", key: `flash-${fullSizeFlashKey}` }
               : !!onImageClick && !keyholeImageFits
-                ? { text: " · Click to expand", key: "expand" }
+                ? { text: ` · ${tapOrClick} to expand`, key: "expand" }
                 : undefined
           }
         />
@@ -778,7 +800,7 @@ export function EvidenceTray({
             onImageClick
               ? keyholeImageFits
                 ? "Verification image (already at full size)"
-                : "Click to expand verification image"
+                : `${tapOrClick} to expand verification image`
               : "Expand to full page"
           }
         >
@@ -833,6 +855,7 @@ export function InlineExpandedImage({
   anchorItem?: DeepTextItem | null;
 }) {
   const { containerRef, isDragging, handlers: panHandlers, wasDragging } = useDragToPan({ direction: "xy" });
+  const isTouch = useIsTouchDevice();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [naturalWidth, setNaturalWidth] = useState<number | null>(null);
   const [naturalHeight, setNaturalHeight] = useState<number | null>(null);
@@ -1181,7 +1204,7 @@ export function InlineExpandedImage({
     <div className="flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
       <span>
         {outcomeLabel}
-        <FooterHint text=" · Click to collapse" />
+        <FooterHint text={` · ${isTouch ? "Tap" : "Click"} to collapse`} />
       </span>
       {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
     </div>

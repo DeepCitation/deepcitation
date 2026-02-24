@@ -239,35 +239,47 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   // Track which collapseInlineSignal we have already acted on to avoid false-triggers on mount
   const seenInlineSignalRef = useRef(0);
 
-  // Clear inline expansion: when collapsed, or when parent sends collapse signal (Escape)
-  useEffect(() => {
-    if (!isExpanded) {
-      setInlineExpandedSrc(null);
-      seenInlineSignalRef.current = collapseInlineSignal;
-      return;
-    }
+  // Clear inline expansion: when collapsed, or when parent sends collapse signal (Escape).
+  // Uses setState-during-render to avoid cascading renders from useEffect.
+  const [prevIsExpanded, setPrevIsExpanded] = useState(isExpanded);
+  const [prevCollapseSignal, setPrevCollapseSignal] = useState(collapseInlineSignal);
+  if (!isExpanded && prevIsExpanded) {
+    setPrevIsExpanded(false);
+    setInlineExpandedSrc(null);
+    seenInlineSignalRef.current = collapseInlineSignal;
+  } else if (isExpanded && !prevIsExpanded) {
+    setPrevIsExpanded(true);
+  }
+  if (isExpanded && collapseInlineSignal !== prevCollapseSignal) {
+    setPrevCollapseSignal(collapseInlineSignal);
     if (collapseInlineSignal > seenInlineSignalRef.current) {
       seenInlineSignalRef.current = collapseInlineSignal;
       setInlineExpandedSrc(null);
     }
-  }, [isExpanded, collapseInlineSignal]);
+  } else if (collapseInlineSignal !== prevCollapseSignal) {
+    setPrevCollapseSignal(collapseInlineSignal);
+    seenInlineSignalRef.current = collapseInlineSignal;
+  }
 
   // Report substate to parent so the escape handler knows what to collapse next
   useEffect(() => {
     onSubstateChange?.(citationKey, isExpanded, !!inlineExpandedSrc);
   }, [isExpanded, inlineExpandedSrc, citationKey, onSubstateChange]);
 
-  // Sync expanded state when defaultExpanded changes from false → true
-  useEffect(() => {
-    if (defaultExpanded) {
-      if (escCtx) {
-        escCtx.onItemExpand(citationKey);
-      } else {
-        setLocalExpanded(true);
-      }
-      setWasAutoExpanded(true);
+  // Sync expanded state when defaultExpanded changes from false → true.
+  // Uses setState-during-render to avoid cascading renders from useEffect.
+  const [prevDefaultExpanded, setPrevDefaultExpanded] = useState(defaultExpanded);
+  if (defaultExpanded && !prevDefaultExpanded) {
+    setPrevDefaultExpanded(true);
+    if (escCtx) {
+      escCtx.onItemExpand(citationKey);
+    } else {
+      setLocalExpanded(true);
     }
-  }, [defaultExpanded, escCtx, citationKey]);
+    setWasAutoExpanded(true);
+  } else if (!defaultExpanded && prevDefaultExpanded) {
+    setPrevDefaultExpanded(false);
+  }
 
   const prefersReducedMotion = usePrefersReducedMotion();
 

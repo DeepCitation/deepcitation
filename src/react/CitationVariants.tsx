@@ -16,6 +16,11 @@ import {
 
 const TWO_DOTS_THINKING_CONTENT = "..";
 
+// Module-level default indicator render functions — hoisted so the React Compiler
+// can safely reorder expressions (inline ArrowFunctionExpression defaults block optimization).
+const defaultRenderVerifiedIndicator = () => <DefaultVerifiedIndicator />;
+const defaultRenderPartialIndicator = () => <DefaultPartialIndicator />;
+
 /**
  * Shared props for all citation variant components.
  */
@@ -186,8 +191,8 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       eventHandlers,
       preventTooltips = false,
       pendingContent = TWO_DOTS_THINKING_CONTENT,
-      renderVerifiedIndicator = () => <DefaultVerifiedIndicator />,
-      renderPartialIndicator = () => <DefaultPartialIndicator />,
+      renderVerifiedIndicator = defaultRenderVerifiedIndicator,
+      renderPartialIndicator = defaultRenderPartialIndicator,
       showIcon = false,
       icon,
     },
@@ -319,8 +324,8 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
       eventHandlers,
       preventTooltips = false,
       pendingContent = TWO_DOTS_THINKING_CONTENT,
-      renderVerifiedIndicator = () => <DefaultVerifiedIndicator />,
-      renderPartialIndicator = () => <DefaultPartialIndicator />,
+      renderVerifiedIndicator = defaultRenderVerifiedIndicator,
+      renderPartialIndicator = defaultRenderPartialIndicator,
       hideBrackets = true,
     },
     ref,
@@ -408,8 +413,8 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
       eventHandlers,
       preventTooltips = false,
       pendingContent = TWO_DOTS_THINKING_CONTENT,
-      renderVerifiedIndicator = () => <DefaultVerifiedIndicator />,
-      renderPartialIndicator = () => <DefaultPartialIndicator />,
+      renderVerifiedIndicator = defaultRenderVerifiedIndicator,
+      renderPartialIndicator = defaultRenderPartialIndicator,
       symbolStyle = "number",
       customSymbol,
     },
@@ -506,8 +511,8 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
       eventHandlers,
       preventTooltips = false,
       pendingContent = TWO_DOTS_THINKING_CONTENT,
-      renderVerifiedIndicator = () => <DefaultVerifiedIndicator />,
-      renderPartialIndicator = () => <DefaultPartialIndicator />,
+      renderVerifiedIndicator = defaultRenderVerifiedIndicator,
+      renderPartialIndicator = defaultRenderPartialIndicator,
       underlineStyle = "dotted",
     },
     ref,

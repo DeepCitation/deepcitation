@@ -292,15 +292,23 @@ function useSpinnerStage(isLoading: boolean, isPending: boolean, hasDefinitiveRe
   const shouldAnimate = (isLoading || isPending) && !hasDefinitiveResult;
   const [stage, setStage] = useState<SpinnerStage>("active");
 
+  // Reset to "active" eagerly when a new animation cycle starts (setState-during-render
+  // pattern — avoids the previous cleanup setState which caused a React Compiler bailout).
+  const [prevShouldAnimate, setPrevShouldAnimate] = useState(shouldAnimate);
+  if (shouldAnimate && !prevShouldAnimate) {
+    setPrevShouldAnimate(true);
+    setStage("active");
+  } else if (!shouldAnimate && prevShouldAnimate) {
+    setPrevShouldAnimate(false);
+  }
+
   useEffect(() => {
     if (!shouldAnimate) return;
-    // Timeouts advance the stage; cleanup resets to "active" for the next cycle
     const t1 = setTimeout(() => setStage("slow"), SPINNER_TIMEOUT_MS);
     const t2 = setTimeout(() => setStage("stale"), SPINNER_TIMEOUT_MS * 3);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
-      setStage("active");
     };
   }, [shouldAnimate]);
 
@@ -493,6 +501,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Tapping Citation A then quickly tapping Citation B will NOT incorrectly debounce B,
     // because each CitationComponent instance has its own lastTouchTimeRef.
     const lastTouchTimeRef = useRef(0);
+
+    // Track touch start coordinates for scroll-vs-tap detection.
+    // If the finger moves more than TAP_SLOP_PX between touchstart and touchend,
+    // the gesture is a scroll — not a tap — and should NOT open the popover.
+    const touchStartXRef = useRef(0);
+    const touchStartYRef = useRef(0);
 
     // Refs kept in sync with state/context via useLayoutEffect (runs before paint)
     // so event handlers always read the latest value without callback churn.
@@ -968,6 +982,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const handleTouchStart = useCallback(
       (e: React.TouchEvent<HTMLSpanElement>) => {
         if (isMobile) {
+          // Record touch coordinates for scroll-vs-tap detection in handleTouchEnd.
+          const touch = e.touches[0];
+          if (touch) {
+            touchStartXRef.current = touch.clientX;
+            touchStartYRef.current = touch.clientY;
+          }
+
           // Capture whether popover was already open before this tap.
           // This determines first vs second tap behavior in handleTouchEnd.
           wasPopoverOpenBeforeTap.current = isHoveringRef.current;
@@ -981,9 +1002,23 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // Touch handler for mobile - handles tap-to-show-popover and tap-to-close.
     // On second tap, closes the popover.
+    // Ignores touches that moved beyond TAP_SLOP_PX (scroll/swipe gestures).
     const handleTouchEnd = useCallback(
       (e: React.TouchEvent<HTMLSpanElement>) => {
         if (isMobile) {
+          // Scroll-vs-tap detection: if the finger moved significantly, this is a scroll — bail out.
+          // We still update lastTouchTimeRef so the synthetic click (fired ~300ms later by the
+          // browser when preventDefault is NOT called) gets caught by TOUCH_CLICK_DEBOUNCE_MS.
+          const touch = e.changedTouches[0];
+          if (touch) {
+            const dx = touch.clientX - touchStartXRef.current;
+            const dy = touch.clientY - touchStartYRef.current;
+            if (dx * dx + dy * dy > TAP_SLOP_PX * TAP_SLOP_PX) {
+              lastTouchTimeRef.current = Date.now();
+              return; // Scroll gesture — do not open/close popover
+            }
+          }
+
           e.preventDefault();
           e.stopPropagation();
 

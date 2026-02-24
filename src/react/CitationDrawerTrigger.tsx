@@ -159,6 +159,7 @@ function CitationTooltip({
 }) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [adjustedLeft, setAdjustedLeft] = useState<number | null>(null);
+  const isTouch = useIsTouchDevice();
   const { item, sourceName, sourceFavicon, group } = flatItem;
   const statusInfo = getStatusInfo(item.verification, indicatorVariant);
 
@@ -184,13 +185,15 @@ function CitationTooltip({
     const clamp = () => {
       const rect = el.getBoundingClientRect();
       const margin = 8;
-      if (rect.left < margin) {
-        setAdjustedLeft(-rect.left + margin);
-      } else if (rect.right > window.innerWidth - margin) {
-        setAdjustedLeft(window.innerWidth - margin - rect.right);
-      } else {
-        setAdjustedLeft(null);
-      }
+      // Single setState call with computed value (avoids React Compiler bailout from
+      // multiple setState calls in separate branches).
+      const newLeft =
+        rect.left < margin
+          ? -rect.left + margin
+          : rect.right > window.innerWidth - margin
+            ? window.innerWidth - margin - rect.right
+            : null;
+      setAdjustedLeft(newLeft);
     };
 
     clamp();
@@ -264,7 +267,7 @@ function CitationTooltip({
             />
           </div>
           <span className="block text-[10px] text-gray-400 dark:text-gray-500 mt-1 text-center">
-            Click to view details
+            {isTouch ? "Tap" : "Click"} to view details
           </span>
         </div>
       )}

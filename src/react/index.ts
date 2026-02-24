@@ -13,6 +13,8 @@
 
 // Citation Primitives Namespace (composable building blocks)
 export { Citation } from "./Citation.js";
+// Citation Annotation Overlay Types
+export type { AdditionalHighlight } from "./CitationAnnotationOverlay.js";
 // Components
 export {
   CitationComponent,
@@ -142,7 +144,15 @@ export {
   type SplitDiffDisplayProps,
 } from "./SplitDiffDisplay.js";
 // Search Summary Utilities
-export { buildSearchSummary, type SearchQueryGroup, type SearchSummary } from "./searchSummaryUtils.js";
+export {
+  buildIntentSummary,
+  buildSearchSummary,
+  type IntentSummary,
+  type MatchSnippet,
+  type SearchOutcome,
+  type SearchQueryGroup,
+  type SearchSummary,
+} from "./searchSummaryUtils.js";
 // Status Message Utilities
 export { getContextualStatusMessage } from "./statusMessage.js";
 // Time to Certainty (TtC) — timing utilities and hooks

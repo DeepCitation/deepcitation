@@ -15,6 +15,7 @@
  * @see https://react.dev/blog/2025/10/01/react-19-2
  */
 import { memo, type ReactNode } from "react";
+import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 
 // Re-export utilities from prefetchCache for backward compatibility
 export {
@@ -66,6 +67,7 @@ export function PrefetchedPopoverImage({
   className,
   imageStyle,
 }: PrefetchedPopoverImageProps) {
+  const isTouch = useIsTouchDevice();
   // The Activity component pre-renders children in "hidden" mode
   // When isVisible becomes true, it switches to "visible" mode instantly
   // The image is already rendered/decoded, so no flash occurs
@@ -80,7 +82,7 @@ export function PrefetchedPopoverImage({
             e.stopPropagation();
             onClick?.();
           }}
-          aria-label="Click to view full size"
+          aria-label={`${isTouch ? "Tap" : "Click"} to view full size`}
         >
           <img
             src={src}

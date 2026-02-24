@@ -14,10 +14,96 @@ import { toPercentRect } from "./overlayGeometry.js";
 
 const NONE: React.CSSProperties = { pointerEvents: "none" };
 
+/** An additional highlight region for partial match locations. */
+export interface AdditionalHighlight {
+  /** Text item with position coordinates from OCR/PDF extraction */
+  deepItem: DeepTextItem;
+  /** Bracket color scheme — "amber" for proximate, "muted" for distal */
+  color?: "amber" | "muted";
+}
+
+/**
+ * Render bracket marks for an additional (secondary) highlight.
+ * No spotlight — only the primary match gets the dimming overlay.
+ */
+function SecondaryBrackets({
+  deepItem,
+  renderScale,
+  imageNaturalWidth,
+  imageNaturalHeight,
+  color = "amber",
+}: {
+  deepItem: DeepTextItem;
+  renderScale: { x: number; y: number };
+  imageNaturalWidth: number;
+  imageNaturalHeight: number;
+  color?: "amber" | "muted";
+}) {
+  const rect = toPercentRect(deepItem, renderScale, imageNaturalWidth, imageNaturalHeight);
+  if (!rect) return null;
+
+  const bracketColor = getBracketColor(color === "muted" ? "blue" : "amber");
+  const opacity = color === "muted" ? 0.35 : 0.5;
+
+  const baseLeft = parseFloat(rect.left);
+  const baseTop = parseFloat(rect.top);
+  const baseWidth = parseFloat(rect.width);
+  const baseHeight = parseFloat(rect.height);
+
+  const bracketPadX = (BOX_PADDING / imageNaturalWidth) * 100;
+  const bracketPadY = (BOX_PADDING / imageNaturalHeight) * 100;
+  const bracketRect = {
+    left: `${baseLeft - bracketPadX}%`,
+    top: `${baseTop - bracketPadY}%`,
+    width: `${baseWidth + 2 * bracketPadX}%`,
+    height: `${baseHeight + 2 * bracketPadY}%`,
+  };
+
+  const heightPx = deepItem.height * renderScale.y;
+  const bracketW = getBracketWidth(heightPx);
+
+  return (
+    <>
+      {/* Left bracket [ */}
+      <div
+        data-dc-secondary-bracket-left=""
+        style={{
+          position: "absolute",
+          ...bracketRect,
+          width: `${bracketW}px`,
+          borderLeft: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,
+          borderTop: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,
+          borderBottom: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,
+          opacity,
+          ...NONE,
+        }}
+      />
+      {/* Right bracket ] */}
+      <div
+        data-dc-secondary-bracket-right=""
+        style={{
+          position: "absolute",
+          top: bracketRect.top,
+          left: `calc(${bracketRect.left} + ${bracketRect.width} - ${bracketW}px)`,
+          width: `${bracketW}px`,
+          height: bracketRect.height,
+          borderRight: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,
+          borderTop: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,
+          borderBottom: `${CITATION_LINE_BORDER_WIDTH}px solid ${bracketColor}`,
+          opacity,
+          ...NONE,
+        }}
+      />
+    </>
+  );
+}
+
 /**
  * CSS-based citation annotation overlay for the full-page proof viewer.
  * Renders a spotlight (dim everything except the match region), bracket marks,
  * and an optional anchor-text highlight — matching the backend-drawn annotations.
+ *
+ * Supports optional additional highlights for partial match locations.
  */
 export function CitationAnnotationOverlay({
   phraseMatchDeepItem,
@@ -28,6 +114,7 @@ export function CitationAnnotationOverlay({
   anchorTextDeepItem,
   anchorText,
   fullPhrase,
+  additionalHighlights,
 }: {
   phraseMatchDeepItem: DeepTextItem;
   renderScale: { x: number; y: number };
@@ -37,6 +124,8 @@ export function CitationAnnotationOverlay({
   anchorTextDeepItem?: DeepTextItem | null;
   anchorText?: string | null;
   fullPhrase?: string | null;
+  /** Additional bracket pairs for partial match locations (no spotlight). */
+  additionalHighlights?: AdditionalHighlight[];
 }) {
   const rect = toPercentRect(phraseMatchDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight);
   // Bail out if geometry is invalid (zero dimensions, NaN, Infinity, etc.)
@@ -153,6 +242,18 @@ export function CitationAnnotationOverlay({
           }}
         />
       )}
+
+      {/* Additional highlights for partial match locations */}
+      {additionalHighlights?.map((h, i) => (
+        <SecondaryBrackets
+          key={`additional-${i}`}
+          deepItem={h.deepItem}
+          renderScale={renderScale}
+          imageNaturalWidth={imageNaturalWidth}
+          imageNaturalHeight={imageNaturalHeight}
+          color={h.color}
+        />
+      ))}
     </div>
   );
 }

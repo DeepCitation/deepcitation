@@ -320,6 +320,9 @@ SourcesTrigger.displayName = "SourcesTrigger";
 // SourcesListHeader Component (extracted from inline renderHeader)
 // ============================================================================
 
+/** Stable empty header config — avoids creating a new object reference on every render. */
+const EMPTY_HEADER_CONFIG: NonNullable<SourcesListProps["header"]> = {};
+
 interface SourcesListHeaderProps {
   header: SourcesListProps["header"];
   sources: SourcesListItemProps[];
@@ -329,7 +332,7 @@ interface SourcesListHeaderProps {
 }
 
 const SourcesListHeader = ({
-  header: headerConfig = {},
+  header: headerConfig = EMPTY_HEADER_CONFIG,
   sources,
   variant,
   handleClose,

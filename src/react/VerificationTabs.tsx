@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { SearchStatus } from "../types/search.js";
 import { CheckIcon } from "./icons.js";
 import type { DiffDisplayMode } from "./SplitDiffDisplay.js";
@@ -172,12 +172,13 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
     return isHighVariance ? "split" : "inline";
   });
 
-  // Update mode when variance changes (for auto mode)
-  useEffect(() => {
-    if (defaultMode === "auto") {
-      setDiffMode(isHighVariance ? "split" : "inline");
-    }
-  }, [isHighVariance, defaultMode]);
+  // Sync diffMode when variance changes in auto mode (setState-during-render pattern —
+  // avoids the extra render cycle that useEffect would cause).
+  const [prevIsHighVariance, setPrevIsHighVariance] = useState(isHighVariance);
+  if (defaultMode === "auto" && isHighVariance !== prevIsHighVariance) {
+    setPrevIsHighVariance(isHighVariance);
+    setDiffMode(isHighVariance ? "split" : "inline");
+  }
 
   // Get contextual status message
   const statusMessage = useMemo(() => {

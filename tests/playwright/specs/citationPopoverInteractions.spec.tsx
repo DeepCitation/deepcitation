@@ -147,8 +147,8 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
 
-    // Find and click the expand button ("Verification details")
-    const expandButton = page.getByRole("button", { name: /Verification details|Searched \d+ phrases|Ran \d+ searches?|Full document scan/i });
+    // Find and click the expand button ("View search log")
+    const expandButton = page.getByRole("button", { name: /Expand search log|View search log/i });
     await expect(expandButton).toBeVisible();
     await expandButton.click();
 
@@ -170,7 +170,8 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
 
-    const expandButton = page.getByRole("button", { name: /Verification details|Searched \d+ phrases|Ran \d+ searches?|Full document scan/i });
+    // Use text selector since aria-label toggles between "Expand" and "Collapse"
+    const expandButton = page.getByText("View search log");
 
     // Rapidly toggle expansion multiple times
     await expandButton.click(); // Expand
@@ -313,11 +314,11 @@ test.describe("Citation Popover - Mobile/Touch Behavior", () => {
     await expect(popover).toBeVisible();
 
     // Second tap should expand details (find the expand button)
-    const expandButton = page.getByRole("button", { name: /Verification details|Searched \d+ phrases|Ran \d+ searches?|Full document scan/i });
+    const expandButton = page.getByRole("button", { name: /Expand search log|View search log/i });
     await expandButton.tap();
 
-    // Details should be expanded — the query-centric audit log should be visible
-    await expect(page.getByText(/queries.*attempts/i)).toBeVisible();
+    // Details should be expanded — the search details section should be visible
+    await expect(page.getByText(/Search details/i)).toBeVisible();
   });
 
   test("tap outside closes popover", async ({ mount, page }) => {

@@ -593,6 +593,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           onBlur={handleBlur}
           onClick={handleClick}
           onKeyDown={handleKeyDown}
+          role="button"
+          tabIndex={0}
           aria-label={`Link to ${domain}: ${statusInfo.label}`}
         >
           [{showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}

@@ -27,6 +27,7 @@ import { EvidenceTray, InlineExpandedImage, normalizeScreenshotSrc, resolveExpan
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { SpinnerIcon } from "./icons.js";
+import { buildIntentSummary, type MatchSnippet } from "./searchSummaryUtils.js";
 import type { BaseCitationProps } from "./types.js";
 import {
   getUrlAccessExplanation,
@@ -170,6 +171,44 @@ function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessEx
         >
           {explanation.suggestion}
         </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Display matched snippets inline within the popover for partial/displaced matches.
+ * Shows 1-3 snippets with the matched portion highlighted.
+ */
+function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
+  if (snippets.length === 0) return null;
+  return (
+    <div className="px-4 py-2 space-y-1.5 border-b border-gray-100 dark:border-gray-800">
+      {snippets.slice(0, 3).map((snippet, idx) => {
+        const before = snippet.contextText.slice(0, snippet.matchStart);
+        const match = snippet.contextText.slice(snippet.matchStart, snippet.matchEnd);
+        const after = snippet.contextText.slice(snippet.matchEnd);
+        return (
+          <div
+            key={`popover-snippet-${idx}-${snippet.matchStart}`}
+            className="text-xs text-gray-600 dark:text-gray-300 font-mono leading-relaxed"
+          >
+            {before && <span className="text-gray-400 dark:text-gray-500">...{before}</span>}
+            <strong className="text-gray-800 dark:text-gray-100 bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">
+              {match}
+            </strong>
+            {after && <span className="text-gray-400 dark:text-gray-500">{after}...</span>}
+            {snippet.page != null && (
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">(p.{snippet.page})</span>
+            )}
+            {!snippet.isProximate && (
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1 italic">(different section)</span>
+            )}
+          </div>
+        );
+      })}
+      {snippets.length > 3 && (
+        <div className="text-[10px] text-gray-400 dark:text-gray-500 italic">...and {snippets.length - 3} more</div>
       )}
     </div>
   );
@@ -501,16 +540,24 @@ export function DefaultPopoverContent({
   // Pre-set width from known dimensions when the view state changes.
   // For expanded states without known dimensions, keep the previous width as an estimate
   // (null → viewport-width fallback; or previous expanded width).
-  useEffect(() => {
-    if (viewState === "summary") {
-      setWidth(null);
-    } else if (viewState === "expanded-evidence") {
-      const w = verification?.document?.verificationImageDimensions?.width;
-      if (w) setWidth(w);
-    } else if (viewState === "expanded-page" && cachedPageWidthRef.current !== null) {
-      setWidth(cachedPageWidthRef.current);
-    }
-  }, [viewState, verification?.document?.verificationImageDimensions?.width, setWidth]);
+  // Uses setState-during-render to avoid React Compiler bailout from multiple setState
+  // calls in a single useEffect.
+  const [prevViewState, setPrevViewState] = useState(viewState);
+  const prevVerificationWidth = useRef(verification?.document?.verificationImageDimensions?.width);
+  const verificationWidth = verification?.document?.verificationImageDimensions?.width;
+  if (viewState !== prevViewState || verificationWidth !== prevVerificationWidth.current) {
+    if (viewState !== prevViewState) setPrevViewState(viewState);
+    prevVerificationWidth.current = verificationWidth;
+    const newWidth =
+      viewState === "summary"
+        ? null
+        : viewState === "expanded-evidence" && verificationWidth
+          ? verificationWidth
+          : viewState === "expanded-page" && cachedPageWidthRef.current !== null
+            ? cachedPageWidthRef.current
+            : undefined; // undefined = no change
+    if (newWidth !== undefined) setWidth(newWidth);
+  }
 
   // Callback for InlineExpandedImage onLoad — confirms/corrects the pre-set width.
   const handleExpandedImageLoad = useCallback(
@@ -588,13 +635,23 @@ export function DefaultPopoverContent({
   const expectedPage = !isUrlCitation(citation) ? citation.pageNumber : undefined;
   const foundPage = verification?.document?.verifiedPageNumber ?? undefined;
 
-  // Get humanizing message for partial/not-found states
+  // Get humanizing message for partial/not-found states (URL citations only)
   const anchorText = citation.anchorText?.toString();
   const fullPhrase = citation.fullPhrase;
   const humanizingMessage = useMemo(
-    () => getHumanizingMessage(searchStatus, anchorText, expectedPage ?? undefined, foundPage),
-    [searchStatus, anchorText, expectedPage, foundPage],
+    () =>
+      isUrlCitation(citation)
+        ? getHumanizingMessage(searchStatus, anchorText, expectedPage ?? undefined, foundPage)
+        : null,
+    [citation, searchStatus, anchorText, expectedPage, foundPage],
   );
+
+  // Intent summary for document citations — snippet-based display for partial matches
+  const intentSummary = useMemo(
+    () => (!isUrlCitation(citation) ? buildIntentSummary(verification, verification?.searchAttempts ?? []) : null),
+    [citation, verification],
+  );
+  const intentSnippets = intentSummary?.outcome === "related_found" ? intentSummary.snippets : [];
 
   // Get URL access explanation for blocked/error states (URL citations only)
   const urlAccessExplanation = useMemo(() => {
@@ -734,8 +791,10 @@ export function DefaultPopoverContent({
         />
         {/* URL access explanation (for URL citations with access failures) */}
         {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
-        {/* Humanizing message for document citations */}
-        {!urlAccessExplanation && humanizingMessage && (
+        {/* Snippet display for document partial matches */}
+        {!urlAccessExplanation && intentSnippets.length > 0 && <PopoverSnippetZone snippets={intentSnippets} />}
+        {/* Humanizing message fallback for URL citations */}
+        {!urlAccessExplanation && intentSnippets.length === 0 && humanizingMessage && (
           <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
             {humanizingMessage}
           </div>
