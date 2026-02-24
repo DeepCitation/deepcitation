@@ -311,26 +311,32 @@ export function StackedStatusIcons({
   onSourceClick?: (group: SourceCitationGroup) => void;
   indicatorVariant?: "icon" | "dot";
 }) {
-  // Dot variant: single summary dot + count instead of individual chips
+  // Dot variant: one dot per status group (e.g. ●1 ●5) ordered worst-first
   if (indicatorVariant === "dot") {
-    const worstPriority = Math.max(...flatCitations.map(f => getStatusPriority(f.item.verification)));
-    const dotBg = PRIORITY_DOT_BG[worstPriority] ?? "bg-gray-400";
-    const hasPending = flatCitations.some(
-      f =>
-        !f.item.verification?.status ||
-        f.item.verification.status === "pending" ||
-        f.item.verification.status === "loading",
-    );
-    const count = flatCitations.length;
+    const counts = new Map<number, number>();
+    for (const f of flatCitations) {
+      const p = getStatusPriority(f.item.verification);
+      counts.set(p, (counts.get(p) ?? 0) + 1);
+    }
+    // Sort descending by priority (worst first: 4=miss, 3=partial, 2=pending, 1=verified)
+    const groups = Array.from(counts.entries()).sort((a, b) => b[0] - a[0]);
     return (
-      <div className="flex items-center gap-1.5" role="group" aria-label="Citation verification status">
-        <span
-          className={cn("inline-block rounded-full shrink-0", dotBg, hasPending && "animate-pulse")}
-          style={DOT_INDICATOR_FIXED_SIZE_STYLE}
-        />
-        {count > 1 && (
-          <span className={cn("text-[10px] font-medium leading-none", PRIORITY_DOT_TEXT[worstPriority])}>{count}</span>
-        )}
+      <div className="flex items-center gap-2" role="group" aria-label="Citation verification status">
+        {groups.map(([priority, count]) => (
+          <span key={priority} className="inline-flex items-center gap-1">
+            <span
+              className={cn(
+                "block rounded-full shrink-0",
+                PRIORITY_DOT_BG[priority] ?? "bg-gray-400",
+                priority === 2 && "animate-pulse",
+              )}
+              style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+            />
+            {count > 1 && (
+              <span className={cn("text-[10px] font-medium leading-none", PRIORITY_DOT_TEXT[priority])}>{count}</span>
+            )}
+          </span>
+        ))}
       </div>
     );
   }
