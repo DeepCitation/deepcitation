@@ -60,7 +60,20 @@ export default defineConfig({
     trace: "on-first-retry",
     ctPort: 3100,
     ctViteConfig: {
-      plugins: [resolveJsToTs(), react(), tailwindcss()],
+      plugins: [
+        resolveJsToTs(),
+        react({
+          babel: {
+            plugins: [
+              [
+                "babel-plugin-react-compiler",
+                { panicThreshold: "none" },
+              ],
+            ],
+          },
+        }),
+        tailwindcss(),
+      ],
       resolve: {
         extensions: [".tsx", ".ts", ".jsx", ".js", ".json"],
         alias: {
