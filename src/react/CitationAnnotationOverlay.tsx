@@ -259,7 +259,7 @@ export function CitationAnnotationOverlay({
         />
       ))}
 
-      {/* Dismiss button — top-right corner of the spotlight cutout */}
+      {/* Dismiss button — straddles the top-right corner of the spotlight cutout */}
       {onDismiss && (
         <button
           type="button"
@@ -270,14 +270,14 @@ export function CitationAnnotationOverlay({
           }}
           style={{
             position: "absolute",
-            top: `calc(${spotlightRect.top} + 6px)`,
-            left: `calc(${spotlightRect.left} + ${spotlightRect.width} - 34px)`,
+            top: `calc(${spotlightRect.top} - 14px)`,
+            left: `calc(${spotlightRect.left} + ${spotlightRect.width} - 14px)`,
             pointerEvents: "auto",
           }}
-          className="size-7 flex items-center justify-center rounded-md bg-black/50 backdrop-blur-sm text-white/90 hover:bg-black/70 active:bg-black/80 transition-colors shadow-md cursor-pointer"
+          className="size-7 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white/90 hover:bg-black/70 active:bg-black/80 transition-colors shadow-md cursor-pointer"
           aria-label="Hide overlay"
         >
-          <span className="size-3.5">
+          <span className="size-4.5">
             <CloseIcon />
           </span>
         </button>

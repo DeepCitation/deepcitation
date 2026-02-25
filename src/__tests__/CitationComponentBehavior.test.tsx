@@ -486,8 +486,8 @@ describe("CitationComponent behaviorConfig", () => {
       });
 
       // Custom action: portal overlay renders in expanded-page state (no role="dialog" on portal div)
-      // ExpandedPageViewer's SourceContextHeader renders a back button with this aria-label
-      expect(document.querySelector("button[aria-label='Back to citation summary']")).toBeInTheDocument();
+      // SourceContextHeader's PagePill renders in close mode with this title
+      expect(document.querySelector("button[title='Close expanded view (Esc)']")).toBeInTheDocument();
     });
 
     it("can apply setImageExpanded with string src", async () => {
