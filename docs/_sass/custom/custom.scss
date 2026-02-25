@@ -283,10 +283,122 @@ pre {
   }
 }
 
-// Syntax highlighting adjustments for dark mode
+// -----------------------------------------------------
+// Dark Mode Overrides for Just the Docs Compiled Styles
+// The theme compiles SCSS variables to hardcoded CSS values,
+// so we must override wrapper elements at runtime.
+// -----------------------------------------------------
 @media (prefers-color-scheme: dark) {
+  // Just the Docs wrapper elements have compiled white backgrounds
+  .main-content-wrap,
+  .main {
+    background-color: var(--body-background-color);
+  }
+
+  .page-header {
+    background-color: var(--body-background-color);
+  }
+
+  // Horizontal rules
+  .main-content hr {
+    border-color: var(--border-color);
+    color: var(--border-color);
+  }
+
+  // Search results
+  .search-results-list-item {
+    color: var(--body-text-color);
+  }
+
+  .search-result-title {
+    color: var(--body-heading-color);
+  }
+
+  .search-result-doc .search-result-doc-title {
+    color: var(--body-heading-color);
+  }
+
+  .search-result-previews {
+    color: var(--body-text-color);
+  }
+
+  .search-result-rel-url {
+    color: var(--body-text-color);
+  }
+
+  // Mobile navigation toggle
+  .site-button {
+    color: var(--body-heading-color);
+  }
+
+  // Navigation overlay on mobile
+  .search-overlay {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  // Note/warning/important callouts (Just the Docs compiled backgrounds)
+  .note, .warning, .important {
+    background-color: var(--sidebar-color);
+    color: var(--body-text-color);
+  }
+
+  // Just the Docs utility text classes (compiled from SCSS)
+  .text-grey-dk-000 { color: var(--body-text-color) !important; }
+  .text-grey-dk-100 { color: var(--body-text-color) !important; }
+  .text-grey-dk-200 { color: var(--body-heading-color) !important; }
+  .text-grey-dk-250 { color: var(--body-heading-color) !important; }
+  .text-grey-dk-300 { color: var(--body-heading-color) !important; }
+
+  // Back to top button
+  .back-to-top {
+    background-color: var(--sidebar-color);
+    border-color: var(--border-color);
+  }
+
+  // Scrollbar (use :root, not * — avoids per-element style recalculation)
+  :root {
+    scrollbar-color: #{$slate-600} #{$slate-900};
+  }
+
+  ::-webkit-scrollbar {
+    background-color: #{$slate-900};
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #{$slate-600};
+    border-radius: 4px;
+  }
+
+  // -------------------------------------------------
+  // Rouge syntax highlighting tokens (VS Code dark+)
+  // -------------------------------------------------
   .highlight {
     background-color: var(--code-background-color);
+
+    .c, .c1, .cm, .cs, .ch { color: #6A9955; font-style: italic; }   // Comments
+    .k, .kd, .kn, .kp, .kr, .kt, .kc { color: #569CD6; }            // Keywords
+    .s, .s1, .s2, .sb, .sc, .sd, .se, .sh, .si, .sx, .sr, .dl { color: #CE9178; } // Strings
+    .na { color: #9CDCFE; }           // Attribute name
+    .nb { color: #DCDCAA; }           // Built-in name
+    .nc { color: #4EC9B0; }           // Class name
+    .nd, .ni { color: #DCDCAA; }      // Decorator, entity
+    .ne { color: #4EC9B0; }           // Exception
+    .nf, .fm { color: #DCDCAA; }      // Function name
+    .nn { color: #4EC9B0; }           // Namespace
+    .nt { color: #569CD6; }           // Tag name
+    .nv, .vc, .vg, .vi, .vm { color: #9CDCFE; }  // Variables
+    .nx { color: #9CDCFE; }           // Other names (JS/TS identifiers)
+    .o, .ow { color: #D4D4D4; }       // Operators
+    .m, .mf, .mh, .mi, .mo, .mb, .mx, .il { color: #B5CEA8; } // Numbers
+    .p { color: #D4D4D4; }            // Punctuation
+    .cp, .cpf { color: #C586C0; }     // Preprocessor
+    .gi { color: #B5CEA8; }           // Git inserted
+    .gd { color: #CE9178; }           // Git deleted
+    .gh, .gu { color: #569CD6; font-weight: 600; }  // Heading
+    .ge { font-style: italic; }       // Emphasis
+    .gs { font-weight: 600; }         // Strong
+    .err { color: #F44747; background-color: transparent; }  // Error
+    .w { color: #D4D4D4; }            // Whitespace
   }
 }
 
