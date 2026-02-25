@@ -170,8 +170,9 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
 
-    // Use text selector since aria-label toggles between "Expand" and "Collapse"
-    const expandButton = page.getByText("View search log");
+    // The toggle button has aria-label "Expand search log" / "Collapse search log"
+    const expandButton = page.getByRole("button", { name: /Expand search log|Collapse search log/i });
+    await expect(expandButton).toBeVisible();
 
     // Rapidly toggle expansion multiple times
     await expandButton.click(); // Expand
@@ -313,12 +314,12 @@ test.describe("Citation Popover - Mobile/Touch Behavior", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
 
-    // Second tap should expand details (find the expand button)
-    const expandButton = page.getByRole("button", { name: /Expand search log|View search log/i });
+    // Tap the expand button to show search log
+    const expandButton = page.getByRole("button", { name: /Expand search log/i });
     await expandButton.tap();
 
-    // Details should be expanded — the search details section should be visible
-    await expect(page.getByText(/Search details/i)).toBeVisible();
+    // Details should be expanded — the verification log timeline should be visible
+    await expect(page.locator("#verification-log-timeline")).toBeVisible();
   });
 
   test("tap outside closes popover", async ({ mount, page }) => {
