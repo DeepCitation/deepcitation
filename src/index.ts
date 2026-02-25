@@ -167,6 +167,13 @@ export {
   NOT_FOUND_VERIFICATION_INDEX,
   PENDING_VERIFICATION_INDEX,
 } from "./types/verification.js";
+// File validation
+export {
+  ALLOWED_UPLOAD_MIME_TYPES,
+  MAX_UPLOAD_FILE_SIZE,
+  validateFileMagicBytes,
+  validateUploadFile,
+} from "./utils/fileSafety.js";
 export {
   createLogEntry,
   sanitizeForLog,

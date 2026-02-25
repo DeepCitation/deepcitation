@@ -58,13 +58,6 @@ export default function Home() {
   const onVerifyMessage = useEffectEvent((messageId: string, messageContent: string) => {
     if (!messageContent || fileDataParts.length === 0) return;
 
-    // Clear any previous error for this message
-    setVerificationError(prev => {
-      const next = { ...prev };
-      delete next[messageId];
-      return next;
-    });
-
     // Send llmOutput to verify API - citation extraction happens server-side
     fetch("/api/verify", {
       method: "POST",
@@ -82,7 +75,13 @@ export default function Home() {
         return res.json();
       })
       .then((data: MessageVerificationResult) => {
-        // Store the full verification result keyed by message ID
+        // Clear error on success, store verification result
+        setVerificationError(prev => {
+          if (!(messageId in prev)) return prev;
+          const next = { ...prev };
+          delete next[messageId];
+          return next;
+        });
         setMessageVerifications(prev => ({
           ...prev,
           [messageId]: data,

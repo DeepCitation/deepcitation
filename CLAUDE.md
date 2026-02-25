@@ -108,6 +108,7 @@ src/
     ├── logSafety.ts      # sanitizeForLog(), createLogEntry()
     ├── objectSafety.ts   # isSafeKey(), safeAssign(), safeMerge()
     ├── regexSafety.ts    # safeMatch(), safeReplace(), safeTest()
+    ├── fileSafety.ts     # validateFileMagicBytes(), validateUploadFile()
     └── sha.ts
 ```
 
@@ -190,6 +191,8 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `sanitizeForLog()`, `createLogEntry()` | `src/utils/logSafety.ts` | Log injection prevention |
 | `isSafeKey()`, `safeAssign()`, `safeMerge()` | `src/utils/objectSafety.ts` | Prototype pollution prevention |
 | `safeMatch()`, `safeReplace()`, `safeTest()` | `src/utils/regexSafety.ts` | ReDoS prevention (input length validation) |
+| `validateFileMagicBytes()`, `validateUploadFile()` | `src/utils/fileSafety.ts` | File content validation via magic bytes |
+| `ALLOWED_UPLOAD_MIME_TYPES`, `MAX_UPLOAD_FILE_SIZE` | `src/utils/fileSafety.ts` | Upload constraints (MIME allowlist, size limit) |
 | `isValidProofImageSrc()` | `src/react/constants.ts` | Image source validation (blocks SVG, untrusted hosts) |
 | `getPortalContainer()` | `src/react/constants.ts` | SSR-safe portal container |
 | `formatTtc()` | `src/react/timingUtils.ts` | TtC duration formatting |
