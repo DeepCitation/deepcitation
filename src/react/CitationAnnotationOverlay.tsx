@@ -263,6 +263,7 @@ export function CitationAnnotationOverlay({
       {onDismiss && (
         <button
           type="button"
+          tabIndex={0}
           data-dc-overlay-dismiss=""
           onClick={e => {
             e.stopPropagation();

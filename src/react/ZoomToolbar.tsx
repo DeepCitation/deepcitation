@@ -13,6 +13,7 @@ import type React from "react";
 import { useCallback, useEffect } from "react";
 import { EXPANDED_ZOOM_MAX } from "./constants.js";
 import { LocateIcon, ZoomInIcon, ZoomOutIcon } from "./icons.js";
+import { cn } from "./utils.js";
 
 // ---------------------------------------------------------------------------
 // Thumb styles — capsule with centered grip line via inset box-shadow.
@@ -79,7 +80,7 @@ function mountThumbStyle() {
 }
 
 function unmountThumbStyle() {
-  thumbStyleRefCount--;
+  thumbStyleRefCount = Math.max(0, thumbStyleRefCount - 1);
   if (thumbStyleRefCount === 0 && thumbStyleElement) {
     thumbStyleElement.remove();
     thumbStyleElement = null;
@@ -222,9 +223,10 @@ export function ZoomToolbar({
               onLocate();
             }}
             data-dc-scroll-to-annotation=""
-            className={`size-9 flex items-center justify-center rounded-sm transition-all duration-200 ${
-              locateDirty ? "opacity-100 hover:bg-white/15 active:bg-white/25" : "opacity-30 hover:opacity-60"
-            }`}
+            className={cn(
+              "size-9 flex items-center justify-center rounded-sm transition-all duration-200",
+              locateDirty ? "opacity-100 hover:bg-white/15 active:bg-white/25" : "opacity-30 hover:opacity-60",
+            )}
             aria-label={locateDirty ? "Re-center on annotation" : "Centered on annotation"}
           >
             <span className="size-4">

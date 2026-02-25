@@ -70,6 +70,9 @@ const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
 const SCALING_TOLERANCE = 1.05;
 
 /** Threshold (px) for considering the viewport "drifted" from the annotation. */
+/** Scroll drift threshold for locate dirty-bit detection (px).
+ *  15px absorbs sub-pixel rendering jitter and browser smooth-scroll overshoot
+ *  while being small enough to catch intentional user panning. */
 const DRIFT_THRESHOLD_PX = 15;
 
 // =============================================================================
