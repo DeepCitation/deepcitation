@@ -214,7 +214,7 @@ interface PagePillProps {
   onClick?: () => void;
   /** Callback to close from expanded view — shows X and active (blue) styling */
   onClose?: () => void;
-  /** When true, source is a raster image — label becomes "Image"/"View Image" instead of "p.X" */
+  /** When true, source is a raster image — label becomes "Image"/"Image" instead of "p.X" */
   isImage?: boolean;
 }
 
@@ -237,7 +237,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
   // Need either a page number to display or an action to perform
   if (!hasPage && !onClick && !onClose) return null;
 
-  const label = isImage ? (onClick ? "View Image" : "Image") : hasPage ? `p.${pageNumber}` : "Page";
+  const label = isImage ? (onClick ? "Image" : "Image") : hasPage ? `p.${pageNumber}` : "Page";
   const colorClasses = PAGE_PILL_COLORS[colorScheme];
 
   // Active/expanded state: entire pill is a button to close, shows X instead of chevron
@@ -523,7 +523,8 @@ export interface QuoteBoxProps {
 /**
  * Get the color scheme based on status.
  */
-function getStatusColorScheme(status?: SearchStatus | null): "green" | "amber" | "red" | "gray" {
+// biome-ignore lint/style/useComponentExportOnlyModules: Utility function used by EvidenceTray for PagePill colorScheme
+export function getStatusColorScheme(status?: SearchStatus | null): "green" | "amber" | "red" | "gray" {
   if (!status) return "gray";
 
   switch (status) {

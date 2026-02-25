@@ -15,7 +15,7 @@ import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
 import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { SearchAttempt, SearchStatus } from "../types/search.js";
-import type { Verification, VerificationPage } from "../types/verification.js";
+import type { Verification } from "../types/verification.js";
 import { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
 import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
 import {
@@ -43,8 +43,8 @@ import { LocateIcon, SpinnerIcon, ZoomInIcon, ZoomOutIcon } from "./icons.js";
 import { deriveOutcomeLabel } from "./outcomeLabel.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget } from "./overlayGeometry.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
-import { cn } from "./utils.js";
-import { VerificationLogTimeline } from "./VerificationLog.js";
+import { cn, isImageSource } from "./utils.js";
+import { getStatusColorScheme, PagePill, VerificationLogTimeline } from "./VerificationLog.js";
 
 // =============================================================================
 // MODULE-LEVEL UTILITIES
@@ -311,8 +311,6 @@ export function AnchorTextFocusedImage({
   onImageClick,
   onFitStateChange,
   onAlreadyFullSize,
-  page,
-  onViewPageClick,
 }: {
   verification: Verification;
   onImageClick?: () => void;
@@ -320,11 +318,7 @@ export function AnchorTextFocusedImage({
   onFitStateChange?: (fitsCompletely: boolean) => void;
   /** Called when the user clicks but the image already fits — lets parent show a flash hint. */
   onAlreadyFullSize?: () => void;
-  page?: VerificationPage | null;
-  onViewPageClick?: (page: VerificationPage) => void;
 }) {
-  const showViewPageButton = page?.source && onViewPageClick;
-
   // Resolve highlight region from verification data
   const highlightBox = useMemo(() => resolveHighlightBox(verification), [verification]);
 
@@ -517,24 +511,6 @@ export function AnchorTextFocusedImage({
           )}
         </button>
       </div>
-
-      {/* Action bar — only shown when View page button is available */}
-      {showViewPageButton && (
-        <div className="flex items-center justify-end px-2 bg-gray-100 dark:bg-gray-800 rounded-b-md border-t border-gray-200 dark:border-gray-700">
-          <button
-            type="button"
-            onClick={e => {
-              e.preventDefault();
-              e.stopPropagation();
-              onViewPageClick(page);
-            }}
-            className="flex items-center gap-1 text-xs text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors duration-150 cursor-pointer min-h-[44px] px-2"
-            aria-label="View full page"
-          >
-            <span>View page</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -544,18 +520,28 @@ export function AnchorTextFocusedImage({
 // =============================================================================
 
 /**
- * Footer for the evidence tray showing outcome label + verification date.
+ * Footer for the evidence tray showing outcome label + verification date + optional page pill.
+ * When `onPageClick` is provided, renders a compact PagePill on the right side.
  */
 function EvidenceTrayFooter({
   status,
   searchAttempts,
   verifiedAt,
   hint,
+  pageNumber,
+  onPageClick,
+  isImage,
 }: {
   status?: SearchStatus | null;
   searchAttempts?: SearchAttempt[];
   verifiedAt?: Date | string | null;
   hint?: { text: string; key: string | number };
+  /** Page number for the page pill (omit or 0 to hide) */
+  pageNumber?: number;
+  /** When provided, renders a clickable page pill that triggers page expansion */
+  onPageClick?: () => void;
+  /** When true, pill shows "Image" instead of "p.X" */
+  isImage?: boolean;
 }) {
   const formatted = formatCaptureDate(verifiedAt);
   const dateStr = formatted?.display ?? "";
@@ -563,12 +549,22 @@ function EvidenceTrayFooter({
   const outcomeLabel = deriveOutcomeLabel(status, searchAttempts);
 
   return (
-    <div className="flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-400 dark:text-gray-500">
+    <div className="flex items-center justify-between px-3 py-1.5 text-[11px] text-gray-400 dark:text-gray-500">
       <span>
         {outcomeLabel}
         {hint && <FooterHint key={hint.key} text={hint.text} />}
       </span>
-      {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
+      <div className="flex items-center gap-1.5">
+        {onPageClick && (
+          <PagePill
+            pageNumber={pageNumber}
+            colorScheme={getStatusColorScheme(status)}
+            onClick={onPageClick}
+            isImage={isImage}
+          />
+        )}
+        {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
+      </div>
     </div>
   );
 }
@@ -730,8 +726,6 @@ export function EvidenceTray({
           onImageClick={onImageClick}
           onFitStateChange={setKeyholeImageFits}
           onAlreadyFullSize={handleAlreadyFullSize}
-          page={verification?.pages?.[0]}
-          onViewPageClick={onExpand ? () => onExpand() : undefined}
         />
       ) : isMiss && (searchAttempts.length > 0 || isValidProofImageSrc(proofImageSrc)) ? (
         <div key="miss-analysis">
@@ -764,6 +758,9 @@ export function EvidenceTray({
                 ? { text: ` · ${tapOrClick} to expand`, key: "expand" }
                 : undefined
           }
+          pageNumber={verification?.pages?.[0]?.pageNumber}
+          onPageClick={onExpand}
+          isImage={isImageSource(verification)}
         />
       )}
     </>
