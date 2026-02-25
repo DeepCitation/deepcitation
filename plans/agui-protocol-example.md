@@ -108,24 +108,66 @@ The heart of the example. Merges `nextjs-ai-sdk`'s `/api/chat` + `/api/verify` i
 1. Parse request body: `{ threadId, runId, messages, state: { fileDataParts, provider } }`
 2. `EventEncoder` from `@ag-ui/encoder` formats each event as `data: <JSON>\n\n`
 3. Emit `RUN_STARTED`
-4. Call `wrapCitationPrompt()` with `deepTextPromptPortion` from fileDataParts
-5. Emit `TEXT_MESSAGE_START`
-6. Stream OpenAI `gpt-5-mini` response, emit `TEXT_MESSAGE_CONTENT` per token chunk
-7. Emit `TEXT_MESSAGE_END`
-8. If documents uploaded and DeepCitation configured:
+4. Build `deepTextPromptPortion` from uploaded documents — this is the extracted text content from `prepareAttachment()` responses, stored in client state as part of `fileDataParts`. It is a DeepCitation-specific field, not an AG-UI convention.
+5. Call `wrapCitationPrompt(deepTextPromptPortion, userMessage)`
+6. Emit `TEXT_MESSAGE_START`
+7. Stream OpenAI `gpt-5-mini` response, emit `TEXT_MESSAGE_CONTENT` per token chunk
+8. Emit `TEXT_MESSAGE_END`
+9. If documents uploaded and DeepCitation configured:
    - Emit `STATE_DELTA` with `[{ op: "replace", path: "/verificationStatus", value: "verifying" }]`
    - Call `getAllCitationsFromLlmOutput(fullResponse)`
    - Call `dc.verifyAttachment(attachmentId, citations, { ... })`
+     > **Security**: When processing URLs in state or fileDataParts, use `isDomainMatch()` from `@deepcitation/deepcitation-js` for domain validation — **never** use `.includes()` for domain checks (vulnerable to subdomain spoofing per CLAUDE.md).
    - Compute summary (verified/missed/pending counts via `getCitationStatus()`)
    - Emit `STATE_SNAPSHOT` with `{ citations, verifications, summary, verificationStatus: "complete" }`
-9. Emit `RUN_FINISHED`
-10. On error: emit `RUN_ERROR` with message
+10. Emit `RUN_FINISHED`
+11. On error: emit `RUN_ERROR` with sanitized message (use `sanitizeForLog()` from `src/utils/logSafety.ts` — raw errors may contain stack traces or sensitive paths)
 
 Uses `ReadableStream` + `TextEncoder` for Next.js App Router compatibility (not Express `res.write()`).
+
+**Async completion pattern** — The stream must NOT close until both LLM streaming and async verification finish. This is the most complex part of the implementation:
+
+```typescript
+// Pseudo-code for the ReadableStream controller:
+const stream = new ReadableStream({
+  async start(controller) {
+    try {
+      // Phase 1: Stream LLM tokens
+      for await (const chunk of llmStream) {
+        controller.enqueue(encode(textMessageContent(messageId, chunk)));
+      }
+      controller.enqueue(encode(textMessageEnd(messageId)));
+
+      // Phase 2: Async verification (stream stays open)
+      if (hasDocuments) {
+        controller.enqueue(encode(stateDelta([
+          { op: "replace", path: "/verificationStatus", value: "verifying" }
+        ])));
+        const { citations, verifications } = await verify(fullResponse);
+        controller.enqueue(encode(stateSnapshot({ citations, verifications, summary })));
+      }
+
+      controller.enqueue(encode(runFinished(threadId, runId)));
+      controller.close();
+    } catch (err) {
+      controller.enqueue(encode(runError(sanitizeForLog(err.message))));
+      controller.close();
+    }
+  },
+  cancel() {
+    // Client disconnected — abort any in-progress verification
+    abortController.abort();
+  }
+});
+```
+
+> **Key detail**: The `cancel()` callback handles client disconnection. If the frontend disconnects mid-verification, the abort signal propagates to stop async operations and prevent resource leaks.
 
 ### Key New File: `hooks/useAgentChat.ts`
 
 Custom React hook consuming the AG-UI SSE stream via `@ag-ui/client`.
+
+Must be client-only — file must include `'use client'` directive for Next.js App Router.
 
 **Interface**:
 ```typescript
@@ -140,6 +182,8 @@ function useAgentChat(options: {
   error: Error | null;
   messageVerifications: Record<string, VerificationResult>;
   sendMessage: (content: string) => void;
+  retry: (messageId: string) => void;  // Retry failed verifications (aligns with #3 in improvements plan)
+  cancel: () => void;                   // Cancel in-progress request (aborts stream + verification)
 }
 ```
 
@@ -300,6 +344,9 @@ Current INTEGRATION.md is ~1600 lines. It tries to be both tutorial and exhausti
 ```markdown
 # Integration Guide
 
+> **Note**: This guide was streamlined in v2.x. For complete working examples,
+> see the [`examples/`](../examples) directory.
+
 > For contributors: see AGENTS.md. This guide is for external developers.
 
 ## Install
@@ -338,6 +385,26 @@ Every section after Quick Start should ask: *"Does this add information the Quic
 
 ---
 
+## Canonical Locations (for CLAUDE.md)
+
+New symbols introduced by this plan. Add to CLAUDE.md's canonical locations table during implementation:
+
+| Symbol | Canonical file | Notes |
+|--------|---------------|-------|
+| `runStarted()` | `examples/agui-chat/src/lib/agui-events.ts` | AG-UI event builder |
+| `textMessageStart()` | `examples/agui-chat/src/lib/agui-events.ts` | AG-UI event builder |
+| `textMessageContent()` | `examples/agui-chat/src/lib/agui-events.ts` | AG-UI event builder |
+| `textMessageEnd()` | `examples/agui-chat/src/lib/agui-events.ts` | AG-UI event builder |
+| `stateSnapshot()` | `examples/agui-chat/src/lib/agui-events.ts` | AG-UI event builder |
+| `stateDelta()` | `examples/agui-chat/src/lib/agui-events.ts` | AG-UI event builder |
+| `runFinished()` | `examples/agui-chat/src/lib/agui-events.ts` | AG-UI event builder |
+| `runError()` | `examples/agui-chat/src/lib/agui-events.ts` | AG-UI event builder |
+| `useAgentChat()` | `examples/agui-chat/src/hooks/useAgentChat.ts` | React hook wrapping @ag-ui/client |
+
+> **Note**: These are example-local symbols, not library exports. They belong in CLAUDE.md only if the pattern is later promoted to the main package (e.g., `src/agui/`).
+
+---
+
 ## Implementation Order
 
 1. Copy shared files from (now-improved) nextjs-ai-sdk
@@ -361,6 +428,10 @@ Every section after Quick Start should ask: *"Does this add information the Quic
 
 4. **STATE_SNAPSHOT vs STATE_DELTA**: For verification results (arrive all at once), `STATE_SNAPSHOT` is correct. `STATE_DELTA` used only for the intermediate "verifying" status signal.
 
+5. **SSE connection recovery**: If the connection drops mid-stream, `@ag-ui/client`'s Observable terminates with an error. The `useAgentChat` hook should surface this via the `error` state and allow retry via `retry(messageId)`. Automatic reconnection is out of scope for Phase 1 — document expected behavior when users lose connectivity during verification.
+
+6. **Observable cleanup on disconnect**: The `ReadableStream.cancel()` callback (see pseudo-code above) must abort in-progress verification. On the client side, `useAgentChat` must unsubscribe from the Observable on component unmount to prevent state updates after unmount.
+
 ## Verification
 
 **AG-UI example**:
@@ -372,6 +443,8 @@ Every section after Quick Start should ask: *"Does this add information the Quic
 6. Verify "Verifying..." state appears after stream ends
 7. Verify citation components render with status indicators
 8. Verify VerificationPanel shows summary
+
+**State size note**: Each message's verification state is roughly ~10 citations x 2KB per citation = ~20KB. After 50+ messages in a long conversation, state can reach ~1MB. This is acceptable for Phase 1 but worth noting in the README as a known limitation for very long sessions.
 
 **INTEGRATION.md**:
 1. Line count < 400
