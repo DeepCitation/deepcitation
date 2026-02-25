@@ -92,7 +92,7 @@ npm run dev
 
 ## More Resources
 
-- [Full Documentation](https://deepcitation.com/docs)
+- [Full Documentation](https://docs.deepcitation.com/)
 - [API Reference](../README.md#api-reference)
 - [React Components](../README.md#react-components)
 - [Integration Patterns](../README.md#integration-patterns)

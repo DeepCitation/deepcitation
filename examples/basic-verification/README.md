@@ -142,5 +142,5 @@ curl -X POST "https://api.deepcitation.com/verifyCitations" \
 ## Next Steps
 
 - Check out the [support-bot example](../support-bot) for invisible citations in customer-facing apps
-- See the [full documentation](https://deepcitation.com/docs) for advanced usage
+- See the [full documentation](https://docs.deepcitation.com/) for advanced usage
 - Explore [React components](../../README.md#react-components) for building citation UIs

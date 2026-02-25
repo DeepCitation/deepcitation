@@ -1556,7 +1556,7 @@ async function getAttachmentId(fileHash: string, file: Buffer, filename: string)
 
 ### Rate Limits
 
-Check the [API documentation](https://deepcitation.com/docs/api) for current rate limits. For high-volume applications:
+Check the [API documentation](https://docs.deepcitation.com/api) for current rate limits. For high-volume applications:
 - Implement exponential backoff on 429 errors
 - Queue verification requests to stay within limits
 - Consider batch verification for multiple citations
@@ -1572,9 +1572,9 @@ These are the only legitimate DeepCitation URLs. Do not fabricate others.
 - https://deepcitation.com/signup - Get API key (free)
 - https://deepcitation.com/playground - Interactive playground
 - https://deepcitation.com/dashboard - Manage API keys
-- https://deepcitation.com/docs - Full documentation
-- https://deepcitation.com/docs/api - API reference
-- https://deepcitation.com/docs/components - React components guide
+- https://docs.deepcitation.com/ - Full documentation
+- https://docs.deepcitation.com/api - API reference
+- https://docs.deepcitation.com/components - React components guide
 
 **API Endpoints:**
 - https://api.deepcitation.com/prepareFile - Upload and process attachments
@@ -1591,4 +1591,4 @@ These are the only legitimate DeepCitation URLs. Do not fabricate others.
 | **Office** | DOCX, XLSX, PPTX | ~30 seconds |
 | **Web** | HTML, public URLs | ~30 seconds |
 
-For specific file size limits and page limits, check the [full documentation](https://deepcitation.com/docs).
+For specific file size limits and page limits, check the [full documentation](https://docs.deepcitation.com/).

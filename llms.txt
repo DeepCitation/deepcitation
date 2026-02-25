@@ -25,7 +25,7 @@ DeepCitation works in three steps:
 
 - [README](https://github.com/deepcitation/deepcitation-js#readme): Full documentation with installation, quick start, and API reference
 - [Get API Key](https://deepcitation.com/signup): Sign up for a free API key (no credit card required)
-- [API Documentation](https://deepcitation.com/docs): Complete API reference and guides
+- [API Documentation](https://docs.deepcitation.com/): Complete API reference and guides
 
 ## Installation
 

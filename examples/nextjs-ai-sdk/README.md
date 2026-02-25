@@ -219,5 +219,5 @@ curl -X POST http://localhost:3000/api/verify \
 
 - See the [basic-verification example](../basic-verification) for a simpler integration
 - Check out the [support-bot example](../support-bot) for invisible citations
-- Read the [full documentation](https://deepcitation.com/docs) for advanced patterns
+- Read the [full documentation](https://docs.deepcitation.com/) for advanced patterns
 - Explore [React components](../../README.md#react-components) from the main package

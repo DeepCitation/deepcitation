@@ -2,7 +2,7 @@
  * DeepCitation React Utilities
  *
  * Note: UI components have been moved to a shadcn-style copy-paste pattern.
- * See the documentation at https://deepcitation.com/docs/components for
+ * See the documentation at https://docs.deepcitation.com/components for
  * ready-to-use React components.
  *
  * This module exports utilities and types that are useful for building
