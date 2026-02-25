@@ -6,7 +6,6 @@ import type { Verification } from "../types/verification.js";
 import { DOT_COLORS } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import {
-  ArrowLeftIcon,
   CheckIcon,
   ChevronRightIcon,
   DocumentIcon,
@@ -105,13 +104,6 @@ export interface SourceContextHeaderProps {
    * instead of the chevron-right expand affordance.
    */
   onClose?: () => void;
-  /**
-   * Callback for the ← Back button only — does NOT affect the page pill state.
-   * Use this when you want a back button but the page pill should stay in expand
-   * (chevron) mode rather than the active/X mode that `onClose` triggers.
-   * If both `onBack` and `onClose` are set, `onBack` takes priority for the button.
-   */
-  onBack?: () => void;
   /**
    * Proof URL to link to in the expanded view header.
    * Rendered whenever a valid URL is provided.
@@ -315,7 +307,6 @@ export function SourceContextHeader({
   sourceLabel,
   onExpand,
   onClose,
-  onBack,
   proofUrl: _proofUrl,
 }: SourceContextHeaderProps) {
   const isUrl = isUrlCitation(citation);
@@ -343,24 +334,8 @@ export function SourceContextHeader({
       onClick={e => e.stopPropagation()}
       onKeyDown={e => e.stopPropagation()}
     >
-      {/* Left: Back button (expanded view) + Icon + source name */}
+      {/* Left: Icon + source name */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        {(onClose || onBack) && (
-          <button
-            type="button"
-            onClick={e => {
-              e.stopPropagation();
-              (onBack ?? onClose)?.();
-            }}
-            className="shrink-0 flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors pr-1 border-r border-gray-200 dark:border-gray-700 mr-1 min-h-[44px] px-1"
-            aria-label="Back to citation summary"
-          >
-            <span className="size-4 block">
-              <ArrowLeftIcon />
-            </span>
-            <span>Back</span>
-          </button>
-        )}
         {isUrl ? (
           <UrlCitationComponent
             urlMeta={{
