@@ -1016,7 +1016,10 @@ export function InlineExpandedImage({
       }
     };
     el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      isAnimatingScroll.current = false;
+    };
   }, [fill]);
 
   // Trackpad pinch zoom (Ctrl+wheel) — prevents default browser zoom.

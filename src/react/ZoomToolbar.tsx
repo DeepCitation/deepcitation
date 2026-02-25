@@ -69,13 +69,13 @@ let thumbStyleRefCount = 0;
 let thumbStyleElement: HTMLStyleElement | null = null;
 
 function mountThumbStyle() {
-  thumbStyleRefCount++;
-  if (thumbStyleRefCount === 1) {
+  if (thumbStyleRefCount === 0) {
     thumbStyleElement = document.createElement("style");
     thumbStyleElement.setAttribute("data-dc-zoom-thumb", "");
     thumbStyleElement.textContent = THUMB_CSS;
     document.head.appendChild(thumbStyleElement);
   }
+  thumbStyleRefCount++;
 }
 
 function unmountThumbStyle() {
