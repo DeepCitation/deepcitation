@@ -14,7 +14,16 @@ const MODELS = {
 type ModelProvider = keyof typeof MODELS;
 
 export async function POST(req: Request) {
-  const { messages, provider = "openai", fileDataParts: clientFileDataParts = [] } = await req.json();
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON in request body" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const { messages, provider = "openai", fileDataParts: clientFileDataParts = [] } = body;
 
   console.log("[Chat API] Received messages:", JSON.stringify(messages?.slice(-1), null, 2));
 
@@ -72,8 +81,9 @@ export async function POST(req: Request) {
   // Convert to model messages (async in AI SDK v6)
   const modelMessages = await convertToModelMessages(enhancedUIMessages);
 
-  // Select model based on provider
-  const selectedModel = MODELS[provider as ModelProvider] || MODELS.openai;
+  // Validate and select model based on provider
+  const validatedProvider: ModelProvider = (provider in MODELS) ? provider as ModelProvider : "openai";
+  const selectedModel = MODELS[validatedProvider];
 
   // Stream the response
   const result = streamText({

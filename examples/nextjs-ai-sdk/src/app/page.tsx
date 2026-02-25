@@ -38,6 +38,7 @@ export default function Home() {
   // Map of message ID to its full verification result (citations + verifications + summary)
   const [messageVerifications, setMessageVerifications] = useState<Record<string, MessageVerificationResult>>({});
   const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState<Record<string, string>>({});
   const [provider, setProvider] = useState<ModelProvider>("gemini");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -66,15 +67,33 @@ export default function Home() {
         attachmentId: fileDataParts[0].attachmentId,
       }),
     })
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || `Verification request failed (${res.status})`);
+        }
+        return res.json();
+      })
       .then((data: MessageVerificationResult) => {
-        // Store the full verification result keyed by message ID
+        // Clear error on success, store verification result
+        setVerificationError(prev => {
+          if (!(messageId in prev)) return prev;
+          const next = { ...prev };
+          delete next[messageId];
+          return next;
+        });
         setMessageVerifications(prev => ({
           ...prev,
           [messageId]: data,
         }));
       })
-      .catch(err => console.error("Verification failed:", err))
+      .catch(err => {
+        console.error("Verification failed:", err);
+        setVerificationError(prev => ({
+          ...prev,
+          [messageId]: err instanceof Error ? err.message : "Verification failed",
+        }));
+      })
       .finally(() => setIsVerifying(false));
   });
 
@@ -142,10 +161,10 @@ export default function Home() {
     }
   };
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  }, [messages]);
 
   // Get latest message's verification result
   const latestVerification = messages.length > 0 ? messageVerifications[messages[messages.length - 1]?.id] : null;
@@ -171,7 +190,8 @@ export default function Home() {
                   id="provider-select"
                   value={provider}
                   onChange={e => setProvider(e.target.value as ModelProvider)}
-                  className="text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isLoading || isVerifying}
+                  className="text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {MODEL_OPTIONS.map(option => (
                     <option key={option.value} value={option.value}>
@@ -238,6 +258,24 @@ export default function Home() {
                   Verifying citations...
                 </div>
               )}
+              {Object.entries(verificationError).map(([msgId, errMsg]) => (
+                <div key={msgId} className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  <span className="flex-1">Verification failed: {errMsg}</span>
+                  <button
+                    onClick={() => {
+                      const msg = messages.find(m => m.id === msgId);
+                      if (msg) {
+                        setIsVerifying(true);
+                        const content = msg.content || msg.parts?.filter((p): p is { type: "text"; text: string } => p.type === "text").map(p => p.text).join("") || "";
+                        onVerifyMessage(msgId, content);
+                      }
+                    }}
+                    className="px-2 py-1 bg-red-100 hover:bg-red-200 rounded text-xs font-medium"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ))}
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -263,11 +301,11 @@ export default function Home() {
                   : "Upload a document first, then ask questions..."
               }
               className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading}
+              disabled={isLoading || isVerifying}
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || isVerifying || !input.trim()}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Send

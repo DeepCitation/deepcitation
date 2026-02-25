@@ -1,11 +1,12 @@
 "use client";
 
+import type { Citation, Verification } from "@deepcitation/deepcitation-js";
 import { useState } from "react";
 
 interface VerificationPanelProps {
   verification: {
-    citations: Record<string, any>;
-    verifications: Record<string, any>;
+    citations: Record<string, Citation>;
+    verifications: Record<string, Verification>;
     summary: {
       total: number;
       verified: number;
@@ -72,7 +73,7 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
 
       {/* Citation List */}
       <div className="flex-1 overflow-y-auto">
-        {Object.entries(verifications).map(([key, v]: [string, any]) => {
+        {Object.entries(verifications).map(([key, v]: [string, Verification]) => {
           const isVerified = v.status === "found";
           const isPartial = ["partial_text_found", "found_on_other_page", "found_on_other_line"].includes(v.status);
           const isMiss = v.status === "not_found";
@@ -103,7 +104,7 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                   <div className="font-medium text-sm text-gray-900">Citation [{key}]</div>
                   <div className="text-xs text-gray-500 truncate">
                     {v.status || "pending"}
-                    {v.verifiedPageNumber && ` • Page ${v.verifiedPageNumber}`}
+                    {v.document?.verifiedPageNumber != null && ` • Page ${v.document.verifiedPageNumber}`}
                   </div>
                 </div>
 
@@ -128,22 +129,22 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                     </div>
                   )}
 
-                  {v.proofImageUrl ? (
+                  {v.proof?.proofImageUrl ? (
                     <div className="bg-gray-50 rounded p-2">
                       <div className="text-xs font-medium text-gray-500 mb-1">Visual Proof</div>
-                      <img src={v.proofImageUrl} alt="Verification proof" className="w-full rounded border" />
+                      <img src={v.proof.proofImageUrl} alt="Verification proof" className="w-full rounded border" />
                     </div>
-                  ) : v.verificationImageBase64 ? (
+                  ) : v.document?.verificationImageSrc ? (
                     <div className="bg-gray-50 rounded p-2">
                       <div className="text-xs font-medium text-gray-500 mb-1">Visual Proof</div>
-                      <img src={v.verificationImageBase64} alt="Verification proof" className="w-full rounded border" />
+                      <img src={v.document.verificationImageSrc} alt="Verification proof" className="w-full rounded border" />
                     </div>
                   ) : null}
 
-                  {v.proofUrl && (
+                  {v.proof?.proofUrl && (
                     <div className="bg-blue-50 rounded p-2 flex items-center gap-2">
                       <a
-                        href={v.proofUrl}
+                        href={v.proof.proofUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:underline flex-1 truncate"
@@ -153,8 +154,8 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                       <button
                         onClick={async () => {
                           try {
-                            if (!v.proofUrl) return;
-                            await navigator.clipboard.writeText(v.proofUrl);
+                            if (!v.proof?.proofUrl) return;
+                            await navigator.clipboard.writeText(v.proof.proofUrl);
                             setCopiedKey(key);
                             setTimeout(() => setCopiedKey(null), 2000);
                           } catch {
@@ -169,9 +170,9 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                     </div>
                   )}
 
-                  {v.verifiedPageNumber !== v.citation?.pageNumber && v.citation?.pageNumber && (
+                  {v.document?.verifiedPageNumber !== v.citation?.pageNumber && v.citation?.pageNumber && (
                     <div className="text-xs text-yellow-600">
-                      Found on page {v.verifiedPageNumber} (expected {v.citation?.pageNumber})
+                      Found on page {v.document?.verifiedPageNumber} (expected {v.citation?.pageNumber})
                     </div>
                   )}
                 </div>

@@ -190,7 +190,7 @@ export default function RenderersShowcasePage() {
                   className="w-full border rounded-lg bg-white"
                   style={{ minHeight: "200px" }}
                   title="HTML renderer preview"
-                  sandbox="allow-same-origin"
+                  sandbox=""
                 />
               </div>
 

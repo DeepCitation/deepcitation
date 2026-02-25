@@ -1,4 +1,4 @@
-import { DeepCitation } from "@deepcitation/deepcitation-js";
+import { DeepCitation, sanitizeForLog, validateUploadFile } from "@deepcitation/deepcitation-js";
 import { type NextRequest, NextResponse } from "next/server";
 
 // Check for API key at startup
@@ -38,6 +38,13 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // Validate file size, MIME type, and magic bytes (from core package)
+    const uploadError = validateUploadFile(file.size, file.type, new Uint8Array(arrayBuffer));
+    if (uploadError) {
+      const status = uploadError.includes("too large") ? 413 : 400;
+      return NextResponse.json({ error: uploadError }, { status });
+    }
+
     // Upload to DeepCitation - fileDataParts now includes deepTextPromptPortion
     const { fileDataParts } = await dc.prepareFiles([{ file: buffer, filename: file.name }]);
 
@@ -49,9 +56,9 @@ export async function POST(req: NextRequest) {
       success: true,
       fileDataPart,
     });
-  } catch (error: any) {
-    const message = error?.message || "Unknown error";
-    console.error("Upload error:", message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Upload error:", sanitizeForLog(message));
 
     // Provide helpful error messages
     if (message.includes("Invalid or expired API key")) {
@@ -64,6 +71,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ error: "Failed to upload file", details: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
   }
 }

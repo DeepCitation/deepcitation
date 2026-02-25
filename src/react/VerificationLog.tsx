@@ -804,11 +804,16 @@ interface VerificationLogSummaryProps {
  * Get a human-readable outcome summary for the collapsed state.
  * Shows what kind of match was found (or that nothing was found).
  */
-function getOutcomeSummary(status: SearchStatus | null | undefined, searchAttempts: SearchAttempt[]): string {
+function getOutcomeSummary(
+  status: SearchStatus | null | undefined,
+  searchAttempts: SearchAttempt[],
+  queryGroupCount?: number,
+): string {
   // Early return for not_found - no need to search for successful attempt
   if (!status || status === "not_found") {
-    const totalCount = searchAttempts.length;
-    return `${totalCount} ${totalCount === 1 ? "search" : "searches"} tried`;
+    // Use the query group count (what the user sees as rows) rather than raw attempt count
+    const displayCount = queryGroupCount ?? searchAttempts.length;
+    return `${displayCount} ${displayCount === 1 ? "search" : "searches"} tried`;
   }
 
   // Only search for successful attempt when we know something was found
@@ -866,7 +871,12 @@ function VerificationLogSummary({
   verifiedAt,
 }: VerificationLogSummaryProps) {
   const isMiss = status === "not_found";
-  const outcomeSummary = getOutcomeSummary(status, searchAttempts);
+  // Count distinct search phrases (query groups) — this matches the number of rows the user sees
+  const queryGroupCount = useMemo(() => {
+    if (!isMiss) return undefined;
+    return new Set(searchAttempts.map(a => a.searchPhrase ?? "")).size;
+  }, [searchAttempts, isMiss]);
+  const outcomeSummary = getOutcomeSummary(status, searchAttempts, queryGroupCount);
 
   // Format the verified date for display
   const formatted = formatCaptureDate(verifiedAt);

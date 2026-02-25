@@ -363,7 +363,16 @@ export function AnchorTextFocusedImage({
       setImageFitInfo({ displayedWidth, imageFitsCompletely });
     }
 
-    const { scrollLeft } = computeKeyholeOffset(displayedWidth, containerWidth, highlightBox);
+    // Scale highlight box from image-natural coordinates to displayed coordinates.
+    // resolveHighlightBox() returns coords in the verificationImage's natural pixel
+    // space, but the scroll container operates in the displayed (strip-height-scaled)
+    // space. Without this, the centering algorithm sees the highlight as far off-screen.
+    const displayScale = img.naturalWidth > 0 ? displayedWidth / img.naturalWidth : 1;
+    const scaledHighlight = highlightBox
+      ? { x: highlightBox.x * displayScale, width: highlightBox.width * displayScale }
+      : null;
+
+    const { scrollLeft } = computeKeyholeOffset(displayedWidth, containerWidth, scaledHighlight);
     container.scrollLeft = scrollLeft;
 
     // Trigger scroll event so useDragToPan updates fade state for initial position
@@ -420,14 +429,13 @@ export function AnchorTextFocusedImage({
           }}
           onClick={e => {
             e.preventDefault();
+            e.stopPropagation();
             // Suppress click if user was dragging
             if (wasDragging.current) {
               wasDragging.current = false;
-              e.stopPropagation();
               return;
             }
             if (canExpand) {
-              e.stopPropagation();
               onImageClick?.();
             }
           }}
@@ -521,6 +529,7 @@ function EvidenceTrayFooter({
   verifiedAt,
   verification,
   onPageClick,
+  hintText,
 }: {
   status?: SearchStatus | null;
   searchAttempts?: SearchAttempt[];
@@ -529,6 +538,8 @@ function EvidenceTrayFooter({
   verification?: Verification | null;
   /** When provided, renders a "View page" CTA button */
   onPageClick?: () => void;
+  /** Optional hint text (e.g. "Click to expand") rendered as a FooterHint after the outcome label */
+  hintText?: string;
 }) {
   const formatted = formatCaptureDate(verifiedAt);
   const dateStr = formatted?.display ?? "";
@@ -573,6 +584,7 @@ function EvidenceTrayFooter({
               · <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>
             </span>
           )}
+          {hintText && <FooterHint text={` · ${hintText}`} />}
         </div>
         {onPageClick && (
           <button
@@ -689,6 +701,7 @@ export function EvidenceTray({
   onImageClick?: () => void;
   proofImageSrc?: string;
 }) {
+  const isTouch = useIsTouchDevice();
   const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const isMiss = status.isMiss;
   const searchAttempts = verification?.searchAttempts ?? [];
@@ -696,6 +709,9 @@ export function EvidenceTray({
 
   // Tray-level click: keyhole click if available, else page expansion
   const trayAction = onImageClick ?? onExpand;
+
+  // Hint text for the footer — show expand hint when tray is interactive
+  const hintText = trayAction ? (isTouch ? "Tap to expand" : "Click to expand") : undefined;
 
   // Shared inner content
   const content = (
@@ -722,13 +738,14 @@ export function EvidenceTray({
         </div>
       ) : null}
 
-      {/* Footer: outcome + date + CTA (renders for ALL states including miss) */}
+      {/* Footer: outcome + hint + date + CTA (renders for ALL states including miss) */}
       <EvidenceTrayFooter
         status={verification?.status}
         searchAttempts={searchAttempts}
         verifiedAt={verification?.verifiedAt}
         verification={verification}
         onPageClick={onExpand}
+        hintText={hintText}
       />
     </>
   );
@@ -1189,11 +1206,6 @@ export function InlineExpandedImage({
     return () => document.removeEventListener("pointerup", unlock);
   }, [sliderLockWidth]);
 
-  const searchAttempts = verification?.searchAttempts ?? [];
-  const outcomeLabel = deriveOutcomeLabel(verification?.status, searchAttempts);
-  const formatted = formatCaptureDate(verification?.verifiedAt);
-  const dateStr = formatted?.display ?? "";
-
   // Show zoom controls in fill mode when image has loaded
   const showZoomControls = fill && imageLoaded && naturalWidth !== null;
   const showScrollToAnnotation = showZoomControls && !!effectivePhraseItem && !!renderScale;
@@ -1210,12 +1222,14 @@ export function InlineExpandedImage({
       : null;
 
   const footerEl = (
-    <div className="flex items-center justify-between px-3 py-1.5 text-[10px] text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
-      <span>
-        {outcomeLabel}
-        <FooterHint text={` · ${isTouch ? "Tap" : "Click"} to collapse`} />
-      </span>
-      {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
+    <div className="bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
+      <EvidenceTrayFooter
+        status={verification?.status}
+        searchAttempts={verification?.searchAttempts}
+        verifiedAt={verification?.verifiedAt}
+        verification={verification}
+        hintText={isTouch ? "Tap to collapse" : "Click to collapse"}
+      />
     </div>
   );
 
