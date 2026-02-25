@@ -82,8 +82,7 @@ export async function POST(req: Request) {
   const modelMessages = await convertToModelMessages(enhancedUIMessages);
 
   // Validate and select model based on provider
-  const VALID_PROVIDERS: ModelProvider[] = ["openai", "gemini"];
-  const validatedProvider: ModelProvider = VALID_PROVIDERS.includes(provider) ? provider : "openai";
+  const validatedProvider: ModelProvider = (provider in MODELS) ? provider as ModelProvider : "openai";
   const selectedModel = MODELS[validatedProvider];
 
   // Stream the response

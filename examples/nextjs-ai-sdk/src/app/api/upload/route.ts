@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     ];
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: `Unsupported file type: ${file.type}` },
+        { error: "Unsupported file type. Allowed: PDF, PNG, JPEG, TIFF, WebP." },
         { status: 400 },
       );
     }
