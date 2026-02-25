@@ -6,7 +6,7 @@ Instructions for AI coding agents working on the DeepCitation repository.
 
 DeepCitation is a citation verification library for AI-generated content. Provides citation extraction, normalization, verification against attachments, and visual proof generation.
 
-- **Package**: `@deepcitation/deepcitation-js`
+- **Package**: `deepcitation`
 - **License**: MIT
 - **Node**: >=18
 

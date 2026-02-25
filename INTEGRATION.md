@@ -18,13 +18,13 @@ This guide follows a **3-step workflow**:
 **Before doing anything else, install the DeepCitation package (use `@latest` to get the most recent version):**
 
 ```bash
-npm install @deepcitation/deepcitation-js@latest
+npm install deepcitation@latest
 # or
-pnpm add @deepcitation/deepcitation-js@latest
+pnpm add deepcitation@latest
 # or
-yarn add @deepcitation/deepcitation-js@latest
+yarn add deepcitation@latest
 # or
-bun add @deepcitation/deepcitation-js@latest
+bun add deepcitation@latest
 ```
 
 **AI Agents**: Run this installation command in the project directory before proceeding with any integration steps. Always use `@latest` to ensure you get the most recent version with all features and bug fixes. The package provides all the types, functions, and React components you need.
@@ -35,11 +35,11 @@ bun add @deepcitation/deepcitation-js@latest
 
 These rules apply to **every step**. Violating any of them is a bug.
 
-> **1. Import, never define** — All types come from `@deepcitation/deepcitation-js`. Never create your own `Citation`, `Verification`, `CitationRecord`, `VerificationRecord`, or any other type.
+> **1. Import, never define** — All types come from `deepcitation`. Never create your own `Citation`, `Verification`, `CitationRecord`, `VerificationRecord`, or any other type.
 >
 > ```typescript
 > // CORRECT
-> import type { Citation, Verification, CitationRecord, VerificationRecord } from "@deepcitation/deepcitation-js";
+> import type { Citation, Verification, CitationRecord, VerificationRecord } from "deepcitation";
 >
 > // WRONG — never do this
 > interface Citation { ... }
@@ -58,8 +58,8 @@ These rules apply to **every step**. Violating any of them is a bug.
 
 | Wrong | Correct |
 |-------|---------|
-| `interface Citation { ... }` | `import type { Citation } from "@deepcitation/deepcitation-js"` |
-| `type Verification = { status: string }` | `import type { Verification } from "@deepcitation/deepcitation-js"` |
+| `interface Citation { ... }` | `import type { Citation } from "deepcitation"` |
+| `type Verification = { status: string }` | `import type { Verification } from "deepcitation"` |
 | `const isVerified = v.status === "found"` | `const { isVerified } = getCitationStatus(v)` |
 | `citations.length` (it's not an array!) | `Object.keys(citations).length` |
 | Writing custom cite tag parsers | `getAllCitationsFromLlmOutput(llmOutput)` |
@@ -80,8 +80,8 @@ import {
   getAllCitationsFromLlmOutput,
   extractVisibleText,
   getCitationStatus,
-} from "@deepcitation/deepcitation-js";
-import type { CitationRecord, VerificationRecord } from "@deepcitation/deepcitation-js";
+} from "deepcitation";
+import type { CitationRecord, VerificationRecord } from "deepcitation";
 import OpenAI from "openai";
 import { readFileSync } from "fs";
 
@@ -134,8 +134,8 @@ async function analyzeDocument(filePath: string, question: string) {
 
 ```tsx
 import { useState } from "react";
-import { parseCitation } from "@deepcitation/deepcitation-js";
-import type { Citation, Verification } from "@deepcitation/deepcitation-js";
+import { parseCitation } from "deepcitation";
+import type { Citation, Verification } from "deepcitation";
 import {
   CitationComponent,
   CitationDrawer,
@@ -143,7 +143,7 @@ import {
   generateCitationKey,
   groupCitationsBySource,
   type CitationDrawerItem,
-} from "@deepcitation/deepcitation-js/react";
+} from "deepcitation/react";
 
 function MessageWithCitations({
   text,
@@ -228,7 +228,7 @@ DEEPCITATION_API_KEY=sk-dc-your-key-here
 Get your API key at [deepcitation.com/signup](https://deepcitation.com/signup). Keys start with `sk-dc-`.
 
 ```typescript
-import { DeepCitation } from "@deepcitation/deepcitation-js";
+import { DeepCitation } from "deepcitation";
 
 const deepcitation = new DeepCitation({
   apiKey: process.env.DEEPCITATION_API_KEY!,
@@ -303,7 +303,7 @@ const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareFiles
 When documents produce very long `deepTextPromptPortion` strings, you can compress the attachment IDs to save tokens:
 
 ```typescript
-import { compressPromptIds, decompressPromptIds } from "@deepcitation/deepcitation-js";
+import { compressPromptIds, decompressPromptIds } from "deepcitation";
 
 // Compress before wrapping prompts
 const { compressed, prefixMap } = compressPromptIds(
@@ -345,7 +345,7 @@ Complete these tasks in order:
 ### 2.1 Wrap Prompts
 
 ```typescript
-import { wrapCitationPrompt } from "@deepcitation/deepcitation-js";
+import { wrapCitationPrompt } from "deepcitation";
 
 const systemPrompt = "You are a helpful assistant...";
 const userPrompt = "Summarize this document";
@@ -448,8 +448,8 @@ Complete these tasks in order:
 import {
   getAllCitationsFromLlmOutput,
   extractVisibleText,
-} from "@deepcitation/deepcitation-js";
-import type { CitationRecord } from "@deepcitation/deepcitation-js";
+} from "deepcitation";
+import type { CitationRecord } from "deepcitation";
 
 // Parse citations — returns CitationRecord (OBJECT, NOT array!)
 const citations: CitationRecord = getAllCitationsFromLlmOutput(llmOutput);
@@ -490,8 +490,8 @@ Revenue grew 23% in Q4.<cite n="1" />
 Call `verifyAttachment()` to verify citations against the source document. This returns verification results with status indicators and optional proof images.
 
 ```typescript
-import { DeepCitation, getCitationStatus } from "@deepcitation/deepcitation-js";
-import type { VerificationRecord } from "@deepcitation/deepcitation-js";
+import { DeepCitation, getCitationStatus } from "deepcitation";
+import type { VerificationRecord } from "deepcitation";
 
 const result = await deepcitation.verifyAttachment(attachmentId, citations, {
   outputImageFormat: "avif",
@@ -509,7 +509,7 @@ const verifications: VerificationRecord = result.verifications;
 **Check verification status** — always use `getCitationStatus()`, never check status strings directly:
 
 ```typescript
-import { getCitationStatus } from "@deepcitation/deepcitation-js";
+import { getCitationStatus } from "deepcitation";
 
 for (const [key, verification] of Object.entries(verifications)) {
   const status = getCitationStatus(verification);
@@ -542,7 +542,7 @@ const verifications: VerificationRecord = result.verifications;
 When citations span multiple documents, group them by attachment ID before verifying:
 
 ```typescript
-import { groupCitationsByAttachmentId } from "@deepcitation/deepcitation-js";
+import { groupCitationsByAttachmentId } from "deepcitation";
 
 const grouped = groupCitationsByAttachmentId(citations);
 
@@ -588,7 +588,7 @@ This is the **recommended** display path for chat applications. It renders inlin
 
 Complete these tasks in order:
 
-1. Import components from `@deepcitation/deepcitation-js/react`
+1. Import components from `deepcitation/react`
 2. Split `visibleText` on `<cite>` tags and render `CitationComponent` for each
 3. Convert citations + verifications into `CitationDrawerItem[]`
 4. Group items with `groupCitationsBySource()`
@@ -599,8 +599,8 @@ Complete these tasks in order:
 
 ```typescript
 import { useState } from "react";
-import { parseCitation } from "@deepcitation/deepcitation-js";
-import type { Citation, Verification } from "@deepcitation/deepcitation-js";
+import { parseCitation } from "deepcitation";
+import type { Citation, Verification } from "deepcitation";
 import {
   CitationComponent,
   CitationDrawer,
@@ -608,7 +608,7 @@ import {
   generateCitationKey,
   groupCitationsBySource,
   type CitationDrawerItem,
-} from "@deepcitation/deepcitation-js/react";
+} from "deepcitation/react";
 ```
 
 #### Build Drawer Items
@@ -734,7 +734,7 @@ Complete these tasks in order:
 Use the same `renderWithCitations()` function from [Step 3.2](#render-inline-citations), but skip the `CitationDrawerTrigger` and `CitationDrawer` parts.
 
 ```tsx
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "deepcitation/react";
 
 // Render with citation inline indicators
 <div>{renderWithCitations(visibleText, citations, verifications)}</div>
@@ -776,14 +776,14 @@ Complete these tasks in order:
 
 ```tsx
 import { useState } from "react";
-import { replaceCitations } from "@deepcitation/deepcitation-js";
-import type { Citation, Verification } from "@deepcitation/deepcitation-js";
+import { replaceCitations } from "deepcitation";
+import type { Citation, Verification } from "deepcitation";
 import {
   CitationDrawer,
   CitationDrawerTrigger,
   groupCitationsBySource,
   type CitationDrawerItem,
-} from "@deepcitation/deepcitation-js/react";
+} from "deepcitation/react";
 
 function MessageWithDrawer({
   text,
@@ -848,7 +848,7 @@ Complete these tasks in order:
 #### Option A: `replaceCitations()` — Simple Text with Indicators
 
 ```typescript
-import { replaceCitations } from "@deepcitation/deepcitation-js";
+import { replaceCitations } from "deepcitation";
 
 // Strip all citation tags — clean text, no trace of citations
 const cleanText = replaceCitations(visibleText, {});
@@ -868,7 +868,7 @@ const verifiedText = replaceCitations(visibleText, {
 #### Option B: `renderCitationsAsMarkdown()` — Rich Markdown
 
 ```typescript
-import { renderCitationsAsMarkdown, toMarkdown } from "@deepcitation/deepcitation-js";
+import { renderCitationsAsMarkdown, toMarkdown } from "deepcitation";
 
 // Full structured output
 const output = renderCitationsAsMarkdown(visibleText, {
@@ -919,7 +919,7 @@ For rendering citations on specific platforms. Each renderer is available as a s
 #### Slack
 
 ```typescript
-import { renderCitationsForSlack } from "@deepcitation/deepcitation-js/slack";
+import { renderCitationsForSlack } from "deepcitation/slack";
 
 const output = renderCitationsForSlack(visibleText, {
   verifications,
@@ -933,7 +933,7 @@ const output = renderCitationsForSlack(visibleText, {
 #### GitHub Markdown
 
 ```typescript
-import { renderCitationsForGitHub } from "@deepcitation/deepcitation-js/github";
+import { renderCitationsForGitHub } from "deepcitation/github";
 
 const output = renderCitationsForGitHub(visibleText, {
   verifications,
@@ -947,7 +947,7 @@ const output = renderCitationsForGitHub(visibleText, {
 #### HTML (Email, Embeds)
 
 ```typescript
-import { renderCitationsAsHtml } from "@deepcitation/deepcitation-js/html";
+import { renderCitationsAsHtml } from "deepcitation/html";
 
 const output = renderCitationsAsHtml(visibleText, {
   verifications,
@@ -962,7 +962,7 @@ const output = renderCitationsAsHtml(visibleText, {
 #### Terminal (ANSI Colors)
 
 ```typescript
-import { renderCitationsForTerminal } from "@deepcitation/deepcitation-js/terminal";
+import { renderCitationsForTerminal } from "deepcitation/terminal";
 
 const output = renderCitationsForTerminal(visibleText, {
   verifications,
@@ -1019,7 +1019,7 @@ This is the pattern used by the DeepCitation playground. It detects when the LLM
 
 ```tsx
 import { useChat } from "@ai-sdk/react";
-import type { Citation, FileDataPart, Verification } from "@deepcitation/deepcitation-js";
+import type { Citation, FileDataPart, Verification } from "deepcitation";
 import { useEffect, useRef, useState } from "react";
 
 interface MessageVerificationResult {
@@ -1180,7 +1180,7 @@ import {
   // Multi-document support
   groupCitationsByAttachmentId,    // Group citations by attachment (returns Map)
   groupCitationsByAttachmentIdObject, // Group citations by attachment (returns Object)
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 ```
 
 ### React Components (from /react)
@@ -1196,16 +1196,16 @@ import {
   UrlCitationComponent,            // Render URL citations
   DeepCitationIcon,                // Official DeepCitation icon
   generateCitationKey,             // Generate lookup key for a citation
-} from "@deepcitation/deepcitation-js/react";
+} from "deepcitation/react";
 ```
 
 ### Platform Renderers
 
 ```typescript
-import { renderCitationsForSlack } from "@deepcitation/deepcitation-js/slack";
-import { renderCitationsForGitHub } from "@deepcitation/deepcitation-js/github";
-import { renderCitationsAsHtml } from "@deepcitation/deepcitation-js/html";
-import { renderCitationsForTerminal } from "@deepcitation/deepcitation-js/terminal";
+import { renderCitationsForSlack } from "deepcitation/slack";
+import { renderCitationsForGitHub } from "deepcitation/github";
+import { renderCitationsAsHtml } from "deepcitation/html";
+import { renderCitationsForTerminal } from "deepcitation/terminal";
 ```
 
 ### Types
@@ -1233,13 +1233,13 @@ import type {
   // Status types
   CitationStatus,                  // Status from getCitationStatus()
   ContentMatchStatus,              // Verification match status string
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 
 import type {
   CitationDrawerItem,              // Item for CitationDrawer
   CitationDrawerProps,             // Props for CitationDrawer
   SourceCitationGroup,             // Group of citations by source
-} from "@deepcitation/deepcitation-js/react";
+} from "deepcitation/react";
 ```
 
 ---
@@ -1298,7 +1298,7 @@ const llmOutput = result.response.text();
 
 ```typescript
 import { NextRequest, NextResponse } from "next/server";
-import { DeepCitation } from "@deepcitation/deepcitation-js";
+import { DeepCitation } from "deepcitation";
 
 const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
 
@@ -1318,8 +1318,8 @@ export async function POST(req: NextRequest) {
 ### Chat Route (`/api/chat`)
 
 ```typescript
-import { wrapCitationPrompt } from "@deepcitation/deepcitation-js";
-import type { FileDataPart } from "@deepcitation/deepcitation-js";
+import { wrapCitationPrompt } from "deepcitation";
+import type { FileDataPart } from "deepcitation";
 import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 
@@ -1359,8 +1359,8 @@ import {
   DeepCitation,
   getAllCitationsFromLlmOutput,
   getCitationStatus,
-} from "@deepcitation/deepcitation-js";
-import type { CitationRecord, VerificationRecord } from "@deepcitation/deepcitation-js";
+} from "deepcitation";
+import type { CitationRecord, VerificationRecord } from "deepcitation";
 
 const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
 
@@ -1526,7 +1526,7 @@ Before deploying to production:
 - [ ] Handling "no citations" case gracefully
 - [ ] Handling verification timeout/errors (show pending state)
 - [ ] Input validation for user-provided URLs (prevent SSRF)
-- [ ] All types imported from `@deepcitation/deepcitation-js`, none defined locally
+- [ ] All types imported from `deepcitation`, none defined locally
 
 ### Caching attachmentIds
 

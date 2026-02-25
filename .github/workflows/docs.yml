@@ -143,7 +143,7 @@ The documentation has been built successfully.
    \`\`\`bash
    cd artifact && python -m http.server 8000
    \`\`\`
-3. Open http://localhost:8000/deepcitation-js/
+3. Open http://localhost:8000/deepcitation/
 ${linkCheckSection}
 ---
 *Workflow run: ${runId}*`;

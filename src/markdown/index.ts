@@ -6,7 +6,7 @@
  *
  * @example Basic usage
  * ```typescript
- * import { toMarkdown, renderCitationsAsMarkdown } from "@deepcitation/deepcitation-js/markdown";
+ * import { toMarkdown, renderCitationsAsMarkdown } from "deepcitation/markdown";
  *
  * // Simple string output
  * const md = toMarkdown(llmOutput, { verifications, variant: "brackets" });

@@ -1,5 +1,5 @@
-import type { Citation, Verification } from "@deepcitation/deepcitation-js";
-import { generateCitationKey } from "@deepcitation/deepcitation-js/react";
+import type { Citation, Verification } from "deepcitation";
+import { generateCitationKey } from "deepcitation/react";
 
 /**
  * Sample LLM output with <cite> tags for rendering demos.

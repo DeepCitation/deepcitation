@@ -26,7 +26,7 @@ assignees: ''
 
 ## Environment
 
-- **Package version**: `@deepcitation/deepcitation-js@x.x.x`
+- **Package version**: `deepcitation@x.x.x`
 - **Node.js version**:
 - **Framework** (if applicable): React / Next.js / other
 - **Browser** (if applicable):

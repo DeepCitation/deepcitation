@@ -485,7 +485,7 @@ interface VerifyCitationsOptions {
 For cases where the client knows the `proofBaseUrl` and wants to construct URLs without calling the backend:
 
 ```typescript
-import { buildProofUrl, buildSnippetImageUrl } from "@deepcitation/deepcitation-js";
+import { buildProofUrl, buildSnippetImageUrl } from "deepcitation";
 
 // From verification response
 const verification = verifications["a1b2c3d4e5f67890"];

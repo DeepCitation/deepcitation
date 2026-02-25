@@ -8,11 +8,11 @@
   "author": "DeepCitation <opensource@deepcitation.com>",
   "homepage": "https://deepcitation.com",
   "bugs": {
-    "url": "https://github.com/DeepCitation/deepcitation-js/issues"
+    "url": "https://github.com/DeepCitation/deepcitation/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DeepCitation/deepcitation-js.git"
+    "url": "git+https://github.com/DeepCitation/deepcitation.git"
   },
   "publishConfig": {
     "access": "public",

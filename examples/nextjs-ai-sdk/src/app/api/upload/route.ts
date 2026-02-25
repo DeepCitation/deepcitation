@@ -1,4 +1,4 @@
-import { DeepCitation, sanitizeForLog, validateUploadFile } from "@deepcitation/deepcitation-js";
+import { DeepCitation, sanitizeForLog, validateUploadFile } from "deepcitation";
 import { type NextRequest, NextResponse } from "next/server";
 
 // Check for API key at startup

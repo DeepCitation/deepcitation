@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@deepcitation/deepcitation-js"],
+  transpilePackages: ["deepcitation"],
   devIndicators: {
     position: "bottom-left",
   },

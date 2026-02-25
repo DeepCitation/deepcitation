@@ -1,6 +1,6 @@
 "use client";
 
-import type { Citation, Verification } from "@deepcitation/deepcitation-js";
+import type { Citation, Verification } from "deepcitation";
 import { useState } from "react";
 
 interface VerificationPanelProps {

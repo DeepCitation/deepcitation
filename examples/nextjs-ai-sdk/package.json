@@ -16,7 +16,7 @@
     "@ai-sdk/openai": "^3.0.9",
     "@ai-sdk/react": "^1.2.12",
     "@anthropic-ai/sdk": "^0.71.2",
-    "@deepcitation/deepcitation-js": "latest",
+    "deepcitation": "latest",
     "ai": "^6.0.30",
     "next": "^16.1.1",
     "openai": "^6.16.0",

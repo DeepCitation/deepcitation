@@ -248,7 +248,7 @@ test("warns about API key security", () => {
 console.log("\n=== Links ===\n");
 
 test("links to open-source prompts", () => {
-  expect(skillContent).toContain("github.com/DeepCitation/deepcitation-js");
+  expect(skillContent).toContain("github.com/DeepCitation/deepcitation");
 });
 
 test("links to dashboard for API key", () => {

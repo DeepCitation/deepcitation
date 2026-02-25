@@ -23,7 +23,7 @@ import {
   getVerificationTextIndicator,
   replaceCitations,
   wrapCitationPrompt,
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 import { readFileSync } from "fs";
 import OpenAI from "openai";
 import { dirname, resolve } from "path";

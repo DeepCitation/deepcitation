@@ -61,7 +61,7 @@ function renderTerminalCitation(
  *
  * @example
  * ```typescript
- * import { renderCitationsForTerminal } from "@deepcitation/deepcitation-js/terminal";
+ * import { renderCitationsForTerminal } from "deepcitation/terminal";
  *
  * const output = renderCitationsForTerminal(llmOutput, {
  *   verifications,

@@ -18,7 +18,7 @@ const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
  *
  * @example
  * ```typescript
- * import { renderCitationsForSlack } from "@deepcitation/deepcitation-js/slack";
+ * import { renderCitationsForSlack } from "deepcitation/slack";
  *
  * const output = renderCitationsForSlack(llmOutput, {
  *   verifications,

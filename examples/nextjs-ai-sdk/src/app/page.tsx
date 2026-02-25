@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import type { Citation, FileDataPart, Verification } from "@deepcitation/deepcitation-js";
+import type { Citation, FileDataPart, Verification } from "deepcitation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { FileUpload } from "@/components/FileUpload";

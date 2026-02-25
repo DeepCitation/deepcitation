@@ -4,5 +4,5 @@ contact_links:
     url: https://docs.deepcitation.com
     about: Read the full documentation and API reference
   - name: 💬 GitHub Discussions
-    url: https://github.com/DeepCitation/deepcitation-js/discussions
+    url: https://github.com/DeepCitation/deepcitation/discussions
     about: Ask questions and connect with the community

@@ -1,6 +1,6 @@
 "use client";
 
-import { type Citation, parseCitation, type Verification } from "@deepcitation/deepcitation-js";
+import { type Citation, parseCitation, type Verification } from "deepcitation";
 import {
   CitationComponent,
   CitationDrawer,
@@ -8,7 +8,7 @@ import {
   generateCitationKey,
   groupCitationsBySource,
   type CitationDrawerItem,
-} from "@deepcitation/deepcitation-js/react";
+} from "deepcitation/react";
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";

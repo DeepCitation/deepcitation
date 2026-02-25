@@ -23,7 +23,7 @@ import {
   getVerificationTextIndicator,
   replaceCitations,
   wrapCitationPrompt,
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { readFileSync } from "fs";
 import { dirname, resolve } from "path";

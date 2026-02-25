@@ -1,4 +1,4 @@
-import { DeepCitation, getAllCitationsFromLlmOutput, getCitationStatus, sanitizeForLog } from "@deepcitation/deepcitation-js";
+import { DeepCitation, getAllCitationsFromLlmOutput, getCitationStatus, sanitizeForLog } from "deepcitation";
 import { type NextRequest, NextResponse } from "next/server";
 
 // Check for API key at startup

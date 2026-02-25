@@ -17,8 +17,8 @@
 ---
 
 <div align="center">
-<a href="https://github.com/DeepCitation/deepcitation-js/blob/main/examples/assets/deepcitation-demo-medical.avif">
-<img src="https://raw.githubusercontent.com/DeepCitation/deepcitation-js/main/examples/assets/deepcitation-demo-medical.avif" alt="DeepCitation Demo - solid underlines for verified citations, wavy red for hallucinations" width="600" />
+<a href="https://github.com/DeepCitation/deepcitation/blob/main/examples/assets/deepcitation-demo-medical.avif">
+<img src="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/examples/assets/deepcitation-demo-medical.avif" alt="DeepCitation Demo - solid underlines for verified citations, wavy red for hallucinations" width="600" />
 </a>
 <br/>
 <em>Solid underline = verified in source. Wavy red = hallucination caught.</em>
@@ -43,7 +43,7 @@ Upload a PDF. Ask your LLM a question. Get back **deterministic, visual proof** 
 ## 6 ways to display citations
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/DeepCitation/deepcitation-js/main/tests/playwright/specs/__snapshots__/visualShowcase.spec.tsx-snapshots/desktop-showcase-chromium-linux.avif" alt="DeepCitation Component Showcase - linter, chip, brackets, text, superscript, and badge variants" width="700" />
+<img src="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/tests/playwright/specs/__snapshots__/visualShowcase.spec.tsx-snapshots/desktop-showcase-chromium-linux.avif" alt="DeepCitation Component Showcase - linter, chip, brackets, text, superscript, and badge variants" width="700" />
 </div>
 
 | Variant | Style | Best for |
@@ -59,7 +59,7 @@ Upload a PDF. Ask your LLM a question. Get back **deterministic, visual proof** 
 
 We're looking for design partners to showcase and help shape the future of citation verification.
 
-**[Become a design partner →](https://github.com/DeepCitation/deepcitation-js/issues/new?labels=design-partner&template=design_partner.md)** Get early access, direct support, and influence the roadmap.
+**[Become a design partner →](https://github.com/DeepCitation/deepcitation/issues/new?labels=design-partner&template=design_partner.md)** Get early access, direct support, and influence the roadmap.
 
 <!-- Logos will appear here as design partners join -->
 
@@ -121,8 +121,8 @@ Clone a working example and have citations running in under 2 minutes:
 
 ```bash
 # Next.js chat app with streaming citations
-git clone https://github.com/DeepCitation/deepcitation-js.git
-cd deepcitation-js/examples/nextjs-ai-sdk
+git clone https://github.com/DeepCitation/deepcitation.git
+cd deepcitation/examples/nextjs-ai-sdk
 cp .env.example .env.local  # add your API keys
 npm install && npm run dev
 ```
@@ -321,9 +321,9 @@ Playwright supports both PNG and AVIF snapshot formats for visual regression tes
 
 We're looking for design partners to help shape the future of citation verification:
 
-- **🤝 [Become a Design Partner](https://github.com/DeepCitation/deepcitation-js/issues/new?labels=design-partner&template=design_partner.md)** -- Get early access to features, direct support, and influence the roadmap
-- **🐛 [Report an Issue](https://github.com/DeepCitation/deepcitation-js/issues)** -- Found a bug or have a feature request? We'd love to hear from you
-- **💬 [Join Discussions](https://github.com/DeepCitation/deepcitation-js/discussions)** -- Connect with other developers building with DeepCitation
+- **🤝 [Become a Design Partner](https://github.com/DeepCitation/deepcitation/issues/new?labels=design-partner&template=design_partner.md)** -- Get early access to features, direct support, and influence the roadmap
+- **🐛 [Report an Issue](https://github.com/DeepCitation/deepcitation/issues)** -- Found a bug or have a feature request? We'd love to hear from you
+- **💬 [Join Discussions](https://github.com/DeepCitation/deepcitation/discussions)** -- Connect with other developers building with DeepCitation
 
 ## License
 

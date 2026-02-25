@@ -435,7 +435,7 @@ Full-screen overlay for zoomed verification images:
 ### Basic Usage
 
 ```tsx
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent } from "deepcitation/react";
 
 <CitationComponent
   citation={{ citationNumber: 1, anchorText: "25% growth" }}

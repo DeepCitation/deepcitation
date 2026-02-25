@@ -55,7 +55,7 @@ assignees: ''
 ## What You're Looking For
 
 **Which citation variant(s) are you most interested in?**
-<!-- Check all that apply. See visual examples: https://github.com/DeepCitation/deepcitation-js#6-ways-to-display-citations -->
+<!-- Check all that apply. See visual examples: https://github.com/DeepCitation/deepcitation#6-ways-to-display-citations -->
 - [ ] `linter` - Inline underlines (like spell-checker) for long-form content
 - [ ] `chip` - Pill badges for chat interfaces
 - [ ] `brackets` - `[text]` with status for technical/academic

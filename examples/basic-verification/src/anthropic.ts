@@ -24,7 +24,7 @@ import {
   getVerificationTextIndicator,
   replaceCitations,
   wrapCitationPrompt,
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 import { readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";

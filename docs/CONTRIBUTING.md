@@ -20,8 +20,8 @@ Thank you for your interest in improving the DeepCitation documentation.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/DeepCitation/deepcitation-js.git
-   cd deepcitation-js/docs
+   git clone https://github.com/DeepCitation/deepcitation.git
+   cd deepcitation/docs
    ```
 
 2. Install dependencies:
@@ -142,7 +142,7 @@ To use a custom domain (e.g., `docs.deepcitation.com`):
 
 3. **Update `_config.yml`**:
    ```yaml
-   baseurl: ""  # Remove /deepcitation-js for custom domain
+   baseurl: ""  # Remove /deepcitation for custom domain
    url: "https://docs.deepcitation.com"
    ```
 

@@ -21,7 +21,7 @@ import {
   getVerificationTextIndicator,
   replaceCitations,
   wrapCitationPrompt,
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 import OpenAI from "openai";
 import * as readline from "readline";
 
