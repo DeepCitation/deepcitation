@@ -958,37 +958,19 @@ interface AuditSearchDisplayProps {
 function QueryGroupRow({ group }: { group: SearchQueryGroup }) {
   const displayPhrase = truncatePhrase(group.searchPhrase);
 
-  // Format location string
-  let locationText: string;
-  if (group.locations.includesDocScan) {
-    locationText = "Full document";
-  } else if (group.locations.pages.length > 0) {
-    const pages = group.locations.pages;
-    locationText = pages.length === 1 ? `Page ${pages[0]}` : `Pages ${pages[0]}-${pages[pages.length - 1]}`;
-  } else {
-    locationText = "";
-  }
-
   return (
-    <div className="py-1">
-      <div className="flex items-start gap-2">
-        <span
-          className={cn(
-            "size-3 max-w-3 max-h-3 mt-0.5 shrink-0",
-            group.anySuccess ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500",
-          )}
-          role="img"
-          aria-label={group.anySuccess ? "Found" : "Not found"}
-        >
-          {group.anySuccess ? <CheckIcon /> : <MissIcon />}
-        </span>
-        <div className="flex-1 min-w-0">
-          <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">
-            {displayPhrase}
-          </QuotedText>
-          {locationText && <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{locationText}</div>}
-        </div>
-      </div>
+    <div className="flex items-start gap-1.5 py-0.5">
+      <span
+        className={cn(
+          "size-3 max-w-3 max-h-3 mt-0.5 shrink-0",
+          group.anySuccess ? "text-green-600 dark:text-green-400" : "text-red-400 dark:text-red-500",
+        )}
+        role="img"
+        aria-label={group.anySuccess ? "Found" : "Not found"}
+      >
+        {group.anySuccess ? <CheckIcon /> : <XIcon />}
+      </span>
+      <span className="text-xs font-mono text-gray-700 dark:text-gray-200 break-all">{displayPhrase}</span>
     </div>
   );
 }
@@ -1097,14 +1079,27 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
 
   // For not_found: show query-centric groups
   const groups = summary?.queryGroups ?? [];
+
+  // Derive a single location summary from all groups (avoids per-row repetition)
+  const allPages = new Set(groups.flatMap(g => g.locations.pages));
+  const anyDocScan = groups.some(g => g.locations.includesDocScan);
+  const locationSummary = anyDocScan
+    ? "Searched full document"
+    : allPages.size === 1
+      ? `Searched page ${[...allPages][0]}`
+      : allPages.size > 1
+        ? `Searched pages ${[...allPages].sort((a, b) => a - b).join(", ")}`
+        : "";
+
   return (
-    <div className="px-4 py-3 space-y-4 text-sm">
-      <div>
-        <div className="space-y-0.5">
-          {groups.map(group => (
-            <QueryGroupRow key={group.searchPhrase} group={group} />
-          ))}
-        </div>
+    <div className="px-4 py-2 space-y-1.5 text-sm">
+      {locationSummary && (
+        <div className="text-[10px] text-gray-400 dark:text-gray-500">{locationSummary}</div>
+      )}
+      <div className="space-y-0">
+        {groups.map(group => (
+          <QueryGroupRow key={group.searchPhrase} group={group} />
+        ))}
       </div>
     </div>
   );
