@@ -106,7 +106,10 @@ export function mapSearchStatusToFetchStatus(status: SearchStatus | null | undef
     case "first_word_found":
       return "partial";
     case "not_found":
-      return "error_not_found";
+      // SearchStatus.not_found means the text wasn't found on the page,
+      // NOT that the page returned HTTP 404.  When urlAccessStatus is
+      // absent we can't infer URL-level errors from a search miss.
+      return "unknown";
     case "loading":
     case "pending":
     case "timestamp_wip":

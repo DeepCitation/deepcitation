@@ -136,7 +136,8 @@ function mapSearchStatusToUrlFetchStatus(status: SearchStatus | null | undefined
     case "first_word_found":
       return "partial";
     case "not_found":
-      return "error_not_found";
+      // SearchStatus.not_found = text not found on page, not HTTP 404.
+      return "unknown";
     case "loading":
     case "pending":
     case "timestamp_wip":
@@ -1099,7 +1100,6 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
   return (
     <div className="px-4 py-3 space-y-4 text-sm">
       <div>
-        <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Search details</div>
         <div className="space-y-0.5">
           {groups.map(group => (
             <QueryGroupRow key={group.searchPhrase} group={group} />

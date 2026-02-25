@@ -427,6 +427,31 @@ export const CopyIcon = ({ className }: { className?: string }) => (
 );
 
 /**
+ * Expand/maximize icon (four-corner arrows) for keyhole hover overlay
+ * Size is controlled by parent container
+ */
+export const ExpandIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    width="100%"
+    height="100%"
+  >
+    <polyline points="15 3 21 3 21 9" />
+    <polyline points="9 21 3 21 3 15" />
+    <polyline points="21 15 21 21 15 21" />
+    <polyline points="3 9 3 3 9 3" />
+  </svg>
+);
+
+/**
  * Open hand icon for drag-to-pan affordance
  * Size is controlled by parent container
  */
