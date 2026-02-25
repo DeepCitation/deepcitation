@@ -117,7 +117,9 @@ async function expandToFullPage(page: import("@playwright/test").Page) {
   const popover = page.locator("[data-radix-popper-content-wrapper]");
   await expect(popover).toBeVisible();
 
-  const expandButton = popover.getByLabel(/Expand to full page/);
+  // Use .first() to handle the triple always-render EvidenceZone pattern where
+  // hidden (display:none) views may contain duplicate aria-labels in the DOM.
+  const expandButton = popover.getByLabel(/Expand to full page/).first();
   await expect(expandButton).toBeVisible({ timeout: 5000 });
   await expandButton.click();
 

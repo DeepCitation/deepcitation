@@ -120,7 +120,7 @@ test.describe("Proof Link Interactions", () => {
     await expect(proofLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 
-  test("expanded view shows Back button and page number", async ({ mount, page }) => {
+  test("expanded view shows full-page image and page number", async ({ mount, page }) => {
     await mount(
       <CitationComponent
         citation={documentCitation}
@@ -138,8 +138,9 @@ test.describe("Proof Link Interactions", () => {
     const pagePillButton = popover.getByRole("button", { name: /expand to full page 5/i });
     await pagePillButton.click();
 
-    // Verify Back button and page number are visible in expanded header
-    await expect(popover.getByText("Back")).toBeVisible({ timeout: 10000 });
+    // Verify expanded view is visible and page number is shown in header
+    const expandedView = popover.locator("[data-dc-inline-expanded]").filter({ visible: true });
+    await expect(expandedView).toBeVisible({ timeout: 10000 });
     await expect(popover.getByText("p.5")).toBeVisible();
   });
 });
@@ -181,7 +182,8 @@ test.describe("Proof Link Security", () => {
 
     // Expand and verify no proof link
     await pagePillButton.click();
-    await expect(popover.getByText("Back")).toBeVisible({ timeout: 10000 });
+    const expandedView = popover.locator("[data-dc-inline-expanded]").filter({ visible: true });
+    await expect(expandedView).toBeVisible({ timeout: 10000 });
     await expect(popover.getByRole("link", { name: /open proof in new tab/i })).not.toBeVisible();
   });
 
@@ -217,7 +219,8 @@ test.describe("Proof Link Security", () => {
 
     // Expand and verify no proof link
     await pagePillButton.click();
-    await expect(popover.getByText("Back")).toBeVisible({ timeout: 10000 });
+    const expandedView = popover.locator("[data-dc-inline-expanded]").filter({ visible: true });
+    await expect(expandedView).toBeVisible({ timeout: 10000 });
     await expect(popover.getByRole("link", { name: /open proof in new tab/i })).not.toBeVisible();
   });
 
