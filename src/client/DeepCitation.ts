@@ -128,7 +128,7 @@ async function createApiError(response: Response, fallbackAction: string): Promi
  *
  * @example
  * ```typescript
- * import { DeepCitation } from '@deepcitation/deepcitation-js';
+ * import { DeepCitation } from 'deepcitation';
  *
  * const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
  *
@@ -547,7 +547,7 @@ export class DeepCitation {
    *
    * @example
    * ```typescript
-   * import { getAllCitationsFromLlmOutput } from '@deepcitation/deepcitation-js';
+   * import { getAllCitationsFromLlmOutput } from 'deepcitation';
    *
    * const citations = getAllCitationsFromLlmOutput(llmResponse);
    * const verified = await deepcitation.verifyAttachment(attachmentId, citations);

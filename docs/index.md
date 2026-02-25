@@ -13,7 +13,7 @@ Verify AI citations against source documents. Visual proof for every claim.
 {: .fs-6 .fw-300 }
 
 [Get Started]({{ site.baseurl }}/getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
-[View on GitHub](https://github.com/DeepCitation/deepcitation-js){: .btn .fs-5 .mb-4 .mb-md-0 }
+[View on GitHub](https://github.com/DeepCitation/deepcitation){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
 
@@ -48,8 +48,8 @@ Verify AI citations against source documents. Visual proof for every claim.
 
 Complete working examples are available on GitHub:
 
-- [Basic Verification](https://github.com/DeepCitation/deepcitation-js/tree/main/examples/basic-verification) - Simple file upload and verification
-- [Next.js AI SDK](https://github.com/DeepCitation/deepcitation-js/tree/main/examples/nextjs-ai-sdk) - Integration with Vercel AI SDK
+- [Basic Verification](https://github.com/DeepCitation/deepcitation/tree/main/examples/basic-verification) - Simple file upload and verification
+- [Next.js AI SDK](https://github.com/DeepCitation/deepcitation/tree/main/examples/nextjs-ai-sdk) - Integration with Vercel AI SDK
 
 ---
 

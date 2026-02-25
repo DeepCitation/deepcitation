@@ -161,7 +161,7 @@ export { DEFAULT_UNDERLINE_STYLES } from "./types.js";
 ## Usage Examples
 
 ```typescript
-import { toMarkdown, DEFAULT_UNDERLINE_STYLES } from "@deepcitation/deepcitation-js";
+import { toMarkdown, DEFAULT_UNDERLINE_STYLES } from "deepcitation";
 
 // Default styling (matches React linter variant)
 const md = toMarkdown(llmOutput, {

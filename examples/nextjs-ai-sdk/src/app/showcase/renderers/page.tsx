@@ -1,9 +1,9 @@
 "use client";
 
-import { renderCitationsForSlack } from "@deepcitation/deepcitation-js/slack";
-import { renderCitationsForGitHub } from "@deepcitation/deepcitation-js/github";
-import { renderCitationsAsHtml } from "@deepcitation/deepcitation-js/html";
-import { renderCitationsForTerminal } from "@deepcitation/deepcitation-js/terminal";
+import { renderCitationsForSlack } from "deepcitation/slack";
+import { renderCitationsForGitHub } from "deepcitation/github";
+import { renderCitationsAsHtml } from "deepcitation/html";
+import { renderCitationsForTerminal } from "deepcitation/terminal";
 import { useMemo, useReducer } from "react";
 import {
   SAMPLE_LLM_OUTPUT,

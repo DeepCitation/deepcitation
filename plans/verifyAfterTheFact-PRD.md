@@ -182,7 +182,7 @@ interface VerificationStats {
 ### Simplest Case
 
 ```typescript
-import { DeepCitation } from "@deepcitation/deepcitation-js";
+import { DeepCitation } from "deepcitation";
 
 const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 

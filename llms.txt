@@ -23,14 +23,14 @@ DeepCitation works in three steps:
 
 ## Documentation
 
-- [README](https://github.com/deepcitation/deepcitation-js#readme): Full documentation with installation, quick start, and API reference
+- [README](https://github.com/deepcitation/deepcitation#readme): Full documentation with installation, quick start, and API reference
 - [Get API Key](https://deepcitation.com/signup): Sign up for a free API key (no credit card required)
 - [API Documentation](https://docs.deepcitation.com/): Complete API reference and guides
 
 ## Installation
 
 ```bash
-npm install @deepcitation/deepcitation-js
+npm install deepcitation
 # or yarn add / bun add
 ```
 
@@ -38,13 +38,13 @@ npm install @deepcitation/deepcitation-js
 
 ```typescript
 // Core client and utilities
-import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "@deepcitation/deepcitation-js";
+import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "deepcitation";
 
 // React components
-import { CitationComponent, ChipCitation, SuperscriptCitation } from "@deepcitation/deepcitation-js/react";
+import { CitationComponent, ChipCitation, SuperscriptCitation } from "deepcitation/react";
 
 // Types
-import type { Citation, Verification } from "@deepcitation/deepcitation-js";
+import type { Citation, Verification } from "deepcitation";
 ```
 
 ## API Reference
@@ -138,5 +138,5 @@ const verified = await deepcitation.verifyCitations(attachmentId, citations);
 
 ## Optional
 
-- [GitHub Issues](https://github.com/deepcitation/deepcitation-js/issues): Report bugs or request features
-- [Contributing Guide](https://github.com/deepcitation/deepcitation-js#contributing): How to contribute to the project
+- [GitHub Issues](https://github.com/deepcitation/deepcitation/issues): Report bugs or request features
+- [Contributing Guide](https://github.com/deepcitation/deepcitation#contributing): How to contribute to the project

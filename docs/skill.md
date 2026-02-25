@@ -537,7 +537,7 @@ The patient was born on March 15, 1985 [1]. They were diagnosed with Type 2 Diab
 
 **Open-source prompts:**
 See the full citation prompt templates at:
-[github.com/DeepCitation/deepcitation-js/blob/main/src/prompts/citationPrompts.ts](https://github.com/DeepCitation/deepcitation-js/blob/main/src/prompts/citationPrompts.ts)
+[github.com/DeepCitation/deepcitation/blob/main/src/prompts/citationPrompts.ts](https://github.com/DeepCitation/deepcitation/blob/main/src/prompts/citationPrompts.ts)
 
 ---
 
@@ -571,7 +571,7 @@ For media content, use timestamps instead of page/line IDs:
 | **Verify Endpoint** | `POST /verifyCitations` |
 | **File Retention** | 30 days |
 | **Image Formats** | `avif` (default), `jpeg`, `png` |
-| **Open-source prompts** | [citationPrompts.ts](https://github.com/DeepCitation/deepcitation-js/blob/main/src/prompts/citationPrompts.ts) |
+| **Open-source prompts** | [citationPrompts.ts](https://github.com/DeepCitation/deepcitation/blob/main/src/prompts/citationPrompts.ts) |
 
 ---
 

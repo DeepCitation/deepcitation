@@ -34,7 +34,7 @@ Please include:
 
 The following are in scope:
 
-- The `@deepcitation/deepcitation-js` npm package (source code in `src/`)
+- The `deepcitation` npm package (source code in `src/`)
 - React components exported from the package
 - Client-side API communication (`src/client/`)
 - Citation parsing logic (`src/parsing/`)
@@ -57,7 +57,7 @@ We follow coordinated disclosure. We will:
 
 ## Security Best Practices for Users
 
-- Always use the latest version of `@deepcitation/deepcitation-js`
+- Always use the latest version of `deepcitation`
 - Store API keys in environment variables, never in code
 - Use HTTPS for all API communication (enforced by default)
 - Review the npm provenance attestation on published packages

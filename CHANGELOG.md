@@ -149,11 +149,11 @@ This release marks the first comprehensive public release of DeepCitation, conso
 
 ### Package Structure
 - **Granular Exports** - Import only what you need:
-  - `@deepcitation/deepcitation-js` - Main entry (parsing, prompts)
-  - `@deepcitation/deepcitation-js/client` - API client only
-  - `@deepcitation/deepcitation-js/prompts` - Prompt utilities only
-  - `@deepcitation/deepcitation-js/react` - React components
-  - `@deepcitation/deepcitation-js/types` - TypeScript types only
+  - `deepcitation` - Main entry (parsing, prompts)
+  - `deepcitation/client` - API client only
+  - `deepcitation/prompts` - Prompt utilities only
+  - `deepcitation/react` - React components
+  - `deepcitation/types` - TypeScript types only
 - **Tree-Shakeable** - ESM and CJS builds with proper exports
 
 ### Performance & Reliability
@@ -300,29 +300,29 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.53...HEAD
-[1.1.53]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.52...v1.1.53
-[1.1.52]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.51...v1.1.52
-[1.1.51]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.50...v1.1.51
-[1.1.50]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.26...v1.1.50
-[1.1.26]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.25...v1.1.26
-[1.1.25]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.24...v1.1.25
-[1.1.24]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.22...v1.1.24
-[1.1.23]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.22...v1.1.23
-[1.1.22]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.21...v1.1.22
-[1.1.21]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.20...v1.1.21
-[1.1.20]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.19...v1.1.20
-[1.1.19]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.18...v1.1.19
-[1.1.18]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.17...v1.1.18
-[1.1.17]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.16...v1.1.17
-[1.1.16]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.15...v1.1.16
-[1.1.15]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.14...v1.1.15
-[1.1.14]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.13...v1.1.14
-[1.1.13]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.12...v1.1.13
-[1.1.12]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.11...v1.1.12
-[1.1.11]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.10...v1.1.11
-[1.1.10]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.9...v1.1.10
-[1.1.9]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.8...v1.1.9
-[1.1.8]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.7...v1.1.8
-[1.1.7]: https://github.com/deepcitation/deepcitation-js/compare/v1.1.6...v1.1.7
-[1.1.6]: https://github.com/deepcitation/deepcitation-js/releases/tag/v1.1.6
+[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v1.1.53...HEAD
+[1.1.53]: https://github.com/deepcitation/deepcitation/compare/v1.1.52...v1.1.53
+[1.1.52]: https://github.com/deepcitation/deepcitation/compare/v1.1.51...v1.1.52
+[1.1.51]: https://github.com/deepcitation/deepcitation/compare/v1.1.50...v1.1.51
+[1.1.50]: https://github.com/deepcitation/deepcitation/compare/v1.1.26...v1.1.50
+[1.1.26]: https://github.com/deepcitation/deepcitation/compare/v1.1.25...v1.1.26
+[1.1.25]: https://github.com/deepcitation/deepcitation/compare/v1.1.24...v1.1.25
+[1.1.24]: https://github.com/deepcitation/deepcitation/compare/v1.1.22...v1.1.24
+[1.1.23]: https://github.com/deepcitation/deepcitation/compare/v1.1.22...v1.1.23
+[1.1.22]: https://github.com/deepcitation/deepcitation/compare/v1.1.21...v1.1.22
+[1.1.21]: https://github.com/deepcitation/deepcitation/compare/v1.1.20...v1.1.21
+[1.1.20]: https://github.com/deepcitation/deepcitation/compare/v1.1.19...v1.1.20
+[1.1.19]: https://github.com/deepcitation/deepcitation/compare/v1.1.18...v1.1.19
+[1.1.18]: https://github.com/deepcitation/deepcitation/compare/v1.1.17...v1.1.18
+[1.1.17]: https://github.com/deepcitation/deepcitation/compare/v1.1.16...v1.1.17
+[1.1.16]: https://github.com/deepcitation/deepcitation/compare/v1.1.15...v1.1.16
+[1.1.15]: https://github.com/deepcitation/deepcitation/compare/v1.1.14...v1.1.15
+[1.1.14]: https://github.com/deepcitation/deepcitation/compare/v1.1.13...v1.1.14
+[1.1.13]: https://github.com/deepcitation/deepcitation/compare/v1.1.12...v1.1.13
+[1.1.12]: https://github.com/deepcitation/deepcitation/compare/v1.1.11...v1.1.12
+[1.1.11]: https://github.com/deepcitation/deepcitation/compare/v1.1.10...v1.1.11
+[1.1.10]: https://github.com/deepcitation/deepcitation/compare/v1.1.9...v1.1.10
+[1.1.9]: https://github.com/deepcitation/deepcitation/compare/v1.1.8...v1.1.9
+[1.1.8]: https://github.com/deepcitation/deepcitation/compare/v1.1.7...v1.1.8
+[1.1.7]: https://github.com/deepcitation/deepcitation/compare/v1.1.6...v1.1.7
+[1.1.6]: https://github.com/deepcitation/deepcitation/releases/tag/v1.1.6

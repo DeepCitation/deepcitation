@@ -218,7 +218,7 @@ export interface WrapCitationPromptResult {
  *
  * @example
  * ```typescript
- * import { wrapSystemCitationPrompt } from '@deepcitation/deepcitation-js';
+ * import { wrapSystemCitationPrompt } from 'deepcitation';
  *
  * const systemPrompt = "You are a helpful assistant that analyzes documents.";
  * const enhanced = wrapSystemCitationPrompt({ systemPrompt });
@@ -246,7 +246,7 @@ export function wrapSystemCitationPrompt(options: WrapSystemPromptOptions): stri
  *
  * @example
  * ```typescript
- * import { wrapCitationPrompt } from '@deepcitation/deepcitation-js';
+ * import { wrapCitationPrompt } from 'deepcitation';
  *
  * // Single file
  * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({

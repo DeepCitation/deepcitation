@@ -44,7 +44,7 @@ interface PrefetchCacheState {
  * module reloads while avoiding collisions with other libraries.
  * The version suffix allows cache invalidation on breaking changes.
  */
-const PREFETCH_CACHE_KEY = Symbol.for("@deepcitation/deepcitation-js:prefetchCache:v1");
+const PREFETCH_CACHE_KEY = Symbol.for("deepcitation:prefetchCache:v1");
 
 /**
  * Type-safe interface for window with prefetch cache.

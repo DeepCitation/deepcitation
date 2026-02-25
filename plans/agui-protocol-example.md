@@ -79,7 +79,7 @@ examples/agui-chat/
     "@ag-ui/client": "^0.0.45",
     "@ag-ui/core": "^0.0.45",
     "@ag-ui/encoder": "^0.0.45",
-    "@deepcitation/deepcitation-js": "latest",
+    "deepcitation": "latest",
     "next": "^16.1.1",
     "openai": "^6.16.0",
     "react": "^19.2.3",
@@ -117,7 +117,7 @@ The heart of the example. Merges `nextjs-ai-sdk`'s `/api/chat` + `/api/verify` i
    - Emit `STATE_DELTA` with `[{ op: "replace", path: "/verificationStatus", value: "verifying" }]`
    - Call `getAllCitationsFromLlmOutput(fullResponse)`
    - Call `dc.verifyAttachment(attachmentId, citations, { ... })`
-     > **Security**: When processing URLs in state or fileDataParts, use `isDomainMatch()` from `@deepcitation/deepcitation-js` for domain validation — **never** use `.includes()` for domain checks (vulnerable to subdomain spoofing per CLAUDE.md).
+     > **Security**: When processing URLs in state or fileDataParts, use `isDomainMatch()` from `deepcitation` for domain validation — **never** use `.includes()` for domain checks (vulnerable to subdomain spoofing per CLAUDE.md).
    - Compute summary (verified/missed/pending counts via `getCitationStatus()`)
    - Emit `STATE_SNAPSHOT` with `{ citations, verifications, summary, verificationStatus: "complete" }`
 10. Emit `RUN_FINISHED`

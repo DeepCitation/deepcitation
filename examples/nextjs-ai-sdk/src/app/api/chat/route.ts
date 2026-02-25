@@ -1,6 +1,6 @@
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import { sanitizeForLog, type FileDataPart, wrapCitationPrompt } from "@deepcitation/deepcitation-js";
+import { sanitizeForLog, type FileDataPart, wrapCitationPrompt } from "deepcitation";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
 export const maxDuration = 60;

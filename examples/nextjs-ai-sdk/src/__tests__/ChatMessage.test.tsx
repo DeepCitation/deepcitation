@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ChatMessage } from "../components/ChatMessage";
 
 // Mock the CitationComponent from deepcitation
-vi.mock("@deepcitation/deepcitation-js/react", () => ({
+vi.mock("deepcitation/react", () => ({
   CitationComponent: ({ citation }: { citation: any }) => (
     <span data-testid="citation">[{citation?.fullPhrase || "citation"}]</span>
   ),

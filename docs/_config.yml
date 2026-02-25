@@ -13,7 +13,7 @@ color_scheme: light
 
 # Aux links (top right)
 aux_links:
-  "GitHub": "https://github.com/DeepCitation/deepcitation-js"
+  "GitHub": "https://github.com/DeepCitation/deepcitation"
   "Get API Key": "https://deepcitation.com/usage"
 
 aux_links_new_tab: true

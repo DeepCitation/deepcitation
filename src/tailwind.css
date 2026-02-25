@@ -1,5 +1,5 @@
 /* DeepCitation Tailwind v4 source configuration
  * Import this file in your main CSS to include library classes:
- * @import "@deepcitation/deepcitation-js/tailwind.css";
+ * @import "deepcitation/tailwind.css";
  */
 @source "./react";

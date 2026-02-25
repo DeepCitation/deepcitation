@@ -65,8 +65,8 @@ Actionable checklist for preparing and publishing a release of `deepcitation`. C
   ```
 - [ ] **Update `[Unreleased]` comparison link** — at the bottom of `CHANGELOG.md`, update the comparison URL:
   ```markdown
-  [Unreleased]: https://github.com/DeepCitation/deepcitation-js/compare/vX.Y.Z...HEAD
-  [X.Y.Z]: https://github.com/DeepCitation/deepcitation-js/compare/vPREVIOUS...vX.Y.Z
+  [Unreleased]: https://github.com/DeepCitation/deepcitation/compare/vX.Y.Z...HEAD
+  [X.Y.Z]: https://github.com/DeepCitation/deepcitation/compare/vPREVIOUS...vX.Y.Z
   ```
 
 ---

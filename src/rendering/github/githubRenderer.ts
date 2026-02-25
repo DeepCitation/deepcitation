@@ -24,7 +24,7 @@ const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
  *
  * @example
  * ```typescript
- * import { renderCitationsForGitHub } from "@deepcitation/deepcitation-js/github";
+ * import { renderCitationsForGitHub } from "deepcitation/github";
  *
  * const output = renderCitationsForGitHub(llmOutput, {
  *   verifications,

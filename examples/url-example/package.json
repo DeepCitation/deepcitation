@@ -7,7 +7,7 @@
     "start": "bun run src/url.ts"
   },
   "dependencies": {
-    "@deepcitation/deepcitation-js": "latest",
+    "deepcitation": "latest",
     "openai": "^4.104.0"
   },
   "devDependencies": {

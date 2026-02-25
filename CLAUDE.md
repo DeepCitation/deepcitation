@@ -16,7 +16,7 @@ import {
   CITATION_JSON_OUTPUT_FORMAT,
   CITATION_REMINDER,
   getAllCitationsFromLlmOutput,
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 ```
 
 ### React Components (/react)
@@ -26,7 +26,7 @@ import {
   SourcesListComponent,
   SourcesTrigger,
   SourcesListItem,
-} from "@deepcitation/deepcitation-js/react";
+} from "deepcitation/react";
 ```
 
 ### Types
@@ -35,7 +35,7 @@ import type {
   Citation, CitationType, Verification, SourceType,
   CitationRecord,      // Record<string, Citation> — NOT an array
   VerificationRecord,  // Record<string, Verification>
-} from "@deepcitation/deepcitation-js";
+} from "deepcitation";
 ```
 
 `CitationRecord` is an object keyed by citationKey hash. Check emptiness with `Object.keys(citations).length === 0`, not `.length`.

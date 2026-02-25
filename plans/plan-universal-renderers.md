@@ -204,7 +204,7 @@ The company hired 500 engineers. <https://proof.deepcitation.com/p/def456|[2⚠]
 #### API
 
 ```typescript
-import { renderCitationsForSlack } from "@deepcitation/deepcitation-js/slack";
+import { renderCitationsForSlack } from "deepcitation/slack";
 
 const output = renderCitationsForSlack(llmOutput, {
   verifications,
@@ -297,7 +297,7 @@ The company hired 500 engineers. [[2⚠]](https://proof.deepcitation.com/p/def45
 #### API
 
 ```typescript
-import { renderCitationsForGitHub } from "@deepcitation/deepcitation-js/github";
+import { renderCitationsForGitHub } from "deepcitation/github";
 
 const output = renderCitationsForGitHub(llmOutput, {
   verifications,
@@ -367,7 +367,7 @@ const output = renderCitationsForGitHub(llmOutput, {
 #### API
 
 ```typescript
-import { renderCitationsAsHtml } from "@deepcitation/deepcitation-js/html";
+import { renderCitationsAsHtml } from "deepcitation/html";
 
 const output = renderCitationsAsHtml(llmOutput, {
   verifications,
@@ -431,7 +431,7 @@ The product launched last month. [3✗]  ← red
 #### API
 
 ```typescript
-import { renderCitationsForTerminal } from "@deepcitation/deepcitation-js/terminal";
+import { renderCitationsForTerminal } from "deepcitation/terminal";
 
 const output = renderCitationsForTerminal(llmOutput, {
   verifications,
@@ -601,15 +601,15 @@ that re-export. This avoids variable re-export chains.
 
 ```typescript
 // Existing (unchanged)
-import { getAllCitationsFromLlmOutput } from "@deepcitation/deepcitation-js";
-import { CitationComponent } from "@deepcitation/deepcitation-js/react";
-import { toMarkdown } from "@deepcitation/deepcitation-js/markdown";
+import { getAllCitationsFromLlmOutput } from "deepcitation";
+import { CitationComponent } from "deepcitation/react";
+import { toMarkdown } from "deepcitation/markdown";
 
 // New targets
-import { renderCitationsForSlack } from "@deepcitation/deepcitation-js/slack";
-import { renderCitationsForGitHub } from "@deepcitation/deepcitation-js/github";
-import { renderCitationsAsHtml } from "@deepcitation/deepcitation-js/html";
-import { renderCitationsForTerminal } from "@deepcitation/deepcitation-js/terminal";
+import { renderCitationsForSlack } from "deepcitation/slack";
+import { renderCitationsForGitHub } from "deepcitation/github";
+import { renderCitationsAsHtml } from "deepcitation/html";
+import { renderCitationsForTerminal } from "deepcitation/terminal";
 ```
 
 ---

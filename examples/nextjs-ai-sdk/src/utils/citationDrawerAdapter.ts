@@ -1,5 +1,5 @@
-import type { Citation, Verification } from "@deepcitation/deepcitation-js";
-import type { CitationDrawerItem } from "@deepcitation/deepcitation-js/react";
+import type { Citation, Verification } from "deepcitation";
+import type { CitationDrawerItem } from "deepcitation/react";
 
 /**
  * Convert the verify API response into CitationDrawerItem[] for use

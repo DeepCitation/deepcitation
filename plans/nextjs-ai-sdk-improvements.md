@@ -111,7 +111,7 @@ try {
 
 **File**: `src/components/VerificationPanel.tsx` (lines 5-15)
 
-Props use `Record<string, any>` instead of proper types from deepcitation-js.
+Props use `Record<string, any>` instead of proper types from deepcitation.
 
 ```typescript
 // BEFORE
@@ -119,7 +119,7 @@ citations: Record<string, any>;
 verifications: Record<string, any>;
 
 // AFTER
-import type { Citation, Verification } from "@deepcitation/deepcitation-js";
+import type { Citation, Verification } from "deepcitation";
 
 citations: Record<string, Citation>;
 verifications: Record<string, Verification>;
@@ -132,7 +132,7 @@ verifications: Record<string, Verification>;
 If one CitationComponent throws, the entire message crashes. DeepCitation exports `CitationErrorBoundary` for exactly this purpose.
 
 ```typescript
-import { CitationErrorBoundary, CitationComponent } from "@deepcitation/deepcitation-js/react";
+import { CitationErrorBoundary, CitationComponent } from "deepcitation/react";
 
 // In processContentWithCitations:
 elements.push(

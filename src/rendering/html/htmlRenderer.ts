@@ -19,7 +19,7 @@ const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
  *
  * @example
  * ```typescript
- * import { renderCitationsAsHtml } from "@deepcitation/deepcitation-js/html";
+ * import { renderCitationsAsHtml } from "deepcitation/html";
  *
  * const output = renderCitationsAsHtml(llmOutput, {
  *   verifications,
