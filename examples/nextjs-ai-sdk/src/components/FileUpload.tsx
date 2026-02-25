@@ -27,6 +27,8 @@ export function FileUpload({ onUpload, uploadedFiles }: FileUploadProps) {
     setIsUploading(true);
     try {
       await onUpload(file);
+    } catch (e) {
+      throw e;
     } finally {
       setIsUploading(false);
       // Reset input so the same file can be uploaded again

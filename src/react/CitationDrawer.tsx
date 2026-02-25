@@ -238,8 +238,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const collapseInlineSignal = escCtx?.collapseInlineSignal ?? 0;
   const onSubstateChange = escCtx?.onSubstateChange;
 
-  // Track which collapseInlineSignal we have already acted on to avoid false-triggers on mount
-  const seenInlineSignalRef = useRef(0);
+  // Track which collapseInlineSignal we have already acted on to avoid false-triggers on mount.
+  // useState (not useRef) so the React Compiler can track the value for auto-memoization.
+  const [seenInlineSignal, setSeenInlineSignal] = useState(0);
 
   // Clear inline expansion: when collapsed, or when parent sends collapse signal (Escape).
   // Uses setState-during-render to avoid cascading renders from useEffect.
@@ -248,19 +249,19 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   if (!isExpanded && prevIsExpanded) {
     setPrevIsExpanded(false);
     setInlineExpandedSrc(null);
-    seenInlineSignalRef.current = collapseInlineSignal;
+    setSeenInlineSignal(collapseInlineSignal);
   } else if (isExpanded && !prevIsExpanded) {
     setPrevIsExpanded(true);
   }
   if (isExpanded && collapseInlineSignal !== prevCollapseSignal) {
     setPrevCollapseSignal(collapseInlineSignal);
-    if (collapseInlineSignal > seenInlineSignalRef.current) {
-      seenInlineSignalRef.current = collapseInlineSignal;
+    if (collapseInlineSignal > seenInlineSignal) {
+      setSeenInlineSignal(collapseInlineSignal);
       setInlineExpandedSrc(null);
     }
   } else if (collapseInlineSignal !== prevCollapseSignal) {
     setPrevCollapseSignal(collapseInlineSignal);
-    seenInlineSignalRef.current = collapseInlineSignal;
+    setSeenInlineSignal(collapseInlineSignal);
   }
 
   // Report substate to parent so the escape handler knows what to collapse next

@@ -244,9 +244,9 @@ export function CitationAnnotationOverlay({
       )}
 
       {/* Additional highlights for partial match locations */}
-      {additionalHighlights?.map((h, i) => (
+      {additionalHighlights?.map(h => (
         <SecondaryBrackets
-          key={`additional-${i}`}
+          key={`additional-${h.deepItem.x}-${h.deepItem.y}-${h.color ?? "amber"}`}
           deepItem={h.deepItem}
           renderScale={renderScale}
           imageNaturalWidth={imageNaturalWidth}

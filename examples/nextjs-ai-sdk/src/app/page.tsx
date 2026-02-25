@@ -40,7 +40,6 @@ export default function Home() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [provider, setProvider] = useState<ModelProvider>("gemini");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const wasLoadingRef = useRef(false);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     streamProtocol: "text",
@@ -79,20 +78,19 @@ export default function Home() {
       .finally(() => setIsVerifying(false));
   });
 
-  // Detect when streaming completes (isLoading: true -> false) and verify
-  useEffect(() => {
-    const wasLoading = wasLoadingRef.current;
-    wasLoadingRef.current = isLoading;
+  // Detect when streaming completes (isLoading: true → false) and verify.
+  // Uses setState-during-render instead of useEffect to avoid React Compiler bailout.
+  const [prevIsLoading, setPrevIsLoading] = useState(false);
+  const pendingVerifyRef = useRef<{ id: string; content: string } | null>(null);
+  const [verifySignal, setVerifySignal] = useState(0);
 
-    // When loading just finished
-    if (wasLoading && !isLoading) {
+  if (isLoading !== prevIsLoading) {
+    setPrevIsLoading(isLoading);
+    if (!isLoading && prevIsLoading) {
       const lastMessage = messages[messages.length - 1];
-      // Only verify if this message hasn't been verified yet
       if (lastMessage?.role === "assistant" && !messageVerifications[lastMessage.id]) {
-        console.log("[useEffect] Stream finished, verifying...");
+        console.log("[render] Stream finished, verifying...");
         setIsVerifying(true);
-
-        // Get message content from either content or parts
         const messageContent =
           lastMessage.content ||
           lastMessage.parts
@@ -100,11 +98,19 @@ export default function Home() {
             .map(p => p.text)
             .join("") ||
           "";
-
-        onVerifyMessage(lastMessage.id, messageContent);
+        pendingVerifyRef.current = { id: lastMessage.id, content: messageContent };
+        setVerifySignal(s => s + 1);
       }
     }
-  }, [isLoading, messages, messageVerifications]);
+  }
+
+  // Flush pending verification (side effects must live in useEffect, not render body)
+  useEffect(() => {
+    const pending = pendingVerifyRef.current;
+    if (!pending) return;
+    pendingVerifyRef.current = null;
+    onVerifyMessage(pending.id, pending.content);
+  }, [verifySignal]);
 
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -160,8 +166,9 @@ export default function Home() {
             <div className="flex items-center gap-4">
               {/* Model Provider Selection */}
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-gray-500">Model:</label>
+                <label htmlFor="provider-select" className="text-xs font-medium text-gray-500">Model:</label>
                 <select
+                  id="provider-select"
                   value={provider}
                   onChange={e => setProvider(e.target.value as ModelProvider)}
                   className="text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"

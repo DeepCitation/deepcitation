@@ -184,13 +184,13 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
   if (snippets.length === 0) return null;
   return (
     <div className="px-4 py-2 space-y-1.5 border-b border-gray-100 dark:border-gray-800">
-      {snippets.slice(0, 3).map((snippet, idx) => {
+      {snippets.slice(0, 3).map(snippet => {
         const before = snippet.contextText.slice(0, snippet.matchStart);
         const match = snippet.contextText.slice(snippet.matchStart, snippet.matchEnd);
         const after = snippet.contextText.slice(snippet.matchEnd);
         return (
           <div
-            key={`popover-snippet-${idx}-${snippet.matchStart}`}
+            key={`snippet-${snippet.matchStart}-${snippet.matchEnd}`}
             className="text-xs text-gray-600 dark:text-gray-300 font-mono leading-relaxed"
           >
             {before && <span className="text-gray-400 dark:text-gray-500">...{before}</span>}
@@ -466,7 +466,7 @@ function PopoverFallbackView({
         )}
         {pageNumber && pageNumber > 0 && (
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            {isImageSource(verification) ? "View Image" : `Page ${pageNumber}`}
+            {isImageSource(verification) ? "Image" : `Page ${pageNumber}`}
           </span>
         )}
       </div>
@@ -586,6 +586,7 @@ export function DefaultPopoverContent({
   const localPrevBeforeExpandedPageRef = useRef<"summary" | "expanded-evidence">("summary");
   const prevBeforeExpandedPageRef = propPrevBeforeExpandedPageRef ?? localPrevBeforeExpandedPageRef;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: prevBeforeExpandedPageRef is a stable ref identity — including it causes a React Compiler bailout (value modification after hook)
   const handleExpand = useCallback(() => {
     if (!canExpandToPage) return;
     // Only record origin state when first entering expanded-page (not on redundant calls)
@@ -593,7 +594,7 @@ export function DefaultPopoverContent({
       prevBeforeExpandedPageRef.current = viewState === "expanded-evidence" ? "expanded-evidence" : "summary";
     }
     onViewStateChange?.("expanded-page");
-  }, [canExpandToPage, onViewStateChange, viewState, prevBeforeExpandedPageRef]);
+  }, [canExpandToPage, onViewStateChange, viewState]);
 
   // Resolve the evidence image src once at this level (used by handleKeyholeClick and Zone 3).
   const evidenceSrc = useMemo(() => {

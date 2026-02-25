@@ -84,6 +84,7 @@ src/
 │   │   ├── useZoomControls.ts       # Zoom state with clamping and steps
 │   │   ├── useCitationData.ts       # Citation key, instance ID, status
 │   │   ├── useCitationEvents.ts     # Click/hover/keyboard event handlers
+│   │   ├── useExpandedPageSideOffset.ts # Expanded-page popover vertical offset
 │   │   └── useAnimationState.ts     # Enter/exit animation lifecycle
 │   └── utils.ts          # generateCitationKey() — CANONICAL LOCATION
 ├── markdown/
@@ -243,6 +244,7 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `useZoomControls()` | `src/react/hooks/useZoomControls.ts` | Zoom state with clamping and steps |
 | `useCitationData()` | `src/react/hooks/useCitationData.ts` | Citation key, instance ID, status derivation |
 | `useCitationEvents()` | `src/react/hooks/useCitationEvents.ts` | Click/hover/keyboard event handlers |
+| `useExpandedPageSideOffset()` | `src/react/hooks/useExpandedPageSideOffset.ts` | Expanded-page popover vertical offset |
 | `useAnimationState()` | `src/react/hooks/useAnimationState.ts` | Enter/exit animation lifecycle |
 
 ### Example

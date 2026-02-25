@@ -21,6 +21,7 @@ import {
 } from "./constants.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
 import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
+import { useExpandedPageSideOffset } from "./hooks/useExpandedPageSideOffset.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { WarningIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
@@ -518,20 +519,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       [ref],
     );
 
-    // For expanded-page mode, compute a sideOffset that positions the popover
-    // at 1rem from the viewport top. floating-ui's shift middleware only shifts
-    // on the main axis (horizontal for side="bottom"), not vertically. We use the
-    // offset middleware instead by computing the exact vertical offset needed.
-    // useLayoutEffect runs after the DOM is committed (safe for getBoundingClientRect)
-    // and before paint, so the offset is applied before the popover is visible.
-    const [expandedPageSideOffset, setExpandedPageSideOffset] = useState<number | undefined>(undefined);
-    useLayoutEffect(() => {
-      // Compute sideOffset so the popover lands 1rem from viewport top in expanded-page mode.
-      // For side="bottom": popover.top = trigger.bottom + sideOffset → target VIEWPORT_MARGIN.
-      const VIEWPORT_MARGIN = 16; // 1rem
-      const triggerRect = popoverViewState === "expanded-page" ? triggerRef.current?.getBoundingClientRect() : null;
-      setExpandedPageSideOffset(triggerRect ? VIEWPORT_MARGIN - triggerRect.bottom : undefined);
-    }, [popoverViewState]);
+    // Isolated into a separate hook so the React Compiler can optimize CitationComponent
+    // (setState in useLayoutEffect causes a compiler bailout for the entire component).
+    const expandedPageSideOffset = useExpandedPageSideOffset(popoverViewState, triggerRef);
 
     const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
