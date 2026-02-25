@@ -1,4 +1,4 @@
-import { DeepCitation, getAllCitationsFromLlmOutput, getCitationStatus } from "@deepcitation/deepcitation-js";
+import { DeepCitation, getAllCitationsFromLlmOutput, getCitationStatus, sanitizeForLog } from "@deepcitation/deepcitation-js";
 import { type NextRequest, NextResponse } from "next/server";
 
 // Check for API key at startup
@@ -119,9 +119,9 @@ export async function POST(req: NextRequest) {
         pending,
       },
     });
-  } catch (error: any) {
-    const message = error?.message || "Unknown error";
-    console.error("Verification error:", message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Verification error:", sanitizeForLog(message));
 
     if (message.includes("Invalid or expired API key")) {
       return NextResponse.json(
@@ -133,6 +133,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ error: "Failed to verify citations", details: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to verify citations" }, { status: 500 });
   }
 }

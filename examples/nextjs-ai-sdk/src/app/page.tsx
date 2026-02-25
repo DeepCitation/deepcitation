@@ -74,8 +74,11 @@ export default function Home() {
         attachmentId: fileDataParts[0].attachmentId,
       }),
     })
-      .then(res => {
-        if (!res.ok) throw new Error(`Verification request failed (${res.status})`);
+      .then(async res => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || `Verification request failed (${res.status})`);
+        }
         return res.json();
       })
       .then((data: MessageVerificationResult) => {
