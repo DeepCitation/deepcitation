@@ -22,8 +22,8 @@ import {
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
 import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { useExpandedPageSideOffset } from "./hooks/useExpandedPageSideOffset.js";
-import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
+import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
 import { WarningIcon } from "./icons.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
@@ -526,11 +526,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // Lock the popover side (top/bottom) on open so scroll doesn't cause Radix's
     // flip middleware to jump the popover between sides. Also isolated for compiler.
-    const lockedSide = useLockedPopoverSide(
-      isHovering,
-      popoverPosition === "top" ? "top" : "bottom",
-      triggerRef,
-    );
+    const lockedSide = useLockedPopoverSide(isHovering, popoverPosition === "top" ? "top" : "bottom", triggerRef);
 
     const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
@@ -1201,10 +1197,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                   : lockedSide
               }
               sideOffset={expandedPageSideOffset}
-              // Disable collision avoidance so Radix's flip middleware cannot
-              // reposition the popover as the user scrolls. The locked side
-              // (computed once on open) already picks the best placement.
-              avoidCollisions={false}
+              // Summary: disable collision avoidance — the locked side already
+              // picks the best placement and we don't want flip/shift during scroll.
+              // Expanded states: enable it so Radix's shift middleware keeps the
+              // wider popover within viewport bounds on narrow screens.
+              avoidCollisions={popoverViewState !== "summary"}
               onCloseAutoFocus={(e: Event) => {
                 // Prevent Radix from returning focus to the trigger on close.
                 // Without this, the browser scrolls the trigger into view — which

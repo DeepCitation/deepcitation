@@ -326,3 +326,25 @@ You **can** humanize line IDs into relative positions for location mismatch cont
 `Page 3 (expected early, found middle)`  // ✓ Helpful context without exposing internals
 `Page 3, Lines 12-15`                    // ❌ Raw line IDs
 ```
+
+## Important: Popover `avoidCollisions` Must Stay Enabled for Expanded States
+
+**NEVER set `avoidCollisions={false}` unconditionally on `<PopoverContent>`.** This disables Radix's shift middleware, which keeps the popover within viewport bounds. Without it, expanded popovers (keyhole and full-page) overflow the viewport on narrow screens and the expanded-page view escapes the viewable area entirely.
+
+### Root Cause (historical)
+
+The summary popover used to jump between top/bottom during scroll because Radix's flip middleware would reposition it. The fix was `avoidCollisions={false}` + a locked side (`useLockedPopoverSide`). But applying this unconditionally also disabled the **shift** middleware for expanded states, which need it because their width grows toward `calc(100dvw - 2rem)` — on narrow viewports, centering a wide popover on a right-aligned trigger pushes the left edge off-screen.
+
+### Correct Pattern
+
+```tsx
+// CitationComponent.tsx — <PopoverContent> props
+avoidCollisions={popoverViewState !== "summary"}
+```
+
+- **Summary**: `false` — locked side handles placement, no shift/flip needed.
+- **Expanded-evidence / expanded-page**: `true` — shift middleware keeps the wider popover within viewport bounds.
+
+### Related: `EXPANDED_POPOVER_HEIGHT` Must Not Use `--radix-popover-content-available-height`
+
+The base `maxHeight` in `Popover.tsx` uses `EXPANDED_POPOVER_HEIGHT` from `constants.ts`. This must be a fixed `calc(100vh - 2rem)`, **not** `min(calc(100vh - 2rem), var(--radix-popover-content-available-height, ...))`. The Radix CSS variable updates continuously as the trigger scrolls, causing the popover to visibly resize on scroll.
