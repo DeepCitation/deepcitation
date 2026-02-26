@@ -1194,6 +1194,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                     : "top"
               }
               sideOffset={expandedPageSideOffset}
+              onCloseAutoFocus={(e: Event) => {
+                // Prevent Radix from returning focus to the trigger on close.
+                // Without this, the browser scrolls the trigger into view — which
+                // is disorienting when the user has scrolled away before dismissing.
+                e.preventDefault();
+              }}
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
               onEscapeKeyDown={e => {
