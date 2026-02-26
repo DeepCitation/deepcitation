@@ -678,9 +678,6 @@ export function StatusHeader({
   indicatorVariant = "icon",
   isImage,
 }: StatusHeaderProps) {
-  // "none" variant hides the entire status header (no icon, no text, no page badge)
-  if (indicatorVariant === "none") return null;
-
   const colorScheme = getStatusColorScheme(status);
   const headerText = getStatusHeaderText(status);
 
