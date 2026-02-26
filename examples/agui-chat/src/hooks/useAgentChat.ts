@@ -34,6 +34,7 @@ export interface MessageVerificationResult {
 interface UseAgentChatOptions {
   agentUrl: string;
   fileDataParts: FileDataPart[];
+  deepTextPromptPortions: string[];
 }
 
 interface UseAgentChatReturn {
@@ -52,6 +53,7 @@ let runCounter = 0;
 export function useAgentChat({
   agentUrl,
   fileDataParts,
+  deepTextPromptPortions,
 }: UseAgentChatOptions): UseAgentChatReturn {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -109,6 +111,7 @@ export function useAgentChat({
         messages: agentMessages,
         state: {
           fileDataParts,
+          deepTextPromptPortions,
         },
       });
 
@@ -213,7 +216,7 @@ export function useAgentChat({
         },
       });
     },
-    [agentUrl, fileDataParts, messages, cancel],
+    [agentUrl, fileDataParts, deepTextPromptPortions, messages, cancel],
   );
 
   const retry = useCallback(

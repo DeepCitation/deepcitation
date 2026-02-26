@@ -39,7 +39,7 @@ The simplest integration showing the complete workflow:
 
 ```typescript
 // 1. Upload documents
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachment([...]);
+const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([...]);
 
 // 2. Wrap prompts with citation instructions
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({

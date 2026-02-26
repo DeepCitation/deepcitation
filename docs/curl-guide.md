@@ -18,7 +18,7 @@ Upload a PDF or image file to extract text for your LLM prompt:
 
 ```bash
 # Upload a PDF file
-curl -X POST "https://api.deepcitation.com/prepareFile" \
+curl -X POST "https://api.deepcitation.com/prepareAttachments" \
   -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -F "file=@document.pdf"
 ```
@@ -27,7 +27,7 @@ For images (auto-OCR):
 
 ```bash
 # Upload an image for OCR
-curl -X POST "https://api.deepcitation.com/prepareFile" \
+curl -X POST "https://api.deepcitation.com/prepareAttachments" \
   -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -F "file=@scanned-invoice.jpg"
 ```
@@ -79,7 +79,7 @@ BASE_URL="https://api.deepcitation.com"
 
 # Step 1: Upload file
 echo "Uploading document..."
-UPLOAD_RESPONSE=$(curl -s -X POST "$BASE_URL/prepareFile" \
+UPLOAD_RESPONSE=$(curl -s -X POST "$BASE_URL/prepareAttachments" \
   -H "Authorization: Bearer $API_KEY" \
   -F "file=@document.pdf")
 
@@ -144,7 +144,7 @@ curl -s ... | jq '.verifications | to_entries[] | {key: .key, page: .value.pageN
 | **Base URL** | `https://api.deepcitation.com` |
 | **Auth Header** | `Authorization: Bearer dc_live_xxx` |
 | **Content-Type** | `application/json` (for verify) |
-| **Endpoints** | `POST /prepareFile`, `POST /verifyCitations` |
+| **Endpoints** | `POST /prepareAttachments`, `POST /verifyCitations` |
 | **File Types** | PDFs, Images, Office Docs, URLs |
 | **Image Formats** | `avif` (default, smallest), `jpeg`, `png` |
 | **File Retention** | 30 days |

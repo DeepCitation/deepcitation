@@ -18,8 +18,8 @@ import {
 } from "./constants.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { formatTtc } from "./timingUtils.js";
-import { cn } from "./utils.js";
 import type { IndicatorVariant } from "./types.js";
+import { cn } from "./utils.js";
 
 // =========
 // Types

@@ -15,8 +15,8 @@ import type {
   ExtendExpirationResponse,
   FileDataPart,
   FileInput,
+  PrepareAttachmentsResult,
   PrepareConvertedFileOptions,
-  PrepareFilesResult,
   PrepareUrlOptions,
   UploadFileOptions,
   UploadFileResponse,
@@ -190,7 +190,7 @@ export class DeepCitation {
    */
   constructor(config: DeepCitationConfig) {
     if (!config.apiKey) {
-      throw new AuthenticationError("DeepCitation API key is required. Get one at https://deepcitation.com/dashboard");
+      throw new AuthenticationError("DeepCitation API key is required. Get one at https://deepcitation.com");
     }
     this.apiKey = config.apiKey;
     this.apiUrl = config.apiUrl?.replace(/\/$/, "") || DEFAULT_API_URL;
@@ -270,7 +270,7 @@ export class DeepCitation {
     if (options?.attachmentId) formData.append("attachmentId", options.attachmentId);
     if (options?.filename) formData.append("filename", options.filename);
 
-    const response = await fetch(`${this.apiUrl}/prepareAttachment`, {
+    const response = await fetch(`${this.apiUrl}/prepareAttachments`, {
       method: "POST",
       headers: { Authorization: `Bearer ${this.apiKey}` },
       body: formData,
@@ -387,7 +387,7 @@ export class DeepCitation {
   async prepareConvertedFile(options: PrepareConvertedFileOptions): Promise<UploadFileResponse> {
     this.logger.info?.("Preparing converted file", { attachmentId: options.attachmentId });
 
-    const response = await fetch(`${this.apiUrl}/prepareAttachment`, {
+    const response = await fetch(`${this.apiUrl}/prepareAttachments`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
@@ -448,7 +448,7 @@ export class DeepCitation {
       skipCache: options.skipCache,
     });
 
-    const response = await fetch(`${this.apiUrl}/prepareAttachment`, {
+    const response = await fetch(`${this.apiUrl}/prepareAttachments`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
@@ -482,29 +482,29 @@ export class DeepCitation {
    * This is the recommended way to prepare attachments for LLM prompts.
    *
    * @param files - Array of files to upload with optional filenames and attachmentIds
-   * @returns Object containing fileDataParts for verification and deepTextPromptPortion for LLM
+   * @returns Object containing fileDataParts for verification and combined deepTextPromptPortion for LLM
    *
    * @example
    * ```typescript
-   * const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachment([
+   * const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
    *   { file: pdfBuffer, filename: "report.pdf" },
    *   { file: invoiceBuffer, filename: "invoice.pdf" },
    * ]);
    *
-   * // Use deepTextPromptPortion in wrapCitationPrompt
+   * // deepTextPromptPortion is all files combined into one string
    * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
    *   systemPrompt,
    *   userPrompt,
-   *   deepTextPromptPortion
+   *   deepTextPromptPortion,
    * });
    *
    * // Use fileDataParts later for verification
    * const result = await deepcitation.verify({ llmOutput, fileDataParts });
    * ```
    */
-  async prepareAttachment(files: FileInput[]): Promise<PrepareFilesResult> {
+  async prepareAttachments(files: FileInput[]): Promise<PrepareAttachmentsResult> {
     if (files.length === 0) {
-      return { fileDataParts: [] };
+      return { fileDataParts: [], deepTextPromptPortion: "" };
     }
 
     this.logger.info?.("Preparing files", { count: files.length });
@@ -522,15 +522,16 @@ export class DeepCitation {
 
     const uploadResults = await Promise.all(uploadPromises);
 
-    // Extract file data parts with deepTextPromptPortion included (single source of truth)
     const fileDataParts: FileDataPart[] = uploadResults.map(({ result, filename }) => ({
       attachmentId: result.attachmentId,
-      deepTextPromptPortion: result.deepTextPromptPortion,
       filename: filename || result.metadata?.filename,
     }));
 
+    // Combine all file texts into a single deepTextPromptPortion string
+    const deepTextPromptPortion = uploadResults.map(({ result }) => result.deepTextPromptPortion).join("\n\n");
+
     this.logger.info?.("Prepare files complete", { count: fileDataParts.length });
-    return { fileDataParts };
+    return { fileDataParts, deepTextPromptPortion };
   }
 
   /**

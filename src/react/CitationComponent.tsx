@@ -328,7 +328,6 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   onExpandedWidthChange: (width: number | null) => void;
   prevBeforeExpandedPageRef: React.RefObject<"summary" | "expanded-evidence">;
 }) {
-  
   if (renderPopoverContent) {
     const CustomContent = renderPopoverContent;
     return (

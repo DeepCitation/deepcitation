@@ -93,7 +93,7 @@ STEP 0: Confirm Sources (Checkpoint)
 - This prevents uploading wrong files
 
 STEP 1: Upload Sources
-- POST /prepareFile for each confirmed source document
+- POST /prepareAttachments for each confirmed source document
 - Store attachmentId for each
 
 STEP 2: Extract Claims

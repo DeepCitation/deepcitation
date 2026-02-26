@@ -117,7 +117,7 @@ describe("DeepCitation Client", () => {
     });
   });
 
-  describe("prepareAttachment", () => {
+  describe("prepareAttachments", () => {
     it("uploads multiple files and returns aggregated response", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
@@ -155,7 +155,7 @@ describe("DeepCitation Client", () => {
       const blob1 = new Blob(["content 1"], { type: "application/pdf" });
       const blob2 = new Blob(["content 2"], { type: "application/pdf" });
 
-      const result = await client.prepareAttachment([
+      const result = await client.prepareAttachments([
         { file: blob1, filename: "doc1.pdf" },
         { file: blob2, filename: "doc2.pdf" },
       ]);
@@ -165,8 +165,9 @@ describe("DeepCitation Client", () => {
       expect(result.fileDataParts[0].attachmentId).toBe("file_1");
       expect(result.fileDataParts[1].attachmentId).toBe("file_2");
 
-      expect(result.fileDataParts[0].deepTextPromptPortion).toContain("Content from file 1");
-      expect(result.fileDataParts[1].deepTextPromptPortion).toContain("Content from file 2");
+      // deepTextPromptPortion is now a single combined string on the result
+      expect(result.deepTextPromptPortion).toContain("Content from file 1");
+      expect(result.deepTextPromptPortion).toContain("Content from file 2");
     });
 
     it("handles single file", async () => {
@@ -188,16 +189,16 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["single content"]);
-      const result = await client.prepareAttachment([{ file: blob, filename: "single.pdf" }]);
+      const result = await client.prepareAttachments([{ file: blob, filename: "single.pdf" }]);
 
       expect(result.fileDataParts).toHaveLength(1);
-      expect(result.fileDataParts[0].deepTextPromptPortion).toContain("Single content");
+      expect(result.deepTextPromptPortion).toContain("Single content");
     });
 
     it("handles empty files array", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });
 
-      const result = await client.prepareAttachment([]);
+      const result = await client.prepareAttachments([]);
 
       expect(result.fileDataParts).toHaveLength(0);
     });
@@ -212,7 +213,7 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["content"]);
-      await expect(client.prepareAttachment([{ file: blob, filename: "test.pdf" }])).rejects.toThrow("Server error");
+      await expect(client.prepareAttachments([{ file: blob, filename: "test.pdf" }])).rejects.toThrow("Server error");
     });
 
     it("supports custom attachmentId per file", async () => {
@@ -234,7 +235,7 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       const blob = new Blob(["content"]);
-      const result = await client.prepareAttachment([
+      const result = await client.prepareAttachments([
         { file: blob, filename: "custom.pdf", attachmentId: "my_custom_id" },
       ]);
 
@@ -517,7 +518,7 @@ describe("DeepCitation Client", () => {
     });
   });
 
-  describe("prepareAttachment with concurrency limits", () => {
+  describe("prepareAttachments with concurrency limits", () => {
     it("uploads files with concurrency limit", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });
       let concurrentCalls = 0;
@@ -555,7 +556,7 @@ describe("DeepCitation Client", () => {
           filename: `file${i}.pdf`,
         }));
 
-      await client.prepareAttachment(files);
+      await client.prepareAttachments(files);
 
       // All files should be uploaded
       expect(mockFetch).toHaveBeenCalledTimes(10);
@@ -604,7 +605,7 @@ describe("DeepCitation Client", () => {
           filename: `file${i}.pdf`,
         }));
 
-      await client.prepareAttachment(files);
+      await client.prepareAttachments(files);
 
       expect(mockFetch).toHaveBeenCalledTimes(10);
       expect(maxConcurrentCalls).toBe(customLimit);

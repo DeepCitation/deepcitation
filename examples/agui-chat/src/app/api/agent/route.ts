@@ -48,7 +48,7 @@ if (!openaiApiKey) {
   console.error("\n⚠️  OPENAI_API_KEY is not set!\n");
 }
 
-const dc = dcApiKey ? new DeepCitation({ apiKey: dcApiKey }) : null;
+const deepCitation = dcApiKey ? new DeepCitation({ apiKey: dcApiKey }) : null;
 const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 
 const textEncoder = new TextEncoder();
@@ -71,6 +71,7 @@ export async function POST(req: Request) {
 
   const { threadId, runId, messages, state } = body;
   const fileDataParts: FileDataPart[] = state?.fileDataParts ?? [];
+  const deepTextPromptPortions: string[] = state?.deepTextPromptPortions ?? [];
   const hasDocuments = fileDataParts.length > 0;
 
   if (!openai) {
@@ -102,10 +103,8 @@ export async function POST(req: Request) {
         );
         const lastUserContent: string = lastUserMessage?.content ?? "";
 
-        // Extract deepTextPromptPortion from fileDataParts
-        const deepTextPromptPortion = fileDataParts
-          .map((f: FileDataPart) => f.deepTextPromptPortion)
-          .filter(Boolean);
+        // deepTextPromptPortions is passed from the client (accumulated per upload)
+        const deepTextPromptPortion = deepTextPromptPortions;
 
         const baseSystemPrompt = "You are a helpful assistant that answers questions accurately.";
 

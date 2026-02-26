@@ -26,7 +26,7 @@ export type {
   ExtendExpirationResponse,
   FileDataPart,
   FileInput,
-  PrepareFilesResult,
+  PrepareAttachmentsResult,
   UploadFileOptions,
   UploadFileResponse,
   UrlCacheInfo,

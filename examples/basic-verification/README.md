@@ -89,7 +89,7 @@ import { readFileSync } from "fs";
 
 const myDocument = readFileSync("./path/to/your/document.pdf");
 
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachment([
+const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
   { file: myDocument, filename: "my-document.pdf" },
 ]);
 ```
@@ -98,7 +98,7 @@ const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttac
 
 | Function | Purpose |
 |----------|---------|
-| `deepcitation.prepareAttachment()` | Upload documents, get formatted text for LLM |
+| `deepcitation.prepareAttachments()` | Upload documents, get formatted text for LLM |
 | `wrapCitationPrompt()` | Add citation instructions to your prompts |
 | `deepcitation.verify()` | Parse LLM output and verify all citations (recommended) |
 | `deepcitation.verifyAttachment()` | Verify citations against a specific attachment |
@@ -116,7 +116,7 @@ The `start:curl` example shows how to call the DeepCitation API directly without
 
 ```bash
 # Step 1: Upload file
-curl -X POST "https://api.deepcitation.com/prepareFile" \
+curl -X POST "https://api.deepcitation.com/prepareAttachments" \
   -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
   -F "file=@document.pdf"
 

@@ -92,8 +92,8 @@ import { DeepCitation, wrapCitationPrompt } from "deepcitation";
 import { CitationComponent } from "deepcitation/react";
 
 // 1. Upload sources
-const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
-const { deepTextPromptPortion } = await dc.prepareAttachment([
+const deepCitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
+const { fileParts } = await dc.prepareAttachments([
   { file: pdfBuffer, filename: "report.pdf" }
 ]);
 
@@ -243,7 +243,7 @@ try {
 Connect to **Datadog, Sentry, CloudWatch, OpenTelemetry, or any logging service** via an optional logger interface:
 
 ```typescript
-const dc = new DeepCitation({
+const deepCitation = new DeepCitation({
   apiKey: process.env.DEEPCITATION_API_KEY,
   logger: {
     debug: (msg, data) => console.debug(msg, data),

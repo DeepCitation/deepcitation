@@ -18,7 +18,7 @@ Represents a citation to verify against the source document.
 
 ```typescript
 interface Citation {
-  /** Attachment ID from prepareFile response */
+  /** Attachment ID from prepareAttachments response */
   attachmentId?: string;
   /** Page number where citation should be found (1-indexed) */
   pageNumber?: number | null;
@@ -43,7 +43,7 @@ Request body for the /verifyCitations endpoint.
 
 ```typescript
 interface VerifyCitationRequest {
-  /** Attachment ID (from prepareFile response) */
+  /** Attachment ID (from prepareAttachments response) */
   attachmentId: string;
   /** Map of citation keys to Citation objects */
   citations: { [key: string]: Citation };
@@ -145,12 +145,12 @@ interface SearchState {
 
 ---
 
-## PrepareFileResponse
+## PrepareAttachmentsResponse
 
-Response from the /prepareFile endpoint after processing a document.
+Response from the /prepareAttachments endpoint after processing a document.
 
 ```typescript
-interface PrepareFileResponse {
+interface PrepareAttachmentsResponse {
   /** System-generated attachment ID for verification calls */
   attachmentId: string;
   /** Full text content with page markers and line IDs. Use this in wrapCitationPrompt(). */

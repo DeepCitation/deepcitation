@@ -120,8 +120,8 @@ requiredSections.forEach(section => {
 
 console.log("\n=== API Documentation ===\n");
 
-test("documents /prepareFile endpoint", () => {
-  expect(skillContent).toContain("/prepareFile");
+test("documents /prepareAttachments endpoint", () => {
+  expect(skillContent).toContain("/prepareAttachments");
   expect(skillContent).toContain("POST");
 });
 

@@ -1,5 +1,4 @@
-import type React from "react";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
@@ -19,7 +18,7 @@ import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
 // import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 
-import { buildSearchSummary, type SearchQueryGroup } from "./searchSummaryUtils.js";
+import { buildSearchSummary } from "./searchSummaryUtils.js";
 import { cn, isImageSource, isUrlCitation } from "./utils.js";
 
 // =============================================================================
@@ -752,7 +751,7 @@ export function QuoteBox({ phrase, maxLength = MAX_QUOTE_BOX_LENGTH }: QuoteBoxP
 
 export interface QuotedTextProps {
   /** The text to display as quoted */
-  children: React.ReactNode;
+  children: ReactNode;
   /** Additional CSS classes */
   className?: string;
   /** Whether to use monospace font (default: false) */
@@ -941,33 +940,27 @@ interface AuditSearchDisplayProps {
   verification?: Verification | null;
 }
 
-/**
- * Single row representing a group of attempts sharing the same searchPhrase.
- * Stripped-down display: status icon, quoted phrase, and location text only.
- */
-function QueryGroupRow({ group }: { group: SearchQueryGroup }) {
-  const displayPhrase = truncatePhrase(group.searchPhrase);
-
+/** Single flat row for one search text with a status icon. */
+function SearchTextRow({ text, success }: { text: string; success: boolean }) {
+  const isTruncated = (text ?? "").length > MAX_PHRASE_DISPLAY_LENGTH;
   return (
     <div className="flex items-start gap-1.5 py-0.5">
       <span
         className={cn(
           "size-3 max-w-3 max-h-3 mt-0.5 shrink-0",
-          group.anySuccess ? "text-green-600 dark:text-green-400" : "text-red-400 dark:text-red-500",
+          success ? "text-green-600 dark:text-green-400" : "text-red-400 dark:text-red-500",
         )}
         role="img"
-        aria-label={group.anySuccess ? "Found" : "Not found"}
+        aria-label={success ? "Found" : "Not found"}
       >
-        {group.anySuccess ? <CheckIcon /> : <XIcon />}
+        {success ? <CheckIcon /> : <XIcon />}
       </span>
-      <div className="min-w-0">
-        <span className="text-xs font-mono text-gray-700 dark:text-gray-200 break-all">{displayPhrase}</span>
-        {group.variations.length > 0 && (
-          <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-            {group.variationTypeLabel ?? "Also tried"}: {group.variations.map(v => truncatePhrase(v)).join(", ")}
-          </div>
-        )}
-      </div>
+      <span
+        className="text-xs font-mono text-gray-700 dark:text-gray-200 break-all"
+        title={isTruncated ? text : undefined}
+      >
+        {truncatePhrase(text)}
+      </span>
     </div>
   );
 }
@@ -1074,7 +1067,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
     );
   }
 
-  // For not_found: show query-centric groups
+  // For not_found: flatten all unique texts (phrases + variations) into a single list
   const groups = summary?.queryGroups ?? [];
 
   // Derive a single location summary from all groups (avoids per-row repetition)
@@ -1088,12 +1081,28 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
         ? `Searched pages ${[...allPages].sort((a, b) => a - b).join(", ")}`
         : "";
 
+  // Flatten: collect all unique texts (phrases + variations) as individual rows
+  const flatTexts: Array<{ text: string; success: boolean }> = [];
+  const seen = new Set<string>();
+  for (const group of groups) {
+    if (group.searchPhrase && !seen.has(group.searchPhrase)) {
+      seen.add(group.searchPhrase);
+      flatTexts.push({ text: group.searchPhrase, success: group.anySuccess });
+    }
+    for (const v of group.variations) {
+      if (!seen.has(v)) {
+        seen.add(v);
+        flatTexts.push({ text: v, success: false });
+      }
+    }
+  }
+
   return (
     <div className="px-4 py-2 space-y-1.5 text-sm">
       {locationSummary && <div className="text-[10px] text-gray-400 dark:text-gray-500">{locationSummary}</div>}
       <div className="space-y-0">
-        {groups.map(group => (
-          <QueryGroupRow key={group.searchPhrase} group={group} />
+        {flatTexts.map(({ text, success }) => (
+          <SearchTextRow key={text} text={text} success={success} />
         ))}
       </div>
     </div>
@@ -1109,21 +1118,47 @@ interface VerificationLogTimelineProps {
   fullPhrase?: string;
   anchorText?: string;
   status?: SearchStatus | null;
+  /** Callback to collapse the expanded details. Skipped when the user is selecting text. */
+  onCollapse?: () => void;
 }
 
 /**
  * Scrollable timeline showing search attempts.
  * - For found/partial: Shows only the successful match details
  * - For not_found: Shows all search attempts with clear count
+ *
+ * Clicking the area collapses it (unless the user is selecting text).
  */
 export function VerificationLogTimeline({
   searchAttempts,
   fullPhrase,
   anchorText,
   status,
+  onCollapse,
 }: VerificationLogTimelineProps) {
   return (
-    <div id="verification-log-timeline">
+    <div
+      id="verification-log-timeline"
+      role="button"
+      tabIndex={onCollapse ? 0 : undefined}
+      onClick={e => {
+        // Stop propagation so parent handlers (e.g. page-expand) don't fire
+        e.stopPropagation();
+        // Don't collapse if the user is selecting text
+        if (window.getSelection()?.isCollapsed === false) return;
+        onCollapse?.();
+      }}
+      onKeyDown={e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onCollapse?.();
+        }
+      }}
+      className={cn(
+        onCollapse && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors",
+      )}
+    >
       <AuditSearchDisplay
         searchAttempts={searchAttempts}
         fullPhrase={fullPhrase}
@@ -1201,6 +1236,7 @@ export function VerificationLog({
           fullPhrase={fullPhrase}
           anchorText={anchorText}
           status={status}
+          onCollapse={() => setIsExpanded(false)}
         />
       )}
     </div>

@@ -57,7 +57,7 @@ async function main() {
   const sampleDocument = readFileSync(resolve(__dirname, "../../assets/john-doe-50-m-chart.jpg"));
 
   // Upload documents to DeepCitation
-  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachment([
+  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
     { file: sampleDocument, filename: "john-doe-50-m-chart.jpg" },
   ]);
 
@@ -229,7 +229,7 @@ provided documents accurately and cite your sources.`;
 
       // Verification details
       console.log(`  📊 Status: ${statusIndicator} ${verification.status}`);
-      console.log(`  📄 Page: ${verification.verifiedPageNumber ?? "N/A"}`);
+      console.log(`  📄 Page: ${verification.document?.verifiedPageNumber ?? "N/A"}`);
 
       if (verification.verifiedMatchSnippet) {
         console.log(
@@ -237,8 +237,8 @@ provided documents accurately and cite your sources.`;
         );
       }
 
-      if (verification.verificationImageBase64) {
-        const imgSize = Math.round(verification.verificationImageBase64.length / 1024);
+      if (verification.document?.verificationImageSrc) {
+        const imgSize = Math.round(verification.document?.verificationImageSrc.length / 1024);
         console.log(`  🖼️  Proof image: Yes (${imgSize}KB)`);
       } else {
         console.log(`  🖼️  Proof image: No`);

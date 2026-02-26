@@ -17,7 +17,7 @@ Production patterns for handling DeepCitation errors gracefully.
 | Operation | Can fail? | Common causes | Safe to retry? |
 |-----------|-----------|---------------|----------------|
 | `new DeepCitation({ apiKey })` | Yes | Missing or empty API key | No -- fix the key |
-| `uploadFile()` / `prepareAttachment()` | Yes | Network timeout, file too large, invalid format | Yes |
+| `uploadFile()` / `prepareAttachments()` | Yes | Network timeout, file too large, invalid format | Yes |
 | `prepareUrl()` | Yes | Network timeout, URL unreachable, blocked by site | Yes (with backoff) |
 | `verify()` | Yes | Network timeout, invalid citations, API error | Yes |
 | `verifyAttachment()` | Yes | Network timeout, invalid attachment ID | Yes |
@@ -125,7 +125,7 @@ If you're processing many documents in parallel, use the built-in concurrency li
 
 ```typescript
 // The client limits concurrent uploads to 5 by default
-const results = await dc.prepareAttachment(manyFiles);
+const results = await dc.prepareAttachments(manyFiles);
 ```
 
 ---

@@ -32,8 +32,9 @@ const MODEL_OPTIONS: {
 ];
 
 export default function Home() {
-  // FileDataPart is now the single source of truth (includes deepTextPromptPortion)
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
+  // Accumulated text portions for LLM prompts (one string per uploaded file)
+  const [deepTextPromptPortions, setDeepTextPromptPortions] = useState<string[]>([]);
 
   // Map of message ID to its full verification result (citations + verifications + summary)
   const [messageVerifications, setMessageVerifications] = useState<Record<string, MessageVerificationResult>>({});
@@ -46,8 +47,8 @@ export default function Home() {
     streamProtocol: "text",
     body: {
       provider,
-      // Pass complete fileDataParts - includes deepTextPromptPortion
       fileDataParts,
+      deepTextPromptPortions,
     },
     onError: error => {
       console.error("[useChat] Error:", error);
@@ -147,8 +148,10 @@ export default function Home() {
       const data = await res.json();
 
       if (res.ok && data.fileDataPart) {
-        // Store the complete FileDataPart as single source of truth
         setFileDataParts(prev => [...prev, data.fileDataPart]);
+        if (data.deepTextPromptPortion) {
+          setDeepTextPromptPortions(prev => [...prev, data.deepTextPromptPortion]);
+        }
       } else {
         // Show error to user
         const errorMsg = data.details || data.error || "Upload failed";

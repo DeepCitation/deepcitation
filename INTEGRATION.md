@@ -83,7 +83,7 @@ async function analyzeDocument(filePath: string, question: string) {
 
   // Step 1: Prepare source
   const document = readFileSync(filePath);
-  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachment([
+  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
     { file: document, filename: filePath },
   ]);
   const attachmentId = fileDataParts[0].attachmentId;
@@ -226,7 +226,7 @@ const deepcitation = new DeepCitation({
 import { readFileSync } from "fs";
 
 const document = readFileSync("./document.pdf");
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachment([
+const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
   { file: document, filename: "document.pdf" },
 ]);
 
@@ -246,7 +246,7 @@ const { attachmentId, deepTextPromptPortion, metadata } = await deepcitation.pre
 ### 1.4 Multiple Documents
 
 ```typescript
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachment([
+const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
   { file: doc1, filename: "report.pdf" },
   { file: doc2, filename: "chart.png" },
 ]);
@@ -471,7 +471,7 @@ See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) for complete upload, c
 - https://docs.deepcitation.com/components — React components guide
 
 **API Endpoints:**
-- https://api.deepcitation.com/prepareFile — Upload and process attachments
+- https://api.deepcitation.com/prepareAttachments — Upload and process attachments
 - https://api.deepcitation.com/verifyCitations — Verify citations against source
 
 ### Supported File Formats

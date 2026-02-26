@@ -211,7 +211,7 @@ export interface VerifyCitationsOptions {
 export type CitationInput = Citation | Record<string, Citation>;
 
 /**
- * Input for file upload in prepareAttachment
+ * Input for file upload in prepareAttachments
  */
 export interface FileInput {
   /** The file content (File, Blob, or Buffer) */
@@ -223,23 +223,23 @@ export interface FileInput {
 }
 
 /**
- * File reference returned from prepareAttachment
+ * File reference returned from prepareAttachments
  */
 export interface FileDataPart {
   /** The attachment ID assigned by DeepCitation */
   attachmentId: string;
-  /** The formatted text content for LLM prompts (with page markers and line IDs) */
-  deepTextPromptPortion: string;
   /** Optional filename for display purposes */
   filename?: string;
 }
 
 /**
- * Result from prepareAttachment
+ * Result from prepareAttachments
  */
-export interface PrepareFilesResult {
-  /** Array of file references for verification (includes deepTextPromptPortion for each file) */
+export interface PrepareAttachmentsResult {
+  /** Array of file references for verification */
   fileDataParts: FileDataPart[];
+  /** The combined formatted text content for LLM prompts (with page markers and line IDs) for all files */
+  deepTextPromptPortion: string;
 }
 
 /**
