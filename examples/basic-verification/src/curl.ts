@@ -48,9 +48,9 @@ const model = "gpt-5-mini";
 
 /**
  * Upload a file to DeepCitation API and get citation context
- * Equivalent to: deepcitation.prepareAttachment()
+ * Equivalent to: deepcitation.prepareAttachments()
  */
-async function prepareFile(
+async function prepareAttachments(
   file: Buffer,
   filename: string,
 ): Promise<{
@@ -60,7 +60,7 @@ async function prepareFile(
   const formData = new FormData();
   formData.append("file", new Blob([file]), filename);
 
-  const response = await fetch(`${DEEPCITATION_BASE_URL}/prepareFile`, {
+  const response = await fetch(`${DEEPCITATION_BASE_URL}/prepareAttachments`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${DEEPCITATION_API_KEY}`,
@@ -136,11 +136,11 @@ async function main() {
   const sampleDocument = readFileSync(resolve(__dirname, "../../assets/john-doe-50-m-chart.jpg"));
 
   // Upload using raw fetch call
-  console.log(`   POST ${DEEPCITATION_BASE_URL}/prepareFile`);
+  console.log(`   POST ${DEEPCITATION_BASE_URL}/prepareAttachments`);
   console.log("   Headers: Authorization: Bearer dc_live_***");
   console.log("   Body: FormData with file\n");
 
-  const { attachmentId, deepTextPromptPortion } = await prepareFile(sampleDocument, "john-doe-50-m-chart.jpg");
+  const { attachmentId, deepTextPromptPortion } = await prepareAttachments(sampleDocument, "john-doe-50-m-chart.jpg");
 
   console.log("✅ Document uploaded successfully");
   console.log(`   Attachment ID: ${attachmentId}\n`);
@@ -355,7 +355,7 @@ provided documents accurately and cite your sources.`;
   console.log("\n" + "═".repeat(60));
   console.log("📋 Equivalent curl commands:\n");
   console.log("# Step 1: Upload file");
-  console.log(`curl -X POST "${DEEPCITATION_BASE_URL}/prepareFile" \\`);
+  console.log(`curl -X POST "${DEEPCITATION_BASE_URL}/prepareAttachments" \\`);
   console.log('  -H "Authorization: Bearer $DEEPCITATION_API_KEY" \\');
   console.log('  -F "file=@john-doe-50-m-chart.jpg"\n');
   console.log("# Step 3: Verify citations");

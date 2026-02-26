@@ -26,7 +26,8 @@ describe("UrlCitationComponent", () => {
     const { container, getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 
     // Should render as a button (click is handled by component, not native link)
-    const button = getByRole("button");
+    // Use name filter to distinguish from the nested ExternalLinkButton
+    const button = getByRole("button", { name: /Link to/ });
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute("data-url", "https://stripe.com/docs/api/v2/citations");
 
@@ -149,7 +150,7 @@ describe("UrlCitationComponent", () => {
 
       const { getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 
-      const button = getByRole("button");
+      const button = getByRole("button", { name: /Link to/ });
       fireEvent.click(button);
 
       // Default behavior: click opens URL directly
@@ -167,37 +168,31 @@ describe("UrlCitationComponent", () => {
 
       const { getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} onUrlClick={onUrlClick} />);
 
-      const button = getByRole("button");
+      const button = getByRole("button", { name: /Link to/ });
       fireEvent.click(button);
 
       expect(onUrlClick).toHaveBeenCalledWith("https://stripe.com/docs/api/v2/citations", expect.any(Object));
     });
 
     it("shows external link icon on hover (visual hint that click opens URL)", () => {
-      const { getByRole, queryByLabelText } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
+      const { getByLabelText } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 
-      const button = getByRole("button");
+      // External link button is always in the DOM but visually hidden via CSS opacity-0
+      // It becomes visible on hover via group-hover:opacity-100
+      const externalLink = getByLabelText("Open in new tab");
+      expect(externalLink).toBeInTheDocument();
+      expect(externalLink).toHaveClass("opacity-0");
 
-      // No external link icon initially
-      expect(queryByLabelText("Open in new tab")).not.toBeInTheDocument();
-
-      // Shows on hover as visual hint
-      fireEvent.mouseEnter(button);
-      expect(queryByLabelText("Open in new tab")).toBeInTheDocument();
-
-      // Hides on leave
-      fireEvent.mouseLeave(button);
-      expect(queryByLabelText("Open in new tab")).not.toBeInTheDocument();
+      // The group-hover CSS class handles visibility — verify the classes are correct
+      expect(externalLink).toHaveClass("group-hover:opacity-100");
     });
 
     it("opens URL via external link button when clicked", () => {
       const windowOpenSpy = jest.spyOn(window, "open").mockImplementation(() => null);
 
-      const { getByRole, getByLabelText } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
+      const { getByLabelText } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 
-      const button = getByRole("button");
-      fireEvent.mouseEnter(button);
-
+      // External link button is always in the DOM (CSS handles visibility)
       const externalLinkButton = getByLabelText("Open in new tab");
       fireEvent.click(externalLinkButton);
 
@@ -215,7 +210,7 @@ describe("UrlCitationComponent", () => {
 
       const { getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} onUrlClick={onUrlClick} />);
 
-      const button = getByRole("button");
+      const button = getByRole("button", { name: /Link to/ });
       fireEvent.keyDown(button, { key: "Enter" });
 
       expect(onUrlClick).toHaveBeenCalledWith("https://stripe.com/docs/api/v2/citations", expect.any(Object));
@@ -226,7 +221,7 @@ describe("UrlCitationComponent", () => {
 
       const { getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} onUrlClick={onUrlClick} />);
 
-      const button = getByRole("button");
+      const button = getByRole("button", { name: /Link to/ });
       fireEvent.keyDown(button, { key: " " });
 
       expect(onUrlClick).toHaveBeenCalledWith("https://stripe.com/docs/api/v2/citations", expect.any(Object));
@@ -237,7 +232,7 @@ describe("UrlCitationComponent", () => {
 
       const { getByRole } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 
-      const button = getByRole("button");
+      const button = getByRole("button", { name: /Link to/ });
       fireEvent.keyDown(button, { key: "Enter" });
 
       expect(windowOpenSpy).toHaveBeenCalledWith(
@@ -250,20 +245,13 @@ describe("UrlCitationComponent", () => {
     });
 
     it("shows external link icon on keyboard focus (accessibility)", () => {
-      const { getByRole, queryByLabelText } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
+      const { getByLabelText } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 
-      const button = getByRole("button");
-
-      // No external link icon initially
-      expect(queryByLabelText("Open in new tab")).not.toBeInTheDocument();
-
-      // Shows on focus (keyboard navigation)
-      fireEvent.focus(button);
-      expect(queryByLabelText("Open in new tab")).toBeInTheDocument();
-
-      // Hides on blur
-      fireEvent.blur(button);
-      expect(queryByLabelText("Open in new tab")).not.toBeInTheDocument();
+      // External link button is always in the DOM but hidden via CSS opacity-0
+      // It becomes visible on focus via group-focus-within:opacity-100
+      const externalLink = getByLabelText("Open in new tab");
+      expect(externalLink).toBeInTheDocument();
+      expect(externalLink).toHaveClass("group-focus-within:opacity-100");
     });
   });
 
@@ -304,7 +292,7 @@ describe("UrlCitationComponent", () => {
 
       // Changed from "link" to "button" - click behavior now handled by component
       // External link opens via explicit external link button on hover
-      const button = getByRole("button");
+      const button = getByRole("button", { name: /Link to/ });
       expect(button).toHaveAttribute("aria-label", expect.stringContaining("stripe.com"));
     });
 
@@ -314,7 +302,7 @@ describe("UrlCitationComponent", () => {
       // Component now uses role="button" instead of being a native link
       // This allows click to be handled by parent (e.g., show popover)
       // The external link icon on hover provides explicit external navigation
-      const button = getByRole("button");
+      const button = getByRole("button", { name: /Link to/ });
       expect(button).toHaveAttribute("tabindex", "0");
     });
   });

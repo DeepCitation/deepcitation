@@ -9,6 +9,7 @@ import {
   SpinnerIcon as SpinnerIconComponent,
   XCircleIcon as XCircleIconComponent,
 } from "./icons.js";
+import type { IndicatorVariant } from "./types.js";
 import { isUrlCitation } from "./utils.js";
 
 // =========
@@ -153,7 +154,7 @@ import { DOT_INDICATOR_FIXED_SIZE_STYLE } from "./constants.js";
  */
 export function getStatusInfo(
   verification: Verification | null,
-  indicatorVariant: "icon" | "dot" | "none" = "icon",
+  indicatorVariant: IndicatorVariant = "icon",
 ): {
   color: string;
   icon: React.ReactNode;

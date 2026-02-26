@@ -72,7 +72,7 @@ export interface PopoverContentProps {
    * Visual style for status indicators inside the popover.
    * @default "icon"
    */
-  indicatorVariant?: "icon" | "dot" | "none";
+  indicatorVariant?: IndicatorVariant;
   /** Current view state: summary or expanded */
   viewState?: PopoverViewState;
   /** Callback when view state changes */
@@ -419,15 +419,17 @@ function PopoverFallbackView({
   sourceLabel,
   status,
   urlAccessExplanation,
+  indicatorVariant = "icon",
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   sourceLabel?: string;
   status: CitationStatus;
   urlAccessExplanation: UrlAccessExplanation | null;
+  indicatorVariant?: IndicatorVariant;
 }) {
   const searchStatus = verification?.status;
-  const statusLabel = getStatusLabel(status);
+  const statusLabel = indicatorVariant !== "none" ? getStatusLabel(status) : null;
   const hasSnippet = verification?.verifiedMatchSnippet;
   const pageNumber = verification?.document?.verifiedPageNumber;
 
@@ -537,17 +539,12 @@ export function DefaultPopoverContent({
     }
   }, [viewState, expandedNaturalWidth]);
 
-  // Pre-set width from known dimensions when the view state changes.
-  // For expanded states without known dimensions, keep the previous width as an estimate
-  // (null → viewport-width fallback; or previous expanded width).
-  // Uses setState-during-render to avoid React Compiler bailout from multiple setState
-  // calls in a single useEffect.
-  const [prevViewState, setPrevViewState] = useState(viewState);
-  const prevVerificationWidth = useRef(verification?.document?.verificationImageDimensions?.width);
+  // Pre-set width from known dimensions when the view state or verification width changes.
+  // Runs as an effect (not during render) to avoid calling the parent's onExpandedWidthChange
+  // during this component's render phase — doing so triggers a React warning and also causes
+  // a React Compiler bailout from render-time ref mutations.
   const verificationWidth = verification?.document?.verificationImageDimensions?.width;
-  if (viewState !== prevViewState || verificationWidth !== prevVerificationWidth.current) {
-    if (viewState !== prevViewState) setPrevViewState(viewState);
-    prevVerificationWidth.current = verificationWidth;
+  useEffect(() => {
     const newWidth =
       viewState === "summary"
         ? null
@@ -557,7 +554,7 @@ export function DefaultPopoverContent({
             ? cachedPageWidthRef.current
             : undefined; // undefined = no change
     if (newWidth !== undefined) setWidth(newWidth);
-  }
+  }, [viewState, verificationWidth, setWidth]);
 
   // Callback for InlineExpandedImage onLoad — confirms/corrects the pre-set width.
   const handleExpandedImageLoad = useCallback(
@@ -833,6 +830,7 @@ export function DefaultPopoverContent({
       sourceLabel={sourceLabel}
       status={status}
       urlAccessExplanation={urlAccessExplanation}
+      indicatorVariant={indicatorVariant}
     />
   );
 }

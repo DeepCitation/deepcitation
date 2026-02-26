@@ -13,7 +13,7 @@ describe("useDragToPan", () => {
     expect(typeof result.current.handlers.onMouseUp).toBe("function");
     expect(typeof result.current.handlers.onMouseLeave).toBe("function");
     expect(typeof result.current.scrollTo).toBe("function");
-    expect(result.current.wasDragging.current).toBe(false);
+    expect(result.current.wasDraggingRef.current).toBe(false);
   });
 
   test("initial scroll state has all falsy values", () => {
@@ -28,8 +28,8 @@ describe("useDragToPan", () => {
     expect(result.current.isDragging).toBe(false);
   });
 
-  test("wasDragging is false initially", () => {
+  test("wasDraggingRef is false initially", () => {
     const { result } = renderHook(() => useDragToPan());
-    expect(result.current.wasDragging.current).toBe(false);
+    expect(result.current.wasDraggingRef.current).toBe(false);
   });
 });

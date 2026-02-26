@@ -12,7 +12,7 @@ REST API endpoints for preparing files and verifying citations.
 
 ---
 
-## POST /prepareFile
+## POST /prepareAttachments
 
 Upload and process a document for citation verification. Extracts text with line IDs for LLM prompts.
 
@@ -41,7 +41,7 @@ Upload and process a document for citation verification. Extracts text with line
 ### Example Request
 
 ```bash
-curl -X POST "https://api.deepcitation.com/prepareFile" \
+curl -X POST "https://api.deepcitation.com/prepareAttachments" \
   -H "Authorization: Bearer dc_live_your_api_key" \
   -F "file=@document.pdf"
 ```
@@ -77,7 +77,7 @@ Verify citations from LLM output against the source document. Returns verificati
 
 | Field | Type | Required | Description |
 |:------|:-----|:---------|:------------|
-| `data.attachmentId` | string | Yes | From prepareFile response. The SDK handles this automatically with `deepcitation.verify()`. |
+| `data.attachmentId` | string | Yes | From prepareAttachments response. The SDK handles this automatically with `deepcitation.verify()`. |
 | `data.citations` | `Record<string, Citation>` | Yes | Map of citation keys to Citation objects |
 | `data.outputImageFormat` | `"jpeg"` \| `"png"` \| `"avif"` | No | Image format for proofs (default: "avif") |
 

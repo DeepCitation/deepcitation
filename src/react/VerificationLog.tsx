@@ -1,5 +1,4 @@
-import type React from "react";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
@@ -15,11 +14,11 @@ import {
   XCircleIcon,
   XIcon,
 } from "./icons.js";
-import type { UrlFetchStatus } from "./types.js";
+import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
 // import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 
-import { buildSearchSummary, type SearchQueryGroup } from "./searchSummaryUtils.js";
+import { buildSearchSummary, countUniqueSearchTexts } from "./searchSummaryUtils.js";
 import { cn, isImageSource, isUrlCitation } from "./utils.js";
 
 // =============================================================================
@@ -53,7 +52,6 @@ const ICON_COLOR_CLASSES = {
   gray: "text-gray-400 dark:text-gray-500",
 } as const;
 
-/** User-friendly method names for display (Issue #10: simplified from technical jargon) */
 const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   exact_line_match: "Exact location",
   line_with_buffer: "Nearby lines",
@@ -480,7 +478,7 @@ export interface StatusHeaderProps {
    * - `"dot"`: Subtle colored dots
    * @default "icon"
    */
-  indicatorVariant?: "icon" | "dot" | "none";
+  indicatorVariant?: IndicatorVariant;
   /** When true, source is a raster image — PageBadge shows "Image" instead of "p.X" */
   isImage?: boolean;
 }
@@ -522,9 +520,6 @@ export function getStatusColorScheme(status?: SearchStatus | null): "green" | "a
 
 /**
  * Get the header text based on status.
- * Issue #3: Made more concise - anchor text will be integrated separately.
- * Note: For "found" states, we return empty string since the icon is self-explanatory.
- * The status text is only useful for states that need clarification (location differences, partial matches).
  */
 function getStatusHeaderText(status?: SearchStatus | null): string {
   if (!status) return "Verifying...";
@@ -690,14 +685,17 @@ export function StatusHeader({
   // - Amber (partial): CheckIcon (de-emphasized, not aggressive warning)
   // - Red (not found): XCircleIcon (X in circle for clear "not found" indication)
   // - Gray (pending): SpinnerIcon (not aggressive warning)
-  const IconComponent =
-    colorScheme === "green"
-      ? CheckIcon
-      : colorScheme === "amber"
+  let IconComponent = null;
+  if (indicatorVariant === "icon") {
+    IconComponent =
+      colorScheme === "green"
         ? CheckIcon
-        : colorScheme === "red"
-          ? XCircleIcon
-          : SpinnerIcon;
+        : colorScheme === "amber"
+          ? CheckIcon
+          : colorScheme === "red"
+            ? XCircleIcon
+            : SpinnerIcon;
+  }
 
   // Single-row layout: icon + status text + page badge
   // Status text is always provided by getStatusHeaderText; anchor text is shown
@@ -716,11 +714,11 @@ export function StatusHeader({
             )}
             aria-hidden="true"
           />
-        ) : (
+        ) : indicatorVariant === "icon" ? (
           <span className={cn("size-4 max-w-4 max-h-4 shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
-            <IconComponent />
+            {IconComponent && <IconComponent />}
           </span>
-        )}
+        ) : null}
         {displayText && <span className="font-medium truncate text-gray-800 dark:text-gray-100">{displayText}</span>}
       </div>
       {!hidePageBadge && <PageBadge expectedPage={expectedPage} foundPage={foundPage} isImage={isImage} />}
@@ -734,7 +732,6 @@ export function StatusHeader({
 
 /**
  * Styled quote box for displaying the phrase being verified.
- * Issue #7: Removed serif/italic for modern UI consistency.
  * Uses left border accent (which aligns with shadcn patterns).
  * No literal quotes - the styling indicates quoted text for copy/paste friendliness.
  */
@@ -754,7 +751,7 @@ export function QuoteBox({ phrase, maxLength = MAX_QUOTE_BOX_LENGTH }: QuoteBoxP
 
 export interface QuotedTextProps {
   /** The text to display as quoted */
-  children: React.ReactNode;
+  children: ReactNode;
   /** Additional CSS classes */
   className?: string;
   /** Whether to use monospace font (default: false) */
@@ -871,11 +868,11 @@ function VerificationLogSummary({
   verifiedAt,
 }: VerificationLogSummaryProps) {
   const isMiss = status === "not_found";
-  // Count distinct search phrases (query groups) — this matches the number of rows the user sees
-  const queryGroupCount = useMemo(() => {
-    if (!isMiss) return undefined;
-    return new Set(searchAttempts.map(a => a.searchPhrase ?? "")).size;
-  }, [searchAttempts, isMiss]);
+  // Count total unique texts tried (phrases + variations) — shared with EvidenceTray
+  const queryGroupCount = useMemo(
+    () => (isMiss ? countUniqueSearchTexts(searchAttempts) : undefined),
+    [searchAttempts, isMiss],
+  );
   const outcomeSummary = getOutcomeSummary(status, searchAttempts, queryGroupCount);
 
   // Format the verified date for display
@@ -936,26 +933,27 @@ interface AuditSearchDisplayProps {
   verification?: Verification | null;
 }
 
-/**
- * Single row representing a group of attempts sharing the same searchPhrase.
- * Stripped-down display: status icon, quoted phrase, and location text only.
- */
-function QueryGroupRow({ group }: { group: SearchQueryGroup }) {
-  const displayPhrase = truncatePhrase(group.searchPhrase);
-
+/** Single flat row for one search text with a status icon. */
+function SearchTextRow({ text, success }: { text: string; success: boolean }) {
+  const isTruncated = (text ?? "").length > MAX_PHRASE_DISPLAY_LENGTH;
   return (
     <div className="flex items-start gap-1.5 py-0.5">
       <span
         className={cn(
           "size-3 max-w-3 max-h-3 mt-0.5 shrink-0",
-          group.anySuccess ? "text-green-600 dark:text-green-400" : "text-red-400 dark:text-red-500",
+          success ? "text-green-600 dark:text-green-400" : "text-red-400 dark:text-red-500",
         )}
         role="img"
-        aria-label={group.anySuccess ? "Found" : "Not found"}
+        aria-label={success ? "Found" : "Not found"}
       >
-        {group.anySuccess ? <CheckIcon /> : <XIcon />}
+        {success ? <CheckIcon /> : <XIcon />}
       </span>
-      <span className="text-xs font-mono text-gray-700 dark:text-gray-200 break-all">{displayPhrase}</span>
+      <span
+        className="text-xs font-mono text-gray-700 dark:text-gray-200 break-all"
+        title={isTruncated ? text : undefined}
+      >
+        {truncatePhrase(text)}
+      </span>
     </div>
   );
 }
@@ -1062,7 +1060,7 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
     );
   }
 
-  // For not_found: show query-centric groups
+  // For not_found: flatten all unique texts (phrases + variations) into a single list
   const groups = summary?.queryGroups ?? [];
 
   // Derive a single location summary from all groups (avoids per-row repetition)
@@ -1076,12 +1074,28 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
         ? `Searched pages ${[...allPages].sort((a, b) => a - b).join(", ")}`
         : "";
 
+  // Flatten: collect all unique texts (phrases + variations) as individual rows
+  const flatTexts: Array<{ text: string; success: boolean }> = [];
+  const seen = new Set<string>();
+  for (const group of groups) {
+    if (group.searchPhrase && !seen.has(group.searchPhrase)) {
+      seen.add(group.searchPhrase);
+      flatTexts.push({ text: group.searchPhrase, success: group.anySuccess });
+    }
+    for (const v of group.variations) {
+      if (!seen.has(v)) {
+        seen.add(v);
+        flatTexts.push({ text: v, success: false });
+      }
+    }
+  }
+
   return (
     <div className="px-4 py-2 space-y-1.5 text-sm">
       {locationSummary && <div className="text-[10px] text-gray-400 dark:text-gray-500">{locationSummary}</div>}
       <div className="space-y-0">
-        {groups.map(group => (
-          <QueryGroupRow key={group.searchPhrase} group={group} />
+        {flatTexts.map(({ text, success }) => (
+          <SearchTextRow key={text} text={text} success={success} />
         ))}
       </div>
     </div>
@@ -1097,21 +1111,45 @@ interface VerificationLogTimelineProps {
   fullPhrase?: string;
   anchorText?: string;
   status?: SearchStatus | null;
+  /** Callback to collapse the expanded details. Skipped when the user is selecting text. */
+  onCollapse?: () => void;
 }
 
 /**
  * Scrollable timeline showing search attempts.
  * - For found/partial: Shows only the successful match details
  * - For not_found: Shows all search attempts with clear count
+ *
+ * Clicking the area collapses it (unless the user is selecting text).
  */
 export function VerificationLogTimeline({
   searchAttempts,
   fullPhrase,
   anchorText,
   status,
+  onCollapse,
 }: VerificationLogTimelineProps) {
   return (
-    <div id="verification-log-timeline">
+    <div
+      id="verification-log-timeline"
+      role="button"
+      tabIndex={onCollapse ? 0 : undefined}
+      onClick={e => {
+        // Stop propagation so parent handlers (e.g. page-expand) don't fire
+        e.stopPropagation();
+        // Don't collapse if the user is selecting text
+        if (window.getSelection()?.isCollapsed === false) return;
+        onCollapse?.();
+      }}
+      onKeyDown={e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onCollapse?.();
+        }
+      }}
+      className={cn(onCollapse && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors")}
+    >
       <AuditSearchDisplay
         searchAttempts={searchAttempts}
         fullPhrase={fullPhrase}
@@ -1189,6 +1227,7 @@ export function VerificationLog({
           fullPhrase={fullPhrase}
           anchorText={anchorText}
           status={status}
+          onCollapse={() => setIsExpanded(false)}
         />
       )}
     </div>

@@ -23,15 +23,14 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const { messages, provider = "openai", fileDataParts: clientFileDataParts = [] } = body;
+  const { messages, provider = "openai", fileDataParts: clientFileDataParts = [], deepTextPromptPortions = [] } = body;
 
   console.log("[Chat API] Received messages:", JSON.stringify(messages?.slice(-1), null, 2));
 
-  // fileDataParts now contains deepTextPromptPortion - single source of truth
   const fileDataParts: FileDataPart[] = clientFileDataParts;
 
-  // Extract deepTextPromptPortion from fileDataParts
-  const deepTextPromptPortion = fileDataParts.map((f: FileDataPart) => f.deepTextPromptPortion).filter(Boolean);
+  // deepTextPromptPortions is passed from the client (accumulated per upload)
+  const deepTextPromptPortion: string[] = deepTextPromptPortions;
 
   const hasDocuments = fileDataParts.length > 0;
 

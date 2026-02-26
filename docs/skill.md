@@ -125,7 +125,7 @@ Which files are sources, and which is the output to verify?"
 Upload each source document to get an `attachmentId`.
 
 ```bash
-curl -X POST "https://api.deepcitation.com/prepareFile" \
+curl -X POST "https://api.deepcitation.com/prepareAttachments" \
   -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
   -F "file=@source-document.pdf"
 ```
@@ -153,7 +153,7 @@ Store the `attachmentId` for verification. The `deepTextPromptPortion` contains 
 ### Upload a URL
 
 ```bash
-curl -X POST "https://api.deepcitation.com/prepareFile" \
+curl -X POST "https://api.deepcitation.com/prepareAttachments" \
   -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com/article"}'
@@ -240,7 +240,7 @@ Citation keys are descriptive identifiers (not numeric indices). Use a format li
 |-------|----------|-------------|
 | `fullPhrase` | Yes | Verbatim quote from source (copy exactly) |
 | `anchorText` | Yes | 1-3 most important words from fullPhrase |
-| `attachmentId` | Yes | ID from prepareFile response |
+| `attachmentId` | Yes | ID from prepareAttachments response |
 | `pageNumber` | No | Page number where text appears |
 | `lineIds` | No | Array of line numbers |
 | `reasoning` | No | Why this citation supports the claim |
@@ -567,7 +567,7 @@ For media content, use timestamps instead of page/line IDs:
 |------|-------|
 | **Base URL** | `https://api.deepcitation.com` |
 | **Auth Header** | `Authorization: Bearer dc_live_xxx` |
-| **Upload Endpoint** | `POST /prepareFile` |
+| **Upload Endpoint** | `POST /prepareAttachments` |
 | **Verify Endpoint** | `POST /verifyCitations` |
 | **File Retention** | 30 days |
 | **Image Formats** | `avif` (default), `jpeg`, `png` |

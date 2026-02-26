@@ -18,6 +18,7 @@ import {
 } from "./constants.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { formatTtc } from "./timingUtils.js";
+import type { IndicatorVariant } from "./types.js";
 import { cn } from "./utils.js";
 
 // =========
@@ -62,7 +63,7 @@ export interface CitationDrawerTriggerProps {
    * - `"none"`: No status indicator rendered
    * @default "icon"
    */
-  indicatorVariant?: "icon" | "dot" | "none";
+  indicatorVariant?: IndicatorVariant;
   /**
    * Map of attachmentId or URL to friendly display label.
    * Used to override source names in tooltips and the default label.
@@ -123,7 +124,7 @@ function StatusIconChip({
   verification: Verification | null;
   title: string;
   size?: number;
-  indicatorVariant?: "icon" | "dot" | "none";
+  indicatorVariant?: IndicatorVariant;
 }) {
   if (indicatorVariant === "none") return null;
   const statusInfo = getStatusInfo(verification, indicatorVariant);
@@ -155,7 +156,7 @@ function CitationTooltip({
   flatItem: FlatCitationItem;
   showProofThumbnail: boolean;
   onSourceClick?: (group: SourceCitationGroup) => void;
-  indicatorVariant?: "icon" | "dot" | "none";
+  indicatorVariant?: IndicatorVariant;
 }) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [adjustedLeft, setAdjustedLeft] = useState<number | null>(null);
@@ -314,7 +315,7 @@ export function StackedStatusIcons({
   onIconLeave: () => void;
   showProofThumbnails: boolean;
   onSourceClick?: (group: SourceCitationGroup) => void;
-  indicatorVariant?: "icon" | "dot" | "none";
+  indicatorVariant?: IndicatorVariant;
 }) {
   // None variant: no indicators at all
   if (indicatorVariant === "none") return null;

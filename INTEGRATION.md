@@ -7,19 +7,11 @@
 
 > **Important**: The product name is **DeepCitation** (not "DeepCite"). Always use "DeepCitation" when referring to the product, package, or API.
 
-This guide follows a **3-step workflow**:
+This guide follows a **3-section workflow**:
 
-1. **Prepare Sources** — Upload documents, get `attachmentId` + `deepTextPromptPortion`
-2. **Enhance Prompts & Call LLM** — Wrap prompts with citation instructions, call your LLM
-3. **Display Results** — Parse citations, verify against sources, render with status indicators
-
----
-
-## Install
-
-```bash
-npm install deepcitation@latest
-```
+1. **[Install & Setup](#section-1-install--setup)** — Install, import types, initialize client, prepare sources, configure proof images
+2. **[Server Side](#section-2-server-side)** — Wrap prompts, call your LLM, verify citations, optionally persist results
+3. **[Display with CitationComponent](#section-3-display-with-citationcomponent)** — Parse `<cite>` tags, generate citation keys, render inline with verification status (streaming and post-stream)
 
 ---
 
@@ -83,10 +75,10 @@ async function analyzeDocument(filePath: string, question: string) {
 
   // Step 1: Prepare source
   const document = readFileSync(filePath);
-  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachment([
+  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
     { file: document, filename: filePath },
   ]);
-  const attachmentId = fileDataParts[0].attachmentId;
+  const attachmentId = fileDataParts[0].attachmentId; // 20-char alphanumeric ID
 
   // Step 2: Enhance prompts & call LLM
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
@@ -113,9 +105,8 @@ async function analyzeDocument(filePath: string, question: string) {
   }
 
   const result = await deepcitation.verifyAttachment(attachmentId, citations, {
-    outputImageFormat: "avif",
     generateProofUrls: true,
-    proofConfig: { access: "signed", signedUrlExpiry: "7d", imageFormat: "png" },
+    proofConfig: { access: "signed", signedUrlExpiry: "7d", imageFormat: "avif" },
   });
 
   return { response: visibleText, citations, verifications: result.verifications };
@@ -201,18 +192,41 @@ function MessageWithCitations({
 
 ---
 
-## Step 1: Prepare Sources
+## Section 1: Install & Setup
 
-### 1.1 Set Up the Client
+### 1.1 Install
 
 ```bash
-# .env
-DEEPCITATION_API_KEY=sk-dc-your-key-here
+npm install deepcitation@latest
 ```
 
-Get your API key at [deepcitation.com/signup](https://deepcitation.com/signup). Keys start with `sk-dc-`.
+React components are included in the same package — import from `deepcitation/react`. No separate install needed.
+
+### 1.2 Import Types
+
+Always import types from `deepcitation`. Never define your own.
 
 ```typescript
+import type {
+  Citation,
+  Verification,
+  CitationRecord,     // Record<string, Citation> — NOT an array
+  VerificationRecord, // Record<string, Verification>
+} from "deepcitation";
+```
+
+**Key type facts:**
+
+- `CitationRecord = Record<string, Citation>` — keyed by citation key (16-char hash), not an array
+- Check emptiness with `Object.keys(citations).length === 0`, never `.length`
+- `generateCitationKey(citation)` from `deepcitation/react` produces the same key that indexes `CitationRecord` and `VerificationRecord`
+
+### 1.3 Initialize Client
+
+```typescript
+// .env
+// DEEPCITATION_API_KEY=sk-dc-your-key-here
+
 import { DeepCitation } from "deepcitation";
 
 const deepcitation = new DeepCitation({
@@ -220,20 +234,28 @@ const deepcitation = new DeepCitation({
 });
 ```
 
-### 1.2 Upload Files
+Get your API key at [deepcitation.com/signup](https://deepcitation.com/signup). Keys start with `sk-dc-`.
+
+### 1.4 Prepare Sources
+
+Upload documents to get an `attachmentId` (a **20-character alphanumeric ID**) and `deepTextPromptPortion` (structured text content used to enhance LLM prompts). Save `attachmentId` — you'll need it for verification.
+
+**Files:**
 
 ```typescript
 import { readFileSync } from "fs";
 
 const document = readFileSync("./document.pdf");
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachment([
+const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
   { file: document, filename: "document.pdf" },
+  { file: imageBuffer, filename: "chart.png" }, // multiple files supported
 ]);
 
-const attachmentId = fileDataParts[0].attachmentId;
+// Save attachmentId for verification (valid for 24 hours)
+const attachmentId = fileDataParts[0].attachmentId; // e.g. "a1b2c3d4e5f6g7h8i9j0"
 ```
 
-### 1.3 Prepare URLs
+**URLs:**
 
 ```typescript
 const { attachmentId, deepTextPromptPortion, metadata } = await deepcitation.prepareUrl({
@@ -241,21 +263,9 @@ const { attachmentId, deepTextPromptPortion, metadata } = await deepcitation.pre
 });
 ```
 
-> **Security**: If accepting user-provided URLs, validate them to prevent SSRF attacks — block internal IPs, private hostnames, and cloud metadata endpoints. Validate URL scheme is `http` or `https` only.
+> **Security**: If accepting user-provided URLs, validate them to prevent SSRF attacks — block internal IPs, private hostnames, and cloud metadata endpoints. Only allow `http` or `https` schemes.
 
-### 1.4 Multiple Documents
-
-```typescript
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachment([
-  { file: doc1, filename: "report.pdf" },
-  { file: doc2, filename: "chart.png" },
-]);
-
-// All documents are combined in deepTextPromptPortion
-// Each document gets its own attachmentId in fileDataParts
-```
-
-### Supported File Formats
+**Supported formats:**
 
 | Type | Formats | Processing Time |
 |------|---------|-----------------|
@@ -264,9 +274,33 @@ const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttac
 | **Office** | DOCX, XLSX, PPTX | ~30 seconds |
 | **Web** | HTML, public URLs | ~30 seconds |
 
+### 1.5 Proof Image Options (Optional)
+
+By default, proof images are returned as base64 strings in `verification.document.verificationImageSrc` — self-contained, no external CDN required.
+
+For production, configure URL-based delivery:
+
+```typescript
+const result = await deepcitation.verifyAttachment(attachmentId, citations, {
+  generateProofUrls: true,
+  proofConfig: {
+    access: "signed",      // "signed" | "workspace" | "public"
+    signedUrlExpiry: "7d", // Only for access: "signed". Options: "1h" | "24h" | "7d" | "30d" | "90d" | "1y"
+    imageFormat: "avif",   // "png" | "jpeg" | "avif" | "webp"
+    includeBase64: false,  // Set true to also include base64 alongside URLs
+  },
+});
+```
+
+| Access Mode | Description |
+|-------------|-------------|
+| `"signed"` | Time-limited signed URLs (most secure) |
+| `"workspace"` | URLs accessible to your workspace members |
+| `"public"` | Publicly accessible URLs (no auth) |
+
 ---
 
-## Step 2: Enhance Prompts & Call LLM
+## Section 2: Server Side
 
 ### 2.1 Wrap Prompts
 
@@ -276,11 +310,13 @@ import { wrapCitationPrompt } from "deepcitation";
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a helpful assistant...",
   userPrompt: "Summarize this document",
-  deepTextPromptPortion, // from Step 1
+  deepTextPromptPortion, // from Section 1 — prepareAttachments or prepareUrl
 });
 ```
 
 ### 2.2 Call Your LLM
+
+Send the enhanced prompts to any LLM as you normally would.
 
 ```typescript
 import OpenAI from "openai";
@@ -295,68 +331,179 @@ const response = await openai.chat.completions.create({
   ],
 });
 
-const llmOutput = response.choices[0].message.content;
+const llmOutput = response.choices[0].message.content!;
 ```
 
-> For Anthropic Claude and Google Gemini examples, see [Appendix B](#appendix-b-other-llm-providers).
+See [Appendix B](#appendix-b-other-llm-providers) for Anthropic Claude and Google Gemini.
 
-### 2.3 Streaming Note
+### 2.3 Verify Citations
 
-If streaming the LLM response, the `<<<CITATION_DATA>>>` block arrives at the **end** of the response. Buffer the complete response before parsing citations. See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) and [`examples/agui-chat/`](./examples/agui-chat) for complete streaming implementations.
-
----
-
-## Step 3: Parse, Verify & Display
-
-### 3.1 Parse & Verify
+**Simple API** — pass `llmOutput` directly (recommended for most cases):
 
 ```typescript
-import {
-  getAllCitationsFromLlmOutput,
-  extractVisibleText,
-  getCitationStatus,
-} from "deepcitation";
+import { extractVisibleText } from "deepcitation";
+
+const visibleText = extractVisibleText(llmOutput); // Always strip before display
+
+const result = await deepcitation.verify({
+  llmOutput,
+  fileDataParts, // required if Zero Data Retention is enabled
+});
+const verifications: VerificationRecord = result.verifications;
+```
+
+**Explicit API** — parse first, then verify (use when you need to inspect or filter citations):
+
+```typescript
+import { getAllCitationsFromLlmOutput, extractVisibleText } from "deepcitation";
 import type { CitationRecord, VerificationRecord } from "deepcitation";
 
-// Parse citations — returns CitationRecord (OBJECT, NOT array!)
 const citations: CitationRecord = getAllCitationsFromLlmOutput(llmOutput);
-const visibleText: string = extractVisibleText(llmOutput);
+const visibleText = extractVisibleText(llmOutput);
 
 if (Object.keys(citations).length === 0) {
-  // LLM didn't include citations — display response as-is
   return { response: visibleText, verifications: {} };
 }
 
-// Verify against source document
 const result = await deepcitation.verifyAttachment(attachmentId, citations, {
-  outputImageFormat: "avif",
   generateProofUrls: true,
-  proofConfig: { access: "signed", signedUrlExpiry: "7d", imageFormat: "png" },
+  proofConfig: { access: "signed", signedUrlExpiry: "7d", imageFormat: "avif" },
 });
 const verifications: VerificationRecord = result.verifications;
+```
 
-// Check status with getCitationStatus() — never check status strings directly
-for (const [key, verification] of Object.entries(verifications)) {
-  const status = getCitationStatus(verification);
-  if (status.isVerified) console.log(`Citation ${key}: Verified`);
-  if (status.isMiss) console.log(`Citation ${key}: Not found`);
+### 2.4 Persist Results (Optional)
+
+Store `visibleText` and `verifications` in your database to serve clients without re-verifying:
+
+```typescript
+// Store after verification
+await db.messages.insert({
+  id: messageId,
+  userId,
+  text: visibleText,          // The <<<CITATION_DATA>>> block has been stripped
+  citations: citations,        // CitationRecord for client-side rendering
+  verifications: verifications, // VerificationRecord — status + proof per citation
+  createdAt: new Date(),
+});
+
+// Retrieve and send to client — no re-verification needed
+const message = await db.messages.findById(messageId);
+return {
+  text: message.text,
+  citations: message.citations,
+  verifications: message.verifications,
+};
+```
+
+---
+
+## Section 3: Display with CitationComponent
+
+### 3.1 How CitationKey Works
+
+Every `<cite>` tag in the LLM output has a deterministic **citation key** — a 16-character hash of its content. This same key is used in both `CitationRecord` and `VerificationRecord`, making it the bridge between parsed citations and verification results.
+
+```typescript
+import { parseCitation } from "deepcitation";
+import { generateCitationKey } from "deepcitation/react";
+
+// Parse a single <cite ... /> tag from the LLM output
+const { citation } = parseCitation(citeTag);
+
+// Generate the key — same algorithm used internally, always deterministic
+const key = generateCitationKey(citation); // e.g. "a3f7b2c1d8e9f012"
+
+// Look up the verification result using the key
+const verification = verifications[key] ?? null;
+```
+
+`generateCitationKey()` is the **canonical** key function. Import it from `deepcitation/react`. Never compute keys manually.
+
+### 3.2 Post-Stream (Full Response)
+
+Use when you have the complete LLM response — either non-streaming or after buffering a stream.
+
+```tsx
+import { CitationComponent, generateCitationKey } from "deepcitation/react";
+import { parseCitation } from "deepcitation";
+import type { CitationRecord, VerificationRecord } from "deepcitation";
+
+function MessageWithCitations({
+  text,
+  citations,
+  verifications,
+}: {
+  text: string;          // visibleText — already stripped of <<<CITATION_DATA>>>
+  citations: CitationRecord;
+  verifications: VerificationRecord;
+}) {
+  // Split on <cite> self-closing tags and render each with its verification
+  const parts = text.split(/(<cite\s+[^>]*\/>)/g);
+
+  return (
+    <p>
+      {parts.map((part, i) => {
+        if (part.startsWith("<cite")) {
+          const { citation } = parseCitation(part);
+          const key = generateCitationKey(citation);
+          return (
+            <CitationComponent
+              key={i}
+              citation={citations[key] ?? citation}   // fall back to parsed citation
+              verification={verifications[key] ?? null}
+            />
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </p>
+  );
 }
 ```
 
-### 3.2 React: CitationComponent + CitationDrawer
+### 3.3 During Streaming
 
-See the [Quick Start React example](#react-client-side) above for the recommended pattern. This combines:
+The `<<<CITATION_DATA>>>` block arrives at the **end** of the stream. Buffer the complete response before parsing citations, but you can show incrementally-visible text while streaming.
 
-- **Inline citations**: Split `visibleText` on `<cite>` tags, render `CitationComponent` for each
-- **Citation drawer**: Group items with `groupCitationsBySource()`, render `CitationDrawerTrigger` + `CitationDrawer`
+```tsx
+import { extractVisibleText, getAllCitationsFromLlmOutput } from "deepcitation";
 
-For a complete Next.js implementation, see [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk).
+// Stream the LLM response
+let fullResponse = "";
 
-### 3.3 Other Display Options
+for await (const chunk of stream) {
+  const delta = chunk.choices[0]?.delta?.content ?? "";
+  fullResponse += delta;
+
+  // Show visible text as it arrives — extractVisibleText safely handles partial responses
+  // (strips the <<<CITATION_DATA>>> block if/when it appears)
+  setDisplayText(extractVisibleText(fullResponse));
+}
+
+// Stream complete — now parse all citations and verify
+const citations = getAllCitationsFromLlmOutput(fullResponse);
+const visibleText = extractVisibleText(fullResponse);
+
+if (Object.keys(citations).length > 0) {
+  const result = await deepcitation.verifyAttachment(attachmentId, citations, {
+    generateProofUrls: true,
+    proofConfig: { access: "signed", signedUrlExpiry: "7d", imageFormat: "avif" },
+  });
+  // Re-render using the pattern from Section 3.2
+  setVerifications(result.verifications);
+  setCitations(citations);
+}
+setDisplayText(visibleText);
+```
+
+See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) and [`examples/agui-chat/`](./examples/agui-chat) for complete streaming implementations.
+
+### 3.4 Other Display Options
 
 | Display Path | Function / Import | Use Case |
 |-------------|-------------------|----------|
-| **Text with indicators** | `replaceCitations(visibleText, verifications)` | Non-React apps, plain text |
+| **Text with indicators** | `replaceCitations(visibleText, { verifications })` | Non-React apps, plain text |
 | **Rich Markdown** | `renderCitationsAsMarkdown(llmOutput, verifications)` | Markdown renderers |
 | **Slack** | `import { renderCitationsForSlack } from "deepcitation/slack"` | Slack bot output |
 | **GitHub** | `import { renderCitationsForGitHub } from "deepcitation/github"` | GitHub comments/PRs |
@@ -471,7 +618,7 @@ See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) for complete upload, c
 - https://docs.deepcitation.com/components — React components guide
 
 **API Endpoints:**
-- https://api.deepcitation.com/prepareFile — Upload and process attachments
+- https://api.deepcitation.com/prepareAttachments — Upload and process attachments
 - https://api.deepcitation.com/verifyCitations — Verify citations against source
 
 ### Supported File Formats

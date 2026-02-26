@@ -304,6 +304,27 @@ describe("buildSearchSummary", () => {
       const group = buildSearchSummary(attempts).queryGroups[0];
       expect(group.variationTypeLabel).toBe("Price formats");
     });
+
+    it("filters out variations that duplicate the primary searchPhrase", () => {
+      const attempts = [
+        attempt({ searchPhrase: "Revenue increased", searchVariations: ["Revenue increased", "revenue increased"] }),
+      ];
+      const group = buildSearchSummary(attempts).queryGroups[0];
+      // "Revenue increased" (exact match of primary) should be filtered; lowercase variant remains
+      expect(group.variations).toEqual(["revenue increased"]);
+    });
+
+    it("keeps all variations when none match the primary phrase", () => {
+      const attempts = [attempt({ searchPhrase: "$4.89 per share", searchVariations: ["$4.89", "4.89 per share"] })];
+      const group = buildSearchSummary(attempts).queryGroups[0];
+      expect(group.variations).toEqual(["$4.89", "4.89 per share"]);
+    });
+
+    it("returns empty variations when all variations duplicate the primary phrase", () => {
+      const attempts = [attempt({ searchPhrase: "hello", searchVariations: ["hello", "hello"] })];
+      const group = buildSearchSummary(attempts).queryGroups[0];
+      expect(group.variations).toEqual([]);
+    });
   });
 
   describe("queryGroups — rejected matches", () => {

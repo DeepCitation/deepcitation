@@ -148,9 +148,12 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     await expect(popover).toBeVisible();
 
     // Find and click the expand button ("View search log")
+    // The button may be below the viewport in the fixed-position popover
+    // (avoidCollisions disabled in summary mode). Use dispatchEvent since
+    // Playwright can't physically click outside the viewport.
     const expandButton = page.getByRole("button", { name: /Expand search log|View search log/i });
     await expect(expandButton).toBeVisible();
-    await expandButton.click();
+    await expandButton.dispatchEvent("click");
 
     // Popover should STILL be visible after expansion
     await expect(popover).toBeVisible();
@@ -171,15 +174,16 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     await expect(popover).toBeVisible();
 
     // The toggle button has aria-label "Expand search log" / "Collapse search log"
+    // Use dispatchEvent — the button may be outside viewport in the fixed-position popover.
     const expandButton = page.getByRole("button", { name: /Expand search log|Collapse search log/i });
     await expect(expandButton).toBeVisible();
 
     // Rapidly toggle expansion multiple times
-    await expandButton.click(); // Expand
+    await expandButton.dispatchEvent("click"); // Expand
     await page.waitForTimeout(50);
-    await expandButton.click(); // Collapse
+    await expandButton.dispatchEvent("click"); // Collapse
     await page.waitForTimeout(50);
-    await expandButton.click(); // Expand again
+    await expandButton.dispatchEvent("click"); // Expand again
 
     // Popover should still be open after rapid toggles
     await expect(popover).toBeVisible();

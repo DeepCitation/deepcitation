@@ -106,7 +106,10 @@ function getItemWrapper(dialog: ReturnType<typeof import("@playwright/test").Pag
 /**
  * Expand an accordion item and open its InlineExpandedImage via page pill.
  * This is the reliable way to reach Level 3 in the drawer — the page pill
- * sets pendingInlineExpand which auto-opens the inline image.
+ * sets pendingInlineExpand which auto-opens the inline image in the header panel.
+ *
+ * Note: InlineExpandedImage was lifted into a shared header panel (not inside
+ * individual items), so [data-dc-inline-expanded] is scoped to the dialog.
  */
 async function expandToLevel3ViaPagePill(
   dialog: ReturnType<typeof import("@playwright/test").Page.prototype.locator>,
@@ -114,9 +117,8 @@ async function expandToLevel3ViaPagePill(
   citationKey: string,
 ) {
   await dialog.getByLabel(new RegExp(`expand to full page ${pageNumber}`, "i")).click();
-  const item = getItemWrapper(dialog, citationKey);
-  await expect(item.locator("[data-dc-inline-expanded]")).toBeVisible({ timeout: 3000 });
-  return item;
+  await expect(dialog.locator("[data-dc-inline-expanded]")).toBeVisible({ timeout: 3000 });
+  return getItemWrapper(dialog, citationKey);
 }
 
 // =============================================================================
@@ -175,9 +177,8 @@ test.describe("Drawer - Page Pill Highlighting", () => {
     // Click page 7 pill
     await dialog.getByLabel(/expand to full page 7/i).click();
 
-    // The inline expanded image should appear within the page-7 item
-    const item = getItemWrapper(dialog, "cite-page7");
-    await expect(item.locator("[data-dc-inline-expanded]")).toBeVisible({ timeout: 3000 });
+    // The inline expanded image should appear in the drawer header panel
+    await expect(dialog.locator("[data-dc-inline-expanded]")).toBeVisible({ timeout: 3000 });
   });
 
   test("page pill announces navigation for screen readers", async ({ mount, page }) => {
@@ -228,8 +229,8 @@ test.describe("Drawer - Evidence vs Full-Page Click Routing", () => {
     // Click page 3 pill — bypasses the keyhole, goes straight to full-page image
     await dialog.getByLabel(/expand to full page 3/i).click();
 
-    const item = getItemWrapper(dialog, "cite-page3");
-    await expect(item.locator("[data-dc-inline-expanded]")).toBeVisible({ timeout: 3000 });
+    // InlineExpandedImage is in the header panel, not inside the item
+    await expect(dialog.locator("[data-dc-inline-expanded]")).toBeVisible({ timeout: 3000 });
 
     // Page pill should be active (blue with X)
     await expect(dialog.getByLabel(/close page 3 view/i)).toBeVisible();
@@ -244,7 +245,8 @@ test.describe("Drawer - Evidence vs Full-Page Click Routing", () => {
     // Open inline image via page pill (reliable way to reach Level 3)
     const item = await expandToLevel3ViaPagePill(dialog, 3, "cite-page3");
 
-    const inlineExpanded = item.locator("[data-dc-inline-expanded]");
+    // InlineExpandedImage is in the header panel, not inside the item
+    const inlineExpanded = dialog.locator("[data-dc-inline-expanded]");
     await expect(inlineExpanded).toBeVisible({ timeout: 3000 });
 
     // Click the expanded image to collapse
@@ -297,40 +299,50 @@ test.describe("Drawer - Escape Cascade", () => {
     await expect(dialog).toBeVisible();
   });
 
-  test("Escape from Level 3 (inline expanded image) collapses image, keeps accordion expanded", async ({ mount, page }) => {
+  test("Escape from header panel collapses image, keeps accordion expanded", async ({ mount, page }) => {
     await mount(<DrawerInteractionHarness groups={makeEscapeCascadeGroups()} />);
 
     const dialog = page.locator("[role='dialog']");
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
-    // Level 1 → Level 3 via page pill (also sets accordion to expanded)
-    const item = await expandToLevel3ViaPagePill(dialog, 1, "cite-esc-a");
+    // Expand accordion first (Level 1 → Level 2)
+    const firstItem = dialog.locator("[data-citation-key='cite-esc-a']");
+    await firstItem.click();
+    await expect(firstItem).toHaveAttribute("aria-expanded", "true", { timeout: 3000 });
 
-    // Press Escape — should collapse inline image (Level 3 → Level 2)
+    // Then open header panel via page pill (Level 2 → Level 3)
+    await dialog.getByLabel(/expand to full page 1/i).click();
+    await expect(dialog.locator("[data-dc-inline-expanded]")).toBeVisible({ timeout: 3000 });
+
+    // Press Escape — should close header panel (Level 3 → Level 2)
     await page.keyboard.press("Escape");
 
-    // Inline image should be gone
-    await expect(item.locator("[data-dc-inline-expanded]")).not.toBeVisible({ timeout: 3000 });
+    // Header panel should be gone
+    await expect(dialog.locator("[data-dc-inline-expanded]")).not.toBeVisible({ timeout: 3000 });
 
     // Drawer and accordion still open
-    const firstItem = dialog.locator("[data-citation-key='cite-esc-a']");
     await expect(dialog).toBeVisible();
     await expect(firstItem).toHaveAttribute("aria-expanded", "true");
   });
 
-  test("full three-level escape cascade: image → accordion → drawer", async ({ mount, page }) => {
+  test("full three-level escape cascade: header panel → accordion → drawer", async ({ mount, page }) => {
     await mount(<DrawerInteractionHarness groups={makeEscapeCascadeGroups()} />);
 
     const dialog = page.locator("[role='dialog']");
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
-    // Level 1 → Level 3 via page pill
-    const item = await expandToLevel3ViaPagePill(dialog, 1, "cite-esc-a");
+    // Expand accordion (Level 1 → Level 2)
     const firstItem = dialog.locator("[data-citation-key='cite-esc-a']");
+    await firstItem.click();
+    await expect(firstItem).toHaveAttribute("aria-expanded", "true", { timeout: 3000 });
 
-    // Escape #1: Level 3 → 2 (close inline image)
+    // Open header panel via page pill (Level 2 → Level 3)
+    await dialog.getByLabel(/expand to full page 1/i).click();
+    await expect(dialog.locator("[data-dc-inline-expanded]")).toBeVisible({ timeout: 3000 });
+
+    // Escape #1: Level 3 → 2 (close header panel)
     await page.keyboard.press("Escape");
-    await expect(item.locator("[data-dc-inline-expanded]")).not.toBeVisible({ timeout: 3000 });
+    await expect(dialog.locator("[data-dc-inline-expanded]")).not.toBeVisible({ timeout: 3000 });
     await expect(dialog).toBeVisible();
     await expect(firstItem).toHaveAttribute("aria-expanded", "true");
 
@@ -344,26 +356,22 @@ test.describe("Drawer - Escape Cascade", () => {
     await expect(dialog).not.toBeVisible({ timeout: 5000 });
   });
 
-  test("page pill click triggers Level 3 directly, Escape cascades back", async ({ mount, page }) => {
+  test("page pill opens header panel directly, Escape cascades back", async ({ mount, page }) => {
     await mount(<DrawerInteractionHarness groups={makeEscapeCascadeGroups()} />);
 
     const dialog = page.locator("[role='dialog']");
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
-    // Click page pill → Level 3 directly
-    const item = await expandToLevel3ViaPagePill(dialog, 1, "cite-esc-a");
-    const inlineExpanded = item.locator("[data-dc-inline-expanded]");
+    // Page pill opens header panel without expanding accordion
+    await expandToLevel3ViaPagePill(dialog, 1, "cite-esc-a");
+    const inlineExpanded = dialog.locator("[data-dc-inline-expanded]");
 
-    // Escape #1: Level 3 → 2
+    // Escape #1: close header panel
     await page.keyboard.press("Escape");
     await expect(inlineExpanded).not.toBeVisible({ timeout: 3000 });
     await expect(dialog).toBeVisible();
 
-    // Escape #2: Level 2 → 1
-    await page.keyboard.press("Escape");
-    await expect(dialog).toBeVisible();
-
-    // Escape #3: Level 1 → closed
+    // Escape #2: no accordion expanded, so closes drawer
     await page.keyboard.press("Escape");
     await expect(dialog).not.toBeVisible({ timeout: 5000 });
   });

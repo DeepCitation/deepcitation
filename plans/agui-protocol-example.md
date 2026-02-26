@@ -108,7 +108,7 @@ The heart of the example. Merges `nextjs-ai-sdk`'s `/api/chat` + `/api/verify` i
 1. Parse request body: `{ threadId, runId, messages, state: { fileDataParts, provider } }`
 2. `EventEncoder` from `@ag-ui/encoder` formats each event as `data: <JSON>\n\n`
 3. Emit `RUN_STARTED`
-4. Build `deepTextPromptPortion` from uploaded documents — this is the extracted text content from `prepareAttachment()` responses, stored in client state as part of `fileDataParts`. It is a DeepCitation-specific field, not an AG-UI convention.
+4. Build `deepTextPromptPortion` from uploaded documents — this is the extracted text content from `prepareAttachments()` responses, stored in client state as `deepTextPromptPortions`. It is a DeepCitation-specific field, not an AG-UI convention.
 5. Call `wrapCitationPrompt(deepTextPromptPortion, userMessage)`
 6. Emit `TEXT_MESSAGE_START`
 7. Stream OpenAI `gpt-5-mini` response, emit `TEXT_MESSAGE_CONTENT` per token chunk

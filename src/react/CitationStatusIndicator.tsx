@@ -146,7 +146,7 @@ export const CitationStatusIndicator = ({
   spinnerStage,
 }: CitationStatusIndicatorProps): React.ReactNode => {
   if (renderIndicator) return renderIndicator(status);
-  if (!showIndicator) return null;
+  if (!showIndicator || indicatorVariant === "none") return null;
 
   if (indicatorVariant === "dot") {
     if (shouldShowSpinner) return <PendingDot />;

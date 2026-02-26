@@ -458,8 +458,7 @@ export const EXPANDED_POPOVER_WIDTH_DEFAULT = "calc(100vw - 2rem)";
 /** Maximum expanded popover width */
 export const EXPANDED_POPOVER_MAX_WIDTH = "calc(100vw - 2rem)";
 /** Default expanded popover height — uses Radix's available height CSS var when present */
-export const EXPANDED_POPOVER_HEIGHT =
-  "min(calc(100vh - 2rem), var(--radix-popover-content-available-height, calc(100vh - 2rem)))";
+export const EXPANDED_POPOVER_HEIGHT = "calc(100vh - 2rem)";
 
 // =============================================================================
 // ANIMATION & TRANSITION TIMINGS

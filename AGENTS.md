@@ -177,7 +177,7 @@ proof image are primary; timestamp and copy affordance are secondary (visible bu
 
 ## API Endpoints
 
-- `POST https://api.deepcitation.com/prepareFile` — Upload attachments
+- `POST https://api.deepcitation.com/prepareAttachments` — Upload attachments
 - `POST https://api.deepcitation.com/verifyCitations` — Verify citations
 
 ## Testing

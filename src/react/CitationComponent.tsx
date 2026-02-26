@@ -1,4 +1,5 @@
-import React, { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
+import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { CitationContentDisplay } from "./CitationContentDisplay.js";
@@ -8,6 +9,7 @@ import {
   getStatusHoverClasses,
   VARIANTS_WITH_OWN_HOVER,
 } from "./CitationContentDisplay.utils.js";
+import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import type { CitationStatusIndicatorProps, SpinnerStage } from "./CitationStatusIndicator.js";
 import { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
@@ -23,7 +25,7 @@ import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverCo
 import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { useExpandedPageSideOffset } from "./hooks/useExpandedPageSideOffset.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
-import { WarningIcon } from "./icons.js";
+import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
@@ -54,58 +56,7 @@ export type {
 const deprecationWarned = new Set<string>();
 
 // Body scroll lock — imported from scrollLock.ts (canonical location, ref-counted)
-
-// =============================================================================
-// ERROR BOUNDARY
-// =============================================================================
-
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error?: Error;
-}
-
-/**
- * Error boundary for catching and displaying rendering errors in citation components.
- * Prevents the entire app from crashing if citation rendering fails.
- */
-class CitationErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    console.error("[DeepCitation] Citation component error:", error, errorInfo);
-  }
-
-  render(): React.ReactNode {
-    if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
-      // Default fallback: minimal error indicator
-      return (
-        <span
-          className="inline-flex items-center text-red-500 dark:text-red-400"
-          title={`Citation error: ${this.state.error?.message || "Unknown error"}`}
-        >
-          <WarningIcon className="size-3" />
-        </span>
-      );
-    }
-
-    return this.props.children;
-  }
-}
+// CitationErrorBoundary — imported from ./CitationErrorBoundary.js (canonical location)
 
 // Utility functions and CitationContentDisplay
 // imported from ./CitationContentDisplay.js (canonical location)
@@ -321,7 +272,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   isLoading: boolean;
   isVisible: boolean;
   sourceLabel?: string;
-  indicatorVariant: "icon" | "dot" | "none";
+  indicatorVariant: IndicatorVariant;
   viewState: PopoverViewState;
   onViewStateChange: (viewState: PopoverViewState) => void;
   expandedImageSrcOverride: string | null;
@@ -522,6 +473,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Isolated into a separate hook so the React Compiler can optimize CitationComponent
     // (setState in useLayoutEffect causes a compiler bailout for the entire component).
     const expandedPageSideOffset = useExpandedPageSideOffset(popoverViewState, triggerRef);
+
+    // Lock the popover side (top/bottom) on open so scroll doesn't cause Radix's
+    // flip middleware to jump the popover between sides. Also isolated for compiler.
+    const lockedSide = useLockedPopoverSide(isHovering, popoverPosition === "top" ? "top" : "bottom", triggerRef);
 
     const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
@@ -1189,11 +1144,20 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               side={
                 popoverViewState === "expanded-page"
                   ? "bottom" // Always bottom for expanded — sideOffset positions it
-                  : popoverPosition === "bottom"
-                    ? "bottom"
-                    : "top"
+                  : lockedSide
               }
               sideOffset={expandedPageSideOffset}
+              // Summary: disable collision avoidance — the locked side already
+              // picks the best placement and we don't want flip/shift during scroll.
+              // Expanded states: enable it so Radix's shift middleware keeps the
+              // wider popover within viewport bounds on narrow screens.
+              avoidCollisions={popoverViewState !== "summary"}
+              onCloseAutoFocus={(e: Event) => {
+                // Prevent Radix from returning focus to the trigger on close.
+                // Without this, the browser scrolls the trigger into view — which
+                // is disorienting when the user has scrolled away before dismissing.
+                e.preventDefault();
+              }}
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
               onEscapeKeyDown={e => {

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CitationStatus } from "../types/citation.js";
+import type { Verification } from "../types/verification.js";
 import type {
   CitationDrawerItem,
   CitationDrawerItemProps,
@@ -18,6 +19,7 @@ import {
   sortGroupsByWorstStatus,
 } from "./CitationDrawer.utils.js";
 import { StackedStatusIcons } from "./CitationDrawerTrigger.js";
+import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import {
   EASE_COLLAPSE,
   EASE_EXPAND,
@@ -32,6 +34,7 @@ import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
+import type { IndicatorVariant } from "./types.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
 
@@ -43,18 +46,21 @@ import { FaviconImage, PagePill } from "./VerificationLog.js";
 // =========
 
 interface DrawerEscapeCtx {
-  /** Increment signals all items to collapse their inline (full-page) image */
-  collapseInlineSignal: number;
-  /** Items call this whenever their expanded/inline state changes */
-  onSubstateChange: (key: string, isExpanded: boolean, hasInline: boolean) => void;
+  /** Items call this whenever their expanded state changes */
+  onSubstateChange: (key: string, isExpanded: boolean) => void;
   /** The currently expanded item's citation key (accordion) */
   expandedCitationKey: string | null;
   /** Toggle expansion for a citation key (same key = collapse, different = switch) */
   onItemExpand: (key: string | null) => void;
-  /** Signal to auto-open InlineExpandedImage for this citation key (one-shot) */
-  pendingInlineExpand: string | null;
-  /** Clear the pending inline expand signal after consuming it */
-  clearPendingInlineExpand: () => void;
+  /** Push a full-page image into the header panel */
+  onInlineExpand: (
+    key: string,
+    src: string,
+    verification?: Verification | null,
+    renderScale?: { x: number; y: number } | null,
+  ) => void;
+  /** Whether the drawer is in full-page mode (bottom sheet with inline image open) */
+  isFullPage: boolean;
 }
 
 const DrawerEscapeContext = React.createContext<DrawerEscapeCtx | null>(null);
@@ -232,42 +238,13 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const isExpanded = escCtx ? escCtx.expandedCitationKey === citationKey : localExpanded;
 
   const [wasAutoExpanded, setWasAutoExpanded] = useState(defaultExpanded);
-  // Tracks the src shown in InlineExpandedImage (null = show EvidenceTray)
-  const [inlineExpandedSrc, setInlineExpandedSrc] = useState<string | null>(null);
 
-  const collapseInlineSignal = escCtx?.collapseInlineSignal ?? 0;
   const onSubstateChange = escCtx?.onSubstateChange;
-
-  // Track which collapseInlineSignal we have already acted on to avoid false-triggers on mount.
-  // useState (not useRef) so the React Compiler can track the value for auto-memoization.
-  const [seenInlineSignal, setSeenInlineSignal] = useState(0);
-
-  // Clear inline expansion: when collapsed, or when parent sends collapse signal (Escape).
-  // Uses setState-during-render to avoid cascading renders from useEffect.
-  const [prevIsExpanded, setPrevIsExpanded] = useState(isExpanded);
-  const [prevCollapseSignal, setPrevCollapseSignal] = useState(collapseInlineSignal);
-  if (!isExpanded && prevIsExpanded) {
-    setPrevIsExpanded(false);
-    setInlineExpandedSrc(null);
-    setSeenInlineSignal(collapseInlineSignal);
-  } else if (isExpanded && !prevIsExpanded) {
-    setPrevIsExpanded(true);
-  }
-  if (isExpanded && collapseInlineSignal !== prevCollapseSignal) {
-    setPrevCollapseSignal(collapseInlineSignal);
-    if (collapseInlineSignal > seenInlineSignal) {
-      setSeenInlineSignal(collapseInlineSignal);
-      setInlineExpandedSrc(null);
-    }
-  } else if (collapseInlineSignal !== prevCollapseSignal) {
-    setPrevCollapseSignal(collapseInlineSignal);
-    setSeenInlineSignal(collapseInlineSignal);
-  }
 
   // Report substate to parent so the escape handler knows what to collapse next
   useEffect(() => {
-    onSubstateChange?.(citationKey, isExpanded, !!inlineExpandedSrc);
-  }, [isExpanded, inlineExpandedSrc, citationKey, onSubstateChange]);
+    onSubstateChange?.(citationKey, isExpanded);
+  }, [isExpanded, citationKey, onSubstateChange]);
 
   // Sync expanded state when defaultExpanded changes from false → true.
   // Uses setState-during-render to avoid cascading renders from useEffect.
@@ -318,43 +295,23 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     if (escCtx) {
       escCtx.onItemExpand(isExpanded ? null : citationKey);
     } else {
-      setLocalExpanded(prev => {
-        if (prev) setInlineExpandedSrc(null);
-        return !prev;
-      });
+      setLocalExpanded(prev => !prev);
     }
     onClick?.(item);
   }, [item, onClick, escCtx, isExpanded, citationKey]);
 
-  // Opens InlineExpandedImage with the full page image (tray click / onExpand)
+  // Opens InlineExpandedImage in the header panel with the full page image (tray click / onExpand)
   const handleExpand = useCallback(() => {
-    if (proofImage) setInlineExpandedSrc(proofImage);
-  }, [proofImage]);
+    if (proofImage) escCtx?.onInlineExpand(citationKey, proofImage, verification, expandedImage?.renderScale);
+  }, [proofImage, citationKey, verification, expandedImage, escCtx]);
 
-  // Opens InlineExpandedImage with the evidence crop (keyhole click / onImageClick)
+  // Opens InlineExpandedImage in the header panel with the evidence crop (keyhole click / onImageClick)
   const handleExpandEvidence = useCallback(() => {
-    if (evidenceSrc) setInlineExpandedSrc(evidenceSrc);
-  }, [evidenceSrc]);
-
-  // Auto-open InlineExpandedImage when pendingInlineExpand matches this item (page badge click)
-  const itemRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (escCtx?.pendingInlineExpand === citationKey && proofImage) {
-      setInlineExpandedSrc(proofImage);
-      escCtx.clearPendingInlineExpand();
-      // Scroll the item into view after expansion
-      requestAnimationFrame(() => {
-        itemRef.current?.scrollIntoView({
-          behavior: prefersReducedMotion ? "auto" : "smooth",
-          block: "nearest",
-        });
-      });
-    }
-  }, [escCtx?.pendingInlineExpand, citationKey, proofImage, escCtx, prefersReducedMotion]);
+    if (evidenceSrc) escCtx?.onInlineExpand(citationKey, evidenceSrc, verification, undefined);
+  }, [evidenceSrc, citationKey, verification, escCtx]);
 
   return (
     <div
-      ref={itemRef}
       data-dc-item={citationKey}
       className={cn(
         "cursor-pointer transition-colors border-l-[3px] animate-in fade-in-0 slide-in-from-bottom-1 duration-200 fill-mode-backwards",
@@ -442,23 +399,14 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
             )}
             onAnimationEnd={() => setWasAutoExpanded(false)}
           >
-            {/* Evidence area: popover-identical UX — keyhole for found, thumbnail+analysis for miss */}
-            {!inlineExpandedSrc ? (
-              <EvidenceTray
-                verification={verification ?? null}
-                status={citationStatus}
-                onImageClick={evidenceSrc ? handleExpandEvidence : undefined}
-                onExpand={proofImage ? handleExpand : undefined}
-                proofImageSrc={proofImage ?? undefined}
-              />
-            ) : (
-              <InlineExpandedImage
-                src={inlineExpandedSrc}
-                onCollapse={() => setInlineExpandedSrc(null)}
-                verification={verification ?? undefined}
-                renderScale={expandedImage?.renderScale}
-              />
-            )}
+            {/* Evidence area: keyhole for found, thumbnail+analysis for miss */}
+            <EvidenceTray
+              verification={verification ?? null}
+              status={citationStatus}
+              onImageClick={evidenceSrc ? handleExpandEvidence : undefined}
+              onExpand={proofImage ? handleExpand : undefined}
+              proofImageSrc={proofImage ?? undefined}
+            />
           </div>
         </div>
       </div>
@@ -498,7 +446,7 @@ function CompactSingleCitationRow({
   group: SourceCitationGroup;
   isLast?: boolean;
   onClick?: (item: CitationDrawerItem) => void;
-  indicatorVariant?: "icon" | "dot" | "none";
+  indicatorVariant?: IndicatorVariant;
 }) {
   const item = group.citations[0];
   const { citation, verification } = item;
@@ -530,18 +478,12 @@ function CompactSingleCitationRow({
         }
       }}
     >
-      {/* Favicon or letter avatar */}
-      <div className="shrink-0">
-        {isUrlSource ? (
+      {/* Favicon for URL sources only — document sources show just the name */}
+      {isUrlSource && (
+        <div className="shrink-0">
           <FaviconImage faviconUrl={group.sourceFavicon || null} domain={group.sourceDomain || null} alt={sourceName} />
-        ) : (
-          <div className="w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-            <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400">
-              {sourceName.charAt(0).toUpperCase()}
-            </span>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Source name */}
       <span className="text-sm text-gray-600 dark:text-gray-400 truncate flex-1 min-w-0" title={sourceName}>
@@ -582,7 +524,7 @@ interface DrawerSourceGroupProps {
   isLastGroup: boolean;
   staggerOffset: number;
   onCitationClick?: (item: CitationDrawerItem) => void;
-  indicatorVariant: "icon" | "dot" | "none";
+  indicatorVariant: IndicatorVariant;
   renderCitationItem?: (item: CitationDrawerItem) => React.ReactNode;
   /** When true, the drawer header already identifies the source — omit group headers and source names */
   isSingleGroup?: boolean;
@@ -707,22 +649,16 @@ function DrawerSourceHeading({
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      {/* Favicon for URL sources, letter avatar for documents */}
-      <div className="shrink-0">
-        {isUrlSource ? (
+      {/* Favicon for URL sources only — document sources show just the label text */}
+      {isUrlSource && (
+        <div className="shrink-0">
           <FaviconImage
             faviconUrl={firstGroup.sourceFavicon || null}
             domain={firstGroup.sourceDomain || null}
             alt={displayLabel}
           />
-        ) : (
-          <div className="w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-            <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400">
-              {displayLabel.charAt(0).toUpperCase()}
-            </span>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Source label — identical text to CitationDrawerTrigger */}
       <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{displayLabel}</h2>
@@ -733,6 +669,54 @@ function DrawerSourceHeading({
 // =========
 // CitationDrawer
 // =========
+
+// =========
+// IndicatorRow — clickable status chips for citations visible in the header panel
+// =========
+
+/**
+ * Row of clickable indicator buttons for citations visible on the active page.
+ * Active indicator = overlay shown for that citation; clicking toggles overlay on/off.
+ */
+function IndicatorRow({
+  citations,
+  activeKey,
+  onToggle,
+  indicatorVariant,
+}: {
+  citations: CitationDrawerItem[];
+  activeKey: string | null;
+  onToggle: (key: string) => void;
+  indicatorVariant: "icon" | "dot";
+}) {
+  return (
+    <div className="flex items-center gap-2 px-4 py-1.5 border-t border-gray-100 dark:border-gray-800">
+      {citations.map(item => {
+        const isActive = item.citationKey === activeKey;
+        const statusInfo = getStatusInfo(item.verification, indicatorVariant);
+        const label = item.citation.anchorText?.toString() ?? item.citation.fullPhrase ?? "Citation";
+        return (
+          <button
+            key={item.citationKey}
+            type="button"
+            title={label}
+            onClick={() => onToggle(item.citationKey)}
+            className={cn(
+              "inline-flex items-center justify-center rounded-full transition-all w-6 h-6",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+              statusInfo.color,
+              isActive ? "opacity-100 ring-2 ring-current ring-offset-1" : "opacity-40 hover:opacity-70",
+            )}
+            aria-pressed={isActive}
+            aria-label={`${isActive ? "Hide" : "Show"} annotation for: ${label}`}
+          >
+            {statusInfo.icon}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * CitationDrawer displays a collection of citations in a drawer/bottom sheet.
@@ -768,10 +752,14 @@ export function CitationDrawer({
   indicatorVariant = "icon",
   sourceLabelMap,
 }: CitationDrawerProps): React.ReactNode {
-  // Drag-to-close on the handle bar (bottom sheet convention)
+  // Manual full-page state — set via drag-up gesture, reset on close
+  const [manualFullPage, setManualFullPage] = useState(false);
+
+  // Drag-to-close (down) and drag-to-expand (up) on the handle bar
   const isBottomSheet = position === "bottom";
-  const { handleRef, drawerRef, dragOffset, isDragging } = useDrawerDragToClose({
+  const { handleRef, drawerRef, dragOffset, isDragging, dragDirection } = useDrawerDragToClose({
     onClose,
+    onExpand: () => setManualFullPage(true),
     enabled: isBottomSheet && isOpen,
   });
 
@@ -795,99 +783,131 @@ export function CitationDrawer({
   const drawerPages = useMemo(() => computeUniquePageNumbers(sortedGroups), [sortedGroups]);
 
   // Bidirectional page↔key lookup maps — O(1) instead of linear scans per interaction
-  const { pageToKey, keyToPage } = useMemo(() => {
-    const p2k = new Map<number, string>();
+  // pageToItems groups all citations by page for the header panel indicator row
+  const { keyToPage, pageToItems } = useMemo(() => {
     const k2p = new Map<string, number>();
+    const p2i = new Map<number, CitationDrawerItem[]>();
     for (const group of sortedGroups) {
-      for (const { citationKey, citation, verification } of group.citations) {
+      for (const item of group.citations) {
+        const { citationKey, citation, verification } = item;
         const page =
           (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
         if (page != null && page > 0) {
-          if (!p2k.has(page)) p2k.set(page, citationKey); // first citation per page
           k2p.set(citationKey, page);
+          const existing = p2i.get(page) ?? [];
+          existing.push(item);
+          p2i.set(page, existing);
         }
       }
     }
-    return { pageToKey: p2k, keyToPage: k2p };
+    return { keyToPage: k2p, pageToItems: p2i };
   }, [sortedGroups]);
 
   // Accordion state — only one item expanded at a time
   const [expandedCitationKey, setExpandedCitationKey] = useState<string | null>(null);
-  const [pendingInlineExpand, setPendingInlineExpand] = useState<string | null>(null);
 
   const onItemExpand = useCallback((key: string | null) => {
     setExpandedCitationKey(key);
   }, []);
 
-  const clearPendingInlineExpand = useCallback(() => {
-    setPendingInlineExpand(null);
-  }, []);
+  // Header inline panel state — full-page image shown above the citation list
+  type HeaderInlineState = {
+    citationKey: string;
+    src: string;
+    verification?: Verification | null;
+    renderScale?: { x: number; y: number } | null;
+  };
+  const [headerInline, setHeaderInline] = useState<HeaderInlineState | null>(null);
+  const [activeIndicatorKey, setActiveIndicatorKey] = useState<string | null>(null);
 
   // ARIA announcement for page badge navigation (screen readers)
   const [pageAnnouncement, setPageAnnouncement] = useState("");
 
-  // Handler for clicking a page badge — expands the first citation on that page + auto-opens image
-  const handlePageBadgeClick = useCallback(
-    (page: number) => {
-      const key = pageToKey.get(page);
-      if (key) {
-        setExpandedCitationKey(key);
-        setPendingInlineExpand(key);
-        setPageAnnouncement(`Navigated to page ${page}`);
-      }
+  // Push a full-page image into the header panel (called from item rows and page badge clicks)
+  const handleInlineExpand = useCallback(
+    (key: string, src: string, verification?: Verification | null, renderScale?: { x: number; y: number } | null) => {
+      setHeaderInline({ citationKey: key, src, verification, renderScale });
+      setActiveIndicatorKey(null);
     },
-    [pageToKey],
+    [],
   );
 
-  // State mirror of inlineKeysRef so page pill reactivity works (refs don't trigger re-renders)
-  const [hasInlineOpen, setHasInlineOpen] = useState(false);
+  // Handler for clicking a page badge — opens the header panel for the first citation on that page
+  const handlePageBadgeClick = useCallback(
+    (page: number) => {
+      const items = pageToItems.get(page);
+      const first = items?.[0];
+      if (first) {
+        const expanded = resolveExpandedImage(first.verification);
+        if (expanded) {
+          handleInlineExpand(first.citationKey, expanded.src, first.verification, expanded.renderScale);
+        }
+      }
+      setPageAnnouncement(`Navigated to page ${page}`);
+    },
+    [pageToItems, handleInlineExpand],
+  );
 
-  // Active page pill — only lit when the inline full-page image is visible
-  const activePage = expandedCitationKey && hasInlineOpen ? (keyToPage.get(expandedCitationKey) ?? null) : null;
+  // Full-page mode: header inline panel open or manual drag-up gesture
+  const isFullPage = isBottomSheet && (headerInline !== null || manualFullPage);
+
+  // Active page pill — driven by the header inline panel's citation key
+  const activePage = headerInline ? (keyToPage.get(headerInline.citationKey) ?? null) : null;
+
+  // Citations on the active page with phraseMatchDeepItem — used for the indicator row
+  const citationsOnActivePage = useMemo(
+    () =>
+      (pageToItems.get(activePage ?? -1) ?? []).filter(
+        item => item.verification?.document?.phraseMatchDeepItem != null,
+      ),
+    [pageToItems, activePage],
+  );
 
   const handlePageDeactivate = useCallback(() => {
-    setExpandedCitationKey(null);
+    setHeaderInline(null);
+    setActiveIndicatorKey(null);
   }, []);
 
-  // Escape navigation — tracks substate (expanded items, inline images) to step back
-  const [collapseInlineSignal, setCollapseInlineSignal] = useState(0);
+  // Escape navigation — tracks substate (expanded accordion items) to step back
   const expandedKeysRef = useRef(new Set<string>());
-  const inlineKeysRef = useRef(new Set<string>());
 
-  const onSubstateChange = useCallback((key: string, isExpanded: boolean, hasInline: boolean) => {
+  const onSubstateChange = useCallback((key: string, isExpanded: boolean) => {
     if (isExpanded) expandedKeysRef.current.add(key);
     else expandedKeysRef.current.delete(key);
-    if (hasInline) inlineKeysRef.current.add(key);
-    else inlineKeysRef.current.delete(key);
-    setHasInlineOpen(inlineKeysRef.current.size > 0);
   }, []);
 
   const escCtxValue = useMemo<DrawerEscapeCtx>(
     () => ({
-      collapseInlineSignal,
       onSubstateChange,
       expandedCitationKey,
       onItemExpand,
-      pendingInlineExpand,
-      clearPendingInlineExpand,
+      onInlineExpand: handleInlineExpand,
+      isFullPage,
     }),
-    [
-      collapseInlineSignal,
-      onSubstateChange,
-      expandedCitationKey,
-      onItemExpand,
-      pendingInlineExpand,
-      clearPendingInlineExpand,
-    ],
+    [onSubstateChange, expandedCitationKey, onItemExpand, handleInlineExpand, isFullPage],
   );
 
-  // Ref mirrors expandedCitationKey so the escape handler reads the latest value
-  // without re-registering the listener on every accordion toggle.
+  // Refs mirror mutable state so the escape handler reads the latest value
+  // without re-registering the listener on every state change.
   // Synced in useLayoutEffect to avoid React Compiler bailout.
   const expandedKeyRef = useRef(expandedCitationKey);
   useLayoutEffect(() => {
     expandedKeyRef.current = expandedCitationKey;
   }, [expandedCitationKey]);
+
+  const headerInlineRef = useRef(headerInline);
+  useLayoutEffect(() => {
+    headerInlineRef.current = headerInline;
+  }, [headerInline]);
+
+  // Reset full-page and header panel state when drawer closes
+  useEffect(() => {
+    if (!isOpen) {
+      setManualFullPage(false);
+      setHeaderInline(null);
+      setActiveIndicatorKey(null);
+    }
+  }, [isOpen]);
 
   // Lock body scroll while drawer is open (prevents pull-to-refresh on mobile)
   useEffect(() => {
@@ -903,11 +923,10 @@ export function CitationDrawer({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (inlineKeysRef.current.size > 0) {
-          // Level 3 → Level 2: collapse inline full-page images
-          setCollapseInlineSignal(s => s + 1);
-          inlineKeysRef.current.clear();
-          setHasInlineOpen(false);
+        if (headerInlineRef.current !== null) {
+          // Level 3 → Level 2: close the header inline panel
+          setHeaderInline(null);
+          setActiveIndicatorKey(null);
         } else if (expandedKeyRef.current !== null) {
           // Level 2 → Level 1: collapse the accordion
           setExpandedCitationKey(null);
@@ -961,17 +980,27 @@ export function CitationDrawer({
         className={cn(
           "fixed bg-white dark:bg-gray-900 flex flex-col",
           "animate-in duration-200",
-          position === "bottom" && "inset-x-0 bottom-0 max-h-[80vh] rounded-t-2xl slide-in-from-bottom-4",
+          position === "bottom" &&
+            "inset-x-0 bottom-0 slide-in-from-bottom-4 transition-[max-height,border-radius] duration-200",
+          position === "bottom" && (isFullPage ? "max-h-[100dvh]" : "max-h-[80vh] rounded-t-2xl"),
           position === "right" && "inset-y-0 right-0 w-full max-w-md slide-in-from-right-4",
           className,
         )}
         style={
           {
             zIndex: `var(${Z_INDEX_DRAWER_VAR}, ${Z_INDEX_OVERLAY_DEFAULT})`,
-            ...(dragOffset > 0 && {
-              transform: `translateY(${dragOffset}px)`,
-              transition: isDragging ? "none" : "transform 200ms ease-out",
-            }),
+            // Dragging down: translate the sheet downward (close gesture)
+            ...(dragDirection === "down" &&
+              dragOffset > 0 && {
+                transform: `translateY(${dragOffset}px)`,
+                transition: isDragging ? "none" : "transform 200ms ease-out",
+              }),
+            // Dragging up: grow the sheet taller (expand gesture) — no gap at bottom
+            ...(dragDirection === "up" &&
+              dragOffset < 0 && {
+                maxHeight: `calc(80vh + ${Math.abs(dragOffset)}px)`,
+                transition: isDragging ? "none" : "max-height 200ms ease-out",
+              }),
           } as React.CSSProperties
         }
         role="dialog"
@@ -1043,6 +1072,40 @@ export function CitationDrawer({
         <div role="status" aria-live="polite" className="sr-only">
           {pageAnnouncement}
         </div>
+
+        {/* Header inline panel — full-page proof image triggered by page badge or item row */}
+        {headerInline && (
+          <div className="shrink-0 border-b border-gray-200 dark:border-gray-700 overflow-hidden">
+            <CitationErrorBoundary>
+              <InlineExpandedImage
+                src={headerInline.src}
+                onCollapse={() => {
+                  setHeaderInline(null);
+                  setActiveIndicatorKey(null);
+                }}
+                verification={headerInline.verification ?? undefined}
+                renderScale={headerInline.renderScale}
+                initialOverlayHidden
+                showOverlay={activeIndicatorKey !== null}
+                highlightItem={
+                  activeIndicatorKey
+                    ? (citationsOnActivePage.find(c => c.citationKey === activeIndicatorKey)?.verification?.document
+                        ?.phraseMatchDeepItem ?? undefined)
+                    : undefined
+                }
+                fill={isFullPage}
+              />
+            </CitationErrorBoundary>
+            {indicatorVariant !== "none" && citationsOnActivePage.length > 0 && (
+              <IndicatorRow
+                citations={citationsOnActivePage}
+                activeKey={activeIndicatorKey}
+                onToggle={key => setActiveIndicatorKey(k => (k === key ? null : key))}
+                indicatorVariant={indicatorVariant}
+              />
+            )}
+          </div>
+        )}
 
         {/* Citation list */}
         <DrawerEscapeContext.Provider value={escCtxValue}>

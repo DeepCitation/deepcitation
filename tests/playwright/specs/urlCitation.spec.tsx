@@ -171,7 +171,7 @@ test.describe("URL Citation - Verification Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     // Badge variant uses SVG checkmark with green color
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-green-600, .text-green-500")).toBeVisible();
   });
 
@@ -180,7 +180,7 @@ test.describe("URL Citation - Verification Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     // Partial uses amber checkmark SVG
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
@@ -203,7 +203,7 @@ test.describe("URL Citation - Blocked Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     // Blocked statuses use lock icon SVG with amber color
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
@@ -211,7 +211,7 @@ test.describe("URL Citation - Blocked Status", () => {
     await mount(<UrlCitationComponent urlMeta={blockedLoginMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
@@ -219,7 +219,7 @@ test.describe("URL Citation - Blocked Status", () => {
     await mount(<UrlCitationComponent urlMeta={blockedPaywallMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
@@ -227,7 +227,7 @@ test.describe("URL Citation - Blocked Status", () => {
     await mount(<UrlCitationComponent urlMeta={blockedGeoMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
@@ -235,7 +235,7 @@ test.describe("URL Citation - Blocked Status", () => {
     await mount(<UrlCitationComponent urlMeta={blockedRateLimitMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
   });
 
@@ -271,7 +271,7 @@ test.describe("URL Citation - Error Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     // Error statuses use X icon SVG with red color
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
   });
 
@@ -279,7 +279,7 @@ test.describe("URL Citation - Error Status", () => {
     await mount(<UrlCitationComponent urlMeta={errorNotFoundMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
   });
 
@@ -287,7 +287,7 @@ test.describe("URL Citation - Error Status", () => {
     await mount(<UrlCitationComponent urlMeta={errorServerMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
   });
 
@@ -295,7 +295,7 @@ test.describe("URL Citation - Error Status", () => {
     await mount(<UrlCitationComponent urlMeta={errorNetworkMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url.locator("svg")).toBeVisible();
+    await expect(url.locator("[role='img'] svg")).toBeVisible();
     await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
   });
 

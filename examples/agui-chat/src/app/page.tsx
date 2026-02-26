@@ -9,8 +9,9 @@ import { useAgentChat } from "@/hooks/useAgentChat";
 import { toDrawerItems } from "@/utils/citationDrawerAdapter";
 
 export default function Home() {
-  // FileDataPart is the single source of truth (includes deepTextPromptPortion)
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
+  // Accumulated text portions for LLM prompts (one string per uploaded file)
+  const [deepTextPromptPortions, setDeepTextPromptPortions] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -26,6 +27,7 @@ export default function Home() {
   } = useAgentChat({
     agentUrl: "/api/agent",
     fileDataParts,
+    deepTextPromptPortions,
   });
 
   const handleFileUpload = async (file: File) => {
@@ -43,6 +45,9 @@ export default function Home() {
 
       if (res.ok && data.fileDataPart) {
         setFileDataParts(prev => [...prev, data.fileDataPart]);
+        if (data.deepTextPromptPortion) {
+          setDeepTextPromptPortions(prev => [...prev, data.deepTextPromptPortion]);
+        }
       } else {
         const errorMsg = data.details || data.error || "Upload failed";
         setUploadError(errorMsg);

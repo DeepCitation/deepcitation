@@ -1,6 +1,7 @@
 import type React from "react";
 import type { Citation } from "../types/citation.js";
 import type { Verification, VerificationPage } from "../types/verification.js";
+import type { IndicatorVariant } from "./types.js";
 
 /**
  * A single citation item with its verification result for the drawer.
@@ -74,7 +75,7 @@ export interface CitationDrawerProps {
    * - `"none"`: No status indicator rendered
    * @default "icon"
    */
-  indicatorVariant?: "icon" | "dot" | "none";
+  indicatorVariant?: IndicatorVariant;
   /**
    * Map of attachmentId or URL to friendly display label.
    * Used to override the default source name in group headers and citation rows.
@@ -102,7 +103,7 @@ export interface CitationDrawerItemProps {
    * - `"none"`: No status indicator rendered
    * @default "icon"
    */
-  indicatorVariant?: "icon" | "dot" | "none";
+  indicatorVariant?: IndicatorVariant;
   /**
    * Whether the item should start in expanded state (e.g., auto-expand first failure).
    * @default false

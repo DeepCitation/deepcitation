@@ -27,18 +27,16 @@ import {
 const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
 // 1. Upload multiple documents
-const file1 = await deepcitation.uploadFile(contractPdf, {
-  filename: "contract.pdf"
-});
-const file2 = await deepcitation.uploadFile(invoicePdf, {
-  filename: "invoice.pdf"
-});
+const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
+  { file: contractPdf, filename: "contract.pdf" },
+  { file: invoicePdf, filename: "invoice.pdf" },
+]);
 
-// 2. Wrap prompts with multiple file contents
+// 2. Wrap prompts with combined file content
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a document analyst that cites sources.",
   userPrompt: "Compare the contract terms with the invoice amounts.",
-  deepTextPromptPortion: [file1.deepTextPromptPortion, file2.deepTextPromptPortion] // Array for multiple files
+  deepTextPromptPortion, // All files combined into one string
 });
 
 // 3. Call your LLM

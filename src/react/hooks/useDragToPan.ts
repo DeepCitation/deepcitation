@@ -32,14 +32,14 @@ const DRAG_THRESHOLD = 5;
  *
  * @example
  * ```tsx
- * const { containerRef, isDragging, handlers, scrollState, wasDragging } = useDragToPan();
+ * const { containerRef, isDragging, handlers, scrollState, wasDraggingRef } = useDragToPan();
  *
  * <div ref={containerRef} style={{ overflowX: "auto" }} {...handlers}>
  *   <img ... />
  * </div>
  *
  * // In click handler:
- * if (wasDragging.current) { wasDragging.current = false; return; }
+ * if (wasDraggingRef.current) { wasDraggingRef.current = false; return; }
  * ```
  */
 export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
@@ -54,7 +54,7 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
   scrollTo: (x: number) => void;
   scrollState: ScrollState;
   /** Ref that is true after a drag gesture ended. Consumer should check and reset in click handler. */
-  wasDragging: React.MutableRefObject<boolean>;
+  wasDraggingRef: React.MutableRefObject<boolean>;
 } {
   const { direction = "x" } = options;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -68,7 +68,7 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
   const startScrollLeft = useRef(0);
   const startScrollTop = useRef(0);
   const dragDistance = useRef(0);
-  const wasDragging = useRef(false);
+  const wasDraggingRef = useRef(false);
 
   const updateScrollState = useCallback(() => {
     const el = containerRef.current;
@@ -152,7 +152,7 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
     if (!isPressed.current) return;
     isPressed.current = false;
     if (dragDistance.current > DRAG_THRESHOLD) {
-      wasDragging.current = true;
+      wasDraggingRef.current = true;
     }
     setIsDragging(false);
     updateScrollState();
@@ -194,6 +194,6 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
     handlers: { onMouseDown, onMouseMove, onMouseUp, onMouseLeave },
     scrollTo,
     scrollState,
-    wasDragging,
+    wasDraggingRef,
   };
 }

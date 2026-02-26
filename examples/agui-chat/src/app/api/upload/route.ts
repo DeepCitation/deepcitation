@@ -45,16 +45,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: uploadError }, { status });
     }
 
-    // Upload to DeepCitation - fileDataParts now includes deepTextPromptPortion
-    const { fileDataParts } = await dc.prepareAttachment([{ file: buffer, filename: file.name }]);
+    // Upload to DeepCitation
+    const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([{ file: buffer, filename: file.name }]);
 
     const fileDataPart = fileDataParts[0];
     console.log(`Uploaded: ${sanitizeForLog(file.name)} (${fileDataPart.attachmentId})`);
 
-    // Return the complete FileDataPart - client stores this as single source of truth
+    // Return fileDataPart for verification tracking + deepTextPromptPortion for LLM prompts
     return NextResponse.json({
       success: true,
       fileDataPart,
+      deepTextPromptPortion,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";

@@ -4,6 +4,8 @@ import { DRAWER_DRAG_CLOSE_THRESHOLD_PX } from "../constants.js";
 interface UseDrawerDragToCloseOptions {
   /** Called when the drag distance exceeds the threshold. */
   onClose: () => void;
+  /** Called when upward drag distance exceeds the expand threshold. */
+  onExpand?: () => void;
   /** Override the default threshold (px). */
   threshold?: number;
   /** Whether drag-to-close is enabled (default: true). */
@@ -15,21 +17,27 @@ interface UseDrawerDragToCloseResult {
   handleRef: React.RefObject<HTMLDivElement | null>;
   /** Attach to the drawer container for the transform. */
   drawerRef: React.RefObject<HTMLDivElement | null>;
-  /** Current downward drag offset in px (0 when not dragging). */
+  /** Current drag offset in px (positive = down, negative = up, 0 when not dragging). */
   dragOffset: number;
   /** Whether a drag gesture is active. */
   isDragging: boolean;
+  /** Current drag direction: "up" (expanding), "down" (closing), or null (idle). */
+  dragDirection: "up" | "down" | null;
 }
 
 /**
- * Hook that enables drag-to-close on a bottom-sheet drawer handle bar.
+ * Hook that enables bidirectional drag on a bottom-sheet drawer handle bar.
  *
  * - `touchstart` on the handle captures startY.
- * - `touchmove` on the document computes downward delta (clamped ≥ 0).
- * - `touchend` closes if past threshold, otherwise snaps back.
+ * - `touchmove` on the document computes delta (negative = up, positive = down).
+ *   - Downward: clamped ≥ 0 for close gesture.
+ *   - Upward: clamped to -threshold for expand gesture.
+ * - `touchend` closes if past threshold (down), expands if past threshold (up),
+ *   otherwise snaps back.
  */
 export function useDrawerDragToClose({
   onClose,
+  onExpand,
   threshold = DRAWER_DRAG_CLOSE_THRESHOLD_PX,
   enabled = true,
 }: UseDrawerDragToCloseOptions): UseDrawerDragToCloseResult {
@@ -39,9 +47,17 @@ export function useDrawerDragToClose({
 
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragDirection, setDragDirection] = useState<"up" | "down" | null>(null);
 
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  const onExpandRef = useRef(onExpand);
+  useEffect(() => {
+    onExpandRef.current = onExpand;
+  });
 
   const isMountedRef = useRef(true);
   useEffect(
@@ -51,32 +67,63 @@ export function useDrawerDragToClose({
     [],
   );
 
+  /** Tracks whether we've already fired haptic feedback for this gesture. Resets on touchstart. */
+  const hasVibratedRef = useRef(false);
+
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       if (!enabled) return;
       startYRef.current = e.touches[0].clientY;
+      hasVibratedRef.current = false;
       setIsDragging(true);
     },
     [enabled],
   );
 
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (startYRef.current === null) return;
-    const deltaY = e.touches[0].clientY - startYRef.current;
-    // Only allow downward dragging (clamped ≥ 0)
-    setDragOffset(Math.max(0, deltaY));
-  }, []);
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (startYRef.current === null) return;
+      const deltaY = e.touches[0].clientY - startYRef.current;
+
+      if (deltaY >= 0) {
+        // Downward drag — close gesture (positive offset)
+        setDragOffset(deltaY);
+        setDragDirection("down");
+      } else if (onExpandRef.current) {
+        // Upward drag — expand gesture (negative offset, clamped to -threshold)
+        setDragOffset(Math.max(-threshold, deltaY));
+        setDragDirection("up");
+      } else {
+        // No onExpand handler — ignore upward drag
+        setDragOffset(0);
+        setDragDirection(null);
+      }
+
+      // Fire haptic feedback once when the drag crosses the threshold
+      if (!hasVibratedRef.current && (deltaY >= threshold || deltaY <= -threshold)) {
+        hasVibratedRef.current = true;
+        navigator.vibrate?.(10);
+      }
+    },
+    [threshold],
+  );
 
   const handleTouchEnd = useCallback(() => {
     if (startYRef.current === null) return;
     startYRef.current = null;
     setIsDragging(false);
+    setDragDirection(null);
 
     setDragOffset(prev => {
       if (prev >= threshold && isMountedRef.current) {
-        // Close — use a microtask so the state update doesn't conflict
+        // Close — drag exceeded downward threshold
         queueMicrotask(() => {
           if (isMountedRef.current) onCloseRef.current();
+        });
+      } else if (prev <= -threshold && isMountedRef.current && onExpandRef.current) {
+        // Expand — drag exceeded upward threshold
+        queueMicrotask(() => {
+          if (isMountedRef.current) onExpandRef.current?.();
         });
       }
       return 0;
@@ -101,5 +148,5 @@ export function useDrawerDragToClose({
     };
   }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
-  return { handleRef, drawerRef, dragOffset, isDragging };
+  return { handleRef, drawerRef, dragOffset, isDragging, dragDirection };
 }
