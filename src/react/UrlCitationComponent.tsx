@@ -139,6 +139,9 @@ const UrlStatusIndicator = ({
   statusInfo,
   renderBlockedIndicator,
 }: UrlStatusIndicatorProps) => {
+  // "none" means no status indicator at all
+  if (indicatorVariant === "none") return null;
+
   // Dot variant: simple colored dots for all statuses
   if (indicatorVariant === "dot") {
     if (isVerified) {
