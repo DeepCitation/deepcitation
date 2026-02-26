@@ -67,10 +67,14 @@ export function useDrawerDragToClose({
     [],
   );
 
+  /** Tracks whether we've already fired haptic feedback for this gesture. Resets on touchstart. */
+  const hasVibratedRef = useRef(false);
+
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       if (!enabled) return;
       startYRef.current = e.touches[0].clientY;
+      hasVibratedRef.current = false;
       setIsDragging(true);
     },
     [enabled],
@@ -93,6 +97,12 @@ export function useDrawerDragToClose({
         // No onExpand handler — ignore upward drag
         setDragOffset(0);
         setDragDirection(null);
+      }
+
+      // Fire haptic feedback once when the drag crosses the threshold
+      if (!hasVibratedRef.current && (deltaY >= threshold || deltaY <= -threshold)) {
+        hasVibratedRef.current = true;
+        navigator.vibrate?.(10);
       }
     },
     [threshold],

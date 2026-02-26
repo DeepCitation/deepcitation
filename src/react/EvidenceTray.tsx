@@ -42,7 +42,7 @@ import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { deriveOutcomeLabel } from "./outcomeLabel.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget } from "./overlayGeometry.js";
-import { buildIntentSummary } from "./searchSummaryUtils.js";
+import { buildIntentSummary, countUniqueSearchTexts } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
 import { ZoomToolbar } from "./ZoomToolbar.js";
@@ -545,17 +545,7 @@ function EvidenceTrayFooter({
   const dateStr = formatted?.display ?? "";
   const outcomeLabel = deriveOutcomeLabel(status, searchAttempts);
   const [showLog, setShowLog] = useState(false);
-  const searchCount = useMemo(() => {
-    if (!searchAttempts || searchAttempts.length === 0) return 0;
-    const texts = new Set<string>();
-    for (const a of searchAttempts) {
-      if (a.searchPhrase) texts.add(a.searchPhrase);
-      if (a.searchVariations) {
-        for (const v of a.searchVariations) texts.add(v);
-      }
-    }
-    return texts.size;
-  }, [searchAttempts]);
+  const searchCount = useMemo(() => countUniqueSearchTexts(searchAttempts ?? []), [searchAttempts]);
   // Only show log toggle for non-found statuses with multiple search attempts
   const showLogToggle = searchCount > 1 && status !== "found";
 

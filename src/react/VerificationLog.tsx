@@ -18,7 +18,7 @@ import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 import { UrlCitationComponent } from "./UrlCitationComponent.js";
 // import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 
-import { buildSearchSummary } from "./searchSummaryUtils.js";
+import { buildSearchSummary, countUniqueSearchTexts } from "./searchSummaryUtils.js";
 import { cn, isImageSource, isUrlCitation } from "./utils.js";
 
 // =============================================================================
@@ -868,18 +868,11 @@ function VerificationLogSummary({
   verifiedAt,
 }: VerificationLogSummaryProps) {
   const isMiss = status === "not_found";
-  // Count total unique texts tried (phrases + variations) — consistent with EvidenceTray
-  const queryGroupCount = useMemo(() => {
-    if (!isMiss) return undefined;
-    const texts = new Set<string>();
-    for (const a of searchAttempts) {
-      if (a.searchPhrase) texts.add(a.searchPhrase);
-      if (a.searchVariations) {
-        for (const v of a.searchVariations) texts.add(v);
-      }
-    }
-    return texts.size;
-  }, [searchAttempts, isMiss]);
+  // Count total unique texts tried (phrases + variations) — shared with EvidenceTray
+  const queryGroupCount = useMemo(
+    () => (isMiss ? countUniqueSearchTexts(searchAttempts) : undefined),
+    [searchAttempts, isMiss],
+  );
   const outcomeSummary = getOutcomeSummary(status, searchAttempts, queryGroupCount);
 
   // Format the verified date for display

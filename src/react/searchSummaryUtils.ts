@@ -5,6 +5,26 @@ import { isDocumentCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
 
 // =============================================================================
+// SEARCH COUNT UTILITY
+// =============================================================================
+
+/**
+ * Count the total number of unique search texts across all attempts.
+ * Combines primary searchPhrase and any searchVariations into a deduplicated set.
+ */
+export function countUniqueSearchTexts(searchAttempts: SearchAttempt[]): number {
+  if (searchAttempts.length === 0) return 0;
+  const texts = new Set<string>();
+  for (const a of searchAttempts) {
+    if (a.searchPhrase) texts.add(a.searchPhrase);
+    if (a.searchVariations) {
+      for (const v of a.searchVariations) texts.add(v);
+    }
+  }
+  return texts.size;
+}
+
+// =============================================================================
 // INTENT-CENTRIC TYPES
 // =============================================================================
 

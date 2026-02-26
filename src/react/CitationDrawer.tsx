@@ -19,6 +19,7 @@ import {
   sortGroupsByWorstStatus,
 } from "./CitationDrawer.utils.js";
 import { StackedStatusIcons } from "./CitationDrawerTrigger.js";
+import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import {
   EASE_COLLAPSE,
   EASE_EXPAND,
@@ -1075,24 +1076,26 @@ export function CitationDrawer({
         {/* Header inline panel — full-page proof image triggered by page badge or item row */}
         {headerInline && (
           <div className="shrink-0 border-b border-gray-200 dark:border-gray-700 overflow-hidden">
-            <InlineExpandedImage
-              src={headerInline.src}
-              onCollapse={() => {
-                setHeaderInline(null);
-                setActiveIndicatorKey(null);
-              }}
-              verification={headerInline.verification ?? undefined}
-              renderScale={headerInline.renderScale}
-              initialOverlayHidden
-              showOverlay={activeIndicatorKey !== null}
-              highlightItem={
-                activeIndicatorKey
-                  ? (citationsOnActivePage.find(c => c.citationKey === activeIndicatorKey)?.verification?.document
-                      ?.phraseMatchDeepItem ?? undefined)
-                  : undefined
-              }
-              fill={isFullPage}
-            />
+            <CitationErrorBoundary>
+              <InlineExpandedImage
+                src={headerInline.src}
+                onCollapse={() => {
+                  setHeaderInline(null);
+                  setActiveIndicatorKey(null);
+                }}
+                verification={headerInline.verification ?? undefined}
+                renderScale={headerInline.renderScale}
+                initialOverlayHidden
+                showOverlay={activeIndicatorKey !== null}
+                highlightItem={
+                  activeIndicatorKey
+                    ? (citationsOnActivePage.find(c => c.citationKey === activeIndicatorKey)?.verification?.document
+                        ?.phraseMatchDeepItem ?? undefined)
+                    : undefined
+                }
+                fill={isFullPage}
+              />
+            </CitationErrorBoundary>
             {indicatorVariant !== "none" && citationsOnActivePage.length > 0 && (
               <IndicatorRow
                 citations={citationsOnActivePage}

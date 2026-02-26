@@ -535,6 +535,15 @@ export class DeepCitation {
   }
 
   /**
+   * @deprecated Use `prepareAttachments()` (plural) instead. This method will be removed in a future major release.
+   *
+   * Backward-compatible alias that accepts a single file input and delegates to `prepareAttachments`.
+   */
+  async prepareAttachment(file: FileInput): Promise<PrepareAttachmentsResult> {
+    return this.prepareAttachments([file]);
+  }
+
+  /**
    * Verify citations against a single attachment/file.
    *
    * For most use cases, prefer `verify()` which automatically parses citations
