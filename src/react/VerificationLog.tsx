@@ -1155,9 +1155,7 @@ export function VerificationLogTimeline({
           onCollapse?.();
         }
       }}
-      className={cn(
-        onCollapse && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors",
-      )}
+      className={cn(onCollapse && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors")}
     >
       <AuditSearchDisplay
         searchAttempts={searchAttempts}
