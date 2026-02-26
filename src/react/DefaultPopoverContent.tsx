@@ -419,15 +419,17 @@ function PopoverFallbackView({
   sourceLabel,
   status,
   urlAccessExplanation,
+  indicatorVariant = "icon",
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   sourceLabel?: string;
   status: CitationStatus;
   urlAccessExplanation: UrlAccessExplanation | null;
+  indicatorVariant?: "icon" | "dot" | "none";
 }) {
   const searchStatus = verification?.status;
-  const statusLabel = getStatusLabel(status);
+  const statusLabel = indicatorVariant !== "none" ? getStatusLabel(status) : null;
   const hasSnippet = verification?.verifiedMatchSnippet;
   const pageNumber = verification?.document?.verifiedPageNumber;
 
@@ -833,6 +835,7 @@ export function DefaultPopoverContent({
       sourceLabel={sourceLabel}
       status={status}
       urlAccessExplanation={urlAccessExplanation}
+      indicatorVariant={indicatorVariant}
     />
   );
 }

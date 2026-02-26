@@ -821,6 +821,7 @@ export function InlineExpandedImage({
   highlightItem,
   anchorItem,
   initialOverlayHidden = false,
+  showOverlay,
 }: {
   src: string;
   onCollapse: () => void;
@@ -837,6 +838,11 @@ export function InlineExpandedImage({
   anchorItem?: DeepTextItem | null;
   /** When true, the annotation overlay starts hidden (e.g. drawer context where overlay is unwanted). */
   initialOverlayHidden?: boolean;
+  /**
+   * When provided, externally controls overlay visibility (overrides internal overlayHidden state).
+   * true = show overlay, false = hide overlay. Used by the header panel indicator row.
+   */
+  showOverlay?: boolean;
 }) {
   const { containerRef, isDragging, handlers: panHandlers, wasDragging } = useDragToPan({ direction: "xy" });
   const isTouch = useIsTouchDevice();
@@ -847,6 +853,8 @@ export function InlineExpandedImage({
   // user can view the underlying page image unfettered. The backend-drawn annotations
   // on the image itself remain visible. Only applies in fill (expanded-page) mode.
   const [overlayHidden, setOverlayHidden] = useState(initialOverlayHidden);
+  // When showOverlay is provided by parent (header panel mode), it overrides internal state.
+  const effectiveOverlayHidden = showOverlay !== undefined ? !showOverlay : overlayHidden;
   // Zoom state — only active when fill=true (expanded-page mode).
   // 1.0 = natural pixel size. < 1.0 = fit-to-screen (shrunk to container).
   const [zoom, setZoom] = useState(1);
@@ -1345,19 +1353,24 @@ export function InlineExpandedImage({
                 }}
                 draggable={false}
               />
-              {imageLoaded && renderScale && naturalWidth && naturalHeight && effectivePhraseItem && !overlayHidden && (
-                <CitationAnnotationOverlay
-                  phraseMatchDeepItem={effectivePhraseItem}
-                  renderScale={renderScale}
-                  imageNaturalWidth={naturalWidth}
-                  imageNaturalHeight={naturalHeight}
-                  highlightColor={verification?.highlightColor}
-                  anchorTextDeepItem={effectiveAnchorItem}
-                  anchorText={verification?.verifiedAnchorText}
-                  fullPhrase={verification?.verifiedFullPhrase}
-                  onDismiss={fill ? () => setOverlayHidden(true) : undefined}
-                />
-              )}
+              {imageLoaded &&
+                renderScale &&
+                naturalWidth &&
+                naturalHeight &&
+                effectivePhraseItem &&
+                !effectiveOverlayHidden && (
+                  <CitationAnnotationOverlay
+                    phraseMatchDeepItem={effectivePhraseItem}
+                    renderScale={renderScale}
+                    imageNaturalWidth={naturalWidth}
+                    imageNaturalHeight={naturalHeight}
+                    highlightColor={verification?.highlightColor}
+                    anchorTextDeepItem={effectiveAnchorItem}
+                    anchorText={verification?.verifiedAnchorText}
+                    fullPhrase={verification?.verifiedFullPhrase}
+                    onDismiss={fill ? () => setOverlayHidden(true) : undefined}
+                  />
+                )}
             </div>
           </div>
           {/* In fill mode, footer sits inside the scroll area right below the page image */}

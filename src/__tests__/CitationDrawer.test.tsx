@@ -1325,7 +1325,7 @@ describe("CitationDrawer page badges", () => {
     expect(pageButton?.textContent).toContain("p.3");
   });
 
-  it("clicking page badge expands the matching citation", () => {
+  it("clicking page badge does not expand the accordion (opens header panel instead)", () => {
     const groups: SourceCitationGroup[] = [
       {
         sourceName: "Doc",
@@ -1362,10 +1362,10 @@ describe("CitationDrawer page badges", () => {
     expect(pageButton).toBeInTheDocument();
     if (pageButton) fireEvent.click(pageButton);
 
-    // The first citation (page 1) should NOT be expanded, second (page 5) should be
+    // Accordion items should NOT be expanded — page badge now targets the header panel
     const item1 = container.querySelector("[data-citation-key='c1']") as HTMLElement;
     const item2 = container.querySelector("[data-citation-key='c2']") as HTMLElement;
     expect(item1).toHaveAttribute("aria-expanded", "false");
-    expect(item2).toHaveAttribute("aria-expanded", "true");
+    expect(item2).toHaveAttribute("aria-expanded", "false");
   });
 });
