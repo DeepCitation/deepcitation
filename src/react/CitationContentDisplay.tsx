@@ -12,20 +12,9 @@ import type { CitationStatus } from "../types/citation.js";
 import { getInteractionClasses } from "./CitationContentDisplay.utils.js";
 import { CitationStatusIndicator, type CitationStatusIndicatorProps } from "./CitationStatusIndicator.js";
 import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import { handleImageError } from "./imageUtils.js";
 import type { CitationContent, CitationRenderProps, CitationVariant } from "./types.js";
 import { cn, isUrlCitation } from "./utils.js";
-
-// =============================================================================
-// MODULE-LEVEL UTILITIES
-// =============================================================================
-
-/**
- * Module-level handler for hiding broken images.
- * Performance fix: avoids creating new function references on every render.
- */
-const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-  (e.target as HTMLImageElement).style.display = "none";
-};
 
 // =============================================================================
 // CITATION CONTENT DISPLAY COMPONENT

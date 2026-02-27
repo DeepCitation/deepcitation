@@ -42,6 +42,7 @@ import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
+import { handleImageError } from "./imageUtils.js";
 import { deriveOutcomeLabel } from "./outcomeLabel.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget } from "./overlayGeometry.js";
 import { buildIntentSummary, countUniqueSearchTexts } from "./searchSummaryUtils.js";
@@ -52,14 +53,6 @@ import { ZoomToolbar } from "./ZoomToolbar.js";
 // =============================================================================
 // MODULE-LEVEL UTILITIES
 // =============================================================================
-
-/**
- * Module-level handler for hiding broken images.
- * Performance fix: avoids creating new function references on every render.
- */
-const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-  (e.target as HTMLImageElement).style.display = "none";
-};
 
 /**
  * Tolerance factor for coordinate scaling sanity checks.
@@ -110,7 +103,8 @@ export function normalizeScreenshotSrc(raw: string): string {
 
   // Validate base64 format (basic check - should only contain valid base64 chars + max 2 padding chars)
   // This prevents injection of malicious strings that would bypass isValidProofImageSrc()
-  if (!/^[A-Za-z0-9+/]+(={0,2})?$/.test(raw.slice(0, 100))) {
+  const BASE64_VALIDATION_PREFIX_LENGTH = 100;
+  if (!/^[A-Za-z0-9+/]+(={0,2})?$/.test(raw.slice(0, BASE64_VALIDATION_PREFIX_LENGTH))) {
     throw new Error("normalizeScreenshotSrc: Invalid base64 format detected");
   }
 
@@ -133,7 +127,10 @@ export function resolveEvidenceSrc(verification: Verification | null | undefined
   try {
     const s = normalizeScreenshotSrc(raw);
     return isValidProofImageSrc(s) ? s : null;
-  } catch {
+  } catch (e) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Failed to normalize screenshot src:", e);
+    }
     return null;
   }
 }
