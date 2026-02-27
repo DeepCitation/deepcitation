@@ -590,13 +590,23 @@ function EvidenceTrayFooter({
           <VerificationLogTimeline searchAttempts={searchAttempts} status={verification?.status} />
           <button
             type="button"
-            className="w-full text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors pt-1 pb-0.5"
+            className="flex items-center gap-0.5 text-[11px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors pt-1"
             onClick={e => {
               e.stopPropagation();
               setShowLog(false);
             }}
           >
-            Show less
+            <svg
+              className="size-2 shrink-0 rotate-[270deg]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              aria-hidden="true"
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+            <span>Show less</span>
           </button>
         </div>
       )}
