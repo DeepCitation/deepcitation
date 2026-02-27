@@ -40,9 +40,9 @@ const PopoverContent = React.forwardRef<
           // Max width respects the CSS custom property (--dc-popover-width) and caps to viewport.
           // This must match the inner content width to prevent horizontal scrollbar.
           maxWidth: `min(var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT}), calc(100vw - 2rem))`,
-          // Use Radix's available-height var so the popover never exceeds the space between
-          // the trigger and the viewport boundary. A fixed 100vh value ignores trigger position
-          // and causes the top edge to clip above the viewport when the popover opens upward.
+          // Fixed to calc(100dvh - 2rem). Intentionally not using Radix's
+          // --radix-popover-content-available-height — that var caused the popover to
+          // resize as the trigger scrolled out of view.
           maxHeight: EXPANDED_POPOVER_HEIGHT,
           ...style,
         } as React.CSSProperties

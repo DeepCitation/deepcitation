@@ -1169,7 +1169,7 @@ export function VerificationLogTimeline({
   return (
     <div
       id="verification-log-timeline"
-      role="button"
+      role={onCollapse ? "button" : undefined}
       tabIndex={onCollapse ? 0 : undefined}
       onClick={e => {
         // Stop propagation so parent handlers (e.g. page-expand) don't fire

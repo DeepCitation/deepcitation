@@ -882,6 +882,7 @@ function OpenCitationDrawer({
   const handlePageDeactivate = useCallback(() => {
     setHeaderInline(null);
     setActiveIndicatorKey(null);
+    setManualFullPage(false);
   }, []);
 
   // Escape navigation — tracks substate (expanded accordion items) to step back
@@ -931,6 +932,7 @@ function OpenCitationDrawer({
           // Level 3 → Level 2: close the header inline panel
           setHeaderInline(null);
           setActiveIndicatorKey(null);
+          setManualFullPage(false);
         } else if (expandedKeyRef.current !== null) {
           // Level 2 → Level 1: collapse the accordion
           setExpandedCitationKey(null);
@@ -1083,6 +1085,7 @@ function OpenCitationDrawer({
                 onCollapse={() => {
                   setHeaderInline(null);
                   setActiveIndicatorKey(null);
+                  setManualFullPage(false);
                 }}
                 verification={headerInline.verification ?? undefined}
                 renderScale={headerInline.renderScale}
