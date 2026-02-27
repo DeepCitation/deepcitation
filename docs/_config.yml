@@ -57,3 +57,4 @@ exclude:
   - vendor
   - skill.md
   - agents
+  - docs/agents
