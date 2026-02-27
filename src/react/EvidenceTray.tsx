@@ -588,6 +588,16 @@ function EvidenceTrayFooter({
       {showLog && searchAttempts && searchAttempts.length > 0 && (
         <div className="mt-1">
           <VerificationLogTimeline searchAttempts={searchAttempts} status={verification?.status} />
+          <button
+            type="button"
+            className="w-full text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors pt-1 pb-0.5"
+            onClick={e => {
+              e.stopPropagation();
+              setShowLog(false);
+            }}
+          >
+            Show less
+          </button>
         </div>
       )}
     </div>
