@@ -21,6 +21,8 @@ import {
 import { StackedStatusIcons } from "./CitationDrawerTrigger.js";
 import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import {
+  DRAWER_STAGGER_DELAY_MS,
+  DRAWER_STAGGER_MAX_MS,
   EASE_COLLAPSE,
   EASE_EXPAND,
   getPortalContainer,
@@ -562,7 +564,7 @@ function DrawerSourceGroup({
     return (
       <div key={key}>
         {group.citations.map((item, index) => {
-          const delay = Math.min((staggerOffset + index) * 35, 200);
+          const delay = Math.min((staggerOffset + index) * DRAWER_STAGGER_DELAY_MS, DRAWER_STAGGER_MAX_MS);
           return renderCitationItem ? (
             <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
           ) : (
@@ -599,7 +601,7 @@ function DrawerSourceGroup({
       <SourceGroupHeader group={group} />
       <div>
         {group.citations.map((item, index) => {
-          const delay = Math.min((staggerOffset + index) * 35, 200);
+          const delay = Math.min((staggerOffset + index) * DRAWER_STAGGER_DELAY_MS, DRAWER_STAGGER_MAX_MS);
           return renderCitationItem ? (
             <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
           ) : (

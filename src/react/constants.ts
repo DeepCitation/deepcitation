@@ -484,6 +484,10 @@ export const ANIM_FAST_MS = 150;
 export const ANIM_STANDARD_MS = 200;
 /** Slow transition: drawer slide, popover morph. Tailwind equivalent: duration-300. */
 export const ANIM_SLOW_MS = 300;
+/** Per-item stagger delay for citation drawer row reveal animations. */
+export const DRAWER_STAGGER_DELAY_MS = 35;
+/** Cap for cumulative citation drawer stagger delay to keep reveals snappy. */
+export const DRAWER_STAGGER_MAX_MS = 200;
 
 /** Delay in ms before hiding a tooltip on mouse leave (prevents flicker on cursor exit). */
 export const TOOLTIP_HIDE_DELAY_MS = 80;
