@@ -482,16 +482,11 @@ export const EXPANDED_POPOVER_HEIGHT = "calc(100dvh - 2rem)";
 // NOTE: Tailwind duration-* classes in JSX must remain as literal strings for
 // JIT purging. These constants serve as documentary cross-references only.
 
-/** Instant smoothing: imperceptible transitions (hover color, trigger bg). Tailwind: duration-75. */
-export const ANIM_INSTANT_MS = 75;
-/** Fast transition: micro-interactions, exits, chevron rotation. Tailwind: duration-[120ms]. */
-export const ANIM_FAST_MS = 120;
-/** Standard transition: popover entry, grid expand, default morphs. Tailwind: duration-[180ms]. */
-export const ANIM_STANDARD_MS = 180;
-/** Measured transition: drawer slide, morph expand, deliberate reveals. Tailwind: duration-[250ms]. */
-export const ANIM_MEASURED_MS = 250;
-/** Slow transition: full-page view changes, multi-element coordinated animations. Tailwind: duration-[350ms]. */
-export const ANIM_SLOW_MS = 350;
+// ANIM_INSTANT_MS   =  75  Instant smoothing: imperceptible transitions (hover color, trigger bg). Tailwind: duration-75.
+// ANIM_FAST_MS      = 120  Fast transition: micro-interactions, exits, chevron rotation. Tailwind: duration-[120ms].
+// ANIM_STANDARD_MS  = 180  Standard transition: popover entry, grid expand, default morphs. Tailwind: duration-[180ms].
+// ANIM_MEASURED_MS  = 250  Measured transition: drawer slide, morph expand, deliberate reveals. Tailwind: duration-[250ms].
+// ANIM_SLOW_MS      = 350  Slow transition: full-page view changes, multi-element coordinated animations. Tailwind: duration-[350ms].
 /**
  * Per-item stagger delay for citation drawer row reveal animations.
  * Each successive row enters 40ms after the previous, creating a cascading

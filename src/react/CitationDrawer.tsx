@@ -43,6 +43,13 @@ import { FaviconImage, PagePill } from "./VerificationLog.js";
 // HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
 // EvidenceTray, InlineExpandedImage — imported from ./EvidenceTray.js (canonical location)
 
+/** Exponential-approach stagger delay: starts at ~DELAY gap, decelerates toward MAX (always monotonic). */
+function computeStaggerDelay(itemIndex: number): number {
+  return Math.round(
+    DRAWER_STAGGER_MAX_MS * (1 - Math.exp((-itemIndex * DRAWER_STAGGER_DELAY_MS) / DRAWER_STAGGER_MAX_MS)),
+  );
+}
+
 // =========
 // Internal escape-navigation context — NOT exported
 // =========
@@ -581,10 +588,7 @@ function DrawerSourceGroup({
       <div key={key}>
         {group.citations.map((item, index) => {
           const itemIndex = staggerOffset + index;
-          // Exponential approach: starts at ~DELAY gap, decelerates toward MAX (always monotonic)
-          const delay = Math.round(
-            DRAWER_STAGGER_MAX_MS * (1 - Math.exp((-itemIndex * DRAWER_STAGGER_DELAY_MS) / DRAWER_STAGGER_MAX_MS)),
-          );
+          const delay = computeStaggerDelay(itemIndex);
           return renderCitationItem ? (
             <RenderCitationDrawerItem key={item.citationKey} item={item} renderCitationItem={renderCitationItem} />
           ) : (
@@ -622,10 +626,7 @@ function DrawerSourceGroup({
       <div>
         {group.citations.map((item, index) => {
           const itemIndex = staggerOffset + index;
-          // Exponential approach: starts at ~DELAY gap, decelerates toward MAX (always monotonic)
-          const delay = Math.round(
-            DRAWER_STAGGER_MAX_MS * (1 - Math.exp((-itemIndex * DRAWER_STAGGER_DELAY_MS) / DRAWER_STAGGER_MAX_MS)),
-          );
+          const delay = computeStaggerDelay(itemIndex);
           return renderCitationItem ? (
             <RenderCitationDrawerItem key={item.citationKey} item={item} renderCitationItem={renderCitationItem} />
           ) : (

@@ -697,6 +697,28 @@ export function EvidenceTray({
 // =============================================================================
 
 /**
+ * Apply a CSS transform to the image wrapper during a zoom gesture.
+ * Uses `transform-origin: 0 0` with translate+scale so the content point under
+ * the anchor (midpoint/cursor) stays visually stable without updating origin per-frame.
+ *
+ * Formula: Cx = anchor.mx + anchor.sx (content-space X under anchor)
+ *          Cy = anchor.my + anchor.sy (content-space Y under anchor)
+ *          s  = gestureZoom / committedZoom (gesture scale factor)
+ *          transform: translate(Cx*(1-s), Cy*(1-s)) scale(s)
+ */
+function applyGestureTransform(
+  wrapper: HTMLDivElement,
+  gestureZoom: number,
+  committedZoom: number,
+  anchor: { mx: number; my: number; sx: number; sy: number },
+): void {
+  const s = gestureZoom / committedZoom;
+  const cx = anchor.mx + anchor.sx;
+  const cy = anchor.my + anchor.sy;
+  wrapper.style.transform = `translate(${cx * (1 - s)}px, ${cy * (1 - s)}px) scale(${s})`;
+}
+
+/**
  * Replaces Zone 3 (evidence tray) when the keyhole is expanded in-place.
  * Renders the image at natural size with 2D drag-to-pan. The summary content
  * (Zone 1 header + Zone 2 quote) stays visible above — this component is
@@ -785,6 +807,19 @@ export function InlineExpandedImage({
   // Auto-locate only once per image load; resizing should not keep re-centering/pulling view.
   const hasAutoScrolledToAnnotationRef = useRef(false);
 
+  // ---------------------------------------------------------------------------
+  // GPU-accelerated gesture zoom refs
+  // During pinch/wheel gestures, CSS transform: scale() is applied to the wrapper
+  // div (GPU-composited, zero layout reflow). On gesture end, the final zoom is
+  // committed to React state → width reflow → transform removed in one paint frame.
+  // ---------------------------------------------------------------------------
+  const imageWrapperRef = useRef<HTMLDivElement>(null);
+  // Active gesture zoom level (null = no gesture in progress).
+  const gestureZoomRef = useRef<number | null>(null);
+  // Anchor point for the gesture: viewport-relative position within container + scroll offsets.
+  // Used by applyGestureTransform during gesture and by useLayoutEffect for scroll correction on commit.
+  const gestureAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
+
   // Effective annotation items: override props take precedence, then verification.document, then null.
   const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
   const effectiveAnchorItem = anchorItem ?? verification?.document?.anchorTextMatchDeepItems?.[0] ?? null;
@@ -828,6 +863,8 @@ export function InlineExpandedImage({
     hasManualZoomRef.current = false;
     hasAutoScrolledToAnnotationRef.current = false;
     lastReportedSizeRef.current = null;
+    gestureZoomRef.current = null;
+    gestureAnchorRef.current = null;
   }, [src]);
 
   // ---------------------------------------------------------------------------
@@ -934,6 +971,11 @@ export function InlineExpandedImage({
     [zoomFloor],
   );
 
+  // Raw clamp without rounding — used during gestures for continuous scaling.
+  // Rounding to 1% steps during a 60fps gesture creates visible stepping;
+  // the final commit via clampZoom() still snaps to the nearest percent.
+  const clampZoomRaw = useCallback((z: number) => Math.max(zoomFloor, Math.min(EXPANDED_ZOOM_MAX, z)), [zoomFloor]);
+
   // Scroll the container so the annotation is centered in view (re-center after pan/zoom).
   // Prefers anchor text position when it will be highlighted.
   const handleScrollToAnnotation = useCallback(() => {
@@ -993,64 +1035,92 @@ export function InlineExpandedImage({
     };
   }, [fill]);
 
-  // Trackpad pinch zoom (Ctrl+wheel) — prevents default browser zoom.
-  // Batches rapid wheel events with rAF so we apply at most one setZoom per
-  // animation frame, avoiding excessive React re-renders during fast pinches.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
+  // ---------------------------------------------------------------------------
+  // GPU-accelerated Ctrl+wheel zoom.
+  // During gesture: applies CSS transform: scale() to the wrapper div (GPU-composited,
+  // zero layout reflow). Anchor is captured once on first event and stays fixed to
+  // prevent "image walking" when the cursor drifts during trackpad pinch.
+  // On gesture end (150ms debounce): commits final zoom to React state → width reflow
+  // → transform removed in one paint frame via useLayoutEffect.
+  // ---------------------------------------------------------------------------
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef/imageWrapperRef are stable ref objects — their identity never changes
   useEffect(() => {
     if (!fill) return;
     const el = containerRef.current;
     if (!el) return;
-    let pendingDelta = 0;
-    let rafId: number | null = null;
-    const flushZoom = () => {
-      rafId = null;
-      const d = pendingDelta;
-      pendingDelta = 0;
-      if (d === 0) return;
-      hasManualZoomRef.current = true;
-      setZoom(z => clampZoom(z + d));
-    };
+    let commitTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey) return;
       e.preventDefault();
-      // deltaY is negative for zoom-in, positive for zoom-out on trackpads
-      pendingDelta += -e.deltaY * WHEEL_ZOOM_SENSITIVITY;
-      if (rafId === null) rafId = requestAnimationFrame(flushZoom);
+
+      const wrapper = imageWrapperRef.current;
+      if (!wrapper) return;
+
+      const delta = -e.deltaY * WHEEL_ZOOM_SENSITIVITY;
+
+      // First event of gesture: initialize from committed zoom and capture anchor
+      if (gestureZoomRef.current === null) {
+        gestureZoomRef.current = zoomRef.current;
+        const rect = el.getBoundingClientRect();
+        gestureAnchorRef.current = {
+          mx: e.clientX - rect.left,
+          my: e.clientY - rect.top,
+          sx: el.scrollLeft,
+          sy: el.scrollTop,
+        };
+        wrapper.style.willChange = "transform";
+        wrapper.style.transformOrigin = "0 0";
+      }
+
+      // Accumulate delta — raw clamp (no rounding) for continuous GPU scaling
+      gestureZoomRef.current = clampZoomRaw(gestureZoomRef.current + delta);
+
+      // Apply transform directly to DOM — no React render
+      if (gestureAnchorRef.current) {
+        applyGestureTransform(wrapper, gestureZoomRef.current, zoomRef.current, gestureAnchorRef.current);
+      }
+
+      // Debounce commit: after 150ms of no events, flush to React state
+      if (commitTimeoutId !== null) clearTimeout(commitTimeoutId);
+      commitTimeoutId = setTimeout(() => {
+        commitTimeoutId = null;
+        const finalZoom = gestureZoomRef.current;
+        if (finalZoom === null) return;
+        gestureZoomRef.current = null;
+        hasManualZoomRef.current = true;
+        setZoom(clampZoom(finalZoom));
+        wrapper.style.willChange = "";
+      }, 150);
     };
+
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       el.removeEventListener("wheel", onWheel);
-      if (rafId !== null) cancelAnimationFrame(rafId);
+      if (commitTimeoutId !== null) {
+        clearTimeout(commitTimeoutId);
+        // Cleanup with pending gesture: commit immediately
+        const finalZoom = gestureZoomRef.current;
+        if (finalZoom !== null) {
+          gestureZoomRef.current = null;
+          hasManualZoomRef.current = true;
+          setZoom(clampZoom(finalZoom));
+        }
+        const wrapper = imageWrapperRef.current;
+        if (wrapper) {
+          wrapper.style.transform = "";
+          wrapper.style.willChange = "";
+        }
+      }
     };
-  }, [fill, clampZoom]);
+  }, [fill, clampZoom, clampZoomRaw]);
 
-  // Touch pinch-to-zoom with midpoint anchoring (two-finger gesture).
-  // Zooms centered on the midpoint between the two fingers so the content under the
-  // pinch stays visually stable. After computing the new zoom, the container's scroll
-  // position is adjusted so the content-space point under the pinch midpoint maps back
-  // to the same viewport position.
-  //
-  // Uses zoomRef to read current zoom so listeners can be registered once (on mount /
-  // fill change) rather than re-added on every zoom change during a pinch gesture.
-  //
-  // After setZoom(), the DOM hasn't reflowed yet so the image width is still the old
-  // value. We store the target scroll in a ref and apply it in a useLayoutEffect that
-  // fires after React renders the new width. This ensures scroll correction happens in
-  // the same frame as the size change, preventing any visible jump.
-  const pinchScrollTarget = useRef<{ left: number; top: number } | null>(null);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
-  useLayoutEffect(() => {
-    if (!pinchScrollTarget.current) return;
-    const el = containerRef.current;
-    if (!el) return;
-    el.scrollLeft = pinchScrollTarget.current.left;
-    el.scrollTop = pinchScrollTarget.current.top;
-    pinchScrollTarget.current = null;
-  }, [zoom]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
+  // ---------------------------------------------------------------------------
+  // GPU-accelerated touch pinch-to-zoom (two-finger gesture).
+  // Same pattern: CSS transform during gesture, commit on touchEnd.
+  // Anchor updates continuously to follow the midpoint between fingers.
+  // ---------------------------------------------------------------------------
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef/imageWrapperRef are stable ref objects — their identity never changes
   useEffect(() => {
     if (!fill) return;
     const el = containerRef.current;
@@ -1058,8 +1128,6 @@ export function InlineExpandedImage({
 
     let initialDistance: number | null = null;
     let initialZoom = 1;
-    let pendingZoom: number | null = null;
-    let rafId: number | null = null;
 
     const getTouchDistance = (touches: TouchList): number => {
       const [a, b] = [touches[0], touches[1]];
@@ -1075,21 +1143,17 @@ export function InlineExpandedImage({
       return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
     };
 
-    const flushPinchZoom = () => {
-      rafId = null;
-      if (pendingZoom !== null) {
-        hasManualZoomRef.current = true;
-        setZoom(pendingZoom);
-        pendingZoom = null;
-      }
-    };
-
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         const dist = getTouchDistance(e.touches);
         if (dist < Number.EPSILON) return; // fingers at same point — avoid division by zero
         initialDistance = dist;
         initialZoom = zoomRef.current;
+        const wrapper = imageWrapperRef.current;
+        if (wrapper) {
+          wrapper.style.willChange = "transform";
+          wrapper.style.transformOrigin = "0 0";
+        }
       }
     };
 
@@ -1097,38 +1161,43 @@ export function InlineExpandedImage({
       if (e.touches.length !== 2 || initialDistance === null) return;
       e.preventDefault(); // prevent native scroll while pinching
 
+      const wrapper = imageWrapperRef.current;
+      if (!wrapper) return;
+
       const currentDistance = getTouchDistance(e.touches);
       const scale = currentDistance / initialDistance;
-      const oldZoom = zoomRef.current;
-      const newZoom = clampZoom(initialZoom * scale);
+      // Raw clamp (no rounding) for continuous GPU scaling during gesture
+      const newZoom = clampZoomRaw(initialZoom * scale);
 
-      // Compute midpoint-anchored scroll correction.
-      // The pinch midpoint in viewport coords should map to the same content point
-      // before and after the zoom change.
+      // Update gesture state
+      gestureZoomRef.current = newZoom;
+
+      // Update anchor to current midpoint + scroll (follows fingers)
       const mid = getTouchMidpoint(e.touches);
       const rect = el.getBoundingClientRect();
-      // Content-space point currently under the pinch midpoint
-      const contentX = mid.x - rect.left + el.scrollLeft;
-      const contentY = mid.y - rect.top + el.scrollTop;
-      // After zoom, that content point has scaled — adjust scroll so it maps back
-      const ratio = newZoom / oldZoom;
-      pinchScrollTarget.current = {
-        left: contentX * ratio - (mid.x - rect.left),
-        top: contentY * ratio - (mid.y - rect.top),
+      gestureAnchorRef.current = {
+        mx: mid.x - rect.left,
+        my: mid.y - rect.top,
+        sx: el.scrollLeft,
+        sy: el.scrollTop,
       };
 
-      // Batch: store the latest zoom and schedule a single setZoom per frame
-      pendingZoom = newZoom;
-      if (rafId === null) rafId = requestAnimationFrame(flushPinchZoom);
+      // Apply transform directly to DOM — zero React renders during gesture
+      applyGestureTransform(wrapper, newZoom, zoomRef.current, gestureAnchorRef.current);
     };
 
     const onTouchEnd = () => {
       initialDistance = null;
-      // Flush any pending zoom immediately on gesture end so the final
-      // position is applied without waiting for the next frame.
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-        flushPinchZoom();
+      const wrapper = imageWrapperRef.current;
+      const finalZoom = gestureZoomRef.current;
+      if (finalZoom !== null) {
+        gestureZoomRef.current = null;
+        hasManualZoomRef.current = true;
+        setZoom(clampZoom(finalZoom));
+      }
+      if (wrapper) {
+        wrapper.style.transform = "";
+        wrapper.style.willChange = "";
       }
     };
 
@@ -1139,9 +1208,39 @@ export function InlineExpandedImage({
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
-      if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, [fill, clampZoom]);
+  }, [fill, clampZoom, clampZoomRaw]);
+
+  // ---------------------------------------------------------------------------
+  // Gesture commit: runs after React renders the new zoom → width change.
+  // useLayoutEffect fires after DOM mutations but before browser paint, so we can:
+  // 1. Remove the CSS transform (layout already reflects the new width)
+  // 2. Compute scroll correction from the gesture anchor
+  // Both happen in the same paint frame — no visual flash.
+  // ---------------------------------------------------------------------------
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef/imageWrapperRef are stable ref objects — their identity never changes
+  useLayoutEffect(() => {
+    const wrapper = imageWrapperRef.current;
+    // Always clear any residual transform when zoom commits
+    if (wrapper) wrapper.style.transform = "";
+
+    const anchor = gestureAnchorRef.current;
+    const el = containerRef.current;
+    if (!anchor || !el) {
+      gestureAnchorRef.current = null;
+      return;
+    }
+
+    // Compute scroll correction: keep the anchor point visually stable.
+    // zoomRef.current still holds the OLD committed zoom (useEffect hasn't fired yet).
+    const oldZoom = zoomRef.current;
+    if (oldZoom > 0) {
+      const ratio = zoom / oldZoom;
+      el.scrollLeft = (anchor.mx + anchor.sx) * ratio - anchor.mx;
+      el.scrollTop = (anchor.my + anchor.sy) * ratio - anchor.my;
+    }
+    gestureAnchorRef.current = null;
+  }, [zoom]);
 
   // Compute effective image width for zoom
   const zoomedWidth = fill && naturalWidth ? naturalWidth * zoom : undefined;
@@ -1256,8 +1355,11 @@ export function InlineExpandedImage({
                 </span>
               </div>
             )}
-            {/* Relative wrapper: positions annotation overlay exactly over the image */}
+            {/* Relative wrapper: positions annotation overlay exactly over the image.
+                During pinch/wheel gestures, CSS transform: scale() is applied to this div
+                (via imageWrapperRef) so both the image and overlay scale together on the GPU. */}
             <div
+              ref={imageWrapperRef}
               style={{
                 position: "relative",
                 display: "inline-block",

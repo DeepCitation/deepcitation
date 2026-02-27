@@ -29,7 +29,15 @@ export function getUniqueSearchTexts(searchAttempts: SearchAttempt[]): string[] 
  * Combines primary searchPhrase and any searchVariations into a deduplicated set.
  */
 export function countUniqueSearchTexts(searchAttempts: SearchAttempt[]): number {
-  return getUniqueSearchTexts(searchAttempts).length;
+  if (searchAttempts.length === 0) return 0;
+  const texts = new Set<string>();
+  for (const a of searchAttempts) {
+    if (a.searchPhrase) texts.add(a.searchPhrase);
+    if (a.searchVariations) {
+      for (const v of a.searchVariations) texts.add(v);
+    }
+  }
+  return texts.size;
 }
 
 // =============================================================================

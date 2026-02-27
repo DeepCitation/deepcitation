@@ -165,7 +165,7 @@ export const CitationStatusIndicator = ({
         className={cn(
           "inline-flex relative ml-1 top-[0.1em] [text-decoration:none] transition-opacity duration-[400ms]",
           spinnerStage === "active" && "animate-spin",
-          spinnerStage === "slow" && "animate-[dc-spin-decel_2s_linear_infinite]",
+          spinnerStage === "slow" && "animate-[dc-spin-ease_2s_linear_infinite]",
         )}
         style={{
           ...INDICATOR_SIZE_STYLE,
@@ -179,13 +179,13 @@ export const CitationStatusIndicator = ({
         <SpinnerIcon />
         {spinnerStage === "slow" && (
           <style>{`
-            @keyframes dc-spin-decel {
+            @keyframes dc-spin-ease {
               0% { transform: rotate(0deg); animation-timing-function: ease-in; }
               50% { transform: rotate(180deg); animation-timing-function: ease-out; }
               100% { transform: rotate(360deg); }
             }
             @media (prefers-reduced-motion: reduce) {
-              .animate-\\[dc-spin-decel_2s_linear_infinite\\] { animation: none !important; }
+              .animate-\\[dc-spin-ease_2s_linear_infinite\\] { animation: none !important; }
             }
           `}</style>
         )}
