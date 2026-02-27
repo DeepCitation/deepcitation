@@ -9,14 +9,13 @@
  */
 
 import { type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CitationStatus } from "../types/citation.js";
+import type { Citation, CitationStatus } from "../types/citation.js";
 import type { SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 import { getStatusLabel } from "./citationStatus.js";
 import {
   EASE_COLLAPSE,
   EASE_EXPAND,
-  EXPANDED_IMAGE_SHELL_PX,
   isValidProofImageSrc,
   POPOVER_CONTAINER_BASE_CLASSES,
   POPOVER_MORPH_COLLAPSE_MS,
@@ -24,11 +23,12 @@ import {
   POPOVER_WIDTH,
 } from "./constants.js";
 import { EvidenceTray, InlineExpandedImage, normalizeScreenshotSrc, resolveExpandedImage } from "./EvidenceTray.js";
+import { getExpandedPopoverWidth } from "./expandedWidthPolicy.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { SpinnerIcon } from "./icons.js";
 import { buildIntentSummary, type MatchSnippet } from "./searchSummaryUtils.js";
-import type { BaseCitationProps } from "./types.js";
+import type { BaseCitationProps, IndicatorVariant } from "./types.js";
 import {
   getUrlAccessExplanation,
   mapSearchStatusToFetchStatus,
@@ -83,6 +83,11 @@ export interface PopoverContentProps {
   onExpandedWidthChange?: (width: number | null) => void;
   /** Ref tracking which state preceded expanded-page, for correct Escape back-navigation. */
   prevBeforeExpandedPageRef?: RefObject<"summary" | "expanded-evidence">;
+  /**
+   * Callback when the user clicks the download button in the popover header.
+   * The button only renders when this prop is provided.
+   */
+  onSourceDownload?: (citation: Citation) => void;
 }
 
 // =============================================================================
@@ -242,11 +247,7 @@ function PopoverLayoutShell({
       <div
         className={cn(POPOVER_CONTAINER_BASE_CLASSES, "animate-in fade-in-0 duration-150")}
         style={{
-          width: isExpanded
-            ? expandedNaturalWidth !== null
-              ? `max(${POPOVER_WIDTH}, min(${expandedNaturalWidth + EXPANDED_IMAGE_SHELL_PX}px, calc(100dvw - 2rem)))`
-              : "calc(100dvw - 2rem)"
-            : POPOVER_WIDTH,
+          width: isExpanded ? getExpandedPopoverWidth(expandedNaturalWidth) : POPOVER_WIDTH,
           maxWidth: "100%",
           transition: morphTransition,
           ...(isFullPage && {
@@ -360,10 +361,12 @@ function PopoverLoadingView({
   citation,
   verification,
   sourceLabel,
+  onSourceDownload,
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   sourceLabel?: string;
+  onSourceDownload?: (citation: Citation) => void;
 }) {
   const anchorText = citation.anchorText?.toString();
   const fullPhrase = citation.fullPhrase;
@@ -376,6 +379,7 @@ function PopoverLoadingView({
         verification={verification}
         status={searchStatus}
         sourceLabel={sourceLabel}
+        onSourceDownload={onSourceDownload}
       />
       <div className="p-3 flex flex-col gap-2.5">
         {/* Skeleton: status bar placeholder */}
@@ -420,6 +424,7 @@ function PopoverFallbackView({
   status,
   urlAccessExplanation,
   indicatorVariant = "icon",
+  onSourceDownload,
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
@@ -427,6 +432,7 @@ function PopoverFallbackView({
   status: CitationStatus;
   urlAccessExplanation: UrlAccessExplanation | null;
   indicatorVariant?: IndicatorVariant;
+  onSourceDownload?: (citation: Citation) => void;
 }) {
   const searchStatus = verification?.status;
   const statusLabel = indicatorVariant !== "none" ? getStatusLabel(status) : null;
@@ -442,6 +448,7 @@ function PopoverFallbackView({
         verification={verification}
         status={searchStatus}
         sourceLabel={sourceLabel}
+        onSourceDownload={onSourceDownload}
       />
       {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
       <div className="p-3 flex flex-col gap-2">
@@ -493,6 +500,7 @@ export function DefaultPopoverContent({
   expandedImageSrcOverride,
   onExpandedWidthChange,
   prevBeforeExpandedPageRef: propPrevBeforeExpandedPageRef,
+  onSourceDownload,
 }: PopoverContentProps) {
   const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
@@ -664,7 +672,14 @@ export function DefaultPopoverContent({
 
   // Loading/pending state view — skeleton mirrors resolved layout shape
   if (isLoading || isPending) {
-    return <PopoverLoadingView citation={citation} verification={verification} sourceLabel={sourceLabel} />;
+    return (
+      <PopoverLoadingView
+        citation={citation}
+        verification={verification}
+        sourceLabel={sourceLabel}
+        onSourceDownload={onSourceDownload}
+      />
+    );
   }
 
   // ==========================================================================
@@ -692,6 +707,7 @@ export function DefaultPopoverContent({
           onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
           onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
           proofUrl={validProofUrl}
+          onSourceDownload={onSourceDownload}
         />
         {/* Zone 2: Claim Body — Status + highlighted phrase */}
         <StatusHeader
@@ -777,6 +793,7 @@ export function DefaultPopoverContent({
           onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
           onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
           proofUrl={validProofUrl}
+          onSourceDownload={onSourceDownload}
         />
         {/* Zone 2: Claim Body — Status + highlighted phrase */}
         <StatusHeader
@@ -831,6 +848,7 @@ export function DefaultPopoverContent({
       status={status}
       urlAccessExplanation={urlAccessExplanation}
       indicatorVariant={indicatorVariant}
+      onSourceDownload={onSourceDownload}
     />
   );
 }

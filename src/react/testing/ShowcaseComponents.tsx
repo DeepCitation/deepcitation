@@ -136,10 +136,10 @@ function ShowcaseCard({
 // =============================================================================
 
 /** All citation variant types */
-const CITATION_VARIANTS = ["brackets", "chip", "text", "superscript", "linter", "badge"] as const;
+const CITATION_VARIANTS = ["brackets", "chip", "text", "superscript", "footnote", "linter", "badge"] as const;
 
 /** Mobile-friendly citation variants */
-const MOBILE_CITATION_VARIANTS = ["brackets", "chip", "text", "superscript", "linter"] as const;
+const MOBILE_CITATION_VARIANTS = ["brackets", "chip", "text", "superscript", "footnote", "linter"] as const;
 
 /** Content type options */
 const CONTENT_TYPES = ["number", "anchorText", "indicator"] as const;
@@ -989,6 +989,37 @@ export function VisualShowcase() {
           <InteractionLabel
             hover="Subtle highlight on superscript"
             click="Opens popover positioned near the superscript"
+          />
+        </ShowcaseCard>
+
+        <ShowcaseCard>
+          <ShowcaseLabel
+            component="CitationComponent"
+            variant="footnote"
+            uxIntent="Footnote citations for clean, neutral inline references"
+          />
+          <div className="py-4 text-gray-700 dark:text-gray-300">
+            <p className="leading-relaxed">
+              According to the Q4 financial report, the company saw significant growth
+              <CitationComponent citation={baseCitation} verification={verifiedVerification} variant="footnote" />
+              with revenue increasing by 15%
+              <CitationComponent
+                citation={{ ...baseCitation, citationNumber: 2 }}
+                verification={partialVerification}
+                variant="footnote"
+              />
+              compared to the previous quarter. However, some claims could not be verified
+              <CitationComponent
+                citation={{ ...baseCitation, citationNumber: 3 }}
+                verification={notFoundVerification}
+                variant="footnote"
+              />
+              and require further review.
+            </p>
+          </div>
+          <InteractionLabel
+            hover="Subtle highlight on footnote marker"
+            click="Opens popover positioned near the footnote"
           />
         </ShowcaseCard>
       </ShowcaseSection>

@@ -151,7 +151,7 @@ import { CitationComponent } from "deepcitation/react";
 // Controlling content separately from variant
 // Use content prop to override what text is displayed:
 // - "anchorText": Descriptive text (default for linter, chip, brackets, text)
-// - "number": Citation number (default for superscript)
+// - "number": Citation number (default for superscript and footnote)
 // - "indicator": Only the status icon, no text
 // - "source": Source name (default for badge variant)
 

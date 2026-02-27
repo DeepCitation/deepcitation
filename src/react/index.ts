@@ -101,6 +101,7 @@ export {
   CloseIcon,
   DeepCitationIcon,
   DocumentIcon,
+  DownloadIcon,
   ExternalLinkIcon,
   GlobeIcon,
   LinkIcon,

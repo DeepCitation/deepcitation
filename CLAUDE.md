@@ -70,6 +70,7 @@ src/
 │   ├── citationStatus.ts          # Status derivation, isPartialSearchStatus(), getTrustLevel()
 │   ├── citationVariants.cva.ts    # Variant class resolvers, status styles
 │   ├── constants.ts      # MISS_WAVY_UNDERLINE_STYLE, DOT_INDICATOR_*_STYLE, isValidProofImageSrc(), getPortalContainer()
+│   ├── expandedWidthPolicy.ts  # EXPANDED_POPOVER_MID_WIDTH, getExpandedPopoverWidth()
 │   ├── imageUtils.ts     # handleImageError() — shared image error handler
 │   ├── outcomeLabel.ts            # deriveOutcomeLabel() — shared outcome label logic
 │   ├── urlAccessExplanation.ts    # URL access failure mapping (getUrlAccessExplanation)
@@ -249,6 +250,10 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `useCitationEvents()` | `src/react/hooks/useCitationEvents.ts` | Click/hover/keyboard event handlers |
 | `useExpandedPageSideOffset()` | `src/react/hooks/useExpandedPageSideOffset.ts` | Expanded-page popover vertical offset |
 | `useAnimationState()` | `src/react/hooks/useAnimationState.ts` | Enter/exit animation lifecycle |
+| `EXPANDED_POPOVER_MID_WIDTH` | `src/react/expandedWidthPolicy.ts` | Mid-width fallback for expanded popover states |
+| `getExpandedPopoverWidth()` | `src/react/expandedWidthPolicy.ts` | Computes expanded popover width from image width |
+| `getInteractionClasses()` | `src/react/CitationContentDisplay.utils.ts` | Hover/active interaction classes for citation triggers |
+| `VARIANTS_WITH_OWN_HOVER` | `src/react/CitationContentDisplay.utils.ts` | Set of variants handling own hover styling |
 
 ### Example
 

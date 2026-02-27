@@ -40,10 +40,10 @@ Upload a PDF. Ask your LLM a question. Get back **deterministic, visual proof** 
 
 > **Proof, not detection.** Unlike hallucination detectors that flag problems after the fact, DeepCitation verifies each citation against your sources -- with visual proof you can show to users.
 
-## 6 ways to display citations
+## 7 ways to display citations
 
 <div align="center">
-<img src="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/tests/playwright/specs/__snapshots__/visualShowcase.spec.tsx-snapshots/desktop-showcase-chromium-linux.avif" alt="DeepCitation Component Showcase - linter, chip, brackets, text, superscript, and badge variants" width="700" />
+<img src="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/tests/playwright/specs/__snapshots__/visualShowcase.spec.tsx-snapshots/desktop-showcase-chromium-linux.avif" alt="DeepCitation Component Showcase - linter, chip, brackets, text, superscript, footnote, and badge variants" width="700" />
 </div>
 
 | Variant | Style | Best for |
@@ -53,6 +53,7 @@ Upload a PDF. Ask your LLM a question. Get back **deterministic, visual proof** 
 | `brackets` | `[text]` with status | Technical/academic |
 | `text` | Plain text with indicator | Minimal UI |
 | `superscript` | Footnote style `¹` | Articles, reports |
+| `footnote` | Clean neutral marker | Minimal footnotes |
 | `badge` | Source chip with favicon | ChatGPT-style source attribution |
 
 ## Building with DeepCitation?
@@ -146,7 +147,7 @@ npm install deepcitation react react-dom @radix-ui/react-popover
 
 | Component | Description |
 |-----------|-------------|
-| [`CitationComponent`](https://docs.deepcitation.com) | Inline citations with 6 variants and verification popovers |
+| [`CitationComponent`](https://docs.deepcitation.com) | Inline citations with 7 variants and verification popovers |
 | [`UrlCitationComponent`](https://docs.deepcitation.com) | URL citations with favicon and status badges |
 | [`CitationDrawer`](https://docs.deepcitation.com) | ChatGPT-style bottom sheet grouping citations by source |
 | [`SourcesListComponent`](https://docs.deepcitation.com) | Aggregated sources panel with stacked favicons |

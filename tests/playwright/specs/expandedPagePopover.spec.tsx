@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/experimental-ct-react";
 import { CitationComponent } from "../../../src/react/CitationComponent";
 import type { Citation } from "../../../src/types/citation";
 import type { Verification } from "../../../src/types/verification";
+import { GeneratedImageCitation } from "./GeneratedImageCitation";
 
 // =============================================================================
 // TEST FIXTURES
@@ -240,7 +241,7 @@ test.describe("Expanded-Page Viewport Containment", () => {
       // At 768px viewport, image should fill most of the width
       // (800px natural, capped to ~768 - 2rem = 736px)
       // Triple always-render: filter to visible InlineExpandedImage before locating img inside.
-    const img = popover.locator("[data-dc-inline-expanded]").filter({ visible: true }).locator("img");
+      const img = popover.locator("[data-dc-inline-expanded]").filter({ visible: true }).locator("img");
       await expect(img).toBeVisible();
       const renderedWidth = await img.evaluate(el => (el as HTMLImageElement).getBoundingClientRect().width);
       expect(renderedWidth).toBeGreaterThan(500);
@@ -315,6 +316,63 @@ test.describe("Expanded-Page Popover Sizing", () => {
     const popoverBox = await popover.boundingBox();
     expect(popoverBox).toBeTruthy();
     expect(popoverBox!.height).toBeGreaterThan(500);
+  });
+
+  test("uses image-driven width for medium pages instead of near-full viewport fallback", async ({ mount, page }) => {
+    await mount(
+      <div style={{ padding: "100px" }}>
+        <GeneratedImageCitation width={520} height={300} />
+      </div>,
+    );
+
+    const { popover } = await expandToFullPage(page);
+    const expandedImage = popover.locator("[data-dc-inline-expanded]").filter({ visible: true }).locator("img");
+    await expect(expandedImage).toBeVisible();
+
+    const [popoverWidth, imageWidth] = await Promise.all([
+      popover.evaluate(el => el.getBoundingClientRect().width),
+      expandedImage.evaluate(el => (el as HTMLImageElement).getBoundingClientRect().width),
+    ]);
+
+    expect(popoverWidth).toBeLessThan(650);
+    expect(popoverWidth).toBeLessThanOrEqual(imageWidth + 48);
+  });
+
+  test("expanded width adapts across viewport resize without staying oversized", async ({ mount, page }) => {
+    await mount(
+      <div style={{ padding: "100px" }}>
+        <GeneratedImageCitation width={900} height={1200} />
+      </div>,
+    );
+
+    const { popover } = await expandToFullPage(page);
+    const expandedImage = popover.locator("[data-dc-inline-expanded]").filter({ visible: true }).locator("img");
+    await expect(expandedImage).toBeVisible();
+
+    const readSizes = async () => {
+      const [popoverWidth, imageWidth] = await Promise.all([
+        popover.evaluate(el => el.getBoundingClientRect().width),
+        expandedImage.evaluate(el => (el as HTMLImageElement).getBoundingClientRect().width),
+      ]);
+      return { popoverWidth, imageWidth };
+    };
+
+    const initial = await readSizes();
+    expect(initial.popoverWidth).toBeLessThanOrEqual(initial.imageWidth + 48);
+
+    await page.setViewportSize({ width: 700, height: 720 });
+    await page.waitForTimeout(250);
+    const narrowed = await readSizes();
+    expect(narrowed.popoverWidth).toBeLessThan(initial.popoverWidth);
+    expect(narrowed.imageWidth).toBeLessThan(initial.imageWidth);
+    expect(narrowed.popoverWidth).toBeLessThanOrEqual(narrowed.imageWidth + 48);
+
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.waitForTimeout(250);
+    const widened = await readSizes();
+    expect(widened.popoverWidth).toBeGreaterThan(narrowed.popoverWidth);
+    expect(widened.imageWidth).toBeGreaterThan(narrowed.imageWidth);
+    expect(widened.popoverWidth).toBeLessThanOrEqual(widened.imageWidth + 48);
   });
 });
 

@@ -2,12 +2,19 @@ import { type ReactNode, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
-import { DOT_COLORS } from "./constants.js";
+import {
+  DOT_COLORS,
+  FOCUS_RING_CLASSES,
+  TERTIARY_ACTION_BASE_CLASSES,
+  TERTIARY_ACTION_HOVER_CLASSES,
+  TERTIARY_ACTION_IDLE_CLASSES,
+} from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import {
   CheckIcon,
   ChevronRightIcon,
   DocumentIcon,
+  DownloadIcon,
   GlobeIcon,
   MissIcon,
   SpinnerIcon,
@@ -108,6 +115,12 @@ export interface SourceContextHeaderProps {
    * Validated internally via `isValidProofUrl()` — safe to pass untrusted input.
    */
   proofUrl?: string | null;
+  /**
+   * Callback when the user clicks the download button.
+   * The button only renders when this prop is provided.
+   * Receives the full Citation object so the consumer can determine download logic.
+   */
+  onSourceDownload?: (citation: Citation) => void;
 }
 
 /**
@@ -240,7 +253,12 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
           e.stopPropagation();
           onClose();
         }}
-        className="relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border cursor-pointer transition-colors bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40 after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]"
+        className={cn(
+          "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border cursor-pointer",
+          "transition-colors bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40",
+          FOCUS_RING_CLASSES,
+          "after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]",
+        )}
         aria-label={isImage ? "Close image view" : hasPage ? `Close page ${pageNumber} view` : "Close page view"}
         title="Close expanded view (Esc)"
       >
@@ -271,7 +289,10 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
       }}
       className={cn(
         "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border cursor-pointer",
-        "transition-colors hover:opacity-80",
+        TERTIARY_ACTION_BASE_CLASSES,
+        TERTIARY_ACTION_IDLE_CLASSES,
+        TERTIARY_ACTION_HOVER_CLASSES,
+        "hover:bg-gray-200 dark:hover:bg-gray-700",
         "after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]",
         colorClasses,
       )}
@@ -306,6 +327,7 @@ export function SourceContextHeader({
   onExpand,
   onClose,
   proofUrl: _proofUrl,
+  onSourceDownload,
 }: SourceContextHeaderProps) {
   const isUrl = isUrlCitation(citation);
 
@@ -363,8 +385,23 @@ export function SourceContextHeader({
           </>
         )}
       </div>
-      {/* Right: Proof link (expanded view) + Page pill */}
+      {/* Right: Download + Proof link (expanded view) + Page pill */}
       <div className="flex items-center gap-2">
+        {onSourceDownload && (
+          <button
+            type="button"
+            aria-label="Download source"
+            className="shrink-0 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+            onClick={e => {
+              e.stopPropagation();
+              onSourceDownload(citation);
+            }}
+          >
+            <span className="size-3.5 block">
+              <DownloadIcon />
+            </span>
+          </button>
+        )}
         {/* Not ready {validatedProofUrl && (
           <a
             href={validatedProofUrl}
@@ -1132,7 +1169,7 @@ export function VerificationLogTimeline({
   return (
     <div
       id="verification-log-timeline"
-      role="button"
+      role={onCollapse ? "button" : undefined}
       tabIndex={onCollapse ? 0 : undefined}
       onClick={e => {
         // Stop propagation so parent handlers (e.g. page-expand) don't fire

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import {
   type AmbiguityInfo,
@@ -709,6 +709,132 @@ describe("SourceContextHeader", () => {
       expect(queryByRole("link")).toBeNull();
       // Should not crash
       expect(container).toBeInTheDocument();
+    });
+  });
+
+  describe("Page pill interaction styles", () => {
+    it("uses explicit neutral hover/focus styling for expandable page pills", () => {
+      const citation: Citation = {
+        type: "document",
+        pageNumber: 5,
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        label: "Document.pdf",
+        document: { verifiedPageNumber: 5 },
+      };
+
+      const { getByRole } = render(
+        <SourceContextHeader citation={citation} verification={verification} onExpand={() => {}} />,
+      );
+
+      const button = getByRole("button", { name: /expand to full page 5/i });
+      expect(button.className).toContain("hover:bg-gray-200");
+      expect(button.className).toContain("focus-visible:ring-2");
+      expect(button.className).not.toContain("hover:opacity-80");
+    });
+
+    it("uses blue active styling for close-state page pills", () => {
+      const citation: Citation = {
+        type: "document",
+        pageNumber: 5,
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        label: "Document.pdf",
+        document: { verifiedPageNumber: 5 },
+      };
+
+      const { getByRole } = render(
+        <SourceContextHeader citation={citation} verification={verification} onClose={() => {}} />,
+      );
+
+      const button = getByRole("button", { name: /close page 5 view/i });
+      expect(button.className).toContain("bg-blue-50");
+      expect(button.className).toContain("hover:bg-blue-100");
+      expect(button.className).toContain("focus-visible:ring-2");
+    });
+  });
+
+  // ==========================================================================
+  // SOURCE DOWNLOAD BUTTON TESTS
+  // ==========================================================================
+
+  describe("Source download button", () => {
+    it("does not render download button when onSourceDownload is absent", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 1,
+        fullPhrase: "Test phrase",
+      };
+
+      const { queryByRole } = render(<SourceContextHeader citation={citation} />);
+      expect(queryByRole("button", { name: /download source/i })).toBeNull();
+    });
+
+    it("renders download button for document citation when onSourceDownload is provided", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 1,
+        fullPhrase: "Test phrase",
+      };
+      const onSourceDownload = () => {};
+
+      const { getByRole } = render(<SourceContextHeader citation={citation} onSourceDownload={onSourceDownload} />);
+      expect(getByRole("button", { name: /download source/i })).toBeInTheDocument();
+    });
+
+    it("renders download button for URL citation when onSourceDownload is provided", () => {
+      const citation: Citation = {
+        type: "url",
+        url: "https://example.com/article",
+        domain: "example.com",
+        fullPhrase: "Test phrase",
+      };
+      const onSourceDownload = () => {};
+
+      const { getByRole } = render(<SourceContextHeader citation={citation} onSourceDownload={onSourceDownload} />);
+      expect(getByRole("button", { name: /download source/i })).toBeInTheDocument();
+    });
+
+    it("calls onSourceDownload with citation on click", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 3,
+        fullPhrase: "Revenue grew 15%",
+      };
+      const onSourceDownload = jest.fn();
+
+      const { getByRole } = render(<SourceContextHeader citation={citation} onSourceDownload={onSourceDownload} />);
+      fireEvent.click(getByRole("button", { name: /download source/i }));
+
+      expect(onSourceDownload).toHaveBeenCalledTimes(1);
+      expect(onSourceDownload).toHaveBeenCalledWith(citation);
+    });
+
+    it("stops event propagation on click", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 1,
+        fullPhrase: "Test phrase",
+      };
+      const onSourceDownload = jest.fn();
+      const parentClick = jest.fn();
+
+      const { getByRole } = render(
+        // biome-ignore lint/a11y/useKeyWithClickEvents: test-only wrapper
+        <div onClick={parentClick}>
+          <SourceContextHeader citation={citation} onSourceDownload={onSourceDownload} />
+        </div>,
+      );
+      fireEvent.click(getByRole("button", { name: /download source/i }));
+
+      expect(onSourceDownload).toHaveBeenCalledTimes(1);
+      expect(parentClick).not.toHaveBeenCalled();
     });
   });
 });

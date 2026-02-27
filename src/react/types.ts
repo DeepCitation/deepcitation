@@ -37,6 +37,7 @@ export type IndicatorVariant = "icon" | "dot" | "none";
  * | `brackets`    | [text✓] with square brackets                   |
  * | `text`        | Plain text, inherits parent styling            |
  * | `superscript` | Small raised text like footnotes¹              |
+ * | `footnote`    | Clean footnote marker with neutral default     |
  * | `badge`       | Source chip showing name + count (ChatGPT-style) |
  * | `linter`      | Inline text with semantic underlines (default) |
  */
@@ -45,6 +46,7 @@ export type CitationVariant =
   | "brackets" // [text✓] with brackets
   | "text" // Plain text, inherits styling
   | "superscript" // Small raised footnote style
+  | "footnote" // Clean footnote marker with neutral default
   | "badge" // Source name chip with count (ChatGPT-style)
   | "linter"; // Inline text with semantic underlines (default)
 
@@ -64,6 +66,7 @@ export type CitationVariant =
  * - `text` → `anchorText`
  * - `linter` → `anchorText`
  * - `superscript` → `number`
+ * - `footnote` → `number`
  * - `badge` → `source`
  */
 export type CitationContent =
@@ -230,6 +233,7 @@ export interface BaseCitationProps {
    * - `brackets` → `number`
    * - `text` → `anchorText`
    * - `superscript` → `number`
+   * - `footnote` → `number`
    * - `linter` → `anchorText`
    */
   content?: CitationContent;

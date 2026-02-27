@@ -9,23 +9,12 @@
 
 import type React from "react";
 import type { CitationStatus } from "../types/citation.js";
-import { getStatusHoverClasses } from "./CitationContentDisplay.utils.js";
+import { getInteractionClasses } from "./CitationContentDisplay.utils.js";
 import { CitationStatusIndicator, type CitationStatusIndicatorProps } from "./CitationStatusIndicator.js";
 import { MISS_WAVY_UNDERLINE_STYLE } from "./constants.js";
+import { handleImageError } from "./imageUtils.js";
 import type { CitationContent, CitationRenderProps, CitationVariant } from "./types.js";
 import { cn, isUrlCitation } from "./utils.js";
-
-// =============================================================================
-// MODULE-LEVEL UTILITIES
-// =============================================================================
-
-/**
- * Module-level handler for hiding broken images.
- * Performance fix: avoids creating new function references on every render.
- */
-const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-  (e.target as HTMLImageElement).style.display = "none";
-};
 
 // =============================================================================
 // CITATION CONTENT DISPLAY COMPONENT
@@ -48,6 +37,8 @@ export interface CitationContentDisplayProps {
   faviconUrl?: string;
   additionalCount?: number;
   indicatorProps: CitationStatusIndicatorProps;
+  /** Whether the popover/tooltip is currently open (drives active state styling). */
+  isOpen: boolean;
 }
 
 /**
@@ -71,6 +62,7 @@ export const CitationContentDisplay = ({
   faviconUrl,
   additionalCount,
   indicatorProps,
+  isOpen,
 }: CitationContentDisplayProps): React.ReactNode => {
   const indicator = <CitationStatusIndicator {...indicatorProps} />;
 
@@ -96,7 +88,7 @@ export const CitationContentDisplay = ({
         className={cn(
           "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal transition-colors",
           "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
-          ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner),
+          getInteractionClasses(isOpen, variant),
         )}
       >
         <span
@@ -112,11 +104,12 @@ export const CitationContentDisplay = ({
     );
   }
 
+  // Shared across superscript and footnote variants
+  const anchorTextDisplay = citation.anchorText?.toString() || "";
+  const citationNumber = citation.citationNumber?.toString() || "1";
+
   // Variant: superscript (footnote style)
   if (variant === "superscript") {
-    const anchorTextDisplay = citation.anchorText?.toString() || "";
-    const citationNumber = citation.citationNumber?.toString() || "1";
-
     const supStatusClasses = cn(
       !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
       shouldShowSpinner && "text-gray-500 dark:text-gray-400",
@@ -128,12 +121,50 @@ export const CitationContentDisplay = ({
           className={cn(
             "font-medium transition-colors px-0.5 rounded",
             supStatusClasses,
-            ...getStatusHoverClasses(isVerified, isPartialMatch, isMiss, shouldShowSpinner),
+            getInteractionClasses(isOpen, variant),
           )}
           style={{ fontSize: "0.65em", lineHeight: 0, position: "relative", top: "-0.65em", verticalAlign: "baseline" }}
         >
           [<span>{citationNumber}</span>
           {indicator}]
+        </sup>
+      </>
+    );
+  }
+
+  // Variant: footnote (clean footnote marker with neutral default)
+  if (variant === "footnote") {
+    // Priority chain: spinner > miss > partial > verified > neutral default
+    let footnoteStatusClasses: string;
+    if (shouldShowSpinner) {
+      footnoteStatusClasses = "text-gray-400 dark:text-gray-500";
+    } else if (isMiss) {
+      footnoteStatusClasses = "text-red-500 dark:text-red-400";
+    } else if (isPartialMatch) {
+      footnoteStatusClasses = "text-amber-500 dark:text-amber-400";
+    } else if (isVerified) {
+      footnoteStatusClasses = "text-green-600 dark:text-green-500";
+    } else {
+      footnoteStatusClasses = "text-gray-500 dark:text-gray-400";
+    }
+
+    return (
+      <>
+        {anchorTextDisplay && <span className="font-normal">{anchorTextDisplay}</span>}
+        <sup
+          className={cn(
+            "text-xs font-normal transition-colors",
+            footnoteStatusClasses,
+            getInteractionClasses(isOpen, variant),
+          )}
+        >
+          <span
+            className={cn(isMiss && !shouldShowSpinner && "opacity-70")}
+            style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
+          >
+            {citationNumber}
+          </span>
+          {indicator}
         </sup>
       </>
     );
@@ -158,11 +189,7 @@ export const CitationContentDisplay = ({
           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
           "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
           "transition-colors cursor-pointer",
-          isVerified && !isPartialMatch && !shouldShowSpinner && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-          isPartialMatch && !shouldShowSpinner && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
-          isMiss && !shouldShowSpinner && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-          (shouldShowSpinner || (!isVerified && !isMiss && !isPartialMatch)) &&
-            "hover:bg-gray-200 dark:hover:bg-gray-700",
+          getInteractionClasses(isOpen, variant),
         )}
       >
         {faviconSrc && (
@@ -225,10 +252,8 @@ export const CitationContentDisplay = ({
 
     const linterClasses = cn(
       "cursor-pointer font-normal",
-      isVerifiedState && "hover:bg-green-600/10 dark:hover:bg-green-500/10",
-      isPartialState && "hover:bg-amber-500/10 dark:hover:bg-amber-500/10",
-      isMissState && "hover:bg-red-500/10 dark:hover:bg-red-400/10",
-      isPendingState && "bg-gray-500/[0.05] hover:bg-gray-500/10 dark:bg-gray-400/[0.05] dark:hover:bg-gray-400/10",
+      isPendingState && "bg-gray-500/[0.05] dark:bg-gray-400/[0.05]",
+      getInteractionClasses(isOpen, variant),
     );
 
     return (

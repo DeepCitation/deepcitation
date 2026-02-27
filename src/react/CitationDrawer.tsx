@@ -21,6 +21,8 @@ import {
 import { StackedStatusIcons } from "./CitationDrawerTrigger.js";
 import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import {
+  DRAWER_STAGGER_DELAY_MS,
+  DRAWER_STAGGER_MAX_MS,
   EASE_COLLAPSE,
   EASE_EXPAND,
   getPortalContainer,
@@ -530,6 +532,16 @@ interface DrawerSourceGroupProps {
   isSingleGroup?: boolean;
 }
 
+function RenderCitationDrawerItem({
+  item,
+  renderCitationItem,
+}: {
+  item: CitationDrawerItem;
+  renderCitationItem: (item: CitationDrawerItem) => React.ReactNode;
+}) {
+  return <>{renderCitationItem(item)}</>;
+}
+
 function DrawerSourceGroup({
   group,
   groupIndex,
@@ -562,9 +574,9 @@ function DrawerSourceGroup({
     return (
       <div key={key}>
         {group.citations.map((item, index) => {
-          const delay = Math.min((staggerOffset + index) * 35, 200);
+          const delay = Math.min((staggerOffset + index) * DRAWER_STAGGER_DELAY_MS, DRAWER_STAGGER_MAX_MS);
           return renderCitationItem ? (
-            <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
+            <RenderCitationDrawerItem key={item.citationKey} item={item} renderCitationItem={renderCitationItem} />
           ) : (
             <CitationDrawerItemComponent
               key={item.citationKey}
@@ -599,9 +611,9 @@ function DrawerSourceGroup({
       <SourceGroupHeader group={group} />
       <div>
         {group.citations.map((item, index) => {
-          const delay = Math.min((staggerOffset + index) * 35, 200);
+          const delay = Math.min((staggerOffset + index) * DRAWER_STAGGER_DELAY_MS, DRAWER_STAGGER_MAX_MS);
           return renderCitationItem ? (
-            <React.Fragment key={item.citationKey}>{renderCitationItem(item)}</React.Fragment>
+            <RenderCitationDrawerItem key={item.citationKey} item={item} renderCitationItem={renderCitationItem} />
           ) : (
             <CitationDrawerItemComponent
               key={item.citationKey}
@@ -735,8 +747,12 @@ function IndicatorRow({
  * />
  * ```
  */
-export function CitationDrawer({
-  isOpen,
+export function CitationDrawer({ isOpen, ...props }: CitationDrawerProps): React.ReactNode {
+  if (!isOpen) return null;
+  return <OpenCitationDrawer {...props} />;
+}
+
+function OpenCitationDrawer({
   onClose,
   citationGroups,
   title = "Citations",
@@ -751,8 +767,8 @@ export function CitationDrawer({
   renderCitationItem,
   indicatorVariant = "icon",
   sourceLabelMap,
-}: CitationDrawerProps): React.ReactNode {
-  // Manual full-page state — set via drag-up gesture, reset on close
+}: Omit<CitationDrawerProps, "isOpen">): React.ReactNode {
+  // Manual full-page state — set via drag-up gesture
   const [manualFullPage, setManualFullPage] = useState(false);
 
   // Drag-to-close (down) and drag-to-expand (up) on the handle bar
@@ -760,7 +776,7 @@ export function CitationDrawer({
   const { handleRef, drawerRef, dragOffset, isDragging, dragDirection } = useDrawerDragToClose({
     onClose,
     onExpand: () => setManualFullPage(true),
-    enabled: isBottomSheet && isOpen,
+    enabled: isBottomSheet,
   });
 
   // Resolve source labels once at the top — all downstream components read group.sourceName directly
@@ -866,6 +882,7 @@ export function CitationDrawer({
   const handlePageDeactivate = useCallback(() => {
     setHeaderInline(null);
     setActiveIndicatorKey(null);
+    setManualFullPage(false);
   }, []);
 
   // Escape navigation — tracks substate (expanded accordion items) to step back
@@ -900,33 +917,22 @@ export function CitationDrawer({
     headerInlineRef.current = headerInline;
   }, [headerInline]);
 
-  // Reset full-page and header panel state when drawer closes
+  // Lock body scroll while drawer is mounted/open (prevents pull-to-refresh on mobile)
   useEffect(() => {
-    if (!isOpen) {
-      setManualFullPage(false);
-      setHeaderInline(null);
-      setActiveIndicatorKey(null);
-    }
-  }, [isOpen]);
-
-  // Lock body scroll while drawer is open (prevents pull-to-refresh on mobile)
-  useEffect(() => {
-    if (!isOpen) return;
     acquireScrollLock();
     return () => releaseScrollLock();
-  }, [isOpen]);
+  }, []);
 
   // Escape key: step back through navigation levels instead of always closing.
-  // Uses refs for mutable state so the listener is registered once per open/close cycle.
+  // Uses refs for mutable state so the listener is registered once while open.
   React.useEffect(() => {
-    if (!isOpen) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (headerInlineRef.current !== null) {
           // Level 3 → Level 2: close the header inline panel
           setHeaderInline(null);
           setActiveIndicatorKey(null);
+          setManualFullPage(false);
         } else if (expandedKeyRef.current !== null) {
           // Level 2 → Level 1: collapse the accordion
           setExpandedCitationKey(null);
@@ -940,10 +946,7 @@ export function CitationDrawer({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // Don't render if closed
-  if (!isOpen) return null;
+  }, [onClose]);
 
   // Pre-compute stagger offsets for each group (cumulative citation count)
   const staggerOffsets = sortedGroups.reduce<number[]>((acc, _group, idx) => {
@@ -1082,6 +1085,7 @@ export function CitationDrawer({
                 onCollapse={() => {
                   setHeaderInline(null);
                   setActiveIndicatorKey(null);
+                  setManualFullPage(false);
                 }}
                 verification={headerInline.verification ?? undefined}
                 renderScale={headerInline.renderScale}

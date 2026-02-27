@@ -484,6 +484,18 @@ export const ANIM_FAST_MS = 150;
 export const ANIM_STANDARD_MS = 200;
 /** Slow transition: drawer slide, popover morph. Tailwind equivalent: duration-300. */
 export const ANIM_SLOW_MS = 300;
+/**
+ * Per-item stagger delay for citation drawer row reveal animations.
+ * Each successive row enters 35ms after the previous, creating a cascading
+ * "waterfall" effect that visually communicates list hierarchy.
+ */
+export const DRAWER_STAGGER_DELAY_MS = 35;
+/**
+ * Cap for cumulative citation drawer stagger delay to keep reveals snappy.
+ * Without this cap, a drawer with 20+ citations would take 700ms+ to fully
+ * reveal. The 200ms cap means items beyond index ~5 all appear simultaneously.
+ */
+export const DRAWER_STAGGER_MAX_MS = 200;
 
 /** Delay in ms before hiding a tooltip on mouse leave (prevents flicker on cursor exit). */
 export const TOOLTIP_HIDE_DELAY_MS = 80;
@@ -511,11 +523,16 @@ export const WHEEL_ZOOM_SENSITIVITY = 0.005;
  */
 export const COPY_FEEDBACK_DURATION_MS = 2000;
 
-/**
- * Duration in ms that footer hints (e.g. "Click to expand") remain bold/dark
- * before transitioning to muted gray. Used by FooterHint component.
- */
-export const FOOTER_HINT_DURATION_MS = 2000;
+/** Shared focus-visible ring treatment for interactive elements. */
+export const FOCUS_RING_CLASSES = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40";
+/** Shared neutral interactive styling for tertiary actions (links/buttons). */
+export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-150 ${FOCUS_RING_CLASSES}`;
+/** Idle tertiary action text color. */
+export const TERTIARY_ACTION_IDLE_CLASSES = "text-gray-600 dark:text-gray-400";
+/** Hover/focus tertiary action text color. */
+export const TERTIARY_ACTION_HOVER_CLASSES = "hover:text-blue-600 dark:hover:text-blue-400";
+/** Helper hint text style (muted and non-competitive). */
+export const HELPER_HINT_TEXT_CLASSES = "font-medium text-gray-400 dark:text-gray-500";
 
 /** Auto-hide spinner after this duration if verification is still pending. */
 export const SPINNER_TIMEOUT_MS = 5000;

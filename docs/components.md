@@ -74,7 +74,7 @@ import { CitationComponent } from "deepcitation/react";
 
 The `variant` prop controls the visual style, and `content` controls what text to display.
 
-Available variants: `"linter"` | `"chip"` | `"brackets"` | `"text"` | `"superscript"` | `"badge"`
+Available variants: `"linter"` | `"chip"` | `"brackets"` | `"text"` | `"superscript"` | `"footnote"` | `"badge"`
 
 ### Linter (Default)
 
@@ -155,6 +155,19 @@ Small raised text like footnotes. Best for academic writing, traditional citatio
   variant="superscript"
 />
 // Renders: ¹
+```
+
+### Footnote
+
+Clean footnote marker with neutral gray default. Best for minimal footnotes, reports, clean reading experience.
+
+```tsx
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  variant="footnote"
+/>
+// Renders: ¹ (neutral gray, colored when status resolves)
 ```
 
 ### Badge
@@ -362,7 +375,7 @@ function MyComponent() {
 |:-----|:-----|:---------|:------------|
 | `citation` | `Citation` | Yes | The citation data to display |
 | `verification` | `Verification \| null` | No | Verification result data from the API |
-| `variant` | `"linter" \| "chip" \| "brackets" \| "text" \| "superscript" \| "badge"` | No | Visual style variant (default: "linter") |
+| `variant` | `"linter" \| "chip" \| "brackets" \| "text" \| "superscript" \| "footnote" \| "badge"` | No | Visual style variant (default: "linter") |
 | `content` | `"anchorText" \| "number" \| "indicator" \| "source"` | No | What content to display. Defaults based on variant. |
 | `interactionMode` | `"eager" \| "lazy"` | No | How eagerly to respond to interactions (default: "eager") |
 | `isLoading` | `boolean` | No | Explicitly show loading spinner |
@@ -380,6 +393,7 @@ function MyComponent() {
 | `additionalCount` | `number` | No | Number of additional citations for badge variant |
 | `faviconUrl` | `string` | No | Favicon URL for badge variant |
 | `sourceLabel` | `string` | No | Override the source name displayed in popover headers (see below) |
+| `onSourceDownload` | `(citation: Citation) => void` | No | Callback when user clicks the download button in popover header. Button only renders when provided. |
 | `showIndicator` | `boolean` | No | Whether to show status indicator (default: true) |
 | `indicatorVariant` | `"icon" \| "dot"` | No | Visual style for status indicators: `"icon"` (checkmarks/spinners, default) or `"dot"` (subtle colored dots like GitHub/shadcn) |
 
@@ -438,6 +452,41 @@ The `sourceLabel` prop allows you to override the filename or URL title displaye
 |:--------------|:----------------------|:-------------------|
 | Document | Shows `verification.label` (original filename) | Shows your custom label |
 | URL | Shows URL domain/path | Shows your custom label |
+
+---
+
+## Source Download Button
+
+The `onSourceDownload` prop adds a download button to the popover header. The button only renders when the callback is provided — no layout shift when absent. Your callback receives the full `Citation` object so you can determine the download logic based on citation type.
+
+{% raw %}
+```tsx
+// Document citation — download the original attachment
+<CitationComponent
+  citation={citation}
+  verification={verification}
+  onSourceDownload={(c) => {
+    if (c.type === "document") {
+      downloadAttachment(c.attachmentId);
+    }
+  }}
+/>
+
+// URL citation — open in new tab or trigger save
+<CitationComponent
+  citation={urlCitation}
+  verification={verification}
+  onSourceDownload={(c) => {
+    if (c.type === "url") {
+      window.open(c.url, "_blank");
+    }
+  }}
+/>
+```
+{% endraw %}
+
+{: .note }
+Pass a stable callback reference (via `useCallback`) to avoid unnecessary re-renders of the popover content.
 
 ---
 
