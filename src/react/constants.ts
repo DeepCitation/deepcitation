@@ -484,9 +484,17 @@ export const ANIM_FAST_MS = 150;
 export const ANIM_STANDARD_MS = 200;
 /** Slow transition: drawer slide, popover morph. Tailwind equivalent: duration-300. */
 export const ANIM_SLOW_MS = 300;
-/** Per-item stagger delay for citation drawer row reveal animations. */
+/**
+ * Per-item stagger delay for citation drawer row reveal animations.
+ * Each successive row enters 35ms after the previous, creating a cascading
+ * "waterfall" effect that visually communicates list hierarchy.
+ */
 export const DRAWER_STAGGER_DELAY_MS = 35;
-/** Cap for cumulative citation drawer stagger delay to keep reveals snappy. */
+/**
+ * Cap for cumulative citation drawer stagger delay to keep reveals snappy.
+ * Without this cap, a drawer with 20+ citations would take 700ms+ to fully
+ * reveal. The 200ms cap means items beyond index ~5 all appear simultaneously.
+ */
 export const DRAWER_STAGGER_MAX_MS = 200;
 
 /** Delay in ms before hiding a tooltip on mouse leave (prevents flicker on cursor exit). */

@@ -134,14 +134,19 @@ export const CitationContentDisplay = ({
 
   // Variant: footnote (clean footnote marker with neutral default)
   if (variant === "footnote") {
-    // Neutral gray default, status colors when resolved
-    const footnoteStatusClasses = cn(
-      !isVerified && !isMiss && !isPartialMatch && !shouldShowSpinner && "text-gray-500 dark:text-gray-400",
-      shouldShowSpinner && "text-gray-400 dark:text-gray-500",
-      isVerified && !isPartialMatch && !shouldShowSpinner && "text-green-600 dark:text-green-500",
-      isPartialMatch && !shouldShowSpinner && "text-amber-500 dark:text-amber-400",
-      isMiss && !shouldShowSpinner && "text-red-500 dark:text-red-400",
-    );
+    // Priority chain: spinner > miss > partial > verified > neutral default
+    let footnoteStatusClasses: string;
+    if (shouldShowSpinner) {
+      footnoteStatusClasses = "text-gray-400 dark:text-gray-500";
+    } else if (isMiss) {
+      footnoteStatusClasses = "text-red-500 dark:text-red-400";
+    } else if (isPartialMatch) {
+      footnoteStatusClasses = "text-amber-500 dark:text-amber-400";
+    } else if (isVerified) {
+      footnoteStatusClasses = "text-green-600 dark:text-green-500";
+    } else {
+      footnoteStatusClasses = "text-gray-500 dark:text-gray-400";
+    }
 
     return (
       <>

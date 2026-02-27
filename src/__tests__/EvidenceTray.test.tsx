@@ -54,15 +54,21 @@ describe("InlineExpandedImage onNaturalSize", () => {
 
   // jsdom doesn't provide ResizeObserver — supply a minimal mock that
   // fires immediately with a fixed container rect.
+  const mockEntry: ResizeObserverEntry = {
+    contentRect: { width: 600, height: 400, x: 0, y: 0, top: 0, right: 600, bottom: 400, left: 0, toJSON: () => ({}) },
+    borderBoxSize: [{ blockSize: 400, inlineSize: 600 }],
+    contentBoxSize: [{ blockSize: 400, inlineSize: 600 }],
+    devicePixelContentBoxSize: [{ blockSize: 400, inlineSize: 600 }],
+    target: document.createElement("div"),
+  };
+
   const mockResizeObserver = jest.fn<(cb: ResizeObserverCallback) => ResizeObserver>().mockImplementation(cb => {
     observerCallback = cb;
     return {
       observe: jest.fn<ResizeObserver["observe"]>().mockImplementation(() => {
         // Fire immediately with a 600×400 rect
-        observerCallback(
-          [{ contentRect: { width: 600, height: 400 } } as unknown as ResizeObserverEntry],
-          {} as ResizeObserver,
-        );
+        const mockObserver: ResizeObserver = { observe: jest.fn(), unobserve: jest.fn(), disconnect: jest.fn() };
+        observerCallback([mockEntry], mockObserver);
       }),
       unobserve: jest.fn<ResizeObserver["unobserve"]>(),
       disconnect: jest.fn<ResizeObserver["disconnect"]>(),
