@@ -14,7 +14,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
 import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
-import type { SearchAttempt, SearchStatus } from "../types/search.js";
+import type { SearchAttempt } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 import { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
 import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
@@ -26,7 +26,6 @@ import {
   EXPANDED_ZOOM_MAX,
   EXPANDED_ZOOM_MIN,
   EXPANDED_ZOOM_STEP,
-  HELPER_HINT_TEXT_CLASSES,
   isValidProofImageSrc,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_SKIP_THRESHOLD,
@@ -40,14 +39,11 @@ import {
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
-import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
-import { deriveOutcomeLabel } from "./outcomeLabel.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget } from "./overlayGeometry.js";
-import { buildIntentSummary, countUniqueSearchTexts } from "./searchSummaryUtils.js";
+import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
-import { VerificationLogTimeline } from "./VerificationLog.js";
 import { ZoomToolbar } from "./ZoomToolbar.js";
 
 // =============================================================================
@@ -265,15 +261,6 @@ const KEYHOLE_SCROLLBAR_HIDE: React.CSSProperties = {
   scrollbarWidth: "none", // Firefox
   msOverflowStyle: "none", // IE/Edge
 };
-
-// =============================================================================
-// FOOTER HINT (shared bold-then-muted hint for evidence tray / expanded image)
-// =============================================================================
-
-/** Renders muted helper text for secondary guidance (for example, "Click to expand"). */
-function FooterHint({ text }: { text: string }) {
-  return <span className={HELPER_HINT_TEXT_CLASSES}>{text}</span>;
-}
 
 // =============================================================================
 // ANCHOR TEXT FOCUSED IMAGE (Keyhole viewer)
@@ -498,70 +485,29 @@ export function AnchorTextFocusedImage({
 // =============================================================================
 
 /**
- * Footer for the evidence tray showing outcome label + date + "View page" CTA.
- * For miss state: includes an expandable search log toggle.
+ * Minimal footer for the evidence tray: date on the left, "View page ›" CTA on the right.
+ * Unified across found/miss states — no outcome labels, search counts, or hint text.
  */
 function EvidenceTrayFooter({
-  status,
-  searchAttempts,
   verifiedAt,
-  verification,
   onPageClick,
-  hintText,
 }: {
-  status?: SearchStatus | null;
-  searchAttempts?: SearchAttempt[];
   verifiedAt?: Date | string | null;
-  /** Full verification for the search log timeline (miss state) */
-  verification?: Verification | null;
   /** When provided, renders a "View page" CTA button */
   onPageClick?: () => void;
-  /** Optional hint text (e.g. "Click to expand") rendered as a FooterHint after the outcome label */
-  hintText?: string;
 }) {
   const formatted = formatCaptureDate(verifiedAt);
   const dateStr = formatted?.display ?? "";
-  const outcomeLabel = deriveOutcomeLabel(status, searchAttempts);
-  const [showLog, setShowLog] = useState(false);
-  const searchCount = useMemo(() => countUniqueSearchTexts(searchAttempts ?? []), [searchAttempts]);
-  // Only show log toggle for non-found statuses with multiple search attempts
-  const showLogToggle = searchCount > 1 && status !== "found";
 
   return (
     <div className="px-3 py-1.5 text-[11px] text-gray-400 dark:text-gray-500">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          {showLogToggle ? (
-            <button
-              type="button"
-              className="flex items-center gap-0.5 text-[11px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors"
-              onClick={e => {
-                e.stopPropagation();
-                setShowLog(s => !s);
-              }}
-              aria-expanded={showLog}
-              aria-label={showLog ? "Collapse search log" : "Expand search log"}
-            >
-              <span className={cn("size-2 shrink-0 transition-transform duration-150", showLog && "rotate-90")}>
-                <ChevronRightIcon />
-              </span>
-              <span>{searchCount} searches</span>
-            </button>
-          ) : (
-            <span>{outcomeLabel}</span>
-          )}
-          {dateStr && (
-            <span>
-              · <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>
-            </span>
-          )}
-          {hintText && <FooterHint text={` · ${hintText}`} />}
-        </div>
+        {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
         {onPageClick && (
           <button
             type="button"
             className={cn(
-              "flex items-center gap-0.5 text-[11px] font-medium cursor-pointer",
+              "flex items-center gap-0.5 text-[11px] font-medium cursor-pointer ml-auto",
               TERTIARY_ACTION_BASE_CLASSES,
               TERTIARY_ACTION_IDLE_CLASSES,
               TERTIARY_ACTION_HOVER_CLASSES,
@@ -578,24 +524,6 @@ function EvidenceTrayFooter({
           </button>
         )}
       </div>
-      {showLog && searchAttempts && searchAttempts.length > 0 && (
-        <div className="mt-1">
-          <VerificationLogTimeline searchAttempts={searchAttempts} status={verification?.status} />
-          <button
-            type="button"
-            className="flex items-center gap-0.5 text-[11px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors pt-1"
-            onClick={e => {
-              e.stopPropagation();
-              setShowLog(false);
-            }}
-          >
-            <span className="size-2 shrink-0 rotate-[270deg]">
-              <ChevronRightIcon />
-            </span>
-            <span>Show less</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -629,7 +557,6 @@ function MatchSnippetDisplay({ snippet }: { snippet: import("./searchSummaryUtil
 /**
  * Search analysis summary for not-found / partial evidence tray.
  * Intent-centric display: clean message for misses, snippet-based for partial matches.
- * The expandable search log is now in the footer (EvidenceTrayFooter), not here.
  */
 export function SearchAnalysisSummary({
   searchAttempts,
@@ -690,7 +617,6 @@ export function EvidenceTray({
   onImageClick?: () => void;
   proofImageSrc?: string;
 }) {
-  const isTouch = useIsTouchDevice();
   const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const isMiss = status.isMiss;
   const searchAttempts = verification?.searchAttempts ?? [];
@@ -698,9 +624,6 @@ export function EvidenceTray({
 
   // Tray-level click: keyhole click if available, else page expansion
   const trayAction = onImageClick ?? onExpand;
-
-  // Hint text for the footer — show expand hint when tray is interactive
-  const hintText = trayAction ? (isTouch ? "Tap to expand" : "Click to expand") : undefined;
 
   // Shared inner content
   const content = (
@@ -727,15 +650,8 @@ export function EvidenceTray({
         </div>
       ) : null}
 
-      {/* Footer: outcome + hint + date + CTA (renders for ALL states including miss) */}
-      <EvidenceTrayFooter
-        status={verification?.status}
-        searchAttempts={searchAttempts}
-        verifiedAt={verification?.verifiedAt}
-        verification={verification}
-        onPageClick={onExpand}
-        hintText={hintText}
-      />
+      {/* Footer: date + "View page" CTA */}
+      <EvidenceTrayFooter verifiedAt={verification?.verifiedAt} onPageClick={onExpand} />
     </>
   );
 
@@ -824,7 +740,6 @@ export function InlineExpandedImage({
   showOverlay?: boolean;
 }) {
   const { containerRef, isDragging, handlers: panHandlers, wasDraggingRef } = useDragToPan({ direction: "xy" });
-  const isTouch = useIsTouchDevice();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [naturalWidth, setNaturalWidth] = useState<number | null>(null);
   const [naturalHeight, setNaturalHeight] = useState<number | null>(null);
@@ -1261,13 +1176,7 @@ export function InlineExpandedImage({
 
   const footerEl = (
     <div className="bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
-      <EvidenceTrayFooter
-        status={verification?.status}
-        searchAttempts={verification?.searchAttempts}
-        verifiedAt={verification?.verifiedAt}
-        verification={verification}
-        hintText={isTouch ? "Tap to collapse" : "Click to collapse"}
-      />
+      <EvidenceTrayFooter verifiedAt={verification?.verifiedAt} />
     </div>
   );
 
@@ -1330,7 +1239,10 @@ export function InlineExpandedImage({
               position via transform-origin, creating a "zoom from annotation" visual effect. */}
           <div
             key={src}
-            className={cn("animate-in fade-in-0 duration-150", fill && annotationOrigin && "zoom-in-95")}
+            className={cn(
+              "animate-in fade-in-0",
+              fill && annotationOrigin ? "zoom-in-95 duration-[180ms]" : "zoom-in-[0.97] duration-150",
+            )}
             style={
               annotationOrigin
                 ? { transformOrigin: `${annotationOrigin.xPercent}% ${annotationOrigin.yPercent}%` }

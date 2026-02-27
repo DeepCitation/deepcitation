@@ -23,16 +23,6 @@ describe("EvidenceTray interaction styles", () => {
     cleanup();
   });
 
-  it("renders static muted helper hint for interactive trays", () => {
-    const { getByText } = render(
-      <EvidenceTray verification={baseVerification} status={baseStatus} onExpand={() => {}} />,
-    );
-
-    const hint = getByText("· Click to expand");
-    expect(hint.className).toContain("font-medium");
-    expect(hint.className).toContain("text-gray-400");
-  });
-
   it("renders tertiary View page action with blue hover and focus ring styles", () => {
     const { getByRole } = render(
       <EvidenceTray verification={baseVerification} status={baseStatus} onExpand={() => {}} />,

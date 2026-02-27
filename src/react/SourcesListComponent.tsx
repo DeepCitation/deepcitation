@@ -663,7 +663,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
         {/* Backdrop */}
         <div
           className={classNames(
-            "absolute inset-0 bg-black/40 dark:bg-black/60 transition-opacity",
+            "absolute inset-0 bg-black/40 dark:bg-black/60 transition-opacity duration-200",
             isOpen ? "opacity-100" : "opacity-0",
           )}
           onClick={handleBackdropClick}

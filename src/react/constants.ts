@@ -454,48 +454,56 @@ export const EVIDENCE_TRAY_BORDER_DASHED = "border border-dashed border-gray-300
 /** CSS custom property for expanded popover width */
 export const EXPANDED_POPOVER_WIDTH_VAR = "--dc-expanded-width";
 /** Default expanded popover width */
-export const EXPANDED_POPOVER_WIDTH_DEFAULT = "calc(100vw - 2rem)";
+export const EXPANDED_POPOVER_WIDTH_DEFAULT = "calc(100dvw - 2rem)";
 /** Maximum expanded popover width */
-export const EXPANDED_POPOVER_MAX_WIDTH = "calc(100vw - 2rem)";
+export const EXPANDED_POPOVER_MAX_WIDTH = "calc(100dvw - 2rem)";
 /** Default expanded popover height — uses Radix's available height CSS var when present */
-export const EXPANDED_POPOVER_HEIGHT = "calc(100vh - 2rem)";
+export const EXPANDED_POPOVER_HEIGHT = "calc(100dvh - 2rem)";
 
 // =============================================================================
 // ANIMATION & TRANSITION TIMINGS
 // =============================================================================
 //
-// Single source of truth for all UI timing values.
+// Five-step timing scale for all UI animations. Each duration maps to a
+// semantic tier so every transition uses a deliberate, consistent speed.
 //
-// Semantic duration aliases (maps to Tailwind duration classes):
-//   ANIM_FAST_MS     → duration-150  (hover/opacity fades, popover entry, chevron)
-//   ANIM_STANDARD_MS → duration-200  (drawer slide-in)
-//   ANIM_SLOW_MS     → duration-300  (drawer slide, heavy morphs)
+// Tier              Constant              Duration  Tailwind class   Use cases
+// ──────────────────────────────────────────────────────────────────────────────
+// Instant           ANIM_INSTANT_MS        75ms     duration-75      Hover bg, trigger color
+// Fast              ANIM_FAST_MS          120ms     duration-[120ms] Micro-interactions, exits, chevrons
+// Standard          ANIM_STANDARD_MS      180ms     duration-[180ms] Popover entry, grid expand, morphs
+// Measured          ANIM_MEASURED_MS      250ms     duration-[250ms] Drawer slide-in, morph expand
+// Slow              ANIM_SLOW_MS          350ms     duration-[350ms] Full-page transitions, coordinated
 //
 // Expand/collapse morphs use separate constants + asymmetric easing:
-//   POPOVER_MORPH_EXPAND_MS   180ms  EASE_EXPAND   (fast start, gentle stop)
-//   POPOVER_MORPH_COLLAPSE_MS 120ms  EASE_COLLAPSE (gentle start, snap shut)
+//   POPOVER_MORPH_EXPAND_MS   200ms  EASE_EXPAND   (fast start, gentle stop, slight overshoot)
+//   POPOVER_MORPH_COLLAPSE_MS 100ms  EASE_COLLAPSE (aggressive start, soft landing)
 //
 // NOTE: Tailwind duration-* classes in JSX must remain as literal strings for
 // JIT purging. These constants serve as documentary cross-references only.
 
-/** Fast transition: hover/opacity fades. Tailwind equivalent: duration-150. */
-export const ANIM_FAST_MS = 150;
-/** Standard transition: popover entry, chevron, grid. Tailwind equivalent: duration-200. */
-export const ANIM_STANDARD_MS = 200;
-/** Slow transition: drawer slide, popover morph. Tailwind equivalent: duration-300. */
-export const ANIM_SLOW_MS = 300;
+/** Instant smoothing: imperceptible transitions (hover color, trigger bg). Tailwind: duration-75. */
+export const ANIM_INSTANT_MS = 75;
+/** Fast transition: micro-interactions, exits, chevron rotation. Tailwind: duration-[120ms]. */
+export const ANIM_FAST_MS = 120;
+/** Standard transition: popover entry, grid expand, default morphs. Tailwind: duration-[180ms]. */
+export const ANIM_STANDARD_MS = 180;
+/** Measured transition: drawer slide, morph expand, deliberate reveals. Tailwind: duration-[250ms]. */
+export const ANIM_MEASURED_MS = 250;
+/** Slow transition: full-page view changes, multi-element coordinated animations. Tailwind: duration-[350ms]. */
+export const ANIM_SLOW_MS = 350;
 /**
  * Per-item stagger delay for citation drawer row reveal animations.
- * Each successive row enters 35ms after the previous, creating a cascading
+ * Each successive row enters 40ms after the previous, creating a cascading
  * "waterfall" effect that visually communicates list hierarchy.
  */
-export const DRAWER_STAGGER_DELAY_MS = 35;
+export const DRAWER_STAGGER_DELAY_MS = 40;
 /**
- * Cap for cumulative citation drawer stagger delay to keep reveals snappy.
- * Without this cap, a drawer with 20+ citations would take 700ms+ to fully
- * reveal. The 200ms cap means items beyond index ~5 all appear simultaneously.
+ * Asymptotic cap for cumulative citation drawer stagger delay.
+ * Uses exponential approach: `MAX * (1 - e^(-i * DELAY / MAX))`.
+ * Early items are ~DELAY apart; gaps shrink smoothly toward zero at MAX.
  */
-export const DRAWER_STAGGER_MAX_MS = 200;
+export const DRAWER_STAGGER_MAX_MS = 250;
 
 /** Delay in ms before hiding a tooltip on mouse leave (prevents flicker on cursor exit). */
 export const TOOLTIP_HIDE_DELAY_MS = 80;
@@ -531,27 +539,25 @@ export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-150 ${FO
 export const TERTIARY_ACTION_IDLE_CLASSES = "text-gray-600 dark:text-gray-400";
 /** Hover/focus tertiary action text color. */
 export const TERTIARY_ACTION_HOVER_CLASSES = "hover:text-blue-600 dark:hover:text-blue-400";
-/** Helper hint text style (muted and non-competitive). */
-export const HELPER_HINT_TEXT_CLASSES = "font-medium text-gray-400 dark:text-gray-500";
-
 /** Auto-hide spinner after this duration if verification is still pending. */
 export const SPINNER_TIMEOUT_MS = 5000;
 
 /** Transition duration for popover morph expand (summary → expanded). */
-export const POPOVER_MORPH_EXPAND_MS = 180;
+export const POPOVER_MORPH_EXPAND_MS = 200;
 /** Transition duration for popover morph collapse (expanded → summary). Faster = snappier close. */
-export const POPOVER_MORPH_COLLAPSE_MS = 120;
+export const POPOVER_MORPH_COLLAPSE_MS = 100;
 
 /**
- * Easing for expand transitions — fast start, gentle stop.
- * Bézier: aggressive entry (0.16), minimal overshoot, soft landing (0, 1).
+ * Easing for expand transitions — spring-like with ~6% overshoot.
+ * Bézier: fast start (0.34), slight overshoot (1.06), soft landing (0.64, 1).
+ * Gives perceptible liveness without visible bounce.
  */
-export const EASE_EXPAND = "cubic-bezier(0.16, 0, 0, 1)";
+export const EASE_EXPAND = "cubic-bezier(0.34, 1.06, 0.64, 1)";
 /**
- * Easing for collapse transitions — gentle start, accelerating close.
- * Bézier: slow departure (0.4), then whip shut (1, 1).
+ * Easing for collapse transitions — decisive decelerate.
+ * Bézier: starts with velocity (0.2), then eases into final state (0, 1).
  */
-export const EASE_COLLAPSE = "cubic-bezier(0.4, 0, 1, 1)";
+export const EASE_COLLAPSE = "cubic-bezier(0.2, 0, 0, 1)";
 
 // =============================================================================
 // TIME TO CERTAINTY (TtC) DISPLAY
