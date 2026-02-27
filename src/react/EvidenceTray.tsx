@@ -542,16 +542,9 @@ function EvidenceTrayFooter({
               aria-expanded={showLog}
               aria-label={showLog ? "Collapse search log" : "Expand search log"}
             >
-              <svg
-                className={cn("size-2 shrink-0 transition-transform duration-150", showLog && "rotate-90")}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                aria-hidden="true"
-              >
-                <path d="M9 6l6 6-6 6" />
-              </svg>
+              <span className={cn("size-2 shrink-0 transition-transform duration-150", showLog && "rotate-90")}>
+                <ChevronRightIcon />
+              </span>
               <span>{searchCount} searches</span>
             </button>
           ) : (
@@ -596,16 +589,9 @@ function EvidenceTrayFooter({
               setShowLog(false);
             }}
           >
-            <svg
-              className="size-2 shrink-0 rotate-[270deg]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              aria-hidden="true"
-            >
-              <path d="M9 6l6 6-6 6" />
-            </svg>
+            <span className="size-2 shrink-0 rotate-[270deg]">
+              <ChevronRightIcon />
+            </span>
             <span>Show less</span>
           </button>
         </div>
