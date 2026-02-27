@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deprecated
+
+- `prepareAttachment()` is deprecated in favor of `prepareAttachments()`. The old method remains as a compatibility alias and will be removed in the next major release.
+
 ## [0.1.0] - 2026-02-25
 
 First public release of `deepcitation` — deterministic citation verification for AI-generated content. Every claim your LLM makes gets checked against the source document, with visual proof your users can see and trust.
