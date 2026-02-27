@@ -43,7 +43,11 @@ import { FaviconImage, PagePill } from "./VerificationLog.js";
 // HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
 // EvidenceTray, InlineExpandedImage — imported from ./EvidenceTray.js (canonical location)
 
-/** Exponential-approach stagger delay: starts at ~DELAY gap, decelerates toward MAX (always monotonic). */
+/**
+ * Exponential-approach stagger delay: starts at ~DELAY gap, decelerates toward MAX (always monotonic).
+ * Preferred over linear (index * DELAY capped at MAX) because the exponential curve avoids
+ * an abrupt "cliff" where all items beyond the cap appear simultaneously.
+ */
 function computeStaggerDelay(itemIndex: number): number {
   return Math.round(
     DRAWER_STAGGER_MAX_MS * (1 - Math.exp((-itemIndex * DRAWER_STAGGER_DELAY_MS) / DRAWER_STAGGER_MAX_MS)),
