@@ -793,4 +793,206 @@ describe("DeepCitation Client", () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe("endUserId attribution", () => {
+    it("includes instance-level endUserId in uploadFile FormData", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          attachmentId: "file_1",
+          deepTextPromptPortion: "content",
+          metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          status: "ready",
+        }),
+      } as Response);
+
+      const blob = new Blob(["content"]);
+      await client.uploadFile(blob, { filename: "test.pdf" });
+
+      const formData = mockFetch.mock.calls[0][1].body as FormData;
+      expect(formData.get("endUserId")).toBe("user-instance");
+    });
+
+    it("per-request endUserId overrides instance default in uploadFile", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          attachmentId: "file_1",
+          deepTextPromptPortion: "content",
+          metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          status: "ready",
+        }),
+      } as Response);
+
+      const blob = new Blob(["content"]);
+      await client.uploadFile(blob, { filename: "test.pdf", endUserId: "user-override" });
+
+      const formData = mockFetch.mock.calls[0][1].body as FormData;
+      expect(formData.get("endUserId")).toBe("user-override");
+    });
+
+    it("omits endUserId from FormData when neither instance nor request set", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          attachmentId: "file_1",
+          deepTextPromptPortion: "content",
+          metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          status: "ready",
+        }),
+      } as Response);
+
+      const blob = new Blob(["content"]);
+      await client.uploadFile(blob, { filename: "test.pdf" });
+
+      const formData = mockFetch.mock.calls[0][1].body as FormData;
+      expect(formData.get("endUserId")).toBeNull();
+    });
+
+    it("includes endUserId in verifyAttachment request body", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verifications: { "1": { status: "found" } },
+        }),
+      } as Response);
+
+      await client.verifyAttachment(
+        "file_abc",
+        { "1": { fullPhrase: "test", attachmentId: "file_abc" } },
+        { endUserId: "user-verify" },
+      );
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.data.endUserId).toBe("user-verify");
+    });
+
+    it("includes instance endUserId in verifyAttachment when no override", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verifications: { "1": { status: "found" } },
+        }),
+      } as Response);
+
+      await client.verifyAttachment("file_abc", { "1": { fullPhrase: "test", attachmentId: "file_abc" } });
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.data.endUserId).toBe("user-instance");
+    });
+
+    it("threads endUserId from verify through to verifyAttachment", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verifications: { key1: { status: "found" } },
+        }),
+      } as Response);
+
+      await client.verify({
+        llmOutput:
+          "<cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test' anchor_text='Test' line_ids='1' />",
+        endUserId: "user-verify",
+      });
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.data.endUserId).toBe("user-verify");
+    });
+
+    it("includes endUserId in prepareUrl JSON body", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          attachmentId: "url_1",
+          deepTextPromptPortion: "content",
+          metadata: { filename: "page.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          status: "ready",
+        }),
+      } as Response);
+
+      await client.prepareUrl({ url: "https://example.com", endUserId: "user-url" });
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.endUserId).toBe("user-url");
+    });
+
+    it("includes endUserId in getAttachment with per-request override", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: "att_abc",
+          status: "ready",
+          source: "test.pdf",
+          originalFilename: "test.pdf",
+          mimeType: "application/pdf",
+          pageCount: 1,
+          pages: [],
+          verifications: {},
+        }),
+      } as Response);
+
+      await client.getAttachment("att_abc", { endUserId: "user-get" });
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.endUserId).toBe("user-get");
+    });
+
+    it("includes endUserId in convertToPdf JSON body", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          attachmentId: "conv_1",
+          metadata: {
+            originalFilename: "page.html",
+            originalMimeType: "text/html",
+            convertedMimeType: "application/pdf",
+            conversionTimeMs: 1000,
+          },
+          status: "converted",
+        }),
+      } as Response);
+
+      await client.convertToPdf({ url: "https://example.com", endUserId: "user-convert" });
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.endUserId).toBe("user-convert");
+    });
+
+    it("includes endUserId in prepareConvertedFile JSON body", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          attachmentId: "conv_1",
+          deepTextPromptPortion: "content",
+          metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          status: "ready",
+        }),
+      } as Response);
+
+      await client.prepareConvertedFile({ attachmentId: "conv_1", endUserId: "user-prepare" });
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.endUserId).toBe("user-prepare");
+    });
+  });
 });

@@ -42,7 +42,11 @@ export interface DeepCitationConfig {
    * ```
    */
   logger?: DeepCitationLogger;
-  /** Developer's end-user identifier for usage attribution. Applied to all API calls unless overridden per-request. */
+  /**
+   * Developer's end-user identifier for usage attribution.
+   * Applied to all API calls unless overridden per-request.
+   * Max 128 characters. Must not contain control characters.
+   */
   endUserId?: string;
 }
 
@@ -367,6 +371,14 @@ export interface DeleteAttachmentResponse {
   attachmentId: string;
   /** Whether the deletion was successful */
   deleted: boolean;
+}
+
+/**
+ * Options for retrieving an attachment by ID
+ */
+export interface GetAttachmentOptions {
+  /** Developer's end-user identifier for usage attribution. Overrides the instance-level endUserId if set. */
+  endUserId?: string;
 }
 
 /**

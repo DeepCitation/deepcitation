@@ -15,6 +15,7 @@ import type {
   ExtendExpirationResponse,
   FileDataPart,
   FileInput,
+  GetAttachmentOptions,
   PrepareAttachmentsResult,
   PrepareConvertedFileOptions,
   PrepareUrlOptions,
@@ -909,11 +910,12 @@ export class DeepCitation {
    * }
    * ```
    */
-  async getAttachment(attachmentId: string): Promise<AttachmentResponse> {
+  async getAttachment(attachmentId: string, options?: GetAttachmentOptions): Promise<AttachmentResponse> {
     if (!attachmentId) {
       throw new ValidationError("attachmentId is required");
     }
 
+    const resolvedEndUserId = this.resolveEndUserId(options?.endUserId);
     this.logger.info?.("Getting attachment", { attachmentId });
 
     const response = await fetch(`${this.apiUrl}/getAttachment`, {
@@ -922,7 +924,7 @@ export class DeepCitation {
         Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ attachmentId, endUserId: this.endUserId }),
+      body: JSON.stringify({ attachmentId, endUserId: resolvedEndUserId }),
     });
 
     if (!response.ok) {
