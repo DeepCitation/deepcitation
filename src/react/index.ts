@@ -54,6 +54,15 @@ export {
 } from "./CitationOverlayContext.js";
 // Citation Primitives Namespace (composable building blocks)
 export { Citation } from "./CitationPrimitives.js";
+// I18n — internationalization support
+export {
+  createTranslator,
+  defaultMessages,
+  DeepCitationI18nProvider,
+  tPlural,
+  useTranslation,
+} from "./i18n.js";
+export type { DeepCitationI18nProviderProps, DeepCitationMessages, MessageKey, MessageValues, TranslateFunction } from "./i18n.js";
 // Constants - Shared styling and configuration
 export {
   COPY_FEEDBACK_DURATION_MS,

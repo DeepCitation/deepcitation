@@ -12,6 +12,7 @@
 import type { CitationStatus } from "../types/citation.js";
 import type { MatchedVariation, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
+import { createTranslator, type TranslateFunction } from "./i18n.js";
 
 // =============================================================================
 // PARTIAL STATUS SET
@@ -143,11 +144,12 @@ export function getStatusFromVerification(verification: Verification | null | un
 
 /**
  * Get a human-readable label for a CitationStatus.
+ * Pass a `t` function from `useTranslation()` for i18n support.
  */
-export function getStatusLabel(status: CitationStatus): string {
-  if (status.isVerified && !status.isPartialMatch) return "Verified";
-  if (status.isPartialMatch) return "Partial Match";
-  if (status.isMiss) return "Not Found";
-  if (status.isPending) return "Verifying...";
+export function getStatusLabel(status: CitationStatus, t: TranslateFunction = createTranslator()): string {
+  if (status.isVerified && !status.isPartialMatch) return t("status.verified");
+  if (status.isPartialMatch) return t("status.partialMatch");
+  if (status.isMiss) return t("status.notFound");
+  if (status.isPending) return t("status.verifying");
   return "";
 }

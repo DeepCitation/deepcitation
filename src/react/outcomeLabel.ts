@@ -8,6 +8,7 @@
  */
 
 import type { SearchAttempt, SearchStatus } from "../types/search.js";
+import { createTranslator, tPlural, type TranslateFunction } from "./i18n.js";
 
 /**
  * Derive a human-readable outcome label from verification status and search attempts.
@@ -19,24 +20,28 @@ import type { SearchAttempt, SearchStatus } from "../types/search.js";
  * - exact/normalized anchor_text: "Anchor text match"
  * - other success: "Match found"
  */
-export function deriveOutcomeLabel(status: SearchStatus | null | undefined, searchAttempts?: SearchAttempt[]): string {
+export function deriveOutcomeLabel(
+  status: SearchStatus | null | undefined,
+  searchAttempts?: SearchAttempt[],
+  t: TranslateFunction = createTranslator(),
+): string {
   if (status === "not_found") {
     const count = searchAttempts?.length ?? 0;
-    return `Scan complete · ${count} ${count === 1 ? "search" : "searches"}`;
+    return tPlural(t, "outcome.scanComplete", count, { count });
   }
 
   const successfulAttempt = searchAttempts?.find(a => a.success);
   if (successfulAttempt?.matchedVariation === "exact_full_phrase") {
-    return "Exact match";
+    return t("outcome.exactMatch");
   }
   if (successfulAttempt?.matchedVariation === "normalized_full_phrase") {
-    return "Normalized match";
+    return t("outcome.normalizedMatch");
   }
   if (
     successfulAttempt?.matchedVariation === "exact_anchor_text" ||
     successfulAttempt?.matchedVariation === "normalized_anchor_text"
   ) {
-    return "Anchor text match";
+    return t("outcome.anchorTextMatch");
   }
-  return "Match found";
+  return t("outcome.matchFound");
 }

@@ -10,6 +10,7 @@
 
 import type { SearchStatus } from "../types/search.js";
 import type { UrlAccessStatus } from "../types/verification.js";
+import { createTranslator, type TranslateFunction } from "./i18n.js";
 import type { UrlFetchStatus } from "./types.js";
 
 // =============================================================================
@@ -129,76 +130,78 @@ export function mapSearchStatusToFetchStatus(status: SearchStatus | null | undef
 /**
  * Get a structured explanation for URL access failures.
  * Returns null for success/pending/unknown statuses (no explanation needed).
+ * Pass a `t` function from `useTranslation()` for i18n support.
  */
 export function getUrlAccessExplanation(
   fetchStatus: UrlFetchStatus,
   errorMessage?: string | null,
+  t: TranslateFunction = createTranslator(),
 ): UrlAccessExplanation | null {
   switch (fetchStatus) {
     // Blocked scenarios (amber — potentially resolvable by the user)
     case "blocked_paywall":
       return {
-        title: "Paywall Detected",
-        description: errorMessage || "This site requires a paid subscription to access.",
-        suggestion: "You can verify this citation by visiting the URL directly if you have a subscription.",
+        title: t("urlAccess.paywall.title"),
+        description: errorMessage || t("urlAccess.paywall.description"),
+        suggestion: t("urlAccess.paywall.suggestion"),
         colorScheme: "amber",
       };
     case "blocked_login":
       return {
-        title: "Login Required",
-        description: errorMessage || "This page requires authentication to view its content.",
-        suggestion: "Log in to the site and visit the URL to verify this citation.",
+        title: t("urlAccess.login.title"),
+        description: errorMessage || t("urlAccess.login.description"),
+        suggestion: t("urlAccess.login.suggestion"),
         colorScheme: "amber",
       };
     case "blocked_geo":
       return {
-        title: "Region Restricted",
-        description: errorMessage || "This content isn't available from our verification server's location.",
-        suggestion: "Try visiting the URL directly — it may be accessible from your location.",
+        title: t("urlAccess.geo.title"),
+        description: errorMessage || t("urlAccess.geo.description"),
+        suggestion: t("urlAccess.geo.suggestion"),
         colorScheme: "amber",
       };
     case "blocked_antibot":
       return {
-        title: "Blocked by Site Protection",
-        description: errorMessage || "This site's bot protection prevented our crawler from accessing the page.",
-        suggestion: "Visit the URL directly in your browser to verify this citation.",
+        title: t("urlAccess.antibot.title"),
+        description: errorMessage || t("urlAccess.antibot.description"),
+        suggestion: t("urlAccess.antibot.suggestion"),
         colorScheme: "amber",
       };
     case "blocked_rate_limit":
       return {
-        title: "Rate Limited",
-        description: errorMessage || "Too many requests were sent to this site.",
-        suggestion: "Try again later — the rate limit should reset shortly.",
+        title: t("urlAccess.rateLimit.title"),
+        description: errorMessage || t("urlAccess.rateLimit.description"),
+        suggestion: t("urlAccess.rateLimit.suggestion"),
         colorScheme: "amber",
       };
 
     // Error scenarios (red — likely can't be resolved without fixing the URL)
     case "error_not_found":
       return {
-        title: "Page Not Found",
-        description: errorMessage || "This URL returned a 404 error — the page may have been moved or deleted.",
-        suggestion: "Check if the URL is correct, or search the site for the content.",
+        title: t("urlAccess.notFound.title"),
+        description: errorMessage || t("urlAccess.notFound.description"),
+        suggestion: t("urlAccess.notFound.suggestion"),
         colorScheme: "red",
       };
     case "error_server":
       return {
-        title: "Server Error",
-        description: errorMessage || "The website returned a server error and could not be accessed.",
-        suggestion: "Try again later — the site may be experiencing temporary issues.",
+        title: t("urlAccess.server.title"),
+        description: errorMessage || t("urlAccess.server.description"),
+        suggestion: t("urlAccess.server.suggestion"),
         colorScheme: "red",
       };
     case "error_timeout":
       return {
-        title: "Connection Timed Out",
-        description: errorMessage || "The website took too long to respond to our verification request.",
-        suggestion: "Try again later — the site may be under heavy load.",
+        title: t("urlAccess.timeout.title"),
+        description: errorMessage || t("urlAccess.timeout.description"),
+        suggestion: t("urlAccess.timeout.suggestion"),
         colorScheme: "red",
       };
     case "error_network":
       return {
-        title: "Network Error",
-        description: errorMessage || "Could not connect to this website — the domain may be unreachable.",
-        suggestion: "Check if the URL is correct and that the site is still online.",
+        title: t("urlAccess.network.title"),
+        description: errorMessage || t("urlAccess.network.description"),
+        suggestion: t("urlAccess.network.suggestion"),
         colorScheme: "red",
       };
 

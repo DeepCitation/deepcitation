@@ -1,6 +1,7 @@
 import type React from "react";
 import { useMemo, useState } from "react";
 import type { SearchStatus } from "../types/search.js";
+import { useTranslation } from "./i18n.js";
 import { CheckIcon } from "./icons.js";
 import type { DiffDisplayMode } from "./SplitDiffDisplay.js";
 import { CollapsibleText, MatchQualityBar, SplitDiffDisplay } from "./SplitDiffDisplay.js";
@@ -63,48 +64,51 @@ const ModeToggle = ({
 }: {
   mode: "inline" | "split";
   onModeChange: (mode: "inline" | "split") => void;
-}) => (
-  <div className="flex items-center gap-1 ml-auto">
-    <button
-      type="button"
-      onClick={e => {
-        e.stopPropagation();
-        onModeChange("inline");
-      }}
-      className={cn(
-        "p-1 rounded transition-colors",
-        mode === "inline"
-          ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-          : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400",
-      )}
-      title="Inline diff view"
-      aria-label="Inline diff view"
-    >
-      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    </button>
-    <button
-      type="button"
-      onClick={e => {
-        e.stopPropagation();
-        onModeChange("split");
-      }}
-      className={cn(
-        "p-1 rounded transition-colors",
-        mode === "split"
-          ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-          : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400",
-      )}
-      title="Split view"
-      aria-label="Split view"
-    >
-      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
-      </svg>
-    </button>
-  </div>
-);
+}) => {
+  const t = useTranslation();
+  return (
+    <div className="flex items-center gap-1 ml-auto">
+      <button
+        type="button"
+        onClick={e => {
+          e.stopPropagation();
+          onModeChange("inline");
+        }}
+        className={cn(
+          "p-1 rounded transition-colors",
+          mode === "inline"
+            ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+            : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400",
+        )}
+        title={t("diff.inlineView")}
+        aria-label={t("diff.inlineView")}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        onClick={e => {
+          e.stopPropagation();
+          onModeChange("split");
+        }}
+        className={cn(
+          "p-1 rounded transition-colors",
+          mode === "split"
+            ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+            : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400",
+        )}
+        title={t("diff.splitView")}
+        aria-label={t("diff.splitView")}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+        </svg>
+      </button>
+    </div>
+  );
+};
 
 // =============================================================================
 // FoundContentTab (extracted from inline renderFoundContent)
@@ -151,7 +155,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
   actual,
   label,
   renderCopyButton,
-  emptyText = "No text found",
+  emptyText,
   // New props
   status,
   anchorText,
@@ -162,6 +166,9 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
   showMatchQuality = true,
   maxCollapsedLength = 200,
 }) => {
+  const t = useTranslation();
+  const resolvedEmptyText = emptyText ?? t("misc.noTextFound");
+
   const { diffResult, isHighVariance, hasDiff, similarity } = useSmartDiff(expected, actual);
 
   const [activeTab, setActiveTab] = useState<TabType>("diff");
@@ -182,13 +189,13 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
 
   // Get contextual status message
   const statusMessage = useMemo(() => {
-    return getContextualStatusMessage(status, expectedPage, actualPage);
-  }, [status, expectedPage, actualPage]);
+    return getContextualStatusMessage(status, expectedPage, actualPage, t);
+  }, [status, expectedPage, actualPage, t]);
 
   const foundContentElement = (
     <FoundContentTab
       actual={actual}
-      emptyText={emptyText}
+      emptyText={resolvedEmptyText}
       maxCollapsedLength={maxCollapsedLength}
       verifiedKeySpan={verifiedKeySpan}
       renderCopyButton={renderCopyButton}
@@ -211,7 +218,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
           <span className="size-2">
             <CheckIcon />
           </span>
-          <span>Exact match</span>
+          <span>{t("tab.exactMatch")}</span>
         </div>
 
         <div>{foundContentElement}</div>
@@ -252,9 +259,9 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
 
       <div data-testid="tabs-container">
         <div data-testid="tabs-nav" className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg items-center">
-          <TabButton label="Expected" isActive={activeTab === "expected"} onClick={() => setActiveTab("expected")} />
-          <TabButton label="Diff" isActive={activeTab === "diff"} onClick={() => setActiveTab("diff")} />
-          <TabButton label="Found" isActive={activeTab === "found"} onClick={() => setActiveTab("found")} />
+          <TabButton label={t("tab.expected")} isActive={activeTab === "expected"} onClick={() => setActiveTab("expected")} />
+          <TabButton label={t("tab.diff")} isActive={activeTab === "diff"} onClick={() => setActiveTab("diff")} />
+          <TabButton label={t("tab.found")} isActive={activeTab === "found"} onClick={() => setActiveTab("found")} />
           {activeTab === "diff" && hasDiff && <ModeToggle mode={diffMode} onModeChange={setDiffMode} />}
         </div>
       </div>
@@ -290,7 +297,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                 <span className="size-2">
                   <CheckIcon />
                 </span>
-                <span>Exact Match</span>
+                <span>{t("tab.exactMatchCaps")}</span>
               </div>
             ) : diffMode === "split" ? (
               // Split view mode
@@ -326,7 +333,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                               key={partKey}
                               data-diff-type="removed"
                               className="bg-red-200 dark:bg-red-800/50 text-red-800 dark:text-red-200 line-through"
-                              title="Expected but not found"
+                              title={t("diff.expectedNotFound")}
                             >
                               {part.value}
                             </span>
@@ -338,7 +345,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                               key={partKey}
                               data-diff-type="added"
                               className="bg-green-200 dark:bg-green-800/50 text-green-800 dark:text-green-200"
-                              title="Actually found in source"
+                              title={t("diff.actuallyFound")}
                             >
                               {part.value}
                             </span>
