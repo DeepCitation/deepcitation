@@ -80,6 +80,8 @@ export interface UploadFileResponse {
   error?: string;
   /** Optional expiration date for the attachment (ISO 8601 string). If "never", the attachment does not expire (enterprise). */
   expiresAt?: string | "never";
+  /** Signed download URL for the stored file. Expires after 7 days. */
+  downloadUrl?: string;
   /**
    * Cache information for URL-based requests.
    * Only present when the request was for a URL (not file upload).
@@ -418,4 +420,6 @@ export interface AttachmentResponse {
   urlSource?: UrlSourceInfo;
   /** Expiration date (ISO 8601 string), or "never" for enterprise attachments */
   expiresAt?: string | "never";
+  /** Signed download URL for the stored file. Expires after 7 days. */
+  downloadUrl?: string;
 }

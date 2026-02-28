@@ -69,7 +69,7 @@ src/
 │   ├── UrlCitationComponent.tsx
 │   ├── citationStatus.ts          # Status derivation, isPartialSearchStatus(), getTrustLevel()
 │   ├── citationVariants.cva.ts    # Variant class resolvers, status styles
-│   ├── constants.ts      # MISS_WAVY_UNDERLINE_STYLE, DOT_INDICATOR_*_STYLE, isValidProofImageSrc(), getPortalContainer()
+│   ├── constants.ts      # MISS_WAVY_UNDERLINE_STYLE, DOT_INDICATOR_*_STYLE, CARET_INDICATOR_SIZE_STYLE, CARET_PILL_STYLE, isValidProofImageSrc(), getPortalContainer()
 │   ├── expandedWidthPolicy.ts  # EXPANDED_POPOVER_MID_WIDTH, getExpandedPopoverWidth()
 │   ├── imageUtils.ts     # handleImageError() — shared image error handler
 │   ├── outcomeLabel.ts            # deriveOutcomeLabel() — shared outcome label logic
@@ -86,7 +86,11 @@ src/
 │   │   ├── useCitationData.ts       # Citation key, instance ID, status
 │   │   ├── useCitationEvents.ts     # Click/hover/keyboard event handlers
 │   │   ├── useExpandedPageSideOffset.ts # Expanded-page popover vertical offset
-│   │   └── useAnimationState.ts     # Enter/exit animation lifecycle
+│   │   ├── usePopoverAlignOffset.ts # Horizontal viewport clamping (replaces shift middleware)
+│   │   ├── useViewportBoundaryGuard.ts # Hard viewport boundary guard (Layer 3 safety net)
+│   │   ├── useAnimatedHeight.ts      # Imperative height animation for viewState transitions
+│   │   ├── useAnimationState.ts     # Enter/exit animation lifecycle
+│   │   └── useWheelZoom.ts          # Wheel/trackpad zoom with gesture anchor
 │   └── utils.ts          # generateCitationKey() — CANONICAL LOCATION
 ├── markdown/
 │   ├── renderMarkdown.ts
@@ -186,6 +190,9 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `MISS_WAVY_UNDERLINE_STYLE` | `src/react/constants.ts` | Wavy underline CSS |
 | `DOT_INDICATOR_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (inline, em-based) |
 | `DOT_INDICATOR_FIXED_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (drawers/wrappers, fixed px) |
+| `CARET_INDICATOR_SIZE_STYLE` | `src/react/constants.ts` | Caret indicator sizing (0.7em, between dot and icon) |
+| `CARET_PILL_STYLE` | `src/react/constants.ts` | Pill wrapper padding for caret indicator |
+| `ChevronDownIcon` | `src/react/icons.tsx` | Down chevron for caret indicator variant |
 | `HighlightedPhrase` | `src/react/HighlightedPhrase.tsx` | Shared fullPhrase highlight component |
 | `formatCaptureDate()` | `src/react/dateUtils.ts` | Date formatting for timestamps |
 | `extractDomain()`, `isDomainMatch()` | `src/utils/urlSafety.ts` | Safe domain matching (never use `url.includes()`) |
@@ -242,6 +249,8 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `acquireScrollLock()`, `releaseScrollLock()` | `src/react/scrollLock.ts` | Ref-counted body scroll lock (shared by popover + drawer) |
 | `useDrawerDragToClose()` | `src/react/hooks/useDrawerDragToClose.ts` | Drag-to-close gesture for bottom-sheet drawer |
 | `DRAWER_DRAG_CLOSE_THRESHOLD_PX` | `src/react/constants.ts` | Drag distance threshold for drawer close (80px) |
+| `HITBOX_EXTEND_8` | `src/react/constants.ts` | Invisible hit-box extender — uniform 8px |
+| `HITBOX_EXTEND_8x14` | `src/react/constants.ts` | Invisible hit-box extender — 8px horizontal, 14px vertical |
 | `usePopoverDismiss()` | `src/react/hooks/usePopoverDismiss.ts` | Platform-aware outside-click dismiss |
 | `usePopoverPosition()` | `src/react/hooks/usePopoverPosition.ts` | Expanded-page side offset calculation |
 | `useCitationTelemetry()` | `src/react/hooks/useCitationTelemetry.ts` | Popover timing + spinner staging |
@@ -249,7 +258,12 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `useCitationData()` | `src/react/hooks/useCitationData.ts` | Citation key, instance ID, status derivation |
 | `useCitationEvents()` | `src/react/hooks/useCitationEvents.ts` | Click/hover/keyboard event handlers |
 | `useExpandedPageSideOffset()` | `src/react/hooks/useExpandedPageSideOffset.ts` | Expanded-page popover vertical offset |
+| `usePopoverAlignOffset()` | `src/react/hooks/usePopoverAlignOffset.ts` | Horizontal viewport clamping (replaces shift middleware) |
+| `useViewportBoundaryGuard()` | `src/react/hooks/useViewportBoundaryGuard.ts` | Hard viewport boundary guard (Layer 3 safety net) |
+| `VIEWPORT_MARGIN_PX` | `src/react/constants.ts` | Viewport edge margin for popover positioning (16px) |
+| `useAnimatedHeight()` | `src/react/hooks/useAnimatedHeight.ts` | Imperative height animation for viewState transitions |
 | `useAnimationState()` | `src/react/hooks/useAnimationState.ts` | Enter/exit animation lifecycle |
+| `useWheelZoom()` | `src/react/hooks/useWheelZoom.ts` | Wheel/trackpad zoom with gesture anchor |
 | `EXPANDED_POPOVER_MID_WIDTH` | `src/react/expandedWidthPolicy.ts` | Mid-width fallback for expanded popover states |
 | `getExpandedPopoverWidth()` | `src/react/expandedWidthPolicy.ts` | Computes expanded popover width from image width |
 | `getInteractionClasses()` | `src/react/CitationContentDisplay.utils.ts` | Hover/active interaction classes for citation triggers |
@@ -332,23 +346,48 @@ You **can** humanize line IDs into relative positions for location mismatch cont
 `Page 3, Lines 12-15`                    // ❌ Raw line IDs
 ```
 
-## Important: Popover `avoidCollisions` Must Stay Enabled for Expanded States
+## Important: Popover `avoidCollisions` Must Always Be `false`
 
-**NEVER set `avoidCollisions={false}` unconditionally on `<PopoverContent>`.** This disables Radix's shift middleware, which keeps the popover within viewport bounds. Without it, expanded popovers (keyhole and full-page) overflow the viewport on narrow screens and the expanded-page view escapes the viewable area entirely.
+**`avoidCollisions` is unconditionally `false` on `<PopoverContent>`.** The locked side (`useLockedPopoverSide`) handles placement for the popover's entire lifecycle — picking a side once on open and never changing it. Radix's flip/shift middleware is fully disabled to prevent side-jumping during scroll or view-state transitions.
 
-### Root Cause (historical)
+### Design Principle
 
-The summary popover used to jump between top/bottom during scroll because Radix's flip middleware would reposition it. The fix was `avoidCollisions={false}` + a locked side (`useLockedPopoverSide`). But applying this unconditionally also disabled the **shift** middleware for expanded states, which need it because their width grows toward `calc(100dvw - 2rem)` — on narrow viewports, centering a wide popover on a right-aligned trigger pushes the left edge off-screen.
+Pick a side once, stick with it for the popover's entire lifecycle (matches Linear/Notion/Vercel behavior). Handle overflow with CSS constraints, not middleware-based repositioning.
+
+### Three-Layer Positioning Defense
+
+| Layer | Mechanism | Purpose |
+|-------|-----------|---------|
+| 1. Radix | `transform: translate3d(x,y,0)` | Primary positioning |
+| 2. Hooks | `sideOffset` + `alignOffset` props | Optimize common cases |
+| 3. Guard | CSS `translate` property (`useViewportBoundaryGuard`) | Hard safety net — catches everything |
+
+### How Overflow Is Handled Without Middleware
+
+- **Vertical**: `useLockedPopoverSide` picks top/bottom once on open. `useExpandedPageSideOffset` positions expanded-page at 1rem from viewport edge.
+- **Horizontal**: `usePopoverAlignOffset` measures the rendered popover width and computes an `alignOffset` that clamps the popover within 1rem of both viewport edges (replaces Radix's shift middleware). Uses ResizeObserver + window resize for reactive re-computation.
+- **Size**: CSS `maxWidth: calc(100dvw - 2rem)` / `maxHeight: calc(100dvh - 2rem)` constrains all states.
+- **Guard**: `useViewportBoundaryGuard` observes the popover's actual rendered rect and applies corrective CSS `translate` if any edge overflows. Uses CSS `translate` (separate from Radix's `transform`) so corrections compose additively. If Layers 1–2 got it right, the guard is a no-op.
 
 ### Correct Pattern
 
 ```tsx
 // CitationComponent.tsx — <PopoverContent> props
-avoidCollisions={popoverViewState !== "summary"}
+side={lockedSide}              // Same side for all view states
+sideOffset={expandedPageSideOffset}  // Positions expanded-page at viewport edge
+alignOffset={popoverAlignOffset}     // Horizontal viewport clamping
+avoidCollisions={false}        // No flip/shift middleware — hooks handle positioning
 ```
 
-- **Summary**: `false` — locked side handles placement, no shift/flip needed.
-- **Expanded-evidence / expanded-page**: `true` — shift middleware keeps the wider popover within viewport bounds.
+### Expanded-Page Side Offset
+
+The `useExpandedPageSideOffset` hook computes a `sideOffset` that positions the expanded-page popover at 1rem from the viewport edge, respecting the locked side:
+- **`side="bottom"`**: `sideOffset = 16 - triggerRect.bottom` — top edge at 1rem from viewport top
+- **`side="top"`**: `sideOffset = triggerRect.top - (viewportHeight - 16)` — bottom edge at 1rem from viewport bottom
+
+### Horizontal Align Offset
+
+The `usePopoverAlignOffset` hook computes an `alignOffset` that prevents horizontal viewport overflow. With `align="center"` (default), it calculates where the popover edges would be and shifts if either edge would be within 1rem of the viewport boundary. Uses `useLayoutEffect` so the correction is applied before paint — no flash.
 
 ### Related: `EXPANDED_POPOVER_HEIGHT` Must Not Use `--radix-popover-content-available-height`
 

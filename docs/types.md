@@ -280,7 +280,7 @@ interface BaseCitationProps {
    */
   sourceLabel?: string;
   /** Visual style for status indicators: "icon" (default) or "dot" (subtle colored dots) */
-  indicatorVariant?: "icon" | "dot";
+  indicatorVariant?: "icon" | "dot" | "caret" | "none";
 }
 ```
 
@@ -292,5 +292,5 @@ interface BaseCitationProps {
  * - "icon": Icon-based indicators (checkmark, spinner, X) — default
  * - "dot": Subtle colored dots (like GitHub status dots / shadcn badge dots)
  */
-type IndicatorVariant = "icon" | "dot";
+type IndicatorVariant = "icon" | "dot" | "caret" | "none";
 ```

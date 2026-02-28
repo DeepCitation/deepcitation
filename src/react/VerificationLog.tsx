@@ -5,6 +5,7 @@ import type { Verification } from "../types/verification.js";
 import {
   DOT_COLORS,
   FOCUS_RING_CLASSES,
+  HITBOX_EXTEND_8x14,
   TERTIARY_ACTION_BASE_CLASSES,
   TERTIARY_ACTION_HOVER_CLASSES,
   TERTIARY_ACTION_IDLE_CLASSES,
@@ -257,7 +258,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
           "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border cursor-pointer",
           "transition-colors bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40",
           FOCUS_RING_CLASSES,
-          "after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]",
+          HITBOX_EXTEND_8x14,
         )}
         aria-label={isImage ? "Close image view" : hasPage ? `Close page ${pageNumber} view` : "Close page view"}
         title="Close expanded view (Esc)"
@@ -293,7 +294,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
         TERTIARY_ACTION_IDLE_CLASSES,
         TERTIARY_ACTION_HOVER_CLASSES,
         "hover:bg-gray-200 dark:hover:bg-gray-700",
-        "after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]",
+        HITBOX_EXTEND_8x14,
         colorClasses,
       )}
       aria-label={isImage ? "View full image" : hasPage ? `Expand to full page ${pageNumber}` : "Expand to full page"}
@@ -386,12 +387,12 @@ export function SourceContextHeader({
         )}
       </div>
       {/* Right: Download + Proof link (expanded view) + Page pill */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {onSourceDownload && (
           <button
             type="button"
             aria-label="Download source"
-            className="shrink-0 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+            className="shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
             onClick={e => {
               e.stopPropagation();
               onSourceDownload(citation);
@@ -970,27 +971,21 @@ interface AuditSearchDisplayProps {
   verification?: Verification | null;
 }
 
-/** Single flat row for one search text with a status icon. */
+/** Single flat row for one search text with a left-border status indicator. */
 function SearchTextRow({ text, success }: { text: string; success: boolean }) {
   const isTruncated = (text ?? "").length > MAX_PHRASE_DISPLAY_LENGTH;
   return (
-    <div className="flex items-start gap-1.5 py-0.5">
-      <span
-        className={cn(
-          "size-3 max-w-3 max-h-3 mt-0.5 shrink-0",
-          success ? "text-green-600 dark:text-green-400" : "text-red-400 dark:text-red-500",
-        )}
-        role="img"
-        aria-label={success ? "Found" : "Not found"}
-      >
-        {success ? <CheckIcon /> : <XIcon />}
-      </span>
-      <span
-        className="text-xs font-mono text-gray-700 dark:text-gray-200 break-all"
-        title={isTruncated ? text : undefined}
-      >
-        {truncatePhrase(text)}
-      </span>
+    <div
+      className={cn(
+        "py-1 px-2 text-xs font-mono truncate border-l-2",
+        success
+          ? "border-green-400 dark:border-green-500 text-gray-700 dark:text-gray-200"
+          : "border-red-300 dark:border-red-500/60 text-gray-500 dark:text-gray-400",
+        "hover:bg-gray-100 dark:hover:bg-gray-700/40 hover:text-gray-800 dark:hover:text-gray-100 transition-colors",
+      )}
+      title={isTruncated ? text : undefined}
+    >
+      {text}
     </div>
   );
 }
@@ -1100,17 +1095,6 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
   // For not_found: flatten all unique texts (phrases + variations) into a single list
   const groups = summary?.queryGroups ?? [];
 
-  // Derive a single location summary from all groups (avoids per-row repetition)
-  const allPages = new Set(groups.flatMap(g => g.locations.pages));
-  const anyDocScan = groups.some(g => g.locations.includesDocScan);
-  const locationSummary = anyDocScan
-    ? "Searched full document"
-    : allPages.size === 1
-      ? `Searched page ${[...allPages][0]}`
-      : allPages.size > 1
-        ? `Searched pages ${[...allPages].sort((a, b) => a - b).join(", ")}`
-        : "";
-
   // Flatten: collect all unique texts (phrases + variations) as individual rows
   const flatTexts: Array<{ text: string; success: boolean }> = [];
   const seen = new Set<string>();
@@ -1128,13 +1112,10 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
   }
 
   return (
-    <div className="px-4 py-2 space-y-1.5 text-sm">
-      {locationSummary && <div className="text-[10px] text-gray-400 dark:text-gray-500">{locationSummary}</div>}
-      <div className="space-y-0">
-        {flatTexts.map(({ text, success }) => (
-          <SearchTextRow key={text} text={text} success={success} />
-        ))}
-      </div>
+    <div className="px-4 py-2 space-y-0 text-sm">
+      {flatTexts.map(({ text, success }) => (
+        <SearchTextRow key={text} text={text} success={success} />
+      ))}
     </div>
   );
 }
@@ -1185,7 +1166,7 @@ export function VerificationLogTimeline({
           onCollapse?.();
         }
       }}
-      className={cn(onCollapse && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors")}
+      className={cn(onCollapse && "cursor-pointer")}
     >
       <AuditSearchDisplay
         searchAttempts={searchAttempts}

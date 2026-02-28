@@ -318,10 +318,16 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     if (proofImage) escCtx?.onInlineExpand(citationKey, proofImage, verification, expandedImage?.renderScale);
   }, [proofImage, citationKey, verification, expandedImage, escCtx]);
 
-  // Opens InlineExpandedImage in the header panel with the evidence crop (keyhole click / onImageClick)
+  // Toggle keyhole expansion in-place (the image grows taller within the item)
+  const [keyholeExpanded, setKeyholeExpanded] = useState(false);
   const handleExpandEvidence = useCallback(() => {
-    if (evidenceSrc) escCtx?.onInlineExpand(citationKey, evidenceSrc, verification, undefined);
-  }, [evidenceSrc, citationKey, verification, escCtx]);
+    setKeyholeExpanded(prev => !prev);
+  }, []);
+
+  // Reset keyhole expansion when the accordion item collapses
+  useEffect(() => {
+    if (!isExpanded) setKeyholeExpanded(false);
+  }, [isExpanded]);
 
   return (
     <div
@@ -381,10 +387,8 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           <svg
             aria-hidden="true"
             className={cn(
-              "w-4 h-4 shrink-0 transition-transform duration-150",
-              isExpanded
-                ? "rotate-180 text-gray-500 dark:text-gray-400 ease-[cubic-bezier(0.22,0.68,0,1.05)]"
-                : "text-gray-400 dark:text-gray-500",
+              "w-4 h-4 shrink-0 transition-transform duration-150 ease-[cubic-bezier(0.65,0,0.35,1)]",
+              isExpanded ? "rotate-180 text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500",
             )}
             fill="none"
             viewBox="0 0 24 24"
@@ -425,6 +429,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               onImageClick={evidenceSrc ? handleExpandEvidence : undefined}
               onExpand={proofImage ? handleExpand : undefined}
               proofImageSrc={proofImage ?? undefined}
+              keyholeExpanded={keyholeExpanded}
             />
           </div>
         </div>
@@ -718,7 +723,7 @@ function IndicatorRow({
   citations: CitationDrawerItem[];
   activeKey: string | null;
   onToggle: (key: string) => void;
-  indicatorVariant: "icon" | "dot";
+  indicatorVariant: IndicatorVariant;
 }) {
   return (
     <div className="flex items-center gap-2 px-4 py-1.5 border-t border-gray-100 dark:border-gray-800">
@@ -766,9 +771,32 @@ function IndicatorRow({
  * />
  * ```
  */
+/** Duration of the drawer exit animation in ms. Matches the slide-out + fade-out. */
+const DRAWER_EXIT_DURATION_MS = 150;
+
 export function CitationDrawer({ isOpen, ...props }: CitationDrawerProps): React.ReactNode {
-  if (!isOpen) return null;
-  return <OpenCitationDrawer {...props} />;
+  // Keep the drawer mounted during exit animation. When isOpen transitions
+  // false→true we mount immediately; when true→false we set isClosing and
+  // delay unmount until the exit animation completes.
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isClosing, setIsClosing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      setIsClosing(false);
+    } else if (shouldRender) {
+      setIsClosing(true);
+      const timer = setTimeout(() => {
+        setShouldRender(false);
+        setIsClosing(false);
+      }, DRAWER_EXIT_DURATION_MS);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, shouldRender]);
+
+  if (!shouldRender) return null;
+  return <OpenCitationDrawer {...props} isClosing={isClosing} />;
 }
 
 function OpenCitationDrawer({
@@ -786,7 +814,8 @@ function OpenCitationDrawer({
   renderCitationItem,
   indicatorVariant = "icon",
   sourceLabelMap,
-}: Omit<CitationDrawerProps, "isOpen">): React.ReactNode {
+  isClosing = false,
+}: Omit<CitationDrawerProps, "isOpen"> & { isClosing?: boolean }): React.ReactNode {
   // Manual full-page state — set via drag-up gesture
   const [manualFullPage, setManualFullPage] = useState(false);
 
@@ -990,7 +1019,10 @@ function OpenCitationDrawer({
         // filter causes visible jank during the drawer slide-in animation (composited
         // layer promotion + GPU shader cost). The semi-transparent overlay alone provides
         // sufficient visual separation without the performance hit.
-        className="fixed inset-0 bg-black/20 animate-in fade-in-0 duration-200"
+        className={cn(
+          "fixed inset-0 bg-black/30",
+          isClosing ? "animate-out fade-out-0 duration-150" : "animate-in fade-in-0 duration-200",
+        )}
         style={{ zIndex: `var(${Z_INDEX_DRAWER_BACKDROP_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})` } as React.CSSProperties}
         onClick={onClose}
         aria-hidden="true"
@@ -1001,11 +1033,18 @@ function OpenCitationDrawer({
         ref={drawerRef}
         className={cn(
           "fixed bg-white dark:bg-gray-900 flex flex-col",
-          "animate-in duration-200",
+          isClosing ? "animate-out duration-150" : "animate-in duration-200",
           position === "bottom" &&
-            "inset-x-0 bottom-0 slide-in-from-bottom-4 transition-[max-height,border-radius] duration-200",
+            cn(
+              "inset-x-0 bottom-0 transition-[max-height,border-radius] duration-200",
+              isClosing ? "slide-out-to-bottom-4 fade-out-0" : "slide-in-from-bottom-4",
+            ),
           position === "bottom" && (isFullPage ? "max-h-[100dvh]" : "max-h-[80dvh] rounded-t-2xl"),
-          position === "right" && "inset-y-0 right-0 w-full max-w-md slide-in-from-right-4",
+          position === "right" &&
+            cn(
+              "inset-y-0 right-0 w-full max-w-md",
+              isClosing ? "slide-out-to-right-4 fade-out-0" : "slide-in-from-right-4",
+            ),
           className,
         )}
         style={
@@ -1015,7 +1054,9 @@ function OpenCitationDrawer({
             ...(dragDirection === "down" &&
               dragOffset > 0 && {
                 transform: `translateY(${dragOffset}px)`,
-                transition: isDragging ? "none" : `transform 150ms ${EASE_EXPAND}`,
+                // Snap-back uses settle easing (no overshoot) — the drawer should return
+                // to rest without bouncing past its origin position.
+                transition: isDragging ? "none" : `transform 150ms ${EASE_COLLAPSE}`,
               }),
             // Dragging up: grow the sheet taller (expand gesture) — no gap at bottom
             ...(dragDirection === "up" &&

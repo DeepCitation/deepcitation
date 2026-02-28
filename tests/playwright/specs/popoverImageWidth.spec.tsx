@@ -91,11 +91,11 @@ test.describe("Popover Image Keyhole Strip", () => {
     const strip = popover.locator("[data-dc-keyhole]");
     await expect(strip).toBeVisible();
 
-    // Strip should have a fixed height of 90px (default, set by KEYHOLE_STRIP_HEIGHT_DEFAULT)
+    // Strip should have a fixed height of 120px (default, set by KEYHOLE_STRIP_HEIGHT_DEFAULT)
     const stripHeight = await strip.evaluate(el =>
       parseFloat(window.getComputedStyle(el as HTMLElement).height)
     );
-    expect(stripHeight).toBe(90);
+    expect(stripHeight).toBe(120);
   });
 
   test("image renders at natural scale (not squashed)", async ({ mount, page }) => {
@@ -328,10 +328,13 @@ test.describe("Image Click to Expand", () => {
     const expandedView = popover.locator("[data-dc-inline-expanded]").filter({ visible: true });
     await expect(expandedView).toBeVisible({ timeout: 5000 });
 
-    // Press Escape to close
+    // First Escape collapses expanded-evidence back to summary
     await page.keyboard.press("Escape");
+    await expect(expandedView).not.toBeVisible();
+    await expect(popover).toBeVisible();
 
-    // Popover should be closed
+    // Second Escape closes the popover
+    await page.keyboard.press("Escape");
     await expect(popover).not.toBeVisible();
   });
 });

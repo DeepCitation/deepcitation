@@ -26,7 +26,7 @@ export {
 
 // React 19.2's Activity component is disabled — see DefaultPopoverContent.tsx
 // for the full explanation of the fiber effect linked-list corruption bug.
-const Activity = ({ children }: { mode: "visible" | "hidden"; children: ReactNode }) => <>{children}</>;
+const Activity = ({ children }: { children: ReactNode }) => <>{children}</>;
 
 interface PrefetchedPopoverImageProps {
   /** Whether the popover (and image) should be visible */
@@ -59,20 +59,13 @@ interface PrefetchedPopoverImageProps {
  * />
  * ```
  */
-export function PrefetchedPopoverImage({
-  isVisible,
-  src,
-  alt,
-  onClick,
-  className,
-  imageStyle,
-}: PrefetchedPopoverImageProps) {
+export function PrefetchedPopoverImage({ src, alt, onClick, className, imageStyle }: PrefetchedPopoverImageProps) {
   const isTouch = useIsTouchDevice();
   // The Activity component pre-renders children in "hidden" mode
   // When isVisible becomes true, it switches to "visible" mode instantly
   // The image is already rendered/decoded, so no flash occurs
   return (
-    <Activity mode={isVisible ? "visible" : "hidden"}>
+    <Activity>
       <div className={className}>
         <button
           type="button"

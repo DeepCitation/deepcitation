@@ -665,56 +665,56 @@ export function VisualShowcase() {
         </div>
       </ShowcaseSection>
 
-      {/* Section: showIndicator prop */}
+      {/* Section: indicatorVariant="none" */}
       <ShowcaseSection
-        title="showIndicator Prop"
-        description="Control whether the status indicator (checkmark, warning, spinner) is shown"
-        data-testid="show-indicator-section"
+        title='Indicator Variant "none"'
+        description='Use indicatorVariant="none" to hide the status indicator (checkmark, warning, spinner)'
+        data-testid="indicator-none-section"
       >
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <ShowcaseCard data-show-indicator="default">
+          <ShowcaseCard data-indicator-none="default">
             <ShowcaseLabel
               component="CitationComponent"
               variant="brackets"
-              state="showIndicator=true"
+              state='indicatorVariant="icon"'
               uxIntent="Default - shows verification status icon"
             />
             <div className="py-2">
               <CitationComponent citation={baseCitation} verification={verifiedVerification} variant="brackets" />
             </div>
           </ShowcaseCard>
-          <ShowcaseCard data-show-indicator="false">
+          <ShowcaseCard data-indicator-none="none">
             <ShowcaseLabel
               component="CitationComponent"
               variant="brackets"
-              state="showIndicator=false"
-              uxIntent="Hide indicator - cleaner look, status via popover only"
+              state='indicatorVariant="none"'
+              uxIntent="No indicator - cleaner look, status via popover only"
             />
             <div className="py-2">
               <CitationComponent
                 citation={baseCitation}
                 verification={verifiedVerification}
                 variant="brackets"
-                showIndicator={false}
+                indicatorVariant="none"
               />
             </div>
           </ShowcaseCard>
-          <ShowcaseCard data-show-indicator="chip-on">
+          <ShowcaseCard data-indicator-none="chip-icon">
             <ShowcaseLabel
               component="CitationComponent"
               variant="chip"
-              state="showIndicator=true"
+              state='indicatorVariant="icon"'
               uxIntent="Chip with indicator - prominent status display"
             />
             <div className="py-2">
               <CitationComponent citation={baseCitation} verification={verifiedVerification} variant="chip" />
             </div>
           </ShowcaseCard>
-          <ShowcaseCard data-show-indicator="chip-off">
+          <ShowcaseCard data-indicator-none="chip-none">
             <ShowcaseLabel
               component="CitationComponent"
               variant="chip"
-              state="showIndicator=false"
+              state='indicatorVariant="none"'
               uxIntent="Chip without indicator - badge-only appearance"
             />
             <div className="py-2">
@@ -722,10 +722,46 @@ export function VisualShowcase() {
                 citation={baseCitation}
                 verification={verifiedVerification}
                 variant="chip"
-                showIndicator={false}
+                indicatorVariant="none"
               />
             </div>
           </ShowcaseCard>
+        </div>
+      </ShowcaseSection>
+
+      {/* Section: Indicator Variants */}
+      <ShowcaseSection
+        title="Indicator Variants"
+        description="Different indicator styles: icon (default), dot, caret, none"
+        data-testid="indicator-variants-section"
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {(["icon", "dot", "caret", "none"] as const).map(iv => (
+            <ShowcaseCard key={iv} data-indicator-variant={iv}>
+              <ShowcaseLabel
+                component="CitationComponent"
+                variant="text"
+                state={`indicatorVariant="${iv}"`}
+                uxIntent={
+                  iv === "icon"
+                    ? "Default — checkmark/X/spinner icons"
+                    : iv === "dot"
+                      ? "Subtle colored dot (GitHub-style)"
+                      : iv === "caret"
+                        ? "Disclosure chevron (Gemini-style) — flips on open"
+                        : "No indicator rendered"
+                }
+              />
+              <div className="py-2">
+                <CitationComponent
+                  citation={baseCitation}
+                  verification={verifiedVerification}
+                  variant="text"
+                  indicatorVariant={iv}
+                />
+              </div>
+            </ShowcaseCard>
+          ))}
         </div>
       </ShowcaseSection>
 

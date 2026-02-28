@@ -20,30 +20,47 @@ import { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
 import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
 import {
   buildKeyholeMaskImage,
+  CONTENT_STAGGER_DELAY_MS,
+  EASE_COLLAPSE,
+  EASE_EXPAND,
   EVIDENCE_TRAY_BORDER_DASHED,
   EVIDENCE_TRAY_BORDER_SOLID,
   EXPANDED_IMAGE_SHELL_PX,
+  EXPANDED_MIN_READABLE_ZOOM,
   EXPANDED_ZOOM_MAX,
   EXPANDED_ZOOM_MIN,
   EXPANDED_ZOOM_STEP,
+  HITBOX_EXTEND_8x14,
   isValidProofImageSrc,
+  KEYHOLE_EXPANDED_HEIGHT,
   KEYHOLE_FADE_WIDTH,
   KEYHOLE_SKIP_THRESHOLD,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
   KEYHOLE_STRIP_HEIGHT_VAR,
+  KEYHOLE_WHEEL_ZOOM_SENSITIVITY,
+  KEYHOLE_WIDTH_FIT_THRESHOLD,
+  KEYHOLE_ZOOM_MAX,
+  KEYHOLE_ZOOM_MIN,
+  KEYHOLE_ZOOM_MIN_SIZE_RATIO,
+  MIN_PAN_OVERFLOW_PX,
   MISS_TRAY_THUMBNAIL_HEIGHT,
   TERTIARY_ACTION_BASE_CLASSES,
   TERTIARY_ACTION_HOVER_CLASSES,
   TERTIARY_ACTION_IDLE_CLASSES,
   WHEEL_ZOOM_SENSITIVITY,
+  ZOOM_HINT_DELAY_MS,
+  ZOOM_HINT_SESSION_KEY,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
+import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
+import { useWheelZoom } from "./hooks/useWheelZoom.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget } from "./overlayGeometry.js";
-import { buildIntentSummary } from "./searchSummaryUtils.js";
+import { buildIntentSummary, countUniqueSearchTexts } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
+import { VerificationLogTimeline } from "./VerificationLog.js";
 import { ZoomToolbar } from "./ZoomToolbar.js";
 
 // =============================================================================
@@ -97,8 +114,12 @@ export function normalizeScreenshotSrc(raw: string): string {
     return raw;
   }
 
-  // Validate base64 format (basic check - should only contain valid base64 chars + max 2 padding chars)
-  // This prevents injection of malicious strings that would bypass isValidProofImageSrc()
+  // Validate base64 format (basic check - should only contain valid base64 chars + max 2 padding chars).
+  // Only the first 100 chars are tested as a fast-path rejection: screenshot base64 strings
+  // can be megabytes, and obvious non-base64 payloads (e.g. "<script>", "javascript:") are
+  // caught within the first few characters. Security does NOT depend on this check alone —
+  // the constructed data URI is always validated by isValidProofImageSrc() downstream, which
+  // blocks SVG data URIs, javascript: schemes, and untrusted hosts.
   const BASE64_VALIDATION_PREFIX_LENGTH = 100;
   if (!/^[A-Za-z0-9+/]+(={0,2})?$/.test(raw.slice(0, BASE64_VALIDATION_PREFIX_LENGTH))) {
     throw new Error("normalizeScreenshotSrc: Invalid base64 format detected");
@@ -219,11 +240,18 @@ export function resolveExpandedImage(verification: Verification | null | undefin
  * When the highlight coordinates come from source PDF space, they need to be scaled
  * to the verification image pixel space using the ratio of image dimensions to page dimensions.
  */
-function resolveHighlightBox(verification: Verification): { x: number; width: number } | null {
+function resolveHighlightBox(
+  verification: Verification,
+): { x: number; y: number; width: number; height: number } | null {
   // 1. Prefer highlightBox from matching verification page (already in image coordinates)
   const matchPage = verification.pages?.find(p => p.isMatchPage);
   if (matchPage?.highlightBox) {
-    return { x: matchPage.highlightBox.x, width: matchPage.highlightBox.width };
+    return {
+      x: matchPage.highlightBox.x,
+      y: matchPage.highlightBox.y,
+      width: matchPage.highlightBox.width,
+      height: matchPage.highlightBox.height,
+    };
   }
 
   const imgDims = verification.document?.verificationImageDimensions;
@@ -231,18 +259,20 @@ function resolveHighlightBox(verification: Verification): { x: number; width: nu
   // Helper: scale a DeepTextItem from PDF space to image pixel space.
   // If the scaled result falls outside the image bounds, assumes coordinates
   // are already in image space and returns them unscaled.
-  const scaleItem = (item: { x: number; width: number }) => {
+  const scaleItem = (item: { x: number; y: number; width: number; height: number }) => {
     if (imgDims && matchPage?.dimensions && matchPage.dimensions.width > 0) {
-      const scale = imgDims.width / matchPage.dimensions.width;
-      const scaledX = item.x * scale;
-      const scaledWidth = item.width * scale;
+      const scaleX = imgDims.width / matchPage.dimensions.width;
+      const scaleY =
+        imgDims.height && matchPage.dimensions.height > 0 ? imgDims.height / matchPage.dimensions.height : scaleX;
+      const scaledX = item.x * scaleX;
+      const scaledWidth = item.width * scaleX;
       // Sanity check: if scaled coords are within image bounds, use them
       if (scaledX >= 0 && scaledX + scaledWidth <= imgDims.width * SCALING_TOLERANCE) {
-        return { x: scaledX, width: scaledWidth };
+        return { x: scaledX, y: item.y * scaleY, width: scaledWidth, height: item.height * scaleY };
       }
     }
     // Assume image coordinates if scaling is unavailable or produces out-of-bounds values
-    return { x: item.x, width: item.width };
+    return { x: item.x, y: item.y, width: item.width, height: item.height };
   };
 
   // 2. Anchor text match deep items (may be in PDF space, scale if we have dimensions)
@@ -261,6 +291,63 @@ const KEYHOLE_SCROLLBAR_HIDE: React.CSSProperties = {
   scrollbarWidth: "none", // Firefox
   msOverflowStyle: "none", // IE/Edge
 };
+
+/**
+ * "Scroll to zoom" hint badge — appears after a hover dwell, auto-dismisses
+ * after first wheel zoom event. Shows once per session via sessionStorage.
+ */
+function ZoomHint({
+  isHovering,
+  hasZoomed,
+  enabled = true,
+}: {
+  isHovering: boolean;
+  hasZoomed: boolean;
+  enabled?: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem(ZOOM_HINT_SESSION_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  // Show after hover dwell
+  useEffect(() => {
+    if (!enabled || dismissed || hasZoomed || !isHovering) {
+      setVisible(false);
+      return;
+    }
+    const timer = setTimeout(() => setVisible(true), ZOOM_HINT_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [enabled, isHovering, dismissed, hasZoomed]);
+
+  // Dismiss permanently on first zoom
+  useEffect(() => {
+    if (hasZoomed && !dismissed) {
+      setDismissed(true);
+      setVisible(false);
+      try {
+        sessionStorage.setItem(ZOOM_HINT_SESSION_KEY, "1");
+      } catch {
+        /* quota exceeded — harmless */
+      }
+    }
+  }, [hasZoomed, dismissed]);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="absolute bottom-2 right-2 text-[10px] text-white/90 bg-black/60 backdrop-blur-sm rounded-md px-1.5 py-0.5 pointer-events-none select-none animate-in fade-in-0 duration-150"
+    >
+      Scroll to zoom
+    </div>
+  );
+}
 
 // =============================================================================
 // ANCHOR TEXT FOCUSED IMAGE (Keyhole viewer)
@@ -281,22 +368,87 @@ const KEYHOLE_SCROLLBAR_HIDE: React.CSSProperties = {
 export function AnchorTextFocusedImage({
   verification,
   onImageClick,
+  onKeyholeWidth,
+  expanded = false,
 }: {
   verification: Verification;
   onImageClick?: () => void;
+  onKeyholeWidth?: (width: number) => void;
+  /** When true, the keyhole grows to KEYHOLE_EXPANDED_HEIGHT in-place. */
+  expanded?: boolean;
 }) {
   // Resolve highlight region from verification data
   const highlightBox = useMemo(() => resolveHighlightBox(verification), [verification]);
 
-  // Drag-to-pan hook for mouse interaction
-  const { containerRef, isDragging, handlers, scrollState, wasDraggingRef } = useDragToPan();
+  // Drag-to-pan hook for mouse interaction (xy enables vertical pan for width-fit tall images;
+  // when no vertical overflow exists, scrollTop stays 0 — no visible effect on normal crops).
+  const { containerRef, isDragging, handlers, scrollState, wasDraggingRef } = useDragToPan({ direction: "xy" });
 
   // Track image load to compute initial scroll position
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageFitInfo, setImageFitInfo] = useState<{ displayedWidth: number; imageFitsCompletely: boolean } | null>(
-    null,
-  );
+  const [imageFitInfo, setImageFitInfo] = useState<{
+    displayedWidth: number;
+    imageFitsCompletely: boolean;
+    isWidthFit?: boolean;
+  } | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+
+  // --- Keyhole zoom state ---
+  const [keyholeZoom, setKeyholeZoom] = useState(1.0);
+  const [hasZoomed, setHasZoomed] = useState(false);
+  // Whether the image is large enough relative to the container to benefit from wheel zoom.
+  // Computed once on image load — images must be ≥ 3× container in at least one axis.
+  const [zoomEligible, setZoomEligible] = useState(false);
+  const imageWrapperRef = useRef<HTMLDivElement>(null);
+  const keyholeZoomRef = useRef(keyholeZoom);
+  useEffect(() => {
+    keyholeZoomRef.current = keyholeZoom;
+  });
+
+  const clampKeyholeZoom = useCallback(
+    (z: number) => Math.max(KEYHOLE_ZOOM_MIN, Math.min(KEYHOLE_ZOOM_MAX, Math.round(z * 100) / 100)),
+    [],
+  );
+  const clampKeyholeZoomRaw = useCallback((z: number) => Math.max(KEYHOLE_ZOOM_MIN, Math.min(KEYHOLE_ZOOM_MAX, z)), []);
+
+  const { isHovering, gestureAnchorRef } = useWheelZoom({
+    enabled: imageLoaded && zoomEligible,
+    sensitivity: KEYHOLE_WHEEL_ZOOM_SENSITIVITY,
+    containerRef: containerRef as React.RefObject<HTMLElement | null>,
+    wrapperRef: imageWrapperRef,
+    zoom: keyholeZoom,
+    clampZoomRaw: clampKeyholeZoomRaw,
+    clampZoom: clampKeyholeZoom,
+    onZoomCommit: (z: number) => {
+      setKeyholeZoom(z);
+      if (!hasZoomed) setHasZoomed(true);
+    },
+  });
+
+  // Scroll correction after zoom commit — runs before paint so the
+  // anchor point stays visually stable when the image resizes.
+  // keyholeZoomRef still holds the OLD zoom during useLayoutEffect
+  // (useEffect hasn't updated it yet), giving us the ratio we need.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: gestureAnchorRef and containerRef are stable ref objects
+  useLayoutEffect(() => {
+    const wrapper = imageWrapperRef.current;
+    if (wrapper) wrapper.style.transform = "";
+
+    const anchor = gestureAnchorRef.current;
+    const el = containerRef.current;
+    if (!anchor || !el) {
+      gestureAnchorRef.current = null;
+      return;
+    }
+
+    const oldZoom = keyholeZoomRef.current;
+    if (oldZoom > 0) {
+      const ratio = keyholeZoom / oldZoom;
+      el.scrollLeft = (anchor.mx + anchor.sx) * ratio - anchor.mx;
+      el.scrollTop = (anchor.my + anchor.sy) * ratio - anchor.my;
+    }
+    gestureAnchorRef.current = null;
+  }, [keyholeZoom]);
 
   // Set initial scroll position after image loads.
   // useLayoutEffect guarantees refs are populated and runs before paint,
@@ -315,30 +467,62 @@ export function AnchorTextFocusedImage({
       img.naturalHeight > 0 ? img.naturalWidth * (stripHeight / img.naturalHeight) : img.naturalWidth;
     const containerWidth = container.clientWidth;
 
-    // Detect whether the image nearly fits within the keyhole (minimal cropping).
-    // Uses KEYHOLE_SKIP_THRESHOLD (1.5) so images up to 50% taller than the strip
-    // are treated as "fits" — expanding would reveal almost nothing new.
-    // displayedWidth <= containerWidth → image is narrow enough to show in full horizontally.
-    // When both are true, the keyhole already reveals nearly everything — expand adds no value.
-    if (displayedWidth > 0) {
-      const imageFitsCompletely =
-        img.naturalHeight > 0 &&
-        img.naturalHeight <= stripHeight * KEYHOLE_SKIP_THRESHOLD &&
-        displayedWidth <= containerWidth;
-      setImageFitInfo({ displayedWidth, imageFitsCompletely });
+    // Zoom eligibility: only enable wheel-to-zoom when the image is meaningfully
+    // larger than the container — at least 3× in either dimension. For small images,
+    // zooming is useless and hijacks normal scrolling.
+    const meetsZoomThreshold =
+      img.naturalWidth >= KEYHOLE_ZOOM_MIN_SIZE_RATIO * containerWidth ||
+      img.naturalHeight >= KEYHOLE_ZOOM_MIN_SIZE_RATIO * stripHeight;
+    setZoomEligible(meetsZoomThreshold);
+
+    // Width-fit mode: when the image at height-fit scale is too narrow to read
+    // (a tiny sliver for tall images like full-page screenshots), switch to
+    // width-fit mode — fill the container width and scroll vertically instead.
+    const isWidthFit = displayedWidth < containerWidth * KEYHOLE_WIDTH_FIT_THRESHOLD && img.naturalHeight > stripHeight;
+
+    if (isWidthFit) {
+      const effectiveWidth = Math.min(containerWidth, img.naturalWidth);
+      const effectiveHeight = img.naturalHeight * (effectiveWidth / img.naturalWidth);
+
+      setImageFitInfo({ displayedWidth: effectiveWidth, imageFitsCompletely: false, isWidthFit: true });
+      if (effectiveWidth > 0) onKeyholeWidth?.(effectiveWidth);
+
+      // Vertical centering: scroll to the highlight region or center of image
+      if (highlightBox) {
+        const displayScale = effectiveWidth / img.naturalWidth;
+        const highlightCenterY = highlightBox.y * displayScale + (highlightBox.height * displayScale) / 2;
+        container.scrollTop = Math.max(0, highlightCenterY - stripHeight / 2);
+      } else {
+        container.scrollTop = Math.max(0, (effectiveHeight - stripHeight) / 2);
+      }
+      container.scrollLeft = 0;
+    } else {
+      // Height-fit mode (default): detect whether the image nearly fits within the keyhole.
+      // Uses KEYHOLE_SKIP_THRESHOLD (1.5) so images up to 50% taller than the strip
+      // are treated as "fits" — expanding would reveal almost nothing new.
+      // displayedWidth <= containerWidth → image is narrow enough to show in full horizontally.
+      // When both are true, the keyhole already reveals nearly everything — expand adds no value.
+      if (displayedWidth > 0) {
+        const imageFitsCompletely =
+          img.naturalHeight > 0 &&
+          img.naturalHeight <= stripHeight * KEYHOLE_SKIP_THRESHOLD &&
+          displayedWidth <= containerWidth;
+        setImageFitInfo({ displayedWidth, imageFitsCompletely });
+        onKeyholeWidth?.(displayedWidth);
+      }
+
+      // Scale highlight box from image-natural coordinates to displayed coordinates.
+      // resolveHighlightBox() returns coords in the verificationImage's natural pixel
+      // space, but the scroll container operates in the displayed (strip-height-scaled)
+      // space. Without this, the centering algorithm sees the highlight as far off-screen.
+      const displayScale = img.naturalWidth > 0 ? displayedWidth / img.naturalWidth : 1;
+      const scaledHighlight = highlightBox
+        ? { x: highlightBox.x * displayScale, width: highlightBox.width * displayScale }
+        : null;
+
+      const { scrollLeft } = computeKeyholeOffset(displayedWidth, containerWidth, scaledHighlight);
+      container.scrollLeft = scrollLeft;
     }
-
-    // Scale highlight box from image-natural coordinates to displayed coordinates.
-    // resolveHighlightBox() returns coords in the verificationImage's natural pixel
-    // space, but the scroll container operates in the displayed (strip-height-scaled)
-    // space. Without this, the centering algorithm sees the highlight as far off-screen.
-    const displayScale = img.naturalWidth > 0 ? displayedWidth / img.naturalWidth : 1;
-    const scaledHighlight = highlightBox
-      ? { x: highlightBox.x * displayScale, width: highlightBox.width * displayScale }
-      : null;
-
-    const { scrollLeft } = computeKeyholeOffset(displayedWidth, containerWidth, scaledHighlight);
-    container.scrollLeft = scrollLeft;
 
     // Trigger scroll event so useDragToPan updates fade state for initial position
     container.dispatchEvent(new Event("scroll"));
@@ -364,7 +548,19 @@ export function AnchorTextFocusedImage({
   if (!imageSrc) return null;
 
   const stripHeightStyle = `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
-  const isPannable = scrollState.canScrollLeft || scrollState.canScrollRight;
+  const effectiveHeight = expanded ? `${KEYHOLE_EXPANDED_HEIGHT}px` : stripHeightStyle;
+  // Scale maxWidth proportionally when expanded so the image isn't clipped.
+  const expandRatio = expanded ? KEYHOLE_EXPANDED_HEIGHT / KEYHOLE_STRIP_HEIGHT_DEFAULT : 1;
+  const isWidthFit = imageFitInfo?.isWidthFit ?? false;
+  const isPannable =
+    scrollState.canScrollLeft || scrollState.canScrollRight || scrollState.canScrollUp || scrollState.canScrollDown;
+
+  // Suppress arrow buttons for negligible horizontal overflow (e.g. sub-pixel rounding).
+  // Fades (top/bottom gradients) are left as-is — they're passive visual hints, not clickable.
+  const totalOverflowX = scrollState.scrollWidth - scrollState.clientWidth;
+  const showLeftArrow = scrollState.canScrollLeft && totalOverflowX > MIN_PAN_OVERFLOW_PX;
+  const showRightArrow = scrollState.canScrollRight && totalOverflowX > MIN_PAN_OVERFLOW_PX;
+
   // When the image fits entirely in the keyhole, expanding would show nothing new — suppress affordances.
   const canExpand = !imageFitInfo?.imageFitsCompletely && !!onImageClick;
 
@@ -374,13 +570,31 @@ export function AnchorTextFocusedImage({
           maxWidth clamps to the image's rendered width so no blank space appears to the right. */}
       <div
         className="relative group/keyhole"
-        style={imageFitInfo ? { maxWidth: imageFitInfo.displayedWidth } : undefined}
+        style={
+          imageFitInfo && !isWidthFit
+            ? { maxWidth: imageFitInfo.displayedWidth * keyholeZoom * expandRatio }
+            : undefined
+        }
       >
         <button
           type="button"
           className="block relative w-full"
-          title={!canExpand && !isPannable && imageFitInfo?.imageFitsCompletely ? "Already full size" : undefined}
-          style={{ cursor: isDragging ? "grabbing" : canExpand ? "zoom-in" : isPannable ? "grab" : "default" }}
+          title={
+            !canExpand && !expanded && !isPannable && imageFitInfo?.imageFitsCompletely
+              ? "Already full size"
+              : undefined
+          }
+          style={{
+            cursor: isDragging
+              ? "grabbing"
+              : expanded
+                ? "zoom-out"
+                : canExpand
+                  ? "zoom-in"
+                  : isPannable
+                    ? "grab"
+                    : "default",
+          }}
           onKeyDown={e => {
             const el = containerRef.current;
             if (!el) return;
@@ -400,12 +614,15 @@ export function AnchorTextFocusedImage({
               wasDraggingRef.current = false;
               return;
             }
-            if (canExpand) {
+            if (canExpand || expanded) {
               onImageClick?.();
             }
           }}
           aria-label={
-            [isPannable && "Drag or click arrows to pan", canExpand && "click to view full size"]
+            [
+              isPannable && "Drag or click arrows to pan",
+              (canExpand || expanded) && (expanded ? "click to collapse" : "click to view full size"),
+            ]
               .filter(Boolean)
               .join(", ") || "Verification image"
           }
@@ -413,34 +630,59 @@ export function AnchorTextFocusedImage({
           <div
             ref={containerRef}
             data-dc-keyhole=""
-            className="overflow-x-auto overflow-y-hidden"
+            className={
+              isWidthFit || keyholeZoom > 1 || expanded ? "overflow-auto" : "overflow-x-auto overflow-y-hidden"
+            }
             style={{
-              height: stripHeightStyle,
+              height: effectiveHeight,
+              transition: `height 200ms ${expanded ? EASE_EXPAND : EASE_COLLAPSE}`,
+              // Fade mask only applies in height-fit mode (horizontal overflow).
+              // In width-fit mode, there's no horizontal overflow so mask is "none" automatically.
               WebkitMaskImage: maskImage,
               maskImage,
               ...KEYHOLE_SCROLLBAR_HIDE,
-              cursor: isDragging ? "grabbing" : canExpand ? "zoom-in" : isPannable ? "grab" : "default",
+              cursor: isDragging
+                ? "grabbing"
+                : expanded
+                  ? "zoom-out"
+                  : canExpand
+                    ? "zoom-in"
+                    : isPannable
+                      ? "grab"
+                      : "default",
+              // Hover ring affordance signals zoom interactivity
+              ...(isHovering && !isDragging
+                ? { boxShadow: "inset 0 0 0 2px rgba(96, 165, 250, 0.2)", borderRadius: "2px" }
+                : {}),
             }}
             {...handlers}
           >
             {/* Hide webkit scrollbar via inline style tag scoped to this container */}
             <style>{`[data-dc-keyhole]::-webkit-scrollbar { display: none; }`}</style>
-            <img
-              ref={imageRef}
-              src={imageSrc}
-              alt="Citation verification"
-              className="block h-full w-auto max-w-none select-none"
-              style={{ height: stripHeightStyle }}
-              loading="eager"
-              decoding="async"
-              draggable={false}
-              onLoad={() => setImageLoaded(true)}
-              onError={handleImageError}
-            />
+            <div ref={imageWrapperRef} style={{ display: "inline-block", position: "relative" }}>
+              <img
+                ref={imageRef}
+                src={imageSrc}
+                alt="Citation verification"
+                className={isWidthFit ? "block select-none" : "block w-auto max-w-none select-none"}
+                style={
+                  isWidthFit
+                    ? { width: imageFitInfo?.displayedWidth, height: "auto", maxWidth: "none" }
+                    : {
+                        height: keyholeZoom === 1 ? effectiveHeight : `calc(${effectiveHeight} * ${keyholeZoom})`,
+                      }
+                }
+                loading="eager"
+                decoding="async"
+                draggable={false}
+                onLoad={() => setImageLoaded(true)}
+                onError={handleImageError}
+              />
+            </div>
           </div>
 
           {/* Left pan hint — clicking pans the image left */}
-          {scrollState.canScrollLeft && (
+          {showLeftArrow && (
             <div
               aria-hidden="true"
               className="absolute left-0 top-0 h-full min-w-[44px] flex items-center justify-center opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 cursor-pointer"
@@ -458,7 +700,7 @@ export function AnchorTextFocusedImage({
           )}
 
           {/* Right pan hint — clicking pans the image right */}
-          {scrollState.canScrollRight && (
+          {showRightArrow && (
             <div
               aria-hidden="true"
               className="absolute right-0 top-0 h-full min-w-[44px] flex items-center justify-center opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 cursor-pointer"
@@ -474,6 +716,38 @@ export function AnchorTextFocusedImage({
               </span>
             </div>
           )}
+
+          {/* Top vertical fade — indicates scrollable content above */}
+          {scrollState.canScrollUp && (
+            <div
+              aria-hidden="true"
+              className="absolute top-0 left-0 w-full pointer-events-none"
+              style={{
+                height: KEYHOLE_FADE_WIDTH,
+                background: "linear-gradient(to bottom, rgba(0,0,0,0.12), transparent)",
+              }}
+            />
+          )}
+
+          {/* Bottom vertical fade — indicates scrollable content below */}
+          {scrollState.canScrollDown && (
+            <div
+              aria-hidden="true"
+              className="absolute bottom-0 left-0 w-full pointer-events-none"
+              style={{
+                height: KEYHOLE_FADE_WIDTH,
+                background: "linear-gradient(to top, rgba(0,0,0,0.12), transparent)",
+              }}
+            />
+          )}
+
+          {/* Zoom hint badge — shows once per session on hover dwell.
+              Only shown when the image has meaningful zoom range (> 2×). */}
+          <ZoomHint
+            isHovering={isHovering}
+            hasZoomed={hasZoomed}
+            enabled={zoomEligible && KEYHOLE_ZOOM_MAX / keyholeZoom > 2}
+          />
         </button>
       </div>
     </div>
@@ -486,23 +760,66 @@ export function AnchorTextFocusedImage({
 
 /**
  * Minimal footer for the evidence tray: date on the left, "View page ›" CTA on the right.
- * Unified across found/miss states — no outcome labels, search counts, or hint text.
+ * For miss states, an optional "› N searches" toggle sits between the date and CTA.
  */
 function EvidenceTrayFooter({
   verifiedAt,
   onPageClick,
+  searchCount,
+  isSearchLogOpen,
+  onToggleSearchLog,
+  locationLabel,
 }: {
   verifiedAt?: Date | string | null;
   /** When provided, renders a "View page" CTA button */
   onPageClick?: () => void;
+  /** Number of unique search texts (toggle hidden when 0 or absent) */
+  searchCount?: number;
+  /** Whether the search log is currently expanded */
+  isSearchLogOpen?: boolean;
+  /** Toggle callback — when provided and searchCount > 0, renders the toggle */
+  onToggleSearchLog?: () => void;
+  /** Location label to append after search count (e.g. "page 1", "full document") */
+  locationLabel?: string;
 }) {
   const formatted = formatCaptureDate(verifiedAt);
   const dateStr = formatted?.display ?? "";
+  const showToggle = onToggleSearchLog && searchCount != null && searchCount > 0;
 
   return (
-    <div className="px-3 py-1.5 text-[11px] text-gray-400 dark:text-gray-500">
-      <div className="flex items-center justify-between">
-        {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
+    <div className="px-3 py-2 min-h-[44px] flex items-center text-[11px] text-gray-400 dark:text-gray-500">
+      <div className="flex items-center justify-between w-full">
+        <span className="flex items-center gap-1">
+          {showToggle && (
+            <button
+              type="button"
+              className={cn(
+                "relative flex items-center gap-0.5 text-[11px] font-medium cursor-pointer",
+                TERTIARY_ACTION_BASE_CLASSES,
+                TERTIARY_ACTION_IDLE_CLASSES,
+                TERTIARY_ACTION_HOVER_CLASSES,
+                HITBOX_EXTEND_8x14,
+              )}
+              onClick={e => {
+                e.stopPropagation();
+                onToggleSearchLog();
+              }}
+            >
+              <span
+                className="size-3 shrink-0 transition-transform duration-150"
+                style={isSearchLogOpen ? { transform: "rotate(90deg)" } : undefined}
+              >
+                <ChevronRightIcon />
+              </span>
+              <span>
+                {searchCount} search{searchCount === 1 ? "" : "es"}
+                {locationLabel && <> · {locationLabel}</>}
+              </span>
+            </button>
+          )}
+          {showToggle && dateStr && <span aria-hidden="true">·</span>}
+          {dateStr && <span title={formatted?.tooltip ?? dateStr}>{dateStr}</span>}
+        </span>
         {onPageClick && (
           <button
             type="button"
@@ -610,20 +927,41 @@ export function EvidenceTray({
   onExpand,
   onImageClick,
   proofImageSrc,
+  onKeyholeWidth,
+  keyholeExpanded = false,
 }: {
   verification: Verification | null;
   status: CitationStatus;
   onExpand?: () => void;
   onImageClick?: () => void;
   proofImageSrc?: string;
+  onKeyholeWidth?: (width: number) => void;
+  /** When true, the keyhole image is expanded in-place. */
+  keyholeExpanded?: boolean;
 }) {
   const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
   const isMiss = status.isMiss;
   const searchAttempts = verification?.searchAttempts ?? [];
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   // Tray-level click: keyhole click if available, else page expansion
   const trayAction = onImageClick ?? onExpand;
+
+  // Search log toggle state (miss states only)
+  const [showSearchLog, setShowSearchLog] = useState(false);
+  const searchCount = useMemo(() => (isMiss ? countUniqueSearchTexts(searchAttempts) : 0), [isMiss, searchAttempts]);
+
+  // Footer element — shared across top/bottom placement
+  const footerEl = (
+    <EvidenceTrayFooter
+      verifiedAt={verification?.verifiedAt}
+      onPageClick={onExpand}
+      searchCount={isMiss ? searchCount : undefined}
+      isSearchLogOpen={showSearchLog}
+      onToggleSearchLog={isMiss ? () => setShowSearchLog(prev => !prev) : undefined}
+    />
+  );
 
   // Shared inner content
   const content = (
@@ -631,7 +969,13 @@ export function EvidenceTray({
       {/* Content: image or search analysis.
           Keys prevent React from reusing fibers across component-type swaps. */}
       {hasImage && verification ? (
-        <AnchorTextFocusedImage key="keyhole" verification={verification} onImageClick={onImageClick} />
+        <AnchorTextFocusedImage
+          key="keyhole"
+          verification={verification}
+          onImageClick={onImageClick}
+          onKeyholeWidth={onKeyholeWidth}
+          expanded={keyholeExpanded}
+        />
       ) : isMiss && (searchAttempts.length > 0 || isValidProofImageSrc(proofImageSrc)) ? (
         <div key="miss-analysis">
           {isValidProofImageSrc(proofImageSrc) && (
@@ -647,16 +991,43 @@ export function EvidenceTray({
           {searchAttempts.length > 0 && (
             <SearchAnalysisSummary searchAttempts={searchAttempts} verification={verification} />
           )}
+          {footerEl}
+          {searchAttempts.length > 0 && (
+            <div
+              className="grid transition-[grid-template-rows]"
+              style={{
+                gridTemplateRows: showSearchLog ? "1fr" : "0fr",
+                ...(prefersReducedMotion
+                  ? { transitionDuration: "0ms" }
+                  : {
+                      transitionDuration: showSearchLog ? "200ms" : "120ms",
+                      transitionTimingFunction: showSearchLog ? EASE_EXPAND : EASE_COLLAPSE,
+                    }),
+              }}
+            >
+              <div className="overflow-hidden" style={{ minHeight: 0 }}>
+                <div className="border-t border-gray-200 dark:border-gray-700">
+                  <VerificationLogTimeline
+                    searchAttempts={searchAttempts}
+                    fullPhrase={verification?.citation?.fullPhrase ?? verification?.verifiedFullPhrase ?? undefined}
+                    anchorText={verification?.citation?.anchorText ?? verification?.verifiedAnchorText ?? undefined}
+                    status="not_found"
+                    onCollapse={() => setShowSearchLog(false)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : null}
 
-      {/* Footer: date + "View page" CTA */}
-      <EvidenceTrayFooter verifiedAt={verification?.verifiedAt} onPageClick={onExpand} />
+      {/* Footer — placed after the miss block for non-miss states */}
+      {!isMiss && footerEl}
     </>
   );
 
   return (
-    <div className="m-3">
+    <div className="mx-3 mb-3">
       {trayAction ? (
         /* Interactive: clickable with hover CTA */
         <div
@@ -712,6 +1083,7 @@ function applyGestureTransform(
   committedZoom: number,
   anchor: { mx: number; my: number; sx: number; sy: number },
 ): void {
+  if (committedZoom === 0) return;
   const s = gestureZoom / committedZoom;
   const cx = anchor.mx + anchor.sx;
   const cy = anchor.my + anchor.sy;
@@ -761,6 +1133,7 @@ export function InlineExpandedImage({
    */
   showOverlay?: boolean;
 }) {
+  const prefersReducedMotion = usePrefersReducedMotion();
   const { containerRef, isDragging, handlers: panHandlers, wasDraggingRef } = useDragToPan({ direction: "xy" });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [naturalWidth, setNaturalWidth] = useState<number | null>(null);
@@ -814,11 +1187,10 @@ export function InlineExpandedImage({
   // committed to React state → width reflow → transform removed in one paint frame.
   // ---------------------------------------------------------------------------
   const imageWrapperRef = useRef<HTMLDivElement>(null);
-  // Active gesture zoom level (null = no gesture in progress).
-  const gestureZoomRef = useRef<number | null>(null);
-  // Anchor point for the gesture: viewport-relative position within container + scroll offsets.
-  // Used by applyGestureTransform during gesture and by useLayoutEffect for scroll correction on commit.
-  const gestureAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
+  // Touch pinch gesture zoom (separate from wheel zoom hook).
+  const touchGestureZoomRef = useRef<number | null>(null);
+  // Touch pinch anchor — used by applyGestureTransform and useLayoutEffect for scroll correction.
+  const touchGestureAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
 
   // Effective annotation items: override props take precedence, then verification.document, then null.
   const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
@@ -863,8 +1235,9 @@ export function InlineExpandedImage({
     hasManualZoomRef.current = false;
     hasAutoScrolledToAnnotationRef.current = false;
     lastReportedSizeRef.current = null;
-    gestureZoomRef.current = null;
-    gestureAnchorRef.current = null;
+    touchGestureZoomRef.current = null;
+    touchGestureAnchorRef.current = null;
+    expandedWheelAnchorRef.current = null;
   }, [src]);
 
   // ---------------------------------------------------------------------------
@@ -895,14 +1268,19 @@ export function InlineExpandedImage({
     // Uses viewportWidth state (tracked via resize listener) so the effect re-runs on resize.
     const maxImageWidth = viewportWidth > 0 ? viewportWidth - 32 - EXPANDED_IMAGE_SHELL_PX : containerSize.width;
     const fitZoomW = maxImageWidth / naturalWidth;
-    // Width-only zoom: fill the popover horizontally; tall images scroll vertically
-    // inside the overflow-auto container (same pattern as keyhole's horizontal scroll).
+    // fitZoom = the zoom that fits the page width to the container (minimum usable zoom).
     const fitZoom = Math.min(1, Math.max(0.1, fitZoomW));
+    // readableZoom = initial zoom clamped to a readable minimum (65%).
+    // On narrow viewports where fitZoomW < 0.65, this starts zoomed in for legibility
+    // with horizontal panning (already handled by overflow:auto + useDragToPan xy).
+    const readableZoom = Math.min(1, Math.max(EXPANDED_MIN_READABLE_ZOOM, fitZoomW));
     if (!hasManualZoomRef.current) {
-      setZoom(prevZoom => (Math.abs(prevZoom - fitZoom) < 0.005 ? prevZoom : fitZoom));
+      setZoom(prevZoom => (Math.abs(prevZoom - readableZoom) < 0.005 ? prevZoom : readableZoom));
     }
+    // zoomFloor uses fitZoom (not readableZoom) so the user can still zoom OUT
+    // to fit-to-screen via the slider, below the readable minimum.
     setZoomFloor(Math.min(EXPANDED_ZOOM_MIN, fitZoom));
-    const effectiveZoom = hasManualZoomRef.current ? zoomRef.current : fitZoom;
+    const effectiveZoom = hasManualZoomRef.current ? zoomRef.current : readableZoom;
     // Report zoomed dimensions so the popover sizes to the displayed image,
     // not the natural pixel width (which could be e.g. 1700px for a PDF page).
     const reportedW = Math.round(naturalWidth * effectiveZoom);
@@ -1036,84 +1414,23 @@ export function InlineExpandedImage({
   }, [fill]);
 
   // ---------------------------------------------------------------------------
-  // GPU-accelerated Ctrl+wheel zoom.
-  // During gesture: applies CSS transform: scale() to the wrapper div (GPU-composited,
-  // zero layout reflow). Anchor is captured once on first event and stays fixed to
-  // prevent "image walking" when the cursor drifts during trackpad pinch.
-  // On gesture end (150ms debounce): commits final zoom to React state → width reflow
-  // → transform removed in one paint frame via useLayoutEffect.
+  // GPU-accelerated Ctrl+wheel zoom (expanded page requires Ctrl — bare scroll pans).
+  // Uses useWheelZoom hook: CSS transform during gesture, commits on 150ms debounce.
   // ---------------------------------------------------------------------------
-  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef/imageWrapperRef are stable ref objects — their identity never changes
-  useEffect(() => {
-    if (!fill) return;
-    const el = containerRef.current;
-    if (!el) return;
-    let commitTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-
-      const wrapper = imageWrapperRef.current;
-      if (!wrapper) return;
-
-      const delta = -e.deltaY * WHEEL_ZOOM_SENSITIVITY;
-
-      // First event of gesture: initialize from committed zoom and capture anchor
-      if (gestureZoomRef.current === null) {
-        gestureZoomRef.current = zoomRef.current;
-        const rect = el.getBoundingClientRect();
-        gestureAnchorRef.current = {
-          mx: e.clientX - rect.left,
-          my: e.clientY - rect.top,
-          sx: el.scrollLeft,
-          sy: el.scrollTop,
-        };
-        wrapper.style.willChange = "transform";
-        wrapper.style.transformOrigin = "0 0";
-      }
-
-      // Accumulate delta — raw clamp (no rounding) for continuous GPU scaling
-      gestureZoomRef.current = clampZoomRaw(gestureZoomRef.current + delta);
-
-      // Apply transform directly to DOM — no React render
-      if (gestureAnchorRef.current) {
-        applyGestureTransform(wrapper, gestureZoomRef.current, zoomRef.current, gestureAnchorRef.current);
-      }
-
-      // Debounce commit: after 150ms of no events, flush to React state
-      if (commitTimeoutId !== null) clearTimeout(commitTimeoutId);
-      commitTimeoutId = setTimeout(() => {
-        commitTimeoutId = null;
-        const finalZoom = gestureZoomRef.current;
-        if (finalZoom === null) return;
-        gestureZoomRef.current = null;
-        hasManualZoomRef.current = true;
-        setZoom(clampZoom(finalZoom));
-        wrapper.style.willChange = "";
-      }, 150);
-    };
-
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-      if (commitTimeoutId !== null) {
-        clearTimeout(commitTimeoutId);
-        // Cleanup with pending gesture: commit immediately
-        const finalZoom = gestureZoomRef.current;
-        if (finalZoom !== null) {
-          gestureZoomRef.current = null;
-          hasManualZoomRef.current = true;
-          setZoom(clampZoom(finalZoom));
-        }
-        const wrapper = imageWrapperRef.current;
-        if (wrapper) {
-          wrapper.style.transform = "";
-          wrapper.style.willChange = "";
-        }
-      }
-    };
-  }, [fill, clampZoom, clampZoomRaw]);
+  const { gestureAnchorRef: expandedWheelAnchorRef } = useWheelZoom({
+    enabled: fill && imageLoaded,
+    sensitivity: WHEEL_ZOOM_SENSITIVITY,
+    containerRef: containerRef as React.RefObject<HTMLElement | null>,
+    wrapperRef: imageWrapperRef,
+    zoom,
+    clampZoomRaw,
+    clampZoom,
+    onZoomCommit: (z: number) => {
+      hasManualZoomRef.current = true;
+      setZoom(z);
+    },
+    requireCtrl: true,
+  });
 
   // ---------------------------------------------------------------------------
   // GPU-accelerated touch pinch-to-zoom (two-finger gesture).
@@ -1170,12 +1487,12 @@ export function InlineExpandedImage({
       const newZoom = clampZoomRaw(initialZoom * scale);
 
       // Update gesture state
-      gestureZoomRef.current = newZoom;
+      touchGestureZoomRef.current = newZoom;
 
       // Update anchor to current midpoint + scroll (follows fingers)
       const mid = getTouchMidpoint(e.touches);
       const rect = el.getBoundingClientRect();
-      gestureAnchorRef.current = {
+      touchGestureAnchorRef.current = {
         mx: mid.x - rect.left,
         my: mid.y - rect.top,
         sx: el.scrollLeft,
@@ -1183,15 +1500,15 @@ export function InlineExpandedImage({
       };
 
       // Apply transform directly to DOM — zero React renders during gesture
-      applyGestureTransform(wrapper, newZoom, zoomRef.current, gestureAnchorRef.current);
+      applyGestureTransform(wrapper, newZoom, zoomRef.current, touchGestureAnchorRef.current);
     };
 
     const onTouchEnd = () => {
       initialDistance = null;
       const wrapper = imageWrapperRef.current;
-      const finalZoom = gestureZoomRef.current;
+      const finalZoom = touchGestureZoomRef.current;
       if (finalZoom !== null) {
-        gestureZoomRef.current = null;
+        touchGestureZoomRef.current = null;
         hasManualZoomRef.current = true;
         setZoom(clampZoom(finalZoom));
       }
@@ -1208,6 +1525,9 @@ export function InlineExpandedImage({
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
+      // Clear gesture refs so a remount doesn't read stale anchor data.
+      touchGestureZoomRef.current = null;
+      touchGestureAnchorRef.current = null;
     };
   }, [fill, clampZoom, clampZoomRaw]);
 
@@ -1218,16 +1538,18 @@ export function InlineExpandedImage({
   // 2. Compute scroll correction from the gesture anchor
   // Both happen in the same paint frame — no visual flash.
   // ---------------------------------------------------------------------------
-  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef/imageWrapperRef are stable ref objects — their identity never changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef/imageWrapperRef/expandedWheelAnchorRef are stable ref objects — their identity never changes
   useLayoutEffect(() => {
     const wrapper = imageWrapperRef.current;
     // Always clear any residual transform when zoom commits
     if (wrapper) wrapper.style.transform = "";
 
-    const anchor = gestureAnchorRef.current;
+    // Pick whichever gesture anchor is active (touch pinch or wheel zoom hook)
+    const anchor = touchGestureAnchorRef.current ?? expandedWheelAnchorRef.current;
     const el = containerRef.current;
     if (!anchor || !el) {
-      gestureAnchorRef.current = null;
+      touchGestureAnchorRef.current = null;
+      expandedWheelAnchorRef.current = null;
       return;
     }
 
@@ -1239,7 +1561,8 @@ export function InlineExpandedImage({
       el.scrollLeft = (anchor.mx + anchor.sx) * ratio - anchor.mx;
       el.scrollTop = (anchor.my + anchor.sy) * ratio - anchor.my;
     }
-    gestureAnchorRef.current = null;
+    touchGestureAnchorRef.current = null;
+    expandedWheelAnchorRef.current = null;
   }, [zoom]);
 
   // Compute effective image width for zoom
@@ -1282,7 +1605,11 @@ export function InlineExpandedImage({
   return (
     <div
       ref={outerRef}
-      className={cn("relative mx-3 mb-3 animate-in fade-in-0 duration-150", fill && "flex-1 min-h-0 flex flex-col")}
+      className={cn(
+        "relative mx-3 mb-3",
+        !fill && "animate-in fade-in-0 duration-150",
+        fill && "flex-1 min-h-0 flex flex-col",
+      )}
       style={
         fill
           ? undefined // fill mode: container fills popover width, image scrolls inside
@@ -1340,13 +1667,21 @@ export function InlineExpandedImage({
             key={src}
             className={cn(
               "animate-in fade-in-0",
-              fill && annotationOrigin ? "zoom-in-95 duration-[180ms]" : "zoom-in-[0.97] duration-150",
+              fill && annotationOrigin
+                ? "zoom-in-95 duration-[180ms]"
+                : fill
+                  ? "zoom-in-[0.97] duration-150"
+                  : "duration-150",
+              fill && "fill-mode-backwards",
             )}
-            style={
-              annotationOrigin
+            style={{
+              ...(annotationOrigin
                 ? { transformOrigin: `${annotationOrigin.xPercent}% ${annotationOrigin.yPercent}%` }
-                : undefined
-            }
+                : undefined),
+              ...(fill && !prefersReducedMotion
+                ? { animationDelay: `${CONTENT_STAGGER_DELAY_MS}ms`, animationTimingFunction: EASE_EXPAND }
+                : undefined),
+            }}
           >
             {!imageLoaded && (
               <div className="flex items-center justify-center h-24">

@@ -10,6 +10,7 @@ import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as React from "react";
 import {
   EXPANDED_POPOVER_HEIGHT,
+  GUARD_MAX_WIDTH_VAR,
   POPOVER_WIDTH_DEFAULT,
   POPOVER_WIDTH_VAR,
   Z_INDEX_BACKDROP_DEFAULT,
@@ -38,8 +39,10 @@ const PopoverContent = React.forwardRef<
         {
           zIndex: `var(${Z_INDEX_POPOVER_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})`,
           // Max width respects the CSS custom property (--dc-popover-width) and caps to viewport.
-          // This must match the inner content width to prevent horizontal scrollbar.
-          maxWidth: `min(var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT}), calc(100dvw - 2rem))`,
+          // var(--dc-guard-max-width) is set by useViewportBoundaryGuard using
+          // document.documentElement.clientWidth (visible viewport excluding scrollbar).
+          // Falls back to calc(100dvw - 2rem) for SSR or before the guard runs.
+          maxWidth: `min(var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT}), var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem)))`,
           // Fixed to calc(100dvh - 2rem). Intentionally not using Radix's
           // --radix-popover-content-available-height — that var caused the popover to
           // resize as the trigger scrolled out of view.
@@ -54,16 +57,18 @@ const PopoverContent = React.forwardRef<
         "w-fit",
         "overflow-y-auto overflow-x-hidden",
         "border-gray-200 dark:border-gray-700 dark:bg-gray-900",
-        // Animations — asymmetric timing: 200ms entry (deliberate arrival), 100ms exit (snappy dismiss).
-        // Entry uses zoom-in-[0.96] for a visible but subtle scale-up; exit uses zoom-out-[0.97] with no directional slide.
+        // Animations — asymmetric timing: 200ms entry (deliberate arrival), 80ms exit (snappy dismiss).
+        // Entry uses zoom-in-[0.96] with Vercel-style fast-settle easing; exit uses zoom-out-[0.97]
+        // with no directional slide. Slide reduced to 0.5 (2px) to avoid competing with zoom motion.
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=open]:zoom-in-[0.96] data-[state=closed]:zoom-out-[0.97]",
-        "data-[state=open]:data-[side=bottom]:slide-in-from-top-1.5",
-        "data-[state=open]:data-[side=left]:slide-in-from-right-1.5",
-        "data-[state=open]:data-[side=right]:slide-in-from-left-1.5",
-        "data-[state=open]:data-[side=top]:slide-in-from-bottom-1.5",
-        "data-[state=open]:duration-200 data-[state=closed]:duration-100",
+        "data-[state=open]:data-[side=bottom]:slide-in-from-top-0.5",
+        "data-[state=open]:data-[side=left]:slide-in-from-right-0.5",
+        "data-[state=open]:data-[side=right]:slide-in-from-left-0.5",
+        "data-[state=open]:data-[side=top]:slide-in-from-bottom-0.5",
+        "data-[state=open]:duration-200 data-[state=closed]:duration-[80ms]",
+        "data-[state=open]:ease-[cubic-bezier(0.16,1,0.3,1)]",
         className,
       )}
       {...props}

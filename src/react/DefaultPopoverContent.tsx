@@ -17,14 +17,15 @@ import {
   EASE_COLLAPSE,
   EASE_EXPAND,
   isValidProofImageSrc,
+  KEYHOLE_STRIP_HEIGHT_DEFAULT,
   POPOVER_CONTAINER_BASE_CLASSES,
   POPOVER_MORPH_COLLAPSE_MS,
   POPOVER_MORPH_EXPAND_MS,
-  POPOVER_WIDTH,
 } from "./constants.js";
 import { EvidenceTray, InlineExpandedImage, normalizeScreenshotSrc, resolveExpandedImage } from "./EvidenceTray.js";
-import { getExpandedPopoverWidth } from "./expandedWidthPolicy.js";
+import { getExpandedPopoverWidth, getSummaryPopoverWidth } from "./expandedWidthPolicy.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
+import { useAnimatedHeight } from "./hooks/useAnimatedHeight.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { SpinnerIcon } from "./icons.js";
 import { buildIntentSummary, type MatchSnippet } from "./searchSummaryUtils.js";
@@ -47,7 +48,7 @@ import { SourceContextHeader, StatusHeader } from "./VerificationLog.js";
 // Using a Fragment pass-through preserves identical render output without the
 // unstable Activity lifecycle. Image prefetching is handled imperatively
 // via `new Image().src` in the useEffect below.
-const Activity = ({ children }: { mode: "visible" | "hidden"; children: ReactNode }) => <>{children}</>;
+const Activity = ({ children }: { children: ReactNode }) => <>{children}</>;
 
 // =============================================================================
 // TYPES
@@ -224,32 +225,48 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
 // =============================================================================
 
 /**
- * Animated popover container with width morphing between summary and expanded states.
- * Shared by both the success and partial/miss three-zone layouts.
+ * Popover container that snaps to target layout between summary and expanded states.
+ *
+ * Previous versions used CSS `transition: width` to morph between states, but this
+ * causes visible content reflow on every animation frame — text re-wraps, images
+ * rescale through non-integer sizes, and flex layouts redistribute space. The
+ * intermediate frames are never visually coherent for a content-heavy container.
+ *
+ * The industry standard (Linear, Notion, Vercel) is to snap content-heavy containers
+ * to their target layout and rely on component-level transitions (image onLoad,
+ * spinner staging, stagger delays) for visual orchestration.
  */
 function PopoverLayoutShell({
-  isVisible,
   isExpanded,
   isFullPage,
   expandedNaturalWidth,
-  morphTransition,
+  summaryWidth,
   children,
 }: {
-  isVisible: boolean;
   isExpanded: boolean;
   isFullPage: boolean;
   expandedNaturalWidth: number | null;
-  morphTransition: string;
+  summaryWidth: string;
   children: ReactNode;
 }) {
+  // Both expanded-evidence and expanded-page size to the image once its width is known,
+  // via getExpandedPopoverWidth() → max(320px, min(imageW + 32px, 100dvw - 2rem)).
+  // Before the image reports its width: expanded-page falls back to full viewport so
+  // width and height snap in the same frame; expanded-evidence stays at summaryWidth
+  // to avoid a jarring jump to the mid-width fallback.
+  const shellWidth =
+    (isFullPage || isExpanded) && expandedNaturalWidth !== null
+      ? getExpandedPopoverWidth(expandedNaturalWidth)
+      : isFullPage
+        ? "calc(100dvw - 2rem)"
+        : summaryWidth;
   return (
-    <Activity mode={isVisible ? "visible" : "hidden"}>
+    <Activity>
       <div
         className={cn(POPOVER_CONTAINER_BASE_CLASSES, "animate-in fade-in-0 duration-150")}
         style={{
-          width: isExpanded ? getExpandedPopoverWidth(expandedNaturalWidth) : POPOVER_WIDTH,
+          width: shellWidth,
           maxWidth: "100%",
-          transition: morphTransition,
           ...(isFullPage && {
             display: "flex",
             flexDirection: "column" as const,
@@ -282,11 +299,55 @@ function ClaimQuote({
   return (
     <div
       className={cn(
-        "mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-gray-50 dark:bg-gray-800/50 border-l-[3px]",
+        "mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-gray-50 dark:bg-gray-800/50 border-l-[3px] max-w-prose",
         borderColor,
       )}
     >
       <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
+    </div>
+  );
+}
+
+/**
+ * Wrapper that smoothly animates the height of its children when viewState changes.
+ *
+ * When the popover width snaps (e.g. summary → expanded), text inside ClaimQuote
+ * rewraps instantly, changing its height. This wrapper intercepts the height change
+ * using useLayoutEffect (before paint) and animates it with CSS transitions.
+ *
+ * Renders as a Fragment (no wrapper divs) when the user prefers reduced motion.
+ */
+function AnimatedHeightWrapper({ viewState, children }: { viewState: PopoverViewState; children: ReactNode }) {
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useAnimatedHeight(
+    wrapperRef,
+    contentRef,
+    viewState,
+    POPOVER_MORPH_EXPAND_MS,
+    POPOVER_MORPH_COLLAPSE_MS,
+    EASE_EXPAND,
+    EASE_COLLAPSE,
+  );
+
+  if (prefersReducedMotion) return <>{children}</>;
+
+  return (
+    <div
+      ref={wrapperRef}
+      onTransitionEnd={e => {
+        if (e.propertyName === "height") {
+          e.currentTarget.style.height = "";
+          e.currentTarget.style.overflow = "";
+          e.currentTarget.style.transition = "";
+        }
+      }}
+    >
+      <div ref={contentRef} style={{ display: "flow-root" }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -318,9 +379,23 @@ function EvidenceZone({
   verification: Verification | null;
   summaryContent: ReactNode;
 }) {
+  // Track previous view state to detect re-entry transitions.
+  // When returning to summary from an expanded state, we apply a brief fade-in
+  // so the swap doesn't feel like the UI "snaps" backward.
+  const prevViewStateRef = useRef(viewState);
+  const isReenteringSummary = viewState === "summary" && prevViewStateRef.current !== "summary";
+  useEffect(() => {
+    prevViewStateRef.current = viewState;
+  });
+
   return (
     <>
-      <div style={viewState !== "summary" ? { display: "none" } : undefined}>{summaryContent}</div>
+      <div
+        style={viewState !== "summary" ? { display: "none" } : undefined}
+        className={isReenteringSummary ? "animate-in fade-in-0 duration-100" : undefined}
+      >
+        {summaryContent}
+      </div>
       {evidenceSrc && (
         <div style={viewState !== "expanded-evidence" ? { display: "none" } : undefined}>
           <InlineExpandedImage
@@ -522,6 +597,16 @@ export function DefaultPopoverContent({
   // the evidence view constraints (≤480px wide, ≤600px tall) — expanding adds no value.
   const canExpandToPage = !!expandedImage;
 
+  // Content-adaptive summary width: pre-seed from verification dimensions to avoid
+  // a width flash, then confirm/correct when the keyhole image actually renders.
+  const [keyholeDisplayedWidth, setKeyholeDisplayedWidth] = useState<number | null>(() => {
+    const dims = verification?.document?.verificationImageDimensions;
+    if (!dims || dims.height <= 0) return null;
+    return dims.width * (KEYHOLE_STRIP_HEIGHT_DEFAULT / dims.height);
+  });
+
+  const summaryWidth = useMemo(() => getSummaryPopoverWidth(keyholeDisplayedWidth), [keyholeDisplayedWidth]);
+
   // Track the natural width of the currently displayed expanded image.
   // Pre-set from known dimensions when entering an expanded state; confirmed by
   // InlineExpandedImage onLoad. Used to clamp the inner container width so the
@@ -572,16 +657,10 @@ export function DefaultPopoverContent({
     [setWidth],
   );
 
-  // Skip morph animations when the user prefers reduced motion (OS accessibility setting).
-  const prefersReducedMotion = usePrefersReducedMotion();
-
-  /** Build the morph transition string, respecting prefers-reduced-motion. */
-  const morphTransition = (isExpanded: boolean): string => {
-    if (prefersReducedMotion) return "none";
-    return isExpanded
-      ? `width ${POPOVER_MORPH_EXPAND_MS}ms ${EASE_EXPAND}, height ${POPOVER_MORPH_EXPAND_MS}ms ${EASE_EXPAND}`
-      : `width ${POPOVER_MORPH_COLLAPSE_MS}ms ${EASE_COLLAPSE}, height ${POPOVER_MORPH_COLLAPSE_MS}ms ${EASE_COLLAPSE}`;
-  };
+  // Note: morphTransition was removed. CSS width morphing on content-heavy
+  // containers causes visible reflow (text re-wrapping, image rescaling) on every
+  // animation frame. Layout now snaps to target; component-level transitions
+  // (image onLoad, stagger delays) handle visual orchestration.
 
   // Tracks which state we entered expanded-page from, so onCollapse can return there.
   // "expanded-evidence" → expanded-page → back: returns to expanded-evidence (no InlineExpandedImage remount, no animation).
@@ -591,15 +670,18 @@ export function DefaultPopoverContent({
   const localPrevBeforeExpandedPageRef = useRef<"summary" | "expanded-evidence">("summary");
   const prevBeforeExpandedPageRef = propPrevBeforeExpandedPageRef ?? localPrevBeforeExpandedPageRef;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: prevBeforeExpandedPageRef is a stable ref identity — including it causes a React Compiler bailout (value modification after hook)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: prevBeforeExpandedPageRef and cachedPageWidthRef are stable ref identities — including them causes a React Compiler bailout (value modification after hook)
   const handleExpand = useCallback(() => {
     if (!canExpandToPage) return;
     // Only record origin state when first entering expanded-page (not on redundant calls)
     if (viewState !== "expanded-page") {
       prevBeforeExpandedPageRef.current = viewState === "expanded-evidence" ? "expanded-evidence" : "summary";
     }
+    // Pre-set width from cached dimensions so React batches it with viewState change —
+    // PopoverLayoutShell gets the correct width on the first frame.
+    if (cachedPageWidthRef.current !== null) setWidth(cachedPageWidthRef.current);
     onViewStateChange?.("expanded-page");
-  }, [canExpandToPage, onViewStateChange, viewState]);
+  }, [canExpandToPage, onViewStateChange, viewState, setWidth]);
 
   // Resolve the evidence image src once at this level (used by handleKeyholeClick and Zone 3).
   const evidenceSrc = useMemo(() => {
@@ -628,14 +710,17 @@ export function DefaultPopoverContent({
   }, [isVisible, evidenceSrc, expandedImage?.src]);
 
   // Toggles the keyhole image expansion in Zone 3. Clicking when already expanded collapses.
+  // Pre-sets width before viewState change so React batches both into one render —
+  // PopoverLayoutShell gets the correct width on the first frame, no mid-width flash.
   const handleKeyholeClick = useCallback(() => {
     if (viewState === "expanded-evidence") {
       onViewStateChange?.("summary");
       return;
     }
     if (!evidenceSrc) return;
+    if (verificationWidth) setWidth(verificationWidth);
     onViewStateChange?.("expanded-evidence");
-  }, [viewState, evidenceSrc, onViewStateChange]);
+  }, [viewState, evidenceSrc, onViewStateChange, verificationWidth, setWidth]);
 
   // Get page info (document citations only)
   const expectedPage = !isUrlCitation(citation) ? citation.pageNumber : undefined;
@@ -692,11 +777,10 @@ export function DefaultPopoverContent({
       isFullPage && verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
     return (
       <PopoverLayoutShell
-        isVisible={isVisible}
         isExpanded={isExpanded}
         isFullPage={isFullPage}
         expandedNaturalWidth={expandedNaturalWidth}
-        morphTransition={morphTransition(isExpanded)}
+        summaryWidth={summaryWidth}
       >
         {/* Zone 1: Metadata Header */}
         <SourceContextHeader
@@ -718,14 +802,16 @@ export function DefaultPopoverContent({
           anchorText={anchorText}
           indicatorVariant={indicatorVariant}
         />
-        {fullPhrase && (
-          <ClaimQuote
-            fullPhrase={fullPhrase}
-            anchorText={anchorText}
-            isMiss={isMiss}
-            borderColor="border-green-500 dark:border-green-600"
-          />
-        )}
+        <AnimatedHeightWrapper viewState={viewState}>
+          {fullPhrase && (
+            <ClaimQuote
+              fullPhrase={fullPhrase}
+              anchorText={anchorText}
+              isMiss={isMiss}
+              borderColor="border-green-500 dark:border-green-600"
+            />
+          )}
+        </AnimatedHeightWrapper>
         {/* Zone 3: Evidence */}
         <EvidenceZone
           viewState={viewState}
@@ -741,6 +827,7 @@ export function DefaultPopoverContent({
               status={status}
               onExpand={canExpandToPage ? handleExpand : undefined}
               onImageClick={handleKeyholeClick}
+              onKeyholeWidth={setKeyholeDisplayedWidth}
             />
           }
         />
@@ -766,6 +853,7 @@ export function DefaultPopoverContent({
           onExpand={canExpandToPage ? handleExpand : undefined}
           onImageClick={handleKeyholeClick}
           proofImageSrc={expandedImage?.src}
+          onKeyholeWidth={setKeyholeDisplayedWidth}
         />
       ) : isMiss && (verification?.searchAttempts?.length || canExpandToPage) && verification ? (
         <EvidenceTray
@@ -773,16 +861,16 @@ export function DefaultPopoverContent({
           status={status}
           onExpand={canExpandToPage ? handleExpand : undefined}
           proofImageSrc={expandedImage?.src}
+          onKeyholeWidth={setKeyholeDisplayedWidth}
         />
       ) : null;
 
     return (
       <PopoverLayoutShell
-        isVisible={isVisible}
         isExpanded={isExpanded}
         isFullPage={isFullPage}
         expandedNaturalWidth={expandedNaturalWidth}
-        morphTransition={morphTransition(isExpanded)}
+        summaryWidth={summaryWidth}
       >
         {/* Zone 1: Metadata Header */}
         <SourceContextHeader
@@ -815,12 +903,14 @@ export function DefaultPopoverContent({
           </div>
         )}
         {fullPhrase && (
-          <ClaimQuote
-            fullPhrase={fullPhrase}
-            anchorText={anchorText}
-            isMiss={isMiss}
-            borderColor={isMiss ? "border-red-500 dark:border-red-400" : "border-amber-500 dark:border-amber-400"}
-          />
+          <AnimatedHeightWrapper viewState={viewState}>
+            <ClaimQuote
+              fullPhrase={fullPhrase}
+              anchorText={anchorText}
+              isMiss={isMiss}
+              borderColor={isMiss ? "border-red-500 dark:border-red-400" : "border-amber-500 dark:border-amber-400"}
+            />
+          </AnimatedHeightWrapper>
         )}
         {/* Zone 3: Evidence */}
         <EvidenceZone

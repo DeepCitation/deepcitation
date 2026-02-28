@@ -9,6 +9,8 @@ export interface ScrollState {
   clientWidth: number;
   canScrollLeft: boolean;
   canScrollRight: boolean;
+  canScrollUp: boolean;
+  canScrollDown: boolean;
 }
 
 const INITIAL_SCROLL_STATE: ScrollState = {
@@ -17,6 +19,8 @@ const INITIAL_SCROLL_STATE: ScrollState = {
   clientWidth: 0,
   canScrollLeft: false,
   canScrollRight: false,
+  canScrollUp: false,
+  canScrollDown: false,
 };
 
 /** Minimum drag distance (px) before a mousedown+mouseup is treated as a drag rather than a click. */
@@ -26,13 +30,15 @@ const DRAG_THRESHOLD = 5;
 // Momentum / inertia constants (local — not exported)
 // ---------------------------------------------------------------------------
 /** Number of recent move samples for velocity estimation. */
-const VELOCITY_SAMPLE_COUNT = 4;
+const VELOCITY_SAMPLE_COUNT = 5;
 /** Minimum velocity (px/ms) to trigger momentum coast after release. */
-const VELOCITY_THRESHOLD = 0.15;
-/** Per-frame deceleration multiplier (~1s coast at 60fps, matching iOS normal). */
-const DECELERATION = 0.95;
+const VELOCITY_THRESHOLD = 0.08;
+/** Per-frame deceleration multiplier (~0.3s coast at 60fps — TikTok flick-and-stop). */
+const DECELERATION = 0.88;
 /** Velocity cutoff (px/frame) below which momentum stops. */
-const VELOCITY_CUTOFF = 0.5;
+const VELOCITY_CUTOFF = 0.3;
+/** Initial velocity boost — amplifies the "launch" before deceleration kicks in. */
+const VELOCITY_BOOST = 2.0;
 
 interface MoveSample {
   x: number;
@@ -96,13 +102,15 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
   const updateScrollState = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const { scrollLeft, scrollWidth, clientWidth, scrollTop, scrollHeight, clientHeight } = el;
     setScrollState({
       scrollLeft,
       scrollWidth,
       clientWidth,
       canScrollLeft: scrollLeft > 2,
       canScrollRight: scrollLeft + clientWidth < scrollWidth - 2,
+      canScrollUp: scrollTop > 2,
+      canScrollDown: scrollTop + clientHeight < scrollHeight - 2,
     });
   }, []);
 
@@ -222,20 +230,31 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
 
         if (speed > VELOCITY_THRESHOLD) {
           // Convert px/ms to px/frame (~16.67ms per frame at 60fps)
-          let frameVx = vx * 16.67;
-          let frameVy = vy * 16.67;
+          // Velocity boost amplifies the initial "launch" for a flick-to-settle feel.
+          let frameVx = vx * VELOCITY_BOOST * 16.67;
+          let frameVy = vy * VELOCITY_BOOST * 16.67;
+          let lastFrameTime = performance.now();
 
           const coast = () => {
             const el = containerRef.current;
             if (!el) return;
+
+            // Frame-rate independent deceleration: on 120Hz displays each frame
+            // is ~8.3ms instead of ~16.7ms, so we compute the decay factor from
+            // actual elapsed time to produce identical coast duration regardless
+            // of refresh rate.
+            const now = performance.now();
+            const dt = now - lastFrameTime;
+            lastFrameTime = now;
+            const factor = DECELERATION ** (dt / 16.67);
 
             el.scrollLeft += frameVx;
             if (direction === "xy") {
               el.scrollTop += frameVy;
             }
 
-            frameVx *= DECELERATION;
-            frameVy *= DECELERATION;
+            frameVx *= factor;
+            frameVy *= factor;
 
             if (Math.abs(frameVx) > VELOCITY_CUTOFF || Math.abs(frameVy) > VELOCITY_CUTOFF) {
               momentumRafRef.current = requestAnimationFrame(coast);

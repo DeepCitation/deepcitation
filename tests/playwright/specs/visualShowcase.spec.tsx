@@ -44,15 +44,15 @@ test.describe("Visual Showcase - Desktop", () => {
     }
   });
 
-  test("showIndicator prop section renders correctly", async ({ mount, page }) => {
+  test("indicator variant none section renders correctly", async ({ mount, page }) => {
     await mount(<VisualShowcase />);
 
-    const section = page.locator('[data-testid="show-indicator-section"]');
+    const section = page.locator('[data-testid="indicator-none-section"]');
     await expect(section).toBeVisible();
 
-    // Check both on and off states
-    for (const indicator of ["default", "false", "chip-on", "chip-off"]) {
-      const indicatorSection = page.locator(`[data-show-indicator="${indicator}"]`);
+    // Check both icon and none states
+    for (const indicator of ["default", "none", "chip-icon", "chip-none"]) {
+      const indicatorSection = page.locator(`[data-indicator-none="${indicator}"]`);
       await expect(indicatorSection).toBeVisible();
     }
   });

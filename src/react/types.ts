@@ -20,13 +20,14 @@ export type CitationInteractionMode = "eager" | "lazy";
 /**
  * Indicator style variant for verification status display.
  *
- * | Variant | Description                                    |
- * |---------|------------------------------------------------|
+ * | Variant   | Description                                    |
+ * |-----------|------------------------------------------------|
  * | `"icon"`  | Icon-based indicators: checkmark, spinner, X (default) |
  * | `"dot"`   | Subtle colored dot (like GitHub status dots / shadcn badge dots) |
+ * | `"caret"` | Disclosure chevron (˅/˄) — flips when popover opens. No status coloring. |
  * | `"none"`  | No status indicator rendered                   |
  */
-export type IndicatorVariant = "icon" | "dot" | "none";
+export type IndicatorVariant = "icon" | "dot" | "caret" | "none";
 
 /**
  * Visual style variants for citations.

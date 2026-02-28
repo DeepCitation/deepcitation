@@ -13,13 +13,20 @@ import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import type { CitationStatusIndicatorProps, SpinnerStage } from "./CitationStatusIndicator.js";
 import { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
-import { isValidProofImageSrc, SPINNER_TIMEOUT_MS, TAP_SLOP_PX, TOUCH_CLICK_DEBOUNCE_MS } from "./constants.js";
+import {
+  GUARD_MAX_WIDTH_VAR,
+  isValidProofImageSrc,
+  SPINNER_TIMEOUT_MS,
+  TAP_SLOP_PX,
+  TOUCH_CLICK_DEBOUNCE_MS,
+} from "./constants.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
 import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
-import { getExpandedPopoverWidth } from "./expandedWidthPolicy.js";
 import { useExpandedPageSideOffset } from "./hooks/useExpandedPageSideOffset.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
+import { usePopoverAlignOffset } from "./hooks/usePopoverAlignOffset.js";
+import { useViewportBoundaryGuard } from "./hooks/useViewportBoundaryGuard.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
@@ -36,6 +43,7 @@ import type {
   CitationVariant,
   IndicatorVariant,
 } from "./types.js";
+import { safeWindowOpen } from "./urlUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey } from "./utils.js";
 
 // Re-export types for convenience
@@ -170,14 +178,17 @@ export interface CitationComponentProps extends BaseCitationProps {
    */
   faviconUrl?: string;
   /**
-   * Whether to show the status indicator (checkmark, warning, spinner).
-   * Defaults to true. Set to false to hide the indicator.
+   * @deprecated Use `indicatorVariant="none"` instead. Setting `showIndicator={false}`
+   * is equivalent to `indicatorVariant="none"`. This prop will be removed in the next
+   * major version.
    */
   showIndicator?: boolean;
   /**
    * Visual style for status indicators.
    * - `"icon"`: Checkmarks, spinner, X icons (default)
    * - `"dot"`: Subtle colored dots (like GitHub status dots / shadcn badge dots)
+   * - `"caret"`: Disclosure chevron that flips when popover opens
+   * - `"none"`: Hidden — no indicator rendered
    * @default "icon"
    */
   indicatorVariant?: IndicatorVariant;
@@ -202,6 +213,12 @@ export interface CitationComponentProps extends BaseCitationProps {
    * ```
    */
   onSourceDownload?: (citation: Citation) => void;
+  /**
+   * Signed download URL for the source file. When provided (and `onSourceDownload`
+   * is not set), the popover download button will open this URL in a new tab.
+   * `onSourceDownload` takes precedence when both are provided.
+   */
+  downloadUrl?: string;
 }
 
 // getStatusLabel, getTrustLevel, isLowTrustMatch, getStatusFromVerification
@@ -273,7 +290,6 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   viewState,
   onViewStateChange,
   expandedImageSrcOverride,
-  onExpandedWidthChange,
   prevBeforeExpandedPageRef,
   onSourceDownload,
 }: {
@@ -288,7 +304,6 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   viewState: PopoverViewState;
   onViewStateChange: (viewState: PopoverViewState) => void;
   expandedImageSrcOverride: string | null;
-  onExpandedWidthChange: (width: number | null) => void;
   prevBeforeExpandedPageRef: React.RefObject<"summary" | "expanded-evidence">;
   onSourceDownload?: (citation: Citation) => void;
 }) {
@@ -313,7 +328,6 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
         viewState={viewState}
         onViewStateChange={onViewStateChange}
         expandedImageSrcOverride={expandedImageSrcOverride}
-        onExpandedWidthChange={onExpandedWidthChange}
         prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
         onSourceDownload={onSourceDownload}
       />
@@ -361,11 +375,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       renderPopoverContent,
       additionalCount,
       faviconUrl,
-      showIndicator = true,
-      indicatorVariant = "icon",
+      showIndicator: _showIndicator, // Deprecated — mapped to indicatorVariant below
+      indicatorVariant: indicatorVariantProp = "icon",
       sourceLabel,
       onTimingEvent,
       onSourceDownload,
+      downloadUrl,
     },
     ref,
   ) => {
@@ -378,6 +393,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             "The component now always uses click-to-show-popover behavior.",
         );
       }
+      if (_showIndicator !== undefined && !deprecationWarned.has("showIndicator")) {
+        deprecationWarned.add("showIndicator");
+        console.warn(
+          "CitationComponent: showIndicator prop is deprecated and will be removed in the next major version. " +
+            'Use indicatorVariant="none" to hide indicators.',
+        );
+      }
       if (eventHandlers?.onClick && behaviorConfig?.onClick && !deprecationWarned.has("eventHandlers.onClick")) {
         deprecationWarned.add("eventHandlers.onClick");
         console.warn(
@@ -386,6 +408,19 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         );
       }
     }
+
+    // Compat: showIndicator={false} → indicatorVariant="none"
+    const indicatorVariant: IndicatorVariant =
+      _showIndicator === false && indicatorVariantProp === "icon" ? "none" : indicatorVariantProp;
+
+    // Resolve effective download handler: explicit callback wins, else open downloadUrl
+    const effectiveOnSourceDownload = useMemo(() => {
+      if (onSourceDownload) return onSourceDownload;
+      if (downloadUrl) {
+        return () => safeWindowOpen(downloadUrl);
+      }
+      return undefined;
+    }, [onSourceDownload, downloadUrl]);
 
     // Get overlay context for blocking hover when any image overlay is open
     const { isAnyOverlayOpen } = useCitationOverlay();
@@ -403,9 +438,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const [popoverViewState, setPopoverViewState] = useState<PopoverViewState>("summary");
     // Custom image src from behaviorConfig.onClick returning setImageExpanded: "<url>"
     const [customExpandedSrc, setCustomExpandedSrc] = useState<string | null>(null);
-    // Natural width of the expanded image (propagated from DefaultPopoverContent).
-    // Used to size PopoverContent so floating-ui can position it correctly.
-    const [expandedImageWidth, setExpandedImageWidth] = useState<number | null>(null);
     // Tracks which state preceded expanded-page so Escape can navigate back correctly.
     // Lifted here (from DefaultPopoverContent) so onEscapeKeyDown on <PopoverContent> can read it.
     const prevBeforeExpandedPageRef = useRef<"summary" | "expanded-evidence">("summary");
@@ -425,7 +457,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       setIsHovering(false);
       setPopoverViewState("summary");
       setCustomExpandedSrc(null);
-      setExpandedImageWidth(null);
     }, []);
 
     // Track if popover was already open before current interaction (for mobile/lazy mode).
@@ -485,13 +516,19 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       [ref],
     );
 
-    // Isolated into a separate hook so the React Compiler can optimize CitationComponent
-    // (setState in useLayoutEffect causes a compiler bailout for the entire component).
-    const expandedPageSideOffset = useExpandedPageSideOffset(popoverViewState, triggerRef);
-
     // Lock the popover side (top/bottom) on open so scroll doesn't cause Radix's
     // flip middleware to jump the popover between sides. Also isolated for compiler.
     const lockedSide = useLockedPopoverSide(isHovering, popoverPosition === "top" ? "top" : "bottom", triggerRef);
+
+    // Isolated into separate hooks so the React Compiler can optimize CitationComponent
+    // (setState in useLayoutEffect causes a compiler bailout for the entire component).
+    const expandedPageSideOffset = useExpandedPageSideOffset(popoverViewState, triggerRef, lockedSide);
+    const popoverAlignOffset = usePopoverAlignOffset(isHovering, popoverViewState, triggerRef, popoverContentRef);
+
+    // Layer 3: hard viewport boundary guard. Observes the popover's actual
+    // rendered rect and applies corrective CSS `translate` if any edge overflows.
+    // If Layers 1–2 got it right, the guard is a no-op.
+    useViewportBoundaryGuard(isHovering, popoverViewState, popoverContentRef);
 
     const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
@@ -1004,13 +1041,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const indicatorProps: CitationStatusIndicatorProps = {
       renderIndicator,
       status,
-      showIndicator,
       indicatorVariant,
       shouldShowSpinner,
       isVerified,
       isPartialMatch,
       isMiss,
       spinnerStage,
+      isOpen: isHovering,
+      popoverSide: lockedSide,
     };
 
     // Build the citation content element using the extracted module-level components
@@ -1028,7 +1066,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         isPartialMatch={isPartialMatch}
         isMiss={isMiss}
         shouldShowSpinner={shouldShowSpinner}
-        showIndicator={showIndicator}
         faviconUrl={faviconUrl}
         additionalCount={additionalCount}
         indicatorProps={indicatorProps}
@@ -1072,7 +1109,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       className: cn(
         "relative inline-flex items-baseline",
         "px-0.5 -mx-0.5 rounded-sm",
-        "transition-colors duration-75",
+        "transition-colors duration-100 active:scale-[0.98]",
         cursorClass,
         // Improved touch target size on mobile (minimum 44px recommended)
         // Using py-1.5 for better touch accessibility without breaking layout
@@ -1114,9 +1151,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           viewState={popoverViewState}
           onViewStateChange={setPopoverViewState}
           expandedImageSrcOverride={customExpandedSrc}
-          onExpandedWidthChange={setExpandedImageWidth}
           prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
-          onSourceDownload={onSourceDownload}
+          onSourceDownload={effectiveOnSourceDownload}
         />
       );
 
@@ -1144,8 +1180,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           <Popover
             open={isHovering}
             onOpenChange={open => {
-              // Only handle close (Escape key) - don't interfere with our custom hover logic
               if (!open && !isAnyOverlayOpenRef.current) {
+                // In non-summary states, Escape steps back instead of closing.
+                // The onEscapeKeyDown handler manages the view-state transition;
+                // this guard prevents a redundant onOpenChange from closing early.
+                if (popoverViewState !== "summary") return;
                 closePopover();
               }
             }}
@@ -1158,17 +1197,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             <PopoverContent
               ref={setPopoverContentRef}
               id={popoverId}
-              side={
-                popoverViewState === "expanded-page"
-                  ? "bottom" // Always bottom for expanded — sideOffset positions it
-                  : lockedSide
-              }
+              side={lockedSide}
               sideOffset={expandedPageSideOffset}
-              // Summary: disable collision avoidance — the locked side handles placement
-              // and we don't want Radix's flip middleware causing scroll-jank.
-              // Expanded states: enable it so Radix's shift middleware keeps the
-              // wider popover within viewport bounds on narrow screens.
-              avoidCollisions={popoverViewState !== "summary"}
+              alignOffset={popoverAlignOffset}
+              // Collision avoidance always off — the locked side handles vertical
+              // placement and usePopoverAlignOffset handles horizontal clamping.
+              // CSS maxWidth/maxHeight (calc(100dvw/dvh - 2rem)) constrains size.
+              avoidCollisions={false}
               onCloseAutoFocus={(e: Event) => {
                 // Prevent Radix from returning focus to the trigger on close.
                 // Without this, the browser scrolls the trigger into view — which
@@ -1178,35 +1213,54 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
               onEscapeKeyDown={e => {
-                // Only intercept Escape for expanded-page (full-screen) back-navigation.
-                // summary and expanded-evidence let Radix close the popover directly.
-                if (popoverViewState !== "expanded-page") return;
+                // Two-stage Escape: expanded-page → previous state → close popover.
+                // expanded-evidence also navigates back to summary instead of closing.
+                if (popoverViewState === "summary") return;
                 e.preventDefault();
-                const prev = prevBeforeExpandedPageRef.current;
-                setPopoverViewState(prev);
-                if (prev === "summary") setCustomExpandedSrc(null);
+                if (popoverViewState === "expanded-page") {
+                  const prev = prevBeforeExpandedPageRef.current;
+                  setPopoverViewState(prev);
+                  if (prev === "summary") setCustomExpandedSrc(null);
+                } else {
+                  // expanded-evidence → summary
+                  setPopoverViewState("summary");
+                }
               }}
               style={
                 popoverViewState === "expanded-page"
                   ? {
-                      maxWidth: "calc(100dvw - 2rem)",
-                      width: getExpandedPopoverWidth(expandedImageWidth),
+                      // Override base maxWidth (480px) to allow full-viewport expansion.
+                      // Uses the guard's JS-measured viewport width when available,
+                      // falling back to CSS viewport units for SSR/pre-guard.
+                      width: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
+                      maxWidth: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
                       // Explicit height gives the flex chain a definite reference size
                       // so flex-1 min-h-0 children can grow into available space.
-                      // The shift middleware repositions the popover within viewport bounds.
                       height: "calc(100dvh - 2rem)",
                       maxHeight: "calc(100dvh - 2rem)",
                       // The inner InlineExpandedImage handles its own scrolling (with hidden
                       // scrollbars). Override PopoverContent's default overflow-y-auto to
                       // prevent a redundant outer scrollbar from appearing.
                       overflowY: "hidden" as const,
+                      // Disable CSS transitions on this element during view-state changes.
+                      // Tailwind's data-[state=open]:duration-200 sets transition-duration
+                      // on ALL properties (transition-property defaults to "all"). Without
+                      // this override, width/height changes transition over 200ms instead
+                      // of snapping instantly, causing usePopoverAlignOffset and
+                      // useViewportBoundaryGuard to measure stale intermediate widths.
+                      // Entry/exit animations use @keyframes (animate-in/out), not CSS
+                      // transitions, so they are unaffected. The inner useAnimatedHeight
+                      // wrapper manages its own transition property.
+                      transitionProperty: "none",
                     }
                   : popoverViewState === "expanded-evidence"
                     ? {
-                        maxWidth: "calc(100dvw - 2rem)",
-                        width: getExpandedPopoverWidth(expandedImageWidth),
+                        maxWidth: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
+                        // Prevent Tailwind's duration-200 from transitioning width
+                        // changes — hooks need instant measurement (see expanded-page).
+                        transitionProperty: "none",
                       }
-                    : undefined
+                    : { transitionProperty: "none" }
               }
               onClick={(e: React.MouseEvent) => {
                 // Clicking directly on the popover backdrop (not on inner content) dismisses it.

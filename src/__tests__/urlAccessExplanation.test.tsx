@@ -5,10 +5,14 @@ import { CitationComponent } from "../react/CitationComponent";
 import type { Citation } from "../types/citation";
 import type { UrlAccessStatus, Verification } from "../types/verification";
 
-// Mock createPortal to render content in place instead of portal
-mock.module("react-dom", () => ({
-  createPortal: (node: React.ReactNode) => node,
-}));
+// Mock createPortal to render content in place instead of portal.
+// Spread the real module AND synthesize a `default` export — bun's ESM wrapper
+// for react-dom expects one, and mock.module replaces the entire namespace.
+// Without `default`, the mock leaks across files and crashes with
+// "Missing 'default' export in module react-dom".
+const _realReactDom = require("react-dom");
+const _mockedReactDom = { ..._realReactDom, createPortal: (node: React.ReactNode) => node };
+mock.module("react-dom", () => ({ ..._mockedReactDom, default: _mockedReactDom }));
 
 // Helper to wait for popover to become visible
 const waitForPopoverVisible = async (container: HTMLElement) => {

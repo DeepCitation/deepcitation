@@ -394,8 +394,7 @@ function MyComponent() {
 | `faviconUrl` | `string` | No | Favicon URL for badge variant |
 | `sourceLabel` | `string` | No | Override the source name displayed in popover headers (see below) |
 | `onSourceDownload` | `(citation: Citation) => void` | No | Callback when user clicks the download button in popover header. Button only renders when provided. |
-| `showIndicator` | `boolean` | No | Whether to show status indicator (default: true) |
-| `indicatorVariant` | `"icon" \| "dot"` | No | Visual style for status indicators: `"icon"` (checkmarks/spinners, default) or `"dot"` (subtle colored dots like GitHub/shadcn) |
+| `indicatorVariant` | `"icon" \| "dot" \| "caret" \| "none"` | No | Visual style for status indicators: `"icon"` (checkmarks/spinners, default), `"dot"` (subtle colored dots), `"caret"` (disclosure chevron), or `"none"` (hidden) |
 
 ---
 

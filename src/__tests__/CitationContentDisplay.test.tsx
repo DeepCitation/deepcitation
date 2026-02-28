@@ -25,7 +25,6 @@ function makeProps(overrides: Partial<CitationContentDisplayProps> = {}): Citati
 
   const indicatorProps: CitationStatusIndicatorProps = {
     status,
-    showIndicator: false,
     indicatorVariant: "none",
     shouldShowSpinner: false,
     isVerified: false,
@@ -46,7 +45,6 @@ function makeProps(overrides: Partial<CitationContentDisplayProps> = {}): Citati
     isPartialMatch: false,
     isMiss: false,
     shouldShowSpinner: false,
-    showIndicator: false,
     indicatorProps,
     isOpen: false,
     ...overrides,

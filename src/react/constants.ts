@@ -124,8 +124,25 @@ export const POPOVER_WIDTH_VAR = "--dc-popover-width";
 export const POPOVER_WIDTH_DEFAULT = "480px";
 /** Resolved popover width CSS value. Customizable via `--dc-popover-width`. */
 export const POPOVER_WIDTH = `var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT})`;
-/** Extra px beyond image natural width for the expanded popover shell (mx-3 margins + borders). */
-export const EXPANDED_IMAGE_SHELL_PX = 32;
+/** Extra px beyond image natural width for the expanded popover shell (mx-3 24px + shell border 2px). */
+export const EXPANDED_IMAGE_SHELL_PX = 26;
+
+/** Minimum popover width (px) for content-adaptive sizing. Text-readability floor. */
+export const POPOVER_WIDTH_MIN_PX = 320;
+
+/** Viewport edge margin (px) for popover positioning.
+ *  All positioning hooks clamp to this distance from each viewport edge. */
+export const VIEWPORT_MARGIN_PX = 16;
+
+/** CSS custom property for the guard's viewport-constrained max width.
+ *  Set by useViewportBoundaryGuard using `document.documentElement.clientWidth`
+ *  (visible viewport excluding scrollbar). All maxWidth formulas reference this
+ *  with a fallback to `calc(100dvw - 2rem)` for SSR/pre-guard. */
+export const GUARD_MAX_WIDTH_VAR = "--dc-guard-max-width";
+
+/** Shell padding (px) around the keyhole image for summary popover sizing.
+ *  EvidenceTray m-3 (12px×2) + borders (~4px) + breathing room = 32px. */
+export const SUMMARY_IMAGE_SHELL_PX = 32;
 /** Default max width for verification images (responsive with fallback) */
 export const VERIFICATION_IMAGE_MAX_WIDTH = "min(70vw, 480px)";
 /** Default max height for verification images (responsive with fallback) */
@@ -143,10 +160,13 @@ export const VERIFICATION_IMAGE_MAX_HEIGHT = "min(50vh, 360px)";
 export const KEYHOLE_STRIP_HEIGHT_VAR = "--dc-keyhole-strip-height";
 
 /** Default height of the keyhole image strip in pixels */
-export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 90;
+export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 120;
+
+/** Height of keyhole strip when expanded in-place (drawer context, px) */
+export const KEYHOLE_EXPANDED_HEIGHT = 300;
 
 /** Height of the miss-state proof page thumbnail shown in EvidenceTray (px) */
-export const MISS_TRAY_THUMBNAIL_HEIGHT = 72;
+export const MISS_TRAY_THUMBNAIL_HEIGHT = KEYHOLE_STRIP_HEIGHT_DEFAULT;
 
 /** Default fade gradient width in pixels (the translucent region on each edge) */
 export const KEYHOLE_FADE_WIDTH = 32;
@@ -241,6 +261,27 @@ export const DOT_INDICATOR_SIZE_STYLE: React.CSSProperties = {
   height: "0.4em",
   minWidth: "6px",
   minHeight: "6px",
+};
+
+/**
+ * Dynamic caret indicator size styles.
+ * Sits between dot (0.4em) and icon (0.85em) — visible but not attention-grabbing.
+ * Uses em units so the caret scales with parent font size.
+ */
+export const CARET_INDICATOR_SIZE_STYLE: React.CSSProperties = {
+  width: "0.7em",
+  height: "0.7em",
+  minWidth: "8px",
+  minHeight: "8px",
+};
+
+/**
+ * Pill wrapper padding for the caret indicator variant.
+ * Adds subtle padding around the 0.7em icon, bringing total diameter to ~0.9em.
+ * Background color and border-radius applied via Tailwind classes (conditional on state).
+ */
+export const CARET_PILL_STYLE: React.CSSProperties = {
+  padding: "0.1em",
 };
 
 /**
@@ -441,6 +482,16 @@ export const EXPANDED_ZOOM_MIN = 0.5;
 /** Maximum zoom level (300%). */
 export const EXPANDED_ZOOM_MAX = 3.0;
 
+/** Minimum initial zoom for expanded page view to keep text readable (80%).
+ *  On narrow viewports, fit-to-width can shrink a 1700px PDF to ~42% — illegible.
+ *  This floor ensures the initial zoom is at least 80%, with panning for overflow. */
+export const EXPANDED_MIN_READABLE_ZOOM = 0.8;
+
+/** Width ratio threshold for keyhole width-fit mode.
+ *  When image at height-fit scale is narrower than this fraction of the
+ *  container, switch to width-fit mode for readability. */
+export const KEYHOLE_WIDTH_FIT_THRESHOLD = 0.4;
+
 // =============================================================================
 // EVIDENCE TRAY & EXPANDED VIEW
 // =============================================================================
@@ -529,6 +580,14 @@ export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-150 ${FO
 export const TERTIARY_ACTION_IDLE_CLASSES = "text-gray-600 dark:text-gray-400";
 /** Hover/focus tertiary action text color. */
 export const TERTIARY_ACTION_HOVER_CLASSES = "hover:text-blue-600 dark:hover:text-blue-400";
+/** Invisible hit-box extender — uniform 8px in all directions.
+ *  Element must be positioned (relative/absolute/fixed). */
+export const HITBOX_EXTEND_8 = "after:content-[''] after:absolute after:inset-[-8px]";
+
+/** Invisible hit-box extender — 8px horizontal, 14px vertical.
+ *  Element must be positioned (relative/absolute/fixed). */
+export const HITBOX_EXTEND_8x14 = "after:content-[''] after:absolute after:inset-x-[-8px] after:inset-y-[-14px]";
+
 /** Auto-hide spinner after this duration if verification is still pending. */
 export const SPINNER_TIMEOUT_MS = 5000;
 
@@ -548,6 +607,11 @@ export const EASE_EXPAND = "cubic-bezier(0.34, 1.06, 0.64, 1)";
  * Bézier: starts with velocity (0.2), then eases into final state (0, 1).
  */
 export const EASE_COLLAPSE = "cubic-bezier(0.2, 0, 0, 1)";
+
+/** Stagger delay before expanded-page content animates in. Container morph starts first.
+ * 30ms is tight enough to avoid an empty-container flash while still letting the shell
+ * establish its new dimensions before content appears. */
+export const CONTENT_STAGGER_DELAY_MS = 30;
 
 // =============================================================================
 // TIME TO CERTAINTY (TtC) DISPLAY
@@ -583,3 +647,33 @@ export const TTC_FAST_TEXT_STYLE: React.CSSProperties = {
 
 /** Minimum downward drag distance (px) on the drawer handle to trigger close. */
 export const DRAWER_DRAG_CLOSE_THRESHOLD_PX = 80;
+
+// =============================================================================
+// KEYHOLE ZOOM
+// =============================================================================
+
+/** Minimum total overflow (px) in an axis before showing pan arrows/fades.
+ *  Suppresses arrow buttons for negligible overflow (e.g. 5px rounding). */
+export const MIN_PAN_OVERFLOW_PX = 24;
+
+/** Minimum ratio (natural size / displayed size) to enable wheel zoom on the keyhole.
+ *  Images smaller than 3× the container in both axes don't benefit from zoom. */
+export const KEYHOLE_ZOOM_MIN_SIZE_RATIO = 3;
+
+/** Minimum zoom level for the keyhole strip — never zoom below natural pixel density. */
+export const KEYHOLE_ZOOM_MIN = 1.0;
+/** Maximum zoom level for the keyhole strip — enough to read small text. */
+export const KEYHOLE_ZOOM_MAX = 2.5;
+/** Zoom step per discrete wheel notch for the keyhole strip. */
+export const KEYHOLE_ZOOM_STEP = 0.15;
+/** Sensitivity multiplier for keyhole wheel-to-zoom (maps deltaY → zoom delta). */
+export const KEYHOLE_WHEEL_ZOOM_SENSITIVITY = 0.008;
+
+// =============================================================================
+// ZOOM HINT
+// =============================================================================
+
+/** Delay (ms) before showing "Scroll to zoom" hint on hover. */
+export const ZOOM_HINT_DELAY_MS = 5000;
+/** sessionStorage key for zoom hint dismissal (show once per session). */
+export const ZOOM_HINT_SESSION_KEY = "dc-zoom-hint-dismissed";
