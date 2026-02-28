@@ -623,17 +623,27 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const prefetchEvidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
     const prefetchExpandedSrc = useMemo(() => resolveExpandedImage(verification)?.src ?? null, [verification]);
     useEffect(() => {
+      const images: HTMLImageElement[] = [];
+
       if (prefetchEvidenceSrc && !prefetchEvidenceSrc.startsWith("data:")) {
         const img = new Image();
         img.fetchPriority = "low";
         img.src = prefetchEvidenceSrc;
+        images.push(img);
       }
 
       if (prefetchExpandedSrc && !prefetchExpandedSrc.startsWith("data:")) {
         const img = new Image();
         img.fetchPriority = "low";
         img.src = prefetchExpandedSrc;
+        images.push(img);
       }
+
+      return () => {
+        for (const img of images) {
+          img.src = "";
+        }
+      };
     }, [prefetchEvidenceSrc, prefetchExpandedSrc]);
 
     const displayText = useMemo(() => {

@@ -1463,7 +1463,7 @@ export function InlineExpandedImage({
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         const dist = getTouchDistance(e.touches);
-        if (dist < Number.EPSILON) return; // fingers at same point — avoid division by zero
+        if (dist < Number.EPSILON || !Number.isFinite(dist)) return;
         initialDistance = dist;
         initialZoom = zoomRef.current;
         const wrapper = imageWrapperRef.current;
