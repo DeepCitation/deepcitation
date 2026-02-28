@@ -5,10 +5,14 @@ import { CitationStatusIndicator } from "../react/CitationStatusIndicator";
 import { CARET_INDICATOR_SIZE_STYLE, CARET_PILL_STYLE, INDICATOR_SIZE_STYLE } from "../react/constants";
 import type { CitationStatus } from "../types/citation";
 
-// Mock createPortal to render content in place instead of portal
-mock.module("react-dom", () => ({
-  createPortal: (node: React.ReactNode) => node,
-}));
+// Mock createPortal to render content in place instead of portal.
+// Spread the real module AND synthesize a `default` export — bun's ESM wrapper
+// for react-dom expects one, and mock.module replaces the entire namespace.
+// Without `default`, the mock leaks across files and crashes with
+// "Missing 'default' export in module react-dom".
+const _realReactDom = require("react-dom");
+const _mockedReactDom = { ..._realReactDom, createPortal: (node: React.ReactNode) => node };
+mock.module("react-dom", () => ({ ..._mockedReactDom, default: _mockedReactDom }));
 
 // =============================================================================
 // TEST FIXTURES
