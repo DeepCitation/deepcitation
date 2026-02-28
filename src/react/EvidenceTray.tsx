@@ -739,7 +739,11 @@ export function AnchorTextFocusedImage({
 
           {/* Zoom hint badge — shows once per session on hover dwell.
               Only shown when the image has meaningful zoom range (> 2×). */}
-          <ZoomHint isHovering={isHovering} hasZoomed={hasZoomed} enabled={zoomEligible && KEYHOLE_ZOOM_MAX / keyholeZoom > 2} />
+          <ZoomHint
+            isHovering={isHovering}
+            hasZoomed={hasZoomed}
+            enabled={zoomEligible && KEYHOLE_ZOOM_MAX / keyholeZoom > 2}
+          />
         </button>
       </div>
     </div>
