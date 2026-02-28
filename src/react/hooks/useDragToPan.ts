@@ -33,12 +33,12 @@ const DRAG_THRESHOLD = 5;
 const VELOCITY_SAMPLE_COUNT = 5;
 /** Minimum velocity (px/ms) to trigger momentum coast after release. */
 const VELOCITY_THRESHOLD = 0.08;
-/** Per-frame deceleration multiplier (~0.6s coast at 60fps — snappier than iOS). */
-const DECELERATION = 0.92;
+/** Per-frame deceleration multiplier (~0.3s coast at 60fps — TikTok flick-and-stop). */
+const DECELERATION = 0.88;
 /** Velocity cutoff (px/frame) below which momentum stops. */
 const VELOCITY_CUTOFF = 0.3;
 /** Initial velocity boost — amplifies the "launch" before deceleration kicks in. */
-const VELOCITY_BOOST = 1.6;
+const VELOCITY_BOOST = 2.0;
 
 interface MoveSample {
   x: number;

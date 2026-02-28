@@ -318,10 +318,16 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     if (proofImage) escCtx?.onInlineExpand(citationKey, proofImage, verification, expandedImage?.renderScale);
   }, [proofImage, citationKey, verification, expandedImage, escCtx]);
 
-  // Opens InlineExpandedImage in the header panel with the evidence crop (keyhole click / onImageClick)
+  // Toggle keyhole expansion in-place (the image grows taller within the item)
+  const [keyholeExpanded, setKeyholeExpanded] = useState(false);
   const handleExpandEvidence = useCallback(() => {
-    if (evidenceSrc) escCtx?.onInlineExpand(citationKey, evidenceSrc, verification, undefined);
-  }, [evidenceSrc, citationKey, verification, escCtx]);
+    setKeyholeExpanded(prev => !prev);
+  }, []);
+
+  // Reset keyhole expansion when the accordion item collapses
+  useEffect(() => {
+    if (!isExpanded) setKeyholeExpanded(false);
+  }, [isExpanded]);
 
   return (
     <div
@@ -423,6 +429,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               onImageClick={evidenceSrc ? handleExpandEvidence : undefined}
               onExpand={proofImage ? handleExpand : undefined}
               proofImageSrc={proofImage ?? undefined}
+              keyholeExpanded={keyholeExpanded}
             />
           </div>
         </div>

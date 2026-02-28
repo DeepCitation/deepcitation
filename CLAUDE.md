@@ -87,6 +87,7 @@ src/
 │   │   ├── useCitationEvents.ts     # Click/hover/keyboard event handlers
 │   │   ├── useExpandedPageSideOffset.ts # Expanded-page popover vertical offset
 │   │   ├── usePopoverAlignOffset.ts # Horizontal viewport clamping (replaces shift middleware)
+│   │   ├── useAnimatedHeight.ts      # Imperative height animation for viewState transitions
 │   │   └── useAnimationState.ts     # Enter/exit animation lifecycle
 │   └── utils.ts          # generateCitationKey() — CANONICAL LOCATION
 ├── markdown/
@@ -253,6 +254,7 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `useCitationEvents()` | `src/react/hooks/useCitationEvents.ts` | Click/hover/keyboard event handlers |
 | `useExpandedPageSideOffset()` | `src/react/hooks/useExpandedPageSideOffset.ts` | Expanded-page popover vertical offset |
 | `usePopoverAlignOffset()` | `src/react/hooks/usePopoverAlignOffset.ts` | Horizontal viewport clamping (replaces shift middleware) |
+| `useAnimatedHeight()` | `src/react/hooks/useAnimatedHeight.ts` | Imperative height animation for viewState transitions |
 | `useAnimationState()` | `src/react/hooks/useAnimationState.ts` | Enter/exit animation lifecycle |
 | `EXPANDED_POPOVER_MID_WIDTH` | `src/react/expandedWidthPolicy.ts` | Mid-width fallback for expanded popover states |
 | `getExpandedPopoverWidth()` | `src/react/expandedWidthPolicy.ts` | Computes expanded popover width from image width |

@@ -13,11 +13,20 @@ import type { Citation, CitationStatus } from "../types/citation.js";
 import type { SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 import { getStatusLabel } from "./citationStatus.js";
-import { isValidProofImageSrc, KEYHOLE_STRIP_HEIGHT_DEFAULT, POPOVER_CONTAINER_BASE_CLASSES } from "./constants.js";
+import {
+  EASE_COLLAPSE,
+  EASE_EXPAND,
+  isValidProofImageSrc,
+  KEYHOLE_STRIP_HEIGHT_DEFAULT,
+  POPOVER_CONTAINER_BASE_CLASSES,
+  POPOVER_MORPH_COLLAPSE_MS,
+  POPOVER_MORPH_EXPAND_MS,
+} from "./constants.js";
 import { EvidenceTray, InlineExpandedImage, normalizeScreenshotSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { getExpandedPopoverWidth, getSummaryPopoverWidth } from "./expandedWidthPolicy.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
-
+import { useAnimatedHeight } from "./hooks/useAnimatedHeight.js";
+import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { SpinnerIcon } from "./icons.js";
 import { buildIntentSummary, type MatchSnippet } from "./searchSummaryUtils.js";
 import type { BaseCitationProps, IndicatorVariant } from "./types.js";
@@ -292,6 +301,48 @@ function ClaimQuote({
       )}
     >
       <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
+    </div>
+  );
+}
+
+/**
+ * Wrapper that smoothly animates the height of its children when viewState changes.
+ *
+ * When the popover width snaps (e.g. summary → expanded), text inside ClaimQuote
+ * rewraps instantly, changing its height. This wrapper intercepts the height change
+ * using useLayoutEffect (before paint) and animates it with CSS transitions.
+ *
+ * Renders as a Fragment (no wrapper divs) when the user prefers reduced motion.
+ */
+function AnimatedHeightWrapper({ viewState, children }: { viewState: PopoverViewState; children: ReactNode }) {
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useAnimatedHeight(
+    wrapperRef,
+    contentRef,
+    viewState,
+    POPOVER_MORPH_EXPAND_MS,
+    POPOVER_MORPH_COLLAPSE_MS,
+    EASE_EXPAND,
+    EASE_COLLAPSE,
+  );
+
+  if (prefersReducedMotion) return <>{children}</>;
+
+  return (
+    <div
+      ref={wrapperRef}
+      onTransitionEnd={e => {
+        if (e.propertyName === "height") {
+          e.currentTarget.style.height = "";
+          e.currentTarget.style.overflow = "";
+          e.currentTarget.style.transition = "";
+        }
+      }}
+    >
+      <div ref={contentRef}>{children}</div>
     </div>
   );
 }
@@ -747,14 +798,16 @@ export function DefaultPopoverContent({
           anchorText={anchorText}
           indicatorVariant={indicatorVariant}
         />
-        {fullPhrase && (
-          <ClaimQuote
-            fullPhrase={fullPhrase}
-            anchorText={anchorText}
-            isMiss={isMiss}
-            borderColor="border-green-500 dark:border-green-600"
-          />
-        )}
+        <AnimatedHeightWrapper viewState={viewState}>
+          {fullPhrase && (
+            <ClaimQuote
+              fullPhrase={fullPhrase}
+              anchorText={anchorText}
+              isMiss={isMiss}
+              borderColor="border-green-500 dark:border-green-600"
+            />
+          )}
+        </AnimatedHeightWrapper>
         {/* Zone 3: Evidence */}
         <EvidenceZone
           viewState={viewState}
@@ -847,12 +900,14 @@ export function DefaultPopoverContent({
           </div>
         )}
         {fullPhrase && (
-          <ClaimQuote
-            fullPhrase={fullPhrase}
-            anchorText={anchorText}
-            isMiss={isMiss}
-            borderColor={isMiss ? "border-red-500 dark:border-red-400" : "border-amber-500 dark:border-amber-400"}
-          />
+          <AnimatedHeightWrapper viewState={viewState}>
+            <ClaimQuote
+              fullPhrase={fullPhrase}
+              anchorText={anchorText}
+              isMiss={isMiss}
+              borderColor={isMiss ? "border-red-500 dark:border-red-400" : "border-amber-500 dark:border-amber-400"}
+            />
+          </AnimatedHeightWrapper>
         )}
         {/* Zone 3: Evidence */}
         <EvidenceZone

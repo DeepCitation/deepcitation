@@ -152,6 +152,9 @@ export const KEYHOLE_STRIP_HEIGHT_VAR = "--dc-keyhole-strip-height";
 /** Default height of the keyhole image strip in pixels */
 export const KEYHOLE_STRIP_HEIGHT_DEFAULT = 120;
 
+/** Height of keyhole strip when expanded in-place (drawer context, px) */
+export const KEYHOLE_EXPANDED_HEIGHT = 300;
+
 /** Height of the miss-state proof page thumbnail shown in EvidenceTray (px) */
 export const MISS_TRAY_THUMBNAIL_HEIGHT = KEYHOLE_STRIP_HEIGHT_DEFAULT;
 
