@@ -134,7 +134,10 @@ export function useViewportBoundaryGuard(
     // Uses attributeOldValue to skip no-op mutations (same style rewritten).
     const wrapper = el.closest("[data-radix-popper-content-wrapper]") as HTMLElement | null;
     let mo: MutationObserver | null = null;
-    if (wrapper) {
+    // Safety: wrapper is always a *parent* of el (Radix wraps content in an
+    // absolutely-positioned div). We observe wrapper's style mutations and
+    // modify el's CSS translate — different elements → no infinite loop.
+    if (wrapper && wrapper !== el) {
       mo = new MutationObserver(mutations => {
         for (const m of mutations) {
           if (m.oldValue !== wrapper.getAttribute("style")) {

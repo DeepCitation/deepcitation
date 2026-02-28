@@ -115,11 +115,11 @@ export function normalizeScreenshotSrc(raw: string): string {
   }
 
   // Validate base64 format (basic check - should only contain valid base64 chars + max 2 padding chars).
-  // This prevents injection of malicious strings that would bypass isValidProofImageSrc().
-  // Only the first 100 chars are tested as a performance trade-off: screenshot base64 strings
-  // can be megabytes, and any injection payload (e.g. "<script>" or "javascript:") would appear
-  // within the first few characters. Full-string validation is unnecessary because the result
-  // is always wrapped in a "data:image/jpeg;base64," prefix and validated by isValidProofImageSrc().
+  // Only the first 100 chars are tested as a fast-path rejection: screenshot base64 strings
+  // can be megabytes, and obvious non-base64 payloads (e.g. "<script>", "javascript:") are
+  // caught within the first few characters. Security does NOT depend on this check alone —
+  // the constructed data URI is always validated by isValidProofImageSrc() downstream, which
+  // blocks SVG data URIs, javascript: schemes, and untrusted hosts.
   const BASE64_VALIDATION_PREFIX_LENGTH = 100;
   if (!/^[A-Za-z0-9+/]+(={0,2})?$/.test(raw.slice(0, BASE64_VALIDATION_PREFIX_LENGTH))) {
     throw new Error("normalizeScreenshotSrc: Invalid base64 format detected");
@@ -1083,6 +1083,7 @@ function applyGestureTransform(
   committedZoom: number,
   anchor: { mx: number; my: number; sx: number; sy: number },
 ): void {
+  if (committedZoom === 0) return;
   const s = gestureZoom / committedZoom;
   const cx = anchor.mx + anchor.sx;
   const cy = anchor.my + anchor.sy;
