@@ -1011,6 +1011,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       isPartialMatch,
       isMiss,
       spinnerStage,
+      isOpen: isHovering,
     };
 
     // Build the citation content element using the extracted module-level components

@@ -729,6 +729,42 @@ export function VisualShowcase() {
         </div>
       </ShowcaseSection>
 
+      {/* Section: Indicator Variants */}
+      <ShowcaseSection
+        title="Indicator Variants"
+        description="Different indicator styles: icon (default), dot, caret, none"
+        data-testid="indicator-variants-section"
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {(["icon", "dot", "caret", "none"] as const).map(iv => (
+            <ShowcaseCard key={iv} data-indicator-variant={iv}>
+              <ShowcaseLabel
+                component="CitationComponent"
+                variant="text"
+                state={`indicatorVariant="${iv}"`}
+                uxIntent={
+                  iv === "icon"
+                    ? "Default — checkmark/X/spinner icons"
+                    : iv === "dot"
+                      ? "Subtle colored dot (GitHub-style)"
+                      : iv === "caret"
+                        ? "Disclosure chevron (Gemini-style) — flips on open"
+                        : "No indicator rendered"
+                }
+              />
+              <div className="py-2">
+                <CitationComponent
+                  citation={baseCitation}
+                  verification={verifiedVerification}
+                  variant="text"
+                  indicatorVariant={iv}
+                />
+              </div>
+            </ShowcaseCard>
+          ))}
+        </div>
+      </ShowcaseSection>
+
       {/* Section: Long Text Handling */}
       <ShowcaseSection
         title="Long Text Handling"

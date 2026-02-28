@@ -290,7 +290,15 @@ const KEYHOLE_SCROLLBAR_HIDE: React.CSSProperties = {
  * "Scroll to zoom" hint badge — appears after a hover dwell, auto-dismisses
  * after first wheel zoom event. Shows once per session via sessionStorage.
  */
-function ZoomHint({ isHovering, hasZoomed }: { isHovering: boolean; hasZoomed: boolean }) {
+function ZoomHint({
+  isHovering,
+  hasZoomed,
+  enabled = true,
+}: {
+  isHovering: boolean;
+  hasZoomed: boolean;
+  enabled?: boolean;
+}) {
   const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(() => {
     try {
@@ -302,13 +310,13 @@ function ZoomHint({ isHovering, hasZoomed }: { isHovering: boolean; hasZoomed: b
 
   // Show after hover dwell
   useEffect(() => {
-    if (dismissed || hasZoomed || !isHovering) {
+    if (!enabled || dismissed || hasZoomed || !isHovering) {
       setVisible(false);
       return;
     }
     const timer = setTimeout(() => setVisible(true), ZOOM_HINT_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [isHovering, dismissed, hasZoomed]);
+  }, [enabled, isHovering, dismissed, hasZoomed]);
 
   // Dismiss permanently on first zoom
   useEffect(() => {
@@ -709,8 +717,9 @@ export function AnchorTextFocusedImage({
             />
           )}
 
-          {/* Zoom hint badge — shows once per session on hover dwell */}
-          <ZoomHint isHovering={isHovering} hasZoomed={hasZoomed} />
+          {/* Zoom hint badge — shows once per session on hover dwell.
+              Only shown when the image has meaningful zoom range (> 2×). */}
+          <ZoomHint isHovering={isHovering} hasZoomed={hasZoomed} enabled={KEYHOLE_ZOOM_MAX / keyholeZoom > 2} />
         </button>
       </div>
     </div>
@@ -1626,7 +1635,11 @@ export function InlineExpandedImage({
             key={src}
             className={cn(
               "animate-in fade-in-0",
-              fill && annotationOrigin ? "zoom-in-95 duration-[180ms]" : fill ? "zoom-in-[0.97] duration-150" : "duration-150",
+              fill && annotationOrigin
+                ? "zoom-in-95 duration-[180ms]"
+                : fill
+                  ? "zoom-in-[0.97] duration-150"
+                  : "duration-150",
               fill && "fill-mode-backwards",
             )}
             style={{

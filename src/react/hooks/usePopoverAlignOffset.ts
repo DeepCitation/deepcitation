@@ -15,8 +15,9 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  * Uses useLayoutEffect (runs before paint) so the offset is applied before the
  * popover is visible — no flash of wrong position.
  *
- * Reactivity: ResizeObserver on popover element + window resize listener
- * catch late-arriving width changes (image loads, viewport resize).
+ * Reactivity: window resize listener catches viewport width changes.
+ * Content reflow (image loads) is handled by the viewport boundary guard
+ * (Layer 3) which uses a debounced ResizeObserver.
  *
  * Math (with align="center"):
  *   idealLeft  = triggerCenter - popoverWidth / 2
@@ -32,7 +33,7 @@ export function usePopoverAlignOffset(
 ): number {
   const [offset, setOffset] = useState(0);
 
-  // Shared measurement logic — called from both useLayoutEffect and observers.
+  // Shared measurement logic — called from useLayoutEffect and resize listener.
   // biome-ignore lint/correctness/useExhaustiveDependencies: triggerRef and popoverContentRef have stable identity — refs should not be in deps per React docs
   const recompute = useCallback(() => {
     if (!isOpen) {
@@ -72,24 +73,12 @@ export function usePopoverAlignOffset(
     recompute();
   }, [recompute, popoverViewState]);
 
-  // Reactive re-computation: ResizeObserver catches popover content reflow
-  // (image loads, dynamic content), window resize catches viewport changes.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity — refs should not be in deps per React docs
+  // Window resize listener for viewport width changes.
   useEffect(() => {
     if (!isOpen) return;
 
-    const popoverEl = popoverContentRef.current;
-    if (!popoverEl) return;
-
-    const ro = new ResizeObserver(() => recompute());
-    ro.observe(popoverEl);
-
     window.addEventListener("resize", recompute);
-
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", recompute);
-    };
+    return () => window.removeEventListener("resize", recompute);
   }, [isOpen, recompute]);
 
   return offset;

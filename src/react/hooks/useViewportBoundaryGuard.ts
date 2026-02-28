@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 
@@ -9,7 +9,7 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  * Observes the popover's actual rendered bounding rect and applies a corrective
  * CSS `translate` if any edge extends beyond the viewport margin. Acts on the
  * final position — if the existing positioning hooks (Layer 2) got it right,
- * the guard applies `translate: 0px 0px` (no-op).
+ * the guard is a no-op.
  *
  * Key design points:
  * - Uses CSS `translate` property (separate from `transform`). Radix sets
@@ -19,44 +19,85 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  *   re-fire → no infinite observation loops.
  * - No `useState` → no re-renders → React Compiler friendly.
  *
- * Reactivity:
- * - `useLayoutEffect` on [isOpen, popoverViewState] — initial + state-change
- *   checks (runs before paint, no flash).
- * - `ResizeObserver` on popover element — catches image loads, content reflow.
- * - `window.addEventListener("resize")` — catches viewport size changes.
+ * Animation safety:
+ * - The synchronous `useLayoutEffect` only clamps on initial open. View-state
+ *   transitions only CLEAR stale corrections (no re-measure) to avoid reading
+ *   the DOM before Radix has applied updated sideOffset/alignOffset props.
+ * - The ResizeObserver is debounced by SETTLE_MS (> morph duration + overshoot)
+ *   so the guard never fires during CSS transitions.
  */
+
+/** Debounce delay for ResizeObserver callbacks only.
+ *  Must exceed POPOVER_MORPH_EXPAND_MS (200ms) + overshoot settling time. */
+const SETTLE_MS = 300;
+
 export function useViewportBoundaryGuard(
   isOpen: boolean,
   popoverViewState: PopoverViewState,
   popoverContentRef: React.RefObject<HTMLElement | null>,
 ): void {
-  // Core clamping logic — imperatively adjusts the popover's position.
-  // Removes any previous corrective translate before measuring so we
-  // get the Radix-only position (prevents correction drift on re-runs).
+  const prevViewStateRef = useRef<PopoverViewState | null>(null);
 
+  // Unified layout effect: clamps on initial open, clears on view-state
+  // transitions. Uses prevViewStateRef to distinguish the two cases.
+  //
+  // Bug fix: the previous two-effect approach had the [popoverViewState]
+  // effect unconditionally clearing translate="" on mount, undoing the
+  // [isOpen] effect's clamp before first paint.
   // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity — refs should not be in deps per React docs
   useLayoutEffect(() => {
-    if (!isOpen) return;
     const el = popoverContentRef.current;
-    if (!el) return;
+    if (!isOpen || !el) {
+      // Clear correction when closing so it doesn't persist across cycles.
+      if (el) el.style.translate = "";
+      prevViewStateRef.current = null;
+      return;
+    }
+
+    const isViewStateChange = prevViewStateRef.current !== null && prevViewStateRef.current !== popoverViewState;
+    prevViewStateRef.current = popoverViewState;
+
+    if (isViewStateChange) {
+      // View-state transition: clear stale correction only. The sideOffset/
+      // alignOffset state updates from other hooks haven't flushed yet, so
+      // measuring here would read stale positioning. The debounced
+      // ResizeObserver re-clamps after the morph animation settles.
+      el.style.translate = "";
+      return;
+    }
+
+    // Initial open: clamp before first paint (no flash).
     clamp(el);
   }, [isOpen, popoverViewState]);
 
-  // Reactive observers: ResizeObserver catches content reflow (image loads),
-  // window resize catches viewport size changes.
+  // Reactive clamping from two independent sources:
+  // - ResizeObserver: debounced (morph animations fire rapid size changes).
+  // - Window resize: immediate (user dragging browser edge — no morph conflict).
+  //
+  // Bug fix: the previous implementation shared a single debounced callback
+  // for both. During continuous window drag, the 300ms timer reset on every
+  // event, so the clamp only fired after the user stopped dragging.
   // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity — refs should not be in deps per React docs
   useEffect(() => {
     if (!isOpen) return;
     const el = popoverContentRef.current;
     if (!el) return;
 
-    const ro = new ResizeObserver(() => clamp(el));
+    // ResizeObserver: debounced to avoid fighting CSS morph transitions.
+    let timerId: ReturnType<typeof setTimeout>;
+    const debouncedClamp = () => {
+      clearTimeout(timerId);
+      timerId = setTimeout(() => clamp(el), SETTLE_MS);
+    };
+    const ro = new ResizeObserver(debouncedClamp);
     ro.observe(el);
 
+    // Window resize: immediate clamp (no animation conflict).
     const onResize = () => clamp(el);
     window.addEventListener("resize", onResize);
 
     return () => {
+      clearTimeout(timerId);
       ro.disconnect();
       window.removeEventListener("resize", onResize);
     };

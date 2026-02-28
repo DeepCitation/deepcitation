@@ -10,6 +10,7 @@
 import type React from "react";
 import type { CitationStatus } from "../types/citation.js";
 import {
+  CARET_INDICATOR_SIZE_STYLE,
   DOT_COLORS,
   DOT_INDICATOR_SIZE_STYLE,
   INDICATOR_SIZE_STYLE,
@@ -17,7 +18,7 @@ import {
   PENDING_COLOR_STYLE,
   VERIFIED_COLOR_STYLE,
 } from "./constants.js";
-import { CheckIcon, SpinnerIcon, XIcon } from "./icons.js";
+import { CheckIcon, ChevronDownIcon, SpinnerIcon, XIcon } from "./icons.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
 import type { IndicatorVariant } from "./types.js";
 import { cn } from "./utils.js";
@@ -127,6 +128,8 @@ export interface CitationStatusIndicatorProps {
   isPartialMatch: boolean;
   isMiss: boolean;
   spinnerStage: SpinnerStage;
+  /** Whether the popover is currently open. Used by the caret variant to flip direction. */
+  isOpen?: boolean;
 }
 
 /**
@@ -148,9 +151,41 @@ export const CitationStatusIndicator = ({
   isPartialMatch,
   isMiss,
   spinnerStage,
+  isOpen,
 }: CitationStatusIndicatorProps): React.ReactNode => {
   if (renderIndicator) return renderIndicator(status);
   if (!showIndicator || indicatorVariant === "none") return null;
+
+  // Caret variant: disclosure chevron that flips when popover opens.
+  // Spinner still takes priority to communicate loading state.
+  if (indicatorVariant === "caret") {
+    if (shouldShowSpinner) {
+      return (
+        <span
+          className="inline-flex relative ml-0.5 top-[0.05em] [text-decoration:none] animate-spin"
+          style={{ ...CARET_INDICATOR_SIZE_STYLE, ...PENDING_COLOR_STYLE }}
+          data-dc-indicator="pending"
+          aria-hidden="true"
+        >
+          <SpinnerIcon />
+        </span>
+      );
+    }
+    return (
+      <span
+        className="inline-flex relative ml-0.5 top-[0.05em] [text-decoration:none] text-gray-400 dark:text-gray-500"
+        style={{
+          ...CARET_INDICATOR_SIZE_STYLE,
+          transition: "transform 150ms ease",
+          transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+        }}
+        data-dc-indicator="caret"
+        aria-hidden="true"
+      >
+        <ChevronDownIcon />
+      </span>
+    );
+  }
 
   if (indicatorVariant === "dot") {
     if (shouldShowSpinner) return <PendingDot />;

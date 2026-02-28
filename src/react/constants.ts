@@ -258,6 +258,18 @@ export const DOT_INDICATOR_SIZE_STYLE: React.CSSProperties = {
 };
 
 /**
+ * Dynamic caret indicator size styles.
+ * Sits between dot (0.4em) and icon (0.85em) — visible but not attention-grabbing.
+ * Uses em units so the caret scales with parent font size.
+ */
+export const CARET_INDICATOR_SIZE_STYLE: React.CSSProperties = {
+  width: "0.7em",
+  height: "0.7em",
+  minWidth: "8px",
+  minHeight: "8px",
+};
+
+/**
  * Fixed-size dot indicator for non-inline contexts (drawers, wrappers, badges).
  * Uses fixed 6px instead of em units because these contexts have their own
  * fixed-size containers that handle proportional sizing.
@@ -639,6 +651,6 @@ export const KEYHOLE_WHEEL_ZOOM_SENSITIVITY = 0.008;
 // =============================================================================
 
 /** Delay (ms) before showing "Scroll to zoom" hint on hover. */
-export const ZOOM_HINT_DELAY_MS = 500;
+export const ZOOM_HINT_DELAY_MS = 5000;
 /** sessionStorage key for zoom hint dismissal (show once per session). */
 export const ZOOM_HINT_SESSION_KEY = "dc-zoom-hint-dismissed";
