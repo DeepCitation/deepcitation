@@ -1,6 +1,6 @@
 import type React from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { GUARD_MAX_WIDTH_VAR, VIEWPORT_MARGIN_PX } from "../constants.js";
+import { GUARD_MAX_WIDTH_VAR, POPOVER_MORPH_EXPAND_MS, VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 
 /**
@@ -35,10 +35,9 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  */
 
 /** Debounce delay for ResizeObserver callbacks only.
- *  Must exceed POPOVER_MORPH_EXPAND_MS (200ms) + overshoot settling time.
- *  Coupled to the morph expand duration — if POPOVER_MORPH_EXPAND_MS changes,
- *  this must be updated to remain > expand + settling (~100ms). */
-const SETTLE_MS = 300;
+ *  Must exceed POPOVER_MORPH_EXPAND_MS + overshoot settling time (~100ms)
+ *  so the guard never fires during CSS transitions. */
+const SETTLE_MS = POPOVER_MORPH_EXPAND_MS + 100;
 
 /**
  * Returns the visible viewport width excluding the scrollbar.
