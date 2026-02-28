@@ -77,8 +77,16 @@ export function usePopoverAlignOffset(
   useEffect(() => {
     if (!isOpen) return;
 
-    window.addEventListener("resize", recompute);
-    return () => window.removeEventListener("resize", recompute);
+    let rafId = 0;
+    const onResize = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => recompute());
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
+    };
   }, [isOpen, recompute]);
 
   return offset;

@@ -1246,7 +1246,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                         // Same rationale as expanded-page: prevent width transition.
                         transitionProperty: "none",
                       }
-                    : undefined
+                    : { transitionProperty: "none" }
               }
               onClick={(e: React.MouseEvent) => {
                 // Clicking directly on the popover backdrop (not on inner content) dismisses it.

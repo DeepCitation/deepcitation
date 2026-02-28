@@ -126,12 +126,19 @@ export function useViewportBoundaryGuard(
     const ro = new ResizeObserver(debouncedClamp);
     ro.observe(el);
 
-    // Window resize: immediate clamp (no animation conflict).
-    const onResize = () => clamp(el);
+    // Window resize: rAF-deferred so measurement happens after @floating-ui's
+    // async computePosition() resolves. Uses a local rafId (not the shared
+    // rafIdRef) to avoid canceling post-render clamps from the useEffect above.
+    let resizeRafId = 0;
+    const onResize = () => {
+      cancelAnimationFrame(resizeRafId);
+      resizeRafId = requestAnimationFrame(() => clamp(el));
+    };
     window.addEventListener("resize", onResize);
 
     return () => {
       cancelAnimationFrame(rafIdRef.current);
+      cancelAnimationFrame(resizeRafId);
       clearTimeout(timerId);
       mo?.disconnect();
       ro.disconnect();

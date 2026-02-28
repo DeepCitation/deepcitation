@@ -999,7 +999,7 @@ export function EvidenceTray({
   );
 
   return (
-    <div className="m-3">
+    <div className="mx-3 mb-3">
       {trayAction ? (
         /* Interactive: clickable with hover CTA */
         <div
