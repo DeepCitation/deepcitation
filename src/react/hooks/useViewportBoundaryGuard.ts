@@ -21,10 +21,10 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  *
  * Animation safety:
  * - The synchronous `useLayoutEffect` clamps on initial open AND on view-state
- *   transitions. On view-state change, stale corrections are cleared immediately
- *   and a `requestAnimationFrame` schedules a re-clamp — rAF fires after all
- *   `useLayoutEffect`s and microtasks (including Floating UI's `computePosition`)
- *   but before the next paint, so we measure the final Radix-positioned rect.
+ *   transitions. On view-state change, stale corrections are cleared immediately.
+ * - A `useEffect` re-clamps after React has fully committed all batched state
+ *   updates from sibling hooks (usePopoverAlignOffset, useExpandedPageSideOffset)
+ *   so the guard measures the final Radix-positioned rect.
  * - The ResizeObserver is debounced by SETTLE_MS (> morph duration + overshoot)
  *   so the guard never fires during CSS transitions.
  */
@@ -43,11 +43,6 @@ export function useViewportBoundaryGuard(
 
   // Unified layout effect: clamps on initial open and on view-state transitions.
   // Uses prevViewStateRef to distinguish the two cases.
-  //
-  // On view-state change, clears stale correction immediately and schedules
-  // a rAF re-clamp. rAF fires after all useLayoutEffects and microtasks
-  // (including Floating UI's computePosition().then()) but before the next
-  // paint — so we measure the final Radix-positioned rect.
   // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity — refs should not be in deps per React docs
   useLayoutEffect(() => {
     // Cancel any pending rAF from a previous rapid view-state toggle.
@@ -66,17 +61,32 @@ export function useViewportBoundaryGuard(
     prevViewStateRef.current = popoverViewState;
 
     if (isViewStateChange) {
-      // Clear stale correction immediately (before paint).
+      // Clear stale correction immediately (before paint). The useEffect
+      // below re-clamps after React has committed all batched state updates
+      // from sibling hooks.
       el.style.translate = "";
-      // Re-clamp after Radix has repositioned. rAF fires after all
-      // useLayoutEffects and microtasks but before the next paint,
-      // so we measure the final Radix-positioned rect.
-      rafIdRef.current = requestAnimationFrame(() => clamp(el));
       return;
     }
 
     // Initial open: clamp before first paint (no flash).
     clamp(el);
+  }, [isOpen, popoverViewState]);
+
+  // Post-render re-clamp: fires after React has fully committed all batched
+  // state updates from sibling hooks (usePopoverAlignOffset,
+  // useExpandedPageSideOffset). Their setState calls during useLayoutEffect
+  // trigger a batched re-render; by the time this useEffect runs, Radix has
+  // repositioned the wrapper with the final offsets. The rAF then measures
+  // the settled position and applies the guard correction.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity — refs should not be in deps per React docs
+  useEffect(() => {
+    if (!isOpen) return;
+    const el = popoverContentRef.current;
+    if (!el) return;
+
+    rafIdRef.current = requestAnimationFrame(() => clamp(el));
+
+    return () => cancelAnimationFrame(rafIdRef.current);
   }, [isOpen, popoverViewState]);
 
   // Reactive clamping from two independent sources:

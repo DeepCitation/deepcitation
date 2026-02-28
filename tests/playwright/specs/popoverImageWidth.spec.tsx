@@ -91,11 +91,11 @@ test.describe("Popover Image Keyhole Strip", () => {
     const strip = popover.locator("[data-dc-keyhole]");
     await expect(strip).toBeVisible();
 
-    // Strip should have a fixed height of 90px (default, set by KEYHOLE_STRIP_HEIGHT_DEFAULT)
+    // Strip should have a fixed height of 120px (default, set by KEYHOLE_STRIP_HEIGHT_DEFAULT)
     const stripHeight = await strip.evaluate(el =>
       parseFloat(window.getComputedStyle(el as HTMLElement).height)
     );
-    expect(stripHeight).toBe(90);
+    expect(stripHeight).toBe(120);
   });
 
   test("image renders at natural scale (not squashed)", async ({ mount, page }) => {

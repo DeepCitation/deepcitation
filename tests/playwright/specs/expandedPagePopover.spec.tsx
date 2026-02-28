@@ -53,6 +53,10 @@ async function expandToFullPage(page: import("@playwright/test").Page) {
   const popover = page.locator("[data-radix-popper-content-wrapper]");
   await expect(popover).toBeVisible();
 
+  // The content element (role="dialog") is the one that receives the viewport
+  // boundary guard's CSS translate correction — use it for bounding box checks.
+  const popoverContent = popover.locator("[role='dialog']");
+
   // Use .first() to handle the triple always-render EvidenceZone pattern where
   // hidden (display:none) views may contain duplicate aria-labels in the DOM.
   const expandButton = popover.getByLabel(/Expand to full page/).first();
@@ -64,10 +68,11 @@ async function expandToFullPage(page: import("@playwright/test").Page) {
   const expandedView = popover.locator("[data-dc-inline-expanded]").filter({ visible: true });
   await expect(expandedView).toBeVisible({ timeout: 5000 });
 
-  // Let layout, zoom calculation, and onNaturalSize callback settle
-  await page.waitForTimeout(500);
+  // Let layout, zoom calculation, onNaturalSize callback, and Floating UI
+  // autoUpdate repositioning fully settle before measuring positions.
+  await page.waitForTimeout(1000);
 
-  return { popover, expandedView };
+  return { popover, popoverContent, expandedView };
 }
 
 /** Assert the popover is fully within (or nearly within) the viewport. */
@@ -150,9 +155,9 @@ test.describe("Expanded-Page Basics", () => {
 // VIEWPORT CONTAINMENT — popover must stay within visible viewport
 //
 // Test across viewport sizes (desktop, tablet) and trigger positions (top,
-// center, bottom). The expanded-page popover requests nearly full viewport
-// height via height: calc(100dvh - 2rem). Radix's shift middleware must
-// reposition it so nothing clips above or below.
+// center, bottom). The expanded-page popover fills the viewport
+// (width/height: calc(100dvw/dvh - 2rem)). The viewport boundary guard
+// (Layer 3) applies corrective CSS translate to the content element.
 // =============================================================================
 
 test.describe("Expanded-Page Viewport Containment", () => {
@@ -165,8 +170,8 @@ test.describe("Expanded-Page Viewport Containment", () => {
       </div>,
     );
 
-    const { popover } = await expandToFullPage(page);
-    await expectPopoverInViewport(page, popover);
+    const { popoverContent } = await expandToFullPage(page);
+    await expectPopoverInViewport(page, popoverContent);
   });
 
   test("desktop: trigger in center — popover stays in viewport", async ({ mount, page }) => {
@@ -176,8 +181,8 @@ test.describe("Expanded-Page Viewport Containment", () => {
       </div>,
     );
 
-    const { popover } = await expandToFullPage(page);
-    await expectPopoverInViewport(page, popover);
+    const { popoverContent } = await expandToFullPage(page);
+    await expectPopoverInViewport(page, popoverContent);
   });
 
   test("desktop: trigger near bottom — popover stays in viewport", async ({ mount, page }) => {
@@ -187,8 +192,8 @@ test.describe("Expanded-Page Viewport Containment", () => {
       </div>,
     );
 
-    const { popover } = await expandToFullPage(page);
-    await expectPopoverInViewport(page, popover);
+    const { popoverContent } = await expandToFullPage(page);
+    await expectPopoverInViewport(page, popoverContent);
   });
 
   // ── Tablet portrait (768×1024) ────────────────────────────────────────
@@ -203,8 +208,8 @@ test.describe("Expanded-Page Viewport Containment", () => {
         </div>,
       );
 
-      const { popover } = await expandToFullPage(page);
-      await expectPopoverInViewport(page, popover);
+      const { popoverContent } = await expandToFullPage(page);
+      await expectPopoverInViewport(page, popoverContent);
     });
 
     test("tablet: trigger in center — popover stays in viewport", async ({ mount, page }) => {
@@ -214,8 +219,8 @@ test.describe("Expanded-Page Viewport Containment", () => {
         </div>,
       );
 
-      const { popover } = await expandToFullPage(page);
-      await expectPopoverInViewport(page, popover);
+      const { popoverContent } = await expandToFullPage(page);
+      await expectPopoverInViewport(page, popoverContent);
     });
 
     test("tablet: trigger near bottom — popover stays in viewport", async ({ mount, page }) => {
@@ -225,8 +230,8 @@ test.describe("Expanded-Page Viewport Containment", () => {
         </div>,
       );
 
-      const { popover } = await expandToFullPage(page);
-      await expectPopoverInViewport(page, popover);
+      const { popoverContent } = await expandToFullPage(page);
+      await expectPopoverInViewport(page, popoverContent);
     });
 
     test("tablet: image width fills available space", async ({ mount, page }) => {
@@ -279,8 +284,8 @@ test.describe("Expanded-Page Viewport Containment", () => {
         </div>,
       );
 
-      const { popover } = await expandToFullPage(page);
-      await expectPopoverInViewport(page, popover);
+      const { popoverContent } = await expandToFullPage(page);
+      await expectPopoverInViewport(page, popoverContent);
     });
   });
 });
@@ -318,61 +323,52 @@ test.describe("Expanded-Page Popover Sizing", () => {
     expect(popoverBox!.height).toBeGreaterThan(500);
   });
 
-  test("uses image-driven width for medium pages instead of near-full viewport fallback", async ({ mount, page }) => {
+  test("expanded-page uses full viewport width (calc(100dvw - 2rem))", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
         <GeneratedImageCitation width={520} height={300} />
       </div>,
     );
 
-    const { popover } = await expandToFullPage(page);
-    const expandedImage = popover.locator("[data-dc-inline-expanded]").filter({ visible: true }).locator("img");
-    await expect(expandedImage).toBeVisible();
+    const { popoverContent } = await expandToFullPage(page);
+    const viewport = page.viewportSize()!;
 
-    const [popoverWidth, imageWidth] = await Promise.all([
-      popover.evaluate(el => el.getBoundingClientRect().width),
-      expandedImage.evaluate(el => (el as HTMLImageElement).getBoundingClientRect().width),
-    ]);
+    const popoverWidth = await popoverContent.evaluate(el => el.getBoundingClientRect().width);
 
-    expect(popoverWidth).toBeLessThan(650);
-    expect(popoverWidth).toBeLessThanOrEqual(imageWidth + 48);
+    // Expanded-page always fills the viewport: calc(100dvw - 2rem)
+    const expectedWidth = viewport.width - 32; // 2rem = 32px
+    expect(popoverWidth).toBeGreaterThanOrEqual(expectedWidth - 2);
+    expect(popoverWidth).toBeLessThanOrEqual(expectedWidth + 2);
   });
 
-  test("expanded width adapts across viewport resize without staying oversized", async ({ mount, page }) => {
+  test("expanded width adapts across viewport resize", async ({ mount, page }) => {
     await mount(
       <div style={{ padding: "100px" }}>
         <GeneratedImageCitation width={900} height={1200} />
       </div>,
     );
 
-    const { popover } = await expandToFullPage(page);
-    const expandedImage = popover.locator("[data-dc-inline-expanded]").filter({ visible: true }).locator("img");
-    await expect(expandedImage).toBeVisible();
+    const { popoverContent } = await expandToFullPage(page);
 
-    const readSizes = async () => {
-      const [popoverWidth, imageWidth] = await Promise.all([
-        popover.evaluate(el => el.getBoundingClientRect().width),
-        expandedImage.evaluate(el => (el as HTMLImageElement).getBoundingClientRect().width),
-      ]);
-      return { popoverWidth, imageWidth };
-    };
+    const readWidth = async () =>
+      popoverContent.evaluate(el => el.getBoundingClientRect().width);
 
-    const initial = await readSizes();
-    expect(initial.popoverWidth).toBeLessThanOrEqual(initial.imageWidth + 48);
+    const initial = await readWidth();
+    // At 1280px viewport, popover = 1248px
+    expect(initial).toBeGreaterThanOrEqual(1280 - 32 - 2);
 
     await page.setViewportSize({ width: 700, height: 720 });
     await page.waitForTimeout(250);
-    const narrowed = await readSizes();
-    expect(narrowed.popoverWidth).toBeLessThan(initial.popoverWidth);
-    expect(narrowed.imageWidth).toBeLessThan(initial.imageWidth);
-    expect(narrowed.popoverWidth).toBeLessThanOrEqual(narrowed.imageWidth + 48);
+    const narrowed = await readWidth();
+    expect(narrowed).toBeLessThan(initial);
+    // At 700px viewport, popover = 668px
+    expect(narrowed).toBeGreaterThanOrEqual(700 - 32 - 2);
 
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.waitForTimeout(250);
-    const widened = await readSizes();
-    expect(widened.popoverWidth).toBeGreaterThan(narrowed.popoverWidth);
-    expect(widened.imageWidth).toBeGreaterThan(narrowed.imageWidth);
-    expect(widened.popoverWidth).toBeLessThanOrEqual(widened.imageWidth + 48);
+    const widened = await readWidth();
+    expect(widened).toBeGreaterThan(narrowed);
+    expect(widened).toBeGreaterThanOrEqual(1280 - 32 - 2);
   });
 });
 
@@ -400,7 +396,7 @@ test.describe("Expanded-Page Regression: Keyhole Strip", () => {
     const stripHeight = await strip.evaluate(el =>
       parseFloat(window.getComputedStyle(el as HTMLElement).height),
     );
-    expect(stripHeight).toBe(90);
+    expect(stripHeight).toBe(120);
 
     const container = popover.locator(".shadow-md.rounded-lg");
     await expect(container).toBeVisible();

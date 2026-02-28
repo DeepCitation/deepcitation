@@ -37,6 +37,7 @@ import type {
   CitationVariant,
   IndicatorVariant,
 } from "./types.js";
+import { safeWindowOpen } from "./urlUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey } from "./utils.js";
 
 // Re-export types for convenience
@@ -171,9 +172,17 @@ export interface CitationComponentProps extends BaseCitationProps {
    */
   faviconUrl?: string;
   /**
+   * @deprecated Use `indicatorVariant="none"` instead. Setting `showIndicator={false}`
+   * is equivalent to `indicatorVariant="none"`. This prop will be removed in the next
+   * major version.
+   */
+  showIndicator?: boolean;
+  /**
    * Visual style for status indicators.
    * - `"icon"`: Checkmarks, spinner, X icons (default)
    * - `"dot"`: Subtle colored dots (like GitHub status dots / shadcn badge dots)
+   * - `"caret"`: Disclosure chevron that flips when popover opens
+   * - `"none"`: Hidden — no indicator rendered
    * @default "icon"
    */
   indicatorVariant?: IndicatorVariant;
@@ -360,7 +369,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       renderPopoverContent,
       additionalCount,
       faviconUrl,
-      indicatorVariant = "icon",
+      showIndicator: _showIndicator, // Deprecated — mapped to indicatorVariant below
+      indicatorVariant: indicatorVariantProp = "icon",
       sourceLabel,
       onTimingEvent,
       onSourceDownload,
@@ -377,6 +387,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             "The component now always uses click-to-show-popover behavior.",
         );
       }
+      if (_showIndicator !== undefined && !deprecationWarned.has("showIndicator")) {
+        deprecationWarned.add("showIndicator");
+        console.warn(
+          "CitationComponent: showIndicator prop is deprecated and will be removed in the next major version. " +
+            'Use indicatorVariant="none" to hide indicators.',
+        );
+      }
       if (eventHandlers?.onClick && behaviorConfig?.onClick && !deprecationWarned.has("eventHandlers.onClick")) {
         deprecationWarned.add("eventHandlers.onClick");
         console.warn(
@@ -386,11 +403,15 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       }
     }
 
+    // Compat: showIndicator={false} → indicatorVariant="none"
+    const indicatorVariant: IndicatorVariant =
+      _showIndicator === false && indicatorVariantProp === "icon" ? "none" : indicatorVariantProp;
+
     // Resolve effective download handler: explicit callback wins, else open downloadUrl
     const effectiveOnSourceDownload = useMemo(() => {
       if (onSourceDownload) return onSourceDownload;
       if (downloadUrl) {
-        return () => window.open(downloadUrl, "_blank");
+        return () => safeWindowOpen(downloadUrl);
       }
       return undefined;
     }, [onSourceDownload, downloadUrl]);

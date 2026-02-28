@@ -57,7 +57,13 @@ export function useAnimatedHeight(
     // Skip animation when height is shrinking: pinning the wrapper to the old
     // (larger) height creates a visible gap below the shorter content. Only
     // animate growing content (text gradually revealed via overflow:hidden).
-    if (newHeight < oldHeight) return;
+    // Clear any stale inline styles from a previous interrupted grow animation.
+    if (newHeight < oldHeight) {
+      wrapper.style.height = "";
+      wrapper.style.overflow = "";
+      wrapper.style.transition = "";
+      return;
+    }
 
     // Cancel any in-flight animation frame from a previous rapid toggle
     cancelAnimationFrame(rafIdRef.current);
