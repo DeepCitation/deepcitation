@@ -20,9 +20,11 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  * - No `useState` → no re-renders → React Compiler friendly.
  *
  * Animation safety:
- * - The synchronous `useLayoutEffect` only clamps on initial open. View-state
- *   transitions only CLEAR stale corrections (no re-measure) to avoid reading
- *   the DOM before Radix has applied updated sideOffset/alignOffset props.
+ * - The synchronous `useLayoutEffect` clamps on initial open AND on view-state
+ *   transitions. On view-state change, stale corrections are cleared immediately
+ *   and a `requestAnimationFrame` schedules a re-clamp — rAF fires after all
+ *   `useLayoutEffect`s and microtasks (including Floating UI's `computePosition`)
+ *   but before the next paint, so we measure the final Radix-positioned rect.
  * - The ResizeObserver is debounced by SETTLE_MS (> morph duration + overshoot)
  *   so the guard never fires during CSS transitions.
  */
@@ -37,15 +39,21 @@ export function useViewportBoundaryGuard(
   popoverContentRef: React.RefObject<HTMLElement | null>,
 ): void {
   const prevViewStateRef = useRef<PopoverViewState | null>(null);
+  const rafIdRef = useRef<number>(0);
 
-  // Unified layout effect: clamps on initial open, clears on view-state
-  // transitions. Uses prevViewStateRef to distinguish the two cases.
+  // Unified layout effect: clamps on initial open and on view-state transitions.
+  // Uses prevViewStateRef to distinguish the two cases.
   //
-  // Bug fix: the previous two-effect approach had the [popoverViewState]
-  // effect unconditionally clearing translate="" on mount, undoing the
-  // [isOpen] effect's clamp before first paint.
+  // On view-state change, clears stale correction immediately and schedules
+  // a rAF re-clamp. rAF fires after all useLayoutEffects and microtasks
+  // (including Floating UI's computePosition().then()) but before the next
+  // paint — so we measure the final Radix-positioned rect.
   // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity — refs should not be in deps per React docs
   useLayoutEffect(() => {
+    // Cancel any pending rAF from a previous rapid view-state toggle.
+    cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = 0;
+
     const el = popoverContentRef.current;
     if (!isOpen || !el) {
       // Clear correction when closing so it doesn't persist across cycles.
@@ -58,11 +66,12 @@ export function useViewportBoundaryGuard(
     prevViewStateRef.current = popoverViewState;
 
     if (isViewStateChange) {
-      // View-state transition: clear stale correction only. The sideOffset/
-      // alignOffset state updates from other hooks haven't flushed yet, so
-      // measuring here would read stale positioning. The debounced
-      // ResizeObserver re-clamps after the morph animation settles.
+      // Clear stale correction immediately (before paint).
       el.style.translate = "";
+      // Re-clamp after Radix has repositioned. rAF fires after all
+      // useLayoutEffects and microtasks but before the next paint,
+      // so we measure the final Radix-positioned rect.
+      rafIdRef.current = requestAnimationFrame(() => clamp(el));
       return;
     }
 
@@ -97,6 +106,7 @@ export function useViewportBoundaryGuard(
     window.addEventListener("resize", onResize);
 
     return () => {
+      cancelAnimationFrame(rafIdRef.current);
       clearTimeout(timerId);
       ro.disconnect();
       window.removeEventListener("resize", onResize);

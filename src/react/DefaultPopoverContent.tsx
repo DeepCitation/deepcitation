@@ -251,12 +251,15 @@ function PopoverLayoutShell({
   summaryWidth: string;
   children: ReactNode;
 }) {
-  // Stay at summaryWidth until the real expanded width is known. This avoids
-  // a jarring jump to the mid-width fallback (EXPANDED_POPOVER_MID_WIDTH) that
-  // would flash a blank gap in the header before the image fills the space.
-  // Width is pre-set in click handlers (batched with viewState) for instant sizing.
-  const shellWidth =
-    isExpanded && expandedNaturalWidth !== null ? getExpandedPopoverWidth(expandedNaturalWidth) : summaryWidth;
+  // expanded-page fills the entire viewport — use viewport width immediately so
+  // width and height snap in the same frame (no narrow-tall intermediate state).
+  // For expanded-evidence, stay at summaryWidth until the real expanded width is
+  // known to avoid a jarring jump to the mid-width fallback.
+  const shellWidth = isFullPage
+    ? "calc(100dvw - 2rem)"
+    : isExpanded && expandedNaturalWidth !== null
+      ? getExpandedPopoverWidth(expandedNaturalWidth)
+      : summaryWidth;
   return (
     <Activity mode={isVisible ? "visible" : "hidden"}>
       <div

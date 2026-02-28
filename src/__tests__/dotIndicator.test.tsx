@@ -99,14 +99,9 @@ describe("Dot Indicator Variant", () => {
       expect(getByTestId("custom")).toBeInTheDocument();
     });
 
-    it("showIndicator=false hides dot indicator", () => {
+    it('indicatorVariant="none" hides dot indicator', () => {
       const { container } = render(
-        <CitationComponent
-          citation={baseCitation}
-          verification={verifiedVerification}
-          indicatorVariant="dot"
-          showIndicator={false}
-        />,
+        <CitationComponent citation={baseCitation} verification={verifiedVerification} indicatorVariant="none" />,
       );
       // No dot indicator should be present
       const greenDots = container.querySelectorAll(".bg-green-600.rounded-full");

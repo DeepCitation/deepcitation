@@ -171,11 +171,6 @@ export interface CitationComponentProps extends BaseCitationProps {
    */
   faviconUrl?: string;
   /**
-   * Whether to show the status indicator (checkmark, warning, spinner).
-   * Defaults to true. Set to false to hide the indicator.
-   */
-  showIndicator?: boolean;
-  /**
    * Visual style for status indicators.
    * - `"icon"`: Checkmarks, spinner, X icons (default)
    * - `"dot"`: Subtle colored dots (like GitHub status dots / shadcn badge dots)
@@ -203,6 +198,12 @@ export interface CitationComponentProps extends BaseCitationProps {
    * ```
    */
   onSourceDownload?: (citation: Citation) => void;
+  /**
+   * Signed download URL for the source file. When provided (and `onSourceDownload`
+   * is not set), the popover download button will open this URL in a new tab.
+   * `onSourceDownload` takes precedence when both are provided.
+   */
+  downloadUrl?: string;
 }
 
 // getStatusLabel, getTrustLevel, isLowTrustMatch, getStatusFromVerification
@@ -359,11 +360,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       renderPopoverContent,
       additionalCount,
       faviconUrl,
-      showIndicator = true,
       indicatorVariant = "icon",
       sourceLabel,
       onTimingEvent,
       onSourceDownload,
+      downloadUrl,
     },
     ref,
   ) => {
@@ -384,6 +385,15 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         );
       }
     }
+
+    // Resolve effective download handler: explicit callback wins, else open downloadUrl
+    const effectiveOnSourceDownload = useMemo(() => {
+      if (onSourceDownload) return onSourceDownload;
+      if (downloadUrl) {
+        return () => window.open(downloadUrl, "_blank");
+      }
+      return undefined;
+    }, [onSourceDownload, downloadUrl]);
 
     // Get overlay context for blocking hover when any image overlay is open
     const { isAnyOverlayOpen } = useCitationOverlay();
@@ -1004,7 +1014,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const indicatorProps: CitationStatusIndicatorProps = {
       renderIndicator,
       status,
-      showIndicator,
       indicatorVariant,
       shouldShowSpinner,
       isVerified,
@@ -1012,6 +1021,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       isMiss,
       spinnerStage,
       isOpen: isHovering,
+      popoverSide: lockedSide,
     };
 
     // Build the citation content element using the extracted module-level components
@@ -1029,7 +1039,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         isPartialMatch={isPartialMatch}
         isMiss={isMiss}
         shouldShowSpinner={shouldShowSpinner}
-        showIndicator={showIndicator}
         faviconUrl={faviconUrl}
         additionalCount={additionalCount}
         indicatorProps={indicatorProps}
@@ -1116,7 +1125,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           onViewStateChange={setPopoverViewState}
           expandedImageSrcOverride={customExpandedSrc}
           prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
-          onSourceDownload={onSourceDownload}
+          onSourceDownload={effectiveOnSourceDownload}
         />
       );
 
@@ -1186,9 +1195,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                 popoverViewState === "expanded-page"
                   ? {
                       // Override base maxWidth (480px) to allow full-viewport expansion.
-                      // No explicit `width` — PopoverLayoutShell drives content width via
-                      // w-fit, preventing a jarring gap when the outer container is wider
-                      // than its content before the image loads.
+                      // Explicit width ensures the outer container (w-fit) doesn't
+                      // constrain to content width — both width and height snap to
+                      // viewport dimensions in the same frame.
+                      width: "calc(100dvw - 2rem)",
                       maxWidth: "calc(100dvw - 2rem)",
                       // Explicit height gives the flex chain a definite reference size
                       // so flex-1 min-h-0 children can grow into available space.

@@ -54,6 +54,11 @@ export function useAnimatedHeight(
     // Bail out: first render, no viewState change, or same height
     if (oldHeight === null || !viewStateChanged || oldHeight === newHeight) return;
 
+    // Skip animation when height is shrinking: pinning the wrapper to the old
+    // (larger) height creates a visible gap below the shorter content. Only
+    // animate growing content (text gradually revealed via overflow:hidden).
+    if (newHeight < oldHeight) return;
+
     // Cancel any in-flight animation frame from a previous rapid toggle
     cancelAnimationFrame(rafIdRef.current);
 

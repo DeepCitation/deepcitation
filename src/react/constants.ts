@@ -270,6 +270,15 @@ export const CARET_INDICATOR_SIZE_STYLE: React.CSSProperties = {
 };
 
 /**
+ * Pill wrapper padding for the caret indicator variant.
+ * Adds subtle padding around the 0.7em icon, bringing total diameter to ~0.9em.
+ * Background color and border-radius applied via Tailwind classes (conditional on state).
+ */
+export const CARET_PILL_STYLE: React.CSSProperties = {
+  padding: "0.1em",
+};
+
+/**
  * Fixed-size dot indicator for non-inline contexts (drawers, wrappers, badges).
  * Uses fixed 6px instead of em units because these contexts have their own
  * fixed-size containers that handle proportional sizing.

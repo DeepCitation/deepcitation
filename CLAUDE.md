@@ -69,7 +69,7 @@ src/
 │   ├── UrlCitationComponent.tsx
 │   ├── citationStatus.ts          # Status derivation, isPartialSearchStatus(), getTrustLevel()
 │   ├── citationVariants.cva.ts    # Variant class resolvers, status styles
-│   ├── constants.ts      # MISS_WAVY_UNDERLINE_STYLE, DOT_INDICATOR_*_STYLE, CARET_INDICATOR_SIZE_STYLE, isValidProofImageSrc(), getPortalContainer()
+│   ├── constants.ts      # MISS_WAVY_UNDERLINE_STYLE, DOT_INDICATOR_*_STYLE, CARET_INDICATOR_SIZE_STYLE, CARET_PILL_STYLE, isValidProofImageSrc(), getPortalContainer()
 │   ├── expandedWidthPolicy.ts  # EXPANDED_POPOVER_MID_WIDTH, getExpandedPopoverWidth()
 │   ├── imageUtils.ts     # handleImageError() — shared image error handler
 │   ├── outcomeLabel.ts            # deriveOutcomeLabel() — shared outcome label logic
@@ -190,6 +190,7 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `DOT_INDICATOR_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (inline, em-based) |
 | `DOT_INDICATOR_FIXED_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (drawers/wrappers, fixed px) |
 | `CARET_INDICATOR_SIZE_STYLE` | `src/react/constants.ts` | Caret indicator sizing (0.7em, between dot and icon) |
+| `CARET_PILL_STYLE` | `src/react/constants.ts` | Pill wrapper padding for caret indicator |
 | `ChevronDownIcon` | `src/react/icons.tsx` | Down chevron for caret indicator variant |
 | `HighlightedPhrase` | `src/react/HighlightedPhrase.tsx` | Shared fullPhrase highlight component |
 | `formatCaptureDate()` | `src/react/dateUtils.ts` | Date formatting for timestamps |

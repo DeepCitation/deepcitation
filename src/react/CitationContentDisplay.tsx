@@ -33,7 +33,6 @@ export interface CitationContentDisplayProps {
   isPartialMatch: boolean;
   isMiss: boolean;
   shouldShowSpinner: boolean;
-  showIndicator: boolean;
   faviconUrl?: string;
   additionalCount?: number;
   indicatorProps: CitationStatusIndicatorProps;
@@ -58,7 +57,6 @@ export const CitationContentDisplay = ({
   isPartialMatch,
   isMiss,
   shouldShowSpinner,
-  showIndicator,
   faviconUrl,
   additionalCount,
   indicatorProps,
@@ -259,7 +257,7 @@ export const CitationContentDisplay = ({
     return (
       <span className={linterClasses} style={linterStyles}>
         {displayText}
-        {showIndicator && indicator}
+        {indicator}
       </span>
     );
   }

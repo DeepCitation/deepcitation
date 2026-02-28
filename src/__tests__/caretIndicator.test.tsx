@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, mock } from "@jest/globals";
 import { cleanup, render } from "@testing-library/react";
 import type React from "react";
-import { CARET_INDICATOR_SIZE_STYLE, INDICATOR_SIZE_STYLE } from "../react/constants";
 import { CitationStatusIndicator } from "../react/CitationStatusIndicator";
+import { CARET_INDICATOR_SIZE_STYLE, CARET_PILL_STYLE, INDICATOR_SIZE_STYLE } from "../react/constants";
 import type { CitationStatus } from "../types/citation";
 
 // Mock createPortal to render content in place instead of portal
@@ -16,7 +16,6 @@ mock.module("react-dom", () => ({
 
 const baseProps = {
   status: "found" as CitationStatus,
-  showIndicator: true,
   indicatorVariant: "caret" as const,
   shouldShowSpinner: false,
   isVerified: true,
@@ -25,42 +24,110 @@ const baseProps = {
   spinnerStage: "active" as const,
 };
 
+/** Helper: get the inner icon span (child of the pill wrapper). */
+function getIconSpan(container: HTMLElement): HTMLElement {
+  const pill = container.querySelector("[data-dc-indicator]") as HTMLElement;
+  // Inner span is the direct child span that holds the SVG
+  const inner = pill?.querySelector(":scope > span") as HTMLElement;
+  return inner;
+}
+
 describe("Caret Indicator Variant", () => {
   afterEach(() => {
     cleanup();
   });
 
   // ==========================================================================
-  // RENDERING
+  // PILL STRUCTURE
   // ==========================================================================
 
-  it("renders chevron-down SVG for caret variant", () => {
+  it("renders pill wrapper with rounded-full and SVG inside inner span", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} />);
-    const svg = container.querySelector("svg");
-    expect(svg).toBeInTheDocument();
-    const indicator = container.querySelector("[data-dc-indicator='caret']");
-    expect(indicator).toBeInTheDocument();
+    const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
+    expect(pill).toBeInTheDocument();
+    expect(pill.classList.contains("rounded-full")).toBe(true);
+    // SVG is inside the inner icon span
+    const inner = getIconSpan(container);
+    expect(inner).toBeTruthy();
+    expect(inner.querySelector("svg")).toBeInTheDocument();
   });
 
-  it("applies rotate(0deg) when isOpen is false", () => {
-    const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={false} />);
-    const indicator = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
-    expect(indicator).toBeInTheDocument();
-    expect(indicator.style.transform).toBe("rotate(0deg)");
+  // ==========================================================================
+  // SIDE-AWARE ROTATION
+  // ==========================================================================
+
+  it("rotates 180deg when popoverSide=top and isOpen=true", () => {
+    const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={true} popoverSide="top" />);
+    const inner = getIconSpan(container);
+    expect(inner.style.transform).toBe("rotate(180deg)");
   });
 
-  it("applies rotate(180deg) when isOpen is true", () => {
+  it("stays at 0deg when popoverSide=bottom and isOpen=true", () => {
+    const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={true} popoverSide="bottom" />);
+    const inner = getIconSpan(container);
+    expect(inner.style.transform).toBe("rotate(0deg)");
+  });
+
+  it("stays at 0deg when popoverSide is undefined and isOpen=true", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={true} />);
-    const indicator = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
-    expect(indicator).toBeInTheDocument();
-    expect(indicator.style.transform).toBe("rotate(180deg)");
+    const inner = getIconSpan(container);
+    expect(inner.style.transform).toBe("rotate(0deg)");
   });
 
-  it("defaults to rotate(0deg) when isOpen is undefined", () => {
-    const { container } = render(<CitationStatusIndicator {...baseProps} />);
-    const indicator = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
-    expect(indicator).toBeInTheDocument();
-    expect(indicator.style.transform).toBe("rotate(0deg)");
+  it("stays at 0deg when closed regardless of popoverSide", () => {
+    const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={false} popoverSide="top" />);
+    const inner = getIconSpan(container);
+    expect(inner.style.transform).toBe("rotate(0deg)");
+  });
+
+  // ==========================================================================
+  // ACTIVE DARKENING
+  // ==========================================================================
+
+  it("uses darker gray (text-gray-600) when open", () => {
+    const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={true} popoverSide="bottom" />);
+    const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
+    expect(pill.classList.contains("text-gray-600")).toBe(true);
+  });
+
+  it("uses lighter gray (text-gray-400) when closed", () => {
+    const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={false} />);
+    const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
+    expect(pill.classList.contains("text-gray-400")).toBe(true);
+  });
+
+  // ==========================================================================
+  // MISS → RED
+  // ==========================================================================
+
+  it("uses caret-error data attribute and red classes when miss", () => {
+    const { container } = render(
+      <CitationStatusIndicator {...baseProps} isVerified={false} isMiss={true} status={"not_found"} />,
+    );
+    const pill = container.querySelector("[data-dc-indicator='caret-error']") as HTMLElement;
+    expect(pill).toBeInTheDocument();
+    expect(pill.classList.contains("text-red-500")).toBe(true);
+    expect(pill.classList.contains("bg-red-50")).toBe(true);
+  });
+
+  // ==========================================================================
+  // VERIFIED/PARTIAL → GRAY (status-agnostic for non-miss)
+  // ==========================================================================
+
+  it("renders gray caret for verified status", () => {
+    const { container } = render(<CitationStatusIndicator {...baseProps} isVerified={true} />);
+    const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
+    expect(pill).toBeInTheDocument();
+    expect(pill.classList.contains("text-gray-400")).toBe(true);
+  });
+
+  it("renders gray caret for partial status", () => {
+    const { container } = render(
+      <CitationStatusIndicator {...baseProps} isVerified={false} isPartialMatch={true} status={"partial"} />,
+    );
+    const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
+    expect(pill).toBeInTheDocument();
+    expect(pill.classList.contains("text-gray-400")).toBe(true);
   });
 
   // ==========================================================================
@@ -75,42 +142,19 @@ describe("Caret Indicator Variant", () => {
     expect(caret).not.toBeInTheDocument();
   });
 
-  // ==========================================================================
-  // STATUS AGNOSTIC
-  // ==========================================================================
-
-  it("renders neutral gray caret regardless of verification status", () => {
-    // Verified
-    const { container: v } = render(<CitationStatusIndicator {...baseProps} isVerified={true} />);
-    const caretV = v.querySelector("[data-dc-indicator='caret']");
-    expect(caretV).toBeInTheDocument();
-    expect(caretV?.classList.contains("text-gray-400")).toBe(true);
-    cleanup();
-
-    // Miss
-    const { container: m } = render(
-      <CitationStatusIndicator {...baseProps} isVerified={false} isMiss={true} status={"not_found"} />,
-    );
-    const caretM = m.querySelector("[data-dc-indicator='caret']");
-    expect(caretM).toBeInTheDocument();
-    expect(caretM?.classList.contains("text-gray-400")).toBe(true);
-    cleanup();
-
-    // Partial
-    const { container: p } = render(
-      <CitationStatusIndicator {...baseProps} isVerified={false} isPartialMatch={true} status={"partial"} />,
-    );
-    const caretP = p.querySelector("[data-dc-indicator='caret']");
-    expect(caretP).toBeInTheDocument();
-    expect(caretP?.classList.contains("text-gray-400")).toBe(true);
+  it("wraps spinner in pill with rounded-full", () => {
+    const { container } = render(<CitationStatusIndicator {...baseProps} shouldShowSpinner={true} />);
+    const pill = container.querySelector("[data-dc-indicator='pending']") as HTMLElement;
+    expect(pill).toBeInTheDocument();
+    expect(pill.classList.contains("rounded-full")).toBe(true);
   });
 
   // ==========================================================================
   // HIDDEN STATES
   // ==========================================================================
 
-  it("returns null when showIndicator is false", () => {
-    const { container } = render(<CitationStatusIndicator {...baseProps} showIndicator={false} />);
+  it('returns null when indicatorVariant is "none"', () => {
+    const { container } = render(<CitationStatusIndicator {...baseProps} indicatorVariant="none" />);
     expect(container.innerHTML).toBe("");
   });
 
@@ -129,6 +173,12 @@ describe("Caret Indicator Variant", () => {
       expect(Number.parseFloat(CARET_INDICATOR_SIZE_STYLE.width as string)).toBeGreaterThan(0.4);
       expect(Number.parseFloat(CARET_INDICATOR_SIZE_STYLE.width as string)).toBeLessThan(0.85);
       expect(Number.parseFloat(INDICATOR_SIZE_STYLE.width as string)).toBe(0.85);
+    });
+  });
+
+  describe("CARET_PILL_STYLE", () => {
+    it("has correct padding", () => {
+      expect(CARET_PILL_STYLE.padding).toBe("0.1em");
     });
   });
 });

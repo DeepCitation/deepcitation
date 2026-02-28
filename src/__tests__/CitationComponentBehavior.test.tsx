@@ -160,11 +160,11 @@ describe("CitationComponent behaviorConfig", () => {
   });
 
   // ==========================================================================
-  // SHOW INDICATOR PROP TESTS
+  // INDICATOR VARIANT "none" TESTS
   // ==========================================================================
 
-  describe("showIndicator prop", () => {
-    it("shows indicator by default (showIndicator=true)", () => {
+  describe('indicatorVariant="none"', () => {
+    it("shows indicator by default (indicatorVariant=icon)", () => {
       const { container } = render(
         <CitationComponent citation={baseCitation} verification={verificationWithoutImage} />,
       );
@@ -174,9 +174,9 @@ describe("CitationComponent behaviorConfig", () => {
       expect(greenCheck).toBeInTheDocument();
     });
 
-    it("hides indicator when showIndicator=false", () => {
+    it('hides indicator when indicatorVariant="none"', () => {
       const { container } = render(
-        <CitationComponent citation={baseCitation} verification={verificationWithoutImage} showIndicator={false} />,
+        <CitationComponent citation={baseCitation} verification={verificationWithoutImage} indicatorVariant="none" />,
       );
 
       // Should NOT have any status indicators
@@ -189,9 +189,9 @@ describe("CitationComponent behaviorConfig", () => {
       expect(spinner).not.toBeInTheDocument();
     });
 
-    it("hides spinner when showIndicator=false and isPending", () => {
+    it('hides spinner when indicatorVariant="none" and isPending', () => {
       const { container } = render(
-        <CitationComponent citation={baseCitation} verification={pendingVerification} showIndicator={false} />,
+        <CitationComponent citation={baseCitation} verification={pendingVerification} indicatorVariant="none" />,
       );
 
       // Should NOT have spinner
@@ -199,7 +199,7 @@ describe("CitationComponent behaviorConfig", () => {
       expect(spinner).not.toBeInTheDocument();
     });
 
-    it("custom renderIndicator takes precedence over showIndicator=false", () => {
+    it('custom renderIndicator takes precedence over indicatorVariant="none"', () => {
       const customIndicator = <span data-testid="custom-indicator">Custom</span>;
 
       const { container, getByTestId } = render(
@@ -207,7 +207,7 @@ describe("CitationComponent behaviorConfig", () => {
           citation={baseCitation}
           verification={verificationWithoutImage}
           variant="brackets"
-          showIndicator={false}
+          indicatorVariant="none"
           renderIndicator={() => customIndicator}
         />,
       );
@@ -220,13 +220,13 @@ describe("CitationComponent behaviorConfig", () => {
       expect(greenCheck).not.toBeInTheDocument();
     });
 
-    it("hides X circle indicator for not_found when showIndicator=false", () => {
+    it('hides X circle indicator for not_found when indicatorVariant="none"', () => {
       const { container } = render(
         <CitationComponent
           citation={baseCitation}
           verification={missVerification}
           variant="brackets"
-          showIndicator={false}
+          indicatorVariant="none"
         />,
       );
 

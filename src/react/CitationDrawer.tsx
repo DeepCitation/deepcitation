@@ -723,7 +723,7 @@ function IndicatorRow({
   citations: CitationDrawerItem[];
   activeKey: string | null;
   onToggle: (key: string) => void;
-  indicatorVariant: "icon" | "dot";
+  indicatorVariant: IndicatorVariant;
 }) {
   return (
     <div className="flex items-center gap-2 px-4 py-1.5 border-t border-gray-100 dark:border-gray-800">
