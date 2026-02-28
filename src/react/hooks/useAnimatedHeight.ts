@@ -7,7 +7,7 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  *
  * Uses an imperative `useLayoutEffect` approach — zero React re-renders:
  * 1. `useLayoutEffect` fires after DOM commit, before paint.
- * 2. Measure new content height (`contentRef.scrollHeight`).
+ * 2. Measure new content height (`contentRef.getBoundingClientRect().height`).
  * 3. Pin wrapper to the **old** height (stored in `prevHeightRef`) — browser
  *    paints the old height, no visual jump.
  * 4. In the next `requestAnimationFrame`, set the new height with a CSS
@@ -17,7 +17,7 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  * Bail-out conditions: first render, no viewState change, same height.
  *
  * @param wrapperRef - Outer div whose `style.height` is manipulated
- * @param contentRef - Inner div measured via `scrollHeight`
+ * @param contentRef - Inner div measured via `getBoundingClientRect().height`
  * @param viewState  - Current popover view state (triggers animation on change)
  * @param expandDurationMs  - Duration for expand transitions (summary → expanded)
  * @param collapseDurationMs - Duration for collapse transitions (expanded → summary)
@@ -43,7 +43,7 @@ export function useAnimatedHeight(
     const content = contentRef.current;
     if (!wrapper || !content) return;
 
-    const newHeight = content.scrollHeight;
+    const newHeight = content.getBoundingClientRect().height;
     const oldHeight = prevHeightRef.current;
     const viewStateChanged = viewState !== prevViewStateRef.current;
 

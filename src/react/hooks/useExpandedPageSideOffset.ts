@@ -1,5 +1,6 @@
 import type React from "react";
 import { useLayoutEffect, useState } from "react";
+import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 
 /**
@@ -26,7 +27,6 @@ export function useExpandedPageSideOffset(
   const [offset, setOffset] = useState<number | undefined>(undefined);
   // biome-ignore lint/correctness/useExhaustiveDependencies: triggerRef has stable identity — refs should not be in deps per React docs
   useLayoutEffect(() => {
-    const VIEWPORT_MARGIN = 16; // 1rem
     const triggerRect = popoverViewState === "expanded-page" ? triggerRef.current?.getBoundingClientRect() : null;
     if (!triggerRect) {
       setOffset(undefined);
@@ -34,8 +34,8 @@ export function useExpandedPageSideOffset(
     }
     setOffset(
       lockedSide === "bottom"
-        ? VIEWPORT_MARGIN - triggerRect.bottom
-        : triggerRect.top - (window.innerHeight - VIEWPORT_MARGIN),
+        ? VIEWPORT_MARGIN_PX - triggerRect.bottom
+        : triggerRect.top - (window.innerHeight - VIEWPORT_MARGIN_PX),
     );
   }, [popoverViewState, lockedSide]);
   return offset;

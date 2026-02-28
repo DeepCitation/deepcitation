@@ -1626,7 +1626,7 @@ export function InlineExpandedImage({
             key={src}
             className={cn(
               "animate-in fade-in-0",
-              fill && annotationOrigin ? "zoom-in-95 duration-[180ms]" : "zoom-in-[0.97] duration-150",
+              fill && annotationOrigin ? "zoom-in-95 duration-[180ms]" : fill ? "zoom-in-[0.97] duration-150" : "duration-150",
               fill && "fill-mode-backwards",
             )}
             style={{

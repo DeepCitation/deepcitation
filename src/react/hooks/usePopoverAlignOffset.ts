@@ -1,5 +1,6 @@
 import type React from "react";
-import { useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 
 /**
@@ -13,6 +14,9 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  *
  * Uses useLayoutEffect (runs before paint) so the offset is applied before the
  * popover is visible — no flash of wrong position.
+ *
+ * Reactivity: ResizeObserver on popover element + window resize listener
+ * catch late-arriving width changes (image loads, viewport resize).
  *
  * Math (with align="center"):
  *   idealLeft  = triggerCenter - popoverWidth / 2
@@ -28,8 +32,9 @@ export function usePopoverAlignOffset(
 ): number {
   const [offset, setOffset] = useState(0);
 
+  // Shared measurement logic — called from both useLayoutEffect and observers.
   // biome-ignore lint/correctness/useExhaustiveDependencies: triggerRef and popoverContentRef have stable identity — refs should not be in deps per React docs
-  useLayoutEffect(() => {
+  const recompute = useCallback(() => {
     if (!isOpen) {
       setOffset(0);
       return;
@@ -42,7 +47,6 @@ export function usePopoverAlignOffset(
       return;
     }
 
-    const MARGIN = 16; // 1rem — matches viewport margin used elsewhere
     const viewportWidth = window.innerWidth;
     const popoverWidth = popoverEl.getBoundingClientRect().width;
     const triggerCenter = triggerRect.left + triggerRect.width / 2;
@@ -53,14 +57,40 @@ export function usePopoverAlignOffset(
     const idealLeft = triggerCenter - popoverWidth / 2;
     const idealRight = triggerCenter + popoverWidth / 2;
 
-    if (idealLeft < MARGIN) {
-      setOffset(MARGIN - idealLeft);
-    } else if (idealRight > viewportWidth - MARGIN) {
-      setOffset(viewportWidth - MARGIN - idealRight);
+    if (idealLeft < VIEWPORT_MARGIN_PX) {
+      setOffset(VIEWPORT_MARGIN_PX - idealLeft);
+    } else if (idealRight > viewportWidth - VIEWPORT_MARGIN_PX) {
+      setOffset(viewportWidth - VIEWPORT_MARGIN_PX - idealRight);
     } else {
       setOffset(0);
     }
-  }, [isOpen, popoverViewState]);
+  }, [isOpen]);
+
+  // Initial computation + re-run on viewState change (before paint).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: recompute is stable via useCallback; popoverViewState triggers re-measurement
+  useLayoutEffect(() => {
+    recompute();
+  }, [recompute, popoverViewState]);
+
+  // Reactive re-computation: ResizeObserver catches popover content reflow
+  // (image loads, dynamic content), window resize catches viewport changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity — refs should not be in deps per React docs
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const popoverEl = popoverContentRef.current;
+    if (!popoverEl) return;
+
+    const ro = new ResizeObserver(() => recompute());
+    ro.observe(popoverEl);
+
+    window.addEventListener("resize", recompute);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", recompute);
+    };
+  }, [isOpen, recompute]);
 
   return offset;
 }

@@ -130,6 +130,10 @@ export const EXPANDED_IMAGE_SHELL_PX = 32;
 /** Minimum popover width (px) for content-adaptive sizing. Text-readability floor. */
 export const POPOVER_WIDTH_MIN_PX = 320;
 
+/** Viewport edge margin (px) for popover positioning.
+ *  All positioning hooks clamp to this distance from each viewport edge. */
+export const VIEWPORT_MARGIN_PX = 16;
+
 /** Shell padding (px) around the keyhole image for summary popover sizing.
  *  EvidenceTray m-3 (12px×2) + borders (~4px) + breathing room = 32px. */
 export const SUMMARY_IMAGE_SHELL_PX = 32;

@@ -20,6 +20,7 @@ import { useExpandedPageSideOffset } from "./hooks/useExpandedPageSideOffset.js"
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
 import { usePopoverAlignOffset } from "./hooks/usePopoverAlignOffset.js";
+import { useViewportBoundaryGuard } from "./hooks/useViewportBoundaryGuard.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
@@ -486,6 +487,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // (setState in useLayoutEffect causes a compiler bailout for the entire component).
     const expandedPageSideOffset = useExpandedPageSideOffset(popoverViewState, triggerRef, lockedSide);
     const popoverAlignOffset = usePopoverAlignOffset(isHovering, popoverViewState, triggerRef, popoverContentRef);
+
+    // Layer 3: hard viewport boundary guard. Observes the popover's actual
+    // rendered rect and applies corrective CSS `translate` if any edge overflows.
+    // If Layers 1–2 got it right, the guard is a no-op.
+    useViewportBoundaryGuard(isHovering, popoverViewState, popoverContentRef);
 
     const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);

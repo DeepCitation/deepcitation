@@ -342,7 +342,7 @@ function AnimatedHeightWrapper({ viewState, children }: { viewState: PopoverView
         }
       }}
     >
-      <div ref={contentRef}>{children}</div>
+      <div ref={contentRef} style={{ display: "flow-root" }}>{children}</div>
     </div>
   );
 }

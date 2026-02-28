@@ -87,6 +87,7 @@ src/
 │   │   ├── useCitationEvents.ts     # Click/hover/keyboard event handlers
 │   │   ├── useExpandedPageSideOffset.ts # Expanded-page popover vertical offset
 │   │   ├── usePopoverAlignOffset.ts # Horizontal viewport clamping (replaces shift middleware)
+│   │   ├── useViewportBoundaryGuard.ts # Hard viewport boundary guard (Layer 3 safety net)
 │   │   ├── useAnimatedHeight.ts      # Imperative height animation for viewState transitions
 │   │   └── useAnimationState.ts     # Enter/exit animation lifecycle
 │   └── utils.ts          # generateCitationKey() — CANONICAL LOCATION
@@ -254,6 +255,8 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `useCitationEvents()` | `src/react/hooks/useCitationEvents.ts` | Click/hover/keyboard event handlers |
 | `useExpandedPageSideOffset()` | `src/react/hooks/useExpandedPageSideOffset.ts` | Expanded-page popover vertical offset |
 | `usePopoverAlignOffset()` | `src/react/hooks/usePopoverAlignOffset.ts` | Horizontal viewport clamping (replaces shift middleware) |
+| `useViewportBoundaryGuard()` | `src/react/hooks/useViewportBoundaryGuard.ts` | Hard viewport boundary guard (Layer 3 safety net) |
+| `VIEWPORT_MARGIN_PX` | `src/react/constants.ts` | Viewport edge margin for popover positioning (16px) |
 | `useAnimatedHeight()` | `src/react/hooks/useAnimatedHeight.ts` | Imperative height animation for viewState transitions |
 | `useAnimationState()` | `src/react/hooks/useAnimationState.ts` | Enter/exit animation lifecycle |
 | `EXPANDED_POPOVER_MID_WIDTH` | `src/react/expandedWidthPolicy.ts` | Mid-width fallback for expanded popover states |
@@ -346,11 +349,20 @@ You **can** humanize line IDs into relative positions for location mismatch cont
 
 Pick a side once, stick with it for the popover's entire lifecycle (matches Linear/Notion/Vercel behavior). Handle overflow with CSS constraints, not middleware-based repositioning.
 
+### Three-Layer Positioning Defense
+
+| Layer | Mechanism | Purpose |
+|-------|-----------|---------|
+| 1. Radix | `transform: translate3d(x,y,0)` | Primary positioning |
+| 2. Hooks | `sideOffset` + `alignOffset` props | Optimize common cases |
+| 3. Guard | CSS `translate` property (`useViewportBoundaryGuard`) | Hard safety net — catches everything |
+
 ### How Overflow Is Handled Without Middleware
 
 - **Vertical**: `useLockedPopoverSide` picks top/bottom once on open. `useExpandedPageSideOffset` positions expanded-page at 1rem from viewport edge.
-- **Horizontal**: `usePopoverAlignOffset` measures the rendered popover width and computes an `alignOffset` that clamps the popover within 1rem of both viewport edges (replaces Radix's shift middleware).
+- **Horizontal**: `usePopoverAlignOffset` measures the rendered popover width and computes an `alignOffset` that clamps the popover within 1rem of both viewport edges (replaces Radix's shift middleware). Uses ResizeObserver + window resize for reactive re-computation.
 - **Size**: CSS `maxWidth: calc(100dvw - 2rem)` / `maxHeight: calc(100dvh - 2rem)` constrains all states.
+- **Guard**: `useViewportBoundaryGuard` observes the popover's actual rendered rect and applies corrective CSS `translate` if any edge overflows. Uses CSS `translate` (separate from Radix's `transform`) so corrections compose additively. If Layers 1–2 got it right, the guard is a no-op.
 
 ### Correct Pattern
 
