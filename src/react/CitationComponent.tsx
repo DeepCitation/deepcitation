@@ -13,7 +13,13 @@ import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import type { CitationStatusIndicatorProps, SpinnerStage } from "./CitationStatusIndicator.js";
 import { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
-import { isValidProofImageSrc, SPINNER_TIMEOUT_MS, TAP_SLOP_PX, TOUCH_CLICK_DEBOUNCE_MS } from "./constants.js";
+import {
+  GUARD_MAX_WIDTH_VAR,
+  isValidProofImageSrc,
+  SPINNER_TIMEOUT_MS,
+  TAP_SLOP_PX,
+  TOUCH_CLICK_DEBOUNCE_MS,
+} from "./constants.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
 import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { useExpandedPageSideOffset } from "./hooks/useExpandedPageSideOffset.js";
@@ -1221,11 +1227,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                 popoverViewState === "expanded-page"
                   ? {
                       // Override base maxWidth (480px) to allow full-viewport expansion.
-                      // Explicit width ensures the outer container (w-fit) doesn't
-                      // constrain to content width — both width and height snap to
-                      // viewport dimensions in the same frame.
-                      width: "calc(100dvw - 2rem)",
-                      maxWidth: "calc(100dvw - 2rem)",
+                      // Uses the guard's JS-measured viewport width when available,
+                      // falling back to CSS viewport units for SSR/pre-guard.
+                      width: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
+                      maxWidth: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
                       // Explicit height gives the flex chain a definite reference size
                       // so flex-1 min-h-0 children can grow into available space.
                       height: "calc(100dvh - 2rem)",
@@ -1247,7 +1252,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                     }
                   : popoverViewState === "expanded-evidence"
                     ? {
-                        maxWidth: "calc(100dvw - 2rem)",
+                        maxWidth: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
                         // Same rationale as expanded-page: prevent width transition.
                         transitionProperty: "none",
                       }

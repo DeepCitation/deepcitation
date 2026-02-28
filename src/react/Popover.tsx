@@ -10,6 +10,7 @@ import * as PopoverPrimitive from "@radix-ui/react-popover";
 import * as React from "react";
 import {
   EXPANDED_POPOVER_HEIGHT,
+  GUARD_MAX_WIDTH_VAR,
   POPOVER_WIDTH_DEFAULT,
   POPOVER_WIDTH_VAR,
   Z_INDEX_BACKDROP_DEFAULT,
@@ -38,8 +39,10 @@ const PopoverContent = React.forwardRef<
         {
           zIndex: `var(${Z_INDEX_POPOVER_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})`,
           // Max width respects the CSS custom property (--dc-popover-width) and caps to viewport.
-          // This must match the inner content width to prevent horizontal scrollbar.
-          maxWidth: `min(var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT}), calc(100dvw - 2rem))`,
+          // var(--dc-guard-max-width) is set by useViewportBoundaryGuard using
+          // document.documentElement.clientWidth (visible viewport excluding scrollbar).
+          // Falls back to calc(100dvw - 2rem) for SSR or before the guard runs.
+          maxWidth: `min(var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT}), var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem)))`,
           // Fixed to calc(100dvh - 2rem). Intentionally not using Radix's
           // --radix-popover-content-available-height — that var caused the popover to
           // resize as the trigger scrolled out of view.

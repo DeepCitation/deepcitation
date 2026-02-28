@@ -134,6 +134,12 @@ export const POPOVER_WIDTH_MIN_PX = 320;
  *  All positioning hooks clamp to this distance from each viewport edge. */
 export const VIEWPORT_MARGIN_PX = 16;
 
+/** CSS custom property for the guard's viewport-constrained max width.
+ *  Set by useViewportBoundaryGuard using `document.documentElement.clientWidth`
+ *  (visible viewport excluding scrollbar). All maxWidth formulas reference this
+ *  with a fallback to `calc(100dvw - 2rem)` for SSR/pre-guard. */
+export const GUARD_MAX_WIDTH_VAR = "--dc-guard-max-width";
+
 /** Shell padding (px) around the keyhole image for summary popover sizing.
  *  EvidenceTray m-3 (12px×2) + borders (~4px) + breathing room = 32px. */
 export const SUMMARY_IMAGE_SHELL_PX = 32;

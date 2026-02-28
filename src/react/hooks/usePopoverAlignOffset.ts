@@ -48,7 +48,9 @@ export function usePopoverAlignOffset(
       return;
     }
 
-    const viewportWidth = window.innerWidth;
+    // Use clientWidth (visible viewport excluding scrollbar) instead of
+    // window.innerWidth (which includes scrollbar like CSS 100dvw).
+    const viewportWidth = document.documentElement.clientWidth;
     const popoverWidth = popoverEl.getBoundingClientRect().width;
     const triggerCenter = triggerRect.left + triggerRect.width / 2;
 

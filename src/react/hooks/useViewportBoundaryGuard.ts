@@ -1,6 +1,6 @@
 import type React from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { VIEWPORT_MARGIN_PX } from "../constants.js";
+import { GUARD_MAX_WIDTH_VAR, VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 
 /**
@@ -18,6 +18,11 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  * - `translate` doesn't affect the content box → ResizeObserver won't
  *   re-fire → no infinite observation loops.
  * - No `useState` → no re-renders → React Compiler friendly.
+ * - Sets `--dc-guard-max-width` CSS custom property using
+ *   `document.documentElement.clientWidth` (visible viewport excluding
+ *   scrollbar). CSS maxWidth formulas reference this variable, eliminating
+ *   the mismatch between CSS `100dvw` (includes scrollbar) and the actual
+ *   visible viewport.
  *
  * Animation safety:
  * - The synchronous `useLayoutEffect` clamps on initial open AND on view-state
@@ -32,6 +37,15 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
 /** Debounce delay for ResizeObserver callbacks only.
  *  Must exceed POPOVER_MORPH_EXPAND_MS (200ms) + overshoot settling time. */
 const SETTLE_MS = 300;
+
+/**
+ * Returns the visible viewport width excluding the scrollbar.
+ * `document.documentElement.clientWidth` gives the usable area, unlike
+ * `window.innerWidth` which includes the scrollbar (matching CSS `100dvw`).
+ */
+function getVisibleViewportWidth(): number {
+  return document.documentElement.clientWidth;
+}
 
 export function useViewportBoundaryGuard(
   isOpen: boolean,
@@ -52,7 +66,10 @@ export function useViewportBoundaryGuard(
     const el = popoverContentRef.current;
     if (!isOpen || !el) {
       // Clear correction when closing so it doesn't persist across cycles.
-      if (el) el.style.translate = "";
+      if (el) {
+        el.style.translate = "";
+        el.style.removeProperty(GUARD_MAX_WIDTH_VAR);
+      }
       prevViewStateRef.current = null;
       return;
     }
@@ -143,6 +160,9 @@ export function useViewportBoundaryGuard(
       mo?.disconnect();
       ro.disconnect();
       window.removeEventListener("resize", onResize);
+      // Clean up guard overrides so they don't persist to next open cycle.
+      el.style.translate = "";
+      el.style.removeProperty(GUARD_MAX_WIDTH_VAR);
     };
   }, [isOpen]);
 }
@@ -151,20 +171,29 @@ export function useViewportBoundaryGuard(
  * Measures the popover's actual bounding rect and applies a corrective
  * `translate` to pull any overflowing edge back within VIEWPORT_MARGIN_PX
  * of the viewport boundary.
+ *
+ * Also sets --dc-guard-max-width using the visible viewport width
+ * (document.documentElement.clientWidth, excluding scrollbar) so CSS
+ * maxWidth formulas constrain the element to the usable viewport area.
  */
 function clamp(el: HTMLElement): void {
-  // 1. Remove previous correction so we measure the Radix-only position.
+  // 1. Set the guard's max-width constraint using the visible viewport width
+  //    (excludes scrollbar). This is a CSS custom property that all maxWidth
+  //    formulas reference, so React re-renders don't clobber it.
+  const vw = getVisibleViewportWidth();
+  const vh = window.innerHeight;
+  el.style.setProperty(GUARD_MAX_WIDTH_VAR, `${vw - 2 * VIEWPORT_MARGIN_PX}px`);
+
+  // 2. Remove previous translate correction so we measure the Radix-only position.
   el.style.translate = "";
 
-  // 2. Measure actual rendered position.
+  // 3. Measure actual rendered position (now with guard-constrained width).
   const rect = el.getBoundingClientRect();
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
 
   let dx = 0;
   let dy = 0;
 
-  // Horizontal clamping
+  // Horizontal clamping (using visible viewport width, not window.innerWidth)
   if (rect.left < VIEWPORT_MARGIN_PX) {
     dx = VIEWPORT_MARGIN_PX - rect.left;
   } else if (rect.right > vw - VIEWPORT_MARGIN_PX) {
@@ -178,7 +207,7 @@ function clamp(el: HTMLElement): void {
     dy = vh - VIEWPORT_MARGIN_PX - rect.bottom;
   }
 
-  // 3. Apply correction (or clear if no correction needed).
+  // 4. Apply correction (or clear if no correction needed).
   if (dx !== 0 || dy !== 0) {
     el.style.translate = `${dx}px ${dy}px`;
   }
