@@ -124,8 +124,8 @@ export const POPOVER_WIDTH_VAR = "--dc-popover-width";
 export const POPOVER_WIDTH_DEFAULT = "480px";
 /** Resolved popover width CSS value. Customizable via `--dc-popover-width`. */
 export const POPOVER_WIDTH = `var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT})`;
-/** Extra px beyond image natural width for the expanded popover shell (mx-3 margins + borders). */
-export const EXPANDED_IMAGE_SHELL_PX = 32;
+/** Extra px beyond image natural width for the expanded popover shell (mx-3 24px + shell border 2px). */
+export const EXPANDED_IMAGE_SHELL_PX = 26;
 
 /** Minimum popover width (px) for content-adaptive sizing. Text-readability floor. */
 export const POPOVER_WIDTH_MIN_PX = 320;
