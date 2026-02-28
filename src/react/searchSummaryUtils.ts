@@ -9,6 +9,22 @@ import { getVariationLabel } from "./variationLabels.js";
 // =============================================================================
 
 /**
+ * Collect unique search texts across all attempts, preserving insertion order.
+ * Combines primary searchPhrase and any searchVariations into a deduplicated list.
+ */
+export function getUniqueSearchTexts(searchAttempts: SearchAttempt[]): string[] {
+  if (searchAttempts.length === 0) return [];
+  const texts = new Set<string>();
+  for (const a of searchAttempts) {
+    if (a.searchPhrase) texts.add(a.searchPhrase);
+    if (a.searchVariations) {
+      for (const v of a.searchVariations) texts.add(v);
+    }
+  }
+  return Array.from(texts);
+}
+
+/**
  * Count the total number of unique search texts across all attempts.
  * Combines primary searchPhrase and any searchVariations into a deduplicated set.
  */

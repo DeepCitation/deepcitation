@@ -521,7 +521,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
           "inline-flex items-center gap-2 px-2 py-1",
           "bg-white dark:bg-gray-900",
           "border border-gray-200 dark:border-gray-700 rounded-md",
-          "cursor-pointer transition-all transition-colors duration-200 overflow-hidden",
+          "cursor-pointer transition-[background-color,border-color,box-shadow] duration-200 overflow-hidden",
           "hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50",
           "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
           className,

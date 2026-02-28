@@ -137,8 +137,8 @@ test.describe("Citation Popover - Basic Behavior", () => {
 // =============================================================================
 
 test.describe("Citation Popover - Click-to-Close Behavior", () => {
-  test("expands verification details without dismissing popover", async ({ mount, page }) => {
-    await mount(<CitationComponent citation={baseCitation} verification={verificationWithDetails} />);
+  test("expanding evidence tray does not dismiss popover", async ({ mount, page }) => {
+    await mount(<CitationComponent citation={baseCitation} verification={verifiedVerification} />);
 
     const citation = page.locator("[data-citation-id]");
 
@@ -147,11 +147,9 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
 
-    // Find and click the expand button ("View search log")
-    // The button may be below the viewport in the fixed-position popover
-    // (avoidCollisions disabled in summary mode). Use dispatchEvent since
-    // Playwright can't physically click outside the viewport.
-    const expandButton = page.getByRole("button", { name: /Expand search log|View search log/i });
+    // Click the evidence tray's "Expand to full page" button inside the popover.
+    // Use exact match to avoid ambiguity with the page pill ("Expand to full page 5").
+    const expandButton = popover.getByRole("button", { name: "Expand to full page", exact: true });
     await expect(expandButton).toBeVisible();
     await expandButton.dispatchEvent("click");
 
@@ -163,8 +161,8 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     await expect(popover).toBeVisible();
   });
 
-  test("popover remains open during rapid expand/collapse", async ({ mount, page }) => {
-    await mount(<CitationComponent citation={baseCitation} verification={verificationWithDetails} />);
+  test("popover remains open after multiple evidence tray clicks", async ({ mount, page }) => {
+    await mount(<CitationComponent citation={baseCitation} verification={verifiedVerification} />);
 
     const citation = page.locator("[data-citation-id]");
 
@@ -173,19 +171,23 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
 
-    // The toggle button has aria-label "Expand search log" / "Collapse search log"
-    // Use dispatchEvent — the button may be outside viewport in the fixed-position popover.
-    const expandButton = page.getByRole("button", { name: /Expand search log|Collapse search log/i });
+    // Click evidence tray to expand — verifying the popover survives the transition.
+    const expandButton = popover.getByRole("button", { name: "Expand to full page", exact: true });
     await expect(expandButton).toBeVisible();
+    await expandButton.dispatchEvent("click");
+    await page.waitForTimeout(100);
 
-    // Rapidly toggle expansion multiple times
-    await expandButton.dispatchEvent("click"); // Expand
-    await page.waitForTimeout(50);
-    await expandButton.dispatchEvent("click"); // Collapse
-    await page.waitForTimeout(50);
-    await expandButton.dispatchEvent("click"); // Expand again
+    // Popover should still be visible in expanded-evidence state
+    await expect(popover).toBeVisible();
 
-    // Popover should still be open after rapid toggles
+    // Click the page pill to switch to expanded-page view (another internal transition)
+    const pagePill = popover.getByRole("button", { name: /full page/i }).first();
+    if (await pagePill.isVisible()) {
+      await pagePill.dispatchEvent("click");
+      await page.waitForTimeout(100);
+    }
+
+    // Popover should still be open after internal view transitions
     await expect(popover).toBeVisible();
   });
 
@@ -306,8 +308,8 @@ test.describe("Citation Popover - Mobile/Touch Behavior", () => {
     await expect(popover).toBeVisible();
   });
 
-  test("second tap expands details", async ({ mount, page }) => {
-    await mount(<CitationComponent citation={baseCitation} verification={verificationWithDetails} />);
+  test("tap on evidence tray expands to full page", async ({ mount, page }) => {
+    await mount(<CitationComponent citation={baseCitation} verification={verifiedVerification} />);
 
     const citation = page.locator("[data-citation-id]");
 
@@ -318,12 +320,15 @@ test.describe("Citation Popover - Mobile/Touch Behavior", () => {
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
 
-    // Tap the expand button to show search log
-    const expandButton = page.getByRole("button", { name: /Expand search log/i });
+    // Tap the evidence tray to expand to full page view.
+    // Use exact match to avoid ambiguity with the page pill ("Expand to full page 5").
+    const expandButton = popover.getByRole("button", { name: "Expand to full page", exact: true });
     await expandButton.tap();
 
-    // Details should be expanded — the verification log timeline should be visible
-    await expect(page.locator("#verification-log-timeline")).toBeVisible();
+    // Popover should still be visible and transitioned to expanded view —
+    // the keyhole image should be replaced by the expanded inline image.
+    await expect(popover).toBeVisible();
+    await expect(popover.locator("[data-dc-keyhole]")).not.toBeVisible();
   });
 
   test("tap outside closes popover", async ({ mount, page }) => {

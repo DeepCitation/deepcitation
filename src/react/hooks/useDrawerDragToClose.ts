@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DRAWER_DRAG_CLOSE_THRESHOLD_PX } from "../constants.js";
 
+/** Minimum downward velocity (px/ms) to trigger flick-to-dismiss. ~500px/s. */
+const FLICK_VELOCITY_THRESHOLD = 0.5;
+/** Number of recent touch samples to keep for velocity estimation. */
+const VELOCITY_SAMPLE_COUNT = 4;
+/** Rubber-banding damping factor after exceeding threshold. */
+const RUBBER_BAND_FACTOR = 0.4;
+
+interface TouchSample {
+  y: number;
+  t: number;
+}
+
 interface UseDrawerDragToCloseOptions {
   /** Called when the drag distance exceeds the threshold. */
   onClose: () => void;
@@ -30,10 +42,10 @@ interface UseDrawerDragToCloseResult {
  *
  * - `touchstart` on the handle captures startY.
  * - `touchmove` on the document computes delta (negative = up, positive = down).
- *   - Downward: clamped ≥ 0 for close gesture.
+ *   - Downward: rubber-banded past threshold for close gesture.
  *   - Upward: clamped to -threshold for expand gesture.
- * - `touchend` closes if past threshold (down), expands if past threshold (up),
- *   otherwise snaps back.
+ * - `touchend` closes if past threshold (down) or fast flick, expands if past threshold (up),
+ *   otherwise snaps back with CSS transition.
  */
 export function useDrawerDragToClose({
   onClose,
@@ -48,6 +60,9 @@ export function useDrawerDragToClose({
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragDirection, setDragDirection] = useState<"up" | "down" | null>(null);
+
+  /** Ref mirror of dragOffset so touchend can read the latest value synchronously. */
+  const dragOffsetRef = useRef(0);
 
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -70,11 +85,54 @@ export function useDrawerDragToClose({
   /** Tracks whether we've already fired haptic feedback for this gesture. Resets on touchstart. */
   const hasVibratedRef = useRef(false);
 
+  /** Ring buffer of recent touch samples for velocity estimation. */
+  const touchHistoryRef = useRef<TouchSample[]>([]);
+
+  /** rAF ID for snap-back sequencing (deferred dragOffset reset). */
+  const snapBackRafRef = useRef<number | null>(null);
+
+  // Clean up rAF on unmount
+  useEffect(
+    () => () => {
+      if (snapBackRafRef.current !== null) cancelAnimationFrame(snapBackRafRef.current);
+    },
+    [],
+  );
+
+  /** Apply rubber-banding: linear up to threshold, diminishing returns past it. */
+  const applyRubberBand = useCallback(
+    (rawDelta: number): number => {
+      if (rawDelta <= threshold) return rawDelta;
+      return threshold + (rawDelta - threshold) * RUBBER_BAND_FACTOR;
+    },
+    [threshold],
+  );
+
+  /** Compute downward velocity (px/ms) from the touch history ring buffer. */
+  const computeVelocity = useCallback((): number => {
+    const history = touchHistoryRef.current;
+    if (history.length < 2) return 0;
+    const first = history[0];
+    const last = history[history.length - 1];
+    const dt = last.t - first.t;
+    if (dt <= 0) return 0;
+    // Positive = moving downward
+    return (last.y - first.y) / dt;
+  }, []);
+
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       if (!enabled) return;
+      // Cancel any pending snap-back animation from a previous gesture
+      if (snapBackRafRef.current !== null) {
+        cancelAnimationFrame(snapBackRafRef.current);
+        snapBackRafRef.current = null;
+        dragOffsetRef.current = 0;
+        setDragOffset(0);
+      }
       startYRef.current = e.touches[0].clientY;
       hasVibratedRef.current = false;
+      touchHistoryRef.current = [{ y: e.touches[0].clientY, t: Date.now() }];
       setIsDragging(true);
     },
     [enabled],
@@ -83,21 +141,34 @@ export function useDrawerDragToClose({
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
       if (startYRef.current === null) return;
-      const deltaY = e.touches[0].clientY - startYRef.current;
+      const clientY = e.touches[0].clientY;
+      const deltaY = clientY - startYRef.current;
 
+      // Record touch sample for velocity estimation (ring buffer)
+      const now = Date.now();
+      const history = touchHistoryRef.current;
+      history.push({ y: clientY, t: now });
+      if (history.length > VELOCITY_SAMPLE_COUNT) {
+        history.shift();
+      }
+
+      let offset: number;
       if (deltaY >= 0) {
-        // Downward drag — close gesture (positive offset)
-        setDragOffset(deltaY);
+        // Downward drag — close gesture (rubber-banded past threshold)
+        offset = applyRubberBand(deltaY);
         setDragDirection("down");
       } else if (onExpandRef.current) {
         // Upward drag — expand gesture (negative offset, clamped to -threshold)
-        setDragOffset(Math.max(-threshold, deltaY));
+        offset = Math.max(-threshold, deltaY);
         setDragDirection("up");
       } else {
         // No onExpand handler — ignore upward drag
-        setDragOffset(0);
+        offset = 0;
         setDragDirection(null);
       }
+
+      dragOffsetRef.current = offset;
+      setDragOffset(offset);
 
       // Fire haptic feedback once when the drag crosses the threshold
       if (!hasVibratedRef.current && (deltaY >= threshold || deltaY <= -threshold)) {
@@ -105,30 +176,53 @@ export function useDrawerDragToClose({
         navigator.vibrate?.(10);
       }
     },
-    [threshold],
+    [threshold, applyRubberBand],
   );
 
   const handleTouchEnd = useCallback(() => {
     if (startYRef.current === null) return;
     startYRef.current = null;
+
+    const velocity = computeVelocity();
+    touchHistoryRef.current = [];
+
+    const currentOffset = dragOffsetRef.current;
+
+    // Downward close: past threshold OR fast flick
+    if ((currentOffset >= threshold || velocity > FLICK_VELOCITY_THRESHOLD) && isMountedRef.current) {
+      setIsDragging(false);
+      setDragDirection(null);
+      queueMicrotask(() => {
+        if (isMountedRef.current) onCloseRef.current();
+      });
+      return;
+    }
+
+    // Upward expand: past negative threshold
+    if (currentOffset <= -threshold && isMountedRef.current && onExpandRef.current) {
+      setIsDragging(false);
+      setDragDirection(null);
+      queueMicrotask(() => {
+        if (isMountedRef.current) onExpandRef.current?.();
+      });
+      return;
+    }
+
+    // Snap back: two-phase commit for CSS transition animation.
+    // Phase 1: set isDragging=false (enables CSS transition), keep offset non-zero.
     setIsDragging(false);
     setDragDirection(null);
 
-    setDragOffset(prev => {
-      if (prev >= threshold && isMountedRef.current) {
-        // Close — drag exceeded downward threshold
-        queueMicrotask(() => {
-          if (isMountedRef.current) onCloseRef.current();
-        });
-      } else if (prev <= -threshold && isMountedRef.current && onExpandRef.current) {
-        // Expand — drag exceeded upward threshold
-        queueMicrotask(() => {
-          if (isMountedRef.current) onExpandRef.current?.();
-        });
+    // Phase 2: defer offset reset to next frame so the browser sees the transition
+    // activate before the value changes — this produces a smooth animated snap-back.
+    snapBackRafRef.current = requestAnimationFrame(() => {
+      snapBackRafRef.current = null;
+      if (isMountedRef.current) {
+        dragOffsetRef.current = 0;
+        setDragOffset(0);
       }
-      return 0;
     });
-  }, [threshold]);
+  }, [threshold, computeVelocity]);
 
   // Attach touchstart to handle, touchmove/touchend to document
   useEffect(() => {

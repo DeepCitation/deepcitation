@@ -1072,7 +1072,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       className: cn(
         "relative inline-flex items-baseline",
         "px-0.5 -mx-0.5 rounded-sm",
-        "transition-all duration-[50ms]",
+        "transition-colors duration-75",
         cursorClass,
         // Improved touch target size on mobile (minimum 44px recommended)
         // Using py-1.5 for better touch accessibility without breaking layout
@@ -1164,8 +1164,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                   : lockedSide
               }
               sideOffset={expandedPageSideOffset}
-              // Summary: disable collision avoidance — the locked side already
-              // picks the best placement and we don't want flip/shift during scroll.
+              // Summary: disable collision avoidance — the locked side handles placement
+              // and we don't want Radix's flip middleware causing scroll-jank.
               // Expanded states: enable it so Radix's shift middleware keeps the
               // wider popover within viewport bounds on narrow screens.
               avoidCollisions={popoverViewState !== "summary"}

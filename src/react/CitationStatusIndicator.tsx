@@ -41,7 +41,7 @@ import { cn } from "./utils.js";
 /** Verified indicator - green checkmark for exact matches (subscript-positioned) */
 const VerifiedIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-75 duration-200"
+    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-90 duration-150"
     style={{ ...INDICATOR_SIZE_STYLE, ...VERIFIED_COLOR_STYLE }}
     data-dc-indicator="verified"
     aria-hidden="true"
@@ -53,7 +53,7 @@ const VerifiedIndicator = () => (
 /** Partial match indicator - amber checkmark for partial/relocated matches (subscript-positioned) */
 const PartialIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-75 duration-200"
+    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-90 duration-150"
     style={{ ...INDICATOR_SIZE_STYLE, ...PARTIAL_COLOR_STYLE }}
     data-dc-indicator="partial"
     aria-hidden="true"
@@ -156,25 +156,39 @@ export const CitationStatusIndicator = ({
     return null;
   }
 
-  // Default: icon variant — 3-stage spinner
+  // Default: icon variant — 3-stage spinner.
+  // "slow" stage uses a decelerating spin (eased rotation) + reduced opacity
+  // to communicate "still working but taking longer" without constant motion.
   if (shouldShowSpinner) {
     return (
       <span
         className={cn(
-          "inline-flex relative ml-1 top-[0.1em] [text-decoration:none]",
+          "inline-flex relative ml-1 top-[0.1em] [text-decoration:none] transition-opacity duration-[400ms]",
           spinnerStage === "active" && "animate-spin",
-          spinnerStage === "slow" && "animate-spin opacity-60",
+          spinnerStage === "slow" && "animate-[dc-spin-ease_2s_linear_infinite]",
         )}
         style={{
           ...INDICATOR_SIZE_STYLE,
           ...PENDING_COLOR_STYLE,
-          ...(spinnerStage === "slow" ? { animationDuration: "2s" } : undefined),
+          opacity: spinnerStage === "slow" ? 0.6 : 1,
         }}
         data-dc-indicator="pending"
         aria-hidden="true"
         title={spinnerStage === "slow" ? "Still verifying..." : undefined}
       >
         <SpinnerIcon />
+        {spinnerStage === "slow" && (
+          <style>{`
+            @keyframes dc-spin-ease {
+              0% { transform: rotate(0deg); animation-timing-function: ease-in; }
+              50% { transform: rotate(180deg); animation-timing-function: ease-out; }
+              100% { transform: rotate(360deg); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .animate-\\[dc-spin-ease_2s_linear_infinite\\] { animation: none !important; }
+            }
+          `}</style>
+        )}
       </span>
     );
   }

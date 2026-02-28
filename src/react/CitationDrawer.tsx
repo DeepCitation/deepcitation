@@ -43,6 +43,17 @@ import { FaviconImage, PagePill } from "./VerificationLog.js";
 // HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
 // EvidenceTray, InlineExpandedImage — imported from ./EvidenceTray.js (canonical location)
 
+/**
+ * Exponential-approach stagger delay: starts at ~DELAY gap, decelerates toward MAX (always monotonic).
+ * Preferred over linear (index * DELAY capped at MAX) because the exponential curve avoids
+ * an abrupt "cliff" where all items beyond the cap appear simultaneously.
+ */
+function computeStaggerDelay(itemIndex: number): number {
+  return Math.round(
+    DRAWER_STAGGER_MAX_MS * (1 - Math.exp((-itemIndex * DRAWER_STAGGER_DELAY_MS) / DRAWER_STAGGER_MAX_MS)),
+  );
+}
+
 // =========
 // Internal escape-navigation context — NOT exported
 // =========
@@ -316,7 +327,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     <div
       data-dc-item={citationKey}
       className={cn(
-        "cursor-pointer transition-colors border-l-[3px] animate-in fade-in-0 slide-in-from-bottom-1 duration-200 fill-mode-backwards",
+        "cursor-pointer transition-colors border-l-[3px] animate-in fade-in-0 slide-in-from-bottom-2 duration-[160ms] fill-mode-backwards",
         !isLast && "border-b border-gray-200 dark:border-gray-700",
         isExpanded ? statusBorderColor : "border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
         className,
@@ -371,7 +382,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
             aria-hidden="true"
             className={cn(
               "w-4 h-4 shrink-0 transition-transform duration-150",
-              isExpanded ? "rotate-180 text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500",
+              isExpanded
+                ? "rotate-180 text-gray-500 dark:text-gray-400 ease-[cubic-bezier(0.22,0.68,0,1.05)]"
+                : "text-gray-400 dark:text-gray-500",
             )}
             fill="none"
             viewBox="0 0 24 24"
@@ -383,21 +396,25 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
         </div>
       </div>
 
-      {/* Expanded detail view — CSS grid animation for smooth height transition */}
+      {/* Expanded detail view — CSS grid animation for smooth height transition.
+          Asymmetric timing: 200ms expand (content reveal), 120ms collapse (get out of the way). */}
       <div
-        className="grid transition-[grid-template-rows] duration-150"
+        className="grid transition-[grid-template-rows]"
         style={{
           gridTemplateRows: isExpanded ? "1fr" : "0fr",
           ...(prefersReducedMotion
             ? { transitionDuration: "0ms" }
-            : { transitionTimingFunction: isExpanded ? EASE_EXPAND : EASE_COLLAPSE }),
+            : {
+                transitionDuration: isExpanded ? "200ms" : "120ms",
+                transitionTimingFunction: isExpanded ? EASE_EXPAND : EASE_COLLAPSE,
+              }),
         }}
       >
         <div className="overflow-hidden" style={{ minHeight: 0 }}>
           <div
             className={cn(
               "border-t border-gray-100 dark:border-gray-800",
-              wasAutoExpanded && isNotFound && "animate-[dc-pulse-once_1.2s_ease-out]",
+              wasAutoExpanded && isNotFound && "animate-[dc-pulse-once_800ms_ease-out]",
             )}
             onAnimationEnd={() => setWasAutoExpanded(false)}
           >
@@ -418,11 +435,11 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
         <style>{`
           @keyframes dc-pulse-once {
             0% { background-color: transparent; }
-            30% { background-color: rgba(239, 68, 68, 0.08); }
+            15% { background-color: rgba(239, 68, 68, 0.12); }
             100% { background-color: transparent; }
           }
           @media (prefers-reduced-motion: reduce) {
-            .animate-\\[dc-pulse-once_1\\.2s_ease-out\\] { animation: none !important; }
+            .animate-\\[dc-pulse-once_800ms_ease-out\\] { animation: none !important; }
           }
         `}</style>
       )}
@@ -574,7 +591,8 @@ function DrawerSourceGroup({
     return (
       <div key={key}>
         {group.citations.map((item, index) => {
-          const delay = Math.min((staggerOffset + index) * DRAWER_STAGGER_DELAY_MS, DRAWER_STAGGER_MAX_MS);
+          const itemIndex = staggerOffset + index;
+          const delay = computeStaggerDelay(itemIndex);
           return renderCitationItem ? (
             <RenderCitationDrawerItem key={item.citationKey} item={item} renderCitationItem={renderCitationItem} />
           ) : (
@@ -611,7 +629,8 @@ function DrawerSourceGroup({
       <SourceGroupHeader group={group} />
       <div>
         {group.citations.map((item, index) => {
-          const delay = Math.min((staggerOffset + index) * DRAWER_STAGGER_DELAY_MS, DRAWER_STAGGER_MAX_MS);
+          const itemIndex = staggerOffset + index;
+          const delay = computeStaggerDelay(itemIndex);
           return renderCitationItem ? (
             <RenderCitationDrawerItem key={item.citationKey} item={item} renderCitationItem={renderCitationItem} />
           ) : (
@@ -971,7 +990,7 @@ function OpenCitationDrawer({
         // filter causes visible jank during the drawer slide-in animation (composited
         // layer promotion + GPU shader cost). The semi-transparent overlay alone provides
         // sufficient visual separation without the performance hit.
-        className="fixed inset-0 bg-black/20 animate-in fade-in-0 duration-150"
+        className="fixed inset-0 bg-black/20 animate-in fade-in-0 duration-200"
         style={{ zIndex: `var(${Z_INDEX_DRAWER_BACKDROP_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})` } as React.CSSProperties}
         onClick={onClose}
         aria-hidden="true"
@@ -985,7 +1004,7 @@ function OpenCitationDrawer({
           "animate-in duration-200",
           position === "bottom" &&
             "inset-x-0 bottom-0 slide-in-from-bottom-4 transition-[max-height,border-radius] duration-200",
-          position === "bottom" && (isFullPage ? "max-h-[100dvh]" : "max-h-[80vh] rounded-t-2xl"),
+          position === "bottom" && (isFullPage ? "max-h-[100dvh]" : "max-h-[80dvh] rounded-t-2xl"),
           position === "right" && "inset-y-0 right-0 w-full max-w-md slide-in-from-right-4",
           className,
         )}
@@ -996,13 +1015,13 @@ function OpenCitationDrawer({
             ...(dragDirection === "down" &&
               dragOffset > 0 && {
                 transform: `translateY(${dragOffset}px)`,
-                transition: isDragging ? "none" : "transform 200ms ease-out",
+                transition: isDragging ? "none" : `transform 150ms ${EASE_EXPAND}`,
               }),
             // Dragging up: grow the sheet taller (expand gesture) — no gap at bottom
             ...(dragDirection === "up" &&
               dragOffset < 0 && {
-                maxHeight: `calc(80vh + ${Math.abs(dragOffset)}px)`,
-                transition: isDragging ? "none" : "max-height 200ms ease-out",
+                maxHeight: `calc(80dvh + ${Math.abs(dragOffset)}px)`,
+                transition: isDragging ? "none" : "max-height 150ms cubic-bezier(0.2, 0, 0, 1)",
               }),
           } as React.CSSProperties
         }
@@ -1078,7 +1097,7 @@ function OpenCitationDrawer({
 
         {/* Header inline panel — full-page proof image triggered by page badge or item row */}
         {headerInline && (
-          <div className="shrink-0 border-b border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="shrink-0 border-b border-gray-200 dark:border-gray-700 overflow-hidden animate-in fade-in-0 zoom-in-[0.98] duration-150">
             <CitationErrorBoundary>
               <InlineExpandedImage
                 src={headerInline.src}

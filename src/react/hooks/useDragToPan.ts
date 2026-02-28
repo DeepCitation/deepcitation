@@ -22,12 +22,31 @@ const INITIAL_SCROLL_STATE: ScrollState = {
 /** Minimum drag distance (px) before a mousedown+mouseup is treated as a drag rather than a click. */
 const DRAG_THRESHOLD = 5;
 
+// ---------------------------------------------------------------------------
+// Momentum / inertia constants (local — not exported)
+// ---------------------------------------------------------------------------
+/** Number of recent move samples for velocity estimation. */
+const VELOCITY_SAMPLE_COUNT = 4;
+/** Minimum velocity (px/ms) to trigger momentum coast after release. */
+const VELOCITY_THRESHOLD = 0.15;
+/** Per-frame deceleration multiplier (~1s coast at 60fps, matching iOS normal). */
+const DECELERATION = 0.95;
+/** Velocity cutoff (px/frame) below which momentum stops. */
+const VELOCITY_CUTOFF = 0.5;
+
+interface MoveSample {
+  x: number;
+  y: number;
+  t: number;
+}
+
 /**
  * Hook for drag-to-pan on a scrollable container.
  *
  * - **Mouse**: drag to pan (grab cursor). Click suppression when drag > 5px.
  * - **Touch**: relies on native overflow scrolling (no manual touch handling).
  * - **Scroll state**: tracks canScrollLeft/canScrollRight for fade mask updates.
+ * - **Momentum**: on mouse release, applies deceleration physics if velocity exceeds threshold.
  * - **direction**: `"x"` (default) for horizontal-only; `"xy"` for both axes.
  *
  * @example
@@ -70,6 +89,10 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
   const dragDistance = useRef(0);
   const wasDraggingRef = useRef(false);
 
+  // Momentum tracking
+  const moveHistoryRef = useRef<MoveSample[]>([]);
+  const momentumRafRef = useRef<number | null>(null);
+
   const updateScrollState = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -82,6 +105,17 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
       canScrollRight: scrollLeft + clientWidth < scrollWidth - 2,
     });
   }, []);
+
+  /** Cancel any active momentum animation. */
+  const cancelMomentum = useCallback(() => {
+    if (momentumRafRef.current !== null) {
+      cancelAnimationFrame(momentumRafRef.current);
+      momentumRafRef.current = null;
+    }
+  }, []);
+
+  // Clean up momentum on unmount
+  useEffect(() => () => cancelMomentum(), [cancelMomentum]);
 
   // Listen for scroll events (native touch scroll + programmatic) with RAF debounce
   useEffect(() => {
@@ -109,20 +143,27 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
     };
   }, [updateScrollState]);
 
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    const el = containerRef.current;
-    if (!el) return;
-    // Only primary mouse button
-    if (e.button !== 0) return;
+  const onMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      const el = containerRef.current;
+      if (!el) return;
+      // Only primary mouse button
+      if (e.button !== 0) return;
 
-    isPressed.current = true;
-    dragDistance.current = 0;
-    startX.current = e.clientX;
-    startY.current = e.clientY;
-    startScrollLeft.current = el.scrollLeft;
-    startScrollTop.current = el.scrollTop;
-    // Don't set isDragging yet — wait until threshold is exceeded
-  }, []);
+      // Cancel active momentum on new mousedown
+      cancelMomentum();
+
+      isPressed.current = true;
+      dragDistance.current = 0;
+      startX.current = e.clientX;
+      startY.current = e.clientY;
+      startScrollLeft.current = el.scrollLeft;
+      startScrollTop.current = el.scrollTop;
+      moveHistoryRef.current = [{ x: e.clientX, y: e.clientY, t: Date.now() }];
+      // Don't set isDragging yet — wait until threshold is exceeded
+    },
+    [cancelMomentum],
+  );
 
   const onMouseMove = useCallback(
     (e: React.MouseEvent) => {
@@ -144,6 +185,14 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
       if (direction === "xy") {
         el.scrollTop = startScrollTop.current - dy;
       }
+
+      // Record move sample for velocity estimation (ring buffer)
+      const now = Date.now();
+      const history = moveHistoryRef.current;
+      history.push({ x: e.clientX, y: e.clientY, t: now });
+      if (history.length > VELOCITY_SAMPLE_COUNT) {
+        history.shift();
+      }
     },
     [isDragging, direction],
   );
@@ -155,8 +204,55 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
       wasDraggingRef.current = true;
     }
     setIsDragging(false);
+
+    // Compute velocity from move history for momentum
+    const history = moveHistoryRef.current;
+    moveHistoryRef.current = [];
+
+    if (history.length >= 2) {
+      const first = history[0];
+      const last = history[history.length - 1];
+      const dt = last.t - first.t;
+
+      if (dt > 0) {
+        // Velocity in px/ms (drag direction is inverted — dragging right scrolls left)
+        const vx = -(last.x - first.x) / dt;
+        const vy = direction === "xy" ? -(last.y - first.y) / dt : 0;
+        const speed = Math.sqrt(vx * vx + vy * vy);
+
+        if (speed > VELOCITY_THRESHOLD) {
+          // Convert px/ms to px/frame (~16.67ms per frame at 60fps)
+          let frameVx = vx * 16.67;
+          let frameVy = vy * 16.67;
+
+          const coast = () => {
+            const el = containerRef.current;
+            if (!el) return;
+
+            el.scrollLeft += frameVx;
+            if (direction === "xy") {
+              el.scrollTop += frameVy;
+            }
+
+            frameVx *= DECELERATION;
+            frameVy *= DECELERATION;
+
+            if (Math.abs(frameVx) > VELOCITY_CUTOFF || Math.abs(frameVy) > VELOCITY_CUTOFF) {
+              momentumRafRef.current = requestAnimationFrame(coast);
+            } else {
+              momentumRafRef.current = null;
+              updateScrollState();
+            }
+          };
+
+          momentumRafRef.current = requestAnimationFrame(coast);
+          return; // Skip updateScrollState — momentum loop handles it
+        }
+      }
+    }
+
     updateScrollState();
-  }, [updateScrollState]);
+  }, [updateScrollState, direction]);
 
   // Stable ref to finishDrag so the global mouseup listener doesn't need to
   // re-attach every time finishDrag gets a new identity (which happens when
