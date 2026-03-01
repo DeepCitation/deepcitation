@@ -68,15 +68,26 @@ export function useAnimatedHeight(
     // Cancel any in-flight animation frame from a previous rapid toggle
     cancelAnimationFrame(rafIdRef.current);
 
-    // Pin wrapper to old height — this runs before paint, so user sees no jump
-    wrapper.style.height = `${oldHeight}px`;
-    wrapper.style.overflow = "hidden";
-    wrapper.style.transition = "none";
-
     // Next frame: set new height with CSS transition → smooth animation
     const isExpanding = viewState !== "summary";
     const duration = isExpanding ? expandDurationMs : collapseDurationMs;
     const easing = isExpanding ? expandEasing : collapseEasing;
+
+    // Zero duration (reduced motion): skip the transition entirely. A 0ms CSS
+    // transition does not fire `transitionend` in any browser (per spec §3.1),
+    // so the wrapper's onTransitionEnd cleanup would never run — leaving stale
+    // inline height/overflow/transition styles that clip content.
+    if (duration === 0) {
+      wrapper.style.height = "";
+      wrapper.style.overflow = "";
+      wrapper.style.transition = "";
+      return;
+    }
+
+    // Pin wrapper to old height — this runs before paint, so user sees no jump
+    wrapper.style.height = `${oldHeight}px`;
+    wrapper.style.overflow = "hidden";
+    wrapper.style.transition = "none";
 
     rafIdRef.current = requestAnimationFrame(() => {
       wrapper.style.transition = `height ${duration}ms ${easing}`;

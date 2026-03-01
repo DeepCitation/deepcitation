@@ -55,6 +55,8 @@ export function useViewportBoundaryGuard(
 ): void {
   const prevViewStateRef = useRef<PopoverViewState | null>(null);
   const rafIdRef = useRef<number>(0);
+  const moRef = useRef<MutationObserver | null>(null);
+  const timerIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Unified layout effect: clamps on initial open and on view-state transitions.
   // Uses prevViewStateRef to distinguish the two cases.
@@ -133,12 +135,16 @@ export function useViewportBoundaryGuard(
     // updates the wrapper's transform (style attribute changes).
     // Uses attributeOldValue to skip no-op mutations (same style rewritten).
     const wrapper = el.closest("[data-radix-popper-content-wrapper]") as HTMLElement | null;
-    let mo: MutationObserver | null = null;
+    // Disconnect any previous observer before creating a new one.
+    if (moRef.current) {
+      moRef.current.disconnect();
+      moRef.current = null;
+    }
     // Safety: wrapper is always a *parent* of el (Radix wraps content in an
     // absolutely-positioned div). We observe wrapper's style mutations and
     // modify el's CSS translate — different elements → no infinite loop.
     if (wrapper && wrapper !== el) {
-      mo = new MutationObserver(mutations => {
+      moRef.current = new MutationObserver(mutations => {
         for (const m of mutations) {
           if (m.oldValue !== wrapper.getAttribute("style")) {
             // Cancel any pending rAF from a previous cycle so the guard
@@ -150,14 +156,13 @@ export function useViewportBoundaryGuard(
           }
         }
       });
-      mo.observe(wrapper, { attributes: true, attributeFilter: ["style"], attributeOldValue: true });
+      moRef.current.observe(wrapper, { attributes: true, attributeFilter: ["style"], attributeOldValue: true });
     }
 
     // ResizeObserver: debounced to avoid fighting CSS morph transitions.
-    let timerId: ReturnType<typeof setTimeout>;
     const debouncedClamp = () => {
-      clearTimeout(timerId);
-      timerId = setTimeout(() => clamp(el), SETTLE_MS);
+      if (timerIdRef.current !== null) clearTimeout(timerIdRef.current);
+      timerIdRef.current = setTimeout(() => clamp(el), SETTLE_MS);
     };
     const ro = new ResizeObserver(debouncedClamp);
     ro.observe(el);
@@ -175,8 +180,14 @@ export function useViewportBoundaryGuard(
     return () => {
       cancelAnimationFrame(rafIdRef.current);
       cancelAnimationFrame(resizeRafId);
-      clearTimeout(timerId);
-      mo?.disconnect();
+      if (timerIdRef.current !== null) {
+        clearTimeout(timerIdRef.current);
+        timerIdRef.current = null;
+      }
+      if (moRef.current) {
+        moRef.current.disconnect();
+        moRef.current = null;
+      }
       ro.disconnect();
       window.removeEventListener("resize", onResize);
       // Clean up guard overrides so they don't persist to next open cycle.

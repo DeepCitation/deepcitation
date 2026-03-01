@@ -82,6 +82,7 @@ export function useWheelZoom({
 
   const gestureZoomRef = useRef<number | null>(null);
   const gestureAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
+  const commitTimeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Hover tracking via pointer events on the container.
   useEffect(() => {
@@ -118,8 +119,6 @@ export function useWheelZoom({
     if (!enabled) return;
     const el = containerRef.current;
     if (!el) return;
-    let commitTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
     const onWheel = (e: WheelEvent) => {
       // When requireCtrl is set (expanded page), let normal scroll through
       if (requireCtrl && !e.ctrlKey) return;
@@ -157,9 +156,9 @@ export function useWheelZoom({
       }
 
       // Debounce commit: after 150ms of no events, flush to React state
-      if (commitTimeoutId !== null) clearTimeout(commitTimeoutId);
-      commitTimeoutId = setTimeout(() => {
-        commitTimeoutId = null;
+      if (commitTimeoutIdRef.current !== null) clearTimeout(commitTimeoutIdRef.current);
+      commitTimeoutIdRef.current = setTimeout(() => {
+        commitTimeoutIdRef.current = null;
         const finalZoom = gestureZoomRef.current;
         if (finalZoom === null) return;
         gestureZoomRef.current = null;
@@ -171,8 +170,8 @@ export function useWheelZoom({
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       el.removeEventListener("wheel", onWheel);
-      if (commitTimeoutId !== null) {
-        clearTimeout(commitTimeoutId);
+      if (commitTimeoutIdRef.current !== null) {
+        clearTimeout(commitTimeoutIdRef.current);
         // Cleanup with pending gesture: commit immediately
         const finalZoom = gestureZoomRef.current;
         if (finalZoom !== null) {

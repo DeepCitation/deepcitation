@@ -1463,7 +1463,7 @@ export function InlineExpandedImage({
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         const dist = getTouchDistance(e.touches);
-        if (dist < Number.EPSILON) return; // fingers at same point — avoid division by zero
+        if (dist < Number.EPSILON || !Number.isFinite(dist)) return;
         initialDistance = dist;
         initialZoom = zoomRef.current;
         const wrapper = imageWrapperRef.current;
@@ -1630,7 +1630,7 @@ export function InlineExpandedImage({
           data-dc-inline-expanded=""
           role="button"
           tabIndex={0}
-          aria-label="Expanded verification image, click or press Enter to collapse"
+          aria-label="Expanded verification image. Press Enter to collapse. Use arrow keys to pan."
           className={cn(
             "relative bg-gray-50 dark:bg-gray-900 select-none overflow-auto rounded-t-sm",
             fill && "flex-1 min-h-0",
@@ -1655,6 +1655,29 @@ export function InlineExpandedImage({
               e.preventDefault();
               e.stopPropagation();
               onCollapse();
+              return;
+            }
+            // A.5.4 Arrow key panning for expanded-page: Shift = large pan (200px), default = 50px.
+            const el = containerRef.current;
+            if (!el) return;
+            const step = e.shiftKey ? 200 : 50;
+            switch (e.key) {
+              case "ArrowLeft":
+                el.scrollLeft -= step;
+                e.preventDefault();
+                break;
+              case "ArrowRight":
+                el.scrollLeft += step;
+                e.preventDefault();
+                break;
+              case "ArrowUp":
+                el.scrollTop -= step;
+                e.preventDefault();
+                break;
+              case "ArrowDown":
+                el.scrollTop += step;
+                e.preventDefault();
+                break;
             }
           }}
           {...panHandlers}

@@ -52,6 +52,10 @@ export function usePopoverAlignOffset(
     // window.innerWidth (which includes scrollbar like CSS 100dvw).
     const viewportWidth = document.documentElement.clientWidth;
     const popoverWidth = popoverEl.getBoundingClientRect().width;
+    if (popoverWidth <= 0) {
+      setOffset(0);
+      return;
+    }
     const triggerCenter = triggerRect.left + triggerRect.width / 2;
 
     // Where the popover edges would sit with align="center" and no offset.

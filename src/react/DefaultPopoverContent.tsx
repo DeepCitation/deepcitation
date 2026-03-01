@@ -315,24 +315,25 @@ function ClaimQuote({
  * rewraps instantly, changing its height. This wrapper intercepts the height change
  * using useLayoutEffect (before paint) and animates it with CSS transitions.
  *
- * Renders as a Fragment (no wrapper divs) when the user prefers reduced motion.
+ * When reduced motion is preferred, height changes are instant (0ms duration)
+ * but the wrapper DOM stays mounted — no layout shift from conditional unmounting.
  */
 function AnimatedHeightWrapper({ viewState, children }: { viewState: PopoverViewState; children: ReactNode }) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // A.5.5: When reduced motion is preferred, pass 0ms durations so height changes
+  // are instant but the wrapper DOM stays mounted (no layout shift from Fragment swap).
   useAnimatedHeight(
     wrapperRef,
     contentRef,
     viewState,
-    POPOVER_MORPH_EXPAND_MS,
-    POPOVER_MORPH_COLLAPSE_MS,
+    prefersReducedMotion ? 0 : POPOVER_MORPH_EXPAND_MS,
+    prefersReducedMotion ? 0 : POPOVER_MORPH_COLLAPSE_MS,
     EASE_EXPAND,
     EASE_COLLAPSE,
   );
-
-  if (prefersReducedMotion) return <>{children}</>;
 
   return (
     <div
@@ -581,6 +582,29 @@ export function DefaultPopoverContent({
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 
+  // A.5.3 Track previous pending state so we can announce transitions to screen readers.
+  // The ref captures whether the component was in a pending state before the current render.
+  const wasPendingRef = useRef(isPending);
+  const [statusAnnouncement, setStatusAnnouncement] = useState("");
+  useEffect(() => {
+    if (wasPendingRef.current && !isPending) {
+      if (isVerified && !isPartialMatch && !isMiss) {
+        setStatusAnnouncement("Citation verified — exact match found");
+      } else if (isMiss) {
+        setStatusAnnouncement("Verification complete — citation not found in source");
+      } else if (isPartialMatch) {
+        setStatusAnnouncement("Verification complete — partial match found");
+      }
+    }
+    // Clear when entering pending state so the next transition can re-announce
+    // (React skips state updates with identical values, so clearing is required
+    // for a second pending→resolved transition to trigger a new announcement).
+    if (isPending) {
+      setStatusAnnouncement("");
+    }
+    wasPendingRef.current = isPending;
+  }, [isPending, isVerified, isPartialMatch, isMiss]);
+
   // Save/restore scroll position for back navigation
 
   // Resolve expanded image for the full-page viewer; allow caller to override the src
@@ -755,15 +779,28 @@ export function DefaultPopoverContent({
     return getUrlAccessExplanation(fetchStatus, verification?.url?.urlVerificationError);
   }, [citation, verification, searchStatus]);
 
+  // A.5.3 aria-live region for screen reader announcements on status transitions.
+  // Always rendered (even when empty) so it's in the DOM before content changes —
+  // screen readers only announce changes within an already-mounted aria-live container.
+  // A newly-inserted container with pre-populated content is not reliably announced.
+  const statusLiveRegion = (
+    <div aria-live="polite" aria-atomic="true" className="sr-only">
+      {statusAnnouncement}
+    </div>
+  );
+
   // Loading/pending state view — skeleton mirrors resolved layout shape
   if (isLoading || isPending) {
     return (
-      <PopoverLoadingView
-        citation={citation}
-        verification={verification}
-        sourceLabel={sourceLabel}
-        onSourceDownload={onSourceDownload}
-      />
+      <>
+        {statusLiveRegion}
+        <PopoverLoadingView
+          citation={citation}
+          verification={verification}
+          sourceLabel={sourceLabel}
+          onSourceDownload={onSourceDownload}
+        />
+      </>
     );
   }
 
@@ -776,62 +813,65 @@ export function DefaultPopoverContent({
     const validProofUrl =
       isFullPage && verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
     return (
-      <PopoverLayoutShell
-        isExpanded={isExpanded}
-        isFullPage={isFullPage}
-        expandedNaturalWidth={expandedNaturalWidth}
-        summaryWidth={summaryWidth}
-      >
-        {/* Zone 1: Metadata Header */}
-        <SourceContextHeader
-          citation={citation}
-          verification={verification}
-          status={searchStatus}
-          sourceLabel={sourceLabel}
-          onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
-          onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
-          proofUrl={validProofUrl}
-          onSourceDownload={onSourceDownload}
-        />
-        {/* Zone 2: Claim Body — Status + highlighted phrase */}
-        <StatusHeader
-          status={searchStatus}
-          foundPage={foundPage}
-          expectedPage={expectedPage ?? undefined}
-          hidePageBadge
-          anchorText={anchorText}
-          indicatorVariant={indicatorVariant}
-        />
-        <AnimatedHeightWrapper viewState={viewState}>
-          {fullPhrase && (
-            <ClaimQuote
-              fullPhrase={fullPhrase}
-              anchorText={anchorText}
-              isMiss={isMiss}
-              borderColor="border-green-500 dark:border-green-600"
-            />
-          )}
-        </AnimatedHeightWrapper>
-        {/* Zone 3: Evidence */}
-        <EvidenceZone
-          viewState={viewState}
-          evidenceSrc={evidenceSrc}
-          expandedImage={expandedImage}
-          onViewStateChange={onViewStateChange}
-          handleExpandedImageLoad={handleExpandedImageLoad}
-          prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
-          verification={verification}
-          summaryContent={
-            <EvidenceTray
-              verification={verification}
-              status={status}
-              onExpand={canExpandToPage ? handleExpand : undefined}
-              onImageClick={handleKeyholeClick}
-              onKeyholeWidth={setKeyholeDisplayedWidth}
-            />
-          }
-        />
-      </PopoverLayoutShell>
+      <>
+        {statusLiveRegion}
+        <PopoverLayoutShell
+          isExpanded={isExpanded}
+          isFullPage={isFullPage}
+          expandedNaturalWidth={expandedNaturalWidth}
+          summaryWidth={summaryWidth}
+        >
+          {/* Zone 1: Metadata Header */}
+          <SourceContextHeader
+            citation={citation}
+            verification={verification}
+            status={searchStatus}
+            sourceLabel={sourceLabel}
+            onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
+            onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
+            proofUrl={validProofUrl}
+            onSourceDownload={onSourceDownload}
+          />
+          {/* Zone 2: Claim Body — Status + highlighted phrase */}
+          <StatusHeader
+            status={searchStatus}
+            foundPage={foundPage}
+            expectedPage={expectedPage ?? undefined}
+            hidePageBadge
+            anchorText={anchorText}
+            indicatorVariant={indicatorVariant}
+          />
+          <AnimatedHeightWrapper viewState={viewState}>
+            {fullPhrase && (
+              <ClaimQuote
+                fullPhrase={fullPhrase}
+                anchorText={anchorText}
+                isMiss={isMiss}
+                borderColor="border-green-500 dark:border-green-600"
+              />
+            )}
+          </AnimatedHeightWrapper>
+          {/* Zone 3: Evidence */}
+          <EvidenceZone
+            viewState={viewState}
+            evidenceSrc={evidenceSrc}
+            expandedImage={expandedImage}
+            onViewStateChange={onViewStateChange}
+            handleExpandedImageLoad={handleExpandedImageLoad}
+            prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
+            verification={verification}
+            summaryContent={
+              <EvidenceTray
+                verification={verification}
+                status={status}
+                onExpand={canExpandToPage ? handleExpand : undefined}
+                onImageClick={handleKeyholeClick}
+                onKeyholeWidth={setKeyholeDisplayedWidth}
+              />
+            }
+          />
+        </PopoverLayoutShell>
+      </>
     );
   }
 
@@ -866,64 +906,67 @@ export function DefaultPopoverContent({
       ) : null;
 
     return (
-      <PopoverLayoutShell
-        isExpanded={isExpanded}
-        isFullPage={isFullPage}
-        expandedNaturalWidth={expandedNaturalWidth}
-        summaryWidth={summaryWidth}
-      >
-        {/* Zone 1: Metadata Header */}
-        <SourceContextHeader
-          citation={citation}
-          verification={verification}
-          status={searchStatus}
-          sourceLabel={sourceLabel}
-          onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
-          onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
-          proofUrl={validProofUrl}
-          onSourceDownload={onSourceDownload}
-        />
-        {/* Zone 2: Claim Body — Status + highlighted phrase */}
-        <StatusHeader
-          status={searchStatus}
-          foundPage={foundPage}
-          expectedPage={expectedPage ?? undefined}
-          hidePageBadge
-          anchorText={anchorText}
-          indicatorVariant={indicatorVariant}
-        />
-        {/* URL access explanation (for URL citations with access failures) */}
-        {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
-        {/* Snippet display for document partial matches */}
-        {!urlAccessExplanation && intentSnippets.length > 0 && <PopoverSnippetZone snippets={intentSnippets} />}
-        {/* Humanizing message fallback for URL citations */}
-        {!urlAccessExplanation && intentSnippets.length === 0 && humanizingMessage && (
-          <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
-            {humanizingMessage}
-          </div>
-        )}
-        {fullPhrase && (
-          <AnimatedHeightWrapper viewState={viewState}>
-            <ClaimQuote
-              fullPhrase={fullPhrase}
-              anchorText={anchorText}
-              isMiss={isMiss}
-              borderColor={isMiss ? "border-red-500 dark:border-red-400" : "border-amber-500 dark:border-amber-400"}
-            />
-          </AnimatedHeightWrapper>
-        )}
-        {/* Zone 3: Evidence */}
-        <EvidenceZone
-          viewState={viewState}
-          evidenceSrc={evidenceSrc}
-          expandedImage={expandedImage}
-          onViewStateChange={onViewStateChange}
-          handleExpandedImageLoad={handleExpandedImageLoad}
-          prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
-          verification={verification}
-          summaryContent={summaryContent}
-        />
-      </PopoverLayoutShell>
+      <>
+        {statusLiveRegion}
+        <PopoverLayoutShell
+          isExpanded={isExpanded}
+          isFullPage={isFullPage}
+          expandedNaturalWidth={expandedNaturalWidth}
+          summaryWidth={summaryWidth}
+        >
+          {/* Zone 1: Metadata Header */}
+          <SourceContextHeader
+            citation={citation}
+            verification={verification}
+            status={searchStatus}
+            sourceLabel={sourceLabel}
+            onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
+            onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
+            proofUrl={validProofUrl}
+            onSourceDownload={onSourceDownload}
+          />
+          {/* Zone 2: Claim Body — Status + highlighted phrase */}
+          <StatusHeader
+            status={searchStatus}
+            foundPage={foundPage}
+            expectedPage={expectedPage ?? undefined}
+            hidePageBadge
+            anchorText={anchorText}
+            indicatorVariant={indicatorVariant}
+          />
+          {/* URL access explanation (for URL citations with access failures) */}
+          {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
+          {/* Snippet display for document partial matches */}
+          {!urlAccessExplanation && intentSnippets.length > 0 && <PopoverSnippetZone snippets={intentSnippets} />}
+          {/* Humanizing message fallback for URL citations */}
+          {!urlAccessExplanation && intentSnippets.length === 0 && humanizingMessage && (
+            <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
+              {humanizingMessage}
+            </div>
+          )}
+          {fullPhrase && (
+            <AnimatedHeightWrapper viewState={viewState}>
+              <ClaimQuote
+                fullPhrase={fullPhrase}
+                anchorText={anchorText}
+                isMiss={isMiss}
+                borderColor={isMiss ? "border-red-500 dark:border-red-400" : "border-amber-500 dark:border-amber-400"}
+              />
+            </AnimatedHeightWrapper>
+          )}
+          {/* Zone 3: Evidence */}
+          <EvidenceZone
+            viewState={viewState}
+            evidenceSrc={evidenceSrc}
+            expandedImage={expandedImage}
+            onViewStateChange={onViewStateChange}
+            handleExpandedImageLoad={handleExpandedImageLoad}
+            prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
+            verification={verification}
+            summaryContent={summaryContent}
+          />
+        </PopoverLayoutShell>
+      </>
     );
   }
 
@@ -931,14 +974,17 @@ export function DefaultPopoverContent({
   // FALLBACK: Text-only view (verified/partial match without image)
   // ==========================================================================
   return (
-    <PopoverFallbackView
-      citation={citation}
-      verification={verification}
-      sourceLabel={sourceLabel}
-      status={status}
-      urlAccessExplanation={urlAccessExplanation}
-      indicatorVariant={indicatorVariant}
-      onSourceDownload={onSourceDownload}
-    />
+    <>
+      {statusLiveRegion}
+      <PopoverFallbackView
+        citation={citation}
+        verification={verification}
+        sourceLabel={sourceLabel}
+        status={status}
+        urlAccessExplanation={urlAccessExplanation}
+        indicatorVariant={indicatorVariant}
+        onSourceDownload={onSourceDownload}
+      />
+    </>
   );
 }
