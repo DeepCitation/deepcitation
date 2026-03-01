@@ -1630,7 +1630,7 @@ export function InlineExpandedImage({
           data-dc-inline-expanded=""
           role="button"
           tabIndex={0}
-          aria-label="Expanded verification image, click or press Enter to collapse"
+          aria-label="Expanded verification image. Press Enter to collapse. Use arrow keys to pan."
           className={cn(
             "relative bg-gray-50 dark:bg-gray-900 select-none overflow-auto rounded-t-sm",
             fill && "flex-1 min-h-0",

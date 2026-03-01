@@ -315,7 +315,8 @@ function ClaimQuote({
  * rewraps instantly, changing its height. This wrapper intercepts the height change
  * using useLayoutEffect (before paint) and animates it with CSS transitions.
  *
- * Renders as a Fragment (no wrapper divs) when the user prefers reduced motion.
+ * When reduced motion is preferred, height changes are instant (0ms duration)
+ * but the wrapper DOM stays mounted — no layout shift from conditional unmounting.
  */
 function AnimatedHeightWrapper({ viewState, children }: { viewState: PopoverViewState; children: ReactNode }) {
   const prefersReducedMotion = usePrefersReducedMotion();

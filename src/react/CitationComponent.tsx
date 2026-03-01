@@ -468,17 +468,22 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         main.setAttribute("inert", "");
         return () => main.removeAttribute("inert");
       }
-      // Fallback: inert all body children except the popover portal
-      const popoverEl = popoverContentRef.current;
+      // Fallback: inert all body children except the popover portal.
+      // Defer with rAF so the Radix portal is in the DOM before we scan.
       const inerted: Element[] = [];
-      for (const child of Array.from(document.body.children)) {
-        if (popoverEl && child.contains(popoverEl)) continue;
-        if (!child.hasAttribute("inert")) {
-          child.setAttribute("inert", "");
-          inerted.push(child);
+      const rafId = requestAnimationFrame(() => {
+        const popoverEl = popoverContentRef.current;
+        if (!popoverEl) return; // portal not mounted — nothing to trap
+        for (const child of Array.from(document.body.children)) {
+          if (child.contains(popoverEl)) continue;
+          if (!child.hasAttribute("inert")) {
+            child.setAttribute("inert", "");
+            inerted.push(child);
+          }
         }
-      }
+      });
       return () => {
+        cancelAnimationFrame(rafId);
         for (const el of inerted) el.removeAttribute("inert");
       };
     }, [isHovering]);
