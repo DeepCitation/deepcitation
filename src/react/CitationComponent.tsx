@@ -30,6 +30,7 @@ import { useViewportBoundaryGuard } from "./hooks/useViewportBoundaryGuard.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
+import { triggerHaptic } from "./haptics.js";
 import { REVIEW_DWELL_THRESHOLD_MS, useCitationTiming } from "./timingUtils.js";
 import type {
   BaseCitationProps,
@@ -442,13 +443,47 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Lifted here (from DefaultPopoverContent) so onEscapeKeyDown on <PopoverContent> can read it.
     const prevBeforeExpandedPageRef = useRef<"summary" | "expanded-evidence">("summary");
 
+    // Ref kept in sync with popoverViewState so setViewStateWithHaptics can read
+    // the current value inside callbacks without stale closure issues.
+    const popoverViewStateRef = useRef<PopoverViewState>("summary");
+    useEffect(() => {
+      popoverViewStateRef.current = popoverViewState;
+    }, [popoverViewState]);
+
+    // View-state setter that fires haptic feedback on mobile for expand/collapse
+    // transitions. Replaces direct setPopoverViewState calls in user-event handlers.
+    // closePopover still calls setPopoverViewState directly — a full dismiss is not
+    // a collapse in the haptic sense (it's a close, not a step-back navigation).
+    const setViewStateWithHaptics = useCallback(
+      (newState: PopoverViewState) => {
+        if (isMobile) {
+          const prev = popoverViewStateRef.current;
+          const isExpanding =
+            (newState === "expanded-page" || newState === "expanded-evidence") &&
+            prev === "summary";
+          const isCollapsing =
+            newState === "summary" &&
+            (prev === "expanded-page" || prev === "expanded-evidence");
+          if (isExpanding) triggerHaptic("expand");
+          else if (isCollapsing) triggerHaptic("collapse");
+        }
+        setPopoverViewState(newState);
+      },
+      [isMobile],
+    );
+
     // Lock body scroll when the popover is open (ref-counted so overlapping
     // instances don't leave the page permanently locked). See acquireScrollLock().
+    //
+    // On mobile: only lock for expanded-page (full-screen). Summary and
+    // expanded-evidence are small overlays — locking there blocks page scroll
+    // and traps users when the popover is partially off-screen.
     useEffect(() => {
       if (!isHovering) return;
+      if (isMobile && popoverViewState !== "expanded-page") return;
       acquireScrollLock();
       return () => releaseScrollLock();
-    }, [isHovering]);
+    }, [isHovering, isMobile, popoverViewState]);
 
     // A.5.1 Focus trap: set `inert` on background content when the popover is
     // opened via keyboard. This prevents Tab from escaping the popover into
@@ -717,7 +752,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           } else if (actions.setImageExpanded) {
             // Open: show popover in expanded (full page) view
             setIsHovering(true);
-            setPopoverViewState("expanded-page");
+            setViewStateWithHaptics("expanded-page");
             // If a custom image URL was provided, validate before storing
             if (typeof actions.setImageExpanded === "string" && isValidProofImageSrc(actions.setImageExpanded)) {
               setCustomExpandedSrc(actions.setImageExpanded);
@@ -725,7 +760,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           }
         }
       },
-      [closePopover],
+      [closePopover, setViewStateWithHaptics],
     );
 
     // Shared tap/click action handler - used by both click and touch handlers.
@@ -775,11 +810,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             closePopover();
             break;
           case "expandImage":
-            setPopoverViewState("expanded-page");
+            setViewStateWithHaptics("expanded-page");
             break;
         }
       },
-      [behaviorConfig, eventHandlers, citation, citationKey, getBehaviorContext, applyBehaviorActions, closePopover],
+      [behaviorConfig, eventHandlers, citation, citationKey, getBehaviorContext, applyBehaviorActions, closePopover, setViewStateWithHaptics],
     );
 
     // Click handler
@@ -919,6 +954,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         const dy = touch.clientY - startY;
         if (dx * dx + dy * dy > TAP_SLOP_PX * TAP_SLOP_PX) {
           moved = true;
+          // Scroll gesture outside the popover — dismiss immediately so the
+          // gesture can proceed. Any body scroll lock is released by the
+          // effect cleanup when isHovering transitions to false.
+          closePopover();
         }
       };
 
@@ -1207,7 +1246,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           sourceLabel={sourceLabel}
           indicatorVariant={indicatorVariant}
           viewState={popoverViewState}
-          onViewStateChange={setPopoverViewState}
+          onViewStateChange={setViewStateWithHaptics}
           expandedImageSrcOverride={customExpandedSrc}
           prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
           onSourceDownload={effectiveOnSourceDownload}
@@ -1281,11 +1320,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                 e.preventDefault();
                 if (popoverViewState === "expanded-page") {
                   const prev = prevBeforeExpandedPageRef.current;
-                  setPopoverViewState(prev);
+                  setViewStateWithHaptics(prev);
                   if (prev === "summary") setCustomExpandedSrc(null);
                 } else {
                   // expanded-evidence → summary
-                  setPopoverViewState("summary");
+                  setViewStateWithHaptics("summary");
                 }
               }}
               style={

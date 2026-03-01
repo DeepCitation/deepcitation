@@ -246,6 +246,8 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `SUPERSCRIPT_STYLE` | `src/react/citationVariants.cva.ts` | Superscript inline styles |
 | `handleImageError()` | `src/react/imageUtils.ts` | Shared image error handler |
 | `acquireScrollLock()`, `releaseScrollLock()` | `src/react/scrollLock.ts` | Ref-counted body scroll lock (shared by popover + drawer) |
+| `triggerHaptic()` | `src/react/haptics.ts` | Fire haptic feedback for a named interaction event |
+| `HapticEvent` | `src/react/haptics.ts` | Union type of haptic event names ("expand" \| "collapse") |
 | `useDrawerDragToClose()` | `src/react/hooks/useDrawerDragToClose.ts` | Drag-to-close gesture for bottom-sheet drawer |
 | `DRAWER_DRAG_CLOSE_THRESHOLD_PX` | `src/react/constants.ts` | Drag distance threshold for drawer close (80px) |
 | `HITBOX_EXTEND_8` | `src/react/constants.ts` | Invisible hit-box extender — uniform 8px |
