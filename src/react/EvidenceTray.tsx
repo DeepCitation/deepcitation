@@ -1655,6 +1655,29 @@ export function InlineExpandedImage({
               e.preventDefault();
               e.stopPropagation();
               onCollapse();
+              return;
+            }
+            // A.5.4 Arrow key panning for expanded-page: Shift = large pan (200px), default = 50px.
+            const el = containerRef.current;
+            if (!el) return;
+            const step = e.shiftKey ? 200 : 50;
+            switch (e.key) {
+              case "ArrowLeft":
+                el.scrollLeft -= step;
+                e.preventDefault();
+                break;
+              case "ArrowRight":
+                el.scrollLeft += step;
+                e.preventDefault();
+                break;
+              case "ArrowUp":
+                el.scrollTop -= step;
+                e.preventDefault();
+                break;
+              case "ArrowDown":
+                el.scrollTop += step;
+                e.preventDefault();
+                break;
             }
           }}
           {...panHandlers}

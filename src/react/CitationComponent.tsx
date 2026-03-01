@@ -450,6 +450,18 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return () => releaseScrollLock();
     }, [isHovering]);
 
+    // A.5.1 Focus trap: set `inert` on the closest <main> (or document.body fallback)
+    // when the popover is opened via keyboard. This prevents Tab from escaping the
+    // popover into background content. Mouse-opened popovers don't need this because
+    // users can click outside to dismiss. The `inert` attribute is natively supported
+    // in all modern browsers and hides background content from assistive technology.
+    useEffect(() => {
+      if (!isHovering || !openedViaKeyboardRef.current) return;
+      const root = document.querySelector("main") ?? document.body;
+      root.setAttribute("inert", "");
+      return () => root.removeAttribute("inert");
+    }, [isHovering]);
+
     // Dismiss the popover and reset its view state in one step.
     // Replaces the old useEffect that watched isHovering — moving the reset into
     // the event handler avoids an extra render cycle (flash).
@@ -465,6 +477,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // 2. Read in handleTouchEnd/handleClick to determine if this is a "first tap" or "second tap"
     // 3. First tap (ref=false): Opens popover
     // 4. Second tap (ref=true): Closes popover
+    // Track whether the popover was opened via keyboard (Enter/Space) vs mouse/touch.
+    // Used by:
+    // - A.5.1 Focus trap: only set `inert` on background when keyboard-opened
+    // - A.5.2 Focus return: only allow Radix to return focus when keyboard-opened
+    const openedViaKeyboardRef = useRef(false);
+
     const wasPopoverOpenBeforeTap = useRef(false);
 
     // Track last touch time for touch-to-click debouncing (prevents double-firing).
@@ -744,6 +762,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         e.preventDefault();
         e.stopPropagation();
 
+        // Mouse/touch click — not a keyboard open
+        openedViaKeyboardRef.current = false;
+
         // Ignore click events that occur shortly after touch events (prevents double-firing)
         if (isMobile && Date.now() - lastTouchTimeRef.current < TOUCH_CLICK_DEBOUNCE_MS) {
           return;
@@ -779,6 +800,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
           // Toggle popover visibility
           if (!isHovering) {
+            openedViaKeyboardRef.current = true;
             handleTapAction(e, "showPopover");
           } else {
             handleTapAction(e, "hidePopover");
@@ -1215,10 +1237,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               // CSS maxWidth/maxHeight (calc(100dvw/dvh - 2rem)) constrains size.
               avoidCollisions={false}
               onCloseAutoFocus={(e: Event) => {
-                // Prevent Radix from returning focus to the trigger on close.
-                // Without this, the browser scrolls the trigger into view — which
+                // A.5.2 Conditional focus return: keyboard users need focus returned
+                // to the trigger so they can continue navigating. Mouse/touch users
+                // don't — returning focus would scroll the trigger into view, which
                 // is disorienting when the user has scrolled away before dismissing.
-                e.preventDefault();
+                if (!openedViaKeyboardRef.current) {
+                  e.preventDefault();
+                }
+                openedViaKeyboardRef.current = false;
               }}
               onPointerDownOutside={(e: Event) => e.preventDefault()}
               onInteractOutside={(e: Event) => e.preventDefault()}
