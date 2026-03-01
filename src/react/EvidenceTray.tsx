@@ -1270,8 +1270,8 @@ export function InlineExpandedImage({
     const fitZoomW = maxImageWidth / naturalWidth;
     // fitZoom = the zoom that fits the page width to the container (minimum usable zoom).
     const fitZoom = Math.min(1, Math.max(0.1, fitZoomW));
-    // readableZoom = initial zoom clamped to a readable minimum (65%).
-    // On narrow viewports where fitZoomW < 0.65, this starts zoomed in for legibility
+    // readableZoom = initial zoom clamped to a readable minimum (50%).
+    // On narrow viewports where fitZoomW < 0.5, this starts zoomed in for legibility
     // with horizontal panning (already handled by overflow:auto + useDragToPan xy).
     const readableZoom = Math.min(1, Math.max(EXPANDED_MIN_READABLE_ZOOM, fitZoomW));
     if (!hasManualZoomRef.current) {

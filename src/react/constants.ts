@@ -482,10 +482,11 @@ export const EXPANDED_ZOOM_MIN = 0.5;
 /** Maximum zoom level (300%). */
 export const EXPANDED_ZOOM_MAX = 3.0;
 
-/** Minimum initial zoom for expanded page view to keep text readable (80%).
- *  On narrow viewports, fit-to-width can shrink a 1700px PDF to ~42% — illegible.
- *  This floor ensures the initial zoom is at least 80%, with panning for overflow. */
-export const EXPANDED_MIN_READABLE_ZOOM = 0.8;
+/** Minimum initial zoom for expanded page view to keep text readable (50%).
+ *  On narrow viewports, fit-to-width can shrink a 1700px PDF to ~20% on phones.
+ *  0.5 balances legibility against horizontal panning; users can zoom out
+ *  further via the slider (floor set by fitZoom, not this constant). */
+export const EXPANDED_MIN_READABLE_ZOOM = 0.5;
 
 /** Width ratio threshold for keyhole width-fit mode.
  *  When image at height-fit scale is narrower than this fraction of the
