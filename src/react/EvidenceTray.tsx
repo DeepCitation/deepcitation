@@ -1090,6 +1090,7 @@ export function InlineExpandedImage({
   onCollapse,
   verification,
   fill = false,
+  onExpand,
   onNaturalSize,
   renderScale,
   highlightItem,
@@ -1102,6 +1103,8 @@ export function InlineExpandedImage({
   verification?: Verification | null;
   /** When true, the component expands to fill its flex parent (for use inside flex-column containers). */
   fill?: boolean;
+  /** When provided, renders a "View page ›" CTA in the non-fill footer. */
+  onExpand?: () => void;
   /** Called after image load with natural pixel dimensions. */
   onNaturalSize?: (width: number, height: number) => void;
   /** Scale factors for converting DeepTextItem PDF coords to image pixels. */
@@ -1583,7 +1586,7 @@ export function InlineExpandedImage({
 
   const footerEl = (
     <div className="bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
-      <EvidenceTrayFooter verifiedAt={verification?.verifiedAt} />
+      <EvidenceTrayFooter verifiedAt={verification?.verifiedAt} onPageClick={fill ? undefined : onExpand} />
     </div>
   );
 

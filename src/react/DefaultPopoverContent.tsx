@@ -369,6 +369,7 @@ function EvidenceZone({
   evidenceSrc,
   expandedImage,
   onViewStateChange,
+  onExpandToPage,
   handlePageImageLoad,
   handleKeyholeImageLoad,
   prevBeforeExpandedPageRef,
@@ -379,6 +380,8 @@ function EvidenceZone({
   evidenceSrc: string | null;
   expandedImage: { src: string; renderScale?: { x: number; y: number } | null } | null;
   onViewStateChange?: (viewState: PopoverViewState) => void;
+  /** When provided, renders a "View page ›" CTA in the expanded-keyhole footer. */
+  onExpandToPage?: () => void;
   handlePageImageLoad: (width: number, height: number) => void;
   handleKeyholeImageLoad: (width: number, height: number) => void;
   prevBeforeExpandedPageRef: RefObject<"summary" | "expanded-keyhole">;
@@ -412,7 +415,9 @@ function EvidenceZone({
           <InlineExpandedImage
             src={evidenceSrc}
             onCollapse={() => onViewStateChange?.("summary")}
+            onExpand={onExpandToPage}
             onNaturalSize={handleKeyholeImageLoad}
+            verification={verification}
           />
         </div>
       )}
@@ -853,6 +858,7 @@ export function DefaultPopoverContent({
             evidenceSrc={evidenceSrc}
             expandedImage={expandedImage}
             onViewStateChange={onViewStateChange}
+            onExpandToPage={canExpandToPage ? handleExpand : undefined}
             handlePageImageLoad={handlePageImageLoad}
             handleKeyholeImageLoad={handleKeyholeImageLoad}
             prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
