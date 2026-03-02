@@ -15,9 +15,13 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  * Uses useLayoutEffect (runs before paint) so the offset is applied before the
  * popover is visible — no flash of wrong position.
  *
- * Reactivity: window resize listener catches viewport width changes.
- * Content reflow (image loads) is handled by the viewport boundary guard
- * (Layer 3) which uses a debounced ResizeObserver.
+ * Reactivity:
+ * - Window resize: viewport width changes.
+ * - ResizeObserver (inline size only): reacts immediately when the popover's
+ *   width changes mid-state (e.g., keyhole image load, keyhole expand,
+ *   expandedNaturalWidth confirmation). This prevents overflow that would
+ *   otherwise persist until the guard's 300ms debounce fires.
+ * - popoverViewState: view-state changes via useLayoutEffect.
  *
  * Math (with align="center"):
  *   idealLeft  = triggerCenter - popoverWidth / 2
@@ -93,6 +97,35 @@ export function usePopoverAlignOffset(
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
     };
+  }, [isOpen, recompute]);
+
+  // Width-change observer: recompute alignment whenever the popover's inline
+  // size changes mid-state. Handles shellWidth updates from image load
+  // (onKeyholeWidth), keyhole expand, or expandedNaturalWidth confirmation.
+  // Sentinel prevInlineSize=-1 ensures a recompute on first observation,
+  // covering cases where useLayoutEffect ran with width=0 (ref not yet set).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity
+  useEffect(() => {
+    if (!isOpen) return;
+    const el = popoverContentRef.current;
+    if (!el) return;
+
+    let prevInlineSize = -1;
+
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const inlineSize =
+          entry.borderBoxSize?.[0]?.inlineSize ?? el.getBoundingClientRect().width;
+        if (inlineSize !== prevInlineSize) {
+          prevInlineSize = inlineSize;
+          recompute();
+          break;
+        }
+      }
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [isOpen, recompute]);
 
   return offset;

@@ -354,63 +354,54 @@ function AnimatedHeightWrapper({ viewState, children }: { viewState: PopoverView
 }
 
 /**
- * Zone 3: Triple always-render evidence display pattern.
+ * Zone 3: Dual always-render evidence display pattern.
  *
- * Renders all three view states (summary, expanded-evidence, expanded-page)
- * simultaneously, hiding inactive ones with display:none. This keeps the hook
- * tree stable — React 19's StrictMode corrupts the fiber effect linked list
- * when conditionally swapping components with different hook counts inside a portal.
+ * Renders two slots simultaneously, hiding inactive ones with display:none:
+ * - Slot A (summary + expanded-evidence): EvidenceTray with keyhole that animates height
+ * - Slot B (expanded-page): InlineExpandedImage fill=true
+ *
+ * This keeps the hook tree stable — React 19's StrictMode corrupts the fiber effect linked
+ * list when conditionally swapping components with different hook counts inside a portal.
  */
 function EvidenceZone({
   viewState,
-  evidenceSrc,
   expandedImage,
   onViewStateChange,
-  handleEvidenceImageLoad,
   handlePageImageLoad,
   prevBeforeExpandedPageRef,
   verification,
   summaryContent,
 }: {
   viewState: PopoverViewState;
-  evidenceSrc: string | null;
   expandedImage: { src: string; renderScale?: { x: number; y: number } | null } | null;
   onViewStateChange?: (viewState: PopoverViewState) => void;
-  handleEvidenceImageLoad: (width: number, height: number) => void;
   handlePageImageLoad: (width: number, height: number) => void;
   prevBeforeExpandedPageRef: RefObject<"summary" | "expanded-evidence">;
   verification: Verification | null;
   summaryContent: ReactNode;
 }) {
-  // Track previous view state to detect re-entry transitions.
-  // When returning to summary from an expanded state, we apply a brief fade-in
-  // so the swap doesn't feel like the UI "snaps" backward.
+  // Track previous view state to detect re-entry from expanded-page.
+  // When returning to any keyhole state (summary or expanded-evidence), apply a brief
+  // fade-in so the swap doesn't feel like the UI "snaps" backward.
   // Using setState-during-render (React-approved pattern) instead of ref so the
   // React Compiler can optimize this component (refs read during render cause a bailout).
   const [prevViewState, setPrevViewState] = useState<PopoverViewState>(viewState);
   if (prevViewState !== viewState) {
     setPrevViewState(viewState);
   }
-  const isReenteringSummary = viewState === "summary" && prevViewState !== "summary";
+  const isReenteringKeyhole =
+    (viewState === "summary" || viewState === "expanded-evidence") && prevViewState === "expanded-page";
 
   return (
     <>
+      {/* Slot A: summary + expanded-evidence (EvidenceTray, keyhole height animates via keyholeExpanded) */}
       <div
-        style={viewState !== "summary" ? { display: "none" } : undefined}
-        className={isReenteringSummary ? "animate-in fade-in-0 duration-100" : undefined}
+        style={viewState === "expanded-page" ? { display: "none" } : undefined}
+        className={isReenteringKeyhole ? "animate-in fade-in-0 duration-100" : undefined}
       >
         {summaryContent}
       </div>
-      {evidenceSrc && (
-        <div style={viewState !== "expanded-evidence" ? { display: "none" } : undefined}>
-          <InlineExpandedImage
-            src={evidenceSrc}
-            onCollapse={() => onViewStateChange?.("summary")}
-            verification={verification}
-            onNaturalSize={handleEvidenceImageLoad}
-          />
-        </div>
-      )}
+      {/* Slot B: expanded-page (always rendered for React 19 fiber stability) */}
       {expandedImage?.src && (
         // flex-1 min-h-0 flex flex-col: propagates the bounded height from the flex-column
         // PopoverLayoutShell so InlineExpandedImage's own flex-1 min-h-0 can take effect.
@@ -637,34 +628,21 @@ export function DefaultPopoverContent({
 
   const summaryWidth = useMemo(() => getSummaryPopoverWidth(keyholeDisplayedWidth), [keyholeDisplayedWidth]);
 
-  // Split state for evidence and page image natural widths.
-  // Each only updates from image onLoad events (event handlers, not effects).
-  // Triple always-render keeps images mounted, so onLoad fires once and state persists
-  // across viewState transitions (no re-mount, no stale-cache problem).
-  const [evidenceNaturalWidth, setEvidenceNaturalWidth] = useState<number | null>(null);
+  // Page image natural width — set from onLoad, persists across viewState transitions
+  // (dual always-render keeps the image mounted so onLoad fires once and state is stable).
   const [pageNaturalWidth, setPageNaturalWidth] = useState<number | null>(null);
 
-  // Fallback width from verification document dimensions (available before image loads).
-  const verificationWidth = verification?.document?.verificationImageDimensions?.width ?? null;
-
-  // Derive expandedNaturalWidth from the current viewState and loaded widths — no setState.
-  const expandedNaturalWidth = useMemo(() => {
-    if (viewState === "summary") return null;
-    if (viewState === "expanded-evidence") return evidenceNaturalWidth ?? verificationWidth;
-    if (viewState === "expanded-page") return pageNaturalWidth;
-    return null;
-  }, [viewState, evidenceNaturalWidth, pageNaturalWidth, verificationWidth]);
+  // Expanded popover width is only needed for the full-page view.
+  const expandedNaturalWidth = useMemo(
+    () => (viewState === "expanded-page" ? pageNaturalWidth : null),
+    [viewState, pageNaturalWidth],
+  );
 
   // Notify parent when expandedNaturalWidth changes — calls only the prop callback,
   // not a React setter, so this useEffect is React Compiler-compatible.
   useEffect(() => {
     onExpandedWidthChange?.(expandedNaturalWidth);
   }, [expandedNaturalWidth, onExpandedWidthChange]);
-
-  // Callbacks for InlineExpandedImage onLoad — set the appropriate state slot.
-  const handleEvidenceImageLoad = useCallback((width: number, _height: number) => {
-    setEvidenceNaturalWidth(width);
-  }, []);
 
   const handlePageImageLoad = useCallback((width: number, _height: number) => {
     setPageNaturalWidth(width);
@@ -690,12 +668,12 @@ export function DefaultPopoverContent({
     if (viewState !== "expanded-page") {
       prevBeforeExpandedPageRef.current = viewState === "expanded-evidence" ? "expanded-evidence" : "summary";
     }
-    // pageNaturalWidth is already set by onLoad (triple always-render keeps image mounted),
+    // pageNaturalWidth is already set by onLoad (dual always-render keeps image mounted),
     // so PopoverLayoutShell gets the correct width via expandedNaturalWidth useMemo.
     onViewStateChange?.("expanded-page");
   }, [canExpandToPage, onViewStateChange, viewState]);
 
-  // Resolve the evidence image src once at this level (used by handleKeyholeClick and Zone 3).
+  // Resolve the evidence image src — used by handleKeyholeClick and the prefetch effect.
   const evidenceSrc = useMemo(() => {
     if (verification?.document?.verificationImageSrc) {
       const s = verification.document.verificationImageSrc;
@@ -730,8 +708,6 @@ export function DefaultPopoverContent({
       return;
     }
     if (!evidenceSrc) return;
-    // evidenceNaturalWidth is already set by onLoad (triple always-render keeps image mounted),
-    // so PopoverLayoutShell gets the correct width via expandedNaturalWidth useMemo.
     onViewStateChange?.("expanded-evidence");
   }, [viewState, evidenceSrc, onViewStateChange]);
 
@@ -791,104 +767,32 @@ export function DefaultPopoverContent({
   }
 
   // ==========================================================================
-  // SUCCESS STATE (Green) - Three-zone layout: Header + Claim + Evidence
+  // THREE-ZONE LAYOUT: Success (green), Partial (amber), or Miss (red)
   // ==========================================================================
-  if (isVerified && !isPartialMatch && !isMiss && hasImage && verification) {
-    const isExpanded = viewState === "expanded-evidence" || viewState === "expanded-page";
-    const isFullPage = viewState === "expanded-page";
-    const validProofUrl =
-      isFullPage && verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
-    return (
-      <>
-        {statusLiveRegion}
-        <PopoverLayoutShell
-          isExpanded={isExpanded}
-          isFullPage={isFullPage}
-          expandedNaturalWidth={expandedNaturalWidth}
-          summaryWidth={summaryWidth}
-        >
-          {/* Zone 1: Metadata Header */}
-          <SourceContextHeader
-            citation={citation}
-            verification={verification}
-            status={searchStatus}
-            sourceLabel={sourceLabel}
-            onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
-            onClose={isFullPage ? () => onViewStateChange?.(prevBeforeExpandedPageRef.current) : undefined}
-            proofUrl={validProofUrl}
-            onSourceDownload={onSourceDownload}
-          />
-          {/* Zone 2: Claim Body — Status + highlighted phrase */}
-          <StatusHeader
-            status={searchStatus}
-            foundPage={foundPage}
-            expectedPage={expectedPage ?? undefined}
-            hidePageBadge
-            anchorText={anchorText}
-            indicatorVariant={indicatorVariant}
-          />
-          <AnimatedHeightWrapper viewState={viewState}>
-            {fullPhrase && (
-              <ClaimQuote
-                fullPhrase={fullPhrase}
-                anchorText={anchorText}
-                isMiss={isMiss}
-                borderColor="border-green-500 dark:border-green-600"
-              />
-            )}
-          </AnimatedHeightWrapper>
-          {/* Zone 3: Evidence */}
-          <EvidenceZone
-            viewState={viewState}
-            evidenceSrc={evidenceSrc}
-            expandedImage={expandedImage}
-            onViewStateChange={onViewStateChange}
-            handleEvidenceImageLoad={handleEvidenceImageLoad}
-            handlePageImageLoad={handlePageImageLoad}
-            prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
-            verification={verification}
-            summaryContent={
-              <EvidenceTray
-                verification={verification}
-                status={status}
-                onExpand={canExpandToPage ? handleExpand : undefined}
-                onImageClick={handleKeyholeClick}
-                onKeyholeWidth={setKeyholeDisplayedWidth}
-              />
-            }
-          />
-        </PopoverLayoutShell>
-      </>
-    );
-  }
-
-  // ==========================================================================
-  // PARTIAL/DISPLACED STATE (Amber) or NOT FOUND (Red) - Three-zone layout
-  // ==========================================================================
-  if (isMiss || isPartialMatch) {
+  if ((isVerified && !isPartialMatch && !isMiss && hasImage && verification) || isMiss || isPartialMatch) {
     const isExpanded = viewState === "expanded-evidence" || viewState === "expanded-page";
     const isFullPage = viewState === "expanded-page";
     const validProofUrl =
       isFullPage && verification?.proof?.proofUrl ? isValidProofUrl(verification.proof.proofUrl) : null;
 
-    // Summary content differs from success: conditional EvidenceTray based on image/search state
+    const claimBorderColor = isMiss
+      ? "border-red-500 dark:border-red-400"
+      : isPartialMatch
+        ? "border-amber-500 dark:border-amber-400"
+        : "border-green-500 dark:border-green-600";
+
+    // Unified summaryContent: success shows keyhole with onImageClick; miss/partial shows
+    // keyhole or search analysis depending on what's available.
     const summaryContent =
-      hasImage && verification ? (
+      (hasImage || (isMiss && (verification?.searchAttempts?.length || canExpandToPage))) && verification ? (
         <EvidenceTray
           verification={verification}
           status={status}
           onExpand={canExpandToPage ? handleExpand : undefined}
-          onImageClick={handleKeyholeClick}
+          onImageClick={hasImage ? handleKeyholeClick : undefined}
           proofImageSrc={expandedImage?.src}
           onKeyholeWidth={setKeyholeDisplayedWidth}
-        />
-      ) : isMiss && (verification?.searchAttempts?.length || canExpandToPage) && verification ? (
-        <EvidenceTray
-          verification={verification}
-          status={status}
-          onExpand={canExpandToPage ? handleExpand : undefined}
-          proofImageSrc={expandedImage?.src}
-          onKeyholeWidth={setKeyholeDisplayedWidth}
+          keyholeExpanded={viewState === "expanded-evidence"}
         />
       ) : null;
 
@@ -921,33 +825,28 @@ export function DefaultPopoverContent({
             anchorText={anchorText}
             indicatorVariant={indicatorVariant}
           />
-          {/* URL access explanation (for URL citations with access failures) */}
-          {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
-          {/* Snippet display for document partial matches */}
-          {!urlAccessExplanation && intentSnippets.length > 0 && <PopoverSnippetZone snippets={intentSnippets} />}
-          {/* Humanizing message fallback for URL citations */}
-          {!urlAccessExplanation && intentSnippets.length === 0 && humanizingMessage && (
+          {/* Partial/miss-specific sections (absent in success) */}
+          {(isMiss || isPartialMatch) && urlAccessExplanation && (
+            <UrlAccessExplanationSection explanation={urlAccessExplanation} />
+          )}
+          {(isMiss || isPartialMatch) && !urlAccessExplanation && intentSnippets.length > 0 && (
+            <PopoverSnippetZone snippets={intentSnippets} />
+          )}
+          {(isMiss || isPartialMatch) && !urlAccessExplanation && intentSnippets.length === 0 && humanizingMessage && (
             <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
               {humanizingMessage}
             </div>
           )}
-          {fullPhrase && (
-            <AnimatedHeightWrapper viewState={viewState}>
-              <ClaimQuote
-                fullPhrase={fullPhrase}
-                anchorText={anchorText}
-                isMiss={isMiss}
-                borderColor={isMiss ? "border-red-500 dark:border-red-400" : "border-amber-500 dark:border-amber-400"}
-              />
-            </AnimatedHeightWrapper>
-          )}
+          <AnimatedHeightWrapper viewState={viewState}>
+            {fullPhrase && (
+              <ClaimQuote fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} borderColor={claimBorderColor} />
+            )}
+          </AnimatedHeightWrapper>
           {/* Zone 3: Evidence */}
           <EvidenceZone
             viewState={viewState}
-            evidenceSrc={evidenceSrc}
             expandedImage={expandedImage}
             onViewStateChange={onViewStateChange}
-            handleEvidenceImageLoad={handleEvidenceImageLoad}
             handlePageImageLoad={handlePageImageLoad}
             prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
             verification={verification}

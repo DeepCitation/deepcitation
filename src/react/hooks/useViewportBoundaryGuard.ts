@@ -57,6 +57,10 @@ export function useViewportBoundaryGuard(
   const rafIdRef = useRef<number>(0);
   const moRef = useRef<MutationObserver | null>(null);
   const timerIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Timestamp (ms) after which the active morph transition is considered done.
+   *  Set by the post-render useEffect on every view-state change so the
+   *  ResizeObserver can skip debouncing once the animation window has passed. */
+  const transitionEndsAtRef = useRef(0);
 
   // Unified layout effect: handles initial open, view-state transitions, and
   // re-renders within the same state. Uses prevViewStateRef to distinguish.
@@ -114,11 +118,17 @@ export function useViewportBoundaryGuard(
   // trigger a batched re-render; by the time this useEffect runs, Radix has
   // repositioned the wrapper with the final offsets. The rAF then measures
   // the settled position and applies the guard correction.
+  //
+  // Also marks the active transition window so the ResizeObserver debounces
+  // during morph animations but fires immediately outside them.
   // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity — refs should not be in deps per React docs
   useEffect(() => {
     if (!isOpen) return;
     const el = popoverContentRef.current;
     if (!el) return;
+
+    // Mark active transition window so ResizeObserver debounces during morph animation.
+    transitionEndsAtRef.current = Date.now() + SETTLE_MS;
 
     rafIdRef.current = requestAnimationFrame(() => {
       const current = popoverContentRef.current;
@@ -175,10 +185,14 @@ export function useViewportBoundaryGuard(
       moRef.current.observe(wrapper, { attributes: true, attributeFilter: ["style"], attributeOldValue: true });
     }
 
-    // ResizeObserver: debounced to avoid fighting CSS morph transitions.
+    // ResizeObserver: debounce only during active morph transitions; fire
+    // immediately (next event-loop turn) once the animation window has passed.
+    // This prevents visible overflow from image-load width changes (which happen
+    // outside any transition window) while still avoiding jitter during morphs.
     const debouncedClamp = () => {
       if (timerIdRef.current !== null) clearTimeout(timerIdRef.current);
-      timerIdRef.current = setTimeout(() => clamp(el), SETTLE_MS);
+      const delay = Date.now() < transitionEndsAtRef.current ? SETTLE_MS : 0;
+      timerIdRef.current = setTimeout(() => clamp(el), delay);
     };
     const ro = new ResizeObserver(debouncedClamp);
     ro.observe(el);
