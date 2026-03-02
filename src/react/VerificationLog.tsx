@@ -392,6 +392,7 @@ export function SourceContextHeader({
           <button
             type="button"
             aria-label="Download source"
+            title={`Download ${displayName ?? url}`}
             className="shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
             onClick={e => {
               e.stopPropagation();
