@@ -122,6 +122,21 @@ export type SourceType =
  * Common fields shared by all citation types.
  */
 export interface CitationBase {
+  /** Attachment ID for document citations */
+  attachmentId?: string;
+
+  /** Page number in the document */
+  pageNumber?: number | null;
+
+  /** Line IDs within the page */
+  lineIds?: number[] | null;
+
+  /** Start page ID for multi-page citations */
+  startPageId?: string | null;
+
+  /** Selection box coordinates in the document */
+  selection?: ScreenBox | null;
+
   /** The full context/excerpt containing the cited information */
   fullPhrase?: string | null;
 
@@ -133,9 +148,6 @@ export interface CitationBase {
 
   /** Reasoning for why this citation was included */
   reasoning?: string | null;
-
-  /** Text that appears before the citation marker */
-  beforeCite?: string;
 
   /** Timestamps for audio/video citations */
   timestamps?: {

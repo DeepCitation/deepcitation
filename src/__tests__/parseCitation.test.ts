@@ -262,7 +262,6 @@ describe("parseCitation", () => {
     const parsed = parseCitation(fragment, "override-attachment");
     const { citation } = parsed;
 
-    expect(parsed.beforeCite).toBe("Before ");
     expect(parsed.afterCite).toBe(" after");
     expect(citation.pageNumber).toBe(5);
     expect(citation.attachmentId).toBe("override-attachment");
@@ -312,17 +311,15 @@ describe("parseCitation", () => {
   });
 
   describe("missing cite tag returns", () => {
-    it("returns empty beforeCite/afterCite when no cite tag present", () => {
+    it("returns empty afterCite when no cite tag present", () => {
       const fragment = "Just plain text without any citations";
       const parsed = parseCitation(fragment);
-      expect(parsed.beforeCite).toBe("");
       expect(parsed.afterCite).toBe("");
       expect(parsed.citation.fullPhrase).toBeUndefined();
     });
 
     it("handles empty string input", () => {
       const parsed = parseCitation("");
-      expect(parsed.beforeCite).toBe("");
       expect(parsed.afterCite).toBe("");
     });
 

@@ -17,7 +17,6 @@ interface CitationBase {
   anchorText?: string | null;
   citationNumber?: number;
   reasoning?: string | null;
-  beforeCite?: string;
   timestamps?: { startTime?: string; endTime?: string };
 }
 

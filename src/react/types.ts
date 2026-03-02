@@ -36,20 +36,20 @@ export type IndicatorVariant = "icon" | "dot" | "caret" | "none";
  * |---------------|------------------------------------------------|
  * | `chip`        | Pill/badge style with neutral gray background  |
  * | `brackets`    | [text✓] with square brackets                   |
- * | `text`        | Plain text, inherits parent styling            |
+ * | `text`        | Plain text, inherits parent styling (default)  |
  * | `superscript` | Small raised text like footnotes¹              |
  * | `footnote`    | Clean footnote marker with neutral default     |
  * | `badge`       | Source chip showing name + count (ChatGPT-style) |
- * | `linter`      | Inline text with semantic underlines (default) |
+ * | `linter`      | Inline text with semantic underlines            |
  */
 export type CitationVariant =
   | "chip" // Pill/badge with neutral gray background
   | "brackets" // [text✓] with brackets
-  | "text" // Plain text, inherits styling
+  | "text" // Plain text, inherits styling (default)
   | "superscript" // Small raised footnote style
   | "footnote" // Clean footnote marker with neutral default
   | "badge" // Source name chip with count (ChatGPT-style)
-  | "linter"; // Inline text with semantic underlines (default)
+  | "linter"; // Inline text with semantic underlines
 
 /**
  * Content to display in the citation.
@@ -224,7 +224,7 @@ export interface BaseCitationProps {
   innerWidthClassName?: string;
   /**
    * Visual style variant for the citation.
-   * @default "brackets"
+   * @default "text"
    */
   variant?: CitationVariant;
   /**

@@ -264,7 +264,7 @@ interface BaseCitationProps {
   /** Class name for controlling inner content width */
   innerWidthClassName?: string;
   /** Visual style variant */
-  variant?: "linter" | "chip" | "brackets" | "text" | "superscript" | "footnote" | "badge";
+  variant?: "text" | "linter" | "chip" | "brackets" | "superscript" | "footnote" | "badge";
   /** What content to display */
   content?: "anchorText" | "number" | "indicator" | "source";
   /** Fallback display text when anchorText is empty */

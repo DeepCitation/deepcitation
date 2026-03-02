@@ -200,7 +200,6 @@ export const parseCitation = (
 
   const citationNumber = citationCounterRef?.current ? citationCounterRef.current++ : undefined;
 
-  const beforeCite = fragment.substring(0, fragment.indexOf("<cite"));
   const afterCite = fragment.includes("/>") ? fragment.slice(fragment.indexOf("/>") + 2) : "";
   const middleCite = fragment.substring(fragment.indexOf("<cite"), fragment.indexOf("/>") + 2);
 
@@ -285,7 +284,6 @@ export const parseCitation = (
           fullPhrase,
           anchorText: anchorText || value,
           citationNumber,
-          beforeCite,
           timestamps,
           reasoning,
         } as UrlCitation)
@@ -297,13 +295,11 @@ export const parseCitation = (
           anchorText: anchorText || value,
           citationNumber,
           lineIds,
-          beforeCite,
           timestamps,
           reasoning,
         } as DocumentCitation);
 
   return {
-    beforeCite,
     afterCite,
     citation,
   };
