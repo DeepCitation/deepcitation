@@ -375,6 +375,7 @@ function EvidenceZone({
   prevBeforeExpandedPageRef,
   verification,
   summaryContent,
+  keyholeInitialScroll,
 }: {
   viewState: PopoverViewState;
   evidenceSrc: string | null;
@@ -387,6 +388,8 @@ function EvidenceZone({
   prevBeforeExpandedPageRef: RefObject<"summary" | "expanded-keyhole">;
   verification: Verification | null;
   summaryContent: ReactNode;
+  /** Natural-pixel scroll position captured from the keyhole strip on last expand click. */
+  keyholeInitialScroll?: { left: number; top: number } | null;
 }) {
   // Track previous view state to detect re-entry from expanded-page.
   // When returning to any keyhole state (summary or expanded-keyhole), apply a brief
@@ -418,6 +421,7 @@ function EvidenceZone({
             onExpand={onExpandToPage}
             onNaturalSize={handleKeyholeImageLoad}
             verification={verification}
+            initialScroll={keyholeInitialScroll ?? undefined}
           />
         </div>
       )}
@@ -689,6 +693,12 @@ export function DefaultPopoverContent({
     }
   }, [verification]);
 
+  // Scroll position captured from the keyhole strip, applied to InlineExpandedImage on expand.
+  const [keyholeInitialScroll, setKeyholeInitialScroll] = useState<{ left: number; top: number } | null>(null);
+  const handleKeyholeScrollCapture = useCallback((left: number, top: number) => {
+    setKeyholeInitialScroll({ left, top });
+  }, []);
+
   // Toggles the keyhole expanded view. Clicking when already expanded collapses back to summary.
   const handleKeyholeClick = useCallback(() => {
     if (viewState === "expanded-keyhole") {
@@ -801,6 +811,7 @@ export function DefaultPopoverContent({
           status={status}
           onExpand={canExpandToPage ? handleExpand : undefined}
           onImageClick={evidenceSrc ? handleKeyholeClick : canExpandToPage ? handleExpand : undefined}
+          onScrollCapture={evidenceSrc ? handleKeyholeScrollCapture : undefined}
           proofImageSrc={expandedImage?.src}
           onKeyholeWidth={setKeyholeDisplayedWidth}
         />
@@ -864,6 +875,7 @@ export function DefaultPopoverContent({
             prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
             verification={verification}
             summaryContent={summaryContent}
+            keyholeInitialScroll={keyholeInitialScroll}
           />
         </PopoverLayoutShell>
       </>

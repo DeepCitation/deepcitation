@@ -609,6 +609,20 @@ export function AnchorTextFocusedImage({
               return;
             }
             if (canExpand) {
+              // Capture scroll position in natural-pixel coords before handing off to expanded view
+              const img = imageRef.current;
+              const container = containerRef.current;
+              if (onScrollCapture && img && container) {
+                const stripHeight = container.clientHeight;
+                const displayedScale =
+                  imageFitInfo?.isWidthFit && img.naturalWidth > 0
+                    ? imageFitInfo.displayedWidth / img.naturalWidth
+                    : img.naturalHeight > 0
+                      ? (keyholeZoom * stripHeight) / img.naturalHeight
+                      : 1;
+                const ds = displayedScale > 0 ? displayedScale : 1;
+                onScrollCapture(container.scrollLeft / ds, container.scrollTop / ds);
+              }
               onImageClick?.();
             }
           }}
@@ -919,6 +933,7 @@ export function EvidenceTray({
   onImageClick,
   proofImageSrc,
   onKeyholeWidth,
+  onScrollCapture,
 }: {
   verification: Verification | null;
   status: CitationStatus;
@@ -926,6 +941,8 @@ export function EvidenceTray({
   onImageClick?: () => void;
   proofImageSrc?: string;
   onKeyholeWidth?: (width: number) => void;
+  /** Called with natural-pixel scroll coords when the keyhole is clicked to expand. */
+  onScrollCapture?: (left: number, top: number) => void;
 }) {
   const resolvedEvidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
   const isMiss = status.isMiss;
@@ -969,6 +986,7 @@ export function EvidenceTray({
           verification={verification}
           onImageClick={onImageClick}
           onKeyholeWidth={onKeyholeWidth}
+          onScrollCapture={onScrollCapture}
         />
       ) : isMiss && isValidProofImageSrc(proofImageSrc) ? (
         <AnchorTextFocusedImage
@@ -976,6 +994,7 @@ export function EvidenceTray({
           src={proofImageSrc!}
           onImageClick={onImageClick}
           onKeyholeWidth={onKeyholeWidth}
+          onScrollCapture={onScrollCapture}
         />
       ) : null}
       {/* Miss-specific: search analysis and collapsible search log (only when there are search attempts) */}
@@ -1116,6 +1135,7 @@ export function InlineExpandedImage({
   anchorItem,
   initialOverlayHidden = false,
   showOverlay,
+  initialScroll,
 }: {
   src: string;
   onCollapse: () => void;
@@ -1139,6 +1159,12 @@ export function InlineExpandedImage({
    * true = show overlay, false = hide overlay. Used by the header panel indicator row.
    */
   showOverlay?: boolean;
+  /**
+   * Initial scroll position in natural-pixel coordinates (zoom=1.0 space).
+   * Applied once on image load in expanded-keyhole mode (fill=false) to continue
+   * where the keyhole strip was scrolled to. A new object reference = re-apply.
+   */
+  initialScroll?: { left: number; top: number };
 }) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const { containerRef, isDragging, handlers: panHandlers, wasDraggingRef } = useDragToPan({ direction: "xy" });
@@ -1186,6 +1212,9 @@ export function InlineExpandedImage({
   const hasManualZoomRef = useRef(false);
   // Auto-locate only once per image load; resizing should not keep re-centering/pulling view.
   const hasAutoScrolledToAnnotationRef = useRef(false);
+  // Tracks the last initialScroll object that was applied — reference equality prevents
+  // double-application within the same expand session while still re-applying on each new click.
+  const lastAppliedInitialScrollRef = useRef<{ left: number; top: number } | null>(null);
 
   // ---------------------------------------------------------------------------
   // GPU-accelerated gesture zoom refs
@@ -1245,7 +1274,22 @@ export function InlineExpandedImage({
     touchGestureZoomRef.current = null;
     touchGestureAnchorRef.current = null;
     expandedWheelAnchorRef.current = null;
+    lastAppliedInitialScrollRef.current = null;
   }, [src]);
+
+  // Apply initial scroll position from the keyhole — expanded-keyhole mode (fill=false) only.
+  // fill=true has its own auto-scroll-to-annotation flow that takes priority.
+  // Reference-equality check prevents re-applying the same position after user pans away.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object
+  useLayoutEffect(() => {
+    if (fill || !imageLoaded || !initialScroll) return;
+    if (lastAppliedInitialScrollRef.current === initialScroll) return;
+    const el = containerRef.current;
+    if (!el) return;
+    lastAppliedInitialScrollRef.current = initialScroll;
+    el.scrollLeft = initialScroll.left;
+    el.scrollTop = initialScroll.top;
+  }, [fill, imageLoaded, initialScroll, containerRef]);
 
   // ---------------------------------------------------------------------------
   // Locate dirty bit — tracks whether the viewport has drifted from the annotation.
