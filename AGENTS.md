@@ -25,6 +25,8 @@ Use progressive disclosure: keep this file minimal and load focused guidance onl
   [docs/agents/engineering-rules.md](./docs/agents/engineering-rules.md)
 - Working on citation UI behavior, popovers, timestamps, SSR, or overflow/layout:
   [docs/agents/react-citation-ui.md](./docs/agents/react-citation-ui.md)
+- Working on animations, transitions, gestures, easing, zoom, drag, haptics, or reduced motion:
+  [docs/agents/animation-transition-rules.md](./docs/agents/animation-transition-rules.md)
 - Working on package API usage, capabilities, or service endpoints:
   [docs/agents/package-reference.md](./docs/agents/package-reference.md)
 
