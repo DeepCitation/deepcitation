@@ -368,11 +368,14 @@ export function AnchorTextFocusedImage({
   verification,
   onImageClick,
   onKeyholeWidth,
+  onScrollCapture,
 }: {
   src: string;
   verification?: Verification | null;
   onImageClick?: () => void;
   onKeyholeWidth?: (width: number) => void;
+  /** Called with natural-pixel scroll coords just before onImageClick fires. */
+  onScrollCapture?: (left: number, top: number) => void;
 }) {
   // Resolve highlight region from verification data (null when no verification provided)
   const highlightBox = useMemo(() => (verification ? resolveHighlightBox(verification) : null), [verification]);
@@ -933,6 +936,12 @@ export function EvidenceTray({
   // Tray-level click: keyhole click if available, else page expansion
   const trayAction = onImageClick ?? onExpand;
 
+  // Suppress tray-level clicks that result from drag-release (e.g. panning the keyhole
+  // then releasing the mouse over "View page ›"). The browser fires click at the lowest
+  // common ancestor of the mousedown and mouseup targets — which is this tray div — so we
+  // must gate the action here.
+  const trayMouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
+
   // Search log toggle state (miss states only)
   const [showSearchLog, setShowSearchLog] = useState(false);
   const searchCount = useMemo(() => (isMiss ? countUniqueSearchTexts(searchAttempts) : 0), [isMiss, searchAttempts]);
@@ -1018,8 +1027,18 @@ export function EvidenceTray({
         <div
           role="button"
           tabIndex={0}
+          onMouseDown={e => {
+            trayMouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+          }}
           onClick={e => {
             e.stopPropagation();
+            const md = trayMouseDownPosRef.current;
+            trayMouseDownPosRef.current = null;
+            // If the cursor moved more than 5px between mousedown and click, this is a
+            // drag-release (e.g. panning keyhole → mouse up on footer). Suppress action.
+            if (md && Math.max(Math.abs(e.clientX - md.x), Math.abs(e.clientY - md.y)) > 5) {
+              return;
+            }
             trayAction();
           }}
           onKeyDown={e => {
