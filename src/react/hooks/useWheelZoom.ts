@@ -34,15 +34,12 @@ export interface UseWheelZoomOptions {
   /** When true, only zoom on Ctrl+wheel (expanded page behavior). Defaults to false. */
   requireCtrl?: boolean;
   /**
-   * When true, redirect primarily-vertical scroll events to `window.scrollBy` instead of
-   * letting the container's `overflow-x` consume them. Use on horizontal-only scroll
-   * containers (the keyhole strip) where Chrome may route vertical trackpad deltaY to the
-   * element's x-axis even though `overflow-y: hidden` is set.
-   *
-   * The listener is attached even when `enabled=false` so protection is active before
-   * the image loads / before zoom eligibility is determined.
+   * Optional external ref for the gesture anchor. When provided, the hook writes
+   * anchor data here instead of creating an internal ref. Allows consumers to
+   * declare the ref before effects that reset it (avoids temporal dead zone /
+   * React Compiler "used before declaration" errors).
    */
-  passVerticalScroll?: boolean;
+  gestureAnchorRef?: React.MutableRefObject<{ mx: number; my: number; sx: number; sy: number } | null>;
 }
 
 export interface UseWheelZoomReturn {
@@ -81,7 +78,7 @@ export function useWheelZoom({
   clampZoom,
   onZoomCommit,
   requireCtrl = false,
-  passVerticalScroll = false,
+  gestureAnchorRef: externalGestureAnchorRef,
 }: UseWheelZoomOptions): UseWheelZoomReturn {
   const [isHovering, setIsHovering] = useState(false);
 
@@ -92,7 +89,8 @@ export function useWheelZoom({
   });
 
   const gestureZoomRef = useRef<number | null>(null);
-  const gestureAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
+  const internalGestureAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
+  const gestureAnchorRef = externalGestureAnchorRef ?? internalGestureAnchorRef;
   const commitTimeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Hover tracking via pointer events on the container.
@@ -125,24 +123,13 @@ export function useWheelZoom({
     onZoomCommitRef.current = onZoomCommit;
   });
 
-  // Wheel zoom handler — Ctrl+wheel to zoom; optional vertical-scroll pass-through.
+  // Wheel zoom handler — intercepts wheel events for zoom when active.
   useEffect(() => {
-    // Attach when zoom is active OR when pass-through protection is needed.
-    if (!enabled && !passVerticalScroll) return;
+    if (!enabled) return;
     const el = containerRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
-      if (requireCtrl && !e.ctrlKey) {
-        // Redirect primarily-vertical scroll to the page so the overflow-x container
-        // doesn't eat it. Chrome may route deltaY to the element's x-axis on
-        // horizontal-only scroll containers even with overflow-y:hidden set.
-        if (passVerticalScroll && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-          e.preventDefault();
-          window.scrollBy(0, e.deltaY);
-        }
-        return;
-      }
-      if (!enabled) return; // No zoom when disabled (pass-through only mode)
+      if (requireCtrl && !e.ctrlKey) return;
       e.preventDefault(); // Block page scroll — zoom active
 
       const wrapper = wrapperRef.current;
@@ -206,7 +193,7 @@ export function useWheelZoom({
         }
       }
     };
-  }, [enabled, sensitivity, containerRef, wrapperRef, requireCtrl, passVerticalScroll]);
+  }, [enabled, sensitivity, containerRef, wrapperRef, requireCtrl]);
 
   return { isHovering, gestureAnchorRef, gestureZoomRef };
 }

@@ -371,7 +371,6 @@ export function AnchorTextFocusedImage({
   const { isHovering, gestureAnchorRef } = useWheelZoom({
     enabled: imageLoaded && zoomEligible,
     requireCtrl: true,
-    passVerticalScroll: true,
     sensitivity: KEYHOLE_WHEEL_ZOOM_SENSITIVITY,
     containerRef: containerRef as React.RefObject<HTMLElement | null>,
     wrapperRef: imageWrapperRef,
