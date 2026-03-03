@@ -11,6 +11,7 @@ function normalizePhrase(value: string): string {
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+    .replace(/(\d)[,._](?=\d)/g, "$1")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
