@@ -270,7 +270,6 @@ function PopoverLayoutShell({
           ...(isFullPage && {
             display: "flex",
             flexDirection: "column" as const,
-            height: "100%",
             overflowY: "hidden" as const,
           }),
         }}
@@ -431,7 +430,7 @@ function EvidenceZone({
           stability (constant fiber position). InlineExpandedImage mounts inside once
           expandedImage is resolved. */}
       <div
-        className="flex-1 min-h-0 flex flex-col"
+        className="flex flex-col"
         style={viewState !== "expanded-page" ? { display: "none" } : undefined}
       >
         {expandedImage?.src && (

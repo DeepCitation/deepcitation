@@ -1374,9 +1374,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                       // Expanded-page keeps adaptive width when space allows and is
                       // clamped to viewport bounds via maxWidth + guard variable.
                       maxWidth: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
-                      // Explicit height gives the flex chain a definite reference size
-                      // so flex-1 min-h-0 children can grow into available space.
-                      height: "calc(100dvh - 2rem)",
                       maxHeight: "calc(100dvh - 2rem)",
                       // The inner InlineExpandedImage handles its own scrolling (with hidden
                       // scrollbars). Override PopoverContent's default overflow-y-auto to

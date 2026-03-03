@@ -1634,7 +1634,7 @@ export function InlineExpandedImage({
       className={cn(
         "relative mx-3 mb-3",
         !fill && "animate-in fade-in-0 duration-150",
-        fill && "flex-1 min-h-0 flex flex-col",
+        fill && "flex flex-col",
       )}
       style={
         fill
@@ -1649,7 +1649,7 @@ export function InlineExpandedImage({
       }
     >
       {/* Wrapper: relative so zoom controls can be positioned absolutely over the scroll area */}
-      <div className={cn("relative", fill && "flex-1 min-h-0 flex flex-col")}>
+      <div className={cn("relative", fill && "flex flex-col")}>
         {/* Scrollable image area — click (no drag) collapses */}
         <div
           ref={containerRef}
@@ -1662,7 +1662,7 @@ export function InlineExpandedImage({
             // Top+sides border completes the box started by the footer's border-t-0.
             // Matches EvidenceTray's EVIDENCE_TRAY_BORDER_SOLID so the transition is seamless.
             !fill && "border border-b-0 border-gray-200 dark:border-gray-700",
-            fill && "flex-1 min-h-0",
+            fill && "max-h-[80dvh]",
           )}
           style={{
             ...(fill ? {} : { maxHeight: "min(600px, 80dvh)" }),
