@@ -35,6 +35,27 @@ describe("searchAttemptGrouping", () => {
     expect(grouped).toHaveLength(2);
   });
 
+  it("keeps different phrases that normalize to empty separate", () => {
+    const attempts: SearchAttempt[] = [
+      attempt({ searchPhrase: "!!!", pageSearched: 1 }),
+      attempt({ searchPhrase: "???", pageSearched: 1 }),
+    ];
+
+    const grouped = groupSearchAttempts(attempts);
+    expect(grouped).toHaveLength(2);
+  });
+
+  it("groups identical phrases that normalize to empty", () => {
+    const attempts: SearchAttempt[] = [
+      attempt({ searchPhrase: "!!!", pageSearched: 1 }),
+      attempt({ searchPhrase: "!!!", pageSearched: 1 }),
+    ];
+
+    const grouped = groupSearchAttempts(attempts);
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0]?.duplicateCount).toBe(2);
+  });
+
   it("prefers a successful duplicate as the representative row", () => {
     const attempts: SearchAttempt[] = [
       attempt({ searchPhrase: "alpha", pageSearched: 2, success: false }),

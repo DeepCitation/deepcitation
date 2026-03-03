@@ -151,8 +151,11 @@ export function useSharedOriginExpandTransition(
     const onTransitionEnd = (event: TransitionEvent) => {
       if (event.target !== el) return;
       if (event.propertyName !== "transform") return;
-      cleanup();
-      onConsumed?.();
+      try {
+        cleanup();
+      } finally {
+        onConsumed?.();
+      }
     };
 
     el.style.willChange = "transform";

@@ -12,7 +12,9 @@ function normalizePhrase(value: string): string {
   const noDigitSeps = safeReplace(stripped, /(\d)[,._](?=\d)/g, "$1");
   const alphanumOnly = safeReplace(noDigitSeps, /[^a-z0-9]+/g, " ").trim();
   const canonical = safeReplace(alphanumOnly, /\s+/g, " ");
-  return canonical.length > 0 ? canonical : "(empty)";
+  // When canonical is empty, `value` was all non-alphanumeric characters.
+  // Return raw `value` — it can never collide with a normalized alphanumeric key.
+  return canonical.length > 0 ? canonical : value;
 }
 
 function resolveAttemptPage(attempt: SearchAttempt): number {

@@ -283,6 +283,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         wrapper.style.pointerEvents = "none";
         if (idleTimer !== null) clearTimeout(idleTimer);
         idleTimer = setTimeout(() => {
+          if (!wrapper.isConnected) return;
           wrapper.style.pointerEvents = "";
           idleTimer = null;
         }, SCROLL_PASSTHROUGH_IDLE_MS);

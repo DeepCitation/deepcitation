@@ -49,6 +49,18 @@ function getVisibleViewportWidth(): number {
   return document.documentElement.clientWidth;
 }
 
+/**
+ * Sets GUARD_MAX_WIDTH_VAR only when the value actually changed.
+ * Reads from the inline style map (cheap hash lookup — no reflow),
+ * avoiding an unnecessary style invalidation from setProperty.
+ */
+function applyGuardMaxWidth(el: HTMLElement, vw: number): void {
+  const value = `${vw - 2 * VIEWPORT_MARGIN_PX}px`;
+  if (el.style.getPropertyValue(GUARD_MAX_WIDTH_VAR) !== value) {
+    el.style.setProperty(GUARD_MAX_WIDTH_VAR, value);
+  }
+}
+
 export function useViewportBoundaryGuard(
   isOpen: boolean,
   popoverViewState: PopoverViewState,
@@ -103,8 +115,7 @@ export function useViewportBoundaryGuard(
       // a wrong correction. Only set the max-width constraint here; the
       // post-render useEffect + rAF below handles the first translate
       // correction after layout is committed.
-      const vw = getVisibleViewportWidth();
-      el.style.setProperty(GUARD_MAX_WIDTH_VAR, `${vw - 2 * VIEWPORT_MARGIN_PX}px`);
+      applyGuardMaxWidth(el, getVisibleViewportWidth());
       return;
     }
 
@@ -226,7 +237,7 @@ function clamp(el: HTMLElement | null): void {
   //    formulas reference, so React re-renders don't clobber it.
   const vw = getVisibleViewportWidth();
   const vh = document.documentElement.clientHeight;
-  el.style.setProperty(GUARD_MAX_WIDTH_VAR, `${vw - 2 * VIEWPORT_MARGIN_PX}px`);
+  applyGuardMaxWidth(el, vw);
 
   // 2. Remove previous translate correction so we measure the base position.
   el.style.translate = "";
