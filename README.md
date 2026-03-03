@@ -14,16 +14,12 @@
 
 </div>
 
----
-
 <div align="center">
   <img
-    src="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/examples/assets/hero-before-after-loop.avif"
-    alt="Before-and-after DeepCitation demo showing unverified citations transforming into green verified and red fabricated markers with a proof popover."
+    src="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/examples/assets/deepcitation-og-1200x630.png"
+    alt="DeepCitation: Build trusted AI products with proof for every citation."
     width="900"
   />
-  <br />
-  <em>Same model answer, now with citation truth status and source-backed proof.</em>
 </div>
 
 DeepCitation turns model citations into deterministic, inspectable proof.
@@ -81,15 +77,8 @@ const visibleText = extractVisibleText(response.content);
 
 ## 7 Citation Display Variants
 
-<div align="center">
-  <img
-    src="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/examples/assets/variants-grid-desktop.avif"
-    alt="Grid view of seven DeepCitation citation display variants with labels and sample output."
-    width="1000"
-  />
-  <br />
-  <em>Use the variant that matches your UI, from chat chips to footnotes and inline linter-style underlines.</em>
-</div>
+Use the variant that matches your UI, from chat chips to footnotes and inline linter-style underlines.
+Visual walkthrough images will be added back as production-ready assets become available.
 
 | Variant | Style | Best for |
 |---------|-------|----------|
@@ -101,30 +90,6 @@ const visibleText = extractVisibleText(response.content);
 | `footnote` | Clean neutral marker | Minimal footnotes |
 | `badge` | Source chip with favicon | ChatGPT-style source attribution |
 
-## Chat Example (Chip Variant)
-
-<div align="center">
-  <img
-    src="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/examples/assets/chip-chat-demo-loop.avif"
-    alt="Chat interface demo where citation chips are clicked to show verified and fabricated outcomes."
-    width="900"
-  />
-  <br />
-  <em>Chat-native citation chips with per-citation verification state.</em>
-</div>
-
-## Inspectable Proof
-
-<div align="center">
-  <img
-    src="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/examples/assets/proof-popover-zoom-loop.avif"
-    alt="Citation popover opening to show matched quote text and exact source location."
-    width="900"
-  />
-  <br />
-  <em>Each citation can open source-backed proof your users can inspect.</em>
-</div>
-
 ## Building with DeepCitation?
 
 We're looking for design partners to showcase and help shape the future of citation verification.
@@ -132,14 +97,6 @@ We're looking for design partners to showcase and help shape the future of citat
 **[Become a design partner →](https://github.com/DeepCitation/deepcitation/issues/new?labels=design-partner&template=design_partner.md)** Get early access, direct support, and influence the roadmap.
 
 ## What Works Without an API Key
-
-<div align="center">
-  <img
-    src="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/examples/assets/api-key-boundary-diagram.png"
-    alt="Two-column DeepCitation feature boundary diagram separating local capabilities from API-key-required capabilities."
-    width="900"
-  />
-</div>
 
 Build locally first, add verification when ready.
 
