@@ -243,7 +243,9 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `BADGE_HOVER_CLASSES` | `src/react/citationVariants.cva.ts` | Badge hover classes by status |
 | `resolveStatusKey()` | `src/react/citationVariants.cva.ts` | Boolean flags → status key |
 | `SUPERSCRIPT_STYLE` | `src/react/citationVariants.cva.ts` | Superscript inline styles |
-| `handleImageError()` | `src/react/imageUtils.ts` | Shared image error handler |
+| `handleImageError()` | `src/react/imageUtils.ts` | Shared image error handler (`display: "none"`) |
+| `handleImageErrorOpacity()` | `src/react/imageUtils.ts` | Shared image error handler (`opacity: "0"`, preserves layout) |
+| `HIDE_SCROLLBAR_STYLE` | `src/react/constants.ts` | Scrollbar-hiding CSS (`scrollbarWidth: "none"`) |
 | `acquireScrollLock()`, `releaseScrollLock()` | `src/react/scrollLock.ts` | Ref-counted body scroll lock (shared by popover + drawer) |
 | `triggerHaptic()` | `src/react/haptics.ts` | Fire haptic feedback for a named interaction event |
 | `HapticEvent` | `src/react/haptics.ts` | Union type of haptic event names ("expand" \| "collapse") |

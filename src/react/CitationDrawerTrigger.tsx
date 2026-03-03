@@ -17,6 +17,7 @@ import {
   TTC_TEXT_STYLE,
 } from "./constants.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
+import { handleImageErrorOpacity } from "./imageUtils.js";
 import { formatTtc } from "./timingUtils.js";
 import type { IndicatorVariant } from "./types.js";
 import { cn } from "./utils.js";
@@ -79,10 +80,6 @@ export interface CitationDrawerTriggerProps {
 // =========
 // Module-level handlers (avoid re-creation on render)
 // =========
-
-const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-  (e.target as HTMLImageElement).style.opacity = "0";
-};
 
 /** Icon overlap when bar is expanded (rem scales with root font size) */
 const ICON_MARGIN_EXPANDED = "-0.25rem";
@@ -226,7 +223,7 @@ function CitationTooltip({
             alt=""
             className="w-4 h-4 rounded-sm object-contain shrink-0"
             loading="lazy"
-            onError={handleFaviconError}
+            onError={handleImageErrorOpacity}
           />
         ) : (
           <span className="w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[8px] font-medium text-gray-600 dark:text-gray-300 shrink-0">

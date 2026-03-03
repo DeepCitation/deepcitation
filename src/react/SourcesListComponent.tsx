@@ -2,23 +2,12 @@ import type React from "react";
 import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getPortalContainer, TTC_TEXT_STYLE } from "./constants.js";
+import { handleImageError, handleImageErrorOpacity } from "./imageUtils.js";
 import { detectSourceType, getFaviconUrl, getPlatformName } from "./SourcesListComponent.utils.js";
 import { formatTtc } from "./timingUtils.js";
 import type { SourcesListItemProps, SourcesListProps, SourcesTriggerProps } from "./types.js";
 import { extractDomain, safeWindowOpen } from "./urlUtils.js";
 import { classNames } from "./utils.js";
-
-/**
- * Module-level handlers for hiding broken favicon images.
- * Performance fix: avoids creating new function references on every render.
- */
-const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-  (e.target as HTMLImageElement).style.display = "none";
-};
-
-const handleFaviconErrorOpacity = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-  (e.target as HTMLImageElement).style.opacity = "0";
-};
 
 // ============================================================================
 // Icons
@@ -201,7 +190,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
               height={20}
               loading="lazy"
               // Performance fix: use module-level handler to avoid re-render overhead
-              onError={handleFaviconError}
+              onError={handleImageError}
             />
           )}
         </div>
@@ -300,7 +289,7 @@ export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>
               height={16}
               loading="lazy"
               // Performance fix: use module-level handler to avoid re-render overhead
-              onError={handleFaviconErrorOpacity}
+              onError={handleImageErrorOpacity}
             />
           ))}
           {hasMore && (

@@ -756,6 +756,17 @@ export const KEYHOLE_ZOOM_STEP = 0.15;
 export const KEYHOLE_WHEEL_ZOOM_SENSITIVITY = 0.008;
 
 // =============================================================================
+// SCROLLBAR HIDING
+// =============================================================================
+
+/** CSS to hide native scrollbars (Firefox + legacy Edge). Pair with a
+ *  `::-webkit-scrollbar { display: none }` rule for Chrome/Safari. */
+export const HIDE_SCROLLBAR_STYLE: React.CSSProperties = {
+  scrollbarWidth: "none",
+  msOverflowStyle: "none",
+};
+
+// =============================================================================
 // ZOOM HINT
 // =============================================================================
 

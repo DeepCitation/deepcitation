@@ -28,6 +28,7 @@ import {
   DRAWER_STAGGER_MAX_MS,
   EASE_COLLAPSE,
   getPortalContainer,
+  HIDE_SCROLLBAR_STYLE,
   Z_INDEX_BACKDROP_DEFAULT,
   Z_INDEX_DRAWER_BACKDROP_VAR,
   Z_INDEX_DRAWER_VAR,
@@ -1164,7 +1165,7 @@ function OpenCitationDrawer({
               {drawerPages.length > 0 && (
                 <div
                   className="dc-drawer-page-strip max-w-[min(52vw,18rem)] overflow-x-auto overflow-y-hidden"
-                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+                  style={HIDE_SCROLLBAR_STYLE}
                 >
                   <div className="flex items-center gap-1 min-w-max">
                     <DrawerPageBadges

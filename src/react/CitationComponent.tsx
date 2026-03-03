@@ -34,6 +34,7 @@ import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
 import { usePopoverAlignOffset } from "./hooks/usePopoverAlignOffset.js";
 import { useViewportBoundaryGuard } from "./hooks/useViewportBoundaryGuard.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
+import { handleImageError } from "./imageUtils.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
@@ -1507,14 +1508,6 @@ export const MemoizedCitationComponent = memo(CitationComponent);
 // =============================================================================
 
 /**
- * Module-level handler for hiding broken favicon images.
- * Performance fix: avoids creating new function references on every render.
- */
-const handleFaviconError = (e: React.SyntheticEvent<HTMLImageElement>): void => {
-  (e.target as HTMLImageElement).style.display = "none";
-};
-
-/**
  * Pulsing dot indicator for pending state.
  * Uses DOT_COLORS.gray for consistency across components (gray for pending state).
  */
@@ -1582,7 +1575,7 @@ const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl
       height={14}
       loading="lazy"
       // Performance fix: use module-level handler to avoid re-render overhead
-      onError={handleFaviconError}
+      onError={handleImageError}
     />
   );
 };

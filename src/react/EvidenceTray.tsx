@@ -34,6 +34,7 @@ import {
   EXPANDED_ZOOM_MAX,
   EXPANDED_ZOOM_MIN,
   EXPANDED_ZOOM_STEP,
+  HIDE_SCROLLBAR_STYLE,
   HITBOX_EXTEND_8x14,
   isValidProofImageSrc,
   KEYHOLE_FADE_WIDTH,
@@ -369,12 +370,6 @@ export function resolveExpandedImageForPage(
 // VERIFICATION IMAGE COMPONENT — "Keyhole" Crop & Fade
 // =============================================================================
 
-/** CSS to hide native scrollbars on the keyhole strip. */
-const KEYHOLE_SCROLLBAR_HIDE: React.CSSProperties = {
-  scrollbarWidth: "none", // Firefox
-  msOverflowStyle: "none", // IE/Edge
-};
-
 /**
  * "Scroll to zoom" hint badge — appears after a hover dwell, auto-dismisses
  * after first wheel zoom event. Shows once per session via sessionStorage.
@@ -517,11 +512,11 @@ export function AnchorTextFocusedImage({
     setHasZoomed(false);
   }, [src]);
 
-  const clampKeyholeZoom = useCallback(
-    (z: number) => Math.max(KEYHOLE_ZOOM_MIN, Math.min(KEYHOLE_ZOOM_MAX, Math.round(z * 100) / 100)),
-    [],
-  );
   const clampKeyholeZoomRaw = useCallback((z: number) => Math.max(KEYHOLE_ZOOM_MIN, Math.min(KEYHOLE_ZOOM_MAX, z)), []);
+  const clampKeyholeZoom = useCallback(
+    (z: number) => Math.round(clampKeyholeZoomRaw(z) * 100) / 100,
+    [clampKeyholeZoomRaw],
+  );
 
   const { isHovering, gestureAnchorRef } = useWheelZoom({
     enabled: imageLoaded && zoomEligible,
@@ -816,7 +811,7 @@ export function AnchorTextFocusedImage({
               // In width-fit mode, there's no horizontal overflow so mask is "none" automatically.
               WebkitMaskImage: maskImage,
               maskImage,
-              ...KEYHOLE_SCROLLBAR_HIDE,
+              ...HIDE_SCROLLBAR_STYLE,
               cursor: isDragging ? "grabbing" : canExpand ? "zoom-in" : isPannable ? "grab" : "default",
               // Hover ring affordance signals zoom interactivity
               ...(isHovering && !isDragging
@@ -2105,7 +2100,7 @@ export function InlineExpandedImage({
             ...(fill ? {} : { maxHeight: "min(600px, 80dvh)" }),
             overscrollBehavior: "none",
             cursor: isDragging ? "grabbing" : "zoom-out",
-            ...KEYHOLE_SCROLLBAR_HIDE,
+            ...HIDE_SCROLLBAR_STYLE,
           }}
           onDragStart={e => e.preventDefault()}
           onClick={e => {

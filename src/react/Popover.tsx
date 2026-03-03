@@ -9,6 +9,7 @@ import * as React from "react";
 import {
   EXPANDED_POPOVER_HEIGHT,
   GUARD_MAX_WIDTH_VAR,
+  HIDE_SCROLLBAR_STYLE,
   POPOVER_WIDTH_DEFAULT,
   POPOVER_WIDTH_VAR,
   Z_INDEX_BACKDROP_DEFAULT,
@@ -20,15 +21,7 @@ import { PopoverPortal } from "./PopoverPrimitives.js";
 import { usePopoverContext } from "./popoverContext.js";
 import { assignRef } from "./refUtils.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "./scrollLock.js";
-
-function cn(...classes: (string | undefined | null | false)[]): string {
-  return classes.filter(Boolean).join(" ");
-}
-
-const HIDE_SCROLLBAR_STYLE: React.CSSProperties = {
-  scrollbarWidth: "none",
-  msOverflowStyle: "none",
-};
+import { cn } from "./utils.js";
 
 /**
  * After the last page-level scroll event, wait this long before restoring
