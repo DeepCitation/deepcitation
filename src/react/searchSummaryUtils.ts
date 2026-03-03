@@ -5,42 +5,6 @@ import { isDocumentCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
 
 // =============================================================================
-// SEARCH COUNT UTILITY
-// =============================================================================
-
-/**
- * Collect unique search texts across all attempts, preserving insertion order.
- * Combines primary searchPhrase and any searchVariations into a deduplicated list.
- */
-export function getUniqueSearchTexts(searchAttempts: SearchAttempt[]): string[] {
-  if (searchAttempts.length === 0) return [];
-  const texts = new Set<string>();
-  for (const a of searchAttempts) {
-    if (a.searchPhrase) texts.add(a.searchPhrase);
-    if (a.searchVariations) {
-      for (const v of a.searchVariations) texts.add(v);
-    }
-  }
-  return Array.from(texts);
-}
-
-/**
- * Count the total number of unique search texts across all attempts.
- * Combines primary searchPhrase and any searchVariations into a deduplicated set.
- */
-export function countUniqueSearchTexts(searchAttempts: SearchAttempt[]): number {
-  if (searchAttempts.length === 0) return 0;
-  const texts = new Set<string>();
-  for (const a of searchAttempts) {
-    if (a.searchPhrase) texts.add(a.searchPhrase);
-    if (a.searchVariations) {
-      for (const v of a.searchVariations) texts.add(v);
-    }
-  }
-  return texts.size;
-}
-
-// =============================================================================
 // INTENT-CENTRIC TYPES
 // =============================================================================
 
@@ -335,7 +299,6 @@ export interface SearchQueryGroup {
     includesDocScan: boolean;
   };
   anySuccess: boolean;
-  variations: string[];
   variationTypeLabel: string | null;
   rejectedMatches: Array<{ text: string; occurrences?: number }>;
   attemptCount: number;
@@ -426,8 +389,6 @@ export function buildSearchSummary(searchAttempts: SearchAttempt[], verification
     let docScan = false;
     let anySuccess = false;
 
-    // Merge variations (deduplicated)
-    const variationSet = new Set<string>();
     let variationTypeLabel: string | null = null;
 
     // Collect rejected matches
@@ -460,10 +421,6 @@ export function buildSearchSummary(searchAttempts: SearchAttempt[], verification
       // Success
       if (attempt.success) anySuccess = true;
 
-      // Variations
-      if (attempt.searchVariations) {
-        for (const v of attempt.searchVariations) variationSet.add(v);
-      }
       if (!variationTypeLabel && attempt.variationType) {
         variationTypeLabel = getVariationLabel(attempt.variationType);
       }
@@ -490,7 +447,6 @@ export function buildSearchSummary(searchAttempts: SearchAttempt[], verification
         includesDocScan: docScan,
       },
       anySuccess,
-      variations: Array.from(variationSet).filter(v => v !== phrase),
       variationTypeLabel,
       rejectedMatches,
       attemptCount: attempts.length,

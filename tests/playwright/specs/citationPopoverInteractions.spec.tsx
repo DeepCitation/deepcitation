@@ -23,13 +23,11 @@ const verificationWithDetails: Verification = {
       method: "exact",
       success: false,
       searchPhrase: "25% revenue growth",
-      searchVariations: ["25% revenue growth"],
     },
     {
       method: "partial",
       success: false,
       searchPhrase: "revenue growth",
-      searchVariations: ["revenue growth"],
     },
   ],
 };

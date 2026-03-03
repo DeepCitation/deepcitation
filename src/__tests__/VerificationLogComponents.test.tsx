@@ -6,6 +6,7 @@ import {
   FaviconImage,
   LookingForSection,
   SourceContextHeader,
+  VerificationLogTimeline,
 } from "../react/VerificationLog";
 import { getVariationLabel } from "../react/variationLabels";
 import type { Citation } from "../types/citation";
@@ -269,6 +270,70 @@ describe("LookingForSection", () => {
       const matches = container.textContent?.match(/same text/g);
       expect(matches?.length).toBe(1);
     });
+  });
+});
+
+describe("VerificationLogTimeline attempts table", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders expected row and muted page-searched column for non-exact outcomes", () => {
+    const searchAttempts = [
+      {
+        method: "exact_line_match" as const,
+        success: false,
+        searchPhrase: "Revenue increased by 15% in Q4 2024.",
+        pageSearched: 5,
+      },
+      {
+        method: "anchor_text_fallback" as const,
+        success: true,
+        searchPhrase: "increased by 15%",
+        pageSearched: 7,
+      },
+    ];
+
+    const { getByText } = render(
+      <VerificationLogTimeline
+        searchAttempts={searchAttempts}
+        status="found_on_other_page"
+        fullPhrase="Revenue increased by 15% in Q4 2024."
+        expectedPage={5}
+        expectedLine={12}
+      />,
+    );
+
+    expect(getByText("Attempts")).toBeInTheDocument();
+    expect(getByText("Expected")).toBeInTheDocument();
+    expect(getByText("Page searched")).toBeInTheDocument();
+    expect(getByText("p.5 · l.12")).toBeInTheDocument();
+    expect(getByText("p.5")).toBeInTheDocument();
+    expect(getByText("p.7")).toBeInTheDocument();
+  });
+
+  it("bolds successful hit location when page or line differs from expected", () => {
+    const searchAttempts = [
+      {
+        method: "line_with_buffer" as const,
+        success: true,
+        searchPhrase: "increased by 15%",
+        foundLocation: { page: 7, line: 22 },
+      },
+    ];
+
+    const { getByText } = render(
+      <VerificationLogTimeline
+        searchAttempts={searchAttempts}
+        status="found_on_other_line"
+        fullPhrase="Revenue increased by 15% in Q4 2024."
+        expectedPage={5}
+        expectedLine={12}
+      />,
+    );
+
+    const unexpectedLocation = getByText("p.7 · l.22");
+    expect(unexpectedLocation.className).toContain("font-semibold");
   });
 });
 

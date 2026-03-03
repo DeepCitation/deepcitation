@@ -138,8 +138,8 @@ interface SearchAttempt {
 
   // What was searched
   searchPhrase: string;           // The primary phrase searched for
-  searchVariations?: string[];    // Alternative forms tried (e.g., ["$4.89", "4.89"])
   searchPhraseType?: "full_phrase" | "anchor_text";
+  regexPattern?: string;          // The regex source when regex matching was used
 
   // Where it was searched
   pageSearched?: number;

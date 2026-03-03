@@ -28,7 +28,6 @@ import {
 import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 // import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 
-import { buildSearchSummary, countUniqueSearchTexts } from "./searchSummaryUtils.js";
 import { cn, isImageSource, isUrlCitation } from "./utils.js";
 
 /** Pattern for detecting converted PDF labels on URL citations */
@@ -963,13 +962,11 @@ interface VerificationLogSummaryProps {
 function getOutcomeSummary(
   status: SearchStatus | null | undefined,
   searchAttempts: SearchAttempt[],
-  queryGroupCount?: number,
 ): string {
   // Early return for not_found - no need to search for successful attempt
   if (!status || status === "not_found") {
-    // Use the query group count (what the user sees as rows) rather than raw attempt count
-    const displayCount = queryGroupCount ?? searchAttempts.length;
-    return `${displayCount} ${displayCount === 1 ? "search" : "searches"} tried`;
+    const count = searchAttempts.length;
+    return `${count} ${count === 1 ? "attempt" : "attempts"} tried`;
   }
 
   // Only search for successful attempt when we know something was found
@@ -1027,12 +1024,7 @@ function VerificationLogSummary({
   verifiedAt,
 }: VerificationLogSummaryProps) {
   const isMiss = status === "not_found";
-  // Count total unique texts tried (phrases + variations) — shared with EvidenceTray
-  const queryGroupCount = useMemo(
-    () => (isMiss ? countUniqueSearchTexts(searchAttempts) : undefined),
-    [searchAttempts, isMiss],
-  );
-  const outcomeSummary = getOutcomeSummary(status, searchAttempts, queryGroupCount);
+  const outcomeSummary = getOutcomeSummary(status, searchAttempts);
 
   // Format the verified date for display
   const formatted = formatCaptureDate(verifiedAt);
@@ -1086,15 +1078,41 @@ interface AuditSearchDisplayProps {
   fullPhrase?: string;
   /** Citation's anchor text (for display) */
   anchorText?: string;
+  /** Expected page from the original citation location */
+  expectedPage?: number;
+  /** Expected line from the original citation location */
+  expectedLine?: number;
   /** Verification status (determines display mode) */
   status?: SearchStatus | null;
   /** Full verification object (for closest match extraction) */
   verification?: Verification | null;
 }
 
-/** Single flat row for one search text with a left-border status indicator. */
-function SearchTextRow({ text, success }: { text: string; success: boolean }) {
+function getFirstLine(line: number | number[] | undefined): number | undefined {
+  if (Array.isArray(line)) return line[0];
+  return line;
+}
+
+function formatLocationLabel(page?: number, line?: number): string {
+  const hasPage = page != null && page > 0;
+  const hasLine = line != null && line > 0;
+  if (hasPage && hasLine) return `p.${page} · l.${line}`;
+  if (hasPage) return `p.${page}`;
+  if (hasLine) return `l.${line}`;
+  return "unknown";
+}
+
+interface AttemptTableRowProps {
+  text: string;
+  locationText: string;
+  success: boolean;
+  isUnexpectedHit: boolean;
+}
+
+/** Compact row used by the attempts table for not-found and partial states. */
+function AttemptTableRow({ text, locationText, success, isUnexpectedHit }: AttemptTableRowProps) {
   const isTruncated = (text ?? "").length > MAX_PHRASE_DISPLAY_LENGTH;
+
   return (
     <div
       className={cn(
@@ -1104,9 +1122,20 @@ function SearchTextRow({ text, success }: { text: string; success: boolean }) {
           : "border-red-300 dark:border-red-500/60 text-gray-500 dark:text-gray-400",
         "hover:bg-gray-100 dark:hover:bg-gray-700/40 hover:text-gray-800 dark:hover:text-gray-100 transition-colors",
       )}
-      title={isTruncated ? text : undefined}
     >
-      {text}
+      <span className="font-mono text-xxs truncate" title={isTruncated ? text : undefined}>
+        {text}
+      </span>
+      <span
+        className={cn(
+          "text-[10px] whitespace-nowrap self-center",
+          isUnexpectedHit
+            ? "font-semibold text-gray-700 dark:text-gray-200"
+            : "text-gray-400 dark:text-gray-500",
+        )}
+      >
+        {locationText}
+      </span>
     </div>
   );
 }
@@ -1142,38 +1171,19 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
  * - For exact matches ("found", "found_phrase_missed_anchor_text"): Shows only the successful match details
  * - For all other statuses (not_found, partial): Shows all search attempts to help debug
  */
-function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: AuditSearchDisplayProps) {
+function AuditSearchDisplay({
+  searchAttempts,
+  fullPhrase,
+  anchorText,
+  expectedPage,
+  expectedLine,
+  status,
+}: AuditSearchDisplayProps) {
   // Show all searches unless the status is a confirmed exact match.
   // Transient statuses (loading, pending) show partial attempts as they arrive.
   // Null/undefined status is treated as "unknown" — show all searches.
   const showAll = status == null || !SHOW_ONLY_HIT_STATUSES.has(status);
   const successfulAttempt = useMemo(() => searchAttempts.find(a => a.success), [searchAttempts]);
-
-  // Query-centric summary for all-search display (miss and partial)
-  const summary = useMemo(() => (showAll ? buildSearchSummary(searchAttempts) : null), [searchAttempts, showAll]);
-
-  // For not_found / partial / transient: flatten all unique texts (phrases + variations)
-  // into a single list, ordered with failures first and the successful hit last.
-  // Returns [] when showAll is false (exact-match statuses) — intentional no-op.
-  const orderedTexts = useMemo(() => {
-    if (!showAll) return [];
-    const groups = summary?.queryGroups ?? [];
-    const flat: Array<{ text: string; success: boolean }> = [];
-    const seen = new Set<string>();
-    for (const group of groups) {
-      if (group.searchPhrase && !seen.has(group.searchPhrase)) {
-        seen.add(group.searchPhrase);
-        flat.push({ text: group.searchPhrase, success: group.anySuccess });
-      }
-      for (const v of group.variations) {
-        if (!seen.has(v)) {
-          seen.add(v);
-          flat.push({ text: v, success: false });
-        }
-      }
-    }
-    return [...flat.filter(t => !t.success), ...flat.filter(t => t.success)];
-  }, [showAll, summary]);
 
   // If no search attempts, fall back to citation data
   if (searchAttempts.length === 0) {
@@ -1239,10 +1249,47 @@ function AuditSearchDisplay({ searchAttempts, fullPhrase, anchorText, status }: 
     );
   }
 
+  const attemptRows = searchAttempts.map((attempt, idx) => {
+    const foundPage = attempt.foundLocation?.page ?? attempt.pageSearched;
+    const foundLine = attempt.foundLocation?.line ?? getFirstLine(attempt.lineSearched);
+    const locationText = formatLocationLabel(foundPage, foundLine);
+
+    const unexpectedPage =
+      attempt.success &&
+      expectedPage != null &&
+      expectedPage > 0 &&
+      foundPage != null &&
+      foundPage > 0 &&
+      foundPage !== expectedPage;
+    const unexpectedLine =
+      attempt.success &&
+      expectedLine != null &&
+      expectedLine > 0 &&
+      foundLine != null &&
+      foundLine > 0 &&
+      foundLine !== expectedLine;
+
+    return {
+      key: `${attempt.method}-${idx}-${attempt.searchPhrase}`,
+      text: truncatePhrase(attempt.searchPhrase),
+      success: attempt.success,
+      isUnexpectedHit: unexpectedPage || unexpectedLine,
+      locationText,
+    };
+  });
+
+  const orderedRows = [...attemptRows.filter(row => !row.success), ...attemptRows.filter(row => row.success)];
+
   return (
-    <div className="px-4 py-2 space-y-0 text-sm">
-      {orderedTexts.map(({ text, success }) => (
-        <SearchTextRow key={text} text={text} success={success} />
+    <div className="px-4 py-2 space-y-1.5 text-sm">
+      {orderedRows.map(row => (
+        <AttemptTableRow
+          key={row.key}
+          text={row.text}
+          success={row.success}
+          isUnexpectedHit={row.isUnexpectedHit}
+          locationText={row.locationText}
+        />
       ))}
     </div>
   );
@@ -1256,6 +1303,8 @@ interface VerificationLogTimelineProps {
   searchAttempts: SearchAttempt[];
   fullPhrase?: string;
   anchorText?: string;
+  expectedPage?: number;
+  expectedLine?: number;
   status?: SearchStatus | null;
   /** Callback to collapse the expanded details. Skipped when the user is selecting text. */
   onCollapse?: () => void;
@@ -1272,6 +1321,8 @@ export function VerificationLogTimeline({
   searchAttempts,
   fullPhrase,
   anchorText,
+  expectedPage,
+  expectedLine,
   status,
   onCollapse,
 }: VerificationLogTimelineProps) {
@@ -1308,6 +1359,8 @@ export function VerificationLogTimeline({
         searchAttempts={searchAttempts}
         fullPhrase={fullPhrase}
         anchorText={anchorText}
+        expectedPage={expectedPage}
+        expectedLine={expectedLine}
         status={status}
       />
     </div>
@@ -1380,6 +1433,8 @@ export function VerificationLog({
           searchAttempts={searchAttempts}
           fullPhrase={fullPhrase}
           anchorText={anchorText}
+          expectedPage={expectedPage}
+          expectedLine={expectedLine}
           status={status}
           onCollapse={() => setIsExpanded(false)}
         />

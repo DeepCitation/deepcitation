@@ -1518,7 +1518,6 @@ describe("CitationComponent mobile/touch detection", () => {
             pageNumber: 1,
             lineIds: [1],
             method: "exact",
-            searchVariations: ["unfound citation"],
             foundMatch: false,
           },
         ],

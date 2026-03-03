@@ -33,6 +33,37 @@ describe("EvidenceTray interaction styles", () => {
     expect(viewPageButton.className).toContain("hover:text-blue-600");
     expect(viewPageButton.className).toContain("focus-visible:ring-2");
   });
+
+  it("uses Attempts wording in miss-state search toggle", () => {
+    const missStatus: CitationStatus = {
+      isVerified: false,
+      isMiss: true,
+      isPartialMatch: false,
+      isPending: false,
+    };
+    const missVerification: Verification = {
+      status: "not_found",
+      citation: {
+        fullPhrase: "Revenue increased by 15% in Q4 2024.",
+        anchorText: "increased by 15%",
+        pageNumber: 5,
+        lineIds: [12],
+      },
+      searchAttempts: [
+        {
+          method: "exact_line_match",
+          success: false,
+          searchPhrase: "Revenue increased by 15% in Q4 2024.",
+          pageSearched: 5,
+        },
+      ],
+    };
+
+    const { getByRole, queryByRole } = render(<EvidenceTray verification={missVerification} status={missStatus} />);
+
+    expect(getByRole("button", { name: /1 attempt/i })).toBeInTheDocument();
+    expect(queryByRole("button", { name: /1 search/i })).not.toBeInTheDocument();
+  });
 });
 
 // =============================================================================

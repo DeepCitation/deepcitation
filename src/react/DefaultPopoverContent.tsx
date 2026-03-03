@@ -429,10 +429,7 @@ function EvidenceZone({
       {/* Slot C: expanded-page — wrapper div always rendered for React 19 fiber
           stability (constant fiber position). InlineExpandedImage mounts inside once
           expandedImage is resolved. */}
-      <div
-        className="flex flex-col"
-        style={viewState !== "expanded-page" ? { display: "none" } : undefined}
-      >
+      <div className="flex flex-col" style={viewState !== "expanded-page" ? { display: "none" } : undefined}>
         {expandedImage?.src && (
           <InlineExpandedImage
             src={expandedImage.src}
@@ -468,7 +465,7 @@ function PopoverLoadingView({
   const searchStatus = verification?.status;
   const searchingPhrase = fullPhrase || anchorText;
   return (
-    <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[200px] max-w-[480px]`}>
+    <div className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[200px] max-w-[480px]")}>
       <SourceContextHeader
         citation={citation}
         verification={verification}
@@ -537,7 +534,7 @@ function PopoverFallbackView({
   if (!hasSnippet && !statusLabel && !urlAccessExplanation) return null;
 
   return (
-    <div className={`${POPOVER_CONTAINER_BASE_CLASSES} min-w-[180px] max-w-full`}>
+    <div className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[180px] max-w-full")}>
       <SourceContextHeader
         citation={citation}
         verification={verification}

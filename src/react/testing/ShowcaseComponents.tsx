@@ -358,7 +358,6 @@ const searchWithVariations: SearchAttempt[] = [
     success: false,
     searchPhrase: "Patient is allergic to penicillin",
     searchPhraseType: "full_phrase",
-    searchVariations: ["Patient is allergic to Penicillin", "patient is allergic to penicillin"],
     pageSearched: 1,
     note: "not found on expected page",
   },
@@ -367,7 +366,6 @@ const searchWithVariations: SearchAttempt[] = [
     success: false,
     searchPhrase: "Patient is allergic to penicillin",
     searchPhraseType: "full_phrase",
-    searchVariations: ["Patient is allergic to Penicillin"],
     pageSearched: 1,
   },
   {
@@ -389,7 +387,6 @@ const searchWithVariations: SearchAttempt[] = [
     success: false,
     searchPhrase: "allergic to penicillin",
     searchPhraseType: "anchor_text",
-    searchVariations: ["allergic to Penicillin", "penicillin allergy"],
     pageSearched: 1,
   },
   {
@@ -446,7 +443,6 @@ const searchWithRejectedMatches: SearchAttempt[] = [
     success: false,
     searchPhrase: "$0.00",
     searchPhraseType: "anchor_text",
-    searchVariations: ["0.00", "$0"],
     pageSearched: 5,
     matchedText: "$0.00",
     note: "found 15 occurrences, none in correct context",

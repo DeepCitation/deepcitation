@@ -69,10 +69,10 @@ export interface SearchAttempt {
   // What was searched (clear separation)
   /** The primary phrase searched for */
   searchPhrase: string;
-  /** Additional variations tried (e.g., ["$4.89", "4.89"]) */
-  searchVariations?: string[];
   /** What searchPhrase contains: "full_phrase" or "anchor_text" */
   searchPhraseType?: "full_phrase" | "anchor_text";
+  /** The regex source pattern when regex matching was used */
+  regexPattern?: string;
 
   // Where it was searched
   pageSearched?: number;

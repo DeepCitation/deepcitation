@@ -289,41 +289,11 @@ describe("buildSearchSummary", () => {
     });
   });
 
-  describe("queryGroups — variations", () => {
-    it("merges variations across attempts in same group (deduplicated)", () => {
-      const attempts = [
-        attempt({ searchPhrase: "A", searchVariations: ["$4.89", "4.89"] }),
-        attempt({ searchPhrase: "A", searchVariations: ["4.89", "$4.89 USD"] }),
-      ];
-      const group = buildSearchSummary(attempts).queryGroups[0];
-      expect(group.variations).toEqual(["$4.89", "4.89", "$4.89 USD"]);
-    });
-
+  describe("queryGroups — variationTypeLabel", () => {
     it("captures variationTypeLabel from first attempt that has it", () => {
       const attempts = [attempt({ searchPhrase: "A" }), attempt({ searchPhrase: "A", variationType: "currency" })];
       const group = buildSearchSummary(attempts).queryGroups[0];
       expect(group.variationTypeLabel).toBe("Price formats");
-    });
-
-    it("filters out variations that duplicate the primary searchPhrase", () => {
-      const attempts = [
-        attempt({ searchPhrase: "Revenue increased", searchVariations: ["Revenue increased", "revenue increased"] }),
-      ];
-      const group = buildSearchSummary(attempts).queryGroups[0];
-      // "Revenue increased" (exact match of primary) should be filtered; lowercase variant remains
-      expect(group.variations).toEqual(["revenue increased"]);
-    });
-
-    it("keeps all variations when none match the primary phrase", () => {
-      const attempts = [attempt({ searchPhrase: "$4.89 per share", searchVariations: ["$4.89", "4.89 per share"] })];
-      const group = buildSearchSummary(attempts).queryGroups[0];
-      expect(group.variations).toEqual(["$4.89", "4.89 per share"]);
-    });
-
-    it("returns empty variations when all variations duplicate the primary phrase", () => {
-      const attempts = [attempt({ searchPhrase: "hello", searchVariations: ["hello", "hello"] })];
-      const group = buildSearchSummary(attempts).queryGroups[0];
-      expect(group.variations).toEqual([]);
     });
   });
 

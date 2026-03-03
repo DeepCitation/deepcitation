@@ -56,7 +56,7 @@ import { useWheelZoom } from "./hooks/useWheelZoom.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget } from "./overlayGeometry.js";
-import { buildIntentSummary, countUniqueSearchTexts } from "./searchSummaryUtils.js";
+import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
 import { ZoomToolbar } from "./ZoomToolbar.js";
@@ -772,7 +772,7 @@ function EvidenceTrayFooter({
                 <ChevronRightIcon />
               </span>
               <span>
-                {searchCount} search{searchCount === 1 ? "" : "es"}
+                {searchCount} attempt{searchCount === 1 ? "" : "s"}
                 {locationLabel && <> · {locationLabel}</>}
               </span>
             </button>
@@ -917,10 +917,7 @@ export function EvidenceTray({
 
   // Search log toggle state (miss and partial states)
   const [showSearchLog, setShowSearchLog] = useState(false);
-  const searchCount = useMemo(
-    () => (isMiss || isPartialMatch ? countUniqueSearchTexts(searchAttempts) : 0),
-    [isMiss, isPartialMatch, searchAttempts],
-  );
+  const searchCount = isMiss || isPartialMatch ? searchAttempts.length : 0;
 
   // Footer element — shared across top/bottom placement
   const footerEl = (
@@ -980,6 +977,8 @@ export function EvidenceTray({
                   fullPhrase={verification?.citation?.fullPhrase ?? verification?.verifiedFullPhrase ?? undefined}
                   anchorText={verification?.citation?.anchorText ?? verification?.verifiedAnchorText ?? undefined}
                   status={verification?.status ?? "not_found"}
+                  expectedPage={verification?.citation?.pageNumber ?? undefined}
+                  expectedLine={verification?.citation?.lineIds?.[0] ?? undefined}
                   onCollapse={() => setShowSearchLog(false)}
                 />
               </div>
@@ -1182,6 +1181,10 @@ export function InlineExpandedImage({
   const touchGestureZoomRef = useRef<number | null>(null);
   // Touch pinch anchor — used by applyGestureTransform and useLayoutEffect for scroll correction.
   const touchGestureAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
+  // Wheel zoom gesture anchor — declared here (before the src-reset effect) and
+  // passed into useWheelZoom so the hook writes to this ref. Avoids a temporal
+  // dead zone reference that the React Compiler flags as "used before declaration".
+  const expandedWheelAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
 
   // Effective annotation items: override props take precedence, then verification.document, then null.
   const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
@@ -1435,7 +1438,7 @@ export function InlineExpandedImage({
   // GPU-accelerated Ctrl+wheel zoom (expanded page requires Ctrl — bare scroll pans).
   // Uses useWheelZoom hook: CSS transform during gesture, commits on 150ms debounce.
   // ---------------------------------------------------------------------------
-  const { gestureAnchorRef: expandedWheelAnchorRef } = useWheelZoom({
+  useWheelZoom({
     enabled: fill && imageLoaded,
     sensitivity: WHEEL_ZOOM_SENSITIVITY,
     containerRef: containerRef as React.RefObject<HTMLElement | null>,
@@ -1443,6 +1446,7 @@ export function InlineExpandedImage({
     zoom,
     clampZoomRaw,
     clampZoom,
+    gestureAnchorRef: expandedWheelAnchorRef,
     onZoomCommit: (z: number) => {
       hasManualZoomRef.current = true;
       setZoom(z);
@@ -1563,7 +1567,7 @@ export function InlineExpandedImage({
   // 2. Compute scroll correction from the gesture anchor
   // Both happen in the same paint frame — no visual flash.
   // ---------------------------------------------------------------------------
-  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef/imageWrapperRef/expandedWheelAnchorRef are stable ref objects — their identity never changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef/imageWrapperRef/expandedWheelAnchorRef/touchGestureAnchorRef are stable ref objects
   useLayoutEffect(() => {
     const wrapper = imageWrapperRef.current;
     // Always clear any residual transform when zoom commits

@@ -44,6 +44,8 @@ const verificationWithMiss: Verification = {
   },
 };
 
+const POPOVER_SIDE_GUTTER_TOTAL_PX = 32; // 2rem total (16px left + 16px right)
+
 // =============================================================================
 // POPOVER IMAGE — KEYHOLE STRIP TESTS
 // =============================================================================
@@ -175,6 +177,89 @@ test.describe("Popover Image Keyhole Strip", () => {
       window.getComputedStyle(el as HTMLElement).scrollbarWidth
     );
     expect(scrollbarWidth).toBe("none");
+  });
+});
+
+// =============================================================================
+// PRE-RENDER BOUNDARY ALIGNMENT
+// =============================================================================
+
+test.describe("Pre-render boundary alignment", () => {
+  test.use({ viewport: { width: 700, height: 900 } });
+
+  test("summary near right edge stays in bounds without guard translation", async ({ mount, page }) => {
+    await mount(
+      <div style={{ paddingTop: "320px", display: "flex", justifyContent: "flex-end", paddingRight: "8px" }}>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
+    );
+
+    await page.locator("[data-citation-id]").click();
+
+    const popover = page.getByRole("dialog");
+    await expect(popover).toBeVisible();
+
+    const box = await popover.boundingBox();
+    expect(box).toBeTruthy();
+
+    const viewport = page.viewportSize();
+    expect(viewport).toBeTruthy();
+    expect(box!.x).toBeGreaterThanOrEqual(15);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width - 15);
+
+    const guardTranslate = await popover.evaluate(el => (el as HTMLElement).style.translate || "");
+    expect(guardTranslate).toBe("");
+  });
+
+  test("expanded-keyhole near right edge stays in bounds without guard translation", async ({ mount, page }) => {
+    await mount(
+      <div style={{ paddingTop: "320px", display: "flex", justifyContent: "flex-end", paddingRight: "8px" }}>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
+    );
+
+    await page.locator("[data-citation-id]").click();
+
+    const popover = page.getByRole("dialog");
+    await expect(popover).toBeVisible();
+
+    const keyholeStrip = popover.locator("[data-dc-keyhole]");
+    await expect(keyholeStrip).toBeVisible();
+    await keyholeStrip.click();
+
+    const expandedView = popover.locator("[data-dc-inline-expanded]").filter({ visible: true });
+    await expect(expandedView).toBeVisible({ timeout: 5000 });
+
+    const box = await popover.boundingBox();
+    expect(box).toBeTruthy();
+    const viewport = page.viewportSize();
+    expect(viewport).toBeTruthy();
+    expect(box!.x).toBeGreaterThanOrEqual(15);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width - 15);
+
+    const guardTranslate = await popover.evaluate(el => (el as HTMLElement).style.translate || "");
+    expect(guardTranslate).toBe("");
+  });
+
+  test("summary width remains adaptive (not forced full usable width)", async ({ mount, page }) => {
+    await mount(
+      <div style={{ padding: "48px" }}>
+        <CitationComponent citation={baseCitation} verification={verificationWithWideImage} />
+      </div>,
+    );
+
+    await page.locator("[data-citation-id]").click();
+
+    const popover = page.getByRole("dialog");
+    await expect(popover).toBeVisible();
+    const container = popover.locator(".shadow-md.rounded-lg");
+    await expect(container).toBeVisible();
+
+    const containerWidth = await container.evaluate(el => el.getBoundingClientRect().width);
+    const fullUsableWidth = 700 - POPOVER_SIDE_GUTTER_TOTAL_PX;
+    expect(containerWidth).toBeGreaterThanOrEqual(476);
+    expect(containerWidth).toBeLessThanOrEqual(500);
+    expect(containerWidth).toBeLessThan(fullUsableWidth - 50);
   });
 });
 
