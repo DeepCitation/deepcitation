@@ -91,6 +91,29 @@ async function expectPopoverInViewport(
   expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width + tolerance);
 }
 
+/** Dispatch Ctrl+wheel from a specific viewport point. */
+async function dispatchCtrlWheel(
+  locator: import("@playwright/test").Locator,
+  clientX: number,
+  clientY: number,
+  deltaY: number,
+) {
+  await locator.evaluate(
+    (el, args) => {
+      const event = new WheelEvent("wheel", {
+        deltaY: args.deltaY,
+        clientX: args.clientX,
+        clientY: args.clientY,
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+      el.dispatchEvent(event);
+    },
+    { clientX, clientY, deltaY },
+  );
+}
+
 // =============================================================================
 // BASIC SCENARIOS — image loading, rendering, and scroll container sizing
 // =============================================================================
@@ -453,6 +476,69 @@ test.describe("Expanded-Page Popover Sizing", () => {
     const widened = await readWidth();
     expect(widened).toBeGreaterThan(narrowed);
     expect(widened).toBeLessThanOrEqual(1280 - 32 + 2);
+  });
+
+  test("popover shell width stays stable during wheel zoom", async ({ mount, page }) => {
+    await mount(
+      <div style={{ padding: "100px" }}>
+        <CitationComponent citation={baseCitation} verification={verificationWithTallImage} />
+      </div>,
+    );
+
+    const { popoverContent, expandedView } = await expandToFullPage(page);
+    const beforeWidth = await popoverContent.evaluate(el => el.getBoundingClientRect().width);
+
+    const box = await expandedView.boundingBox();
+    expect(box).toBeTruthy();
+
+    const x = box!.x + box!.width * 0.65;
+    const y = box!.y + box!.height * 0.35;
+
+    await dispatchCtrlWheel(expandedView, x, y, -140);
+    await dispatchCtrlWheel(expandedView, x, y, -140);
+    await page.waitForTimeout(250);
+
+    const afterWidth = await popoverContent.evaluate(el => el.getBoundingClientRect().width);
+    expect(Math.abs(afterWidth - beforeWidth)).toBeLessThanOrEqual(2);
+  });
+
+  test("wheel zoom preserves non-zero viewport scroll (no top-left reset)", async ({ mount, page }) => {
+    await mount(
+      <div style={{ padding: "100px" }}>
+        <CitationComponent citation={baseCitation} verification={verificationWithTallImage} />
+      </div>,
+    );
+
+    const { expandedView } = await expandToFullPage(page);
+    await expandedView.evaluate(el => {
+      const node = el as HTMLElement;
+      node.scrollLeft = 220;
+      node.scrollTop = 220;
+    });
+    await page.waitForTimeout(50);
+
+    const before = await expandedView.evaluate(el => ({
+      left: (el as HTMLElement).scrollLeft,
+      top: (el as HTMLElement).scrollTop,
+    }));
+    expect(before.left).toBeGreaterThan(100);
+    expect(before.top).toBeGreaterThan(100);
+
+    const box = await expandedView.boundingBox();
+    expect(box).toBeTruthy();
+    const x = box!.x + box!.width * 0.6;
+    const y = box!.y + box!.height * 0.4;
+
+    await dispatchCtrlWheel(expandedView, x, y, -160);
+    await page.waitForTimeout(250);
+
+    const after = await expandedView.evaluate(el => ({
+      left: (el as HTMLElement).scrollLeft,
+      top: (el as HTMLElement).scrollTop,
+    }));
+
+    expect(after.left).toBeGreaterThan(80);
+    expect(after.top).toBeGreaterThan(80);
   });
 });
 

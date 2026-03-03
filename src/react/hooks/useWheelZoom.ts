@@ -39,14 +39,25 @@ export interface UseWheelZoomOptions {
    * declare the ref before effects that reset it (avoids temporal dead zone /
    * React Compiler "used before declaration" errors).
    */
-  gestureAnchorRef?: React.MutableRefObject<{ mx: number; my: number; sx: number; sy: number } | null>;
+  gestureAnchorRef?: React.MutableRefObject<WheelZoomAnchor | null>;
+}
+
+export interface WheelZoomAnchor {
+  /** Anchor point in viewport-local container coordinates. */
+  mx: number;
+  my: number;
+  /** Scroll offsets at gesture start. */
+  sx: number;
+  sy: number;
+  /** Committed zoom at gesture start. */
+  startZoom: number;
 }
 
 export interface UseWheelZoomReturn {
   /** Whether the pointer is currently hovering over the container. */
   isHovering: boolean;
   /** Gesture anchor ref — consumer reads this in useLayoutEffect for scroll correction. */
-  gestureAnchorRef: React.MutableRefObject<{ mx: number; my: number; sx: number; sy: number } | null>;
+  gestureAnchorRef: React.MutableRefObject<WheelZoomAnchor | null>;
   /** Active gesture zoom level (null = no gesture). Consumer reads for transform cleanup. */
   gestureZoomRef: React.MutableRefObject<number | null>;
 }
@@ -60,8 +71,9 @@ function applyGestureTransform(
   wrapper: HTMLDivElement,
   gestureZoom: number,
   committedZoom: number,
-  anchor: { mx: number; my: number; sx: number; sy: number },
+  anchor: WheelZoomAnchor,
 ): void {
+  if (committedZoom === 0) return;
   const s = gestureZoom / committedZoom;
   const cx = anchor.mx + anchor.sx;
   const cy = anchor.my + anchor.sy;
@@ -86,7 +98,7 @@ export function useWheelZoom({
   const zoomRef = useRef(zoom);
 
   const gestureZoomRef = useRef<number | null>(null);
-  const internalGestureAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
+  const internalGestureAnchorRef = useRef<WheelZoomAnchor | null>(null);
   const gestureAnchorRef = externalGestureAnchorRef ?? internalGestureAnchorRef;
   const commitTimeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -153,7 +165,8 @@ export function useWheelZoom({
       // Use committedZoomRef if a debounce commit fired but React hasn't rendered yet —
       // zoomRef would still be stale in that window, causing a visual snap-back.
       if (gestureZoomRef.current === null) {
-        gestureZoomRef.current = committedZoomRef.current ?? zoomRef.current;
+        const gestureStartZoom = committedZoomRef.current ?? zoomRef.current;
+        gestureZoomRef.current = gestureStartZoom;
         committedZoomRef.current = null;
         const rect = el.getBoundingClientRect();
         gestureAnchorRef.current = {
@@ -161,6 +174,7 @@ export function useWheelZoom({
           my: e.clientY - rect.top,
           sx: el.scrollLeft,
           sy: el.scrollTop,
+          startZoom: gestureStartZoom,
         };
         wrapper.style.willChange = "transform";
         wrapper.style.transformOrigin = "0 0";
@@ -171,7 +185,12 @@ export function useWheelZoom({
 
       // Apply transform directly to DOM — no React render
       if (gestureAnchorRef.current) {
-        applyGestureTransform(wrapper, gestureZoomRef.current, zoomRef.current, gestureAnchorRef.current);
+        applyGestureTransform(
+          wrapper,
+          gestureZoomRef.current,
+          gestureAnchorRef.current.startZoom,
+          gestureAnchorRef.current,
+        );
       }
 
       // Debounce commit: after 150ms of no events, flush to React state

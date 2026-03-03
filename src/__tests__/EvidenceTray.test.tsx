@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import type React from "react";
+import { createRef } from "react";
 import { EvidenceTray, InlineExpandedImage, resolveExpandedImageForPage } from "../react/EvidenceTray";
 import type { CitationStatus } from "../types/citation";
 import type { Verification } from "../types/verification";
@@ -106,6 +108,57 @@ describe("EvidenceTray interaction styles", () => {
       jest.runAllTimers();
     });
     expect(queryByText("alpha")).not.toBeInTheDocument();
+  });
+
+  it("sets escapeInterceptRef to a collapse function when search log is open", () => {
+    const missStatus: CitationStatus = {
+      isVerified: false,
+      isMiss: true,
+      isPartialMatch: false,
+      isPending: false,
+    };
+    const missVerification: Verification = {
+      status: "not_found",
+      citation: {
+        fullPhrase: "beta phrase",
+        anchorText: "beta",
+        pageNumber: 1,
+        lineIds: [2],
+      },
+      searchAttempts: [
+        {
+          method: "exact_line_match",
+          success: false,
+          searchPhrase: "beta phrase",
+          pageSearched: 1,
+        },
+      ],
+    };
+
+    const escapeInterceptRef = createRef<(() => void) | null>() as React.MutableRefObject<(() => void) | null>;
+    escapeInterceptRef.current = null;
+
+    const { getByRole } = render(
+      <EvidenceTray verification={missVerification} status={missStatus} escapeInterceptRef={escapeInterceptRef} />,
+    );
+
+    // Before opening: ref should be null
+    expect(escapeInterceptRef.current).toBeNull();
+
+    // Open search log
+    fireEvent.click(getByRole("button", { name: /1 attempt/i }));
+
+    // Ref should now be a collapse function
+    expect(typeof escapeInterceptRef.current).toBe("function");
+
+    // Call the intercept — triggers setShowSearchLog(false).
+    // The useEffect on showSearchLog synchronously clears the ref.
+    act(() => {
+      escapeInterceptRef.current!();
+    });
+
+    // Ref should be cleared (showSearchLog is now false)
+    expect(escapeInterceptRef.current).toBeNull();
   });
 
   it("resolves exact page image when verification pageNumber values are numeric strings", () => {

@@ -184,7 +184,7 @@ This applies to the `EvidenceZone` component in `DefaultPopoverContent.tsx`. If 
 ### Wheel/Trackpad Zoom (`useWheelZoom`)
 - GPU `transform: scale()` during gesture — zero layout reflow.
 - Commits zoom to React state after 150ms debounce (prevents thrashing).
-- Expanded-page requires `Ctrl` key (`requireCtrl: true`). Keyhole does not.
+- Both keyhole and expanded-page use scroll-to-zoom (no `Ctrl` key required). `requireCtrl` defaults to `false`.
 - Sensitivities: `KEYHOLE_WHEEL_ZOOM_SENSITIVITY` = 0.008, `WHEEL_ZOOM_SENSITIVITY` = 0.005.
 - Zoom limits: keyhole 1.0–2.5, expanded 0.5–3.0. Clamp before setting state.
 

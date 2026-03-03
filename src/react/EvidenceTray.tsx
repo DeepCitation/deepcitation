@@ -63,7 +63,7 @@ import {
   toSharedOriginRect,
   useSharedOriginExpandTransition,
 } from "./hooks/useSharedOriginExpandTransition.js";
-import { useWheelZoom } from "./hooks/useWheelZoom.js";
+import { useWheelZoom, type WheelZoomAnchor } from "./hooks/useWheelZoom.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "./overlayGeometry.js";
@@ -507,10 +507,15 @@ export function AnchorTextFocusedImage({
   const imageWrapperRef = useRef<HTMLDivElement>(null);
   /** Cancel handle for the current `animateScrollLeft` rAF loop (if any). */
   const cancelPanRef = useRef<(() => void) | null>(null);
-  const keyholeZoomRef = useRef(keyholeZoom);
+  const keyholeInitAppliedRef = useRef(false);
   useEffect(() => {
-    keyholeZoomRef.current = keyholeZoom;
-  });
+    keyholeInitAppliedRef.current = false;
+    setImageLoaded(false);
+    setImageFitInfo(null);
+    setZoomEligible(false);
+    setKeyholeZoom(1.0);
+    setHasZoomed(false);
+  }, [src]);
 
   const clampKeyholeZoom = useCallback(
     (z: number) => Math.max(KEYHOLE_ZOOM_MIN, Math.min(KEYHOLE_ZOOM_MAX, Math.round(z * 100) / 100)),
@@ -534,8 +539,7 @@ export function AnchorTextFocusedImage({
 
   // Scroll correction after zoom commit — runs before paint so the
   // anchor point stays visually stable when the image resizes.
-  // keyholeZoomRef still holds the OLD zoom during useLayoutEffect
-  // (useEffect hasn't updated it yet), giving us the ratio we need.
+  // Uses gesture start zoom captured by useWheelZoom to avoid stale old/new zoom races.
   // biome-ignore lint/correctness/useExhaustiveDependencies: gestureAnchorRef and containerRef are stable ref objects
   useLayoutEffect(() => {
     const wrapper = imageWrapperRef.current;
@@ -548,9 +552,8 @@ export function AnchorTextFocusedImage({
       return;
     }
 
-    const oldZoom = keyholeZoomRef.current;
-    if (oldZoom > 0) {
-      const ratio = keyholeZoom / oldZoom;
+    if (anchor.startZoom > 0) {
+      const ratio = keyholeZoom / anchor.startZoom;
       el.scrollLeft = (anchor.mx + anchor.sx) * ratio - anchor.mx;
       el.scrollTop = (anchor.my + anchor.sy) * ratio - anchor.my;
     }
@@ -563,6 +566,7 @@ export function AnchorTextFocusedImage({
   // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef and imageRef are stable refs that never change identity; useLayoutEffect guarantees the DOM nodes they point to are ready
   useLayoutEffect(() => {
     if (!imageLoaded) return;
+    if (keyholeInitAppliedRef.current) return;
     const container = containerRef.current;
     const img = imageRef.current;
     if (!container || !img) return;
@@ -665,6 +669,7 @@ export function AnchorTextFocusedImage({
 
     // Trigger scroll event so useDragToPan updates fade state for initial position
     container.dispatchEvent(new Event("scroll"));
+    keyholeInitAppliedRef.current = true;
   }, [imageLoaded, anchorScrollData]);
 
   // Compute fade mask based on scroll state
@@ -1178,9 +1183,17 @@ export function EvidenceTray({
   // the log instead of closing the popover.
   useEffect(() => {
     if (!escapeInterceptRef) return;
-    escapeInterceptRef.current = showSearchLog ? () => setShowSearchLog(false) : null;
+    // Each effect run creates a fresh arrow function, so the identity-equality
+    // guard in the cleanup is safe as a "did this effect's value get replaced?"
+    // check — two runs never share the same function reference.
+    const collapseFn = showSearchLog ? () => setShowSearchLog(false) : null;
+    escapeInterceptRef.current = collapseFn;
     return () => {
-      escapeInterceptRef.current = null;
+      // Only clear if we still own the ref — prevents stomping a value set
+      // by a concurrent effect run during rapid state transitions.
+      if (escapeInterceptRef.current === collapseFn) {
+        escapeInterceptRef.current = null;
+      }
     };
   }, [showSearchLog, escapeInterceptRef]);
 
@@ -1338,13 +1351,6 @@ export function EvidenceTray({
                   <div
                     ref={searchLogViewportRef}
                     className="max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain"
-                    onKeyDown={e => {
-                      if (e.key === "Escape") {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowSearchLog(false);
-                      }
-                    }}
                   >
                     <VerificationLogTimeline
                       searchAttempts={searchAttempts}
@@ -1568,11 +1574,11 @@ export function InlineExpandedImage({
   // Touch pinch gesture zoom (separate from wheel zoom hook).
   const touchGestureZoomRef = useRef<number | null>(null);
   // Touch pinch anchor — used by applyGestureTransform and useLayoutEffect for scroll correction.
-  const touchGestureAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
+  const touchGestureAnchorRef = useRef<WheelZoomAnchor | null>(null);
   // Wheel zoom gesture anchor — declared here (before the src-reset effect) and
   // passed into useWheelZoom so the hook writes to this ref. Avoids a temporal
   // dead zone reference that the React Compiler flags as "used before declaration".
-  const expandedWheelAnchorRef = useRef<{ mx: number; my: number; sx: number; sy: number } | null>(null);
+  const expandedWheelAnchorRef = useRef<WheelZoomAnchor | null>(null);
 
   // Effective annotation items: override props take precedence, then verification.document, then null.
   const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
@@ -1823,7 +1829,8 @@ export function InlineExpandedImage({
   }, [fill]);
 
   // ---------------------------------------------------------------------------
-  // GPU-accelerated wheel zoom (scroll-to-zoom, drag-to-pan).
+  // GPU-accelerated wheel zoom (scroll-to-zoom).
+  // Drag-to-pan is handled separately by useDragToPan.
   // Uses useWheelZoom hook: CSS transform during gesture, commits on 150ms debounce.
   // ---------------------------------------------------------------------------
   useWheelZoom({
@@ -1911,6 +1918,7 @@ export function InlineExpandedImage({
         my: mid.y - rect.top,
         sx: el.scrollLeft,
         sy: el.scrollTop,
+        startZoom: initialZoom,
       };
 
       // Apply transform directly to DOM — zero React renders during gesture
@@ -1970,10 +1978,9 @@ export function InlineExpandedImage({
     }
 
     // Compute scroll correction: keep the anchor point visually stable.
-    // zoomRef.current still holds the OLD committed zoom (useEffect hasn't fired yet).
-    const oldZoom = zoomRef.current;
-    if (oldZoom > 0) {
-      const ratio = zoom / oldZoom;
+    const startZoom = anchor.startZoom;
+    if (startZoom > 0) {
+      const ratio = zoom / startZoom;
       el.scrollLeft = (anchor.mx + anchor.sx) * ratio - anchor.mx;
       el.scrollTop = (anchor.my + anchor.sy) * ratio - anchor.my;
     }
