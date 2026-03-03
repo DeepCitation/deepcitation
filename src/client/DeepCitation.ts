@@ -785,15 +785,17 @@ export class DeepCitation {
 
     const results = await Promise.all(verificationPromises);
     const allVerifications: VerifyCitationsResponse["verifications"] = {};
+    let downloadUrl: string | undefined;
     for (const result of results) {
       Object.assign(allVerifications, result.verifications);
+      if (result.downloadUrl) downloadUrl = result.downloadUrl;
     }
 
     for (const key of Object.keys(skippedCitations)) {
       allVerifications[key] = { status: "skipped" };
     }
 
-    return { verifications: allVerifications };
+    return { verifications: allVerifications, downloadUrl };
   }
 
   /**

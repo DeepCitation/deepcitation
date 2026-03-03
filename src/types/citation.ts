@@ -60,6 +60,8 @@ export type VerificationRecord = Record<string, Verification>;
 export const DEFAULT_OUTPUT_IMAGE_FORMAT = "avif" as const;
 export interface VerifyCitationResponse {
   verifications: VerificationRecord;
+  /** Signed download URL for the source file. Expires after 7 days. */
+  downloadUrl?: string;
 }
 
 export interface VerifyCitationRequest {

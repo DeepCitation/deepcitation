@@ -43,7 +43,7 @@ First public release of `deepcitation` — deterministic citation verification f
 - Pluggable logger interface for observability (Datadog, Sentry, OpenTelemetry, etc.)
 - Dark mode support, mobile-responsive popovers, keyboard navigation
 - TypeScript-first with full type exports
-- Zero runtime dependencies (React components require React + `@radix-ui/react-popover`)
+- Zero runtime dependencies (React components require React only)
 
 ### Migration from `@deepcitation/deepcitation-js`
 

@@ -1,8 +1,27 @@
 import type React from "react";
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "../scrollLock.js";
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function computeAlignOffset(
+  viewportWidth: number,
+  triggerLeft: number,
+  triggerWidth: number,
+  popoverWidth: number,
+): number {
+  const triggerCenter = triggerLeft + triggerWidth / 2;
+  const centeredLeft = triggerCenter - popoverWidth / 2;
+  const minLeft = VIEWPORT_MARGIN_PX;
+  const maxLeft = viewportWidth - VIEWPORT_MARGIN_PX - popoverWidth;
+  const desiredLeft = maxLeft < minLeft ? minLeft : clamp(centeredLeft, minLeft, maxLeft);
+  // With align="start", base X is triggerLeft. alignOffset shifts to desiredLeft.
+  return desiredLeft - triggerLeft;
+}
 
 /**
  * Computes an alignOffset that prevents the popover from overflowing the
@@ -24,31 +43,51 @@ import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "../scrollLock.js";
  *   otherwise persist until the guard's 300ms debounce fires.
  * - popoverViewState: view-state changes via useLayoutEffect.
  *
- * Math (with align="center"):
- *   idealLeft  = triggerCenter - popoverWidth / 2
- *   idealRight = triggerCenter + popoverWidth / 2
- *   If idealLeft  < MARGIN → shift right:  offset = MARGIN - idealLeft
- *   If idealRight > vw - MARGIN → shift left: offset = (vw - MARGIN) - idealRight
+ * Math (with align="start"):
+ *   baseLeft    = triggerLeft
+ *   centeredLeft= triggerCenter - popoverWidth / 2
+ *   desiredLeft = clamp(centeredLeft, MARGIN, vw - MARGIN - popoverWidth)
+ *   alignOffset = desiredLeft - baseLeft
  */
 export function usePopoverAlignOffset(
   isOpen: boolean,
   popoverViewState: PopoverViewState,
   triggerRef: React.RefObject<HTMLSpanElement | null>,
   popoverContentRef: React.RefObject<HTMLElement | null>,
+  projectedWidthPx?: number | null,
 ): number {
   const [offset, setOffset] = useState(0);
 
+  // Pre-render alignment for deterministic first-frame placement.
+  // When projected width is known, avoid waiting for DOM measurement/ResizeObserver.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: triggerRef has stable identity
+  const precomputedOffset = useMemo(() => {
+    if (!isOpen) return null;
+    if (
+      projectedWidthPx === null ||
+      projectedWidthPx === undefined ||
+      !Number.isFinite(projectedWidthPx) ||
+      projectedWidthPx <= 0
+    ) {
+      return null;
+    }
+    const triggerRect = triggerRef.current?.getBoundingClientRect();
+    if (!triggerRect) return null;
+    const viewportWidth = document.documentElement.clientWidth;
+    return computeAlignOffset(viewportWidth, triggerRect.left, triggerRect.width, projectedWidthPx);
+  }, [isOpen, popoverViewState, projectedWidthPx, triggerRef]);
+
   // Shared measurement logic — called from useLayoutEffect and resize listener.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: triggerRef and popoverContentRef have stable identity — refs should not be in deps per React docs
   const recompute = useCallback(() => {
     if (!isOpen) {
-      setOffset(0);
+      // Keep the last computed offset while the popover is closing.
+      // Radix keeps content mounted for exit animation, so resetting to 0 here
+      // causes a visible "teleport" before fade-out completes.
       return;
     }
 
     const triggerRect = triggerRef.current?.getBoundingClientRect();
-    const popoverEl = popoverContentRef.current;
-    if (!triggerRect || !popoverEl) {
+    if (!triggerRect) {
       setOffset(0);
       return;
     }
@@ -56,33 +95,19 @@ export function usePopoverAlignOffset(
     // Use clientWidth (visible viewport excluding scrollbar) instead of
     // window.innerWidth (which includes scrollbar like CSS 100dvw).
     const viewportWidth = document.documentElement.clientWidth;
-    const popoverWidth = popoverEl.getBoundingClientRect().width;
+    const popoverWidth =
+      projectedWidthPx !== null &&
+      projectedWidthPx !== undefined &&
+      Number.isFinite(projectedWidthPx) &&
+      projectedWidthPx > 0
+        ? projectedWidthPx
+        : (popoverContentRef.current?.getBoundingClientRect().width ?? 0);
     if (popoverWidth <= 0) {
       setOffset(0);
       return;
     }
-    const triggerCenter = triggerRect.left + triggerRect.width / 2;
-
-    // Where the popover edges would sit with align="center" and no offset.
-    // This computation is independent of the current alignOffset, so
-    // the effect converges in a single pass without oscillation.
-    const idealLeft = triggerCenter - popoverWidth / 2;
-    const idealRight = triggerCenter + popoverWidth / 2;
-
-    if (idealLeft < VIEWPORT_MARGIN_PX) {
-      setOffset(VIEWPORT_MARGIN_PX - idealLeft);
-    } else if (idealRight > viewportWidth - VIEWPORT_MARGIN_PX) {
-      const rawOffset = viewportWidth - VIEWPORT_MARGIN_PX - idealRight;
-      // Clamp: don't overshoot left. When the popover is close to maxWidth,
-      // subpixel measurement differences can make rawOffset fractionally too
-      // negative, landing the left edge outside the margin while the right is
-      // exactly at the margin. Math.max ensures the left edge stays at or above
-      // VIEWPORT_MARGIN_PX; remaining right overflow is handled by the guard.
-      setOffset(Math.max(rawOffset, VIEWPORT_MARGIN_PX - idealLeft));
-    } else {
-      setOffset(0);
-    }
-  }, [isOpen]);
+    setOffset(computeAlignOffset(viewportWidth, triggerRect.left, triggerRect.width, popoverWidth));
+  }, [isOpen, triggerRef, popoverContentRef, projectedWidthPx]);
 
   // Initial computation + re-run on viewState change (before paint).
   // biome-ignore lint/correctness/useExhaustiveDependencies: recompute is stable via useCallback; popoverViewState triggers re-measurement
@@ -117,6 +142,14 @@ export function usePopoverAlignOffset(
   // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity
   useEffect(() => {
     if (!isOpen) return;
+    if (
+      projectedWidthPx !== null &&
+      projectedWidthPx !== undefined &&
+      Number.isFinite(projectedWidthPx) &&
+      projectedWidthPx > 0
+    ) {
+      return;
+    }
     const el = popoverContentRef.current;
     if (!el) return;
 
@@ -135,7 +168,7 @@ export function usePopoverAlignOffset(
 
     ro.observe(el);
     return () => ro.disconnect();
-  }, [isOpen, recompute]);
+  }, [isOpen, recompute, projectedWidthPx]);
 
-  return offset;
+  return precomputedOffset ?? offset;
 }

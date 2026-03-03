@@ -180,7 +180,7 @@ PDF, DOCX, XLSX, PPTX, HTML, Images (JPG, PNG, TIFF, WebP, HEIC), URLs
 ## React Components
 
 ```bash
-npm install deepcitation react react-dom @radix-ui/react-popover
+npm install deepcitation react react-dom
 ```
 
 > **Styling:** Requires Tailwind CSS, or import the bundled stylesheet:
@@ -227,7 +227,6 @@ import { renderCitationsForTerminal } from "deepcitation/terminal";
 |-------------|---------|
 | Node.js | >= 20 |
 | React (optional, for components) | >= 19 |
-| `@radix-ui/react-popover` (optional, for popovers) | >= 1.0 |
 | Tailwind CSS (optional, or use `styles.css`) | >= 3 |
 | Browser target | ES2020+ |
 
@@ -236,7 +235,6 @@ import { renderCitationsForTerminal } from "deepcitation/terminal";
 | Problem | Fix |
 |---------|-----|
 | `Error: API key is required` | Set `DEEPCITATION_API_KEY` env var or pass `apiKey` to constructor |
-| `Cannot find module '@radix-ui/react-popover'` | Install it: `npm install @radix-ui/react-popover` (only needed for React components) |
 | Citations not showing underlines/colors | Import `deepcitation/styles.css` or configure Tailwind |
 | `getAllCitationsFromLlmOutput` returns `{}` | Check that your LLM output contains `<cite ... />` tags or deferred JSON blocks -- use `wrapCitationPrompt` to add citation instructions |
 | `Object.keys(verifications).length` is 0 | Ensure the attachment was uploaded before the LLM call, and the LLM output contains citation references |

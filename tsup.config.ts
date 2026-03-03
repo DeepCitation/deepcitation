@@ -30,7 +30,7 @@ export default defineConfig({
   sourcemap: true,
   outDir: "lib",
   target: "es2020",
-  external: ["react", "react-dom", "@radix-ui/react-popover"],
+  external: ["react", "react-dom"],
   esbuildPlugins: [reactCompilerPlugin()],
   esbuildOptions(options) {
     options.jsx = "automatic";

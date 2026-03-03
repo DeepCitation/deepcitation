@@ -181,6 +181,8 @@ export interface UrlSourceInfo {
 export interface VerifyCitationsResponse {
   /** Map of citation keys to their verification results */
   verifications: Record<string, Verification>;
+  /** Signed download URL for the source file. Expires after 7 days. */
+  downloadUrl?: string;
 }
 
 /**

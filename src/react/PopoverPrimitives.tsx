@@ -1,0 +1,114 @@
+/**
+ * Internal popover primitives for citation UI composition.
+ *
+ * Replaces the Radix popover dependency while keeping the same primitive names
+ * used by the local CitationComponent implementation.
+ */
+
+import {
+  cloneElement,
+  forwardRef,
+  type HTMLAttributes,
+  isValidElement,
+  type MutableRefObject,
+  type ReactElement,
+  type ReactNode,
+  type Ref,
+  useMemo,
+  useRef,
+} from "react";
+import { createPortal } from "react-dom";
+import { getPortalContainer } from "./constants.js";
+import { PopoverContext, type PopoverContextValue, usePopoverContext } from "./popoverContext.js";
+
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null): void {
+  if (!ref) return;
+  if (typeof ref === "function") {
+    ref(value);
+    return;
+  }
+  (ref as MutableRefObject<T | null>).current = value;
+}
+
+function composeRefs<T>(...refs: Array<Ref<T> | undefined>) {
+  return (node: T | null) => {
+    for (const ref of refs) {
+      assignRef(ref, node);
+    }
+  };
+}
+
+export interface PopoverRootProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  children?: ReactNode;
+}
+
+export function Popover({ open = false, onOpenChange, children }: PopoverRootProps) {
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const contentRef = useRef<HTMLElement | null>(null);
+
+  const value = useMemo<PopoverContextValue>(
+    () => ({
+      open,
+      onOpenChange,
+      triggerRef,
+      contentRef,
+    }),
+    [open, onOpenChange],
+  );
+
+  return <PopoverContext.Provider value={value}>{children}</PopoverContext.Provider>;
+}
+
+export interface PopoverTriggerProps extends HTMLAttributes<HTMLElement> {
+  asChild?: boolean;
+  children?: ReactNode;
+}
+
+export const PopoverTrigger = forwardRef<HTMLElement, PopoverTriggerProps>(
+  ({ asChild = false, children, ...props }, forwardedRef) => {
+    const { triggerRef } = usePopoverContext();
+
+    if (asChild) {
+      if (!isValidElement(children)) return null;
+      const child = children as ReactElement<{ ref?: Ref<HTMLElement> }>;
+      const childRef = (child.props as { ref?: Ref<HTMLElement> }).ref;
+      return cloneElement(child, {
+        ...props,
+        ref: composeRefs(childRef, forwardedRef, (node: HTMLElement | null) => {
+          triggerRef.current = node;
+        }),
+      });
+    }
+
+    return (
+      <button
+        type="button"
+        {...props}
+        ref={composeRefs(forwardedRef, (node: HTMLElement | null) => {
+          triggerRef.current = node;
+        })}
+      >
+        {children}
+      </button>
+    );
+  },
+);
+PopoverTrigger.displayName = "PopoverTrigger";
+
+export const PopoverAnchor = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>((props, ref) => {
+  return <div ref={ref} {...props} />;
+});
+PopoverAnchor.displayName = "PopoverAnchor";
+
+export interface PopoverPortalProps {
+  children?: ReactNode;
+  container?: HTMLElement | null;
+}
+
+export function PopoverPortal({ children, container }: PopoverPortalProps) {
+  const portalContainer = container ?? getPortalContainer();
+  if (!portalContainer) return null;
+  return createPortal(children, portalContainer);
+}

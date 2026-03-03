@@ -57,6 +57,31 @@ const verifiedVerification: Verification = {
   },
 };
 
+// Tall image to amplify summary -> expanded-keyhole geometry changes near viewport edges.
+const tallImageBase64 = (() => {
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
+    canvas.width = 800;
+    canvas.height = 1600;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.fillStyle = "#dddddd";
+      ctx.fillRect(0, 0, 800, 1600);
+      return canvas.toDataURL("image/png");
+    }
+  }
+  // Fallback: valid 1x1 gray PNG
+  return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mO8cuXKfwYGBgYGAAi7Av7W3NgAAAAASUVORK5CYII=";
+})();
+
+const tallVerification: Verification = {
+  status: "found",
+  document: {
+    verifiedPageNumber: 5,
+    verificationImageSrc: tallImageBase64,
+  },
+};
+
 // =============================================================================
 // BASIC POPOVER BEHAVIOR TESTS
 // =============================================================================
@@ -218,6 +243,63 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     // Second click closes
     await citation.click();
     await expect(popover).not.toBeVisible({ timeout: 1000 });
+  });
+
+  test("bottom-edge keyhole expand should not oscillate vertically", async ({ mount, page }) => {
+    await mount(
+      <div style={{ paddingTop: "430px", paddingLeft: "80px" }}>
+        <CitationComponent citation={baseCitation} verification={tallVerification} />
+      </div>,
+    );
+
+    const citation = page.locator("[data-citation-id]");
+    await citation.click();
+
+    const popover = page.getByRole("dialog");
+    await expect(popover).toBeVisible();
+
+    const expandButton = popover.getByRole("button", { name: "Expand to full page", exact: true });
+    await expect(expandButton).toBeVisible();
+    await expandButton.dispatchEvent("click");
+
+    const samples = await page.evaluate(async () => {
+      const dialog = document.querySelector("[role='dialog']") as HTMLElement | null;
+      if (!dialog) return { top: [], guardDy: [] };
+      const top: number[] = [];
+      const guardDy: number[] = [];
+      const start = performance.now();
+      await new Promise<void>(resolve => {
+        const tick = () => {
+          top.push(dialog.getBoundingClientRect().top);
+          const nums = dialog.style.translate.match(/-?\d*\.?\d+/g)?.map(Number) ?? [];
+          guardDy.push(nums[1] ?? 0);
+          if (performance.now() - start >= 450) {
+            resolve();
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      return { top, guardDy };
+    });
+
+    const deltas = samples.top.slice(1).map((value, index) => value - samples.top[index]);
+    const significantDeltas = deltas.filter(delta => Math.abs(delta) >= 1.5);
+    const guardActiveFrameCount = samples.guardDy.filter(dy => Math.abs(dy) >= 0.5).length;
+
+    let previousSign = 0;
+    let reversals = 0;
+    for (const delta of significantDeltas) {
+      const sign = delta > 0 ? 1 : -1;
+      if (previousSign !== 0 && sign !== previousSign) reversals += 1;
+      previousSign = sign;
+    }
+
+    // Ensure this scenario actually hits viewport guard correction while expanding.
+    expect(guardActiveFrameCount).toBeGreaterThan(0);
+    // Allow a single direction change (settle) but prevent repeated up/down oscillation.
+    expect(reversals).toBeLessThanOrEqual(1);
   });
 });
 

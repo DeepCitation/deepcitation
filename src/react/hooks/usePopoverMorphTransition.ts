@@ -1,37 +1,30 @@
 import type React from "react";
 import { useLayoutEffect, useRef } from "react";
-import { EASE_EXPAND, POPOVER_MORPH_EXPAND_MS } from "../constants.js";
+import { EASE_COLLAPSE, POPOVER_MORPH_COLLAPSE_MS } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";
 
 type RectSnapshot = { left: number; top: number; width: number; height: number };
+const POSITION_SETTLE_FRACTION = 0.35; // Keep first frame close enough to avoid recenter flash.
+const SIZE_SETTLE_FRACTION = 0.35; // Symmetric two-sided reveal from a stable starting box.
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
-
-function getOriginPercent(
-  triggerRect: DOMRect | undefined,
-  popoverRect: RectSnapshot,
-): { xPercent: number; yPercent: number } {
-  if (!triggerRect) return { xPercent: 50, yPercent: 50 };
-
-  const x = triggerRect.left + triggerRect.width / 2;
-  const y = triggerRect.top + triggerRect.height / 2;
-  const xPercent = clamp(((x - popoverRect.left) / popoverRect.width) * 100, 0, 100);
-  const yPercent = clamp(((y - popoverRect.top) / popoverRect.height) * 100, 0, 100);
-  return { xPercent, yPercent };
+function hasActiveGuardTranslate(translateValue: string): boolean {
+  if (!translateValue || translateValue === "none") return false;
+  const nums = translateValue.match(/-?\d*\.?\d+/g)?.map(Number) ?? [];
+  const dx = nums[0] ?? 0;
+  const dy = nums[1] ?? 0;
+  return Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5;
 }
 
 /**
- * FLIP morph for popover view-state transitions.
- * Layout dimensions still snap; this hook animates the visual delta (x/y/scale)
- * so transitions feel coordinated and originate from the trigger center.
+ * Edge-linear morph for popover view-state transitions.
+ * Layout dimensions still snap, but this hook animates translation + reveal
+ * (clip-path) so all four edges move at consistent rates without scaling
+ * content (avoids "gooey" text/image distortion from non-uniform FLIP scales).
  */
 export function usePopoverMorphTransition(
   isOpen: boolean,
   viewState: PopoverViewState,
-  triggerRef: React.RefObject<HTMLElement | null>,
   popoverContentRef: React.RefObject<HTMLElement | null>,
 ): void {
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -53,7 +46,7 @@ export function usePopoverMorphTransition(
       return;
     }
 
-    // If a prior FLIP is still active (rapid state toggle), clear our inline
+    // If a prior morph is still active (rapid state toggle), clear our inline
     // transform first so measurements are taken from settled layout geometry.
     cleanupRef.current?.();
     cleanupRef.current = null;
@@ -75,7 +68,7 @@ export function usePopoverMorphTransition(
     prevViewStateRef.current = viewState;
 
     // Any transition away from expanded-page can involve async re-positioning.
-    // Suppress the *next* summary->keyhole FLIP so we don't animate from a
+    // Suppress the *next* summary->keyhole morph so we don't animate from a
     // transient top-left frame before Radix settles.
     if (prevViewState === "expanded-page" && viewState === "summary") {
       suppressNextKeyholeFlipRef.current = true;
@@ -102,39 +95,63 @@ export function usePopoverMorphTransition(
       return;
     }
 
-    const scaleX = prevRect.width / currentRect.width;
-    const scaleY = prevRect.height / currentRect.height;
-    // Translation must compensate for non-top-left transform-origin.
-    // For origin O: left' = left + (1 - s) * O + t  =>  t = prevLeft - left - (1 - s) * O
-    const { xPercent, yPercent } = getOriginPercent(triggerRef.current?.getBoundingClientRect(), currentRect);
-    const originX = (xPercent / 100) * currentRect.width;
-    const originY = (yPercent / 100) * currentRect.height;
-    const dx = prevRect.left - currentRect.left - (1 - scaleX) * originX;
-    const dy = prevRect.top - currentRect.top - (1 - scaleY) * originY;
+    // When the viewport boundary guard is actively correcting position (via CSS
+    // `translate`), avoid layering an additional FLIP `transform` animation on top.
+    // Near constrained viewport edges this combination can create visible up/down
+    // jitter during summary -> expanded-keyhole transitions.
+    if (hasActiveGuardTranslate(el.style.translate)) {
+      return;
+    }
 
-    const nearlyIdentity =
-      Math.abs(scaleX - 1) < 0.01 && Math.abs(scaleY - 1) < 0.01 && Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5;
+    // Two-phase settle:
+    // 1) Instant jump close to final.
+    // 2) Animate remaining residual. Size settle is symmetric on all edges to
+    //    avoid one-sided reveal bias.
+    const finalLeft = currentRect.left;
+    const finalTop = currentRect.top;
+    const finalRight = currentRect.left + currentRect.width;
+    const finalBottom = currentRect.top + currentRect.height;
+    const prevLeft = prevRect.left;
+    const prevTop = prevRect.top;
+    const prevRight = prevRect.left + prevRect.width;
+    const prevBottom = prevRect.top + prevRect.height;
+
+    const finalCenterX = (finalLeft + finalRight) / 2;
+    const finalCenterY = (finalTop + finalBottom) / 2;
+    const prevCenterX = (prevLeft + prevRight) / 2;
+    const prevCenterY = (prevTop + prevBottom) / 2;
+    const finalWidth = finalRight - finalLeft;
+    const finalHeight = finalBottom - finalTop;
+    const prevWidth = prevRight - prevLeft;
+    const prevHeight = prevBottom - prevTop;
+
+    const dx = (prevCenterX - finalCenterX) * POSITION_SETTLE_FRACTION;
+    const dy = (prevCenterY - finalCenterY) * POSITION_SETTLE_FRACTION;
+    const clipInsetX = Math.max(0, (finalWidth - prevWidth) * SIZE_SETTLE_FRACTION * 0.5);
+    const clipInsetY = Math.max(0, (finalHeight - prevHeight) * SIZE_SETTLE_FRACTION * 0.5);
+
+    const nearlyIdentity = Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && clipInsetX < 0.5 && clipInsetY < 0.5;
     if (nearlyIdentity) return;
 
-    const duration = POPOVER_MORPH_EXPAND_MS;
-    const easing = EASE_EXPAND;
+    const duration = POPOVER_MORPH_COLLAPSE_MS;
+    const easing = EASE_COLLAPSE;
 
     cancelAnimationFrame(rafIdRef.current);
 
-    el.style.willChange = "transform";
+    el.style.willChange = "transform, clip-path";
     el.style.transition = "none";
-    el.style.transformOrigin = `${xPercent}% ${yPercent}%`;
-    el.style.transform = `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`;
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+    el.style.clipPath = `inset(${clipInsetY}px ${clipInsetX}px ${clipInsetY}px ${clipInsetX}px round 8px)`;
 
     // Force style flush so the next frame transitions from inverted -> identity.
     el.getBoundingClientRect();
 
     const onEnd = (event: TransitionEvent) => {
-      if (event.propertyName !== "transform") return;
+      if (event.propertyName !== "transform" && event.propertyName !== "clip-path") return;
       el.removeEventListener("transitionend", onEnd);
       el.style.transition = "";
       el.style.transform = "";
-      el.style.transformOrigin = "";
+      el.style.clipPath = "";
       el.style.willChange = "";
       cleanupRef.current = null;
     };
@@ -143,14 +160,15 @@ export function usePopoverMorphTransition(
       el.removeEventListener("transitionend", onEnd);
       el.style.transition = "";
       el.style.transform = "";
-      el.style.transformOrigin = "";
+      el.style.clipPath = "";
       el.style.willChange = "";
     };
 
     rafIdRef.current = requestAnimationFrame(() => {
       el.addEventListener("transitionend", onEnd);
-      el.style.transition = `transform ${duration}ms ${easing}`;
-      el.style.transform = "translate(0px, 0px) scale(1, 1)";
+      el.style.transition = `transform ${duration}ms ${easing}, clip-path ${duration}ms ${easing}`;
+      el.style.transform = "translate(0px, 0px)";
+      el.style.clipPath = "inset(0px 0px 0px 0px round 8px)";
     });
 
     return () => {
@@ -158,5 +176,5 @@ export function usePopoverMorphTransition(
       cleanupRef.current?.();
       cleanupRef.current = null;
     };
-  }, [isOpen, viewState, popoverContentRef, triggerRef, prefersReducedMotion]);
+  }, [isOpen, viewState, popoverContentRef, prefersReducedMotion]);
 }

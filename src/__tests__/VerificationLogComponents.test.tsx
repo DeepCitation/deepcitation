@@ -278,7 +278,7 @@ describe("VerificationLogTimeline attempts table", () => {
     cleanup();
   });
 
-  it("renders expected row and muted page-searched column for non-exact outcomes", () => {
+  it("renders attempt rows with muted/strong location styling for non-exact outcomes", () => {
     const searchAttempts = [
       {
         method: "exact_line_match" as const,
@@ -304,12 +304,14 @@ describe("VerificationLogTimeline attempts table", () => {
       />,
     );
 
-    expect(getByText("Attempts")).toBeInTheDocument();
-    expect(getByText("Expected")).toBeInTheDocument();
-    expect(getByText("Page searched")).toBeInTheDocument();
-    expect(getByText("p.5 · l.12")).toBeInTheDocument();
-    expect(getByText("p.5")).toBeInTheDocument();
-    expect(getByText("p.7")).toBeInTheDocument();
+    expect(getByText("Revenue increased by 15% in Q4 2024.")).toBeInTheDocument();
+    expect(getByText("increased by 15%")).toBeInTheDocument();
+
+    const mutedLocation = getByText("p.5");
+    expect(mutedLocation.className).toContain("text-gray-400");
+
+    const highlightedLocation = getByText("p.7");
+    expect(highlightedLocation.className).toContain("font-semibold");
   });
 
   it("bolds successful hit location when page or line differs from expected", () => {
