@@ -249,6 +249,7 @@ function PopoverLayoutShell({
             display: "flex",
             flexDirection: "column" as const,
             overflowY: "hidden" as const,
+            maxHeight: "inherit",
           }),
         }}
       >
@@ -298,10 +299,25 @@ function ClaimQuote({
  * When reduced motion is preferred, height changes are instant (0ms duration)
  * but the wrapper DOM stays mounted — no layout shift from conditional unmounting.
  */
-function AnimatedHeightWrapper({ viewState, children }: { viewState: PopoverViewState; children: ReactNode }) {
+function AnimatedHeightWrapper({
+  viewState,
+  children,
+  expandDurationMs,
+  collapseDurationMs,
+}: {
+  viewState: PopoverViewState;
+  children: ReactNode;
+  /** Override expand duration (ms). Defaults to POPOVER_MORPH_EXPAND_MS. Pass 0 for snap. */
+  expandDurationMs?: number;
+  /** Override collapse duration (ms). Defaults to POPOVER_MORPH_COLLAPSE_MS. Pass 0 for snap. */
+  collapseDurationMs?: number;
+}) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  const baseExpand = expandDurationMs ?? POPOVER_MORPH_EXPAND_MS;
+  const baseCollapse = collapseDurationMs ?? POPOVER_MORPH_COLLAPSE_MS;
 
   // A.5.5: When reduced motion is preferred, pass 0ms durations so height changes
   // are instant but the wrapper DOM stays mounted (no layout shift from Fragment swap).
@@ -309,8 +325,8 @@ function AnimatedHeightWrapper({ viewState, children }: { viewState: PopoverView
     wrapperRef,
     contentRef,
     viewState,
-    prefersReducedMotion ? 0 : POPOVER_MORPH_EXPAND_MS,
-    prefersReducedMotion ? 0 : POPOVER_MORPH_COLLAPSE_MS,
+    prefersReducedMotion ? 0 : baseExpand,
+    prefersReducedMotion ? 0 : baseCollapse,
     BLINK_ENTER_EASING,
     EASE_COLLAPSE,
   );
@@ -417,7 +433,7 @@ function EvidenceZone({
           expandedImage is resolved. */}
       <div
         ref={slotCRef}
-        className="flex flex-col"
+        className="flex flex-col flex-1 min-h-0"
         style={viewState !== "expanded-page" ? { display: "none" } : undefined}
       >
         {expandedImage?.src && (
@@ -951,9 +967,10 @@ export function DefaultPopoverContent({
               <PopoverSnippetZone snippets={intentSnippets} />
             )}
 
-            {/* Keep claim-zone height snap-based across all expanded states so
-                full-page -> summary does not create a top-to-bottom evidence reveal. */}
-            <AnimatedHeightWrapper viewState="summary">
+            {/* Snap claim-zone height (0ms) so full-page → summary does not
+                create a top-to-bottom evidence reveal. The hook sees the real
+                viewState change but bails out immediately at duration === 0. */}
+            <AnimatedHeightWrapper viewState={viewState} expandDurationMs={0} collapseDurationMs={0}>
               {fullPhrase && (
                 <ClaimQuote
                   fullPhrase={fullPhrase}

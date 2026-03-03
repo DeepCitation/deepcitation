@@ -1,13 +1,16 @@
 import type React from "react";
 import { useLayoutEffect, useRef } from "react";
-import { BLINK_ENTER_EASING, BLINK_ENTER_TOTAL_MS } from "../constants.js";
+import {
+  BLINK_ENTER_EASING,
+  BLINK_ENTER_TOTAL_MS,
+  SHARED_ORIGIN_BLEND,
+  SHARED_ORIGIN_MAX_SCALE,
+  SHARED_ORIGIN_MIN_SCALE,
+  SHARED_ORIGIN_TRANSLATE_LIMIT_PX,
+} from "../constants.js";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";
 
 const MIN_RECT_SIZE_PX = 4;
-const SHARED_ORIGIN_BLEND = 0.22;
-const SHARED_ORIGIN_TRANSLATE_LIMIT_PX = 36;
-const SHARED_ORIGIN_MIN_SCALE = 0.9;
-const SHARED_ORIGIN_MAX_SCALE = 1.08;
 
 export interface SharedOriginRect {
   left: number;

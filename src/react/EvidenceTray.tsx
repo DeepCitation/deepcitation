@@ -15,7 +15,7 @@ import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
 import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { SearchAttempt } from "../types/search.js";
-import type { Verification } from "../types/verification.js";
+import type { Verification, VerificationPage } from "../types/verification.js";
 import { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
 import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
 import {
@@ -39,6 +39,7 @@ import {
   KEYHOLE_ZOOM_MIN,
   KEYHOLE_ZOOM_MIN_SIZE_RATIO,
   MIN_PAN_OVERFLOW_PX,
+  POPOVER_MORPH_EXPAND_MS,
   TERTIARY_ACTION_BASE_CLASSES,
   TERTIARY_ACTION_HOVER_CLASSES,
   TERTIARY_ACTION_IDLE_CLASSES,
@@ -76,30 +77,33 @@ import { ZoomToolbar } from "./ZoomToolbar.js";
  *  to catch intentional user panning. */
 const DRIFT_THRESHOLD_PX = 15;
 
-/** Duration for pan-button scroll animations (ms). Matches POPOVER_MORPH_EXPAND_MS. */
-const PAN_SCROLL_DURATION_MS = 200;
-
 /**
- * Scroll an element to a target scrollLeft over `PAN_SCROLL_DURATION_MS` using
+ * Scroll an element to a target scrollLeft over `POPOVER_MORPH_EXPAND_MS` using
  * an ease-out curve. Much faster than `behavior: "smooth"` (~500-800ms browser default).
+ * Returns a cancel function to abort the in-flight animation.
  */
-function animateScrollLeft(el: HTMLElement, targetLeft: number): void {
+function animateScrollLeft(el: HTMLElement, targetLeft: number): () => void {
   const start = el.scrollLeft;
   const delta = targetLeft - start;
-  if (delta === 0) return;
+  let cancelled = false;
+  if (delta === 0) return () => {};
   const t0 = performance.now();
   const step = (now: number) => {
+    if (cancelled) return;
     const elapsed = now - t0;
-    if (elapsed >= PAN_SCROLL_DURATION_MS) {
+    if (elapsed >= POPOVER_MORPH_EXPAND_MS) {
       el.scrollLeft = targetLeft;
       return;
     }
     // ease-out: 1 - (1 - t)^3
-    const t = elapsed / PAN_SCROLL_DURATION_MS;
+    const t = elapsed / POPOVER_MORPH_EXPAND_MS;
     el.scrollLeft = start + delta * (1 - (1 - t) ** 3);
     requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
+  return () => {
+    cancelled = true;
+  };
 }
 
 function parsePercent(value: string): number {
@@ -146,6 +150,16 @@ export interface ExpandedImageSource {
   highlightBox?: ScreenBox | null;
   renderScale?: { x: number; y: number } | null;
   textItems?: DeepTextItem[];
+}
+
+function toExpandedImageSource(page: VerificationPage): ExpandedImageSource {
+  return {
+    src: page.source,
+    dimensions: page.dimensions,
+    highlightBox: page.highlightBox ?? null,
+    renderScale: page.renderScale ?? null,
+    textItems: page.textItems ?? [],
+  };
 }
 
 /**
@@ -233,13 +247,7 @@ export function resolveExpandedImage(verification: Verification | null | undefin
   // 1. Best: matching page from verification.pages array
   const matchPage = verification.pages?.find(p => p.isMatchPage);
   if (matchPage?.source && isValidProofImageSrc(matchPage.source)) {
-    return {
-      src: matchPage.source,
-      dimensions: matchPage.dimensions,
-      highlightBox: matchPage.highlightBox ?? null,
-      renderScale: matchPage.renderScale ?? null,
-      textItems: matchPage.textItems ?? [],
-    };
+    return toExpandedImageSource(matchPage);
   }
 
   // 2. Good: CDN-hosted proof image
@@ -255,13 +263,7 @@ export function resolveExpandedImage(verification: Verification | null | undefin
   // 2b. Non-match page fallback (for not_found — pages exist but none is a match)
   const anyPage = verification.pages?.[0];
   if (anyPage?.source && isValidProofImageSrc(anyPage.source)) {
-    return {
-      src: anyPage.source,
-      dimensions: anyPage.dimensions,
-      highlightBox: null,
-      renderScale: anyPage.renderScale ?? null,
-      textItems: anyPage.textItems ?? [],
-    };
+    return toExpandedImageSource(anyPage);
   }
 
   // 3. URL screenshot — base64-encoded page screenshot (URL citations)
@@ -288,6 +290,22 @@ export function resolveExpandedImage(verification: Verification | null | undefin
   }
 
   return null;
+}
+
+/**
+ * Resolve an expanded image for a specific page number.
+ * Falls back to resolveExpandedImage() when an exact page image isn't present.
+ */
+export function resolveExpandedImageForPage(
+  verification: Verification | null | undefined,
+  pageNumber: number | null | undefined,
+): ExpandedImageSource | null {
+  const normalizedPage = Number(pageNumber);
+  if (verification?.pages && Number.isFinite(normalizedPage) && normalizedPage > 0) {
+    const exactPage = verification.pages.find(p => p.pageNumber === normalizedPage && isValidProofImageSrc(p.source));
+    if (exactPage) return toExpandedImageSource(exactPage);
+  }
+  return resolveExpandedImage(verification);
 }
 
 // =============================================================================
@@ -430,6 +448,8 @@ export function AnchorTextFocusedImage({
   // Computed once on image load — images must be ≥ 3× container in at least one axis.
   const [zoomEligible, setZoomEligible] = useState(false);
   const imageWrapperRef = useRef<HTMLDivElement>(null);
+  /** Cancel handle for the current `animateScrollLeft` rAF loop (if any). */
+  const cancelPanRef = useRef<(() => void) | null>(null);
   const keyholeZoomRef = useRef(keyholeZoom);
   useEffect(() => {
     keyholeZoomRef.current = keyholeZoom;
@@ -681,10 +701,12 @@ export function AnchorTextFocusedImage({
             if (!el) return;
             if (e.key === "ArrowLeft") {
               e.preventDefault();
-              animateScrollLeft(el, el.scrollLeft - Math.max(el.clientWidth * 0.5, 80));
+              cancelPanRef.current?.();
+              cancelPanRef.current = animateScrollLeft(el, el.scrollLeft - Math.max(el.clientWidth * 0.5, 80));
             } else if (e.key === "ArrowRight") {
               e.preventDefault();
-              animateScrollLeft(el, el.scrollLeft + Math.max(el.clientWidth * 0.5, 80));
+              cancelPanRef.current?.();
+              cancelPanRef.current = animateScrollLeft(el, el.scrollLeft + Math.max(el.clientWidth * 0.5, 80));
             }
           }}
           onClick={e => {
@@ -772,7 +794,8 @@ export function AnchorTextFocusedImage({
                 e.stopPropagation();
                 const el = containerRef.current;
                 if (!el) return;
-                animateScrollLeft(el, el.scrollLeft - Math.max(el.clientWidth * 0.5, 80));
+                cancelPanRef.current?.();
+                cancelPanRef.current = animateScrollLeft(el, el.scrollLeft - Math.max(el.clientWidth * 0.5, 80));
               }}
             >
               <span className="text-sm font-bold text-white bg-black/50 w-7 h-7 flex items-center justify-center rounded-full leading-none">
@@ -790,7 +813,8 @@ export function AnchorTextFocusedImage({
                 e.stopPropagation();
                 const el = containerRef.current;
                 if (!el) return;
-                animateScrollLeft(el, el.scrollLeft + Math.max(el.clientWidth * 0.5, 80));
+                cancelPanRef.current?.();
+                cancelPanRef.current = animateScrollLeft(el, el.scrollLeft + Math.max(el.clientWidth * 0.5, 80));
               }}
             >
               <span className="text-sm font-bold text-white bg-black/50 w-7 h-7 flex items-center justify-center rounded-full leading-none">
@@ -847,6 +871,7 @@ export function AnchorTextFocusedImage({
 function EvidenceTrayFooter({
   verifiedAt,
   onPageClick,
+  pageNumberForCta,
   searchCount,
   isSearchLogOpen,
   onToggleSearchLog,
@@ -855,6 +880,8 @@ function EvidenceTrayFooter({
   verifiedAt?: Date | string | null;
   /** When provided, renders a "View page" CTA button */
   onPageClick?: () => void;
+  /** Optional page number to include in the CTA label (drawer context). */
+  pageNumberForCta?: number | null;
   /** Number of unique search texts (toggle hidden when 0 or absent) */
   searchCount?: number;
   /** Whether the search log is currently expanded */
@@ -867,6 +894,8 @@ function EvidenceTrayFooter({
   const formatted = formatCaptureDate(verifiedAt);
   const dateStr = formatted?.display ?? "";
   const showToggle = onToggleSearchLog && searchCount != null && searchCount > 0;
+  const hasPageForCta = pageNumberForCta != null && pageNumberForCta > 0;
+  const pageCtaLabel = hasPageForCta ? `View page ${pageNumberForCta}` : "View page";
 
   return (
     <div className="px-3 py-2 min-h-[44px] flex items-center text-[11px] text-gray-400 dark:text-gray-500">
@@ -915,8 +944,9 @@ function EvidenceTrayFooter({
               e.stopPropagation();
               onPageClick();
             }}
+            aria-label={pageCtaLabel}
           >
-            <span>View page</span>
+            <span>{pageCtaLabel}</span>
             <span className="size-3 shrink-0">
               <ChevronRightIcon />
             </span>
@@ -1009,6 +1039,7 @@ export function EvidenceTray({
   onExpand,
   onImageClick,
   proofImageSrc,
+  pageNumberForCta,
   onKeyholeWidth,
   onScrollCapture,
   onExpandOriginCapture,
@@ -1018,6 +1049,8 @@ export function EvidenceTray({
   onExpand?: () => void;
   onImageClick?: () => void;
   proofImageSrc?: string;
+  /** Optional page number shown in "View page N" CTA for drawer context. */
+  pageNumberForCta?: number | null;
   onKeyholeWidth?: (width: number) => void;
   /** Called with natural-pixel scroll coords when the keyhole is clicked to expand. */
   onScrollCapture?: (left: number, top: number) => void;
@@ -1067,6 +1100,7 @@ export function EvidenceTray({
     <EvidenceTrayFooter
       verifiedAt={verification?.verifiedAt}
       onPageClick={onExpand ? handlePageExpand : undefined}
+      pageNumberForCta={pageNumberForCta}
       searchCount={isMiss || isPartialMatch ? searchCount : undefined}
       isSearchLogOpen={showSearchLog}
       onToggleSearchLog={isMiss || isPartialMatch ? () => setShowSearchLog(prev => !prev) : undefined}
@@ -1219,6 +1253,7 @@ export function InlineExpandedImage({
   verification,
   fill = false,
   onExpand,
+  pageNumberForCta,
   onExpandOriginCapture,
   onNaturalSize,
   renderScale,
@@ -1237,6 +1272,8 @@ export function InlineExpandedImage({
   fill?: boolean;
   /** When provided, renders a "View page ›" CTA in the non-fill footer. */
   onExpand?: () => void;
+  /** Optional page number shown in "View page N" CTA for non-fill mode. */
+  pageNumberForCta?: number | null;
   /** Called with a viewport rect used as the shared-origin source for expand-to-page. */
   onExpandOriginCapture?: (rect: SharedOriginRect) => void;
   /** Called after image load with natural pixel dimensions. */
@@ -1811,14 +1848,18 @@ export function InlineExpandedImage({
 
   const footerEl = (
     <div className="bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
-      <EvidenceTrayFooter verifiedAt={verification?.verifiedAt} onPageClick={fill ? undefined : handleExpandToPage} />
+      <EvidenceTrayFooter
+        verifiedAt={verification?.verifiedAt}
+        onPageClick={fill ? undefined : handleExpandToPage}
+        pageNumberForCta={pageNumberForCta}
+      />
     </div>
   );
 
   return (
     <div
       ref={outerRef}
-      className={cn("relative mx-3 mb-3", fill && "flex flex-col")}
+      className={cn("relative mx-3 mb-3", fill && "flex flex-col flex-1 min-h-0")}
       style={
         fill
           ? undefined // fill mode: container fills popover width, image scrolls inside
@@ -1832,7 +1873,7 @@ export function InlineExpandedImage({
       }
     >
       {/* Wrapper: relative so zoom controls can be positioned absolutely over the scroll area */}
-      <div className={cn("relative", fill && "flex flex-col")}>
+      <div className={cn("relative", fill && "flex flex-col flex-1 min-h-0")}>
         {/* Scrollable image area — click (no drag) collapses */}
         <div
           ref={containerRef}
@@ -1845,7 +1886,7 @@ export function InlineExpandedImage({
             // Top+sides border completes the box started by the footer's border-t-0.
             // Matches EvidenceTray's EVIDENCE_TRAY_BORDER_SOLID so the transition is seamless.
             !fill && "border border-b-0 border-gray-200 dark:border-gray-700",
-            fill && "max-h-[80dvh]",
+            fill && "flex-1 min-h-0",
           )}
           style={{
             ...(fill ? {} : { maxHeight: "min(600px, 80dvh)" }),

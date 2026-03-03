@@ -199,6 +199,43 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       };
     }, [open, isMounted]);
 
+    // Wheel passthrough: the popover's position:fixed wrapper + child scroll
+    // containers (e.g. keyhole strip with overflow-x:auto) cause Chrome's scroll
+    // latching to trap vertical wheel events even when nothing inside can scroll
+    // vertically. Detect that case, cancel the broken routing, and forward the
+    // scroll to the page's scroll container manually.
+    React.useEffect(() => {
+      const el = localContentRef.current;
+      if (!el || !isMounted) return;
+
+      const onWheel = (e: WheelEvent) => {
+        if (e.deltaY === 0) return; // Purely horizontal — let native handle (keyhole pan)
+
+        // Walk from event target up to the popover content div, looking for any
+        // element that can scroll vertically in the wheel direction.
+        let node = e.target as HTMLElement | null;
+        while (node && node !== el.parentElement) {
+          const oy = getComputedStyle(node).overflowY;
+          if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
+            // Found a vertically scrollable element — check direction
+            if (e.deltaY > 0 && Math.ceil(node.scrollTop) < node.scrollHeight - node.clientHeight) return;
+            if (e.deltaY < 0 && node.scrollTop > 0) return;
+          }
+          node = node.parentElement;
+        }
+
+        // Nothing inside can scroll vertically — forward to page.
+        e.preventDefault();
+        const pixelDelta =
+          e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY;
+        const scrollEl = document.scrollingElement ?? document.documentElement;
+        scrollEl.scrollTop += pixelDelta;
+      };
+
+      el.addEventListener("wheel", onWheel, { passive: false });
+      return () => el.removeEventListener("wheel", onWheel);
+    }, [isMounted]);
+
     if (!isMounted) return null;
 
     const managesOverflow = style?.overflow === undefined && style?.overflowY === undefined;
@@ -236,8 +273,9 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
                 // Fixed to calc(100dvh - 2rem). Intentionally not tying this to trigger movement.
                 maxHeight: EXPANDED_POPOVER_HEIGHT,
                 ...getBlinkContainerMotionStyle(blinkStage, prefersReducedMotion),
+                overflowX: "clip",
                 ...style,
-                ...(managesOverflow ? { overflowY: "auto" } : {}),
+                ...(managesOverflow ? { overflowY: "clip" } : {}),
                 ...HIDE_SCROLLBAR_STYLE,
               } as React.CSSProperties
             }
@@ -246,7 +284,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
               // Ensures popover never exceeds screen bounds, leaving room for positioning
               "rounded-lg border bg-white shadow-xl outline-none",
               "w-fit",
-              "overflow-x-hidden",
+              // overflow-x is handled via inline style (clip, not hidden — avoids scroll container)
               "border-gray-200 dark:border-gray-700 dark:bg-gray-900",
               className,
             )}

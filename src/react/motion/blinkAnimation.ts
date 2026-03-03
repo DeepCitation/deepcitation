@@ -117,7 +117,7 @@ export function getBlinkContainerMotionStyle(
     opacity: containerOpacity(stage),
     transition: resolveTransition(stage, enterStepMs, enterTotalMs, exitMs),
     transformOrigin: "center center",
-    willChange: stage === "steady" ? undefined : "transform,opacity",
+    willChange: stage === "steady" ? undefined : "transform, opacity",
   };
 }
 
@@ -147,6 +147,6 @@ export function getBlinkRowMotionStyle(
     gridTemplateRows: rowGridTemplateRows(stage),
     opacity: rowOpacity(stage),
     transition: resolvePaddingTransition(stage, enterStepMs, enterTotalMs, exitMs),
-    willChange: stage === "steady" ? undefined : "transform,padding-top,grid-template-rows,opacity",
+    willChange: stage === "steady" ? undefined : "transform, padding-top, grid-template-rows, opacity",
   };
 }

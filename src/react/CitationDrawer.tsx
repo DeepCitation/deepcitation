@@ -33,7 +33,12 @@ import {
   Z_INDEX_DRAWER_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
-import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
+import {
+  EvidenceTray,
+  InlineExpandedImage,
+  resolveEvidenceSrc,
+  resolveExpandedImageForPage,
+} from "./EvidenceTray.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
@@ -286,13 +291,23 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const anchorText = citation.anchorText?.toString();
   const fullPhrase = citation.fullPhrase;
 
-  // Proof image — unified resolution via resolveExpandedImage (same as popover),
-  // which includes pages[0].source fallback so not_found citations get thumbnails.
-  const expandedImage = useMemo(() => resolveExpandedImage(verification), [verification]);
-  const proofImage = expandedImage?.src ?? null;
+  const itemPageNumber = useMemo(
+    () => (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber ?? null,
+    [citation, verification],
+  );
+
+  // Full-page image — resolve against this citation's page number first.
+  const expandedPageImage = useMemo(
+    () => resolveExpandedImageForPage(verification, itemPageNumber),
+    [verification, itemPageNumber],
+  );
+  const proofImage = expandedPageImage?.src ?? null;
 
   // Evidence image — the verification crop (keyhole source), separate from the full page.
   const evidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
+  // Inline keyhole-expanded state (inside the drawer item body, not header panel).
+  const [inlineKeyholeSrc, setInlineKeyholeSrc] = useState<string | null>(null);
+  const [inlineKeyholeInitialScroll, setInlineKeyholeInitialScroll] = useState<{ left: number; top: number } | null>(null);
 
   // Status
   const statusCategory = getItemStatusCategory(item);
@@ -311,7 +326,18 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     [statusCategory],
   );
 
+  useEffect(() => {
+    if (!isExpanded) {
+      setInlineKeyholeSrc(null);
+      setInlineKeyholeInitialScroll(null);
+    }
+  }, [isExpanded]);
+
   const handleClick = useCallback(() => {
+    if (isExpanded) {
+      setInlineKeyholeSrc(null);
+      setInlineKeyholeInitialScroll(null);
+    }
     if (escCtx) {
       escCtx.onItemExpand(isExpanded ? null : citationKey);
     } else {
@@ -320,10 +346,17 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     onClick?.(item);
   }, [item, onClick, escCtx, isExpanded, citationKey]);
 
-  // Opens InlineExpandedImage in the header panel with the full page image (tray click / onExpand)
-  const handleExpand = useCallback(() => {
-    if (proofImage) escCtx?.onInlineExpand(citationKey, proofImage, verification, expandedImage?.renderScale);
-  }, [proofImage, citationKey, verification, expandedImage, escCtx]);
+  // Keyhole click expands inline inside the citation row.
+  const handleExpandKeyholeInline = useCallback(() => {
+    const source = evidenceSrc ?? proofImage;
+    if (!source) return;
+    setInlineKeyholeSrc(source);
+  }, [evidenceSrc, proofImage]);
+
+  // Footer CTA ("View page N") opens the full page in the drawer header panel.
+  const handleExpandToPage = useCallback(() => {
+    if (proofImage) escCtx?.onInlineExpand(citationKey, proofImage, verification, expandedPageImage?.renderScale);
+  }, [proofImage, citationKey, verification, expandedPageImage, escCtx]);
 
   return (
     <div
@@ -413,13 +446,29 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               onAnimationEnd={() => setWasAutoExpanded(false)}
             >
               {/* Evidence area: keyhole for found, thumbnail+analysis for miss */}
-              <EvidenceTray
-                verification={verification ?? null}
-                status={citationStatus}
-                onImageClick={evidenceSrc || proofImage ? handleExpand : undefined}
-                onExpand={proofImage ? handleExpand : undefined}
-                proofImageSrc={proofImage ?? undefined}
-              />
+              {inlineKeyholeSrc ? (
+                <InlineExpandedImage
+                  src={inlineKeyholeSrc}
+                  onCollapse={() => {
+                    setInlineKeyholeSrc(null);
+                    setInlineKeyholeInitialScroll(null);
+                  }}
+                  onExpand={proofImage ? handleExpandToPage : undefined}
+                  verification={verification ?? undefined}
+                  initialScroll={inlineKeyholeInitialScroll ?? undefined}
+                  pageNumberForCta={itemPageNumber}
+                />
+              ) : (
+                <EvidenceTray
+                  verification={verification ?? null}
+                  status={citationStatus}
+                  onImageClick={evidenceSrc || proofImage ? handleExpandKeyholeInline : undefined}
+                  onExpand={proofImage ? handleExpandToPage : undefined}
+                  proofImageSrc={proofImage ?? undefined}
+                  pageNumberForCta={itemPageNumber}
+                  onScrollCapture={(left, top) => setInlineKeyholeInitialScroll({ left, top })}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -892,14 +941,15 @@ function OpenCitationDrawer({
       const items = pageToItems.get(page);
       const first = items?.[0];
       if (first) {
-        const expanded = resolveExpandedImage(first.verification);
+        const targetPage = keyToPage.get(first.citationKey) ?? page;
+        const expanded = resolveExpandedImageForPage(first.verification, targetPage);
         if (expanded) {
           handleInlineExpand(first.citationKey, expanded.src, first.verification, expanded.renderScale);
         }
       }
       setPageAnnouncement(`Navigated to page ${page}`);
     },
-    [pageToItems, handleInlineExpand],
+    [pageToItems, keyToPage, handleInlineExpand],
   );
 
   // Full-page mode: header inline panel open or manual drag-up gesture
