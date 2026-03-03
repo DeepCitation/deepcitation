@@ -42,7 +42,7 @@ import { SourceContextHeader, StatusHeader } from "./VerificationLog.js";
 
 // React 19.2's Activity component is disabled here because it triggers a fiber
 // effect linked-list corruption bug during simultaneous mode transitions
-// (hidden→visible) and Radix popover unmounts. The crash manifests as
+// (hidden→visible) and popover unmounts. The crash manifests as
 // "Cannot read/set properties of undefined (reading/setting 'destroy')" inside
 // commitHookEffectListMount/Unmount → reconnectPassiveEffects.
 // Using a Fragment pass-through preserves identical render output without the
@@ -94,48 +94,6 @@ export interface PopoverContentProps {
 // =============================================================================
 // PRIVATE HELPERS
 // =============================================================================
-
-/**
- * Get a conversational message for not-found or partial match states.
- * Uses the actual anchor text for context, truncating if needed.
- */
-function getHumanizingMessage(
-  status: SearchStatus | null | undefined,
-  anchorText?: string,
-  expectedPage?: number,
-  foundPage?: number,
-): string | null {
-  if (!status) return null;
-
-  const MAX_ANCHOR_LENGTH = 30;
-  // Type guard: ensure anchorText is a string before using string methods
-  const safeAnchorText = typeof anchorText === "string" ? anchorText : null;
-  const displayText = safeAnchorText
-    ? safeAnchorText.length > MAX_ANCHOR_LENGTH
-      ? `"${safeAnchorText.slice(0, MAX_ANCHOR_LENGTH)}…"`
-      : `"${safeAnchorText}"`
-    : "this phrase";
-
-  switch (status) {
-    case "not_found":
-      return null; // Redundant — the red icon + "Not found" header already conveys this
-    case "found_on_other_page":
-      if (expectedPage && foundPage) {
-        return `Found ${displayText} on page ${foundPage} instead of page ${expectedPage}.`;
-      }
-      return `Found ${displayText} on a different page than expected.`;
-    case "found_on_other_line":
-      return `Found ${displayText} at a different position than expected.`;
-    case "partial_text_found":
-      return `Only part of ${displayText} was found.`;
-    case "first_word_found":
-      return `Only the beginning of ${displayText} was found.`;
-    case "found_anchor_text_only":
-      return `Found ${displayText}, but not the full surrounding context.`;
-    default:
-      return null;
-  }
-}
 
 /**
  * Renders a colored banner explaining why a URL could not be accessed.
@@ -289,11 +247,13 @@ function ClaimQuote({
   anchorText,
   isMiss,
   borderColor,
+  maxWidth,
 }: {
   fullPhrase: string;
   anchorText?: string;
   isMiss: boolean;
   borderColor: string;
+  maxWidth?: string;
 }) {
   return (
     <div
@@ -301,6 +261,7 @@ function ClaimQuote({
         "mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-gray-50 dark:bg-gray-800/50 border-l-[3px] max-w-prose",
         borderColor,
       )}
+      style={maxWidth ? { maxWidth } : undefined}
     >
       <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
     </div>
@@ -702,7 +663,8 @@ export function DefaultPopoverContent({
   // Notify parent when expandedNaturalWidth changes — calls only the prop callback,
   // not a React setter, so this useEffect is React Compiler-compatible.
   useEffect(() => {
-    const source = viewState === "expanded-page" ? "expanded-page" : viewState === "expanded-keyhole" ? "expanded-keyhole" : null;
+    const source =
+      viewState === "expanded-page" ? "expanded-page" : viewState === "expanded-keyhole" ? "expanded-keyhole" : null;
     onExpandedWidthChange?.(expandedNaturalWidth, source);
   }, [expandedNaturalWidth, onExpandedWidthChange, viewState]);
 
@@ -736,7 +698,9 @@ export function DefaultPopoverContent({
       const keyholeImg = document.querySelector("[data-dc-keyhole] img") as HTMLImageElement | null;
       const width = keyholeImg?.naturalWidth ?? 0;
       if (Number.isFinite(width) && width > 0) {
-        setKeyholeImageNatural(prev => (prev?.src === evidenceSrc && prev.width === width ? prev : { src: evidenceSrc, width }));
+        setKeyholeImageNatural(prev =>
+          prev?.src === evidenceSrc && prev.width === width ? prev : { src: evidenceSrc, width },
+        );
         onExpandedWidthChange?.(width, "expanded-keyhole");
       }
     }
@@ -801,13 +765,6 @@ export function DefaultPopoverContent({
   // Get humanizing message for partial/not-found states (URL citations only)
   const anchorText = citation.anchorText?.toString();
   const fullPhrase = citation.fullPhrase;
-  const humanizingMessage = useMemo(
-    () =>
-      isUrlCitation(citation)
-        ? getHumanizingMessage(searchStatus, anchorText, expectedPage ?? undefined, foundPage)
-        : null,
-    [citation, searchStatus, anchorText, expectedPage, foundPage],
-  );
 
   // Intent summary for document citations — snippet-based display for partial matches
   const intentSummary = useMemo(
@@ -918,11 +875,7 @@ export function DefaultPopoverContent({
           {(isMiss || isPartialMatch) && !urlAccessExplanation && intentSnippets.length > 0 && (
             <PopoverSnippetZone snippets={intentSnippets} />
           )}
-          {(isMiss || isPartialMatch) && !urlAccessExplanation && intentSnippets.length === 0 && humanizingMessage && (
-            <div className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 border-b border-gray-100 dark:border-gray-800">
-              {humanizingMessage}
-            </div>
-          )}
+
           <AnimatedHeightWrapper viewState={viewState === "expanded-keyhole" ? "summary" : viewState}>
             {fullPhrase && (
               <ClaimQuote
@@ -930,23 +883,26 @@ export function DefaultPopoverContent({
                 anchorText={anchorText}
                 isMiss={isMiss}
                 borderColor={claimBorderColor}
+                maxWidth={summaryWidth}
               />
             )}
           </AnimatedHeightWrapper>
           {/* Zone 3: Evidence */}
-          <EvidenceZone
-            viewState={viewState}
-            evidenceSrc={evidenceSrc}
-            expandedImage={expandedImage}
-            onViewStateChange={onViewStateChange}
-            onExpandToPage={canExpandToPage ? handleExpand : undefined}
-            handlePageImageLoad={handlePageImageLoad}
-            handleKeyholeImageLoad={handleKeyholeImageLoad}
-            prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
-            verification={verification}
-            summaryContent={summaryContent}
-            keyholeInitialScroll={keyholeInitialScroll}
-          />
+          <AnimatedHeightWrapper viewState={viewState}>
+            <EvidenceZone
+              viewState={viewState}
+              evidenceSrc={evidenceSrc}
+              expandedImage={expandedImage}
+              onViewStateChange={onViewStateChange}
+              onExpandToPage={canExpandToPage ? handleExpand : undefined}
+              handlePageImageLoad={handlePageImageLoad}
+              handleKeyholeImageLoad={handleKeyholeImageLoad}
+              prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
+              verification={verification}
+              summaryContent={summaryContent}
+              keyholeInitialScroll={keyholeInitialScroll}
+            />
+          </AnimatedHeightWrapper>
         </PopoverLayoutShell>
       </>
     );

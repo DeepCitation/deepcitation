@@ -11,7 +11,7 @@ import type { PopoverViewState } from "../DefaultPopoverContent.js";
  * Uses `useLayoutEffect` + `useState` so the offset is computed **after DOM
  * mutations but before paint**. React 18+ batches the synchronous re-render
  * triggered by `setState` inside `useLayoutEffect` within the same paint
- * frame, so Floating UI never sees a stale offset.
+ * frame, so the popover's `recomputePosition` sees the final offset.
  *
  * Offset math by side:
  * - bottom: sideOffset = 16 - triggerRect.bottom  → top edge at 1rem from viewport top

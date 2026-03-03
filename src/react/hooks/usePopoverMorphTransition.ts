@@ -69,7 +69,7 @@ export function usePopoverMorphTransition(
 
     // Any transition away from expanded-page can involve async re-positioning.
     // Suppress the *next* summary->keyhole morph so we don't animate from a
-    // transient top-left frame before Radix settles.
+    // transient frame before the popover repositions.
     if (prevViewState === "expanded-page" && viewState === "summary") {
       suppressNextKeyholeFlipRef.current = true;
       return;

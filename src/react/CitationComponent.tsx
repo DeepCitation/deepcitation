@@ -544,9 +544,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // When <main> exists, we set inert on it (the popover portal is a sibling
     // of <main> inside document.body, so it stays interactive).
     // When no <main> exists, we cannot set inert on document.body because the
-    // Radix portal renders inside body — that would make the popover itself
-    // inert. Instead, we inert each direct child of body except the one
-    // containing the popover.
+    // The popover portal renders inside body — that would make the popover
+    // itself inert. Instead, we inert each direct child of body except the
+    // one containing the popover.
     useEffect(() => {
       if (!isHovering || !openedViaKeyboardRef.current) return;
       const main = document.querySelector("main");
@@ -555,7 +555,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         return () => main.removeAttribute("inert");
       }
       // Fallback: inert all body children except the popover portal.
-      // Defer with rAF so the Radix portal is in the DOM before we scan.
+      // Defer with rAF so the portal is in the DOM before we scan.
       const inerted: Element[] = [];
       const rafId = requestAnimationFrame(() => {
         const popoverEl = popoverContentRef.current;
@@ -590,7 +590,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Track whether the popover was opened via keyboard (Enter/Space) vs mouse/touch.
     // Used by:
     // - A.5.1 Focus trap: only set `inert` on background when keyboard-opened
-    // - A.5.2 Focus return: only allow Radix to return focus when keyboard-opened
+    // - A.5.2 Focus return: only return focus to trigger when keyboard-opened
     const openedViaKeyboardRef = useRef(false);
 
     // A.5.2 Conditional focus return: keyboard users need focus returned to the
@@ -653,8 +653,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       [ref],
     );
 
-    // Lock the popover side (top/bottom) on open so scroll doesn't cause Radix's
-    // flip middleware to jump the popover between sides. Also isolated for compiler.
+    // Lock the popover side (top/bottom) on open so the popover doesn't jump
+    // between sides during scroll. Also isolated for compiler.
     const lockedSide = useLockedPopoverSide(isHovering, popoverPosition === "top" ? "top" : "bottom", triggerRef);
 
     // Isolated into separate hooks so the React Compiler can optimize CitationComponent
@@ -979,18 +979,17 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       eventHandlers?.onMouseLeave?.(citation, citationKey);
     }, [eventHandlers, behaviorConfig, citation, citationKey, getBehaviorContext]);
 
-    // Escape key handling is managed by Radix Popover via onOpenChange and onEscapeKeyDown props
+    // Escape key handling is managed by PopoverContent via onEscapeKeyDown prop
 
     // Mobile click-outside dismiss handler
     //
     // On mobile, tapping outside the citation trigger or popover should dismiss the popover.
     // Desktop uses a document-level mousedown listener (below) for click-outside dismiss.
     //
-    // Why custom handling instead of Radix's built-in click-outside behavior:
-    // The PopoverContent has onPointerDownOutside and onInteractOutside handlers that call
-    // e.preventDefault() to give us full control over popover state. This is necessary for
-    // the two-tap mobile interaction pattern (first tap shows popover, second tap opens image).
-    // However, it means we need custom touch handling to dismiss the popover on outside taps.
+    // Custom touch handling for the two-tap mobile interaction pattern (first tap
+    // shows popover, second tap opens image). Outside-click dismiss is handled here
+    // rather than in the generic Popover component so we can integrate overlay
+    // awareness, tap-vs-scroll detection, and the two-tap flow.
     //
     // Event order when tapping the trigger while popover is open:
     // 1. handleOutsideTouch (capture phase, document) - checks .contains(), returns early
@@ -999,8 +998,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // The .contains() check in step 1 ensures we don't dismiss when tapping the trigger,
     // allowing the normal two-tap flow to proceed.
     //
-    // Portal note: popoverContentRef works with portaled content because Radix renders
-    // the popover content as a child of document.body, but we hold a direct ref to that
+    // Portal note: popoverContentRef works with portaled content because the
+    // popover renders inside document.body and we hold a direct ref to that
     // DOM element, so .contains() correctly detects touches inside it.
     //
     // Cleanup: The listener only attaches when isMobile AND isHovering are both true.
@@ -1322,7 +1321,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       onTouchEndCapture: isMobile ? handleTouchEnd : undefined,
     };
 
-    // Render with Radix Popover
+    // Render with Popover
     if (shouldShowPopover) {
       const popoverContentElement = (
         <PopoverContentRenderer
@@ -1389,21 +1388,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               align="start"
               sideOffset={expandedPageSideOffset}
               alignOffset={popoverAlignOffset}
-              // Collision avoidance always off — the locked side handles vertical
-              // placement and usePopoverAlignOffset handles horizontal clamping.
-              // CSS maxWidth/maxHeight (calc(100dvw/dvh - 2rem)) constrains size.
-              avoidCollisions={false}
               onCloseAutoFocus={handleCloseAutoFocus}
-              onPointerDownOutside={(e: Event) => e.preventDefault()}
-              onInteractOutside={(e: Event) => e.preventDefault()}
               onEscapeKeyDown={e => {
-                // Always take ownership — e.preventDefault() prevents Radix's
-                // DismissableLayer from calling onDismiss() → onOpenChange(false).
-                // Read popoverViewStateRef (not the closure value) so this handler
-                // is correct even if Radix's useCallbackRef still holds a stale
-                // closure from before the most recent setViewStateWithHaptics call.
-                // (useCallbackRef syncs via useEffect — deferred — whereas
-                // popoverViewStateRef is kept current by useLayoutEffect — sync.)
+                // Take ownership — e.preventDefault() tells Popover.tsx's document
+                // keydown listener to skip calling onOpenChange(false). Reading
+                // popoverViewStateRef (not the closure value) ensures correctness
+                // even if the ref trails the latest render by one effect cycle.
                 e.preventDefault();
                 const vs = popoverViewStateRef.current;
                 if (vs === "summary") {

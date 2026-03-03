@@ -1,8 +1,8 @@
 /**
  * Internal popover primitives for citation UI composition.
  *
- * Replaces the Radix popover dependency while keeping the same primitive names
- * used by the local CitationComponent implementation.
+ * Provides Popover, PopoverTrigger, PopoverAnchor, and PopoverPortal
+ * building blocks used by CitationComponent.
  */
 
 import {
@@ -10,7 +10,6 @@ import {
   forwardRef,
   type HTMLAttributes,
   isValidElement,
-  type MutableRefObject,
   type ReactElement,
   type ReactNode,
   type Ref,
@@ -20,23 +19,7 @@ import {
 import { createPortal } from "react-dom";
 import { getPortalContainer } from "./constants.js";
 import { PopoverContext, type PopoverContextValue, usePopoverContext } from "./popoverContext.js";
-
-function assignRef<T>(ref: Ref<T> | undefined, value: T | null): void {
-  if (!ref) return;
-  if (typeof ref === "function") {
-    ref(value);
-    return;
-  }
-  (ref as MutableRefObject<T | null>).current = value;
-}
-
-function composeRefs<T>(...refs: Array<Ref<T> | undefined>) {
-  return (node: T | null) => {
-    for (const ref of refs) {
-      assignRef(ref, node);
-    }
-  };
-}
+import { composeRefs } from "./refUtils.js";
 
 export interface PopoverRootProps {
   open?: boolean;

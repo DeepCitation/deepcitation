@@ -1678,11 +1678,16 @@ export function InlineExpandedImage({
           }}
           onKeyDown={e => {
             if (e.key === "Escape") {
-              // Collapse the expanded image. e.preventDefault() suppresses the default
-              // browser action. Radix's DismissableLayer still receives the event, but
-              // CitationComponent's onEscapeKeyDown handler reads popoverViewStateRef
-              // and steps back one level instead of closing — so no double-close.
+              // Collapse the expanded image and stop event propagation.
+              // preventDefault() prevents the browser's default Escape action.
+              // stopPropagation() prevents the native event from reaching the
+              // document-level listener in Popover.tsx.  Without this, React 18
+              // flushes the viewState→"summary" update synchronously (discrete
+              // event batch), and by the time the document handler fires, the
+              // ref reads "summary" — hitting the "close popover" branch instead
+              // of the "step back" branch.
               e.preventDefault();
+              e.stopPropagation();
               onCollapse();
               return;
             }

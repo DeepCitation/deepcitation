@@ -623,7 +623,9 @@ describe("CitationComponent behaviorConfig", () => {
       await act(async () => {
         fireEvent.click(overlay as HTMLElement);
       });
-      expect(document.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      // The popover uses an 80ms exit animation delay before unmounting.
+      // Check data-state rather than DOM presence to avoid happy-dom stale-ref quirks.
+      expect(document.querySelector("[role='dialog'][data-state='open']")).toBeNull();
     });
 
     it("still calls eventHandlers.onClick when custom handler returns actions", async () => {
@@ -1017,7 +1019,9 @@ describe("CitationComponent behaviorConfig", () => {
         fireEvent.click(citation as HTMLElement);
       });
       expect(contexts[1].isImageExpanded).toBe(true);
-      expect(document.querySelector("[role='dialog']")).not.toBeInTheDocument();
+      // The popover uses an 80ms exit animation delay before unmounting.
+      // Check data-state rather than DOM presence to avoid happy-dom stale-ref quirks.
+      expect(document.querySelector("[role='dialog'][data-state='open']")).toBeNull();
     });
   });
 

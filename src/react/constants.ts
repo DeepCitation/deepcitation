@@ -300,7 +300,7 @@ export const DOT_INDICATOR_FIXED_SIZE_STYLE: React.CSSProperties = {
 //
 // Layer                        CSS custom property             Default
 // ────────────────────────────────────────────────────────────────────
-// Popover (Radix portal)       --dc-z-popover                  9998
+// Popover (portal)              --dc-z-popover                  9998
 // Drawer backdrop              --dc-z-drawer-backdrop           9998
 // Drawer container             --dc-z-drawer                    9999
 // Image overlay                --dc-z-image-overlay             9999
@@ -505,7 +505,7 @@ export const EXPANDED_POPOVER_WIDTH_VAR = "--dc-expanded-width";
 export const EXPANDED_POPOVER_WIDTH_DEFAULT = "calc(100dvw - 2rem)";
 /** Maximum expanded popover width */
 export const EXPANDED_POPOVER_MAX_WIDTH = "calc(100dvw - 2rem)";
-/** Default expanded popover height — uses Radix's available height CSS var when present */
+/** Default expanded popover height — fixed viewport-relative cap. */
 export const EXPANDED_POPOVER_HEIGHT = "calc(100dvh - 2rem)";
 
 // =============================================================================
@@ -609,6 +609,65 @@ export const EASE_COLLAPSE = "cubic-bezier(0.2, 0, 0, 1)";
  * 30ms is tight enough to avoid an empty-container flash while still letting the shell
  * establish its new dimensions before content appears. */
 export const CONTENT_STAGGER_DELAY_MS = 30;
+
+// =============================================================================
+// BLINK ANIMATION PROFILE
+// =============================================================================
+//
+// "Blink" = mostly-final immediately, then tiny settle frames.
+// All values are intentionally compact (80–120ms envelope).
+
+/** Total enter duration (ms) for container-level Blink animations. */
+export const BLINK_ENTER_TOTAL_MS = 110;
+/** Mid-step threshold (ms) for 2-step enter stages. */
+export const BLINK_ENTER_STEP_MS = 55;
+/** Total exit duration (ms) for container-level Blink animations. */
+export const BLINK_EXIT_TOTAL_MS = 90;
+
+/** Total enter duration (ms) for row reveal/collapse surfaces. */
+export const BLINK_ROW_ENTER_TOTAL_MS = 100;
+/** Mid-step threshold (ms) for row reveal enter stages. */
+export const BLINK_ROW_ENTER_STEP_MS = 50;
+/** Total exit duration (ms) for row reveal close stages. */
+export const BLINK_ROW_EXIT_TOTAL_MS = 80;
+
+/** Blink enter easing — near-linear with tiny settle. */
+export const BLINK_ENTER_EASING = "cubic-bezier(0.25, 0.25, 0.5, 1)";
+/** Blink exit easing — quick settle-out. */
+export const BLINK_EXIT_EASING = "cubic-bezier(0.3, 0.2, 0.5, 1)";
+
+/** Container stage A opacity (0–1) for Blink enter. */
+export const BLINK_ENTER_OPACITY_A = 0.22;
+/** Container stage B opacity (0–1) for Blink enter. */
+export const BLINK_ENTER_OPACITY_B = 0.78;
+/** Container exit opacity (0–1) for Blink close. */
+export const BLINK_EXIT_OPACITY = 0.18;
+
+/** Container stage A scale for Blink enter. */
+export const BLINK_ENTER_SCALE_A = 0.992;
+/** Container stage B scale for Blink enter. */
+export const BLINK_ENTER_SCALE_B = 0.997;
+/** Container close scale for Blink exit. */
+export const BLINK_EXIT_SCALE = 0.996;
+
+/** Container stage A vertical offset (px) for Blink enter. */
+export const BLINK_ENTER_Y_A_PX = 1;
+/** Container stage B vertical offset (px) for Blink enter. */
+export const BLINK_ENTER_Y_B_PX = 0.5;
+/** Container close vertical offset (px) for Blink exit. */
+export const BLINK_EXIT_Y_PX = 0.5;
+
+/** Row stage A opacity (0–1) for Blink reveal. */
+export const BLINK_ROW_OPACITY_A = 0.3;
+/** Row stage B opacity (0–1) for Blink reveal. */
+export const BLINK_ROW_OPACITY_B = 0.75;
+/** Row close opacity (0–1) for Blink hide. */
+export const BLINK_ROW_EXIT_OPACITY = 0.15;
+
+/** Row stage A inset (px) for Blink reveal. */
+export const BLINK_ROW_INSET_A_PX = 4;
+/** Row stage B inset (px) for Blink reveal. */
+export const BLINK_ROW_INSET_B_PX = 2;
 
 // =============================================================================
 // TIME TO CERTAINTY (TtC) DISPLAY

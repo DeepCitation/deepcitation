@@ -25,8 +25,8 @@ function computeAlignOffset(
 
 /**
  * Computes an alignOffset that prevents the popover from overflowing the
- * viewport horizontally. With avoidCollisions={false}, Radix's shift middleware
- * is disabled — this hook replaces it for the horizontal axis.
+ * viewport horizontally. The custom popover has no shift middleware —
+ * this hook handles horizontal clamping.
  *
  * Isolated into its own hook because `setState` inside `useLayoutEffect`
  * causes the React Compiler to bail out — keeping this in CitationComponent
@@ -81,8 +81,8 @@ export function usePopoverAlignOffset(
   const recompute = useCallback(() => {
     if (!isOpen) {
       // Keep the last computed offset while the popover is closing.
-      // Radix keeps content mounted for exit animation, so resetting to 0 here
-      // causes a visible "teleport" before fade-out completes.
+      // The popover delays unmount for exit animation, so resetting to 0
+      // here would cause a visible "teleport" before fade-out completes.
       return;
     }
 

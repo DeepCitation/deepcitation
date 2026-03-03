@@ -10,7 +10,7 @@ const MIN_SPACE_PX = 200;
 /**
  * Computes the optimal popover side (top or bottom) once when the popover
  * opens, then locks it for the duration. Prevents the jarring UX where
- * Radix's flip middleware repositions the popover as the user scrolls.
+ * the popover jumps between sides as the user scrolls.
  *
  * Uses useLayoutEffect (runs after DOM commit, before paint) so the side is
  * resolved before the popover is visible — no flash of wrong position.

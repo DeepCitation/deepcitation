@@ -1,8 +1,8 @@
 /**
  * Internal popover content component.
  *
- * Maintains Radix-like DOM semantics (`data-state`, `data-side`, portal wrapper)
- * while using in-repo positioning logic instead of Radix/Floating UI.
+ * Maintains familiar DOM semantics (`data-state`, `data-side`, portal wrapper)
+ * with in-repo positioning logic. No external dependencies.
  */
 
 import * as React from "react";
@@ -16,6 +16,7 @@ import {
 } from "./constants.js";
 import { PopoverPortal } from "./PopoverPrimitives.js";
 import { usePopoverContext } from "./popoverContext.js";
+import { assignRef } from "./refUtils.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "./scrollLock.js";
 
 function cn(...classes: (string | undefined | null | false)[]): string {
@@ -30,25 +31,11 @@ type PopoverContentProps = React.HTMLAttributes<HTMLDivElement> & {
   side?: PopoverSide;
   sideOffset?: number;
   alignOffset?: number;
-  sticky?: "partial" | "always";
-  collisionPadding?: number;
-  avoidCollisions?: boolean;
   onCloseAutoFocus?: (event: Event) => void;
-  onPointerDownOutside?: (event: Event) => void;
-  onInteractOutside?: (event: Event) => void;
-  onEscapeKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void;
+  onEscapeKeyDown?: (event: KeyboardEvent) => void;
 };
 
 type Coords = { x: number; y: number };
-
-function assignRef<T>(ref: React.Ref<T> | undefined, value: T | null): void {
-  if (!ref) return;
-  if (typeof ref === "function") {
-    ref(value);
-    return;
-  }
-  (ref as React.MutableRefObject<T | null>).current = value;
-}
 
 function computePosition(
   triggerRect: DOMRect,
@@ -96,12 +83,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       sideOffset = 8,
       alignOffset = 0,
       style,
-      sticky: _sticky,
-      collisionPadding: _collisionPadding,
-      avoidCollisions: _avoidCollisions,
       onCloseAutoFocus,
-      onPointerDownOutside,
-      onInteractOutside,
       onEscapeKeyDown,
       role,
       ...props
@@ -142,15 +124,34 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       recomputePosition();
     }, [isMounted, recomputePosition]);
 
+    const exitTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
     React.useEffect(() => {
       if (open) {
+        // Cancel any pending exit so re-opening during the exit window works.
+        if (exitTimerRef.current !== null) {
+          clearTimeout(exitTimerRef.current);
+          exitTimerRef.current = null;
+        }
         setIsMounted(true);
         setState("open");
         return;
       }
 
+      // Begin exit: set data-state="closed" so CSS animate-out runs, then
+      // unmount after the exit animation duration (80ms, matches duration-[80ms]).
       setState("closed");
-      setIsMounted(false);
+      exitTimerRef.current = setTimeout(() => {
+        setIsMounted(false);
+        exitTimerRef.current = null;
+      }, 80);
+
+      return () => {
+        if (exitTimerRef.current !== null) {
+          clearTimeout(exitTimerRef.current);
+          exitTimerRef.current = null;
+        }
+      };
     }, [open]);
 
     React.useEffect(() => {
@@ -188,47 +189,38 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       };
     }, [isMounted, recomputePosition, triggerRef]);
 
-    React.useEffect(() => {
-      if (!open || !isMounted) return;
+    // Refs keep document-level listeners stable — only added/removed when the
+    // popover opens/closes, not on every render. Without refs, inline callback
+    // props create new identities each render, causing useEffect to teardown and
+    // re-register listeners. Because useEffect runs *after* paint, there are
+    // brief gaps between teardown and re-setup where no listener exists.
+    const onEscapeKeyDownRef = React.useRef(onEscapeKeyDown);
+    const onOpenChangeRef = React.useRef(onOpenChange);
+    React.useLayoutEffect(() => {
+      onEscapeKeyDownRef.current = onEscapeKeyDown;
+      onOpenChangeRef.current = onOpenChange;
+    });
 
-      const handleOutsidePointerDown = (event: MouseEvent | TouchEvent) => {
-        const target = event.target;
-        if (!(target instanceof Node)) return;
-        if (localContentRef.current?.contains(target)) return;
-        if (triggerRef.current?.contains(target)) return;
-
-        const outsideEvent = new Event("interactOutside", { cancelable: true });
-        onPointerDownOutside?.(outsideEvent);
-        onInteractOutside?.(outsideEvent);
-        if (!outsideEvent.defaultPrevented) {
-          onOpenChange?.(false);
-        }
-      };
-
-      document.addEventListener("mousedown", handleOutsidePointerDown, { capture: true });
-      document.addEventListener("touchstart", handleOutsidePointerDown, { capture: true, passive: true });
-
-      return () => {
-        document.removeEventListener("mousedown", handleOutsidePointerDown, { capture: true });
-        document.removeEventListener("touchstart", handleOutsidePointerDown, { capture: true });
-      };
-    }, [isMounted, onInteractOutside, onOpenChange, onPointerDownOutside, open, triggerRef]);
+    // Outside-click dismiss is handled by CitationComponent (the sole consumer)
+    // via its own desktop mousedown and mobile touchstart handlers. These provide
+    // richer context (overlay awareness, tap-vs-scroll detection) that a generic
+    // handler here cannot replicate.
 
     React.useEffect(() => {
       if (!open || !isMounted) return;
 
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key !== "Escape") return;
-        onEscapeKeyDown?.(event as unknown as React.KeyboardEvent<HTMLDivElement>);
+        onEscapeKeyDownRef.current?.(event);
         if (event.defaultPrevented) return;
-        onOpenChange?.(false);
+        onOpenChangeRef.current?.(false);
       };
 
       document.addEventListener("keydown", handleKeyDown);
       return () => {
         document.removeEventListener("keydown", handleKeyDown);
       };
-    }, [isMounted, onEscapeKeyDown, onOpenChange, open]);
+    }, [open, isMounted]);
 
     if (!isMounted) return null;
 
@@ -236,7 +228,6 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       <PopoverPortal>
         <div
           ref={wrapperRef}
-          data-radix-popper-content-wrapper=""
           data-dc-popover-wrapper=""
           style={{
             position: "fixed",

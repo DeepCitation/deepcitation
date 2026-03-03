@@ -13,9 +13,9 @@ import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "../scrollLock.js";
  * the guard is a no-op.
  *
  * Key design points:
- * - Uses CSS `translate` property (separate from `transform`). Radix sets
- *   `transform: translate3d(x,y,0)` — the browser composes both additively,
- *   so our correction stacks without overwriting Radix's positioning.
+ * - Uses CSS `translate` property (separate from `transform`). The popover
+ *   wrapper sets `transform: translate3d(x,y,0)` — the browser composes both
+ *   additively, so our correction stacks without overwriting the positioning.
  * - `translate` doesn't affect the content box → ResizeObserver won't
  *   re-fire → no infinite observation loops.
  * - No `useState` → no re-renders → React Compiler friendly.
@@ -30,7 +30,7 @@ import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "../scrollLock.js";
  *   transitions. On view-state change, stale corrections are cleared immediately.
  * - A `useEffect` re-clamps after React has fully committed all batched state
  *   updates from sibling hooks (usePopoverAlignOffset, useExpandedPageSideOffset)
- *   so the guard measures the final Radix-positioned rect.
+ *   so the guard measures the final positioned rect.
  * - The ResizeObserver is debounced by SETTLE_MS (> morph duration + overshoot)
  *   so the guard never fires during CSS transitions.
  */
@@ -56,7 +56,6 @@ export function useViewportBoundaryGuard(
 ): void {
   const prevViewStateRef = useRef<PopoverViewState | null>(null);
   const rafIdRef = useRef<number>(0);
-  const moRef = useRef<MutationObserver | null>(null);
   const timerIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Timestamp (ms) after which the active morph transition is considered done.
    *  Set by the post-render useEffect on every view-state change so the
@@ -95,29 +94,31 @@ export function useViewportBoundaryGuard(
     }
 
     if (isInitialOpen) {
-      // On initial open, Floating UI hasn't positioned the wrapper yet — its
-      // computePosition() runs in a separate effect cycle. Measuring
-      // getBoundingClientRect() now returns the pre-positioned rect (left:0,
-      // top:0), producing a wrong translate correction that fights with the
-      // transform Floating UI applies later. Only set the max-width constraint
-      // here; the useEffect + rAF below handles the first translate correction
-      // after Floating UI has positioned. The fade-in-0 animation (opacity: 0
-      // start) keeps the pre-positioned element invisible until positioned.
+      // On initial open, the popover wrapper positions itself via its own
+      // useLayoutEffect (setting transform from computePosition). Because
+      // both useLayoutEffects fire in the same synchronous commit pass, we
+      // cannot guarantee this guard's effect runs after the wrapper's. If
+      // the wrapper hasn't positioned yet, getBoundingClientRect() returns
+      // the pre-positioned rect (left:0, top:0) and clamp() would compute
+      // a wrong correction. Only set the max-width constraint here; the
+      // post-render useEffect + rAF below handles the first translate
+      // correction after layout is committed. The fade-in-0 animation
+      // (opacity: 0 start) keeps the element invisible until positioned.
       const vw = getVisibleViewportWidth();
       el.style.setProperty(GUARD_MAX_WIDTH_VAR, `${vw - 2 * VIEWPORT_MARGIN_PX}px`);
       return;
     }
 
-    // Same view state, subsequent render: full clamp (Floating UI has
-    // already positioned the wrapper by now).
+    // Same view state, subsequent render: full clamp (wrapper has already
+    // positioned by now).
     clamp(el);
   }, [isOpen, popoverViewState]);
 
   // Post-render re-clamp: fires after React has fully committed all batched
   // state updates from sibling hooks (usePopoverAlignOffset,
   // useExpandedPageSideOffset). Their setState calls during useLayoutEffect
-  // trigger a batched re-render; by the time this useEffect runs, Radix has
-  // repositioned the wrapper with the final offsets. The rAF then measures
+  // trigger a batched re-render; by the time this useEffect runs, the
+  // wrapper has repositioned with the final offsets. The rAF then measures
   // the settled position and applies the guard correction.
   //
   // Also marks the active transition window so the ResizeObserver debounces
@@ -136,11 +137,11 @@ export function useViewportBoundaryGuard(
       if (current) clamp(current);
     });
 
-    // Safety-net re-clamp: if the MutationObserver or ResizeObserver misses
-    // Floating UI repositioning (e.g., wrapper replacement during re-render),
-    // this guaranteed timeout catches up after the morph animation settles.
-    // clamp() is idempotent — the extra getBoundingClientRect() call is free
-    // when the guard already clamped correctly via MO/RO.
+    // Safety-net re-clamp: if the ResizeObserver misses a reflow (e.g.,
+    // wrapper replacement during re-render), this guaranteed timeout catches
+    // up after the morph animation settles. clamp() is idempotent — the
+    // extra getBoundingClientRect() call is free when the guard already
+    // clamped correctly via RO.
     const safetyTimer = setTimeout(() => {
       const current = popoverContentRef.current;
       if (current) clamp(current);
@@ -152,57 +153,20 @@ export function useViewportBoundaryGuard(
     };
   }, [isOpen, popoverViewState]);
 
-  // Reactive clamping from three independent sources:
-  // - MutationObserver on the Radix wrapper: catches @floating-ui transform
-  //   updates that move the wrapper after our rAF-based clamp has already fired.
-  //   Without this, a race condition between the guard's rAF and floating-ui's
-  //   rAF leaves the correction stale (computed for an intermediate position).
-  // - ResizeObserver on the content: debounced (morph animations fire rapid size
-  //   changes). Catches content reflow (e.g., image loads).
-  // - Window resize: immediate (user dragging browser edge — no morph conflict).
+  // Reactive clamping from two independent sources:
+  // - ResizeObserver on the content: debounced during morph transitions
+  //   (which fire rapid size changes), immediate outside them. Catches
+  //   content reflow (e.g., image loads).
+  // - Window resize + scroll-lock layout shifts: rAF-deferred so
+  //   measurement happens after the popover's own reposition settles.
   //
-  // No infinite loop: MutationObserver watches the *wrapper*'s style attribute,
-  // but we only modify the *content* element's CSS translate property. The
-  // ResizeObserver watches content size, and CSS translate doesn't affect the
-  // content box. Window resize is external.
+  // No infinite loop: ResizeObserver watches content size, and CSS
+  // `translate` doesn't affect the content box. Window resize is external.
   // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity — refs should not be in deps per React docs
   useEffect(() => {
     if (!isOpen) return;
     const el = popoverContentRef.current;
     if (!el) return;
-
-    // MutationObserver on the Radix wrapper: re-clamp whenever @floating-ui
-    // updates the wrapper's transform (style attribute changes).
-    // Uses attributeOldValue to skip no-op mutations (same style rewritten).
-    const wrapper = el.closest("[data-radix-popper-content-wrapper]") as HTMLElement | null;
-    // Disconnect any previous observer before creating a new one.
-    if (moRef.current) {
-      moRef.current.disconnect();
-      moRef.current = null;
-    }
-    // Safety: wrapper is always a *parent* of el (Radix wraps content in an
-    // absolutely-positioned div). We observe wrapper's style mutations and
-    // modify el's CSS translate — different elements → no infinite loop.
-    // Guard flag: MutationObserver callbacks queued before disconnect() may still
-    // fire after the effect cleanup runs. Checking this flag at the top of the
-    // callback prevents stale `clamp(el)` calls on an already-unmounted element.
-    let moDisconnected = false;
-    if (wrapper && wrapper !== el) {
-      moRef.current = new MutationObserver(mutations => {
-        if (moDisconnected) return;
-        for (const m of mutations) {
-          if (m.oldValue !== wrapper.getAttribute("style")) {
-            // Cancel any pending rAF from a previous cycle so the guard
-            // measures the final Radix-positioned rect, not an intermediate.
-            cancelAnimationFrame(rafIdRef.current);
-            rafIdRef.current = 0;
-            clamp(el);
-            break;
-          }
-        }
-      });
-      moRef.current.observe(wrapper, { attributes: true, attributeFilter: ["style"], attributeOldValue: true });
-    }
 
     // ResizeObserver: debounce only during active morph transitions; fire
     // immediately (next event-loop turn) once the animation window has passed.
@@ -217,9 +181,7 @@ export function useViewportBoundaryGuard(
     ro.observe(el);
 
     // Geometry shifts (window resize + scroll-lock style changes): rAF-deferred
-    // so measurement happens after @floating-ui's async computePosition() resolves.
-    // Uses a local rafId (not the shared rafIdRef) to avoid canceling post-render
-    // clamps from the useEffect above.
+    // so measurement happens after the popover's own reposition resolves.
     let geometryRafId = 0;
     const onGeometryChange = () => {
       cancelAnimationFrame(geometryRafId);
@@ -235,11 +197,6 @@ export function useViewportBoundaryGuard(
         clearTimeout(timerIdRef.current);
         timerIdRef.current = null;
       }
-      moDisconnected = true;
-      if (moRef.current) {
-        moRef.current.disconnect();
-        moRef.current = null;
-      }
       ro.disconnect();
       window.removeEventListener("resize", onGeometryChange);
       window.removeEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, onGeometryChange as EventListener);
@@ -248,7 +205,7 @@ export function useViewportBoundaryGuard(
       el.style.removeProperty(GUARD_MAX_WIDTH_VAR);
     };
     // Dep array: [isOpen] only. popoverViewState is intentionally excluded —
-    // the MO/RO observe DOM changes (not React state), and `el` is the same
+    // the RO observes DOM changes (not React state), and `el` is the same
     // DOM node for the popover's entire lifecycle. View-state transitions are
     // handled by the rAF-based useEffect above which has [isOpen, popoverViewState].
   }, [isOpen]);
@@ -272,7 +229,7 @@ function clamp(el: HTMLElement | null): void {
   const vh = document.documentElement.clientHeight;
   el.style.setProperty(GUARD_MAX_WIDTH_VAR, `${vw - 2 * VIEWPORT_MARGIN_PX}px`);
 
-  // 2. Remove previous translate correction so we measure the Radix-only position.
+  // 2. Remove previous translate correction so we measure the base position.
   el.style.translate = "";
 
   // 3. Measure actual rendered position (now with guard-constrained width).
