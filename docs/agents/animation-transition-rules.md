@@ -62,6 +62,33 @@ Content that appears *after* a container expands uses `CONTENT_STAGGER_DELAY_MS`
 
 ---
 
+## Blink Standard Pattern
+
+Use this as the default for popover/card show-hide and expanded-page step transitions:
+
+- Enter: `BLINK_ENTER_TOTAL_MS` = 120ms
+- Exit: `BLINK_EXIT_TOTAL_MS` = 80ms
+- Motion type: opacity + very subtle scale settle (no directional travel)
+
+Phase shape (reference sequence):
+
+1. Initial: hidden.
+2. Enter A (instant): mostly-final size, low opacity.
+3. Enter B: subtle settle toward final scale, near-full opacity.
+4. Steady: full size, full opacity.
+5. Exit: opacity drops quickly with tiny scale change.
+6. Unmount.
+
+Implementation rules:
+
+- Do not use top-to-bottom reveals (`gridTemplateRows`, padding grow) for this pattern.
+- Do not use directional translation as the dominant motion cue.
+- Keep motion subtle; readability should stay stable throughout.
+- Keep durations asymmetric (expand slower than collapse).
+- Use constants from `src/react/constants.ts`; never inline timing/easing.
+
+---
+
 ## Popover View State Machine
 
 The popover has three states: `"summary"` → `"expanded-keyhole"` → `"expanded-page"`.

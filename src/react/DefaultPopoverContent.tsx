@@ -214,6 +214,16 @@ function PopoverLayoutShell({
   children: ReactNode;
 }) {
   const { stage: blinkStage, prefersReducedMotion } = useBlinkMotionStage(isExpanded || isFullPage, "container");
+  const shellMotion = getBlinkContainerMotionStyle(blinkStage, prefersReducedMotion);
+  // This shell stays mounted when stepping expanded -> summary. Keep opacity at 1
+  // on the exit stage to avoid a white flash while preserving subtle scale settle.
+  const shellMotionWithoutExitFade =
+    blinkStage === "exit"
+      ? {
+          ...shellMotion,
+          opacity: 1,
+        }
+      : shellMotion;
 
   // Both expanded-keyhole and expanded-page size to the image once its width is known,
   // via getExpandedPopoverWidth() → max(320px, min(imageW + 26px, 100dvw - 2rem)).
@@ -234,7 +244,7 @@ function PopoverLayoutShell({
         style={{
           width: shellWidth,
           maxWidth: "100%",
-          ...getBlinkContainerMotionStyle(blinkStage, prefersReducedMotion),
+          ...shellMotionWithoutExitFade,
           ...(isFullPage && {
             display: "flex",
             flexDirection: "column" as const,
@@ -941,7 +951,9 @@ export function DefaultPopoverContent({
               <PopoverSnippetZone snippets={intentSnippets} />
             )}
 
-            <AnimatedHeightWrapper viewState={viewState === "expanded-keyhole" ? "summary" : viewState}>
+            {/* Keep claim-zone height snap-based across all expanded states so
+                full-page -> summary does not create a top-to-bottom evidence reveal. */}
+            <AnimatedHeightWrapper viewState="summary">
               {fullPhrase && (
                 <ClaimQuote
                   fullPhrase={fullPhrase}

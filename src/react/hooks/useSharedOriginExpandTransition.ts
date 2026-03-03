@@ -1,11 +1,13 @@
 import type React from "react";
 import { useLayoutEffect, useRef } from "react";
-import { BLINK_ENTER_EASING, POPOVER_MORPH_EXPAND_MS } from "../constants.js";
+import { BLINK_ENTER_EASING, BLINK_ENTER_TOTAL_MS } from "../constants.js";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";
 
 const MIN_RECT_SIZE_PX = 4;
-const MIN_SCALE = 0.05;
-const MAX_SCALE = 20;
+const SHARED_ORIGIN_BLEND = 0.22;
+const SHARED_ORIGIN_TRANSLATE_LIMIT_PX = 36;
+const SHARED_ORIGIN_MIN_SCALE = 0.9;
+const SHARED_ORIGIN_MAX_SCALE = 1.08;
 
 export interface SharedOriginRect {
   left: number;
@@ -18,6 +20,10 @@ type SharedOriginRectResolver = () => SharedOriginRect | null;
 
 function isFiniteNumber(value: number): boolean {
   return Number.isFinite(value);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
 
 export function isValidSharedOriginRect(rect: SharedOriginRect | null | undefined): rect is SharedOriginRect {
@@ -84,10 +90,22 @@ export function useSharedOriginExpandTransition(
     const targetCenterY = targetRect.top + targetRect.height / 2;
     const originX = targetCenterX - hostRect.left;
     const originY = targetCenterY - hostRect.top;
-    const translateX = sourceCenterX - targetCenterX;
-    const translateY = sourceCenterY - targetCenterY;
-    const scaleX = Math.max(MIN_SCALE, Math.min(MAX_SCALE, sourceRect.width / targetRect.width));
-    const scaleY = Math.max(MIN_SCALE, Math.min(MAX_SCALE, sourceRect.height / targetRect.height));
+    const rawTranslateX = sourceCenterX - targetCenterX;
+    const rawTranslateY = sourceCenterY - targetCenterY;
+    const rawScaleX = sourceRect.width / targetRect.width;
+    const rawScaleY = sourceRect.height / targetRect.height;
+    const translateX = clamp(
+      rawTranslateX * SHARED_ORIGIN_BLEND,
+      -SHARED_ORIGIN_TRANSLATE_LIMIT_PX,
+      SHARED_ORIGIN_TRANSLATE_LIMIT_PX,
+    );
+    const translateY = clamp(
+      rawTranslateY * SHARED_ORIGIN_BLEND,
+      -SHARED_ORIGIN_TRANSLATE_LIMIT_PX,
+      SHARED_ORIGIN_TRANSLATE_LIMIT_PX,
+    );
+    const scaleX = clamp(1 + (rawScaleX - 1) * SHARED_ORIGIN_BLEND, SHARED_ORIGIN_MIN_SCALE, SHARED_ORIGIN_MAX_SCALE);
+    const scaleY = clamp(1 + (rawScaleY - 1) * SHARED_ORIGIN_BLEND, SHARED_ORIGIN_MIN_SCALE, SHARED_ORIGIN_MAX_SCALE);
 
     if (
       !isFiniteNumber(originX) ||
@@ -147,7 +165,7 @@ export function useSharedOriginExpandTransition(
 
     rafId = requestAnimationFrame(() => {
       el.addEventListener("transitionend", onTransitionEnd);
-      el.style.transition = `transform ${POPOVER_MORPH_EXPAND_MS}ms ${BLINK_ENTER_EASING}`;
+      el.style.transition = `transform ${BLINK_ENTER_TOTAL_MS}ms ${BLINK_ENTER_EASING}`;
       el.style.transform = "translate(0px, 0px) scale(1, 1)";
     });
 

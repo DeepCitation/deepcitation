@@ -76,6 +76,32 @@ import { ZoomToolbar } from "./ZoomToolbar.js";
  *  to catch intentional user panning. */
 const DRIFT_THRESHOLD_PX = 15;
 
+/** Duration for pan-button scroll animations (ms). Matches POPOVER_MORPH_EXPAND_MS. */
+const PAN_SCROLL_DURATION_MS = 200;
+
+/**
+ * Scroll an element to a target scrollLeft over `PAN_SCROLL_DURATION_MS` using
+ * an ease-out curve. Much faster than `behavior: "smooth"` (~500-800ms browser default).
+ */
+function animateScrollLeft(el: HTMLElement, targetLeft: number): void {
+  const start = el.scrollLeft;
+  const delta = targetLeft - start;
+  if (delta === 0) return;
+  const t0 = performance.now();
+  const step = (now: number) => {
+    const elapsed = now - t0;
+    if (elapsed >= PAN_SCROLL_DURATION_MS) {
+      el.scrollLeft = targetLeft;
+      return;
+    }
+    // ease-out: 1 - (1 - t)^3
+    const t = elapsed / PAN_SCROLL_DURATION_MS;
+    el.scrollLeft = start + delta * (1 - (1 - t) ** 3);
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 function parsePercent(value: string): number {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -655,10 +681,10 @@ export function AnchorTextFocusedImage({
             if (!el) return;
             if (e.key === "ArrowLeft") {
               e.preventDefault();
-              el.scrollTo({ left: el.scrollLeft - Math.max(el.clientWidth * 0.5, 80), behavior: "smooth" });
+              animateScrollLeft(el, el.scrollLeft - Math.max(el.clientWidth * 0.5, 80));
             } else if (e.key === "ArrowRight") {
               e.preventDefault();
-              el.scrollTo({ left: el.scrollLeft + Math.max(el.clientWidth * 0.5, 80), behavior: "smooth" });
+              animateScrollLeft(el, el.scrollLeft + Math.max(el.clientWidth * 0.5, 80));
             }
           }}
           onClick={e => {
@@ -746,7 +772,7 @@ export function AnchorTextFocusedImage({
                 e.stopPropagation();
                 const el = containerRef.current;
                 if (!el) return;
-                el.scrollTo({ left: el.scrollLeft - Math.max(el.clientWidth * 0.5, 80), behavior: "smooth" });
+                animateScrollLeft(el, el.scrollLeft - Math.max(el.clientWidth * 0.5, 80));
               }}
             >
               <span className="text-sm font-bold text-white bg-black/50 w-7 h-7 flex items-center justify-center rounded-full leading-none">
@@ -764,7 +790,7 @@ export function AnchorTextFocusedImage({
                 e.stopPropagation();
                 const el = containerRef.current;
                 if (!el) return;
-                el.scrollTo({ left: el.scrollLeft + Math.max(el.clientWidth * 0.5, 80), behavior: "smooth" });
+                animateScrollLeft(el, el.scrollLeft + Math.max(el.clientWidth * 0.5, 80));
               }}
             >
               <span className="text-sm font-bold text-white bg-black/50 w-7 h-7 flex items-center justify-center rounded-full leading-none">

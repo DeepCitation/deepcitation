@@ -609,14 +609,14 @@ export const CONTENT_STAGGER_DELAY_MS = 30;
 // =============================================================================
 //
 // "Blink" = mostly-final immediately, then tiny settle frames.
-// All values are intentionally compact (80–120ms envelope).
+// Standard envelope is 120ms enter / 80ms exit.
 
 /** Total enter duration (ms) for container-level Blink animations. */
-export const BLINK_ENTER_TOTAL_MS = 110;
+export const BLINK_ENTER_TOTAL_MS = 120;
 /** Mid-step threshold (ms) for 2-step enter stages. */
-export const BLINK_ENTER_STEP_MS = 55;
+export const BLINK_ENTER_STEP_MS = 60;
 /** Total exit duration (ms) for container-level Blink animations. */
-export const BLINK_EXIT_TOTAL_MS = 90;
+export const BLINK_EXIT_TOTAL_MS = 80;
 
 /** Total enter duration (ms) for row reveal/collapse surfaces. */
 export const BLINK_ROW_ENTER_TOTAL_MS = 450;
@@ -642,7 +642,7 @@ export const BLINK_ENTER_OPACITY_A = 0.22;
 /** Container stage B opacity (0–1) for Blink enter. */
 export const BLINK_ENTER_OPACITY_B = 0.78;
 /** Container exit opacity (0–1) for Blink close. */
-export const BLINK_EXIT_OPACITY = 0.18;
+export const BLINK_EXIT_OPACITY = 0.08;
 
 /** Container stage A scale for Blink enter. */
 export const BLINK_ENTER_SCALE_A = 0.992;
@@ -652,11 +652,11 @@ export const BLINK_ENTER_SCALE_B = 0.997;
 export const BLINK_EXIT_SCALE = 0.996;
 
 /** Container stage A vertical offset (px) for Blink enter. */
-export const BLINK_ENTER_Y_A_PX = 1;
+export const BLINK_ENTER_Y_A_PX = 0;
 /** Container stage B vertical offset (px) for Blink enter. */
-export const BLINK_ENTER_Y_B_PX = 0.5;
+export const BLINK_ENTER_Y_B_PX = 0;
 /** Container close vertical offset (px) for Blink exit. */
-export const BLINK_EXIT_Y_PX = 0.5;
+export const BLINK_EXIT_Y_PX = 0;
 
 /** Row stage A opacity (0–1) for Blink reveal (first burst: medium/high). */
 export const BLINK_ROW_OPACITY_A = 0.72;
