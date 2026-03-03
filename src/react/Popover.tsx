@@ -212,20 +212,17 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       // element (which sits in the page's normal document flow). This correctly
       // handles SPAs where html/body have overflow:hidden and scroll lives on a
       // wrapper div. Falls back to the viewport scrolling element.
-      let pageScrollEl: Element | null = null;
+      // Not cached — the walk is O(DOM-depth) and only runs during active
+      // wheel scrolling, so the cost is negligible. Caching would risk holding
+      // a stale reference if the SPA replaces the scroll container.
       const findPageScrollEl = (): Element => {
-        if (pageScrollEl) return pageScrollEl;
         let n: Element | null = triggerRef.current?.parentElement ?? null;
         while (n) {
           const oy = getComputedStyle(n).overflowY;
-          if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight) {
-            pageScrollEl = n;
-            return n;
-          }
+          if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight) return n;
           n = n.parentElement;
         }
-        pageScrollEl = document.scrollingElement ?? document.documentElement;
-        return pageScrollEl;
+        return document.scrollingElement ?? document.documentElement;
       };
 
       const onWheel = (e: WheelEvent) => {

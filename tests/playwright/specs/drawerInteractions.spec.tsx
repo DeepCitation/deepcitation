@@ -254,8 +254,12 @@ test.describe("Drawer - Evidence vs Full-Page Click Routing", () => {
 
     // Header panel should close — drawer returns to the citation list (Level 1)
     await expect(inlineExpanded).not.toBeVisible({ timeout: 3000 });
-    // Drawer itself stays open
+    // Drawer itself stays open, no accordion items expanded
     await expect(dialog).toBeVisible();
+    const allItems = dialog.locator("[data-citation-key]");
+    for (const item of await allItems.all()) {
+      await expect(item).toHaveAttribute("aria-expanded", "false");
+    }
   });
 });
 

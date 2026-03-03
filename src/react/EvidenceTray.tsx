@@ -302,9 +302,10 @@ export function resolveExpandedImageForPage(
 ): ExpandedImageSource | null {
   const normalizedPage = Number(pageNumber);
   if (verification?.pages && Number.isFinite(normalizedPage) && normalizedPage > 0) {
-    const exactPage = verification.pages.find(
-      p => Number.isFinite(Number(p.pageNumber)) && Number(p.pageNumber) === normalizedPage && isValidProofImageSrc(p.source),
-    );
+    const exactPage = verification.pages.find(p => {
+      const pNum = Number(p.pageNumber);
+      return Number.isFinite(pNum) && pNum === normalizedPage && isValidProofImageSrc(p.source);
+    });
     if (exactPage) return toExpandedImageSource(exactPage);
   }
   return resolveExpandedImage(verification);

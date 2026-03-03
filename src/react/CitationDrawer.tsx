@@ -33,20 +33,15 @@ import {
   Z_INDEX_DRAWER_VAR,
   Z_INDEX_OVERLAY_DEFAULT,
 } from "./constants.js";
-import {
-  EvidenceTray,
-  InlineExpandedImage,
-  resolveEvidenceSrc,
-  resolveExpandedImageForPage,
-} from "./EvidenceTray.js";
+import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedImageForPage } from "./EvidenceTray.js";
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
+import { getBlinkRowMotionStyle } from "./motion/blinkAnimation.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
 import type { IndicatorVariant } from "./types.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
-import { getBlinkRowMotionStyle } from "./motion/blinkAnimation.js";
 
 // HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
 // EvidenceTray, InlineExpandedImage — imported from ./EvidenceTray.js (canonical location)
@@ -79,6 +74,7 @@ interface DrawerEscapeCtx {
     src: string,
     verification?: Verification | null,
     renderScale?: { x: number; y: number } | null,
+    pageNumber?: number | null,
   ) => void;
   /** Whether the drawer is in full-page mode (bottom sheet with inline image open) */
   isFullPage: boolean;
@@ -90,14 +86,24 @@ const DrawerEscapeContext = React.createContext<DrawerEscapeCtx | null>(null);
 // Page-number helpers for drawer header
 // =========
 
+/** Coerce an unknown page value to a positive finite number, or null. */
+function normalizePageNumber(raw: unknown): number | null {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 function computeUniquePageNumbers(groups: SourceCitationGroup[]): number[] {
   const pages = new Set<number>();
   for (const group of groups) {
     for (const { citation, verification } of group.citations) {
-      const rawPage =
-        (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
-      const page = Number(rawPage);
-      if (Number.isFinite(page) && page > 0) pages.add(page);
+      const page = normalizePageNumber(
+        (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber,
+      );
+      if (page !== null) pages.add(page);
+      for (const candidate of verification?.pages ?? []) {
+        const candidatePage = normalizePageNumber(candidate.pageNumber);
+        if (candidatePage !== null) pages.add(candidatePage);
+      }
     }
   }
   return Array.from(pages).sort((a, b) => a - b);
@@ -130,7 +136,10 @@ function DrawerPagePill({
  * Renders page number pills in the drawer header.
  * Reuses PagePill from the popover for consistent styling and hit targets.
  * Active page shows blue pill with X; others show gray pill with chevron.
- * Shows up to 3 individual pills; 4+ shows first, ellipsis, last.
+ * The strip can overflow horizontally on narrow viewports so all pages remain accessible.
+ * Note: the scrollbar is hidden for visual cleanliness. Keyboard users can Tab
+ * through all pills (focus auto-scrolls the strip), but mouse/touch users on
+ * very narrow screens have no visual affordance that more pills exist off-screen.
  */
 function DrawerPageBadges({
   pages,
@@ -144,39 +153,17 @@ function DrawerPageBadges({
   onPageDeactivate: () => void;
 }) {
   if (pages.length === 0) return null;
-
-  if (pages.length <= 3) {
-    return (
-      <>
-        {pages.map(page => (
-          <DrawerPagePill
-            key={page}
-            page={page}
-            activePage={activePage}
-            onPageClick={onPageClick}
-            onPageDeactivate={onPageDeactivate}
-          />
-        ))}
-      </>
-    );
-  }
-
-  // 4+ pages: first + ellipsis + last
   return (
     <>
-      <DrawerPagePill
-        page={pages[0]}
-        activePage={activePage}
-        onPageClick={onPageClick}
-        onPageDeactivate={onPageDeactivate}
-      />
-      <span className="text-xs text-gray-400 dark:text-gray-500">…</span>
-      <DrawerPagePill
-        page={pages[pages.length - 1]}
-        activePage={activePage}
-        onPageClick={onPageClick}
-        onPageDeactivate={onPageDeactivate}
-      />
+      {pages.map(page => (
+        <DrawerPagePill
+          key={page}
+          page={page}
+          activePage={activePage}
+          onPageClick={onPageClick}
+          onPageDeactivate={onPageDeactivate}
+        />
+      ))}
     </>
   );
 }
@@ -283,22 +270,20 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     setPrevDefaultExpanded(false);
   }
 
-  const { mounted: isDetailMounted, stage: detailStage, prefersReducedMotion } = useBlinkMotionStage(
-    isExpanded,
-    "row",
-    "fast",
-  );
+  const {
+    mounted: isDetailMounted,
+    stage: detailStage,
+    prefersReducedMotion,
+  } = useBlinkMotionStage(isExpanded, "row", "fast");
 
   const anchorText = citation.anchorText?.toString();
   const fullPhrase = citation.fullPhrase;
 
   const itemPageNumber = useMemo(
-    () => {
-      const rawPage =
-        (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
-      const page = Number(rawPage);
-      return Number.isFinite(page) && page > 0 ? page : null;
-    },
+    () =>
+      normalizePageNumber(
+        (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber,
+      ),
     [citation, verification],
   );
 
@@ -313,7 +298,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
   const evidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
   // Inline keyhole-expanded state (inside the drawer item body, not header panel).
   const [inlineKeyholeSrc, setInlineKeyholeSrc] = useState<string | null>(null);
-  const [inlineKeyholeInitialScroll, setInlineKeyholeInitialScroll] = useState<{ left: number; top: number } | null>(null);
+  const [inlineKeyholeInitialScroll, setInlineKeyholeInitialScroll] = useState<{ left: number; top: number } | null>(
+    null,
+  );
 
   // Status
   const statusCategory = getItemStatusCategory(item);
@@ -332,8 +319,20 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     [statusCategory],
   );
 
+  // Guard against stale keyhole state when the item is collapsed externally
+  // (e.g. Escape key calls setExpandedCitationKey(null) in the parent,
+  // bypassing handleClick). Without this, inlineKeyholeSrc persists and
+  // re-shows a stale expanded keyhole the next time the item is opened.
+  useEffect(() => {
+    if (!isExpanded) {
+      setInlineKeyholeSrc(null);
+      setInlineKeyholeInitialScroll(null);
+    }
+  }, [isExpanded]);
+
   const handleClick = useCallback(() => {
-    // Always reset inline keyhole state before toggling accordion state.
+    // Also reset inline keyhole state eagerly on click (before the state
+    // update propagates) so collapse via click is visually immediate.
     setInlineKeyholeSrc(null);
     setInlineKeyholeInitialScroll(null);
     if (escCtx) {
@@ -353,8 +352,9 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
   // Footer CTA ("View page N") opens the full page in the drawer header panel.
   const handleExpandToPage = useCallback(() => {
-    if (proofImage) escCtx?.onInlineExpand(citationKey, proofImage, verification, expandedPageImage?.renderScale);
-  }, [proofImage, citationKey, verification, expandedPageImage, escCtx]);
+    if (proofImage)
+      escCtx?.onInlineExpand(citationKey, proofImage, verification, expandedPageImage?.renderScale, itemPageNumber);
+  }, [proofImage, citationKey, verification, expandedPageImage, escCtx, itemPageNumber]);
 
   return (
     <div
@@ -884,25 +884,34 @@ function OpenCitationDrawer({
   const drawerPages = useMemo(() => computeUniquePageNumbers(sortedGroups), [sortedGroups]);
 
   // Bidirectional page↔key lookup maps — O(1) instead of linear scans per interaction
-  // pageToItems groups all citations by page for the header panel indicator row
-  const { keyToPage, pageToItems } = useMemo(() => {
+  // pageToItems groups all citations by page for the header panel indicator row.
+  // pageToAnyItem includes pages from verification.pages so "extra" pages are still clickable.
+  const { keyToPage, pageToItems, pageToAnyItem } = useMemo(() => {
     const k2p = new Map<string, number>();
     const p2i = new Map<number, CitationDrawerItem[]>();
+    const p2any = new Map<number, CitationDrawerItem>();
     for (const group of sortedGroups) {
       for (const item of group.citations) {
         const { citationKey, citation, verification } = item;
-        const rawPage =
-          (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber;
-        const page = Number(rawPage);
-        if (Number.isFinite(page) && page > 0) {
+        const page = normalizePageNumber(
+          (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber,
+        );
+        if (page !== null) {
           k2p.set(citationKey, page);
           const existing = p2i.get(page) ?? [];
           existing.push(item);
           p2i.set(page, existing);
+          if (!p2any.has(page)) p2any.set(page, item);
+        }
+        for (const candidate of verification?.pages ?? []) {
+          const candidatePage = normalizePageNumber(candidate.pageNumber);
+          if (candidatePage !== null && !p2any.has(candidatePage)) {
+            p2any.set(candidatePage, item);
+          }
         }
       }
     }
-    return { keyToPage: k2p, pageToItems: p2i };
+    return { keyToPage: k2p, pageToItems: p2i, pageToAnyItem: p2any };
   }, [sortedGroups]);
 
   // Accordion state — only one item expanded at a time
@@ -918,6 +927,7 @@ function OpenCitationDrawer({
     src: string;
     verification?: Verification | null;
     renderScale?: { x: number; y: number } | null;
+    pageNumber?: number | null;
   };
   const [headerInline, setHeaderInline] = useState<HeaderInlineState | null>(null);
   const [activeIndicatorKey, setActiveIndicatorKey] = useState<string | null>(null);
@@ -927,8 +937,21 @@ function OpenCitationDrawer({
 
   // Push a full-page image into the header panel (called from item rows and page badge clicks)
   const handleInlineExpand = useCallback(
-    (key: string, src: string, verification?: Verification | null, renderScale?: { x: number; y: number } | null) => {
-      setHeaderInline({ citationKey: key, src, verification, renderScale });
+    (
+      key: string,
+      src: string,
+      verification?: Verification | null,
+      renderScale?: { x: number; y: number } | null,
+      pageNumber?: number | null,
+    ) => {
+      const normalizedPage = Number(pageNumber);
+      setHeaderInline({
+        citationKey: key,
+        src,
+        verification,
+        renderScale,
+        pageNumber: Number.isFinite(normalizedPage) && normalizedPage > 0 ? normalizedPage : null,
+      });
       setActiveIndicatorKey(null);
     },
     [],
@@ -937,25 +960,23 @@ function OpenCitationDrawer({
   // Handler for clicking a page badge — opens the header panel for the first citation on that page
   const handlePageBadgeClick = useCallback(
     (page: number) => {
-      const items = pageToItems.get(page);
-      const first = items?.[0];
+      const first = pageToItems.get(page)?.[0] ?? pageToAnyItem.get(page);
       if (first) {
-        const targetPage = keyToPage.get(first.citationKey) ?? page;
-        const expanded = resolveExpandedImageForPage(first.verification, targetPage);
+        const expanded = resolveExpandedImageForPage(first.verification, page);
         if (expanded) {
-          handleInlineExpand(first.citationKey, expanded.src, first.verification, expanded.renderScale);
+          handleInlineExpand(first.citationKey, expanded.src, first.verification, expanded.renderScale, page);
         }
       }
       setPageAnnouncement(`Navigated to page ${page}`);
     },
-    [pageToItems, keyToPage, handleInlineExpand],
+    [pageToItems, pageToAnyItem, handleInlineExpand],
   );
 
   // Full-page mode: header inline panel open or manual drag-up gesture
   const isFullPage = isBottomSheet && (headerInline !== null || manualFullPage);
 
-  // Active page pill — driven by the header inline panel's citation key
-  const activePage = headerInline ? (keyToPage.get(headerInline.citationKey) ?? null) : null;
+  // Active page pill — prefer explicit page set by the interaction, then fall back to citation page.
+  const activePage = headerInline ? (headerInline.pageNumber ?? keyToPage.get(headerInline.citationKey) ?? null) : null;
 
   // Citations on the active page with phraseMatchDeepItem — used for the indicator row
   const citationsOnActivePage = useMemo(
@@ -1141,13 +1162,18 @@ function OpenCitationDrawer({
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {drawerPages.length > 0 && (
-                <div className="flex items-center gap-1 shrink-0">
-                  <DrawerPageBadges
-                    pages={drawerPages}
-                    activePage={activePage}
-                    onPageClick={handlePageBadgeClick}
-                    onPageDeactivate={handlePageDeactivate}
-                  />
+                <div
+                  className="dc-drawer-page-strip max-w-[min(52vw,18rem)] overflow-x-auto overflow-y-hidden"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" } as React.CSSProperties}
+                >
+                  <div className="flex items-center gap-1 min-w-max">
+                    <DrawerPageBadges
+                      pages={drawerPages}
+                      activePage={activePage}
+                      onPageClick={handlePageBadgeClick}
+                      onPageDeactivate={handlePageDeactivate}
+                    />
+                  </div>
                 </div>
               )}
               <button
@@ -1169,6 +1195,7 @@ function OpenCitationDrawer({
             </div>
           </div>
         </div>
+        <style>{`.dc-drawer-page-strip::-webkit-scrollbar { display: none; }`}</style>
 
         {/* ARIA live region for page badge navigation announcements */}
         <div role="status" aria-live="polite" className="sr-only">
