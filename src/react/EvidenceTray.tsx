@@ -19,7 +19,12 @@ import type { Verification, VerificationPage } from "../types/verification.js";
 import { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
 import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
 import {
+  BLINK_ENTER_EASING,
+  BLINK_EXIT_EASING,
   buildKeyholeMaskImage,
+  EVIDENCE_LIST_COLLAPSE_TOTAL_MS,
+  EVIDENCE_LIST_EXPAND_STEP_MS,
+  EVIDENCE_LIST_EXPAND_TOTAL_MS,
   EVIDENCE_TRAY_BORDER_DASHED,
   EVIDENCE_TRAY_BORDER_SOLID,
   EXPANDED_IMAGE_SHELL_PX,
@@ -62,6 +67,7 @@ import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { getBlinkRowMotionStyle } from "./motion/blinkAnimation.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "./overlayGeometry.js";
+import { getUniqueSearchAttemptCount } from "./searchAttemptGrouping.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
@@ -885,7 +891,7 @@ function EvidenceTrayFooter({
   onPageClick?: () => void;
   /** Optional page number to include in the CTA label (drawer context). */
   pageNumberForCta?: number | null;
-  /** Number of unique search texts (toggle hidden when 0 or absent) */
+  /** Number of grouped search attempts (toggle hidden when 0 or absent) */
   searchCount?: number;
   /** Whether the search log is currently expanded */
   isSearchLogOpen?: boolean;
@@ -920,8 +926,13 @@ function EvidenceTrayFooter({
               }}
             >
               <span
-                className="size-3 shrink-0 transition-transform duration-150"
-                style={isSearchLogOpen ? { transform: "rotate(90deg)" } : undefined}
+                className="size-3 shrink-0"
+                style={{
+                  transform: isSearchLogOpen ? "rotate(90deg)" : undefined,
+                  transitionProperty: "transform",
+                  transitionDuration: `${isSearchLogOpen ? EVIDENCE_LIST_EXPAND_TOTAL_MS : EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms`,
+                  transitionTimingFunction: isSearchLogOpen ? BLINK_ENTER_EASING : BLINK_EXIT_EASING,
+                }}
               >
                 <ChevronRightIcon />
               </span>
@@ -1093,10 +1104,27 @@ export function EvidenceTray({
     onExpand?.();
   }, [captureTrayOriginRect, onExpand]);
 
+  const searchLogTiming = useMemo(
+    () => ({
+      enterStepMs: EVIDENCE_LIST_EXPAND_STEP_MS,
+      enterTotalMs: EVIDENCE_LIST_EXPAND_TOTAL_MS,
+      exitMs: EVIDENCE_LIST_COLLAPSE_TOTAL_MS,
+    }),
+    [],
+  );
+
   // Search log toggle state (miss and partial states)
   const [showSearchLog, setShowSearchLog] = useState(false);
-  const { mounted: isSearchLogMounted, stage: searchLogStage } = useBlinkMotionStage(showSearchLog, "row");
-  const searchCount = isMiss || isPartialMatch ? searchAttempts.length : 0;
+  const { mounted: isSearchLogMounted, stage: searchLogStage } = useBlinkMotionStage(
+    showSearchLog,
+    "row",
+    "slow",
+    searchLogTiming,
+  );
+  const searchCount = useMemo(
+    () => ((isMiss || isPartialMatch) && searchAttempts.length > 0 ? getUniqueSearchAttemptCount(searchAttempts) : 0),
+    [isMiss, isPartialMatch, searchAttempts],
+  );
 
   // Footer element — shared across top/bottom placement
   const footerEl = (
@@ -1141,18 +1169,19 @@ export function EvidenceTray({
           <SearchAnalysisSummary searchAttempts={searchAttempts} verification={verification} />
           {footerEl}
           {isSearchLogMounted ? (
-            <div style={getBlinkRowMotionStyle(searchLogStage, prefersReducedMotion)}>
+            <div style={getBlinkRowMotionStyle(searchLogStage, prefersReducedMotion, searchLogTiming)}>
               <div className="overflow-hidden" style={{ minHeight: 0 }}>
                 <div className="border-t border-gray-200 dark:border-gray-700">
-                  <VerificationLogTimeline
-                    searchAttempts={searchAttempts}
-                    fullPhrase={verification?.citation?.fullPhrase ?? verification?.verifiedFullPhrase ?? undefined}
-                    anchorText={verification?.citation?.anchorText ?? verification?.verifiedAnchorText ?? undefined}
-                    status={verification?.status ?? "not_found"}
-                    expectedPage={verification?.citation?.pageNumber ?? undefined}
-                    expectedLine={verification?.citation?.lineIds?.[0] ?? undefined}
-                    onCollapse={() => setShowSearchLog(false)}
-                  />
+                  <div className="max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain">
+                    <VerificationLogTimeline
+                      searchAttempts={searchAttempts}
+                      fullPhrase={verification?.citation?.fullPhrase ?? verification?.verifiedFullPhrase ?? undefined}
+                      anchorText={verification?.citation?.anchorText ?? verification?.verifiedAnchorText ?? undefined}
+                      status={verification?.status ?? "not_found"}
+                      expectedPage={verification?.citation?.pageNumber ?? undefined}
+                      expectedLine={verification?.citation?.lineIds?.[0] ?? undefined}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

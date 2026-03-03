@@ -89,6 +89,29 @@ Implementation rules:
 
 ---
 
+## Evidence List Pattern
+
+For `EvidenceTray` search-attempt list expansion/collapse (toggle + caret):
+
+- Expand: `EVIDENCE_LIST_EXPAND_TOTAL_MS` = 120ms
+- Expand settle step: `EVIDENCE_LIST_EXPAND_STEP_MS` = 60ms
+- Collapse: `EVIDENCE_LIST_COLLAPSE_TOTAL_MS` = 80ms
+
+Frame intent:
+
+1. Enter starts with a quickly visible partial list (medium/high opacity).
+2. Most rows become visible early in the motion while opacity lightens.
+3. Final rows/pixels settle by the end of 120ms.
+4. Collapse returns to hidden in 80ms with synchronized caret rotation.
+
+Rules:
+
+- Use `useBlinkMotionStage(..., "row", ..., timingOverride)` with these constants.
+- Use the same 120/80 envelope for caret rotation in the footer toggle.
+- Large lists must remain reachable via inner scroll (`max-height + overflow-y:auto`), not by clipping.
+
+---
+
 ## Popover View State Machine
 
 The popover has three states: `"summary"` → `"expanded-keyhole"` → `"expanded-page"`.

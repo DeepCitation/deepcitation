@@ -3,18 +3,23 @@ import {
   BLINK_ENTER_STEP_MS,
   BLINK_ENTER_TOTAL_MS,
   BLINK_EXIT_TOTAL_MS,
-  BLINK_ROW_FAST_ENTER_STEP_MS,
-  BLINK_ROW_FAST_ENTER_TOTAL_MS,
-  BLINK_ROW_FAST_EXIT_TOTAL_MS,
   BLINK_ROW_ENTER_STEP_MS,
   BLINK_ROW_ENTER_TOTAL_MS,
   BLINK_ROW_EXIT_TOTAL_MS,
+  BLINK_ROW_FAST_ENTER_STEP_MS,
+  BLINK_ROW_FAST_ENTER_TOTAL_MS,
+  BLINK_ROW_FAST_EXIT_TOTAL_MS,
 } from "../constants.js";
 import type { BlinkMotionStage } from "../motion/blinkAnimation.js";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";
 
 type BlinkMotionProfile = "container" | "row";
 type BlinkMotionSpeed = "slow" | "fast";
+type BlinkMotionTimingOverride = {
+  enterStepMs: number;
+  enterTotalMs: number;
+  exitMs: number;
+};
 
 function resolveProfile(profile: BlinkMotionProfile, speed: BlinkMotionSpeed) {
   if (profile === "row") {
@@ -47,9 +52,10 @@ export function useBlinkMotionStage(
   active: boolean,
   profile: BlinkMotionProfile = "container",
   speed: BlinkMotionSpeed = "slow",
+  timingOverride?: BlinkMotionTimingOverride,
 ): { mounted: boolean; stage: BlinkMotionStage; prefersReducedMotion: boolean } {
   const prefersReducedMotion = usePrefersReducedMotion();
-  const timing = resolveProfile(profile, speed);
+  const timing = timingOverride ?? resolveProfile(profile, speed);
   const [mounted, setMounted] = useState(active);
   const [stage, setStage] = useState<BlinkMotionStage>(active ? "steady" : "idle");
 

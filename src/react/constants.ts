@@ -632,6 +632,13 @@ export const BLINK_ROW_FAST_ENTER_STEP_MS = 100;
 /** Fast row profile exit duration (ms). */
 export const BLINK_ROW_FAST_EXIT_TOTAL_MS = 120;
 
+/** EvidenceTray search-attempt list enter duration (ms). */
+export const EVIDENCE_LIST_EXPAND_TOTAL_MS = 120;
+/** EvidenceTray search-attempt list enter settle threshold (ms). */
+export const EVIDENCE_LIST_EXPAND_STEP_MS = 60;
+/** EvidenceTray search-attempt list collapse duration (ms). */
+export const EVIDENCE_LIST_COLLAPSE_TOTAL_MS = 80;
+
 /** Blink enter easing — near-linear with tiny settle. */
 export const BLINK_ENTER_EASING = "cubic-bezier(0.25, 0.25, 0.5, 1)";
 /** Blink exit easing — quick settle-out. */

@@ -8,10 +8,10 @@ import {
   DOT_COLORS,
   FOCUS_RING_CLASSES,
   HITBOX_EXTEND_8x14,
+  isValidProofImageSrc,
   TERTIARY_ACTION_BASE_CLASSES,
   TERTIARY_ACTION_HOVER_CLASSES,
   TERTIARY_ACTION_IDLE_CLASSES,
-  isValidProofImageSrc,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import {
@@ -25,6 +25,7 @@ import {
   XCircleIcon,
   XIcon,
 } from "./icons.js";
+import { getUniqueSearchAttemptCount, groupSearchAttempts } from "./searchAttemptGrouping.js";
 import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 // import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 
@@ -959,13 +960,10 @@ interface VerificationLogSummaryProps {
  * Get a human-readable outcome summary for the collapsed state.
  * Shows what kind of match was found (or that nothing was found).
  */
-function getOutcomeSummary(
-  status: SearchStatus | null | undefined,
-  searchAttempts: SearchAttempt[],
-): string {
+function getOutcomeSummary(status: SearchStatus | null | undefined, searchAttempts: SearchAttempt[]): string {
   // Early return for not_found - no need to search for successful attempt
   if (!status || status === "not_found") {
-    const count = searchAttempts.length;
+    const count = getUniqueSearchAttemptCount(searchAttempts);
     return `${count} ${count === 1 ? "attempt" : "attempts"} tried`;
   }
 
@@ -1105,12 +1103,13 @@ function formatLocationLabel(page?: number, line?: number): string {
 interface AttemptTableRowProps {
   text: string;
   locationText: string;
+  duplicateCount: number;
   success: boolean;
   isUnexpectedHit: boolean;
 }
 
 /** Compact row used by the attempts table for not-found and partial states. */
-function AttemptTableRow({ text, locationText, success, isUnexpectedHit }: AttemptTableRowProps) {
+function AttemptTableRow({ text, locationText, duplicateCount, success, isUnexpectedHit }: AttemptTableRowProps) {
   const isTruncated = (text ?? "").length > MAX_PHRASE_DISPLAY_LENGTH;
 
   // success here means we successfully found a partial match, exact match does not need attempt details as the result is self evident
@@ -1130,12 +1129,11 @@ function AttemptTableRow({ text, locationText, success, isUnexpectedHit }: Attem
       <span
         className={cn(
           "text-[10px] whitespace-nowrap self-center",
-          isUnexpectedHit
-            ? "font-semibold text-gray-700 dark:text-gray-200"
-            : "text-gray-400 dark:text-gray-500",
+          isUnexpectedHit ? "font-semibold text-gray-700 dark:text-gray-200" : "text-gray-400 dark:text-gray-500",
         )}
       >
         {locationText}
+        {duplicateCount > 1 ? ` · x${duplicateCount} locations` : ""}
       </span>
     </div>
   );
@@ -1180,14 +1178,18 @@ function AuditSearchDisplay({
   expectedLine,
   status,
 }: AuditSearchDisplayProps) {
+  const groupedAttempts = useMemo(() => groupSearchAttempts(searchAttempts), [searchAttempts]);
   // Show all searches unless the status is a confirmed exact match.
   // Transient statuses (loading, pending) show partial attempts as they arrive.
   // Null/undefined status is treated as "unknown" — show all searches.
   const showAll = status == null || !SHOW_ONLY_HIT_STATUSES.has(status);
-  const successfulAttempt = useMemo(() => searchAttempts.find(a => a.success), [searchAttempts]);
+  const successfulAttempt = useMemo(
+    () => groupedAttempts.find(group => group.attempt.success)?.attempt,
+    [groupedAttempts],
+  );
 
   // If no search attempts, fall back to citation data
-  if (searchAttempts.length === 0) {
+  if (groupedAttempts.length === 0) {
     const fallbackPhrases = [fullPhrase, anchorText].filter((p): p is string => Boolean(p));
     if (fallbackPhrases.length === 0) return null;
 
@@ -1250,7 +1252,8 @@ function AuditSearchDisplay({
     );
   }
 
-  const attemptRows = searchAttempts.map((attempt, idx) => {
+  const attemptRows = groupedAttempts.map(group => {
+    const { attempt, key, duplicateCount } = group;
     const foundPage = attempt.foundLocation?.page ?? attempt.pageSearched;
     const foundLine = attempt.foundLocation?.line ?? getFirstLine(attempt.lineSearched);
     const locationText = formatLocationLabel(foundPage, foundLine);
@@ -1271,11 +1274,12 @@ function AuditSearchDisplay({
       foundLine !== expectedLine;
 
     return {
-      key: `${attempt.method}-${idx}-${attempt.searchPhrase}`,
+      key,
       text: truncatePhrase(attempt.searchPhrase),
       success: attempt.success,
       isUnexpectedHit: unexpectedPage || unexpectedLine,
       locationText,
+      duplicateCount,
     };
   });
 
@@ -1287,6 +1291,7 @@ function AuditSearchDisplay({
         <AttemptTableRow
           key={row.key}
           text={row.text}
+          duplicateCount={row.duplicateCount}
           success={row.success}
           isUnexpectedHit={row.isUnexpectedHit}
           locationText={row.locationText}
