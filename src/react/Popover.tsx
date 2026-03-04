@@ -23,6 +23,21 @@ import { assignRef } from "./refUtils.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "./scrollLock.js";
 import { cn } from "./utils.js";
 
+/**
+ * Walk from `triggerEl` up the DOM to find the page's actual scroll container.
+ * Handles SPAs where html/body have overflow:hidden and scroll lives on a wrapper div.
+ * Falls back to the viewport scrolling element.
+ */
+function findPageScrollEl(triggerEl: HTMLElement | null): Element {
+  let n: Element | null = triggerEl?.parentElement ?? null;
+  while (n) {
+    const oy = getComputedStyle(n).overflowY;
+    if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight) return n;
+    n = n.parentElement;
+  }
+  return document.scrollingElement ?? document.documentElement;
+}
+
 type PopoverSide = "top" | "right" | "bottom" | "left";
 type PopoverAlign = "start" | "center" | "end";
 
@@ -201,23 +216,6 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       const el = localContentRef.current;
       if (!el || !isMounted) return;
 
-      // Find the page's actual scroll container by walking up from the trigger
-      // element (which sits in the page's normal document flow). This correctly
-      // handles SPAs where html/body have overflow:hidden and scroll lives on a
-      // wrapper div. Falls back to the viewport scrolling element.
-      // Not cached — the walk is O(DOM-depth) and only runs during active
-      // wheel scrolling, so the cost is negligible. Caching would risk holding
-      // a stale reference if the SPA replaces the scroll container.
-      const findPageScrollEl = (): Element => {
-        let n: Element | null = triggerRef.current?.parentElement ?? null;
-        while (n) {
-          const oy = getComputedStyle(n).overflowY;
-          if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight) return n;
-          n = n.parentElement;
-        }
-        return document.scrollingElement ?? document.documentElement;
-      };
-
       const onWheel = (e: WheelEvent) => {
         if (e.defaultPrevented) return; // Already handled (e.g. useWheelZoom zoom gesture)
         if (e.deltaY === 0) return; // Purely horizontal — let native handle (keyhole pan)
@@ -239,11 +237,163 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         e.preventDefault();
         const pixelDelta =
           e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY;
-        findPageScrollEl().scrollTop += pixelDelta;
+        findPageScrollEl(triggerRef.current).scrollTop += pixelDelta;
       };
 
       el.addEventListener("wheel", onWheel, { passive: false });
       return () => el.removeEventListener("wheel", onWheel);
+    }, [isMounted, triggerRef]);
+
+    // Touch scroll passthrough: mirrors the wheel handler above for mobile.
+    // Touches on the popover's position:fixed surface dead-end at the viewport
+    // (overflow:hidden in consumer apps). We intercept vertical swipes and
+    // forward them to the page's real scroll container.
+    React.useEffect(() => {
+      const el = localContentRef.current;
+      if (!el || !isMounted) return;
+
+      const AXIS_LOCK_PX = 8;
+      const COAST_DECELERATION = 0.95;
+      const COAST_CUTOFF = 0.5; // px/frame
+      const VELOCITY_SAMPLES = 5;
+      const STALE_MS = 100;
+
+      let startX = 0;
+      let startY = 0;
+      type Axis = "undecided" | "vertical" | "horizontal";
+      let axis: Axis = "undecided";
+      let coastRafId: number | null = null;
+      let velocityHistory: { y: number; t: number }[] = [];
+
+      const cancelCoast = () => {
+        if (coastRafId !== null) {
+          cancelAnimationFrame(coastRafId);
+          coastRafId = null;
+        }
+      };
+
+      /** Check if any ancestor between target and popover can scroll vertically in the given direction. */
+      const canChildScrollVertically = (target: HTMLElement | null, deltaY: number): boolean => {
+        let node = target;
+        while (node && node !== el.parentElement) {
+          const oy = getComputedStyle(node).overflowY;
+          if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
+            if (deltaY > 0 && Math.ceil(node.scrollTop) < node.scrollHeight - node.clientHeight) return true;
+            if (deltaY < 0 && node.scrollTop > 0) return true;
+          }
+          node = node.parentElement;
+        }
+        return false;
+      };
+
+      const onTouchStart = (e: TouchEvent) => {
+        if (e.touches.length !== 1) return;
+        cancelCoast();
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        axis = "undecided";
+        velocityHistory = [{ y: t.clientY, t: Date.now() }];
+      };
+
+      const onTouchMove = (e: TouchEvent) => {
+        if (e.touches.length !== 1) return;
+
+        // If a child already handled this (e.g. keyhole panning), reset start
+        // so when it releases (edge passthrough) our axis evaluation starts fresh.
+        if (e.defaultPrevented) {
+          const t = e.touches[0];
+          startX = t.clientX;
+          startY = t.clientY;
+          axis = "undecided";
+          velocityHistory = [{ y: t.clientY, t: Date.now() }];
+          return;
+        }
+
+        const t = e.touches[0];
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+
+        if (axis === "undecided") {
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < AXIS_LOCK_PX) return;
+          axis = Math.abs(dy) >= Math.abs(dx) ? "vertical" : "horizontal";
+        }
+
+        if (axis === "horizontal") return; // let native/keyhole handle
+
+        // Vertical: check if anything inside can scroll
+        if (canChildScrollVertically(e.target as HTMLElement | null, dy > 0 ? 1 : -1)) return;
+
+        // Nothing can scroll — forward to page
+        e.preventDefault();
+        const pageEl = findPageScrollEl(triggerRef.current);
+        pageEl.scrollTop -= dy;
+        // Reset start position so next delta is incremental
+        startX = t.clientX;
+        startY = t.clientY;
+
+        // Record velocity sample
+        const now = Date.now();
+        velocityHistory.push({ y: t.clientY, t: now });
+        if (velocityHistory.length > VELOCITY_SAMPLES) velocityHistory.shift();
+      };
+
+      const onTouchEnd = () => {
+        if (axis !== "vertical") {
+          axis = "undecided";
+          return;
+        }
+
+        // Compute velocity for momentum coast
+        if (velocityHistory.length >= 2) {
+          const first = velocityHistory[0];
+          const last = velocityHistory[velocityHistory.length - 1];
+          const timeSinceLast = Date.now() - last.t;
+          if (timeSinceLast < STALE_MS) {
+            const dt = last.t - first.t;
+            if (dt > 0) {
+              // Velocity in px/ms — inverted because we subtracted dy from scrollTop
+              const vy = (first.y - last.y) / dt;
+              if (Math.abs(vy) > 0.08) {
+                let frameVy = vy * 16.67;
+                let lastTime = performance.now();
+                const pageEl = findPageScrollEl(triggerRef.current);
+
+                const coast = () => {
+                  const now = performance.now();
+                  const frameDt = now - lastTime;
+                  lastTime = now;
+                  const factor = COAST_DECELERATION ** (frameDt / 16.67);
+                  pageEl.scrollTop += frameVy;
+                  frameVy *= factor;
+                  if (Math.abs(frameVy) > COAST_CUTOFF) {
+                    coastRafId = requestAnimationFrame(coast);
+                  } else {
+                    coastRafId = null;
+                  }
+                };
+                coastRafId = requestAnimationFrame(coast);
+              }
+            }
+          }
+        }
+
+        axis = "undecided";
+        velocityHistory = [];
+      };
+
+      el.addEventListener("touchstart", onTouchStart, { passive: true });
+      el.addEventListener("touchmove", onTouchMove, { passive: false });
+      el.addEventListener("touchend", onTouchEnd, { passive: true });
+      el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+      return () => {
+        cancelCoast();
+        el.removeEventListener("touchstart", onTouchStart);
+        el.removeEventListener("touchmove", onTouchMove);
+        el.removeEventListener("touchend", onTouchEnd);
+        el.removeEventListener("touchcancel", onTouchEnd);
+      };
     }, [isMounted, triggerRef]);
 
     if (!isMounted) return null;

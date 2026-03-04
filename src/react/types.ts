@@ -2,7 +2,6 @@ import type { Citation, CitationStatus } from "../types/citation.js";
 import type { SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 
-
 /**
  * Indicator style variant for verification status display.
  *

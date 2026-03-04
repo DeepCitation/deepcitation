@@ -1,6 +1,12 @@
 import type { Page } from "@playwright/test";
 
 /**
+ * CSS selector for the popover's inner layout container.
+ * Excludes the ZoomToolbar which shares shadow-md + rounded-lg classes.
+ */
+export const POPOVER_CONTAINER_SELECTOR = ".shadow-md.rounded-lg:not([role='toolbar'])";
+
+/**
  * Scale down and compress spacing in a showcase element before snapshot.
  * - CSS transform: scale(0.5) halves both width and height (~75% pixel reduction)
  * - Spacing overrides compress padding, margins, and gaps to eliminate whitespace

@@ -864,21 +864,20 @@ describe("SourceContextHeader", () => {
       const { getByRole } = render(<SourceContextHeader citation={citation} onSourceDownload={() => {}} />);
       const button = getByRole("button", { name: /download source/i });
 
-      expect(button.className).toContain("md:opacity-0");
+      expect(button.className).toContain("md:opacity-30");
       expect(button.className).toContain("md:group-hover/source-header:opacity-100");
       expect(button.className).toContain("md:group-focus-within/source-header:opacity-100");
     });
 
-    it("does not render download button for URL citation without converted PDF metadata", () => {
+    it("does not render download button for URL citation when onSourceDownload is omitted", () => {
       const citation: Citation = {
         type: "url",
         url: "https://example.com/article",
         domain: "example.com",
         fullPhrase: "Test phrase",
       };
-      const onSourceDownload = () => {};
 
-      const { queryByRole } = render(<SourceContextHeader citation={citation} onSourceDownload={onSourceDownload} />);
+      const { queryByRole } = render(<SourceContextHeader citation={citation} />);
       expect(queryByRole("button", { name: /download source/i })).toBeNull();
     });
 

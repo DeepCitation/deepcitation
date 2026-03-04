@@ -495,9 +495,9 @@ describe("CitationComponent behaviorConfig", () => {
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 140));
       });
-      // CitationComponent sets overflow: "hidden" (shorthand) on the popover dialog for
-      // expanded-page state. happy-dom doesn't expand shorthand → check overflow not overflowY.
-      expect((document.querySelector("[role='dialog']") as HTMLElement | null)?.style.overflow).toBe("hidden");
+      // CitationComponent sets overflowX/overflowY: "hidden" (longhand) on the popover dialog
+      // for expanded-page state to avoid React shorthand/longhand conflict with Popover's overflowX.
+      expect((document.querySelector("[role='dialog']") as HTMLElement | null)?.style.overflowX).toBe("hidden");
     });
 
     it("can apply setImageExpanded with string src", async () => {

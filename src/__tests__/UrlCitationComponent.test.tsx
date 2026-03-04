@@ -183,11 +183,11 @@ describe("UrlCitationComponent", () => {
     it("shows external link icon on hover (visual hint that click opens URL)", () => {
       const { getByLabelText } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 
-      // External link button is always in the DOM but visually hidden via CSS opacity-0
-      // It becomes visible on hover via group-hover:opacity-100
+      // External link button is always in the DOM but visually muted via CSS opacity-30
+      // It becomes fully visible on hover via group-hover:opacity-100
       const externalLink = getByLabelText("Open in new tab");
       expect(externalLink).toBeInTheDocument();
-      expect(externalLink).toHaveClass("opacity-0");
+      expect(externalLink).toHaveClass("opacity-30");
 
       // The group-hover CSS class handles visibility — verify the classes are correct
       expect(externalLink).toHaveClass("group-hover:opacity-100");

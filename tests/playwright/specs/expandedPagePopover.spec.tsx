@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/experimental-ct-react";
 import { CitationComponent } from "../../../src/react/Citation";
+import { POPOVER_CONTAINER_SELECTOR } from "../snapshotHelpers";
 import type { Citation } from "../../../src/types/citation";
 import type { Verification } from "../../../src/types/verification";
 import { GeneratedImageCitation } from "./GeneratedImageCitation";
@@ -578,7 +579,7 @@ test.describe("Expanded-Page Regression: Keyhole Strip", () => {
     );
     expect(stripHeight).toBe(120);
 
-    const container = popover.locator(".shadow-md.rounded-lg");
+    const container = popover.locator(POPOVER_CONTAINER_SELECTOR);
     await expect(container).toBeVisible();
     const containerWidth = await container.evaluate(el =>
       parseFloat(window.getComputedStyle(el as HTMLElement).width),
