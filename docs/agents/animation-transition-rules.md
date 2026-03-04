@@ -20,7 +20,7 @@ Open this file before adding, modifying, or reviewing any animation, transition,
 | Hard viewport boundary guard (Layer 3) | `src/react/hooks/useViewportBoundaryGuard.ts` |
 | Popover view state machine + height morph wiring | `src/react/DefaultPopoverContent.tsx` |
 | Keyhole zoom, drag-to-pan, expanded-image viewer | `src/react/EvidenceTray.tsx` |
-| Scroll lock + haptics on popover open/close | `src/react/CitationComponent.tsx` |
+| Scroll lock + haptics on popover open/close | `src/react/Citation.tsx` |
 
 Do not define new timing values, easing strings, or gesture thresholds inline. Add them to `constants.ts` and import from there.
 
@@ -40,8 +40,8 @@ Five tiers cover all UI interactions. Match the tier to the perceptual weight of
 
 The popover height morph uses asymmetric durations separate from this scale:
 
-- Expand: `POPOVER_MORPH_EXPAND_MS` = 200ms
-- Collapse: `POPOVER_MORPH_COLLAPSE_MS` = 100ms
+- Expand: `POPOVER_MORPH_EXPAND_MS` = 120ms
+- Collapse: `POPOVER_MORPH_COLLAPSE_MS` = 80ms
 
 Collapse is always faster than expand — collapsing content should feel snappy and responsive, not linger.
 

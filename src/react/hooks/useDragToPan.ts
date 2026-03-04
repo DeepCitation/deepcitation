@@ -33,12 +33,17 @@ const DRAG_THRESHOLD = 5;
 const VELOCITY_SAMPLE_COUNT = 5;
 /** Minimum velocity (px/ms) to trigger momentum coast after release. */
 const VELOCITY_THRESHOLD = 0.08;
+/** Max age (ms) of the newest move sample for momentum to apply. If the user paused longer than this before releasing, momentum is suppressed. */
+const STALE_SAMPLE_MS = 80;
 /** Per-frame deceleration multiplier (~0.3s coast at 60fps — TikTok flick-and-stop). */
 const DECELERATION = 0.88;
 /** Velocity cutoff (px/frame) below which momentum stops. */
 const VELOCITY_CUTOFF = 0.3;
 /** Initial velocity boost — amplifies the "launch" before deceleration kicks in. */
 const VELOCITY_BOOST = 2.0;
+
+/** Dead zone before axis lock on touch (direction === "x" only). */
+const TOUCH_LOCK_PX = 10;
 
 interface MoveSample {
   x: number;
@@ -47,10 +52,72 @@ interface MoveSample {
 }
 
 /**
+ * Compute velocity from move history and start a momentum coast animation.
+ * Shared between mouse finishDrag and touch onTouchEnd.
+ *
+ * @returns true if momentum was started, false otherwise.
+ */
+function startMomentumCoast(
+  history: MoveSample[],
+  el: HTMLElement,
+  direction: "x" | "xy",
+  momentumRafRef: React.MutableRefObject<number | null>,
+  onDone: () => void,
+): boolean {
+  if (history.length < 2) return false;
+
+  const first = history[0];
+  const last = history[history.length - 1];
+  const timeSinceLastMove = Date.now() - last.t;
+  if (timeSinceLastMove > STALE_SAMPLE_MS) return false;
+
+  const dt = last.t - first.t;
+  if (dt <= 0) return false;
+
+  // Velocity in px/ms (drag direction is inverted — dragging right scrolls left)
+  const vx = -(last.x - first.x) / dt;
+  const vy = direction === "xy" ? -(last.y - first.y) / dt : 0;
+  const speed = Math.sqrt(vx * vx + vy * vy);
+
+  if (speed <= VELOCITY_THRESHOLD) return false;
+
+  // Convert px/ms to px/frame (~16.67ms per frame at 60fps)
+  let frameVx = vx * VELOCITY_BOOST * 16.67;
+  let frameVy = vy * VELOCITY_BOOST * 16.67;
+  let lastFrameTime = performance.now();
+
+  const coast = () => {
+    const now = performance.now();
+    const frameDt = now - lastFrameTime;
+    lastFrameTime = now;
+    const factor = DECELERATION ** (frameDt / 16.67);
+
+    el.scrollLeft += frameVx;
+    if (direction === "xy") {
+      el.scrollTop += frameVy;
+    }
+
+    frameVx *= factor;
+    frameVy *= factor;
+
+    if (Math.abs(frameVx) > VELOCITY_CUTOFF || Math.abs(frameVy) > VELOCITY_CUTOFF) {
+      momentumRafRef.current = requestAnimationFrame(coast);
+    } else {
+      momentumRafRef.current = null;
+      onDone();
+    }
+  };
+
+  momentumRafRef.current = requestAnimationFrame(coast);
+  return true;
+}
+
+/**
  * Hook for drag-to-pan on a scrollable container.
  *
  * - **Mouse**: drag to pan (grab cursor). Click suppression when drag > 5px.
- * - **Touch**: relies on native overflow scrolling (no manual touch handling).
+ * - **Touch (x)**: direction-locked with edge passthrough to popover handler.
+ * - **Touch (xy)**: relies on native overflow scrolling.
  * - **Scroll state**: tracks canScrollLeft/canScrollRight for fade mask updates.
  * - **Momentum**: on mouse release, applies deceleration physics if velocity exceeds threshold.
  * - **direction**: `"x"` (default) for horizontal-only; `"xy"` for both axes.
@@ -207,6 +274,7 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
 
   const finishDrag = useCallback(() => {
     if (!isPressed.current) return;
+    cancelMomentum(); // Cancel any lingering coast before starting a new one
     isPressed.current = false;
     // Suppress click if the mouse moved beyond the drag threshold OR if the
     // container actually scrolled (even 1px). The scroll check catches slow,
@@ -224,61 +292,12 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
     const history = moveHistoryRef.current;
     moveHistoryRef.current = [];
 
-    if (history.length >= 2) {
-      const first = history[0];
-      const last = history[history.length - 1];
-      const dt = last.t - first.t;
-
-      if (dt > 0) {
-        // Velocity in px/ms (drag direction is inverted — dragging right scrolls left)
-        const vx = -(last.x - first.x) / dt;
-        const vy = direction === "xy" ? -(last.y - first.y) / dt : 0;
-        const speed = Math.sqrt(vx * vx + vy * vy);
-
-        if (speed > VELOCITY_THRESHOLD) {
-          // Convert px/ms to px/frame (~16.67ms per frame at 60fps)
-          // Velocity boost amplifies the initial "launch" for a flick-to-settle feel.
-          let frameVx = vx * VELOCITY_BOOST * 16.67;
-          let frameVy = vy * VELOCITY_BOOST * 16.67;
-          let lastFrameTime = performance.now();
-
-          const coast = () => {
-            const el = containerRef.current;
-            if (!el) return;
-
-            // Frame-rate independent deceleration: on 120Hz displays each frame
-            // is ~8.3ms instead of ~16.7ms, so we compute the decay factor from
-            // actual elapsed time to produce identical coast duration regardless
-            // of refresh rate.
-            const now = performance.now();
-            const dt = now - lastFrameTime;
-            lastFrameTime = now;
-            const factor = DECELERATION ** (dt / 16.67);
-
-            el.scrollLeft += frameVx;
-            if (direction === "xy") {
-              el.scrollTop += frameVy;
-            }
-
-            frameVx *= factor;
-            frameVy *= factor;
-
-            if (Math.abs(frameVx) > VELOCITY_CUTOFF || Math.abs(frameVy) > VELOCITY_CUTOFF) {
-              momentumRafRef.current = requestAnimationFrame(coast);
-            } else {
-              momentumRafRef.current = null;
-              updateScrollState();
-            }
-          };
-
-          momentumRafRef.current = requestAnimationFrame(coast);
-          return; // Skip updateScrollState — momentum loop handles it
-        }
-      }
+    if (el && startMomentumCoast(history, el, direction, momentumRafRef, updateScrollState)) {
+      return; // Momentum loop handles updateScrollState
     }
 
     updateScrollState();
-  }, [updateScrollState, direction]);
+  }, [updateScrollState, direction, cancelMomentum]);
 
   // Stable ref to finishDrag so the global mouseup listener doesn't need to
   // re-attach every time finishDrag gets a new identity (which happens when
@@ -299,6 +318,116 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
 
   const onMouseUp = finishDrag;
   const onMouseLeave = finishDrag;
+
+  // ---------------------------------------------------------------------------
+  // Touch handling (direction === "x" only)
+  // ---------------------------------------------------------------------------
+  // For horizontal-only containers (keyhole strip), we need JS control over
+  // touch gestures: direction lock decides whether the gesture pans the
+  // keyhole (horizontal) or passes through to the popover's touch handler
+  // for page scrolling (vertical). At scroll edges, panning transitions to
+  // passthrough so continued swiping scrolls the page.
+
+  // Disable native touch scroll so our direction lock has full control.
+  // Only for direction="x" — the "xy" case (InlineExpandedImage) uses native scroll.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || direction !== "x") return;
+    const prev = el.style.touchAction;
+    el.style.touchAction = "none";
+    return () => {
+      el.style.touchAction = prev;
+    };
+  }, [direction]);
+
+  // Touch event handlers for direction-locked panning + edge passthrough.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || direction !== "x") return;
+
+    type Phase = "undecided" | "panning" | "passthrough";
+    let phase: Phase = "undecided";
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartScrollLeft = 0;
+    const touchHistory: MoveSample[] = [];
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      cancelMomentum();
+      const t = e.touches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      touchStartScrollLeft = el.scrollLeft;
+      phase = "undecided";
+      touchHistory.length = 0;
+      touchHistory.push({ x: t.clientX, y: t.clientY, t: Date.now() });
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const dx = t.clientX - touchStartX;
+      const dy = t.clientY - touchStartY;
+
+      if (phase === "undecided") {
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < TOUCH_LOCK_PX) return;
+        // Lock direction
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          phase = "panning";
+        } else {
+          phase = "passthrough";
+          return; // Bubbles to Popover touch handler
+        }
+      }
+
+      if (phase === "passthrough") return;
+
+      // --- Phase: panning ---
+      // Check if we're at a scroll edge
+      const targetScroll = touchStartScrollLeft - dx;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      if (
+        (targetScroll <= 0 && dx > 0) || // At left edge, swiping right
+        (targetScroll >= maxScroll && dx < 0) // At right edge, swiping left
+      ) {
+        // Switch to passthrough — stop preventing default so the popover
+        // handler picks up the vertical component of continued swiping.
+        phase = "passthrough";
+        return;
+      }
+
+      e.preventDefault();
+      el.scrollLeft = touchStartScrollLeft - dx;
+
+      // Record velocity sample
+      const now = Date.now();
+      touchHistory.push({ x: t.clientX, y: t.clientY, t: now });
+      if (touchHistory.length > VELOCITY_SAMPLE_COUNT) touchHistory.shift();
+    };
+
+    const onTouchEnd = () => {
+      if (phase === "panning") {
+        wasDraggingRef.current = true;
+        // Apply momentum via shared helper — use x-only velocity
+        startMomentumCoast([...touchHistory], el, "x", momentumRafRef, updateScrollState);
+      }
+      phase = "undecided";
+      touchHistory.length = 0;
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [direction, cancelMomentum, updateScrollState]);
 
   const scrollTo = useCallback(
     (x: number) => {

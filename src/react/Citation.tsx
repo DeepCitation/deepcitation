@@ -32,6 +32,7 @@ import { useExpandedPageSideOffset } from "./hooks/useExpandedPageSideOffset.js"
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
 import { usePopoverAlignOffset } from "./hooks/usePopoverAlignOffset.js";
+import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { useViewportBoundaryGuard } from "./hooks/useViewportBoundaryGuard.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
@@ -46,7 +47,6 @@ import type {
   CitationBehaviorContext,
   CitationContent,
   CitationEventHandlers,
-  CitationInteractionMode,
   CitationRenderProps,
   CitationVariant,
   IndicatorVariant,
@@ -56,11 +56,11 @@ import type {
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { extractDomain, getUrlPath, STATUS_ICONS, safeWindowOpen, sanitizeUrl, truncateString } from "./urlUtils.js";
 import { cn, generateCitationInstanceId, generateCitationKey } from "./utils.js";
+import { startEvidenceViewTransition } from "./viewTransition.js";
 
 // Re-export types for convenience
 export type {
   CitationContent,
-  CitationInteractionMode,
   CitationVariant,
   IndicatorVariant,
 } from "./types.js";
@@ -152,12 +152,6 @@ export interface CitationComponentProps extends BaseCitationProps {
    * - `badge` → `source`
    */
   content?: CitationContent;
-  /**
-   * @deprecated The interactionMode prop has been removed. The component now always uses
-   * lazy mode behavior: click toggles popover, second click toggles search details.
-   * This prop is ignored for backwards compatibility.
-   */
-  interactionMode?: CitationInteractionMode;
   /** Event handlers for citation interactions */
   eventHandlers?: CitationEventHandlers;
   /**
@@ -189,12 +183,6 @@ export interface CitationComponentProps extends BaseCitationProps {
    * Falls back to citation.faviconUrl if not provided.
    */
   faviconUrl?: string;
-  /**
-   * @deprecated Use `indicatorVariant="none"` instead. Setting `showIndicator={false}`
-   * is equivalent to `indicatorVariant="none"`. This prop will be removed in the next
-   * major version.
-   */
-  showIndicator?: boolean;
   /**
    * Visual style for status indicators.
    * - `"icon"`: Checkmarks, spinner, X icons (default)
@@ -389,7 +377,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       isLoading = false,
       variant = "text",
       content: contentProp,
-      interactionMode: _interactionMode, // Deprecated, ignored
       eventHandlers,
       behaviorConfig,
       isMobile: isMobileProp,
@@ -399,7 +386,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       renderPopoverContent,
       additionalCount,
       faviconUrl,
-      showIndicator: _showIndicator, // Deprecated — mapped to indicatorVariant below
       indicatorVariant: indicatorVariantProp = "icon",
       sourceLabel,
       onTimingEvent,
@@ -409,22 +395,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     },
     ref,
   ) => {
-    // Warn about deprecated props in development (once per prop to avoid console spam)
     if (process.env.NODE_ENV !== "production") {
-      if (_interactionMode !== undefined && !deprecationWarned.has("interactionMode")) {
-        deprecationWarned.add("interactionMode");
-        console.warn(
-          "CitationComponent: interactionMode prop is deprecated and has no effect. " +
-            "The component now always uses click-to-show-popover behavior.",
-        );
-      }
-      if (_showIndicator !== undefined && !deprecationWarned.has("showIndicator")) {
-        deprecationWarned.add("showIndicator");
-        console.warn(
-          "CitationComponent: showIndicator prop is deprecated and will be removed in the next major version. " +
-            'Use indicatorVariant="none" to hide indicators.',
-        );
-      }
       if (eventHandlers?.onClick && behaviorConfig?.onClick && !deprecationWarned.has("eventHandlers.onClick")) {
         deprecationWarned.add("eventHandlers.onClick");
         console.warn(
@@ -434,9 +405,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       }
     }
 
-    // Compat: showIndicator={false} → indicatorVariant="none"
-    const indicatorVariant: IndicatorVariant =
-      _showIndicator === false && indicatorVariantProp === "icon" ? "none" : indicatorVariantProp;
+    const indicatorVariant: IndicatorVariant = indicatorVariantProp;
 
     // Resolve effective download handler: explicit callback wins, else trigger browser download
     const effectiveOnSourceDownload = useMemo(() => {
@@ -460,6 +429,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Auto-detect touch device if isMobile prop not explicitly provided
     const isTouchDevice = useIsTouchDevice();
     const isMobile = isMobileProp ?? isTouchDevice;
+    const prefersReducedMotion = usePrefersReducedMotion();
 
     // Resolve content: explicit content prop or default for variant
     const resolvedContent: CitationContent = useMemo(() => {
@@ -514,8 +484,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Haptics are gated behind experimentalHaptics prop (off by default).
     const setViewStateWithHaptics = useCallback(
       (newState: PopoverViewState) => {
+        const prev = popoverViewStateRef.current;
         if (experimentalHaptics && isMobile) {
-          const prev = popoverViewStateRef.current;
           // Haptic fires only on the initial expand from summary and the final
           // collapse back to summary. Intermediate transitions (expanded-keyhole ↔
           // expanded-page) are silent to avoid double-pulse when the user drills
@@ -525,13 +495,27 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           if (isExpanding) triggerHaptic("expand");
           else if (isCollapsing) triggerHaptic("collapse");
         }
-        if (newState === "summary") {
-          setExpandedNaturalWidthForPosition(null);
-          setExpandedWidthSourceForPosition(null);
-        }
-        setPopoverViewState(newState);
+        // Determine collapse direction for View Transition timing.
+        // Full-page transitions are handled by an annotation-anchored VT marker
+        // in InlineExpandedImage — the marker is positioned at the annotation rect
+        // so the geometry morph tracks the annotation region, not the whole page.
+        // When no annotation data exists, InlineExpandedImage falls back to the
+        // container-level VT name (animatedShellRef), which produces the same
+        // crossfade behavior as before.
+        const ORDER: Record<PopoverViewState, number> = { summary: 0, "expanded-keyhole": 1, "expanded-page": 2 };
+        const isCollapse = ORDER[newState] < ORDER[prev];
+        startEvidenceViewTransition(
+          () => {
+            if (newState === "summary") {
+              setExpandedNaturalWidthForPosition(null);
+              setExpandedWidthSourceForPosition(null);
+            }
+            setPopoverViewState(newState);
+          },
+          { isCollapse, skipAnimation: prefersReducedMotion },
+        );
       },
-      [experimentalHaptics, isMobile],
+      [experimentalHaptics, isMobile, prefersReducedMotion],
     );
 
     // Lock body scroll only for expanded-page (full-viewport). Summary and
@@ -1458,14 +1442,18 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                       // The inner InlineExpandedImage handles its own scrolling (with hidden
                       // scrollbars). Override PopoverContent's default overflow behavior to
                       // prevent redundant outer scrollbars from appearing during transitions.
-                      overflow: "hidden" as const,
+                      // Use longhand to avoid React shorthand/longhand conflict with Popover's overflowX.
+                      overflowX: "hidden" as const,
+                      overflowY: "hidden" as const,
                     }
                   : popoverViewState === "expanded-keyhole"
                     ? {
                         maxWidth: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
                         // The inner InlineExpandedImage handles scrolling, so hide outer
                         // overflow to avoid transient shell scrollbars during transitions.
-                        overflow: "hidden" as const,
+                        // Use longhand to avoid React shorthand/longhand conflict with Popover's overflowX.
+                        overflowX: "hidden" as const,
+                        overflowY: "hidden" as const,
                       }
                     : undefined
               }
@@ -1600,7 +1588,7 @@ const ExternalLinkButton = ({ show, alwaysVisible, handleExternalLinkClick }: Ex
       className={cn(
         "inline-flex items-center justify-center w-3.5 h-3.5 ml-1 transition-all",
         "text-gray-400 group-hover:text-blue-500 dark:text-gray-500 dark:group-hover:text-blue-400",
-        !alwaysVisible && "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+        !alwaysVisible && "opacity-30 group-hover:opacity-100 group-focus-within:opacity-100",
       )}
       aria-label="Open in new tab"
       title="Open in new tab"

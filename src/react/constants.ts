@@ -480,10 +480,10 @@ export const ANCHOR_HIGHLIGHT_STYLE: React.CSSProperties = {
  * the image already shows most of its content in the keyhole strip, so the
  * expand step would reveal almost nothing new.
  *
- * At 1.5, images up to 50% taller than the strip (up to ~135px for 90px strip)
+ * At 2.0, images up to 100% taller than the strip (up to ~180px for 90px strip)
  * are treated as "fits completely." This avoids tiny, unhelpful expansions.
  */
-export const KEYHOLE_SKIP_THRESHOLD = 1.5;
+export const KEYHOLE_SKIP_THRESHOLD = 2.0;
 
 // =============================================================================
 // ZOOM CONTROLS (InlineExpandedImage)
@@ -545,8 +545,8 @@ export const EXPANDED_POPOVER_HEIGHT = "calc(100dvh - 2rem)";
 // Slow              ANIM_SLOW_MS          350ms     duration-[350ms] Full-page transitions, coordinated
 //
 // Expand/collapse morphs use separate constants + asymmetric easing:
-//   POPOVER_MORPH_EXPAND_MS   200ms  BLINK_ENTER_EASING   (fast start, gentle settle)
-//   POPOVER_MORPH_COLLAPSE_MS 100ms  EASE_COLLAPSE (aggressive start, soft landing)
+//   POPOVER_MORPH_EXPAND_MS   120ms  BLINK_ENTER_EASING   (fast start, gentle settle)
+//   POPOVER_MORPH_COLLAPSE_MS 80ms  EASE_COLLAPSE (aggressive start, soft landing)
 //
 // NOTE: Tailwind duration-* classes in JSX must remain as literal strings for
 // JIT purging. The table above is the single source of truth for timing values.
@@ -610,15 +610,24 @@ export const HITBOX_EXTEND_8x14 = "after:content-[''] after:absolute after:inset
 export const SPINNER_TIMEOUT_MS = 5000;
 
 /** Transition duration for popover morph expand (summary → expanded). */
-export const POPOVER_MORPH_EXPAND_MS = 200;
+export const POPOVER_MORPH_EXPAND_MS = 120;
 /** Transition duration for popover morph collapse (expanded → summary). Faster = snappier close. */
-export const POPOVER_MORPH_COLLAPSE_MS = 100;
+export const POPOVER_MORPH_COLLAPSE_MS = 80;
 
 /**
  * Easing for collapse transitions — decisive decelerate.
  * Bézier: starts with velocity (0.2), then eases into final state (0, 1).
  */
 export const EASE_COLLAPSE = "cubic-bezier(0.2, 0, 0, 1)";
+
+/** Locate icon pulse grow duration (ms) after annotation overlay dismiss. */
+export const LOCATE_ICON_PULSE_GROW_MS = 70;
+/** Locate icon pulse settle duration (ms) after grow stage completes. */
+export const LOCATE_ICON_PULSE_SETTLE_MS = 50;
+/** Locate icon pulse peak scale (1 = baseline size). */
+export const LOCATE_ICON_PULSE_SCALE = 1.18;
+/** Locate icon pulse accent color used during temporary highlight. */
+export const LOCATE_ICON_PULSE_COLOR = "rgb(56 189 248)";
 
 /** Stagger delay before expanded-page content animates in. Container morph starts first.
  * 30ms is tight enough to avoid an empty-container flash while still letting the shell
@@ -697,19 +706,6 @@ export const BLINK_ROW_EXIT_OPACITY = 0.32;
 export const BLINK_ROW_INSET_A_PX = 4;
 /** Row stage B inset (px) for Blink reveal. */
 export const BLINK_ROW_INSET_B_PX = 2;
-
-// ── Shared-Origin Expand Transition ─────────────────────────────────────────
-// Controls how much of the raw source→target delta is applied when the
-// expanded-page image "grows from" the keyhole/annotation rect.
-
-/** Blend factor (0–1) applied to raw translate/scale delta. Lower = subtler. */
-export const SHARED_ORIGIN_BLEND = 0.22;
-/** Maximum translate offset (px) after blending, clamped in both axes. */
-export const SHARED_ORIGIN_TRANSLATE_LIMIT_PX = 36;
-/** Minimum scale factor after blending (prevents over-shrink). */
-export const SHARED_ORIGIN_MIN_SCALE = 0.9;
-/** Maximum scale factor after blending (prevents over-grow). */
-export const SHARED_ORIGIN_MAX_SCALE = 1.08;
 
 // =============================================================================
 // TIME TO CERTAINTY (TtC) DISPLAY

@@ -870,9 +870,6 @@ function OpenCitationDrawer({
   citationGroups,
   title = "Citations",
   label,
-  // showMoreSection and maxVisibleItems are deprecated — accepted but ignored
-  showMoreSection: _showMoreSection,
-  maxVisibleItems: _maxVisibleItems,
   onCitationClick,
   onReadMore: _onReadMore,
   className,

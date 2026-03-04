@@ -26,6 +26,33 @@ describe("EvidenceTray interaction styles", () => {
     cleanup();
   });
 
+  function setKeyholeViewportSize(container: HTMLElement, width: number, height: number) {
+    const strip = container.querySelector("[data-dc-keyhole]") as HTMLElement | null;
+    if (!strip) throw new Error("No keyhole strip found");
+    Object.defineProperty(strip, "clientWidth", { value: width, configurable: true });
+    Object.defineProperty(strip, "clientHeight", { value: height, configurable: true });
+    Object.defineProperty(strip, "scrollWidth", { value: width, configurable: true });
+    Object.defineProperty(strip, "scrollHeight", { value: height, configurable: true });
+  }
+
+  function fireKeyholeImageLoad(container: HTMLElement, naturalWidth: number, naturalHeight: number) {
+    const img = container.querySelector("[data-dc-keyhole] img");
+    if (!img) throw new Error("No keyhole image found");
+    Object.defineProperty(img, "naturalWidth", { value: naturalWidth, configurable: true });
+    Object.defineProperty(img, "naturalHeight", { value: naturalHeight, configurable: true });
+    act(() => {
+      img.dispatchEvent(new Event("load", { bubbles: false }));
+    });
+  }
+
+  function clickKeyholeButton(container: HTMLElement) {
+    const strip = container.querySelector("[data-dc-keyhole]");
+    if (!strip) throw new Error("No keyhole strip found");
+    const button = strip.closest("button");
+    if (!(button instanceof HTMLButtonElement)) throw new Error("No keyhole button found");
+    fireEvent.click(button);
+  }
+
   it("renders tertiary View page action with blue hover and focus ring styles", () => {
     const { getByRole } = render(
       <EvidenceTray verification={baseVerification} status={baseStatus} onExpand={() => {}} />,
@@ -35,6 +62,20 @@ describe("EvidenceTray interaction styles", () => {
     expect(viewPageButton.className).toContain("text-gray-600");
     expect(viewPageButton.className).toContain("hover:text-blue-600");
     expect(viewPageButton.className).toContain("focus-visible:ring-2");
+  });
+
+  it('uses a custom footer CTA label when provided (for example, "View image")', () => {
+    const { getByRole, queryByRole } = render(
+      <EvidenceTray
+        verification={baseVerification}
+        status={baseStatus}
+        onExpand={() => {}}
+        pageCtaLabel="View image"
+      />,
+    );
+
+    expect(getByRole("button", { name: "View image" })).toBeInTheDocument();
+    expect(queryByRole("button", { name: /view page/i })).not.toBeInTheDocument();
   });
 
   it("uses Attempts wording in miss-state search toggle", () => {
@@ -103,9 +144,14 @@ describe("EvidenceTray interaction styles", () => {
     fireEvent.click(attemptRowText);
 
     expect(onExpand).not.toHaveBeenCalled();
-    await waitFor(() => {
-      expect(queryByText("alpha")).not.toBeInTheDocument();
-    });
+    // The search log collapse involves rAF + setTimeout(80ms) animation stages.
+    // In slow CI runners, the default 1000ms waitFor timeout can be tight.
+    await waitFor(
+      () => {
+        expect(queryByText("alpha")).not.toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it("sets escapeInterceptRef to a collapse function when search log is open", () => {
@@ -152,7 +198,7 @@ describe("EvidenceTray interaction styles", () => {
     // Call the intercept — triggers setShowSearchLog(false).
     // The useEffect on showSearchLog synchronously clears the ref.
     act(() => {
-      escapeInterceptRef.current!();
+      if (escapeInterceptRef.current) escapeInterceptRef.current();
     });
 
     // Ref should be cleared (showSearchLog is now false)
@@ -172,6 +218,44 @@ describe("EvidenceTray interaction styles", () => {
 
     const resolved = resolveExpandedImageForPage(verificationWithStringPages, 5);
     expect(resolved?.src).toBe(page5Src);
+  });
+
+  it("suppresses keyhole expansion when image is at the 2.0x near-fit threshold", async () => {
+    const onImageClick = jest.fn<() => void>();
+    const { container } = render(
+      <EvidenceTray verification={baseVerification} status={baseStatus} onImageClick={onImageClick} />,
+    );
+
+    setKeyholeViewportSize(container, 500, 100);
+    fireKeyholeImageLoad(container, 800, 200);
+
+    await waitFor(() => {
+      const strip = container.querySelector("[data-dc-keyhole]");
+      const button = strip?.closest("button");
+      expect(button).toHaveAttribute("title", "Already full size");
+    });
+
+    clickKeyholeButton(container);
+    expect(onImageClick).not.toHaveBeenCalled();
+  });
+
+  it("allows keyhole expansion when image exceeds the 2.0x near-fit threshold", async () => {
+    const onImageClick = jest.fn<() => void>();
+    const { container } = render(
+      <EvidenceTray verification={baseVerification} status={baseStatus} onImageClick={onImageClick} />,
+    );
+
+    setKeyholeViewportSize(container, 500, 100);
+    fireKeyholeImageLoad(container, 800, 201);
+
+    await waitFor(() => {
+      const strip = container.querySelector("[data-dc-keyhole]");
+      const button = strip?.closest("button");
+      expect(button).not.toHaveAttribute("title", "Already full size");
+    });
+
+    clickKeyholeButton(container);
+    expect(onImageClick).toHaveBeenCalledTimes(1);
   });
 });
 

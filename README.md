@@ -10,6 +10,7 @@ Show proof for every AI citation.
 
 
 <div align="center">
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Zero Dependencies](https://img.shields.io/badge/Zero%20Dependencies-trusted-green)](https://www.npmjs.com/package/deepcitation)
 [![< 25KB](https://img.shields.io/badge/gzip-<25KB-brightgreen)](https://bundlephobia.com/package/deepcitation)
@@ -18,7 +19,9 @@ Show proof for every AI citation.
 
 
 <div align="center">
+
 [Documentation](https://docs.deepcitation.com) · [Get API Key](https://deepcitation.com/signup) · [Examples](./examples) · [Agent Integration](./INTEGRATION.md) · [Terms](https://deepcitation.com/legal/terms-of-service) · [Privacy](https://deepcitation.com/legal/privacy)
+
 </div>
 
 We believe AI citations should follow **show, don't tell**; they should prove their citations so you don't have to blindly chase them down yourself. DeepCitation replaces 'trust me' citations with a deterministic verification layer.
@@ -92,7 +95,7 @@ const visibleText = extractVisibleText(response.content);
 
 A set of high-quality React components to help you build production-ready attribution systems. Skip the complexity of reading multiple file formats, rendering multiple formats, coordinate mapping, and visual proof generation.
 
-- [CitationComponent](https://github.com/DeepCitation/deepcitation/tree/main/src/react/CitationComponent.tsx)
+- [CitationComponent](https://github.com/DeepCitation/deepcitation/tree/main/src/react/Citation.tsx)
 - [CitationDrawer](https://github.com/DeepCitation/deepcitation/tree/main/src/react/CitationDrawer.tsx)
 
 

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import type React from "react";
-import { UrlCitationComponent } from "../react/CitationComponent";
+import { UrlCitationComponent } from "../react/Citation";
 import type { UrlCitationMeta } from "../react/types";
 import { isBlockedStatus, isErrorStatus, isVerifiedStatus } from "../react/urlStatus";
 import { extractDomain } from "../react/urlUtils";
@@ -15,8 +15,8 @@ const _realReactDom = require("react-dom");
 const _mockedReactDom = { ..._realReactDom, createPortal: (node: React.ReactNode) => node };
 mock.module("react-dom", () => ({ ..._mockedReactDom, default: _mockedReactDom }));
 
-// UrlCitationComponent is defined in CitationComponent.tsx (co-located with CitationComponent).
-// Import path: import { UrlCitationComponent } from "../react/CitationComponent"
+// UrlCitationComponent is defined in Citation.tsx (co-located with CitationComponent).
+// Import path: import { UrlCitationComponent } from "../react/Citation"
 describe("UrlCitationComponent", () => {
   afterEach(() => {
     cleanup();
@@ -183,11 +183,11 @@ describe("UrlCitationComponent", () => {
     it("shows external link icon on hover (visual hint that click opens URL)", () => {
       const { getByLabelText } = render(<UrlCitationComponent urlMeta={createUrlMeta()} />);
 
-      // External link button is always in the DOM but visually hidden via CSS opacity-0
-      // It becomes visible on hover via group-hover:opacity-100
+      // External link button is always in the DOM but visually muted via CSS opacity-30
+      // It becomes fully visible on hover via group-hover:opacity-100
       const externalLink = getByLabelText("Open in new tab");
       expect(externalLink).toBeInTheDocument();
-      expect(externalLink).toHaveClass("opacity-0");
+      expect(externalLink).toHaveClass("opacity-30");
 
       // The group-hover CSS class handles visibility — verify the classes are correct
       expect(externalLink).toHaveClass("group-hover:opacity-100");

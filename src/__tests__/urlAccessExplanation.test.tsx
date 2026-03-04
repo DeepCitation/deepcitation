@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "@jest/globals";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
-import { CitationComponent } from "../react/CitationComponent";
+import { CitationComponent } from "../react/Citation";
 import type { Citation } from "../types/citation";
 import type { UrlAccessStatus, Verification } from "../types/verification";
 

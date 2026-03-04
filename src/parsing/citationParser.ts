@@ -237,33 +237,7 @@ function repairJson(jsonString: string): {
 
 /**
  * Parses a citation response from an LLM.
- *
- * This function:
- * 1. Finds the <<<CITATION_DATA>>> delimiter in the response
- * 2. Splits the response into visible text and citation data
- * 3. Parses the JSON citation data
- * 4. Returns a structured result with both
- *
- * @param llmResponse - The full LLM response text
- * @returns ParsedCitationResponse with visible text and parsed citations
- *
- * @example
- * ```typescript
- * const response = `
- *   The company grew 45% [1].
- *
- *   <<<CITATION_DATA>>>
- *   [{"id": 1, "attachment_id": "abc", "full_phrase": "grew 45%", "anchor_text": "45%"}]
- *   <<<END_CITATION_DATA>>>
- * `;
- *
- * const parsed = parseDeferredCitationResponse(response);
- * console.log(parsed.visibleText); // "The company grew 45% [1]."
- * console.log(parsed.citations); // [{id: 1, attachment_id: "abc", ...}]
- * ```
- *
- * @deprecated Use {@link getAllCitationsFromLlmOutput} instead, which handles all formats automatically.
- * This low-level function only handles the deferred JSON pattern. Will be removed in v2.0.
+ * Internal use only — use {@link getAllCitationsFromLlmOutput} from the public API.
  */
 export function parseDeferredCitationResponse(llmResponse: string): ParsedCitationResponse {
   if (!llmResponse || typeof llmResponse !== "string") {
@@ -406,13 +380,7 @@ function parsePageId(pageId: string): {
 
 /**
  * Converts a CitationData object to the standard Citation format.
- *
- * @deprecated Prefer {@link getAllCitationsFromLlmOutput} which handles all citation formats automatically.
- * This low-level function only handles the deferred JSON pattern. Will be removed in v2.0.
- *
- * @param data - The citation data
- * @param citationNumber - Optional override for citation number (defaults to data.id)
- * @returns Standard Citation object
+ * Internal use only — use {@link getAllCitationsFromLlmOutput} from the public API.
  */
 export function deferredCitationToCitation(data: CitationData, citationNumber?: number): Citation {
   // Parse page number from page_id (supports both "N_I" and "page_number_N_index_I")
@@ -451,23 +419,8 @@ export function deferredCitationToCitation(data: CitationData, citationNumber?: 
 }
 
 /**
- * Extracts all citations from a citation response and returns them
- * in the standard dictionary format used by the verification API.
- *
- * This function parses the response, converts each citation to the standard
- * Citation format, and generates deterministic keys for each.
- *
- * @param llmResponse - The full LLM response with citation block
- * @returns Dictionary of parsed Citation objects keyed by citation key
- *
- * @example
- * ```typescript
- * const citations = getAllCitationsFromDeferredResponse(llmOutput);
- * // Returns: { "abc123...": { attachmentId: "...", fullPhrase: "...", ... }, ... }
- * ```
- *
- * @deprecated Use {@link getAllCitationsFromLlmOutput} instead, which handles both deferred JSON
- * and XML `<cite />` tag formats automatically. Will be removed in v2.0.
+ * Extracts all citations from a response and returns them as a Citation dictionary.
+ * Internal helper used by parseCitation.ts. Use {@link getAllCitationsFromLlmOutput} from the public API.
  */
 export function getAllCitationsFromDeferredResponse(llmResponse: string): {
   [key: string]: Citation;

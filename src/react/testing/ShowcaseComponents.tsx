@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { Citation } from "../../types/citation";
 import type { SearchAttempt } from "../../types/search";
 import type { Verification } from "../../types/verification";
-import { CitationComponent, UrlCitationComponent } from "../CitationComponent";
+import { CitationComponent, UrlCitationComponent } from "../Citation";
 import { CitationDrawer, CitationDrawerItemComponent } from "../CitationDrawer";
 import type { CitationDrawerItem } from "../CitationDrawer.types";
 import { groupCitationsBySource } from "../CitationDrawer.utils";

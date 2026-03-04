@@ -54,10 +54,6 @@ export interface CitationDrawerProps {
    * than citation content.
    */
   label?: string;
-  /** @deprecated No longer used. The drawer always shows all items in a flat scrollable list. */
-  showMoreSection?: boolean;
-  /** @deprecated No longer used. The drawer always shows all items in a flat scrollable list. */
-  maxVisibleItems?: number;
   /** Callback when a citation item is clicked */
   onCitationClick?: (item: CitationDrawerItem) => void;
   /** Callback when "Read more" is clicked for a citation */

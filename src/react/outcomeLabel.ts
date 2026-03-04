@@ -2,7 +2,7 @@
  * Outcome label derivation — single source of truth.
  *
  * Replaces the copy-pasted label logic that appeared in both
- * EvidenceTrayFooter and InlineExpandedImage inside CitationComponent.tsx.
+ * EvidenceTrayFooter and InlineExpandedImage inside Citation.tsx.
  *
  * @packageDocumentation
  */

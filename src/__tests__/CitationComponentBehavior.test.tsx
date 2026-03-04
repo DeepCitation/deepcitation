@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, jest, mock } from "@jest/globals";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import type React from "react";
-import { CitationComponent } from "../react/CitationComponent";
+import { CitationComponent } from "../react/Citation";
 import type { CitationBehaviorActions, CitationBehaviorContext } from "../react/types";
 import type { Citation } from "../types/citation";
 import type { Verification } from "../types/verification";
@@ -495,9 +495,9 @@ describe("CitationComponent behaviorConfig", () => {
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 140));
       });
-      // CitationComponent sets overflow: "hidden" (shorthand) on the popover dialog for
-      // expanded-page state. happy-dom doesn't expand shorthand → check overflow not overflowY.
-      expect((document.querySelector("[role='dialog']") as HTMLElement | null)?.style.overflow).toBe("hidden");
+      // CitationComponent sets overflowX/overflowY: "hidden" (longhand) on the popover dialog
+      // for expanded-page state to avoid React shorthand/longhand conflict with Popover's overflowX.
+      expect((document.querySelector("[role='dialog']") as HTMLElement | null)?.style.overflowX).toBe("hidden");
     });
 
     it("can apply setImageExpanded with string src", async () => {
@@ -2291,6 +2291,63 @@ describe("CitationComponent interactionMode", () => {
       });
 
       // Popover should close immediately (no delay)
+      await waitForPopoverDismissed(container);
+    });
+
+    it("keeps popover wrapper interactive during page scroll activity", async () => {
+      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
+
+      const trigger = container.querySelector("[data-citation-id]") as HTMLElement;
+
+      // Click to open popover
+      await act(async () => {
+        fireEvent.click(trigger);
+      });
+
+      await waitForPopoverVisible(container);
+
+      const wrapper = container.querySelector("[data-dc-popover-wrapper]") as HTMLElement;
+      expect(wrapper).toBeInTheDocument();
+
+      // Simulate active page scroll while popover is open.
+      await act(async () => {
+        fireEvent.scroll(window);
+      });
+
+      await waitFor(() => {
+        expect(window.getComputedStyle(wrapper).pointerEvents).toBe("auto");
+      });
+    });
+
+    it("still dismisses on outside click immediately after page scroll activity", async () => {
+      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
+
+      const trigger = container.querySelector("[data-citation-id]") as HTMLElement;
+
+      // Click to open popover
+      await act(async () => {
+        fireEvent.click(trigger);
+      });
+
+      await waitForPopoverVisible(container);
+
+      const wrapper = container.querySelector("[data-dc-popover-wrapper]") as HTMLElement;
+      expect(wrapper).toBeInTheDocument();
+
+      // Simulate active page scroll while popover is open.
+      await act(async () => {
+        fireEvent.scroll(window);
+      });
+
+      await waitFor(() => {
+        expect(window.getComputedStyle(wrapper).pointerEvents).toBe("auto");
+      });
+
+      // Outside click should dismiss immediately.
+      await act(async () => {
+        fireEvent.mouseDown(document.body);
+      });
+
       await waitForPopoverDismissed(container);
     });
 

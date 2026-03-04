@@ -449,10 +449,54 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     const backToKeyholeButton = popover.getByRole("button", { name: /Close (page|image)/i }).first();
     await expect(backToKeyholeButton).toBeVisible();
     await backToKeyholeButton.dispatchEvent("click");
+    const pageCollapseSamples = await page.evaluate(async () => {
+      const dialog = document.querySelector("[role='dialog']") as HTMLElement | null;
+      if (!dialog) return { maxTransitionSeconds: 0 };
+
+      const parseMaxTransitionSeconds = (value: string): number => {
+        const durations = value
+          .split(",")
+          .map(part => part.trim())
+          .map(part => {
+            if (part.endsWith("ms")) return Number.parseFloat(part) / 1000;
+            if (part.endsWith("s")) return Number.parseFloat(part);
+            return 0;
+          })
+          .filter(n => Number.isFinite(n));
+        return durations.length > 0 ? Math.max(...durations) : 0;
+      };
+
+      let maxTransitionSeconds = 0;
+      const start = performance.now();
+      await new Promise<void>(resolve => {
+        const tick = () => {
+          const visibleInline = Array.from(dialog.querySelectorAll("[data-dc-inline-expanded]")).find(
+            el => (el as HTMLElement).offsetParent !== null,
+          ) as HTMLElement | undefined;
+          if (visibleInline) {
+            const frame = visibleInline.querySelector(":scope > div") as HTMLElement | null;
+            if (frame) {
+              const style = getComputedStyle(frame);
+              const duration = parseMaxTransitionSeconds(style.transitionDuration);
+              if (duration > maxTransitionSeconds) maxTransitionSeconds = duration;
+            }
+          }
+          if (performance.now() - start >= 260) {
+            resolve();
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+
+      return { maxTransitionSeconds };
+    });
     const toPageButtonAfterCollapse = popover.getByRole("button", { name: /Expand to full page/i }).first();
     await expect(toPageButtonAfterCollapse).toBeVisible();
 
     expect(minPageExpandOpacity).toBeGreaterThan(0.8);
+    expect(pageCollapseSamples.maxTransitionSeconds).toBeLessThanOrEqual(0.12);
   });
 });
 

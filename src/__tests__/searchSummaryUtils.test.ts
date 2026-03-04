@@ -3,8 +3,6 @@
  * for not-found citation states.
  *
  * Key behaviors:
- * - Collects unique pages from both pageSearched and foundLocation.page
- * - Formats page range as "page N" or "pages N-M"
  * - Detects full document scans via searchScope === "document"
  * - Surfaces closest match text from verification or failed attempts
  * - Groups attempts by distinct searchPhrase (query-centric)
@@ -28,10 +26,9 @@ function attempt(overrides: Partial<SearchAttempt>): SearchAttempt {
 
 describe("buildSearchSummary", () => {
   describe("empty / zero-attempt cases", () => {
-    it("returns zero totals and empty pageRange for no attempts", () => {
+    it("returns zero totals for no attempts", () => {
       const summary = buildSearchSummary([]);
       expect(summary.totalAttempts).toBe(0);
-      expect(summary.pageRange).toBe("");
       expect(summary.includesFullDocScan).toBe(false);
       expect(summary.closestMatch).toBeUndefined();
       expect(summary.queryGroups).toEqual([]);
@@ -41,75 +38,6 @@ describe("buildSearchSummary", () => {
     it("returns correct totalAttempts", () => {
       const attempts = [attempt({ pageSearched: 1 }), attempt({ pageSearched: 1 }), attempt({ pageSearched: 1 })];
       expect(buildSearchSummary(attempts).totalAttempts).toBe(3);
-    });
-  });
-
-  describe("page range formatting", () => {
-    it("formats single page as 'page N'", () => {
-      const summary = buildSearchSummary([attempt({ pageSearched: 3 })]);
-      expect(summary.pageRange).toBe("page 3");
-    });
-
-    it("formats multiple pages as 'pages N-M' (sorted)", () => {
-      const attempts = [attempt({ pageSearched: 5 }), attempt({ pageSearched: 2 }), attempt({ pageSearched: 4 })];
-      const summary = buildSearchSummary(attempts);
-      expect(summary.pageRange).toBe("pages 2-5");
-    });
-
-    it("deduplicates repeated pageSearched values", () => {
-      const attempts = [attempt({ pageSearched: 2 }), attempt({ pageSearched: 2 }), attempt({ pageSearched: 2 })];
-      const summary = buildSearchSummary(attempts);
-      expect(summary.pageRange).toBe("page 2");
-    });
-
-    it("returns empty pageRange when no pageSearched is set", () => {
-      const summary = buildSearchSummary([attempt({ searchScope: "document" })]);
-      expect(summary.pageRange).toBe("");
-    });
-  });
-
-  describe("adjacent_pages: foundLocation.page dedup", () => {
-    it("includes foundLocation.page in the page range", () => {
-      // adjacent_pages finds text on page 3 when we searched page 2
-      const attempts = [
-        attempt({
-          method: "adjacent_pages",
-          success: true,
-          pageSearched: 2,
-          foundLocation: { page: 3 },
-        }),
-      ];
-      const summary = buildSearchSummary(attempts);
-      expect(summary.pageRange).toBe("pages 2-3");
-    });
-
-    it("deduplicates when foundLocation.page equals pageSearched", () => {
-      const attempts = [
-        attempt({
-          method: "current_page",
-          success: false,
-          pageSearched: 2,
-          foundLocation: { page: 2 },
-        }),
-      ];
-      const summary = buildSearchSummary(attempts);
-      expect(summary.pageRange).toBe("page 2");
-    });
-
-    it("collects foundLocation.page across multiple attempts", () => {
-      const attempts = [
-        attempt({ pageSearched: 2, foundLocation: { page: 4 } }),
-        attempt({ pageSearched: 3, foundLocation: { page: 5 } }),
-      ];
-      const summary = buildSearchSummary(attempts);
-      expect(summary.pageRange).toBe("pages 2-5");
-    });
-
-    it("ignores null foundLocation", () => {
-      const attempts = [attempt({ pageSearched: 2 })];
-      // No foundLocation — should just be page 2
-      const summary = buildSearchSummary(attempts);
-      expect(summary.pageRange).toBe("page 2");
     });
   });
 

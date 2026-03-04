@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
 import { act, cleanup, fireEvent, render, renderHook } from "@testing-library/react";
 import type React from "react";
-import { CitationComponent } from "../react/CitationComponent";
+import { CitationComponent } from "../react/Citation";
 import { CitationDrawer, CitationDrawerItemComponent } from "../react/CitationDrawer";
 import type { CitationDrawerItem, SourceCitationGroup } from "../react/CitationDrawer.types";
 import {
@@ -516,7 +516,7 @@ describe("CitationDrawer", () => {
     const groups = [createGroup("Source A", 2), createGroup("Source B", 1)];
 
     const { getAllByText, getByText } = render(
-      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} showMoreSection={false} />,
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />,
     );
 
     // Multi-citation group: each item renders anchorText via HighlightedPhrase.

@@ -310,8 +310,6 @@ export interface SearchSummary {
   distinctQueries: number;
   includesFullDocScan: boolean;
   closestMatch?: { text: string; page?: number };
-  /** @deprecated Use queryGroups instead */
-  pageRange: string;
 }
 
 /** Map searchPhraseType + method to a phrase type category. */
@@ -453,18 +451,6 @@ export function buildSearchSummary(searchAttempts: SearchAttempt[], verification
     });
   }
 
-  // --- Backwards-compat fields ---
-  let pageRange: string;
-  if (allPagesSearched.size === 0) {
-    pageRange = "";
-  } else if (allPagesSearched.size === 1) {
-    const [page] = allPagesSearched;
-    pageRange = `page ${page}`;
-  } else {
-    const sorted = Array.from(allPagesSearched).sort((a, b) => a - b);
-    pageRange = `pages ${sorted[0]}-${sorted[sorted.length - 1]}`;
-  }
-
   // Closest match
   let closestMatch: SearchSummary["closestMatch"];
   if (verification?.verifiedMatchSnippet) {
@@ -492,6 +478,5 @@ export function buildSearchSummary(searchAttempts: SearchAttempt[], verification
     distinctQueries: queryGroups.length,
     includesFullDocScan,
     closestMatch,
-    pageRange,
   };
 }

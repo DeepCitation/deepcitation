@@ -2,7 +2,7 @@
  * Citation status derivation — single source of truth.
  *
  * Consolidates all status classification logic that was previously duplicated
- * across CitationComponent.tsx and CitationDrawer.utils.tsx. Every function
+ * across Citation.tsx and CitationDrawer.utils.tsx. Every function
  * that needs to know "is this a partial match?" or "what trust level?" should
  * import from here.
  *

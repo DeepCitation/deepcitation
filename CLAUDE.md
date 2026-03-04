@@ -56,7 +56,7 @@ src/
 │   └── promptCompression.ts
 ├── react/
 │   ├── index.ts              # Public API types + consumer-facing exports
-│   ├── CitationComponent.tsx       # Document citation (popover wiring) + URL citation (UrlCitationComponent, MemoizedUrlCitationComponent)
+│   ├── Citation.tsx       # Document citation (popover wiring) + URL citation (UrlCitationComponent, MemoizedUrlCitationComponent)
 │   ├── CitationContentDisplay.tsx  # Variant rendering (chip, superscript, badge, etc.)
 │   ├── CitationErrorBoundary.tsx   # Error boundary for citation components
 │   ├── CitationStatusIndicator.tsx # Status indicators (verified/partial/miss/pending dots & icons)
@@ -270,9 +270,9 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `getExpandedPopoverWidth()` | `src/react/expandedWidthPolicy.ts` | Computes expanded popover width from image width |
 | `getInteractionClasses()` | `src/react/CitationContentDisplay.utils.ts` | Hover/active interaction classes for citation triggers |
 | `VARIANTS_WITH_OWN_HOVER` | `src/react/CitationContentDisplay.utils.ts` | Set of variants handling own hover styling |
-| `openedViaKeyboardRef` | `src/react/CitationComponent.tsx` | Tracks keyboard vs mouse/touch open (focus trap + focus return) |
-| `UrlCitationComponent` | `src/react/CitationComponent.tsx` | URL citation display (badge/chip/inline/bracket variants) — co-located with CitationComponent |
-| `MemoizedUrlCitationComponent` | `src/react/CitationComponent.tsx` | Memoized URL citation component |
+| `openedViaKeyboardRef` | `src/react/Citation.tsx` | Tracks keyboard vs mouse/touch open (focus trap + focus return) |
+| `UrlCitationComponent` | `src/react/Citation.tsx` | URL citation display (badge/chip/inline/bracket variants) — co-located with CitationComponent |
+| `MemoizedUrlCitationComponent` | `src/react/Citation.tsx` | Memoized URL citation component |
 | `AnimatedHeightWrapper` | `src/react/DefaultPopoverContent.tsx` | Height morph wrapper (keep DOM, never Fragment) |
 
 ### Example
@@ -378,7 +378,7 @@ Pick a side once, stick with it for the popover's entire lifecycle (matches Line
 ### Correct Pattern
 
 ```tsx
-// CitationComponent.tsx — <PopoverContent> props
+// Citation.tsx — <PopoverContent> props
 side={lockedSide}              // Same side for all view states
 sideOffset={expandedPageSideOffset}  // Positions expanded-page at viewport edge
 alignOffset={popoverAlignOffset}     // Horizontal viewport clamping
@@ -406,7 +406,7 @@ The popover system has specific accessibility patterns that must be preserved. T
 
 **NEVER set `inert` on `document.body` when portaling content into it.** The popover portal renders inside `document.body` — setting `inert` on body makes the popover itself inert.
 
-The focus trap in `CitationComponent.tsx` uses `inert` to prevent Tab from escaping the popover into background content. It only activates for keyboard-opened popovers (`openedViaKeyboardRef.current === true`):
+The focus trap in `Citation.tsx` uses `inert` to prevent Tab from escaping the popover into background content. It only activates for keyboard-opened popovers (`openedViaKeyboardRef.current === true`):
 
 ```typescript
 // CORRECT — inert on <main>, popover portal is a sibling

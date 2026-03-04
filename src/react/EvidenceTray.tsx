@@ -3,7 +3,7 @@
  * display logic for the citation popover "proof zone".
  *
  * Contains all evidence-display components that were previously in
- * CitationComponent.tsx: image resolution, keyhole viewer, evidence tray,
+ * Citation.tsx: image resolution, keyhole viewer, evidence tray,
  * expanded page viewer, search analysis, and supporting utilities.
  *
  * @packageDocumentation
@@ -58,12 +58,6 @@ import {
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
-import {
-  isValidSharedOriginRect,
-  type SharedOriginRect,
-  toSharedOriginRect,
-  useSharedOriginExpandTransition,
-} from "./hooks/useSharedOriginExpandTransition.js";
 import { useWheelZoom, type WheelZoomAnchor } from "./hooks/useWheelZoom.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
@@ -72,6 +66,7 @@ import { getUniqueSearchAttemptCount } from "./searchAttemptGrouping.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
+import { DC_EVIDENCE_VT_NAME } from "./viewTransition.js";
 import { ZoomToolbar } from "./ZoomToolbar.js";
 
 // =============================================================================
@@ -117,39 +112,6 @@ function animateScrollLeft(el: HTMLElement, targetLeft: number): () => void {
   return () => {
     cancelled = true;
   };
-}
-
-function parsePercent(value: string): number {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function intersectRects(a: SharedOriginRect, b: SharedOriginRect): SharedOriginRect | null {
-  const left = Math.max(a.left, b.left);
-  const top = Math.max(a.top, b.top);
-  const right = Math.min(a.left + a.width, b.left + b.width);
-  const bottom = Math.min(a.top + a.height, b.top + b.height);
-  const width = right - left;
-  const height = bottom - top;
-  if (width <= 0 || height <= 0) return null;
-  return { left, top, width, height };
-}
-
-function computeDeepItemViewportRect(
-  item: DeepTextItem,
-  renderScale: { x: number; y: number },
-  imageNaturalWidth: number,
-  imageNaturalHeight: number,
-  imageViewportRect: SharedOriginRect,
-): SharedOriginRect | null {
-  const percentRect = toPercentRect(item, renderScale, imageNaturalWidth, imageNaturalHeight);
-  if (!percentRect) return null;
-  const left = imageViewportRect.left + (parsePercent(percentRect.left) / 100) * imageViewportRect.width;
-  const top = imageViewportRect.top + (parsePercent(percentRect.top) / 100) * imageViewportRect.height;
-  const width = (parsePercent(percentRect.width) / 100) * imageViewportRect.width;
-  const height = (parsePercent(percentRect.height) / 100) * imageViewportRect.height;
-  const rect = { left, top, width, height };
-  return isValidSharedOriginRect(rect) ? rect : null;
 }
 
 // Evidence list expand/collapse uses an inlined motion state machine instead of
@@ -389,7 +351,6 @@ function ZoomHint({
   hasZoomed: boolean;
   enabled?: boolean;
 }) {
-  const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(() => {
     try {
       return sessionStorage.getItem(ZOOM_HINT_SESSION_KEY) === "1";
@@ -398,30 +359,40 @@ function ZoomHint({
     }
   });
 
-  // Show after hover dwell
+  // Render-time dismissal: derive from hasZoomed (avoids set-state-in-effect).
+  // React detects this, aborts the current render, and retries immediately.
+  if (hasZoomed && !dismissed) {
+    setDismissed(true);
+  }
+
+  // Persist dismissal to sessionStorage (side effect only — no setState).
   useEffect(() => {
-    if (!enabled || dismissed || hasZoomed || !isHovering) {
-      setVisible(false);
-      return;
+    if (!dismissed) return;
+    try {
+      sessionStorage.setItem(ZOOM_HINT_SESSION_KEY, "1");
+    } catch {
+      /* quota exceeded — harmless */
     }
-    const timer = setTimeout(() => setVisible(true), ZOOM_HINT_DELAY_MS);
+  }, [dismissed]);
+
+  // Derive visibility from conditions (no `visible` state needed).
+  // Timer fires only when shouldShow is true; `timerFired` resets on shouldShow transitions.
+  const shouldShow = enabled && !dismissed && !hasZoomed && isHovering;
+  const [timerFired, setTimerFired] = useState(false);
+  const [prevShouldShow, setPrevShouldShow] = useState(shouldShow);
+  if (prevShouldShow !== shouldShow) {
+    setPrevShouldShow(shouldShow);
+    if (timerFired) setTimerFired(false);
+  }
+
+  // Hover dwell timer — only async setState (inside setTimeout), no synchronous setState.
+  useEffect(() => {
+    if (!shouldShow) return;
+    const timer = setTimeout(() => setTimerFired(true), ZOOM_HINT_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [enabled, isHovering, dismissed, hasZoomed]);
+  }, [shouldShow]);
 
-  // Dismiss permanently on first zoom
-  useEffect(() => {
-    if (hasZoomed && !dismissed) {
-      setDismissed(true);
-      setVisible(false);
-      try {
-        sessionStorage.setItem(ZOOM_HINT_SESSION_KEY, "1");
-      } catch {
-        /* quota exceeded — harmless */
-      }
-    }
-  }, [hasZoomed, dismissed]);
-
-  if (!visible) return null;
+  if (!shouldShow || !timerFired) return null;
 
   return (
     <div
@@ -455,7 +426,6 @@ export function AnchorTextFocusedImage({
   onImageClick,
   onKeyholeWidth,
   onScrollCapture,
-  onExpandOriginCapture,
 }: {
   src: string;
   verification?: Verification | null;
@@ -463,8 +433,6 @@ export function AnchorTextFocusedImage({
   onKeyholeWidth?: (width: number) => void;
   /** Called with natural-pixel scroll coords just before onImageClick fires. */
   onScrollCapture?: (left: number, top: number) => void;
-  /** Called with a viewport rect used as the shared-origin source for expand-to-page. */
-  onExpandOriginCapture?: (rect: SharedOriginRect) => void;
 }) {
   // Anchor item and renderScale for scroll positioning.
   // Uses anchorTextMatchDeepItems[0] (specific cited word) with phraseMatchDeepItem fallback.
@@ -479,13 +447,6 @@ export function AnchorTextFocusedImage({
     if (!renderScale) return null;
     return { anchorItem, renderScale };
   }, [verification]);
-  const phraseItem = verification?.document?.phraseMatchDeepItem ?? null;
-  const anchorItem = verification?.document?.anchorTextMatchDeepItems?.[0] ?? null;
-  const sourceRenderScale = verification?.pages?.find(p => p.isMatchPage)?.renderScale ?? null;
-  const shouldUseAnchorOrigin =
-    !!anchorItem && shouldHighlightAnchorText(verification?.verifiedAnchorText, verification?.verifiedFullPhrase);
-  const sourceOriginItem = shouldUseAnchorOrigin ? anchorItem : phraseItem;
-
   // Drag-to-pan hook for mouse interaction (xy enables vertical pan for width-fit tall images;
   // when no vertical overflow exists, scrollTop stays 0 — no visible effect on normal crops).
   const { containerRef, isDragging, handlers, scrollState, wasDraggingRef } = useDragToPan({ direction: "xy" });
@@ -509,14 +470,6 @@ export function AnchorTextFocusedImage({
   /** Cancel handle for the current `animateScrollLeft` rAF loop (if any). */
   const cancelPanRef = useRef<(() => void) | null>(null);
   const keyholeInitAppliedRef = useRef(false);
-  useEffect(() => {
-    keyholeInitAppliedRef.current = false;
-    setImageLoaded(false);
-    setImageFitInfo(null);
-    setZoomEligible(false);
-    setKeyholeZoom(1.0);
-    setHasZoomed(false);
-  }, [src]);
 
   const clampKeyholeZoomRaw = useCallback((z: number) => Math.max(KEYHOLE_ZOOM_MIN, Math.min(KEYHOLE_ZOOM_MAX, z)), []);
   const clampKeyholeZoom = useCallback(
@@ -629,7 +582,7 @@ export function AnchorTextFocusedImage({
       }
     } else {
       // Height-fit mode (default): detect whether the image nearly fits within the keyhole.
-      // Uses KEYHOLE_SKIP_THRESHOLD (1.5) so images up to 50% taller than the strip
+      // Uses KEYHOLE_SKIP_THRESHOLD (2.0) so images up to 100% taller than the strip
       // are treated as "fits" — expanding would reveal almost nothing new.
       // displayedWidth <= containerWidth → image is narrow enough to show in full horizontally.
       // When both are true, the keyhole already reveals nearly everything — expand adds no value.
@@ -717,49 +670,6 @@ export function AnchorTextFocusedImage({
     [imageFitInfo, keyholeZoom],
   );
 
-  const captureExpandOriginRect = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const fallbackRect = toSharedOriginRect(container.getBoundingClientRect());
-    let captured: SharedOriginRect | null = null;
-
-    const img = imageRef.current;
-    if (
-      img &&
-      sourceOriginItem &&
-      sourceRenderScale &&
-      img.naturalWidth > 0 &&
-      img.naturalHeight > 0 &&
-      Number.isFinite(sourceRenderScale.x) &&
-      Number.isFinite(sourceRenderScale.y) &&
-      sourceRenderScale.x > 0 &&
-      sourceRenderScale.y > 0
-    ) {
-      const stripHeight = container.clientHeight;
-      const displayedScale = getDisplayedScale(img, stripHeight);
-
-      if (Number.isFinite(displayedScale) && displayedScale > 0) {
-        const containerRect = toSharedOriginRect(container.getBoundingClientRect());
-        const imageViewportRect: SharedOriginRect = {
-          left: containerRect.left - container.scrollLeft,
-          top: containerRect.top - container.scrollTop,
-          width: img.naturalWidth * displayedScale,
-          height: img.naturalHeight * displayedScale,
-        };
-        const deepRect = computeDeepItemViewportRect(
-          sourceOriginItem,
-          sourceRenderScale,
-          img.naturalWidth,
-          img.naturalHeight,
-          imageViewportRect,
-        );
-        captured = deepRect ? intersectRects(deepRect, containerRect) : null;
-      }
-    }
-
-    onExpandOriginCapture?.(isValidSharedOriginRect(captured) ? captured : fallbackRect);
-  }, [containerRef, getDisplayedScale, onExpandOriginCapture, sourceOriginItem, sourceRenderScale]);
-
   return (
     <div className="relative">
       {/* Keyhole strip container — clickable to expand, draggable to pan.
@@ -797,7 +707,6 @@ export function AnchorTextFocusedImage({
               return;
             }
             if (canExpand) {
-              captureExpandOriginRect();
               // Capture scroll position in natural-pixel coords before handing off to expanded view
               const img = imageRef.current;
               const container = containerRef.current;
@@ -820,6 +729,7 @@ export function AnchorTextFocusedImage({
               isWidthFit || keyholeZoom > 1 ? "overflow-auto" : "overflow-x-auto overflow-y-hidden",
             )}
             style={{
+              viewTransitionName: DC_EVIDENCE_VT_NAME,
               height: stripHeightStyle,
               // Fade mask only applies in height-fit mode (horizontal overflow).
               // In width-fit mode, there's no horizontal overflow so mask is "none" automatically.
@@ -941,23 +851,26 @@ export function AnchorTextFocusedImage({
 // =============================================================================
 
 /**
- * Minimal footer for the evidence tray: date on the left, "View page ›" CTA on the right.
+ * Minimal footer for the evidence tray: date on the left, CTA on the right.
  * For miss states, an optional "› N searches" toggle sits between the date and CTA.
  */
 function EvidenceTrayFooter({
   verifiedAt,
   onPageClick,
   pageNumberForCta,
+  pageCtaLabel,
   searchCount,
   isSearchLogOpen,
   onToggleSearchLog,
   locationLabel,
 }: {
   verifiedAt?: Date | string | null;
-  /** When provided, renders a "View page" CTA button */
+  /** When provided, renders a footer CTA button */
   onPageClick?: () => void;
   /** Optional page number to include in the CTA label (drawer context). */
   pageNumberForCta?: number | null;
+  /** Optional CTA label override (for example, "View image"). */
+  pageCtaLabel?: string;
   /** Number of grouped search attempts (toggle hidden when 0 or absent) */
   searchCount?: number;
   /** Whether the search log is currently expanded */
@@ -971,7 +884,7 @@ function EvidenceTrayFooter({
   const dateStr = formatted?.display ?? "";
   const showToggle = onToggleSearchLog && searchCount != null && searchCount > 0;
   const hasPageForCta = pageNumberForCta != null && pageNumberForCta > 0;
-  const pageCtaLabel = hasPageForCta ? `View page ${pageNumberForCta}` : "View page";
+  const resolvedPageCtaLabel = pageCtaLabel ?? (hasPageForCta ? `View page ${pageNumberForCta}` : "View page");
 
   return (
     <div className="px-3 py-2 min-h-[44px] flex items-center text-[11px] text-gray-400 dark:text-gray-500">
@@ -1025,9 +938,9 @@ function EvidenceTrayFooter({
               e.stopPropagation();
               onPageClick();
             }}
-            aria-label={pageCtaLabel}
+            aria-label={resolvedPageCtaLabel}
           >
-            <span>{pageCtaLabel}</span>
+            <span>{resolvedPageCtaLabel}</span>
             <span className="size-3 shrink-0">
               <ChevronRightIcon />
             </span>
@@ -1117,9 +1030,9 @@ export function EvidenceTray({
   onImageClick,
   proofImageSrc,
   pageNumberForCta,
+  pageCtaLabel,
   onKeyholeWidth,
   onScrollCapture,
-  onExpandOriginCapture,
   escapeInterceptRef,
 }: {
   verification: Verification | null;
@@ -1129,11 +1042,11 @@ export function EvidenceTray({
   proofImageSrc?: string;
   /** Optional page number shown in "View page N" CTA for drawer context. */
   pageNumberForCta?: number | null;
+  /** Optional footer CTA label override (for example, "View image"). */
+  pageCtaLabel?: string;
   onKeyholeWidth?: (width: number) => void;
   /** Called with natural-pixel scroll coords when the keyhole is clicked to expand. */
   onScrollCapture?: (left: number, top: number) => void;
-  /** Called with a viewport rect used as the shared-origin source for expand-to-page. */
-  onExpandOriginCapture?: (rect: SharedOriginRect) => void;
   /** Ref the parent reads in its Escape handler — set to a collapse fn when the search log is open. */
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
 }) {
@@ -1154,21 +1067,9 @@ export function EvidenceTray({
   const trayMouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const trayRootRef = useRef<HTMLDivElement>(null);
 
-  const captureTrayOriginRect = useCallback(() => {
-    if (!onExpandOriginCapture) return;
-    const keyhole = trayRootRef.current?.querySelector<HTMLElement>("[data-dc-keyhole]");
-    if (keyhole) {
-      onExpandOriginCapture(toSharedOriginRect(keyhole.getBoundingClientRect()));
-      return;
-    }
-    const root = trayRootRef.current;
-    if (root) onExpandOriginCapture(toSharedOriginRect(root.getBoundingClientRect()));
-  }, [onExpandOriginCapture]);
-
   const handlePageExpand = useCallback(() => {
-    captureTrayOriginRect();
     onExpand?.();
-  }, [captureTrayOriginRect, onExpand]);
+  }, [onExpand]);
 
   // Search log toggle state (miss and partial states)
   const [showSearchLog, setShowSearchLog] = useState(false);
@@ -1313,6 +1214,7 @@ export function EvidenceTray({
       verifiedAt={verification?.verifiedAt}
       onPageClick={onExpand ? handlePageExpand : undefined}
       pageNumberForCta={pageNumberForCta}
+      pageCtaLabel={pageCtaLabel}
       searchCount={isMiss || isPartialMatch ? searchCount : undefined}
       isSearchLogOpen={showSearchLog}
       onToggleSearchLog={isMiss || isPartialMatch ? () => setShowSearchLog(prev => !prev) : undefined}
@@ -1326,22 +1228,20 @@ export function EvidenceTray({
           Keys prevent React from reusing fibers across component-type swaps. */}
       {resolvedEvidenceSrc ? (
         <AnchorTextFocusedImage
-          key="keyhole"
+          key={resolvedEvidenceSrc}
           src={resolvedEvidenceSrc}
           verification={verification}
           onImageClick={onImageClick}
           onKeyholeWidth={onKeyholeWidth}
           onScrollCapture={onScrollCapture}
-          onExpandOriginCapture={onExpandOriginCapture}
         />
       ) : (isMiss || isPartialMatch) && isValidProofImageSrc(proofImageSrc) ? (
         <AnchorTextFocusedImage
-          key="keyhole-miss"
+          key={proofImageSrc}
           src={proofImageSrc}
           onImageClick={onImageClick}
           onKeyholeWidth={onKeyholeWidth}
           onScrollCapture={onScrollCapture}
-          onExpandOriginCapture={onExpandOriginCapture}
         />
       ) : null}
       {/* Miss/partial: search analysis and collapsible search log (only when there are search attempts) */}
@@ -1471,7 +1371,7 @@ export function InlineExpandedImage({
   fill = false,
   onExpand,
   pageNumberForCta,
-  onExpandOriginCapture,
+  expandCtaLabel,
   onNaturalSize,
   renderScale,
   highlightItem,
@@ -1479,20 +1379,18 @@ export function InlineExpandedImage({
   initialOverlayHidden = false,
   showOverlay,
   initialScroll,
-  expandFromRect,
-  onExpandFromRectConsumed,
 }: {
   src: string;
   onCollapse: () => void;
   verification?: Verification | null;
   /** When true, the component expands to fill its flex parent (for use inside flex-column containers). */
   fill?: boolean;
-  /** When provided, renders a "View page ›" CTA in the non-fill footer. */
+  /** When provided, renders a CTA in the non-fill footer (defaults to "View page"). */
   onExpand?: () => void;
   /** Optional page number shown in "View page N" CTA for non-fill mode. */
   pageNumberForCta?: number | null;
-  /** Called with a viewport rect used as the shared-origin source for expand-to-page. */
-  onExpandOriginCapture?: (rect: SharedOriginRect) => void;
+  /** Optional non-fill footer CTA label override (for example, "View image"). */
+  expandCtaLabel?: string;
   /** Called after image load with natural pixel dimensions. */
   onNaturalSize?: (width: number, height: number) => void;
   /** Scale factors for converting DeepTextItem PDF coords to image pixels. */
@@ -1514,10 +1412,6 @@ export function InlineExpandedImage({
    * where the keyhole strip was scrolled to. A new object reference = re-apply.
    */
   initialScroll?: { left: number; top: number };
-  /** Shared-origin source rect captured from the prior keyhole/annotation state. */
-  expandFromRect?: SharedOriginRect | null;
-  /** Called once a shared-origin rect is consumed (transition completed or skipped). */
-  onExpandFromRectConsumed?: () => void;
 }) {
   const { containerRef, isDragging, handlers: panHandlers, wasDraggingRef } = useDragToPan({ direction: "xy" });
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -1662,6 +1556,7 @@ export function InlineExpandedImage({
   // annotationScrollTarget to satisfy the React Compiler's declaration-order requirement.
   // ---------------------------------------------------------------------------
   const [locateDirty, setLocateDirty] = useState(false);
+  const [locatePulseKey, setLocatePulseKey] = useState(0);
   // Ref storing the expected scroll position after a programmatic scroll.
   // Used by the scroll listener to detect user-initiated drift.
   const annotationScrollTarget = useRef<{ left: number; top: number } | null>(null);
@@ -1996,21 +1891,10 @@ export function InlineExpandedImage({
   // Compute effective image width for zoom
   const zoomedWidth = fill && naturalWidth ? naturalWidth * zoom : undefined;
 
-  // Lock the outer container width while the range slider is being dragged so
-  // the absolutely-positioned zoom controls don't shift under the user's cursor.
-  // When maxWidth shrinks (zoom-out), the container's right edge moves left,
-  // pulling the controls along. minWidth >= maxWidth overrides the shrink.
-  const outerRef = useRef<HTMLDivElement>(null);
-  const [sliderLockWidth, setSliderLockWidth] = useState<number | null>(null);
-  useEffect(() => {
-    if (sliderLockWidth === null) return;
-    const unlock = () => setSliderLockWidth(null);
-    document.addEventListener("pointerup", unlock, { once: true });
-    return () => document.removeEventListener("pointerup", unlock);
-  }, [sliderLockWidth]);
-
   // Show zoom controls in fill mode when image has loaded
   const showZoomControls = fill && imageLoaded && naturalWidth !== null;
+  // Locate button shows when we are capable of drawing an overlay (annotation + renderScale exist).
+  // Stays visible even when the overlay is currently dismissed (effectiveOverlayHidden).
   const showScrollToAnnotation = showZoomControls && !!effectivePhraseItem && !!renderScale;
 
   // Compute transform-origin from annotation position (fill mode only).
@@ -2023,45 +1907,31 @@ export function InlineExpandedImage({
     annotationOriginItem && renderScale && naturalWidth && naturalHeight
       ? computeAnnotationOriginPercent(annotationOriginItem, renderScale, naturalWidth, naturalHeight)
       : null;
-  const resolveExpandTargetRect = useCallback((): SharedOriginRect | null => {
-    const wrapper = imageWrapperRef.current;
-    if (!wrapper) return null;
-    return toSharedOriginRect(wrapper.getBoundingClientRect());
-  }, []);
 
-  const captureExpandOriginRect = useCallback(() => {
-    if (!onExpandOriginCapture) return;
-    const container = containerRef.current;
-    if (!container) return;
-    const fallbackRect = toSharedOriginRect(container.getBoundingClientRect());
-    let captured: SharedOriginRect | null = null;
-    if (annotationOriginItem && renderScale && naturalWidth && naturalHeight && imageWrapperRef.current) {
-      const imageRect = toSharedOriginRect(imageWrapperRef.current.getBoundingClientRect());
-      const deepRect = computeDeepItemViewportRect(
-        annotationOriginItem,
-        renderScale,
-        naturalWidth,
-        naturalHeight,
-        imageRect,
-      );
-      captured = deepRect ? intersectRects(deepRect, fallbackRect) : null;
-    }
-    onExpandOriginCapture(isValidSharedOriginRect(captured) ? captured : fallbackRect);
-  }, [annotationOriginItem, containerRef, naturalHeight, naturalWidth, onExpandOriginCapture, renderScale]);
+  // Annotation rect as CSS percentages — used as the View Transition anchor
+  // in fill mode so the VT geometry morph tracks the annotation region instead
+  // of the whole page container. When null, falls back to container-level VT.
+  const annotationVtRect =
+    fill && effectivePhraseItem && renderScale && naturalWidth && naturalHeight
+      ? toPercentRect(effectivePhraseItem, renderScale, naturalWidth, naturalHeight)
+      : null;
 
   const handleExpandToPage = useCallback(() => {
-    captureExpandOriginRect();
     onExpand?.();
-  }, [captureExpandOriginRect, onExpand]);
+  }, [onExpand]);
 
-  useSharedOriginExpandTransition(
-    fill,
-    expandFromRect ?? null,
-    resolveExpandTargetRect,
-    animatedShellRef,
-    containerRef,
-    onExpandFromRectConsumed,
-  );
+  const handleCollapse = useCallback(() => {
+    onCollapse();
+  }, [onCollapse]);
+
+  const handleOverlayDismiss = useCallback(() => {
+    setOverlayHidden(true);
+    // Emphasize the locate button so the user sees where to restore the overlay.
+    // locateDirty makes it prominent (blue, high opacity); locatePulseKey fires
+    // the scale+color pulse animation to draw the eye.
+    setLocateDirty(true);
+    setLocatePulseKey(prev => prev + 1);
+  }, []);
 
   const footerEl = (
     <div className="bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
@@ -2069,21 +1939,19 @@ export function InlineExpandedImage({
         verifiedAt={verification?.verifiedAt}
         onPageClick={fill ? undefined : handleExpandToPage}
         pageNumberForCta={pageNumberForCta}
+        pageCtaLabel={expandCtaLabel}
       />
     </div>
   );
 
   return (
     <div
-      ref={outerRef}
       className={cn("relative mx-3 mb-3", fill && "flex flex-col flex-1 min-h-0")}
       style={
         fill
           ? undefined // fill mode: container fills popover width, image scrolls inside
           : zoomedWidth
-            ? sliderLockWidth
-              ? { width: sliderLockWidth, minWidth: sliderLockWidth, maxWidth: sliderLockWidth }
-              : { maxWidth: zoomedWidth }
+            ? { maxWidth: zoomedWidth }
             : naturalWidth
               ? { maxWidth: naturalWidth }
               : undefined
@@ -2109,7 +1977,7 @@ export function InlineExpandedImage({
           style={{
             ...(fill ? {} : { maxHeight: "min(600px, 80dvh)" }),
             overscrollBehavior: "none",
-            cursor: isDragging ? "grabbing" : "zoom-out",
+            cursor: isDragging ? "move" : "zoom-out",
             ...HIDE_SCROLLBAR_STYLE,
           }}
           onDragStart={e => e.preventDefault()}
@@ -2119,7 +1987,7 @@ export function InlineExpandedImage({
               wasDraggingRef.current = false;
               return;
             }
-            onCollapse();
+            handleCollapse();
           }}
           onKeyDown={e => {
             if (e.key === "Escape") {
@@ -2133,13 +2001,13 @@ export function InlineExpandedImage({
               // of the "step back" branch.
               e.preventDefault();
               e.stopPropagation();
-              onCollapse();
+              handleCollapse();
               return;
             }
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               e.stopPropagation();
-              onCollapse();
+              handleCollapse();
               return;
             }
             // A.5.4 Arrow key panning for expanded-page: Shift = large pan (200px), default = 50px.
@@ -2175,6 +2043,11 @@ export function InlineExpandedImage({
             key={src}
             ref={animatedShellRef}
             style={{
+              // In fill mode with annotation data, the VT name moves to a positioned
+              // marker div at the annotation rect (below) so the geometry morph tracks
+              // the annotation region, not the whole page. Without annotation data,
+              // keep VT name here as a fallback.
+              ...(!annotationVtRect ? { viewTransitionName: DC_EVIDENCE_VT_NAME } : {}),
               ...(annotationOrigin
                 ? { transformOrigin: `${annotationOrigin.xPercent}% ${annotationOrigin.yPercent}%` }
                 : undefined),
@@ -2235,9 +2108,25 @@ export function InlineExpandedImage({
                     anchorTextDeepItem={effectiveAnchorItem}
                     anchorText={verification?.verifiedAnchorText}
                     fullPhrase={verification?.verifiedFullPhrase}
-                    onDismiss={fill ? () => setOverlayHidden(true) : undefined}
+                    onDismiss={fill ? handleOverlayDismiss : undefined}
                   />
                 )}
+              {/* View Transition anchor: positioned at the annotation rect so the
+                  VT geometry morph tracks the annotation region between views.
+                  The keyhole strip's VT name covers the evidence crop; this marker
+                  covers the corresponding region on the full page. The browser
+                  morphs between the two rects, creating a "fly to position" effect. */}
+              {annotationVtRect && (
+                <div
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    ...annotationVtRect,
+                    viewTransitionName: DC_EVIDENCE_VT_NAME,
+                    pointerEvents: "none",
+                  }}
+                />
+              )}
             </div>
           </div>
           {/* In fill mode, footer sits inside the scroll area right below the page image */}
@@ -2256,9 +2145,7 @@ export function InlineExpandedImage({
             showLocate={showScrollToAnnotation}
             onLocate={handleScrollToAnnotation}
             locateDirty={locateDirty}
-            onSliderGrab={() => {
-              if (outerRef.current) setSliderLockWidth(outerRef.current.offsetWidth);
-            }}
+            locatePulseKey={locatePulseKey}
           />
         )}
       </div>

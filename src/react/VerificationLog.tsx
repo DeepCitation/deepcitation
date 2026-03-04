@@ -2,8 +2,8 @@ import { type ReactNode, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
-import { safeTest } from "../utils/regexSafety.js";
-import { UrlCitationComponent } from "./CitationComponent.js";
+
+import { UrlCitationComponent } from "./Citation.js";
 import {
   DOT_COLORS,
   FOCUS_RING_CLASSES,
@@ -30,9 +30,6 @@ import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 // import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 
 import { cn, isImageSource, isUrlCitation } from "./utils.js";
-
-/** Pattern for detecting converted PDF labels on URL citations */
-const PDF_LABEL_PATTERN = /\.pdf$/i;
 
 /**
  * Statuses that show only the successful hit (not the full search trail).
@@ -99,6 +96,11 @@ const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   custom_phrase_fallback: "Custom search",
   keyspan_fallback: "Anchor text",
 };
+
+const HEADER_DOWNLOAD_BUTTON_BASE_CLASSES =
+  "shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-[opacity,color] duration-150";
+const HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES =
+  "focus-visible:opacity-100 focus-visible:pointer-events-auto md:opacity-30 md:group-hover/source-header:opacity-100 md:group-hover/source-header:pointer-events-auto md:group-focus-within/source-header:opacity-100 md:group-focus-within/source-header:pointer-events-auto";
 
 // =============================================================================
 // SOURCE CONTEXT HEADER COMPONENT
@@ -199,8 +201,25 @@ const DOWNLOAD_IFRAME_DATA_ATTR = "data-deepcitation-download-frame";
 const DOWNLOAD_IFRAME_CLEANUP_DELAY_MS = 30_000;
 
 /**
+ * Returns true when the URL shares the same origin as the current page.
+ * Falls back to false for invalid URLs or SSR contexts.
+ */
+function isSameOrigin(url: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return new URL(url, window.location.origin).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Triggers a download in a background browsing context so the current view
  * remains visible even when the browser ignores anchor `download`.
+ *
+ * Same-origin URLs use a hidden iframe for a seamless download experience.
+ * Cross-origin URLs use an `<a download>` click to avoid CSP frame-ancestors
+ * errors (proof.deepcitation.com blocks framing from other origins).
  */
 function triggerBackgroundDownload(url: string): void {
   if (typeof document === "undefined") {
@@ -209,7 +228,7 @@ function triggerBackgroundDownload(url: string): void {
 
   const isHappyDom = typeof navigator !== "undefined" && /HappyDOM/i.test(navigator.userAgent);
 
-  const fallbackDownload = () => {
+  const anchorDownload = () => {
     const a = document.createElement("a");
     a.href = url;
     a.download = "";
@@ -223,8 +242,10 @@ function triggerBackgroundDownload(url: string): void {
     a.remove();
   };
 
-  if (isHappyDom) {
-    fallbackDownload();
+  // HappyDOM (test env) and cross-origin URLs use the anchor approach.
+  // Cross-origin iframes are blocked by CSP frame-ancestors on proof pages.
+  if (isHappyDom || !isSameOrigin(url)) {
+    anchorDownload();
     return;
   }
 
@@ -254,7 +275,7 @@ function triggerBackgroundDownload(url: string): void {
   } catch {
     window.clearTimeout(timeoutId);
     cleanup();
-    fallbackDownload();
+    anchorDownload();
   }
 }
 
@@ -446,12 +467,13 @@ export function SourceContextHeader({
   const showPagePill = !!onExpand || !!onClose;
   // URL-specific data
   const url = isUrl ? citation.url || "" : "";
-  const hasConvertedUrlPdf =
-    !!verification?.attachmentId ||
-    (typeof verification?.label === "string" && safeTest(PDF_LABEL_PATTERN, verification.label));
-  const shouldShowDownloadButton = !!onSourceDownload && (!isUrl || hasConvertedUrlPdf);
+  // Show the source download button whenever the caller provides onSourceDownload.
+  // The caller (CitationComponent) already resolved whether a downloadable source
+  // exists (via the downloadUrl prop), so we trust that signal unconditionally.
+  const shouldShowSourceDownloadButton = !!onSourceDownload;
   const imageDownloadUrl = resolveImageDownloadUrl(verification);
-  const shouldShowImageDownloadButton = !!imageDownloadUrl;
+  // Keep a single download action visible: explicit source-download callback wins.
+  const shouldShowImageDownloadButton = !!imageDownloadUrl && !shouldShowSourceDownloadButton;
 
   // Display name for document citations (never show attachmentId to users)
   const displayName = isUrl ? undefined : sourceLabel || verification?.label || "Document";
@@ -469,8 +491,8 @@ export function SourceContextHeader({
         if (e.key !== "Escape") e.stopPropagation();
       }}
     >
-      {/* Left: Icon + source name */}
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      {/* Left: Icon + source name + contextual download */}
+      <div className="group/source-header flex items-center gap-2 min-w-0 flex-1">
         {isUrl ? (
           <UrlCitationComponent
             urlMeta={{
@@ -499,15 +521,12 @@ export function SourceContextHeader({
             )}
           </>
         )}
-      </div>
-      {/* Right: Download + Proof link (expanded view) + Page pill */}
-      <div className="flex items-center gap-3">
         {shouldShowImageDownloadButton && (
           <button
             type="button"
             aria-label="Download image"
             title="Download evidence image"
-            className="shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+            className={cn(HEADER_DOWNLOAD_BUTTON_BASE_CLASSES, HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES)}
             onClick={e => {
               e.stopPropagation();
               if (!imageDownloadUrl) return;
@@ -519,12 +538,12 @@ export function SourceContextHeader({
             </span>
           </button>
         )}
-        {shouldShowDownloadButton && (
+        {shouldShowSourceDownloadButton && (
           <button
             type="button"
             aria-label="Download source"
             title={`Download ${displayName ?? url}`}
-            className="shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+            className={cn(HEADER_DOWNLOAD_BUTTON_BASE_CLASSES, HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES)}
             onClick={e => {
               e.stopPropagation();
               onSourceDownload?.(citation);
@@ -535,6 +554,9 @@ export function SourceContextHeader({
             </span>
           </button>
         )}
+      </div>
+      {/* Right: Proof link (expanded view) + Page pill */}
+      <div className="flex items-center gap-3">
         {/* Not ready {validatedProofUrl && (
           <a
             href={validatedProofUrl}
@@ -1343,45 +1365,37 @@ export function VerificationLogTimeline({
   status,
   onCollapse,
 }: VerificationLogTimelineProps) {
+  const content = (
+    <AuditSearchDisplay
+      searchAttempts={searchAttempts}
+      fullPhrase={fullPhrase}
+      anchorText={anchorText}
+      expectedPage={expectedPage}
+      expectedLine={expectedLine}
+      status={status}
+    />
+  );
+
+  if (!onCollapse) {
+    return <div id="verification-log-timeline">{content}</div>;
+  }
+
   return (
-    <div
+    <button
+      type="button"
       id="verification-log-timeline"
-      role={onCollapse ? "button" : undefined}
-      aria-label={onCollapse ? "Collapse search log" : undefined}
-      tabIndex={onCollapse ? 0 : undefined}
-      onClick={
-        onCollapse
-          ? e => {
-              // Stop propagation so parent handlers (e.g. page-expand) don't fire
-              e.stopPropagation();
-              // Don't collapse if the user is selecting text
-              if (window.getSelection()?.isCollapsed === false) return;
-              onCollapse();
-            }
-          : undefined
-      }
-      onKeyDown={
-        onCollapse
-          ? e => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                e.stopPropagation();
-                onCollapse();
-              }
-            }
-          : undefined
-      }
-      className={cn(onCollapse && "cursor-pointer")}
+      aria-label="Collapse search log"
+      className="w-full p-0 m-0 border-0 bg-transparent text-left cursor-pointer"
+      onClick={e => {
+        // Stop propagation so parent handlers (e.g. page-expand) don't fire
+        e.stopPropagation();
+        // Don't collapse if the user is selecting text
+        if (window.getSelection()?.isCollapsed === false) return;
+        onCollapse();
+      }}
     >
-      <AuditSearchDisplay
-        searchAttempts={searchAttempts}
-        fullPhrase={fullPhrase}
-        anchorText={anchorText}
-        expectedPage={expectedPage}
-        expectedLine={expectedLine}
-        status={status}
-      />
-    </div>
+      {content}
+    </button>
   );
 }
 
