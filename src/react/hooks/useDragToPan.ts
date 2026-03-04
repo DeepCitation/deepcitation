@@ -274,6 +274,7 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
 
   const finishDrag = useCallback(() => {
     if (!isPressed.current) return;
+    cancelMomentum(); // Cancel any lingering coast before starting a new one
     isPressed.current = false;
     // Suppress click if the mouse moved beyond the drag threshold OR if the
     // container actually scrolled (even 1px). The scroll check catches slow,
@@ -296,7 +297,7 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
     }
 
     updateScrollState();
-  }, [updateScrollState, direction]);
+  }, [updateScrollState, direction, cancelMomentum]);
 
   // Stable ref to finishDrag so the global mouseup listener doesn't need to
   // re-attach every time finishDrag gets a new identity (which happens when

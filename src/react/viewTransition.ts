@@ -35,7 +35,12 @@ export function startEvidenceViewTransition(
   ).startViewTransition(() => {
     flushSync(update);
   });
-  transition.finished.then(() => {
-    delete document.documentElement.dataset.dcCollapse;
-  });
+  transition.finished
+    .then(() => {
+      delete document.documentElement.dataset.dcCollapse;
+    })
+    .catch(() => {
+      // Clean up dataset even if the transition is interrupted or fails
+      delete document.documentElement.dataset.dcCollapse;
+    });
 }

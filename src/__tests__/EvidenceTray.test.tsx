@@ -144,9 +144,14 @@ describe("EvidenceTray interaction styles", () => {
     fireEvent.click(attemptRowText);
 
     expect(onExpand).not.toHaveBeenCalled();
-    await waitFor(() => {
-      expect(queryByText("alpha")).not.toBeInTheDocument();
-    });
+    // The search log collapse involves rAF + setTimeout(80ms) animation stages.
+    // In slow CI runners, the default 1000ms waitFor timeout can be tight.
+    await waitFor(
+      () => {
+        expect(queryByText("alpha")).not.toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it("sets escapeInterceptRef to a collapse function when search log is open", () => {
