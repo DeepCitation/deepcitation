@@ -21,7 +21,7 @@ Show proof for every AI citation.
 [Documentation](https://docs.deepcitation.com) · [Get API Key](https://deepcitation.com/signup) · [Examples](./examples) · [Agent Integration](./INTEGRATION.md) · [Terms](https://deepcitation.com/legal/terms-of-service) · [Privacy](https://deepcitation.com/legal/privacy)
 </div>
 
-We believe AI citations should follow **show, don't tell**; it should prove it's citations so you don't have to blindly chase them down yourself. DeepCitation replaces 'trust me' citations with a deterministic verification layer.
+We believe AI citations should follow **show, don't tell**; they should prove their citations so you don't have to blindly chase them down yourself. DeepCitation replaces 'trust me' citations with a deterministic verification layer.
 
 DeepCitation turns model citations into deterministic, inspectable proof.
 

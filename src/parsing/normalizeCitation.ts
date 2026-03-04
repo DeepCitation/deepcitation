@@ -8,6 +8,10 @@ import { getCitationStatus } from "./parseCitation.js";
 /**
  * Module-level compiled regexes for hot-path operations.
  * Compiled once at module load to avoid per-call recompilation.
+ *
+ * Safety: /g regexes here are only used via String.prototype.replace(), which
+ * resets lastIndex to 0 per spec (ES2023 §22.2.5.11 step 5) before iterating.
+ * No manual lastIndex reset is needed when exclusively using .replace().
  */
 const PAGE_NUMBER_REGEX = /page[_a-zA-Z]*(\d+)/;
 const RANGE_EXPANSION_REGEX = /(\d+)-(\d+)/g;
@@ -183,7 +187,6 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
         const SAMPLE_COUNT = 50;
 
         // First expand ranges (e.g., "62-63" -> "62,63")
-        RANGE_EXPANSION_REGEX.lastIndex = 0;
         const expanded = lineIdsStr.replace(RANGE_EXPANSION_REGEX, (_match, start, end) => {
           const startNum = parseInt(start, 10);
           const endNum = parseInt(end, 10);
@@ -425,9 +428,6 @@ const normalizeCitationContent = (input: string): string => {
   // Replace ></cite> with /> for consistency
   normalized = normalized.replace(/><\/cite>/g, "/>");
 
-  // Reset lastIndex since module-level regexes with /g flag retain state
-  TEXT_ATTRIBUTE_REGEX.lastIndex = 0;
-
   normalized = normalized.replace(TEXT_ATTRIBUTE_REGEX, (_match, key, openQuote, rawContent) => {
     let content = rawContent;
 
@@ -455,14 +455,11 @@ const normalizeCitationContent = (input: string): string => {
   const MAX_RANGE_SIZE = 1000;
   const SAMPLE_COUNT = 50;
 
-  // Reset lastIndex since module-level regex with /g flag retains state
-  LINE_IDS_ATTRIBUTE_REGEX.lastIndex = 0;
   normalized = normalized.replace(LINE_IDS_ATTRIBUTE_REGEX, (_match, key, rawValue, trailingChars) => {
     // Clean up the value (remove generic text, keep numbers/separators)
     let cleanedValue = rawValue.replace(/[A-Za-z[\](){}]/g, "");
 
     // Expand ranges (e.g., "1-3" -> "1,2,3")
-    RANGE_EXPANSION_REGEX.lastIndex = 0;
     cleanedValue = cleanedValue.replace(RANGE_EXPANSION_REGEX, (_rangeMatch: string, start: string, end: string) => {
       const startNum = parseInt(start, 10);
       const endNum = parseInt(end, 10);
