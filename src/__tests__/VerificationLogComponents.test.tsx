@@ -853,6 +853,22 @@ describe("SourceContextHeader", () => {
       expect(getByRole("button", { name: /download source/i })).toBeInTheDocument();
     });
 
+    it("uses hover-reveal classes on desktop while remaining visible on mobile", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 1,
+        fullPhrase: "Test phrase",
+      };
+
+      const { getByRole } = render(<SourceContextHeader citation={citation} onSourceDownload={() => {}} />);
+      const button = getByRole("button", { name: /download source/i });
+
+      expect(button.className).toContain("md:opacity-0");
+      expect(button.className).toContain("md:group-hover/source-header:opacity-100");
+      expect(button.className).toContain("md:group-focus-within/source-header:opacity-100");
+    });
+
     it("does not render download button for URL citation without converted PDF metadata", () => {
       const citation: Citation = {
         type: "url",

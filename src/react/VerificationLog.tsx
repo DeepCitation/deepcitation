@@ -100,6 +100,11 @@ const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
   keyspan_fallback: "Anchor text",
 };
 
+const HEADER_DOWNLOAD_BUTTON_BASE_CLASSES =
+  "shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-[opacity,color] duration-150";
+const HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES =
+  "focus-visible:opacity-100 focus-visible:pointer-events-auto md:opacity-0 md:pointer-events-none md:group-hover/source-header:opacity-100 md:group-hover/source-header:pointer-events-auto md:group-focus-within/source-header:opacity-100 md:group-focus-within/source-header:pointer-events-auto";
+
 // =============================================================================
 // SOURCE CONTEXT HEADER COMPONENT
 // =============================================================================
@@ -470,8 +475,8 @@ export function SourceContextHeader({
         if (e.key !== "Escape") e.stopPropagation();
       }}
     >
-      {/* Left: Icon + source name */}
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      {/* Left: Icon + source name + contextual download */}
+      <div className="group/source-header flex items-center gap-2 min-w-0 flex-1">
         {isUrl ? (
           <UrlCitationComponent
             urlMeta={{
@@ -500,15 +505,12 @@ export function SourceContextHeader({
             )}
           </>
         )}
-      </div>
-      {/* Right: Download + Proof link (expanded view) + Page pill */}
-      <div className="flex items-center gap-3">
         {shouldShowImageDownloadButton && (
           <button
             type="button"
             aria-label="Download image"
             title="Download evidence image"
-            className="shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+            className={cn(HEADER_DOWNLOAD_BUTTON_BASE_CLASSES, HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES)}
             onClick={e => {
               e.stopPropagation();
               if (!imageDownloadUrl) return;
@@ -525,7 +527,7 @@ export function SourceContextHeader({
             type="button"
             aria-label="Download source"
             title={`Download ${displayName ?? url}`}
-            className="shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+            className={cn(HEADER_DOWNLOAD_BUTTON_BASE_CLASSES, HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES)}
             onClick={e => {
               e.stopPropagation();
               onSourceDownload?.(citation);
@@ -536,6 +538,9 @@ export function SourceContextHeader({
             </span>
           </button>
         )}
+      </div>
+      {/* Right: Proof link (expanded view) + Page pill */}
+      <div className="flex items-center gap-3">
         {/* Not ready {validatedProofUrl && (
           <a
             href={validatedProofUrl}
