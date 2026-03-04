@@ -188,7 +188,6 @@ export type {
   CitationDrawerProps,
   CitationEventHandlers,
   CitationHoverBehavior,
-  CitationInteractionMode,
   CitationRenderProps,
   CitationStateClasses,
   CitationStyles,

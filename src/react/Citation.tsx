@@ -46,7 +46,6 @@ import type {
   CitationBehaviorContext,
   CitationContent,
   CitationEventHandlers,
-  CitationInteractionMode,
   CitationRenderProps,
   CitationVariant,
   IndicatorVariant,
@@ -60,7 +59,6 @@ import { cn, generateCitationInstanceId, generateCitationKey } from "./utils.js"
 // Re-export types for convenience
 export type {
   CitationContent,
-  CitationInteractionMode,
   CitationVariant,
   IndicatorVariant,
 } from "./types.js";
@@ -152,12 +150,6 @@ export interface CitationComponentProps extends BaseCitationProps {
    * - `badge` → `source`
    */
   content?: CitationContent;
-  /**
-   * @deprecated The interactionMode prop has been removed. The component now always uses
-   * lazy mode behavior: click toggles popover, second click toggles search details.
-   * This prop is ignored for backwards compatibility.
-   */
-  interactionMode?: CitationInteractionMode;
   /** Event handlers for citation interactions */
   eventHandlers?: CitationEventHandlers;
   /**
