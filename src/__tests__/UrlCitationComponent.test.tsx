@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import type React from "react";
-import { UrlCitationComponent } from "../react/CitationComponent";
+import { UrlCitationComponent } from "../react/Citation";
 import type { UrlCitationMeta } from "../react/types";
 import { isBlockedStatus, isErrorStatus, isVerifiedStatus } from "../react/urlStatus";
 import { extractDomain } from "../react/urlUtils";
@@ -15,8 +15,8 @@ const _realReactDom = require("react-dom");
 const _mockedReactDom = { ..._realReactDom, createPortal: (node: React.ReactNode) => node };
 mock.module("react-dom", () => ({ ..._mockedReactDom, default: _mockedReactDom }));
 
-// UrlCitationComponent is defined in CitationComponent.tsx (co-located with CitationComponent).
-// Import path: import { UrlCitationComponent } from "../react/CitationComponent"
+// UrlCitationComponent is defined in Citation.tsx (co-located with CitationComponent).
+// Import path: import { UrlCitationComponent } from "../react/Citation"
 describe("UrlCitationComponent", () => {
   afterEach(() => {
     cleanup();

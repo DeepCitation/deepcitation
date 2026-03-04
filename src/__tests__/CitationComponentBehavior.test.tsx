@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, jest, mock } from "@jest/globals";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import type React from "react";
-import { CitationComponent } from "../react/CitationComponent";
+import { CitationComponent } from "../react/Citation";
 import type { CitationBehaviorActions, CitationBehaviorContext } from "../react/types";
 import type { Citation } from "../types/citation";
 import type { Verification } from "../types/verification";
@@ -2291,6 +2291,78 @@ describe("CitationComponent interactionMode", () => {
       });
 
       // Popover should close immediately (no delay)
+      await waitForPopoverDismissed(container);
+    });
+
+    it("does not dismiss on outside click while scroll passthrough is active", async () => {
+      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
+
+      const trigger = container.querySelector("[data-citation-id]") as HTMLElement;
+
+      // Click to open popover
+      await act(async () => {
+        fireEvent.click(trigger);
+      });
+
+      await waitForPopoverVisible(container);
+
+      const wrapper = container.querySelector("[data-dc-popover-wrapper]") as HTMLElement;
+      expect(wrapper).toBeInTheDocument();
+
+      // Simulate active page scroll to enter scroll passthrough mode.
+      await act(async () => {
+        fireEvent.scroll(window);
+      });
+
+      await waitFor(() => {
+        expect(window.getComputedStyle(wrapper).pointerEvents).toBe("none");
+      });
+
+      // Outside click during passthrough should NOT dismiss.
+      await act(async () => {
+        fireEvent.mouseDown(document.body);
+      });
+
+      expect(container.querySelector('[data-state="open"]')).toBeInTheDocument();
+    });
+
+    it("dismisses on outside click again after scroll passthrough ends", async () => {
+      const { container } = render(<CitationComponent citation={baseCitation} verification={verificationWithImage} />);
+
+      const trigger = container.querySelector("[data-citation-id]") as HTMLElement;
+
+      // Click to open popover
+      await act(async () => {
+        fireEvent.click(trigger);
+      });
+
+      await waitForPopoverVisible(container);
+
+      const wrapper = container.querySelector("[data-dc-popover-wrapper]") as HTMLElement;
+      expect(wrapper).toBeInTheDocument();
+
+      // Enter passthrough mode via page scroll.
+      await act(async () => {
+        fireEvent.scroll(window);
+      });
+
+      await waitFor(() => {
+        expect(window.getComputedStyle(wrapper).pointerEvents).toBe("none");
+      });
+
+      // Wait for passthrough idle timer to restore pointer events.
+      await waitFor(
+        () => {
+          expect(window.getComputedStyle(wrapper).pointerEvents).not.toBe("none");
+        },
+        { timeout: 1200 },
+      );
+
+      // Outside click should dismiss once passthrough has ended.
+      await act(async () => {
+        fireEvent.mouseDown(document.body);
+      });
+
       await waitForPopoverDismissed(container);
     });
 

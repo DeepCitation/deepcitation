@@ -1130,6 +1130,18 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           return;
         }
 
+        // Popover.tsx temporarily sets wrapper pointer-events:none while page
+        // scrolling is active (wheel passthrough mode). During that window a
+        // click intended for popover content can fall through and look like an
+        // outside click. Ignore dismiss until passthrough ends.
+        const popoverWrapper = popoverContentRef.current?.parentElement;
+        if (
+          popoverWrapper?.hasAttribute("data-dc-popover-wrapper") &&
+          window.getComputedStyle(popoverWrapper).pointerEvents === "none"
+        ) {
+          return;
+        }
+
         // Type guard for mouse event target
         const target = e.target;
         if (!(target instanceof Node)) {

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { CitationComponent } from "../../../src/react/CitationComponent";
+import { CitationComponent } from "../../../src/react/Citation";
 import type { Citation } from "../../../src/types/citation";
 import type { Verification } from "../../../src/types/verification";
 

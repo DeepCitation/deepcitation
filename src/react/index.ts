@@ -12,7 +12,7 @@
  */
 
 // Citation Primitives Namespace (composable building blocks)
-export { Citation } from "./Citation.js";
+export { Citation } from "./CitationPrimitives.js";
 // Citation Annotation Overlay Types
 export type { AdditionalHighlight } from "./CitationAnnotationOverlay.js";
 // Components
@@ -24,7 +24,7 @@ export {
   MemoizedCitationComponent,
   MemoizedUrlCitationComponent,
   UrlCitationComponent,
-} from "./CitationComponent.js";
+} from "./Citation.js";
 // Citation Drawer (ChatGPT-style bottom sheet)
 export {
   CitationDrawer,
