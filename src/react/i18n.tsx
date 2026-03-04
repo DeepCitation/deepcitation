@@ -89,7 +89,6 @@ export const defaultMessages = {
   "tab.diff": "Diff",
   "tab.found": "Found",
   "tab.exactMatch": "Exact match",
-  "tab.exactMatchCaps": "Exact Match",
 
   // ── Diff tooltips ──────────────────────────────────────────────
   "diff.expectedNotFound": "Expected but not found",
@@ -118,6 +117,7 @@ export const defaultMessages = {
   "action.closeExpanded": "Close expanded view (Esc)",
   "action.expandFullPage": "Expand to full page",
   "action.expandFullPageNum": "Expand to full page {pageNumber}",
+  "action.viewImage": "View image",
   "action.openProof": "Open proof in new tab",
   "action.openInNewTab": "Open in new tab",
   "action.closeSources": "Close sources",
@@ -238,6 +238,16 @@ export type DeepCitationMessages = Record<MessageKey, string>;
 /** Interpolation values for message templates. */
 export type MessageValues = Record<string, string | number>;
 
+/**
+ * Plural base keys — message keys that have `_one` and `_other` suffixed variants.
+ * Derived from the default dictionary by stripping `_one` suffixes.
+ */
+export type PluralBaseKey = MessageKey extends infer K
+  ? K extends `${infer Base}_one`
+    ? Base
+    : never
+  : never;
+
 /** A function that looks up and interpolates a message by key. */
 export type TranslateFunction = (key: MessageKey, values?: MessageValues) => string;
 
@@ -272,8 +282,8 @@ export function createTranslator(
   };
 }
 
-/** Default English translator — used when no provider is present. */
-const defaultTranslator = createTranslator();
+/** Default English translator singleton — used when no provider is present. */
+export const defaultTranslator = createTranslator();
 
 // =============================================================================
 // PLURAL HELPER
@@ -294,7 +304,7 @@ const defaultTranslator = createTranslator();
  */
 export function tPlural(
   t: TranslateFunction,
-  baseKey: string,
+  baseKey: PluralBaseKey,
   count: number,
   values?: MessageValues,
 ): string {

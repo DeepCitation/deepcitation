@@ -297,7 +297,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                 <span className="size-2">
                   <CheckIcon />
                 </span>
-                <span>{t("tab.exactMatchCaps")}</span>
+                <span className="capitalize">{t("tab.exactMatch")}</span>
               </div>
             ) : diffMode === "split" ? (
               // Split view mode

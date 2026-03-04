@@ -58,6 +58,7 @@ export { Citation } from "./CitationPrimitives.js";
 export {
   createTranslator,
   defaultMessages,
+  defaultTranslator,
   DeepCitationI18nProvider,
   tPlural,
   useTranslation,

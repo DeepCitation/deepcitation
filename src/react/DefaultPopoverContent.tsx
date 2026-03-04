@@ -697,7 +697,7 @@ export function DefaultPopoverContent({
 }: PopoverContentProps) {
   const t = useTranslation();
   const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
-  const expandCtaLabel = isImageSource(verification) ? "View image" : undefined;
+  const expandCtaLabel = isImageSource(verification) ? t("action.viewImage") : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 

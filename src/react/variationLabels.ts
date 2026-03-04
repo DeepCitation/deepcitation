@@ -1,5 +1,5 @@
 import type { VariationType } from "../types/search.js";
-import { createTranslator, type MessageKey, type TranslateFunction } from "./i18n.js";
+import { defaultTranslator, type MessageKey, type TranslateFunction } from "./i18n.js";
 
 /**
  * Maps VariationType to i18n message key.
@@ -21,7 +21,7 @@ const VARIATION_KEY_MAP: Record<VariationType, MessageKey> = {
  */
 export function getVariationLabel(
   variationType: VariationType | undefined,
-  t: TranslateFunction = createTranslator(),
+  t: TranslateFunction = defaultTranslator,
 ): string | null {
   if (!variationType) return null;
   return t(VARIATION_KEY_MAP[variationType]);

@@ -8,7 +8,7 @@
  */
 
 import type { SearchAttempt, SearchStatus } from "../types/search.js";
-import { createTranslator, tPlural, type TranslateFunction } from "./i18n.js";
+import { defaultTranslator, tPlural, type TranslateFunction } from "./i18n.js";
 
 /**
  * Derive a human-readable outcome label from verification status and search attempts.
@@ -23,7 +23,7 @@ import { createTranslator, tPlural, type TranslateFunction } from "./i18n.js";
 export function deriveOutcomeLabel(
   status: SearchStatus | null | undefined,
   searchAttempts?: SearchAttempt[],
-  t: TranslateFunction = createTranslator(),
+  t: TranslateFunction = defaultTranslator,
 ): string {
   if (status === "not_found") {
     const count = searchAttempts?.length ?? 0;

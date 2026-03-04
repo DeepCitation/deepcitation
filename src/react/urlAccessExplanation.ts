@@ -10,7 +10,7 @@
 
 import type { SearchStatus } from "../types/search.js";
 import type { UrlAccessStatus } from "../types/verification.js";
-import { createTranslator, type TranslateFunction } from "./i18n.js";
+import { defaultTranslator, type TranslateFunction } from "./i18n.js";
 import type { UrlFetchStatus } from "./types.js";
 
 // =============================================================================
@@ -135,7 +135,7 @@ export function mapSearchStatusToFetchStatus(status: SearchStatus | null | undef
 export function getUrlAccessExplanation(
   fetchStatus: UrlFetchStatus,
   errorMessage?: string | null,
-  t: TranslateFunction = createTranslator(),
+  t: TranslateFunction = defaultTranslator,
 ): UrlAccessExplanation | null {
   switch (fetchStatus) {
     // Blocked scenarios (amber — potentially resolvable by the user)

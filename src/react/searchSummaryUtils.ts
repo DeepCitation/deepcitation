@@ -1,7 +1,7 @@
 import type { DeepTextItem } from "../types/boxes.js";
 import type { MatchedVariation, SearchAttempt, SearchMethod } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
-import { createTranslator, type MessageKey, type TranslateFunction } from "./i18n.js";
+import { defaultTranslator, type MessageKey, type TranslateFunction } from "./i18n.js";
 import { isDocumentCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
 
@@ -365,7 +365,7 @@ function derivePhraseLabel(attempt: SearchAttempt, t: TranslateFunction): string
 export function buildSearchSummary(
   searchAttempts: SearchAttempt[],
   verification?: Verification | null,
-  t: TranslateFunction = createTranslator(),
+  t: TranslateFunction = defaultTranslator,
 ): SearchSummary {
   const totalAttempts = searchAttempts.length;
 

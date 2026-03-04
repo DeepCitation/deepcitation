@@ -1,5 +1,5 @@
 import type { SearchStatus } from "../types/search.js";
-import { createTranslator, type TranslateFunction } from "./i18n.js";
+import { defaultTranslator, type TranslateFunction } from "./i18n.js";
 
 /**
  * Get a human-readable status message for the verification status.
@@ -9,7 +9,7 @@ export function getContextualStatusMessage(
   status: SearchStatus | null | undefined,
   expectedPage?: number | null,
   actualPage?: number | null,
-  t: TranslateFunction = createTranslator(),
+  t: TranslateFunction = defaultTranslator,
 ): string {
   if (!status) return "";
 

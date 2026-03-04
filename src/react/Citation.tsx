@@ -13,6 +13,7 @@ import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import type { CitationStatusIndicatorProps, SpinnerStage } from "./CitationStatusIndicator.js";
 import { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
+import { useTranslation } from "./i18n.js";
 import {
   DOT_COLORS,
   DOT_INDICATOR_FIXED_SIZE_STYLE,
@@ -422,6 +423,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       }
       return undefined;
     }, [onSourceDownload, downloadUrl]);
+
+    const t = useTranslation();
 
     // Get overlay context for blocking hover when any image overlay is open
     const { isAnyOverlayOpen } = useCitationOverlay();
@@ -1298,7 +1301,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Generate unique IDs for ARIA attributes
     const popoverId = `citation-popover-${citationInstanceId}`;
     const statusDescId = `citation-status-${citationInstanceId}`;
-    const statusDescription = shouldShowSpinner ? "Verifying..." : getStatusLabel(status);
+    const statusDescription = shouldShowSpinner ? t("indicator.stillVerifying") : getStatusLabel(status, t);
 
     // Variants with their own hover styles don't need parent hover (would extend beyond bounds)
     const variantHasOwnHover = VARIANTS_WITH_OWN_HOVER.has(variant);
