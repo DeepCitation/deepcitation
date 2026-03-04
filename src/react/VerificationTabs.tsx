@@ -259,7 +259,11 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
 
       <div data-testid="tabs-container">
         <div data-testid="tabs-nav" className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg items-center">
-          <TabButton label={t("tab.expected")} isActive={activeTab === "expected"} onClick={() => setActiveTab("expected")} />
+          <TabButton
+            label={t("tab.expected")}
+            isActive={activeTab === "expected"}
+            onClick={() => setActiveTab("expected")}
+          />
           <TabButton label={t("tab.diff")} isActive={activeTab === "diff"} onClick={() => setActiveTab("diff")} />
           <TabButton label={t("tab.found")} isActive={activeTab === "found"} onClick={() => setActiveTab("found")} />
           {activeTab === "diff" && hasDiff && <ModeToggle mode={diffMode} onModeChange={setDiffMode} />}

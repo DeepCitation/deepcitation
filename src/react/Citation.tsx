@@ -13,7 +13,6 @@ import { CitationErrorBoundary } from "./CitationErrorBoundary.js";
 import { useCitationOverlay } from "./CitationOverlayContext.js";
 import type { CitationStatusIndicatorProps, SpinnerStage } from "./CitationStatusIndicator.js";
 import { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
-import { useTranslation } from "./i18n.js";
 import {
   DOT_COLORS,
   DOT_INDICATOR_FIXED_SIZE_STYLE,
@@ -35,6 +34,7 @@ import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
 import { usePopoverAlignOffset } from "./hooks/usePopoverAlignOffset.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { useViewportBoundaryGuard } from "./hooks/useViewportBoundaryGuard.js";
+import { useTranslation } from "./i18n.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { PopoverContent } from "./Popover.js";

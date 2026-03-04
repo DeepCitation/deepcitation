@@ -23,7 +23,7 @@
  * @packageDocumentation
  */
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { safeReplace } from "../utils/regexSafety.js";
 
 // =============================================================================
@@ -159,50 +159,33 @@ export const defaultMessages = {
 
   // ── URL access explanations ────────────────────────────────────
   "urlAccess.paywall.title": "Paywall Detected",
-  "urlAccess.paywall.description":
-    "This site requires a paid subscription to access.",
+  "urlAccess.paywall.description": "This site requires a paid subscription to access.",
   "urlAccess.paywall.suggestion":
     "You can verify this citation by visiting the URL directly if you have a subscription.",
   "urlAccess.login.title": "Login Required",
-  "urlAccess.login.description":
-    "This page requires authentication to view its content.",
-  "urlAccess.login.suggestion":
-    "Log in to the site and visit the URL to verify this citation.",
+  "urlAccess.login.description": "This page requires authentication to view its content.",
+  "urlAccess.login.suggestion": "Log in to the site and visit the URL to verify this citation.",
   "urlAccess.geo.title": "Region Restricted",
-  "urlAccess.geo.description":
-    "This content isn\u2019t available from our verification server\u2019s location.",
-  "urlAccess.geo.suggestion":
-    "Try visiting the URL directly \u2014 it may be accessible from your location.",
+  "urlAccess.geo.description": "This content isn\u2019t available from our verification server\u2019s location.",
+  "urlAccess.geo.suggestion": "Try visiting the URL directly \u2014 it may be accessible from your location.",
   "urlAccess.antibot.title": "Blocked by Site Protection",
-  "urlAccess.antibot.description":
-    "This site\u2019s bot protection prevented our crawler from accessing the page.",
-  "urlAccess.antibot.suggestion":
-    "Visit the URL directly in your browser to verify this citation.",
+  "urlAccess.antibot.description": "This site\u2019s bot protection prevented our crawler from accessing the page.",
+  "urlAccess.antibot.suggestion": "Visit the URL directly in your browser to verify this citation.",
   "urlAccess.rateLimit.title": "Rate Limited",
-  "urlAccess.rateLimit.description":
-    "Too many requests were sent to this site.",
-  "urlAccess.rateLimit.suggestion":
-    "Try again later \u2014 the rate limit should reset shortly.",
+  "urlAccess.rateLimit.description": "Too many requests were sent to this site.",
+  "urlAccess.rateLimit.suggestion": "Try again later \u2014 the rate limit should reset shortly.",
   "urlAccess.notFound.title": "Page Not Found",
-  "urlAccess.notFound.description":
-    "This URL returned a 404 error \u2014 the page may have been moved or deleted.",
-  "urlAccess.notFound.suggestion":
-    "Check if the URL is correct, or search the site for the content.",
+  "urlAccess.notFound.description": "This URL returned a 404 error \u2014 the page may have been moved or deleted.",
+  "urlAccess.notFound.suggestion": "Check if the URL is correct, or search the site for the content.",
   "urlAccess.server.title": "Server Error",
-  "urlAccess.server.description":
-    "The website returned a server error and could not be accessed.",
-  "urlAccess.server.suggestion":
-    "Try again later \u2014 the site may be experiencing temporary issues.",
+  "urlAccess.server.description": "The website returned a server error and could not be accessed.",
+  "urlAccess.server.suggestion": "Try again later \u2014 the site may be experiencing temporary issues.",
   "urlAccess.timeout.title": "Connection Timed Out",
-  "urlAccess.timeout.description":
-    "The website took too long to respond to our verification request.",
-  "urlAccess.timeout.suggestion":
-    "Try again later \u2014 the site may be under heavy load.",
+  "urlAccess.timeout.description": "The website took too long to respond to our verification request.",
+  "urlAccess.timeout.suggestion": "Try again later \u2014 the site may be under heavy load.",
   "urlAccess.network.title": "Network Error",
-  "urlAccess.network.description":
-    "Could not connect to this website \u2014 the domain may be unreachable.",
-  "urlAccess.network.suggestion":
-    "Check if the URL is correct and that the site is still online.",
+  "urlAccess.network.description": "Could not connect to this website \u2014 the domain may be unreachable.",
+  "urlAccess.network.suggestion": "Check if the URL is correct and that the site is still online.",
 
   // ── Page / location labels ─────────────────────────────────────
   "location.page": "p.\u202f{pageNumber}",
@@ -214,8 +197,7 @@ export const defaultMessages = {
   "misc.error": "Error",
   "citation.fallback": "Citation {number}",
   "ambiguity.found": "Found {totalOccurrences} occurrences",
-  "ambiguity.onExpectedPage":
-    "({occurrencesOnExpectedPage} on expected page)",
+  "ambiguity.onExpectedPage": "({occurrencesOnExpectedPage} on expected page)",
   "error.citation": "Citation error: {message}",
 
   // ── Sources list ───────────────────────────────────────────────
@@ -243,11 +225,7 @@ export type MessageValues = Record<string, string | number>;
  * Plural base keys — message keys that have `_one` and `_other` suffixed variants.
  * Derived from the default dictionary by stripping `_one` suffixes.
  */
-export type PluralBaseKey = MessageKey extends infer K
-  ? K extends `${infer Base}_one`
-    ? Base
-    : never
-  : never;
+export type PluralBaseKey = MessageKey extends infer K ? (K extends `${infer Base}_one` ? Base : never) : never;
 
 /** A function that looks up and interpolates a message by key. */
 export type TranslateFunction = (key: MessageKey, values?: MessageValues) => string;
@@ -274,9 +252,7 @@ export type TranslateFunction = (key: MessageKey, values?: MessageValues) => str
  * t("status.notFound"); // "Not Found" (English fallback)
  * ```
  */
-export function createTranslator(
-  messages: Partial<DeepCitationMessages> = {},
-): TranslateFunction {
+export function createTranslator(messages: Partial<DeepCitationMessages> = {}): TranslateFunction {
   return function t(key: MessageKey, values?: MessageValues): string {
     const template = (messages as Record<string, string>)[key] ?? defaultMessages[key];
     if (!values) return template;
@@ -307,12 +283,7 @@ export const defaultTranslator = createTranslator();
  * // → "Scan complete · 4 searches"
  * ```
  */
-export function tPlural(
-  t: TranslateFunction,
-  baseKey: PluralBaseKey,
-  count: number,
-  values?: MessageValues,
-): string {
+export function tPlural(t: TranslateFunction, baseKey: PluralBaseKey, count: number, values?: MessageValues): string {
   const suffix = count === 1 ? "_one" : "_other";
   return t(`${baseKey}${suffix}` as MessageKey, values);
 }
@@ -345,10 +316,7 @@ export interface DeepCitationI18nProviderProps {
  * </DeepCitationI18nProvider>
  * ```
  */
-export function DeepCitationI18nProvider({
-  messages,
-  children,
-}: DeepCitationI18nProviderProps) {
+export function DeepCitationI18nProvider({ messages, children }: DeepCitationI18nProviderProps) {
   const t = useMemo(() => createTranslator(messages), [messages]);
   return <I18nContext.Provider value={t}>{children}</I18nContext.Provider>;
 }

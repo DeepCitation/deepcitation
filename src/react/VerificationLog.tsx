@@ -4,7 +4,6 @@ import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.
 import type { Verification } from "../types/verification.js";
 
 import { UrlCitationComponent } from "./Citation.js";
-import { useTranslation, type MessageKey, type TranslateFunction } from "./i18n.js";
 import {
   DOT_COLORS,
   FOCUS_RING_CLASSES,
@@ -15,6 +14,7 @@ import {
   TERTIARY_ACTION_IDLE_CLASSES,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
+import { type MessageKey, type TranslateFunction, useTranslation } from "./i18n.js";
 import {
   CheckIcon,
   ChevronRightIcon,

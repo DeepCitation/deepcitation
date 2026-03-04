@@ -12,7 +12,6 @@ import { type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getStatusLabel } from "./citationStatus.js";
-import { useTranslation } from "./i18n.js";
 import {
   BLINK_ENTER_EASING,
   EASE_COLLAPSE,
@@ -31,6 +30,7 @@ import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useAnimatedHeight } from "./hooks/useAnimatedHeight.js";
 import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
+import { useTranslation } from "./i18n.js";
 import { SpinnerIcon } from "./icons.js";
 import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
 import { buildIntentSummary, type MatchSnippet } from "./searchSummaryUtils.js";

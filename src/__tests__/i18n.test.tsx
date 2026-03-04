@@ -2,12 +2,12 @@ import { afterEach, describe, expect, it } from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
 import {
   createTranslator,
+  DeepCitationI18nProvider,
   defaultMessages,
   defaultTranslator,
-  DeepCitationI18nProvider,
+  type MessageKey,
   tPlural,
   useTranslation,
-  type MessageKey,
 } from "../react/i18n";
 
 // =============================================================================
@@ -99,12 +99,8 @@ describe("tPlural", () => {
       "outcome.scanComplete_one": "Analyse terminée \u00b7 {count} recherche",
       "outcome.scanComplete_other": "Analyse terminée \u00b7 {count} recherches",
     });
-    expect(tPlural(tFr, "outcome.scanComplete", 1, { count: 1 })).toBe(
-      "Analyse terminée \u00b7 1 recherche",
-    );
-    expect(tPlural(tFr, "outcome.scanComplete", 3, { count: 3 })).toBe(
-      "Analyse terminée \u00b7 3 recherches",
-    );
+    expect(tPlural(tFr, "outcome.scanComplete", 1, { count: 1 })).toBe("Analyse terminée \u00b7 1 recherche");
+    expect(tPlural(tFr, "outcome.scanComplete", 3, { count: 3 })).toBe("Analyse terminée \u00b7 3 recherches");
   });
 });
 
@@ -115,12 +111,12 @@ describe("tPlural", () => {
 describe("defaultMessages", () => {
   it("has all plural pairs (_one has matching _other and vice versa)", () => {
     const keys = Object.keys(defaultMessages) as MessageKey[];
-    const oneKeys = keys.filter((k) => k.endsWith("_one"));
+    const oneKeys = keys.filter(k => k.endsWith("_one"));
     for (const oneKey of oneKeys) {
       const otherKey = oneKey.replace(/_one$/, "_other");
       expect(keys).toContain(otherKey);
     }
-    const otherKeys = keys.filter((k) => k.endsWith("_other"));
+    const otherKeys = keys.filter(k => k.endsWith("_other"));
     for (const otherKey of otherKeys) {
       const oneKey = otherKey.replace(/_other$/, "_one");
       expect(keys).toContain(oneKey);
