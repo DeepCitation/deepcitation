@@ -1486,10 +1486,15 @@ export function InlineExpandedImage({
 
   // Anchor-aware scroll/zoom target: when anchor text is highlighted, center on it
   // instead of the (potentially wider) full phrase box.
+  // Strategy override: API returned verifiedFullPhrase === verifiedAnchorText, so the
+  // primary check would return false (equal word counts). Fall back to phraseItem text.
+  const vAnchor = verification?.verifiedAnchorText;
+  const vPhrase = verification?.verifiedFullPhrase;
+  const strategyOverride = vAnchor != null && vPhrase != null && vAnchor.toLowerCase() === vPhrase.toLowerCase();
   const anchorHighlightActive =
     effectiveAnchorItem &&
-    (shouldHighlightAnchorText(verification?.verifiedAnchorText, verification?.verifiedFullPhrase) ||
-      shouldHighlightAnchorText(verification?.verifiedAnchorText, effectivePhraseItem?.text));
+    (shouldHighlightAnchorText(vAnchor, vPhrase) ||
+      (strategyOverride && shouldHighlightAnchorText(vAnchor, effectivePhraseItem?.text)));
   const scrollTarget = anchorHighlightActive ? effectiveAnchorItem : effectivePhraseItem;
 
   // Track container size via ResizeObserver (both width and height for fit-to-screen).
