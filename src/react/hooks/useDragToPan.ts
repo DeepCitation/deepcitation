@@ -33,6 +33,8 @@ const DRAG_THRESHOLD = 5;
 const VELOCITY_SAMPLE_COUNT = 5;
 /** Minimum velocity (px/ms) to trigger momentum coast after release. */
 const VELOCITY_THRESHOLD = 0.08;
+/** Max age (ms) of the newest move sample for momentum to apply. If the user paused longer than this before releasing, momentum is suppressed. */
+const STALE_SAMPLE_MS = 80;
 /** Per-frame deceleration multiplier (~0.3s coast at 60fps — TikTok flick-and-stop). */
 const DECELERATION = 0.88;
 /** Velocity cutoff (px/frame) below which momentum stops. */
@@ -227,6 +229,12 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
     if (history.length >= 2) {
       const first = history[0];
       const last = history[history.length - 1];
+      const timeSinceLastMove = Date.now() - last.t;
+      // If the user paused before releasing, skip momentum entirely
+      if (timeSinceLastMove > STALE_SAMPLE_MS) {
+        updateScrollState();
+        return;
+      }
       const dt = last.t - first.t;
 
       if (dt > 0) {
