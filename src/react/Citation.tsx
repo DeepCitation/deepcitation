@@ -182,12 +182,6 @@ export interface CitationComponentProps extends BaseCitationProps {
    */
   faviconUrl?: string;
   /**
-   * @deprecated Use `indicatorVariant="none"` instead. Setting `showIndicator={false}`
-   * is equivalent to `indicatorVariant="none"`. This prop will be removed in the next
-   * major version.
-   */
-  showIndicator?: boolean;
-  /**
    * Visual style for status indicators.
    * - `"icon"`: Checkmarks, spinner, X icons (default)
    * - `"dot"`: Subtle colored dots (like GitHub status dots / shadcn badge dots)
@@ -381,7 +375,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       isLoading = false,
       variant = "text",
       content: contentProp,
-      interactionMode: _interactionMode, // Deprecated, ignored
       eventHandlers,
       behaviorConfig,
       isMobile: isMobileProp,
@@ -391,7 +384,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       renderPopoverContent,
       additionalCount,
       faviconUrl,
-      showIndicator: _showIndicator, // Deprecated — mapped to indicatorVariant below
       indicatorVariant: indicatorVariantProp = "icon",
       sourceLabel,
       onTimingEvent,
@@ -401,22 +393,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     },
     ref,
   ) => {
-    // Warn about deprecated props in development (once per prop to avoid console spam)
     if (process.env.NODE_ENV !== "production") {
-      if (_interactionMode !== undefined && !deprecationWarned.has("interactionMode")) {
-        deprecationWarned.add("interactionMode");
-        console.warn(
-          "CitationComponent: interactionMode prop is deprecated and has no effect. " +
-            "The component now always uses click-to-show-popover behavior.",
-        );
-      }
-      if (_showIndicator !== undefined && !deprecationWarned.has("showIndicator")) {
-        deprecationWarned.add("showIndicator");
-        console.warn(
-          "CitationComponent: showIndicator prop is deprecated and will be removed in the next major version. " +
-            'Use indicatorVariant="none" to hide indicators.',
-        );
-      }
       if (eventHandlers?.onClick && behaviorConfig?.onClick && !deprecationWarned.has("eventHandlers.onClick")) {
         deprecationWarned.add("eventHandlers.onClick");
         console.warn(
@@ -426,9 +403,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       }
     }
 
-    // Compat: showIndicator={false} → indicatorVariant="none"
-    const indicatorVariant: IndicatorVariant =
-      _showIndicator === false && indicatorVariantProp === "icon" ? "none" : indicatorVariantProp;
+    const indicatorVariant: IndicatorVariant = indicatorVariantProp;
 
     // Resolve effective download handler: explicit callback wins, else trigger browser download
     const effectiveOnSourceDownload = useMemo(() => {
