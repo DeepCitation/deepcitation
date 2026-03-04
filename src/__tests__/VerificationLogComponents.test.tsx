@@ -885,6 +885,30 @@ describe("SourceContextHeader", () => {
       expect(getByRole("button", { name: /download source/i })).toBeInTheDocument();
     });
 
+    it("renders only one download button when source and image downloads are both available", () => {
+      const citation: Citation = {
+        type: "document",
+        attachmentId: "abc123",
+        pageNumber: 1,
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        document: {
+          verificationImageSrc:
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mPk5OT8DwAC2gF6qAj3rwAAAABJRU5ErkJggg==",
+        },
+      };
+      const onSourceDownload = () => {};
+
+      const { getByRole, queryByRole, queryAllByRole } = render(
+        <SourceContextHeader citation={citation} verification={verification} onSourceDownload={onSourceDownload} />,
+      );
+
+      expect(getByRole("button", { name: /download source/i })).toBeInTheDocument();
+      expect(queryByRole("button", { name: /download image/i })).toBeNull();
+      expect(queryAllByRole("button", { name: /download/i })).toHaveLength(1);
+    });
+
     it("calls onSourceDownload with citation on click", () => {
       const citation: Citation = {
         type: "document",
@@ -912,8 +936,14 @@ describe("SourceContextHeader", () => {
       const parentClick = jest.fn();
 
       const { getByRole } = render(
-        // biome-ignore lint/a11y/useKeyWithClickEvents: test-only wrapper
-        <div onClick={parentClick}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={parentClick}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") parentClick();
+          }}
+        >
           <SourceContextHeader citation={citation} onSourceDownload={onSourceDownload} />
         </div>,
       );
@@ -941,6 +971,32 @@ describe("SourceContextHeader", () => {
 
       const { getByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
       expect(getByRole("button", { name: /download image/i })).toBeInTheDocument();
+    });
+
+    it("renders only one download button for URL citations when converted PDF and image are both present", () => {
+      const citation: Citation = {
+        type: "url",
+        url: "https://example.com/article",
+        domain: "example.com",
+        fullPhrase: "Test phrase",
+      };
+      const verification: Verification = {
+        attachmentId: "att-url-123",
+        label: "example.com.pdf",
+        document: {
+          verificationImageSrc:
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mPk5OT8DwAC2gF6qAj3rwAAAABJRU5ErkJggg==",
+        },
+      };
+      const onSourceDownload = () => {};
+
+      const { getByRole, queryByRole, queryAllByRole } = render(
+        <SourceContextHeader citation={citation} verification={verification} onSourceDownload={onSourceDownload} />,
+      );
+
+      expect(getByRole("button", { name: /download source/i })).toBeInTheDocument();
+      expect(queryByRole("button", { name: /download image/i })).toBeNull();
+      expect(queryAllByRole("button", { name: /download/i })).toHaveLength(1);
     });
 
     it("does not render image download button when no evidence image exists", () => {
@@ -971,8 +1027,14 @@ describe("SourceContextHeader", () => {
       const parentClick = jest.fn();
 
       const { getByRole } = render(
-        // biome-ignore lint/a11y/useKeyWithClickEvents: test-only wrapper
-        <div onClick={parentClick}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={parentClick}
+          onKeyDown={e => {
+            if (e.key === "Enter" || e.key === " ") parentClick();
+          }}
+        >
           <SourceContextHeader citation={citation} verification={verification} />
         </div>,
       );

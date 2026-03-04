@@ -480,10 +480,10 @@ export const ANCHOR_HIGHLIGHT_STYLE: React.CSSProperties = {
  * the image already shows most of its content in the keyhole strip, so the
  * expand step would reveal almost nothing new.
  *
- * At 1.5, images up to 50% taller than the strip (up to ~135px for 90px strip)
+ * At 2.0, images up to 100% taller than the strip (up to ~180px for 90px strip)
  * are treated as "fits completely." This avoids tiny, unhelpful expansions.
  */
-export const KEYHOLE_SKIP_THRESHOLD = 1.5;
+export const KEYHOLE_SKIP_THRESHOLD = 2.0;
 
 // =============================================================================
 // ZOOM CONTROLS (InlineExpandedImage)
@@ -619,6 +619,15 @@ export const POPOVER_MORPH_COLLAPSE_MS = 100;
  * Bézier: starts with velocity (0.2), then eases into final state (0, 1).
  */
 export const EASE_COLLAPSE = "cubic-bezier(0.2, 0, 0, 1)";
+
+/** Locate icon pulse grow duration (ms) after annotation overlay dismiss. */
+export const LOCATE_ICON_PULSE_GROW_MS = 120;
+/** Locate icon pulse settle duration (ms) after grow stage completes. */
+export const LOCATE_ICON_PULSE_SETTLE_MS = 80;
+/** Locate icon pulse peak scale (1 = baseline size). */
+export const LOCATE_ICON_PULSE_SCALE = 1.18;
+/** Locate icon pulse accent color used during temporary highlight. */
+export const LOCATE_ICON_PULSE_COLOR = "rgb(56 189 248)";
 
 /** Stagger delay before expanded-page content animates in. Container morph starts first.
  * 30ms is tight enough to avoid an empty-container flash while still letting the shell

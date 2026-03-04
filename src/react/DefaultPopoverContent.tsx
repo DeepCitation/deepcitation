@@ -190,6 +190,28 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
   );
 }
 
+/**
+ * Resolves the keyhole evidence source for document/URL verifications.
+ * Isolated from render hooks so React Compiler doesn't have to analyze
+ * a try/catch value block inside component scope.
+ */
+function resolveEvidenceImageSrc(verification: Verification | null): string | null {
+  if (verification?.document?.verificationImageSrc) {
+    const s = verification.document.verificationImageSrc;
+    return isValidProofImageSrc(s) ? s : null;
+  }
+
+  const raw = verification?.url?.webPageScreenshotBase64;
+  if (!raw) return null;
+
+  try {
+    const s = normalizeScreenshotSrc(raw);
+    return isValidProofImageSrc(s) ? s : null;
+  } catch {
+    return null;
+  }
+}
+
 // =============================================================================
 // EXTRACTED SUB-COMPONENTS
 // =============================================================================
@@ -372,6 +394,7 @@ function EvidenceZone({
   expandedImage,
   onViewStateChange,
   onExpandToPage,
+  expandCtaLabel,
   onExpandOriginCapture,
   onExpandOriginConsumed,
   pageExpandOriginRect,
@@ -386,8 +409,10 @@ function EvidenceZone({
   evidenceSrc: string | null;
   expandedImage: { src: string; renderScale?: { x: number; y: number } | null } | null;
   onViewStateChange?: (viewState: PopoverViewState) => void;
-  /** When provided, renders a "View page ›" CTA in the expanded-keyhole footer. */
+  /** When provided, renders an expanded-keyhole footer CTA (for example, "View page" or "View image"). */
   onExpandToPage?: () => void;
+  /** Optional expanded-keyhole CTA label override. */
+  expandCtaLabel?: string;
   onExpandOriginCapture?: (rect: SharedOriginRect) => void;
   onExpandOriginConsumed?: () => void;
   pageExpandOriginRect?: SharedOriginRect | null;
@@ -427,6 +452,7 @@ function EvidenceZone({
             src={evidenceSrc}
             onCollapse={() => onViewStateChange?.("summary")}
             onExpand={onExpandToPage}
+            expandCtaLabel={expandCtaLabel}
             onExpandOriginCapture={onExpandOriginCapture}
             onNaturalSize={handleKeyholeImageLoad}
             verification={verification}
@@ -612,6 +638,7 @@ export function DefaultPopoverContent({
   escapeInterceptRef,
 }: PopoverContentProps) {
   const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
+  const expandCtaLabel = isImageSource(verification) ? "View image" : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 
@@ -674,16 +701,16 @@ export function DefaultPopoverContent({
     return typeof width === "number" && Number.isFinite(width) && width > 0 ? width : null;
   }, [expandedImage?.dimensions?.width]);
 
-  // Page image natural width — set from onLoad, persists across viewState transitions
-  // (triple always-render keeps the image mounted so onLoad fires once and state is stable).
-  const [pageNaturalWidth, setPageNaturalWidth] = useState<number | null>(pageNaturalWidthSeed);
-  // Expanded-page shell width lock. This freezes container width while zooming so
-  // wheel/pinch only changes viewport content instead of re-laying out the popover.
-  const [expandedPageShellWidth, setExpandedPageShellWidth] = useState<number | null>(null);
-  useEffect(() => {
-    if (pageNaturalWidthSeed === null) return;
-    setPageNaturalWidth(prev => prev ?? pageNaturalWidthSeed);
-  }, [pageNaturalWidthSeed]);
+  // Page image natural width — measured from onLoad, with seed fallback from verification metadata.
+  // Derived value avoids a set-state-in-effect pattern that prevents React Compiler optimization.
+  const [pageNaturalWidthMeasured, setPageNaturalWidthMeasured] = useState<number | null>(null);
+  const pageNaturalWidth = pageNaturalWidthMeasured ?? pageNaturalWidthSeed;
+  // Expanded-page shell width lock keyed to { width, src }. The derived value
+  // auto-resets to null when viewState leaves "expanded-page" or when expandedImage.src
+  // changes, eliminating two set-state-in-effect patterns the React Compiler flags.
+  const [expandedPageShell, setExpandedPageShell] = useState<{ width: number; src: string } | null>(null);
+  const expandedPageShellWidth =
+    viewState === "expanded-page" && expandedPageShell?.src === expandedImage?.src ? expandedPageShell.width : null;
 
   // Last measured expanded-keyhole natural width keyed by evidence src.
   // Keeping src+width together prevents stale widths from leaking across source changes.
@@ -695,28 +722,17 @@ export function DefaultPopoverContent({
       // In expanded-page mode, InlineExpandedImage reports zoomed size updates.
       // Ignore those for shell sizing; only lock once if width was previously unknown.
       if (viewState !== "expanded-page") {
-        setPageNaturalWidth(width);
+        setPageNaturalWidthMeasured(width);
       }
-      setExpandedPageShellWidth(prev => prev ?? width);
+      if (expandedImage?.src) {
+        setExpandedPageShell(prev => (prev ? prev : { width, src: expandedImage.src }));
+      }
     },
-    [viewState],
+    [viewState, expandedImage?.src],
   );
 
   // Resolve the evidence image src — used by handleKeyholeClick and the prefetch effect.
-  const evidenceSrc = useMemo(() => {
-    if (verification?.document?.verificationImageSrc) {
-      const s = verification.document.verificationImageSrc;
-      return isValidProofImageSrc(s) ? s : null;
-    }
-    const raw = verification?.url?.webPageScreenshotBase64;
-    if (!raw) return null;
-    try {
-      const s = normalizeScreenshotSrc(raw);
-      return isValidProofImageSrc(s) ? s : null;
-    } catch {
-      return null;
-    }
-  }, [verification]);
+  const evidenceSrc = useMemo(() => resolveEvidenceImageSrc(verification), [verification]);
 
   const keyholeImageNaturalWidth =
     evidenceSrc && keyholeImageNatural?.src === evidenceSrc ? keyholeImageNatural.width : null;
@@ -729,14 +745,6 @@ export function DefaultPopoverContent({
     if (viewState === "expanded-keyhole") return keyholeImageNaturalWidth ?? keyholeNaturalWidthSeed;
     return null;
   }, [viewState, expandedPageShellWidth, pageNaturalWidth, keyholeImageNaturalWidth, keyholeNaturalWidthSeed]);
-
-  // Reset width lock after leaving expanded-page so each entry can pick a fresh baseline.
-  useEffect(() => {
-    if (viewState !== "expanded-page") setExpandedPageShellWidth(null);
-  }, [viewState]);
-  useEffect(() => {
-    setExpandedPageShellWidth(null);
-  }, [expandedImage?.src]);
 
   // Notify parent when expandedNaturalWidth changes — calls only the prop callback,
   // not a React setter, so this useEffect is React Compiler-compatible.
@@ -835,12 +843,15 @@ export function DefaultPopoverContent({
     }
     const expandedPageWidth =
       expandedPageShellWidth ?? pageNaturalWidth ?? keyholeImageNaturalWidth ?? keyholeNaturalWidthSeed;
-    if (expandedPageWidth != null) setExpandedPageShellWidth(prev => prev ?? expandedPageWidth);
+    if (expandedPageWidth != null && expandedImage?.src) {
+      setExpandedPageShell(prev => (prev ? prev : { width: expandedPageWidth, src: expandedImage.src }));
+    }
     onExpandedWidthChange?.(expandedPageWidth, "expanded-page");
     onViewStateChange?.("expanded-page");
   }, [
     canExpandToPage,
     expandedPageShellWidth,
+    expandedImage?.src,
     keyholeImageNaturalWidth,
     keyholeNaturalWidthSeed,
     onExpandedWidthChange,
@@ -954,6 +965,7 @@ export function DefaultPopoverContent({
           status={status}
           onExpand={canExpandToPage ? handleExpand : undefined}
           onImageClick={evidenceSrc ? handleKeyholeClick : canExpandToPage ? handleExpand : undefined}
+          pageCtaLabel={expandCtaLabel}
           onExpandOriginCapture={handlePageExpandOriginCapture}
           onScrollCapture={evidenceSrc ? handleKeyholeScrollCapture : undefined}
           proofImageSrc={expandedImage?.src}
@@ -1022,6 +1034,7 @@ export function DefaultPopoverContent({
             expandedImage={expandedImage}
             onViewStateChange={onViewStateChange}
             onExpandToPage={canExpandToPage ? handleExpand : undefined}
+            expandCtaLabel={expandCtaLabel}
             onExpandOriginCapture={handlePageExpandOriginCapture}
             onExpandOriginConsumed={handlePageExpandOriginConsumed}
             pageExpandOriginRect={pageExpandOriginRect}

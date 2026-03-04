@@ -3,7 +3,7 @@ import type { Citation } from "../types/citation.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 import { safeTest } from "../utils/regexSafety.js";
-import { UrlCitationComponent } from "./CitationComponent.js";
+import { UrlCitationComponent } from "./Citation.js";
 import {
   DOT_COLORS,
   FOCUS_RING_CLASSES,
@@ -449,9 +449,10 @@ export function SourceContextHeader({
   const hasConvertedUrlPdf =
     !!verification?.attachmentId ||
     (typeof verification?.label === "string" && safeTest(PDF_LABEL_PATTERN, verification.label));
-  const shouldShowDownloadButton = !!onSourceDownload && (!isUrl || hasConvertedUrlPdf);
+  const shouldShowSourceDownloadButton = !!onSourceDownload && (!isUrl || hasConvertedUrlPdf);
   const imageDownloadUrl = resolveImageDownloadUrl(verification);
-  const shouldShowImageDownloadButton = !!imageDownloadUrl;
+  // Keep a single download action visible: explicit source-download callback wins.
+  const shouldShowImageDownloadButton = !!imageDownloadUrl && !shouldShowSourceDownloadButton;
 
   // Display name for document citations (never show attachmentId to users)
   const displayName = isUrl ? undefined : sourceLabel || verification?.label || "Document";
@@ -519,7 +520,7 @@ export function SourceContextHeader({
             </span>
           </button>
         )}
-        {shouldShowDownloadButton && (
+        {shouldShowSourceDownloadButton && (
           <button
             type="button"
             aria-label="Download source"
@@ -1343,45 +1344,37 @@ export function VerificationLogTimeline({
   status,
   onCollapse,
 }: VerificationLogTimelineProps) {
+  const content = (
+    <AuditSearchDisplay
+      searchAttempts={searchAttempts}
+      fullPhrase={fullPhrase}
+      anchorText={anchorText}
+      expectedPage={expectedPage}
+      expectedLine={expectedLine}
+      status={status}
+    />
+  );
+
+  if (!onCollapse) {
+    return <div id="verification-log-timeline">{content}</div>;
+  }
+
   return (
-    <div
+    <button
+      type="button"
       id="verification-log-timeline"
-      role={onCollapse ? "button" : undefined}
-      aria-label={onCollapse ? "Collapse search log" : undefined}
-      tabIndex={onCollapse ? 0 : undefined}
-      onClick={
-        onCollapse
-          ? e => {
-              // Stop propagation so parent handlers (e.g. page-expand) don't fire
-              e.stopPropagation();
-              // Don't collapse if the user is selecting text
-              if (window.getSelection()?.isCollapsed === false) return;
-              onCollapse();
-            }
-          : undefined
-      }
-      onKeyDown={
-        onCollapse
-          ? e => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                e.stopPropagation();
-                onCollapse();
-              }
-            }
-          : undefined
-      }
-      className={cn(onCollapse && "cursor-pointer")}
+      aria-label="Collapse search log"
+      className="w-full p-0 m-0 border-0 bg-transparent text-left cursor-pointer"
+      onClick={e => {
+        // Stop propagation so parent handlers (e.g. page-expand) don't fire
+        e.stopPropagation();
+        // Don't collapse if the user is selecting text
+        if (window.getSelection()?.isCollapsed === false) return;
+        onCollapse();
+      }}
     >
-      <AuditSearchDisplay
-        searchAttempts={searchAttempts}
-        fullPhrase={fullPhrase}
-        anchorText={anchorText}
-        expectedPage={expectedPage}
-        expectedLine={expectedLine}
-        status={status}
-      />
-    </div>
+      {content}
+    </button>
   );
 }
 

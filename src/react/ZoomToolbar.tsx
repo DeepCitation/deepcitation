@@ -10,8 +10,17 @@
  */
 
 import type React from "react";
-import { useCallback, useEffect } from "react";
-import { EXPANDED_ZOOM_MAX } from "./constants.js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  BLINK_ENTER_EASING,
+  EASE_COLLAPSE,
+  EXPANDED_ZOOM_MAX,
+  LOCATE_ICON_PULSE_COLOR,
+  LOCATE_ICON_PULSE_GROW_MS,
+  LOCATE_ICON_PULSE_SCALE,
+  LOCATE_ICON_PULSE_SETTLE_MS,
+} from "./constants.js";
+import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { LocateIcon, ZoomInIcon, ZoomOutIcon } from "./icons.js";
 import { cn } from "./utils.js";
 
@@ -120,9 +129,13 @@ export interface ZoomToolbarProps {
    * When false, the locate button is de-emphasized (viewport is centered on the annotation).
    */
   locateDirty?: boolean;
+  /** Monotonic trigger key for a one-shot locate icon pulse animation. */
+  locatePulseKey?: number;
   /** Called on slider pointerDown — used by the parent to lock container width. */
   onSliderGrab?: () => void;
 }
+
+type LocatePulseStage = "idle" | "grow" | "settle";
 
 /** Clamp and round zoom to 2 decimal places. */
 function clamp(value: number, min: number, max: number): number {
@@ -144,12 +157,40 @@ export function ZoomToolbar({
   onLocate,
   onSliderGrab,
   locateDirty = true,
+  locatePulseKey,
 }: ZoomToolbarProps) {
   // Inject singleton <style> tag on first mount, remove on last unmount.
   useEffect(() => {
     mountThumbStyle();
     return unmountThumbStyle;
   }, []);
+
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const [locatePulseStage, setLocatePulseStage] = useState<LocatePulseStage>("idle");
+  const locatePulseKeyRef = useRef(locatePulseKey ?? 0);
+
+  useEffect(() => {
+    if (locatePulseKey === undefined) return;
+    if (locatePulseKey === locatePulseKeyRef.current) return;
+    locatePulseKeyRef.current = locatePulseKey;
+    if (prefersReducedMotion) return;
+    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    const startFrame = requestAnimationFrame(() => {
+      setLocatePulseStage("grow");
+      settleTimer = setTimeout(() => {
+        setLocatePulseStage("settle");
+      }, LOCATE_ICON_PULSE_GROW_MS);
+      idleTimer = setTimeout(() => {
+        setLocatePulseStage("idle");
+      }, LOCATE_ICON_PULSE_GROW_MS + LOCATE_ICON_PULSE_SETTLE_MS);
+    });
+    return () => {
+      cancelAnimationFrame(startFrame);
+      if (settleTimer) clearTimeout(settleTimer);
+      if (idleTimer) clearTimeout(idleTimer);
+    };
+  }, [locatePulseKey, prefersReducedMotion]);
 
   const pct = Math.round(zoom * 100);
 
@@ -160,6 +201,23 @@ export function ZoomToolbar({
 
   /** Shared handler: stop propagation for any mouse/touch/pointer event. */
   const stop = useCallback((e: React.SyntheticEvent) => e.stopPropagation(), []);
+  const locateIconStyle: React.CSSProperties =
+    locatePulseStage === "grow"
+      ? {
+          transform: `scale(${LOCATE_ICON_PULSE_SCALE})`,
+          color: LOCATE_ICON_PULSE_COLOR,
+          transition: `transform ${LOCATE_ICON_PULSE_GROW_MS}ms ${BLINK_ENTER_EASING}, color ${LOCATE_ICON_PULSE_GROW_MS}ms ${BLINK_ENTER_EASING}`,
+        }
+      : locatePulseStage === "settle"
+        ? {
+            transform: "scale(1)",
+            color: "currentColor",
+            transition: `transform ${LOCATE_ICON_PULSE_SETTLE_MS}ms ${EASE_COLLAPSE}, color ${LOCATE_ICON_PULSE_SETTLE_MS}ms ${EASE_COLLAPSE}`,
+          }
+        : {
+            transform: "scale(1)",
+            color: "currentColor",
+          };
 
   return (
     <div
@@ -233,6 +291,7 @@ export function ZoomToolbar({
               onLocate();
             }}
             data-dc-scroll-to-annotation=""
+            data-dc-locate-pulse-stage={locatePulseStage !== "idle" ? locatePulseStage : undefined}
             className={cn(
               "size-9 flex items-center justify-center rounded-sm transition-all duration-200",
               locateDirty
@@ -241,7 +300,7 @@ export function ZoomToolbar({
             )}
             aria-label={locateDirty ? "Re-center on annotation" : "Centered on annotation"}
           >
-            <span className="size-4">
+            <span className="size-4 transform-gpu" style={locateIconStyle}>
               <LocateIcon />
             </span>
           </button>

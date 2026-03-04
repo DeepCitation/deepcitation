@@ -167,7 +167,9 @@ describe("useWheelZoom", () => {
     // The second gesture should build on top of firstCommit, not snap back to 1.0.
     const secondGestureZoom = result.current.gestureZoomRef.current;
     expect(secondGestureZoom).not.toBeNull();
-    expect(secondGestureZoom!).toBeGreaterThanOrEqual(firstCommit);
+    if (secondGestureZoom !== null) {
+      expect(secondGestureZoom).toBeGreaterThanOrEqual(firstCommit);
+    }
   });
 
   it("uses committed zoom as CSS transform scale base during stale-prop window", async () => {

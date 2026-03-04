@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/experimental-ct-react";
-import { CitationComponent } from "../../../src/react/CitationComponent";
+import { CitationComponent } from "../../../src/react/Citation";
 import type { DeepTextItem } from "../../../src/types/boxes";
 import type { Citation } from "../../../src/types/citation";
 import type { Verification } from "../../../src/types/verification";
@@ -200,6 +200,61 @@ test.describe("Annotation Overlay — rendering", () => {
     // No annotation overlay should be present (visible)
     const overlay = popover.locator("[data-dc-annotation-overlay]").filter({ visible: true });
     await expect(overlay).toHaveCount(0);
+  });
+});
+
+// =============================================================================
+// ANNOTATION OVERLAY — DISMISS
+// =============================================================================
+
+test.describe("Annotation Overlay — dismiss", () => {
+  test("hide overlay triggers a one-shot locate icon pulse", async ({ mount, page }) => {
+    await mount(
+      <div style={{ padding: "100px" }}>
+        <CitationComponent citation={baseCitation} verification={verificationWithAnnotation} />
+      </div>,
+    );
+
+    const { popover } = await expandToFullPage(page);
+
+    const overlayDismiss = popover.locator("[data-dc-overlay-dismiss]").filter({ visible: true });
+    await expect(overlayDismiss).toBeVisible();
+    const scrollToBtn = popover.locator("[data-dc-scroll-to-annotation]");
+    await expect(scrollToBtn).toBeVisible();
+    await expect.poll(async () => scrollToBtn.getAttribute("data-dc-locate-pulse-stage")).toBeNull();
+
+    await overlayDismiss.click();
+    await expect(popover.locator("[data-dc-annotation-overlay]").filter({ visible: true })).toHaveCount(0);
+
+    await expect.poll(async () => scrollToBtn.getAttribute("data-dc-locate-pulse-stage")).toMatch(/grow|settle/);
+    await expect.poll(async () => scrollToBtn.getAttribute("data-dc-locate-pulse-stage")).toBeNull();
+  });
+
+  test("hiding overlay twice re-triggers locate icon pulse", async ({ mount, page }) => {
+    await mount(
+      <div style={{ padding: "100px" }}>
+        <CitationComponent citation={baseCitation} verification={verificationWithAnnotation} />
+      </div>,
+    );
+
+    const { popover } = await expandToFullPage(page);
+
+    const overlayDismiss = popover.locator("[data-dc-overlay-dismiss]").filter({ visible: true });
+    const overlay = popover.locator("[data-dc-annotation-overlay]").filter({ visible: true });
+    const scrollToBtn = popover.locator("[data-dc-scroll-to-annotation]");
+    await expect(scrollToBtn).toBeVisible();
+
+    await overlayDismiss.click();
+    await expect(overlay).toHaveCount(0);
+    await expect.poll(async () => scrollToBtn.getAttribute("data-dc-locate-pulse-stage")).toBeNull();
+
+    // Re-center restores the overlay and should allow dismiss-trigger pulse replay.
+    await scrollToBtn.click();
+    await expect(overlay).toBeVisible();
+
+    await popover.locator("[data-dc-overlay-dismiss]").filter({ visible: true }).click();
+    await expect(overlay).toHaveCount(0);
+    await expect.poll(async () => scrollToBtn.getAttribute("data-dc-locate-pulse-stage")).toMatch(/grow|settle/);
   });
 });
 

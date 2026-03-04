@@ -389,7 +389,6 @@ function ZoomHint({
   hasZoomed: boolean;
   enabled?: boolean;
 }) {
-  const [visible, setVisible] = useState(false);
   const [dismissed, setDismissed] = useState(() => {
     try {
       return sessionStorage.getItem(ZOOM_HINT_SESSION_KEY) === "1";
@@ -398,30 +397,40 @@ function ZoomHint({
     }
   });
 
-  // Show after hover dwell
+  // Render-time dismissal: derive from hasZoomed (avoids set-state-in-effect).
+  // React detects this, aborts the current render, and retries immediately.
+  if (hasZoomed && !dismissed) {
+    setDismissed(true);
+  }
+
+  // Persist dismissal to sessionStorage (side effect only — no setState).
   useEffect(() => {
-    if (!enabled || dismissed || hasZoomed || !isHovering) {
-      setVisible(false);
-      return;
+    if (!dismissed) return;
+    try {
+      sessionStorage.setItem(ZOOM_HINT_SESSION_KEY, "1");
+    } catch {
+      /* quota exceeded — harmless */
     }
-    const timer = setTimeout(() => setVisible(true), ZOOM_HINT_DELAY_MS);
+  }, [dismissed]);
+
+  // Derive visibility from conditions (no `visible` state needed).
+  // Timer fires only when shouldShow is true; `timerFired` resets on shouldShow transitions.
+  const shouldShow = enabled && !dismissed && !hasZoomed && isHovering;
+  const [timerFired, setTimerFired] = useState(false);
+  const [prevShouldShow, setPrevShouldShow] = useState(shouldShow);
+  if (prevShouldShow !== shouldShow) {
+    setPrevShouldShow(shouldShow);
+    if (timerFired) setTimerFired(false);
+  }
+
+  // Hover dwell timer — only async setState (inside setTimeout), no synchronous setState.
+  useEffect(() => {
+    if (!shouldShow) return;
+    const timer = setTimeout(() => setTimerFired(true), ZOOM_HINT_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [enabled, isHovering, dismissed, hasZoomed]);
+  }, [shouldShow]);
 
-  // Dismiss permanently on first zoom
-  useEffect(() => {
-    if (hasZoomed && !dismissed) {
-      setDismissed(true);
-      setVisible(false);
-      try {
-        sessionStorage.setItem(ZOOM_HINT_SESSION_KEY, "1");
-      } catch {
-        /* quota exceeded — harmless */
-      }
-    }
-  }, [hasZoomed, dismissed]);
-
-  if (!visible) return null;
+  if (!shouldShow || !timerFired) return null;
 
   return (
     <div
@@ -509,14 +518,6 @@ export function AnchorTextFocusedImage({
   /** Cancel handle for the current `animateScrollLeft` rAF loop (if any). */
   const cancelPanRef = useRef<(() => void) | null>(null);
   const keyholeInitAppliedRef = useRef(false);
-  useEffect(() => {
-    keyholeInitAppliedRef.current = false;
-    setImageLoaded(false);
-    setImageFitInfo(null);
-    setZoomEligible(false);
-    setKeyholeZoom(1.0);
-    setHasZoomed(false);
-  }, [src]);
 
   const clampKeyholeZoomRaw = useCallback((z: number) => Math.max(KEYHOLE_ZOOM_MIN, Math.min(KEYHOLE_ZOOM_MAX, z)), []);
   const clampKeyholeZoom = useCallback(
@@ -629,7 +630,7 @@ export function AnchorTextFocusedImage({
       }
     } else {
       // Height-fit mode (default): detect whether the image nearly fits within the keyhole.
-      // Uses KEYHOLE_SKIP_THRESHOLD (1.5) so images up to 50% taller than the strip
+      // Uses KEYHOLE_SKIP_THRESHOLD (2.0) so images up to 100% taller than the strip
       // are treated as "fits" — expanding would reveal almost nothing new.
       // displayedWidth <= containerWidth → image is narrow enough to show in full horizontally.
       // When both are true, the keyhole already reveals nearly everything — expand adds no value.
@@ -941,23 +942,26 @@ export function AnchorTextFocusedImage({
 // =============================================================================
 
 /**
- * Minimal footer for the evidence tray: date on the left, "View page ›" CTA on the right.
+ * Minimal footer for the evidence tray: date on the left, CTA on the right.
  * For miss states, an optional "› N searches" toggle sits between the date and CTA.
  */
 function EvidenceTrayFooter({
   verifiedAt,
   onPageClick,
   pageNumberForCta,
+  pageCtaLabel,
   searchCount,
   isSearchLogOpen,
   onToggleSearchLog,
   locationLabel,
 }: {
   verifiedAt?: Date | string | null;
-  /** When provided, renders a "View page" CTA button */
+  /** When provided, renders a footer CTA button */
   onPageClick?: () => void;
   /** Optional page number to include in the CTA label (drawer context). */
   pageNumberForCta?: number | null;
+  /** Optional CTA label override (for example, "View image"). */
+  pageCtaLabel?: string;
   /** Number of grouped search attempts (toggle hidden when 0 or absent) */
   searchCount?: number;
   /** Whether the search log is currently expanded */
@@ -971,7 +975,7 @@ function EvidenceTrayFooter({
   const dateStr = formatted?.display ?? "";
   const showToggle = onToggleSearchLog && searchCount != null && searchCount > 0;
   const hasPageForCta = pageNumberForCta != null && pageNumberForCta > 0;
-  const pageCtaLabel = hasPageForCta ? `View page ${pageNumberForCta}` : "View page";
+  const resolvedPageCtaLabel = pageCtaLabel ?? (hasPageForCta ? `View page ${pageNumberForCta}` : "View page");
 
   return (
     <div className="px-3 py-2 min-h-[44px] flex items-center text-[11px] text-gray-400 dark:text-gray-500">
@@ -1025,9 +1029,9 @@ function EvidenceTrayFooter({
               e.stopPropagation();
               onPageClick();
             }}
-            aria-label={pageCtaLabel}
+            aria-label={resolvedPageCtaLabel}
           >
-            <span>{pageCtaLabel}</span>
+            <span>{resolvedPageCtaLabel}</span>
             <span className="size-3 shrink-0">
               <ChevronRightIcon />
             </span>
@@ -1117,6 +1121,7 @@ export function EvidenceTray({
   onImageClick,
   proofImageSrc,
   pageNumberForCta,
+  pageCtaLabel,
   onKeyholeWidth,
   onScrollCapture,
   onExpandOriginCapture,
@@ -1129,6 +1134,8 @@ export function EvidenceTray({
   proofImageSrc?: string;
   /** Optional page number shown in "View page N" CTA for drawer context. */
   pageNumberForCta?: number | null;
+  /** Optional footer CTA label override (for example, "View image"). */
+  pageCtaLabel?: string;
   onKeyholeWidth?: (width: number) => void;
   /** Called with natural-pixel scroll coords when the keyhole is clicked to expand. */
   onScrollCapture?: (left: number, top: number) => void;
@@ -1313,6 +1320,7 @@ export function EvidenceTray({
       verifiedAt={verification?.verifiedAt}
       onPageClick={onExpand ? handlePageExpand : undefined}
       pageNumberForCta={pageNumberForCta}
+      pageCtaLabel={pageCtaLabel}
       searchCount={isMiss || isPartialMatch ? searchCount : undefined}
       isSearchLogOpen={showSearchLog}
       onToggleSearchLog={isMiss || isPartialMatch ? () => setShowSearchLog(prev => !prev) : undefined}
@@ -1326,7 +1334,7 @@ export function EvidenceTray({
           Keys prevent React from reusing fibers across component-type swaps. */}
       {resolvedEvidenceSrc ? (
         <AnchorTextFocusedImage
-          key="keyhole"
+          key={resolvedEvidenceSrc}
           src={resolvedEvidenceSrc}
           verification={verification}
           onImageClick={onImageClick}
@@ -1336,7 +1344,7 @@ export function EvidenceTray({
         />
       ) : (isMiss || isPartialMatch) && isValidProofImageSrc(proofImageSrc) ? (
         <AnchorTextFocusedImage
-          key="keyhole-miss"
+          key={proofImageSrc}
           src={proofImageSrc}
           onImageClick={onImageClick}
           onKeyholeWidth={onKeyholeWidth}
@@ -1471,6 +1479,7 @@ export function InlineExpandedImage({
   fill = false,
   onExpand,
   pageNumberForCta,
+  expandCtaLabel,
   onExpandOriginCapture,
   onNaturalSize,
   renderScale,
@@ -1487,10 +1496,12 @@ export function InlineExpandedImage({
   verification?: Verification | null;
   /** When true, the component expands to fill its flex parent (for use inside flex-column containers). */
   fill?: boolean;
-  /** When provided, renders a "View page ›" CTA in the non-fill footer. */
+  /** When provided, renders a CTA in the non-fill footer (defaults to "View page"). */
   onExpand?: () => void;
   /** Optional page number shown in "View page N" CTA for non-fill mode. */
   pageNumberForCta?: number | null;
+  /** Optional non-fill footer CTA label override (for example, "View image"). */
+  expandCtaLabel?: string;
   /** Called with a viewport rect used as the shared-origin source for expand-to-page. */
   onExpandOriginCapture?: (rect: SharedOriginRect) => void;
   /** Called after image load with natural pixel dimensions. */
@@ -1662,6 +1673,7 @@ export function InlineExpandedImage({
   // annotationScrollTarget to satisfy the React Compiler's declaration-order requirement.
   // ---------------------------------------------------------------------------
   const [locateDirty, setLocateDirty] = useState(false);
+  const [locatePulseKey, setLocatePulseKey] = useState(0);
   // Ref storing the expected scroll position after a programmatic scroll.
   // Used by the scroll listener to detect user-initiated drift.
   const annotationScrollTarget = useRef<{ left: number; top: number } | null>(null);
@@ -2053,6 +2065,10 @@ export function InlineExpandedImage({
     captureExpandOriginRect();
     onExpand?.();
   }, [captureExpandOriginRect, onExpand]);
+  const handleOverlayDismiss = useCallback(() => {
+    setOverlayHidden(true);
+    setLocatePulseKey(prev => prev + 1);
+  }, []);
 
   useSharedOriginExpandTransition(
     fill,
@@ -2069,6 +2085,7 @@ export function InlineExpandedImage({
         verifiedAt={verification?.verifiedAt}
         onPageClick={fill ? undefined : handleExpandToPage}
         pageNumberForCta={pageNumberForCta}
+        pageCtaLabel={expandCtaLabel}
       />
     </div>
   );
@@ -2235,7 +2252,7 @@ export function InlineExpandedImage({
                     anchorTextDeepItem={effectiveAnchorItem}
                     anchorText={verification?.verifiedAnchorText}
                     fullPhrase={verification?.verifiedFullPhrase}
-                    onDismiss={fill ? () => setOverlayHidden(true) : undefined}
+                    onDismiss={fill ? handleOverlayDismiss : undefined}
                   />
                 )}
             </div>
@@ -2256,6 +2273,7 @@ export function InlineExpandedImage({
             showLocate={showScrollToAnnotation}
             onLocate={handleScrollToAnnotation}
             locateDirty={locateDirty}
+            locatePulseKey={locatePulseKey}
             onSliderGrab={() => {
               if (outerRef.current) setSliderLockWidth(outerRef.current.offsetWidth);
             }}
