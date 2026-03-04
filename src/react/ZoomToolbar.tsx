@@ -22,6 +22,7 @@ import {
   LOCATE_ICON_PULSE_SETTLE_MS,
 } from "./constants.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
+import { useTranslation } from "./i18n.js";
 import { LocateIcon } from "./icons.js";
 import { cn } from "./utils.js";
 
@@ -85,6 +86,7 @@ export function ZoomToolbar({
   locateDirty = true,
   locatePulseKey,
 }: ZoomToolbarProps) {
+  const t = useTranslation();
   const prefersReducedMotion = usePrefersReducedMotion();
   const [locatePulseStage, setLocatePulseStage] = useState<LocatePulseStage>("idle");
   const locatePulseKeyRef = useRef(locatePulseKey ?? 0);
@@ -166,7 +168,7 @@ export function ZoomToolbar({
                 ? "text-sky-700 dark:text-sky-300 opacity-90 hover:bg-slate-50 dark:hover:bg-slate-700"
                 : "opacity-45 hover:opacity-65",
             )}
-            aria-label={locateDirty ? "Re-center on annotation" : "Centered on annotation"}
+            aria-label={locateDirty ? t("zoom.reCenter") : t("zoom.centered")}
           >
             <span className="size-4 transform-gpu" style={locateIconStyle}>
               <LocateIcon />
@@ -175,7 +177,7 @@ export function ZoomToolbar({
         )}
 
         {/* Zoom +/− card */}
-        <div role="toolbar" aria-label="Zoom controls" className={CARD_CLASSES}>
+        <div role="toolbar" aria-label={t("zoom.controls")} className={CARD_CLASSES}>
           {/* Zoom in */}
           <button
             type="button"
@@ -188,7 +190,7 @@ export function ZoomToolbar({
               ZOOM_BTN_CLASSES,
               "rounded-t-lg hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600",
             )}
-            aria-label="Zoom in"
+            aria-label={t("zoom.in")}
           >
             +
           </button>
@@ -208,7 +210,7 @@ export function ZoomToolbar({
               ZOOM_BTN_CLASSES,
               "rounded-b-lg hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600",
             )}
-            aria-label="Zoom out"
+            aria-label={t("zoom.out")}
           >
             {"\u2212"}
           </button>

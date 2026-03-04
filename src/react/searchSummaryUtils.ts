@@ -1,6 +1,7 @@
 import type { DeepTextItem } from "../types/boxes.js";
 import type { MatchedVariation, SearchAttempt, SearchMethod } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
+import { defaultTranslator, type MessageKey, type TranslateFunction } from "./i18n.js";
 import { isDocumentCitation } from "./utils.js";
 import { getVariationLabel } from "./variationLabels.js";
 
@@ -335,24 +336,25 @@ function derivePhraseType(attempt: SearchAttempt): SearchQueryGroup["phraseType"
 }
 
 /** Human-readable label for the phrase type. */
-function derivePhraseLabel(attempt: SearchAttempt): string {
-  if (attempt.searchPhraseType === "anchor_text") return "Anchor text";
-  if (attempt.searchPhraseType === "full_phrase") return "Full phrase";
+function derivePhraseLabel(attempt: SearchAttempt, t: TranslateFunction): string {
+  if (attempt.searchPhraseType === "anchor_text") return t("searchPhrase.anchorText");
+  if (attempt.searchPhraseType === "full_phrase") return t("searchPhrase.fullPhrase");
   // Infer from method for fragments
-  const labels: Partial<Record<SearchMethod, string>> = {
-    first_half_fallback: "First half",
-    last_half_fallback: "Last half",
-    first_quarter_fallback: "First quarter",
-    second_quarter_fallback: "Second quarter",
-    third_quarter_fallback: "Third quarter",
-    fourth_quarter_fallback: "Fourth quarter",
-    first_word_fallback: "First word",
-    longest_word_fallback: "Longest word",
-    anchor_text_fallback: "Anchor text",
-    keyspan_fallback: "Anchor text",
-    custom_phrase_fallback: "Custom phrase",
+  const keyMap: Partial<Record<SearchMethod, MessageKey>> = {
+    first_half_fallback: "searchPhrase.firstHalf",
+    last_half_fallback: "searchPhrase.lastHalf",
+    first_quarter_fallback: "searchPhrase.firstQuarter",
+    second_quarter_fallback: "searchPhrase.secondQuarter",
+    third_quarter_fallback: "searchPhrase.thirdQuarter",
+    fourth_quarter_fallback: "searchPhrase.fourthQuarter",
+    first_word_fallback: "searchPhrase.firstWord",
+    longest_word_fallback: "searchPhrase.longestWord",
+    anchor_text_fallback: "searchPhrase.anchorText",
+    keyspan_fallback: "searchPhrase.anchorText",
+    custom_phrase_fallback: "searchPhrase.customPhrase",
   };
-  return labels[attempt.method] ?? "Full phrase";
+  const key = keyMap[attempt.method];
+  return key ? t(key) : t("searchPhrase.fullPhrase");
 }
 
 /**
@@ -360,7 +362,11 @@ function derivePhraseLabel(attempt: SearchAttempt): string {
  * Groups attempts by distinct searchPhrase (query-centric), computes page range,
  * full doc scan presence, and closest match if any.
  */
-export function buildSearchSummary(searchAttempts: SearchAttempt[], verification?: Verification | null): SearchSummary {
+export function buildSearchSummary(
+  searchAttempts: SearchAttempt[],
+  verification?: Verification | null,
+  t: TranslateFunction = defaultTranslator,
+): SearchSummary {
   const totalAttempts = searchAttempts.length;
 
   // --- Group by searchPhrase (Map preserves insertion order) ---
@@ -420,7 +426,7 @@ export function buildSearchSummary(searchAttempts: SearchAttempt[], verification
       if (attempt.success) anySuccess = true;
 
       if (!variationTypeLabel && attempt.variationType) {
-        variationTypeLabel = getVariationLabel(attempt.variationType);
+        variationTypeLabel = getVariationLabel(attempt.variationType, t);
       }
 
       // Rejected matches
@@ -438,7 +444,7 @@ export function buildSearchSummary(searchAttempts: SearchAttempt[], verification
     queryGroups.push({
       searchPhrase: phrase,
       phraseType: derivePhraseType(firstAttempt),
-      phraseLabel: derivePhraseLabel(firstAttempt),
+      phraseLabel: derivePhraseLabel(firstAttempt, t),
       methodsTried,
       locations: {
         pages: Array.from(pages).sort((a, b) => a - b),

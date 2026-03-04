@@ -14,6 +14,7 @@ import {
   TERTIARY_ACTION_IDLE_CLASSES,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
+import { type MessageKey, type TranslateFunction, useTranslation } from "./i18n.js";
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -56,9 +57,9 @@ const TRUNCATED_PHRASE_PREFIX_LENGTH = 42;
 const TRUNCATED_PHRASE_SUFFIX_LENGTH = 14;
 
 /** Truncate a search phrase for display, showing "(empty)" for blank input. */
-function truncatePhrase(raw: string | undefined | null): string {
+function truncatePhrase(raw: string | undefined | null, t: TranslateFunction): string {
   const phrase = raw ?? "";
-  if (phrase.length === 0) return "(empty)";
+  if (phrase.length === 0) return t("search.empty");
   if (phrase.length <= MAX_PHRASE_DISPLAY_LENGTH) return phrase;
   const prefix = phrase.slice(0, TRUNCATED_PHRASE_PREFIX_LENGTH);
   const suffix = phrase.slice(-TRUNCATED_PHRASE_SUFFIX_LENGTH);
@@ -76,26 +77,30 @@ const ICON_COLOR_CLASSES = {
   gray: "text-gray-400 dark:text-gray-500",
 } as const;
 
-const METHOD_DISPLAY_NAMES: Record<SearchMethod, string> = {
-  exact_line_match: "Exact location",
-  line_with_buffer: "Nearby lines",
-  expanded_line_buffer: "Extended nearby lines",
-  current_page: "Expected page",
-  anchor_text_fallback: "Anchor text",
-  adjacent_pages: "Nearby pages",
-  expanded_window: "Wider area",
-  regex_search: "Entire document",
-  first_word_fallback: "First word",
-  first_half_fallback: "First half",
-  last_half_fallback: "Last half",
-  first_quarter_fallback: "First quarter",
-  second_quarter_fallback: "Second quarter",
-  third_quarter_fallback: "Third quarter",
-  fourth_quarter_fallback: "Fourth quarter",
-  longest_word_fallback: "Longest word",
-  custom_phrase_fallback: "Custom search",
-  keyspan_fallback: "Anchor text",
+const METHOD_KEY_MAP: Record<SearchMethod, MessageKey> = {
+  exact_line_match: "search.method.exactLineMatch",
+  line_with_buffer: "search.method.lineWithBuffer",
+  expanded_line_buffer: "search.method.expandedLineBuffer",
+  current_page: "search.method.currentPage",
+  anchor_text_fallback: "search.method.anchorTextFallback",
+  adjacent_pages: "search.method.adjacentPages",
+  expanded_window: "search.method.expandedWindow",
+  regex_search: "search.method.regexSearch",
+  first_word_fallback: "search.method.firstWordFallback",
+  first_half_fallback: "search.method.firstHalfFallback",
+  last_half_fallback: "search.method.lastHalfFallback",
+  first_quarter_fallback: "search.method.firstQuarterFallback",
+  second_quarter_fallback: "search.method.secondQuarterFallback",
+  third_quarter_fallback: "search.method.thirdQuarterFallback",
+  fourth_quarter_fallback: "search.method.fourthQuarterFallback",
+  longest_word_fallback: "search.method.longestWordFallback",
+  custom_phrase_fallback: "search.method.customPhraseFallback",
+  keyspan_fallback: "search.method.keyspanFallback",
 };
+
+function getMethodDisplayName(method: SearchMethod, t: TranslateFunction): string {
+  return t(METHOD_KEY_MAP[method]);
+}
 
 const HEADER_DOWNLOAD_BUTTON_BASE_CLASSES =
   "shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-[opacity,color] duration-150";
@@ -1211,6 +1216,7 @@ function AuditSearchDisplay({
   expectedLine,
   status,
 }: AuditSearchDisplayProps) {
+  const t = useTranslation();
   const groupedAttempts = useMemo(() => groupSearchAttempts(searchAttempts), [searchAttempts]);
   // Show all searches unless the status is a confirmed exact match.
   // Transient statuses (loading, pending) show partial attempts as they arrive.
@@ -1252,9 +1258,9 @@ function AuditSearchDisplay({
 
   // For exact matches: show only the successful match details
   if (!showAll && successfulAttempt) {
-    const displayPhrase = truncatePhrase(successfulAttempt.searchPhrase);
+    const displayPhrase = truncatePhrase(successfulAttempt.searchPhrase, t);
 
-    const methodName = METHOD_DISPLAY_NAMES[successfulAttempt.method] ?? successfulAttempt.method ?? "Search";
+    const methodName = getMethodDisplayName(successfulAttempt.method, t);
     const locationText = successfulAttempt.foundLocation
       ? `Page ${successfulAttempt.foundLocation.page}${successfulAttempt.foundLocation.line ? `, line ${successfulAttempt.foundLocation.line}` : ""}`
       : successfulAttempt.pageSearched != null
@@ -1308,7 +1314,7 @@ function AuditSearchDisplay({
 
     return {
       key,
-      text: truncatePhrase(attempt.searchPhrase),
+      text: truncatePhrase(attempt.searchPhrase, t),
       success: attempt.success,
       isUnexpectedHit: unexpectedPage || unexpectedLine,
       locationText,

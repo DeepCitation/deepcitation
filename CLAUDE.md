@@ -26,6 +26,9 @@ import {
   SourcesListComponent,
   SourcesTrigger,
   SourcesListItem,
+  // i18n
+  DeepCitationI18nProvider,
+  useTranslation,
 } from "deepcitation/react";
 ```
 
@@ -56,6 +59,7 @@ src/
 │   └── promptCompression.ts
 ├── react/
 │   ├── index.ts              # Public API types + consumer-facing exports
+│   ├── i18n.tsx              # i18n infrastructure — CANONICAL LOCATION for all i18n symbols
 │   ├── Citation.tsx       # Document citation (popover wiring) + URL citation (UrlCitationComponent, MemoizedUrlCitationComponent)
 │   ├── CitationContentDisplay.tsx  # Variant rendering (chip, superscript, badge, etc.)
 │   ├── CitationErrorBoundary.tsx   # Error boundary for citation components
@@ -279,6 +283,11 @@ console.log("[API] Input:", sanitizeForLog(userInput));
 | `UrlCitationComponent` | `src/react/Citation.tsx` | URL citation display (badge/chip/inline/bracket variants) — co-located with CitationComponent |
 | `MemoizedUrlCitationComponent` | `src/react/Citation.tsx` | Memoized URL citation component |
 | `AnimatedHeightWrapper` | `src/react/DefaultPopoverContent.tsx` | Height morph wrapper (keep DOM, never Fragment) |
+| `defaultMessages` | `src/react/i18n.tsx` | Default English message dictionary (all i18n keys) |
+| `DeepCitationI18nProvider` | `src/react/i18n.tsx` | React context provider for custom translations |
+| `useTranslation()` | `src/react/i18n.tsx` | Hook to access the `t()` translator inside components |
+| `createTranslator()` | `src/react/i18n.tsx` | Factory for `t()` in non-React contexts (tests, SSR) |
+| `tPlural()` | `src/react/i18n.tsx` | Plural form selector using `_one` / `_other` suffix convention |
 
 ### Example
 

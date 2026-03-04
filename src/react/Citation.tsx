@@ -34,6 +34,7 @@ import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
 import { usePopoverAlignOffset } from "./hooks/usePopoverAlignOffset.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { useViewportBoundaryGuard } from "./hooks/useViewportBoundaryGuard.js";
+import { useTranslation } from "./i18n.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { PopoverContent } from "./Popover.js";
@@ -422,6 +423,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       }
       return undefined;
     }, [onSourceDownload, downloadUrl]);
+
+    const t = useTranslation();
 
     // Get overlay context for blocking hover when any image overlay is open
     const { isAnyOverlayOpen } = useCitationOverlay();
@@ -1298,7 +1301,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Generate unique IDs for ARIA attributes
     const popoverId = `citation-popover-${citationInstanceId}`;
     const statusDescId = `citation-status-${citationInstanceId}`;
-    const statusDescription = shouldShowSpinner ? "Verifying..." : getStatusLabel(status);
+    const statusDescription = shouldShowSpinner ? t("indicator.stillVerifying") : getStatusLabel(status, t);
 
     // Variants with their own hover styles don't need parent hover (would extend beyond bounds)
     const variantHasOwnHover = VARIANTS_WITH_OWN_HOVER.has(variant);

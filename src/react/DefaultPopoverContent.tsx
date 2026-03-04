@@ -30,6 +30,7 @@ import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useAnimatedHeight } from "./hooks/useAnimatedHeight.js";
 import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
+import { useTranslation } from "./i18n.js";
 import { SpinnerIcon } from "./icons.js";
 import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
 import { buildIntentSummary, type MatchSnippet } from "./searchSummaryUtils.js";
@@ -111,6 +112,7 @@ export interface PopoverContentProps {
  * Amber background for blocked states (potentially resolvable), red for errors.
  */
 function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessExplanation }) {
+  const t = useTranslation();
   const isAmber = explanation.colorScheme === "amber";
   return (
     <div
@@ -121,7 +123,7 @@ function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessEx
           : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800",
       )}
       role="status"
-      aria-label={`${isAmber ? "Warning" : "Error"}: ${explanation.title}`}
+      aria-label={`${isAmber ? t("misc.warning") : t("misc.error")}: ${explanation.title}`}
     >
       <div
         className={cn(
@@ -554,6 +556,7 @@ function PopoverLoadingView({
   sourceLabel?: string;
   onSourceDownload?: (citation: Citation) => void;
 }) {
+  const t = useTranslation();
   const anchorText = citation.anchorText?.toString();
   const fullPhrase = citation.fullPhrase;
   const searchStatus = verification?.status;
@@ -582,7 +585,7 @@ function PopoverLoadingView({
           <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
             <SpinnerIcon />
           </span>
-          Searching...
+          {t("popover.searching")}
         </span>
         {searchingPhrase && (
           <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
@@ -591,7 +594,9 @@ function PopoverLoadingView({
         )}
         {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            {isImageSource(verification) ? "Searching image\u2026" : `Looking on p.${citation.pageNumber}`}
+            {isImageSource(verification)
+              ? t("popover.searchingImage")
+              : t("popover.lookingOnPage", { pageNumber: citation.pageNumber })}
           </span>
         )}
       </div>
@@ -620,8 +625,9 @@ function PopoverFallbackView({
   indicatorVariant?: IndicatorVariant;
   onSourceDownload?: (citation: Citation) => void;
 }) {
+  const t = useTranslation();
   const searchStatus = verification?.status;
-  const statusLabel = indicatorVariant !== "none" ? getStatusLabel(status) : null;
+  const statusLabel = indicatorVariant !== "none" ? getStatusLabel(status, t) : null;
   const hasSnippet = verification?.verifiedMatchSnippet;
   const pageNumber = verification?.document?.verifiedPageNumber;
 
@@ -661,7 +667,7 @@ function PopoverFallbackView({
         )}
         {pageNumber && pageNumber > 0 && (
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            {isImageSource(verification) ? "Image" : `Page ${pageNumber}`}
+            {isImageSource(verification) ? t("location.image") : t("location.page", { pageNumber })}
           </span>
         )}
       </div>
@@ -689,8 +695,9 @@ export function DefaultPopoverContent({
   onSourceDownload,
   escapeInterceptRef,
 }: PopoverContentProps) {
+  const t = useTranslation();
   const hasImage = verification?.document?.verificationImageSrc || verification?.url?.webPageScreenshotBase64;
-  const expandCtaLabel = isImageSource(verification) ? "View image" : undefined;
+  const expandCtaLabel = isImageSource(verification) ? t("action.viewImage") : undefined;
   const { isMiss, isPartialMatch, isPending, isVerified } = status;
   const searchStatus = verification?.status;
 
@@ -930,8 +937,8 @@ export function DefaultPopoverContent({
     const fetchStatus = urlAccessStatus
       ? mapUrlAccessStatusToFetchStatus(urlAccessStatus, errorMsg)
       : mapSearchStatusToFetchStatus(searchStatus);
-    return getUrlAccessExplanation(fetchStatus, verification?.url?.urlVerificationError);
-  }, [citation, verification, searchStatus]);
+    return getUrlAccessExplanation(fetchStatus, verification?.url?.urlVerificationError, t);
+  }, [citation, verification, searchStatus, t]);
 
   // A.5.3 aria-live region for screen reader announcements on status transitions.
   // Always rendered (even when empty) so it's in the DOM before content changes —

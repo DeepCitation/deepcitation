@@ -98,6 +98,22 @@ export {
 export { type ExpandedImageSource, resolveExpandedImage } from "./EvidenceTray.js";
 // Accessibility Hooks
 export { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
+export type {
+  DeepCitationI18nProviderProps,
+  DeepCitationMessages,
+  MessageKey,
+  MessageValues,
+  TranslateFunction,
+} from "./i18n.js";
+// I18n — internationalization support
+export {
+  createTranslator,
+  DeepCitationI18nProvider,
+  defaultMessages,
+  defaultTranslator,
+  tPlural,
+  useTranslation,
+} from "./i18n.js";
 // Icons
 export {
   CheckIcon,

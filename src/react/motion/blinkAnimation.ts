@@ -26,32 +26,24 @@ import {
 
 export type BlinkMotionStage = "idle" | "enter-a" | "enter-b" | "steady" | "exit";
 
-function resolveTransition(stage: BlinkMotionStage, enterStepMs: number, enterTotalMs: number, exitMs: number): string {
-  if (stage === "enter-a" || stage === "idle") return "none";
-  if (stage === "enter-b")
-    return `transform ${enterStepMs}ms ${BLINK_ENTER_EASING}, opacity ${enterStepMs}ms ${BLINK_ENTER_EASING}`;
-  if (stage === "steady") {
-    const settleMs = Math.max(16, enterTotalMs - enterStepMs);
-    return `transform ${settleMs}ms ${BLINK_ENTER_EASING}, opacity ${settleMs}ms ${BLINK_ENTER_EASING}`;
-  }
-  return `transform ${exitMs}ms ${BLINK_EXIT_EASING}, opacity ${exitMs}ms ${BLINK_EXIT_EASING}`;
-}
+// CSS transition property names use hyphenated form (not camelCase).
+const CONTAINER_TRANSITION_PROPS = ["transform", "opacity"];
+const ROW_TRANSITION_PROPS = ["padding-top", "transform", "grid-template-rows", "opacity"];
 
-function resolvePaddingTransition(
+function buildTransition(
   stage: BlinkMotionStage,
+  properties: readonly string[],
   enterStepMs: number,
   enterTotalMs: number,
   exitMs: number,
 ): string {
   if (stage === "enter-a" || stage === "idle") return "none";
-  if (stage === "enter-b") {
-    return `padding-top ${enterStepMs}ms ${BLINK_ENTER_EASING}, transform ${enterStepMs}ms ${BLINK_ENTER_EASING}, grid-template-rows ${enterStepMs}ms ${BLINK_ENTER_EASING}, opacity ${enterStepMs}ms ${BLINK_ENTER_EASING}`;
-  }
+  if (stage === "enter-b") return properties.map(p => `${p} ${enterStepMs}ms ${BLINK_ENTER_EASING}`).join(", ");
   if (stage === "steady") {
     const settleMs = Math.max(16, enterTotalMs - enterStepMs);
-    return `padding-top ${settleMs}ms ${BLINK_ENTER_EASING}, transform ${settleMs}ms ${BLINK_ENTER_EASING}, grid-template-rows ${settleMs}ms ${BLINK_ENTER_EASING}, opacity ${settleMs}ms ${BLINK_ENTER_EASING}`;
+    return properties.map(p => `${p} ${settleMs}ms ${BLINK_ENTER_EASING}`).join(", ");
   }
-  return `padding-top ${exitMs}ms ${BLINK_EXIT_EASING}, transform ${exitMs}ms ${BLINK_EXIT_EASING}, grid-template-rows ${exitMs}ms ${BLINK_EXIT_EASING}, opacity ${exitMs}ms ${BLINK_EXIT_EASING}`;
+  return properties.map(p => `${p} ${exitMs}ms ${BLINK_EXIT_EASING}`).join(", ");
 }
 
 function containerTransform(stage: BlinkMotionStage): string {
@@ -115,7 +107,7 @@ export function getBlinkContainerMotionStyle(
   return {
     transform: containerTransform(stage),
     opacity: containerOpacity(stage),
-    transition: resolveTransition(stage, enterStepMs, enterTotalMs, exitMs),
+    transition: buildTransition(stage, CONTAINER_TRANSITION_PROPS, enterStepMs, enterTotalMs, exitMs),
     transformOrigin: "center center",
     willChange: stage === "steady" ? undefined : "transform, opacity",
   };
@@ -146,7 +138,7 @@ export function getBlinkRowMotionStyle(
     display: "grid",
     gridTemplateRows: rowGridTemplateRows(stage),
     opacity: rowOpacity(stage),
-    transition: resolvePaddingTransition(stage, enterStepMs, enterTotalMs, exitMs),
+    transition: buildTransition(stage, ROW_TRANSITION_PROPS, enterStepMs, enterTotalMs, exitMs),
     willChange: stage === "steady" ? undefined : "transform, padding-top, grid-template-rows, opacity",
   };
 }

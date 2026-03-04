@@ -1189,7 +1189,7 @@ export function PopoverShowcase() {
                 <span className="inline-block relative top-[0.1em] mr-1.5 size-3 animate-spin">
                   <SpinnerIcon />
                 </span>
-                Searching...
+                Searching{"\u2026"}
               </span>
               <p className="p-2 bg-gray-100 dark:bg-gray-700 rounded font-mono text-[11px] break-words text-gray-600 dark:text-gray-400 italic">
                 "Revenue increased by 15% in Q4 2024."
@@ -1209,7 +1209,7 @@ export function PopoverShowcase() {
                 <span className="inline-block relative top-[0.1em] mr-1.5 size-3 animate-spin">
                   <SpinnerIcon />
                 </span>
-                Searching...
+                Searching{"\u2026"}
               </span>
               <p className="p-2 bg-gray-100 dark:bg-gray-700 rounded font-mono text-[11px] break-words text-gray-600 dark:text-gray-400 italic">
                 "The quarterly financial report indicates that revenue increased by 15% compared…"

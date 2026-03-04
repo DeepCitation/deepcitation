@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DRAWER_DRAG_CLOSE_THRESHOLD_PX } from "../constants.js";
+import { triggerHaptic } from "../haptics.js";
 
 /** Minimum downward velocity (px/ms) to trigger flick-to-dismiss. ~500px/s. */
 const FLICK_VELOCITY_THRESHOLD = 0.5;
@@ -173,7 +174,7 @@ export function useDrawerDragToClose({
       // Fire haptic feedback once when the drag crosses the threshold
       if (!hasVibratedRef.current && (deltaY >= threshold || deltaY <= -threshold)) {
         hasVibratedRef.current = true;
-        navigator.vibrate?.(10);
+        triggerHaptic("collapse");
       }
     },
     [threshold, applyRubberBand],

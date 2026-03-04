@@ -223,6 +223,24 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       };
     }, [open, isMounted]);
 
+    // Shared scroll-detection helper: walk from target up to boundary, checking
+    // if any ancestor can scroll vertically in the given direction.
+    const canChildScrollVertically = React.useCallback(
+      (target: HTMLElement | null, boundary: HTMLElement | null, deltaY: number): boolean => {
+        let node = target;
+        while (node && node !== boundary) {
+          const oy = getComputedStyle(node).overflowY;
+          if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
+            if (deltaY > 0 && Math.ceil(node.scrollTop) < node.scrollHeight - node.clientHeight) return true;
+            if (deltaY < 0 && node.scrollTop > 0) return true;
+          }
+          node = node.parentElement;
+        }
+        return false;
+      },
+      [],
+    );
+
     // Wheel passthrough: the popover's position:fixed wrapper + child scroll
     // containers (e.g. keyhole strip with overflow-x:auto) cause Chrome's scroll
     // latching to trap vertical wheel events even when nothing inside can scroll
@@ -236,18 +254,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         if (e.defaultPrevented) return; // Already handled (e.g. useWheelZoom zoom gesture)
         if (e.deltaY === 0) return; // Purely horizontal — let native handle (keyhole pan)
 
-        // Walk from event target up to the popover content div, looking for any
-        // element that can scroll vertically in the wheel direction.
-        let node = e.target as HTMLElement | null;
-        while (node && node !== el.parentElement) {
-          const oy = getComputedStyle(node).overflowY;
-          if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
-            // Found a vertically scrollable element — check direction
-            if (e.deltaY > 0 && Math.ceil(node.scrollTop) < node.scrollHeight - node.clientHeight) return;
-            if (e.deltaY < 0 && node.scrollTop > 0) return;
-          }
-          node = node.parentElement;
-        }
+        if (canChildScrollVertically(e.target as HTMLElement | null, el.parentElement, e.deltaY)) return;
 
         // Nothing inside can scroll vertically — forward to page.
         e.preventDefault();
@@ -258,7 +265,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
 
       el.addEventListener("wheel", onWheel, { passive: false });
       return () => el.removeEventListener("wheel", onWheel);
-    }, [isMounted, getPageScrollEl]);
+    }, [isMounted, getPageScrollEl, canChildScrollVertically]);
 
     // Touch scroll passthrough: mirrors the wheel handler above for mobile.
     // Touches on the popover's position:fixed surface dead-end at the viewport
@@ -286,20 +293,6 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
           cancelAnimationFrame(coastRafId);
           coastRafId = null;
         }
-      };
-
-      /** Check if any ancestor between target and popover can scroll vertically in the given direction. */
-      const canChildScrollVertically = (target: HTMLElement | null, deltaY: number): boolean => {
-        let node = target;
-        while (node && node !== el.parentElement) {
-          const oy = getComputedStyle(node).overflowY;
-          if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
-            if (deltaY > 0 && Math.ceil(node.scrollTop) < node.scrollHeight - node.clientHeight) return true;
-            if (deltaY < 0 && node.scrollTop > 0) return true;
-          }
-          node = node.parentElement;
-        }
-        return false;
       };
 
       const onTouchStart = (e: TouchEvent) => {
@@ -339,7 +332,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         if (axis === "horizontal") return; // let native/keyhole handle
 
         // Vertical: check if anything inside can scroll
-        if (canChildScrollVertically(e.target as HTMLElement | null, dy > 0 ? 1 : -1)) return;
+        if (canChildScrollVertically(e.target as HTMLElement | null, el.parentElement, dy > 0 ? 1 : -1)) return;
 
         // Nothing can scroll — forward to page
         e.preventDefault();
@@ -410,7 +403,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         el.removeEventListener("touchend", onTouchEnd);
         el.removeEventListener("touchcancel", onTouchEnd);
       };
-    }, [isMounted, getPageScrollEl]);
+    }, [isMounted, getPageScrollEl, canChildScrollVertically]);
 
     if (!isMounted) return null;
 
