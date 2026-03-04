@@ -1,5 +1,5 @@
-import { describe, expect, it } from "@jest/globals";
-import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "@jest/globals";
+import { cleanup, render, screen } from "@testing-library/react";
 import {
   createTranslator,
   defaultMessages,
@@ -144,6 +144,8 @@ function TestConsumer({ msgKey, values }: { msgKey: MessageKey; values?: Record<
 }
 
 describe("DeepCitationI18nProvider", () => {
+  afterEach(cleanup);
+
   it("provides default translations when no provider is present", () => {
     render(<TestConsumer msgKey="status.verified" />);
     expect(screen.getByTestId("output").textContent).toBe("Verified");

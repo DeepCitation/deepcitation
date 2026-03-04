@@ -55,11 +55,8 @@ export function useBlinkMotionStage(
   timingOverride?: BlinkMotionTimingOverride,
 ): { mounted: boolean; stage: BlinkMotionStage; prefersReducedMotion: boolean } {
   const prefersReducedMotion = usePrefersReducedMotion();
-  const timing = useMemo(
-    () => timingOverride ?? resolveProfile(profile, speed),
-    // Use primitive fields as deps to avoid reference-identity fragility when callers pass inline objects.
-    [timingOverride?.enterStepMs, timingOverride?.enterTotalMs, timingOverride?.exitMs, profile, speed],
-  );
+  // Callers should pass a stable (module-level or memoized) object for timingOverride.
+  const timing = useMemo(() => timingOverride ?? resolveProfile(profile, speed), [timingOverride, profile, speed]);
   const [mounted, setMounted] = useState(active);
   const [stage, setStage] = useState<BlinkMotionStage>(active ? "steady" : "idle");
 

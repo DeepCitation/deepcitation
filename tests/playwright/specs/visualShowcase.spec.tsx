@@ -216,7 +216,7 @@ test.describe("Popover Showcase - Desktop", () => {
     // Check both pending state variations
     const pendingState = page.locator('[data-popover-state="pending"]');
     await expect(pendingState).toBeVisible();
-    await expect(pendingState).toContainText("Searching...");
+    await expect(pendingState).toContainText("Searching\u2026");
 
     const longPendingState = page.locator('[data-popover-state="loading-long"]');
     await expect(longPendingState).toBeVisible();
@@ -379,7 +379,7 @@ test.describe("Popover Showcase - Interactive Click", () => {
     await expect(popover).toBeVisible();
 
     // The popover should contain "Searching..." text
-    await expect(popover).toContainText("Searching...");
+    await expect(popover).toContainText("Searching\u2026");
   });
 });
 
