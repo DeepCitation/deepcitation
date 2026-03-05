@@ -13,7 +13,8 @@ Run these before opening a PR:
 5. `npm run size`
 6. Verify all new public functions/types are exported from `src/index.ts` or `src/react/index.ts`.
 7. If you extracted a shared constant/utility, remove remaining duplicates.
-8. Ensure PR description matches diff scope (`git diff main...HEAD --stat`).
+8. Verify all user-facing strings and aria-labels use i18n keys (no hardcoded text). See `i18n-policy.md`.
+9. Ensure PR description matches diff scope (`git diff main...HEAD --stat`).
 
 `npm run check:fix` is required before lint because CI runs `biome ci ./src` in check-only mode.
 
