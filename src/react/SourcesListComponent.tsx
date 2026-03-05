@@ -179,7 +179,10 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
             // SourcesListItemProps.onClick is typed as React.MouseEvent (public API constraint).
             // Keyboard activation uses the same handler; only common Event properties
             // (preventDefault, stopPropagation, target) are accessed — no clientX/clientY.
-            handleClick(e as React.MouseEvent<HTMLDivElement>);
+            // Cast through unknown: KeyboardEvent and MouseEvent don't overlap enough for a
+            // direct cast (TS5.x), but the cast is safe because handleClick only uses shared
+            // SyntheticEvent properties.
+            handleClick(e as unknown as React.MouseEvent<HTMLDivElement>);
           }
         }}
         aria-label={t("aria.sourceFromPlatform", { title, platformName })}
