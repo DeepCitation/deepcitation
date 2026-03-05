@@ -236,7 +236,7 @@ describe("EvidenceTray interaction styles", () => {
     await waitFor(() => {
       const strip = container.querySelector("[data-dc-keyhole]");
       const button = strip?.closest("button");
-      expect(button).toHaveAttribute("title", "Already full size");
+      expect(button).toHaveAttribute("title", "Already full size" /* i18n default */);
     });
 
     clickKeyholeButton(container);
@@ -255,7 +255,7 @@ describe("EvidenceTray interaction styles", () => {
     await waitFor(() => {
       const strip = container.querySelector("[data-dc-keyhole]");
       const button = strip?.closest("button");
-      expect(button).not.toHaveAttribute("title", "Already full size");
+      expect(button).not.toHaveAttribute("title", "Already full size" /* i18n default */);
     });
 
     clickKeyholeButton(container);

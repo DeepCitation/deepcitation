@@ -714,7 +714,7 @@ export function AnchorTextFocusedImage({
           className="block relative w-full"
           title={
             !canExpand && !canExpandToPage && !isPannable && imageFitInfo?.imageFitsCompletely
-              ? "Already full size"
+              ? t("evidence.alreadyFullSize")
               : undefined
           }
           style={{
@@ -2189,7 +2189,7 @@ export function InlineExpandedImage({
               <img
                 ref={expandedImgRef}
                 src={isValidProofImageSrc(src) ? src : undefined}
-                alt="Verification evidence"
+                alt={t("aria.verificationEvidence")}
                 className={cn("block", DOCUMENT_IMAGE_EDGE_CLASSES, !imageLoaded && "hidden")}
                 style={zoomedWidth !== undefined ? { width: zoomedWidth, maxWidth: "none" } : { maxWidth: "none" }}
                 onLoad={e => {

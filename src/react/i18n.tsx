@@ -125,6 +125,8 @@ export const defaultMessages = {
   "action.openProof": "Open proof in new tab",
   "action.openInNewTab": "Open in new tab",
   "action.closeSources": "Close sources",
+  "action.tapToViewDetails": "Tap to view details",
+  "action.clickToViewDetails": "Click to view details",
 
   // ── Accessibility labels (aria) ───────────────────────────────
   "aria.hideOverlay": "Hide overlay",
@@ -156,6 +158,8 @@ export const defaultMessages = {
   "aria.downloadImage": "Download image",
   "aria.downloadSource": "Download source",
   "aria.collapseSearchLog": "Collapse search log",
+  "aria.verificationEvidence": "Verification evidence",
+  "aria.verificationProof": "Verification proof",
   "aria.keyhole.image": "Verification image",
   "aria.keyhole.panAndExpand": "Drag or click arrows to pan, click to view full size",
   "aria.keyhole.panOnly": "Drag or click arrows to pan",
@@ -262,6 +266,7 @@ export const defaultMessages = {
   "evidence.scrollToZoom": "Scroll to zoom",
   "evidence.differentSection": "(different section)",
   "evidence.andMore": "\u2026and {count} more",
+  "evidence.alreadyFullSize": "Already full size",
 
   // ── Misc ───────────────────────────────────────────────────────
   "misc.noTextFound": "No text found",

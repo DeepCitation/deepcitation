@@ -261,13 +261,13 @@ function CitationTooltip({
           >
             <img
               src={proofImage}
-              alt="Verification proof"
+              alt={t("aria.verificationProof")}
               className="w-full h-auto max-h-16 object-cover"
               loading="lazy"
             />
           </div>
           <span className="block text-[10px] text-gray-400 dark:text-gray-500 mt-1 text-center">
-            {isTouch ? "Tap" : "Click"} to view details
+            {isTouch ? t("action.tapToViewDetails") : t("action.clickToViewDetails")}
           </span>
         </div>
       )}
