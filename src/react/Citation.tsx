@@ -311,6 +311,8 @@ export interface CitationComponentProps extends BaseCitationProps {
 
 /** Manages the 3-stage spinner progression: active (0–5s) → slow (5–15s) → stale (15s+). */
 function useSpinnerStage(isLoading: boolean, isPending: boolean, hasDefinitiveResult: boolean): SpinnerStage {
+  // Timer-driven state transitions (5s/15s) use setState-during-render reset pattern.
+  // The compiler can't safely memoize across the timer + render-phase setState boundary.
   "use no memo";
   const shouldAnimate = (isLoading || isPending) && !hasDefinitiveResult;
   const [stage, setStage] = useState<SpinnerStage>("active");
