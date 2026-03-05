@@ -7,7 +7,7 @@
  *          localhost (dev), same-origin relative paths, safe raster data URIs.
  * Rejected: SVG data URIs, javascript: URIs, arbitrary HTTPS hosts, relative paths with `..` traversal.
  * Invalid sources are skipped and the next tier is tried.
- * Correctness: validates cascade priority (matchPage -> proofImage -> webCapture -> evidenceSnippet).
+ * Correctness: validates cascade priority (matchPage -> proofImage -> proofPage.url (derived) -> webCapture).
  */
 
 import { describe, expect, it } from "@jest/globals";
@@ -118,7 +118,7 @@ describe("resolveExpandedImage", () => {
       expect(result.highlightBox).toBeNull();
     });
 
-    it("falls back to evidenceSnippet when no matchPage or proofImage", () => {
+    it("returns null when only evidenceSnippet is present (tier 4 removed)", () => {
       const verification: Verification = {
         status: "found",
         assets: {
@@ -129,12 +129,7 @@ describe("resolveExpandedImage", () => {
         },
       };
 
-      const result = resolveExpandedImage(verification);
-      expect(result).not.toBeNull();
-      if (!result) throw new Error("Expected result");
-      expect(result.src).toBe(TRUSTED_IMG);
-      expect(result.dimensions).toEqual({ width: 600, height: 900 });
-      expect(result.highlightBox).toBeNull();
+      expect(resolveExpandedImage(verification)).toBeNull();
     });
 
     it("falls back to proofImage when matchPage has no imageUrl", () => {
@@ -176,47 +171,39 @@ describe("resolveExpandedImage", () => {
       expect(result?.src).toBe(LOCALHOST_IMG);
     });
 
-    it("accepts data:image/png URI", () => {
+    it("returns null when only evidenceSnippet has data:image/png URI (tier 4 removed)", () => {
       const pngDataUri = "data:image/png;base64,iVBORw0KGgo=";
       const verification: Verification = {
         status: "found",
         assets: { evidenceSnippet: { src: pngDataUri } },
       };
-      const result = resolveExpandedImage(verification);
-      expect(result).not.toBeNull();
-      expect(result?.src).toBe(pngDataUri);
+      expect(resolveExpandedImage(verification)).toBeNull();
     });
 
-    it("rejects untrusted HTTPS host — skips tier and falls through", () => {
+    it("rejects untrusted HTTPS host — skips tier and returns null when no valid fallback", () => {
       const verification: Verification = {
         status: "found",
         assets: {
           pageRenders: [
             { pageNumber: 1, isMatchPage: true, imageUrl: UNTRUSTED_HTTPS_IMG, dimensions: { width: 1, height: 1 } },
           ],
-          evidenceSnippet: { src: TRUSTED_IMG },
         },
       };
-      // tier 1 (untrusted host) is skipped; tier 4 (trusted snippet) is used
-      const result = resolveExpandedImage(verification);
-      expect(result).not.toBeNull();
-      expect(result?.src).toBe(TRUSTED_IMG);
+      // tier 1 (untrusted host) is skipped; no valid fallback exists
+      expect(resolveExpandedImage(verification)).toBeNull();
     });
 
-    it("rejects SVG data URI — skips tier and falls through", () => {
+    it("rejects SVG data URI — skips tier and returns null when no valid fallback", () => {
       const verification: Verification = {
         status: "found",
         assets: {
           pageRenders: [
             { pageNumber: 1, isMatchPage: true, imageUrl: SVG_DATA_URI, dimensions: { width: 1, height: 1 } },
           ],
-          evidenceSnippet: { src: TRUSTED_IMG },
         },
       };
-      // SVG data URI skipped; trusted evidenceSnippet used
-      const result = resolveExpandedImage(verification);
-      expect(result).not.toBeNull();
-      expect(result?.src).toBe(TRUSTED_IMG);
+      // SVG data URI skipped; no valid fallback exists
+      expect(resolveExpandedImage(verification)).toBeNull();
     });
 
     it("rejects javascript: URI — returns null when no valid fallback", () => {
@@ -227,7 +214,7 @@ describe("resolveExpandedImage", () => {
       expect(resolveExpandedImage(verification)).toBeNull();
     });
 
-    it("falls through from invalid proofImage to valid evidenceSnippet", () => {
+    it("returns null when proofImage is untrusted and no other valid sources exist", () => {
       const verification: Verification = {
         status: "found",
         assets: {
@@ -235,9 +222,8 @@ describe("resolveExpandedImage", () => {
           evidenceSnippet: { src: TRUSTED_IMG },
         },
       };
-      const result = resolveExpandedImage(verification);
-      expect(result).not.toBeNull();
-      expect(result?.src).toBe(TRUSTED_IMG);
+      // evidenceSnippet is not a fallback for expanded view
+      expect(resolveExpandedImage(verification)).toBeNull();
     });
 
     it("returns valid matchPage source when all tiers present", () => {
@@ -276,13 +262,13 @@ describe("resolveExpandedImage", () => {
       expect(result?.src).toBe(TRUSTED_PROOF_IMG);
     });
 
-    it("accepts relative path as evidenceSnippet src", () => {
+    it("accepts relative path as matchPage imageUrl — relative paths are valid sources", () => {
       const verification: Verification = {
         status: "found",
         assets: {
-          evidenceSnippet: {
-            src: RELATIVE_PATH_IMG,
-          },
+          pageRenders: [
+            { pageNumber: 1, isMatchPage: true, imageUrl: RELATIVE_PATH_IMG, dimensions: { width: 800, height: 1200 } },
+          ],
         },
       };
       const result = resolveExpandedImage(verification);
@@ -426,21 +412,18 @@ describe("resolveExpandedImage", () => {
       expect(result?.src).toBe(dataUri);
     });
 
-    it("falls through to evidenceSnippet when URL screenshot is an SVG data URI", () => {
+    it("returns null when URL screenshot is an SVG data URI (no tier 4 fallback)", () => {
       const verification: Verification = {
         status: "found",
         assets: {
           webCapture: { src: SVG_DATA_URI },
-          evidenceSnippet: { src: TRUSTED_IMG },
         },
       };
-      // SVG data URI is rejected by isValidProofImageSrc; tier 4 (evidenceSnippet) is used
-      const result = resolveExpandedImage(verification);
-      expect(result).not.toBeNull();
-      expect(result?.src).toBe(TRUSTED_IMG);
+      // SVG data URI is rejected by isValidProofImageSrc; no valid fallback
+      expect(resolveExpandedImage(verification)).toBeNull();
     });
 
-    it("confirms cascade: matchPage > proofImage > webCapture > evidenceSnippet", () => {
+    it("confirms cascade: matchPage > proofImage > webCapture (tier 3 reached when 1-2 invalid)", () => {
       const rawBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ";
       // tier 1 invalid, tier 2 invalid — should land on tier 3 (web capture)
       const verification: Verification = {
@@ -457,6 +440,84 @@ describe("resolveExpandedImage", () => {
       const result = resolveExpandedImage(verification);
       expect(result).not.toBeNull();
       expect(result?.src).toBe(`data:image/jpeg;base64,${rawBase64}`);
+    });
+  });
+
+  describe("tier 2c — proofPage.url derived full-page PNG", () => {
+    it("derives full-page PNG from proofPage.url by appending ?view=page&format=png", () => {
+      const verification: Verification = {
+        status: "found",
+        assets: {
+          proofPage: { url: "https://api.deepcitation.com/proof/test123" },
+        },
+      };
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      expect(result?.src).toBe("https://api.deepcitation.com/proof/test123?view=page&format=png");
+      expect(result?.dimensions).toBeNull();
+      expect(result?.highlightBox).toBeNull();
+      expect(result?.textItems).toEqual([]);
+    });
+
+    it("merges view/format into existing proofPage.url query string", () => {
+      const verification: Verification = {
+        status: "found",
+        assets: {
+          proofPage: { url: "https://api.deepcitation.com/proof/test123?highlight=true" },
+        },
+      };
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      expect(result?.src).toContain("view=page");
+      expect(result?.src).toContain("format=png");
+      expect(result?.src).toContain("highlight=true");
+    });
+
+    it("rejects proofPage.url on untrusted host — falls through to null", () => {
+      const verification: Verification = {
+        status: "found",
+        assets: {
+          proofPage: { url: "https://evil.example.com/proof/test123" },
+        },
+      };
+      expect(resolveExpandedImage(verification)).toBeNull();
+    });
+
+    it("falls through on malformed proofPage.url", () => {
+      const verification: Verification = {
+        status: "found",
+        assets: {
+          proofPage: { url: "://invalid-url" },
+        },
+      };
+      expect(resolveExpandedImage(verification)).toBeNull();
+    });
+
+    it("falls through untrusted proofPage.url to valid webCapture", () => {
+      const rawBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ";
+      const verification: Verification = {
+        status: "found",
+        assets: {
+          proofPage: { url: "https://evil.example.com/proof/test123" },
+          webCapture: { src: rawBase64 },
+        },
+      };
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      expect(result?.src).toBe(`data:image/jpeg;base64,${rawBase64}`);
+    });
+
+    it("proofImage (tier 2) takes priority over proofPage.url (tier 2c)", () => {
+      const verification: Verification = {
+        status: "found",
+        assets: {
+          proofImage: { url: TRUSTED_CDN_IMG },
+          proofPage: { url: "https://api.deepcitation.com/proof/test123" },
+        },
+      };
+      const result = resolveExpandedImage(verification);
+      expect(result).not.toBeNull();
+      expect(result?.src).toBe(TRUSTED_CDN_IMG);
     });
   });
 
@@ -526,7 +587,7 @@ describe("resolveExpandedImage", () => {
       expect(result.textItems).toEqual(textItems);
     });
 
-    it("defaults dimensions to null for evidenceSnippet without dimensions", () => {
+    it("returns null when only evidenceSnippet is present, even without dimensions", () => {
       const verification: Verification = {
         status: "found",
         assets: {
@@ -536,10 +597,7 @@ describe("resolveExpandedImage", () => {
         },
       };
 
-      const result = resolveExpandedImage(verification);
-      expect(result).not.toBeNull();
-      if (!result) throw new Error("Expected result");
-      expect(result.dimensions).toBeNull();
+      expect(resolveExpandedImage(verification)).toBeNull();
     });
 
     it("returns empty pageRenders array gracefully", () => {

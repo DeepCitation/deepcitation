@@ -1977,14 +1977,8 @@ export function InlineExpandedImage({
   // Compute effective image width for zoom
   const zoomedWidth = fill && naturalWidth ? naturalWidth * zoom : undefined;
 
-  // Dynamic centering margin: centers the image when zoomed smaller than the
-  // container, zero when overflowing. Avoids CSS centering which clips the
-  // start edge of overflowing content.
-  // In fill mode, the shell has CANVAS_PADDING_PX on each side, so the
-  // available width for centering is reduced by 2 × padding.
-  const containerWidth = containerSize?.width ?? 0;
-  const canvasPad = 0;
-  const availableWidth = containerWidth - canvasPad;
+  // Centering margin is currently always 0 (padding logic removed; kept as a
+  // named constant so the JSX spread below reads clearly).
   const centeringMarginLeft = 0;
 
   // Show zoom controls in fill mode when image has loaded
