@@ -56,8 +56,8 @@ function makeVerification(page: number, status: "found" | "not_found" = "found")
         src: testEvidenceImage,
         dimensions: { width: 800, height: 400 },
       },
+      pageRenders: [{ pageNumber: page, imageUrl: testProofImage, dimensions: { width: 800, height: 1000 } }],
     },
-    pages: [{ pageNumber: page, source: testProofImage }],
   };
 }
 

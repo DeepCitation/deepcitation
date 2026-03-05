@@ -50,15 +50,15 @@ export function GeneratedImageCitation({
           src: imageSrc,
           dimensions: { width, height },
         },
+        pageRenders: [
+          {
+            pageNumber: 5,
+            dimensions: { width, height },
+            imageUrl: imageSrc,
+            isMatchPage: true,
+          },
+        ],
       },
-      pages: [
-        {
-          pageNumber: 5,
-          dimensions: { width, height },
-          source: imageSrc,
-          isMatchPage: true,
-        },
-      ],
     }),
     [height, imageSrc, width],
   );
