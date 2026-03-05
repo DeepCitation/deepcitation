@@ -2,13 +2,11 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    types: [opened]
+    # Only auto-review when the PR is first opened.
+    # For follow-up reviews after fix commits, post "@claude review the latest changes"
+    # in a PR comment — the claude.yml workflow will handle it.
+    # This avoids re-reviewing every pushed fix commit (noisy, expensive).
 
 jobs:
   claude-review:
