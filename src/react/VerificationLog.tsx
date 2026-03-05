@@ -14,6 +14,7 @@ import {
   TERTIARY_ACTION_IDLE_CLASSES,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
+import { normalizeScreenshotSrc } from "./EvidenceTray.js";
 import { type MessageKey, type TranslateFunction, useTranslation } from "./i18n.js";
 import {
   CheckIcon,
@@ -30,7 +31,8 @@ import { getUniqueSearchAttemptCount, groupSearchAttempts } from "./searchAttemp
 import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 // import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 
-import { cn, isImageSource, isUrlCitation } from "./utils.js";
+import { isUrlCitation } from "../types/citation.js";
+import { cn, isImageSource } from "./utils.js";
 
 /**
  * Statuses that show only the successful hit (not the full search trail).
@@ -198,8 +200,13 @@ function resolveImageDownloadUrl(verification: Verification | null | undefined):
     return null;
   }
 
-  const screenshotSrc = rawScreenshot.startsWith("data:") ? rawScreenshot : `data:image/jpeg;base64,${rawScreenshot}`;
-  return isValidProofImageSrc(screenshotSrc) ? screenshotSrc : null;
+  try {
+    if (isValidProofImageSrc(rawScreenshot)) return rawScreenshot;
+    const screenshotSrc = normalizeScreenshotSrc(rawScreenshot);
+    return isValidProofImageSrc(screenshotSrc) ? screenshotSrc : null;
+  } catch {
+    return null;
+  }
 }
 
 const DOWNLOAD_IFRAME_DATA_ATTR = "data-deepcitation-download-frame";
