@@ -755,10 +755,21 @@ export function normalizeCitationType(citation: Record<string, unknown>): Citati
     if (typeof citation.url !== "string" || !citation.url) {
       throw new Error("URL citation missing required 'url' field");
     }
+    // Safe: type === "url" and url is a non-empty string (validated above).
+    // Other UrlCitation fields (fullPhrase, anchorText) are validated by the
+    // caller (parseCitation / getAllCitationsFromLlmOutput) before this function
+    // is invoked. The cast is unavoidable when going from Record<string, unknown>
+    // to a specific discriminated union member.
     return citation as unknown as UrlCitation;
   }
   if (typeof citation.url === "string" && citation.url.length > 0) {
+    // Safe: spreading citation and adding the missing type discriminator.
+    // The resulting object satisfies UrlCitation's structural requirements.
     return { ...citation, type: "url" as const } as unknown as UrlCitation;
   }
+  // Safe: no url field → treat as DocumentCitation. The discriminator field
+  // (type: "document") may be absent for legacy data; isDocumentCitation()
+  // handles that by checking the absence of a url field rather than presence
+  // of the type field.
   return citation as unknown as DocumentCitation;
 }

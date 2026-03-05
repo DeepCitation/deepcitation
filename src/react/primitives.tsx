@@ -75,7 +75,7 @@ export const CitationRoot = forwardRef<HTMLSpanElement, CitationRootProps & HTML
 CitationRoot.displayName = "Citation.Root";
 
 export interface CitationTriggerProps extends HTMLAttributes<HTMLSpanElement> {
-  onCitationClick?: (citation: CitationType, citationKey: string, event: MouseEvent) => void;
+  onCitationClick?: (citation: CitationType, citationKey: string, event: MouseEvent | KeyboardEvent) => void;
   onCitationMouseEnter?: (citation: CitationType, citationKey: string) => void;
   onCitationMouseLeave?: (citation: CitationType, citationKey: string) => void;
   onCitationTouchEnd?: (citation: CitationType, citationKey: string, event: TouchEvent) => void;
@@ -182,10 +182,7 @@ export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           e.stopPropagation();
-          // Safe cast: onCitationClick expects MouseEvent but only uses common Event properties
-          // (target, preventDefault, stopPropagation) that exist on both KeyboardEvent and MouseEvent.
-          // The handler doesn't access mouse-specific properties like clientX/clientY.
-          onCitationClick?.(citation, citationKey, e as unknown as MouseEvent<HTMLSpanElement>);
+          onCitationClick?.(citation, citationKey, e.nativeEvent);
         }
       },
       [onCitationClick, citation, citationKey],
