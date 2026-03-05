@@ -11,6 +11,7 @@ import {
 } from "../drawing/citationDrawing.js";
 import type { DeepTextItem } from "../types/boxes.js";
 import { HITBOX_EXTEND_8 } from "./constants.js";
+import { useTranslation } from "./i18n.js";
 import { CloseIcon } from "./icons.js";
 import { toPercentRect } from "./overlayGeometry.js";
 
@@ -132,6 +133,7 @@ export function CitationAnnotationOverlay({
   /** When provided, renders a dismiss button at the spotlight top-right corner. */
   onDismiss?: () => void;
 }) {
+  const t = useTranslation();
   const rect = toPercentRect(phraseMatchDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight);
   // Bail out if geometry is invalid (zero dimensions, NaN, Infinity, etc.)
   if (!rect) return null;
@@ -277,7 +279,7 @@ export function CitationAnnotationOverlay({
             pointerEvents: "auto",
           }}
           className={`size-7 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white/90 hover:bg-black/70 active:bg-black/80 transition-colors shadow-md cursor-pointer ${HITBOX_EXTEND_8}`}
-          aria-label="Hide overlay"
+          aria-label={t("aria.hideOverlay")}
         >
           <span className="size-4.5">
             <CloseIcon />

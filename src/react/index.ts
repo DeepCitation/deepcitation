@@ -130,6 +130,10 @@ export {
   XCircleIcon,
   XIcon,
 } from "./icons.js";
+// Locale packs (typed dictionaries)
+export { esMessages } from "./locales/es.js";
+export { frMessages } from "./locales/fr.js";
+export { viMessages } from "./locales/vi.js";
 // Prefetch utilities (for pre-rendering images before hover)
 export {
   clearPrefetchCache,

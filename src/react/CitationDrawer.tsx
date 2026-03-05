@@ -38,6 +38,7 @@ import { EvidenceTray, InlineExpandedImage, resolveEvidenceSrc, resolveExpandedI
 import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
+import { type TranslateFunction, tPlural, useTranslation } from "./i18n.js";
 import { getBlinkRowMotionStyle } from "./motion/blinkAnimation.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
 import type { IndicatorVariant } from "./types.js";
@@ -170,22 +171,30 @@ function DrawerPageBadges({
 }
 
 function buildSourceGroupAriaLabel(
+  t: TranslateFunction,
   sourceName: string,
   sourceDomain: string | undefined,
   citationCount: number,
 ): string {
-  let ariaLabel = `Source: ${sourceName}`;
-
   const shouldAppendDomain = !!sourceDomain && sourceDomain !== sourceName;
-  if (shouldAppendDomain) {
-    ariaLabel += ` (${sourceDomain})`;
-  }
-
   if (citationCount > 1) {
-    ariaLabel += `, ${citationCount} citations`;
+    if (shouldAppendDomain) {
+      return tPlural(t, "aria.sourceGroupWithDomainAndCount", citationCount, {
+        sourceName,
+        sourceDomain,
+        count: citationCount,
+      });
+    }
+    return tPlural(t, "aria.sourceGroupWithCount", citationCount, {
+      sourceName,
+      count: citationCount,
+    });
   }
 
-  return ariaLabel;
+  if (shouldAppendDomain) {
+    return t("aria.sourceGroupWithDomain", { sourceName, sourceDomain });
+  }
+  return t("aria.sourceGroup", { sourceName });
 }
 
 // =========
@@ -198,10 +207,11 @@ function buildSourceGroupAriaLabel(
  * external link for URL sources, and citation count.
  */
 function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
-  const sourceName = group.sourceName || "Source";
+  const t = useTranslation();
+  const sourceName = group.sourceName || t("drawer.source");
   const citationCount = group.citations.length;
   const isUrlSource = !!group.sourceDomain;
-  const sourceAriaLabel = buildSourceGroupAriaLabel(sourceName, group.sourceDomain, citationCount);
+  const sourceAriaLabel = buildSourceGroupAriaLabel(t, sourceName, group.sourceDomain, citationCount);
 
   return (
     <div
@@ -227,7 +237,9 @@ function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
 
       {/* Citation count badge — only shown when > 1 (single item is self-evident) */}
       {citationCount > 1 && (
-        <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{citationCount} citations</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+          {tPlural(t, "drawer.citationCount", citationCount, { count: citationCount })}
+        </span>
       )}
     </div>
   );
@@ -791,6 +803,7 @@ function IndicatorRow({
   onToggle: (key: string) => void;
   indicatorVariant: IndicatorVariant;
 }) {
+  const t = useTranslation();
   return (
     <div className="flex items-center gap-2 px-4 py-1.5 border-t border-gray-100 dark:border-gray-800">
       {citations.map(item => {
@@ -810,7 +823,9 @@ function IndicatorRow({
               isActive ? "opacity-100 ring-2 ring-current ring-offset-1" : "opacity-40 hover:opacity-70",
             )}
             aria-pressed={isActive}
-            aria-label={`${isActive ? "Hide" : "Show"} annotation for: ${label}`}
+            aria-label={
+              isActive ? t("aria.toggleAnnotation.hide", { label }) : t("aria.toggleAnnotation.show", { label })
+            }
           >
             {statusInfo.icon}
           </button>
@@ -868,7 +883,7 @@ export function CitationDrawer({ isOpen, ...props }: CitationDrawerProps): React
 function OpenCitationDrawer({
   onClose,
   citationGroups,
-  title = "Citations",
+  title,
   label,
   onCitationClick,
   onReadMore: _onReadMore,
@@ -879,6 +894,8 @@ function OpenCitationDrawer({
   sourceLabelMap,
   isClosing = false,
 }: Omit<CitationDrawerProps, "isOpen"> & { isClosing?: boolean }): React.ReactNode {
+  const t = useTranslation();
+  const resolvedTitle = title ?? t("drawer.citations");
   // Manual full-page state — set via drag-up gesture
   const [manualFullPage, setManualFullPage] = useState(false);
 
@@ -1157,7 +1174,7 @@ function OpenCitationDrawer({
         }
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={resolvedTitle}
       >
         {/* Handle bar (mobile) — drag-to-close target */}
         {position === "bottom" && (
@@ -1173,7 +1190,7 @@ function OpenCitationDrawer({
         <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <DrawerSourceHeading citationGroups={resolvedGroups} label={label} fallbackTitle={title} />
+              <DrawerSourceHeading citationGroups={resolvedGroups} label={label} fallbackTitle={resolvedTitle} />
               {totalCitations > 0 && indicatorVariant !== "none" && (
                 <div className="mt-0.5">
                   <StackedStatusIcons
@@ -1209,7 +1226,7 @@ function OpenCitationDrawer({
                 type="button"
                 onClick={onClose}
                 className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                aria-label="Close"
+                aria-label={t("action.close")}
               >
                 <svg
                   className="w-5 h-5 text-gray-500 dark:text-gray-400"

@@ -17,6 +17,7 @@ import {
   TTC_TEXT_STYLE,
 } from "./constants.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
+import { useTranslation } from "./i18n.js";
 import { handleImageErrorOpacity } from "./imageUtils.js";
 import { formatTtc } from "./timingUtils.js";
 import type { IndicatorVariant } from "./types.js";
@@ -155,6 +156,7 @@ function CitationTooltip({
   onSourceClick?: (group: SourceCitationGroup) => void;
   indicatorVariant?: IndicatorVariant;
 }) {
+  const t = useTranslation();
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [adjustedLeft, setAdjustedLeft] = useState<number | null>(null);
   const isTouch = useIsTouchDevice();
@@ -255,7 +257,7 @@ function CitationTooltip({
                 handleProofClick(e);
               }
             }}
-            aria-label={`View proof for ${sourceName}`}
+            aria-label={t("aria.viewProofForSource", { sourceName })}
           >
             <img
               src={proofImage}
@@ -314,6 +316,7 @@ export function StackedStatusIcons({
   onSourceClick?: (group: SourceCitationGroup) => void;
   indicatorVariant?: IndicatorVariant;
 }) {
+  const t = useTranslation();
   // None variant: no indicators at all
   if (indicatorVariant === "none") return null;
 
@@ -327,7 +330,7 @@ export function StackedStatusIcons({
     // Sort descending by priority (worst first: 4=miss, 3=partial, 2=pending, 1=verified)
     const groups = Array.from(counts.entries()).sort((a, b) => b[0] - a[0]);
     return (
-      <div className="flex items-center gap-2" role="group" aria-label="Citation verification status">
+      <div className="flex items-center gap-2" role="group" aria-label={t("aria.citationVerificationStatus")}>
         {groups.map(([priority, count]) => (
           <span key={priority} className="inline-flex items-center gap-1">
             <span
@@ -353,7 +356,7 @@ export function StackedStatusIcons({
   const overflowCount = flatCitations.length - maxIcons;
 
   return (
-    <div className="flex items-center" role="group" aria-label="Citation verification status">
+    <div className="flex items-center" role="group" aria-label={t("aria.citationVerificationStatus")}>
       {displayItems.map((flatItem, i) => (
         <div
           key={flatItem.item.citationKey}
@@ -439,6 +442,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
     },
     ref,
   ) => {
+    const t = useTranslation();
     const [isHovered, setIsHovered] = useState(false);
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -525,7 +529,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         )}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
-        aria-label={`Citations: ${displayLabel}`}
+        aria-label={t("aria.citationsSummary", { displayLabel })}
         data-testid="citation-drawer-trigger"
       >
         {/* Per-citation status icons */}

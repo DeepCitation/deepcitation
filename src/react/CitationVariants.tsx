@@ -8,6 +8,7 @@ import {
   SUPERSCRIPT_STYLE,
   VERIFIED_COLOR_STYLE,
 } from "./constants.js";
+import { type TranslateFunction, useTranslation } from "./i18n.js";
 import { XIcon } from "./icons.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
 import type { BaseCitationProps, CitationEventHandlers, CitationVariant as CitationVariantType } from "./types.js";
@@ -33,12 +34,12 @@ interface ChipVisualClasses {
   text: string;
 }
 
-function getStatusLabelSuffix(status: CitationStatus): string {
-  if (status.isMiss) return " (not found)";
-  if (status.isPartialMatch) return " (partial match)";
-  if (status.isVerified) return " (verified)";
-  if (status.isPending) return " (pending verification)";
-  return "";
+function getAriaStatusLabel(status: CitationStatus, t: TranslateFunction): string {
+  if (status.isMiss) return t("aria.statusSuffix.notFound");
+  if (status.isPartialMatch) return t("aria.statusSuffix.partialMatch");
+  if (status.isVerified) return t("aria.statusSuffix.verified");
+  if (status.isPending) return t("aria.statusSuffix.pendingVerification");
+  return t("status.verifying");
 }
 
 function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
@@ -277,6 +278,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
   ) => {
     const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
     const { isMiss } = status;
+    const t = useTranslation();
     const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
     const chipClasses = getChipVisualClasses(status);
 
@@ -286,7 +288,10 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
       [citation, fallbackDisplay],
     );
 
-    const ariaLabel = displayText ? `Citation: ${displayText}${getStatusLabelSuffix(status)}` : undefined;
+    const statusLabel = getAriaStatusLabel(status, t);
+    const ariaLabel = displayText
+      ? t("aria.citationWithStatus", { displayText, status: statusLabel })
+      : t("aria.citation");
 
     return (
       <>
@@ -361,6 +366,7 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
     ref,
   ) => {
     const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
+    const t = useTranslation();
     const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
 
     // SuperscriptCitation shows number by default
@@ -381,7 +387,7 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
           className={classNames("cursor-pointer font-medium transition-colors hover:underline", statusClass, className)}
           style={SUPERSCRIPT_STYLE}
           {...events}
-          aria-label={`Citation ${displayText}`}
+          aria-label={t("aria.citationNumber", { number: displayText })}
         >
           {!hideBrackets && "["}
           <span>{displayText}</span>
@@ -442,6 +448,7 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
   ) => {
     const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
     const { isMiss } = status;
+    const t = useTranslation();
     const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
 
     const displaySymbol = useMemo(() => {
@@ -476,7 +483,7 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
             className,
           )}
           {...events}
-          aria-label={`Footnote ${displaySymbol}`}
+          aria-label={t("aria.footnoteSymbol", { symbol: displaySymbol })}
         >
           <span className={isMiss ? "opacity-70" : undefined} style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}>
             {displaySymbol}
@@ -540,6 +547,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
   ) => {
     const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
     const { isMiss } = status;
+    const t = useTranslation();
     const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
 
     // InlineCitation shows anchorText by default
@@ -567,7 +575,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
             className,
           )}
           {...events}
-          aria-label={`Citation: ${displayText}`}
+          aria-label={t("aria.citationWithText", { displayText })}
         >
           <span className={isMiss ? "opacity-70" : undefined} style={isMiss ? MISS_WAVY_UNDERLINE_STYLE : undefined}>
             {displayText}

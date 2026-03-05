@@ -18,6 +18,7 @@ import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { CitationStatus, Citation as CitationType } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { MISS_WAVY_UNDERLINE_STYLE, TAP_SLOP_PX } from "./constants.js";
+import { useTranslation } from "./i18n.js";
 import { CitationContext, type CitationContextValue, useCitationContext } from "./useCitationContext.js";
 import { classNames, generateCitationInstanceId, generateCitationKey, isUrlCitation } from "./utils.js";
 
@@ -327,6 +328,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
     ref,
   ) => {
     const { status } = useCitationContext();
+    const t = useTranslation();
 
     const shouldShow = useCallback(
       (state: "verified" | "partial" | "miss" | "pending") => {
@@ -343,7 +345,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
         <span
           ref={ref}
           className={classNames(baseClasses, "text-amber-500 dark:text-amber-400", className)}
-          aria-label="Partial match"
+          aria-label={t("indicator.partial")}
           {...props}
         >
           {partialIndicator}
@@ -356,7 +358,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
         <span
           ref={ref}
           className={classNames(baseClasses, "text-green-600 dark:text-green-500", className)}
-          aria-label="Verified"
+          aria-label={t("indicator.verified")}
           {...props}
         >
           {verifiedIndicator}
@@ -369,7 +371,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
         <span
           ref={ref}
           className={classNames(baseClasses, "text-red-500 dark:text-red-400", className)}
-          aria-label="Not found"
+          aria-label={t("indicator.notFound")}
           {...props}
         >
           {missIndicator}
@@ -382,7 +384,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
         <span
           ref={ref}
           className={classNames(baseClasses, "text-gray-400 dark:text-gray-500", className)}
-          aria-label="Pending"
+          aria-label={t("sourcesList.pending")}
           {...props}
         >
           {pendingIndicator}

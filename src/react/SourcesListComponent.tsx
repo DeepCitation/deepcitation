@@ -2,6 +2,7 @@ import type React from "react";
 import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getPortalContainer, TTC_TEXT_STYLE } from "./constants.js";
+import { useTranslation } from "./i18n.js";
 import { handleImageError, handleImageErrorOpacity } from "./imageUtils.js";
 import { detectSourceType, getFaviconUrl, getPlatformName } from "./SourcesListComponent.utils.js";
 import { formatTtc } from "./timingUtils.js";
@@ -70,6 +71,16 @@ const VERIFICATION_STATUS_CONFIG = {
 } as const;
 
 type VerificationStatusType = keyof typeof VERIFICATION_STATUS_CONFIG;
+const VERIFICATION_STATUS_LABEL_KEY: Record<
+  VerificationStatusType,
+  "sourcesList.verified" | "sourcesList.partial" | "sourcesList.pending" | "sourcesList.failed" | "sourcesList.unknown"
+> = {
+  verified: "sourcesList.verified",
+  partial: "sourcesList.partial",
+  pending: "sourcesList.pending",
+  failed: "sourcesList.failed",
+  unknown: "sourcesList.unknown",
+};
 
 const VerificationBadge = ({
   showVerificationIndicator,
@@ -78,10 +89,14 @@ const VerificationBadge = ({
   showVerificationIndicator: boolean;
   verificationStatus?: VerificationStatusType;
 }) => {
+  const t = useTranslation();
   if (!showVerificationIndicator || !verificationStatus) return null;
   const config = VERIFICATION_STATUS_CONFIG[verificationStatus];
   return (
-    <span className={classNames("text-sm ml-1", config.className)} aria-label={verificationStatus}>
+    <span
+      className={classNames("text-sm ml-1", config.className)}
+      aria-label={t(VERIFICATION_STATUS_LABEL_KEY[verificationStatus])}
+    >
       {config.icon}
     </span>
   );
@@ -115,6 +130,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
     },
     ref,
   ) => {
+    const t = useTranslation();
     const handleClick = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
         if (onClick) {
@@ -166,7 +182,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
             handleClick(e as unknown as React.MouseEvent<HTMLDivElement>);
           }
         }}
-        aria-label={`${title} from ${platformName}`}
+        aria-label={t("aria.sourceFromPlatform", { title, platformName })}
       >
         {/* Favicon */}
         <div className="shrink-0 mt-0.5">
@@ -327,11 +343,13 @@ const SourcesListHeader = ({
   handleClose,
   timingMetrics,
 }: SourcesListHeaderProps) => {
-  const { title = "Sources", showCloseButton = true, showCount = true, renderHeader: customRender } = headerConfig;
+  const t = useTranslation();
+  const { title, showCloseButton = true, showCount = true, renderHeader: customRender } = headerConfig;
+  const resolvedTitle = title ?? t("drawer.sources");
 
   if (customRender) {
     return customRender({
-      title,
+      title: resolvedTitle,
       count: sources.length,
       onClose: handleClose,
     });
@@ -344,13 +362,13 @@ const SourcesListHeader = ({
           type="button"
           onClick={handleClose}
           className="p-1 -ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-          aria-label="Close sources"
+          aria-label={t("action.closeSources")}
         >
           <CloseIcon />
         </button>
       )}
       <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex-1 text-center">
-        {title}
+        {resolvedTitle}
         {showCount && (
           <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({sources.length})</span>
         )}
