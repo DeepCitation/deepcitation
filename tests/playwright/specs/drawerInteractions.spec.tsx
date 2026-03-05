@@ -50,8 +50,12 @@ function makeVerification(page: number, status: "found" | "not_found" = "found")
     status,
     document: {
       verifiedPageNumber: page,
-      verificationImageSrc: testEvidenceImage,
-      verificationImageDimensions: { width: 800, height: 400 },
+    },
+    assets: {
+      evidenceSnippet: {
+        src: testEvidenceImage,
+        dimensions: { width: 800, height: 400 },
+      },
     },
     pages: [{ pageNumber: page, source: testProofImage }],
   };

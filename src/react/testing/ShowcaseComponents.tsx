@@ -185,8 +185,11 @@ const verifiedVerification: Verification = {
   verifiedMatchSnippet: "Revenue increased by 15% in Q4 2024.",
   document: {
     verifiedPageNumber: 5,
-    verificationImageSrc:
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  },
+  assets: {
+    evidenceSnippet: {
+      src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    },
   },
 };
 
@@ -336,8 +339,11 @@ const urlVerifiedVerification: Verification = {
   verifiedMatchSnippet: "The TGU transitions and Halos require control, not brute strength.",
   document: {
     verifiedPageNumber: 1,
-    verificationImageSrc:
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  },
+  assets: {
+    evidenceSnippet: {
+      src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    },
   },
 };
 

@@ -30,7 +30,11 @@ const verificationWithTallImage: Verification = {
   verifiedMatchSnippet: "Functional status: He is at baseline",
   document: {
     verifiedPageNumber: 5,
-    verificationImageSrc: tallImageBase64,
+  },
+  assets: {
+    evidenceSnippet: {
+      src: tallImageBase64,
+    },
   },
   pages: [
     {

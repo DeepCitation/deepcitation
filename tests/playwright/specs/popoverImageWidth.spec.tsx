@@ -25,7 +25,11 @@ const verificationWithWideImage: Verification = {
   verifiedMatchSnippet: "Functional status: He is at baseline",
   document: {
     verifiedPageNumber: 5,
-    verificationImageSrc: wideImageBase64,
+  },
+  assets: {
+    evidenceSnippet: {
+      src: wideImageBase64,
+    },
   },
 };
 
@@ -34,7 +38,11 @@ const verificationWithPartialMatch: Verification = {
   verifiedMatchSnippet: "Functional status: at baseline",
   document: {
     verifiedPageNumber: 5,
-    verificationImageSrc: wideImageBase64,
+  },
+  assets: {
+    evidenceSnippet: {
+      src: wideImageBase64,
+    },
   },
 };
 

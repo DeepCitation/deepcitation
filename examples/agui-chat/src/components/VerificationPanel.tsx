@@ -131,22 +131,22 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                     </div>
                   )}
 
-                  {v.proof?.proofImageUrl && isValidProofImageSrc(v.proof.proofImageUrl) ? (
+                  {v.assets?.proofImage?.url && isValidProofImageSrc(v.assets.proofImage.url) ? (
                     <div className="bg-gray-50 rounded p-2">
                       <div className="text-xs font-medium text-gray-500 mb-1">Visual Proof</div>
-                      <img src={v.proof.proofImageUrl} alt="Verification proof" className="w-full rounded border" />
+                      <img src={v.assets!.proofImage!.url} alt="Verification proof" className="w-full rounded border" />
                     </div>
-                  ) : v.document?.verificationImageSrc && isValidProofImageSrc(v.document.verificationImageSrc) ? (
+                  ) : v.assets?.evidenceSnippet?.src && isValidProofImageSrc(v.assets.evidenceSnippet.src) ? (
                     <div className="bg-gray-50 rounded p-2">
                       <div className="text-xs font-medium text-gray-500 mb-1">Visual Proof</div>
-                      <img src={v.document.verificationImageSrc} alt="Verification proof" className="w-full rounded border" />
+                      <img src={v.assets!.evidenceSnippet!.src} alt="Verification proof" className="w-full rounded border" />
                     </div>
                   ) : null}
 
-                  {v.proof?.proofUrl && (
+                  {v.assets?.proofPage?.url && (
                     <div className="bg-blue-50 rounded p-2 flex items-center gap-2">
                       <a
-                        href={v.proof.proofUrl}
+                        href={v.assets!.proofPage!.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:underline flex-1 truncate"
@@ -157,7 +157,7 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
                         onClick={async () => {
                           // Guard outside try/catch: React Compiler can't handle optional
                           // chaining or conditionals inside try/catch blocks (current limitation).
-                          const url = v.proof?.proofUrl;
+                          const url = v.assets?.proofPage?.url;
                           if (!url) return;
                           try {
                             await navigator.clipboard.writeText(url);

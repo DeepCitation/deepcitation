@@ -53,8 +53,12 @@ const verifiedVerification: Verification = {
   status: "found",
   document: {
     verifiedPageNumber: 5,
-    verificationImageSrc: testImageBase64,
-    verificationImageDimensions: { width: 400, height: 50 },
+  },
+  assets: {
+    evidenceSnippet: {
+      src: testImageBase64,
+      dimensions: { width: 400, height: 50 },
+    },
   },
 };
 
@@ -79,8 +83,12 @@ const tallVerification: Verification = {
   status: "found",
   document: {
     verifiedPageNumber: 5,
-    verificationImageSrc: tallImageBase64,
-    verificationImageDimensions: { width: 800, height: 1600 },
+  },
+  assets: {
+    evidenceSnippet: {
+      src: tallImageBase64,
+      dimensions: { width: 800, height: 1600 },
+    },
   },
 };
 

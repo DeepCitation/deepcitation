@@ -22,10 +22,14 @@ const verificationWithProof: Verification = {
   label: "Q4_Report.pdf",
   document: {
     verifiedPageNumber: 5,
-    verificationImageSrc: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
   },
-  proof: {
-    proofUrl: "https://api.deepcitation.com/proof/test123",
+  assets: {
+    evidenceSnippet: {
+      src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    },
+    proofPage: {
+      url: "https://api.deepcitation.com/proof/test123",
+    },
   },
 };
 
@@ -156,10 +160,14 @@ test.describe("Proof Link Security", () => {
       label: "Document.pdf",
       document: {
         verifiedPageNumber: 5,
-        verificationImageSrc: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
       },
-      proof: {
-        proofUrl: "javascript:alert('XSS')",
+      assets: {
+        evidenceSnippet: {
+          src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        },
+        proofPage: {
+          url: "javascript:alert('XSS')",
+        },
       },
     };
 
@@ -193,10 +201,14 @@ test.describe("Proof Link Security", () => {
       label: "Document.pdf",
       document: {
         verifiedPageNumber: 5,
-        verificationImageSrc: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
       },
-      proof: {
-        proofUrl: "https://evil.com/fake-proof",
+      assets: {
+        evidenceSnippet: {
+          src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        },
+        proofPage: {
+          url: "https://evil.com/fake-proof",
+        },
       },
     };
 
@@ -231,10 +243,14 @@ test.describe("Proof Link Security", () => {
       label: "Document.pdf",
       document: {
         verifiedPageNumber: 5,
-        verificationImageSrc: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
       },
-      proof: {
-        proofUrl: "https://cdn.deepcitation.com/proof/test123",
+      assets: {
+        evidenceSnippet: {
+          src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        },
+        proofPage: {
+          url: "https://cdn.deepcitation.com/proof/test123",
+        },
       },
     };
 

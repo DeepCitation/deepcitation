@@ -48,9 +48,13 @@ const verificationWithAnnotation: Verification = {
   verifiedFullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   document: {
     verifiedPageNumber: 5,
-    verificationImageSrc: tallImageBase64,
     phraseMatchDeepItem: PHRASE_ITEM,
     anchorTextMatchDeepItems: [ANCHOR_ITEM],
+  },
+  assets: {
+    evidenceSnippet: {
+      src: tallImageBase64,
+    },
   },
   pages: [
     {
@@ -71,9 +75,13 @@ const verificationNoRenderScale: Verification = {
   verifiedFullPhrase: "Functional status: He is at baseline, no assistance needed, independent ADLs",
   document: {
     verifiedPageNumber: 5,
-    verificationImageSrc: tallImageBase64,
     phraseMatchDeepItem: PHRASE_ITEM,
     anchorTextMatchDeepItems: [ANCHOR_ITEM],
+  },
+  assets: {
+    evidenceSnippet: {
+      src: tallImageBase64,
+    },
   },
   pages: [
     {
@@ -92,7 +100,11 @@ const verificationNoPhraseItem: Verification = {
   verifiedMatchSnippet: "Functional status: He is at baseline",
   document: {
     verifiedPageNumber: 5,
-    verificationImageSrc: tallImageBase64,
+  },
+  assets: {
+    evidenceSnippet: {
+      src: tallImageBase64,
+    },
   },
   pages: [
     {

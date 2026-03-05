@@ -44,8 +44,12 @@ export function GeneratedImageCitation({
       verifiedMatchSnippet: "Functional status: He is at baseline",
       document: {
         verifiedPageNumber: 5,
-        verificationImageSrc: imageSrc,
-        verificationImageDimensions: { width, height },
+      },
+      assets: {
+        evidenceSnippet: {
+          src: imageSrc,
+          dimensions: { width, height },
+        },
       },
       pages: [
         {

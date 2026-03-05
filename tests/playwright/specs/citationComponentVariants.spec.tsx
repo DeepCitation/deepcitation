@@ -400,10 +400,10 @@ test.describe("CitationComponent - Data Attributes", () => {
 test.describe("CitationComponent - Popover", () => {
   const verificationWithImage: Verification = {
     ...verifiedVerification,
-    document: {
-      ...verifiedVerification.document,
-      verificationImageSrc:
-        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    assets: {
+      evidenceSnippet: {
+        src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      },
     },
   };
 
