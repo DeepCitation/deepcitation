@@ -165,6 +165,16 @@ test.describe("Proof Link Security", () => {
         evidenceSnippet: {
           src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
         },
+        // pageRenders required for canExpandToPage — security test verifies no proof link appears
+        pageRenders: [
+          {
+            pageNumber: 5,
+            isMatchPage: true,
+            imageUrl:
+              "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+            dimensions: { width: 1, height: 1 },
+          },
+        ],
         proofPage: {
           url: "javascript:alert('XSS')",
         },
@@ -206,6 +216,16 @@ test.describe("Proof Link Security", () => {
         evidenceSnippet: {
           src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
         },
+        // pageRenders required for canExpandToPage — security test verifies no proof link appears
+        pageRenders: [
+          {
+            pageNumber: 5,
+            isMatchPage: true,
+            imageUrl:
+              "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+            dimensions: { width: 1, height: 1 },
+          },
+        ],
         proofPage: {
           url: "https://evil.com/fake-proof",
         },

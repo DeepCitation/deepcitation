@@ -89,6 +89,14 @@ const tallVerification: Verification = {
       src: tallImageBase64,
       dimensions: { width: 800, height: 1600 },
     },
+    pageRenders: [
+      {
+        pageNumber: 5,
+        isMatchPage: true,
+        imageUrl: tallImageBase64,
+        dimensions: { width: 800, height: 1600 },
+      },
+    ],
   },
 };
 
