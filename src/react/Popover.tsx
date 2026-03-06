@@ -105,7 +105,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     },
     forwardedRef,
   ) => {
-    "use no memo"; // React Compiler opt-out: coordsRef.current read during render is intentional (imperative positioning)
+    // React Compiler opt-out: coordsRef.current read during render is intentional (imperative positioning)
     const { open, onOpenChange, triggerRef, contentRef } = usePopoverContext();
     const localContentRef = React.useRef<HTMLDivElement | null>(null);
     const wrapperRef = React.useRef<HTMLDivElement | null>(null);
