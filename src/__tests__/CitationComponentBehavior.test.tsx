@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, jest, mock } from "@jest/globals";
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import type React from "react";
-import { CitationComponent } from "../react/Citation";
+import { CitationComponent, resolveSourceDownloadUrl } from "../react/Citation";
 import type { CitationBehaviorActions, CitationBehaviorContext } from "../react/types";
 import type { Citation } from "../types/citation";
-import type { Verification } from "../types/verification";
+import type { FileDownload } from "../types/verification";
 
 // Mock createPortal to render content in place instead of portal.
 // This allows us to query overlay elements in the same container.
@@ -2592,5 +2592,49 @@ describe("security: evidence src validation", () => {
     const imgs = Array.from(container.querySelectorAll("img"));
     const maliciousImgs = imgs.filter(img => img.getAttribute("src") === svgSrc);
     expect(maliciousImgs.length).toBe(0);
+  });
+});
+
+// =============================================================================
+// resolveSourceDownloadUrl unit tests
+// =============================================================================
+
+describe("resolveSourceDownloadUrl", () => {
+  const makeDownload = (url: string): FileDownload => ({ link: { url } });
+
+  it("returns originalDownload URL when present, regardless of policy", () => {
+    const orig = makeDownload("https://example.com/original.pdf");
+    const converted = makeDownload("https://example.com/converted.pdf");
+    expect(resolveSourceDownloadUrl(orig, converted, "original_only")).toBe("https://example.com/original.pdf");
+    expect(resolveSourceDownloadUrl(orig, converted, "original_plus_url_pdf")).toBe("https://example.com/original.pdf");
+    expect(resolveSourceDownloadUrl(orig, converted, "original_plus_all_pdf")).toBe("https://example.com/original.pdf");
+  });
+
+  it("original_only: returns null when no originalDownload", () => {
+    const converted = makeDownload("https://example.com/converted.pdf");
+    expect(resolveSourceDownloadUrl(undefined, converted, "original_only")).toBeNull();
+    expect(resolveSourceDownloadUrl(undefined, undefined, "original_only")).toBeNull();
+  });
+
+  it("original_plus_url_pdf: returns convertedDownload URL when no originalDownload", () => {
+    const converted = makeDownload("https://example.com/converted.pdf");
+    expect(resolveSourceDownloadUrl(undefined, converted, "original_plus_url_pdf")).toBe(
+      "https://example.com/converted.pdf",
+    );
+  });
+
+  it("original_plus_url_pdf: returns null when neither download is present", () => {
+    expect(resolveSourceDownloadUrl(undefined, undefined, "original_plus_url_pdf")).toBeNull();
+  });
+
+  it("original_plus_all_pdf: returns convertedDownload URL when no originalDownload", () => {
+    const converted = makeDownload("https://example.com/converted.pdf");
+    expect(resolveSourceDownloadUrl(undefined, converted, "original_plus_all_pdf")).toBe(
+      "https://example.com/converted.pdf",
+    );
+  });
+
+  it("original_plus_all_pdf: returns null when no downloads present", () => {
+    expect(resolveSourceDownloadUrl(undefined, undefined, "original_plus_all_pdf")).toBeNull();
   });
 });

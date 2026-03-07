@@ -134,6 +134,16 @@
   },
   "overrides": [
     {
+      "includes": ["src/react/i18n.tsx"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useComponentExportOnlyModules": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["**/*.spec.ts", "**/*.test.ts", "**/__tests__/**"],
       "linter": {
         "rules": {

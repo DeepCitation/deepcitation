@@ -37,7 +37,7 @@ describe("getCitationStatus", () => {
         attachmentId: "file",
       },
       document: {
-        verifiedPageNumber: -1,
+        verifiedPageNumber: -1, // sentinel: -1 means "not found" (no valid page matched)
       },
       status: "not_found",
       verifiedMatchSnippet: "snippet",
@@ -211,7 +211,7 @@ describe("getCitationStatus", () => {
           attachmentId: "file",
         },
         document: {
-          verifiedPageNumber: -1,
+          verifiedPageNumber: -1, // sentinel: -1 means "not found" (no valid page matched)
         },
         status: "not_found",
         verifiedMatchSnippet: "snippet",

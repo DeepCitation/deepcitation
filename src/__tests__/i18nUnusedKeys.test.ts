@@ -28,14 +28,17 @@ import { defaultMessages } from "../react/i18n";
 // Remove an entry here once you also remove the key from defaultMessages and
 // all locale files (src/react/locales/).
 const KNOWN_UNUSED = new Set([
-  // Drawer source/document labels — defined for future use
+  // Drawer labels — defined for future CitationDrawer / SourcesListComponent usage.
+  // Wire up in CitationDrawer.tsx / CitationDrawerTrigger.tsx when those components
+  // adopt the i18n system.
   "drawer.document",
   "drawer.unknownSource",
   "drawer.close",
   "drawer.showAnnotation",
   "drawer.hideAnnotation",
 
-  // Citation error / ambiguity — infrastructure ready, not yet surfaced in UI
+  // Citation error / ambiguity — keys are in place for when CitationComponent
+  // surfaces error states and ambiguous-match warnings in the popover UI.
   "citation.fallback",
   "ambiguity.found",
   "ambiguity.onExpectedPage",

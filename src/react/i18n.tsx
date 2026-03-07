@@ -37,7 +37,6 @@ import { safeReplace } from "../utils/regexSafety.js";
  * Strings use `{placeholder}` syntax for interpolation.
  * Plurals use `_one` / `_other` suffix convention.
  */
-// biome-ignore lint/style/useComponentExportOnlyModules: i18n.tsx is intentionally mixed — the Provider and its core utilities (defaultMessages, createTranslator, tPlural, useTranslation) are architecturally inseparable
 export const defaultMessages = {
   // ── Status labels ──────────────────────────────────────────────
   "status.verified": "Verified",
@@ -330,7 +329,6 @@ export type TranslateFunction = (key: MessageKey, values?: MessageValues) => str
  * t("status.notFound"); // "Not Found" (English fallback)
  * ```
  */
-// biome-ignore lint/style/useComponentExportOnlyModules: see defaultMessages above
 export function createTranslator(messages: Partial<DeepCitationMessages> = {}): TranslateFunction {
   return function t(key: MessageKey, values?: MessageValues): string {
     const template = (messages as Record<string, string>)[key] ?? defaultMessages[key];
@@ -343,7 +341,6 @@ export function createTranslator(messages: Partial<DeepCitationMessages> = {}): 
 }
 
 /** Default English translator singleton — used when no provider is present. */
-// biome-ignore lint/style/useComponentExportOnlyModules: see defaultMessages above
 export const defaultTranslator = createTranslator();
 
 // =============================================================================
@@ -363,7 +360,6 @@ export const defaultTranslator = createTranslator();
  * // → "Scan complete · 4 searches"
  * ```
  */
-// biome-ignore lint/style/useComponentExportOnlyModules: see defaultMessages above
 export function tPlural(t: TranslateFunction, baseKey: PluralBaseKey, count: number, values?: MessageValues): string {
   const suffix = count === 1 ? "_one" : "_other";
   return t(`${baseKey}${suffix}` as MessageKey, values);
@@ -415,7 +411,6 @@ export function DeepCitationI18nProvider({ messages, children }: DeepCitationI18
  * }
  * ```
  */
-// biome-ignore lint/style/useComponentExportOnlyModules: see defaultMessages above
 export function useTranslation(): TranslateFunction {
   return useContext(I18nContext);
 }

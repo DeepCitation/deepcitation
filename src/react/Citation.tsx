@@ -71,7 +71,8 @@ const deprecationWarned = new Set<string>();
 
 export type CitationDownloadPolicy = "original_only" | "original_plus_url_pdf" | "original_plus_all_pdf";
 
-function resolveSourceDownloadUrl(
+// biome-ignore lint/style/useComponentExportOnlyModules: exported for unit testing only — not part of the public API
+export function resolveSourceDownloadUrl(
   originalDownload: FileDownload | undefined,
   convertedDownload: FileDownload | undefined,
   policy: CitationDownloadPolicy,
@@ -88,11 +89,10 @@ function resolveSourceDownloadUrl(
   // "original_plus_all_pdf": expose any converted artifact
   if (policy === "original_plus_all_pdf") return convertedUrl;
 
-  // "original_plus_url_pdf" (default): expose converted only when no usable original URL exists.
-  // URL inputs have no originalDownload — their convertedDownload is the PDF capture.
-  if (policy === "original_plus_url_pdf" && !originalUrl) return convertedUrl;
-
-  return null;
+  // "original_plus_url_pdf" (default): URL inputs have no originalDownload —
+  // their convertedDownload is the PDF capture. originalUrl is always absent
+  // here (we returned early above if it was present).
+  return convertedUrl;
 }
 
 function getUrlStatusLabel(fetchStatus: UrlFetchStatus, t: TranslateFunction): string {

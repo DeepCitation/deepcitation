@@ -41,14 +41,12 @@ const COMPACT_KEY_MAP: Record<string, keyof CitationData> = {
 /**
  * Map of camelCase aliases to canonical snake_case keys.
  */
-const KEY_ALIAS_MAP: Record<string, keyof CitationData | "start_page_id" | "start_page_key"> = {
+const KEY_ALIAS_MAP: Record<string, keyof CitationData> = {
   attachmentId: "attachment_id",
   fullPhrase: "full_phrase",
   anchorText: "anchor_text",
   pageId: "page_id",
   lineIds: "line_ids",
-  startPageId: "start_page_id",
-  startPageKey: "start_page_key",
   // "fileId" was an early API field name before "attachmentId" was standardized.
   // Kept as an alias for backward compatibility with serialized citation payloads.
   fileId: "attachment_id",
@@ -127,14 +125,19 @@ function expandCompactKeys(
 /**
  * Checks if the parsed JSON is in grouped format (object with attachment IDs as keys)
  * vs flat format (array of citations).
+ *
+ * Requires all values to be arrays of objects to avoid misclassifying unrelated
+ * JSON shapes (e.g. `{ citations: [...strings] }` or `{ data: [...], meta: [...] }`).
  */
 function isGroupedFormat(parsed: unknown): parsed is Record<string, unknown[]> {
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     return false;
   }
-  // Check if all values are arrays (grouped format)
   const values = Object.values(parsed);
-  return values.length > 0 && values.every(Array.isArray);
+  return (
+    values.length > 0 &&
+    values.every(v => Array.isArray(v) && v.every(item => typeof item === "object" && item !== null))
+  );
 }
 
 /**
