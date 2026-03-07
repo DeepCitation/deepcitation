@@ -4,6 +4,13 @@ title: Real-World Examples
 parent: Code Examples
 nav_order: 3
 description: "Industry-specific integration examples"
+commit_sha: "cc9c7aa"
+stale_after_commits: 20
+watch_paths:
+  - src/react/Citation.tsx
+  - src/react/SourcesListComponent.tsx
+  - src/index.ts
+  - src/markdown/renderMarkdown.ts
 ---
 
 # Real-World Examples

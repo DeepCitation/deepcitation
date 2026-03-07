@@ -4,6 +4,12 @@ title: Styling
 parent: Code Examples
 nav_order: 2
 description: "CSS customization options for CitationComponent"
+commit_sha: "cc9c7aa"
+stale_after_commits: 20
+watch_paths:
+  - src/react/constants.ts
+  - src/react/Citation.tsx
+  - src/react/CitationVariants.tsx
 ---
 
 # Styling

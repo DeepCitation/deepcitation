@@ -4,6 +4,12 @@ title: Code Examples
 nav_order: 4
 description: "SDK usage examples and integration patterns"
 has_children: true
+commit_sha: "cc9c7aa"
+stale_after_commits: 20
+watch_paths:
+  - src/index.ts
+  - src/client/DeepCitation.ts
+  - src/prompts/citationPrompts.ts
 ---
 
 # Code Examples

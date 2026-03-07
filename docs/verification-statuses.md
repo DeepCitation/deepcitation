@@ -4,6 +4,12 @@ title: Verification Statuses
 parent: API Reference
 nav_order: 2
 description: "Understanding verification result statuses"
+commit_sha: "cc9c7aa"
+stale_after_commits: 10
+watch_paths:
+  - src/types/verification.ts
+  - src/types/search.ts
+  - src/types/citation.ts
 ---
 
 # Understanding Verification Results

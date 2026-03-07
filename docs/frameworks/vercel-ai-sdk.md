@@ -4,6 +4,13 @@ title: Vercel AI SDK
 parent: Frameworks
 nav_order: 3
 description: "DeepCitation + Vercel AI SDK: streamText, useChat, and citation verification"
+commit_sha: "cc9c7aa"
+stale_after_commits: 15
+watch_paths:
+  - src/react/Citation.tsx
+  - src/react/index.ts
+  - src/index.ts
+  - src/client/DeepCitation.ts
 ---
 
 # DeepCitation + Vercel AI SDK

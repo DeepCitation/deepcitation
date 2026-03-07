@@ -4,6 +4,11 @@ title: Error Handling
 parent: Getting Started
 nav_order: 5
 description: "Error handling patterns for DeepCitation in production"
+commit_sha: "cc9c7aa"
+stale_after_commits: 15
+watch_paths:
+  - src/client/errors.ts
+  - src/client/DeepCitation.ts
 ---
 
 # Error Handling

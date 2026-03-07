@@ -4,6 +4,14 @@ title: Types
 parent: API Reference
 nav_order: 1
 description: "TypeScript interface definitions for DeepCitation"
+commit_sha: "cc9c7aa"
+stale_after_commits: 10
+watch_paths:
+  - src/types/citation.ts
+  - src/types/verification.ts
+  - src/types/search.ts
+  - src/types/index.ts
+  - src/index.ts
 ---
 
 # Type Definitions

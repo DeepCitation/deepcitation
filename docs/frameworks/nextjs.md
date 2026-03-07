@@ -4,6 +4,14 @@ title: Next.js App Router
 parent: Frameworks
 nav_order: 2
 description: "DeepCitation + Next.js App Router: server components, streaming, and use client boundaries"
+commit_sha: "cc9c7aa"
+stale_after_commits: 15
+watch_paths:
+  - src/react/Citation.tsx
+  - src/react/index.ts
+  - src/index.ts
+  - src/client/DeepCitation.ts
+  - examples/nextjs-ai-sdk
 ---
 
 # DeepCitation + Next.js App Router

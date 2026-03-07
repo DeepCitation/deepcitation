@@ -4,6 +4,11 @@ title: Frameworks
 nav_order: 5
 description: "Framework-specific integration guides for DeepCitation"
 has_children: true
+commit_sha: "cc9c7aa"
+stale_after_commits: 30
+watch_paths:
+  - src/index.ts
+  - src/client/DeepCitation.ts
 ---
 
 # Framework Guides

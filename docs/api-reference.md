@@ -4,6 +4,13 @@ title: API Reference
 nav_order: 3
 description: "REST API endpoints for file preparation and citation verification"
 has_children: true
+commit_sha: "cc9c7aa"
+stale_after_commits: 10
+watch_paths:
+  - src/client/DeepCitation.ts
+  - src/client/types.ts
+  - src/client/errors.ts
+  - src/client/index.ts
 ---
 
 # API Reference

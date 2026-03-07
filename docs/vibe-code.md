@@ -3,6 +3,12 @@ layout: default
 title: Vibe Code with DeepCitation
 nav_order: 6
 description: "Copy-paste prompts for AI coding agents to integrate DeepCitation in minutes"
+commit_sha: "cc9c7aa"
+stale_after_commits: 30
+watch_paths:
+  - README.md
+  - INTEGRATION.md
+  - src/index.ts
 ---
 
 # Vibe Code with DeepCitation

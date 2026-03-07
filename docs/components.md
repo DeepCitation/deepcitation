@@ -4,6 +4,13 @@ title: Components
 parent: Code Examples
 nav_order: 1
 description: "React CitationComponent documentation"
+commit_sha: "cc9c7aa"
+stale_after_commits: 15
+watch_paths:
+  - src/react/Citation.tsx
+  - src/react/index.ts
+  - src/react/DefaultPopoverContent.tsx
+  - src/react/SourcesListComponent.tsx
 ---
 
 # CitationComponent

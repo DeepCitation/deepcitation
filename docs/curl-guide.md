@@ -4,6 +4,11 @@ title: Curl Guide
 parent: Getting Started
 nav_order: 1
 description: "Direct API usage with curl examples"
+commit_sha: "cc9c7aa"
+stale_after_commits: 15
+watch_paths:
+  - src/client/DeepCitation.ts
+  - src/client/types.ts
 ---
 
 # Curl Guide

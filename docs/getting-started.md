@@ -4,6 +4,14 @@ title: Getting Started
 nav_order: 2
 description: "Installation and quick start guide for DeepCitation"
 has_children: true
+commit_sha: "cc9c7aa"
+stale_after_commits: 20
+watch_paths:
+  - src/index.ts
+  - src/client/DeepCitation.ts
+  - src/client/types.ts
+  - README.md
+  - INTEGRATION.md
 ---
 
 # Getting Started
