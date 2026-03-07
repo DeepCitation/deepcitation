@@ -1,5 +1,4 @@
 import { defineConfig } from "tsup";
-import { reactCompilerPlugin } from "./esbuild-plugin-react-compiler.js";
 
 // Combined single config to avoid race conditions between parallel builds
 // This ensures DTS files are not cleaned up by competing processes
@@ -31,7 +30,6 @@ export default defineConfig({
   outDir: "lib",
   target: "es2020",
   external: ["react", "react-dom"],
-  esbuildPlugins: [reactCompilerPlugin()],
   esbuildOptions(options) {
     options.jsx = "automatic";
   },

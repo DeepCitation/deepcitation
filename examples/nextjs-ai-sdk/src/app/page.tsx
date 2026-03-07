@@ -98,19 +98,17 @@ export default function Home() {
       .finally(() => setIsVerifying(false));
   });
 
-  // Detect when streaming completes (isLoading: true → false) and verify.
-  // Uses setState-during-render instead of useEffect to avoid React Compiler bailout.
-  // pendingVerify state replaces the previous pendingVerifyRef + verifySignal pattern
-  // so the React Compiler can optimize this component (ref mutations during render cause bailout).
-  const [prevIsLoading, setPrevIsLoading] = useState(false);
-  const [pendingVerify, setPendingVerify] = useState<{ id: string; content: string } | null>(null);
+  // Detect when streaming completes (isLoading: true → false) and trigger verification.
+  // Using a ref (not state) for prevIsLoading avoids an extra re-render, and calling
+  // onVerifyMessage directly in the effect (it's a useEffectEvent) eliminates the
+  // intermediate pendingVerify state that caused a setState cascade.
+  const prevIsLoadingRef = useRef(false);
 
-  if (isLoading !== prevIsLoading) {
-    setPrevIsLoading(isLoading);
-    if (!isLoading && prevIsLoading) {
+  useEffect(() => {
+    if (prevIsLoadingRef.current && !isLoading) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage?.role === "assistant" && !messageVerifications[lastMessage.id]) {
-        console.log("[render] Stream finished, verifying...");
+        console.log("[effect] Stream finished, verifying...");
         const messageContent =
           lastMessage.content ||
           lastMessage.parts
@@ -118,18 +116,12 @@ export default function Home() {
             .map(p => p.text)
             .join("") ||
           "";
-        setPendingVerify({ id: lastMessage.id, content: messageContent });
         setIsVerifying(true);
+        onVerifyMessage(lastMessage.id, messageContent);
       }
     }
-  }
-
-  // Flush pending verification (side effects must live in useEffect, not render body)
-  useEffect(() => {
-    if (!pendingVerify) return;
-    setPendingVerify(null);
-    onVerifyMessage(pendingVerify.id, pendingVerify.content);
-  }, [pendingVerify, onVerifyMessage]);
+    prevIsLoadingRef.current = isLoading;
+  }, [isLoading, messages, messageVerifications]);
 
   const [uploadError, setUploadError] = useState<string | null>(null);
 
