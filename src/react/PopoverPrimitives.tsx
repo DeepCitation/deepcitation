@@ -19,7 +19,7 @@ import {
 import { createPortal } from "react-dom";
 import { getPortalContainer } from "./constants.js";
 import { PopoverContext, type PopoverContextValue, usePopoverContext } from "./popoverContext.js";
-import { assignRef } from "./refUtils.js";
+import { composeRefs } from "./refUtils.js";
 
 export interface PopoverRootProps {
   open?: boolean;
@@ -52,7 +52,6 @@ export interface PopoverTriggerProps extends HTMLAttributes<HTMLElement> {
 
 export const PopoverTrigger = forwardRef<HTMLElement, PopoverTriggerProps>(
   ({ asChild = false, children, ...props }, forwardedRef) => {
-    // React Compiler opt-out: cloneElement with ref callback is opaque to the compiler
     const { triggerRef } = usePopoverContext();
 
     if (asChild) {
@@ -61,23 +60,12 @@ export const PopoverTrigger = forwardRef<HTMLElement, PopoverTriggerProps>(
       const childRef = (child.props as { ref?: Ref<HTMLElement> }).ref;
       return cloneElement(child, {
         ...props,
-        ref: (node: HTMLElement | null) => {
-          assignRef(childRef, node);
-          assignRef(forwardedRef, node);
-          triggerRef.current = node;
-        },
+        ref: composeRefs(childRef, forwardedRef, triggerRef),
       });
     }
 
     return (
-      <button
-        type="button"
-        {...props}
-        ref={(node: HTMLElement | null) => {
-          assignRef(forwardedRef, node);
-          triggerRef.current = node;
-        }}
-      >
+      <button type="button" {...props} ref={composeRefs(forwardedRef, triggerRef)}>
         {children}
       </button>
     );

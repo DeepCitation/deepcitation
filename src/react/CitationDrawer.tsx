@@ -362,19 +362,11 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     [statusCategory],
   );
 
-  // Guard against stale keyhole state when the item is collapsed externally
-  // (e.g. Escape key calls setExpandedCitationKey(null) in the parent,
-  // bypassing handleClick). Without this, inlineKeyholeSrc persists and
-  // re-shows a stale expanded keyhole the next time the item is opened.
-  // useLayoutEffect (not useEffect): clearing visual state before paint avoids
-  // a flash of stale keyhole content on collapse. CitationDrawer is client-only
-  // (never SSR'd), so the useLayoutEffect SSR warning does not apply.
-  useLayoutEffect(() => {
-    if (!isExpanded) {
-      setInlineKeyholeSrc(null);
-      setInlineKeyholeInitialScroll(null);
-    }
-  }, [isExpanded]);
+  // Derive effective keyhole state: when collapsed, always null (prevents stale
+  // keyhole from re-showing on external collapse like Escape key). When expanded
+  // again via handleClick, the state is already cleared by the click handler.
+  const effectiveKeyholeSrc = isExpanded ? inlineKeyholeSrc : null;
+  const effectiveKeyholeScroll = isExpanded ? inlineKeyholeInitialScroll : null;
 
   const handleClick = useCallback(() => {
     // Also reset inline keyhole state eagerly on click (before the state
@@ -490,16 +482,16 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               onAnimationEnd={() => setWasAutoExpanded(false)}
             >
               {/* Evidence area: keyhole for found, thumbnail+analysis for miss */}
-              {inlineKeyholeSrc ? (
+              {effectiveKeyholeSrc ? (
                 <InlineExpandedImage
-                  src={inlineKeyholeSrc}
+                  src={effectiveKeyholeSrc}
                   onCollapse={() => {
                     setInlineKeyholeSrc(null);
                     setInlineKeyholeInitialScroll(null);
                   }}
                   onExpand={pageImageSrc ? handleExpandToPage : undefined}
                   verification={verification ?? undefined}
-                  initialScroll={inlineKeyholeInitialScroll ?? undefined}
+                  initialScroll={effectiveKeyholeScroll ?? undefined}
                   pageNumberForCta={itemPageNumber}
                 />
               ) : (

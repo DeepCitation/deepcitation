@@ -154,7 +154,7 @@ export function ZoomToolbar({
       }}
     >
       {/* layout shell only — inner toolbar div carries the semantic role */}
-      <div className="flex flex-col items-end gap-2" onClick={stopClick} onKeyDown={stopKeyDown}>
+      <div role="presentation" className="flex flex-col items-end gap-2" onClick={stopClick} onKeyDown={stopKeyDown}>
         {/* Locate — standalone card above the zoom controls */}
         {showLocate && onLocate && (
           <button

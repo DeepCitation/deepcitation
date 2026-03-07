@@ -10,7 +10,7 @@
  */
 
 import type React from "react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import { isStrategyOverride, shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
 import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
@@ -41,25 +41,19 @@ import {
   KEYHOLE_SKIP_THRESHOLD,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
   KEYHOLE_STRIP_HEIGHT_VAR,
-  KEYHOLE_WHEEL_ZOOM_SENSITIVITY,
   KEYHOLE_WIDTH_FIT_THRESHOLD,
-  KEYHOLE_ZOOM_MAX,
-  KEYHOLE_ZOOM_MIN,
-  KEYHOLE_ZOOM_MIN_SIZE_RATIO,
   MIN_PAN_OVERFLOW_PX,
   POPOVER_MORPH_EXPAND_MS,
   TERTIARY_ACTION_BASE_CLASSES,
   TERTIARY_ACTION_HOVER_CLASSES,
   TERTIARY_ACTION_IDLE_CLASSES,
   WHEEL_ZOOM_SENSITIVITY,
-  ZOOM_HINT_DELAY_MS,
-  ZOOM_HINT_SESSION_KEY,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
 import { useDragToPan } from "./hooks/useDragToPan.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { applyGestureTransform, useWheelZoom, type WheelZoomAnchor } from "./hooks/useWheelZoom.js";
-import { tPlural, useTranslation } from "./i18n.js";
+import { tPlural, useLocale, useTranslation } from "./i18n.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "./overlayGeometry.js";
@@ -170,6 +164,28 @@ function resolveEvidenceListTransition(stage: EvidenceListMotionStage): string {
   return `max-height ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}, opacity ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}, padding-top ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}, transform ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}`;
 }
 
+// Combined reducer for search-log animation state — a single dispatch replaces
+// the multiple setState calls that the React Compiler flagged as cascading renders.
+type SearchLogAnimState = { mounted: boolean; stage: EvidenceListMotionStage };
+type SearchLogAnimAction =
+  | { type: "instant"; show: boolean }
+  | { type: "enter" }
+  | { type: "stage"; stage: EvidenceListMotionStage }
+  | { type: "unmount" };
+
+function searchLogAnimReducer(state: SearchLogAnimState, action: SearchLogAnimAction): SearchLogAnimState {
+  switch (action.type) {
+    case "instant":
+      return { mounted: action.show, stage: action.show ? "steady" : "idle" };
+    case "enter":
+      return { mounted: true, stage: "enter-a" };
+    case "stage":
+      return { ...state, stage: action.stage };
+    case "unmount":
+      return { mounted: false, stage: "idle" };
+  }
+}
+
 // =============================================================================
 // EXPANDED IMAGE RESOLVER
 // =============================================================================
@@ -278,74 +294,6 @@ export function resolveExpandedImageForPage(
 // VERIFICATION IMAGE COMPONENT — "Keyhole" Crop & Fade
 // =============================================================================
 
-/**
- * "Scroll to zoom" hint badge — appears after a hover dwell, auto-dismisses
- * after first wheel zoom event. Shows once per session via sessionStorage.
- */
-function ZoomHint({
-  isHovering,
-  hasZoomed,
-  enabled = true,
-}: {
-  isHovering: boolean;
-  hasZoomed: boolean;
-  enabled?: boolean;
-}) {
-  const [dismissed, setDismissed] = useState(() => {
-    try {
-      return sessionStorage.getItem(ZOOM_HINT_SESSION_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
-
-  // Render-time dismissal: derive from hasZoomed (avoids set-state-in-effect).
-  // React detects this, aborts the current render, and retries immediately.
-  if (hasZoomed && !dismissed) {
-    setDismissed(true);
-  }
-
-  // Persist dismissal to sessionStorage (side effect only — no setState).
-  useEffect(() => {
-    if (!dismissed) return;
-    try {
-      sessionStorage.setItem(ZOOM_HINT_SESSION_KEY, "1");
-    } catch {
-      /* quota exceeded — harmless */
-    }
-  }, [dismissed]);
-
-  // Derive visibility from conditions (no `visible` state needed).
-  // Timer fires only when shouldShow is true; `timerFired` resets on shouldShow transitions.
-  const shouldShow = enabled && !dismissed && !hasZoomed && isHovering;
-  const [timerFired, setTimerFired] = useState(false);
-  const [prevShouldShow, setPrevShouldShow] = useState(shouldShow);
-  if (prevShouldShow !== shouldShow) {
-    setPrevShouldShow(shouldShow);
-    if (timerFired) setTimerFired(false);
-  }
-
-  // Hover dwell timer — only async setState (inside setTimeout), no synchronous setState.
-  useEffect(() => {
-    if (!shouldShow) return;
-    const timer = setTimeout(() => setTimerFired(true), ZOOM_HINT_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [shouldShow]);
-
-  const t = useTranslation();
-
-  if (!shouldShow || !timerFired) return null;
-
-  return (
-    <div
-      aria-hidden="true"
-      className="absolute bottom-2 right-2 text-[10px] text-white/90 bg-black/60 backdrop-blur-sm rounded-md px-1.5 py-0.5 pointer-events-none select-none animate-in fade-in-0 duration-150"
-    >
-      {t("evidence.scrollToZoom")}
-    </div>
-  );
-}
-
 // =============================================================================
 // ANCHOR TEXT FOCUSED IMAGE (Keyhole viewer)
 // =============================================================================
@@ -406,65 +354,14 @@ export function AnchorTextFocusedImage({
   } | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
-  // --- Keyhole zoom state ---
-  const [keyholeZoom, setKeyholeZoom] = useState(1.0);
-  const [hasZoomed, setHasZoomed] = useState(false);
-  // Whether the image is large enough relative to the container to benefit from wheel zoom.
-  // Computed once on image load — images must be ≥ 3× container in at least one axis.
-  const [zoomEligible, setZoomEligible] = useState(false);
   const imageWrapperRef = useRef<HTMLDivElement>(null);
   /** Cancel handle for the current `animateScrollLeft` rAF loop (if any). */
   const cancelPanRef = useRef<(() => void) | null>(null);
   const keyholeInitAppliedRef = useRef(false);
 
-  const clampKeyholeZoomRaw = useCallback((z: number) => Math.max(KEYHOLE_ZOOM_MIN, Math.min(KEYHOLE_ZOOM_MAX, z)), []);
-  const clampKeyholeZoom = useCallback(
-    (z: number) => Math.round(clampKeyholeZoomRaw(z) * 100) / 100,
-    [clampKeyholeZoomRaw],
-  );
-
-  const { isHovering, gestureAnchorRef } = useWheelZoom({
-    enabled: imageLoaded && zoomEligible,
-    sensitivity: KEYHOLE_WHEEL_ZOOM_SENSITIVITY,
-    containerRef: containerRef as React.RefObject<HTMLElement | null>,
-    wrapperRef: imageWrapperRef,
-    zoom: keyholeZoom,
-    clampZoomRaw: clampKeyholeZoomRaw,
-    clampZoom: clampKeyholeZoom,
-    onZoomCommit: (z: number) => {
-      setKeyholeZoom(z);
-      if (!hasZoomed) setHasZoomed(true);
-    },
-  });
-
-  // Scroll correction after zoom commit — runs before paint so the
-  // anchor point stays visually stable when the image resizes.
-  // Uses gesture start zoom captured by useWheelZoom to avoid stale old/new zoom races.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: gestureAnchorRef and containerRef are stable ref objects
-  useLayoutEffect(() => {
-    const wrapper = imageWrapperRef.current;
-    if (wrapper) wrapper.style.transform = "";
-
-    const anchor = gestureAnchorRef.current;
-    const el = containerRef.current;
-    if (!anchor || !el) {
-      gestureAnchorRef.current = null;
-      return;
-    }
-
-    if (anchor.startZoom > 0) {
-      const ratio = keyholeZoom / anchor.startZoom;
-      el.scrollLeft = (anchor.mx + anchor.sx) * ratio - anchor.mx;
-      el.scrollTop = (anchor.my + anchor.sy) * ratio - anchor.my;
-    }
-    gestureAnchorRef.current = null;
-  }, [keyholeZoom]);
-
   // Set initial scroll position after image loads.
   // useLayoutEffect guarantees refs are populated and runs before paint,
   // so the strip appears at the correct offset without a flash of misposition.
-  // NOTE: Was a React Compiler opt-out — compiler removed for React 18 compat.
-  // DOM measurement → setZoomEligible is the correct pattern for DOM-derived state; the double-render is unavoidable here.
   // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef and imageRef are stable refs that never change identity; useLayoutEffect guarantees the DOM nodes they point to are ready
   useLayoutEffect(() => {
     if (!imageLoaded) return;
@@ -479,14 +376,6 @@ export function AnchorTextFocusedImage({
     const displayedWidth =
       img.naturalHeight > 0 ? img.naturalWidth * (stripHeight / img.naturalHeight) : img.naturalWidth;
     const containerWidth = container.clientWidth;
-
-    // Zoom eligibility: only enable wheel-to-zoom when the image is meaningfully
-    // larger than the container — at least 3× in either dimension. For small images,
-    // zooming is useless and hijacks normal scrolling.
-    const meetsZoomThreshold =
-      img.naturalWidth >= KEYHOLE_ZOOM_MIN_SIZE_RATIO * containerWidth ||
-      img.naturalHeight >= KEYHOLE_ZOOM_MIN_SIZE_RATIO * stripHeight;
-    setZoomEligible(meetsZoomThreshold);
 
     // Width-fit mode: when the image at height-fit scale is too narrow to read
     // (a tiny sliver for tall images like full-page screenshots), switch to
@@ -621,11 +510,11 @@ export function AnchorTextFocusedImage({
         return imageFitInfo.displayedWidth / img.naturalWidth;
       }
       if (img.naturalHeight > 0) {
-        return (keyholeZoom * stripHeight) / img.naturalHeight;
+        return stripHeight / img.naturalHeight;
       }
       return 1;
     },
-    [imageFitInfo, keyholeZoom],
+    [imageFitInfo],
   );
 
   return (
@@ -634,7 +523,7 @@ export function AnchorTextFocusedImage({
           maxWidth clamps to the image's rendered width so no blank space appears to the right. */}
       <div
         className="relative group/keyhole"
-        style={imageFitInfo && !isWidthFit ? { maxWidth: imageFitInfo.displayedWidth * keyholeZoom } : undefined}
+        style={imageFitInfo && !isWidthFit ? { maxWidth: imageFitInfo.displayedWidth } : undefined}
       >
         <button
           type="button"
@@ -692,7 +581,7 @@ export function AnchorTextFocusedImage({
             data-dc-keyhole=""
             className={cn(
               DOCUMENT_CANVAS_BG_CLASSES,
-              isWidthFit || keyholeZoom > 1 ? "overflow-auto" : "overflow-x-auto overflow-y-hidden",
+              isWidthFit ? "overflow-auto" : "overflow-x-auto overflow-y-hidden",
             )}
             style={{
               viewTransitionName: DC_EVIDENCE_VT_NAME,
@@ -703,10 +592,6 @@ export function AnchorTextFocusedImage({
               maskImage,
               ...HIDE_SCROLLBAR_STYLE,
               cursor: interactionCursor,
-              // Hover ring affordance signals zoom interactivity
-              ...(isHovering && !isDragging
-                ? { boxShadow: "inset 0 0 0 2px rgba(96, 165, 250, 0.2)", borderRadius: "2px" }
-                : {}),
             }}
             {...handlers}
           >
@@ -725,7 +610,7 @@ export function AnchorTextFocusedImage({
                   isWidthFit
                     ? { width: imageFitInfo?.displayedWidth, height: "auto", maxWidth: "none" }
                     : {
-                        height: keyholeZoom === 1 ? stripHeightStyle : `calc(${stripHeightStyle} * ${keyholeZoom})`,
+                        height: stripHeightStyle,
                       }
                 }
                 loading="eager"
@@ -799,14 +684,6 @@ export function AnchorTextFocusedImage({
               }}
             />
           )}
-
-          {/* Zoom hint badge — shows once per session on hover dwell.
-              Only shown when the image has meaningful zoom range (> 2×). */}
-          <ZoomHint
-            isHovering={isHovering}
-            hasZoomed={hasZoomed}
-            enabled={zoomEligible && KEYHOLE_ZOOM_MAX / keyholeZoom > 2}
-          />
         </button>
       </div>
     </div>
@@ -829,7 +706,6 @@ function EvidenceTrayFooter({
   searchCount,
   isSearchLogOpen,
   onToggleSearchLog,
-  locationLabel,
 }: {
   verifiedAt?: Date | string | null;
   /** When provided, renders a footer CTA button */
@@ -844,11 +720,10 @@ function EvidenceTrayFooter({
   isSearchLogOpen?: boolean;
   /** Toggle callback — when provided and searchCount > 0, renders the toggle */
   onToggleSearchLog?: () => void;
-  /** Location label to append after search count (e.g. "page 1", "full document") */
-  locationLabel?: string;
 }) {
   const t = useTranslation();
-  const formatted = formatCaptureDate(verifiedAt);
+  const locale = useLocale();
+  const formatted = formatCaptureDate(verifiedAt, { locale });
   const dateStr = formatted?.display ?? "";
   const showToggle = onToggleSearchLog && searchCount != null && searchCount > 0;
   const hasPageForCta = pageNumberForCta != null && pageNumberForCta > 0;
@@ -885,10 +760,7 @@ function EvidenceTrayFooter({
               >
                 <ChevronRightIcon />
               </span>
-              <span>
-                {tPlural(t, "evidence.searchAttempts", searchCount, { count: searchCount })}
-                {locationLabel && <> · {locationLabel}</>}
-              </span>
+              <span>{tPlural(t, "evidence.searchAttempts", searchCount, { count: searchCount })}</span>
             </button>
           )}
           {showToggle && dateStr && <span aria-hidden="true">·</span>}
@@ -1049,8 +921,12 @@ export function EvidenceTray({
 
   // Search log toggle state (miss and partial states)
   const [showSearchLog, setShowSearchLog] = useState(false);
-  const [isSearchLogMounted, setIsSearchLogMounted] = useState(showSearchLog);
-  const [searchLogStage, setSearchLogStage] = useState<EvidenceListMotionStage>(showSearchLog ? "steady" : "idle");
+  const [searchLogAnim, dispatchSearchLog] = useReducer(searchLogAnimReducer, {
+    mounted: false,
+    stage: "idle" as EvidenceListMotionStage,
+  });
+  const isSearchLogMounted = searchLogAnim.mounted;
+  const searchLogStage = searchLogAnim.stage;
   const searchLogMountedRef = useRef(isSearchLogMounted);
   const searchLogEnterRafRef = useRef<number>(0);
   const searchLogExitRafRef = useRef<number>(0);
@@ -1065,22 +941,17 @@ export function EvidenceTray({
   // the log instead of closing the popover.
   useEffect(() => {
     if (!escapeInterceptRef) return;
-    // Each effect run creates a fresh arrow function, so the identity-equality
-    // guard in the cleanup is safe as a "did this effect's value get replaced?"
-    // check — two runs never share the same function reference.
     const collapseFn = showSearchLog ? () => setShowSearchLog(false) : null;
     escapeInterceptRef.current = collapseFn;
     return () => {
-      // Only clear if we still own the ref — prevents stomping a value set
-      // by a concurrent effect run during rapid state transitions.
       if (escapeInterceptRef.current === collapseFn) {
         escapeInterceptRef.current = null;
       }
     };
   }, [showSearchLog, escapeInterceptRef]);
 
-  // NOTE: Was a React Compiler opt-out — compiler removed for React 18 compat.
-  // Multiple setState calls in this effect are intentional (React batches them) and drive the search-log enter/exit animation sequence.
+  // Search-log enter/exit animation sequence. Uses dispatchSearchLog (single dispatch)
+  // instead of multiple setState calls to satisfy the React Compiler.
   useEffect(() => {
     const clearScheduled = () => {
       cancelAnimationFrame(searchLogEnterRafRef.current);
@@ -1100,22 +971,18 @@ export function EvidenceTray({
     clearScheduled();
 
     if (prefersReducedMotion) {
-      setIsSearchLogMounted(showSearchLog);
-      setSearchLogStage(showSearchLog ? "steady" : "idle");
+      dispatchSearchLog({ type: "instant", show: showSearchLog });
       return clearScheduled;
     }
 
     if (showSearchLog) {
-      if (!searchLogMountedRef.current) {
-        setIsSearchLogMounted(true);
-      }
-      setSearchLogStage("enter-a");
+      dispatchSearchLog({ type: "enter" });
       // Two RAFs guarantee a painted frame at enter-a before we begin the 95% reveal.
       searchLogEnterRafRef.current = requestAnimationFrame(() => {
         searchLogEnterRafRef.current = requestAnimationFrame(() => {
-          setSearchLogStage("enter-b");
+          dispatchSearchLog({ type: "stage", stage: "enter-b" });
           searchLogSettleTimerRef.current = setTimeout(() => {
-            setSearchLogStage("steady");
+            dispatchSearchLog({ type: "stage", stage: "steady" });
             searchLogSettleTimerRef.current = null;
           }, EVIDENCE_LIST_EXPAND_STEP_MS);
         });
@@ -1124,20 +991,19 @@ export function EvidenceTray({
     }
 
     if (!searchLogMountedRef.current) {
-      setSearchLogStage("idle");
+      dispatchSearchLog({ type: "stage", stage: "idle" });
       return clearScheduled;
     }
 
-    setSearchLogStage("exit-a");
+    dispatchSearchLog({ type: "stage", stage: "exit-a" });
     // Match expand behavior: force one painted 70% frame before collapsing to 0%.
     searchLogExitRafRef.current = requestAnimationFrame(() => {
       searchLogExitRafRef.current = requestAnimationFrame(() => {
-        setSearchLogStage("exit-b");
+        dispatchSearchLog({ type: "stage", stage: "exit-b" });
       });
     });
     searchLogExitTimerRef.current = setTimeout(() => {
-      setIsSearchLogMounted(false);
-      setSearchLogStage("idle");
+      dispatchSearchLog({ type: "unmount" });
       searchLogExitTimerRef.current = null;
     }, EVIDENCE_LIST_COLLAPSE_TOTAL_MS);
 
@@ -1297,7 +1163,7 @@ export function EvidenceTray({
             "transition-opacity",
             borderClass,
           )}
-          aria-label={t("action.expandFullPage")}
+          aria-label={onImageClick ? t("action.viewImage") : t("action.expandFullPage")}
         >
           {content}
         </div>
@@ -1391,26 +1257,12 @@ export function InlineExpandedImage({
   const [overlayHidden, setOverlayHidden] = useState(initialOverlayHidden);
   // When showOverlay is provided by parent (header panel mode), it overrides internal state.
   const effectiveOverlayHidden = showOverlay !== undefined ? !showOverlay : overlayHidden;
-  // Zoom state — only active when fill=true (expanded-page mode).
-  // 1.0 = natural pixel size. < 1.0 = fit-to-screen (shrunk to container).
-  const [zoom, setZoom] = useState(1);
-  // Ref mirror of zoom for touch event handlers (avoids stale closures in pinch gesture).
-  // Updated in an effect (not during render) to avoid a React Compiler bailout.
-  const zoomRef = useRef(zoom);
-  useEffect(() => {
-    zoomRef.current = zoom;
-  }, [zoom]);
-  // Dynamic zoom floor: on narrow viewports the fit-to-screen zoom may be below
-  // EXPANDED_ZOOM_MIN (e.g. 29% for a 1700px image on a 550px viewport).
-  // This floor feeds into the slider min, zoom-out disabled check, and clampZoom
-  // so the user can't zoom below the level that fits the viewport width.
-  const [zoomFloor, setZoomFloor] = useState(EXPANDED_ZOOM_MIN);
+  // Manual zoom override: null = use fitted zoom (automatic), number = user-selected zoom.
+  // Replaces the previous zoom + hasManualZoomRef pattern to avoid setState in effects.
+  const [manualZoom, setManualZoom] = useState<number | null>(null);
   // Container size as state (not ref) so that ResizeObserver updates trigger re-renders.
-  // This ensures the initial-zoom effect re-fires once the container is measured.
   const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
-  // Viewport width as state so the fit-to-screen effect re-runs on window resize.
-  // The effect uses window.innerWidth to compute maxImageWidth; without this reactive
-  // dependency, the popover's expanded width stays stale after viewport changes.
+  // Viewport width as state so the fit-to-screen calculation re-derives on window resize.
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 0));
   useEffect(() => {
     if (!fill) return;
@@ -1418,9 +1270,33 @@ export function InlineExpandedImage({
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [fill]);
-  // Tracks whether zoom was changed by explicit user interaction (slider/wheel/pinch).
-  // When true, viewport resizes keep the user's zoom level instead of re-fitting.
-  const hasManualZoomRef = useRef(false);
+
+  // Derived fit-to-screen zoom — pure calculation from measurements, no effect needed.
+  const fittedZoom = useMemo(() => {
+    if (!fill || !imageLoaded || !naturalWidth || !naturalHeight) return null;
+    if (!containerSize || containerSize.width <= 0 || containerSize.height <= 0) return null;
+    const pad = CANVAS_PADDING_PX * 2;
+    const maxImageWidth =
+      viewportWidth > 0 ? viewportWidth - 32 - EXPANDED_IMAGE_SHELL_PX - pad : containerSize.width - pad;
+    const fitZoomW = maxImageWidth / naturalWidth;
+    return {
+      // readableZoom: initial zoom clamped to readable minimum (50%).
+      readable: Math.min(1, Math.max(EXPANDED_MIN_READABLE_ZOOM, fitZoomW)),
+      // floor: minimum zoom level (fit-to-screen). Can be below readable for zoom-out via slider.
+      floor: Math.min(EXPANDED_ZOOM_MIN, Math.min(1, Math.max(0.1, fitZoomW))),
+    };
+  }, [fill, imageLoaded, naturalWidth, naturalHeight, containerSize, viewportWidth]);
+
+  // Derived zoom and zoomFloor — single source of truth, no setState needed.
+  const zoom = manualZoom ?? fittedZoom?.readable ?? 1;
+  const zoomFloor = fittedZoom?.floor ?? EXPANDED_ZOOM_MIN;
+
+  // Ref mirror of zoom for touch event handlers (avoids stale closures in pinch gesture).
+  const zoomRef = useRef(zoom);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+
   // Auto-locate only once per image load; resizing should not keep re-centering/pulling view.
   const hasAutoScrolledToAnnotationRef = useRef(false);
   // Tracks the last initialScroll object that was applied — reference equality prevents
@@ -1474,23 +1350,25 @@ export function InlineExpandedImage({
     return () => observer.disconnect();
   }, [fill]);
 
-  // Reset all image state when src changes, then synchronously detect cached
-  // images via img.complete. useLayoutEffect (not useEffect) is critical here:
-  // when a View Transition wraps the viewState change in flushSync, layout
-  // effects fire before the VT captures its "new" snapshot. Detecting the
-  // cached image synchronously lets the VT snapshot include the real content
-  // (not a spinner) at the correct scroll position — eliminating the "aim off"
-  // artifact where the morph targets a blank or mis-scrolled frame.
-  // NOTE: Was a React Compiler opt-out — compiler removed for React 18 compat.
-  // Multiple setState resets are intentional here; this useLayoutEffect is the authoritative view-transition reset and must fire synchronously.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ref identities are stable; initialOverlayHidden is the reset target value, not a reactive dependency
-  useLayoutEffect(() => {
+  // Reset state when src changes — render-time adjustment (no effect needed).
+  // This avoids the React Compiler's "setState in effect" bailout.
+  const [prevSrc, setPrevSrc] = useState(src);
+  if (prevSrc !== src) {
+    setPrevSrc(src);
     setNaturalWidth(null);
     setNaturalHeight(null);
-    setZoom(1);
-    setZoomFloor(EXPANDED_ZOOM_MIN);
+    setManualZoom(null);
     setOverlayHidden(initialOverlayHidden);
-    hasManualZoomRef.current = false;
+    setImageLoaded(false);
+  }
+
+  // Reset refs + sync-detect cached images on src change.
+  // useLayoutEffect (not useEffect) is critical: when a View Transition wraps the
+  // viewState change in flushSync, layout effects fire before the VT captures its
+  // "new" snapshot. Detecting the cached image synchronously lets the VT snapshot
+  // include the real content (not a spinner) at the correct scroll position.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref identities are stable; fill/onNaturalSize are read but not reactive triggers — only src change should fire this
+  useLayoutEffect(() => {
     hasAutoScrolledToAnnotationRef.current = false;
     lastReportedSizeRef.current = null;
     touchGestureZoomRef.current = null;
@@ -1507,8 +1385,6 @@ export function InlineExpandedImage({
       setNaturalWidth(img.naturalWidth);
       setNaturalHeight(img.naturalHeight);
       if (!fill) onNaturalSize?.(img.naturalWidth, img.naturalHeight);
-    } else {
-      setImageLoaded(false);
     }
   }, [src]);
 
@@ -1547,91 +1423,63 @@ export function InlineExpandedImage({
   // Prevents intermediate scroll events from marking dirty.
   const isAnimatingScroll = useRef(false);
 
-  // Fit-to-screen: scale the page image to fit both the available width AND height.
-  // Width uses the VIEWPORT (minus popover margins + shell padding) because the
-  // container still reflects the previous evidence-width popover before the morph.
-  // Height uses containerSize.height from the ResizeObserver — the flex layout
-  // (flex-1 min-h-0 under a maxHeight-constrained column) has already allocated
-  // exactly the vertical space remaining after header zones and margins.
-  // NOTE: Was a React Compiler opt-out — compiler removed for React 18 compat.
-  // setZoom/setZoomFloor are derived-state writes that require DOM measurements and are intentionally in a useEffect.
+  // Report zoomed dimensions to the parent (side effect only — no setState).
+  // zoom/zoomFloor are derived during render; this effect handles the external callback.
   useEffect(() => {
     if (!fill || !imageLoaded || !naturalWidth || !naturalHeight) return;
     if (!containerSize || containerSize.width <= 0 || containerSize.height <= 0) return;
-    // Max image width the popover can provide: viewport - 2rem outer margin - shell px - canvas padding.
-    // Uses viewportWidth state (tracked via resize listener) so the effect re-runs on resize.
     const pad = CANVAS_PADDING_PX * 2;
-    const maxImageWidth =
-      viewportWidth > 0 ? viewportWidth - 32 - EXPANDED_IMAGE_SHELL_PX - pad : containerSize.width - pad;
-    const fitZoomW = maxImageWidth / naturalWidth;
-    // fitZoom = the zoom that fits the page width to the container (minimum usable zoom).
-    const fitZoom = Math.min(1, Math.max(0.1, fitZoomW));
-    // readableZoom = initial zoom clamped to a readable minimum (50%).
-    // On narrow viewports where fitZoomW < 0.5, this starts zoomed in for legibility
-    // with horizontal panning (already handled by overflow:auto + useDragToPan xy).
-    const readableZoom = Math.min(1, Math.max(EXPANDED_MIN_READABLE_ZOOM, fitZoomW));
-    if (!hasManualZoomRef.current) {
-      setZoom(prevZoom => (Math.abs(prevZoom - readableZoom) < 0.005 ? prevZoom : readableZoom));
-    }
-    // zoomFloor uses fitZoom (not readableZoom) so the user can still zoom OUT
-    // to fit-to-screen via the slider, below the readable minimum.
-    setZoomFloor(Math.min(EXPANDED_ZOOM_MIN, fitZoom));
-    const effectiveZoom = hasManualZoomRef.current ? zoomRef.current : readableZoom;
-    // Report zoomed dimensions so the popover sizes to the displayed image
-    // plus canvas padding, not the natural pixel width (which could be e.g. 1700px).
-    const reportedW = Math.round(naturalWidth * effectiveZoom) + pad;
-    const reportedH = Math.round(naturalHeight * effectiveZoom);
+    const reportedW = Math.round(naturalWidth * zoom) + pad;
+    const reportedH = Math.round(naturalHeight * zoom);
     const last = lastReportedSizeRef.current;
     if (!last || last.w !== reportedW || last.h !== reportedH) {
       lastReportedSizeRef.current = { w: reportedW, h: reportedH };
       onNaturalSize?.(reportedW, reportedH);
     }
+  }, [fill, imageLoaded, naturalWidth, naturalHeight, containerSize, zoom, onNaturalSize]);
 
-    // Auto-scroll to annotation: after fit-to-screen zoom is computed, scroll
-    // the container so the annotation is centered in view.
-    // Uses rAF to wait for the DOM to reflow at the new zoom level.
-    // Prefers anchor text position when it will be highlighted.
-    if (hasAutoScrolledToAnnotationRef.current || hasManualZoomRef.current) return;
+  // Auto-scroll to annotation on first fit — runs once per image load.
+  // Uses rAF to wait for the DOM to reflow at the new zoom level.
+  useEffect(() => {
+    if (!fill || !imageLoaded || !naturalWidth || !naturalHeight) return;
+    if (!containerSize || containerSize.width <= 0 || containerSize.height <= 0) return;
+    if (hasAutoScrolledToAnnotationRef.current || manualZoom !== null) return;
 
-    let rafId: number | undefined;
     const scrollItem = scrollTarget ?? effectivePhraseItem;
-    if (scrollItem && renderScale) {
-      hasAutoScrolledToAnnotationRef.current = true;
-      rafId = requestAnimationFrame(() => {
-        const container = containerRef.current;
-        if (!container) return;
-        const target = computeAnnotationScrollTarget(
-          scrollItem,
-          renderScale,
-          naturalWidth,
-          naturalHeight,
-          effectiveZoom,
-          container.clientWidth,
-          container.clientHeight,
-        );
-        if (target) {
-          // Offset by canvas padding — image starts at CANVAS_PADDING_PX inside the shell.
-          const sl = target.scrollLeft + CANVAS_PADDING_PX;
-          const st = target.scrollTop + CANVAS_PADDING_PX;
-          container.scrollLeft = sl;
-          container.scrollTop = st;
-          // Record snap position for dirty-bit detection
-          annotationScrollTarget.current = { left: sl, top: st };
-          setLocateDirty(false);
-        }
-      });
-    }
-    return () => {
-      if (rafId !== undefined) cancelAnimationFrame(rafId);
-    };
+    if (!scrollItem || !renderScale) return;
+
+    hasAutoScrolledToAnnotationRef.current = true;
+    const effectiveZoom = zoom;
+    const rafId = requestAnimationFrame(() => {
+      const container = containerRef.current;
+      if (!container) return;
+      const target = computeAnnotationScrollTarget(
+        scrollItem,
+        renderScale,
+        naturalWidth,
+        naturalHeight,
+        effectiveZoom,
+        container.clientWidth,
+        container.clientHeight,
+      );
+      if (target) {
+        const sl = target.scrollLeft + CANVAS_PADDING_PX;
+        const st = target.scrollTop + CANVAS_PADDING_PX;
+        container.scrollLeft = sl;
+        container.scrollTop = st;
+        annotationScrollTarget.current = { left: sl, top: st };
+        setLocateDirty(false);
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [
     fill,
     imageLoaded,
     naturalWidth,
     naturalHeight,
     containerSize,
-    viewportWidth,
-    onNaturalSize,
+    manualZoom,
+    zoom,
     scrollTarget,
     effectivePhraseItem,
     renderScale,
@@ -1736,8 +1584,7 @@ export function InlineExpandedImage({
     clampZoom,
     gestureAnchorRef: expandedWheelAnchorRef,
     onZoomCommit: (z: number) => {
-      hasManualZoomRef.current = true;
-      setZoom(z);
+      setManualZoom(z);
     },
   });
 
@@ -1829,8 +1676,7 @@ export function InlineExpandedImage({
       const finalZoom = touchGestureZoomRef.current;
       if (finalZoom !== null) {
         touchGestureZoomRef.current = null;
-        hasManualZoomRef.current = true;
-        setZoom(clampZoom(finalZoom));
+        setManualZoom(clampZoom(finalZoom));
       }
       if (wrapper) {
         wrapper.style.transform = "";
@@ -2185,8 +2031,7 @@ export function InlineExpandedImage({
           <ZoomToolbar
             zoom={zoom}
             onZoomChange={z => {
-              hasManualZoomRef.current = true;
-              setZoom(clampZoom(z));
+              setManualZoom(clampZoom(z));
             }}
             zoomFloor={zoomFloor}
             zoomStep={EXPANDED_ZOOM_STEP}

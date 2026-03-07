@@ -279,6 +279,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         getPageScrollEl().scrollTop += pixelDelta;
       };
 
+      // passive: false is required — onWheel calls e.preventDefault() to forward scroll to the page.
       el.addEventListener("wheel", onWheel, { passive: false });
       return () => el.removeEventListener("wheel", onWheel);
     }, [isMounted, getPageScrollEl, canChildScrollVertically]);
@@ -409,6 +410,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       };
 
       el.addEventListener("touchstart", onTouchStart, { passive: true });
+      // passive: false is required — onTouchMove calls e.preventDefault() to forward scroll to the page.
       el.addEventListener("touchmove", onTouchMove, { passive: false });
       el.addEventListener("touchend", onTouchEnd, { passive: true });
       el.addEventListener("touchcancel", onTouchEnd, { passive: true });

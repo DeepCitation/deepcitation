@@ -795,19 +795,6 @@ export const DRAWER_DRAG_CLOSE_THRESHOLD_PX = 80;
  *  Suppresses arrow buttons for negligible overflow (e.g. 5px rounding). */
 export const MIN_PAN_OVERFLOW_PX = 24;
 
-/** Minimum ratio (natural size / displayed size) to enable wheel zoom on the keyhole.
- *  Images smaller than 3× the container in both axes don't benefit from zoom. */
-export const KEYHOLE_ZOOM_MIN_SIZE_RATIO = 3;
-
-/** Minimum zoom level for the keyhole strip — never zoom below natural pixel density. */
-export const KEYHOLE_ZOOM_MIN = 1.0;
-/** Maximum zoom level for the keyhole strip — enough to read small text. */
-export const KEYHOLE_ZOOM_MAX = 2.5;
-/** Zoom step per discrete wheel notch for the keyhole strip. */
-export const KEYHOLE_ZOOM_STEP = 0.15;
-/** Sensitivity multiplier for keyhole wheel-to-zoom (maps deltaY → zoom delta). */
-export const KEYHOLE_WHEEL_ZOOM_SENSITIVITY = 0.008;
-
 // =============================================================================
 // SCROLLBAR HIDING
 // =============================================================================
@@ -818,12 +805,3 @@ export const HIDE_SCROLLBAR_STYLE: React.CSSProperties = {
   scrollbarWidth: "none",
   msOverflowStyle: "none",
 };
-
-// =============================================================================
-// ZOOM HINT
-// =============================================================================
-
-/** Delay (ms) before showing "Scroll to zoom" hint on hover. */
-export const ZOOM_HINT_DELAY_MS = 5000;
-/** sessionStorage key for zoom hint dismissal (show once per session). */
-export const ZOOM_HINT_SESSION_KEY = "dc-zoom-hint-dismissed";

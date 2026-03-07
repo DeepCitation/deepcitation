@@ -219,6 +219,7 @@ export function useWheelZoom({
       }, 150);
     };
 
+    // passive: false is required — onWheel calls e.preventDefault() to suppress native scroll during pinch-zoom.
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       el.removeEventListener("wheel", onWheel);
