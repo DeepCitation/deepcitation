@@ -3,6 +3,7 @@ import type { Citation } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
+import { isDomainMatch } from "../utils/urlSafety.js";
 import { UrlCitationComponent } from "./Citation.js";
 import {
   DOT_COLORS,
@@ -11,9 +12,10 @@ import {
   TERTIARY_ACTION_BASE_CLASSES,
   TERTIARY_ACTION_HOVER_CLASSES,
   TERTIARY_ACTION_IDLE_CLASSES,
+  TRUSTED_IMAGE_HOSTS,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
-import { type MessageKey, type TranslateFunction, tPlural, useTranslation } from "./i18n.js";
+import { type MessageKey, type TranslateFunction, tPlural, useLocale, useTranslation } from "./i18n.js";
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -198,7 +200,7 @@ function isSameOrigin(url: string): boolean {
  * new-tab flash. Falls back to a plain anchor (no target="_blank") if CORS
  * blocks the fetch — Content-Disposition: attachment still downloads in-place.
  */
-function triggerBackgroundDownload(url: string): void {
+function triggerBackgroundDownload(url: string, filename?: string): void {
   if (typeof document === "undefined") {
     return;
   }
@@ -210,7 +212,7 @@ function triggerBackgroundDownload(url: string): void {
   const anchorDownload = () => {
     const a = document.createElement("a");
     a.href = url;
-    a.download = "";
+    a.download = filename || "";
     a.rel = "noopener noreferrer";
     a.style.display = "none";
     document.body.appendChild(a);
@@ -258,7 +260,16 @@ function triggerBackgroundDownload(url: string): void {
     return;
   }
 
-  // Cross-origin: fetch → blob URL for a seamless, no-new-tab download.
+  // Cross-origin: only take the fetch→blob path for trusted hosts (TRUSTED_IMAGE_HOSTS).
+  // Fetching from arbitrary HTTPS domains is unsafe per the domain-allowlist policy in CLAUDE.md.
+  // For untrusted hosts, fall back to anchor (the browser handles navigation safely).
+  const isTrustedHost = TRUSTED_IMAGE_HOSTS.some(trustedHost => isDomainMatch(url, trustedHost));
+  if (!isTrustedHost) {
+    anchorDownload();
+    return;
+  }
+
+  // Trusted cross-origin: fetch → blob URL for a seamless, no-new-tab download.
   fetch(url, { credentials: "omit" })
     .then(res => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -268,11 +279,13 @@ function triggerBackgroundDownload(url: string): void {
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = "";
+      a.download = filename || "";
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
       a.remove();
+      // Fire-and-forget: 60s is safely longer than any realistic download-start delay.
+      // This plain function (not a hook) has no cleanup mechanism — intentional.
       window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
     })
     .catch(() => {
@@ -491,7 +504,6 @@ export function SourceContextHeader({
 
   return (
     <div
-      role="presentation"
       className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-gray-200 dark:border-gray-700"
       onClick={e => e.stopPropagation()}
       onKeyDown={e => {
@@ -541,7 +553,9 @@ export function SourceContextHeader({
             onClick={e => {
               e.stopPropagation();
               const safeUrl = downloadUrl ? sanitizeUrl(downloadUrl) : null;
-              if (safeUrl) triggerBackgroundDownload(safeUrl);
+              const name = sourceLabel || displayName || url;
+              const downloadName = isUrl && name && !name.endsWith(".pdf") ? `${name}.pdf` : name;
+              if (safeUrl) triggerBackgroundDownload(safeUrl, downloadName);
             }}
           >
             <span className="size-3.5 block">
@@ -1064,11 +1078,12 @@ function VerificationLogSummary({
   verifiedAt,
 }: VerificationLogSummaryProps) {
   const t = useTranslation();
+  const locale = useLocale();
   const isMiss = status === "not_found";
   const outcomeSummary = getOutcomeSummary(status, searchAttempts, t);
 
   // Format the verified date for display
-  const formatted = formatCaptureDate(verifiedAt);
+  const formatted = formatCaptureDate(verifiedAt, { locale });
   const dateStr = formatted?.display ?? "";
 
   return (
