@@ -509,7 +509,7 @@ export function SourceContextHeader({
           <button
             type="button"
             aria-label={t("aria.downloadSource")}
-            title={`Download ${displayName ?? url}`}
+            title={t("aria.downloadSourceName", { name: displayName ?? url })}
             className={cn(HEADER_DOWNLOAD_BUTTON_BASE_CLASSES, HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES)}
             onClick={e => {
               e.stopPropagation();

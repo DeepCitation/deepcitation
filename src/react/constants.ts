@@ -5,6 +5,7 @@
 
 import type React from "react";
 import { ANCHOR_HIGHLIGHT_COLOR } from "../drawing/citationDrawing.js";
+import { isDomainMatch } from "../utils/urlSafety.js";
 
 /**
  * CSS custom property name for the wavy underline color.
@@ -455,7 +456,7 @@ export function isValidProofImageSrc(src: unknown): src is string {
   try {
     const url = new URL(trimmed);
     const isLocalhost = (DEV_HOSTNAMES as readonly string[]).includes(url.hostname);
-    const isTrustedHost = (TRUSTED_IMAGE_HOSTS as readonly string[]).includes(url.hostname);
+    const isTrustedHost = TRUSTED_IMAGE_HOSTS.some(trustedHost => isDomainMatch(trimmed, trustedHost));
     return (url.protocol === "https:" && isTrustedHost) || isLocalhost;
   } catch {
     return false;

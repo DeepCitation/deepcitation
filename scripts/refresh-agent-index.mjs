@@ -18,7 +18,6 @@ import {
   readFileSync,
   writeFileSync,
   existsSync,
-  statSync,
 } from "node:fs";
 import { execSync, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -301,12 +300,13 @@ ${body}
 // ─── Section 2: Validate path-router.json ───────────────────────────────────
 function validatePathRouter(gitInfo) {
   const routerPath = join(ROOT, "docs", "agents", "path-router.json");
-  if (!existsSync(routerPath)) {
+  let router;
+  try {
+    router = JSON.parse(readFileSync(routerPath, "utf8"));
+  } catch {
     console.log(dim("  path-router.json not found — skipping validation"));
     return { warnings: 0, errors: 0 };
   }
-
-  const router = JSON.parse(readFileSync(routerPath, "utf8"));
   let warnings = 0;
   let errors = 0;
 
