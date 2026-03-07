@@ -777,10 +777,11 @@ function DrawerSourceHeading({
   label?: string;
   fallbackTitle: string;
 }) {
+  const t = useTranslation();
+
   if (citationGroups.length === 0) {
     return <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{fallbackTitle}</h2>;
   }
-
   const firstGroup = citationGroups[0];
   // Use the exact same label as CitationDrawerTrigger — generateDefaultLabel handles
   // truncation and "+N" overflow in one place, ensuring heading and trigger always match.
