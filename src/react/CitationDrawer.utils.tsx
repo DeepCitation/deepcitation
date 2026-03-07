@@ -4,7 +4,8 @@ import { isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
 import { isPartialSearchStatus } from "./citationStatus.js";
-import { defaultMessages, defaultTranslator, type MessageKey, type TranslateFunction } from "./i18n.js";
+import type { MessageKey, TranslateFunction } from "./i18n.js";
+import { defaultMessages, defaultTranslator } from "./i18n.js";
 // Import icon components for JSX rendering in getStatusInfo
 import {
   CheckIcon as CheckIconComponent,
