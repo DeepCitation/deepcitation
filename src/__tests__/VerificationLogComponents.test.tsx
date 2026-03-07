@@ -334,7 +334,7 @@ describe("VerificationLogTimeline attempts table", () => {
       />,
     );
 
-    const unexpectedLocation = getByText(/^p[.\s\u202f]+7\s*[·\u00b7]\s*l[.\s\u202f]+22$/);
+    const unexpectedLocation = getByText(/^p[.\s\u202f]+7\s*\u00b7\s*l[.\s\u202f]+22$/);
     expect(unexpectedLocation.className).toContain("font-semibold");
   });
 });
