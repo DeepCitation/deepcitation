@@ -1783,6 +1783,22 @@ export function InlineExpandedImage({
           wrapper.style.willChange = "transform";
           wrapper.style.transformOrigin = "0 0";
         }
+        // Capture anchor BEFORE any transform is applied. getBoundingClientRect()
+        // here reflects true layout position (no transform yet), so wrapperOffsetLeft/Top
+        // are correct. Capturing once and keeping fixed prevents the feedback loop
+        // where each frame re-reads a rect already shifted by the previous transform.
+        const rect = el.getBoundingClientRect();
+        const mid = getTouchMidpoint(e.touches);
+        const wrapperRect = wrapper ? wrapper.getBoundingClientRect() : rect;
+        touchGestureAnchorRef.current = {
+          mx: mid.x - rect.left,
+          my: mid.y - rect.top,
+          sx: el.scrollLeft,
+          sy: el.scrollTop,
+          startZoom: initialZoom,
+          wrapperOffsetLeft: wrapperRect.left - rect.left + el.scrollLeft,
+          wrapperOffsetTop: wrapperRect.top - rect.top + el.scrollTop,
+        };
       }
     };
 
@@ -1791,32 +1807,16 @@ export function InlineExpandedImage({
       e.preventDefault(); // prevent native scroll while pinching
 
       const wrapper = imageWrapperRef.current;
-      if (!wrapper) return;
+      if (!wrapper || !touchGestureAnchorRef.current) return;
 
       const currentDistance = getTouchDistance(e.touches);
       const scale = currentDistance / initialDistance;
       // Raw clamp (no rounding) for continuous GPU scaling during gesture
       const newZoom = clampZoomRaw(initialZoom * scale);
 
-      // Update gesture state
       touchGestureZoomRef.current = newZoom;
 
-      // Update anchor to current midpoint + scroll (follows fingers)
-      const mid = getTouchMidpoint(e.touches);
-      const rect = el.getBoundingClientRect();
-      const wrapperEl = imageWrapperRef.current;
-      const wrapperRect = wrapperEl ? wrapperEl.getBoundingClientRect() : rect;
-      touchGestureAnchorRef.current = {
-        mx: mid.x - rect.left,
-        my: mid.y - rect.top,
-        sx: el.scrollLeft,
-        sy: el.scrollTop,
-        startZoom: initialZoom,
-        wrapperOffsetLeft: wrapperRect.left - rect.left + el.scrollLeft,
-        wrapperOffsetTop: wrapperRect.top - rect.top + el.scrollTop,
-      };
-
-      // Apply transform directly to DOM — zero React renders during gesture
+      // Use the anchor captured at gesture start — fixed origin, no drift
       applyGestureTransform(wrapper, newZoom, zoomRef.current, touchGestureAnchorRef.current);
     };
 
