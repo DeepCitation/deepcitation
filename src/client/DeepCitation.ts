@@ -604,6 +604,8 @@ export class DeepCitation {
    * @deprecated Use `prepareAttachments()` (plural) instead. This method will be removed in a future major release.
    *
    * Backward-compatible alias that accepts a single file input and delegates to `prepareAttachments`.
+   * The return type is `PrepareAttachmentsResult` (plural) — use `result.attachments[0]` to access
+   * the single prepared attachment.
    */
   async prepareAttachment(file: FileInput): Promise<PrepareAttachmentsResult> {
     return this.prepareAttachments([file]);

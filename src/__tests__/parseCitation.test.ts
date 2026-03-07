@@ -2939,6 +2939,12 @@ describe("normalizeCitationType", () => {
     const result = normalizeCitationType(raw);
     expect(result.type).toBe("document");
   });
+
+  it("coerces to UrlCitation when url field is present even if type is 'document'", () => {
+    const raw = { type: "document", url: "https://example.com", fullPhrase: "test" };
+    const result = normalizeCitationType(raw);
+    expect(result.type).toBe("url");
+  });
 });
 
 // =============================================================================
