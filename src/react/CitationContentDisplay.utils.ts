@@ -8,8 +8,8 @@
  */
 
 import { isUrlCitation } from "../types/citation.js";
-import { defaultMessages } from "./i18n.js";
 import { safeReplace } from "../utils/regexSafety.js";
+import { defaultMessages } from "./i18n.js";
 import type { BaseCitationProps, CitationContent, CitationVariant } from "./types.js";
 import { cn } from "./utils.js";
 
@@ -92,10 +92,7 @@ export function getDisplayText(
     // Source content: show siteName or domain (URL citations only)
     if (isUrlCitation(citation)) {
       return (
-        citation.siteName ||
-        citation.domain ||
-        citation.anchorText?.toString() ||
-        defaultMessages["drawer.source"]
+        citation.siteName || citation.domain || citation.anchorText?.toString() || defaultMessages["drawer.source"]
       );
     }
     return citation.anchorText?.toString() || defaultMessages["drawer.source"];

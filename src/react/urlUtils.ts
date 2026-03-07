@@ -6,8 +6,8 @@
  */
 
 import { isApprovedDomain } from "../utils/urlSafety.js";
-import type { UrlFetchStatus } from "./types.js";
 import { defaultMessages } from "./i18n.js";
+import type { UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus, isVerifiedStatus } from "./urlStatus.js";
 
 /**

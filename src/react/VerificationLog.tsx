@@ -369,11 +369,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
   // Need either a page number to display or an action to perform
   if (!hasPage && !onClick && !onClose) return null;
 
-  const label = isImage
-    ? t("location.image")
-    : hasPage
-      ? t("location.page", { pageNumber })
-      : t("location.pageLabel");
+  const label = isImage ? t("location.image") : hasPage ? t("location.page", { pageNumber }) : t("location.pageLabel");
   const colorClasses = PAGE_PILL_COLORS[colorScheme];
 
   // Active/expanded state: entire pill is a button to close, shows X instead of chevron
@@ -775,9 +771,7 @@ function PageBadge({ expectedPage, foundPage, isImage }: PageBadgeProps) {
   if (locationDiffers) {
     return (
       <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-        <span className="text-gray-400 dark:text-gray-500">
-          {t("location.page", { pageNumber: expectedPage })}
-        </span>
+        <span className="text-gray-400 dark:text-gray-500">{t("location.page", { pageNumber: expectedPage })}</span>
         <span className="text-gray-400 dark:text-gray-500">→</span>
         <span className="text-gray-700 dark:text-gray-300">{foundPage}</span>
       </span>
@@ -788,9 +782,7 @@ function PageBadge({ expectedPage, foundPage, isImage }: PageBadgeProps) {
   const pageToShow = hasFound ? foundPage : expectedPage;
   if (pageToShow != null && pageToShow > 0) {
     return (
-      <span className="text-xs text-gray-500 dark:text-gray-400">
-        {t("location.page", { pageNumber: pageToShow })}
-      </span>
+      <span className="text-xs text-gray-500 dark:text-gray-400">{t("location.page", { pageNumber: pageToShow })}</span>
     );
   }
 

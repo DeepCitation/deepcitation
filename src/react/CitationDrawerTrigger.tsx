@@ -550,9 +550,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
 
         {/* Aggregate TtC — shows average user review time when metrics are available */}
         {timingMetrics && timingMetrics.resolvedCount > 0 && (
-          <span style={TTC_TEXT_STYLE}>
-            {t("drawer.avgReviewTime", { time: formatTtc(timingMetrics.avgTtcMs) })}
-          </span>
+          <span style={TTC_TEXT_STYLE}>{t("drawer.avgReviewTime", { time: formatTtc(timingMetrics.avgTtcMs) })}</span>
         )}
 
         {/* Chevron */}
