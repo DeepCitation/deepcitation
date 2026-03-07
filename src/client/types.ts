@@ -111,13 +111,6 @@ export interface UploadFileResponse {
   attachmentId: string;
   /** The full text content formatted for LLM prompts with page markers and line IDs. Use this in your user prompts. */
   deepTextPromptPortion: string;
-  /** Form fields extracted from PDF forms */
-  formFields?: Array<{
-    name: string;
-    value?: string;
-    pageIndex?: number;
-    type?: string;
-  }>;
   /** Metadata about the processed file */
   metadata: {
     filename: string;

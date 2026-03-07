@@ -125,6 +125,7 @@ export {
 export type { DeepTextItem, ScreenBox } from "./types/boxes.js";
 // Types
 export type {
+  AudioVideoCitation,
   Citation,
   // Record types (object dictionaries, NOT arrays)
   CitationRecord,
@@ -139,7 +140,12 @@ export type {
   VerifyCitationRequest,
   VerifyCitationResponse,
 } from "./types/citation.js";
-export { DEFAULT_OUTPUT_IMAGE_FORMAT, isDocumentCitation, isUrlCitation } from "./types/citation.js";
+export {
+  DEFAULT_OUTPUT_IMAGE_FORMAT,
+  isAudioVideoCitation,
+  isDocumentCitation,
+  isUrlCitation,
+} from "./types/citation.js";
 export type {
   SearchAttempt,
   SearchMethod,

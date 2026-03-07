@@ -233,6 +233,14 @@ export interface Verification {
    *  Computed client-side: (evidence ready timestamp) − (citation first rendered timestamp). */
   timeToCertaintyMs?: number;
 
+  // ========== Standalone attachment assets ==========
+  /** Page renders for full-page viewer (mirrors UploadFileResponse.pageImages). */
+  pageImages?: PageImage[];
+  /** Original file download. Present when the verification attachment was a file upload. */
+  originalDownload?: FileDownload;
+  /** Converted artifact download (PDF rendition, transcript, …). Present for URL/Office inputs. */
+  convertedDownload?: FileDownload;
+
   // ========== Ambiguity Detection ==========
   /** Ambiguity information when multiple occurrences of the text exist */
   ambiguity?: {

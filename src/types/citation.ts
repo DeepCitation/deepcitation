@@ -66,7 +66,10 @@ export interface VerifyCitationResponse {
 }
 
 export interface VerifyCitationRequest {
-  attachmentId: string;
+  /** Attachment ID from prepareAttachments. Required unless sha256 is provided. */
+  attachmentId?: string;
+  /** SHA256 hash of the original file. Can be used to look up the attachment instead of attachmentId. */
+  sha256?: string;
   citations: CitationRecord;
   outputImageFormat?: ImageFormat;
   apiKey?: string;
@@ -79,7 +82,7 @@ export interface VerifyCitationRequest {
  * - `"document"`: PDF or uploaded document citation (uses attachmentId, pageNumber, lineIds)
  * - `"url"`: URL/web citation (uses url, domain, title, etc.)
  */
-export type CitationType = "document" | "url";
+export type CitationType = "document" | "url" | "audio" | "video";
 
 /**
  * Source/platform type for categorization and display.
@@ -104,6 +107,18 @@ export type SourceType =
  * Only contains fields that are semantically valid for both document and URL citations.
  */
 interface CitationBase {
+  /** Attachment ID for document or URL citations */
+  attachmentId?: string;
+
+  /** Page number in the document or URL citation */
+  pageNumber?: number;
+
+  /** Line IDs within the page or URL citation */
+  lineIds?: number[];
+
+  /** Start page ID for multi-page document or URL citations */
+  startPageId?: string;
+
   /** The full context/excerpt containing the cited information */
   fullPhrase?: string;
 
@@ -115,12 +130,6 @@ interface CitationBase {
 
   /** Reasoning for why this citation was included */
   reasoning?: string;
-
-  /** Timestamps for audio/video citations */
-  timestamps?: {
-    startTime?: string;
-    endTime?: string;
-  };
 }
 
 /**
@@ -143,18 +152,20 @@ interface CitationBase {
 export interface DocumentCitation extends CitationBase {
   /** Citation type discriminator. Required. */
   type: "document";
+}
 
-  /** Attachment ID for document citations */
-  attachmentId?: string;
-
-  /** Page number in the document */
-  pageNumber?: number;
-
-  /** Line IDs within the page */
-  lineIds?: number[];
-
-  /** Start page ID for multi-page citations */
-  startPageId?: string;
+/**
+ * Audio/video citation — audio/video file.
+ * Uses attachmentId, timestamps for verification.
+ */
+export interface AudioVideoCitation extends CitationBase {
+  /** Citation type discriminator. Required. */
+  type: "audio" | "video";
+  /** Timestamps for audio/video citations. */
+  timestamps?: {
+    startTime?: string;
+    endTime?: string;
+  };
 }
 
 /**
@@ -219,12 +230,13 @@ export interface UrlCitation extends CitationBase {
  * Discriminated union for citations.
  *
  * Narrow with `citation.type === "url"` to get `UrlCitation`,
- * or `citation.type === "document"` to get `DocumentCitation`.
+ * `citation.type === "document"` to get `DocumentCitation`,
+ * or `citation.type === "audio" | "video"` to get `AudioVideoCitation`.
  *
  * Common fields (`fullPhrase`, `anchorText`, etc.) are accessible without narrowing.
  * Document-specific fields (`pageNumber`, `lineIds`, etc.) require narrowing first.
  */
-export type Citation = DocumentCitation | UrlCitation;
+export type Citation = DocumentCitation | UrlCitation | AudioVideoCitation;
 
 /**
  * Type guard to check if a citation is a URL citation.
@@ -240,6 +252,14 @@ export function isUrlCitation(citation: Citation): citation is UrlCitation {
  */
 export function isDocumentCitation(citation: Citation): citation is DocumentCitation {
   return citation.type === "document";
+}
+
+/**
+ * Type guard to check if a citation is an audio or video citation.
+ * Narrows the Citation union to AudioVideoCitation when true.
+ */
+export function isAudioVideoCitation(citation: Citation): citation is AudioVideoCitation {
+  return citation.type === "audio" || citation.type === "video";
 }
 
 export interface CitationStatus {
