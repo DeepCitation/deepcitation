@@ -1,6 +1,6 @@
 import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
 import type { Citation } from "../types/citation.js";
-import { isUrlCitation } from "../types/citation.js";
+import { isAudioVideoCitation, isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { sha1Hash } from "../utils/sha.js";
 
@@ -28,6 +28,13 @@ export function generateCitationKey(citation: Citation): string {
   if (isUrlCitation(citation)) {
     // URL-specific key parts
     keyParts.push(citation.url || "", citation.title || "", citation.domain || "");
+  } else if (isAudioVideoCitation(citation)) {
+    // AV-specific key parts: timestamps distinguish clips from the same file
+    keyParts.push(
+      citation.attachmentId || "",
+      citation.timestamps?.startTime || "",
+      citation.timestamps?.endTime || "",
+    );
   } else {
     // Document-specific key parts
     const pageNumber = citation.pageNumber || getCitationPageNumber(citation.startPageId);
