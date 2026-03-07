@@ -755,7 +755,7 @@ describe("SourceContextHeader", () => {
   });
 
   describe("Image download button", () => {
-    it("renders image download button when verification image exists", () => {
+    it("does not render download button when only verification image exists (no downloadUrl)", () => {
       const citation: Citation = {
         type: "document",
         attachmentId: "abc123",
@@ -768,8 +768,10 @@ describe("SourceContextHeader", () => {
         },
       };
 
-      const { getByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
-      expect(getByRole("button", { name: /download image/i })).toBeInTheDocument();
+      const { queryByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
+      // Image-download button was removed in refactor (downloadUrl prop replaced onSourceDownload callback).
+      // Only the source download button remains, and it only appears when downloadUrl is provided.
+      expect(queryByRole("button", { name: /download/i })).toBeNull();
     });
 
     it("renders only one download button for URL citations when converted PDF and image are both present", () => {
@@ -812,37 +814,6 @@ describe("SourceContextHeader", () => {
       expect(queryByRole("button", { name: /download image/i })).toBeNull();
     });
 
-    it("stops propagation when image download button is clicked", () => {
-      const citation: Citation = {
-        type: "document",
-        attachmentId: "abc123",
-        pageNumber: 1,
-        fullPhrase: "Test phrase",
-      };
-      const verification: Verification = {
-        evidence: {
-          src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mPk5OT8DwAC2gF6qAj3rwAAAABJRU5ErkJggg==",
-        },
-      };
-      const parentClick = jest.fn();
-
-      const { getByRole } = render(
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={parentClick}
-          onKeyDown={e => {
-            if (e.key === "Enter" || e.key === " ") parentClick();
-          }}
-        >
-          <SourceContextHeader citation={citation} verification={verification} />
-        </div>,
-      );
-      fireEvent.click(getByRole("button", { name: /download image/i }));
-
-      expect(parentClick).not.toHaveBeenCalled();
-    });
-
     it("prefers source download when downloadUrl is available", () => {
       const citation: Citation = {
         type: "url",
@@ -870,36 +841,6 @@ describe("SourceContextHeader", () => {
       expect(queryByRole("button", { name: /download image/i })).toBeNull();
     });
 
-    it("starts image download without navigating the current view", () => {
-      const citation: Citation = {
-        type: "document",
-        attachmentId: "abc123",
-        pageNumber: 1,
-        fullPhrase: "Test phrase",
-      };
-      const verification: Verification = {
-        evidence: {
-          src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mPk5OT8DwAC2gF6qAj3rwAAAABJRU5ErkJggg==",
-        },
-      };
-
-      const appendChildSpy = jest.spyOn(document.body, "appendChild");
-      const { getByRole } = render(<SourceContextHeader citation={citation} verification={verification} />);
-      fireEvent.click(getByRole("button", { name: /download image/i }));
-
-      const appendedBackgroundFrame = appendChildSpy.mock.calls
-        .map(([node]) => node)
-        .find(
-          node => node instanceof HTMLIFrameElement && node.getAttribute("data-deepcitation-download-frame") === "true",
-        );
-      const appendedFallbackAnchor = appendChildSpy.mock.calls
-        .map(([node]) => node)
-        .find(node => node instanceof HTMLAnchorElement && node.getAttribute("target") === "_blank");
-
-      expect(appendedBackgroundFrame ?? appendedFallbackAnchor).toBeTruthy();
-      appendChildSpy.mockRestore();
-      document.querySelector("iframe[data-deepcitation-download-frame='true']")?.remove();
-    });
   });
 });
 
