@@ -38,7 +38,7 @@ if (!dcApiKey) {
   console.error(
     "\n⚠️  DEEPCITATION_API_KEY is not set!\n" +
       "   1. Copy .env.example to .env\n" +
-      "   2. Get your API key from https://deepcitation.com/dashboard\n" +
+      "   2. Get your API key from https://deepcitation.com/keys\n" +
       "   3. Add it to .env: DEEPCITATION_API_KEY=sk-dc-your-key\n",
   );
 }

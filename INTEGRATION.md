@@ -51,6 +51,82 @@ These rules apply to **every step**. Violating any of them is a bug.
 
 ---
 
+## Quick Reference: Common Use Cases
+
+Pick your use case, copy the recipe.
+
+### Recipe 1 — Strip citations, show clean text
+
+**"I just want to display the LLM response without any citation noise"**
+
+```typescript
+import { stripCitations } from "deepcitation";
+
+// Auto-detects format (deferred [N] markers or XML <cite> tags) and strips everything
+const cleanText = stripCitations(llmResponse);
+```
+
+### Recipe 2 — Keep [N] numbers, add references section
+
+**"I want [1], [2] markers in text and a references section at the bottom"**
+
+```typescript
+import { extractVisibleText, renderCitationsAsMarkdown } from "deepcitation";
+
+// Deferred format: text already has [N] markers after stripping the data block
+const text = extractVisibleText(llmResponse);
+
+// XML format: convert to markdown with bracket-style references
+const { markdown, references } = renderCitationsAsMarkdown(llmResponse, { variant: "brackets" });
+```
+
+### Recipe 3 — Render React `<CitationComponent>` inline
+
+**"I want interactive citation chips/popovers inline in my React UI"**
+
+See [Section 3.2](#32-post-stream-full-response) for the full pattern. Summary:
+
+```tsx
+import { CitationComponent } from "deepcitation/react";
+import { parseCitation, getCitationKey } from "deepcitation";
+
+// Split on <cite> tags, parse each, render CitationComponent
+const parts = text.split(/(<cite\s+[^>]*\/>)/g);
+const rendered = parts.map((part, i) =>
+  part.startsWith("<cite")
+    ? <CitationComponent key={i} citation={citations[getCitationKey(parseCitation(part).citation)]} verification={verifications[getCitationKey(parseCitation(part).citation)] ?? null} />
+    : <span key={i}>{part}</span>
+);
+```
+
+### Recipe 4 — Verify and show status indicators
+
+**"I want checkmarks/X marks next to citations after verification"**
+
+```typescript
+// Deferred [N] format:
+import { extractVisibleText, parseDeferredCitationResponse, replaceDeferredMarkers } from "deepcitation";
+
+const { visibleText, citationMap } = parseDeferredCitationResponse(llmResponse);
+const display = replaceDeferredMarkers(visibleText, {
+  citationMap,
+  verifications,
+  showVerificationStatus: true,
+});
+// Result: "Revenue grew 45% [1☑️] in Q4 [2✅]."
+
+// XML <cite> format:
+import { replaceCitations } from "deepcitation";
+
+const display = replaceCitations(llmOutput, {
+  leaveAnchorTextBehind: true,
+  verifications,
+  showVerificationStatus: true,
+});
+```
+
+---
+
 ## Quick Start
 
 A complete, minimal example. Copy this to get started.
@@ -604,7 +680,7 @@ const llmOutput = result.response.text();
 ### API key errors
 
 - Verify `DEEPCITATION_API_KEY` is set in `.env` (keys start with `sk-dc-`)
-- Get a new key at [deepcitation.com/dashboard](https://deepcitation.com/dashboard)
+- Get a new key at [deepcitation.com/keys](https://deepcitation.com/keys)
 - Never hardcode API keys in source code
 
 ### Verification returns "not found"
@@ -631,7 +707,7 @@ See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) for complete upload, c
 - https://deepcitation.com — Homepage
 - https://deepcitation.com/signup — Get API key (free)
 - https://deepcitation.com/playground — Interactive playground
-- https://deepcitation.com/dashboard — Manage API keys
+- https://deepcitation.com/keys — Manage API keys
 - https://docs.deepcitation.com/ — Full documentation
 - https://docs.deepcitation.com/api — API reference
 - https://docs.deepcitation.com/components — React components guide

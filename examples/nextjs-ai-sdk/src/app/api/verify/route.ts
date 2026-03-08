@@ -5,7 +5,7 @@ import { type NextRequest, NextResponse } from "next/server";
 const apiKey = process.env.DEEPCITATION_API_KEY;
 if (!apiKey) {
   console.error(
-    "\n⚠️  DEEPCITATION_API_KEY is not set!\n" + "   Get your API key from https://deepcitation.com/dashboard\n",
+    "\n⚠️  DEEPCITATION_API_KEY is not set!\n" + "   Get your API key from https://deepcitation.com/keys\n",
   );
 }
 
