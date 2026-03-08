@@ -24,7 +24,7 @@ import type { AudioVideoCitation, Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
-import { getVerificationTextIndicator } from "./normalizeCitation.js";
+import { getVerificationTextIndicator, replaceCitations } from "./normalizeCitation.js";
 
 /**
  * Map of compact keys to their full CitationData equivalents.
@@ -620,4 +620,34 @@ export function getCitationMarkerIds(text: string): number[] {
   }
 
   return ids;
+}
+
+/**
+ * Strips all citation artifacts from LLM output, returning clean readable text.
+ * Auto-detects the citation format:
+ * - Deferred format (`[N]` markers + `<<<CITATION_DATA>>>` block): strips both
+ * - XML format (`<cite ... />`): strips cite tags
+ *
+ * @param llmResponse - The raw LLM response containing citations
+ * @returns Clean text with all citation artifacts removed
+ *
+ * @example
+ * ```typescript
+ * // Works with either citation format — no need to detect manually
+ * const cleanText = stripCitations(llmResponse);
+ * ```
+ */
+export function stripCitations(llmResponse: string): string {
+  if (!llmResponse || typeof llmResponse !== "string") {
+    return "";
+  }
+
+  if (hasDeferredCitations(llmResponse)) {
+    // Deferred format: strip <<<CITATION_DATA>>> block, then remove [N] markers
+    const visibleText = extractVisibleText(llmResponse);
+    return replaceDeferredMarkers(visibleText);
+  }
+
+  // XML format: strip <cite ... /> tags
+  return replaceCitations(llmResponse);
 }
