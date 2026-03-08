@@ -68,6 +68,7 @@ export {
 
 // Citation parsing — core API + display helpers
 export {
+  deferredCitationToCitation,
   extractVisibleText,
   getCitationMarkerIds,
   hasDeferredCitations,
@@ -92,6 +93,8 @@ export {
   normalizeCitationType,
   parseCitation,
 } from "./parsing/parseCitation.js";
+export type { ParsedCitationResult } from "./parsing/parseCitationResponse.js";
+export { parseCitationResponse } from "./parsing/parseCitationResponse.js";
 export {
   cleanRepeatingLastSentence,
   isGeminiGarbage,

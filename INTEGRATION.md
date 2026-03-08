@@ -84,20 +84,32 @@ const { markdown, references } = renderCitationsAsMarkdown(llmResponse, { varian
 
 **"I want interactive citation chips/popovers inline in my React UI"**
 
-See [Section 3.2](#32-post-stream-full-response) for the full pattern. Summary:
+Use `parseCitationResponse()` — it auto-detects the citation format (deferred `[N]` or XML `<cite>`) and returns everything needed for rendering:
 
 ```tsx
 import { CitationComponent } from "deepcitation/react";
-import { parseCitation, getCitationKey } from "deepcitation";
+import { parseCitationResponse, parseCitation, getCitationKey } from "deepcitation";
 
-// Split on <cite> tags, parse each, render CitationComponent
-const parts = text.split(/(<cite\s+[^>]*\/>)/g);
-const rendered = parts.map((part, i) =>
-  part.startsWith("<cite")
-    ? <CitationComponent key={i} citation={citations[getCitationKey(parseCitation(part).citation)]} verification={verifications[getCitationKey(parseCitation(part).citation)] ?? null} />
-    : <span key={i}>{part}</span>
-);
+const result = parseCitationResponse(llmOutput);
+const segments = result.visibleText.split(result.splitPattern);
+
+const rendered = segments.map((seg, i) => {
+  if (result.format === "deferred") {
+    const match = seg.match(/^\[(\d+)\]$/);
+    if (match) {
+      const key = result.markerMap[Number(match[1])];
+      return <CitationComponent key={i} citation={result.citations[key]} verification={verifications[key] ?? null} />;
+    }
+  } else if (result.format === "xml" && seg.startsWith("<cite")) {
+    const { citation } = parseCitation(seg);
+    const key = getCitationKey(citation);
+    return <CitationComponent key={i} citation={result.citations[key] ?? citation} verification={verifications[key] ?? null} />;
+  }
+  return <span key={i}>{seg}</span>;
+});
 ```
+
+See [Section 3.2](#32-post-stream-full-response) for the full post-stream pattern.
 
 ### Recipe 4 — Verify and show status indicators
 
