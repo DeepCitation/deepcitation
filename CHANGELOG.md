@@ -7,11 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-08
+
 ### Added
 
-- `onSourceDownload` callback prop on `CitationComponent` — renders a download button in the popover header for both URL and Document citations.
-- `DownloadIcon` SVG component exported from `deepcitation/react`.
-- `footnote` display variant — a clean numeric footnote marker with neutral gray default and status-aware coloring after verification.
+- **i18n infrastructure** — Zero-dependency internationalization for all React components (#321, #322, #324, #325):
+  - `DeepCitationI18nProvider` — React context provider for custom translation strings
+  - `useTranslation()` — hook returning a `t(key, values?)` interpolation function
+  - `useLocale()` — hook and `locale` prop on `DeepCitationI18nProvider` for controlling `Intl` date/number formatting
+  - `createTranslator()` — factory for non-React contexts (SSR, tests)
+  - `tPlural()` — `_one` / `_other` plural selector helper
+  - Built-in locale packs: English (`en`), Spanish (`es`), French (`fr`), Vietnamese (`vi`)
+- **`footnote` display variant** — numeric footnote marker with neutral gray default and status-aware coloring after verification
+- **`onSourceDownload` callback prop** on `CitationComponent` — renders a download button in the popover header for both URL and Document citations
+- **`DownloadIcon`** SVG component exported from `deepcitation/react`
+- **`getAllCitationsFromDeferredResponse`** and **`parseDeferredCitationResponse`** now exported from the `deepcitation` root entry point
+- **`getCitationKey`** and **`getVerificationKey`** utilities exported from the `deepcitation` root (moved from `deepcitation/react`)
+- **`resolveFieldName`**, **`resolveFieldNameSnake`**, **`resolveField`**, **`getFieldAliases`**, **`normalizeCitationFields`** — new field alias utilities exported from root (#326)
+- AudioVideo citation type support with timestamp fields (#323)
+- Trusted image host allowlist for citation images (#323)
+- Framework integration guides for LangChain, Next.js, and Vercel AI SDK
+
+### Changed
+
+- **Peer dependencies** widened to `react >= 18.0.0` and `react-dom >= 18.0.0` (previously required React 19)
+- **Verification assets API** — field names updated to match the new assets model (#322):
+  - `verification.evidence.src` (was `verification.document.verificationImageSrc`)
+  - `verification.evidence.dimensions` (was `verification.document.verificationImageDimensions`)
+  - Page renders now accessed via `assets.pageRenders[]` instead of `verification.pages[]`
+- **Field alias resolution** centralized into a single `fieldAliases` module — both XML normalization and JSON parsing now delegate to a shared alias map instead of maintaining separate inline lists (#326)
+- **`EvidenceTray`** refactored from cascading `setState` to `useReducer` for search-log animation state; `ZoomHint` component removed (#325)
+- **Popover stability** — `triggerRef.current` is now snapshotted at effect setup time to prevent null flashes during React 18 ref callback recreation (#324)
+- **`CitationDrawer`** replaced `useLayoutEffect` with derived state for keyhole visibility (#325)
+- React Compiler esbuild plugin removed from `tsup.config.ts`; components are compatible without it
+
+### Deprecated
+
+- `prepareAttachment()` is deprecated in favor of `prepareAttachments()`. The old method remains as a compatibility alias and will be removed in the next major release.
 
 ### Breaking Changes
 
@@ -27,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed: `ProofHosting` — no replacement
 - Removed: `IVertex` — no replacement
 
-#### Proof URL builders removed from `"deepcitation"` root
+#### Proof URL builders moved
 - Before: `import { buildProofUrl, buildProofUrls, buildSnippetImageUrl, ProofUrlOptions } from "deepcitation"`
 - After: `import { buildProofUrl, buildProofUrls, buildSnippetImageUrl, ProofUrlOptions } from "deepcitation/rendering/proofUrl"`
 
@@ -36,10 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Before: `verification.document.verificationImageDimensions` — After: `verification.evidence.dimensions`
 - Before: `VerificationPage.source` — After: `PageImage.imageUrl`
 - Removed: `verification.pages[]` — Page images are now passed separately via the `pageImagesByAttachmentId` prop on `CitationComponent` and `CitationDrawer`
-
-### Deprecated
-
-- `prepareAttachment()` is deprecated in favor of `prepareAttachments()`. The old method remains as a compatibility alias and will be removed in the next major release.
 
 ## [0.1.0] - 2026-02-25
 
@@ -379,7 +407,9 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/deepcitation/deepcitation/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/deepcitation/deepcitation/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/deepcitation/deepcitation/compare/v1.1.53...v0.1.0
 [1.1.53]: https://github.com/deepcitation/deepcitation/compare/v1.1.52...v1.1.53
 [1.1.52]: https://github.com/deepcitation/deepcitation/compare/v1.1.51...v1.1.52
