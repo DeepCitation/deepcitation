@@ -139,19 +139,26 @@ describe("EvidenceTray interaction styles", () => {
       <EvidenceTray verification={missVerification} status={missStatus} onExpand={onExpand} />,
     );
 
-    fireEvent.click(getByRole("button", { name: /1 attempt/i }));
+    // Open search log and let React flush effects.
+    await act(async () => {
+      fireEvent.click(getByRole("button", { name: /1 attempt/i }));
+    });
     const attemptRowText = getByText("alpha");
-    fireEvent.click(attemptRowText);
 
+    // Click the attempt row — should collapse, not expand the page.
+    await act(async () => {
+      fireEvent.click(attemptRowText);
+    });
     expect(onExpand).not.toHaveBeenCalled();
-    // The search log collapse involves rAF + setTimeout(80ms) animation stages.
-    // In slow CI runners, the default 1000ms waitFor timeout can be tight.
-    await waitFor(
-      () => {
-        expect(queryByText("alpha")).not.toBeInTheDocument();
-      },
-      { timeout: 3000 },
-    );
+
+    // Wait past the 80ms EVIDENCE_LIST_COLLAPSE_TOTAL_MS animation using a
+    // real timer wrapped in act() so React flushes the unmount state update.
+    // This is more reliable than waitFor in bun's test runner (where MutationObserver
+    // polling can hang until bun's 5 s test timeout fires).
+    await act(async () => {
+      await new Promise<void>(resolve => setTimeout(resolve, 200));
+    });
+    expect(queryByText("alpha")).not.toBeInTheDocument();
   });
 
   it("sets escapeInterceptRef to a collapse function when search log is open", () => {
