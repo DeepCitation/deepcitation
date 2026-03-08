@@ -14,11 +14,10 @@
 import "dotenv/config";
 import {
   DeepCitation,
-  type Verification,
   extractVisibleText,
   getAllCitationsFromLlmOutput,
-  getCitationKey,
   getCitationStatus,
+  getVerificationTextIndicator,
   replaceDeferredMarkers,
   wrapCitationPrompt,
 } from "deepcitation";
@@ -258,16 +257,6 @@ provided documents accurately and cite your sources.`;
 
   console.log("✨ Step 5: Verification Results\n");
 
-  // ✅ green square check for full match, purple ✔ for partial, ❌ for miss, ◌ for unknown
-  const statusIndicatorFor = (v: Verification | undefined): string => {
-    if (!v) return "◌";
-    const s = getCitationStatus(v);
-    if (s.isMiss) return "❌";
-    if (s.isVerified && !s.isPartialMatch) return "✅";
-    if (s.isPartialMatch) return "\x1b[35m✔\x1b[0m";
-    return "◌";
-  };
-
   const verifications = Object.entries(verificationResult.verifications);
 
   if (verifications.length === 0) {
@@ -276,7 +265,7 @@ provided documents accurately and cite your sources.`;
     console.log(`Found ${verifications.length} citation(s):\n`);
 
     for (const [key, verification] of verifications) {
-      const statusIndicator = statusIndicatorFor(verification);
+      const statusIndicator = getVerificationTextIndicator(verification);
 
       console.log(wideSeparator);
       console.log(`Citation [${key}]: ${statusIndicator} ${verification.status} | Page: ${verification.document?.verifiedPageNumber ?? "N/A"}`);
@@ -307,26 +296,12 @@ provided documents accurately and cite your sources.`;
   }
 
   // Clean response — replace [N] markers with [N + indicator]
-  // Build citationNumber → verification lookup.
-  // parsedCitations keys are hashes; verifications use the same hashes.
-  // We map citation.citationNumber (the [N] marker) to its verification.
-  const numToVerification = new Map<number, Verification>();
-  for (const [, verification] of Object.entries(verificationResult.verifications)) {
-    const c = verification.citation;
-    if (!c) continue;
-    if (c.citationNumber != null && c.citationNumber > 0) {
-      numToVerification.set(c.citationNumber, verification);
-    } else {
-      const idx = Object.keys(parsedCitations).indexOf(getCitationKey(c));
-      if (idx >= 0) numToVerification.set(idx + 1, verification);
-    }
-  }
-
   console.log("📖 Clean Response (for display, with verification status):");
   console.log(separator);
   console.log(
     replaceDeferredMarkers(visibleText, {
-      replacer: (id) => `[${id}${statusIndicatorFor(numToVerification.get(id))}]`,
+      verifications: verificationResult.verifications,
+      showVerificationStatus: true,
     }),
   );
   console.log(separator + "\n");
@@ -348,12 +323,15 @@ provided documents accurately and cite your sources.`;
 /**
  * Run the full 5-step DeepCitation verification workflow.
  *
- * Interactive by default — prompts the user to pick a source.
- * Set SOURCE=<index> (0-based) to skip the menu:
- *   SOURCE=0 bun run start:openai   # image
- *   SOURCE=1 bun run start:openai   # pdf
- *   SOURCE=2 bun run start:openai   # url (AI Hallucinations)
- *   SOURCE=all bun run start:openai # run all sources
+ * Source selection priority (first match wins):
+ *   1. CLI argument:   bun run start:openai 2       # url
+ *   2. CLI argument:   bun run start:openai all      # run all sources
+ *   3. Interactive:     prompts the user to pick a source
+ *
+ * Index reference:
+ *   0 = image (medical chart)
+ *   1 = pdf   (presentation)
+ *   2 = url   (arXiv HTML paper)
  */
 export async function runWorkflow(providerName: string, streamLlm: StreamLlmFn) {
   console.log(`🔍 DeepCitation Basic Example - ${providerName}\n`);
@@ -362,16 +340,19 @@ export async function runWorkflow(providerName: string, streamLlm: StreamLlmFn) 
     apiKey: process.env.DEEPCITATION_API_KEY!,
   });
 
+  // CLI arg takes precedence over env var
+  const sourceArg = process.argv[2] ?? process.env.SOURCE;
+
   let sources: Source[];
 
-  if (process.env.SOURCE === "all") {
+  if (sourceArg === "all") {
     // Run all pre-filled sources
     sources = SOURCES;
-  } else if (process.env.SOURCE != null) {
+  } else if (sourceArg != null) {
     // Run a specific source by index
-    const idx = Number(process.env.SOURCE);
+    const idx = Number(sourceArg);
     const s = SOURCES[idx];
-    if (!s) throw new Error(`Invalid SOURCE=${idx}. Valid range: 0-${SOURCES.length - 1}`);
+    if (!s) throw new Error(`Invalid source "${sourceArg}". Valid: 0-${SOURCES.length - 1} or "all"`);
     sources = [s];
   } else {
     // Interactive menu
