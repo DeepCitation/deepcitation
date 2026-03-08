@@ -1215,7 +1215,9 @@ describe("replaceDeferredMarkers with verifications", () => {
     ]);
 
     // Key is generated from the citation data
-    const citation = deferredCitationToCitation(citationMap.get(1)!, 1);
+    const rawCitation = citationMap.get(1);
+    if (!rawCitation) throw new Error("expected citationMap to have entry for key 1");
+    const citation = deferredCitationToCitation(rawCitation, 1);
     const key = getCitationKey(citation);
 
     const verifications = {
