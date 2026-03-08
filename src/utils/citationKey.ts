@@ -2,6 +2,7 @@ import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
 import type { Citation } from "../types/citation.js";
 import { isAudioVideoCitation, isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { resolveField } from "./fieldAliases.js";
 import { sha1Hash } from "./sha.js";
 
 /**
@@ -16,9 +17,9 @@ import { sha1Hash } from "./sha.js";
  * @returns A deterministic 16-char hex key
  */
 export function getCitationKey(citation: Citation): string {
-  // LLMs sometimes emit `pageId` instead of `startPageId` — handle both
-  const fallbackPageId = (citation as unknown as Record<string, unknown>).pageId as string | undefined;
-  const pageNumber = citation.pageNumber || getCitationPageNumber(citation.startPageId || fallbackPageId);
+  // LLMs sometimes emit `pageId` instead of `startPageId` — resolve via fieldAliases
+  const resolvedStartPageId = resolveField(citation as Record<string, unknown>, "startPageId") as string | undefined;
+  const pageNumber = citation.pageNumber || getCitationPageNumber(resolvedStartPageId);
   // Common key parts
   const keyParts = [
     citation.fullPhrase || "",

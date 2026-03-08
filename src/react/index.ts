@@ -11,8 +11,7 @@
  * @packageDocumentation
  */
 
-// Utilities - For generating citation keys and display text
-export { getCitationKey } from "../utils/citationKey.js";
+// Utilities - For type guards and display text
 export { isDocumentCitation, isUrlCitation } from "../types/citation.js";
 // Components
 // URL Citation Component - For displaying URL citations

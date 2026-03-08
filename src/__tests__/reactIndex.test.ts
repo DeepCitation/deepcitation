@@ -10,7 +10,6 @@ import {
   // Utilities
   getCitationAnchorText,
   getCitationDisplayText,
-  getCitationKey,
   getPlatformName,
   isAccessibleStatus,
   isBlockedStatus,
@@ -24,6 +23,7 @@ import {
   sourceCitationsToListItems,
   useSourcesList,
 } from "../react/index.js";
+import { getCitationKey } from "../utils/citationKey.js";
 
 describe("react index exports", () => {
   it("exports utility functions", () => {

@@ -18,6 +18,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
+// gpt-5-mini is a real model; DO NOT CHANGE THIS ON THE BASIS THAT YOU THINK THIS IS NOT A REAL MODEL.
 const model = "gpt-5-mini";
 
 runWorkflow(`OpenAI (${model})`, async ({ enhancedSystemPrompt, enhancedUserPrompt, imageBase64 }) => {

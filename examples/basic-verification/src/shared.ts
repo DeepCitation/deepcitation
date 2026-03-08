@@ -14,11 +14,12 @@
 import "dotenv/config";
 import {
   DeepCitation,
+  type Verification,
   extractVisibleText,
   getAllCitationsFromLlmOutput,
+  getCitationKey,
   getCitationStatus,
-  getVerificationTextIndicator,
-  replaceCitations,
+  replaceDeferredMarkers,
   wrapCitationPrompt,
 } from "deepcitation";
 import { readFileSync } from "fs";
@@ -91,7 +92,7 @@ export async function promptSourceSelection(): Promise<Source> {
   console.log("  [4] 🔗 Custom — Enter your own URL");
   console.log();
 
-  const choice = await ask("Enter choice [1-6]: ");
+  const choice = await ask("Enter choice [1-4]: ");
 
   switch (choice) {
     case "1": return SOURCES[0];
@@ -257,6 +258,16 @@ provided documents accurately and cite your sources.`;
 
   console.log("✨ Step 5: Verification Results\n");
 
+  // ✅ green square check for full match, purple ✔ for partial, ❌ for miss, ◌ for unknown
+  const statusIndicatorFor = (v: Verification | undefined): string => {
+    if (!v) return "◌";
+    const s = getCitationStatus(v);
+    if (s.isMiss) return "❌";
+    if (s.isVerified && !s.isPartialMatch) return "✅";
+    if (s.isPartialMatch) return "\x1b[35m✔\x1b[0m";
+    return "◌";
+  };
+
   const verifications = Object.entries(verificationResult.verifications);
 
   if (verifications.length === 0) {
@@ -265,10 +276,10 @@ provided documents accurately and cite your sources.`;
     console.log(`Found ${verifications.length} citation(s):\n`);
 
     for (const [key, verification] of verifications) {
-      const statusIndicator = getVerificationTextIndicator(verification);
+      const statusIndicator = statusIndicatorFor(verification);
 
       console.log(wideSeparator);
-      console.log(`Citation [${key}]: ${statusIndicator} ${verification.status}`);
+      console.log(`Citation [${key}]: ${statusIndicator} ${verification.status} | Page: ${verification.document?.verifiedPageNumber ?? "N/A"}`);
       console.log(wideSubSeparator);
 
       const fullPhrase = (parsedCitations[key] || verification.citation)?.fullPhrase;
@@ -278,15 +289,15 @@ provided documents accurately and cite your sources.`;
         );
       } 
 
-      console.log(`  📊 Status: ${statusIndicator} ${verification.status}`);
-      console.log(`  📄 Page: ${verification.document?.verifiedPageNumber ?? "N/A"}`);
-
       if (verification.verifiedMatchSnippet) {
         console.log(
           `  🔍 Found: "${verification.verifiedMatchSnippet.slice(0, 100)}${verification.verifiedMatchSnippet.length > 100 ? "..." : ""}"`,
         );
       } else {
-        console.log(` Expected on page ${verification.citation?.pageNumber ?? "N/A"} and ${verification.citation?.lineIds?.length && `${verification.citation?.lineIds?.length > 1 ? "lines" : "line"} ${verification.citation?.lineIds?.join(",")}`}`);
+        const lineInfo = verification.citation?.lineIds?.length
+          ? ` and ${verification.citation.lineIds.length > 1 ? "lines" : "line"} ${verification.citation.lineIds.join(",")}`
+          : "";
+        console.log(`  Expected on page ${verification.citation?.pageNumber ?? "N/A"}${lineInfo}`);
       }
 
 
@@ -295,13 +306,27 @@ provided documents accurately and cite your sources.`;
     console.log(wideSeparator + "\n");
   }
 
-  // Clean response
+  // Clean response — replace [N] markers with [N + indicator]
+  // Build citationNumber → verification lookup.
+  // parsedCitations keys are hashes; verifications use the same hashes.
+  // We map citation.citationNumber (the [N] marker) to its verification.
+  const numToVerification = new Map<number, Verification>();
+  for (const [, verification] of Object.entries(verificationResult.verifications)) {
+    const c = verification.citation;
+    if (!c) continue;
+    if (c.citationNumber != null && c.citationNumber > 0) {
+      numToVerification.set(c.citationNumber, verification);
+    } else {
+      const idx = Object.keys(parsedCitations).indexOf(getCitationKey(c));
+      if (idx >= 0) numToVerification.set(idx + 1, verification);
+    }
+  }
+
   console.log("📖 Clean Response (for display, with verification status):");
   console.log(separator);
   console.log(
-    replaceCitations(visibleText, {
-      verifications: verificationResult.verifications,
-      showVerificationStatus: true,
+    replaceDeferredMarkers(visibleText, {
+      replacer: (id) => `[${id}${statusIndicatorFor(numToVerification.get(id))}]`,
     }),
   );
   console.log(separator + "\n");

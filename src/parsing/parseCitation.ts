@@ -241,9 +241,7 @@ export const parseCitation = (
 
   // Use helper to handle escaped quotes inside the phrase
   const fullPhrase = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("fullPhrase")));
-  const anchorText = cleanAndUnescape(
-    extractAttribute(middleCite, getFieldAliases("anchorText")),
-  );
+  const anchorText = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("anchorText")));
   const reasoning = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("reasoning")));
   const value = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("value")));
 

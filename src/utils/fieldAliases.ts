@@ -46,14 +46,7 @@ const FIELD_ALIAS_MAP: Record<string, readonly string[]> = {
     "start-page",
   ],
   fullPhrase: ["full_phrase", "full-phrase", "phrase", "full"],
-  anchorText: [
-    "anchor_text",
-    "anchor-text",
-    "anchor",
-    "keySpan",
-    "key_span",
-    "key-span",
-  ],
+  anchorText: ["anchor_text", "anchor-text", "anchor", "keySpan", "key_span", "key-span"],
   citationNumber: ["citation_number", "citation-number", "number"],
   reasoning: [],
   value: [],
@@ -184,9 +177,7 @@ export function getFieldAliases(canonicalName: string): string[] {
  * normalizeCitationFields({ "anchor-text": "hello", full_phrase: "world" })
  * // { anchorText: "hello", fullPhrase: "world" }
  */
-export function normalizeCitationFields(
-  obj: Record<string, unknown>,
-): Record<string, unknown> {
+export function normalizeCitationFields(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     const canonical = resolveFieldName(key);
