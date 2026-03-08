@@ -18,7 +18,6 @@ import {
   getVerificationTextIndicator,
   sanitizeForLog,
   wrapCitationPrompt,
-  type FileDataPart,
 } from "deepcitation";
 import { EventEncoder } from "@ag-ui/encoder";
 import OpenAI from "openai";
@@ -39,7 +38,7 @@ if (!dcApiKey) {
   console.error(
     "\n⚠️  DEEPCITATION_API_KEY is not set!\n" +
       "   1. Copy .env.example to .env\n" +
-      "   2. Get your API key from https://deepcitation.com/dashboard\n" +
+      "   2. Get your API key from https://deepcitation.com/keys\n" +
       "   3. Add it to .env: DEEPCITATION_API_KEY=sk-dc-your-key\n",
   );
 }
@@ -53,6 +52,11 @@ const dc = dcApiKey ? new DeepCitation({ apiKey: dcApiKey }) : null;
 const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 
 const textEncoder = new TextEncoder();
+
+interface FileDataPart {
+  attachmentId: string;
+  filename?: string;
+}
 
 export const maxDuration = 120; // LLM streaming + verification can exceed default timeout
 

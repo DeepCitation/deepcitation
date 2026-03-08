@@ -521,7 +521,7 @@ const findJsonCitationsInObject = (obj: unknown, found: Citation[], depth = 0): 
 /**
  * Extracts XML citations from text using <cite ... /> tags.
  */
-const extractXmlCitations = (text: string): CitationRecord => {
+export const extractXmlCitations = (text: string): CitationRecord => {
   const normalizedText = normalizeCitations(text);
 
   // Find all <cite ... /> tags

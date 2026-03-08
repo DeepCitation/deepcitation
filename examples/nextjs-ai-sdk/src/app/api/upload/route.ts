@@ -7,7 +7,7 @@ if (!apiKey) {
   console.error(
     "\n⚠️  DEEPCITATION_API_KEY is not set!\n" +
       "   1. Copy .env.example to .env\n" +
-      "   2. Get your API key from https://deepcitation.com/dashboard\n" +
+      "   2. Get your API key from https://deepcitation.com/keys\n" +
       "   3. Add it to .env: DEEPCITATION_API_KEY=sk-dc-your-key\n",
   );
 }
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error: "DeepCitation API key not configured",
-        details: "Set DEEPCITATION_API_KEY in your .env file. Get a key at https://deepcitation.com/dashboard",
+        details: "Set DEEPCITATION_API_KEY in your .env file. Get a key at https://deepcitation.com/keys",
       },
       { status: 500 },
     );
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: "Invalid or expired API key",
-          details: "Check your DEEPCITATION_API_KEY in .env. Get a new key at https://deepcitation.com/dashboard",
+          details: "Check your DEEPCITATION_API_KEY in .env. Get a new key at https://deepcitation.com/keys",
         },
         { status: 401 },
       );

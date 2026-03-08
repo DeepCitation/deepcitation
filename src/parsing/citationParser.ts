@@ -21,8 +21,10 @@ import {
   type ParsedCitationResponse,
 } from "../prompts/citationPrompts.js";
 import type { AudioVideoCitation, Citation } from "../types/citation.js";
+import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
+import { getVerificationTextIndicator, replaceCitations } from "./normalizeCitation.js";
 
 /**
  * Map of compact keys to their full CitationData equivalents.
@@ -493,6 +495,39 @@ export function extractVisibleText(llmResponse: string): string {
 }
 
 /**
+ * Builds a citationNumber → Verification index for O(1) lookups in `.replace()`.
+ *
+ * Strategy 1: citationMap entries → Citation key → verification lookup.
+ * Strategy 2: Iterate verifications by citationNumber (fallback for IDs not in citationMap).
+ */
+function buildVerificationIndex(
+  citationMap: Map<number, CitationData> | undefined,
+  verifications: Record<string, Verification>,
+): Map<number, Verification> {
+  const index = new Map<number, Verification>();
+
+  // Strategy 1: citationMap → key lookup (O(1) per entry)
+  if (citationMap) {
+    for (const [id, data] of citationMap) {
+      const citation = deferredCitationToCitation(data, id);
+      const key = getCitationKey(citation);
+      const v = verifications[key];
+      if (v) index.set(id, v);
+    }
+  }
+
+  // Strategy 2: fill in any remaining IDs from citationNumber
+  for (const v of Object.values(verifications)) {
+    const num = v.citation?.citationNumber;
+    if (num != null && num > 0 && !index.has(num)) {
+      index.set(num, v);
+    }
+  }
+
+  return index;
+}
+
+/**
  * Replaces [N] citation markers in text with optional content.
  *
  * @param text - The text containing [N] markers
@@ -513,6 +548,13 @@ export function extractVisibleText(llmResponse: string): string {
  *   showAnchorText: true,
  * });
  * // Returns: "Revenue grew 45% 45% in Q4 Q4."
+ *
+ * // Show verification status indicators
+ * replaceDeferredMarkers(text, {
+ *   verifications: verificationResult.verifications,
+ *   showVerificationStatus: true,
+ * });
+ * // Returns: "Revenue grew 45% [1☑️] in Q4 [2✅]."
  * ```
  */
 export function replaceDeferredMarkers(
@@ -524,23 +566,37 @@ export function replaceDeferredMarkers(
     showAnchorText?: boolean;
     /** Custom replacement function */
     replacer?: (id: number, data?: CitationData) => string;
+    /** Verification results keyed by citation key */
+    verifications?: Record<string, Verification>;
+    /** When true, appends verification status indicator to each marker */
+    showVerificationStatus?: boolean;
   },
 ): string {
-  const { citationMap, showAnchorText, replacer } = options || {};
+  const { citationMap, showAnchorText, replacer, verifications, showVerificationStatus } = options || {};
+
+  // Pre-build verification index once (avoids per-marker object construction + linear scans)
+  const verificationIndex =
+    showVerificationStatus && verifications ? buildVerificationIndex(citationMap, verifications) : undefined;
 
   // Match [N] patterns where N is one or more digits
   return text.replace(/\[(\d+)\]/g, (_match, idStr) => {
     const id = parseInt(idStr, 10);
-    const data = citationMap?.get(id);
 
     // Custom replacer takes precedence
     if (replacer) {
-      return replacer(id, data);
+      return replacer(id, citationMap?.get(id));
+    }
+
+    // Show verification status indicator
+    if (verificationIndex) {
+      const indicator = getVerificationTextIndicator(verificationIndex.get(id));
+      return `[${id}${indicator}]`;
     }
 
     // Show anchor text if requested
-    if (showAnchorText && data?.anchor_text) {
-      return data.anchor_text;
+    if (showAnchorText) {
+      const data = citationMap?.get(id);
+      if (data?.anchor_text) return data.anchor_text;
     }
 
     // Default: remove marker
@@ -564,4 +620,34 @@ export function getCitationMarkerIds(text: string): number[] {
   }
 
   return ids;
+}
+
+/**
+ * Strips all citation artifacts from LLM output, returning clean readable text.
+ * Auto-detects the citation format:
+ * - Deferred format (`[N]` markers + `<<<CITATION_DATA>>>` block): strips both
+ * - XML format (`<cite ... />`): strips cite tags
+ *
+ * @param llmResponse - The raw LLM response containing citations
+ * @returns Clean text with all citation artifacts removed
+ *
+ * @example
+ * ```typescript
+ * // Works with either citation format — no need to detect manually
+ * const cleanText = stripCitations(llmResponse);
+ * ```
+ */
+export function stripCitations(llmResponse: string): string {
+  if (!llmResponse || typeof llmResponse !== "string") {
+    return "";
+  }
+
+  if (hasDeferredCitations(llmResponse)) {
+    // Deferred format: strip <<<CITATION_DATA>>> block, then remove [N] markers
+    const visibleText = extractVisibleText(llmResponse);
+    return replaceDeferredMarkers(visibleText);
+  }
+
+  // XML format: strip <cite ... /> tags
+  return replaceCitations(llmResponse);
 }

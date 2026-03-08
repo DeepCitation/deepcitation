@@ -1,11 +1,19 @@
 /**
  * DeepCitation - Citation parsing, verification, and rendering library
+ *
+ * Exports are organized by use case. See INTEGRATION.md "Quick Reference"
+ * for recipe-based guidance on which functions to use.
+ *
+ * - Core API: DeepCitation client, getAllCitationsFromLlmOutput, stripCitations, getCitationKey
+ * - Display Helpers: replaceCitations, replaceDeferredMarkers, renderCitationsAsMarkdown, toMarkdown
+ * - Prompts: wrapCitationPrompt, wrapSystemCitationPrompt, format constants
+ * - Advanced: groupCitationsBy*, field normalization, LLM workarounds
+ *
  * @packageDocumentation
  */
 
-// Client - import from canonical location
+// Client & Errors
 export { DeepCitation } from "./client/DeepCitation.js";
-// Errors - import from canonical location
 export {
   AuthenticationError,
   DeepCitationError,
@@ -35,6 +43,8 @@ export type {
   VerifyCitationsOptions,
   VerifyCitationsResponse,
 } from "./client/index.js";
+
+// Markdown rendering (display helpers)
 export type {
   CitationWithStatus,
   IndicatorSet,
@@ -44,11 +54,6 @@ export type {
   MarkdownVariant,
   RenderMarkdownOptions,
 } from "./markdown/index.js";
-// =============================================================================
-// Markdown Output
-// Static markdown rendering for citations (TUI, exported documents, etc.)
-// Phase 2 will add hosted verification viewer with shareable links
-// =============================================================================
 export {
   getIndicator,
   getVerificationIndicator,
@@ -60,14 +65,16 @@ export {
   toMarkdown,
   toSuperscript,
 } from "./markdown/index.js";
-// Citation Parsing
+
+// Citation parsing — core API + display helpers
 export {
+  deferredCitationToCitation,
   extractVisibleText,
-  getAllCitationsFromDeferredResponse,
   getCitationMarkerIds,
   hasDeferredCitations,
   parseDeferredCitationResponse,
   replaceDeferredMarkers,
+  stripCitations,
 } from "./parsing/citationParser.js";
 export type { ReplaceCitationsOptions } from "./parsing/normalizeCitation.js";
 export {
@@ -78,7 +85,6 @@ export {
   removePageNumberMetadata,
   replaceCitations,
 } from "./parsing/normalizeCitation.js";
-// Parsing
 export {
   getAllCitationsFromLlmOutput,
   getCitationStatus,
@@ -87,10 +93,14 @@ export {
   normalizeCitationType,
   parseCitation,
 } from "./parsing/parseCitation.js";
+export type { ParsedCitationResult } from "./parsing/parseCitationResponse.js";
+export { parseCitationResponse } from "./parsing/parseCitationResponse.js";
 export {
   cleanRepeatingLastSentence,
   isGeminiGarbage,
 } from "./parsing/parseWorkAround.js";
+
+// Prompts
 export type {
   CitationData,
   ParsedCitationResponse,
@@ -115,13 +125,16 @@ export {
   decompressPromptIds,
 } from "./prompts/promptCompression.js";
 export type { CompressedResult } from "./prompts/types.js";
+
+// React utilities
 export {
   CITATION_X_PADDING,
   CITATION_Y_PADDING,
   generateCitationInstanceId,
 } from "./react/utils.js";
-export type { DeepTextItem, ScreenBox } from "./types/boxes.js";
+
 // Types
+export type { DeepTextItem, ScreenBox } from "./types/boxes.js";
 export type {
   AudioVideoCitation,
   Citation,
@@ -165,6 +178,8 @@ export type {
   UrlVerificationResult,
   Verification,
 } from "./types/verification.js";
+
+// Utilities
 export { getCitationKey, getVerificationKey } from "./utils/citationKey.js";
 export {
   getFieldAliases,
@@ -173,7 +188,6 @@ export {
   resolveFieldName,
   resolveFieldNameSnake,
 } from "./utils/fieldAliases.js";
-// File validation
 export {
   ALLOWED_UPLOAD_MIME_TYPES,
   MAX_UPLOAD_FILE_SIZE,
@@ -193,7 +207,6 @@ export {
   safeMerge,
   setObjectSafetyWarning,
 } from "./utils/objectSafety.js";
-// Security utilities
 export {
   MAX_REGEX_INPUT_LENGTH,
   safeExec,
@@ -205,7 +218,6 @@ export {
   safeTest,
   validateRegexInput,
 } from "./utils/regexSafety.js";
-// Utilities
 export { sha1Hash } from "./utils/sha.js";
 export {
   detectSourceType,
