@@ -96,7 +96,7 @@ function normalizePageNumber(raw: unknown): number | null {
 
 /** Resolve page images from verification (inline) or fallback to attachment-level lookup. */
 function resolvePageImages(
-  verification: Verification | undefined,
+  verification: Verification | null | undefined,
   pageImagesByAttachmentId: Record<string, PageImage[]> | undefined,
 ): PageImage[] | undefined {
   if (verification?.pageImages) return verification.pageImages;
@@ -105,7 +105,7 @@ function resolvePageImages(
 }
 
 /** Collect page numbers from successful search attempts. */
-function collectSearchAttemptPages(verification: Verification | undefined): number[] {
+function collectSearchAttemptPages(verification: Verification | null | undefined): number[] {
   const pages: number[] = [];
   for (const attempt of verification?.searchAttempts ?? []) {
     if (!attempt.success) continue;
