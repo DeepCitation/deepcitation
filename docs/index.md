@@ -32,10 +32,8 @@ Verify AI citations against source documents. Visual proof for every claim.
 | [Types]({{ site.baseurl }}/types) | TypeScript interface definitions |
 | [Verification Statuses]({{ site.baseurl }}/verification-statuses) | Understanding verification result statuses |
 | [Framework Guides]({{ site.baseurl }}/frameworks) | LangChain, Next.js App Router, Vercel AI SDK |
-| [Vibe Code with DeepCitation]({{ site.baseurl }}/vibe-code) | Copy-paste prompts for AI coding agents |
 | [Code Examples]({{ site.baseurl }}/code-examples) | SDK usage examples and patterns |
 | [Components]({{ site.baseurl }}/components) | React CitationComponent documentation |
-| [Real-World Examples]({{ site.baseurl }}/real-world-examples) | Industry-specific integration examples |
 | [Styling]({{ site.baseurl }}/styling) | CSS customization options |
 | [Error Handling]({{ site.baseurl }}/error-handling) | Production error patterns and retry logic |
 
