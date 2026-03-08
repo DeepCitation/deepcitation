@@ -18,7 +18,7 @@ import { sha1Hash } from "./sha.js";
  */
 export function getCitationKey(citation: Citation): string {
   // LLMs sometimes emit `pageId` instead of `startPageId` — resolve via fieldAliases
-  const resolvedStartPageId = resolveField(citation as Record<string, unknown>, "startPageId") as string | undefined;
+  const resolvedStartPageId = resolveField(citation as unknown as Record<string, unknown>, "startPageId") as string | undefined;
   const pageNumber = citation.pageNumber || getCitationPageNumber(resolvedStartPageId);
   // Common key parts
   const keyParts = [
