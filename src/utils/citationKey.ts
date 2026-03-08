@@ -16,7 +16,9 @@ import { sha1Hash } from "./sha.js";
  * @returns A deterministic 16-char hex key
  */
 export function getCitationKey(citation: Citation): string {
-  const pageNumber = citation.pageNumber || getCitationPageNumber(citation.startPageId || (citation as any).pageId);
+  // LLMs sometimes emit `pageId` instead of `startPageId` — handle both
+  const fallbackPageId = (citation as unknown as Record<string, unknown>).pageId as string | undefined;
+  const pageNumber = citation.pageNumber || getCitationPageNumber(citation.startPageId || fallbackPageId);
   // Common key parts
   const keyParts = [
     citation.fullPhrase || "",

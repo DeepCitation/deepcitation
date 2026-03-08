@@ -2,6 +2,7 @@ import type React from "react";
 import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { FileDownload, PageImage, Verification } from "../types/verification.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import { CitationContentDisplay } from "./CitationContentDisplay.js";
 import {
   getDefaultContent,
@@ -58,7 +59,6 @@ import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { extractDomain, getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";
 import { cn, generateCitationInstanceId } from "./utils.js";
 import { startEvidenceViewTransition } from "./viewTransition.js";
-import { getCitationKey } from "../utils/citationKey.js";
 
 // Re-export types for convenience
 export type {

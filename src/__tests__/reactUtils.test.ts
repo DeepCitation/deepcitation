@@ -6,9 +6,9 @@ import {
   generateCitationInstanceId,
   getCitationAnchorText,
   getCitationDisplayText,
-  getCitationKey,
   getCitationNumber,
 } from "../react/utils.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import type { Citation } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 

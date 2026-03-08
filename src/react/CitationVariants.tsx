@@ -2,6 +2,7 @@ import React, { forwardRef, memo, type ReactNode, useCallback, useMemo } from "r
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import {
   MISS_WAVY_UNDERLINE_STYLE,
   PARTIAL_COLOR_STYLE,
@@ -12,13 +13,7 @@ import { type TranslateFunction, useTranslation } from "./i18n.js";
 import { XIcon } from "./icons.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
 import type { BaseCitationProps, CitationEventHandlers, CitationVariant as CitationVariantType } from "./types.js";
-import {
-  classNames,
-  generateCitationInstanceId,
-  getCitationDisplayText,
-  getCitationKey,
-  getCitationNumber,
-} from "./utils.js";
+import { classNames, generateCitationInstanceId, getCitationDisplayText, getCitationNumber } from "./utils.js";
 
 const TWO_DOTS_THINKING_CONTENT = "..";
 

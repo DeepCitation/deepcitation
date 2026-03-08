@@ -12,6 +12,7 @@
  */
 
 // Utilities - For generating citation keys and display text
+export { getCitationKey } from "../utils/citationKey.js";
 export { isDocumentCitation, isUrlCitation } from "../types/citation.js";
 // Components
 // URL Citation Component - For displaying URL citations
