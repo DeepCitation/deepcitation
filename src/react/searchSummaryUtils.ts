@@ -83,18 +83,18 @@ const MAX_TEXT_ITEMS_LENGTH = 100_000;
 /** Number of words to include before and after the match. */
 const CONTEXT_WORD_COUNT = 5;
 
+/** Pre-computed page text for repeated context lookups. */
+interface PreparedPageText {
+  fullText: string;
+  lowerFull: string;
+}
+
 /**
- * Derive a context window around matchedText using page textItems.
- * Concatenates textItems in reading order, finds the match,
- * and expands to ~5 words before and after.
- *
- * @returns Context object with indices, or null if textItems unavailable or match not found.
+ * Concatenate and lowercase page textItems once, for reuse across multiple
+ * `findContextWindow` calls with different matchedText values.
  */
-export function deriveContextWindow(
-  matchedText: string,
-  textItems: DeepTextItem[] | undefined,
-): { contextText: string; matchStart: number; matchEnd: number } | null {
-  if (!textItems || textItems.length === 0 || !matchedText) return null;
+function preparePageText(textItems: DeepTextItem[] | undefined): PreparedPageText | null {
+  if (!textItems || textItems.length === 0) return null;
 
   // Pre-check total length before concatenating to avoid unnecessary work
   let estimatedLen = 0;
@@ -103,19 +103,28 @@ export function deriveContextWindow(
     if (estimatedLen > MAX_TEXT_ITEMS_LENGTH) return null;
   }
 
-  // Concatenate text items with spaces (array + join avoids intermediate strings)
   const parts: string[] = [];
   for (const item of textItems) {
     if (item.text) parts.push(item.text);
   }
   const fullText = parts.join(" ");
-
   if (fullText.length === 0) return null;
 
-  // Case-insensitive search for matchedText within the concatenated page text
-  const lowerFull = fullText.toLowerCase();
-  const lowerMatch = matchedText.toLowerCase();
-  const idx = lowerFull.indexOf(lowerMatch);
+  return { fullText, lowerFull: fullText.toLowerCase() };
+}
+
+/**
+ * Find a context window around matchedText within pre-computed page text.
+ * Expands to ~5 words before and after the match.
+ */
+function findContextWindow(
+  matchedText: string,
+  prepared: PreparedPageText | null,
+): { contextText: string; matchStart: number; matchEnd: number } | null {
+  if (!prepared || !matchedText) return null;
+
+  const { fullText, lowerFull } = prepared;
+  const idx = lowerFull.indexOf(matchedText.toLowerCase());
   if (idx === -1) return null;
 
   // idx comes from the lowercase search but matchedText.length is identical
@@ -129,7 +138,6 @@ export function deriveContextWindow(
     contextStart--;
     if (fullText[contextStart] === " ") wordsFound++;
   }
-  // Snap to after the space (or start of string)
   if (contextStart > 0) contextStart++;
 
   let contextEnd = matchEnd;
@@ -145,6 +153,19 @@ export function deriveContextWindow(
     matchStart: idx - contextStart,
     matchEnd: matchEnd - contextStart,
   };
+}
+
+/**
+ * Derive a context window around matchedText using page textItems.
+ * Convenience wrapper that prepares text and finds context in one call.
+ *
+ * @returns Context object with indices, or null if textItems unavailable or match not found.
+ */
+export function deriveContextWindow(
+  matchedText: string,
+  textItems: DeepTextItem[] | undefined,
+): { contextText: string; matchStart: number; matchEnd: number } | null {
+  return findContextWindow(matchedText, preparePageText(textItems));
 }
 
 // =============================================================================
@@ -214,12 +235,18 @@ export function buildIntentSummary(
   // Everything else is "related_found" — build snippets from successful partial attempts
   const snippets: MatchSnippet[] = [];
 
-  // Find the match page's textItems for context expansion
+  // Find the match page's textItems for context expansion — prepare once for all snippets
   const matchPage = verification?.document?.verifiedPageNumber;
   const pageTextItems = findPageTextItems(verification, matchPage);
+  const preparedText = preparePageText(pageTextItems);
 
+  const seen = new Set<string>();
   for (const attempt of searchAttempts) {
     if (!attempt.success || !attempt.matchedText) continue;
+    const page = attempt.foundLocation?.page ?? attempt.pageSearched;
+    const dedupKey = `${attempt.matchedText}\0${page ?? ""}`;
+    if (seen.has(dedupKey)) continue;
+    seen.add(dedupKey);
 
     const isProximate =
       isProximateMethod(attempt.method) &&
@@ -227,8 +254,8 @@ export function buildIntentSummary(
         !attempt.foundLocation ||
         attempt.expectedLocation.page === attempt.foundLocation.page);
 
-    // Try to derive context from page textItems
-    const context = deriveContextWindow(attempt.matchedText, pageTextItems);
+    // Try to derive context from pre-computed page text
+    const context = findContextWindow(attempt.matchedText, preparedText);
 
     if (context) {
       snippets.push({
@@ -256,7 +283,7 @@ export function buildIntentSummary(
 
   // Also pull from verification-level matched text if no successful attempts produced snippets
   if (snippets.length === 0 && verification?.verifiedMatchSnippet) {
-    const context = deriveContextWindow(verification.verifiedMatchSnippet, pageTextItems);
+    const context = findContextWindow(verification.verifiedMatchSnippet, preparedText);
     snippets.push({
       matchedText: verification.verifiedMatchSnippet,
       contextText: context?.contextText ?? verification.verifiedMatchSnippet,

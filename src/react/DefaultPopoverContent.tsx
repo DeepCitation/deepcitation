@@ -163,13 +163,13 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
   if (snippets.length === 0) return null;
   return (
     <div className="px-4 py-2 space-y-1.5 border-b border-gray-100 dark:border-gray-800">
-      {snippets.slice(0, 3).map(snippet => {
+      {snippets.slice(0, 3).map((snippet, idx) => {
         const before = snippet.contextText.slice(0, snippet.matchStart);
         const match = snippet.contextText.slice(snippet.matchStart, snippet.matchEnd);
         const after = snippet.contextText.slice(snippet.matchEnd);
         return (
           <div
-            key={`snippet-${snippet.matchStart}-${snippet.matchEnd}`}
+            key={`snippet-${snippet.matchStart}-${snippet.matchEnd}-${snippet.page ?? idx}`}
             className="text-xs text-gray-600 dark:text-gray-300 font-mono leading-relaxed"
           >
             {before && <span className="text-gray-400 dark:text-gray-500">...{before}</span>}

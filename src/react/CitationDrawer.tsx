@@ -94,6 +94,27 @@ function normalizePageNumber(raw: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+/** Resolve page images from verification (inline) or fallback to attachment-level lookup. */
+function resolvePageImages(
+  verification: Verification | undefined,
+  pageImagesByAttachmentId: Record<string, PageImage[]> | undefined,
+): PageImage[] | undefined {
+  if (verification?.pageImages) return verification.pageImages;
+  const attachmentId = verification?.attachmentId;
+  return attachmentId ? pageImagesByAttachmentId?.[attachmentId] : undefined;
+}
+
+/** Collect page numbers from successful search attempts. */
+function collectSearchAttemptPages(verification: Verification | undefined): number[] {
+  const pages: number[] = [];
+  for (const attempt of verification?.searchAttempts ?? []) {
+    if (!attempt.success) continue;
+    const page = normalizePageNumber(attempt.foundLocation?.page);
+    if (page !== null) pages.push(page);
+  }
+  return pages;
+}
+
 function computeUniquePageNumbers(
   groups: SourceCitationGroup[],
   pageImagesByAttachmentId?: Record<string, PageImage[]>,
@@ -105,12 +126,11 @@ function computeUniquePageNumbers(
         (citation.type !== "url" ? citation.pageNumber : undefined) ?? verification?.document?.verifiedPageNumber,
       );
       if (page !== null) pages.add(page);
-      const attachmentId = verification?.attachmentId;
-      const pageImages = attachmentId ? pageImagesByAttachmentId?.[attachmentId] : undefined;
-      for (const candidate of pageImages ?? []) {
+      for (const candidate of resolvePageImages(verification, pageImagesByAttachmentId) ?? []) {
         const candidatePage = normalizePageNumber(candidate.pageNumber);
         if (candidatePage !== null) pages.add(candidatePage);
       }
+      for (const p of collectSearchAttemptPages(verification)) pages.add(p);
     }
   }
   return Array.from(pages).sort((a, b) => a - b);
@@ -654,10 +674,7 @@ function DrawerSourceGroup({
 }: DrawerSourceGroupProps) {
   const key = `${group.sourceDomain ?? group.sourceName}-${groupIndex}`;
   const getPageImages = useCallback(
-    (item: CitationDrawerItem) => {
-      const attachmentId = item.verification?.attachmentId;
-      return attachmentId ? pageImagesByAttachmentId?.[attachmentId] : undefined;
-    },
+    (item: CitationDrawerItem) => resolvePageImages(item.verification, pageImagesByAttachmentId),
     [pageImagesByAttachmentId],
   );
 
@@ -972,13 +989,14 @@ function OpenCitationDrawer({
           }
           if (!p2any.has(page)) p2any.set(page, item);
         }
-        const attachmentId = verification?.attachmentId;
-        const pageImages = attachmentId ? pageImagesByAttachmentId?.[attachmentId] : undefined;
-        for (const candidate of pageImages ?? []) {
+        for (const candidate of resolvePageImages(verification, pageImagesByAttachmentId) ?? []) {
           const candidatePage = normalizePageNumber(candidate.pageNumber);
           if (candidatePage !== null && !p2any.has(candidatePage)) {
             p2any.set(candidatePage, item);
           }
+        }
+        for (const foundPage of collectSearchAttemptPages(verification)) {
+          if (!p2any.has(foundPage)) p2any.set(foundPage, item);
         }
       }
     }
