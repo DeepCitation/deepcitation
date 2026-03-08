@@ -29,7 +29,14 @@ describe("citation prompts", () => {
   });
 
   it("defines required fields for citations in JSON schema", () => {
-    expect(CITATION_JSON_OUTPUT_FORMAT.required).toEqual(["id", "attachment_id", "full_phrase", "anchor_text"]);
+    expect(CITATION_JSON_OUTPUT_FORMAT.required).toEqual([
+      "id",
+      "attachment_id",
+      "full_phrase",
+      "anchor_text",
+      "page_id",
+      "line_ids",
+    ]);
   });
 
   it("defines timestamp requirements for AV citations in JSON schema", () => {
