@@ -8,9 +8,9 @@ import {
   extractDomain,
   generateCitationInstanceId,
   // Utilities
-  generateCitationKey,
   getCitationAnchorText,
   getCitationDisplayText,
+  getCitationKey,
   getPlatformName,
   isAccessibleStatus,
   isBlockedStatus,
@@ -27,7 +27,7 @@ import {
 
 describe("react index exports", () => {
   it("exports utility functions", () => {
-    expect(typeof generateCitationKey).toBe("function");
+    expect(typeof getCitationKey).toBe("function");
     expect(typeof generateCitationInstanceId).toBe("function");
     expect(typeof getCitationDisplayText).toBe("function");
     expect(typeof getCitationAnchorText).toBe("function");

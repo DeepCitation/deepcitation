@@ -13,7 +13,7 @@ This plan introduces a **universal renderer architecture** that:
 
 1. Adds 4 new render targets: **Slack**, **GitHub Markdown**, **HTML/Email**, **Terminal/CLI**
 2. Adds new code (proof URL builders, render target types) without moving or re-exporting existing functions
-3. New renderers import shared logic directly from canonical locations (`parsing/`, `markdown/`, `react/utils`)
+3. New renderers import shared logic directly from canonical locations (`parsing/`, `markdown/`, `utils/citationKey`)
 4. Defines the **backend API contract** needed to host proof pages and serve proof images at URLs (replacing inline base64 for non-React surfaces)
 
 ---
@@ -57,7 +57,7 @@ src/
 ├── react/                  ← React renderer (2500+ LOC)
 │   ├── CitationComponent   ← Interactive: variants + popover + behavior + status
 │   ├── CitationVariants    ← React-specific variant rendering
-│   └── utils.ts            ← generateCitationKey() — canonical location
+│   └── utils.ts            ← deprecated aliases (getCitationKey canonical location: src/utils/citationKey.ts)
 ├── markdown/               ← Markdown renderer (standalone, clean)
 │   ├── renderMarkdown      ← cite tag → markdown string
 │   ├── markdownVariants    ← getIndicator(), INDICATOR_SETS — canonical location
@@ -121,7 +121,7 @@ function/constant has ONE canonical location, and all consumers import directly 
 | Symbol | Canonical location | Import from |
 |--------|-------------------|-------------|
 | `getCitationStatus()` | `src/parsing/parseCitation.ts` | `../../parsing/parseCitation.js` |
-| `generateCitationKey()` | `src/react/utils.ts` | `../../react/utils.js` |
+| `getCitationKey()` | `src/utils/citationKey.ts` | `../../utils/citationKey.js` |
 | `getIndicator()` | `src/markdown/markdownVariants.ts` | `../../markdown/markdownVariants.js` |
 | `INDICATOR_SETS` | `src/markdown/types.ts` | `../../markdown/types.js` |
 | `SUPERSCRIPT_DIGITS` | `src/markdown/types.ts` | `../../markdown/types.js` |
@@ -134,7 +134,7 @@ function/constant has ONE canonical location, and all consumers import directly 
 ```typescript
 // Example: rendering/slack/slackRenderer.ts
 import { getCitationStatus } from "../../parsing/parseCitation.js";
-import { generateCitationKey } from "../../react/utils.js";
+import { getCitationKey } from "../../utils/citationKey.js";
 import { getIndicator } from "../../markdown/markdownVariants.js";
 import { INDICATOR_SETS } from "../../markdown/types.js";
 import { buildProofUrl } from "../proofUrl.js";            // NEW code, canonical here
@@ -567,8 +567,8 @@ import { getIndicator, toSuperscript, humanizeLinePosition, formatPageLocation }
 import { INDICATOR_SETS, SUPERSCRIPT_DIGITS } from "../../markdown/types.js";
 import type { IndicatorStyle, CitationWithStatus } from "../../markdown/types.js";
 
-// Citation key generation — import from react/utils
-import { generateCitationKey } from "../../react/utils.js";
+// Citation key generation — import from utils/citationKey
+import { getCitationKey } from "../../utils/citationKey.js";
 ```
 
 **No wrapper files.** No `rendering/core/status.ts` that re-exports. No `rendering/core/indicators.ts`.
@@ -734,23 +734,23 @@ src/rendering/
 ├── types.ts                  (~80 LOC, shared interfaces — canonical location)
 │
 ├── slack/
-│   ├── slackRenderer.ts      (~150 LOC, imports from parsing/, markdown/, react/utils)
+│   ├── slackRenderer.ts      (~150 LOC, imports from parsing/, markdown/, utils/citationKey)
 │   ├── slackVariants.ts      (~80 LOC)
 │   └── types.ts              (~50 LOC)
 │
 ├── github/
-│   ├── githubRenderer.ts     (~200 LOC, imports from parsing/, markdown/, react/utils)
+│   ├── githubRenderer.ts     (~200 LOC, imports from parsing/, markdown/, utils/citationKey)
 │   ├── githubVariants.ts     (~100 LOC)
 │   └── types.ts              (~60 LOC)
 │
 ├── html/
-│   ├── htmlRenderer.ts       (~250 LOC, imports from parsing/, markdown/, react/utils)
+│   ├── htmlRenderer.ts       (~250 LOC, imports from parsing/, markdown/, utils/citationKey)
 │   ├── htmlVariants.ts       (~120 LOC)
 │   ├── styles.ts             (~150 LOC)
 │   └── types.ts              (~60 LOC)
 │
 └── terminal/
-    ├── terminalRenderer.ts   (~150 LOC, imports from parsing/, markdown/, react/utils)
+    ├── terminalRenderer.ts   (~150 LOC, imports from parsing/, markdown/, utils/citationKey)
     ├── ansiColors.ts         (~60 LOC)
     └── types.ts              (~40 LOC)
 

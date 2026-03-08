@@ -56,8 +56,9 @@ import type {
 } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { extractDomain, getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";
-import { cn, generateCitationInstanceId, generateCitationKey } from "./utils.js";
+import { cn, generateCitationInstanceId } from "./utils.js";
 import { startEvidenceViewTransition } from "./viewTransition.js";
+import { getCitationKey } from "../utils/citationKey.js";
 
 // Re-export types for convenience
 export type {
@@ -745,7 +746,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // rendered rect and applies corrective CSS `translate` if any edge overflows.
     // If Layers 1–2 got it right, the guard is a no-op.
     useViewportBoundaryGuard(isHovering, popoverViewState, popoverContentRef);
-    const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
+    const citationKey = useMemo(() => getCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
 
     // ========== TtC Timing ==========
@@ -1878,7 +1879,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
       [providedCitation, url, title],
     );
 
-    const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
+    const citationKey = useMemo(() => getCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
 
     // Compute display text

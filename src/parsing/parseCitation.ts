@@ -1,4 +1,3 @@
-import { generateCitationKey } from "../react/utils.js";
 import type {
   AudioVideoCitation,
   Citation,
@@ -8,6 +7,7 @@ import type {
   UrlCitation,
 } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
 import { safeMatch } from "../utils/regexSafety.js";
 import { getAllCitationsFromDeferredResponse, hasDeferredCitations } from "./citationParser.js";
@@ -457,7 +457,7 @@ const extractJsonCitations = (data: Citation[] | Citation): CitationRecord => {
   for (const item of items) {
     const citation = parseJsonCitation(item, citationNumber++);
     if (citation?.fullPhrase) {
-      const citationKey = generateCitationKey(citation);
+      const citationKey = getCitationKey(citation);
       citations[citationKey] = citation;
     }
   }
@@ -531,7 +531,7 @@ const extractXmlCitations = (text: string): CitationRecord => {
   for (const match of matches) {
     const { citation } = parseCitation(match, undefined, citationCounterRef);
     if (citation?.fullPhrase) {
-      const citationKey = generateCitationKey(citation);
+      const citationKey = getCitationKey(citation);
       citations[citationKey] = citation;
     }
   }
@@ -637,7 +637,7 @@ export function groupCitationsByAttachmentId(citations: Citation[] | CitationRec
 
   // Normalize input to entries
   const entries: [string, Citation][] = Array.isArray(citations)
-    ? citations.map((c, idx) => [generateCitationKey(c) || String(idx + 1), c])
+    ? citations.map((c, idx) => [getCitationKey(c) || String(idx + 1), c])
     : Object.entries(citations);
 
   for (const [key, citation] of entries) {
@@ -682,7 +682,7 @@ export function groupCitationsByAttachmentIdObject(
 
   // Normalize input to entries
   const entries: [string, Citation][] = Array.isArray(citations)
-    ? citations.map((c, idx) => [generateCitationKey(c) || String(idx + 1), c])
+    ? citations.map((c, idx) => [getCitationKey(c) || String(idx + 1), c])
     : Object.entries(citations);
 
   for (const [key, citation] of entries) {

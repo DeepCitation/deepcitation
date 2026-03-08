@@ -33,7 +33,7 @@ import { describe, expect, it } from "@jest/globals";
 
 // 3. Internal imports (alphabetically)
 import { getCitationStatus } from "../../parsing/parseCitation.js";
-import { generateCitationKey } from "../../react/utils.js";
+import { getCitationKey } from "../../utils/citationKey.js";
 import type { Citation } from "../../types/citation.js";
 ```
 

@@ -123,10 +123,10 @@ import {
   CitationComponent,
   CitationDrawer,
   CitationDrawerTrigger,
-  generateCitationKey,
+  getCitationKey,
   groupCitationsBySource,
   type CitationDrawerItem,
-} from "deepcitation/react";
+} from "deepcitation";
 
 function MessageWithCitations({
   text,
@@ -154,7 +154,7 @@ function MessageWithCitations({
   const rendered = parts.map((part, i) => {
     if (part.startsWith("<cite")) {
       const { citation: parsed } = parseCitation(part);
-      const key = generateCitationKey(parsed);
+      const key = getCitationKey(parsed);
       return (
         <CitationComponent
           key={i}
@@ -219,7 +219,7 @@ import type {
 
 - `CitationRecord = Record<string, Citation>` — keyed by citation key (16-char hash), not an array
 - Check emptiness with `Object.keys(citations).length === 0`, never `.length`
-- `generateCitationKey(citation)` from `deepcitation/react` produces the same key that indexes `CitationRecord` and `VerificationRecord`
+- `getCitationKey(citation)` from `deepcitation` produces the same key that indexes `CitationRecord` and `VerificationRecord`
 
 ### 1.3 Initialize Client
 
@@ -405,28 +405,27 @@ return {
 Every `<cite>` tag in the LLM output has a deterministic **citation key** — a 16-character hash of its content. This same key is used in both `CitationRecord` and `VerificationRecord`, making it the bridge between parsed citations and verification results.
 
 ```typescript
-import { parseCitation } from "deepcitation";
-import { generateCitationKey } from "deepcitation/react";
+import { parseCitation, getCitationKey } from "deepcitation";
 
 // Parse a single <cite ... /> tag from the LLM output
 const { citation } = parseCitation(citeTag);
 
 // Generate the key — same algorithm used internally, always deterministic
-const key = generateCitationKey(citation); // e.g. "a3f7b2c1d8e9f012"
+const key = getCitationKey(citation); // e.g. "a3f7b2c1d8e9f012"
 
 // Look up the verification result using the key
 const verification = verifications[key] ?? null;
 ```
 
-`generateCitationKey()` is the **canonical** key function. Import it from `deepcitation/react`. Never compute keys manually.
+`getCitationKey()` is the **canonical** key function. Import it from `deepcitation`. Never compute keys manually.
 
 ### 3.2 Post-Stream (Full Response)
 
 Use when you have the complete LLM response — either non-streaming or after buffering a stream.
 
 ```tsx
-import { CitationComponent, generateCitationKey } from "deepcitation/react";
-import { parseCitation } from "deepcitation";
+import { CitationComponent } from "deepcitation/react";
+import { parseCitation, getCitationKey } from "deepcitation";
 import type { CitationRecord, VerificationRecord } from "deepcitation";
 
 function MessageWithCitations({
@@ -446,7 +445,7 @@ function MessageWithCitations({
       {parts.map((part, i) => {
         if (part.startsWith("<cite")) {
           const { citation } = parseCitation(part);
-          const key = generateCitationKey(citation);
+          const key = getCitationKey(citation);
           return (
             <CitationComponent
               key={i}

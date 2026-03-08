@@ -1,8 +1,5 @@
-import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
 import type { Citation } from "../types/citation.js";
-import { isAudioVideoCitation, isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import { sha1Hash } from "../utils/sha.js";
 
 // =============================================================================
 // UTILITY FUNCTIONS
@@ -10,62 +7,6 @@ import { sha1Hash } from "../utils/sha.js";
 
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
-}
-
-/**
- * Generates a unique, deterministic key for a citation based on its content.
- * Works with both document and URL citation types.
- *
- * For URL citations, the URL is included in the key generation for uniqueness.
- *
- * @param citation - The citation to generate a key for
- * @returns A unique, deterministic key for the citation
- */
-export function generateCitationKey(citation: Citation): string {
-  // Common key parts
-  const keyParts = [citation.fullPhrase || "", citation.anchorText?.toString() || ""];
-
-  if (isUrlCitation(citation)) {
-    // URL-specific key parts
-    keyParts.push(citation.url || "", citation.title || "", citation.domain || "");
-  } else if (isAudioVideoCitation(citation)) {
-    // AV-specific key parts: timestamps distinguish clips from the same file
-    keyParts.push(
-      citation.attachmentId || "",
-      citation.timestamps?.startTime || "",
-      citation.timestamps?.endTime || "",
-    );
-  } else {
-    // Document-specific key parts
-    const pageNumber = citation.pageNumber || getCitationPageNumber(citation.startPageId);
-    keyParts.push(citation.attachmentId || "", pageNumber?.toString() || "", citation.lineIds?.join(",") || "");
-  }
-
-  return sha1Hash(keyParts.join("|")).slice(0, 16);
-}
-
-/**
- * Generates a unique, deterministic key for a verification based on its content.
- * @param verification - The verification to generate a key for
- * @returns
- */
-export function generateVerificationKey(verification: Verification): string {
-  const keyParts = [
-    verification.attachmentId || "",
-    verification.label || "",
-    verification.verifiedFullPhrase || "",
-    verification.verifiedAnchorText || "",
-    verification.document?.verifiedLineIds?.join(",") || "",
-    verification.document?.verifiedPageNumber?.toString() || "",
-
-    verification.verifiedTimestamps?.startTime || "",
-    verification.verifiedTimestamps?.endTime || "",
-
-    verification.verifiedMatchSnippet || "",
-    verification.document?.hitIndexWithinPage?.toString() || "",
-  ];
-
-  return sha1Hash(keyParts.join("|")).slice(0, 16);
 }
 
 /**

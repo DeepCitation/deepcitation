@@ -1,5 +1,5 @@
 import type { Citation, Verification } from "deepcitation";
-import { generateCitationKey } from "deepcitation/react";
+import { getCitationKey } from "deepcitation/react";
 
 /**
  * Sample LLM output with <cite> tags for rendering demos.
@@ -50,20 +50,20 @@ const CITATION_3: Citation = {
  * Demonstrates verified, partial, and not-found statuses.
  */
 export const SAMPLE_VERIFICATIONS: Record<string, Verification> = {
-  [generateCitationKey(CITATION_1)]: {
+  [getCitationKey(CITATION_1)]: {
     status: "found",
     verifiedPageNumber: 5,
     verifiedLineIds: [12, 13],
     verifiedMatchSnippet: "Revenue increased by 15% in Q4 2024.",
     label: "Q4 Financial Report",
   },
-  [generateCitationKey(CITATION_2)]: {
+  [getCitationKey(CITATION_2)]: {
     status: "found_on_other_page",
     verifiedPageNumber: 9,
     verifiedLineIds: [30],
     label: "Q4 Financial Report",
   },
-  [generateCitationKey(CITATION_3)]: {
+  [getCitationKey(CITATION_3)]: {
     status: "not_found",
     verifiedPageNumber: -1,
   },

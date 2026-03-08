@@ -1,6 +1,6 @@
 import { formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
-import { generateCitationKey } from "../../react/utils.js";
+import { getCitationKey } from "../../utils/citationKey.js";
 import { safeReplace } from "../../utils/regexSafety.js";
 import { buildCitationFromAttrs, parseCiteAttributes } from "../citationParser.js";
 import { buildProofUrl, buildSnippetImageUrl } from "../proofUrl.js";
@@ -56,7 +56,7 @@ export function renderCitationsForGitHub(input: string, options: GitHubRenderOpt
     citationIndex++;
     const attrs = parseCiteAttributes(match);
     const citation = buildCitationFromAttrs(attrs, citationIndex);
-    const citationKey = generateCitationKey(citation);
+    const citationKey = getCitationKey(citation);
     const verification = verifications[citationKey] || null;
     const status = getCitationStatus(verification);
 

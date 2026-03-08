@@ -119,8 +119,6 @@ export {
   CITATION_X_PADDING,
   CITATION_Y_PADDING,
   generateCitationInstanceId,
-  generateCitationKey,
-  generateVerificationKey,
 } from "./react/utils.js";
 export type { DeepTextItem, ScreenBox } from "./types/boxes.js";
 // Types
@@ -167,6 +165,7 @@ export type {
   UrlVerificationResult,
   Verification,
 } from "./types/verification.js";
+export { getCitationKey, getVerificationKey } from "./utils/citationKey.js";
 // File validation
 export {
   ALLOWED_UPLOAD_MIME_TYPES,

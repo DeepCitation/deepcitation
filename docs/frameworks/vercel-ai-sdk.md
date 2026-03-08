@@ -285,8 +285,8 @@ Once you have `citations` and `verifications` for a message, replace `<cite>` ta
 ```typescript
 "use client";
 
-import { parseCitation, type Citation, type Verification } from "deepcitation";
-import { CitationComponent, generateCitationKey } from "deepcitation/react";
+import { parseCitation, getCitationKey, type Citation, type Verification } from "deepcitation";
+import { CitationComponent } from "deepcitation/react";
 
 function MessageContent({
   content,
@@ -308,7 +308,7 @@ function MessageContent({
 
     try {
       const { citation: parsed } = parseCitation(match[0]);
-      const key = generateCitationKey(parsed);
+      const key = getCitationKey(parsed);
       parts.push(
         <CitationComponent
           key={key}

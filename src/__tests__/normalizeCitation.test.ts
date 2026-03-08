@@ -1,8 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 import { getCitationPageNumber, normalizeCitations, replaceCitations } from "../parsing/normalizeCitation.js";
-import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationKey } from "../utils/citationKey.js";
 
 describe("getCitationPageNumber", () => {
   it("parses page numbers from standard keys", () => {
@@ -623,9 +623,9 @@ describe("replaceCitations with citationKey matching", () => {
     };
 
     // Generate the keys that the verification system would use
-    const key1 = generateCitationKey(citation1);
-    const key2 = generateCitationKey(citation2);
-    const key3 = generateCitationKey(citation3);
+    const key1 = getCitationKey(citation1);
+    const key2 = getCitationKey(citation2);
+    const key3 = getCitationKey(citation3);
 
     // Ensure keys are unique
     expect(key1).not.toBe(key2);
@@ -663,7 +663,7 @@ describe("replaceCitations with citationKey matching", () => {
       lineIds: [10],
     };
 
-    const key = generateCitationKey(citation);
+    const key = getCitationKey(citation);
     const verifications: Record<string, Verification> = {
       [key]: { status: "found", attachmentId },
     };
@@ -726,7 +726,7 @@ describe("replaceCitations with citationKey matching", () => {
         lineIds: [21, 22, 23],
       };
 
-      const key = generateCitationKey(citation);
+      const key = getCitationKey(citation);
       const verifications: Record<string, Verification> = {
         [key]: { status: "found", attachmentId },
       };
@@ -754,7 +754,7 @@ describe("replaceCitations with citationKey matching", () => {
         lineIds: [10],
       };
 
-      const key = generateCitationKey(citation);
+      const key = getCitationKey(citation);
       const verifications: Record<string, Verification> = {
         [key]: { status: "found", attachmentId },
       };
@@ -782,7 +782,7 @@ describe("replaceCitations with citationKey matching", () => {
         lineIds: [21, 22, 23],
       };
 
-      const key = generateCitationKey(citation);
+      const key = getCitationKey(citation);
       const verifications: Record<string, Verification> = {
         [key]: { status: "found", attachmentId },
       };
@@ -810,7 +810,7 @@ describe("replaceCitations with citationKey matching", () => {
         lineIds: [11, 12, 13, 14, 15, 16],
       };
 
-      const key = generateCitationKey(citation);
+      const key = getCitationKey(citation);
       const verifications: Record<string, Verification> = {
         [key]: { status: "found", attachmentId },
       };
@@ -854,9 +854,9 @@ describe("replaceCitations with citationKey matching", () => {
         lineIds: [28, 29, 30],
       };
 
-      const key1 = generateCitationKey(citation1);
-      const key2 = generateCitationKey(citation2);
-      const key3 = generateCitationKey(citation3);
+      const key1 = getCitationKey(citation1);
+      const key2 = getCitationKey(citation2);
+      const key3 = getCitationKey(citation3);
 
       const verifications: Record<string, Verification> = {
         [key1]: { status: "found", attachmentId },
@@ -924,7 +924,7 @@ describe("replaceCitations with citationKey matching", () => {
     const statuses: Array<Verification["status"]> = ["found", "found", "not_found", "partial_text_found", "found"];
 
     citations.forEach((c, i) => {
-      const key = generateCitationKey(c);
+      const key = getCitationKey(c);
       verifications[key] = { status: statuses[i], attachmentId };
     });
 

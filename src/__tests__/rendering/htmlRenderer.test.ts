@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
-import { generateCitationKey } from "../../react/utils.js";
 import { renderCitationsAsHtml } from "../../rendering/html/htmlRenderer.js";
 import type { Verification } from "../../types/verification.js";
+import { getCitationKey } from "../../utils/citationKey.js";
 
 // =============================================================================
 // TEST FIXTURES
@@ -120,7 +120,7 @@ describe("renderCitationsAsHtml", () => {
       anchorText: "grew 45%",
       lineIds: [12, 13],
     };
-    const key = generateCitationKey(citation);
+    const key = getCitationKey(citation);
     const output = renderCitationsAsHtml(simpleInput, {
       verifications: { [key]: verifiedVerification },
     });
@@ -136,7 +136,7 @@ describe("renderCitationsAsHtml", () => {
       anchorText: "grew 45%",
       lineIds: [12, 13],
     };
-    const key = generateCitationKey(citation);
+    const key = getCitationKey(citation);
     const output = renderCitationsAsHtml(simpleInput, {
       verifications: { [key]: notFoundVerification },
     });

@@ -1,6 +1,6 @@
-import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, safeAssign } from "../utils/objectSafety.js";
 import { validateRegexInput } from "../utils/regexSafety.js";
 import { getCitationStatus } from "./parseCitation.js";
@@ -242,7 +242,7 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
       };
 
       // Strategy 1: Match by citationKey (hash) - most reliable
-      const citationKey = generateCitationKey(citation);
+      const citationKey = getCitationKey(citation);
       verification = verifications[citationKey];
 
       // Strategy 2: Fall back to numbered keys (1, 2, 3, etc.)

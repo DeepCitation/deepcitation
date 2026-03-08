@@ -1,6 +1,6 @@
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
-import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/index.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import { sha1Hash } from "../utils/sha.js";
 import { AuthenticationError, type DeepCitationError, RateLimitError, ServerError, ValidationError } from "./errors.js";
 import type {
@@ -648,14 +648,14 @@ export class DeepCitation {
     if (Array.isArray(citations)) {
       // Array of citations - generate keys
       for (const citation of citations) {
-        const key = generateCitationKey(citation);
+        const key = getCitationKey(citation);
         citationMap[key] = citation;
       }
     } else if (typeof citations === "object" && citations !== null) {
       // Check if it's a single citation or a map
       if ("fullPhrase" in citations || "value" in citations) {
         // Single citation
-        const key = generateCitationKey(citations as Citation);
+        const key = getCitationKey(citations as Citation);
         citationMap[key] = citations as Citation;
       } else {
         // Already a map
@@ -672,14 +672,14 @@ export class DeepCitation {
     }
 
     // Performance fix: request deduplication
-    // Use generateCitationKey for each citation to create a deterministic cache key
+    // Use getCitationKey for each citation to create a deterministic cache key
     // Sorting ensures consistent ordering for equivalent content
-    // Selection is appended separately since generateCitationKey doesn't include it
+    // Selection is appended separately since getCitationKey doesn't include it
     // Final key is hashed to prevent collisions from delimiter characters in user data
     // Note: We use Object.values, not Object.entries, because the map key (citation number)
     // is just a display identifier - verification results depend only on citation content
     const citationKeys = Object.values(citationMap)
-      .map(citation => generateCitationKey(citation))
+      .map(citation => getCitationKey(citation))
       .sort()
       .join("|");
     const rawKey = `${attachmentId}:${citationKeys}:${options?.outputImageFormat || "avif"}`;

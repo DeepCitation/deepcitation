@@ -272,7 +272,6 @@ export {
   CITATION_Y_PADDING,
   classNames,
   generateCitationInstanceId,
-  generateCitationKey,
   getCitationAnchorText,
   getCitationDisplayText,
   getCitationNumber,

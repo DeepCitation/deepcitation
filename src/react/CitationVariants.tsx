@@ -15,8 +15,8 @@ import type { BaseCitationProps, CitationEventHandlers, CitationVariant as Citat
 import {
   classNames,
   generateCitationInstanceId,
-  generateCitationKey,
   getCitationDisplayText,
+  getCitationKey,
   getCitationNumber,
 } from "./utils.js";
 
@@ -120,7 +120,7 @@ export interface CitationVariantProps extends BaseCitationProps {
  * NOTE: Status is not memoized because verification may be mutated in place.
  */
 function useCitationData(citation: Citation, verification?: Verification | null) {
-  const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
+  const citationKey = useMemo(() => getCitationKey(citation), [citation]);
   const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
   // Don't memoize - object reference as dependency causes stale values on mutation
   const status = getCitationStatus(verification ?? null);

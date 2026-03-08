@@ -5,7 +5,7 @@ import {
   CitationComponent,
   CitationDrawer,
   CitationDrawerTrigger,
-  generateCitationKey,
+  getCitationKey,
   groupCitationsBySource,
   type CitationDrawerItem,
 } from "deepcitation/react";
@@ -159,7 +159,7 @@ function processContentWithCitations(
     } else if (part.type === "citation") {
       try {
         const { citation: parsedCitation } = parseCitation(part.content);
-        const citationKey = generateCitationKey(parsedCitation);
+        const citationKey = getCitationKey(parsedCitation);
 
         const citation = citations[citationKey] ?? parsedCitation;
         const verification = verifications[citationKey];
