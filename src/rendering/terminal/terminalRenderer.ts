@@ -1,7 +1,7 @@
 import { formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
-import { generateCitationKey } from "../../react/utils.js";
 import type { CitationStatus } from "../../types/citation.js";
+import { getCitationKey } from "../../utils/citationKey.js";
 import { safeMatch } from "../../utils/regexSafety.js";
 import { buildCitationFromAttrs, parseCiteAttributes } from "../citationParser.js";
 import type { RenderCitationWithStatus } from "../types.js";
@@ -102,7 +102,7 @@ export function renderCitationsForTerminal(input: string, options: TerminalRende
       citationIndex++;
       const attrs = parseCiteAttributes(match);
       const citation = buildCitationFromAttrs(attrs, citationIndex);
-      const citationKey = generateCitationKey(citation);
+      const citationKey = getCitationKey(citation);
       const verification = verifications[citationKey] || null;
       const status = getCitationStatus(verification);
 

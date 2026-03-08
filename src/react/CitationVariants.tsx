@@ -2,6 +2,7 @@ import React, { forwardRef, memo, type ReactNode, useCallback, useMemo } from "r
 import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import {
   MISS_WAVY_UNDERLINE_STYLE,
   PARTIAL_COLOR_STYLE,
@@ -12,13 +13,7 @@ import { type TranslateFunction, useTranslation } from "./i18n.js";
 import { XIcon } from "./icons.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
 import type { BaseCitationProps, CitationEventHandlers, CitationVariant as CitationVariantType } from "./types.js";
-import {
-  classNames,
-  generateCitationInstanceId,
-  generateCitationKey,
-  getCitationDisplayText,
-  getCitationNumber,
-} from "./utils.js";
+import { classNames, generateCitationInstanceId, getCitationDisplayText, getCitationNumber } from "./utils.js";
 
 const TWO_DOTS_THINKING_CONTENT = "..";
 
@@ -120,7 +115,7 @@ export interface CitationVariantProps extends BaseCitationProps {
  * NOTE: Status is not memoized because verification may be mutated in place.
  */
 function useCitationData(citation: Citation, verification?: Verification | null) {
-  const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
+  const citationKey = useMemo(() => getCitationKey(citation), [citation]);
   const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
   // Don't memoize - object reference as dependency causes stale values on mutation
   const status = getCitationStatus(verification ?? null);

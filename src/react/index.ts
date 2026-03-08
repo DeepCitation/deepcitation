@@ -11,7 +11,7 @@
  * @packageDocumentation
  */
 
-// Utilities - For generating citation keys and display text
+// Utilities - For type guards and display text
 export { isDocumentCitation, isUrlCitation } from "../types/citation.js";
 // Components
 // URL Citation Component - For displaying URL citations
@@ -272,7 +272,6 @@ export {
   CITATION_Y_PADDING,
   classNames,
   generateCitationInstanceId,
-  generateCitationKey,
   getCitationAnchorText,
   getCitationDisplayText,
   getCitationNumber,

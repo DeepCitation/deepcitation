@@ -18,10 +18,11 @@ import { getCitationStatus } from "../parsing/parseCitation.js";
 import type { CitationStatus, Citation as CitationType } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import { MISS_WAVY_UNDERLINE_STYLE, TAP_SLOP_PX } from "./constants.js";
 import { useTranslation } from "./i18n.js";
 import { CitationContext, type CitationContextValue, useCitationContext } from "./useCitationContext.js";
-import { classNames, generateCitationInstanceId, generateCitationKey } from "./utils.js";
+import { classNames, generateCitationInstanceId } from "./utils.js";
 
 export interface CitationRootProps {
   citation: CitationType;
@@ -37,7 +38,7 @@ export const CitationRoot = forwardRef<HTMLSpanElement, CitationRootProps & HTML
     { citation, verification = null, children, fallbackDisplay = null, pendingContent = "..", className, ...props },
     ref,
   ) => {
-    const citationKey = useMemo(() => generateCitationKey(citation), [citation]);
+    const citationKey = useMemo(() => getCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
     const status = getCitationStatus(verification);
 

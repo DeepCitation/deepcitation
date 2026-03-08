@@ -1,7 +1,7 @@
 import { getCitationStatus } from "../parsing/parseCitation.js";
-import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import { safeReplace } from "../utils/regexSafety.js";
 import {
   getCitationDisplayText,
@@ -143,7 +143,7 @@ export function renderCitationsAsMarkdown(input: string, options: RenderMarkdown
     citationIndex++;
     const attrs = parseCiteAttributes(match);
     const citation = buildCitationFromAttrs(attrs, citationIndex);
-    const citationKey = generateCitationKey(citation);
+    const citationKey = getCitationKey(citation);
     const verification = verifications[citationKey] || null;
     const status = getCitationStatus(verification);
 

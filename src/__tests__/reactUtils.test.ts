@@ -4,13 +4,13 @@ import {
   CITATION_Y_PADDING,
   classNames,
   generateCitationInstanceId,
-  generateCitationKey,
   getCitationAnchorText,
   getCitationDisplayText,
   getCitationNumber,
 } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
+import { getCitationKey } from "../utils/citationKey.js";
 
 describe("react utils", () => {
   const citation: Citation = {
@@ -23,9 +23,9 @@ describe("react utils", () => {
   };
 
   it("generates deterministic keys", () => {
-    const key = generateCitationKey(citation);
+    const key = getCitationKey(citation);
     expect(key).toHaveLength(16);
-    expect(generateCitationKey({ ...citation, anchorText: "$11" })).not.toBe(key);
+    expect(getCitationKey({ ...citation, anchorText: "$11" })).not.toBe(key);
   });
 
   it("creates unique instance ids with a random suffix", () => {
@@ -100,7 +100,7 @@ describe("react utils", () => {
     });
   });
 
-  describe("generateCitationKey with URL citation", () => {
+  describe("getCitationKey with URL citation", () => {
     it("includes URL fields in key generation for URL citation", () => {
       const urlCitation: Citation = {
         type: "url",
@@ -110,7 +110,7 @@ describe("react utils", () => {
         domain: "example.com",
       };
 
-      const key = generateCitationKey(urlCitation);
+      const key = getCitationKey(urlCitation);
       expect(key).toHaveLength(16);
 
       // Different URL should produce different key
@@ -118,7 +118,7 @@ describe("react utils", () => {
         ...urlCitation,
         url: "https://other.com/page",
       };
-      expect(generateCitationKey(differentUrl)).not.toBe(key);
+      expect(getCitationKey(differentUrl)).not.toBe(key);
     });
 
     it("generates same key for identical URL citation", () => {
@@ -129,7 +129,7 @@ describe("react utils", () => {
         title: "Q4 Report",
       };
 
-      expect(generateCitationKey(urlCitation)).toBe(generateCitationKey(urlCitation));
+      expect(getCitationKey(urlCitation)).toBe(getCitationKey(urlCitation));
     });
   });
 });

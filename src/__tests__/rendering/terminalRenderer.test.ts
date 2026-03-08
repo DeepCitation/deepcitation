@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
-import { generateCitationKey } from "../../react/utils.js";
 import { renderCitationsForTerminal } from "../../rendering/terminal/terminalRenderer.js";
 import type { Verification } from "../../types/verification.js";
+import { getCitationKey } from "../../utils/citationKey.js";
 
 // =============================================================================
 // TEST FIXTURES
@@ -94,7 +94,7 @@ describe("renderCitationsForTerminal", () => {
       anchorText: "grew 45%",
       lineIds: [12, 13],
     };
-    const key = generateCitationKey(citation);
+    const key = getCitationKey(citation);
     const output = renderCitationsForTerminal(simpleInput, {
       verifications: { [key]: verifiedVerification },
       color: true,
@@ -111,7 +111,7 @@ describe("renderCitationsForTerminal", () => {
       anchorText: "grew 45%",
       lineIds: [12, 13],
     };
-    const key = generateCitationKey(citation);
+    const key = getCitationKey(citation);
     const output = renderCitationsForTerminal(simpleInput, {
       verifications: { [key]: notFoundVerification },
       color: true,

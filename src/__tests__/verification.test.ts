@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
-import { generateVerificationKey } from "../react/utils.js";
 import type { Verification } from "../types/verification.js";
+import { getVerificationKey } from "../utils/citationKey.js";
 
 describe("verification helpers", () => {
   it("builds deterministic ids from verification attributes", () => {
@@ -13,8 +13,8 @@ describe("verification helpers", () => {
       },
       verifiedMatchSnippet: "snippet",
     };
-    const first = generateVerificationKey(verification);
-    const second = generateVerificationKey(verification);
+    const first = getVerificationKey(verification);
+    const second = getVerificationKey(verification);
     expect(first).toBe(second);
   });
 });

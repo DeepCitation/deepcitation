@@ -36,7 +36,7 @@ This is the question most developers hit first. Here's the complete split:
 | `CitationDrawer` | Client only (`"use client"`) | Interactive drawer with animation |
 | `CitationDrawerTrigger` | Client only (`"use client"`) | Trigger button for the drawer |
 | `parseCitation()` | Either | Pure function, no side effects |
-| `generateCitationKey()` | Either | Pure function, no side effects |
+| `getCitationKey()` | Either | Pure function, no side effects (import from `"deepcitation"`) |
 
 {: .important }
 `DeepCitation` uses your `DEEPCITATION_API_KEY`. Never import it in a file with `"use client"` — the key would be bundled into the browser.
@@ -303,8 +303,8 @@ In your chat message component:
 ```typescript
 "use client";
 
-import { parseCitation, type Citation, type Verification } from "deepcitation";
-import { CitationComponent, generateCitationKey } from "deepcitation/react";
+import { parseCitation, getCitationKey, type Citation, type Verification } from "deepcitation";
+import { CitationComponent } from "deepcitation/react";
 
 // Replace <cite .../> tags in LLM output with CitationComponent
 function renderWithCitations(
@@ -322,7 +322,7 @@ function renderWithCitations(
         }
         try {
           const { citation: parsed } = parseCitation(part);
-          const key = generateCitationKey(parsed);
+          const key = getCitationKey(parsed);
           return (
             <CitationComponent
               key={key}

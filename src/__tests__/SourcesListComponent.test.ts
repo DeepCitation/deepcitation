@@ -1,8 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 import { detectSourceType, getPlatformName, sourceCitationsToListItems } from "../react/SourcesListComponent.utils.js";
-import { generateCitationKey } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
+import { getCitationKey } from "../utils/citationKey.js";
 
 describe("SourcesListComponent utilities", () => {
   describe("detectSourceType", () => {
@@ -231,7 +231,7 @@ describe("SourcesListComponent utilities", () => {
     });
   });
 
-  describe("generateCitationKey with URL citation", () => {
+  describe("getCitationKey with URL citation", () => {
     it("generates deterministic keys for URL citation", () => {
       const urlCitation: Citation = {
         type: "url",
@@ -242,11 +242,11 @@ describe("SourcesListComponent utilities", () => {
         domain: "example.com",
       };
 
-      const key = generateCitationKey(urlCitation);
+      const key = getCitationKey(urlCitation);
       expect(key).toHaveLength(16);
 
       // Same citation should produce same key
-      const key2 = generateCitationKey(urlCitation);
+      const key2 = getCitationKey(urlCitation);
       expect(key2).toBe(key);
     });
 
@@ -262,7 +262,7 @@ describe("SourcesListComponent utilities", () => {
         url: "https://example.com/page2",
       };
 
-      expect(generateCitationKey(citation1)).not.toBe(generateCitationKey(citation2));
+      expect(getCitationKey(citation1)).not.toBe(getCitationKey(citation2));
     });
 
     it("produces different keys for different titles", () => {
@@ -279,7 +279,7 @@ describe("SourcesListComponent utilities", () => {
         title: "Title 2",
       };
 
-      expect(generateCitationKey(citation1)).not.toBe(generateCitationKey(citation2));
+      expect(getCitationKey(citation1)).not.toBe(getCitationKey(citation2));
     });
 
     it("works with regular Citation (no URL fields)", () => {
@@ -290,7 +290,7 @@ describe("SourcesListComponent utilities", () => {
         anchorText: "$10",
       };
 
-      const key = generateCitationKey(citation);
+      const key = getCitationKey(citation);
       expect(key).toHaveLength(16);
     });
 
@@ -309,8 +309,8 @@ describe("SourcesListComponent utilities", () => {
       };
 
       // Both should generate the same key when URL citation has no URL
-      const key1 = generateCitationKey(baseCitation);
-      const key2 = generateCitationKey(urlCitationNoUrl);
+      const key1 = getCitationKey(baseCitation);
+      const key2 = getCitationKey(urlCitationNoUrl);
       expect(key1).toBe(key2);
     });
   });

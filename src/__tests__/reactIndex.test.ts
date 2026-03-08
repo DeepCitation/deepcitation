@@ -8,7 +8,6 @@ import {
   extractDomain,
   generateCitationInstanceId,
   // Utilities
-  generateCitationKey,
   getCitationAnchorText,
   getCitationDisplayText,
   getPlatformName,
@@ -24,10 +23,11 @@ import {
   sourceCitationsToListItems,
   useSourcesList,
 } from "../react/index.js";
+import { getCitationKey } from "../utils/citationKey.js";
 
 describe("react index exports", () => {
   it("exports utility functions", () => {
-    expect(typeof generateCitationKey).toBe("function");
+    expect(typeof getCitationKey).toBe("function");
     expect(typeof generateCitationInstanceId).toBe("function");
     expect(typeof getCitationDisplayText).toBe("function");
     expect(typeof getCitationAnchorText).toBe("function");

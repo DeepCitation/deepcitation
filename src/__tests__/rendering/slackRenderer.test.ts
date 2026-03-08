@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
-import { generateCitationKey } from "../../react/utils.js";
 import { renderCitationsForSlack } from "../../rendering/slack/slackRenderer.js";
 import type { Verification } from "../../types/verification.js";
+import { getCitationKey } from "../../utils/citationKey.js";
 
 // =============================================================================
 // TEST FIXTURES
@@ -97,7 +97,7 @@ describe("renderCitationsForSlack", () => {
       anchorText: "grew 45%",
       lineIds: [12, 13],
     };
-    const key = generateCitationKey(citation);
+    const key = getCitationKey(citation);
     const output = renderCitationsForSlack(simpleInput, {
       verifications: { [key]: verifiedVerification },
     });
@@ -112,7 +112,7 @@ describe("renderCitationsForSlack", () => {
       anchorText: "grew 45%",
       lineIds: [12, 13],
     };
-    const key = generateCitationKey(citation);
+    const key = getCitationKey(citation);
     const output = renderCitationsForSlack(simpleInput, {
       verifications: { [key]: notFoundVerification },
     });

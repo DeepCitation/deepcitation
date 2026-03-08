@@ -338,7 +338,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
       description: "Array of line IDs for the citation",
     },
   },
-  required: ["id", "attachment_id", "full_phrase", "anchor_text"],
+  required: ["id", "attachment_id", "full_phrase", "anchor_text", "page_id", "line_ids"],
 } as const;
 
 /**

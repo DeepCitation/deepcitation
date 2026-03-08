@@ -107,7 +107,7 @@ function sha1(message: Uint8Array): string {
 
 /**
  * Computes a SHA-1 hash of the provided data.
- * Used internally by generateCitationKey in react/utils.ts
+ * Used internally by getCitationKey in utils/citationKey.ts
  */
 export function sha1Hash(data: unknown): string {
   try {

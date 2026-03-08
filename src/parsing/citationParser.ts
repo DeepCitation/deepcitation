@@ -20,8 +20,8 @@ import {
   type CompactCitationData,
   type ParsedCitationResponse,
 } from "../prompts/citationPrompts.js";
-import { generateCitationKey } from "../react/utils.js";
 import type { AudioVideoCitation, Citation } from "../types/citation.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
 
 /**
@@ -462,7 +462,7 @@ export function getAllCitationsFromDeferredResponse(llmResponse: string): {
   for (const data of parsed.citations) {
     const citation = deferredCitationToCitation(data);
     if (citation.fullPhrase) {
-      const citationKey = generateCitationKey(citation);
+      const citationKey = getCitationKey(citation);
       citations[citationKey] = citation;
     }
   }

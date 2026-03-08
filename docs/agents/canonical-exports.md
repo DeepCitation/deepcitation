@@ -7,7 +7,7 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | Symbol | Canonical file | Notes |
 |--------|---------------|-------|
 | `getCitationStatus()` | `src/parsing/parseCitation.ts` | Status computation |
-| `generateCitationKey()` | `src/react/utils.ts` | Key generation |
+| `getCitationKey()` | `src/utils/citationKey.ts` | Key generation |
 | `getIndicator()` | `src/markdown/markdownVariants.ts` | Status → indicator char |
 | `INDICATOR_SETS` | `src/markdown/types.ts` | Indicator character sets |
 | `SUPERSCRIPT_DIGITS` | `src/markdown/types.ts` | Unicode superscript chars |
@@ -126,6 +126,6 @@ export const BROKEN_WAVY_UNDERLINE_STYLE = MISS_WAVY_UNDERLINE_STYLE; // ❌ DO 
 
 // CORRECT — import directly from canonical location
 import { getCitationStatus } from "../../parsing/parseCitation.js"; // ✓
-import { generateCitationKey } from "../../react/utils.js";         // ✓
+import { getCitationKey } from "../../utils/citationKey.js";          // ✓
 import { getIndicator } from "../../markdown/markdownVariants.js";   // ✓
 ```
