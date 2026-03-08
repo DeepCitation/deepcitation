@@ -9,6 +9,7 @@ import {
   replaceDeferredMarkers,
 } from "../parsing/citationParser.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
+import { getCitationKey } from "../utils/citationKey.js";
 
 describe("parseDeferredCitationResponse", () => {
   it("parses a basic deferred citation response", () => {
@@ -1126,5 +1127,120 @@ ${CITATION_DATA_END_DELIMITER}`;
     expect(result.citations.length).toBe(1);
     expect(result.citations[0].full_phrase).toBe("Cardiac cath showing ↑ pulm HTN, low CI");
     expect(result.citations[0].anchor_text).toBe("↑ pulm HTN");
+  });
+});
+
+describe("replaceDeferredMarkers with verifications", () => {
+  const makeVerification = (status: string, citationNumber: number) => ({
+    status,
+    citation: {
+      type: "document" as const,
+      citationNumber,
+      fullPhrase: `phrase ${citationNumber}`,
+      attachmentId: "doc",
+    },
+  });
+
+  it("appends verification indicators to markers", () => {
+    const text = "Revenue grew [1] in Q4 [2].";
+    const verifications = {
+      key1: makeVerification("found", 1),
+      key2: makeVerification("not_found", 2),
+    };
+
+    const result = replaceDeferredMarkers(text, {
+      verifications,
+      showVerificationStatus: true,
+    });
+    expect(result).toBe("Revenue grew [1☑️] in Q4 [2❌].");
+  });
+
+  it("shows pending indicator for missing verifications", () => {
+    const text = "Test [1] and [2].";
+    const verifications = {
+      key1: makeVerification("found", 1),
+    };
+
+    const result = replaceDeferredMarkers(text, {
+      verifications,
+      showVerificationStatus: true,
+    });
+    expect(result).toBe("Test [1☑️] and [2⌛].");
+  });
+
+  it("shows partial match indicator", () => {
+    const text = "Test [1].";
+    const verifications = {
+      key1: makeVerification("found_on_other_page", 1),
+    };
+
+    const result = replaceDeferredMarkers(text, {
+      verifications,
+      showVerificationStatus: true,
+    });
+    expect(result).toBe("Test [1✅].");
+  });
+
+  it("shows pending indicator for pending status", () => {
+    const text = "Test [1].";
+    const verifications = {
+      key1: makeVerification("pending", 1),
+    };
+
+    const result = replaceDeferredMarkers(text, {
+      verifications,
+      showVerificationStatus: true,
+    });
+    expect(result).toBe("Test [1⌛].");
+  });
+
+  it("custom replacer takes precedence over showVerificationStatus", () => {
+    const text = "Test [1].";
+    const verifications = {
+      key1: makeVerification("found", 1),
+    };
+
+    const result = replaceDeferredMarkers(text, {
+      verifications,
+      showVerificationStatus: true,
+      replacer: id => `(ref${id})`,
+    });
+    expect(result).toBe("Test (ref1).");
+  });
+
+  it("resolves via citationMap key lookup when available", () => {
+    const text = "Test [1].";
+    const citationMap = new Map([
+      [1, { id: 1, attachment_id: "doc", full_phrase: "phrase one", anchor_text: "one", page_id: "1_0" }],
+    ]);
+
+    // Key is generated from the citation data
+    const citation = deferredCitationToCitation(citationMap.get(1)!, 1);
+    const key = getCitationKey(citation);
+
+    const verifications = {
+      [key]: makeVerification("found", 1),
+    };
+
+    const result = replaceDeferredMarkers(text, {
+      citationMap,
+      verifications,
+      showVerificationStatus: true,
+    });
+    expect(result).toBe("Test [1☑️].");
+  });
+
+  it("does nothing when showVerificationStatus is false", () => {
+    const text = "Test [1].";
+    const verifications = {
+      key1: makeVerification("found", 1),
+    };
+
+    const result = replaceDeferredMarkers(text, {
+      verifications,
+      showVerificationStatus: false,
+    });
+    // Default behavior: remove markers
+    expect(result).toBe("Test .");
   });
 });
