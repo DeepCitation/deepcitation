@@ -408,8 +408,7 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - Verification image display with popover
 
 [Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/deepcitation/deepcitation/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/deepcitation/deepcitation/compare/v0.1.0...v0.1.1
+[0.2.0]: https://github.com/deepcitation/deepcitation/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/deepcitation/deepcitation/compare/v1.1.53...v0.1.0
 [1.1.53]: https://github.com/deepcitation/deepcitation/compare/v1.1.52...v1.1.53
 [1.1.52]: https://github.com/deepcitation/deepcitation/compare/v1.1.51...v1.1.52
