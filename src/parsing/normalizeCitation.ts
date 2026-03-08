@@ -1,6 +1,7 @@
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { resolveFieldNameSnake } from "../utils/fieldAliases.js";
 import { createSafeObject, safeAssign } from "../utils/objectSafety.js";
 import { validateRegexInput } from "../utils/regexSafety.js";
 import { getCitationStatus } from "./parseCitation.js";
@@ -17,29 +18,12 @@ const PAGE_NUMBER_REGEX = /page[_a-zA-Z]*(\d+)/;
  */
 const RANGE_EXPANSION_REGEX = /(\d+)-(\d+)/g;
 
-const CITE_ATTRIBUTE_KEY_ALIASES: Record<string, string> = {
-  attachmentid: "attachment_id",
-  fileid: "attachment_id",
-  file_id: "attachment_id",
-  fullphrase: "full_phrase",
-  lineids: "line_ids",
-  pageid: "start_page_id",
-  page_id: "start_page_id",
-  pagekey: "start_page_id",
-  page_key: "start_page_id",
-  startpageid: "start_page_id",
-  start_pageid: "start_page_id",
-  startpagekey: "start_page_id",
-  start_pagekey: "start_page_id",
-  start_page_key: "start_page_id",
-  anchortext: "anchor_text",
-  keyspan: "anchor_text",
-  key_span: "anchor_text",
-  timestamp: "timestamps",
-};
-
+/**
+ * Canonicalize cite tag attribute keys to their snake_case standard form.
+ * Delegates to the centralized field alias map in utils/fieldAliases.ts.
+ */
 function canonicalizeAttributeAlias(key: string): string {
-  return CITE_ATTRIBUTE_KEY_ALIASES[key] ?? key;
+  return resolveFieldNameSnake(key);
 }
 
 export interface ReplaceCitationsOptions {

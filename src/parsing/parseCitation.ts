@@ -8,6 +8,7 @@ import type {
 } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { getFieldAliases, resolveField } from "../utils/fieldAliases.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
 import { safeMatch } from "../utils/regexSafety.js";
 import { getAllCitationsFromDeferredResponse, hasDeferredCitations } from "./citationParser.js";
@@ -222,16 +223,11 @@ export const parseCitation = (
   };
 
   // Extract all attributes by name (order-independent)
-  const rawAttachmentId = extractAttribute(middleCite, ["attachment_id", "attachmentId", "file_id", "fileId"]);
+  // Alias lists are derived from the centralized field alias map (utils/fieldAliases.ts)
+  const rawAttachmentId = extractAttribute(middleCite, getFieldAliases("attachmentId"));
   const attachmentId = rawAttachmentId?.length === 20 ? rawAttachmentId : mdAttachmentId || rawAttachmentId;
 
-  const startPageIdRaw = extractAttribute(middleCite, [
-    "start_page_id",
-    "startPageId",
-    "start_page_key",
-    "startPageKey",
-    "start_page",
-  ]);
+  const startPageIdRaw = extractAttribute(middleCite, getFieldAliases("startPageId"));
   let pageNumber: number | undefined;
   let pageIndex: number | undefined;
   if (startPageIdRaw) {
@@ -244,16 +240,16 @@ export const parseCitation = (
   }
 
   // Use helper to handle escaped quotes inside the phrase
-  const fullPhrase = cleanAndUnescape(extractAttribute(middleCite, ["full_phrase", "fullPhrase"]));
+  const fullPhrase = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("fullPhrase")));
   const anchorText = cleanAndUnescape(
-    extractAttribute(middleCite, ["anchor_text", "anchorText", "key_span", "keySpan"]),
+    extractAttribute(middleCite, getFieldAliases("anchorText")),
   );
-  const reasoning = cleanAndUnescape(extractAttribute(middleCite, ["reasoning"]));
-  const value = cleanAndUnescape(extractAttribute(middleCite, ["value"]));
+  const reasoning = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("reasoning")));
+  const value = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("value")));
 
   let lineIds: number[] | undefined;
   try {
-    const lineIdsRaw = extractAttribute(middleCite, ["line_ids", "lineIds"]);
+    const lineIdsRaw = extractAttribute(middleCite, getFieldAliases("lineIds"));
     const lineIdsString = lineIdsRaw?.replace(/[A-Za-z_[\](){}:]/g, "");
     lineIds = lineIdsString ? parseLineIds(lineIdsString) : undefined;
   } catch (e) {
@@ -261,12 +257,12 @@ export const parseCitation = (
   }
 
   // Extract URL-specific attributes
-  const url = cleanAndUnescape(extractAttribute(middleCite, ["url"]));
-  const domain = cleanAndUnescape(extractAttribute(middleCite, ["domain"]));
-  const title = cleanAndUnescape(extractAttribute(middleCite, ["title"]));
-  const description = cleanAndUnescape(extractAttribute(middleCite, ["description"]));
-  const siteName = cleanAndUnescape(extractAttribute(middleCite, ["site_name", "siteName"]));
-  const faviconUrl = cleanAndUnescape(extractAttribute(middleCite, ["favicon_url", "faviconUrl"]));
+  const url = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("url")));
+  const domain = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("domain")));
+  const title = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("title")));
+  const description = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("description")));
+  const siteName = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("siteName")));
+  const faviconUrl = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("faviconUrl")));
 
   // Determine citation type: URL citation if url is present and no attachmentId
   const citation: Citation =
@@ -318,26 +314,27 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
   // Type assertion after runtime check - we've verified it's an object
   const obj = jsonCitation as Record<string, unknown>;
 
-  // Support both camelCase and snake_case property names (with backward compatibility)
-  const fullPhraseValue = obj.fullPhrase ?? obj.full_phrase;
+  // Resolve field names using centralized alias map (handles camelCase, snake_case,
+  // kebab-case, and shortened LLM variants like "anchor" → anchorText)
+  const fullPhraseValue = resolveField(obj, "fullPhrase");
   const fullPhrase = typeof fullPhraseValue === "string" ? fullPhraseValue : undefined;
 
-  const startPageIdValue = obj.startPageId ?? obj.start_page_id ?? obj.startPageKey ?? obj.start_page_key;
+  const startPageIdValue = resolveField(obj, "startPageId");
   const startPageId = typeof startPageIdValue === "string" ? startPageIdValue : undefined;
 
-  const anchorTextValue = obj.anchorText ?? obj.anchor_text ?? obj.keySpan ?? obj.key_span;
+  const anchorTextValue = resolveField(obj, "anchorText");
   const anchorText = typeof anchorTextValue === "string" ? anchorTextValue : undefined;
 
-  const rawLineIdsValue = obj.lineIds ?? obj.line_ids;
+  const rawLineIdsValue = resolveField(obj, "lineIds");
   const rawLineIds = Array.isArray(rawLineIdsValue) ? rawLineIdsValue : undefined;
 
-  const attachmentIdValue = obj.attachmentId ?? obj.attachment_id ?? obj.fileId ?? obj.file_id;
+  const attachmentIdValue = resolveField(obj, "attachmentId");
   const attachmentId = typeof attachmentIdValue === "string" ? attachmentIdValue : undefined;
 
-  const reasoningValue = obj.reasoning;
+  const reasoningValue = resolveField(obj, "reasoning");
   const reasoning = typeof reasoningValue === "string" ? reasoningValue : undefined;
 
-  const valueValue = obj.value;
+  const valueValue = resolveField(obj, "value");
   const value = typeof valueValue === "string" ? valueValue : undefined;
 
   if (!fullPhrase) {
@@ -365,18 +362,18 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
   // Sort lineIds if present
   const lineIds = rawLineIds?.length ? [...rawLineIds].sort((a: number, b: number) => a - b) : undefined;
 
-  // Extract URL-specific fields
-  const urlValue = obj.url ?? obj.URL;
+  // Extract URL-specific fields via centralized alias resolution
+  const urlValue = resolveField(obj, "url");
   const url = typeof urlValue === "string" ? urlValue : undefined;
-  const domainValue = obj.domain;
+  const domainValue = resolveField(obj, "domain");
   const domain = typeof domainValue === "string" ? domainValue : undefined;
-  const titleValue = obj.title;
+  const titleValue = resolveField(obj, "title");
   const title = typeof titleValue === "string" ? titleValue : undefined;
-  const descriptionValue = obj.description;
+  const descriptionValue = resolveField(obj, "description");
   const description = typeof descriptionValue === "string" ? descriptionValue : undefined;
-  const siteNameValue = obj.siteName ?? obj.site_name;
+  const siteNameValue = resolveField(obj, "siteName");
   const siteName = typeof siteNameValue === "string" ? siteNameValue : undefined;
-  const faviconUrlValue = obj.faviconUrl ?? obj.favicon_url;
+  const faviconUrlValue = resolveField(obj, "faviconUrl");
   const faviconUrl = typeof faviconUrlValue === "string" ? faviconUrlValue : undefined;
 
   // Determine citation type: URL citation if url is present and no attachmentId
@@ -412,25 +409,36 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
 };
 
 /**
- * Checks if an object has citation-like properties (camelCase or snake_case).
+ * All known aliases for detection-relevant citation fields.
+ * Built once at module load from the centralized alias map.
  */
-const hasCitationProperties = (item: unknown): boolean =>
-  typeof item === "object" &&
-  item !== null &&
-  ("fullPhrase" in item ||
-    "full_phrase" in item ||
-    "startPageId" in item ||
-    "start_page_id" in item ||
-    "startPageKey" in item ||
-    "start_page_key" in item ||
-    "anchorText" in item ||
-    "anchor_text" in item ||
-    "keySpan" in item ||
-    "key_span" in item ||
-    "lineIds" in item ||
-    "line_ids" in item ||
-    // URL citation properties (fullPhrase + url = URL citation)
-    (("url" in item || "URL" in item) && ("fullPhrase" in item || "full_phrase" in item)));
+const CITATION_DETECT_KEYS = new Set([
+  ...getFieldAliases("fullPhrase"),
+  ...getFieldAliases("startPageId"),
+  ...getFieldAliases("anchorText"),
+  ...getFieldAliases("lineIds"),
+]);
+
+const URL_DETECT_KEYS = new Set(getFieldAliases("url"));
+const PHRASE_DETECT_KEYS = new Set(getFieldAliases("fullPhrase"));
+
+/**
+ * Checks if an object has citation-like properties.
+ * Handles camelCase, snake_case, kebab-case, and shortened LLM variants.
+ */
+const hasCitationProperties = (item: unknown): boolean => {
+  if (typeof item !== "object" || item === null) return false;
+  const keys = Object.keys(item);
+
+  // Check if any key matches a known citation field alias
+  const hasCitationKey = keys.some(k => CITATION_DETECT_KEYS.has(k));
+  if (hasCitationKey) return true;
+
+  // URL citation: needs both a URL alias and a fullPhrase alias
+  const hasUrl = keys.some(k => URL_DETECT_KEYS.has(k));
+  const hasPhrase = keys.some(k => PHRASE_DETECT_KEYS.has(k));
+  return hasUrl && hasPhrase;
+};
 
 /**
  * Checks if the input appears to be JSON-based citations.

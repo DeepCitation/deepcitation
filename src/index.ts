@@ -166,6 +166,13 @@ export type {
   Verification,
 } from "./types/verification.js";
 export { getCitationKey, getVerificationKey } from "./utils/citationKey.js";
+export {
+  getFieldAliases,
+  normalizeCitationFields,
+  resolveField,
+  resolveFieldName,
+  resolveFieldNameSnake,
+} from "./utils/fieldAliases.js";
 // File validation
 export {
   ALLOWED_UPLOAD_MIME_TYPES,
