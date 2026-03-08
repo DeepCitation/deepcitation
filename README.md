@@ -24,6 +24,8 @@ Show proof for every AI citation.
 
 </div>
 
+![DeepCitation demo](https://raw.githubusercontent.com/DeepCitation/deepcitation/main/examples/assets/deepcitation-demo.avif)
+
 We believe AI citations should follow **show, don't tell**; they should prove their citations so you don't have to blindly chase them down yourself. DeepCitation replaces 'trust me' citations with a deterministic verification layer.
 
 DeepCitation turns model citations into deterministic, inspectable proof.
