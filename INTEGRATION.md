@@ -502,7 +502,8 @@ See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) and [`examples/agui-ch
 
 | Display Path | Function / Import | Use Case |
 |-------------|-------------------|----------|
-| **Text with indicators** | `replaceCitations(visibleText, { verifications })` | Non-React apps, plain text |
+| **Text with indicators** | `replaceCitations(visibleText, { verifications })` | Non-React apps, plain text (inline `<cite>` format) |
+| **Deferred markers with indicators** | `replaceDeferredMarkers(text, { verifications, showVerificationStatus: true })` | Non-React apps, `[N]` marker format |
 | **Rich Markdown** | `renderCitationsAsMarkdown(llmOutput, verifications)` | Markdown renderers |
 | **Slack** | `import { renderCitationsForSlack } from "deepcitation/slack"` | Slack bot output |
 | **GitHub** | `import { renderCitationsForGitHub } from "deepcitation/github"` | GitHub comments/PRs |
@@ -510,6 +511,25 @@ See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) and [`examples/agui-ch
 | **Terminal** | `import { renderCitationsForTerminal } from "deepcitation/terminal"` | CLI tools |
 
 All renderers accept `(llmOutput, verifications, options?)` and return formatted strings.
+
+#### Deferred markers with verification (OpenAI example)
+
+```typescript
+import { extractVisibleText, getAllCitationsFromLlmOutput, replaceDeferredMarkers } from "deepcitation";
+
+// After streaming the LLM response:
+const citations = getAllCitationsFromLlmOutput(llmResponse);
+const visibleText = extractVisibleText(llmResponse);
+const { verifications } = await deepcitation.verifyAttachment(attachmentId, citations);
+
+// Display with verification indicators: [1☑️] [2❌] [3✅]
+const display = replaceDeferredMarkers(visibleText, {
+  verifications,
+  showVerificationStatus: true,
+});
+```
+
+See [`examples/basic-verification/`](./examples/basic-verification) for a complete working example with OpenAI, Anthropic, and Google providers.
 
 ---
 
