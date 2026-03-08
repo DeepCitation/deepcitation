@@ -1,11 +1,15 @@
 "use client";
 
-import { extractVisibleText, replaceCitations, type Citation, parseCitation, type Verification } from "deepcitation";
+import {
+  getCitationKey,
+  type Citation,
+  parseCitation,
+  type Verification,
+} from "deepcitation";
 import {
   CitationComponent,
   CitationDrawer,
   CitationDrawerTrigger,
-  getCitationKey,
   groupCitationsBySource,
   type CitationDrawerItem,
 } from "deepcitation/react";
@@ -41,13 +45,7 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const processedContent = useMemo(() => {
-    const visibleText = extractVisibleText(message.content);
-    const displayText = replaceCitations(visibleText, {
-      leaveAnchorTextBehind: true,
-      verifications: verifications ?? {},
-      showVerificationStatus: true,
-    });
-    return processContentWithCitations(displayText, citations ?? {}, verifications ?? {});
+    return processContentWithCitations(message.content, citations ?? {}, verifications ?? {});
   }, [message.content, citations, verifications]);
 
   const citationGroups = useMemo(() => {

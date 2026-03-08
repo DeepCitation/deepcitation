@@ -18,7 +18,6 @@ import {
   getVerificationTextIndicator,
   sanitizeForLog,
   wrapCitationPrompt,
-  type FileDataPart,
 } from "deepcitation";
 import { EventEncoder } from "@ag-ui/encoder";
 import OpenAI from "openai";
@@ -53,6 +52,11 @@ const dc = dcApiKey ? new DeepCitation({ apiKey: dcApiKey }) : null;
 const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 
 const textEncoder = new TextEncoder();
+
+interface FileDataPart {
+  attachmentId: string;
+  filename?: string;
+}
 
 export const maxDuration = 120; // LLM streaming + verification can exceed default timeout
 

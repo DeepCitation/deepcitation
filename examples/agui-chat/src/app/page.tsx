@@ -1,12 +1,16 @@
 "use client";
 
-import type { FileDataPart } from "deepcitation";
 import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { FileUpload } from "@/components/FileUpload";
 import { VerificationPanel } from "@/components/VerificationPanel";
 import { useAgentChat } from "@/hooks/useAgentChat";
 import { toDrawerItems } from "@/utils/citationDrawerAdapter";
+
+interface FileDataPart {
+  attachmentId: string;
+  filename?: string;
+}
 
 export default function Home() {
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
