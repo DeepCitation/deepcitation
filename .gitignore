@@ -36,3 +36,7 @@ examples/**/next-env.d.ts
 firebase-debug.log
 
 ag-ui-client*
+**/bun.lock
+**/package-lock.json
+**/node_modules
+**/scratch/
