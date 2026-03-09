@@ -220,19 +220,7 @@ export interface BaseCitationProps {
   content?: CitationContent;
   /** Fallback display text when citation anchorText is empty */
   fallbackDisplay?: string | null;
-  /**
-   * Enable admin/read-only mode for this citation.
-   *
-   * When `true`, suppresses telemetry events (`citation_seen`, `evidence_ready`,
-   * `popover_opened`, `popover_closed`, `citation_reviewed`) and disables automatic
-   * image prefetching. Use this for admin dashboards where viewing citations should
-   * not inflate usage metrics.
-   *
-   * Can also be set via `DeepCitationAdminProvider` for all child components.
-   * This prop takes precedence over the context provider.
-   *
-   * @default false
-   */
+  /** Suppress telemetry and image prefetch. Prop overrides `DeepCitationAdminProvider`. */
   adminMode?: boolean;
   /**
    * Override label for the source displayed in popovers/headers.
