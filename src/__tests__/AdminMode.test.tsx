@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
 import { act, cleanup, render } from "@testing-library/react";
 import type React from "react";
-import { DeepCitationAdminProvider } from "../react/AdminModeContext";
 import { CitationComponent } from "../react/Citation";
 import type { Citation } from "../types/citation";
 
-// Mock createPortal (same pattern as CitationComponentBehavior.test.tsx)
 const _realReactDom = require("react-dom");
 const _mockedReactDom = { ..._realReactDom, createPortal: (node: React.ReactNode) => node };
 mock.module("react-dom", () => ({ ..._mockedReactDom, default: _mockedReactDom }));
@@ -22,98 +20,78 @@ const foundVerification = {
   status: "found" as const,
 };
 
-describe("Admin mode", () => {
+describe("disableTelemetry and prefetch props", () => {
   afterEach(() => {
     cleanup();
   });
 
-  describe("telemetry suppression via adminMode prop", () => {
-    it("fires timing events in normal mode", async () => {
-      const onTimingEvent = jest.fn();
-      render(
-        <CitationComponent citation={baseCitation} verification={foundVerification} onTimingEvent={onTimingEvent} />,
-      );
-      // Wait for effects
-      await act(async () => {});
+  it("fires timing events by default", async () => {
+    const onTimingEvent = jest.fn();
+    render(
+      <CitationComponent citation={baseCitation} verification={foundVerification} onTimingEvent={onTimingEvent} />,
+    );
+    await act(async () => {});
 
-      expect(onTimingEvent).toHaveBeenCalled();
-      const events = onTimingEvent.mock.calls.map(c => (c[0] as { event: string }).event);
-      expect(events).toContain("citation_seen");
-      expect(events).toContain("evidence_ready");
-    });
-
-    it("suppresses timing events with adminMode prop", async () => {
-      const onTimingEvent = jest.fn();
-      render(
-        <CitationComponent
-          citation={baseCitation}
-          verification={foundVerification}
-          onTimingEvent={onTimingEvent}
-          adminMode={true}
-        />,
-      );
-      await act(async () => {});
-
-      expect(onTimingEvent).not.toHaveBeenCalled();
-    });
+    const events = onTimingEvent.mock.calls.map(c => (c[0] as { event: string }).event);
+    expect(events).toContain("citation_seen");
+    expect(events).toContain("evidence_ready");
   });
 
-  describe("telemetry suppression via DeepCitationAdminProvider", () => {
-    it("suppresses timing events when wrapped in provider", async () => {
-      const onTimingEvent = jest.fn();
-      render(
-        <DeepCitationAdminProvider>
-          <CitationComponent citation={baseCitation} verification={foundVerification} onTimingEvent={onTimingEvent} />
-        </DeepCitationAdminProvider>,
-      );
-      await act(async () => {});
+  it("suppresses timing events when disableTelemetry is true", async () => {
+    const onTimingEvent = jest.fn();
+    render(
+      <CitationComponent
+        citation={baseCitation}
+        verification={foundVerification}
+        onTimingEvent={onTimingEvent}
+        disableTelemetry={true}
+      />,
+    );
+    await act(async () => {});
 
-      expect(onTimingEvent).not.toHaveBeenCalled();
-    });
-
-    it("allows prop override: adminMode={false} inside provider fires events", async () => {
-      const onTimingEvent = jest.fn();
-      render(
-        <DeepCitationAdminProvider>
-          <CitationComponent
-            citation={baseCitation}
-            verification={foundVerification}
-            onTimingEvent={onTimingEvent}
-            adminMode={false}
-          />
-        </DeepCitationAdminProvider>,
-      );
-      await act(async () => {});
-
-      expect(onTimingEvent).toHaveBeenCalled();
-      const events = onTimingEvent.mock.calls.map(c => (c[0] as { event: string }).event);
-      expect(events).toContain("citation_seen");
-    });
+    expect(onTimingEvent).not.toHaveBeenCalled();
   });
 
-  describe("image prefetch suppression", () => {
-    it("does not create prefetch images in admin mode", async () => {
-      const originalImage = globalThis.Image;
-      const imageInstances: Array<{ src: string }> = [];
-      // @ts-expect-error — minimal Image mock
-      globalThis.Image = class {
-        src = "";
-        constructor() {
-          imageInstances.push(this);
-        }
-        set fetchPriority(_v: string) {}
-      };
-
-      try {
-        render(<CitationComponent citation={baseCitation} verification={foundVerification} adminMode={true} />);
-        await act(async () => {});
-
-        // No Image instances should have the evidence src
-        const prefetched = imageInstances.filter(img => img.src === "https://example.com/image.png");
-        expect(prefetched).toHaveLength(0);
-      } finally {
-        globalThis.Image = originalImage;
+  it("skips prefetch when prefetch is lazy", async () => {
+    const originalImage = globalThis.Image;
+    const srcsRequested: string[] = [];
+    // @ts-expect-error — minimal Image mock
+    globalThis.Image = class {
+      _src = "";
+      get src() {
+        return this._src;
       }
-    });
+      set src(v: string) {
+        this._src = v;
+        srcsRequested.push(v);
+      }
+      set fetchPriority(_v: string) {}
+    };
+
+    try {
+      render(<CitationComponent citation={baseCitation} verification={foundVerification} prefetch="lazy" />);
+      await act(async () => {});
+
+      expect(srcsRequested).not.toContain("https://example.com/image.png");
+    } finally {
+      globalThis.Image = originalImage;
+    }
+  });
+
+  it("disableTelemetry and prefetch are independent", async () => {
+    const onTimingEvent = jest.fn();
+    render(
+      <CitationComponent
+        citation={baseCitation}
+        verification={foundVerification}
+        onTimingEvent={onTimingEvent}
+        disableTelemetry={true}
+        prefetch="eager"
+      />,
+    );
+    await act(async () => {});
+
+    // Telemetry suppressed even with eager prefetch
+    expect(onTimingEvent).not.toHaveBeenCalled();
   });
 });

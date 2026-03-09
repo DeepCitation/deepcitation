@@ -13,7 +13,6 @@
 
 // Utilities - For type guards and display text
 export { isDocumentCitation, isUrlCitation } from "../types/citation.js";
-export { DeepCitationAdminProvider } from "./AdminModeContext.js";
 // Components
 // URL Citation Component - For displaying URL citations
 export {
