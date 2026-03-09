@@ -771,7 +771,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Track popover open/close for TtC telemetry events
     // biome-ignore lint/correctness/useExhaustiveDependencies: firstSeenAtRef/verification are stable refs or read at call-time — only isHovering transitions should trigger this effect
     useEffect(() => {
-      if (disableTelemetry) return;
+      if (disableTelemetry) {
+        popoverOpenedAtRef.current = null;
+        return;
+      }
       if (isHovering && firstSeenAtRef.current != null) {
         popoverOpenedAtRef.current = performance.now();
         onTimingEventRef.current?.({
