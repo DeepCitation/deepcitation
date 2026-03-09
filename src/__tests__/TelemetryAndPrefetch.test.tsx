@@ -44,7 +44,7 @@ describe("disableTelemetry and prefetch props", () => {
         citation={baseCitation}
         verification={foundVerification}
         onTimingEvent={onTimingEvent}
-        disableTelemetry={true}
+        disableTelemetry
       />,
     );
     await act(async () => {});
@@ -72,7 +72,7 @@ describe("disableTelemetry and prefetch props", () => {
       render(<CitationComponent citation={baseCitation} verification={foundVerification} prefetch="lazy" />);
       await act(async () => {});
 
-      expect(srcsRequested).not.toContain("https://example.com/image.png");
+      expect(srcsRequested).toHaveLength(0);
     } finally {
       globalThis.Image = originalImage;
     }
@@ -85,8 +85,7 @@ describe("disableTelemetry and prefetch props", () => {
         citation={baseCitation}
         verification={foundVerification}
         onTimingEvent={onTimingEvent}
-        disableTelemetry={true}
-        prefetch="eager"
+        disableTelemetry
       />,
     );
     await act(async () => {});
