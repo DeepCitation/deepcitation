@@ -13,6 +13,8 @@
 
 // Utilities - For type guards and display text
 export { isDocumentCitation, isUrlCitation } from "../types/citation.js";
+// Admin Mode (suppress telemetry and prefetch for admin dashboards)
+export { DeepCitationAdminProvider, useAdminMode, useHasAdminModeProvider } from "./AdminModeContext.js";
 // Components
 // URL Citation Component - For displaying URL citations
 export {

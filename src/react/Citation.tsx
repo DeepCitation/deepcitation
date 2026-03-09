@@ -3,6 +3,7 @@ import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, use
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { FileDownload, PageImage, Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { useAdminMode } from "./AdminModeContext.hooks.js";
 import { CitationContentDisplay } from "./CitationContentDisplay.js";
 import {
   getDefaultContent,
@@ -481,6 +482,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       convertedDownload,
       pageImagesByAttachmentId,
       experimentalHaptics = false,
+      adminMode: adminModeProp,
     },
     ref,
   ) => {
@@ -521,6 +523,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // Get overlay context for blocking hover when any image overlay is open
     const { isAnyOverlayOpen } = useCitationOverlay();
+
+    // Admin mode: suppress telemetry and prefetch (prop takes precedence over context)
+    const adminModeContext = useAdminMode();
+    const isAdmin = adminModeProp ?? adminModeContext;
 
     // Auto-detect touch device if isMobile prop not explicitly provided
     const isTouchDevice = useIsTouchDevice();
@@ -750,7 +756,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
 
     // ========== TtC Timing ==========
-    const { firstSeenAtRef } = useCitationTiming(citationKey, verification, onTimingEvent);
+    const { firstSeenAtRef } = useCitationTiming(citationKey, verification, isAdmin ? undefined : onTimingEvent);
     const popoverOpenedAtRef = useRef<number | null>(null);
     const reviewedRef = useRef(false);
 
@@ -763,8 +769,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // ========== Popover Telemetry ==========
     // Track popover open/close for TtC telemetry events
+    // Admin mode: skip all popover telemetry to avoid inflating usage metrics
     // biome-ignore lint/correctness/useExhaustiveDependencies: firstSeenAtRef/verification are stable refs or read at call-time — only isHovering transitions should trigger this effect
     useEffect(() => {
+      if (isAdmin) return;
       if (isHovering && firstSeenAtRef.current != null) {
         popoverOpenedAtRef.current = performance.now();
         onTimingEventRef.current?.({
@@ -803,7 +811,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
         popoverOpenedAtRef.current = null;
       }
-    }, [isHovering, citationKey]);
+    }, [isHovering, citationKey, isAdmin]);
 
     // Derive status from verification object
     const status = useMemo(() => getStatusFromVerification(verification), [verification]);
@@ -842,6 +850,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       [verification, pageImages],
     );
     useEffect(() => {
+      // Admin mode: skip prefetching to avoid unnecessary network requests
+      if (isAdmin) return;
+
       const images: HTMLImageElement[] = [];
 
       if (prefetchEvidenceSrc && !prefetchEvidenceSrc.startsWith("data:")) {
@@ -863,7 +874,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           img.src = "";
         }
       };
-    }, [prefetchEvidenceSrc, prefetchExpandedSrc]);
+    }, [isAdmin, prefetchEvidenceSrc, prefetchExpandedSrc]);
 
     const displayText = useMemo(() => {
       return getDisplayText(citation, resolvedContent, fallbackDisplay);
