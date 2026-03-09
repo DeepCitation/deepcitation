@@ -225,6 +225,50 @@ describe("EvidenceTray interaction styles", () => {
     expect(resolved?.src).toBe(page5Src);
   });
 
+  it("resolveExpandedImageForPage passes document overrides when exact page is the match page", () => {
+    const pageSrc = "https://proof.deepcitation.com/page5.png";
+    const verification = {
+      status: "found",
+      document: {
+        verifiedPageNumber: 5,
+        renderScale: { x: 2, y: 2 },
+        highlightBox: { x: 10, y: 20, width: 100, height: 50 },
+        textItems: [{ text: "hello", x: 10, y: 20, width: 50, height: 12 }],
+      },
+    } as unknown as Verification;
+    const pageImages = [
+      { pageNumber: 5, imageUrl: pageSrc, dimensions: { width: 1000, height: 1400 } },
+    ] as unknown as PageImage[];
+
+    const resolved = resolveExpandedImageForPage(verification, 5, pageImages);
+    expect(resolved?.src).toBe(pageSrc);
+    expect(resolved?.renderScale).toEqual({ x: 2, y: 2 });
+    expect(resolved?.highlightBox).toEqual({ x: 10, y: 20, width: 100, height: 50 });
+  });
+
+  it("resolveExpandedImageForPage does not pass document overrides for non-match pages", () => {
+    const page3Src = "https://proof.deepcitation.com/page3.png";
+    const page5Src = "https://proof.deepcitation.com/page5.png";
+    const verification = {
+      status: "found",
+      document: {
+        verifiedPageNumber: 5,
+        renderScale: { x: 2, y: 2 },
+        highlightBox: { x: 10, y: 20, width: 100, height: 50 },
+      },
+    } as unknown as Verification;
+    const pageImages = [
+      { pageNumber: 3, imageUrl: page3Src, dimensions: { width: 1000, height: 1400 } },
+      { pageNumber: 5, imageUrl: page5Src, dimensions: { width: 1000, height: 1400 } },
+    ] as unknown as PageImage[];
+
+    const resolved = resolveExpandedImageForPage(verification, 3, pageImages);
+    expect(resolved?.src).toBe(page3Src);
+    // Page 3 is NOT the match page — should not inherit verification.document overrides
+    expect(resolved?.renderScale).toBeNull();
+    expect(resolved?.highlightBox).toBeNull();
+  });
+
   it("suppresses keyhole expansion when image is at the 2.0x near-fit threshold", async () => {
     const onImageClick = jest.fn<() => void>();
     const { container } = render(

@@ -1051,8 +1051,7 @@ function OpenCitationDrawer({
     (page: number) => {
       const first = pageToItems.get(page)?.[0] ?? pageToAnyItem.get(page);
       if (first) {
-        const attachmentId = first.verification?.attachmentId;
-        const pageImages = attachmentId ? pageImagesByAttachmentId?.[attachmentId] : undefined;
+        const pageImages = resolvePageImages(first.verification, pageImagesByAttachmentId);
         const expanded = resolveExpandedImageForPage(first.verification, page, pageImages);
         if (expanded) {
           handleInlineExpand(first.citationKey, expanded.src, first.verification, expanded.renderScale, page);
