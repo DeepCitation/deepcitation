@@ -227,6 +227,24 @@ export function resolveEvidenceSrc(verification: Verification | null | undefined
   return isValidProofImageSrc(snippetSrc) ? snippetSrc : null;
 }
 
+/** Check whether a PageImage represents the verification match page. */
+function isMatchPageImage(page: PageImage, verification: Verification | null | undefined): boolean {
+  if (page.isMatchPage) return true;
+  const matchNum = Number(verification?.document?.verifiedPageNumber);
+  return Number.isFinite(matchNum) && page.pageNumber === matchNum;
+}
+
+/** Extract verification.document overrides for toExpandedImageSource (highlightBox, renderScale, textItems). */
+function documentOverrides(doc: Verification["document"]) {
+  return doc
+    ? {
+        highlightBox: doc.highlightBox ?? null,
+        renderScale: doc.renderScale ?? null,
+        textItems: doc.textItems ?? null,
+      }
+    : undefined;
+}
+
 /**
  * Single resolver for the best available full-page image from verification data.
  * Tries in order:
@@ -248,16 +266,15 @@ export function resolveExpandedImage(
 ): ExpandedImageSource | null {
   if (!verification) return null;
 
+  // Two-pass priority: isMatchPage flag always wins over pageNumber match,
+  // regardless of array ordering. A single-pass find(isMatchPageImage) would
+  // pick whichever condition matches first positionally.
   const matchPageNumber = verification.document?.verifiedPageNumber;
   const matchPage =
     pageImages?.find(p => p.isMatchPage) ??
     (matchPageNumber ? pageImages?.find(p => p.pageNumber === matchPageNumber) : undefined);
   if (matchPage?.imageUrl && isValidProofImageSrc(matchPage.imageUrl)) {
-    return toExpandedImageSource(matchPage, {
-      highlightBox: verification.document?.highlightBox ?? null,
-      renderScale: verification.document?.renderScale ?? null,
-      textItems: verification.document?.textItems ?? null,
-    });
+    return toExpandedImageSource(matchPage, documentOverrides(verification.document));
   }
 
   // Fallback: first available page image
@@ -281,11 +298,12 @@ export function resolveExpandedImageForPage(
 ): ExpandedImageSource | null {
   const normalizedPage = Number(pageNumber);
   if (pageImages && Number.isFinite(normalizedPage) && normalizedPage > 0) {
-    const exactPage = pageImages.find(p => {
-      const pNum = Number(p.pageNumber);
-      return Number.isFinite(pNum) && pNum === normalizedPage && isValidProofImageSrc(p.imageUrl);
-    });
-    if (exactPage) return toExpandedImageSource(exactPage);
+    const exactPage = pageImages.find(p => Number(p.pageNumber) === normalizedPage && isValidProofImageSrc(p.imageUrl));
+    if (exactPage) {
+      return isMatchPageImage(exactPage, verification)
+        ? toExpandedImageSource(exactPage, documentOverrides(verification?.document))
+        : toExpandedImageSource(exactPage);
+    }
   }
   return resolveExpandedImage(verification, pageImages);
 }
