@@ -241,6 +241,24 @@ export function resolveEvidenceSrc(verification: Verification | null | undefined
  * (which can contain scripts), javascript: URIs, and untrusted hosts. Localhost is allowed
  * for development. Invalid sources are skipped and the next tier is tried.
  */
+/** Check whether a PageImage represents the verification match page. */
+function isMatchPageImage(page: PageImage, verification: Verification | null | undefined): boolean {
+  if (page.isMatchPage) return true;
+  const matchNum = Number(verification?.document?.verifiedPageNumber);
+  return Number.isFinite(matchNum) && Number(page.pageNumber) === matchNum;
+}
+
+/** Extract verification.document overrides for toExpandedImageSource (highlightBox, renderScale, textItems). */
+function documentOverrides(doc: Verification["document"]) {
+  return doc
+    ? {
+        highlightBox: doc.highlightBox ?? null,
+        renderScale: doc.renderScale ?? null,
+        textItems: doc.textItems ?? null,
+      }
+    : undefined;
+}
+
 // biome-ignore lint/style/useComponentExportOnlyModules: exported for testing
 export function resolveExpandedImage(
   verification: Verification | null | undefined,
@@ -248,16 +266,13 @@ export function resolveExpandedImage(
 ): ExpandedImageSource | null {
   if (!verification) return null;
 
+  // Two-pass priority: isMatchPage flag first, then pageNumber match.
   const matchPageNumber = verification.document?.verifiedPageNumber;
   const matchPage =
     pageImages?.find(p => p.isMatchPage) ??
     (matchPageNumber ? pageImages?.find(p => p.pageNumber === matchPageNumber) : undefined);
   if (matchPage?.imageUrl && isValidProofImageSrc(matchPage.imageUrl)) {
-    return toExpandedImageSource(matchPage, {
-      highlightBox: verification.document?.highlightBox ?? null,
-      renderScale: verification.document?.renderScale ?? null,
-      textItems: verification.document?.textItems ?? null,
-    });
+    return toExpandedImageSource(matchPage, documentOverrides(verification.document));
   }
 
   // Fallback: first available page image
@@ -286,17 +301,9 @@ export function resolveExpandedImageForPage(
       return Number.isFinite(pNum) && pNum === normalizedPage && isValidProofImageSrc(p.imageUrl);
     });
     if (exactPage) {
-      const matchPageNum = verification?.document?.verifiedPageNumber;
-      const isMatchPage =
-        exactPage.isMatchPage || (matchPageNum != null && Number(exactPage.pageNumber) === matchPageNum);
-      if (isMatchPage && verification?.document) {
-        return toExpandedImageSource(exactPage, {
-          highlightBox: verification.document.highlightBox ?? null,
-          renderScale: verification.document.renderScale ?? null,
-          textItems: verification.document.textItems ?? null,
-        });
-      }
-      return toExpandedImageSource(exactPage);
+      return isMatchPageImage(exactPage, verification)
+        ? toExpandedImageSource(exactPage, documentOverrides(verification?.document))
+        : toExpandedImageSource(exactPage);
     }
   }
   return resolveExpandedImage(verification, pageImages);
