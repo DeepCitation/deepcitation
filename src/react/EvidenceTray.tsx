@@ -227,6 +227,24 @@ export function resolveEvidenceSrc(verification: Verification | null | undefined
   return isValidProofImageSrc(snippetSrc) ? snippetSrc : null;
 }
 
+/** Check whether a PageImage represents the verification match page. */
+function isMatchPageImage(page: PageImage, verification: Verification | null | undefined): boolean {
+  if (page.isMatchPage) return true;
+  const matchNum = Number(verification?.document?.verifiedPageNumber);
+  return Number.isFinite(matchNum) && page.pageNumber === matchNum;
+}
+
+/** Extract verification.document overrides for toExpandedImageSource (highlightBox, renderScale, textItems). */
+function documentOverrides(doc: Verification["document"]) {
+  return doc
+    ? {
+        highlightBox: doc.highlightBox ?? null,
+        renderScale: doc.renderScale ?? null,
+        textItems: doc.textItems ?? null,
+      }
+    : undefined;
+}
+
 /**
  * Single resolver for the best available full-page image from verification data.
  * Tries in order:
@@ -241,24 +259,6 @@ export function resolveEvidenceSrc(verification: Verification | null | undefined
  * (which can contain scripts), javascript: URIs, and untrusted hosts. Localhost is allowed
  * for development. Invalid sources are skipped and the next tier is tried.
  */
-/** Check whether a PageImage represents the verification match page. */
-function isMatchPageImage(page: PageImage, verification: Verification | null | undefined): boolean {
-  if (page.isMatchPage) return true;
-  const matchNum = Number(verification?.document?.verifiedPageNumber);
-  return Number.isFinite(matchNum) && Number(page.pageNumber) === matchNum;
-}
-
-/** Extract verification.document overrides for toExpandedImageSource (highlightBox, renderScale, textItems). */
-function documentOverrides(doc: Verification["document"]) {
-  return doc
-    ? {
-        highlightBox: doc.highlightBox ?? null,
-        renderScale: doc.renderScale ?? null,
-        textItems: doc.textItems ?? null,
-      }
-    : undefined;
-}
-
 // biome-ignore lint/style/useComponentExportOnlyModules: exported for testing
 export function resolveExpandedImage(
   verification: Verification | null | undefined,
@@ -266,7 +266,9 @@ export function resolveExpandedImage(
 ): ExpandedImageSource | null {
   if (!verification) return null;
 
-  // Two-pass priority: isMatchPage flag first, then pageNumber match.
+  // Two-pass priority: isMatchPage flag always wins over pageNumber match,
+  // regardless of array ordering. A single-pass find(isMatchPageImage) would
+  // pick whichever condition matches first positionally.
   const matchPageNumber = verification.document?.verifiedPageNumber;
   const matchPage =
     pageImages?.find(p => p.isMatchPage) ??
@@ -296,10 +298,7 @@ export function resolveExpandedImageForPage(
 ): ExpandedImageSource | null {
   const normalizedPage = Number(pageNumber);
   if (pageImages && Number.isFinite(normalizedPage) && normalizedPage > 0) {
-    const exactPage = pageImages.find(p => {
-      const pNum = Number(p.pageNumber);
-      return Number.isFinite(pNum) && pNum === normalizedPage && isValidProofImageSrc(p.imageUrl);
-    });
+    const exactPage = pageImages.find(p => Number(p.pageNumber) === normalizedPage && isValidProofImageSrc(p.imageUrl));
     if (exactPage) {
       return isMatchPageImage(exactPage, verification)
         ? toExpandedImageSource(exactPage, documentOverrides(verification?.document))
