@@ -481,6 +481,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       convertedDownload,
       pageImagesByAttachmentId,
       experimentalHaptics = false,
+      disableTelemetry = false,
+      prefetch: prefetchMode = "eager",
     },
     ref,
   ) => {
@@ -750,7 +752,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
 
     // ========== TtC Timing ==========
-    const { firstSeenAtRef } = useCitationTiming(citationKey, verification, onTimingEvent);
+    const { firstSeenAtRef } = useCitationTiming(
+      citationKey,
+      verification,
+      disableTelemetry ? undefined : onTimingEvent,
+    );
     const popoverOpenedAtRef = useRef<number | null>(null);
     const reviewedRef = useRef(false);
 
@@ -765,6 +771,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Track popover open/close for TtC telemetry events
     // biome-ignore lint/correctness/useExhaustiveDependencies: firstSeenAtRef/verification are stable refs or read at call-time — only isHovering transitions should trigger this effect
     useEffect(() => {
+      if (disableTelemetry) {
+        popoverOpenedAtRef.current = null;
+        return;
+      }
       if (isHovering && firstSeenAtRef.current != null) {
         popoverOpenedAtRef.current = performance.now();
         onTimingEventRef.current?.({
@@ -803,7 +813,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
         popoverOpenedAtRef.current = null;
       }
-    }, [isHovering, citationKey]);
+    }, [isHovering, citationKey, disableTelemetry]);
 
     // Derive status from verification object
     const status = useMemo(() => getStatusFromVerification(verification), [verification]);
@@ -842,6 +852,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       [verification, pageImages],
     );
     useEffect(() => {
+      if (prefetchMode === "lazy") return;
+
       const images: HTMLImageElement[] = [];
 
       if (prefetchEvidenceSrc && !prefetchEvidenceSrc.startsWith("data:")) {
@@ -863,7 +875,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           img.src = "";
         }
       };
-    }, [prefetchEvidenceSrc, prefetchExpandedSrc]);
+    }, [prefetchMode, prefetchEvidenceSrc, prefetchExpandedSrc]);
 
     const displayText = useMemo(() => {
       return getDisplayText(citation, resolvedContent, fallbackDisplay);

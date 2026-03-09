@@ -197,6 +197,7 @@ export {
 } from "./timingUtils.js";
 // Types - Useful for implementing your own citation components
 export type {
+  BaseCitationProps,
   CitationBehaviorActions,
   // Behavior configuration types
   CitationBehaviorConfig,

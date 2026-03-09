@@ -220,6 +220,10 @@ export interface BaseCitationProps {
   content?: CitationContent;
   /** Fallback display text when citation anchorText is empty */
   fallbackDisplay?: string | null;
+  /** Suppress all telemetry events (citation_seen, evidence_ready, popover timing). */
+  disableTelemetry?: boolean;
+  /** Image prefetch strategy. `"eager"` (default) prefetches on verification; `"lazy"` skips prefetch. */
+  prefetch?: "eager" | "lazy";
   /**
    * Override label for the source displayed in popovers/headers.
    *
