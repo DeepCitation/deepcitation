@@ -112,6 +112,8 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `UrlCitationComponent` | `src/react/Citation.tsx` | URL citation display (badge/chip/inline/bracket variants) — co-located with CitationComponent |
 | `MemoizedUrlCitationComponent` | `src/react/Citation.tsx` | Memoized URL citation component |
 | `AnimatedHeightWrapper` | `src/react/DefaultPopoverContent.tsx` | Height morph wrapper (keep DOM, never Fragment) |
+| `DeepCitationAdminProvider` | `src/react/AdminModeContext.tsx` | Provider that suppresses telemetry + prefetch for admin views |
+| `useAdminMode()` | `src/react/AdminModeContext.hooks.ts` | Hook to check admin mode (internal) |
 | `defaultMessages` | `src/react/i18n.tsx` | Default English message dictionary (all i18n keys) |
 | `DeepCitationI18nProvider` | `src/react/i18n.tsx` | React context provider for custom translations |
 | `useTranslation()` | `src/react/i18n.tsx` | Hook to access the `t()` translator inside components |
