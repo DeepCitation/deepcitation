@@ -1495,6 +1495,49 @@ describe("CitationDrawer page badges", () => {
     const inlineImage = container.querySelector("[data-dc-inline-expanded] img") as HTMLImageElement | null;
     expect(inlineImage?.getAttribute("src")).toBe(page1Src);
   });
+
+  it("clicking page pill works when page images are inline on verification (no attachmentId)", () => {
+    const page3Src = "https://proof.deepcitation.com/page3.png";
+    const page7Src = "https://proof.deepcitation.com/page7.png";
+    const groups: SourceCitationGroup[] = [
+      {
+        sourceName: "Doc",
+        citations: [
+          {
+            citationKey: "c-inline",
+            citation: {
+              type: "document" as const,
+              pageNumber: 3,
+              anchorText: "inline text",
+              fullPhrase: "Inline text on page 3",
+            },
+            verification: {
+              status: "found" as const,
+              pageImages: [
+                { pageNumber: 3, imageUrl: page3Src, dimensions: { width: 1000, height: 1400 } },
+                { pageNumber: 7, imageUrl: page7Src, dimensions: { width: 1000, height: 1400 } },
+              ],
+            },
+          },
+        ],
+        additionalCount: 0,
+      },
+    ];
+
+    const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
+
+    // Both page pills should render
+    const page3Button = container.querySelector("button[aria-label='Expand to full page 3']");
+    const page7Button = container.querySelector("button[aria-label='Expand to full page 7']");
+    expect(page3Button).toBeInTheDocument();
+    expect(page7Button).toBeInTheDocument();
+
+    // Click page 7 pill — should open inline expanded image with page7Src
+    if (page7Button) fireEvent.click(page7Button);
+    const inlineImage = container.querySelector("[data-dc-inline-expanded] img") as HTMLImageElement | null;
+    expect(inlineImage).toBeInTheDocument();
+    expect(inlineImage?.getAttribute("src")).toBe(page7Src);
+  });
 });
 
 describe("CitationDrawer evidence tray interactions", () => {

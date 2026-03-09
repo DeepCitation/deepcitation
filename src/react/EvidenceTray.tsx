@@ -285,7 +285,19 @@ export function resolveExpandedImageForPage(
       const pNum = Number(p.pageNumber);
       return Number.isFinite(pNum) && pNum === normalizedPage && isValidProofImageSrc(p.imageUrl);
     });
-    if (exactPage) return toExpandedImageSource(exactPage);
+    if (exactPage) {
+      const matchPageNum = verification?.document?.verifiedPageNumber;
+      const isMatchPage =
+        exactPage.isMatchPage || (matchPageNum != null && Number(exactPage.pageNumber) === matchPageNum);
+      if (isMatchPage && verification?.document) {
+        return toExpandedImageSource(exactPage, {
+          highlightBox: verification.document.highlightBox ?? null,
+          renderScale: verification.document.renderScale ?? null,
+          textItems: verification.document.textItems ?? null,
+        });
+      }
+      return toExpandedImageSource(exactPage);
+    }
   }
   return resolveExpandedImage(verification, pageImages);
 }
