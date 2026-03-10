@@ -172,6 +172,7 @@ export function CitationAnnotationOverlay({
   };
 
   const spotlightPad = BOX_PADDING + SPOTLIGHT_PADDING;
+  const spotlightBorderRadius = BOX_PADDING * 2;
   const spotPadX = (spotlightPad / imageNaturalWidth) * 100;
   const spotPadY = (spotlightPad / imageNaturalHeight) * 100;
   const spotlightRect = {
@@ -179,6 +180,7 @@ export function CitationAnnotationOverlay({
     top: `${baseTop - spotPadY}%`,
     width: `${baseWidth + 2 * spotPadX}%`,
     height: `${baseHeight + 2 * spotPadY}%`,
+    borderRadius: `${spotlightBorderRadius}px`,
   };
 
   const anchorRect =
@@ -274,8 +276,8 @@ export function CitationAnnotationOverlay({
           }}
           style={{
             position: "absolute",
-            top: `calc(${spotlightRect.top} - 14px)`,
-            left: `calc(${spotlightRect.left} + ${spotlightRect.width} - 14px)`,
+            top: `max(0px, calc(${spotlightRect.top} - 14px))`,
+            left: `min(calc(100% - 28px), calc(${spotlightRect.left} + ${spotlightRect.width} - 14px))`,
             pointerEvents: "auto",
           }}
           className={`size-7 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white/90 hover:bg-black/70 active:bg-black/80 transition-colors shadow-md cursor-pointer ${HITBOX_EXTEND_8}`}
