@@ -362,8 +362,15 @@ export const SAFE_DATA_IMAGE_PREFIXES = [
   "data:image/gif",
 ] as const;
 
-/** Base trusted CDN hostnames for proof images (always included). */
-const BASE_TRUSTED_IMAGE_HOSTS = ["api.deepcitation.com", "cdn.deepcitation.com", "proof.deepcitation.com"] as const;
+/** Base trusted CDN hostnames for proof images (always included).
+ *  "deepcitation.com" covers the bare domain and acts as root-domain fallback
+ *  for any subdomain via isDomainMatch's extractRootDomain logic. */
+const BASE_TRUSTED_IMAGE_HOSTS = [
+  "deepcitation.com",
+  "api.deepcitation.com",
+  "cdn.deepcitation.com",
+  "proof.deepcitation.com",
+] as const;
 
 /**
  * Trusted CDN hostnames for proof images.
