@@ -36,9 +36,9 @@ export const SIGNAL_BLUE_DARK = "#77bff6";
 export const SIGNAL_AMBER = "#fbbf24";
 
 /** Semi-transparent overlay covering non-citation areas (spotlight effect). */
-export const OVERLAY_COLOR = "rgba(26, 26, 26, 0.4)";
+export const OVERLAY_COLOR = "rgba(26, 26, 26, 0.25)";
 /** Hex equivalent of OVERLAY_COLOR for contexts that need hex. */
-export const OVERLAY_COLOR_HEX = "#1a1a1a66";
+export const OVERLAY_COLOR_HEX = "#1a1a1a40";
 
 /** Amber highlight behind anchorText when it differs from fullPhrase. */
 export const ANCHOR_HIGHLIGHT_COLOR = "rgba(251, 191, 36, 0.2)";

@@ -17,6 +17,13 @@ import { toPercentRect } from "./overlayGeometry.js";
 
 const NONE: React.CSSProperties = { pointerEvents: "none" };
 
+/** Spotlight cutout corner radius — twice the bracket offset for subtle rounding. */
+const SPOTLIGHT_BORDER_RADIUS = BOX_PADDING * 2;
+
+/** Dismiss button size in px (matches Tailwind `size-7` = 1.75rem = 28px). */
+const DISMISS_BUTTON_SIZE_PX = 28;
+const DISMISS_BUTTON_HALF_PX = DISMISS_BUTTON_SIZE_PX / 2;
+
 /** An additional highlight region for partial match locations. */
 export interface AdditionalHighlight {
   /** Text item with position coordinates from OCR/PDF extraction */
@@ -179,6 +186,7 @@ export function CitationAnnotationOverlay({
     top: `${baseTop - spotPadY}%`,
     width: `${baseWidth + 2 * spotPadX}%`,
     height: `${baseHeight + 2 * spotPadY}%`,
+    borderRadius: `${SPOTLIGHT_BORDER_RADIUS}px`,
   };
 
   const anchorRect =
@@ -274,8 +282,8 @@ export function CitationAnnotationOverlay({
           }}
           style={{
             position: "absolute",
-            top: `calc(${spotlightRect.top} - 14px)`,
-            left: `calc(${spotlightRect.left} + ${spotlightRect.width} - 14px)`,
+            top: `max(0px, calc(${spotlightRect.top} - ${DISMISS_BUTTON_HALF_PX}px))`,
+            left: `min(calc(100% - ${DISMISS_BUTTON_SIZE_PX}px), calc(${spotlightRect.left} + ${spotlightRect.width} - ${DISMISS_BUTTON_HALF_PX}px))`,
             pointerEvents: "auto",
           }}
           className={`size-7 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white/90 hover:bg-black/70 active:bg-black/80 transition-colors shadow-md cursor-pointer ${HITBOX_EXTEND_8}`}

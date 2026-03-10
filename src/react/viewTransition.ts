@@ -8,6 +8,21 @@ import { flushSync } from "react-dom";
 export const DC_EVIDENCE_VT_NAME = "dc-evidence";
 
 /**
+ * Depth counter for in-flight View Transitions. Dismiss handlers check this to
+ * avoid closing the popover during expand/collapse — `flushSync` inside the VT
+ * callback can make the clicked element `display: none`, causing outside-click
+ * handlers to misidentify the target as "outside" the popover.
+ *
+ * A counter (not boolean) handles back-to-back transitions: if a second VT
+ * starts before the first finishes, the first's cleanup decrements without
+ * prematurely unguarding the second.
+ */
+let _transitionDepth = 0;
+export function isViewTransitioning(): boolean {
+  return _transitionDepth > 0;
+}
+
+/**
  * Wraps a state update in a View Transition so the browser morphs the
  * geometry + cross-fades between the old and new evidence image elements.
  *
@@ -22,15 +37,19 @@ export function startEvidenceViewTransition(
 ): void {
   const skip = options?.skipAnimation;
   if (skip || typeof document === "undefined" || !("startViewTransition" in document)) {
+    // Synchronous fallback — no async transition in flight, so _transitioning
+    // stays false. Dismiss handlers don't need guarding on this path.
     update();
     return;
   }
+  _transitionDepth++;
   if (options?.isCollapse) {
     document.documentElement.dataset.dcCollapse = "";
   }
   if (options?.isPageExpand) {
     document.documentElement.dataset.dcPageExpand = "";
   }
+
   // Safe cast: the `"startViewTransition" in document` guard above ensures
   // this property exists at runtime before we reach this point.
   const transition = (
@@ -47,14 +66,13 @@ export function startEvidenceViewTransition(
       console.warn("[VT] transition.ready rejected — animation skipped:", e);
     });
   }
-  transition.finished
-    .then(() => {
-      delete document.documentElement.dataset.dcCollapse;
-      delete document.documentElement.dataset.dcPageExpand;
-    })
-    .catch(() => {
-      // Clean up dataset even if the transition is interrupted or fails
-      delete document.documentElement.dataset.dcCollapse;
-      delete document.documentElement.dataset.dcPageExpand;
-    });
+  const cleanup = () => {
+    if (process.env.NODE_ENV !== "production" && _transitionDepth === 0) {
+      console.warn("[VT] cleanup called with _transitionDepth already at 0");
+    }
+    _transitionDepth = Math.max(0, _transitionDepth - 1);
+    delete document.documentElement.dataset.dcCollapse;
+    delete document.documentElement.dataset.dcPageExpand;
+  };
+  transition.finished.then(cleanup).catch(cleanup);
 }
