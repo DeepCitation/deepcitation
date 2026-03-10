@@ -42,13 +42,13 @@ export function startEvidenceViewTransition(
     update();
     return;
   }
+  _transitionDepth++;
   if (options?.isCollapse) {
     document.documentElement.dataset.dcCollapse = "";
   }
   if (options?.isPageExpand) {
     document.documentElement.dataset.dcPageExpand = "";
   }
-  _transitionDepth++;
 
   // Safe cast: the `"startViewTransition" in document` guard above ensures
   // this property exists at runtime before we reach this point.
@@ -67,6 +67,9 @@ export function startEvidenceViewTransition(
     });
   }
   const cleanup = () => {
+    if (process.env.NODE_ENV !== "production" && _transitionDepth === 0) {
+      console.warn("[VT] cleanup called with _transitionDepth already at 0");
+    }
     _transitionDepth = Math.max(0, _transitionDepth - 1);
     delete document.documentElement.dataset.dcCollapse;
     delete document.documentElement.dataset.dcPageExpand;
