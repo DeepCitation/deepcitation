@@ -18,7 +18,6 @@ import { toPercentRect } from "./overlayGeometry.js";
 
 const NONE: React.CSSProperties = { pointerEvents: "none" };
 
-
 /** Dismiss button size in px (matches Tailwind `size-7` = 1.75rem = 28px). */
 const DISMISS_BUTTON_SIZE_PX = 28;
 const DISMISS_BUTTON_HALF_PX = DISMISS_BUTTON_SIZE_PX / 2;
