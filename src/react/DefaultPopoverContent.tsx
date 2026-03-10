@@ -569,6 +569,7 @@ function EvidenceZone({
             fill
             onNaturalSize={handlePageImageLoad}
             renderScale={expandedImage.renderScale}
+            expectedDimensions={expandedImage.dimensions}
           />
         )}
       </div>
@@ -947,10 +948,18 @@ export function DefaultPopoverContent({
       keyholePreload.src = preloadSrc;
     }
     const pageSrc = expandedImage?.src;
-    if (pageSrc && isValidProofImageSrc(pageSrc)) new Image().src = pageSrc;
+    let pagePreload: HTMLImageElement | null = null;
+    if (pageSrc && isValidProofImageSrc(pageSrc)) {
+      pagePreload = new Image();
+      pagePreload.src = pageSrc;
+    }
     return () => {
       disposed = true;
       if (keyholePreload) keyholePreload.onload = null;
+      if (pagePreload) {
+        pagePreload.src = "";
+        pagePreload = null;
+      }
     };
   }, [isVisible, evidenceSrc, expandedImage?.src]);
 

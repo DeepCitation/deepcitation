@@ -7,6 +7,7 @@ import {
   getBracketColor,
   getBracketWidth,
   OVERLAY_COLOR,
+  SPOTLIGHT_BORDER_RADIUS,
   SPOTLIGHT_PADDING,
 } from "../drawing/citationDrawing.js";
 import type { DeepTextItem } from "../types/boxes.js";
@@ -16,9 +17,6 @@ import { CloseIcon } from "./icons.js";
 import { toPercentRect } from "./overlayGeometry.js";
 
 const NONE: React.CSSProperties = { pointerEvents: "none" };
-
-/** Spotlight cutout corner radius — twice the bracket offset for subtle rounding. */
-const SPOTLIGHT_BORDER_RADIUS = BOX_PADDING * 2;
 
 /** Dismiss button size in px (matches Tailwind `size-7` = 1.75rem = 28px). */
 const DISMISS_BUTTON_SIZE_PX = 28;
