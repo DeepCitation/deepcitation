@@ -33,6 +33,8 @@ export function startEvidenceViewTransition(
 ): void {
   const skip = options?.skipAnimation;
   if (skip || typeof document === "undefined" || !("startViewTransition" in document)) {
+    // Synchronous fallback — no async transition in flight, so _transitioning
+    // stays false. Dismiss handlers don't need guarding on this path.
     update();
     return;
   }

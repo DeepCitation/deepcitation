@@ -477,7 +477,10 @@ function EvidenceZone({
              away" feel. Uses EASE_COLLAPSE (decisive deceleration). */}
       <style>{`
         /* Let clicks pass through VT pseudo-element overlay to the real DOM
-           so users can click during a transition without being blocked. */
+           so users can click during a transition without being blocked.
+           NOTE: This is a global rule — it affects ALL View Transitions on the
+           page, not just dc-evidence. Safe today (DC owns the only VT) but
+           host apps using their own VTs should be aware. */
         ::view-transition { pointer-events: none; }
 
         ::view-transition-old(${DC_EVIDENCE_VT_NAME}) {
