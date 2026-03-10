@@ -476,6 +476,10 @@ function EvidenceZone({
              Quick exit where the opacity dip reinforces the "shrinking
              away" feel. Uses EASE_COLLAPSE (decisive deceleration). */}
       <style>{`
+        /* Let clicks pass through VT pseudo-element overlay to the real DOM
+           so users can click during a transition without being blocked. */
+        ::view-transition { pointer-events: none; }
+
         ::view-transition-old(${DC_EVIDENCE_VT_NAME}) {
           animation: none;
           opacity: 0;

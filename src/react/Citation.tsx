@@ -58,7 +58,7 @@ import type {
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { extractDomain, getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";
 import { cn, generateCitationInstanceId } from "./utils.js";
-import { startEvidenceViewTransition } from "./viewTransition.js";
+import { isViewTransitioning, startEvidenceViewTransition } from "./viewTransition.js";
 
 // Re-export types for convenience
 export type {
@@ -1143,7 +1143,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       };
 
       const handleTouchEnd = () => {
-        if (outsideTarget && !moved) {
+        if (outsideTarget && !moved && !isViewTransitioning()) {
           closePopover();
         }
         outsideTarget = false;
@@ -1197,6 +1197,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       const triggerEl = triggerRef.current;
 
       const handleOutsideClick = (e: MouseEvent) => {
+        // Suppress during View Transitions — flushSync can make the clicked
+        // element display:none, making the target appear "outside".
+        if (isViewTransitioning()) return;
         // Don't dismiss popover while an image overlay is open - user expects to return
         // to the popover after closing the zoomed image. Uses ref to avoid stale closure.
         if (isAnyOverlayOpenRef.current) {
@@ -1340,6 +1343,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     const handlePopoverBackdropClick = useCallback(
       (e: React.MouseEvent) => {
+        if (isViewTransitioning()) return;
         if (e.target === e.currentTarget) closePopover();
       },
       [closePopover],

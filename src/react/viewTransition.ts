@@ -8,6 +8,17 @@ import { flushSync } from "react-dom";
 export const DC_EVIDENCE_VT_NAME = "dc-evidence";
 
 /**
+ * True while a View Transition is in flight. Dismiss handlers check this to
+ * avoid closing the popover during expand/collapse — `flushSync` inside the VT
+ * callback can make the clicked element `display: none`, causing outside-click
+ * handlers to misidentify the target as "outside" the popover.
+ */
+let _transitioning = false;
+export function isViewTransitioning(): boolean {
+  return _transitioning;
+}
+
+/**
  * Wraps a state update in a View Transition so the browser morphs the
  * geometry + cross-fades between the old and new evidence image elements.
  *
@@ -31,6 +42,8 @@ export function startEvidenceViewTransition(
   if (options?.isPageExpand) {
     document.documentElement.dataset.dcPageExpand = "";
   }
+  _transitioning = true;
+
   // Safe cast: the `"startViewTransition" in document` guard above ensures
   // this property exists at runtime before we reach this point.
   const transition = (
@@ -47,14 +60,10 @@ export function startEvidenceViewTransition(
       console.warn("[VT] transition.ready rejected — animation skipped:", e);
     });
   }
-  transition.finished
-    .then(() => {
-      delete document.documentElement.dataset.dcCollapse;
-      delete document.documentElement.dataset.dcPageExpand;
-    })
-    .catch(() => {
-      // Clean up dataset even if the transition is interrupted or fails
-      delete document.documentElement.dataset.dcCollapse;
-      delete document.documentElement.dataset.dcPageExpand;
-    });
+  const cleanup = () => {
+    _transitioning = false;
+    delete document.documentElement.dataset.dcCollapse;
+    delete document.documentElement.dataset.dcPageExpand;
+  };
+  transition.finished.then(cleanup).catch(cleanup);
 }
