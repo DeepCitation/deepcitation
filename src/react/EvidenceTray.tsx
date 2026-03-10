@@ -1962,7 +1962,7 @@ export function InlineExpandedImage({
             }}
           >
             {!imageLoaded &&
-              (expectedDimensions ? (
+              (expectedDimensions && expectedDimensions.width > 0 && expectedDimensions.height > 0 ? (
                 <div
                   className="animate-pulse rounded bg-gray-200 dark:bg-gray-700"
                   style={{

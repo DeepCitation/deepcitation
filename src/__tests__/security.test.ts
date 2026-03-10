@@ -4,6 +4,7 @@
  */
 
 import { describe, expect, it } from "@jest/globals";
+import { isValidProofImageSrc } from "../react/constants";
 import { createLogEntry, sanitizeForLog, sanitizeJsonForLog } from "../utils/logSafety";
 import { createSafeObject, isSafeKey, safeAssign, safeAssignBulk, safeMerge } from "../utils/objectSafety";
 import {
@@ -463,6 +464,104 @@ describe("Security Tests", () => {
         circular.self = circular;
         // Should not throw
         expect(() => sanitizeJsonForLog(circular)).not.toThrow();
+      });
+    });
+  });
+
+  describe("Proof Image Source Validation (isValidProofImageSrc)", () => {
+    describe("trusted domains", () => {
+      it("should accept images from api.deepcitation.com", () => {
+        expect(isValidProofImageSrc("https://api.deepcitation.com/proof/img.avif")).toBe(true);
+      });
+
+      it("should accept images from cdn.deepcitation.com", () => {
+        expect(isValidProofImageSrc("https://cdn.deepcitation.com/images/page.png")).toBe(true);
+      });
+
+      it("should accept images from proof.deepcitation.com", () => {
+        expect(isValidProofImageSrc("https://proof.deepcitation.com/v1/snap.webp")).toBe(true);
+      });
+
+      it("should accept images from bare deepcitation.com", () => {
+        expect(isValidProofImageSrc("https://deepcitation.com/img.png")).toBe(true);
+      });
+    });
+
+    describe("localhost and relative paths", () => {
+      it("should accept localhost URLs", () => {
+        expect(isValidProofImageSrc("http://localhost/proof/img.png")).toBe(true);
+        expect(isValidProofImageSrc("http://127.0.0.1/proof/img.png")).toBe(true);
+      });
+
+      it("should accept same-origin relative paths", () => {
+        expect(isValidProofImageSrc("/demo/legal/page-1.avif")).toBe(true);
+        expect(isValidProofImageSrc("/api/proof/abc123.png")).toBe(true);
+      });
+    });
+
+    describe("path traversal rejection", () => {
+      it("should reject paths with ..", () => {
+        expect(isValidProofImageSrc("/proof/../../etc/passwd")).toBe(false);
+      });
+
+      it("should reject encoded traversal (%2e)", () => {
+        expect(isValidProofImageSrc("/proof/%2e%2e/secret")).toBe(false);
+      });
+
+      it("should reject double-encoded traversal", () => {
+        expect(isValidProofImageSrc("/proof/%252e%252e/secret")).toBe(false);
+      });
+
+      it("should reject protocol-relative URLs", () => {
+        expect(isValidProofImageSrc("//evil.com/img.png")).toBe(false);
+      });
+    });
+
+    describe("safe vs unsafe data URIs", () => {
+      it("should accept safe image data URIs", () => {
+        expect(isValidProofImageSrc("data:image/png;base64,abc")).toBe(true);
+        expect(isValidProofImageSrc("data:image/jpeg;base64,abc")).toBe(true);
+        expect(isValidProofImageSrc("data:image/webp;base64,abc")).toBe(true);
+        expect(isValidProofImageSrc("data:image/avif;base64,abc")).toBe(true);
+        expect(isValidProofImageSrc("data:image/gif;base64,abc")).toBe(true);
+      });
+
+      it("should reject SVG data URIs (can contain script)", () => {
+        expect(isValidProofImageSrc("data:image/svg+xml;base64,abc")).toBe(false);
+      });
+
+      it("should reject non-image data URIs", () => {
+        expect(isValidProofImageSrc("data:text/html;base64,abc")).toBe(false);
+      });
+    });
+
+    describe("javascript URI rejection", () => {
+      it("should reject javascript: URIs", () => {
+        expect(isValidProofImageSrc("javascript:alert(1)")).toBe(false);
+      });
+    });
+
+    describe("type validation", () => {
+      it("should reject non-string inputs", () => {
+        expect(isValidProofImageSrc(null)).toBe(false);
+        expect(isValidProofImageSrc(undefined)).toBe(false);
+        expect(isValidProofImageSrc(123)).toBe(false);
+        expect(isValidProofImageSrc({})).toBe(false);
+      });
+
+      it("should reject empty strings", () => {
+        expect(isValidProofImageSrc("")).toBe(false);
+        expect(isValidProofImageSrc("  ")).toBe(false);
+      });
+    });
+
+    describe("untrusted hosts", () => {
+      it("should reject untrusted HTTPS hosts", () => {
+        expect(isValidProofImageSrc("https://evil.com/img.png")).toBe(false);
+      });
+
+      it("should reject HTTP on non-localhost", () => {
+        expect(isValidProofImageSrc("http://deepcitation.com/img.png")).toBe(false);
       });
     });
   });

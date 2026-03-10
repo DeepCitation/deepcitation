@@ -363,8 +363,9 @@ export const SAFE_DATA_IMAGE_PREFIXES = [
 ] as const;
 
 /** Base trusted CDN hostnames for proof images (always included).
- *  "deepcitation.com" covers the bare domain and acts as root-domain fallback
- *  for any subdomain via isDomainMatch's extractRootDomain logic. */
+ *  "deepcitation.com" adds trust for the bare domain itself (e.g.
+ *  https://deepcitation.com/img.png); the subdomain entries were already
+ *  validated independently via isDomainMatch. */
 const BASE_TRUSTED_IMAGE_HOSTS = [
   "deepcitation.com",
   "api.deepcitation.com",
