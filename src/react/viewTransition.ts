@@ -8,14 +8,18 @@ import { flushSync } from "react-dom";
 export const DC_EVIDENCE_VT_NAME = "dc-evidence";
 
 /**
- * True while a View Transition is in flight. Dismiss handlers check this to
+ * Depth counter for in-flight View Transitions. Dismiss handlers check this to
  * avoid closing the popover during expand/collapse — `flushSync` inside the VT
  * callback can make the clicked element `display: none`, causing outside-click
  * handlers to misidentify the target as "outside" the popover.
+ *
+ * A counter (not boolean) handles back-to-back transitions: if a second VT
+ * starts before the first finishes, the first's cleanup decrements without
+ * prematurely unguarding the second.
  */
-let _transitioning = false;
+let _transitionDepth = 0;
 export function isViewTransitioning(): boolean {
-  return _transitioning;
+  return _transitionDepth > 0;
 }
 
 /**
@@ -44,7 +48,7 @@ export function startEvidenceViewTransition(
   if (options?.isPageExpand) {
     document.documentElement.dataset.dcPageExpand = "";
   }
-  _transitioning = true;
+  _transitionDepth++;
 
   // Safe cast: the `"startViewTransition" in document` guard above ensures
   // this property exists at runtime before we reach this point.
@@ -63,7 +67,7 @@ export function startEvidenceViewTransition(
     });
   }
   const cleanup = () => {
-    _transitioning = false;
+    _transitionDepth = Math.max(0, _transitionDepth - 1);
     delete document.documentElement.dataset.dcCollapse;
     delete document.documentElement.dataset.dcPageExpand;
   };
