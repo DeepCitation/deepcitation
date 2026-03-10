@@ -67,6 +67,9 @@ export const VERIFICATION_IMAGE_PADDING = 60;
  */
 export const SPOTLIGHT_PADDING = 30;
 
+/** Spotlight cutout corner radius — twice the bracket offset for subtle rounding. */
+export const SPOTLIGHT_BORDER_RADIUS = BOX_PADDING * 2;
+
 export const BRACKET_RATIO = 1 / 5;
 export const BRACKET_MIN_WIDTH = 4;
 export const BRACKET_MAX_WIDTH = 12;
