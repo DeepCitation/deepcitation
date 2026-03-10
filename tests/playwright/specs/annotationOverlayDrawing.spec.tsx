@@ -270,7 +270,7 @@ test.describe("Annotation Overlay Drawing — bracket geometry", () => {
 // =============================================================================
 
 test.describe("Annotation Overlay Drawing — spotlight", () => {
-  test("spotlight box-shadow uses OVERLAY_COLOR (rgba(26, 26, 26, 0.4))", async ({
+  test("spotlight box-shadow uses OVERLAY_COLOR (rgba(26, 26, 26, 0.25))", async ({
     mount,
     page,
   }) => {
@@ -288,8 +288,8 @@ test.describe("Annotation Overlay Drawing — spotlight", () => {
     const spotlight = page.locator("[data-dc-spotlight]");
     const boxShadow = await spotlight.evaluate(el => getComputedStyle(el).boxShadow);
 
-    // Browser normalizes rgba(26, 26, 26, 0.4) in box-shadow
-    expect(boxShadow).toContain("rgba(26, 26, 26, 0.4)");
+    // Browser normalizes rgba(26, 26, 26, 0.25) in box-shadow
+    expect(boxShadow).toContain("rgba(26, 26, 26, 0.25)");
     expect(boxShadow).toContain("9999px");
   });
 
