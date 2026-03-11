@@ -31,7 +31,8 @@
       "slack": ["./lib/rendering/slack/slackRenderer.d.ts"],
       "github": ["./lib/rendering/github/githubRenderer.d.ts"],
       "html": ["./lib/rendering/html/htmlRenderer.d.ts"],
-      "terminal": ["./lib/rendering/terminal/terminalRenderer.d.ts"]
+      "terminal": ["./lib/rendering/terminal/terminalRenderer.d.ts"],
+      "vanilla": ["./lib/vanilla/index.d.ts"]
     }
   },
   "sideEffects": false,
@@ -41,7 +42,9 @@
     "!lib/**/*.map"
   ],
   "scripts": {
-    "build": "tsup && npm run build:css",
+    "build:vanilla-runtime": "bun scripts/build-vanilla-runtime.mjs --generated-only",
+    "build:vanilla-iife": "bun scripts/build-vanilla-runtime.mjs",
+    "build": "npm run build:vanilla-runtime && tsup && npm run build:vanilla-iife && npm run build:css",
     "build:css": "tailwindcss -i ./src/styles.css -o ./lib/styles.css --minify",
     "build:watch": "tsup --watch",
     "build:tsc": "rm -rf lib && bun ./node_modules/typescript/bin/tsc",
@@ -127,6 +130,10 @@
     {
       "path": "lib/react/index.js",
       "limit": "55 KB"
+    },
+    {
+      "path": "lib/vanilla/index.js",
+      "limit": "15 KB"
     }
   ],
   "exports": {
@@ -189,6 +196,12 @@
       "import": "./lib/rendering/terminal/terminalRenderer.js",
       "require": "./lib/rendering/terminal/terminalRenderer.cjs",
       "default": "./lib/rendering/terminal/terminalRenderer.js"
+    },
+    "./vanilla": {
+      "types": "./lib/vanilla/index.d.ts",
+      "import": "./lib/vanilla/index.js",
+      "require": "./lib/vanilla/index.cjs",
+      "default": "./lib/vanilla/index.js"
     },
     "./tailwind.css": "./src/tailwind.css",
     "./styles.css": "./lib/styles.css",
