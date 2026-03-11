@@ -3,6 +3,30 @@
  */
 import type { VerificationData } from "./types.js";
 
+/**
+ * Validate image source — block dangerous protocols.
+ * Minimal port of isValidProofImageSrc() from src/react/constants.ts.
+ */
+function isValidImageSrc(src: string): boolean {
+  const trimmed = src.trim();
+  if (trimmed.length === 0) return false;
+  const lower = trimmed.toLowerCase();
+  // Block javascript: and other dangerous protocols
+  if (lower.startsWith("javascript:") || lower.startsWith("vbscript:")) return false;
+  // Block SVG data URIs (can contain script)
+  if (lower.startsWith("data:image/svg")) return false;
+  // Allow https, http, safe data URIs, and relative paths
+  if (
+    lower.startsWith("https:") ||
+    lower.startsWith("http:") ||
+    lower.startsWith("data:image/") ||
+    trimmed.startsWith("/")
+  ) {
+    return true;
+  }
+  return false;
+}
+
 const STATUS_LABELS: Record<string, { label: string; icon: string }> = {
   found: { label: "Verified", icon: "✓" },
   found_anchor_text_only: { label: "Partial Match", icon: "~" },
@@ -71,8 +95,8 @@ export function buildPopoverContent(data: VerificationData): HTMLDivElement {
     container.appendChild(blockquote);
   }
 
-  // Evidence image
-  if (data.evidence?.src) {
+  // Evidence image (validate source to block javascript:/SVG injection)
+  if (data.evidence?.src && isValidImageSrc(data.evidence.src)) {
     const img = document.createElement("img");
     img.className = "dc-pop-image";
     img.src = data.evidence.src;

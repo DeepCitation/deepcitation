@@ -64,16 +64,12 @@ export const POPOVER_CSS = `
 
 /* ── Quote blockquote ── */
 .dc-pop-quote {
-  margin: 0;
+  margin: 8px 12px;
   padding: 8px 12px;
   font-style: italic;
   font-size: 13px;
   color: var(--dc-pop-muted, #6b7280);
   border-left: 3px solid var(--dc-pop-border, #e5e7eb);
-  margin-left: 12px;
-  margin-right: 12px;
-  margin-top: 8px;
-  margin-bottom: 8px;
 }
 
 /* ── Evidence image ── */

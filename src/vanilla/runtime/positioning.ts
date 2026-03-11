@@ -27,5 +27,8 @@ export function computePosition(
     side = "top";
   }
 
+  // Clamp y to viewport (defensive for tall popovers)
+  y = Math.max(8, y);
+
   return { x: Math.round(x), y: Math.round(y), side };
 }

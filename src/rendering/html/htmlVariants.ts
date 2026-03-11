@@ -54,9 +54,9 @@ interface HtmlCitationOptions {
   location?: string;
   quote?: string;
   imageUrl?: string;
-  /** Attachment ID for runtime hydration (vanilla popover) */
+  /** Attachment ID emitted as data-dc-attachment-id for external consumers */
   attachmentId?: string;
-  /** Page number for runtime hydration (vanilla popover) */
+  /** Page number emitted as data-dc-page-number for external consumers */
   pageNumber?: number;
 }
 

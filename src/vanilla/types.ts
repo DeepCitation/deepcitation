@@ -30,7 +30,7 @@ export interface VanillaReportOptions {
   /** Indicator symbol set (default: "check") */
   indicatorStyle?: IndicatorStyle;
 
-  /** CSS class prefix (default: "dc-") */
+  /** CSS class prefix for citation trigger spans (default: "dc-"). Popover classes (dc-pop-*) are not affected. */
   classPrefix?: string;
 
   /** Base URL for proof links */
