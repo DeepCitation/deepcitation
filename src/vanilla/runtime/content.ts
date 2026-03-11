@@ -20,7 +20,7 @@ function isValidImageSrc(src: string): boolean {
     lower.startsWith("https:") ||
     lower.startsWith("http:") ||
     lower.startsWith("data:image/") ||
-    trimmed.startsWith("/")
+    (trimmed.startsWith("/") && !trimmed.startsWith("//"))
   ) {
     return true;
   }

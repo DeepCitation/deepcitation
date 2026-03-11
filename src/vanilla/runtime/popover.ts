@@ -6,7 +6,6 @@ import { computePosition } from "./positioning.js";
 import type { PopoverState, VerificationData } from "./types.js";
 
 const SIDE_OFFSET = 8;
-let savedBodyOverflow = "";
 
 export function createPopoverState(): PopoverState {
   return {
@@ -14,6 +13,7 @@ export function createPopoverState(): PopoverState {
     expandedEl: null,
     activeTrigger: null,
     isExpanded: false,
+    savedBodyOverflow: "",
   };
 }
 
@@ -86,7 +86,7 @@ function showExpanded(state: PopoverState, imageSrc: string): void {
   document.body.appendChild(overlay);
   state.expandedEl = overlay;
   state.isExpanded = true;
-  savedBodyOverflow = document.body.style.overflow;
+  state.savedBodyOverflow = document.body.style.overflow;
   document.body.style.overflow = "hidden";
 
   overlay.addEventListener("click", () => {
@@ -100,5 +100,5 @@ function hideExpanded(state: PopoverState): void {
     state.expandedEl = null;
   }
   state.isExpanded = false;
-  document.body.style.overflow = savedBodyOverflow;
+  document.body.style.overflow = state.savedBodyOverflow;
 }

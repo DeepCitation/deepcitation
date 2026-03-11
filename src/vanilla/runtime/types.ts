@@ -12,6 +12,8 @@ export interface PopoverState {
   activeTrigger: HTMLElement | null;
   /** Whether expanded image view is showing */
   isExpanded: boolean;
+  /** Saved body overflow value before expanded view (for restore) */
+  savedBodyOverflow: string;
 }
 
 export interface VerificationData {

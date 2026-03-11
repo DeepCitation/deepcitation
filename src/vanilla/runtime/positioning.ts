@@ -27,8 +27,8 @@ export function computePosition(
     side = "top";
   }
 
-  // Clamp y to viewport (defensive for tall popovers)
-  y = Math.max(8, y);
+  // Clamp y to viewport edges (defensive for tall popovers)
+  y = Math.max(8, Math.min(y, window.innerHeight - popoverHeight - 8));
 
   return { x: Math.round(x), y: Math.round(y), side };
 }
