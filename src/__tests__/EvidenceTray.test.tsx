@@ -417,10 +417,7 @@ describe("InlineExpandedImage View page CTA", () => {
 
   it("does not render 'View page' CTA when onExpand is not provided", () => {
     const { container } = render(
-      <InlineExpandedImage
-        src="https://proof.deepcitation.com/page1.avif"
-        onCollapse={() => {}}
-      />,
+      <InlineExpandedImage src="https://proof.deepcitation.com/page1.avif" onCollapse={() => {}} />,
     );
     const viewPageBtn = container.querySelector("button[aria-label='View page']");
     expect(viewPageBtn).toBeNull();
@@ -429,15 +426,11 @@ describe("InlineExpandedImage View page CTA", () => {
   it("renders 'View page' CTA when onExpand is provided", () => {
     const onExpand = jest.fn();
     const { container } = render(
-      <InlineExpandedImage
-        src="https://proof.deepcitation.com/page1.avif"
-        onCollapse={() => {}}
-        onExpand={onExpand}
-      />,
+      <InlineExpandedImage src="https://proof.deepcitation.com/page1.avif" onCollapse={() => {}} onExpand={onExpand} />,
     );
     const viewPageBtn = container.querySelector("button[aria-label='View page']");
     expect(viewPageBtn).not.toBeNull();
-    viewPageBtn!.click();
+    viewPageBtn?.click();
     expect(onExpand).toHaveBeenCalledTimes(1);
   });
 });
