@@ -401,3 +401,43 @@ describe("InlineExpandedImage onNaturalSize", () => {
     expect(onNaturalSize.mock.calls.length).toBeGreaterThan(callCountAfterFirst);
   });
 });
+
+// =============================================================================
+// InlineExpandedImage — "View page" CTA guard on onExpand prop
+// =============================================================================
+
+describe("InlineExpandedImage View page CTA", () => {
+  beforeEach(() => {
+    globalThis.ResizeObserver = jest.fn<(cb: ResizeObserverCallback) => ResizeObserver>().mockImplementation(() => ({
+      observe: jest.fn<ResizeObserver["observe"]>(),
+      unobserve: jest.fn<ResizeObserver["unobserve"]>(),
+      disconnect: jest.fn<ResizeObserver["disconnect"]>(),
+    })) as unknown as typeof ResizeObserver;
+  });
+
+  it("does not render 'View page' CTA when onExpand is not provided", () => {
+    const { container } = render(
+      <InlineExpandedImage
+        src="https://proof.deepcitation.com/page1.avif"
+        onCollapse={() => {}}
+      />,
+    );
+    const viewPageBtn = container.querySelector("button[aria-label='View page']");
+    expect(viewPageBtn).toBeNull();
+  });
+
+  it("renders 'View page' CTA when onExpand is provided", () => {
+    const onExpand = jest.fn();
+    const { container } = render(
+      <InlineExpandedImage
+        src="https://proof.deepcitation.com/page1.avif"
+        onCollapse={() => {}}
+        onExpand={onExpand}
+      />,
+    );
+    const viewPageBtn = container.querySelector("button[aria-label='View page']");
+    expect(viewPageBtn).not.toBeNull();
+    viewPageBtn!.click();
+    expect(onExpand).toHaveBeenCalledTimes(1);
+  });
+});
