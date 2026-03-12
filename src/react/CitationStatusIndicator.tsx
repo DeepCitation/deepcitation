@@ -44,7 +44,7 @@ import { cn } from "./utils.js";
 /** Verified indicator - green checkmark for exact matches (subscript-positioned) */
 const VerifiedIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-90 duration-150"
+    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-90 duration-[120ms]"
     style={{ ...INDICATOR_SIZE_STYLE, ...VERIFIED_COLOR_STYLE }}
     data-dc-indicator="verified"
     aria-hidden="true"
@@ -56,7 +56,7 @@ const VerifiedIndicator = () => (
 /** Partial match indicator - amber checkmark for partial/relocated matches (subscript-positioned) */
 const PartialIndicator = () => (
   <span
-    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-90 duration-150"
+    className="inline-flex relative ml-0.5 top-[0.1em] [text-decoration:none] animate-in fade-in-0 zoom-in-90 duration-[120ms]"
     style={{ ...INDICATOR_SIZE_STYLE, ...PARTIAL_COLOR_STYLE }}
     data-dc-indicator="partial"
     aria-hidden="true"
@@ -69,7 +69,7 @@ const PartialIndicator = () => (
  * Subtle fade-in entry so the miss result doesn't feel like the UI "gave up". */
 const MissIndicator = () => (
   <StatusIndicatorWrapper
-    className="relative top-[0.1em] [text-decoration:none] animate-in fade-in-0 duration-100"
+    className="relative top-[0.1em] [text-decoration:none] animate-in fade-in-0 duration-75"
     dataIndicator="error"
   >
     <XIcon />

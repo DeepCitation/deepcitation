@@ -297,7 +297,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="chip"
           className={classNames(
-            "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full font-normal cursor-pointer transition-colors duration-150 text-[0.9em]",
+            "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full font-normal cursor-pointer transition-colors duration-[120ms] text-[0.9em]",
             "border",
             chipClasses.background,
             chipClasses.border,

@@ -471,7 +471,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           <svg
             aria-hidden="true"
             className={cn(
-              "w-4 h-4 shrink-0 transition-transform duration-150 ease-[cubic-bezier(0.65,0,0.35,1)]",
+              "w-4 h-4 shrink-0 transition-transform duration-[120ms] ease-[cubic-bezier(0.2,0,0,1)]",
               isExpanded ? "rotate-180 text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500",
             )}
             fill="none"
@@ -1171,7 +1171,7 @@ function OpenCitationDrawer({
         // sufficient visual separation without the performance hit.
         className={cn(
           "fixed inset-0 bg-black/30",
-          isClosing ? "animate-out fade-out-0 duration-150" : "animate-in fade-in-0 duration-200",
+          isClosing ? "animate-out fade-out-0 duration-[120ms]" : "animate-in fade-in-0 duration-[180ms]",
         )}
         style={{ zIndex: `var(${Z_INDEX_DRAWER_BACKDROP_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})` } as React.CSSProperties}
         onClick={onClose}
@@ -1183,10 +1183,10 @@ function OpenCitationDrawer({
         ref={drawerRef}
         className={cn(
           "fixed bg-white dark:bg-gray-900 flex flex-col",
-          isClosing ? "animate-out duration-150" : "animate-in duration-200",
+          isClosing ? "animate-out duration-[120ms]" : "animate-in duration-[180ms]",
           position === "bottom" &&
             cn(
-              "inset-x-0 bottom-0 transition-[max-height,border-radius] duration-200",
+              "inset-x-0 bottom-0 transition-[max-height,border-radius] duration-[180ms]",
               isClosing ? "slide-out-to-bottom-4 fade-out-0" : "slide-in-from-bottom-4",
             ),
           position === "bottom" && (isFullPage ? "max-h-[100dvh]" : "max-h-[80dvh] rounded-t-2xl"),
@@ -1206,13 +1206,13 @@ function OpenCitationDrawer({
                 transform: `translateY(${dragOffset}px)`,
                 // Snap-back uses settle easing (no overshoot) — the drawer should return
                 // to rest without bouncing past its origin position.
-                transition: isDragging ? "none" : `transform 150ms ${EASE_COLLAPSE}`,
+                transition: isDragging ? "none" : `transform 120ms ${EASE_COLLAPSE}`,
               }),
             // Dragging up: grow the sheet taller (expand gesture) — no gap at bottom
             ...(dragDirection === "up" &&
               dragOffset < 0 && {
                 maxHeight: `calc(80dvh + ${Math.abs(dragOffset)}px)`,
-                transition: isDragging ? "none" : "max-height 150ms cubic-bezier(0.2, 0, 0, 1)",
+                transition: isDragging ? "none" : `max-height 120ms ${EASE_COLLAPSE}`,
               }),
           } as React.CSSProperties
         }

@@ -1445,7 +1445,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       className: cn(
         "relative inline-flex items-baseline",
         "px-0.5 -mx-0.5 rounded-sm",
-        "transition-colors duration-100 active:scale-[0.98]",
+        "transition-colors duration-75 active:scale-[0.98]",
         cursorClass,
         // Improved touch target size on mobile (minimum 44px recommended)
         // Using py-1.5 for better touch accessibility without breaking layout
@@ -2021,7 +2021,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
               "rounded-md",
               "text-gray-800 dark:text-gray-200",
               "no-underline cursor-pointer",
-              "transition-all duration-150 ease-in-out",
+              "transition-all duration-[120ms] ease-[cubic-bezier(0.2,0,0,1)]",
               "hover:border-gray-400 dark:hover:border-gray-500",
               "hover:bg-gray-50 dark:hover:bg-gray-800",
               // Broken state: muted styling

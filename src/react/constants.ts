@@ -638,7 +638,7 @@ export const COPY_FEEDBACK_DURATION_MS = 2000;
 /** Shared focus-visible ring treatment for interactive elements. */
 export const FOCUS_RING_CLASSES = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40";
 /** Shared neutral interactive styling for tertiary actions (links/buttons). */
-export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-150 ${FOCUS_RING_CLASSES}`;
+export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-[120ms] ${FOCUS_RING_CLASSES}`;
 /** Idle tertiary action text color. */
 export const TERTIARY_ACTION_IDLE_CLASSES = "text-gray-600 dark:text-gray-400";
 /** Hover/focus tertiary action text color. */

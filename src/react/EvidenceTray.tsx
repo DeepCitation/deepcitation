@@ -645,7 +645,7 @@ export function AnchorTextFocusedImage({
           {showLeftArrow && (
             <div
               aria-hidden="true"
-              className="absolute left-0 top-0 h-full min-w-[44px] flex items-center justify-center opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 cursor-pointer"
+              className="absolute left-0 top-0 h-full min-w-[44px] flex items-center justify-center opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-[120ms] cursor-pointer"
               onClick={e => {
                 e.stopPropagation();
                 const el = containerRef.current;
@@ -664,7 +664,7 @@ export function AnchorTextFocusedImage({
           {showRightArrow && (
             <div
               aria-hidden="true"
-              className="absolute right-0 top-0 h-full min-w-[44px] flex items-center justify-center opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-150 cursor-pointer"
+              className="absolute right-0 top-0 h-full min-w-[44px] flex items-center justify-center opacity-0 group-hover/keyhole:opacity-100 transition-opacity duration-[120ms] cursor-pointer"
               onClick={e => {
                 e.stopPropagation();
                 const el = containerRef.current;
