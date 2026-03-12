@@ -23,7 +23,7 @@ Learn how to install and integrate DeepCitation into your application.
 ## How DeepCitation Works
 
 {: .note }
-DeepCitation works in 3 sections: install & setup, server-side processing, and display.
+DeepCitation works in 3 sections: install & setup, server side, and display.
 
 ### Section 1: Install & Setup
 
