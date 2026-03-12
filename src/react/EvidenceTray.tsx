@@ -1827,7 +1827,7 @@ export function InlineExpandedImage({
     <div className="bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
       <EvidenceTrayFooter
         verifiedAt={verification?.verifiedAt}
-        onPageClick={fill ? undefined : handleExpandToPage}
+        onPageClick={fill || !onExpand ? undefined : handleExpandToPage}
         pageNumberForCta={pageNumberForCta}
         pageCtaLabel={expandCtaLabel}
       />
