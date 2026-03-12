@@ -233,15 +233,14 @@ function PopoverLayoutShell({
 }) {
   const { stage: blinkStage, prefersReducedMotion } = useBlinkMotionStage(isExpanded || isFullPage, "container");
   const shellMotion = getBlinkContainerMotionStyle(blinkStage, prefersReducedMotion);
-  // This shell stays mounted when stepping expanded -> summary. Keep opacity at 1
-  // on the exit stage to avoid a white flash while preserving subtle scale settle.
-  const shellMotionWithoutExitFade =
-    blinkStage === "exit"
-      ? {
-          ...shellMotion,
-          opacity: 1,
-        }
-      : shellMotion;
+  // Pin opacity to 1 for EVERY non-steady stage. The View Transition handles the
+  // visual morph when expanding; the blink enter-a/enter-b opacity dip (0.22 → 0.78)
+  // fires via useEffect AFTER the VT finishes — at that point the real DOM is visible
+  // and the dip reads as a flash rather than an entrance. Similarly, the exit stage
+  // override (already present) prevents a white flash when collapsing. Keeping only
+  // the subtle scale settle (0.992 → 1) is enough spatial feedback.
+  const shellMotionStable =
+    blinkStage !== "steady" && blinkStage !== "idle" ? { ...shellMotion, opacity: 1 } : shellMotion;
 
   // Both expanded-keyhole and expanded-page size to the image once its width is known,
   // via getExpandedPopoverWidth() → max(320px, min(imageW + 26px, 100dvw - 2rem)).
@@ -262,7 +261,7 @@ function PopoverLayoutShell({
         style={{
           width: shellWidth,
           maxWidth: "100%",
-          ...shellMotionWithoutExitFade,
+          ...shellMotionStable,
           ...(isFullPage && {
             display: "flex",
             flexDirection: "column" as const,
@@ -496,10 +495,11 @@ function EvidenceZone({
         }
 
         :root[data-dc-page-expand] ::view-transition-old(${DC_EVIDENCE_VT_NAME}) {
-          animation: dc-evidence-fade-out ${VT_EVIDENCE_EXPAND_MS}ms ${EASE_COLLAPSE} both;
+          animation: dc-expand-fly-out ${VT_EVIDENCE_EXPAND_MS}ms ${EASE_COLLAPSE} both;
         }
         :root[data-dc-page-expand] ::view-transition-new(${DC_EVIDENCE_VT_NAME}) {
-          animation: dc-evidence-fade-in ${VT_EVIDENCE_EXPAND_MS}ms ${EASE_COLLAPSE} both;
+          animation: none;
+          opacity: 0;
         }
         :root[data-dc-page-expand] ::view-transition-group(${DC_EVIDENCE_VT_NAME}) {
           animation-duration: ${VT_EVIDENCE_EXPAND_MS}ms;
@@ -534,6 +534,19 @@ function EvidenceZone({
           0%   { opacity: 0; }
           60%  { opacity: 0; }
           100% { opacity: 1; }
+        }
+
+        /* Page expand: keyhole image flies to the annotation position on the
+           full page. The OLD snapshot (keyhole) stays visible during the
+           geometry morph so the user sees it physically move + scale. It fades
+           out at the end to reveal the page underneath (which is fully visible
+           in the real DOM since the scroll container no longer carries a VT
+           name). The NEW snapshot is the transparent annotation marker — kept
+           invisible throughout. */
+        @keyframes dc-expand-fly-out {
+          0%   { opacity: 1; }
+          75%  { opacity: 0.6; }
+          100% { opacity: 0; }
         }
       `}</style>
       {/* Slot A: summary — EvidenceTray keyhole strip */}
