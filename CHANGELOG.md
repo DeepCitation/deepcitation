@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-03-12
+
+### Added
+
+- **Vanilla citation report renderer** — new `deepcitation/vanilla` entry point for rendering citation verification reports without React; includes positioning utilities and runtime types (#334)
+- **`disableTelemetry` prop** on `CitationComponent` — opt out of anonymous usage analytics (#330)
+- **`prefetch` prop** on `CitationComponent` — control whether verification data is prefetched on mount (#330)
+- **Deferred verification support** — new `parseCitationResponse` unified parser and deferred verification flow for streaming-friendly citation resolution (#328)
+
+### Fixed
+
+- **Popover dismiss during view transitions** — popover no longer closes when a CSS view transition is in flight, preventing accidental dismissals during expand/collapse animations (#332)
+- **Image loading polish** — improved loading states and error handling for evidence images; cleaned up trusted host configuration (#333)
+- **Document overrides for non-match pages** — image expansion now correctly applies document overrides when the evidence page doesn't match the citation's original page (#329)
+- **View transition cross-fade timing** — new `dc-expand-old-out` / `dc-expand-new-in` keyframes so page-expand transitions show content during the geometry morph instead of appearing invisible for 60% of the animation
+- **Blink motion opacity flash** — pinned shell opacity to 1 for all active blink stages (every stage except `idle` and `steady`), preventing a visible dip (0.22 → 0.78) that fired after view transitions completed
+
+### Changed
+
+- **Bracket accent styling** aligned with 3-section workflow; CSS transition constants centralized in `constants.ts` (#335)
+- **`useAnimatedHeight` hook** added for smooth height transitions in expandable sections (#335)
+- Bumped `@types/node` dev dependency (#331)
+
 ## [0.2.0] - 2026-03-08
 
 ### Added
@@ -407,7 +430,8 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/deepcitation/deepcitation/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/deepcitation/deepcitation/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/deepcitation/deepcitation/compare/v1.1.53...v0.1.0
 [1.1.53]: https://github.com/deepcitation/deepcitation/compare/v1.1.52...v1.1.53
