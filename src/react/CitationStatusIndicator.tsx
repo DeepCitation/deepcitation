@@ -228,7 +228,7 @@ export const CitationStatusIndicator = ({
           className="inline-flex"
           style={{
             ...CARET_INDICATOR_SIZE_STYLE,
-            transition: "transform 150ms ease",
+            transition: "transform 120ms cubic-bezier(0.2, 0, 0, 1)",
             transform: shouldFlip ? "rotate(180deg)" : "rotate(0deg)",
           }}
         >
@@ -253,7 +253,7 @@ export const CitationStatusIndicator = ({
     return (
       <span
         className={cn(
-          "inline-flex relative ml-1 top-[0.1em] [text-decoration:none] transition-opacity duration-[400ms]",
+          "inline-flex relative ml-1 top-[0.1em] [text-decoration:none] transition-opacity duration-[350ms]",
           spinnerStage === "active" && "animate-spin",
           spinnerStage === "slow" && "animate-[dc-spin-ease_2s_linear_infinite]",
         )}
