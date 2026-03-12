@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import { useLayoutEffect, useRef } from "react";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
+import { isViewTransitioning } from "../viewTransition.js";
 
 /**
  * Animates the height of a wrapper element when `viewState` changes.
@@ -53,6 +54,24 @@ export function useAnimatedHeight(
 
     // Bail out: first render, no viewState change, or same height
     if (oldHeight === null || !viewStateChanged || oldHeight === newHeight) return;
+
+    // Don't clip the wrapper during a View Transition — the VT captures the
+    // NEW snapshot after this effect runs, and overflow:hidden + pinned height
+    // would clip the new snapshot, creating a visible jump when the VT finishes.
+    // The VT handles the visual morph; let the wrapper sit at its natural height.
+    //
+    // Critically, we also CLEAR any stale inline styles left over from a previous
+    // in-flight height animation (e.g. summary → expanded-keyhole transition was
+    // still animating when the user immediately clicked "View page"). Without
+    // this, the stale overflow:hidden + fixed height would clip the VT snapshot
+    // even though we skip setting NEW styles.
+    if (isViewTransitioning()) {
+      cancelAnimationFrame(rafIdRef.current);
+      wrapper.style.height = "";
+      wrapper.style.overflow = "";
+      wrapper.style.transition = "";
+      return;
+    }
 
     // Skip animation when height is shrinking: pinning the wrapper to the old
     // (larger) height creates a visible gap below the shorter content. Only
