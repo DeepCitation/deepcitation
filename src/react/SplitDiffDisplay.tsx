@@ -118,7 +118,7 @@ const MatchQualityBar: React.FC<MatchQualityBarProps> = memo(({ similarity, clas
     <div className={cn("flex items-center gap-2", className)}>
       <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div
-          className={cn("h-full rounded-full transition-all duration-300", fillColor)}
+          className={cn("h-full rounded-full transition-all duration-[250ms]", fillColor)}
           style={{ width: `${percentage}%` }}
         />
       </div>

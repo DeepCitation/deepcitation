@@ -635,10 +635,22 @@ export const WHEEL_ZOOM_SENSITIVITY = 0.005;
  */
 export const COPY_FEEDBACK_DURATION_MS = 2000;
 
+// ─── Five-tier animation timing scale ───────────────────────────────────────
+/** Instant — micro-feedback (hover bg, trigger color). */
+export const ANIM_INSTANT_MS = 75;
+/** Fast — small interactive transitions (chip color, icon swap). */
+export const ANIM_FAST_MS = 120;
+/** Standard — primary interactions (button press, toggle). */
+export const ANIM_STANDARD_MS = 180;
+/** Measured — layout shifts, geometry changes (panel resize, bar fill). */
+export const ANIM_MEASURED_MS = 250;
+/** Slow — large-area or staged transitions (page morph, spinner settle). */
+export const ANIM_SLOW_MS = 350;
+
 /** Shared focus-visible ring treatment for interactive elements. */
 export const FOCUS_RING_CLASSES = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40";
 /** Shared neutral interactive styling for tertiary actions (links/buttons). */
-export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-150 ${FOCUS_RING_CLASSES}`;
+export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-[120ms] ${FOCUS_RING_CLASSES}`;
 /** Idle tertiary action text color. */
 export const TERTIARY_ACTION_IDLE_CLASSES = "text-gray-600 dark:text-gray-400";
 /** Hover/focus tertiary action text color. */

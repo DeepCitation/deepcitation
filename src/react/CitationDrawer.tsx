@@ -471,7 +471,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           <svg
             aria-hidden="true"
             className={cn(
-              "w-4 h-4 shrink-0 transition-transform duration-150 ease-[cubic-bezier(0.65,0,0.35,1)]",
+              "w-4 h-4 shrink-0 transition-transform duration-[120ms] ease-[cubic-bezier(0.2,0,0,1)]",
               isExpanded ? "rotate-180 text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500",
             )}
             fill="none"
@@ -888,8 +888,12 @@ function IndicatorRow({
  * />
  * ```
  */
-/** Duration of the drawer exit animation in ms. Matches the slide-out + fade-out. */
-const DRAWER_EXIT_DURATION_MS = 150;
+/** Duration of the drawer enter animation in ms. */
+const DRAWER_ENTER_MS = 180;
+/** Duration of the drawer exit animation in ms. */
+const DRAWER_EXIT_MS = 120;
+/** Buffer beyond exit animation before unmounting (ms). */
+const DRAWER_EXIT_DURATION_MS = DRAWER_EXIT_MS + 30;
 
 export function CitationDrawer({ isOpen, ...props }: CitationDrawerProps): React.ReactNode {
   // Keep the drawer mounted during exit animation.
@@ -933,6 +937,16 @@ function OpenCitationDrawer({
 }: Omit<CitationDrawerProps, "isOpen"> & { isClosing?: boolean }): React.ReactNode {
   const t = useTranslation();
   const resolvedTitle = title ?? t("drawer.citations");
+
+  // Enter animation: mount at opacity 0 + translated, then transition to visible
+  // after one rAF so the browser paints the start state first.
+  const [hasEntered, setHasEntered] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setHasEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const isVisible = hasEntered && !isClosing;
+
   // Manual full-page state — set via drag-up gesture
   const [manualFullPage, setManualFullPage] = useState(false);
 
@@ -1169,11 +1183,16 @@ function OpenCitationDrawer({
         // filter causes visible jank during the drawer slide-in animation (composited
         // layer promotion + GPU shader cost). The semi-transparent overlay alone provides
         // sufficient visual separation without the performance hit.
-        className={cn(
-          "fixed inset-0 bg-black/30",
-          isClosing ? "animate-out fade-out-0 duration-150" : "animate-in fade-in-0 duration-200",
-        )}
-        style={{ zIndex: `var(${Z_INDEX_DRAWER_BACKDROP_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})` } as React.CSSProperties}
+        className="fixed inset-0 bg-black/30"
+        style={
+          {
+            zIndex: `var(${Z_INDEX_DRAWER_BACKDROP_VAR}, ${Z_INDEX_BACKDROP_DEFAULT})`,
+            opacity: isVisible ? 1 : 0,
+            transition: hasEntered
+              ? `opacity ${isClosing ? DRAWER_EXIT_MS : DRAWER_ENTER_MS}ms ${EASE_COLLAPSE}`
+              : "none",
+          } as React.CSSProperties
+        }
         onClick={onClose}
         aria-hidden="true"
       />
@@ -1183,36 +1202,44 @@ function OpenCitationDrawer({
         ref={drawerRef}
         className={cn(
           "fixed bg-white dark:bg-gray-900 flex flex-col",
-          isClosing ? "animate-out duration-150" : "animate-in duration-200",
-          position === "bottom" &&
-            cn(
-              "inset-x-0 bottom-0 transition-[max-height,border-radius] duration-200",
-              isClosing ? "slide-out-to-bottom-4 fade-out-0" : "slide-in-from-bottom-4",
-            ),
+          position === "bottom" && "inset-x-0 bottom-0",
           position === "bottom" && (isFullPage ? "max-h-[100dvh]" : "max-h-[80dvh] rounded-t-2xl"),
-          position === "right" &&
-            cn(
-              "inset-y-0 right-0 w-full max-w-md",
-              isClosing ? "slide-out-to-right-4 fade-out-0" : "slide-in-from-right-4",
-            ),
+          position === "right" && "inset-y-0 right-0 w-full max-w-md",
           className,
         )}
         style={
           {
             zIndex: `var(${Z_INDEX_DRAWER_VAR}, ${Z_INDEX_OVERLAY_DEFAULT})`,
+            // Enter/exit animation via CSS transitions (replaces non-functional
+            // tailwindcss-animate classes which don't exist in Tailwind v4).
+            opacity: isVisible ? 1 : 0,
+            transform: isVisible ? "translateY(0)" : position === "bottom" ? "translateY(1rem)" : "translateX(1rem)",
+            transition: hasEntered
+              ? [
+                  `opacity ${isClosing ? DRAWER_EXIT_MS : DRAWER_ENTER_MS}ms ${EASE_COLLAPSE}`,
+                  `transform ${isClosing ? DRAWER_EXIT_MS : DRAWER_ENTER_MS}ms ${EASE_COLLAPSE}`,
+                  // max-height + border-radius transitions for the drag-to-expand gesture
+                  ...(position === "bottom"
+                    ? [
+                        `max-height ${DRAWER_ENTER_MS}ms ${EASE_COLLAPSE}`,
+                        `border-radius ${DRAWER_ENTER_MS}ms ${EASE_COLLAPSE}`,
+                      ]
+                    : []),
+                ].join(", ")
+              : "none",
             // Dragging down: translate the sheet downward (close gesture)
             ...(dragDirection === "down" &&
               dragOffset > 0 && {
                 transform: `translateY(${dragOffset}px)`,
                 // Snap-back uses settle easing (no overshoot) — the drawer should return
                 // to rest without bouncing past its origin position.
-                transition: isDragging ? "none" : `transform 150ms ${EASE_COLLAPSE}`,
+                transition: isDragging ? "none" : `transform 120ms ${EASE_COLLAPSE}`,
               }),
             // Dragging up: grow the sheet taller (expand gesture) — no gap at bottom
             ...(dragDirection === "up" &&
               dragOffset < 0 && {
                 maxHeight: `calc(80dvh + ${Math.abs(dragOffset)}px)`,
-                transition: isDragging ? "none" : "max-height 150ms cubic-bezier(0.2, 0, 0, 1)",
+                transition: isDragging ? "none" : `max-height 120ms ${EASE_COLLAPSE}`,
               }),
           } as React.CSSProperties
         }

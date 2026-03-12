@@ -17,9 +17,9 @@ DeepCitation is an open-source library and API that enables AI applications to i
 
 DeepCitation works in three steps:
 
-1. **Pre-Prompt**: Upload attachments and enhance your LLM prompt with citation instructions using `prepareAttachments()` and `wrapCitationPrompt()`.
-2. **Post-Prompt**: After receiving the LLM response, verify citations against attachments using `verify()`.
-3. **Display**: Render verified citations with React components like `CitationComponent`.
+1. **Install & Setup**: Install, import types, initialize client, prepare sources with `prepareAttachments()`, and configure proof images.
+2. **Server Side**: Wrap prompts with `wrapCitationPrompt()`, call your LLM, verify citations with `verify()`, and optionally persist results.
+3. **Display with CitationComponent**: Parse `<cite>` tags, generate citation keys, and render inline with React components like `CitationComponent`.
 
 ## Documentation
 

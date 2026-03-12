@@ -110,7 +110,7 @@ export async function promptSourceSelection(): Promise<Source> {
 // ─── Workflow ───────────────────────────────────────────────────────────────
 
 /**
- * Run the full 5-step DeepCitation verification workflow for one source.
+ * Run the full DeepCitation verification workflow for one source.
  */
 async function runSingleSource(
   deepcitation: DeepCitation,
@@ -128,7 +128,7 @@ async function runSingleSource(
   console.log(`${"▓".repeat(60)}\n`);
 
   // ============================================
-  // STEP 1: PRE-PROMPT
+  // STEP 1: SETUP
   // Upload documents and prepare citation-enhanced prompts
   // ============================================
 
@@ -321,7 +321,7 @@ provided documents accurately and cite your sources.`;
 }
 
 /**
- * Run the full 5-step DeepCitation verification workflow.
+ * Run the full DeepCitation verification workflow.
  *
  * Source selection priority (first match wins):
  *   1. CLI argument:   bun run start:openai 2       # url

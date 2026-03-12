@@ -1,7 +1,7 @@
 /**
  * DeepCitation Basic Example - Raw API (curl/fetch)
  *
- * This example demonstrates the complete 5-step workflow using raw API calls
+ * This example demonstrates the complete DeepCitation workflow using raw API calls
  * instead of the DeepCitation client. This is useful for:
  * - Understanding the underlying API
  * - Integrating with other languages
@@ -163,7 +163,7 @@ async function runSingleSource(source: Source) {
   console.log(`${"▓".repeat(60)}\n`);
 
   // ============================================
-  // STEP 1: PRE-PROMPT — Upload via raw API call
+  // STEP 1: SETUP — Upload via raw API call
   // ============================================
 
   console.log("📄 Step 1: Uploading document via raw API call...\n");

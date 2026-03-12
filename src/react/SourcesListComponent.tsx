@@ -674,7 +674,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
         {/* Backdrop */}
         <div
           className={classNames(
-            "absolute inset-0 bg-black/40 dark:bg-black/60 transition-opacity duration-200",
+            "absolute inset-0 bg-black/40 dark:bg-black/60 transition-opacity duration-[180ms]",
             isOpen ? "opacity-100" : "opacity-0",
           )}
           onClick={handleBackdropClick}
@@ -687,7 +687,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
             ref={containerRef}
             className={classNames(
               "absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl",
-              "transform transition-transform duration-200 ease-out",
+              "transform transition-transform duration-[180ms] ease-[cubic-bezier(0.2,0,0,1)]",
               isOpen ? "translate-y-0" : "translate-y-full",
               "max-h-[80vh] flex flex-col",
               className,
@@ -705,8 +705,8 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
             ref={containerRef}
             className={classNames(
               "relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl",
-              "transform transition-all ease-out",
-              "opacity-100 scale-100 duration-200",
+              "transform transition-all ease-[cubic-bezier(0.2,0,0,1)]",
+              "opacity-100 scale-100 duration-[180ms]",
               "w-full max-w-md max-h-[80vh] flex flex-col mx-4",
               className,
             )}

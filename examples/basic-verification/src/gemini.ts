@@ -1,7 +1,7 @@
 /**
  * DeepCitation Basic Example - Google Gemini
  *
- * This example shows the complete 5-step DeepCitation workflow using Gemini.
+ * This example shows the complete DeepCitation workflow using Gemini.
  * Only the LLM call (Step 2) is provider-specific — see shared.ts for the
  * full workflow: upload → wrap prompts → parse → verify → display.
  *

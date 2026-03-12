@@ -16,6 +16,19 @@ $slate-800: #1E293B;
 $slate-900: #0F172A;
 $slate-950: #020617;
 
+// Bracket accent — reusable left-edge indicator (app sidebar, testimonials, callouts)
+@mixin bracket-indicator {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  border-left: 2px solid var(--link-color);
+  border-top: 2px solid var(--link-color);
+  border-bottom: 2px solid var(--link-color);
+}
+
 // Primary brand colors - DeepCitation Blue (NOT purple!)
 $brand-blue-light: #005595;
 $brand-blue-dark: #38BDF8;
@@ -513,12 +526,13 @@ pre {
   }
 
   &.active {
+    position: relative;
     background-color: var(--nav-active-bg);
     color: var(--nav-active-text);
     font-weight: 600;
-    border-left: 3px solid var(--link-color);
-    margin-left: 0;
-    padding-left: calc(0.75rem - 3px);
+
+    // Bracket indicator — matches app sidebar & testimonial accent
+    &::before { @include bracket-indicator; }
   }
 }
 
@@ -598,12 +612,16 @@ pre {
 // Blockquotes - Used for notes/warnings
 // -----------------------------------------------------
 blockquote {
-  border-left: 4px solid var(--link-color);
+  position: relative;
+  border: 1px solid var(--border-color);
   background-color: var(--sidebar-color);
   color: var(--body-text-color);
-  padding: 1rem 1.25rem;
+  padding: 1rem 1.25rem 1rem 1.5rem;
   margin: 1.5rem 0;
-  border-radius: 0 2px 2px 0;
+  border-radius: 0;
+
+  // Bracket indicator — matches app Testimonial & sidebar accent
+  &::before { @include bracket-indicator; }
 }
 
 // -----------------------------------------------------
@@ -712,11 +730,15 @@ blockquote {
   background-color: var(--link-color);
 }
 
-// Note/warning callouts
+// Note/warning callouts — bracket indicator
 .note,
 .warning,
 .important {
-  border-left-color: var(--link-color);
+  position: relative;
+  border-left: none;
+  padding-left: 1.5rem; // clear the 6px bracket pseudo-element
+
+  &::before { @include bracket-indicator; }
 }
 
 // Active states

@@ -41,10 +41,9 @@ Verify AI citations against source documents. Visual proof for every claim.
 
 ## How DeepCitation Works
 
-1. **Pre-Prompt: Prepare Attachments** - Upload source documents to extract text with line IDs for your LLM prompt
-2. **Wrap Prompts & Call Your LLM** - Add citation instructions and call any LLM provider
-3. **Post-Prompt: Verify Citations** - Verify citations with deterministic matching and get visual proof
-4. **Display Results** - Parse citations from output and render with React components or your own UI
+1. **Install & Setup** — Install, import types, initialize client, prepare sources, configure proof images
+2. **Server Side** — Wrap prompts, call your LLM, verify citations, optionally persist results
+3. **Display with CitationComponent** — Parse `<cite>` tags, generate citation keys, render inline with verification status
 
 ---
 

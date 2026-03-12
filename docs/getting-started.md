@@ -23,23 +23,19 @@ Learn how to install and integrate DeepCitation into your application.
 ## How DeepCitation Works
 
 {: .note }
-DeepCitation works in 4 simple steps: prepare attachments, wrap prompts, verify citations, and display results.
+DeepCitation works in 3 sections: install & setup, server side, and display.
 
-### Step 1: Pre-Prompt - Prepare Attachments
+### Section 1: Install & Setup
 
-Upload source documents to extract text with line IDs for your LLM prompt.
+Install, import types, initialize client, prepare sources, and configure proof images.
 
-### Step 2: Wrap Prompts & Call Your LLM
+### Section 2: Server Side
 
-Add citation instructions to your prompts and call any LLM provider (OpenAI, Anthropic, Google, etc.).
+Wrap prompts, call your LLM, verify citations, and optionally persist results.
 
-### Step 3: Post-Prompt - Verify Citations
+### Section 3: Display with CitationComponent
 
-Verify citations with deterministic matching and get visual proof images.
-
-### Step 4: Display Results
-
-Parse citations from markdown output and render with React components or your own UI.
+Parse `<cite>` tags, generate citation keys, and render inline with verification status.
 
 ---
 
