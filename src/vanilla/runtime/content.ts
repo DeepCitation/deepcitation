@@ -11,19 +11,11 @@ function isValidImageSrc(src: string): boolean {
   const trimmed = src.trim();
   if (trimmed.length === 0) return false;
   const lower = trimmed.toLowerCase();
-  // Block javascript: and other dangerous protocols
-  if (lower.startsWith("javascript:") || lower.startsWith("vbscript:")) return false;
-  // Block SVG data URIs (can contain script)
-  if (lower.startsWith("data:image/svg")) return false;
-  // Allow https, http, safe data URIs, and relative paths
-  if (
-    lower.startsWith("https:") ||
-    lower.startsWith("http:") ||
-    lower.startsWith("data:image/") ||
-    (trimmed.startsWith("/") && !trimmed.startsWith("//"))
-  ) {
-    return true;
-  }
+  // Allowlist: only permit known-safe schemes and relative paths.
+  // data:image/ is allowed EXCEPT SVG (which can contain scripts).
+  if (lower.startsWith("https:") || lower.startsWith("http:")) return true;
+  if (lower.startsWith("data:image/") && !lower.startsWith("data:image/svg")) return true;
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return true;
   return false;
 }
 
