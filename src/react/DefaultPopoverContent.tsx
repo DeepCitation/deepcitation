@@ -239,7 +239,7 @@ function PopoverLayoutShell({
   // and the dip reads as a flash rather than an entrance. Similarly, the exit stage
   // override (already present) prevents a white flash when collapsing. Keeping only
   // the subtle scale settle (0.992 → 1) is enough spatial feedback.
-  const shellMotionStable =
+  const shellMotionOpacityPinned =
     blinkStage !== "steady" && blinkStage !== "idle" ? { ...shellMotion, opacity: 1 } : shellMotion;
 
   // Both expanded-keyhole and expanded-page size to the image once its width is known,
@@ -261,7 +261,7 @@ function PopoverLayoutShell({
         style={{
           width: shellWidth,
           maxWidth: "100%",
-          ...shellMotionStable,
+          ...shellMotionOpacityPinned,
           ...(isFullPage && {
             display: "flex",
             flexDirection: "column" as const,

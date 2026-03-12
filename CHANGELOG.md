@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Image loading polish** — improved loading states and error handling for evidence images; cleaned up trusted host configuration (#333)
 - **Document overrides for non-match pages** — image expansion now correctly applies document overrides when the evidence page doesn't match the citation's original page (#329)
 - **View transition cross-fade timing** — new `dc-expand-old-out` / `dc-expand-new-in` keyframes so page-expand transitions show content during the geometry morph instead of appearing invisible for 60% of the animation
-- **Blink motion opacity flash** — pinned shell opacity to 1 for all non-steady blink stages, preventing a visible dip (0.22 → 0.78) that fired after view transitions completed
+- **Blink motion opacity flash** — pinned shell opacity to 1 for all active blink stages (every stage except `idle` and `steady`), preventing a visible dip (0.22 → 0.78) that fired after view transitions completed
 
 ### Changed
 
