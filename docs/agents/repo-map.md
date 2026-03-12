@@ -1,7 +1,7 @@
 ---
-generated_at: "2026-03-07T04:00:47Z"
-commit_sha: "cc9c7aa"
-commit_sha_full: "cc9c7aaba144838ed752f0467a9558138aff3ba1"
+generated_at: "2026-03-12T09:31:59Z"
+commit_sha: "224f843"
+commit_sha_full: "224f843143979aa746e08bc002a0407965686ec2"
 stale_after_commits: 30
 ---
 
@@ -48,6 +48,7 @@ src/  # Source files
     testing/  # Renderer test helpers
   types/  # Core TypeScript types (citation, verification, boxes, search, timing, diff)
   utils/  # Security utilities: urlSafety, logSafety, objectSafety, regexSafety, sha, fileSafety
+  vanilla/  # (no description)
 
 Tests
 
@@ -61,6 +62,7 @@ docs/  # Documentation (GitHub Pages site + agent docs)
 Scripts
 
 scripts/  # Build, validation, and maintenance scripts
+  build-vanilla-runtime.mjs
   convert-snapshots-to-avif.js
   refresh-agent-index.mjs
   test-skill.mjs

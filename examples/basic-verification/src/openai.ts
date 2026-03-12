@@ -1,7 +1,7 @@
 /**
  * DeepCitation Basic Example - OpenAI
  *
- * This example shows the complete 5-step DeepCitation workflow using OpenAI.
+ * This example shows the complete DeepCitation workflow using OpenAI.
  * Only the LLM call (Step 2) is provider-specific — see shared.ts for the
  * full workflow: upload → wrap prompts → parse → verify → display.
  *

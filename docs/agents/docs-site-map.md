@@ -1,8 +1,8 @@
 ---
-generated_at: "2026-03-07T04:00:49Z"
-commit_sha: "cc9c7aa"
-page_count: 18
-tracked: 16
+generated_at: "2026-03-12T09:32:04Z"
+commit_sha: "224f843"
+page_count: 16
+tracked: 14
 stale: 0
 ---
 
@@ -17,82 +17,72 @@ stale: 0
 ### Components
 - **File**: `docs/components.md`
 - **Description**: React CitationComponent documentation
-- **Staleness**: FRESH (0/15 commits since last update)
+- **Staleness**: FRESH (8/15 commits since last update)
 
 ### Curl Guide
 - **File**: `docs/curl-guide.md`
 - **Description**: Direct API usage with curl examples
-- **Staleness**: FRESH (0/15 commits since last update)
+- **Staleness**: FRESH (3/15 commits since last update)
 
 ### LangChain
 - **File**: `docs/frameworks/langchain.md`
 - **Description**: DeepCitation + LangChain: citation verification in your RAG pipeline
-- **Staleness**: FRESH (0/20 commits since last update)
+- **Staleness**: FRESH (3/20 commits since last update)
 
 ### Home
 - **File**: `docs/index.md`
 - **Description**: DeepCitation - Verify AI citations against source documents with visual proof
-- **Staleness**: FRESH (0/30 commits since last update)
+- **Staleness**: FRESH (5/30 commits since last update)
 
 ### Types
 - **File**: `docs/types.md`
 - **Description**: TypeScript interface definitions for DeepCitation
-- **Staleness**: FRESH (0/10 commits since last update)
+- **Staleness**: FRESH (3/10 commits since last update)
 
 ### Next.js App Router
 - **File**: `docs/frameworks/nextjs.md`
 - **Description**: DeepCitation + Next.js App Router: server components, streaming, and use client boundaries
-- **Staleness**: FRESH (0/15 commits since last update)
+- **Staleness**: FRESH (7/15 commits since last update)
 
 ### Getting Started
 - **File**: `docs/getting-started.md`
 - **Description**: Installation and quick start guide for DeepCitation
-- **Staleness**: FRESH (0/20 commits since last update)
+- **Staleness**: FRESH (6/20 commits since last update)
 
 ### Styling
 - **File**: `docs/styling.md`
 - **Description**: CSS customization options for CitationComponent
-- **Staleness**: FRESH (0/20 commits since last update)
+- **Staleness**: FRESH (7/20 commits since last update)
 
 ### Verification Statuses
 - **File**: `docs/verification-statuses.md`
 - **Description**: Understanding verification result statuses
-- **Staleness**: FRESH (0/10 commits since last update)
+- **Staleness**: FRESH (2/10 commits since last update)
 
 ### API Reference
 - **File**: `docs/api-reference.md`
 - **Description**: REST API endpoints for file preparation and citation verification
-- **Staleness**: FRESH (0/10 commits since last update)
+- **Staleness**: FRESH (3/10 commits since last update)
 
 ### Vercel AI SDK
 - **File**: `docs/frameworks/vercel-ai-sdk.md`
 - **Description**: DeepCitation + Vercel AI SDK: streamText, useChat, and citation verification
-- **Staleness**: FRESH (0/15 commits since last update)
-
-### Real-World Examples
-- **File**: `docs/real-world-examples.md`
-- **Description**: Industry-specific integration examples
-- **Staleness**: FRESH (0/20 commits since last update)
+- **Staleness**: FRESH (7/15 commits since last update)
 
 ### Code Examples
 - **File**: `docs/code-examples.md`
 - **Description**: SDK usage examples and integration patterns
-- **Staleness**: FRESH (0/20 commits since last update)
+- **Staleness**: FRESH (3/20 commits since last update)
 
 ### Error Handling
 - **File**: `docs/error-handling.md`
 - **Description**: Error handling patterns for DeepCitation in production
-- **Staleness**: FRESH (0/15 commits since last update)
+- **Staleness**: FRESH (1/15 commits since last update)
 
 ### Frameworks
 - **File**: `docs/frameworks/index.md`
 - **Description**: Framework-specific integration guides for DeepCitation
-- **Staleness**: FRESH (0/30 commits since last update)
-
-### Vibe Code with DeepCitation
-- **File**: `docs/vibe-code.md`
-- **Description**: Copy-paste prompts for AI coding agents to integrate DeepCitation in minutes
-- **Staleness**: FRESH (0/30 commits since last update)
+- **Staleness**: FRESH (3/30 commits since last update)
 
 ### 404
 - **File**: `docs/404.md`

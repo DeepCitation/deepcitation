@@ -4,8 +4,8 @@ A minimal example demonstrating the DeepCitation 3-step workflow for verifying A
 
 ## What This Example Does
 
-1. **Pre-Prompt**: Uploads a sample document and enhances your LLM prompt with citation instructions
-2. **Post-Prompt**: Calls your LLM, then verifies all citations against the source document
+1. **Install & Setup**: Uploads a sample document and prepares sources for citation verification
+2. **Server Side**: Wraps prompts, calls your LLM, and verifies all citations against the source document
 3. **Display**: Shows verification results with status, matched text snippets, and summary statistics
 
 ## Quick Start
