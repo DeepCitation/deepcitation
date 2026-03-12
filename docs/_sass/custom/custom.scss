@@ -16,6 +16,19 @@ $slate-800: #1E293B;
 $slate-900: #0F172A;
 $slate-950: #020617;
 
+// Bracket accent — reusable left-edge indicator (app sidebar, testimonials, callouts)
+@mixin bracket-indicator {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  border-left: 2px solid var(--link-color);
+  border-top: 2px solid var(--link-color);
+  border-bottom: 2px solid var(--link-color);
+}
+
 // Primary brand colors - DeepCitation Blue (NOT purple!)
 $brand-blue-light: #005595;
 $brand-blue-dark: #38BDF8;
@@ -519,17 +532,7 @@ pre {
     font-weight: 600;
 
     // Bracket indicator — matches app sidebar & testimonial accent
-    &::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 6px; // w-1.5 equivalent
-      border-left: 2px solid var(--link-color);
-      border-top: 2px solid var(--link-color);
-      border-bottom: 2px solid var(--link-color);
-    }
+    &::before { @include bracket-indicator; }
   }
 }
 
@@ -610,7 +613,6 @@ pre {
 // -----------------------------------------------------
 blockquote {
   position: relative;
-  border-left: none;
   border: 1px solid var(--border-color);
   background-color: var(--sidebar-color);
   color: var(--body-text-color);
@@ -619,17 +621,7 @@ blockquote {
   border-radius: 0;
 
   // Bracket indicator — matches app Testimonial & sidebar accent
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    border-left: 2px solid var(--link-color);
-    border-top: 2px solid var(--link-color);
-    border-bottom: 2px solid var(--link-color);
-  }
+  &::before { @include bracket-indicator; }
 }
 
 // -----------------------------------------------------
@@ -744,18 +736,9 @@ blockquote {
 .important {
   position: relative;
   border-left: none;
+  padding-left: 1.5rem; // clear the 6px bracket pseudo-element
 
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    border-left: 2px solid var(--link-color);
-    border-top: 2px solid var(--link-color);
-    border-bottom: 2px solid var(--link-color);
-  }
+  &::before { @include bracket-indicator; }
 }
 
 // Active states
