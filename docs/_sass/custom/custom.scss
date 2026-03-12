@@ -22,6 +22,10 @@ $brand-blue-dark: #38BDF8;
 $brand-blue-hover-light: #004578;
 $brand-blue-hover-dark: #7DD3FC;
 
+// Dark mode link color — use blue-dark for body links, not blue-luminous (per BRANDING.md)
+$brand-blue-dark-link: #77bff6;
+$brand-blue-dark-link-hover: #93cbf8;
+
 // Override Just the Docs color scheme variables
 $link-color: $brand-blue-light;
 $btn-primary-color: $brand-blue-light;
@@ -33,22 +37,22 @@ $btn-primary-color: $brand-blue-light;
 @mixin dark-mode-colors {
   --body-background-color: #{$slate-950};
   --sidebar-color: #{$slate-900};
-  --body-heading-color: #{$slate-100};
-  --body-text-color: #{$slate-300};
-  --link-color: #{$brand-blue-dark};
-  --link-hover-color: #{$brand-blue-hover-dark};
+  --body-heading-color: #{$slate-200}; // per BRANDING.md External Documentation Theme
+  --body-text-color: #{$slate-400}; // per BRANDING.md: #94A3B8
+  --link-color: #{$brand-blue-dark-link}; // #77bff6 (blue-dark) — not blue-luminous
+  --link-hover-color: #{$brand-blue-dark-link-hover};
   --code-background-color: #{$slate-900};
   --code-border-color: #{$slate-800};
   --border-color: #{$slate-800};
   --search-background-color: #{$slate-900};
-  --selection-bg: #{$brand-blue-dark};
+  --selection-bg: #{$brand-blue-dark-link};
   --selection-text: #{$slate-950};
-  --focus-ring-color: rgba(56, 189, 248, 0.2); // #38BDF8 at 20%
+  --focus-ring-color: rgba(119, 191, 246, 0.2); // #77bff6 at 20%
   --nav-active-bg: #{$slate-800};
   --nav-active-text: #{$slate-50};
   --inline-code-color: inherit;
   --inline-code-bg: transparent;
-  // Buttons
+  // Buttons — CTAs use blue-luminous (#38BDF8), distinct from body links
   --btn-primary-bg: #{$brand-blue-dark};
   --btn-primary-bg-hover: #{$brand-blue-hover-dark};
   --btn-primary-text: #{$slate-950};
@@ -112,6 +116,9 @@ body {
   background-color: var(--body-background-color);
   font-size: 16px; // Base size for accessibility
   line-height: 1.6;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6,
@@ -139,6 +146,9 @@ h1, h2, h3, h4, h5, h6,
 
 code, pre, .highlight {
   font-family: 'Source Code Pro', 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
 }
 
 // -----------------------------------------------------

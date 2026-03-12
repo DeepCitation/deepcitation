@@ -36,6 +36,9 @@ examples/**/next-env.d.ts
 firebase-debug.log
 
 ag-ui-client*
+
+# Auto-generated vanilla runtime
+src/vanilla/_generated.ts
 **/bun.lock
 **/package-lock.json
 **/node_modules

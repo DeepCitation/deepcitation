@@ -11,9 +11,10 @@ Show proof for every AI citation.
 
 <div align="center">
 
+[![CI](https://github.com/DeepCitation/deepcitation/actions/workflows/ci.yml/badge.svg)](https://github.com/DeepCitation/deepcitation/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Zero Dependencies](https://img.shields.io/badge/Zero%20Dependencies-trusted-green)](https://www.npmjs.com/package/deepcitation)
-[![< 25KB](https://img.shields.io/badge/gzip-<25KB-brightgreen)](https://bundlephobia.com/package/deepcitation)
+[![~17KB](https://img.shields.io/badge/gzip-~17KB-brightgreen)](https://bundlephobia.com/package/deepcitation)
 
 </div>
 
@@ -32,28 +33,8 @@ DeepCitation turns model citations into deterministic, inspectable proof.
 
 ## Install
 
-#### With bun
-
 ```sh
-bun add deepcitation
-```
-
-#### With npm
-
-```sh
-npm install deepcitation
-```
-
-#### With yarn
-
-```sh
-yarn add deepcitation
-```
-
-#### With pnpm
-
-```sh
-pnpm add deepcitation
+npm install deepcitation  # or bun add / yarn add / pnpm add
 ```
 
 ## Quick Start

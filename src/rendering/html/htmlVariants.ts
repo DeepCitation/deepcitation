@@ -54,6 +54,10 @@ interface HtmlCitationOptions {
   location?: string;
   quote?: string;
   imageUrl?: string;
+  /** Attachment ID emitted as data-dc-attachment-id for external consumers */
+  attachmentId?: string;
+  /** Page number emitted as data-dc-page-number for external consumers */
+  pageNumber?: number;
 }
 
 /**
@@ -76,6 +80,8 @@ export function renderHtmlCitation(opts: HtmlCitationOptions): string {
     location,
     quote,
     imageUrl,
+    attachmentId,
+    pageNumber,
   } = opts;
 
   const indicator = getIndicator(status, indicatorStyle);
@@ -144,7 +150,14 @@ export function renderHtmlCitation(opts: HtmlCitationOptions): string {
 
   const classes = [`${prefix}citation`, statusCls, variantClass].filter(Boolean).join(" ");
 
-  return `<span class="${classes}"${spanStyle} data-citation-key="${escapeHtmlAttr(citationKey)}"${proofUrl ? ` data-proof-url="${escapeHtmlAttr(proofUrl)}"` : ""}>${inner}</span>`;
+  const dataAttrs = [
+    ` data-citation-key="${escapeHtmlAttr(citationKey)}"`,
+    proofUrl ? ` data-proof-url="${escapeHtmlAttr(proofUrl)}"` : "",
+    attachmentId ? ` data-dc-attachment-id="${escapeHtmlAttr(attachmentId)}"` : "",
+    pageNumber != null ? ` data-dc-page-number="${pageNumber}"` : "",
+  ].join("");
+
+  return `<span class="${classes}"${spanStyle}${dataAttrs}>${inner}</span>`;
 }
 
 function escapeHtml(str: string): string {

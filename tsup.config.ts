@@ -14,6 +14,7 @@ export default defineConfig({
     "rendering/github/githubRenderer": "src/rendering/github/githubRenderer.ts",
     "rendering/html/htmlRenderer": "src/rendering/html/htmlRenderer.ts",
     "rendering/terminal/terminalRenderer": "src/rendering/terminal/terminalRenderer.ts",
+    "vanilla/index": "src/vanilla/index.ts",
   },
   format: ["esm", "cjs"],
   dts: {

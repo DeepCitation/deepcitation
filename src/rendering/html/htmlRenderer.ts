@@ -100,6 +100,8 @@ export function renderCitationsAsHtml(input: string, options: HtmlRenderOptions 
       location,
       quote: citation.fullPhrase ?? undefined,
       imageUrl,
+      attachmentId: citation.type !== "url" ? (citation.attachmentId ?? undefined) : undefined,
+      pageNumber: citation.type !== "url" ? (citation.pageNumber ?? undefined) : undefined,
     });
   });
 
