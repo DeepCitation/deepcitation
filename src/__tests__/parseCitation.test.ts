@@ -8,6 +8,19 @@ import {
 import type { Citation } from "../types/citation.js";
 import { isDocumentCitation, isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationPageNumber } from "../utils/textCleanup.js";
+
+describe("getCitationPageNumber", () => {
+  it("parses page numbers from standard keys", () => {
+    expect(getCitationPageNumber("page_number_12_index_0")).toBe(12);
+    expect(getCitationPageNumber("page_key_7_index_2")).toBe(7);
+  });
+
+  it("returns null when key is missing", () => {
+    expect(getCitationPageNumber(null)).toBeNull();
+    expect(getCitationPageNumber(undefined)).toBeNull();
+  });
+});
 
 describe("getCitationStatus", () => {
   it("marks verified citations", () => {
