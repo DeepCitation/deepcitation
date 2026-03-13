@@ -372,8 +372,9 @@ function parsePageId(pageId: string): {
     };
   }
 
-  // Try legacy format: "page_number_N_index_I" or variations
-  const legacyMatch = pageId.match(/page[_a-zA-Z]*(\d+)_index_(\d+)/i);
+  // Try verbose format: "page_number_N_index_I" or variations
+  // Use {0,30} bound to prevent polynomial backtracking (CodeQL js/polynomial-redos)
+  const legacyMatch = pageId.match(/page[_a-z]{0,30}(\d+)_index_(\d+)/i);
   if (legacyMatch) {
     let pageNum = parseInt(legacyMatch[1], 10);
     const index = parseInt(legacyMatch[2], 10);
