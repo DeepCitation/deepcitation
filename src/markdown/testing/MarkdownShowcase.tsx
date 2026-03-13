@@ -77,11 +77,15 @@ const _baseCitation: Citation = {
   citationNumber: 1,
 };
 
-const sampleInput = `The company reported strong growth<cite attachment_id='abc123' page_number='5' full_phrase='Revenue increased by 15% in Q4 2024.' anchor_text='increased by 15%' line_ids='12,13' /> according to the quarterly report.
+const sampleInput = `The company reported strong growth[1] according to the quarterly report.
 
-Additionally, costs were reduced<cite attachment_id='abc123' page_number='7' full_phrase='Operating costs decreased by 8%.' anchor_text='reduced' line_ids='25' /> through efficiency measures.
+Additionally, costs were reduced[2] through efficiency measures.
 
-However, some projections<cite attachment_id='abc123' page_number='12' full_phrase='Market share expected to grow.' anchor_text='projections' line_ids='5' /> remain unverified.`;
+However, some projections[3] remain unverified.
+
+<<<CITATION_DATA>>>
+{"abc123":[{"id":1,"page_number":5,"full_phrase":"Revenue increased by 15% in Q4 2024.","anchor_text":"increased by 15%","line_ids":[12,13]},{"id":2,"page_number":7,"full_phrase":"Operating costs decreased by 8%.","anchor_text":"reduced","line_ids":[25]},{"id":3,"page_number":12,"full_phrase":"Market share expected to grow.","anchor_text":"projections","line_ids":[5]}]}
+<<<END_CITATION_DATA>>>`;
 
 const _linePositionVerification: Verification = {
   status: "found_on_other_line",
@@ -175,7 +179,7 @@ export function MarkdownShowcase() {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {MARKDOWN_VARIANTS.map(variant => {
-            const simpleInput = `Revenue grew 45%<cite attachment_id='abc123' page_number='3' full_phrase='Revenue grew 45% in Q4.' anchor_text='grew 45%' citation_number='1' /> according to reports.`;
+            const simpleInput = `Revenue grew 45%[1] according to reports.\n\n<<<CITATION_DATA>>>\n{"abc123":[{"id":1,"page_number":3,"full_phrase":"Revenue grew 45% in Q4.","anchor_text":"grew 45%"}]}\n<<<END_CITATION_DATA>>>`;
             const output = toMarkdown(simpleInput, {
               variant,
               indicatorStyle: "check",
@@ -316,7 +320,7 @@ function CompleteDocumentPreview() {
 }
 
 function UrlCitationPreview() {
-  const urlInput = `According to the documentation<cite type='url' url='https://docs.example.com/api' domain='docs.example.com' title='API Reference' full_phrase='The API supports REST endpoints.' anchor_text='documentation' citation_number='1' />, the API is RESTful.`;
+  const urlInput = `According to the documentation[1], the API is RESTful.\n\n<<<CITATION_DATA>>>\n{"url:https://docs.example.com/api":[{"id":1,"type":"url","url":"https://docs.example.com/api","domain":"docs.example.com","title":"API Reference","full_phrase":"The API supports REST endpoints.","anchor_text":"documentation"}]}\n<<<END_CITATION_DATA>>>`;
 
   const output = toMarkdown(urlInput, {
     variant: "inline",

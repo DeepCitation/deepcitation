@@ -4,7 +4,7 @@
  * Every code block in INTEGRATION.md that references SDK functions should
  * match one of these constants. Tests in __tests__/integrationSnippets.test.ts
  * verify that each snippet references real exports and does NOT use removed
- * XML <cite> patterns.
+ * legacy XML patterns.
  *
  * DO NOT modify these snippets without running the tests:
  *   bun test src/__tests__/integrationSnippets.test.ts
