@@ -583,9 +583,9 @@ export const VT_EVIDENCE_DIP_OPACITY = 0.45;
 //
 // Tier              Constant              Duration  Tailwind class   Use cases
 // ──────────────────────────────────────────────────────────────────────────────
-// Instant           ANIM_INSTANT_MS        75ms     duration-75      Hover bg, trigger color
+// Instant           ANIM_INSTANT_MS        80ms     duration-[80ms]  Hover bg, trigger color
 // Fast              ANIM_FAST_MS          120ms     duration-120 Micro-interactions, exits, chevrons
-// Standard          ANIM_STANDARD_MS      180ms     duration-[180ms] Popover entry, grid expand, morphs
+// Standard          ANIM_STANDARD_MS      180ms     duration-180 Popover entry, grid expand, morphs
 // Measured          ANIM_MEASURED_MS      250ms     duration-[250ms] Drawer slide-in, morph expand
 // Slow              ANIM_SLOW_MS          350ms     duration-[350ms] Full-page transitions, coordinated
 //
@@ -637,7 +637,7 @@ export const COPY_FEEDBACK_DURATION_MS = 2000;
 
 // ─── Five-tier animation timing scale ───────────────────────────────────────
 /** Instant — micro-feedback (hover bg, trigger color). */
-export const ANIM_INSTANT_MS = 75;
+export const ANIM_INSTANT_MS = 80;
 /** Fast — small interactive transitions (chip color, icon swap). */
 export const ANIM_FAST_MS = 120;
 /** Standard — primary interactions (button press, toggle). */

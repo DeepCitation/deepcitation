@@ -1445,7 +1445,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       className: cn(
         "relative inline-flex items-baseline",
         "px-0.5 -mx-0.5 rounded-sm",
-        "transition-colors duration-75 active:scale-[0.98]",
+        "transition-colors duration-[80ms] active:scale-[0.98]",
         cursorClass,
         // Improved touch target size on mobile (minimum 44px recommended)
         // Using py-1.5 for better touch accessibility without breaking layout

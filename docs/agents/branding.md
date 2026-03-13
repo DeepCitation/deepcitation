@@ -84,7 +84,7 @@ Animation timing and easing are the **shared DNA** between web app and SDK. Both
 
 | Tier | Constant | Value | Use |
 |------|----------|-------|-----|
-| Instant | `ANIM_INSTANT_MS` | 75ms | Hover background, trigger color change |
+| Instant | `ANIM_INSTANT_MS` | 80ms | Hover background, trigger color change |
 | Fast | `ANIM_FAST_MS` | 120ms | Micro-interactions, exits, chevron rotations |
 | Standard | `ANIM_STANDARD_MS` | 180ms | Popover entry fade, grid row expand |
 | Measured | `ANIM_MEASURED_MS` | 250ms | Drawer slide-in, content morph |
