@@ -35,7 +35,7 @@ This is the question most developers hit first. Here's the complete split:
 | `CitationComponent` | Client only (`"use client"`) | Uses React state/hooks, renders interactive popover |
 | `CitationDrawer` | Client only (`"use client"`) | Interactive drawer with animation |
 | `CitationDrawerTrigger` | Client only (`"use client"`) | Trigger button for the drawer |
-| `parseCitation()` | Either | Pure function, no side effects |
+| `parseCitationResponse()` | Either | Pure function, no side effects |
 | `getCitationKey()` | Either | Pure function, no side effects (import from `"deepcitation"`) |
 
 {: .important }
@@ -303,36 +303,40 @@ In your chat message component:
 ```typescript
 "use client";
 
-import { parseCitation, getCitationKey, type Citation, type Verification } from "deepcitation";
+import { parseCitationResponse, type Citation, type Verification } from "deepcitation";
 import { CitationComponent } from "deepcitation/react";
 
-// Replace <cite .../> tags in LLM output with CitationComponent
+// Replace [N] citation markers in LLM output with CitationComponent
 function renderWithCitations(
   content: string,
   citations: Record<string, Citation>,
   verifications: Record<string, Verification>,
 ): React.ReactNode {
-  const parts = content.split(/(<cite\s[^>]*\/>)/g);
+  const result = parseCitationResponse(content);
+
+  if (result.format !== "numeric") {
+    return <span>{result.visibleText}</span>;
+  }
+
+  const segments = result.visibleText.split(result.splitPattern);
 
   return (
     <>
-      {parts.map((part, i) => {
-        if (!part.startsWith("<cite")) {
-          return <span key={i}>{part}</span>;
-        }
-        try {
-          const { citation: parsed } = parseCitation(part);
-          const key = getCitationKey(parsed);
+      {segments.map((seg, i) => {
+        const match = seg.match(/^\[(\d+)\]$/);
+        if (match) {
+          const key = result.markerMap[Number(match[1])];
+          const citation = citations[key] ?? result.citations[key];
+          const verification = verifications[key];
           return (
             <CitationComponent
-              key={key}
-              citation={citations[key] ?? parsed}
-              verification={verifications[key]}
+              key={`citation-${i}`}
+              citation={citation}
+              verification={verification}
             />
           );
-        } catch {
-          return <span key={i}>{part}</span>;
         }
+        return <span key={i}>{seg}</span>;
       })}
     </>
   );

@@ -103,7 +103,7 @@ const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttac
 | `deepcitation.verify()` | Parse LLM output and verify all citations (recommended) |
 | `deepcitation.verifyAttachment()` | Verify citations against a specific attachment |
 | `getCitationStatus()` | Get simplified status (isVerified, isMiss, etc.) |
-| `replaceCitations()` | Replace citation tags with optional verification status |
+| `replaceCitationMarkers()` | Replace citation markers with optional verification status |
 
 ## Raw API Usage (curl)
 
