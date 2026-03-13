@@ -507,11 +507,6 @@ const cleanAndUnescape = (str?: string): string | undefined => {
   return result;
 };
 
-/**
- * Parses a single XML `<cite ... />` tag fragment into a Citation object.
- *
- * @deprecated Use the numeric citation format with `parseCitationResponse()` instead.
- */
 export const parseCitation = (
   fragment: string,
   mdAttachmentId?: string | null,
