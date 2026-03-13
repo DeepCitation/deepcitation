@@ -1,10 +1,7 @@
 import { formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
-import { getCitationStatus } from "../../parsing/parseCitation.js";
-import { getCitationKey } from "../../utils/citationKey.js";
-import { safeReplace } from "../../utils/regexSafety.js";
-import { buildCitationFromAttrs, parseCiteAttributes } from "../citationParser.js";
+import type { ParsedCitationResult } from "../../parsing/parseCitationResponse.js";
 import { buildProofUrl, buildSnippetImageUrl } from "../proofUrl.js";
-import type { RenderCitationWithStatus } from "../types.js";
+import { resolveSourceLabel, walkCitationSegments } from "../shared.js";
 import {
   getStatusLabel,
   renderGitHubCitation,
@@ -15,12 +12,10 @@ import {
 import type { GitHubOutput, GitHubRenderOptions } from "./types.js";
 
 /**
- * Module-level compiled regex for cite tag matching.
- */
-const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
-
-/**
- * Render LLM output with <cite /> tags as GitHub-flavored Markdown.
+ * Render LLM output with `[N]` citation markers as GitHub-flavored Markdown.
+ *
+ * Accepts either a raw LLM response string (auto-parsed) or a pre-parsed
+ * `ParsedCitationResult` for efficiency when reusing parsed data.
  *
  * @example
  * ```typescript
@@ -35,7 +30,10 @@ const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
  * });
  * ```
  */
-export function renderCitationsForGitHub(input: string, options: GitHubRenderOptions = {}): GitHubOutput {
+export function renderCitationsForGitHub(
+  input: string | ParsedCitationResult,
+  options: GitHubRenderOptions = {},
+): GitHubOutput {
   const {
     verifications = {},
     indicatorStyle = "check",
@@ -47,51 +45,42 @@ export function renderCitationsForGitHub(input: string, options: GitHubRenderOpt
     includeImages = false,
   } = options;
 
-  const citationsWithStatus: RenderCitationWithStatus[] = [];
+  const { segments, citationsWithStatus } = walkCitationSegments(input, verifications);
   const proofUrls: Record<string, string> = {};
-  let citationIndex = 0;
 
-  // Use safeReplace to validate input length before regex (ReDoS prevention)
-  const markdown = safeReplace(input, CITE_TAG_REGEX, match => {
-    citationIndex++;
-    const attrs = parseCiteAttributes(match);
-    const citation = buildCitationFromAttrs(attrs, citationIndex);
-    const citationKey = getCitationKey(citation);
-    const verification = verifications[citationKey] || null;
-    const status = getCitationStatus(verification);
+  const markdownParts: string[] = [];
+
+  for (const seg of segments) {
+    if (seg.type === "text") {
+      markdownParts.push(seg.value);
+      continue;
+    }
 
     let proofUrl: string | undefined;
     if (proofBaseUrl) {
-      proofUrl = buildProofUrl(citationKey, { baseUrl: proofBaseUrl });
-      proofUrls[citationKey] = proofUrl;
+      proofUrl = buildProofUrl(seg.citationKey, { baseUrl: proofBaseUrl });
+      proofUrls[seg.citationKey] = proofUrl;
     }
 
-    citationsWithStatus.push({
-      citation,
-      citationKey,
-      verification,
-      status,
-      citationNumber: citationIndex,
-    });
-
-    return renderGitHubCitation(
-      citationIndex,
-      citation.anchorText ?? undefined,
-      status,
-      indicatorStyle,
-      proofUrl,
-      variant,
+    markdownParts.push(
+      renderGitHubCitation(
+        seg.citationNumber,
+        seg.citation.anchorText ?? undefined,
+        seg.status,
+        indicatorStyle,
+        proofUrl,
+        variant,
+      ),
     );
-  });
+  }
+
+  const markdown = markdownParts.join("");
 
   // Build sources section
   let sources: string | undefined;
   if (includeSources && citationsWithStatus.length > 0) {
     const entries = citationsWithStatus.map(cws => {
-      const label =
-        cws.citation.type === "url"
-          ? sourceLabels[""] || cws.verification?.label || cws.citation.title || `Source ${cws.citationNumber}`
-          : sourceLabels[cws.citation.attachmentId || ""] || cws.verification?.label || `Source ${cws.citationNumber}`;
+      const label = resolveSourceLabel(cws, sourceLabels);
       const location = formatPageLocation(cws.citation, cws.verification, {
         showPageNumber: true,
         showLinePosition: false,

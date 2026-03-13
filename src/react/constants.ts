@@ -583,9 +583,9 @@ export const VT_EVIDENCE_DIP_OPACITY = 0.45;
 //
 // Tier              Constant              Duration  Tailwind class   Use cases
 // ──────────────────────────────────────────────────────────────────────────────
-// Instant           ANIM_INSTANT_MS        75ms     duration-75      Hover bg, trigger color
-// Fast              ANIM_FAST_MS          120ms     duration-[120ms] Micro-interactions, exits, chevrons
-// Standard          ANIM_STANDARD_MS      180ms     duration-[180ms] Popover entry, grid expand, morphs
+// Instant           ANIM_INSTANT_MS        80ms     duration-[80ms]  Hover bg, trigger color
+// Fast              ANIM_FAST_MS          120ms     duration-120 Micro-interactions, exits, chevrons
+// Standard          ANIM_STANDARD_MS      180ms     duration-180 Popover entry, grid expand, morphs
 // Measured          ANIM_MEASURED_MS      250ms     duration-[250ms] Drawer slide-in, morph expand
 // Slow              ANIM_SLOW_MS          350ms     duration-[350ms] Full-page transitions, coordinated
 //
@@ -637,7 +637,7 @@ export const COPY_FEEDBACK_DURATION_MS = 2000;
 
 // ─── Five-tier animation timing scale ───────────────────────────────────────
 /** Instant — micro-feedback (hover bg, trigger color). */
-export const ANIM_INSTANT_MS = 75;
+export const ANIM_INSTANT_MS = 80;
 /** Fast — small interactive transitions (chip color, icon swap). */
 export const ANIM_FAST_MS = 120;
 /** Standard — primary interactions (button press, toggle). */
@@ -650,7 +650,7 @@ export const ANIM_SLOW_MS = 350;
 /** Shared focus-visible ring treatment for interactive elements. */
 export const FOCUS_RING_CLASSES = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40";
 /** Shared neutral interactive styling for tertiary actions (links/buttons). */
-export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-[120ms] ${FOCUS_RING_CLASSES}`;
+export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-120 ${FOCUS_RING_CLASSES}`;
 /** Idle tertiary action text color. */
 export const TERTIARY_ACTION_IDLE_CLASSES = "text-gray-600 dark:text-gray-400";
 /** Hover/focus tertiary action text color. */

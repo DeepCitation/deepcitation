@@ -9,18 +9,56 @@ import { renderCitationsAsMarkdown, toMarkdown } from "../markdown/renderMarkdow
 import type { IndicatorStyle } from "../markdown/types.js";
 import { INDICATOR_SETS } from "../markdown/types.js";
 import { getCitationStatus } from "../parsing/parseCitation.js";
+import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+
+// =============================================================================
+// TEST HELPERS
+// =============================================================================
+
+function makeNumericResponse(visibleText: string, citations: unknown[]): string {
+  return `${visibleText}\n\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify(citations)}\n${CITATION_DATA_END_DELIMITER}`;
+}
 
 // =============================================================================
 // TEST FIXTURES
 // =============================================================================
 
-const simpleInput = `Revenue grew 45%<cite attachment_id='abc123' page_number='3' full_phrase='Revenue grew 45% in Q4.' anchor_text='grew 45%' line_ids='12,13' /> according to reports.`;
+const simpleInput = makeNumericResponse("Revenue grew 45% [1] according to reports.", [
+  {
+    id: 1,
+    attachment_id: "abc123",
+    page_id: "3_0",
+    full_phrase: "Revenue grew 45% in Q4.",
+    anchor_text: "grew 45%",
+    line_ids: [12, 13],
+  },
+]);
 
-const multiCitationInput = `First claim<cite attachment_id='abc123' page_number='1' full_phrase='First fact.' anchor_text='First' citation_number='1' />.
-Second claim<cite attachment_id='abc123' page_number='2' full_phrase='Second fact.' anchor_text='Second' citation_number='2' />.
-Third claim<cite attachment_id='abc123' page_number='3' full_phrase='Third fact.' anchor_text='Third' citation_number='3' />.`;
+const multiCitationInput = makeNumericResponse("First claim [1].\nSecond claim [2].\nThird claim [3].", [
+  {
+    id: 1,
+    attachment_id: "abc123",
+    page_id: "1_0",
+    full_phrase: "First fact.",
+    anchor_text: "First",
+  },
+  {
+    id: 2,
+    attachment_id: "abc123",
+    page_id: "2_0",
+    full_phrase: "Second fact.",
+    anchor_text: "Second",
+  },
+  {
+    id: 3,
+    attachment_id: "abc123",
+    page_id: "3_0",
+    full_phrase: "Third fact.",
+    anchor_text: "Third",
+  },
+]);
 
 const verifiedVerification: Verification = {
   status: "found",
@@ -60,22 +98,22 @@ const pendingVerification: Verification = {
 
 describe("getIndicator", () => {
   describe("check style (default)", () => {
-    it("returns ✓ for verified", () => {
+    it("returns check for verified", () => {
       const status = getCitationStatus(verifiedVerification);
       expect(getIndicator(status, "check")).toBe("✓");
     });
 
-    it("returns ⚠ for partial match", () => {
+    it("returns warning for partial match", () => {
       const status = getCitationStatus(partialVerification);
       expect(getIndicator(status, "check")).toBe("⚠");
     });
 
-    it("returns ✗ for not found", () => {
+    it("returns x for not found", () => {
       const status = getCitationStatus(notFoundVerification);
       expect(getIndicator(status, "check")).toBe("✗");
     });
 
-    it("returns ◌ for pending", () => {
+    it("returns circle for pending", () => {
       const status = getCitationStatus(pendingVerification);
       expect(getIndicator(status, "check")).toBe("◌");
     });
@@ -201,11 +239,11 @@ describe("renderCitationsAsMarkdown", () => {
       expect(result.citations[2].citationNumber).toBe(3);
     });
 
-    it("removes cite tags from output", () => {
+    it("removes citation markers from rendered output", () => {
       const result = renderCitationsAsMarkdown(simpleInput);
 
-      expect(result.markdown).not.toContain("<cite");
-      expect(result.markdown).not.toContain("/>");
+      // The raw [1] markers should be replaced with rendered citation text
+      expect(result.markdown).not.toMatch(/\[1\](?![◌✓✗⚠^])/);
     });
   });
 
@@ -403,27 +441,45 @@ describe("edge cases", () => {
     expect(result.citations).toHaveLength(0);
   });
 
-  it("handles citations with escaped quotes", () => {
-    const input = `Test<cite full_phrase='He said \\'hello\\' to everyone.' anchor_text='hello' />`;
+  it("handles citations with special characters in full_phrase", () => {
+    const input = makeNumericResponse("Test [1]", [
+      {
+        id: 1,
+        attachment_id: "abc",
+        full_phrase: "He said 'hello' to everyone.",
+        anchor_text: "hello",
+      },
+    ]);
     const result = renderCitationsAsMarkdown(input);
 
     expect(result.citations[0].citation.fullPhrase).toBe("He said 'hello' to everyone.");
   });
 
-  it("handles missing optional attributes", () => {
-    const input = `Test<cite attachment_id='abc' />`;
+  it("handles citation with minimal fields", () => {
+    const input = makeNumericResponse("Test [1]", [
+      {
+        id: 1,
+        attachment_id: "abc",
+        full_phrase: "minimal citation",
+      },
+    ]);
     const result = renderCitationsAsMarkdown(input);
 
     expect(result.citations).toHaveLength(1);
     expect(result.citations[0].citation.attachmentId).toBe("abc");
   });
 
-  it("regex does not maintain state between multiple calls", () => {
-    // This test verifies that the stateful regex bug is fixed
-    // Previously, reusing a module-level regex with 'g' flag could cause issues
-    const input1 = `First<cite attachment_id='first123' anchor_text='First' />`;
-    const input2 = `Second<cite attachment_id='second456' anchor_text='Second' />`;
-    const input3 = `Third<cite attachment_id='third789' anchor_text='Third' />`;
+  it("parser does not maintain state between multiple calls", () => {
+    // This test verifies no stateful regex bugs
+    const input1 = makeNumericResponse("First [1]", [
+      { id: 1, attachment_id: "first123", anchor_text: "First", full_phrase: "First fact." },
+    ]);
+    const input2 = makeNumericResponse("Second [1]", [
+      { id: 1, attachment_id: "second456", anchor_text: "Second", full_phrase: "Second fact." },
+    ]);
+    const input3 = makeNumericResponse("Third [1]", [
+      { id: 1, attachment_id: "third789", anchor_text: "Third", full_phrase: "Third fact." },
+    ]);
 
     // Call multiple times in succession
     const result1 = renderCitationsAsMarkdown(input1);
@@ -440,30 +496,23 @@ describe("edge cases", () => {
     expect(result3.citations[0].citation.anchorText).toBe("Third");
   });
 
-  it("normalizes attribute key aliases correctly", () => {
-    // Test camelCase variants
-    const input1 = `<cite attachmentId='abc' anchorText='test1' fullPhrase='phrase1' pageNumber='5' />`;
-    // Test snake_case variants
-    const input2 = `<cite attachment_id='def' anchor_text='test2' full_phrase='phrase2' page_number='10' />`;
-    // Test legacy fileId alias
-    const input3 = `<cite fileId='ghi' />`;
+  it("parses all citation fields correctly", () => {
+    const input = makeNumericResponse("Test [1]", [
+      {
+        id: 1,
+        attachment_id: "abc",
+        anchor_text: "test1",
+        full_phrase: "phrase1",
+        page_id: "5_0",
+      },
+    ]);
 
-    const result1 = renderCitationsAsMarkdown(input1);
-    const result2 = renderCitationsAsMarkdown(input2);
-    const result3 = renderCitationsAsMarkdown(input3);
+    const result = renderCitationsAsMarkdown(input);
 
-    // All variants should normalize to the same canonical field names
-    expect(result1.citations[0].citation.attachmentId).toBe("abc");
-    expect(result1.citations[0].citation.anchorText).toBe("test1");
-    expect(result1.citations[0].citation.fullPhrase).toBe("phrase1");
-    expect(result1.citations[0].citation.pageNumber).toBe(5);
-
-    expect(result2.citations[0].citation.attachmentId).toBe("def");
-    expect(result2.citations[0].citation.anchorText).toBe("test2");
-    expect(result2.citations[0].citation.fullPhrase).toBe("phrase2");
-    expect(result2.citations[0].citation.pageNumber).toBe(10);
-
-    expect(result3.citations[0].citation.attachmentId).toBe("ghi");
+    expect(result.citations[0].citation.attachmentId).toBe("abc");
+    expect(result.citations[0].citation.anchorText).toBe("test1");
+    expect(result.citations[0].citation.fullPhrase).toBe("phrase1");
+    expect(result.citations[0].citation.pageNumber).toBe(5);
   });
 });
 
@@ -514,9 +563,14 @@ describe("getCitationDisplayText", () => {
   });
 
   it("matches displayText in CitationWithStatus from renderCitationsAsMarkdown", () => {
-    // This test verifies that getCitationDisplayText returns the same value
-    // that is used as displayText in the CitationWithStatus objects
-    const input = `Test<cite attachment_id='abc' anchor_text='anchor' full_phrase='full phrase' />`;
+    const input = makeNumericResponse("Test [1]", [
+      {
+        id: 1,
+        attachment_id: "abc",
+        anchor_text: "anchor",
+        full_phrase: "full phrase",
+      },
+    ]);
     const result = renderCitationsAsMarkdown(input, { variant: "inline" });
 
     const citation = result.citations[0].citation;

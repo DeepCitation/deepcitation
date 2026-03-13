@@ -1,9 +1,9 @@
-import { getCitationPageNumber } from "../parsing/normalizeCitation.js";
 import type { Citation } from "../types/citation.js";
 import { isAudioVideoCitation, isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { resolveField } from "./fieldAliases.js";
 import { sha1Hash } from "./sha.js";
+import { getCitationPageNumber } from "./textCleanup.js";
 
 /**
  * Returns a deterministic content-hash key for a citation.

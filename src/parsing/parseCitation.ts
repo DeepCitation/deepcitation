@@ -11,141 +11,28 @@ import { getCitationKey } from "../utils/citationKey.js";
 import { getFieldAliases, resolveField } from "../utils/fieldAliases.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
 import { safeMatch } from "../utils/regexSafety.js";
-import { getAllCitationsFromDeferredResponse, hasDeferredCitations } from "./citationParser.js";
-import { normalizeCitations } from "./normalizeCitation.js";
+import { getAllCitationsFromNumericResponse, hasCitationData } from "./citationParser.js";
 
 /**
  * Module-level compiled regexes for hot-path operations.
- *
- * IMPORTANT: These regexes are compiled once at module load time to avoid
- * the overhead of regex compilation on every function call. This is a
- * significant performance optimization for parsing-heavy workloads.
- *
- * ## Safe usage patterns for global (/g) regexes:
- *
- * Regexes with the global flag maintain internal state (lastIndex).
- * Here's when each usage pattern is safe:
- *
- * ```typescript
- * // SAFE: String.match() creates a new matcher internally
- * const matches = text.match(CITE_TAG_REGEX);
- *
- * // SAFE: Non-global regexes don't have lastIndex issues
- * const isMatch = PAGE_ID_FULL_REGEX.test(text);
- * const match = PAGE_ID_FULL_REGEX.exec(text);
- *
- * // REQUIRED: Create fresh instance for .exec() loops with global regexes
- * const regex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
- * let match;
- * while ((match = regex.exec(text)) !== null) { ... }
- *
- * // UNSAFE: Don't reuse global regex with .exec() in loops
- * // while ((match = CITE_TAG_REGEX.exec(text)) !== null) // BUG!
- * ```
- *
- * Performance fix: avoids regex recompilation on every function call.
+ * Compiled once at module load to avoid per-call recompilation.
  */
-const PAGE_ID_FULL_REGEX = /page[_a-zA-Z]*(\d+)_index_(\d+)/;
 const PAGE_ID_SIMPLE_REGEX = /page[_a-zA-Z]*(\d+)_index_(\d+)/i;
 const SIMPLE_PAGE_INDEX_REGEX = /^(\d+)_(\d+)$/;
-const CITE_TAG_REGEX = /<cite\s+(?:'[^'\\]*(?:\\.[^'\\]*)*'|"[^"\\]*(?:\\.[^"\\]*)*"|[^'">/])*\/>/g;
-
-const attributeRegexCache = new Map<string, RegExp>();
-
-function getAttributeRegex(name: string): RegExp {
-  let regex = attributeRegexCache.get(name);
-  if (!regex) {
-    regex = new RegExp(`${name}='((?:[^'\\\\]|\\\\.)*)'`);
-    attributeRegexCache.set(name, regex);
-  }
-  return regex;
-}
 
 /**
- * Maximum allowed range size for line ID expansion.
- * Prevents memory exhaustion from malicious inputs like "1-1000000".
+ * Module-level status sets for O(1) lookups — avoids per-call array allocations.
  */
-const MAX_LINE_ID_RANGE_SIZE = 1000;
-
-/**
- * Number of sample points to use when a range is too large to fully expand.
- * Samples are evenly distributed across the range to maintain verification accuracy.
- */
-const LARGE_RANGE_SAMPLE_COUNT = 50;
-
-/**
- * Parses a line_ids string that may contain individual numbers, ranges, or both.
- * Examples: "1,2,3", "5-10", "1,5-7,10", "20-20"
- *
- * Performance: Range expansion is limited to MAX_LINE_ID_RANGE_SIZE to prevent
- * quadratic memory allocation from malicious inputs. For larger ranges, evenly
- * distributed sample points are used to maintain verification accuracy.
- *
- * @param lineIdsString - The raw line_ids string (e.g., "1,5-7,10")
- * @returns Sorted array of unique line IDs, or undefined if empty/invalid
- */
-function parseLineIds(lineIdsString: string): number[] | undefined {
-  if (!lineIdsString) return undefined;
-
-  const lineIds: number[] = [];
-  const parts = lineIdsString.split(",");
-
-  for (const part of parts) {
-    const trimmed = part.trim();
-    if (!trimmed) continue;
-
-    // Check if this part is a range (e.g., "5-10")
-    if (trimmed.includes("-")) {
-      const [startStr, endStr] = trimmed.split("-");
-      const start = parseInt(startStr, 10);
-      const end = parseInt(endStr, 10);
-
-      if (!Number.isNaN(start) && !Number.isNaN(end) && start <= end) {
-        const rangeSize = end - start + 1;
-
-        if (rangeSize > MAX_LINE_ID_RANGE_SIZE) {
-          // Performance fix: use sampling for large ranges to maintain accuracy
-          // Include start and end, plus evenly distributed samples using Math.floor
-          // for predictable behavior. Deduplication happens at the end via Set.
-          // Note: No warning logged to avoid spamming production logs.
-          lineIds.push(start);
-          const sampleCount = Math.min(LARGE_RANGE_SAMPLE_COUNT - 2, rangeSize - 2);
-          if (sampleCount > 0) {
-            // Use Math.floor for predictable sampling, ensuring step >= 1
-            const step = Math.max(1, Math.floor((end - start) / (sampleCount + 1)));
-            for (let i = 1; i <= sampleCount; i++) {
-              const sample = start + step * i;
-              // Ensure we don't exceed the range end
-              if (sample < end) {
-                lineIds.push(sample);
-              }
-            }
-          }
-          lineIds.push(end);
-        } else {
-          // Expand the full range
-          for (let i = start; i <= end; i++) {
-            lineIds.push(i);
-          }
-        }
-      } else if (!Number.isNaN(start)) {
-        // If only start is valid, just use it
-        lineIds.push(start);
-      }
-    } else {
-      // Single number
-      const num = parseInt(trimmed, 10);
-      if (!Number.isNaN(num)) {
-        lineIds.push(num);
-      }
-    }
-  }
-
-  if (lineIds.length === 0) return undefined;
-
-  // Sort and deduplicate
-  return [...new Set(lineIds)].sort((a, b) => a - b);
-}
+const MISS_STATUSES = new Set(["not_found"]);
+const PARTIAL_STATUSES = new Set([
+  "found_anchor_text_only",
+  "partial_text_found",
+  "found_on_other_page",
+  "found_on_other_line",
+  "first_word_found",
+]);
+const VERIFIED_STATUSES = new Set(["found", "found_phrase_missed_anchor_text"]);
+const PENDING_STATUSES = new Set<string | null | undefined>(["pending", "loading", null, undefined]);
 
 /**
  * Calculates the verification status of a citation based on the found highlight and search state.
@@ -156,145 +43,18 @@ function parseLineIds(lineIdsString: string): number[] | undefined {
 export function getCitationStatus(verification: Verification | null | undefined): CitationStatus {
   const status = verification?.status;
 
-  const isMiss = ["not_found"].includes(status || "");
+  const isMiss = MISS_STATUSES.has(status || "");
 
   // Partial matches: something found but not ideal (amber indicator)
-  const isPartialMatch = [
-    "found_anchor_text_only", // Only anchor text found, not full phrase
-    "partial_text_found",
-    "found_on_other_page",
-    "found_on_other_line",
-    "first_word_found",
-  ].includes(status || "");
+  const isPartialMatch = PARTIAL_STATUSES.has(status || "");
 
   // Verified: exact match or partial match (green or amber indicator)
-  const isVerified = ["found", "found_phrase_missed_anchor_text"].includes(status || "") || isPartialMatch;
+  const isVerified = VERIFIED_STATUSES.has(status || "") || isPartialMatch;
 
-  const isPending = ["pending", "loading", null, undefined].includes(status);
+  const isPending = PENDING_STATUSES.has(status);
 
   return { isVerified, isMiss, isPartialMatch, isPending };
 }
-
-export const parseCitation = (
-  fragment: string,
-  mdAttachmentId?: string | null,
-  citationCounterRef?: { current: number } | null,
-  isVerbose?: boolean,
-) => {
-  // Helper: Remove wrapper quotes and fully unescape content
-  // Handles: \' -> ', \" -> ", \n -> space, \\ -> \
-  const cleanAndUnescape = (str?: string) => {
-    if (!str) return undefined;
-    let result = str;
-    // Remove surrounding quotes if present, but only if not escaped
-    // Check start: remove leading quote only if it exists
-    if (result.startsWith("'") || result.startsWith('"')) {
-      result = result.slice(1);
-    }
-    // Check end: remove trailing quote only if it's not escaped (not preceded by \)
-    if ((result.endsWith("'") || result.endsWith('"')) && !result.endsWith("\\'") && !result.endsWith('\\"')) {
-      result = result.slice(0, -1);
-    }
-    // Replace escaped double quotes with actual double quotes
-    result = result.replace(/\\"/g, '"');
-    // Replace escaped single quotes with actual single quotes
-    result = result.replace(/\\'/g, "'");
-    // Replace literal \n sequences with spaces (newlines in attribute values)
-    result = result.replace(/\\n/g, " ");
-    // Replace double backslashes with single backslash
-    result = result.replace(/\\\\/g, "\\");
-    return result;
-  };
-
-  const citationNumber = citationCounterRef?.current ? citationCounterRef.current++ : undefined;
-
-  const afterCite = fragment.includes("/>") ? fragment.slice(fragment.indexOf("/>") + 2) : "";
-  const middleCite = fragment.substring(fragment.indexOf("<cite"), fragment.indexOf("/>") + 2);
-
-  const extractAttribute = (tag: string, attrNames: string[]): string | undefined => {
-    for (const name of attrNames) {
-      const regex = getAttributeRegex(name);
-      const match = tag.match(regex);
-      if (match) {
-        return match[1];
-      }
-    }
-    return undefined;
-  };
-
-  // Extract all attributes by name (order-independent)
-  // Alias lists are derived from the centralized field alias map (utils/fieldAliases.ts)
-  const rawAttachmentId = extractAttribute(middleCite, getFieldAliases("attachmentId"));
-  const attachmentId = rawAttachmentId?.length === 20 ? rawAttachmentId : mdAttachmentId || rawAttachmentId;
-
-  const startPageIdRaw = extractAttribute(middleCite, getFieldAliases("startPageId"));
-  let pageNumber: number | undefined;
-  let pageIndex: number | undefined;
-  if (startPageIdRaw) {
-    // Performance fix: use module-level compiled regex
-    const pageMatch = startPageIdRaw.match(PAGE_ID_FULL_REGEX);
-    if (pageMatch) {
-      pageNumber = parseInt(pageMatch[1], 10);
-      pageIndex = parseInt(pageMatch[2], 10);
-    }
-  }
-
-  // Use helper to handle escaped quotes inside the phrase
-  const fullPhrase = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("fullPhrase")));
-  const anchorText = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("anchorText")));
-  const reasoning = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("reasoning")));
-  const value = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("value")));
-
-  let lineIds: number[] | undefined;
-  try {
-    const lineIdsRaw = extractAttribute(middleCite, getFieldAliases("lineIds"));
-    const lineIdsString = lineIdsRaw?.replace(/[A-Za-z_[\](){}:]/g, "");
-    lineIds = lineIdsString ? parseLineIds(lineIdsString) : undefined;
-  } catch (e) {
-    if (isVerbose) console.error("Error parsing lineIds", e);
-  }
-
-  // Extract URL-specific attributes
-  const url = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("url")));
-  const domain = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("domain")));
-  const title = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("title")));
-  const description = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("description")));
-  const siteName = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("siteName")));
-  const faviconUrl = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("faviconUrl")));
-
-  // Determine citation type: URL citation if url is present and no attachmentId
-  const citation: Citation =
-    url && !attachmentId
-      ? ({
-          type: "url" as const,
-          url,
-          domain,
-          title,
-          description,
-          siteName,
-          faviconUrl,
-          fullPhrase,
-          anchorText: anchorText || value,
-          citationNumber,
-          reasoning,
-        } as UrlCitation)
-      : ({
-          type: "document" as const,
-          attachmentId: attachmentId,
-          pageNumber,
-          startPageId: `page_number_${pageNumber || 1}_index_${pageIndex || 0}`,
-          fullPhrase,
-          anchorText: anchorText || value,
-          citationNumber,
-          lineIds,
-          reasoning,
-        } as DocumentCitation);
-
-  return {
-    afterCite,
-    citation,
-  };
-};
 
 /**
  * Parses a JSON-based citation object into a Citation.
@@ -519,39 +279,11 @@ const findJsonCitationsInObject = (obj: unknown, found: Citation[], depth = 0): 
 };
 
 /**
- * Extracts XML citations from text using <cite ... /> tags.
- */
-export const extractXmlCitations = (text: string): CitationRecord => {
-  const normalizedText = normalizeCitations(text);
-
-  // Find all <cite ... /> tags
-  // Performance fix: use module-level compiled regex (create fresh instance to reset lastIndex)
-  const citeRegex = new RegExp(CITE_TAG_REGEX.source, CITE_TAG_REGEX.flags);
-  const matches = normalizedText.match(citeRegex);
-
-  if (!matches || matches.length === 0) return {};
-
-  const citations: CitationRecord = {};
-  const citationCounterRef = { current: 1 };
-
-  for (const match of matches) {
-    const { citation } = parseCitation(match, undefined, citationCounterRef);
-    if (citation?.fullPhrase) {
-      const citationKey = getCitationKey(citation);
-      citations[citationKey] = citation;
-    }
-  }
-
-  return citations;
-};
-
-/**
  * Extracts all citations from LLM output.
- * Supports both XML <cite ... /> tags (embedded in strings/markdown) and JSON-based citation formats.
+ * Supports numeric [N] + <<<CITATION_DATA>>> format (strings) and JSON-based citation formats (objects).
  *
  * For object input:
  * - Traverses the object looking for `citation` or `citations` properties matching JSON format
- * - Also stringifies the object to find embedded XML citations in markdown content
  *
  * **IMPORTANT**: Returns an OBJECT (CitationRecord), NOT an array.
  * To check if empty, use `Object.keys(citations).length === 0`.
@@ -599,20 +331,12 @@ export const getAllCitationsFromLlmOutput = (llmOutput: unknown): CitationRecord
         Object.assign(citations, jsonCitations);
       }
     }
-
-    // Also stringify and parse for embedded XML citations in markdown
-    const text = JSON.stringify(llmOutput);
-    const xmlCitations = extractXmlCitations(text);
-    Object.assign(citations, xmlCitations);
   } else if (typeof llmOutput === "string") {
-    // Check for deferred JSON format (<<<CITATION_DATA>>>)
-    if (hasDeferredCitations(llmOutput)) {
-      const deferredCitations = getAllCitationsFromDeferredResponse(llmOutput);
-      Object.assign(citations, deferredCitations);
+    // Check for numeric JSON format (<<<CITATION_DATA>>>)
+    if (hasCitationData(llmOutput)) {
+      const numericCitations = getAllCitationsFromNumericResponse(llmOutput);
+      Object.assign(citations, numericCitations);
     }
-    // Also parse for XML citations (both formats can coexist)
-    const xmlCitations = extractXmlCitations(llmOutput);
-    Object.assign(citations, xmlCitations);
   }
 
   return citations;
@@ -711,20 +435,6 @@ export function groupCitationsByAttachmentIdObject(
   return grouped;
 }
 
-/**
- * Normalizes a citation object from external sources (APIs, databases) to ensure
- * the `type` discriminator is set correctly.
- *
- * If the citation has a `url` field but no `type: "url"`, it is corrected to a `UrlCitation`.
- * This is useful when consuming data that predates the discriminated union refactor.
- *
- * @example
- * ```typescript
- * // External data missing the discriminator
- * const raw = { url: "https://example.com", fullPhrase: "..." };
- * const citation = normalizeCitationType(raw); // { type: "url", url: "...", fullPhrase: "..." }
- * ```
- */
 /**
  * Normalizes a citation object from external sources (APIs, databases) to ensure
  * the `type` discriminator is set correctly.

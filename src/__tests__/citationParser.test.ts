@@ -1,17 +1,18 @@
 import { describe, expect, it } from "@jest/globals";
 import {
-  deferredCitationToCitation,
+  citationDataToCitation,
   extractVisibleText,
-  getAllCitationsFromDeferredResponse,
+  getAllCitationsFromNumericResponse,
   getCitationMarkerIds,
-  hasDeferredCitations,
-  parseDeferredCitationResponse,
-  replaceDeferredMarkers,
+  hasCitationData,
+  parseCitationData,
+  replaceCitationMarkers,
+  stripCitations,
 } from "../parsing/citationParser.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import { getCitationKey } from "../utils/citationKey.js";
 
-describe("parseDeferredCitationResponse", () => {
+describe("parseCitationData", () => {
   it("parses a basic deferred citation response", () => {
     const response = `The company reported strong growth [1]. Revenue increased significantly [2].
 
@@ -38,7 +39,7 @@ ${CITATION_DATA_START_DELIMITER}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.visibleText).toBe("The company reported strong growth [1]. Revenue increased significantly [2].");
@@ -49,7 +50,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 
   it("handles response without citation block", () => {
     const response = "This is a simple response without citations.";
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.visibleText).toBe(response);
@@ -57,13 +58,13 @@ ${CITATION_DATA_END_DELIMITER}`;
   });
 
   it("handles empty input", () => {
-    const result = parseDeferredCitationResponse("");
+    const result = parseCitationData("");
     expect(result.success).toBe(false);
     expect(result.error).toContain("Invalid input");
   });
 
   it("handles null/undefined input", () => {
-    const result = parseDeferredCitationResponse(null as unknown as string);
+    const result = parseCitationData(null as unknown as string);
     expect(result.success).toBe(false);
     expect(result.error).toContain("Invalid input");
   });
@@ -84,7 +85,7 @@ ${CITATION_DATA_START_DELIMITER}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations[0].full_phrase).toContain("no liability");
@@ -105,7 +106,7 @@ ${CITATION_DATA_START_DELIMITER}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations[0].full_phrase).toContain("Line one");
@@ -122,7 +123,7 @@ ${CITATION_DATA_START_DELIMITER}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(3);
@@ -138,7 +139,7 @@ ${CITATION_DATA_START_DELIMITER}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
@@ -150,7 +151,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "a", "full_phrase": "test", "anchor_text": "test"}]`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
@@ -163,7 +164,7 @@ ${CITATION_DATA_START_DELIMITER}
 []
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(0);
@@ -187,7 +188,7 @@ ${CITATION_DATA_START_DELIMITER}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations[0].timestamps?.start_time).toBe("00:05:23.000");
@@ -203,14 +204,14 @@ ${CITATION_DATA_START_DELIMITER}
 \`\`\`
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
   });
 });
 
-describe("getAllCitationsFromDeferredResponse", () => {
+describe("getAllCitationsFromNumericResponse", () => {
   it("returns citations dictionary with generated keys", () => {
     const response = `Test [1] and [2].
 
@@ -221,7 +222,7 @@ ${CITATION_DATA_START_DELIMITER}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const citations = getAllCitationsFromDeferredResponse(response);
+    const citations = getAllCitationsFromNumericResponse(response);
 
     expect(Object.keys(citations).length).toBe(2);
 
@@ -234,7 +235,7 @@ ${CITATION_DATA_END_DELIMITER}`;
 
   it("returns empty object for response without citations", () => {
     const response = "Simple text without citations.";
-    const citations = getAllCitationsFromDeferredResponse(response);
+    const citations = getAllCitationsFromNumericResponse(response);
     expect(Object.keys(citations).length).toBe(0);
   });
 
@@ -245,12 +246,12 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "abc", "anchor_text": "test"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const citations = getAllCitationsFromDeferredResponse(response);
+    const citations = getAllCitationsFromNumericResponse(response);
     expect(Object.keys(citations).length).toBe(0);
   });
 });
 
-describe("deferredCitationToCitation", () => {
+describe("citationDataToCitation", () => {
   it("converts deferred citation data to standard Citation format", () => {
     const data = {
       id: 1,
@@ -262,7 +263,7 @@ describe("deferredCitationToCitation", () => {
       line_ids: [10, 11, 12],
     };
 
-    const citation = deferredCitationToCitation(data);
+    const citation = citationDataToCitation(data);
 
     expect(citation.attachmentId).toBe("doc123");
     expect(citation.reasoning).toBe("test reasoning");
@@ -282,7 +283,7 @@ describe("deferredCitationToCitation", () => {
       line_ids: [15, 10, 12, 11],
     };
 
-    const citation = deferredCitationToCitation(data);
+    const citation = citationDataToCitation(data);
     expect(citation.lineIds).toEqual([10, 11, 12, 15]);
   });
 
@@ -297,7 +298,7 @@ describe("deferredCitationToCitation", () => {
       },
     };
 
-    const citation = deferredCitationToCitation(data);
+    const citation = citationDataToCitation(data);
     expect(citation.type).toBe("audio");
     expect(citation.fullPhrase).toBe("transcript text");
     // timestamps are mapped to camelCase on AudioVideoCitation
@@ -314,24 +315,24 @@ describe("deferredCitationToCitation", () => {
       full_phrase: "test",
     };
 
-    const citation = deferredCitationToCitation(data, 99);
+    const citation = citationDataToCitation(data, 99);
     expect(citation.citationNumber).toBe(99);
   });
 });
 
-describe("hasDeferredCitations", () => {
+describe("hasCitationData", () => {
   it("returns true when delimiter is present", () => {
     const response = `Text ${CITATION_DATA_START_DELIMITER} [...] ${CITATION_DATA_END_DELIMITER}`;
-    expect(hasDeferredCitations(response)).toBe(true);
+    expect(hasCitationData(response)).toBe(true);
   });
 
   it("returns false when delimiter is absent", () => {
-    expect(hasDeferredCitations("Simple text")).toBe(false);
+    expect(hasCitationData("Simple text")).toBe(false);
   });
 
   it("returns false for non-string input", () => {
-    expect(hasDeferredCitations(null as unknown as string)).toBe(false);
-    expect(hasDeferredCitations(123 as unknown as string)).toBe(false);
+    expect(hasCitationData(null as unknown as string)).toBe(false);
+    expect(hasCitationData(123 as unknown as string)).toBe(false);
   });
 });
 
@@ -352,10 +353,10 @@ ${CITATION_DATA_END_DELIMITER}`;
   });
 });
 
-describe("replaceDeferredMarkers", () => {
+describe("replaceCitationMarkers", () => {
   it("removes markers by default", () => {
     const text = "Revenue grew 45% [1] in Q4 [2].";
-    expect(replaceDeferredMarkers(text)).toBe("Revenue grew 45%  in Q4 .");
+    expect(replaceCitationMarkers(text)).toBe("Revenue grew 45%  in Q4 .");
   });
 
   it("replaces markers with key spans", () => {
@@ -365,7 +366,7 @@ describe("replaceDeferredMarkers", () => {
       [2, { id: 2, anchor_text: "Q4 2024" }],
     ]);
 
-    const result = replaceDeferredMarkers(text, {
+    const result = replaceCitationMarkers(text, {
       citationMap,
       showAnchorText: true,
     });
@@ -374,7 +375,7 @@ describe("replaceDeferredMarkers", () => {
 
   it("uses custom replacer function", () => {
     const text = "Test [1] and [2].";
-    const result = replaceDeferredMarkers(text, {
+    const result = replaceCitationMarkers(text, {
       replacer: id => `(ref${id})`,
     });
     expect(result).toBe("Test (ref1) and (ref2).");
@@ -384,7 +385,7 @@ describe("replaceDeferredMarkers", () => {
     const text = "Test [1] and [99].";
     const citationMap = new Map([[1, { id: 1, anchor_text: "found" }]]);
 
-    const result = replaceDeferredMarkers(text, {
+    const result = replaceCitationMarkers(text, {
       citationMap,
       showAnchorText: true,
     });
@@ -419,7 +420,7 @@ ${CITATION_DATA_START_DELIMITER}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
@@ -447,7 +448,7 @@ ${CITATION_DATA_START_DELIMITER}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations[0].id).toBe(1);
@@ -466,7 +467,7 @@ ${CITATION_DATA_START_DELIMITER}
 ]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
@@ -490,7 +491,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
@@ -520,7 +521,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
@@ -543,7 +544,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
@@ -567,7 +568,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations[0].attachment_id).toBe("video456");
@@ -582,7 +583,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "abc", "full_phrase": "test", "anchor_text": "test"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
@@ -600,7 +601,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const citations = getAllCitationsFromDeferredResponse(response);
+    const citations = getAllCitationsFromNumericResponse(response);
     const citationValues = Object.values(citations);
 
     expect(citationValues.length).toBe(1);
@@ -622,7 +623,7 @@ describe("simplified page_id format", () => {
       line_ids: [10],
     };
 
-    const citation = deferredCitationToCitation(data);
+    const citation = citationDataToCitation(data);
 
     expect(citation.pageNumber).toBe(3);
     expect(citation.startPageId).toBe("page_number_3_index_2");
@@ -638,14 +639,14 @@ describe("simplified page_id format", () => {
       line_ids: [20],
     };
 
-    const citation = deferredCitationToCitation(data);
+    const citation = citationDataToCitation(data);
 
     expect(citation.pageNumber).toBe(5);
     expect(citation.startPageId).toBe("page_number_5_index_3");
   });
 
   it("handles single-digit and multi-digit page numbers", () => {
-    const singleDigit = deferredCitationToCitation({
+    const singleDigit = citationDataToCitation({
       id: 1,
       page_id: "1_0",
       full_phrase: "test",
@@ -653,7 +654,7 @@ describe("simplified page_id format", () => {
     expect(singleDigit.pageNumber).toBe(1);
     expect(singleDigit.startPageId).toBe("page_number_1_index_0");
 
-    const multiDigit = deferredCitationToCitation({
+    const multiDigit = citationDataToCitation({
       id: 2,
       page_id: "123_45",
       full_phrase: "test",
@@ -670,7 +671,7 @@ describe("simplified page_id format", () => {
       page_id: "invalid_format",
     };
 
-    const citation = deferredCitationToCitation(data);
+    const citation = citationDataToCitation(data);
 
     expect(citation.pageNumber).toBeUndefined();
     expect(citation.startPageId).toBeUndefined();
@@ -678,7 +679,7 @@ describe("simplified page_id format", () => {
 
   it("auto-corrects 0_0 to page 1 (only when both page and index are 0)", () => {
     // page_id "0_0" should be corrected to page 1, index 0
-    const zeroIndexed = deferredCitationToCitation({
+    const zeroIndexed = citationDataToCitation({
       id: 1,
       page_id: "0_0",
       full_phrase: "test",
@@ -690,7 +691,7 @@ describe("simplified page_id format", () => {
   it("does NOT auto-correct ambiguous page_ids like 0_5", () => {
     // page_id "0_5" is ambiguous - could be page 0 with index 5, or a mistake
     // We should NOT guess, so leave it as page 0
-    const zeroWithIndex = deferredCitationToCitation({
+    const zeroWithIndex = citationDataToCitation({
       id: 2,
       page_id: "0_5",
       full_phrase: "test",
@@ -701,7 +702,7 @@ describe("simplified page_id format", () => {
 
   it("does NOT change non-zero page numbers", () => {
     // Non-zero page numbers should NOT be corrected
-    const pageTwo = deferredCitationToCitation({
+    const pageTwo = citationDataToCitation({
       id: 3,
       page_id: "2_0",
       full_phrase: "test",
@@ -712,7 +713,7 @@ describe("simplified page_id format", () => {
 
   it("auto-corrects legacy format page_number_0_index_0", () => {
     // Legacy format "page_number_0_index_0" should also be corrected
-    const legacyZero = deferredCitationToCitation({
+    const legacyZero = citationDataToCitation({
       id: 1,
       page_id: "page_number_0_index_0",
       full_phrase: "test",
@@ -723,7 +724,7 @@ describe("simplified page_id format", () => {
 
   it("does NOT auto-correct ambiguous legacy format like page_number_0_index_5", () => {
     // Legacy format with page 0 but non-zero index is ambiguous
-    const legacyAmbiguous = deferredCitationToCitation({
+    const legacyAmbiguous = citationDataToCitation({
       id: 1,
       page_id: "page_number_0_index_5",
       full_phrase: "test",
@@ -741,7 +742,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "Output \\~100/hr", "anchor_text": "Output ~100/hr"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
@@ -755,7 +756,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "\\~test\\xvalue\\!", "anchor_text": "test"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations[0].full_phrase).toBe("~testxvalue!");
@@ -768,7 +769,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "line1\\nline2\\~test", "anchor_text": "test"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \n should be preserved, \~ should become ~
@@ -787,7 +788,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
@@ -802,7 +803,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "space\\u0020here", "anchor_text": "space here"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u0020 is a valid unicode escape for space and should be preserved
@@ -816,7 +817,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "a\\u0041b\\u0042c", "anchor_text": "aAbBc"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u0041 = 'A', \u0042 = 'B'
@@ -830,7 +831,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "test\\utest", "anchor_text": "testutest"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \utest is invalid (not 4 hex digits), backslash should be removed
@@ -844,7 +845,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "\\~prefix\\u0020middle\\u0020\\xsuffix", "anchor_text": "prefix middle suffix"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \~ and \x should be repaired (backslash removed)
@@ -859,7 +860,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "test\\u00e9test", "anchor_text": "testétest"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u00e9 = 'é' (valid lowercase hex)
@@ -873,7 +874,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "test\\u00E9test", "anchor_text": "testétest"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u00E9 = 'é' (valid uppercase hex)
@@ -887,7 +888,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "test\\u00Fvalue", "anchor_text": "testu00Fvalue"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u00F is invalid (only 3 hex digits), backslash should be removed
@@ -901,7 +902,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "test\\utest\\u00Gend", "anchor_text": "testutestu00Gend"}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \utest is invalid (non-hex chars), \u00G is invalid (G is not hex)
@@ -916,7 +917,7 @@ ${CITATION_DATA_START_DELIMITER}
 [{"id": 1, "attachment_id": "doc", "full_phrase": "test\\u0020", "anchor_text": "test "}]
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     // \u0020 at end of string should be preserved as space
@@ -936,7 +937,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
@@ -959,7 +960,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
@@ -978,7 +979,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const citations = getAllCitationsFromDeferredResponse(response);
+    const citations = getAllCitationsFromNumericResponse(response);
     const citationValues = Object.values(citations);
 
     expect(citationValues.length).toBe(1);
@@ -1015,7 +1016,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(4);
@@ -1045,7 +1046,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const citations = getAllCitationsFromDeferredResponse(response);
+    const citations = getAllCitationsFromNumericResponse(response);
     const citationValues = Object.values(citations);
 
     expect(citationValues.length).toBe(2);
@@ -1077,7 +1078,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(3);
@@ -1103,7 +1104,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(2);
@@ -1121,7 +1122,7 @@ ${CITATION_DATA_START_DELIMITER}
 }
 ${CITATION_DATA_END_DELIMITER}`;
 
-    const result = parseDeferredCitationResponse(response);
+    const result = parseCitationData(response);
 
     expect(result.success).toBe(true);
     expect(result.citations.length).toBe(1);
@@ -1130,7 +1131,7 @@ ${CITATION_DATA_END_DELIMITER}`;
   });
 });
 
-describe("replaceDeferredMarkers with verifications", () => {
+describe("replaceCitationMarkers with verifications", () => {
   const makeVerification = (status: string, citationNumber: number) => ({
     status,
     citation: {
@@ -1148,7 +1149,7 @@ describe("replaceDeferredMarkers with verifications", () => {
       key2: makeVerification("not_found", 2),
     };
 
-    const result = replaceDeferredMarkers(text, {
+    const result = replaceCitationMarkers(text, {
       verifications,
       showVerificationStatus: true,
     });
@@ -1161,7 +1162,7 @@ describe("replaceDeferredMarkers with verifications", () => {
       key1: makeVerification("found", 1),
     };
 
-    const result = replaceDeferredMarkers(text, {
+    const result = replaceCitationMarkers(text, {
       verifications,
       showVerificationStatus: true,
     });
@@ -1174,7 +1175,7 @@ describe("replaceDeferredMarkers with verifications", () => {
       key1: makeVerification("found_on_other_page", 1),
     };
 
-    const result = replaceDeferredMarkers(text, {
+    const result = replaceCitationMarkers(text, {
       verifications,
       showVerificationStatus: true,
     });
@@ -1187,7 +1188,7 @@ describe("replaceDeferredMarkers with verifications", () => {
       key1: makeVerification("pending", 1),
     };
 
-    const result = replaceDeferredMarkers(text, {
+    const result = replaceCitationMarkers(text, {
       verifications,
       showVerificationStatus: true,
     });
@@ -1200,7 +1201,7 @@ describe("replaceDeferredMarkers with verifications", () => {
       key1: makeVerification("found", 1),
     };
 
-    const result = replaceDeferredMarkers(text, {
+    const result = replaceCitationMarkers(text, {
       verifications,
       showVerificationStatus: true,
       replacer: id => `(ref${id})`,
@@ -1217,14 +1218,14 @@ describe("replaceDeferredMarkers with verifications", () => {
     // Key is generated from the citation data
     const rawCitation = citationMap.get(1);
     if (!rawCitation) throw new Error("expected citationMap to have entry for key 1");
-    const citation = deferredCitationToCitation(rawCitation, 1);
+    const citation = citationDataToCitation(rawCitation, 1);
     const key = getCitationKey(citation);
 
     const verifications = {
       [key]: makeVerification("found", 1),
     };
 
-    const result = replaceDeferredMarkers(text, {
+    const result = replaceCitationMarkers(text, {
       citationMap,
       verifications,
       showVerificationStatus: true,
@@ -1238,11 +1239,18 @@ describe("replaceDeferredMarkers with verifications", () => {
       key1: makeVerification("found", 1),
     };
 
-    const result = replaceDeferredMarkers(text, {
+    const result = replaceCitationMarkers(text, {
       verifications,
       showVerificationStatus: false,
     });
     // Default behavior: remove markers
     expect(result).toBe("Test .");
+  });
+});
+
+describe("stripCitations", () => {
+  it("does not strip XML cite tags (numeric-only)", () => {
+    const xmlInput = `Text <cite attachment_id='abc' full_phrase='foo' anchor_text='bar' /> more`;
+    expect(stripCitations(xmlInput)).toBe(xmlInput);
   });
 });

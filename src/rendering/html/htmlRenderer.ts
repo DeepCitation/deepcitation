@@ -1,21 +1,16 @@
 import { formatPageLocation } from "../../markdown/markdownVariants.js";
-import { getCitationStatus } from "../../parsing/parseCitation.js";
-import { getCitationKey } from "../../utils/citationKey.js";
-import { safeReplace } from "../../utils/regexSafety.js";
-import { buildCitationFromAttrs, parseCiteAttributes } from "../citationParser.js";
+import type { ParsedCitationResult } from "../../parsing/parseCitationResponse.js";
 import { buildProofUrl, buildSnippetImageUrl } from "../proofUrl.js";
-import type { RenderCitationWithStatus } from "../types.js";
+import { resolveSourceLabel, walkCitationSegments } from "../shared.js";
 import { renderHtmlCitation } from "./htmlVariants.js";
 import { generateStyleBlock } from "./styles.js";
 import type { HtmlOutput, HtmlRenderOptions } from "./types.js";
 
 /**
- * Module-level compiled regex for cite tag matching.
- */
-const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
-
-/**
- * Render LLM output with <cite /> tags as static HTML with CSS tooltips.
+ * Render LLM output with `[N]` citation markers as static HTML with CSS tooltips.
+ *
+ * Accepts either a raw LLM response string (auto-parsed) or a pre-parsed
+ * `ParsedCitationResult` for efficiency when reusing parsed data.
  *
  * @example
  * ```typescript
@@ -28,10 +23,12 @@ const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
  *   includeStyles: true,
  *   includeTooltips: true,
  * });
- * // output.html: '<p>Revenue grew...<span class="dc-citation dc-verified">[1<span class="dc-indicator">✓</span>]</span></p>'
  * ```
  */
-export function renderCitationsAsHtml(input: string, options: HtmlRenderOptions = {}): HtmlOutput {
+export function renderCitationsAsHtml(
+  input: string | ParsedCitationResult,
+  options: HtmlRenderOptions = {},
+): HtmlOutput {
   const {
     verifications = {},
     indicatorStyle = "check",
@@ -46,74 +43,68 @@ export function renderCitationsAsHtml(input: string, options: HtmlRenderOptions 
     classPrefix = "dc-",
   } = options;
 
-  const citationsWithStatus: RenderCitationWithStatus[] = [];
+  const { segments, citationsWithStatus } = walkCitationSegments(input, verifications);
   const proofUrls: Record<string, string> = {};
-  let citationIndex = 0;
 
-  // Use safeReplace to validate input length before regex (ReDoS prevention)
-  const html = safeReplace(input, CITE_TAG_REGEX, match => {
-    citationIndex++;
-    const attrs = parseCiteAttributes(match);
-    const citation = buildCitationFromAttrs(attrs, citationIndex);
-    const citationKey = getCitationKey(citation);
-    const verification = verifications[citationKey] || null;
-    const status = getCitationStatus(verification);
+  const htmlParts: string[] = [];
+
+  for (const seg of segments) {
+    if (seg.type === "text") {
+      htmlParts.push(escapeHtml(seg.value));
+      continue;
+    }
 
     let proofUrl: string | undefined;
     if (proofBaseUrl) {
-      proofUrl = buildProofUrl(citationKey, { baseUrl: proofBaseUrl });
-      proofUrls[citationKey] = proofUrl;
+      proofUrl = buildProofUrl(seg.citationKey, { baseUrl: proofBaseUrl });
+      proofUrls[seg.citationKey] = proofUrl;
     }
 
     const label =
-      citation.type === "url"
-        ? sourceLabels[""] || verification?.label || citation.title
-        : sourceLabels[citation.attachmentId || ""] || verification?.label;
-    const location = formatPageLocation(citation, verification, { showPageNumber: true, showLinePosition: false });
+      seg.citation.type === "url"
+        ? sourceLabels[""] || seg.verification?.label || seg.citation.title
+        : sourceLabels[seg.citation.attachmentId || ""] || seg.verification?.label;
+    const location = formatPageLocation(seg.citation, seg.verification, {
+      showPageNumber: true,
+      showLinePosition: false,
+    });
 
     let imageUrl: string | undefined;
     if (proofBaseUrl) {
-      imageUrl = buildSnippetImageUrl(citationKey, { baseUrl: proofBaseUrl });
+      imageUrl = buildSnippetImageUrl(seg.citationKey, { baseUrl: proofBaseUrl });
     }
 
-    citationsWithStatus.push({
-      citation,
-      citationKey,
-      verification,
-      status,
-      citationNumber: citationIndex,
-    });
+    htmlParts.push(
+      renderHtmlCitation({
+        citationNumber: seg.citationNumber,
+        anchorText: seg.citation.anchorText ?? undefined,
+        status: seg.status,
+        indicatorStyle,
+        proofUrl,
+        variant,
+        prefix: classPrefix,
+        inlineStyles,
+        includeTooltips,
+        theme,
+        citationKey: seg.citationKey,
+        sourceLabel: label ?? undefined,
+        location,
+        quote: seg.citation.fullPhrase ?? undefined,
+        imageUrl,
+        attachmentId: seg.citation.type !== "url" ? (seg.citation.attachmentId ?? undefined) : undefined,
+        pageNumber: seg.citation.type !== "url" ? (seg.citation.pageNumber ?? undefined) : undefined,
+      }),
+    );
+  }
 
-    return renderHtmlCitation({
-      citationNumber: citationIndex,
-      anchorText: citation.anchorText ?? undefined,
-      status,
-      indicatorStyle,
-      proofUrl,
-      variant,
-      prefix: classPrefix,
-      inlineStyles,
-      includeTooltips,
-      theme,
-      citationKey,
-      sourceLabel: label ?? undefined,
-      location,
-      quote: citation.fullPhrase ?? undefined,
-      imageUrl,
-      attachmentId: citation.type !== "url" ? (citation.attachmentId ?? undefined) : undefined,
-      pageNumber: citation.type !== "url" ? (citation.pageNumber ?? undefined) : undefined,
-    });
-  });
+  const html = htmlParts.join("");
 
   // Build sources section
   let sources: string | undefined;
   if (includeSources && citationsWithStatus.length > 0) {
     const sourceLines: string[] = [`<div class="${classPrefix}sources">`, `<h3>Sources</h3>`, "<ul>"];
     for (const cws of citationsWithStatus) {
-      const label =
-        cws.citation.type === "url"
-          ? sourceLabels[""] || cws.verification?.label || cws.citation.title || `Source ${cws.citationNumber}`
-          : sourceLabels[cws.citation.attachmentId || ""] || cws.verification?.label || `Source ${cws.citationNumber}`;
+      const label = resolveSourceLabel(cws, sourceLabels);
       const location = formatPageLocation(cws.citation, cws.verification, {
         showPageNumber: true,
         showLinePosition: false,
@@ -121,7 +112,7 @@ export function renderCitationsAsHtml(input: string, options: HtmlRenderOptions 
       const proofUrl = proofUrls[cws.citationKey];
       const loc = location ? ` — ${escapeHtml(location)}` : "";
       const link = proofUrl
-        ? `<a href="${escapeHtmlAttr(proofUrl)}" target="_blank" rel="noopener">[${cws.citationNumber}]</a>`
+        ? `<a href="${escapeHtml(proofUrl)}" target="_blank" rel="noopener">[${cws.citationNumber}]</a>`
         : `[${cws.citationNumber}]`;
       sourceLines.push(`<li>${link} ${escapeHtml(label)}${loc}</li>`);
     }
@@ -151,8 +142,4 @@ export function renderCitationsAsHtml(input: string, options: HtmlRenderOptions 
 
 function escapeHtml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-function escapeHtmlAttr(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

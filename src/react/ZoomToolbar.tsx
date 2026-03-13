@@ -167,7 +167,7 @@ export function ZoomToolbar({
             data-dc-locate-pulse-stage={locatePulseStage !== "idle" ? locatePulseStage : undefined}
             className={cn(
               CARD_CLASSES,
-              "w-10 h-10 flex items-center justify-center transition-all duration-[180ms]",
+              "w-10 h-10 flex items-center justify-center transition-all duration-180",
               locateDirty
                 ? "text-sky-700 dark:text-sky-300 opacity-90 hover:bg-slate-50 dark:hover:bg-slate-700"
                 : "opacity-45 hover:opacity-65",

@@ -1,13 +1,19 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { DeepCitation } from "../client/DeepCitation.js";
+import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 
 // Mock global fetch
 const mockFetch = jest.fn() as jest.Mock;
 global.fetch = mockFetch;
 
+/** Build a numeric-format LLM response from visible text + citation data array. */
+function makeNumericResponse(visibleText: string, citations: unknown[]): string {
+  return `${visibleText}\n\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify(citations)}\n${CITATION_DATA_END_DELIMITER}`;
+}
+
 describe("DeepCitation Client", () => {
   beforeEach(() => {
-    mockFetch.mockClear();
+    mockFetch.mockReset();
   });
 
   describe("constructor", () => {
@@ -290,8 +296,16 @@ describe("DeepCitation Client", () => {
         }),
       } as Response);
 
-      const llmOutput =
-        "The company showed strong growth. <cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Revenue grew 15%' anchor_text='15%' line_ids='1' />";
+      const llmOutput = makeNumericResponse("The company showed strong growth [1].", [
+        {
+          id: 1,
+          attachment_id: "file_123",
+          full_phrase: "Revenue grew 15%",
+          anchor_text: "15%",
+          page_id: "1_0",
+          line_ids: [1],
+        },
+      ]);
 
       const result = await client.verify({
         llmOutput,
@@ -796,8 +810,9 @@ describe("DeepCitation Client", () => {
       } as Response);
 
       await client.verify({
-        llmOutput:
-          "<cite attachment_id='file_123' start_page_key='page_number_1_index_0' full_phrase='Test' anchor_text='Test' line_ids='1' />",
+        llmOutput: makeNumericResponse("Test [1].", [
+          { id: 1, attachment_id: "file_123", full_phrase: "Test", anchor_text: "Test", page_id: "1_0", line_ids: [1] },
+        ]),
         endUserId: "user-verify",
       });
 

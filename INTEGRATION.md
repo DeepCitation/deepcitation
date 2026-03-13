@@ -7,11 +7,18 @@
 
 > **Important**: The product name is **DeepCitation** (not "DeepCite"). Always use "DeepCitation" when referring to the product, package, or API.
 
+### Breaking Changes (v0.3)
+
+- **`parseCitationResponse().format`** now returns `"numeric" | "none"` (previously `"deferred" | "xml" | "none"`). Update any code that checks for `"deferred"` or `"xml"` — use `"numeric"` instead.
+- **`deferredCitationToCitation()`** renamed to **`citationDataToCitation()`**.
+
+---
+
 This guide follows a **3-section workflow**:
 
 1. **[Install & Setup](#section-1-install--setup)** — Install, import types, initialize client, prepare sources, configure proof images
 2. **[Server Side](#section-2-server-side)** — Wrap prompts, call your LLM, verify citations, optionally persist results
-3. **[Display with CitationComponent](#section-3-display-with-citationcomponent)** — Parse `<cite>` tags, generate citation keys, render inline with verification status (streaming and post-stream)
+3. **[Display with CitationComponent](#section-3-display-with-citationcomponent)** — Parse `[N]` markers, generate citation keys, render inline with verification status (streaming and post-stream)
 
 ---
 
@@ -62,7 +69,7 @@ Pick your use case, copy the recipe.
 ```typescript
 import { stripCitations } from "deepcitation";
 
-// Auto-detects format (deferred [N] markers or XML <cite> tags) and strips everything
+// Strips [N] markers and the <<<CITATION_DATA>>> block, returns clean text
 const cleanText = stripCitations(llmResponse);
 ```
 
@@ -73,10 +80,10 @@ const cleanText = stripCitations(llmResponse);
 ```typescript
 import { extractVisibleText, renderCitationsAsMarkdown } from "deepcitation";
 
-// Deferred format: text already has [N] markers after stripping the data block
+// Numeric format: text already has [N] markers after stripping the data block
 const text = extractVisibleText(llmResponse);
 
-// XML format: convert to markdown with bracket-style references
+// Render [N] markers as bracket-style references with optional footnote section
 const { markdown, references } = renderCitationsAsMarkdown(llmResponse, { variant: "brackets" });
 ```
 
@@ -84,26 +91,22 @@ const { markdown, references } = renderCitationsAsMarkdown(llmResponse, { varian
 
 **"I want interactive citation chips/popovers inline in my React UI"**
 
-Use `parseCitationResponse()` — it auto-detects the citation format (deferred `[N]` or XML `<cite>`) and returns everything needed for rendering:
+Use `parseCitationResponse()` — it parses the numeric `[N]` citation format and returns everything needed for rendering:
 
 ```tsx
 import { CitationComponent } from "deepcitation/react";
-import { parseCitationResponse, parseCitation, getCitationKey } from "deepcitation";
+import { parseCitationResponse, getCitationKey } from "deepcitation";
 
 const result = parseCitationResponse(llmOutput);
 const segments = result.visibleText.split(result.splitPattern);
 
 const rendered = segments.map((seg, i) => {
-  if (result.format === "deferred") {
+  if (result.format === "numeric") {
     const match = seg.match(/^\[(\d+)\]$/);
     if (match) {
       const key = result.markerMap[Number(match[1])];
       return <CitationComponent key={i} citation={result.citations[key]} verification={verifications[key] ?? null} />;
     }
-  } else if (result.format === "xml" && seg.startsWith("<cite")) {
-    const { citation } = parseCitation(seg);
-    const key = getCitationKey(citation);
-    return <CitationComponent key={i} citation={result.citations[key] ?? citation} verification={verifications[key] ?? null} />;
   }
   return <span key={i}>{seg}</span>;
 });
@@ -116,25 +119,15 @@ See [Section 3.2](#32-post-stream-full-response) for the full post-stream patter
 **"I want checkmarks/X marks next to citations after verification"**
 
 ```typescript
-// Deferred [N] format:
-import { extractVisibleText, parseDeferredCitationResponse, replaceDeferredMarkers } from "deepcitation";
+import { extractVisibleText, parseCitationData, replaceCitationMarkers } from "deepcitation";
 
-const { visibleText, citationMap } = parseDeferredCitationResponse(llmResponse);
-const display = replaceDeferredMarkers(visibleText, {
+const { visibleText, citationMap } = parseCitationData(llmResponse);
+const display = replaceCitationMarkers(visibleText, {
   citationMap,
   verifications,
   showVerificationStatus: true,
 });
 // Result: "Revenue grew 45% [1☑️] in Q4 [2✅]."
-
-// XML <cite> format:
-import { replaceCitations } from "deepcitation";
-
-const display = replaceCitations(llmOutput, {
-  leaveAnchorTextBehind: true,
-  verifications,
-  showVerificationStatus: true,
-});
 ```
 
 ---
@@ -205,7 +198,7 @@ async function analyzeDocument(filePath: string, question: string) {
 
 ```tsx
 import { useState } from "react";
-import { parseCitation } from "deepcitation";
+import { parseCitationResponse } from "deepcitation";
 import type { Citation, Verification } from "deepcitation";
 import {
   CitationComponent,
@@ -217,15 +210,15 @@ import {
 } from "deepcitation";
 
 function MessageWithCitations({
-  text,
-  citations,
+  llmOutput,
   verifications,
 }: {
-  text: string;
-  citations: Record<string, Citation>;
+  llmOutput: string;
   verifications: Record<string, Verification>;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const result = parseCitationResponse(llmOutput);
+  const citations = result.citations;
 
   // Build drawer items
   const drawerItems: CitationDrawerItem[] = Object.entries(citations).map(
@@ -237,21 +230,21 @@ function MessageWithCitations({
   );
   const citationGroups = groupCitationsBySource(drawerItems);
 
-  // Split text on <cite> tags and render CitationComponent for each
-  const parts = text.split(/(<cite\s+[^>]*\/>)/g);
-  const rendered = parts.map((part, i) => {
-    if (part.startsWith("<cite")) {
-      const { citation: parsed } = parseCitation(part);
-      const key = getCitationKey(parsed);
+  // Split text on [N] markers and render CitationComponent for each
+  const segments = result.visibleText.split(result.splitPattern);
+  const rendered = segments.map((seg, i) => {
+    const match = seg.match(/^\[(\d+)\]$/);
+    if (match) {
+      const key = result.markerMap[Number(match[1])];
       return (
         <CitationComponent
           key={i}
-          citation={citations[key] ?? parsed}
+          citation={citations[key]}
           verification={verifications[key] ?? null}
         />
       );
     }
-    return <span key={i}>{part}</span>;
+    return <span key={i}>{seg}</span>;
   });
 
   return (
@@ -490,13 +483,10 @@ return {
 
 ### 3.1 How CitationKey Works
 
-Every `<cite>` tag in the LLM output has a deterministic **citation key** — a 16-character hash of its content. This same key is used in both `CitationRecord` and `VerificationRecord`, making it the bridge between parsed citations and verification results.
+Every citation in the LLM output has a deterministic **citation key** — a 16-character hash of its content. This same key is used in both `CitationRecord` and `VerificationRecord`, making it the bridge between parsed citations and verification results.
 
 ```typescript
-import { parseCitation, getCitationKey } from "deepcitation";
-
-// Parse a single <cite ... /> tag from the LLM output
-const { citation } = parseCitation(citeTag);
+import { getCitationKey } from "deepcitation";
 
 // Generate the key — same algorithm used internally, always deterministic
 const key = getCitationKey(citation); // e.g. "a3f7b2c1d8e9f012"
@@ -513,36 +503,40 @@ Use when you have the complete LLM response — either non-streaming or after bu
 
 ```tsx
 import { CitationComponent } from "deepcitation/react";
-import { parseCitation, getCitationKey } from "deepcitation";
+import { parseCitationResponse, getCitationKey } from "deepcitation";
 import type { CitationRecord, VerificationRecord } from "deepcitation";
 
 function MessageWithCitations({
-  text,
-  citations,
+  llmOutput,
   verifications,
 }: {
-  text: string;          // visibleText — already stripped of <<<CITATION_DATA>>>
-  citations: CitationRecord;
+  llmOutput: string;     // full LLM output with <<<CITATION_DATA>>> block
   verifications: VerificationRecord;
 }) {
-  // Split on <cite> self-closing tags and render each with its verification
-  const parts = text.split(/(<cite\s+[^>]*\/>)/g);
+  const result = parseCitationResponse(llmOutput);
+  // result.format is "numeric" | "none"
+
+  if (result.format !== "numeric") {
+    return <p>{result.visibleText}</p>;
+  }
+
+  const segments = result.visibleText.split(result.splitPattern);
 
   return (
     <p>
-      {parts.map((part, i) => {
-        if (part.startsWith("<cite")) {
-          const { citation } = parseCitation(part);
-          const key = getCitationKey(citation);
+      {segments.map((seg, i) => {
+        const match = seg.match(/^\[(\d+)\]$/);
+        if (match) {
+          const key = result.markerMap[Number(match[1])];
           return (
             <CitationComponent
               key={i}
-              citation={citations[key] ?? citation}   // fall back to parsed citation
+              citation={result.citations[key]}
               verification={verifications[key] ?? null}
             />
           );
         }
-        return <span key={i}>{part}</span>;
+        return <span key={i}>{seg}</span>;
       })}
     </p>
   );
@@ -590,8 +584,7 @@ See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) and [`examples/agui-ch
 
 | Display Path | Function / Import | Use Case |
 |-------------|-------------------|----------|
-| **Text with indicators** | `replaceCitations(visibleText, { verifications })` | Non-React apps, plain text (inline `<cite>` format) |
-| **Deferred markers with indicators** | `replaceDeferredMarkers(text, { verifications, showVerificationStatus: true })` | Non-React apps, `[N]` marker format |
+| **Numeric markers with indicators** | `replaceCitationMarkers(text, { verifications, showVerificationStatus: true })` | Non-React apps, `[N]` marker format |
 | **Rich Markdown** | `renderCitationsAsMarkdown(llmOutput, verifications)` | Markdown renderers |
 | **Slack** | `import { renderCitationsForSlack } from "deepcitation/slack"` | Slack bot output |
 | **GitHub** | `import { renderCitationsForGitHub } from "deepcitation/github"` | GitHub comments/PRs |
@@ -600,10 +593,10 @@ See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) and [`examples/agui-ch
 
 All renderers accept `(llmOutput, verifications, options?)` and return formatted strings.
 
-#### Deferred markers with verification (OpenAI example)
+#### Numeric markers with verification (OpenAI example)
 
 ```typescript
-import { extractVisibleText, getAllCitationsFromLlmOutput, replaceDeferredMarkers } from "deepcitation";
+import { extractVisibleText, getAllCitationsFromLlmOutput, replaceCitationMarkers } from "deepcitation";
 
 // After streaming the LLM response:
 const citations = getAllCitationsFromLlmOutput(llmResponse);
@@ -611,7 +604,7 @@ const visibleText = extractVisibleText(llmResponse);
 const { verifications } = await deepcitation.verifyAttachment(attachmentId, citations);
 
 // Display with verification indicators: [1☑️] [2❌] [3✅]
-const display = replaceDeferredMarkers(visibleText, {
+const display = replaceCitationMarkers(visibleText, {
   verifications,
   showVerificationStatus: true,
 });

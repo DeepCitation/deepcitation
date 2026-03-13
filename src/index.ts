@@ -5,7 +5,7 @@
  * for recipe-based guidance on which functions to use.
  *
  * - Core API: DeepCitation client, getAllCitationsFromLlmOutput, stripCitations, getCitationKey
- * - Display Helpers: replaceCitations, replaceDeferredMarkers, renderCitationsAsMarkdown, toMarkdown
+ * - Display Helpers: replaceCitationMarkers, renderCitationsAsMarkdown, toMarkdown
  * - Prompts: wrapCitationPrompt, wrapSystemCitationPrompt, format constants
  * - Advanced: groupCitationsBy*, field normalization, LLM workarounds
  *
@@ -68,21 +68,19 @@ export {
 
 // Citation parsing — core API + display helpers
 export {
-  deferredCitationToCitation,
+  citationDataToCitation,
   extractVisibleText,
   getCitationMarkerIds,
-  hasDeferredCitations,
-  parseDeferredCitationResponse,
-  replaceDeferredMarkers,
+  hasCitationData,
+  parseCitationData,
+  replaceCitationMarkers,
   stripCitations,
 } from "./parsing/citationParser.js";
+
 export type { ReplaceCitationsOptions } from "./parsing/normalizeCitation.js";
 export {
-  getCitationPageNumber,
-  getVerificationTextIndicator,
   normalizeCitations,
-  removeLineIdMetadata,
-  removePageNumberMetadata,
+  parseCitation,
   replaceCitations,
 } from "./parsing/normalizeCitation.js";
 export {
@@ -91,10 +89,10 @@ export {
   groupCitationsByAttachmentId,
   groupCitationsByAttachmentIdObject,
   normalizeCitationType,
-  parseCitation,
 } from "./parsing/parseCitation.js";
 export type { ParsedCitationResult } from "./parsing/parseCitationResponse.js";
 export { parseCitationResponse } from "./parsing/parseCitationResponse.js";
+
 export {
   cleanRepeatingLastSentence,
   isGeminiGarbage,
@@ -220,9 +218,15 @@ export {
 } from "./utils/regexSafety.js";
 export { sha1Hash } from "./utils/sha.js";
 export {
+  getCitationPageNumber,
+  removeLineIdMetadata,
+  removePageNumberMetadata,
+} from "./utils/textCleanup.js";
+export {
   detectSourceType,
   extractDomain,
   isApprovedDomain,
   isDomainMatch,
   isSafeDomain,
 } from "./utils/urlSafety.js";
+export { getVerificationTextIndicator } from "./utils/verificationIndicator.js";

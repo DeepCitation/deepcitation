@@ -360,7 +360,7 @@ export function StackedStatusIcons({
       {displayItems.map((flatItem, i) => (
         <div
           key={flatItem.item.citationKey}
-          className="relative transition-[margin-left] duration-75 ease-[cubic-bezier(0.2,0,0,1)]"
+          className="relative transition-[margin-left] duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]"
           style={{
             marginLeft: ICON_MARGIN_EXPANDED,
             zIndex: Math.max(1, Math.min(20, displayItems.length - i)),
@@ -386,7 +386,7 @@ export function StackedStatusIcons({
       ))}
       {hasOverflow && (
         <div
-          className="transition-[margin-left] duration-75 ease-[cubic-bezier(0.2,0,0,1)]"
+          className="transition-[margin-left] duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]"
           style={{
             marginLeft: ICON_MARGIN_EXPANDED,
             zIndex: 0,
@@ -522,7 +522,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
           "inline-flex items-center gap-2 px-2 py-1",
           "bg-white dark:bg-gray-900",
           "border border-gray-200 dark:border-gray-700 rounded-md",
-          "cursor-pointer transition-[background-color,border-color,box-shadow] duration-[180ms] overflow-hidden",
+          "cursor-pointer transition-[background-color,border-color,box-shadow] duration-180 overflow-hidden",
           "hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50",
           "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
           className,

@@ -19,7 +19,7 @@ DeepCitation works in three steps:
 
 1. **Install & Setup**: Install, import types, initialize client, prepare sources with `prepareAttachments()`, and configure proof images.
 2. **Server Side**: Wrap prompts with `wrapCitationPrompt()`, call your LLM, verify citations with `verify()`, and optionally persist results.
-3. **Display with CitationComponent**: Parse `<cite>` tags, generate citation keys, and render inline with React components like `CitationComponent`.
+3. **Display with CitationComponent**: Parse `[N]` markers, generate citation keys, and render inline with React components like `CitationComponent`.
 
 ## Documentation
 
@@ -60,7 +60,7 @@ import type { Citation, Verification } from "deepcitation";
 - `wrapCitationPrompt({ systemPrompt, userPrompt, deepTextPromptPortion })` - Wrap prompts with citation instructions and optionally include file content
 - `wrapSystemCitationPrompt({ systemPrompt })` - Wrap only system prompt (for more control)
 - `getAllCitationsFromLlmOutput(text)` - Extract citations from LLM response
-- `replaceCitations(text, options)` - Replace citation tags with optional verification status indicators
+- `replaceCitations(text, options)` - Replace XML citation tags with optional verification status indicators (legacy; see `replaceCitationMarkers` for numeric format)
 - `groupCitationsByAttachmentId(citations)` - Group citations by attachmentId for multi-file verification
 
 ### React Components

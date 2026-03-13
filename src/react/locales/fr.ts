@@ -185,6 +185,7 @@ export const frOverrides = {
   "location.pageLine": "p. {pageNumber} · l. {lineNumber}",
   "location.image": "Image",
   "location.unknown": "inconnu",
+  "location.pageRange": "p.\u202f{startPage}\u2013{endPage}",
   "location.matchingLocations_one": "{count} emplacement correspondant",
   "location.matchingLocations_other": "{count} emplacements correspondants",
   "evidence.textNotFound": "Texte introuvable dans le document",

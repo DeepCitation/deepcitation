@@ -17,8 +17,9 @@ import { safeSplit } from "../utils/regexSafety.js";
  * Highlight color category for citation annotations.
  * - 'blue': exact / full-phrase match
  * - 'amber': partial match (anchorText-only or value-only)
+ * - 'red': not-found (AI claimed location overlay)
  */
-export type HighlightColor = "blue" | "amber";
+export type HighlightColor = "blue" | "amber" | "red";
 
 // =============================================================================
 // Color Constants
@@ -34,6 +35,9 @@ export const SIGNAL_BLUE_DARK = "#77bff6";
 
 /** Amber bracket color for partial matches (Tailwind amber-400). */
 export const SIGNAL_AMBER = "#fbbf24";
+
+/** Red bracket color for not-found citations (Tailwind red-500). */
+export const SIGNAL_RED = "#ef4444";
 
 /** Semi-transparent overlay covering non-citation areas (spotlight effect). */
 export const OVERLAY_COLOR = "rgba(26, 26, 26, 0.25)";
@@ -84,10 +88,12 @@ export function getBracketWidth(height: number): number {
 
 /**
  * Returns the bracket stroke color for a given highlight category.
- * Blue for exact matches, amber for partial matches.
+ * Blue for exact matches, amber for partial matches, red for not-found.
  */
 export function getBracketColor(highlightColor: HighlightColor = "blue"): string {
-  return highlightColor === "amber" ? SIGNAL_AMBER : SIGNAL_BLUE;
+  if (highlightColor === "amber") return SIGNAL_AMBER;
+  if (highlightColor === "red") return SIGNAL_RED;
+  return SIGNAL_BLUE;
 }
 
 // =============================================================================

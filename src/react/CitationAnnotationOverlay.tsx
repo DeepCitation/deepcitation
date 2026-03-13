@@ -143,7 +143,9 @@ export function CitationAnnotationOverlay({
   // Bail out if geometry is invalid (zero dimensions, NaN, Infinity, etc.)
   if (!rect) return null;
 
-  const bracketColor = getBracketColor(highlightColor === "amber" ? "amber" : "blue");
+  const bracketColor = getBracketColor(
+    highlightColor === "amber" ? "amber" : highlightColor === "red" ? "red" : "blue",
+  );
 
   // Compute pixel height for bracket width calculation
   const heightPx = phraseMatchDeepItem.height * renderScale.y;

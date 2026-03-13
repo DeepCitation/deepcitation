@@ -306,6 +306,7 @@ export const defaultMessages = {
   "location.pageLine": "p.\u202f{pageNumber} \u00b7 l.\u202f{lineNumber}",
   "location.image": "Image",
   "location.unknown": "unknown",
+  "location.pageRange": "p.\u202f{startPage}\u2013{endPage}",
   "location.matchingLocations_one": "{count} matching location",
   "location.matchingLocations_other": "{count} matching locations",
 

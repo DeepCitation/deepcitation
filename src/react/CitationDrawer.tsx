@@ -471,7 +471,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           <svg
             aria-hidden="true"
             className={cn(
-              "w-4 h-4 shrink-0 transition-transform duration-[120ms] ease-[cubic-bezier(0.2,0,0,1)]",
+              "w-4 h-4 shrink-0 transition-transform duration-120 ease-[cubic-bezier(0.2,0,0,1)]",
               isExpanded ? "rotate-180 text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500",
             )}
             fill="none"

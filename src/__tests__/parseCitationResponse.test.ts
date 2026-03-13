@@ -1,5 +1,4 @@
 import { describe, expect, it } from "@jest/globals";
-import { parseCitation } from "../parsing/parseCitation.js";
 import { parseCitationResponse } from "../parsing/parseCitationResponse.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import type { VerificationRecord } from "../types/citation.js";
@@ -7,15 +6,15 @@ import { getCitationKey } from "../utils/citationKey.js";
 
 // ─── Helpers ───────────────────────────────────────────────────
 
-/** Build a deferred-format LLM response from visible text + citation data array. */
-function makeDeferredResponse(visibleText: string, citations: unknown[]): string {
+/** Build a numeric-format LLM response from visible text + citation data array. */
+function makeNumericResponse(visibleText: string, citations: unknown[]): string {
   return `${visibleText}\n\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify(citations)}\n${CITATION_DATA_END_DELIMITER}`;
 }
 
-// ─── Deferred Format ───────────────────────────────────────────
+// ─── Numeric Format ───────────────────────────────────────────
 
-describe("parseCitationResponse — deferred format", () => {
-  const DEFERRED_RESPONSE = makeDeferredResponse(
+describe("parseCitationResponse — numeric format", () => {
+  const NUMERIC_RESPONSE = makeNumericResponse(
     "The company reported strong growth [1]. Revenue increased significantly [2].",
     [
       {
@@ -39,19 +38,19 @@ describe("parseCitationResponse — deferred format", () => {
     ],
   );
 
-  it("detects deferred format", () => {
-    const result = parseCitationResponse(DEFERRED_RESPONSE);
-    expect(result.format).toBe("deferred");
+  it("detects numeric format", () => {
+    const result = parseCitationResponse(NUMERIC_RESPONSE);
+    expect(result.format).toBe("numeric");
   });
 
   it("strips the data block from visibleText", () => {
-    const result = parseCitationResponse(DEFERRED_RESPONSE);
+    const result = parseCitationResponse(NUMERIC_RESPONSE);
     expect(result.visibleText).toBe("The company reported strong growth [1]. Revenue increased significantly [2].");
     expect(result.visibleText).not.toContain("CITATION_DATA");
   });
 
   it("populates citations keyed by citationKey", () => {
-    const result = parseCitationResponse(DEFERRED_RESPONSE);
+    const result = parseCitationResponse(NUMERIC_RESPONSE);
     const keys = Object.keys(result.citations);
     expect(keys.length).toBe(2);
 
@@ -68,7 +67,7 @@ describe("parseCitationResponse — deferred format", () => {
   });
 
   it("builds markerMap mapping [N] → citationKey", () => {
-    const result = parseCitationResponse(DEFERRED_RESPONSE);
+    const result = parseCitationResponse(NUMERIC_RESPONSE);
     expect(result.markerMap[1]).toBeDefined();
     expect(result.markerMap[2]).toBeDefined();
 
@@ -81,7 +80,7 @@ describe("parseCitationResponse — deferred format", () => {
   });
 
   it("split(splitPattern) produces correct segments with markers", () => {
-    const result = parseCitationResponse(DEFERRED_RESPONSE);
+    const result = parseCitationResponse(NUMERIC_RESPONSE);
     const segments = result.visibleText.split(result.splitPattern);
 
     // Segments alternate between text and [N] markers
@@ -92,7 +91,7 @@ describe("parseCitationResponse — deferred format", () => {
   });
 
   it("compact keys (n, a, f, k, p) are expanded correctly", () => {
-    const compactResponse = makeDeferredResponse("Growth was strong [1].", [
+    const compactResponse = makeNumericResponse("Growth was strong [1].", [
       {
         n: 1,
         a: "file123456789012345x",
@@ -113,7 +112,7 @@ describe("parseCitationResponse — deferred format", () => {
   });
 
   it("audio/video citations with timestamps produce type 'audio'", () => {
-    const avResponse = makeDeferredResponse("The speaker mentioned AI [1].", [
+    const avResponse = makeNumericResponse("The speaker mentioned AI [1].", [
       {
         id: 1,
         attachment_id: "audio12345678901234x",
@@ -130,50 +129,6 @@ describe("parseCitationResponse — deferred format", () => {
       expect(citation.timestamps?.startTime).toBe("00:01:30");
       expect(citation.timestamps?.endTime).toBe("00:01:45");
     }
-  });
-});
-
-// ─── XML Format ────────────────────────────────────────────────
-
-describe("parseCitationResponse — XML format", () => {
-  const XML_RESPONSE = `Revenue grew 23% <cite attachment_id='abc12345678901234567' full_phrase='Revenue grew 23% year-over-year' anchor_text='grew 23%' start_page_id='page_number_1_index_0' /> in Q4.`;
-
-  it("detects XML format", () => {
-    const result = parseCitationResponse(XML_RESPONSE);
-    expect(result.format).toBe("xml");
-  });
-
-  it("visibleText is the original text (no stripping needed)", () => {
-    const result = parseCitationResponse(XML_RESPONSE);
-    expect(result.visibleText).toBe(XML_RESPONSE);
-  });
-
-  it("populates citations keyed by citationKey", () => {
-    const result = parseCitationResponse(XML_RESPONSE);
-    const keys = Object.keys(result.citations);
-    expect(keys.length).toBe(1);
-
-    const citation = Object.values(result.citations)[0];
-    expect(citation.fullPhrase).toBe("Revenue grew 23% year-over-year");
-    expect(citation.anchorText).toBe("grew 23%");
-  });
-
-  it("markerMap is empty for XML format", () => {
-    const result = parseCitationResponse(XML_RESPONSE);
-    expect(Object.keys(result.markerMap).length).toBe(0);
-  });
-
-  it("split(splitPattern) produces segments with cite tags parseable by parseCitation()", () => {
-    const result = parseCitationResponse(XML_RESPONSE);
-    const segments = result.visibleText.split(result.splitPattern);
-
-    // Should have text, cite tag, text segments
-    const citeSegments = segments.filter(s => s.startsWith("<cite"));
-    expect(citeSegments.length).toBe(1);
-
-    // The cite segment is parseable
-    const { citation } = parseCitation(citeSegments[0]);
-    expect(citation.fullPhrase).toBe("Revenue grew 23% year-over-year");
   });
 });
 
@@ -206,10 +161,10 @@ describe("parseCitationResponse — edge cases", () => {
     expect(result2.format).toBe("none");
   });
 
-  it("malformed JSON block → deferred format with empty citations", () => {
+  it("malformed JSON block → numeric format with empty citations", () => {
     const malformed = `Some text [1].\n\n${CITATION_DATA_START_DELIMITER}\n{invalid json not parseable`;
     const result = parseCitationResponse(malformed);
-    expect(result.format).toBe("deferred");
+    expect(result.format).toBe("numeric");
     expect(Object.keys(result.citations).length).toBe(0);
     expect(Object.keys(result.markerMap).length).toBe(0);
     expect(result.visibleText).toBe("Some text [1].");
@@ -219,8 +174,8 @@ describe("parseCitationResponse — edge cases", () => {
 // ─── Integration: React rendering pattern ──────────────────────
 
 describe("parseCitationResponse — integration patterns", () => {
-  it("deferred format: split → markerMap → CitationComponent pattern", () => {
-    const response = makeDeferredResponse("Revenue grew [1] in Q4 [2].", [
+  it("numeric format: split → markerMap → CitationComponent pattern", () => {
+    const response = makeNumericResponse("Revenue grew [1] in Q4 [2].", [
       {
         id: 1,
         attachment_id: "abc12345678901234567",
@@ -257,31 +212,8 @@ describe("parseCitationResponse — integration patterns", () => {
     expect(rendered.join("")).toBe("Revenue grew [Citation: grew 23%] in Q4 [Citation: exceeded expectations].");
   });
 
-  it("XML format: split → parseCitation → CitationComponent pattern", () => {
-    const xmlResponse = `Revenue grew <cite attachment_id='abc12345678901234567' full_phrase='Revenue grew 23%' anchor_text='grew 23%' start_page_id='page_number_1_index_0' /> in Q4.`;
-
-    const result = parseCitationResponse(xmlResponse);
-    const segments = result.visibleText.split(result.splitPattern);
-
-    // Simulate React rendering
-    const rendered: string[] = [];
-    for (const seg of segments) {
-      if (seg.startsWith("<cite")) {
-        const { citation } = parseCitation(seg);
-        const key = getCitationKey(citation);
-        // Citation should exist in result.citations
-        expect(result.citations[key]).toBeDefined();
-        rendered.push(`[Citation: ${citation.anchorText}]`);
-      } else if (seg) {
-        rendered.push(seg);
-      }
-    }
-
-    expect(rendered.join("")).toBe("Revenue grew [Citation: grew 23%] in Q4.");
-  });
-
   it("verification lookup: verifications[markerMap[N]] returns correct verification", () => {
-    const response = makeDeferredResponse("Claim A [1] and claim B [2].", [
+    const response = makeNumericResponse("Claim A [1] and claim B [2].", [
       {
         id: 1,
         attachment_id: "abc12345678901234567",
