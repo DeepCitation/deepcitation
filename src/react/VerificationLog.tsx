@@ -27,11 +27,7 @@ import {
   XCircleIcon,
   XIcon,
 } from "./icons.js";
-import {
-  getUniqueSearchAttemptCount,
-  groupSearchAttempts,
-  groupSearchAttemptsForNotFound,
-} from "./searchAttemptGrouping.js";
+import { groupSearchAttempts, groupSearchAttemptsForNotFound } from "./searchAttemptGrouping.js";
 import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 // import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 import { sanitizeUrl } from "./urlUtils.js";
@@ -1023,7 +1019,7 @@ function getOutcomeSummary(
 ): string {
   // Early return for not_found - no need to search for successful attempt
   if (!status || status === "not_found") {
-    const count = getUniqueSearchAttemptCount(searchAttempts);
+    const count = groupSearchAttemptsForNotFound(searchAttempts).length;
     return tPlural(t, "verification.attemptsTried", count, { count });
   }
 
