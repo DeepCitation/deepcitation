@@ -104,7 +104,7 @@ function getMethodDisplayName(method: SearchMethod, t: TranslateFunction): strin
 }
 
 const HEADER_DOWNLOAD_BUTTON_BASE_CLASSES =
-  "shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-[opacity,color] duration-[120ms]";
+  "shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-[opacity,color] duration-120";
 const HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES =
   "focus-visible:opacity-100 focus-visible:pointer-events-auto md:opacity-30 md:group-hover/source-header:opacity-100 md:group-hover/source-header:pointer-events-auto md:group-focus-within/source-header:opacity-100 md:group-focus-within/source-header:pointer-events-auto";
 
@@ -1096,7 +1096,7 @@ function VerificationLogSummary({
     >
       <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
         <svg
-          className={cn("size-3 transition-transform duration-[120ms]", isExpanded && "rotate-90")}
+          className={cn("size-3 transition-transform duration-120", isExpanded && "rotate-90")}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

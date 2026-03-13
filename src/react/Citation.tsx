@@ -2021,7 +2021,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
               "rounded-md",
               "text-gray-800 dark:text-gray-200",
               "no-underline cursor-pointer",
-              "transition-all duration-[120ms] ease-[cubic-bezier(0.2,0,0,1)]",
+              "transition-all duration-120 ease-[cubic-bezier(0.2,0,0,1)]",
               "hover:border-gray-400 dark:hover:border-gray-500",
               "hover:bg-gray-50 dark:hover:bg-gray-800",
               // Broken state: muted styling
