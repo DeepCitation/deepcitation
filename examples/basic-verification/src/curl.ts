@@ -22,7 +22,7 @@ import {
   getAllCitationsFromLlmOutput,
   getCitationStatus,
   getVerificationTextIndicator,
-  replaceCitations,
+  replaceCitationMarkers,
   wrapCitationPrompt,
 } from "deepcitation";
 import { readFileSync } from "fs";
@@ -352,7 +352,7 @@ provided documents accurately and cite your sources.`;
   console.log("📖 Clean Response (for display, with verification status):");
   console.log(separator);
   console.log(
-    replaceCitations(visibleText, {
+    replaceCitationMarkers(visibleText, {
       verifications: verificationResult.verifications,
       showVerificationStatus: true,
     }),

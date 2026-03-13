@@ -280,12 +280,12 @@ export default function Chat() {
 
 ## Rendering CitationComponent
 
-Once you have `citations` and `verifications` for a message, replace `<cite>` tags with `CitationComponent`. This must be in a `"use client"` file.
+Once you have `citations` and `verifications` for a message, replace `[N]` citation markers with `CitationComponent`. This must be in a `"use client"` file.
 
 ```typescript
 "use client";
 
-import { parseCitation, getCitationKey, type Citation, type Verification } from "deepcitation";
+import { parseCitationResponse, type Citation, type Verification } from "deepcitation";
 import { CitationComponent } from "deepcitation/react";
 
 function MessageContent({
@@ -297,37 +297,34 @@ function MessageContent({
   citations?: Record<string, Citation>;
   verifications?: Record<string, Verification>;
 }) {
-  const CITE_REGEX = /<cite\s[^>]*\/>/g;
-  const parts: React.ReactNode[] = [];
-  let last = 0;
+  const result = parseCitationResponse(content);
 
-  for (const match of content.matchAll(CITE_REGEX)) {
-    if (match.index > last) {
-      parts.push(<span key={last}>{content.slice(last, match.index)}</span>);
-    }
-
-    try {
-      const { citation: parsed } = parseCitation(match[0]);
-      const key = getCitationKey(parsed);
-      parts.push(
-        <CitationComponent
-          key={key}
-          citation={citations[key] ?? parsed}
-          verification={verifications[key]}
-        />,
-      );
-    } catch {
-      parts.push(<span key={match.index}>{match[0]}</span>);
-    }
-
-    last = match.index + match[0].length;
+  if (result.format !== "numeric") {
+    return <span>{result.visibleText}</span>;
   }
 
-  if (last < content.length) {
-    parts.push(<span key={last}>{content.slice(last)}</span>);
-  }
+  const segments = result.visibleText.split(result.splitPattern);
 
-  return <>{parts}</>;
+  return (
+    <>
+      {segments.map((seg, i) => {
+        const match = seg.match(/^\[(\d+)\]$/);
+        if (match) {
+          const key = result.markerMap[Number(match[1])];
+          const citation = citations[key] ?? result.citations[key];
+          const verification = verifications[key];
+          return (
+            <CitationComponent
+              key={`citation-${i}`}
+              citation={citation}
+              verification={verification}
+            />
+          );
+        }
+        return <span key={i}>{seg}</span>;
+      })}
+    </>
+  );
 }
 ```
 

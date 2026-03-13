@@ -57,7 +57,7 @@ import { tPlural, useLocale, useTranslation } from "./i18n.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "./overlayGeometry.js";
-import { getUniqueSearchAttemptCount } from "./searchAttemptGrouping.js";
+import { groupSearchAttemptsForNotFound } from "./searchAttemptGrouping.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
@@ -1066,7 +1066,10 @@ export function EvidenceTray({
     };
   }, [searchLogContentHeight, searchLogStage, prefersReducedMotion, showSearchLog]);
   const searchCount = useMemo(
-    () => ((isMiss || isPartialMatch) && searchAttempts.length > 0 ? getUniqueSearchAttemptCount(searchAttempts) : 0),
+    () =>
+      (isMiss || isPartialMatch) && searchAttempts.length > 0
+        ? groupSearchAttemptsForNotFound(searchAttempts).length
+        : 0,
     [isMiss, isPartialMatch, searchAttempts],
   );
 

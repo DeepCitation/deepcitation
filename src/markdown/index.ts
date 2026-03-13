@@ -1,7 +1,7 @@
 /**
  * Markdown output module for DeepCitation.
  *
- * Converts LLM responses with <cite /> tags into clean, readable markdown
+ * Converts LLM responses with numeric citation markers into clean, readable markdown
  * with verification status indicators.
  *
  * @example Basic usage

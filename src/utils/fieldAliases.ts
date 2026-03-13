@@ -7,7 +7,6 @@
  * for mapping all known variants back to our canonical camelCase names.
  *
  * Used by:
- * - XML cite-tag normalization (normalizeCitation.ts)
  * - JSON citation parsing (parseCitation.ts)
  * - Any future parsing path that consumes LLM citation output
  */

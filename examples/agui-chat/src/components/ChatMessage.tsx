@@ -1,9 +1,8 @@
 "use client";
 
 import {
-  getCitationKey,
   type Citation,
-  parseCitation,
+  parseCitationResponse,
   type Verification,
 } from "deepcitation";
 import {
@@ -102,79 +101,51 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
   );
 }
 
-const CITE_TAG_REGEX = /<cite\s+[^>]*\/>/g;
-
 /**
- * Process content and replace <cite> tags with CitationComponent inline.
+ * Process content and replace [N] citation markers with CitationComponent inline.
+ * Uses parseCitationResponse to parse the numeric citation format.
  */
 function processContentWithCitations(
   content: string,
   citations: Record<string, Citation>,
   verifications: Record<string, Verification>,
 ): React.ReactNode {
-  const matches = Array.from(content.matchAll(CITE_TAG_REGEX));
-  const parts: Array<{ type: "text" | "citation"; content: string }> = [];
+  const result = parseCitationResponse(content);
 
-  let lastIndex = 0;
-
-  for (const match of matches) {
-    const matchIndex = match.index;
-
-    if (matchIndex > lastIndex) {
-      parts.push({
-        type: "text",
-        content: content.slice(lastIndex, matchIndex),
-      });
-    }
-
-    parts.push({
-      type: "citation",
-      content: match[0],
-    });
-
-    lastIndex = matchIndex + match[0].length;
+  if (result.format !== "numeric") {
+    return (
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        {result.visibleText}
+      </ReactMarkdown>
+    );
   }
 
-  if (lastIndex < content.length) {
-    parts.push({ type: "text", content: content.slice(lastIndex) });
-  }
+  const segments = result.visibleText.split(result.splitPattern);
 
-  const elements: React.ReactNode[] = [];
-
-  parts.forEach((part) => {
-    if (part.type === "text") {
-      elements.push(
-        <ReactMarkdown
-          key={`text-${part.content.slice(0, 20)}`}
-          remarkPlugins={[remarkGfm]}
-          components={{
-            p: ({ children }) => <span>{children}</span>,
-          }}
-        >
-          {part.content}
-        </ReactMarkdown>,
-      );
-    } else if (part.type === "citation") {
-      try {
-        const { citation: parsedCitation } = parseCitation(part.content);
-        const citationKey = getCitationKey(parsedCitation);
-
-        const citation = citations[citationKey] ?? parsedCitation;
-        const verification = verifications[citationKey];
-
-        if (!citations[citationKey]) {
-          console.warn("[ChatMessage] Citation key not found in verification data, using parsed fallback:", citationKey);
+  return (
+    <>
+      {segments.map((seg, i) => {
+        const match = seg.match(/^\[(\d+)\]$/);
+        if (match) {
+          const key = result.markerMap[Number(match[1])];
+          const citation = citations[key] ?? result.citations[key];
+          const verification = verifications[key];
+          return (
+            <CitationComponent key={`citation-${i}`} citation={citation} verification={verification} />
+          );
         }
-
-        elements.push(
-          <CitationComponent key={`citation-${citationKey}`} citation={citation} verification={verification} />,
+        return (
+          <ReactMarkdown
+            key={`text-${i}`}
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: ({ children }) => <span>{children}</span>,
+            }}
+          >
+            {seg}
+          </ReactMarkdown>
         );
-      } catch (err) {
-        console.warn("[ChatMessage] Failed to parse citation tag:", part.content, err);
-        elements.push(<span key={`citation-fallback-${part.content.slice(0, 30)}`}>{part.content}</span>);
-      }
-    }
-  });
-
-  return <>{elements}</>;
+      })}
+    </>
+  );
 }

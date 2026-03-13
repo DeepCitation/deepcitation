@@ -1,5 +1,4 @@
 import { describe, expect, it } from "@jest/globals";
-import { parseCitation } from "../parsing/normalizeCitation.js";
 import {
   getAllCitationsFromLlmOutput,
   getCitationStatus,
@@ -9,6 +8,19 @@ import {
 import type { Citation } from "../types/citation.js";
 import { isDocumentCitation, isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationPageNumber } from "../utils/textCleanup.js";
+
+describe("getCitationPageNumber", () => {
+  it("parses page numbers from standard keys", () => {
+    expect(getCitationPageNumber("page_number_12_index_0")).toBe(12);
+    expect(getCitationPageNumber("page_key_7_index_2")).toBe(7);
+  });
+
+  it("returns null when key is missing", () => {
+    expect(getCitationPageNumber(null)).toBeNull();
+    expect(getCitationPageNumber(undefined)).toBeNull();
+  });
+});
 
 describe("getCitationStatus", () => {
   it("marks verified citations", () => {
@@ -246,246 +258,6 @@ describe("getCitationStatus", () => {
       expect(status.isVerified).toBe(false);
       expect(status.isMiss).toBe(false);
       expect(status.isPartialMatch).toBe(false);
-    });
-  });
-});
-
-describe("parseCitation", () => {
-  // NOTE: These tests use old attribute names (key_span, start_page_key) to verify backward compatibility.
-  // The parser accepts both old and new names but outputs the new names (anchorText, startPageId).
-
-  it("parses document citations with optional values (backward compat: key_span -> anchorText)", () => {
-    // Input uses old naming: key_span, start_page_key
-    const fragment =
-      "Before <cite attachment_id='short' start_page_key='page_number_5_index_0' full_phrase='Hello\\'s world' key_span='world' line_ids='3,1' value='USD 12' /> after";
-    const parsed = parseCitation(fragment, "override-attachment");
-    const { citation } = parsed;
-
-    expect(parsed.afterCite).toBe(" after");
-    expect(citation.pageNumber).toBe(5);
-    expect(citation.attachmentId).toBe("override-attachment");
-    expect(citation.fullPhrase).toBe("Hello's world");
-    // Output uses new naming: anchorText
-    expect(citation.anchorText).toBe("world");
-    expect(citation.lineIds).toEqual([1, 3]);
-  });
-
-  it("parses anchor_text attribute correctly (backward compat: key_span)", () => {
-    // Input uses old naming: key_span
-    const fragment =
-      "<cite attachment_id='file123456789012345' start_page_key='page_number_2_index_0' full_phrase='The quick brown fox jumps over the lazy dog' key_span='quick brown fox' line_ids='1,2' />";
-    const parsed = parseCitation(fragment);
-    const { citation } = parsed;
-
-    expect(citation.fullPhrase).toBe("The quick brown fox jumps over the lazy dog");
-    // Output uses new naming: anchorText
-    expect(citation.anchorText).toBe("quick brown fox");
-  });
-
-  it("parses anchor_text with special characters (backward compat: key_span)", () => {
-    // Input uses old naming: key_span
-    const fragment =
-      "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='The total is $500 USD' key_span='$500 USD' line_ids='1' />";
-    const parsed = parseCitation(fragment);
-    const { citation } = parsed;
-
-    expect(citation.fullPhrase).toBe("The total is $500 USD");
-    // Output uses new naming: anchorText
-    expect(citation.anchorText).toBe("$500 USD");
-  });
-
-  it("parses AV citations with timestamps", () => {
-    const fragment =
-      "<cite attachment_id='av123' full_phrase='Audio clip' timestamps='00:00:01.000-00:00:03.000' reasoning='Because' />";
-    const parsed = parseCitation(fragment);
-    const { citation } = parsed;
-
-    expect(citation.attachmentId).toBe("av123");
-    expect(citation.fullPhrase).toBe("Audio clip");
-    expect(citation.reasoning).toBe("Because");
-  });
-
-  describe("missing cite tag returns", () => {
-    it("returns empty afterCite when no cite tag present", () => {
-      const fragment = "Just plain text without any citations";
-      const parsed = parseCitation(fragment);
-      expect(parsed.afterCite).toBe("");
-      expect(parsed.citation.fullPhrase).toBeUndefined();
-    });
-
-    it("handles empty string input", () => {
-      const parsed = parseCitation("");
-      expect(parsed.afterCite).toBe("");
-    });
-
-    it("handles malformed cite tag", () => {
-      const fragment = "Text with <cite but no closing";
-      const _parsed = parseCitation(fragment);
-    });
-
-    it("handles cite tag without required attributes", () => {
-      const fragment = "Text <cite /> more text";
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.pageNumber).toBeUndefined();
-    });
-  });
-
-  describe("attachment id fallback logic", () => {
-    it("uses attachmentId when it is exactly 20 characters", () => {
-      // 20-char attachmentId should be used as attachmentId
-      const twentyCharId = "12345678901234567890";
-      const fragment = `<cite attachment_id='${twentyCharId}' start_page_key='page_number_1_index_0' full_phrase='test' key_span='test' line_ids='1' />`;
-      const parsed = parseCitation(fragment, "fallback-attachment");
-      expect(parsed.citation.attachmentId).toBe(twentyCharId);
-    });
-
-    it("uses mdAttachmentId when attachmentId is shorter than 20 characters", () => {
-      const shortId = "short123";
-      const fragment = `<cite attachment_id='${shortId}' start_page_key='page_number_1_index_0' full_phrase='test' key_span='test' line_ids='1' />`;
-      const parsed = parseCitation(fragment, "fallback-attachment");
-      expect(parsed.citation.attachmentId).toBe("fallback-attachment");
-    });
-
-    it("uses mdAttachmentId when attachmentId is longer than 20 characters", () => {
-      const longId = "this_is_a_very_long_attachment_id_over_20_chars";
-      const fragment = `<cite attachment_id='${longId}' start_page_key='page_number_1_index_0' full_phrase='test' key_span='test' line_ids='1' />`;
-      const parsed = parseCitation(fragment, "fallback-attachment");
-      expect(parsed.citation.attachmentId).toBe("fallback-attachment");
-    });
-
-    it("falls back to original fileId when no mdAttachmentId provided and attachmentId is not 20 chars", () => {
-      const shortId = "short123";
-      const fragment = `<cite attachment_id='${shortId}' start_page_key='page_number_1_index_0' full_phrase='test' key_span='test' line_ids='1' />`;
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.attachmentId).toBe(shortId);
-    });
-
-    it("uses null mdAttachmentId correctly", () => {
-      const shortId = "short123";
-      const fragment = `<cite attachment_id='${shortId}' start_page_key='page_number_1_index_0' full_phrase='test' key_span='test' line_ids='1' />`;
-      const parsed = parseCitation(fragment, null);
-      expect(parsed.citation.attachmentId).toBe(shortId);
-    });
-  });
-
-  describe("AV citation attachment id fallback", () => {
-    it("uses 20-char attachmentId for AV citations", () => {
-      const twentyCharId = "12345678901234567890";
-      const fragment = `<cite attachment_id='${twentyCharId}' full_phrase='audio' timestamps='00:00:01-00:00:05' />`;
-      const parsed = parseCitation(fragment, "fallback");
-      expect(parsed.citation.attachmentId).toBe(twentyCharId);
-    });
-
-    it("uses mdAttachmentId for AV citations with short attachmentId", () => {
-      const fragment = `<cite attachment_id='short' full_phrase='audio' timestamps='00:00:01-00:00:05' />`;
-      const parsed = parseCitation(fragment, "av-fallback");
-      expect(parsed.citation.attachmentId).toBe("av-fallback");
-    });
-  });
-
-  describe("value vs reasoning precedence", () => {
-    it("parses value attribute when present (backward compat: key_span -> anchorText)", () => {
-      // Input uses old naming: key_span
-      const fragment =
-        "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1' value='$100' />";
-      const parsed = parseCitation(fragment);
-      // Output uses new naming: anchorText
-      expect(parsed.citation.anchorText).toBe("phrase");
-      expect(parsed.citation.reasoning).toBeUndefined();
-    });
-
-    it("parses reasoning attribute when present (backward compat: key_span -> anchorText)", () => {
-      // Input uses old naming: key_span
-      const fragment =
-        "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1' reasoning='This is because...' />";
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.reasoning).toBe("This is because...");
-      // Output uses new naming: anchorText
-      expect(parsed.citation.anchorText).toBe("phrase");
-    });
-
-    it("parses AV citation with value attribute", () => {
-      const fragment =
-        "<cite attachment_id='av12345678901234567' full_phrase='audio' timestamps='00:01-00:02' value='transcript' />";
-      const parsed = parseCitation(fragment);
-      // Output uses new naming: anchorText
-      expect(parsed.citation.anchorText).toBe("transcript");
-      expect(parsed.citation.reasoning).toBeUndefined();
-    });
-
-    it("parses AV citation with reasoning attribute", () => {
-      const fragment =
-        "<cite attachment_id='av12345678901234567' full_phrase='audio' timestamps='00:01-00:02' reasoning='Speaker said this' />";
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.reasoning).toBe("Speaker said this");
-      expect(parsed.citation.anchorText).toBeUndefined();
-    });
-  });
-
-  describe("citation counter reference", () => {
-    it("increments citation counter when provided", () => {
-      const counterRef = { current: 1 };
-      const fragment =
-        "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1' />";
-
-      const parsed1 = parseCitation(fragment, null, counterRef);
-      expect(parsed1.citation.citationNumber).toBe(1);
-      expect(counterRef.current).toBe(2);
-
-      const parsed2 = parseCitation(fragment, null, counterRef);
-      expect(parsed2.citation.citationNumber).toBe(2);
-      expect(counterRef.current).toBe(3);
-    });
-
-    it("returns undefined citationNumber when no counter provided", () => {
-      const fragment =
-        "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1' />";
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.citationNumber).toBeUndefined();
-    });
-  });
-
-  describe("line_ids parsing edge cases", () => {
-    it("sorts line_ids in ascending order", () => {
-      const fragment =
-        "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='5,2,8,1,3' />";
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.lineIds).toEqual([1, 2, 3, 5, 8]);
-    });
-
-    it("handles line_ids with invalid values by filtering them", () => {
-      const fragment =
-        "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1,abc,3,def,5' />";
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.lineIds).toEqual([1, 3, 5]);
-    });
-
-    it("returns undefined lineIds when empty", () => {
-      const fragment =
-        "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='' />";
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.lineIds).toBeUndefined();
-    });
-
-    it("handles single line range format like '20-20'", () => {
-      const fragment =
-        "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='20-20' />";
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.lineIds).toEqual([20]);
-    });
-
-    it("handles multi-line range format like '5-10'", () => {
-      const fragment =
-        "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='5-10' />";
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.lineIds).toEqual([5, 6, 7, 8, 9, 10]);
-    });
-
-    it("handles mixed comma and range format like '1,5-7,10'", () => {
-      const fragment =
-        "<cite attachment_id='file123456789012345' start_page_key='page_number_1_index_0' full_phrase='phrase' key_span='phrase' line_ids='1,5-7,10' />";
-      const parsed = parseCitation(fragment);
-      expect(parsed.citation.lineIds).toEqual([1, 5, 6, 7, 10]);
     });
   });
 });
@@ -1720,58 +1492,6 @@ Patient Profile:
 // =============================================================================
 // URL CITATION PARSING TESTS
 // =============================================================================
-
-describe("parseCitation — URL citations", () => {
-  it("creates UrlCitation with type 'url' when url attribute is present and no attachmentId", () => {
-    const fragment =
-      "<cite url='https://example.com/article' domain='example.com' title='Test Article' full_phrase='The data shows growth' anchor_text='growth' />";
-    const { citation } = parseCitation(fragment);
-
-    expect(citation.type).toBe("url");
-    expect(citation).toHaveProperty("url", "https://example.com/article");
-    expect(citation).toHaveProperty("domain", "example.com");
-    expect(citation).toHaveProperty("title", "Test Article");
-    expect(citation.fullPhrase).toBe("The data shows growth");
-    expect(citation.anchorText).toBe("growth");
-  });
-
-  it("creates DocumentCitation when attachmentId is present even with url", () => {
-    const fragment =
-      "<cite attachment_id='abc12345678901234567' url='https://example.com' full_phrase='Some phrase' />";
-    const { citation } = parseCitation(fragment);
-
-    expect(citation.type).not.toBe("url");
-    expect(citation).toHaveProperty("attachmentId", "abc12345678901234567");
-  });
-
-  it("creates DocumentCitation when no url attribute is present", () => {
-    const fragment =
-      "<cite attachment_id='abc12345678901234567' full_phrase='Some phrase' start_page_id='page_number_3_index_0' />";
-    const { citation } = parseCitation(fragment);
-
-    expect(citation.type).not.toBe("url");
-    expect(citation).toHaveProperty("attachmentId", "abc12345678901234567");
-    expect(citation).toHaveProperty("pageNumber", 3);
-  });
-
-  it("extracts site_name and favicon_url for URL citations", () => {
-    const fragment =
-      "<cite url='https://example.com' site_name='Example Site' favicon_url='https://example.com/favicon.ico' full_phrase='test' />";
-    const { citation } = parseCitation(fragment);
-
-    expect(citation.type).toBe("url");
-    expect(citation).toHaveProperty("siteName", "Example Site");
-    expect(citation).toHaveProperty("faviconUrl", "https://example.com/favicon.ico");
-  });
-
-  it("extracts description for URL citations", () => {
-    const fragment = "<cite url='https://example.com' description='A brief summary' full_phrase='test' />";
-    const { citation } = parseCitation(fragment);
-
-    expect(citation.type).toBe("url");
-    expect(citation).toHaveProperty("description", "A brief summary");
-  });
-});
 
 describe("parseJsonCitation — URL citations", () => {
   it("creates UrlCitation from JSON with url field", () => {

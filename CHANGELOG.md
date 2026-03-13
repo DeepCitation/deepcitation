@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- Removed XML citation support (`<cite>` tags) — all LLM outputs now use numeric `[N]` markers with `<<<CITATION_DATA>>>` JSON blocks
+- Removed exports: `normalizeCitations()`, `parseCitation()`, `replaceCitations()`, `ReplaceCitationsOptions`
+- Migration: Use `parseCitationResponse()` for parsing and `replaceCitationMarkers()` for text replacement
+
+### Removed
+
+- `src/parsing/normalizeCitation.ts` — XML citation parser/normalizer (598 lines)
+- `src/__tests__/normalizeCitation.test.ts` — XML format tests (948 lines)
+- `getUniqueSearchAttemptCount()` helper — replaced with `groupSearchAttemptsForNotFound().length`
+
 ## [0.2.1] - 2026-03-12
 
 ### Added

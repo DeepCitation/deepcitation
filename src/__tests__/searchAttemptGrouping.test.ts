@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { getUniqueSearchAttemptCount, groupSearchAttempts } from "../react/searchAttemptGrouping";
+import { groupSearchAttempts } from "../react/searchAttemptGrouping";
 import type { SearchAttempt } from "../types/search";
 
 function attempt(overrides: Partial<SearchAttempt>): SearchAttempt {
@@ -22,7 +22,6 @@ describe("searchAttemptGrouping", () => {
     const grouped = groupSearchAttempts(attempts);
     expect(grouped).toHaveLength(1);
     expect(grouped[0]?.duplicateCount).toBe(3);
-    expect(getUniqueSearchAttemptCount(attempts)).toBe(1);
   });
 
   it("keeps the same phrase separate across different pages", () => {

@@ -54,10 +54,6 @@ export function groupSearchAttempts(attempts: SearchAttempt[]): GroupedSearchAtt
   return grouped;
 }
 
-export function getUniqueSearchAttemptCount(attempts: SearchAttempt[]): number {
-  return groupSearchAttempts(attempts).length;
-}
-
 // ============================================================================
 // Not-found grouping: groups by method category + phrase (collapses multi-page)
 // ============================================================================

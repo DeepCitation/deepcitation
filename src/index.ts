@@ -77,12 +77,6 @@ export {
   stripCitations,
 } from "./parsing/citationParser.js";
 
-export type { ReplaceCitationsOptions } from "./parsing/normalizeCitation.js";
-export {
-  normalizeCitations,
-  parseCitation,
-  replaceCitations,
-} from "./parsing/normalizeCitation.js";
 export {
   getAllCitationsFromLlmOutput,
   getCitationStatus,

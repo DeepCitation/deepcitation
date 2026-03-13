@@ -33,7 +33,7 @@ src/  # Source files
   drawing/  # Drawing/canvas utilities
   markdown/  # Markdown rendering (renderMarkdown, markdownVariants)
     testing/  # Markdown test helpers
-  parsing/  # Citation extraction: parseCitation, normalizeCitation, parseWorkAround
+  parsing/  # Citation extraction: parseCitation, parseCitationResponse, parseWorkAround
   prompts/  # LLM prompt templates (citationPrompts, promptCompression)
   react/  # React components and hooks (CitationComponent, SourcesList, i18n, popovers)
     hooks/  # Extracted React hooks

@@ -6,24 +6,24 @@ describe("promptCompression compress/decompress cycles", () => {
 
   const cases = [
     {
-      name: "attachment_id with double quotes",
-      template: `<cite attachment_id="__ID__" line_ids="L1"></cite>`,
+      name: "numeric citation with JSON double quotes",
+      template: `text[1]\n\n<<<CITATION_DATA>>>\n{"__ID__":[{"id":1,"line_ids":[1]}]}\n<<<END_CITATION_DATA>>>`,
     },
     {
-      name: "attachmentID with single quotes and escaped double quotes nearby",
-      template: `<cite attachmentID='__ID__' note="He said \\"hi\\""></cite>`,
+      name: "numeric citation with escaped double quotes nearby",
+      template: `text[1]\n\n<<<CITATION_DATA>>>\n{"__ID__":[{"id":1,"full_phrase":"He said \\"hi\\""}]}\n<<<END_CITATION_DATA>>>`,
     },
     {
-      name: "attachment_id with backticks and escaped single quote nearby",
-      template: String.raw`<cite attachment_id=\`__ID__\` note='It\'s fine'></cite>`,
+      name: "numeric citation with multiple markers",
+      template: `first[1] and second[2]\n\n<<<CITATION_DATA>>>\n{"__ID__":[{"id":1,"line_ids":[1]},{"id":2,"line_ids":[5]}]}\n<<<END_CITATION_DATA>>>`,
     },
     {
-      name: "attachment_id with whitespace and newlines",
-      template: `<cite attachment_id = "__ID__"\n data="x"></cite>`,
+      name: "numeric citation with whitespace and newlines",
+      template: `text[1]\n\n<<<CITATION_DATA>>>\n{\n  "__ID__": [{"id": 1}]\n}\n<<<END_CITATION_DATA>>>`,
     },
     {
-      name: "attachmentId with tabs and mixed quotes",
-      template: `<cite attachmentId\t=\t'__ID__' data="y"></cite>`,
+      name: "numeric citation with special characters in phrase",
+      template: `text[1]\n\n<<<CITATION_DATA>>>\n{"__ID__":[{"id":1,"full_phrase":"It's $500"}]}\n<<<END_CITATION_DATA>>>`,
     },
   ];
 
@@ -56,30 +56,25 @@ describe("promptCompression compress/decompress cycles", () => {
   }
 });
 
-describe("promptCompression ID attribute variations", () => {
+describe("promptCompression ID handling", () => {
   const fullId = "doc_XYZ789abc123";
 
-  it("handles all ID attribute name variations", () => {
-    // All supported attachment ID attribute formats (fileId variants supported for backwards compatibility)
-    const attributeNames = ["attachmentId", "attachment_id", "attachment_ID", "attachmentID"];
+  it("handles IDs in JSON citation data", () => {
+    const original = `text[1]\n\n<<<CITATION_DATA>>>\n{"${fullId}":[{"id":1}]}\n<<<END_CITATION_DATA>>>`;
+    const { compressed, prefixMap } = compressPromptIds(original, [fullId]);
 
-    for (const attrName of attributeNames) {
-      const original = `<cite ${attrName}="${fullId}" />`;
-      const { compressed, prefixMap } = compressPromptIds(original, [fullId]);
+    expect(Object.keys(prefixMap)).toHaveLength(1);
+    expect(compressed).not.toContain(fullId);
 
-      expect(Object.keys(prefixMap)).toHaveLength(1);
-      expect(compressed).not.toContain(fullId);
-
-      const decompressed = decompressPromptIds(compressed, prefixMap);
-      expect(decompressed).toBe(original);
-    }
+    const decompressed = decompressPromptIds(compressed, prefixMap);
+    expect(decompressed).toBe(original);
   });
 
-  it("handles multiple IDs with different attribute formats", () => {
+  it("handles multiple IDs in citation data", () => {
     const id1 = "doc_ABC123456789";
     const id2 = "doc_DEF987654321";
 
-    const original = `<cite attachment_id="${id1}" /><cite attachmentId="${id2}" />`;
+    const original = `text[1] more[2]\n\n<<<CITATION_DATA>>>\n{"${id1}":[{"id":1}],"${id2}":[{"id":2}]}\n<<<END_CITATION_DATA>>>`;
     const { compressed, prefixMap } = compressPromptIds(original, [id1, id2]);
 
     expect(Object.keys(prefixMap)).toHaveLength(2);
@@ -90,76 +85,11 @@ describe("promptCompression ID attribute variations", () => {
     expect(decompressed).toBe(original);
   });
 
-  it("preserves attribute name exactly as found during decompression", () => {
-    const original = `<cite attachment_ID="${fullId}" />`;
+  it("handles IDs appearing multiple times in prompt context", () => {
+    const original = `Page content for ${fullId}:\nLine 1: data\n\ntext[1]\n\n<<<CITATION_DATA>>>\n{"${fullId}":[{"id":1}]}\n<<<END_CITATION_DATA>>>`;
     const { compressed, prefixMap } = compressPromptIds(original, [fullId]);
     const decompressed = decompressPromptIds(compressed, prefixMap);
 
-    // Should preserve the exact attribute name "attachment_ID"
-    expect(decompressed).toContain("attachment_ID=");
-    expect(decompressed).toBe(original);
-  });
-});
-
-describe("promptCompression backwards compatibility with fileId", () => {
-  const fullId = "file_ABC123def456";
-
-  it("handles fileId attribute (backwards compatibility)", () => {
-    const original = `<cite fileId="${fullId}" />`;
-    const { compressed, prefixMap } = compressPromptIds(original, [fullId]);
-
-    expect(Object.keys(prefixMap)).toHaveLength(1);
-    expect(compressed).not.toContain(fullId);
-
-    const decompressed = decompressPromptIds(compressed, prefixMap);
-    expect(decompressed).toBe(original);
-  });
-
-  it("handles file_id attribute (backwards compatibility)", () => {
-    const original = `<cite file_id="${fullId}" />`;
-    const { compressed, prefixMap } = compressPromptIds(original, [fullId]);
-
-    expect(Object.keys(prefixMap)).toHaveLength(1);
-    expect(compressed).not.toContain(fullId);
-
-    const decompressed = decompressPromptIds(compressed, prefixMap);
-    expect(decompressed).toBe(original);
-  });
-
-  it("handles fileID attribute (backwards compatibility)", () => {
-    const original = `<cite fileID="${fullId}" />`;
-    const { compressed, prefixMap } = compressPromptIds(original, [fullId]);
-
-    expect(Object.keys(prefixMap)).toHaveLength(1);
-    expect(compressed).not.toContain(fullId);
-
-    const decompressed = decompressPromptIds(compressed, prefixMap);
-    expect(decompressed).toBe(original);
-  });
-
-  it("handles file_ID attribute (backwards compatibility)", () => {
-    const original = `<cite file_ID="${fullId}" />`;
-    const { compressed, prefixMap } = compressPromptIds(original, [fullId]);
-
-    expect(Object.keys(prefixMap)).toHaveLength(1);
-    expect(compressed).not.toContain(fullId);
-
-    const decompressed = decompressPromptIds(compressed, prefixMap);
-    expect(decompressed).toBe(original);
-  });
-
-  it("handles mixed fileId and attachmentId in same document", () => {
-    const id1 = "doc_ABC123456789";
-    const id2 = "doc_DEF987654321";
-
-    const original = `<cite file_id="${id1}" /><cite attachment_id="${id2}" />`;
-    const { compressed, prefixMap } = compressPromptIds(original, [id1, id2]);
-
-    expect(Object.keys(prefixMap)).toHaveLength(2);
-    expect(compressed).not.toContain(id1);
-    expect(compressed).not.toContain(id2);
-
-    const decompressed = decompressPromptIds(compressed, prefixMap);
     expect(decompressed).toBe(original);
   });
 });
@@ -203,7 +133,7 @@ describe("promptCompression edge cases", () => {
 
   it("decompression handles string input", () => {
     const fullId = "file_ABC123def456";
-    const original = `<cite attachment_id="${fullId}" />`;
+    const original = `citation data: {"${fullId}":[{"id":1}]}`;
     const { compressed, prefixMap } = compressPromptIds(original, [fullId]);
 
     const decompressed = decompressPromptIds(compressed as string, prefixMap);

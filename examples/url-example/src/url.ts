@@ -19,7 +19,7 @@ import {
   getAllCitationsFromLlmOutput,
   getCitationStatus,
   getVerificationTextIndicator,
-  replaceCitations,
+  replaceCitationMarkers,
   wrapCitationPrompt,
 } from "deepcitation";
 import OpenAI from "openai";
@@ -234,7 +234,7 @@ async function main() {
   console.log("\nClean Response (with verification status):");
   console.log("-".repeat(50));
   console.log(
-    replaceCitations(visibleText, {
+    replaceCitationMarkers(visibleText, {
       verifications: verificationResult.verifications,
       showVerificationStatus: true,
     }),
