@@ -5,8 +5,6 @@ import {
   CITATION_PROMPT,
   CITATION_X_PADDING,
   CITATION_Y_PADDING,
-  normalizeCitations,
-  parseCitation,
   sha1Hash,
   wrapCitationPrompt,
   wrapSystemCitationPrompt,
@@ -14,8 +12,6 @@ import {
 
 describe("index exports", () => {
   it("re-exports core helpers and constants", () => {
-    expect(typeof normalizeCitations).toBe("function");
-    expect(typeof parseCitation).toBe("function");
     expect(typeof sha1Hash).toBe("function");
     expect(typeof CITATION_PROMPT).toBe("string");
     expect(typeof CITATION_DATA_START_DELIMITER).toBe("string");
@@ -29,7 +25,7 @@ describe("index exports", () => {
     expect(typeof wrapCitationPrompt).toBe("function");
   });
 
-  it("CITATION_PROMPT includes deferred JSON format markers", () => {
+  it("CITATION_PROMPT includes numeric JSON format markers", () => {
     expect(CITATION_PROMPT).toContain(CITATION_DATA_START_DELIMITER);
     expect(CITATION_PROMPT).toContain("attachment_id");
     expect(CITATION_PROMPT).toContain("full_phrase");

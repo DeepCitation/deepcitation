@@ -1,13 +1,31 @@
 import { describe, expect, it } from "@jest/globals";
+import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../../prompts/citationPrompts.js";
 import type { Verification } from "../../types/verification.js";
 import { getCitationKey } from "../../utils/citationKey.js";
 import { renderCitationReport } from "../../vanilla/renderReport.js";
 
 // =============================================================================
+// TEST HELPERS
+// =============================================================================
+
+function makeNumericResponse(visibleText: string, citations: unknown[]): string {
+  return `${visibleText}\n\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify(citations)}\n${CITATION_DATA_END_DELIMITER}`;
+}
+
+// =============================================================================
 // TEST FIXTURES
 // =============================================================================
 
-const simpleInput = `Revenue grew 45%<cite attachment_id='abc123' page_number='3' full_phrase='Revenue grew 45% in Q4.' anchor_text='grew 45%' line_ids='12,13' /> according to reports.`;
+const simpleInput = makeNumericResponse("Revenue grew 45% [1] according to reports.", [
+  {
+    id: 1,
+    attachment_id: "abc123",
+    page_id: "3_0",
+    full_phrase: "Revenue grew 45% in Q4.",
+    anchor_text: "grew 45%",
+    line_ids: [12, 13],
+  },
+]);
 
 const verifiedVerification: Verification = {
   status: "found",

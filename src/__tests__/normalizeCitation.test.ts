@@ -1,8 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-import { getCitationPageNumber, normalizeCitations, replaceCitations } from "../parsing/normalizeCitation.js";
+import { normalizeCitations, replaceCitations } from "../parsing/normalizeCitation.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { getCitationPageNumber } from "../utils/textCleanup.js";
 
 describe("getCitationPageNumber", () => {
   it("parses page numbers from standard keys", () => {

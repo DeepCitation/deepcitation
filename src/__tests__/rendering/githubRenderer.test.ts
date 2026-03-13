@@ -1,14 +1,46 @@
 import { describe, expect, it } from "@jest/globals";
+import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../../prompts/citationPrompts.js";
 import { renderCitationsForGitHub } from "../../rendering/github/githubRenderer.js";
+
+// =============================================================================
+// TEST HELPERS
+// =============================================================================
+
+function makeNumericResponse(visibleText: string, citations: unknown[]): string {
+  return `${visibleText}\n\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify(citations)}\n${CITATION_DATA_END_DELIMITER}`;
+}
 
 // =============================================================================
 // TEST FIXTURES
 // =============================================================================
 
-const simpleInput = `Revenue grew 45%<cite attachment_id='abc123' page_number='3' full_phrase='Revenue grew 45% in Q4.' anchor_text='grew 45%' line_ids='12,13' /> according to reports.`;
+const simpleInput = makeNumericResponse("Revenue grew 45% [1] according to reports.", [
+  {
+    id: 1,
+    attachment_id: "abc123",
+    page_id: "3_0",
+    full_phrase: "Revenue grew 45% in Q4.",
+    anchor_text: "grew 45%",
+    line_ids: [12, 13],
+  },
+]);
 
-const multiCitationInput = `First claim<cite attachment_id='abc123' page_number='1' full_phrase='First fact.' anchor_text='First' />.
-Second claim<cite attachment_id='abc123' page_number='2' full_phrase='Second fact.' anchor_text='Second' />.`;
+const multiCitationInput = makeNumericResponse("First claim [1].\nSecond claim [2].", [
+  {
+    id: 1,
+    attachment_id: "abc123",
+    page_id: "1_0",
+    full_phrase: "First fact.",
+    anchor_text: "First",
+  },
+  {
+    id: 2,
+    attachment_id: "abc123",
+    page_id: "2_0",
+    full_phrase: "Second fact.",
+    anchor_text: "Second",
+  },
+]);
 
 // =============================================================================
 // TESTS
