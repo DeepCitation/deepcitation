@@ -280,11 +280,10 @@ const findJsonCitationsInObject = (obj: unknown, found: Citation[], depth = 0): 
 
 /**
  * Extracts all citations from LLM output.
- * Supports both XML <cite ... /> tags (embedded in strings/markdown) and JSON-based citation formats.
+ * Supports numeric [N] + <<<CITATION_DATA>>> format (strings) and JSON-based citation formats (objects).
  *
  * For object input:
  * - Traverses the object looking for `citation` or `citations` properties matching JSON format
- * - Also stringifies the object to find embedded XML citations in markdown content
  *
  * **IMPORTANT**: Returns an OBJECT (CitationRecord), NOT an array.
  * To check if empty, use `Object.keys(citations).length === 0`.

@@ -8,7 +8,7 @@ Open this file when importing symbols from deepcitation to find the correct cano
 |--------|---------------|-------|
 | `getCitationStatus()` | `src/parsing/parseCitation.ts` | Status computation |
 | `getCitationKey()` | `src/utils/citationKey.ts` | Key generation |
-| `parseCitationResponse()` | `src/parsing/parseCitationResponse.ts` | Unified format-agnostic citation parser (numeric + legacy XML) |
+| `parseCitationResponse()` | `src/parsing/parseCitationResponse.ts` | Unified numeric citation parser ([N] + JSON block) |
 | `ParsedCitationResult` | `src/parsing/parseCitationResponse.ts` | Return type of `parseCitationResponse()` |
 | `citationDataToCitation()` | `src/parsing/citationParser.ts` | Converts `CitationData` → `Citation` |
 | `getIndicator()` | `src/markdown/markdownVariants.ts` | Status → indicator char |

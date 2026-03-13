@@ -7,6 +7,7 @@ import {
   hasCitationData,
   parseCitationData,
   replaceCitationMarkers,
+  stripCitations,
 } from "../parsing/citationParser.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import { getCitationKey } from "../utils/citationKey.js";
@@ -1244,5 +1245,12 @@ describe("replaceCitationMarkers with verifications", () => {
     });
     // Default behavior: remove markers
     expect(result).toBe("Test .");
+  });
+});
+
+describe("stripCitations", () => {
+  it("does not strip XML cite tags (numeric-only)", () => {
+    const xmlInput = `Text <cite attachment_id='abc' full_phrase='foo' anchor_text='bar' /> more`;
+    expect(stripCitations(xmlInput)).toBe(xmlInput);
   });
 });

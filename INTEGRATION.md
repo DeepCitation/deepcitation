@@ -69,7 +69,7 @@ Pick your use case, copy the recipe.
 ```typescript
 import { stripCitations } from "deepcitation";
 
-// Auto-detects format (numeric [N] markers or XML <cite> tags) and strips everything
+// Strips [N] markers and the <<<CITATION_DATA>>> block, returns clean text
 const cleanText = stripCitations(llmResponse);
 ```
 
@@ -83,7 +83,7 @@ import { extractVisibleText, renderCitationsAsMarkdown } from "deepcitation";
 // Numeric format: text already has [N] markers after stripping the data block
 const text = extractVisibleText(llmResponse);
 
-// XML format (legacy): convert to markdown with bracket-style references
+// Render [N] markers as bracket-style references with optional footnote section
 const { markdown, references } = renderCitationsAsMarkdown(llmResponse, { variant: "brackets" });
 ```
 
@@ -119,7 +119,6 @@ See [Section 3.2](#32-post-stream-full-response) for the full post-stream patter
 **"I want checkmarks/X marks next to citations after verification"**
 
 ```typescript
-// Numeric [N] format:
 import { extractVisibleText, parseCitationData, replaceCitationMarkers } from "deepcitation";
 
 const { visibleText, citationMap } = parseCitationData(llmResponse);
@@ -129,15 +128,6 @@ const display = replaceCitationMarkers(visibleText, {
   showVerificationStatus: true,
 });
 // Result: "Revenue grew 45% [1☑️] in Q4 [2✅]."
-
-// XML <cite> format (legacy, available via normalizeCitation.ts):
-import { replaceCitations } from "deepcitation";
-
-const display = replaceCitations(llmOutput, {
-  leaveAnchorTextBehind: true,
-  verifications,
-  showVerificationStatus: true,
-});
 ```
 
 ---
@@ -594,7 +584,6 @@ See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) and [`examples/agui-ch
 
 | Display Path | Function / Import | Use Case |
 |-------------|-------------------|----------|
-| **Text with indicators (XML, legacy)** | `replaceCitations(visibleText, { verifications })` | Non-React apps, plain text (inline `<cite>` format) |
 | **Numeric markers with indicators** | `replaceCitationMarkers(text, { verifications, showVerificationStatus: true })` | Non-React apps, `[N]` marker format |
 | **Rich Markdown** | `renderCitationsAsMarkdown(llmOutput, verifications)` | Markdown renderers |
 | **Slack** | `import { renderCitationsForSlack } from "deepcitation/slack"` | Slack bot output |

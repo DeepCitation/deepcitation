@@ -1256,9 +1256,7 @@ function AuditSearchDisplay({
   const t = useTranslation();
   const groupedAttempts = useMemo(
     () =>
-      status === "not_found"
-        ? groupSearchAttemptsForNotFound(searchAttempts)
-        : groupSearchAttempts(searchAttempts),
+      status === "not_found" ? groupSearchAttemptsForNotFound(searchAttempts) : groupSearchAttempts(searchAttempts),
     [searchAttempts, status],
   );
   // Show all searches unless the status is a confirmed exact match.
