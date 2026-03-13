@@ -187,6 +187,7 @@ export const viOverrides = {
   "location.pageLine": "tr. {pageNumber} · dòng {lineNumber}",
   "location.image": "Hình ảnh",
   "location.unknown": "không rõ",
+  "location.pageRange": "tr.\u202f{startPage}\u2013{endPage}",
   "location.matchingLocations_one": "{count} vị trí khớp",
   "location.matchingLocations_other": "{count} vị trí khớp",
   "evidence.textNotFound": "Không tìm thấy văn bản trong tài liệu",

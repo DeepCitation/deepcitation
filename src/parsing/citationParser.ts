@@ -1,7 +1,7 @@
 /**
  * Citation Parser
  *
- * Implements the "Split & Parse" strategy for the deferred JSON citation pattern.
+ * Implements the "Split & Parse" strategy for the numeric citation pattern.
  * This parser extracts citations from LLM responses that use [N] markers in text
  * and include a JSON data block at the end.
  *
@@ -24,7 +24,8 @@ import type { AudioVideoCitation, Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
-import { getVerificationTextIndicator, replaceCitations } from "./normalizeCitation.js";
+import { sha1Hash } from "../utils/sha.js";
+import { getVerificationTextIndicator } from "../utils/verificationIndicator.js";
 
 /**
  * Map of compact keys to their full CitationData equivalents.
@@ -52,14 +53,6 @@ const KEY_ALIAS_MAP: Record<string, keyof CitationData> = {
   // "fileId" was an early API field name before "attachmentId" was standardized.
   // Kept as an alias for backward compatibility with serialized citation payloads.
   fileId: "attachment_id",
-} as const;
-
-/**
- * Map for timestamp sub-keys.
- */
-const _TIMESTAMP_KEY_MAP: Record<string, string> = {
-  s: "start_time",
-  e: "end_time",
 } as const;
 
 /**
@@ -260,7 +253,7 @@ function repairJson(jsonString: string): {
  * Parses a citation response from an LLM.
  * Internal use only — use {@link getAllCitationsFromLlmOutput} from the public API.
  */
-export function parseDeferredCitationResponse(llmResponse: string): ParsedCitationResponse {
+export function parseCitationData(llmResponse: string): ParsedCitationResponse {
   if (!llmResponse || typeof llmResponse !== "string") {
     return {
       visibleText: "",
@@ -403,7 +396,7 @@ function parsePageId(pageId: string): {
  * Converts a CitationData object to the standard Citation format.
  * Internal use only — use {@link getAllCitationsFromLlmOutput} from the public API.
  */
-export function deferredCitationToCitation(data: CitationData, citationNumber?: number): Citation {
+export function citationDataToCitation(data: CitationData, citationNumber?: number): Citation {
   // Parse page number from page_id (supports both "N_I" and "page_number_N_index_I")
   let pageNumber: number | undefined;
   let startPageId: string | undefined;
@@ -450,10 +443,10 @@ export function deferredCitationToCitation(data: CitationData, citationNumber?: 
  * Extracts all citations from a response and returns them as a Citation dictionary.
  * Internal helper used by parseCitation.ts. Use {@link getAllCitationsFromLlmOutput} from the public API.
  */
-export function getAllCitationsFromDeferredResponse(llmResponse: string): {
+export function getAllCitationsFromNumericResponse(llmResponse: string): {
   [key: string]: Citation;
 } {
-  const parsed = parseDeferredCitationResponse(llmResponse);
+  const parsed = parseCitationData(llmResponse);
 
   if (!parsed.success || parsed.citations.length === 0) {
     return {};
@@ -462,7 +455,7 @@ export function getAllCitationsFromDeferredResponse(llmResponse: string): {
   const citations: { [key: string]: Citation } = {};
 
   for (const data of parsed.citations) {
-    const citation = deferredCitationToCitation(data);
+    const citation = citationDataToCitation(data);
     if (citation.fullPhrase) {
       const citationKey = getCitationKey(citation);
       citations[citationKey] = citation;
@@ -478,7 +471,7 @@ export function getAllCitationsFromDeferredResponse(llmResponse: string): {
  * @param response - The LLM response to check
  * @returns True if the response contains the citation data delimiter
  */
-export function hasDeferredCitations(response: string): boolean {
+export function hasCitationData(response: string): boolean {
   return typeof response === "string" && response.includes(CITATION_DATA_START_DELIMITER);
 }
 
@@ -490,8 +483,36 @@ export function hasDeferredCitations(response: string): boolean {
  * @returns The visible text portion only
  */
 export function extractVisibleText(llmResponse: string): string {
-  const parsed = parseDeferredCitationResponse(llmResponse);
+  const parsed = parseCitationData(llmResponse);
   return parsed.visibleText;
+}
+
+/**
+ * Computes a citation key directly from CitationData without allocating a full Citation object.
+ * Mirrors the key parts logic in getCitationKey (utils/citationKey.ts) but avoids
+ * constructing/sorting/discarding a full Citation just to hash its fields.
+ */
+function getCitationKeyFromData(data: CitationData): string {
+  const pageNumber = data.page_id ? parsePageId(data.page_id).pageNumber : undefined;
+  const lineIds = data.line_ids?.length ? [...data.line_ids].sort((a, b) => a - b) : undefined;
+
+  const keyParts = [
+    data.full_phrase || "",
+    data.anchor_text?.toString() || "",
+    pageNumber?.toString() || "",
+    lineIds?.join(",") || "",
+  ];
+
+  // AV citations include timestamps in the key
+  if (data.timestamps) {
+    keyParts.push(
+      data.attachment_id || "",
+      data.timestamps.start_time?.toString() || "",
+      data.timestamps.end_time?.toString() || "",
+    );
+  }
+
+  return sha1Hash(keyParts.join("|")).slice(0, 16);
 }
 
 /**
@@ -506,11 +527,10 @@ function buildVerificationIndex(
 ): Map<number, Verification> {
   const index = new Map<number, Verification>();
 
-  // Strategy 1: citationMap → key lookup (O(1) per entry)
+  // Strategy 1: citationMap → key lookup without allocating full Citation objects
   if (citationMap) {
     for (const [id, data] of citationMap) {
-      const citation = deferredCitationToCitation(data, id);
-      const key = getCitationKey(citation);
+      const key = getCitationKeyFromData(data);
       const v = verifications[key];
       if (v) index.set(id, v);
     }
@@ -539,25 +559,25 @@ function buildVerificationIndex(
  * const text = "Revenue grew 45% [1] in Q4 [2].";
  *
  * // Remove markers entirely
- * replaceDeferredMarkers(text);
+ * replaceCitationMarkers(text);
  * // Returns: "Revenue grew 45% in Q4."
  *
  * // Replace with anchor texts
- * replaceDeferredMarkers(text, {
+ * replaceCitationMarkers(text, {
  *   citationMap: new Map([[1, { anchor_text: "45%" }], [2, { anchor_text: "Q4" }]]),
  *   showAnchorText: true,
  * });
  * // Returns: "Revenue grew 45% 45% in Q4 Q4."
  *
  * // Show verification status indicators
- * replaceDeferredMarkers(text, {
+ * replaceCitationMarkers(text, {
  *   verifications: verificationResult.verifications,
  *   showVerificationStatus: true,
  * });
  * // Returns: "Revenue grew 45% [1☑️] in Q4 [2✅]."
  * ```
  */
-export function replaceDeferredMarkers(
+export function replaceCitationMarkers(
   text: string,
   options?: {
     /** Map of citation IDs to their data */
@@ -624,16 +644,13 @@ export function getCitationMarkerIds(text: string): number[] {
 
 /**
  * Strips all citation artifacts from LLM output, returning clean readable text.
- * Auto-detects the citation format:
- * - Deferred format (`[N]` markers + `<<<CITATION_DATA>>>` block): strips both
- * - XML format (`<cite ... />`): strips cite tags
+ * Strips `[N]` markers and `<<<CITATION_DATA>>>` block.
  *
  * @param llmResponse - The raw LLM response containing citations
  * @returns Clean text with all citation artifacts removed
  *
  * @example
  * ```typescript
- * // Works with either citation format — no need to detect manually
  * const cleanText = stripCitations(llmResponse);
  * ```
  */
@@ -642,12 +659,7 @@ export function stripCitations(llmResponse: string): string {
     return "";
   }
 
-  if (hasDeferredCitations(llmResponse)) {
-    // Deferred format: strip <<<CITATION_DATA>>> block, then remove [N] markers
-    const visibleText = extractVisibleText(llmResponse);
-    return replaceDeferredMarkers(visibleText);
-  }
-
-  // XML format: strip <cite ... /> tags
-  return replaceCitations(llmResponse);
+  // Strip <<<CITATION_DATA>>> block (if present), then remove [N] markers
+  const visibleText = extractVisibleText(llmResponse);
+  return replaceCitationMarkers(visibleText);
 }

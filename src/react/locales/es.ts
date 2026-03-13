@@ -184,6 +184,7 @@ export const esOverrides = {
   "location.pageLine": "p. {pageNumber} · l. {lineNumber}",
   "location.image": "Imagen",
   "location.unknown": "desconocido",
+  "location.pageRange": "p.\u202f{startPage}\u2013{endPage}",
   "location.matchingLocations_one": "{count} ubicación coincidente",
   "location.matchingLocations_other": "{count} ubicaciones coincidentes",
   "evidence.textNotFound": "Texto no encontrado en el documento",

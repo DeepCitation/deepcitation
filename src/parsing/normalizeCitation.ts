@@ -1,10 +1,11 @@
-import type { Citation } from "../types/citation.js";
+import type { Citation, DocumentCitation, UrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
-import { resolveFieldNameSnake } from "../utils/fieldAliases.js";
+import { getFieldAliases, resolveFieldNameSnake } from "../utils/fieldAliases.js";
 import { createSafeObject, safeAssign } from "../utils/objectSafety.js";
+import { expandRange } from "../utils/rangeExpansion.js";
 import { validateRegexInput } from "../utils/regexSafety.js";
-import { getCitationStatus } from "./parseCitation.js";
+import { getVerificationTextIndicator } from "../utils/verificationIndicator.js";
 
 /**
  * Module-level compiled regexes for hot-path operations.
@@ -17,14 +18,6 @@ const PAGE_NUMBER_REGEX = /page[_a-zA-Z]*(\d+)/;
  * No manual lastIndex reset is needed.
  */
 const RANGE_EXPANSION_REGEX = /(\d+)-(\d+)/g;
-
-/**
- * Canonicalize cite tag attribute keys to their snake_case standard form.
- * Delegates to the centralized field alias map in utils/fieldAliases.ts.
- */
-function canonicalizeAttributeAlias(key: string): string {
-  return resolveFieldNameSnake(key);
-}
 
 export interface ReplaceCitationsOptions {
   /**
@@ -71,33 +64,12 @@ const parseCiteAttributes = (citeTag: string): Record<string, string | undefined
       .toLowerCase();
     const value = match[3];
 
-    const normalizedKey = canonicalizeAttributeAlias(key);
+    const normalizedKey = resolveFieldNameSnake(key);
 
     attrs[normalizedKey] = value;
   }
 
   return attrs;
-};
-
-/**
- * Get verification status indicator character for plain text/terminal output.
- * Returns: ☑️ (fully verified), ✅ (partial match), ❌ (not found), ⌛ (pending/null), ◌ (unknown)
- *
- * For web UI, use the React CitationComponent instead which provides
- * proper styled indicators with colors and accessibility.
- */
-export const getVerificationTextIndicator = (verification: Verification | null | undefined): string => {
-  const status = getCitationStatus(verification);
-
-  if (status.isMiss) return "❌";
-  // Check for fully verified (not partial) first
-  if (status.isVerified && !status.isPartialMatch) return "☑️";
-  // Then check for partial match
-  if (status.isPartialMatch) return "✅";
-
-  if (status.isPending) return "⌛";
-
-  return "◌";
 };
 
 /**
@@ -166,40 +138,12 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
         if (!lineIdsStr) return undefined;
         if (lineIdsStr.length > 500) return undefined;
 
-        // Note: parent replaceCitations() already validated the full input
-        // Performance fix: limit range expansion to prevent memory exhaustion
-        const MAX_RANGE_SIZE = 1000;
-        const SAMPLE_COUNT = 50;
-
-        // First expand ranges (e.g., "62-63" -> "62,63")
+        // Expand ranges (e.g., "62-63" -> "62,63") using shared helper
         const expanded = lineIdsStr.replace(RANGE_EXPANSION_REGEX, (_match, start, end) => {
           const startNum = parseInt(start, 10);
           const endNum = parseInt(end, 10);
           if (startNum <= endNum) {
-            const rangeSize = endNum - startNum + 1;
-            // For large ranges, use sampling to maintain accuracy
-            if (rangeSize > MAX_RANGE_SIZE) {
-              const samples = [startNum];
-              const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
-              if (sampleCount > 0) {
-                // Use Math.floor for predictable sampling, ensuring step >= 1
-                const step = Math.max(1, Math.floor((endNum - startNum) / (sampleCount + 1)));
-                for (let i = 1; i <= sampleCount; i++) {
-                  const sample = startNum + step * i;
-                  // Ensure we don't exceed the range end
-                  if (sample < endNum) {
-                    samples.push(sample);
-                  }
-                }
-              }
-              samples.push(endNum);
-              return samples.join(",");
-            }
-            const range = [];
-            for (let i = startNum; i <= endNum; i++) {
-              range.push(i);
-            }
-            return range.join(",");
+            return expandRange(startNum, endNum).join(",");
           }
           return start;
         });
@@ -264,27 +208,6 @@ export const replaceCitations = (markdownWithCitations: string, options: Replace
 
   result += markdownWithCitations.substring(lastIndex);
   return result;
-};
-
-export const removePageNumberMetadata = (pageText: string): string => {
-  return pageText
-    .replace(/<page_number_\d+_index_\d+>/g, "")
-    .replace(/<\/page_number_\d+_index_\d+>/g, "")
-    .trim();
-};
-
-export const removeLineIdMetadata = (pageText: string): string => {
-  const lineIdRegex = /<line id="[^"]*">|<\/line>/g;
-  return pageText.replace(lineIdRegex, "");
-};
-
-export const getCitationPageNumber = (startPageId?: string | null): number | null => {
-  //page_number_{page_number}_index_{page_index} or page_number_{page_number} or page_id_{page_number}_index_{page_index}
-  if (!startPageId) return null;
-
-  //regex first \d+ is the page number
-  const pageNumber = startPageId.match(/\d+/)?.[0];
-  return pageNumber ? parseInt(pageNumber, 10) : null;
 };
 
 /**
@@ -374,14 +297,7 @@ export const normalizeCitations = (response: string): string => {
   return trimmedResponse;
 };
 
-/**
- * Canonicalize cite tag attribute keys to their standard form.
- * Pure function — no closure dependencies, hoisted to module scope to avoid
- * per-call function object allocation.
- */
-const canonicalizeCiteAttributeKey = (key: string): string => {
-  return canonicalizeAttributeAlias(key.toLowerCase());
-};
+// resolveFieldNameSnake already lowercases internally, so no wrapper needed.
 
 /** HTML entity decode map — compiled once at module load. */
 const HTML_ENTITY_MAP: Record<string, string> = {
@@ -435,58 +351,28 @@ const normalizeCitationContent = (input: string): string => {
     // calls where earlier replacements can reintroduce patterns matched by later ones.
     content = content.replace(/\\*(['"])/g, (_: string, quote: string) => `\\${quote}`);
 
-    return `${canonicalizeCiteAttributeKey(key)}='${content}'`;
+    return `${resolveFieldNameSnake(key)}='${content}'`;
   });
-  // Performance fix: limit range expansion to prevent memory exhaustion
-  const MAX_RANGE_SIZE = 1000;
-  const SAMPLE_COUNT = 50;
-
   normalized = normalized.replace(LINE_IDS_ATTRIBUTE_REGEX, (_match, key, rawValue, trailingChars) => {
     // Clean up the value (remove generic text, keep numbers/separators)
     let cleanedValue = rawValue.replace(/[A-Za-z[\](){}]/g, "");
 
-    // Expand ranges (e.g., "1-3" -> "1,2,3")
+    // Expand ranges (e.g., "1-3" -> "1,2,3") using shared helper
     cleanedValue = cleanedValue.replace(RANGE_EXPANSION_REGEX, (_rangeMatch: string, start: string, end: string) => {
       const startNum = parseInt(start, 10);
       const endNum = parseInt(end, 10);
 
-      // Handle ascending range
       if (startNum <= endNum) {
-        const rangeSize = endNum - startNum + 1;
-        // For large ranges, use sampling to maintain accuracy
-        if (rangeSize > MAX_RANGE_SIZE) {
-          const samples = [startNum];
-          const sampleCount = Math.min(SAMPLE_COUNT - 2, rangeSize - 2);
-          if (sampleCount > 0) {
-            // Use Math.floor for predictable sampling, ensuring step >= 1
-            const step = Math.max(1, Math.floor((endNum - startNum) / (sampleCount + 1)));
-            for (let i = 1; i <= sampleCount; i++) {
-              const sample = startNum + step * i;
-              // Ensure we don't exceed the range end
-              if (sample < endNum) {
-                samples.push(sample);
-              }
-            }
-          }
-          samples.push(endNum);
-          return samples.join(",");
-        }
-        const range = [];
-        for (let i = startNum; i <= endNum; i++) {
-          range.push(i);
-        }
-        return range.join(",");
-      } else {
-        // Fallback for weird descending ranges or just return start
-        return String(startNum);
+        return expandRange(startNum, endNum).join(",");
       }
+      return String(startNum);
     });
 
     // Normalize commas
     cleanedValue = cleanedValue.replace(/,+/g, ",").replace(/^,|,$/g, "");
 
     // Return standardized format: key='value' + preserved trailing characters (space or />)
-    return `${canonicalizeCiteAttributeKey(key)}='${cleanedValue}'${trailingChars}`;
+    return `${resolveFieldNameSnake(key)}='${cleanedValue}'${trailingChars}`;
   });
 
   // 4. Re-order <cite ... /> attributes to match the strict parsing expectations in `citationParser.ts`
@@ -501,7 +387,7 @@ const normalizeCitationContent = (input: string): string => {
     while ((match = attrRegex.exec(tag)) !== null) {
       const rawKey = match[1];
       const value = match[3]; // match[2] is the quote character
-      const key = canonicalizeCiteAttributeKey(rawKey);
+      const key = resolveFieldNameSnake(rawKey);
       // Security: use safeAssign to prevent prototype pollution (rejects __proto__, constructor, prototype)
       safeAssign(attrs, key, value);
     }
@@ -552,4 +438,166 @@ const normalizeCitationContent = (input: string): string => {
   normalized = normalized.replace(/<cite\b[\s\S]*?\/>/gm, tag => reorderCiteTagAttributes(tag));
 
   return normalized;
+};
+
+// ─── parseCitation: XML cite tag parser ──────────────────────────
+
+const PAGE_ID_FULL_REGEX = /page[_a-zA-Z]*(\d+)_index_(\d+)/;
+
+const attributeRegexCache = new Map<string, RegExp>();
+
+function getAttributeRegex(name: string): RegExp {
+  let regex = attributeRegexCache.get(name);
+  if (!regex) {
+    regex = new RegExp(`${name}='((?:[^'\\\\]|\\\\.)*)'`);
+    attributeRegexCache.set(name, regex);
+  }
+  return regex;
+}
+
+function parseLineIds(lineIdsString: string): number[] | undefined {
+  if (!lineIdsString) return undefined;
+
+  const lineIds: number[] = [];
+  const parts = lineIdsString.split(",");
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+
+    if (trimmed.includes("-")) {
+      const [startStr, endStr] = trimmed.split("-");
+      const start = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+
+      if (!Number.isNaN(start) && !Number.isNaN(end) && start <= end) {
+        lineIds.push(...expandRange(start, end));
+      } else if (!Number.isNaN(start)) {
+        lineIds.push(start);
+      }
+    } else {
+      const num = parseInt(trimmed, 10);
+      if (!Number.isNaN(num)) {
+        lineIds.push(num);
+      }
+    }
+  }
+
+  if (lineIds.length === 0) return undefined;
+  return [...new Set(lineIds)].sort((a, b) => a - b);
+}
+
+/**
+ * Strips surrounding quotes and unescapes common escape sequences in cite attribute values.
+ * Hoisted to module scope to avoid per-call function object allocation.
+ */
+const cleanAndUnescape = (str?: string): string | undefined => {
+  if (!str) return undefined;
+  let result = str;
+  if (result.startsWith("'") || result.startsWith('"')) {
+    result = result.slice(1);
+  }
+  if ((result.endsWith("'") || result.endsWith('"')) && !result.endsWith("\\'") && !result.endsWith('\\"')) {
+    result = result.slice(0, -1);
+  }
+  result = result.replace(/\\"/g, '"');
+  result = result.replace(/\\'/g, "'");
+  result = result.replace(/\\n/g, " ");
+  result = result.replace(/\\\\/g, "\\");
+  return result;
+};
+
+/**
+ * Parses a single XML `<cite ... />` tag fragment into a Citation object.
+ *
+ * @deprecated Use the numeric citation format with `parseCitationResponse()` instead.
+ */
+export const parseCitation = (
+  fragment: string,
+  mdAttachmentId?: string | null,
+  citationCounterRef?: { current: number } | null,
+  isVerbose?: boolean,
+) => {
+  const citationNumber = citationCounterRef?.current ? citationCounterRef.current++ : undefined;
+
+  const afterCite = fragment.includes("/>") ? fragment.slice(fragment.indexOf("/>") + 2) : "";
+  const middleCite = fragment.substring(fragment.indexOf("<cite"), fragment.indexOf("/>") + 2);
+
+  const extractAttribute = (tag: string, attrNames: string[]): string | undefined => {
+    for (const name of attrNames) {
+      const regex = getAttributeRegex(name);
+      const match = tag.match(regex);
+      if (match) {
+        return match[1];
+      }
+    }
+    return undefined;
+  };
+
+  const rawAttachmentId = extractAttribute(middleCite, getFieldAliases("attachmentId"));
+  const attachmentId = rawAttachmentId?.length === 20 ? rawAttachmentId : mdAttachmentId || rawAttachmentId;
+
+  const startPageIdRaw = extractAttribute(middleCite, getFieldAliases("startPageId"));
+  let pageNumber: number | undefined;
+  let pageIndex: number | undefined;
+  if (startPageIdRaw) {
+    const pageMatch = startPageIdRaw.match(PAGE_ID_FULL_REGEX);
+    if (pageMatch) {
+      pageNumber = parseInt(pageMatch[1], 10);
+      pageIndex = parseInt(pageMatch[2], 10);
+    }
+  }
+
+  const fullPhrase = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("fullPhrase")));
+  const anchorText = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("anchorText")));
+  const reasoning = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("reasoning")));
+  const value = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("value")));
+
+  let lineIds: number[] | undefined;
+  try {
+    const lineIdsRaw = extractAttribute(middleCite, getFieldAliases("lineIds"));
+    const lineIdsString = lineIdsRaw?.replace(/[A-Za-z_[\](){}:]/g, "");
+    lineIds = lineIdsString ? parseLineIds(lineIdsString) : undefined;
+  } catch (e) {
+    if (isVerbose) console.error("Error parsing lineIds", e);
+  }
+
+  const url = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("url")));
+  const domain = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("domain")));
+  const title = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("title")));
+  const description = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("description")));
+  const siteName = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("siteName")));
+  const faviconUrl = cleanAndUnescape(extractAttribute(middleCite, getFieldAliases("faviconUrl")));
+
+  const citation: Citation =
+    url && !attachmentId
+      ? ({
+          type: "url" as const,
+          url,
+          domain,
+          title,
+          description,
+          siteName,
+          faviconUrl,
+          fullPhrase,
+          anchorText: anchorText || value,
+          citationNumber,
+          reasoning,
+        } as UrlCitation)
+      : ({
+          type: "document" as const,
+          attachmentId: attachmentId,
+          pageNumber,
+          startPageId: `page_number_${pageNumber || 1}_index_${pageIndex || 0}`,
+          fullPhrase,
+          anchorText: anchorText || value,
+          citationNumber,
+          lineIds,
+          reasoning,
+        } as DocumentCitation);
+
+  return {
+    afterCite,
+    citation,
+  };
 };

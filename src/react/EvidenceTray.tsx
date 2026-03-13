@@ -2024,8 +2024,12 @@ export function InlineExpandedImage({
                     renderScale={renderScale}
                     imageNaturalWidth={naturalWidth}
                     imageNaturalHeight={naturalHeight}
-                    highlightColor={verification?.highlightColor}
-                    anchorTextDeepItem={effectiveAnchorItem}
+                    highlightColor={
+                      verification?.status === "not_found" ? "red" : verification?.highlightColor
+                    }
+                    anchorTextDeepItem={
+                      verification?.status === "not_found" ? undefined : effectiveAnchorItem
+                    }
                     anchorText={verification?.verifiedAnchorText}
                     fullPhrase={verification?.verifiedFullPhrase}
                     onDismiss={fill ? handleOverlayDismiss : undefined}

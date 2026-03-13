@@ -1,17 +1,9 @@
 import { formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
-import { getCitationStatus } from "../../parsing/parseCitation.js";
+import type { ParsedCitationResult } from "../../parsing/parseCitationResponse.js";
 import type { CitationStatus } from "../../types/citation.js";
-import { getCitationKey } from "../../utils/citationKey.js";
-import { safeMatch } from "../../utils/regexSafety.js";
-import { buildCitationFromAttrs, parseCiteAttributes } from "../citationParser.js";
-import type { RenderCitationWithStatus } from "../types.js";
+import { resolveSourceLabel, walkCitationSegments } from "../shared.js";
 import { bold, colorize, dim, horizontalRule, shouldUseColor } from "./ansiColors.js";
 import type { TerminalOutput, TerminalRenderOptions, TerminalVariant } from "./types.js";
-
-/**
- * Module-level compiled regex for cite tag matching.
- */
-const CITE_TAG_REGEX = /<cite\s(?:[^>/]|\/(?!>))*\/>/g;
 
 /**
  * Map CitationStatus to a status key for color mapping.
@@ -57,7 +49,10 @@ function renderTerminalCitation(
 }
 
 /**
- * Render LLM output with <cite /> tags for terminal/CLI output with ANSI colors.
+ * Render LLM output with `[N]` citation markers for terminal/CLI output with ANSI colors.
+ *
+ * Accepts either a raw LLM response string (auto-parsed) or a pre-parsed
+ * `ParsedCitationResult` for efficiency when reusing parsed data.
  *
  * @example
  * ```typescript
@@ -69,11 +64,12 @@ function renderTerminalCitation(
  *   color: true,
  *   includeSources: true,
  * });
- * // output.text: "Revenue grew 23%. \x1b[32m[1✓]\x1b[0m"
- * // output.plain: "Revenue grew 23%. [1✓]"
  * ```
  */
-export function renderCitationsForTerminal(input: string, options: TerminalRenderOptions = {}): TerminalOutput {
+export function renderCitationsForTerminal(
+  input: string | ParsedCitationResult,
+  options: TerminalRenderOptions = {},
+): TerminalOutput {
   const {
     verifications = {},
     indicatorStyle = "check",
@@ -85,53 +81,33 @@ export function renderCitationsForTerminal(input: string, options: TerminalRende
   } = options;
 
   const useColor = shouldUseColor(color);
-  const citationsWithStatus: RenderCitationWithStatus[] = [];
-  let citationIndex = 0;
+  const { segments, citationsWithStatus } = walkCitationSegments(input, verifications);
 
-  let coloredText = input;
-  let plainText = input;
+  const coloredParts: string[] = [];
+  const plainParts: string[] = [];
 
-  // We need to replace in both colored and plain versions.
-  // Do a single pass to collect replacements, then apply them.
-  const replacements: Array<{ original: string; colored: string; plain: string }> = [];
-
-  // Use safeMatch to validate input length before regex (ReDoS prevention)
-  const matches = safeMatch(input, CITE_TAG_REGEX);
-  if (matches) {
-    for (const match of matches) {
-      citationIndex++;
-      const attrs = parseCiteAttributes(match);
-      const citation = buildCitationFromAttrs(attrs, citationIndex);
-      const citationKey = getCitationKey(citation);
-      const verification = verifications[citationKey] || null;
-      const status = getCitationStatus(verification);
-
-      citationsWithStatus.push({
-        citation,
-        citationKey,
-        verification,
-        status,
-        citationNumber: citationIndex,
-      });
-
-      const rendered = renderTerminalCitation(
-        citationIndex,
-        citation.anchorText ?? undefined,
-        status,
-        indicatorStyle,
-        variant,
-        useColor,
-      );
-
-      replacements.push({ original: match, colored: rendered.colored, plain: rendered.plain });
+  for (const seg of segments) {
+    if (seg.type === "text") {
+      coloredParts.push(seg.value);
+      plainParts.push(seg.value);
+      continue;
     }
+
+    const rendered = renderTerminalCitation(
+      seg.citationNumber,
+      seg.citation.anchorText ?? undefined,
+      seg.status,
+      indicatorStyle,
+      variant,
+      useColor,
+    );
+
+    coloredParts.push(rendered.colored);
+    plainParts.push(rendered.plain);
   }
 
-  // Apply replacements (one at a time to handle duplicates correctly)
-  for (const r of replacements) {
-    coloredText = coloredText.replace(r.original, r.colored);
-    plainText = plainText.replace(r.original, r.plain);
-  }
+  const coloredText = coloredParts.join("");
+  const plainText = plainParts.join("");
 
   // Build sources section
   let sources: string | undefined;
@@ -140,10 +116,7 @@ export function renderCitationsForTerminal(input: string, options: TerminalRende
     sourceLines.push(horizontalRule("Sources", maxWidth, useColor));
 
     for (const cws of citationsWithStatus) {
-      const label =
-        cws.citation.type === "url"
-          ? sourceLabels[""] || cws.verification?.label || cws.citation.title || `Source ${cws.citationNumber}`
-          : sourceLabels[cws.citation.attachmentId || ""] || cws.verification?.label || `Source ${cws.citationNumber}`;
+      const label = resolveSourceLabel(cws, sourceLabels);
       const location = formatPageLocation(cws.citation, cws.verification, {
         showPageNumber: true,
         showLinePosition: false,

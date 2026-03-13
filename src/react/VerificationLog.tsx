@@ -27,7 +27,11 @@ import {
   XCircleIcon,
   XIcon,
 } from "./icons.js";
-import { getUniqueSearchAttemptCount, groupSearchAttempts } from "./searchAttemptGrouping.js";
+import {
+  getUniqueSearchAttemptCount,
+  groupSearchAttempts,
+  groupSearchAttemptsForNotFound,
+} from "./searchAttemptGrouping.js";
 import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 // import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 import { sanitizeUrl } from "./urlUtils.js";
@@ -1168,10 +1172,12 @@ interface AttemptTableRowProps {
   duplicateCount: number;
   success: boolean;
   isUnexpectedHit: boolean;
+  /** Skip reason or method note — shown as a tooltip on hover. */
+  note?: string;
 }
 
 /** Compact row used by the attempts table for not-found and partial states. */
-function AttemptTableRow({ text, locationText, duplicateCount, success, isUnexpectedHit }: AttemptTableRowProps) {
+function AttemptTableRow({ text, locationText, duplicateCount, success, isUnexpectedHit, note }: AttemptTableRowProps) {
   const t = useTranslation();
   const isTruncated = (text ?? "").length > MAX_PHRASE_DISPLAY_LENGTH;
   const showLocationMultiplicity = success && isUnexpectedHit && duplicateCount > 1;
@@ -1189,7 +1195,7 @@ function AttemptTableRow({ text, locationText, duplicateCount, success, isUnexpe
           : "border-red-300 dark:border-red-500/60 text-gray-500 dark:text-gray-400",
       )}
     >
-      <span className="font-mono text-xxs truncate min-w-0" title={isTruncated ? text : undefined}>
+      <span className="font-mono text-xxs truncate min-w-0" title={note || (isTruncated ? text : undefined)}>
         {text}
       </span>
       <span
@@ -1248,7 +1254,13 @@ function AuditSearchDisplay({
   status,
 }: AuditSearchDisplayProps) {
   const t = useTranslation();
-  const groupedAttempts = useMemo(() => groupSearchAttempts(searchAttempts), [searchAttempts]);
+  const groupedAttempts = useMemo(
+    () =>
+      status === "not_found"
+        ? groupSearchAttemptsForNotFound(searchAttempts)
+        : groupSearchAttempts(searchAttempts),
+    [searchAttempts, status],
+  );
   // Show all searches unless the status is a confirmed exact match.
   // Transient statuses (loading, pending) show partial attempts as they arrive.
   // Null/undefined status is treated as "unknown" — show all searches.
@@ -1331,7 +1343,12 @@ function AuditSearchDisplay({
     const { attempt, key, duplicateCount } = group;
     const foundPage = attempt.foundLocation?.page ?? attempt.pageSearched;
     const foundLine = attempt.foundLocation?.line ?? getFirstLine(attempt.lineSearched);
-    const locationText = formatLocationLabel(foundPage, foundLine, t);
+
+    // Use page range when the not_found grouping collapsed multiple pages
+    const locationText =
+      group.pageRange && group.pageRange.min !== group.pageRange.max
+        ? t("location.pageRange", { startPage: group.pageRange.min, endPage: group.pageRange.max })
+        : formatLocationLabel(foundPage, foundLine, t);
 
     const unexpectedPage =
       attempt.success &&
@@ -1355,6 +1372,7 @@ function AuditSearchDisplay({
       isUnexpectedHit: unexpectedPage || unexpectedLine,
       locationText,
       duplicateCount,
+      note: attempt.note,
     };
   });
 
@@ -1370,6 +1388,7 @@ function AuditSearchDisplay({
           success={row.success}
           isUnexpectedHit={row.isUnexpectedHit}
           locationText={row.locationText}
+          note={row.note}
         />
       ))}
     </div>

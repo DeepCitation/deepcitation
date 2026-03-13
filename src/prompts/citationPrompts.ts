@@ -1,7 +1,7 @@
 /**
  * Citation Prompts
  *
- * This module provides the "Deferred JSON Pattern" for citation output.
+ * This module provides the "Numeric JSON Pattern" for citation output.
  * The LLM uses lightweight markers (e.g., [1], [2]) in the text and outputs
  * a structured JSON block at the end of the response.
  *
