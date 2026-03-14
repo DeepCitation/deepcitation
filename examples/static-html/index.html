@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeepCitation CDN Popover — Static HTML Example</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.7;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      color: #1a1a1a;
+      background: #fafafa;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .controls {
+      display: flex; gap: 0.5rem; margin-bottom: 1.5rem;
+      flex-wrap: wrap; align-items: center;
+    }
+    .controls button {
+      padding: 0.35rem 0.75rem; border: 1px solid #ddd; border-radius: 4px;
+      background: white; cursor: pointer; font-size: 0.85rem;
+    }
+    .controls button:hover { background: #f0f0f0; }
+    .controls button.active { background: #333; color: white; border-color: #333; }
+    .response-card {
+      background: white; border: 1px solid #e0e0e0; border-radius: 8px;
+      padding: 1.5rem; line-height: 1.8;
+    }
+    .response-card p { margin-bottom: 1rem; }
+    .citation-ref {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.4em; height: 1.4em; border-radius: 50%;
+      background: #e8f0fe; color: #1a73e8; font-size: 0.75em;
+      font-weight: 600; cursor: pointer; vertical-align: super;
+      text-decoration: none; transition: background 0.15s;
+      line-height: 1;
+    }
+    .citation-ref:hover { background: #c6dbf7; }
+    #error-banner {
+      display: none; padding: 1rem; margin-bottom: 1rem;
+      background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;
+      color: #991b1b; font-size: 0.9rem;
+    }
+    #loading { text-align: center; padding: 2rem; color: #999; }
+  </style>
+</head>
+<body>
+  <h1>DeepCitation CDN Popover</h1>
+  <p class="subtitle">Click any citation number to see the verification popover.</p>
+
+  <div class="controls">
+    <span style="font-size: 0.85rem; color: #666;">Theme:</span>
+    <button onclick="setTheme('light')" id="btn-light">Light</button>
+    <button onclick="setTheme('dark')" id="btn-dark">Dark</button>
+    <button onclick="setTheme('auto')" id="btn-auto" class="active">Auto</button>
+  </div>
+
+  <div id="error-banner"></div>
+  <div id="loading">Loading fixtures…</div>
+  <div id="response" class="response-card" style="display:none;"></div>
+
+  <!-- CDN bundle (built via: bun scripts/build-vanilla-runtime.mjs) -->
+  <script src="../../lib/vanilla/deepcitation-popover.cdn.js"></script>
+
+  <script>
+    let currentTheme = "auto";
+
+    function setTheme(theme) {
+      currentTheme = theme;
+      document.querySelectorAll(".controls button").forEach(b => b.classList.remove("active"));
+      document.getElementById("btn-" + theme)?.classList.add("active");
+      if (window.DeepCitationPopover) {
+        window.DeepCitationPopover.destroy();
+        initPopover(window.__fixtures, theme);
+      }
+    }
+
+    function initPopover(fixtures, theme) {
+      window.DeepCitationPopover.init({ verifications: fixtures, theme });
+    }
+
+    function renderResponse(text, citationCount) {
+      // Replace [N] markers with clickable citation refs
+      let html = text;
+      for (let i = 1; i <= citationCount; i++) {
+        html = html.replaceAll(
+          `[${i}]`,
+          `<a class="citation-ref" data-citation-key="c${i}" title="Citation ${i}">${i}</a>`
+        );
+      }
+      // Convert newlines to paragraphs
+      html = html
+        .split(/\n{2,}/)
+        .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+        .join("");
+      return html;
+    }
+
+    async function boot() {
+      const errorEl = document.getElementById("error-banner");
+      const loadingEl = document.getElementById("loading");
+      const responseEl = document.getElementById("response");
+
+      try {
+        // Load fixture data
+        const [fixturesRes, textRes] = await Promise.all([
+          fetch("fixtures.json"),
+          fetch("llm-response.txt"),
+        ]);
+
+        if (!fixturesRes.ok) throw new Error(`Failed to load fixtures.json (${fixturesRes.status})`);
+        if (!textRes.ok) throw new Error(`Failed to load llm-response.txt (${textRes.status})`);
+
+        const fixtures = await fixturesRes.json();
+        const responseText = await textRes.text();
+        const citationCount = Object.keys(fixtures).length;
+
+        window.__fixtures = fixtures;
+
+        // Render the LLM response with citation markers
+        loadingEl.style.display = "none";
+        responseEl.style.display = "block";
+        responseEl.innerHTML = renderResponse(responseText, citationCount);
+
+        // Initialize the CDN popover
+        initPopover(fixtures, currentTheme);
+      } catch (err) {
+        loadingEl.style.display = "none";
+        errorEl.style.display = "block";
+        if (location.protocol === "file:") {
+          errorEl.innerHTML =
+            "<strong>Cannot load fixtures over file:// protocol.</strong><br>" +
+            "Serve this directory with a local server:<br><code>python3 -m http.server 8080</code><br>" +
+            "Then open <a href='http://localhost:8080'>http://localhost:8080</a>";
+        } else {
+          errorEl.textContent = err.message +
+            ". Run generate-fixtures.ts first — see README.md for instructions.";
+        }
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>
