@@ -9,6 +9,30 @@ search_exclude: true
 
 Thank you for your interest in improving the DeepCitation documentation.
 
+## Before You Open a PR
+
+For anything beyond a typo fix, **open an issue first**. Describe what is wrong or missing and why it matters. This prevents duplicate effort and gives maintainers a chance to say whether the change is in scope before you write anything.
+
+PRs without a linked issue (for non-trivial changes) will be closed and asked to start with an issue.
+
+## Scope
+
+Keep PRs small and targeted. One page, one concept, one problem per PR. If you find yourself touching three files to "improve clarity," you've lost the thread — pick the most important change and open separate issues for the rest.
+
+**Do not rewrite or reformat pages where the content is already correct.** Restructuring prose, changing heading levels, or rewording accurate sentences is not a contribution. Only correct what is wrong or add what is missing.
+
+## Accuracy
+
+Every factual claim must be verifiable. In your PR description, state which source you checked — a specific TypeScript interface, a method signature in `src/`, a test, or the published package. "I ran it and it worked" is acceptable. "It seems like it should work" is not.
+
+Code examples must come from a real session. Do not write examples from memory or let an AI generate them without running them. Invented method signatures or incorrect option names will be caught in review and the PR will be closed.
+
+## On AI-Assisted Writing
+
+Using AI to help draft or edit is fine. Submitting AI output you haven't carefully reviewed is not. You are responsible for every sentence you put in a PR. If a sentence is vague, hedges with "may" or "might," or exists only to fill space — delete it before submitting.
+
+The fastest way to get a PR closed is a description that could have been written without reading the existing docs.
+
 ## Getting Started
 
 ### Prerequisites
@@ -104,12 +128,11 @@ Link to other pages using the `site.baseurl` variable with trailing slashes:
 
 ## Submitting Changes
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b docs/my-improvement`
-3. Make your changes
-4. Test locally with `bundle exec jekyll serve`
-5. Commit: `git commit -m "docs: Description of changes"`
-6. Push and create a pull request
+1. Open an issue describing what is wrong or missing
+2. Fork the repository and create a feature branch: `git checkout -b docs/my-improvement`
+3. Make the smallest change that addresses the issue
+4. Commit: `git commit -m "docs: Description of changes"`
+5. Push and open a PR — link the issue and fill out the documentation section of the PR template
 
 ## Deployment
 
