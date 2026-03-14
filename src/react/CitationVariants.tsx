@@ -496,6 +496,95 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
 FootnoteCitation.displayName = "FootnoteCitation";
 
 // =============================================================================
+// BLOCK VARIANT - Sharp, square-bordered box
+// =============================================================================
+
+export type BlockCitationProps = CitationVariantProps;
+
+/**
+ * Block style citation component.
+ * Displays citation as a sharp, square-bordered inline box — similar to
+ * footnote/superscript but with a heavier, more explicit box treatment.
+ *
+ * @example
+ * ```tsx
+ * <BlockCitation citation={citation} verification={found} />
+ * // Renders: Text content [ 2 ]
+ * ```
+ */
+export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
+  (
+    {
+      citation,
+      children,
+      className,
+      verification,
+      eventHandlers,
+      preventTooltips = false,
+      pendingContent = TWO_DOTS_THINKING_CONTENT,
+      renderVerifiedIndicator = defaultRenderVerifiedIndicator,
+      renderPartialIndicator = defaultRenderPartialIndicator,
+    },
+    ref,
+  ) => {
+    const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
+    const { isMiss, isPartialMatch, isVerified, isPending } = status;
+    const t = useTranslation();
+    const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
+
+    const displayText = useMemo(() => getCitationNumber(citation), [citation]);
+
+    // Status border color only — text/bg stay neutral
+    let borderClass: string;
+    if (isPending) {
+      borderClass = "border-gray-200 dark:border-gray-700 animate-pulse cursor-wait";
+    } else if (isMiss) {
+      borderClass = "border-red-500/60 dark:border-red-500/40 cursor-pointer";
+    } else if (isPartialMatch) {
+      borderClass = "border-amber-500/60 dark:border-amber-500/40 cursor-pointer";
+    } else if (isVerified) {
+      borderClass = "border-emerald-500/60 dark:border-emerald-500/40 cursor-pointer";
+    } else {
+      borderClass =
+        "border-gray-300 dark:border-gray-600 hover:border-gray-900 dark:hover:border-gray-100 cursor-pointer";
+    }
+
+    return (
+      <>
+        {children}
+        <span
+          ref={ref}
+          role="button"
+          tabIndex={0}
+          data-citation-id={citationKey}
+          data-citation-instance={citationInstanceId}
+          data-variant="block"
+          className={classNames(
+            "inline-flex items-center justify-center aspect-square size-[1.4em] mx-0.5",
+            "font-mono text-xs font-medium rounded-none transition-all duration-120 border align-baseline select-none",
+            "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400",
+            borderClass,
+            className,
+          )}
+          {...events}
+          aria-label={t("aria.citationNumber", { number: displayText })}
+        >
+          {displayText}
+          <StatusIndicators
+            status={status}
+            pendingContent={pendingContent}
+            renderVerifiedIndicator={renderVerifiedIndicator}
+            renderPartialIndicator={renderPartialIndicator}
+          />
+        </span>
+      </>
+    );
+  },
+);
+
+BlockCitation.displayName = "BlockCitation";
+
+// =============================================================================
 // INLINE VARIANT - Subtle inline style with underline
 // =============================================================================
 
@@ -603,6 +692,8 @@ export interface VariantCitationProps extends CitationVariantProps {
   footnoteProps?: Partial<FootnoteCitationProps>;
   /** Inline-specific props */
   inlineProps?: Partial<InlineCitationProps>;
+  /** Block-specific props */
+  blockProps?: Partial<BlockCitationProps>;
 }
 
 /**
@@ -614,7 +705,7 @@ export interface VariantCitationProps extends CitationVariantProps {
  * ```
  */
 export const CitationVariantFactory = forwardRef<HTMLSpanElement, VariantCitationProps>(
-  ({ variant = "bracket", chipProps, superscriptProps, footnoteProps, inlineProps, ...props }, ref) => {
+  ({ variant = "bracket", chipProps, superscriptProps, footnoteProps, inlineProps, blockProps, ...props }, ref) => {
     switch (variant) {
       case "chip":
         return <ChipCitation ref={ref} {...props} {...chipProps} />;
@@ -624,6 +715,8 @@ export const CitationVariantFactory = forwardRef<HTMLSpanElement, VariantCitatio
         return <FootnoteCitation ref={ref} {...props} {...footnoteProps} />;
       case "inline":
         return <InlineCitation ref={ref} {...props} {...inlineProps} />;
+      case "block":
+        return <BlockCitation ref={ref} {...props} {...blockProps} />;
       default:
         // For bracket variant, we return null here as CitationComponent handles it
         // This factory is meant to be used for alternate variants
@@ -639,4 +732,5 @@ export const MemoizedChipCitation = memo(ChipCitation);
 export const MemoizedSuperscriptCitation = memo(SuperscriptCitation);
 export const MemoizedFootnoteCitation = memo(FootnoteCitation);
 export const MemoizedInlineCitation = memo(InlineCitation);
+export const MemoizedBlockCitation = memo(BlockCitation);
 export const MemoizedCitationVariantFactory = memo(CitationVariantFactory);

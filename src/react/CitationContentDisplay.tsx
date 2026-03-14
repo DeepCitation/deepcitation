@@ -263,6 +263,42 @@ export const CitationContentDisplay = ({
     );
   }
 
+  // Variant: block (sharp, square-bordered inline box)
+  if (variant === "block") {
+    // Status border color only — text/bg stay neutral
+    let blockBorderClass: string;
+    if (shouldShowSpinner) {
+      blockBorderClass = "border-gray-200 dark:border-gray-700 animate-pulse cursor-wait";
+    } else if (isMiss) {
+      blockBorderClass = "border-red-500/60 dark:border-red-500/40";
+    } else if (isPartialMatch) {
+      blockBorderClass = "border-amber-500/60 dark:border-amber-500/40";
+    } else if (isVerified) {
+      blockBorderClass = "border-emerald-500/60 dark:border-emerald-500/40";
+    } else {
+      blockBorderClass = "border-gray-300 dark:border-gray-600";
+    }
+
+    return (
+      <>
+        {anchorTextDisplay && <span className="font-normal">{anchorTextDisplay}</span>}
+        <span
+          className={cn(
+            "inline-flex items-center justify-center aspect-square size-[1.4em] mx-0.5",
+            "font-mono text-xs font-medium rounded-none border align-baseline select-none",
+            "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400",
+            "transition-all duration-120",
+            blockBorderClass,
+            getInteractionClasses(isOpen, variant),
+          )}
+        >
+          {citationNumber}
+          {indicator}
+        </span>
+      </>
+    );
+  }
+
   // Variant: brackets (default)
   return (
     <span

@@ -14,7 +14,14 @@ import type { BaseCitationProps, CitationContent, CitationVariant } from "./type
 import { cn } from "./utils.js";
 
 /** Variants that handle their own hover styling (don't need parent hover) */
-export const VARIANTS_WITH_OWN_HOVER = new Set<CitationVariant>(["chip", "badge", "linter", "superscript", "footnote"]);
+export const VARIANTS_WITH_OWN_HOVER = new Set<CitationVariant>([
+  "chip",
+  "badge",
+  "linter",
+  "superscript",
+  "footnote",
+  "block",
+]);
 
 /** Variants rendered on a solid gray background (chip, badge). */
 const SOLID_BG_VARIANTS = new Set<CitationVariant>(["chip", "badge"]);
@@ -31,6 +38,14 @@ const SOLID_BG_VARIANTS = new Set<CitationVariant>(["chip", "badge"]);
  */
 export function getInteractionClasses(isOpen: boolean, variant: CitationVariant): string {
   const isSolid = SOLID_BG_VARIANTS.has(variant);
+
+  // Block variant: shadow + lift for active; cursor for hover (border color stays from status)
+  if (variant === "block") {
+    if (isOpen) {
+      return "shadow-[1.5px_1.5px_0px_0px_#cbd5e1] dark:shadow-[1.5px_1.5px_0px_0px_#374151] translate-y-[-1px]";
+    }
+    return "cursor-pointer";
+  }
 
   if (isOpen) {
     // Active state — persistent, not hover-dependent
