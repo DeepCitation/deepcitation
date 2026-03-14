@@ -349,4 +349,4 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
 
 SplitDiffDisplay.displayName = "SplitDiffDisplay";
 
-export { MatchQualityBar, CollapsibleText };
+export { CollapsibleText, MatchQualityBar };
