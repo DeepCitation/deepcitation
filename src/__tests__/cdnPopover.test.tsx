@@ -182,4 +182,14 @@ describe("cdn.ts source invariants", () => {
   it("passes pageImages", () => {
     expect(cdnSource).toContain("pageImages: verification.pageImages");
   });
+  it("sets max-width on popover container", () => {
+    expect(cdnSource).toContain('maxWidth = "min(480px, calc(100vw - 2rem))"');
+  });
+  it("sets width max-content on popover container", () => {
+    expect(cdnSource).toContain('width = "max-content"');
+  });
+  it("creates status indicator icons", () => {
+    expect(cdnSource).toContain("createStatusIndicator");
+    expect(cdnSource).toContain("dc-status-indicator");
+  });
 });

@@ -9,6 +9,18 @@ import { mapToCitation, mapToVerification } from "./cdn-mappers.js";
 import { computePosition } from "./positioning.js";
 import type { VerificationData } from "./types.js";
 
+// Status indicator SVGs (inline to avoid JSX in imperative DOM code)
+const CHECK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" width="100%" height="100%"><polyline points="20 6 9 17 4 12"/></svg>`;
+const MISS_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" width="100%" height="100%"><line x1="6" y1="12" x2="18" y2="12"/></svg>`;
+const WARNING_SVG = `<svg viewBox="0 0 256 256" fill="currentColor" width="100%" height="100%"><path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z"/></svg>`;
+
+/** Status color constants matching the React component's CSS custom property defaults */
+const STATUS_COLORS = {
+  verified: "#16a34a",   // green-600
+  partial: "#f59e0b",    // amber-500
+  miss: "#ef4444",       // red-500
+} as const;
+
 declare const __CDN_CSS__: string;
 const SIDE_OFFSET = 8;
 
@@ -53,6 +65,8 @@ function ensurePopoverEl(): HTMLDivElement {
     el.className = "dc-cdn-popover";
     el.style.position = "fixed";
     el.style.zIndex = "10000";
+    el.style.width = "max-content";
+    el.style.maxWidth = "min(480px, calc(100vw - 2rem))";
     el.style.display = "none";
     document.body.appendChild(el);
     popoverEl = el;
@@ -110,6 +124,30 @@ function hidePopoverInner(): void {
   isOpen = false;
   activeTrigger = null;
 }
+function createStatusIndicator(data: VerificationData): HTMLSpanElement | null {
+  const verification = mapToVerification(data);
+  const status = getStatusFromVerification(verification);
+  let svg: string;
+  let color: string;
+  if (status.isMiss) {
+    svg = MISS_SVG;
+    color = STATUS_COLORS.miss;
+  } else if (status.isPartialMatch) {
+    svg = WARNING_SVG;
+    color = STATUS_COLORS.partial;
+  } else if (status.isVerified) {
+    svg = CHECK_SVG;
+    color = STATUS_COLORS.verified;
+  } else {
+    return null; // pending or unknown — no indicator
+  }
+  const span = document.createElement("span");
+  span.className = "dc-status-indicator";
+  span.style.cssText = `display:inline-flex;width:0.85em;height:0.85em;min-width:10px;min-height:10px;color:${color};vertical-align:middle;margin-left:0.1em;`;
+  span.innerHTML = svg;
+  return span;
+}
+
 function bindTriggers(selector: string): void {
   const triggers = document.querySelectorAll<HTMLElement>(selector);
   for (const trigger of triggers) {
@@ -118,6 +156,11 @@ function bindTriggers(selector: string): void {
     if (!key || !verifications[key]) continue;
     boundTriggers.add(trigger);
     trigger.style.cursor = "pointer";
+    // Add status indicator icon after the trigger text
+    const indicator = createStatusIndicator(verifications[key]);
+    if (indicator && !trigger.querySelector(".dc-status-indicator")) {
+      trigger.appendChild(indicator);
+    }
     trigger.addEventListener("click", e => {
       e.preventDefault();
       e.stopPropagation();
