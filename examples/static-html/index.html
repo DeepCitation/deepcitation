@@ -81,6 +81,12 @@
     }
 
     function initPopover(fixtures, theme) {
+      if (!window.DeepCitationPopover) {
+        throw new Error(
+          "DeepCitationPopover not loaded. Build the CDN bundle first: " +
+          "bun scripts/build-vanilla-runtime.mjs (from package root)"
+        );
+      }
       window.DeepCitationPopover.init({ verifications: fixtures, theme });
     }
 
@@ -138,8 +144,7 @@
             "Serve this directory with a local server:<br><code>python3 -m http.server 8080</code><br>" +
             "Then open <a href='http://localhost:8080'>http://localhost:8080</a>";
         } else {
-          errorEl.textContent = err.message +
-            ". Run generate-fixtures.ts first — see README.md for instructions.";
+          errorEl.textContent = err.message + " — see README.md for setup instructions.";
         }
       }
     }
