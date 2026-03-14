@@ -169,6 +169,15 @@ describe("parseCitationResponse — edge cases", () => {
     expect(Object.keys(result.markerMap).length).toBe(0);
     expect(result.visibleText).toBe("Some text [1].");
   });
+
+  it("marker number not in markerMap returns undefined", () => {
+    const response = makeNumericResponse("Claim [1] and [3].", [
+      { id: 1, attachment_id: "att_1", full_phrase: "Claim one", anchor_text: "Claim" },
+    ]);
+    const result = parseCitationResponse(response);
+    expect(result.markerMap[1]).toBeDefined();
+    expect(result.markerMap[3]).toBeUndefined();
+  });
 });
 
 // ─── Integration: React rendering pattern ──────────────────────
