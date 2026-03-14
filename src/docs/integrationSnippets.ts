@@ -41,6 +41,7 @@ const rendered = segments.map((seg, i) => {
     const match = seg.match(/^\\[(\\d+)\\]$/);
     if (match) {
       const key = result.markerMap[Number(match[1])];
+      if (!key) return <span key={i}>{seg}</span>;
       return <CitationComponent key={i} citation={result.citations[key]} verification={verifications[key] ?? null} />;
     }
   }
@@ -352,6 +353,7 @@ function MessageWithCitations({
         const match = seg.match(/^\\[(\\d+)\\]$/);
         if (match) {
           const key = result.markerMap[Number(match[1])];
+          if (!key) return <span key={i}>{seg}</span>;
           return (
             <CitationComponent
               key={i}

@@ -326,7 +326,9 @@ function renderWithCitations(
         const match = seg.match(/^\[(\d+)\]$/);
         if (match) {
           const key = result.markerMap[Number(match[1])];
+          if (!key) return <span key={`citation-${i}`}>{seg}</span>;
           const citation = citations[key] ?? result.citations[key];
+          if (!citation) return <span key={`citation-${i}`}>{seg}</span>;
           const verification = verifications[key];
           return (
             <CitationComponent

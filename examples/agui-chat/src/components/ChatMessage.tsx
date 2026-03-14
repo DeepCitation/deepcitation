@@ -122,13 +122,17 @@ function processContentWithCitations(
 
   const segments = result.visibleText.split(result.splitPattern);
 
+  const mdComponents = { p: ({ children }: { children: React.ReactNode }) => <span>{children}</span> };
+
   return (
     <>
       {segments.map((seg, i) => {
         const match = seg.match(/^\[(\d+)\]$/);
         if (match) {
           const key = result.markerMap[Number(match[1])];
+          if (!key) return <span key={`citation-${i}`}>{seg}</span>;
           const citation = citations[key] ?? result.citations[key];
+          if (!citation) return <span key={`citation-${i}`}>{seg}</span>;
           const verification = verifications[key];
           return (
             <CitationComponent key={`citation-${i}`} citation={citation} verification={verification} />
@@ -138,9 +142,7 @@ function processContentWithCitations(
           <ReactMarkdown
             key={`text-${i}`}
             remarkPlugins={[remarkGfm]}
-            components={{
-              p: ({ children }) => <span>{children}</span>,
-            }}
+            components={mdComponents}
           >
             {seg}
           </ReactMarkdown>

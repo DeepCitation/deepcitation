@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `src/parsing/normalizeCitation.ts` — XML citation parser/normalizer (598 lines)
 - `src/__tests__/normalizeCitation.test.ts` — XML format tests (948 lines)
-- `getUniqueSearchAttemptCount()` helper — replaced with `groupSearchAttemptsForNotFound().length`
+- `getUniqueSearchAttemptCount()` helper — replaced with `groupSearchAttemptsForNotFound().length` (switches from per-page to cross-page grouping for miss displays, resulting in lower search-attempt counts in the UI)
 
 ## [0.2.1] - 2026-03-12
 
