@@ -561,7 +561,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
           data-variant="block"
           className={classNames(
             "inline-flex items-center justify-center aspect-square size-[1.4em] mx-0.5",
-            "font-mono text-xs font-medium rounded-none transition-all duration-120 border align-baseline select-none",
+            "font-mono text-xs font-medium rounded-sm transition-all duration-120 border align-baseline select-none",
             "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400",
             borderClass,
             className,

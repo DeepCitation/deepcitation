@@ -285,7 +285,7 @@ export const CitationContentDisplay = ({
         <span
           className={cn(
             "inline-flex items-center justify-center aspect-square size-[1.4em] mx-0.5",
-            "font-mono text-xs font-medium rounded-none border align-baseline select-none",
+            "font-mono text-xs font-medium rounded-sm border align-baseline select-none",
             "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400",
             "transition-all duration-120",
             blockBorderClass,
