@@ -121,6 +121,31 @@ export const PENDING_COLOR_DEFAULT = "#9ca3af";
  * ```
  */
 export const POPOVER_WIDTH_VAR = "--dc-popover-width";
+
+/**
+ * CSS custom property name for popover background color.
+ * Override to theme the popover background for your design system.
+ * @example
+ * ```css
+ * :root { --dc-popover-bg: #f8fafc; }
+ * .dark { --dc-popover-bg: #1e293b; }
+ * ```
+ * Or dynamically:
+ * ```js
+ * document.documentElement.style.setProperty('--dc-popover-bg', '#f8fafc');
+ * ```
+ */
+export const POPOVER_BG_VAR = "--dc-popover-bg";
+
+/**
+ * CSS custom property name for popover font family.
+ * Override to use a different typeface inside citation popovers.
+ * @example
+ * ```js
+ * document.documentElement.style.setProperty('--dc-popover-font', 'Georgia, serif');
+ * ```
+ */
+export const POPOVER_FONT_VAR = "--dc-popover-font";
 /** Default popover width in pixels */
 export const POPOVER_WIDTH_DEFAULT_PX = 480;
 /** Default popover width */
