@@ -56,8 +56,8 @@ describe("CitationContentDisplay — footnote variant", () => {
     const { container } = render(<CitationContentDisplay {...makeProps()} />);
     const sup = container.querySelector("sup");
     expect(sup).toBeInTheDocument();
-    // Default neutral gray: text-gray-500 dark:text-gray-400
-    expect(sup?.className).toContain("text-gray-500");
+    // Default neutral gray: text-slate-500 dark:text-slate-400
+    expect(sup?.className).toContain("text-slate-500");
   });
 
   it("renders green for verified status", () => {

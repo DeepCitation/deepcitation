@@ -71,7 +71,7 @@ describe("VerificationTabs", () => {
         expect(activeTab?.textContent).toBe("Diff");
         // Should use split view mode (indicated by the split view button being active)
         const splitViewButton = container.querySelector('button[aria-label="Split view"]');
-        expect(splitViewButton).toHaveClass("bg-gray-200");
+        expect(splitViewButton).toHaveClass("bg-slate-200");
       });
     });
 
