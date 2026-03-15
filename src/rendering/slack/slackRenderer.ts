@@ -1,7 +1,7 @@
 import { formatPageLocation } from "../../markdown/markdownVariants.js";
 import type { ParsedCitationResult } from "../../parsing/parseCitationResponse.js";
 import { buildProofUrl } from "../proofUrl.js";
-import { resolveSourceLabel, walkCitationSegments } from "../shared.js";
+import { escapeSlackMrkdwn, resolveSourceLabel, walkCitationSegments } from "../shared.js";
 import { renderSlackCitation, renderSlackSourceEntry } from "./slackVariants.js";
 import type { SlackOutput, SlackRenderOptions } from "./types.js";
 
@@ -44,7 +44,7 @@ export function renderCitationsForSlack(
 
   for (const seg of segments) {
     if (seg.type === "text") {
-      messageParts.push(seg.value);
+      messageParts.push(escapeSlackMrkdwn(seg.value));
       continue;
     }
 

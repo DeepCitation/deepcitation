@@ -1,12 +1,6 @@
-/**
- * Build popover DOM content from verification data.
- */
 import type { VerificationData } from "./types.js";
 
-/**
- * Validate image source — block dangerous protocols.
- * Minimal port of isValidProofImageSrc() from src/react/constants.ts.
- */
+/** Block dangerous protocols in image sources (javascript:, data:image/svg). */
 function isValidImageSrc(src: string): boolean {
   const trimmed = src.trim();
   if (trimmed.length === 0) return false;
@@ -55,14 +49,12 @@ export function buildPopoverContent(data: VerificationData): HTMLDivElement {
   const container = document.createElement("div");
   container.className = "dc-pop-content";
 
-  // Status header
   const header = document.createElement("div");
   const statusInfo = STATUS_LABELS[data.status ?? "pending"] ?? STATUS_LABELS.pending;
   header.className = `dc-pop-header ${getStatusClass(data.status)}`;
   header.textContent = `${statusInfo.icon} ${statusInfo.label}`;
   container.appendChild(header);
 
-  // Source label
   const sourceLabel = data.label ?? data.url?.verifiedTitle ?? data.url?.verifiedDomain;
   if (sourceLabel) {
     const source = document.createElement("div");
@@ -77,7 +69,6 @@ export function buildPopoverContent(data: VerificationData): HTMLDivElement {
     container.appendChild(source);
   }
 
-  // Claim blockquote
   const quote = data.verifiedFullPhrase ?? data.verifiedMatchSnippet ?? data.citation?.fullPhrase;
   if (quote) {
     const blockquote = document.createElement("blockquote");
@@ -87,7 +78,6 @@ export function buildPopoverContent(data: VerificationData): HTMLDivElement {
     container.appendChild(blockquote);
   }
 
-  // Evidence image (validate source to block javascript:/SVG injection)
   if (data.evidence?.src && isValidImageSrc(data.evidence.src)) {
     const img = document.createElement("img");
     img.className = "dc-pop-image";

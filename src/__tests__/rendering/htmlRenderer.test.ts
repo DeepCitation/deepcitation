@@ -1,16 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../../prompts/citationPrompts.js";
 import { renderCitationsAsHtml } from "../../rendering/html/htmlRenderer.js";
 import type { Verification } from "../../types/verification.js";
 import { getCitationKey } from "../../utils/citationKey.js";
-
-// =============================================================================
-// TEST HELPERS
-// =============================================================================
-
-function makeNumericResponse(visibleText: string, citations: unknown[]): string {
-  return `${visibleText}\n\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify(citations)}\n${CITATION_DATA_END_DELIMITER}`;
-}
+import { makeNumericResponse } from "../testHelpers.js";
 
 // =============================================================================
 // TEST FIXTURES

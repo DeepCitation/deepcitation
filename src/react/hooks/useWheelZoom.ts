@@ -113,9 +113,16 @@ export function useWheelZoom({
   // commit timeout and React's render (where zoomRef would still be stale).
   const committedZoomRef = useRef<number | null>(null);
 
+  // Stable ref for clampZoom/clampZoomRaw/onZoomCommit to avoid re-attaching the wheel listener.
+  const clampZoomRef = useRef(clampZoom);
+  const clampZoomRawRef = useRef(clampZoomRaw);
+  const onZoomCommitRef = useRef(onZoomCommit);
   useEffect(() => {
     zoomRef.current = zoom;
     committedZoomRef.current = null; // React caught up — no pending commit
+    clampZoomRef.current = clampZoom;
+    clampZoomRawRef.current = clampZoomRaw;
+    onZoomCommitRef.current = onZoomCommit;
   });
 
   // Hover tracking via pointer events on the container.
@@ -137,16 +144,6 @@ export function useWheelZoom({
       el.removeEventListener("pointerleave", onLeave);
     };
   }, [enabled, containerRef]);
-
-  // Stable ref for clampZoom/clampZoomRaw/onZoomCommit to avoid re-attaching the wheel listener.
-  const clampZoomRef = useRef(clampZoom);
-  const clampZoomRawRef = useRef(clampZoomRaw);
-  const onZoomCommitRef = useRef(onZoomCommit);
-  useEffect(() => {
-    clampZoomRef.current = clampZoom;
-    clampZoomRawRef.current = clampZoomRaw;
-    onZoomCommitRef.current = onZoomCommit;
-  });
 
   // Wheel zoom handler — intercepts wheel events for zoom when active.
   useEffect(() => {

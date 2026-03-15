@@ -4,11 +4,11 @@
  */
 
 import { createContext, type ReactNode, useContext } from "react";
-import type { CitationStatus, Citation as CitationType } from "../types/citation.js";
+import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 
 interface CitationContextValue {
-  citation: CitationType;
+  citation: Citation;
   citationKey: string;
   citationInstanceId: string;
   status: CitationStatus;

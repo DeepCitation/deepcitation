@@ -10,15 +10,7 @@ import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { getFieldAliases, resolveField } from "../utils/fieldAliases.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
-import { safeMatch } from "../utils/regexSafety.js";
-import { getAllCitationsFromNumericResponse, hasCitationData } from "./citationParser.js";
-
-/**
- * Module-level compiled regexes for hot-path operations.
- * Compiled once at module load to avoid per-call recompilation.
- */
-const PAGE_ID_SIMPLE_REGEX = /page[_a-zA-Z]*(\d+)_index_(\d+)/i;
-const SIMPLE_PAGE_INDEX_REGEX = /^(\d+)_(\d+)$/;
+import { getAllCitationsFromNumericResponse, hasCitationData, parsePageId } from "./citationParser.js";
 
 /**
  * Module-level status sets for O(1) lookups — avoids per-call array allocations.
@@ -99,23 +91,7 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
     return null;
   }
 
-  // Parse startPageId format: "page_number_PAGE_index_INDEX" or simple "PAGE_INDEX"
-  let pageNumber: number | undefined;
-  if (startPageId) {
-    // Try full format first: page_number_5_index_2 or pageId_5_index_2
-    // Performance fix: use module-level compiled regex
-    // Security fix: use safeMatch to prevent ReDoS on untrusted JSON input
-    const pageMatch = safeMatch(startPageId, PAGE_ID_SIMPLE_REGEX);
-    if (pageMatch) {
-      pageNumber = parseInt(pageMatch[1], 10);
-    } else {
-      // Try simple n_m format: 5_4 (page 5, index 4)
-      const simpleMatch = safeMatch(startPageId, SIMPLE_PAGE_INDEX_REGEX);
-      if (simpleMatch) {
-        pageNumber = parseInt(simpleMatch[1], 10);
-      }
-    }
-  }
+  const pageNumber = startPageId ? parsePageId(startPageId).pageNumber : undefined;
 
   // Sort lineIds if present
   const lineIds = rawLineIds?.length ? [...rawLineIds].sort((a: number, b: number) => a - b) : undefined;

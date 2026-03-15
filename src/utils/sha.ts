@@ -4,10 +4,8 @@
  * No external dependencies.
  */
 
-function utf8Encode(str: string): Uint8Array {
-  const encoder = new TextEncoder();
-  return encoder.encode(str);
-}
+const encoder = new TextEncoder();
+const w = new Uint32Array(80);
 
 function sha1(message: Uint8Array): string {
   // Initial hash values
@@ -44,7 +42,7 @@ function sha1(message: Uint8Array): string {
   dataView.setUint32(paddedLen - 4, bitLen >>> 0, false);
 
   // Process each 512-bit (64-byte) chunk
-  const w = new Uint32Array(80);
+  w.fill(0);
 
   for (let offset = 0; offset < paddedLen; offset += 64) {
     // Break chunk into sixteen 32-bit big-endian words
@@ -113,7 +111,7 @@ export function sha1Hash(data: unknown): string {
   try {
     if (!data) return "";
     const str = typeof data === "string" ? data : JSON.stringify(data);
-    return sha1(utf8Encode(str));
+    return sha1(encoder.encode(str));
   } catch (error) {
     console.error("Error in making the hash:", error);
   }

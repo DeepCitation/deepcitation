@@ -157,40 +157,32 @@ export function renderCitationVariant(citationWithStatus: CitationWithStatus, op
   const { citation, status, citationNumber } = citationWithStatus;
 
   const indicator = getIndicator(status, indicatorStyle);
-  const num = citationNumber;
+  const n = citationNumber;
 
   switch (variant) {
     case "inline": {
-      const text = getInlineFallbackText(citation, num);
-      const anchor = linkStyle === "anchor" ? `[${text}${indicator}](#ref-${num})` : `${text}${indicator}`;
-      return anchor;
+      const text = getInlineFallbackText(citation, n);
+      return linkStyle === "anchor" ? `[${text}${indicator}](#ref-${n})` : `${text}${indicator}`;
     }
 
-    case "brackets": {
-      const anchor = linkStyle === "anchor" ? `[${num}${indicator}](#ref-${num})` : `[${num}${indicator}]`;
-      return anchor;
-    }
+    case "brackets":
+      return linkStyle === "anchor" ? `[${n}${indicator}](#ref-${n})` : `[${n}${indicator}]`;
 
     case "superscript": {
-      const sup = toSuperscript(num);
-      const anchor = linkStyle === "anchor" ? `[${sup}${indicator}](#ref-${num})` : `${sup}${indicator}`;
-      return anchor;
+      const sup = toSuperscript(n);
+      return linkStyle === "anchor" ? `[${sup}${indicator}](#ref-${n})` : `${sup}${indicator}`;
     }
 
-    case "footnote": {
-      // Markdown footnote syntax doesn't support inline indicators
-      return `[^${num}]`;
-    }
+    case "footnote":
+      return `[^${n}]`;
 
     case "academic": {
       const sourceLabel =
         options.sourceLabels?.[citation.type !== "url" ? citation.attachmentId || "" : ""] || "Source";
       const page = citation.type !== "url" && citation.pageNumber ? `, p.${citation.pageNumber}` : "";
-      const anchor =
-        linkStyle === "anchor"
-          ? `[(${sourceLabel}${page})${indicator}](#ref-${num})`
-          : `(${sourceLabel}${page})${indicator}`;
-      return anchor;
+      return linkStyle === "anchor"
+        ? `[(${sourceLabel}${page})${indicator}](#ref-${n})`
+        : `(${sourceLabel}${page})${indicator}`;
     }
 
     default:

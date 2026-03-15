@@ -5,7 +5,7 @@ export const isGeminiGarbage = (content: string) => {
   const trimmedContent = content.trim();
   if (trimmedContent.length < MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE) return false;
 
-  const firstCharacter = trimmedContent?.[0];
+  const firstCharacter = trimmedContent[0];
 
   for (let i = 1; i < trimmedContent.length; i++) {
     if (trimmedContent[i] !== firstCharacter) return false;
@@ -75,10 +75,7 @@ export function cleanRepeatingLastSentence(text: string): string {
   }
 
   if (repetitionsFound >= MIN_REPETITIONS) {
-    const textBeforeRepetitions = text.substring(0, firstRepetitionStartIndex);
-    const result = textBeforeRepetitions + repeatingUnit;
-    return result;
-  } else {
-    return text;
+    return text.substring(0, firstRepetitionStartIndex) + repeatingUnit;
   }
+  return text;
 }

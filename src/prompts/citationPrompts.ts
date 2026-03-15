@@ -286,11 +286,7 @@ export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCita
 
   if (deepTextPromptPortion) {
     const fileTexts = Array.isArray(deepTextPromptPortion) ? deepTextPromptPortion : [deepTextPromptPortion];
-    const fileContent = fileTexts
-      .map(text => {
-        return `\n${text}`;
-      })
-      .join("\n\n");
+    const fileContent = fileTexts.map(text => `\n${text}`).join("\n\n");
 
     enhancedUserPrompt = `${fileContent}\n\n${reminder}\n\n${userPrompt}`;
   }

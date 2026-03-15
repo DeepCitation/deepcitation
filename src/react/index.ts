@@ -241,7 +241,6 @@ export type {
   UrlCitationVariant,
   // URL citation types
   UrlFetchStatus,
-  UrlVerificationMeta,
 } from "./types.js";
 // URL Status utilities
 export {

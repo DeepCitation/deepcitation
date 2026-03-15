@@ -1,15 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { DeepCitation } from "../client/DeepCitation.js";
-import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
+import { makeNumericResponse } from "./testHelpers.js";
 
 // Mock global fetch
 const mockFetch = jest.fn() as jest.Mock;
 global.fetch = mockFetch;
-
-/** Build a numeric-format LLM response from visible text + citation data array. */
-function makeNumericResponse(visibleText: string, citations: unknown[]): string {
-  return `${visibleText}\n\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify(citations)}\n${CITATION_DATA_END_DELIMITER}`;
-}
 
 describe("DeepCitation Client", () => {
   beforeEach(() => {

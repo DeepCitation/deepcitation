@@ -1,3 +1,4 @@
+import type { StatusKey } from "../shared.js";
 import type { HtmlTheme } from "./types.js";
 
 interface StatusColorSet {
@@ -220,11 +221,7 @@ ${generateThemeStyles(colors, "")}
  * Get inline style string for a citation based on status and variant.
  * Used when inlineStyles is true (for email).
  */
-export function getInlineStyle(
-  statusKey: "verified" | "partial" | "notFound" | "pending",
-  variant: string,
-  theme: HtmlTheme,
-): string {
+export function getInlineStyle(statusKey: StatusKey, variant: string, theme: HtmlTheme): string {
   const colors = (theme === "dark" ? STATUS_COLORS.dark : STATUS_COLORS.light)[statusKey];
 
   const base = `cursor: pointer; text-decoration: none;`;
@@ -244,10 +241,7 @@ export function getInlineStyle(
 /**
  * Get inline style for the indicator span.
  */
-export function getIndicatorInlineStyle(
-  statusKey: "verified" | "partial" | "notFound" | "pending",
-  theme: HtmlTheme,
-): string {
+export function getIndicatorInlineStyle(statusKey: StatusKey, theme: HtmlTheme): string {
   const colors = (theme === "dark" ? STATUS_COLORS.dark : STATUS_COLORS.light)[statusKey];
   return `color: ${colors.text};`;
 }

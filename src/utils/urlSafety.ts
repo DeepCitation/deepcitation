@@ -221,11 +221,7 @@ export function isApprovedDomain(url: string, approvedDomains: Set<string>): boo
 
   // Check if it's a subdomain of an approved domain
   const rootDomain = extractRootDomain(domain);
-  if (rootDomain && rootDomain !== domain) {
-    return approvedDomains.has(rootDomain);
-  }
-
-  return false;
+  return rootDomain !== domain && approvedDomains.has(rootDomain);
 }
 
 /**
@@ -239,8 +235,8 @@ export function isApprovedDomain(url: string, approvedDomains: Set<string>): boo
  * @example
  * ```typescript
  * const blocked = new Set(['malicious.com', 'phishing.net']);
- * if (!isBannedDomain('https://example.com', blocked)) {
- *   // URL is safe to process
+ * if (!isSafeDomain('https://example.com', blocked)) {
+ *   // URL is blocked
  * }
  * ```
  */
@@ -258,10 +254,8 @@ export function isSafeDomain(url: string, blockedDomains: Set<string>): boolean 
 
   // Check if parent domain is blocked
   const rootDomain = extractRootDomain(domain);
-  if (rootDomain && rootDomain !== domain) {
-    if (blockedDomains.has(rootDomain)) {
-      return false;
-    }
+  if (rootDomain !== domain && blockedDomains.has(rootDomain)) {
+    return false;
   }
 
   return true;

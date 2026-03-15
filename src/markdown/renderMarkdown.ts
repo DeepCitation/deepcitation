@@ -8,40 +8,9 @@ import {
   renderCitationVariant,
   renderReferencesSection,
 } from "./markdownVariants.js";
-import type { CitationWithStatus, MarkdownOutput, RenderMarkdownOptions } from "./types.js";
+import type { CitationWithStatus, IndicatorStyle, MarkdownOutput, RenderMarkdownOptions } from "./types.js";
 
-/**
- * Renders LLM output with `[N]` citation markers to clean markdown with verification indicators.
- *
- * Accepts either a raw LLM response string (auto-parsed) or a pre-parsed
- * `ParsedCitationResult` for efficiency when reusing parsed data.
- *
- * @param input - LLM response text or pre-parsed citation result
- * @param options - Rendering options
- * @returns Structured output with markdown, references, and citation metadata
- *
- * @example Basic usage (inline with check indicators)
- * ```typescript
- * const output = renderCitationsAsMarkdown(llmOutput, {
- *   verifications,
- *   variant: "inline",
- *   indicatorStyle: "check",
- * });
- * // output.markdown: "Revenue grew 45%✓ according to the report."
- * // output.full: includes references section if requested
- * ```
- *
- * @example Footnote style with references
- * ```typescript
- * const output = renderCitationsAsMarkdown(llmOutput, {
- *   verifications,
- *   variant: "footnote",
- *   includeReferences: true,
- * });
- * // output.markdown: "Revenue grew 45%[^1] according to the report."
- * // output.references: "[^1]: \"Revenue grew 45%\" - p.3 ✓"
- * ```
- */
+/** Render LLM output with `[N]` markers to markdown with verification indicators. */
 export function renderCitationsAsMarkdown(
   input: string | ParsedCitationResult,
   options: RenderMarkdownOptions = {},
@@ -89,38 +58,15 @@ export function renderCitationsAsMarkdown(
   };
 }
 
-/**
- * Simplified function that returns just the markdown string.
- * Use renderCitationsAsMarkdown() for structured output with metadata.
- *
- * @param input - LLM response text or pre-parsed citation result
- * @param options - Rendering options
- * @returns Rendered markdown string (with references appended if requested)
- *
- * @example
- * ```typescript
- * const md = toMarkdown(llmOutput, {
- *   verifications,
- *   variant: "brackets",
- *   includeReferences: true,
- * });
- * ```
- */
+/** Returns just the markdown string. Use `renderCitationsAsMarkdown()` for structured output. */
 export function toMarkdown(input: string | ParsedCitationResult, options: RenderMarkdownOptions = {}): string {
   return renderCitationsAsMarkdown(input, options).full;
 }
 
-/**
- * Get verification indicator for plain text/terminal output.
- * This is a re-export of the existing TUI function for convenience.
- *
- * @param verification - Verification result
- * @param style - Indicator style (default: "check")
- * @returns Indicator character(s)
- */
+/** Get verification indicator character(s) for plain text/terminal output. */
 export function getVerificationIndicator(
   verification: Verification | null | undefined,
-  style: import("./types.js").IndicatorStyle = "check",
+  style: IndicatorStyle = "check",
 ): string {
   const status = getCitationStatus(verification);
   return getIndicator(status, style);

@@ -1,31 +1,14 @@
-/**
- * File content validation via magic bytes (file signatures).
- *
- * Client-supplied MIME types (Content-Type headers) are trivially spoofable.
- * This module checks actual file bytes to verify content matches claimed type.
- */
+/** File content validation via magic bytes (file signatures). */
 
-/** A magic byte signature: contiguous bytes at a fixed offset. */
 interface MagicSignature {
   offset: number;
   bytes: number[];
 }
 
-/**
- * A file type definition with one or more signature checks.
- * All signatures must match for the file to be considered valid.
- */
 interface FileTypeSignature {
   signatures: MagicSignature[];
 }
 
-/**
- * Known file type signatures.
- *
- * Each entry maps a MIME type to one or more valid signature sets.
- * A file matches if ANY of the signature sets passes (all signatures
- * within a set must match).
- */
 const FILE_SIGNATURES: Record<string, FileTypeSignature[]> = {
   "application/pdf": [
     { signatures: [{ offset: 0, bytes: [0x25, 0x50, 0x44, 0x46] }] }, // %PDF
@@ -58,27 +41,13 @@ export const ALLOWED_UPLOAD_MIME_TYPES = Object.keys(FILE_SIGNATURES);
 /** Maximum upload file size in bytes (50 MB). */
 export const MAX_UPLOAD_FILE_SIZE = 50 * 1024 * 1024;
 
-/**
- * Check whether a buffer's magic bytes match a single signature set.
- */
 function matchesSignatureSet(buffer: Uint8Array, sigSet: FileTypeSignature): boolean {
   return sigSet.signatures.every(sig => sig.bytes.every((b, i) => buffer[sig.offset + i] === b));
 }
 
 /**
  * Validate that a file buffer's actual content matches the claimed MIME type.
- *
- * @returns `true` if the magic bytes match, `false` if they don't,
- *          `null` if the MIME type has no known signature (can't validate).
- *
- * @example
- * ```typescript
- * const buffer = Buffer.from(arrayBuffer);
- * const valid = validateFileMagicBytes(buffer, "image/webp");
- * if (valid === false) {
- *   // File content does not match declared type
- * }
- * ```
+ * Returns `true` if matched, `false` if mismatched, `null` if MIME type is unknown.
  */
 export function validateFileMagicBytes(buffer: Uint8Array, mimeType: string): boolean | null {
   const signatureSets = FILE_SIGNATURES[mimeType];
@@ -94,19 +63,7 @@ export function validateFileMagicBytes(buffer: Uint8Array, mimeType: string): bo
   return false;
 }
 
-/**
- * Validate file size and MIME type for upload.
- *
- * @returns `null` if valid, or an error string if invalid.
- *
- * @example
- * ```typescript
- * const error = validateUploadFile(file.size, file.type, buffer);
- * if (error) {
- *   return NextResponse.json({ error }, { status: 400 });
- * }
- * ```
- */
+/** Validate file size, MIME type, and magic bytes. Returns null if valid, or an error string. */
 export function validateUploadFile(fileSize: number, mimeType: string, buffer: Uint8Array): string | null {
   if (fileSize > MAX_UPLOAD_FILE_SIZE) {
     return "File too large. Maximum size is 50MB.";

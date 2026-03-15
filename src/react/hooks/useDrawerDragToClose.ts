@@ -66,12 +66,9 @@ export function useDrawerDragToClose({
   const dragOffsetRef = useRef(0);
 
   const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  });
-
   const onExpandRef = useRef(onExpand);
   useEffect(() => {
+    onCloseRef.current = onClose;
     onExpandRef.current = onExpand;
   });
 

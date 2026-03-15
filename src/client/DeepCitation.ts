@@ -196,8 +196,12 @@ export class DeepCitation {
     if (!config.apiKey) {
       throw new AuthenticationError("DeepCitation API key is required. Get one at https://deepcitation.com");
     }
+    const apiUrl = config.apiUrl?.replace(/\/$/, "") || DEFAULT_API_URL;
+    if (!/^https:\/\//i.test(apiUrl) && !apiUrl.startsWith("http://localhost")) {
+      throw new ValidationError("apiUrl must use HTTPS to protect your API key in transit");
+    }
     this.apiKey = config.apiKey;
-    this.apiUrl = config.apiUrl?.replace(/\/$/, "") || DEFAULT_API_URL;
+    this.apiUrl = apiUrl;
     this.uploadLimiter = createConcurrencyLimiter(config.maxUploadConcurrency ?? DEFAULT_UPLOAD_CONCURRENCY);
     this.logger = config.logger ?? {};
     this.endUserId = config.endUserId;
@@ -376,8 +380,9 @@ export class DeepCitation {
           convertedPdfDownloadPolicy,
         }),
       });
-    } else if (file) {
-      const { blob, name } = toBlob(file, filename);
+    } else {
+      // file is guaranteed truthy: the early guard throws if both url and file are falsy
+      const { blob, name } = toBlob(file as File | Blob | Buffer, filename);
       const formData = new FormData();
       formData.append("file", blob, name);
       if (attachmentId) formData.append("attachmentId", attachmentId);
@@ -391,8 +396,6 @@ export class DeepCitation {
         headers: { Authorization: `Bearer ${this.apiKey}` },
         body: formData,
       });
-    } else {
-      throw new ValidationError("Either url or file must be provided");
     }
 
     if (!response.ok) {
@@ -699,25 +702,23 @@ export class DeepCitation {
 
     const resolvedEndUserId = this.resolveEndUserId(options?.endUserId);
     this.logger.info?.("Verifying citations", { attachmentId, citationCount });
-    const requestUrl = `${this.apiUrl}/verifyCitations`;
-    const requestBody = {
-      data: {
-        attachmentId,
-        citations: citationMap,
-        outputImageFormat: options?.outputImageFormat || "avif",
-        endUserId: resolvedEndUserId,
-      },
-    };
 
     // Create the fetch promise and cache it
     const fetchPromise = (async (): Promise<VerifyCitationsResponse> => {
-      const response = await fetch(requestUrl, {
+      const response = await fetch(`${this.apiUrl}/verifyCitations`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          data: {
+            attachmentId,
+            citations: citationMap,
+            outputImageFormat: options?.outputImageFormat || "avif",
+            endUserId: resolvedEndUserId,
+          },
+        }),
       });
 
       if (!response.ok) {
@@ -727,9 +728,7 @@ export class DeepCitation {
         throw await createApiError(response, "Verification");
       }
 
-      const result = (await response.json()) as VerifyCitationsResponse;
-
-      return result;
+      return (await response.json()) as VerifyCitationsResponse;
     })();
 
     // Force cleanup if cache is at or approaching the limit to prevent memory leaks

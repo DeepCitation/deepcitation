@@ -9,17 +9,9 @@ import { renderCitationsAsMarkdown, toMarkdown } from "../markdown/renderMarkdow
 import type { IndicatorStyle } from "../markdown/types.js";
 import { INDICATOR_SETS } from "../markdown/types.js";
 import { getCitationStatus } from "../parsing/parseCitation.js";
-import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import type { Citation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-
-// =============================================================================
-// TEST HELPERS
-// =============================================================================
-
-function makeNumericResponse(visibleText: string, citations: unknown[]): string {
-  return `${visibleText}\n\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify(citations)}\n${CITATION_DATA_END_DELIMITER}`;
-}
+import { makeNumericResponse } from "./testHelpers.js";
 
 // =============================================================================
 // TEST FIXTURES
@@ -72,15 +64,6 @@ const partialVerification: Verification = {
   status: "found_on_other_page",
   document: {
     verifiedPageNumber: 5,
-  },
-};
-
-const _linePositionVerification: Verification = {
-  status: "found_on_other_line",
-  document: {
-    verifiedPageNumber: 3,
-    verifiedLineIds: [80],
-    totalLinesOnPage: 100,
   },
 };
 

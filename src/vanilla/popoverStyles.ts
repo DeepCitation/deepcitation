@@ -23,7 +23,6 @@ export const POPOVER_CSS = `
 .dc-pop-content {
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
 /* ── Status header ── */

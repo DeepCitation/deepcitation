@@ -4,13 +4,15 @@
  * not on citation tags.
  */
 
+const PAGE_NUMBER_RE = /<\/?page_number_\d+_index_\d+>/g;
+const LINE_ID_RE = /<line id="[^"]*">|<\/line>/g;
+
 export const removePageNumberMetadata = (pageText: string): string => {
-  return pageText.replace(/<\/?page_number_\d+_index_\d+>/g, "").trim();
+  return pageText.replace(PAGE_NUMBER_RE, "").trim();
 };
 
 export const removeLineIdMetadata = (pageText: string): string => {
-  const lineIdRegex = /<line id="[^"]*">|<\/line>/g;
-  return pageText.replace(lineIdRegex, "");
+  return pageText.replace(LINE_ID_RE, "");
 };
 
 export const getCitationPageNumber = (startPageId?: string | null): number | null => {

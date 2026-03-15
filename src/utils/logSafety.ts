@@ -110,31 +110,15 @@ export function safeLog(
   message: string,
   data?: unknown,
 ): void {
-  const sanitized = data ? sanitizeForLog(data) : "";
   const logFn = console[level] ?? console.log;
 
-  if (data) {
-    logFn(`${prefix} ${message}`, sanitized);
+  if (data !== undefined) {
+    logFn(`${prefix} ${message}`, sanitizeForLog(data));
   } else {
     logFn(`${prefix} ${message}`);
   }
 }
 
-/**
- * Sanitize JSON for logging.
- * Safely stringifies JSON while limiting depth and size.
- *
- * @param value - The value to stringify
- * @param maxLength - Maximum output length (default: 1000)
- * @param maxDepth - Maximum nesting depth (default: 3)
- * @returns A sanitized JSON string
- *
- * @example
- * ```typescript
- * const data = { user: { email: 'user@example.com', nested: { deep: 'value' } } };
- * console.log('[Data]', sanitizeJsonForLog(data, 500, 2));
- * ```
- */
 /**
  * Helper to stringify a value with depth limiting.
  * @private
@@ -178,6 +162,21 @@ function stringifyWithDepthLimit(value: unknown, maxDepth: number): string {
   return stringify(value, 0);
 }
 
+/**
+ * Sanitize JSON for logging.
+ * Safely stringifies JSON while limiting depth and size.
+ *
+ * @param value - The value to stringify
+ * @param maxLength - Maximum output length (default: 1000)
+ * @param maxDepth - Maximum nesting depth (default: 3)
+ * @returns A sanitized JSON string
+ *
+ * @example
+ * ```typescript
+ * const data = { user: { email: 'user@example.com', nested: { deep: 'value' } } };
+ * console.log('[Data]', sanitizeJsonForLog(data, 500, 2));
+ * ```
+ */
 export function sanitizeJsonForLog(value: unknown, maxLength = 1000, maxDepth = 3): string {
   try {
     const json = stringifyWithDepthLimit(value, maxDepth);

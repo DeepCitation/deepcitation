@@ -89,8 +89,6 @@ export function safeMatch(input: string, regex: RegExp): RegExpMatchArray | null
  */
 export function safeExec(regex: RegExp, input: string): RegExpExecArray | null {
   validateRegexInput(input);
-  // Reset lastIndex to ensure consistent behavior with global regexes
-  regex.lastIndex = 0;
   return regex.exec(input);
 }
 

@@ -175,16 +175,5 @@ describe("StatusHeader", () => {
       expect(partialContainer.querySelector(".bg-amber-50")).not.toBeInTheDocument();
       expect(notFoundContainer.querySelector(".bg-red-50")).not.toBeInTheDocument();
     });
-
-    it("does NOT use fully colored backgrounds", () => {
-      const { container: verifiedContainer } = render(<StatusHeader status="found" foundPage={5} />);
-      const { container: partialContainer } = render(<StatusHeader status="found_on_other_page" foundPage={7} />);
-      const { container: notFoundContainer } = render(<StatusHeader status="not_found" />);
-
-      // Should NOT have the old fully-colored background classes
-      expect(verifiedContainer.querySelector(".bg-green-50")).not.toBeInTheDocument();
-      expect(partialContainer.querySelector(".bg-amber-50")).not.toBeInTheDocument();
-      expect(notFoundContainer.querySelector(".bg-red-50")).not.toBeInTheDocument();
-    });
   });
 });

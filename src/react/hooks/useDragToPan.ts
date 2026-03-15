@@ -310,18 +310,15 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
 
   // Global mouseup catches releases outside the container (image drags, mouse leaving window, etc.)
   // Without this, isPressed stays true and any future mousemove causes phantom panning.
+  // Also handles native HTML5 dragend which can steal the pointer stream and skip mouseup.
   useEffect(() => {
     const handler = () => finishDragRef.current();
     document.addEventListener("mouseup", handler);
-    return () => document.removeEventListener("mouseup", handler);
-  }, []);
-
-  // Native HTML5 drag can steal the pointer stream and skip mouseup.
-  // If a drag ever slips through, force cleanup so we don't get stuck in "grabbing".
-  useEffect(() => {
-    const handler = () => finishDragRef.current();
     document.addEventListener("dragend", handler);
-    return () => document.removeEventListener("dragend", handler);
+    return () => {
+      document.removeEventListener("mouseup", handler);
+      document.removeEventListener("dragend", handler);
+    };
   }, []);
 
   const onMouseUp = finishDrag;

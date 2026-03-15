@@ -15,18 +15,13 @@ interface DiffDisplayProps {
 const DiffDisplay: React.FC<DiffDisplayProps> = memo(({ expected, actual, label, className, sanitize }) => {
   const t = useTranslation();
   // 1. Sanitize Inputs if sanitization function provided
-  const { sanitizedExpected, sanitizedActual } = useMemo(() => {
-    if (sanitize) {
-      return {
-        sanitizedExpected: sanitize(expected),
-        sanitizedActual: sanitize(actual),
-      };
-    }
-    return {
-      sanitizedExpected: expected,
-      sanitizedActual: actual,
-    };
-  }, [expected, actual, sanitize]);
+  const { sanitizedExpected, sanitizedActual } = useMemo(
+    () => ({
+      sanitizedExpected: sanitize ? sanitize(expected) : expected,
+      sanitizedActual: sanitize ? sanitize(actual) : actual,
+    }),
+    [expected, actual, sanitize],
+  );
 
   // 2. Run the Smart Diff Hook
   const { diffResult } = useSmartDiff(sanitizedExpected, sanitizedActual);

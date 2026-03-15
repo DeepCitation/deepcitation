@@ -15,7 +15,7 @@ import {
   useRef,
 } from "react";
 import { getCitationStatus } from "../parsing/parseCitation.js";
-import type { CitationStatus, Citation as CitationType } from "../types/citation.js";
+import type { Citation, CitationStatus } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
@@ -25,7 +25,7 @@ import { CitationContext, type CitationContextValue, useCitationContext } from "
 import { classNames, generateCitationInstanceId } from "./utils.js";
 
 export interface CitationRootProps {
-  citation: CitationType;
+  citation: Citation;
   verification?: Verification | null;
   children: ReactNode;
   fallbackDisplay?: string | null;
@@ -76,10 +76,10 @@ export const CitationRoot = forwardRef<HTMLSpanElement, CitationRootProps & HTML
 CitationRoot.displayName = "Citation.Root";
 
 export interface CitationTriggerProps extends HTMLAttributes<HTMLSpanElement> {
-  onCitationClick?: (citation: CitationType, citationKey: string, event: MouseEvent | KeyboardEvent) => void;
-  onCitationMouseEnter?: (citation: CitationType, citationKey: string) => void;
-  onCitationMouseLeave?: (citation: CitationType, citationKey: string) => void;
-  onCitationTouchEnd?: (citation: CitationType, citationKey: string, event: TouchEvent) => void;
+  onCitationClick?: (citation: Citation, citationKey: string, event: MouseEvent | KeyboardEvent) => void;
+  onCitationMouseEnter?: (citation: Citation, citationKey: string) => void;
+  onCitationMouseLeave?: (citation: Citation, citationKey: string) => void;
+  onCitationTouchEnd?: (citation: Citation, citationKey: string, event: TouchEvent) => void;
   isMobile?: boolean;
   disableHover?: boolean;
 }

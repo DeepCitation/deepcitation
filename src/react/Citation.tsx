@@ -239,7 +239,7 @@ export interface CitationComponentProps extends BaseCitationProps {
   experimentalHaptics?: boolean;
 }
 
-// getStatusLabel, getTrustLevel, isLowTrustMatch, getStatusFromVerification
+// getStatusLabel, getStatusFromVerification
 // imported from ./citationStatus.js (canonical location)
 
 // Indicator components, SpinnerStage, CitationStatusIndicator
