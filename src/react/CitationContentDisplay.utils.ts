@@ -42,7 +42,7 @@ export function getInteractionClasses(isOpen: boolean, variant: CitationVariant)
   // Block variant: shadow + lift for active; cursor for hover (border color stays from status)
   if (variant === "block") {
     if (isOpen) {
-      return "shadow-[1.5px_1.5px_0px_0px_#cbd5e1] dark:shadow-[1.5px_1.5px_0px_0px_#374151] translate-y-[-1px]";
+      return "shadow-[1.5px_1.5px_0px_0px_#cbd5e1] dark:shadow-[1.5px_1.5px_0px_0px_#334155] translate-y-[-1px]";
     }
     return "cursor-pointer";
   }
@@ -50,13 +50,13 @@ export function getInteractionClasses(isOpen: boolean, variant: CitationVariant)
   if (isOpen) {
     // Active state — persistent, not hover-dependent
     return isSolid
-      ? cn("bg-gray-200 dark:bg-gray-700", "ring-1 ring-black/[0.08] dark:ring-white/[0.08]")
+      ? cn("bg-slate-200 dark:bg-slate-700", "ring-1 ring-black/[0.08] dark:ring-white/[0.08]")
       : "bg-black/[0.10] dark:bg-white/[0.10]";
   }
 
   // Hover state — only when not active
   return isSolid
-    ? "hover:bg-gray-200/70 dark:hover:bg-gray-700/70"
+    ? "hover:bg-slate-200/70 dark:hover:bg-slate-700/70"
     : "hover:bg-black/[0.06] dark:hover:bg-white/[0.06]";
 }
 

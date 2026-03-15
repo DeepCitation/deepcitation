@@ -48,7 +48,7 @@ const TabButton = ({ isActive, onClick, label }: { isActive: boolean; onClick: (
       "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
       isActive
         ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800",
+        : "text-dc-muted-foreground hover:text-gray-900 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-800",
     )}
     type="button"
     data-active={isActive}
@@ -77,8 +77,8 @@ const ModeToggle = ({
         className={cn(
           "p-1 rounded transition-colors",
           mode === "inline"
-            ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-            : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400",
+            ? "bg-slate-200 dark:bg-slate-700 text-dc-foreground"
+            : "text-dc-pending hover:text-gray-600 dark:hover:text-gray-400",
         )}
         title={t("diff.inlineView")}
         aria-label={t("diff.inlineView")}
@@ -96,8 +96,8 @@ const ModeToggle = ({
         className={cn(
           "p-1 rounded transition-colors",
           mode === "split"
-            ? "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-            : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400",
+            ? "bg-slate-200 dark:bg-slate-700 text-dc-foreground"
+            : "text-dc-pending hover:text-gray-600 dark:hover:text-gray-400",
         )}
         title={t("diff.splitView")}
         aria-label={t("diff.splitView")}
@@ -133,7 +133,7 @@ const FoundContentTab = ({
     {actual ? (
       <div className="relative">
         {renderCopyButton && <div className="absolute top-2 right-2">{renderCopyButton(actual, "found")}</div>}
-        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-words">
+        <div className="p-3 bg-dc-muted rounded-md text-sm text-dc-foreground font-mono whitespace-pre-wrap break-words">
           <CollapsibleText
             text={actual}
             maxLength={maxCollapsedLength}
@@ -143,7 +143,7 @@ const FoundContentTab = ({
         </div>
       </div>
     ) : (
-      <span data-testid="empty-text" className="text-sm text-gray-500 dark:text-gray-400 italic">
+      <span data-testid="empty-text" className="text-sm text-dc-subtle-foreground italic">
         {emptyText}
       </span>
     )}
@@ -207,9 +207,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
   if (isExactMatch) {
     return (
       <div data-testid="verification-tabs" data-exact-match="true" className="space-y-2">
-        {label && (
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
-        )}
+        {label && <div className="text-xs font-medium text-dc-subtle-foreground uppercase tracking-wide">{label}</div>}
 
         <div
           data-testid="exact-match-badge"
@@ -231,7 +229,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
       {label && (
         <div
           data-testid="verification-label"
-          className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"
+          className="text-xs font-medium text-dc-subtle-foreground uppercase tracking-wide"
         >
           {label}
         </div>
@@ -258,7 +256,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
       )}
 
       <div data-testid="tabs-container">
-        <div data-testid="tabs-nav" className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg items-center">
+        <div data-testid="tabs-nav" className="flex gap-1 p-1 bg-dc-muted rounded-lg items-center">
           <TabButton
             label={t("tab.expected")}
             isActive={activeTab === "expected"}
@@ -279,7 +277,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
               {renderCopyButton && (
                 <div className="absolute top-2 right-2">{renderCopyButton(expected, "expected")}</div>
               )}
-              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-words">
+              <div className="p-3 bg-dc-muted rounded-md text-sm text-dc-foreground font-mono whitespace-pre-wrap break-words">
                 <CollapsibleText
                   text={expected}
                   maxLength={maxCollapsedLength}
@@ -320,7 +318,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
               // Inline diff mode
               <div data-testid="diff-result" className="space-y-2">
                 {showMatchQuality && <MatchQualityBar similarity={similarity} className="mb-2" />}
-                <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm font-mono whitespace-pre-wrap break-words">
+                <div className="p-3 bg-dc-muted rounded-md text-sm font-mono whitespace-pre-wrap break-words">
                   {diffResult.map((block, blockIdx) => (
                     <div
                       key={`${block.type}-${blockIdx}`}
@@ -356,7 +354,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                           );
                         }
                         return (
-                          <span key={partKey} className="text-gray-700 dark:text-gray-300">
+                          <span key={partKey} className="text-dc-foreground">
                             {part.value}
                           </span>
                         );

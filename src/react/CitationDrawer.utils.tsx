@@ -201,8 +201,8 @@ export function getStatusInfo(
   if (indicatorVariant === "dot") {
     if (!status || status === "pending" || status === "loading") {
       return {
-        color: "text-gray-400",
-        icon: <span className="block rounded-full bg-gray-400 animate-pulse" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
+        color: "text-slate-400",
+        icon: <span className="block rounded-full bg-slate-400 animate-pulse" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
         label: t("indicator.verifying"),
       };
     }
@@ -230,7 +230,7 @@ export function getStatusInfo(
   // Default: icon variant
   if (!status || status === "pending" || status === "loading") {
     return {
-      color: "text-gray-400",
+      color: "text-slate-400",
       icon: <SpinnerIconComponent />,
       label: t("indicator.verifying"),
     };
@@ -316,8 +316,8 @@ export const STATUS_DISPLAY_MAP: Record<StatusCategory, { label: string; textCol
   },
   pending: {
     label: defaultMessages["indicator.verifying"],
-    textColor: "text-gray-400",
-    borderColor: "border-l-gray-300 dark:border-l-gray-600",
+    textColor: "text-slate-400",
+    borderColor: "border-l-slate-300 dark:border-l-slate-600",
   },
   verified: {
     label: defaultMessages["indicator.verified"],

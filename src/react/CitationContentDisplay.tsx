@@ -86,7 +86,7 @@ export const CitationContentDisplay = ({
       <span
         className={cn(
           "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal transition-colors",
-          "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
+          "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
           getInteractionClasses(isOpen, variant),
         )}
       >
@@ -110,8 +110,8 @@ export const CitationContentDisplay = ({
   // Variant: superscript (footnote style)
   if (variant === "superscript") {
     const supStatusClasses = cn(
-      !shouldShowSpinner && "text-gray-700 dark:text-gray-200",
-      shouldShowSpinner && "text-gray-500 dark:text-gray-400",
+      !shouldShowSpinner && "text-slate-700 dark:text-slate-200",
+      shouldShowSpinner && "text-slate-500 dark:text-slate-400",
     );
     return (
       <>
@@ -136,7 +136,7 @@ export const CitationContentDisplay = ({
     // Priority chain: spinner > miss > partial > verified > neutral default
     let footnoteStatusClasses: string;
     if (shouldShowSpinner) {
-      footnoteStatusClasses = "text-gray-400 dark:text-gray-500";
+      footnoteStatusClasses = "text-slate-400 dark:text-slate-500";
     } else if (isMiss) {
       footnoteStatusClasses = "text-red-500 dark:text-red-400";
     } else if (isPartialMatch) {
@@ -144,7 +144,7 @@ export const CitationContentDisplay = ({
     } else if (isVerified) {
       footnoteStatusClasses = "text-green-600 dark:text-green-500";
     } else {
-      footnoteStatusClasses = "text-gray-500 dark:text-gray-400";
+      footnoteStatusClasses = "text-slate-500 dark:text-slate-400";
     }
 
     return (
@@ -186,7 +186,7 @@ export const CitationContentDisplay = ({
       <span
         className={cn(
           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
-          "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+          "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
           "transition-colors cursor-pointer",
           getInteractionClasses(isOpen, variant),
         )}
@@ -210,7 +210,7 @@ export const CitationContentDisplay = ({
           {displayText}
         </span>
         {additionalCount !== undefined && additionalCount > 0 && (
-          <span className="text-gray-500 dark:text-gray-400">+{additionalCount}</span>
+          <span className="text-slate-500 dark:text-slate-400">+{additionalCount}</span>
         )}
         {indicator}
       </span>
@@ -251,7 +251,7 @@ export const CitationContentDisplay = ({
 
     const linterClasses = cn(
       "cursor-pointer font-normal",
-      isPendingState && "bg-gray-500/[0.05] dark:bg-gray-400/[0.05]",
+      isPendingState && "bg-slate-500/[0.05] dark:bg-slate-400/[0.05]",
       getInteractionClasses(isOpen, variant),
     );
 
@@ -268,7 +268,7 @@ export const CitationContentDisplay = ({
     // Status border color only — text/bg stay neutral
     let blockBorderClass: string;
     if (shouldShowSpinner) {
-      blockBorderClass = "border-gray-200 dark:border-gray-700 animate-pulse cursor-wait";
+      blockBorderClass = "border-slate-200 dark:border-slate-700 animate-pulse cursor-wait";
     } else if (isMiss) {
       blockBorderClass = "border-red-500/60 dark:border-red-500/40";
     } else if (isPartialMatch) {
@@ -276,7 +276,7 @@ export const CitationContentDisplay = ({
     } else if (isVerified) {
       blockBorderClass = "border-emerald-500/60 dark:border-emerald-500/40";
     } else {
-      blockBorderClass = "border-gray-300 dark:border-gray-600";
+      blockBorderClass = "border-slate-300 dark:border-slate-600";
     }
 
     return (
@@ -286,7 +286,7 @@ export const CitationContentDisplay = ({
           className={cn(
             "inline-flex items-center justify-center aspect-square size-[1.4em] mx-0.5",
             "font-mono text-xs font-medium rounded-sm border align-baseline select-none",
-            "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400",
+            "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400",
             "transition-all duration-120",
             blockBorderClass,
             getInteractionClasses(isOpen, variant),
@@ -305,7 +305,7 @@ export const CitationContentDisplay = ({
       className={cn(
         "inline-flex items-baseline gap-0.5 whitespace-nowrap",
         "font-mono font-normal text-xs leading-tight",
-        "text-gray-500 dark:text-gray-400",
+        "text-slate-500 dark:text-slate-400",
         "transition-colors",
       )}
       aria-hidden="true"

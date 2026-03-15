@@ -185,15 +185,15 @@ export const CitationStatusIndicator = ({
     const pillTextClass = isMiss
       ? "text-red-500 dark:text-red-400"
       : isOpen
-        ? "text-white dark:text-gray-900"
-        : "text-gray-400 dark:text-gray-500";
+        ? "text-white dark:text-slate-900"
+        : "text-slate-400 dark:text-slate-500";
 
-    // Pill background: miss → red tint, open → solid dark/light (inverted), default → subtle gray.
+    // Pill background: miss → red tint, open → solid dark/light (inverted), default → subtle slate.
     const pillBgClass = isMiss
       ? "bg-red-50 dark:bg-red-950"
       : isOpen
-        ? "bg-gray-800 dark:bg-gray-100"
-        : "bg-gray-100/60 dark:bg-gray-800/40";
+        ? "bg-slate-800 dark:bg-slate-100"
+        : "bg-slate-100/60 dark:bg-slate-800/40";
 
     if (shouldShowSpinner) {
       return (
@@ -201,7 +201,7 @@ export const CitationStatusIndicator = ({
           className={cn(
             "inline-flex items-center justify-center relative ml-0.5 top-[0.05em] [text-decoration:none] rounded-full",
             pillBgClass,
-            "text-gray-400 dark:text-gray-500",
+            "text-slate-400 dark:text-slate-500",
           )}
           style={CARET_PILL_STYLE}
           data-dc-indicator="pending"

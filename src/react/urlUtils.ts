@@ -147,7 +147,7 @@ export const STATUS_ICONS: Record<UrlFetchStatus, { icon: string; label: string;
   pending: {
     icon: "…",
     label: defaultMessages["urlStatus.pending"],
-    className: "text-gray-400 dark:text-gray-500",
+    className: "text-dc-pending",
   },
   accessible: {
     icon: "○",
@@ -212,7 +212,7 @@ export const STATUS_ICONS: Record<UrlFetchStatus, { icon: string; label: string;
   unknown: {
     icon: "?",
     label: defaultMessages["urlStatus.unknown"],
-    className: "text-gray-400 dark:text-gray-500",
+    className: "text-dc-subtle-foreground",
   },
 };
 

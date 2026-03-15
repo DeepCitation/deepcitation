@@ -86,8 +86,8 @@ function getStatusToneClass(status: CitationStatus, defaultClass: string): strin
   if (status.isPartialMatch) return "text-amber-500 dark:text-amber-400";
   if (status.isMiss) return "text-red-500 dark:text-red-400";
   if (status.isVerified) return "text-green-600 dark:text-green-500";
-  if (status.isPending) return "text-gray-400 dark:text-gray-500";
-  return defaultClass || "text-gray-600 dark:text-gray-400";
+  if (status.isPending) return "text-slate-400 dark:text-slate-500";
+  return defaultClass || "text-slate-600 dark:text-slate-400";
 }
 
 /**
