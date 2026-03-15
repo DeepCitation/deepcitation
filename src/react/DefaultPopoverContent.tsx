@@ -18,7 +18,6 @@ import {
   EASE_COLLAPSE,
   isValidProofImageSrc,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
-  POPOVER_BG_VAR,
   POPOVER_CONTAINER_BASE_CLASSES,
   POPOVER_FONT_VAR,
   POPOVER_MORPH_COLLAPSE_MS,
@@ -263,7 +262,6 @@ function PopoverLayoutShell({
         style={{
           width: shellWidth,
           maxWidth: "100%",
-          backgroundColor: `var(${POPOVER_BG_VAR})`,
           fontFamily: `var(${POPOVER_FONT_VAR}, inherit)`,
           ...shellMotionOpacityPinned,
           ...(isFullPage && {
@@ -617,7 +615,7 @@ function PopoverLoadingView({
   return (
     <div
       className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[200px] max-w-[480px]")}
-      style={{ backgroundColor: `var(${POPOVER_BG_VAR})`, fontFamily: `var(${POPOVER_FONT_VAR}, inherit)` }}
+      style={{ fontFamily: `var(${POPOVER_FONT_VAR}, inherit)` }}
     >
       <SourceContextHeader
         citation={citation}
@@ -692,7 +690,7 @@ function PopoverFallbackView({
   return (
     <div
       className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[180px] max-w-full")}
-      style={{ backgroundColor: `var(${POPOVER_BG_VAR})`, fontFamily: `var(${POPOVER_FONT_VAR}, inherit)` }}
+      style={{ fontFamily: `var(${POPOVER_FONT_VAR}, inherit)` }}
     >
       <SourceContextHeader
         citation={citation}
