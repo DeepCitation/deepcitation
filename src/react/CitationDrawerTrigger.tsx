@@ -208,7 +208,7 @@ function CitationTooltip({
       ref={tooltipRef}
       className={cn(
         "absolute bottom-full left-1/2 mb-2 z-50",
-        "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700",
+        "bg-dc-background border border-dc-border",
         "rounded-lg min-w-[180px] max-w-[260px] max-h-[50vh] overflow-y-auto",
         "pointer-events-auto",
       )}
@@ -228,11 +228,11 @@ function CitationTooltip({
             onError={handleImageErrorOpacity}
           />
         ) : (
-          <span className="w-4 h-4 rounded-sm bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[8px] font-medium text-gray-600 dark:text-gray-300 shrink-0">
+          <span className="w-4 h-4 rounded-sm bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[8px] font-medium text-dc-muted-foreground shrink-0">
             {sourceName.charAt(0).toUpperCase()}
           </span>
         )}
-        <span className="flex-1 text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{sourceName}</span>
+        <span className="flex-1 text-xs font-medium text-dc-foreground truncate">{sourceName}</span>
         <span className={cn("inline-flex w-3.5 h-3.5 shrink-0", statusInfo.color)} title={statusInfo.label}>
           {statusInfo.icon}
         </span>
@@ -240,7 +240,7 @@ function CitationTooltip({
 
       {/* Anchor text preview */}
       {displayAnchorText && (
-        <div className="px-3 pb-2 text-[11px] text-gray-500 dark:text-gray-400 truncate">{displayAnchorText}</div>
+        <div className="px-3 pb-2 text-[11px] text-dc-subtle-foreground truncate">{displayAnchorText}</div>
       )}
 
       {/* Evidence image thumbnail */}
@@ -249,7 +249,7 @@ function CitationTooltip({
           <div
             role="button"
             tabIndex={0}
-            className="block w-full rounded overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer"
+            className="block w-full rounded overflow-hidden border border-dc-border hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer"
             onClick={handleProofClick}
             onKeyDown={e => {
               if (e.key === "Enter" || e.key === " ") {
@@ -266,7 +266,7 @@ function CitationTooltip({
               loading="lazy"
             />
           </div>
-          <span className="block text-[10px] text-gray-400 dark:text-gray-500 mt-1 text-center">
+          <span className="block text-[10px] text-dc-pending mt-1 text-center">
             {isTouch ? t("action.tapToViewDetails") : t("action.clickToViewDetails")}
           </span>
         </div>
@@ -283,7 +283,7 @@ function CitationTooltip({
 const PRIORITY_DOT_BG: Record<number, string> = {
   4: "bg-red-500",
   3: "bg-amber-500",
-  2: "bg-gray-400",
+  2: "bg-dc-pending",
   1: "bg-green-500",
 };
 
@@ -291,7 +291,7 @@ const PRIORITY_DOT_BG: Record<number, string> = {
 const PRIORITY_DOT_TEXT: Record<number, string> = {
   4: "text-red-600 dark:text-red-400",
   3: "text-amber-600 dark:text-amber-400",
-  2: "text-gray-500 dark:text-gray-400",
+  2: "text-dc-subtle-foreground",
   1: "text-green-600 dark:text-green-400",
 };
 
@@ -336,7 +336,7 @@ export function StackedStatusIcons({
             <span
               className={cn(
                 "block rounded-full shrink-0",
-                PRIORITY_DOT_BG[priority] ?? "bg-gray-400",
+                PRIORITY_DOT_BG[priority] ?? "bg-dc-subtle-foreground",
                 priority === 2 && "animate-pulse",
               )}
               style={DOT_INDICATOR_FIXED_SIZE_STYLE}
@@ -392,7 +392,7 @@ export function StackedStatusIcons({
             zIndex: 0,
           }}
         >
-          <span className="inline-flex items-center justify-center size-5 text-[10px] font-medium text-gray-600 dark:text-gray-300">
+          <span className="inline-flex items-center justify-center size-5 text-[10px] font-medium text-dc-muted-foreground">
             +{overflowCount}
           </span>
         </div>
@@ -520,11 +520,11 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         onBlur={handleBlur}
         className={cn(
           "inline-flex items-center gap-2 px-2 py-1",
-          "bg-white dark:bg-gray-900",
-          "border border-gray-200 dark:border-gray-700 rounded-md",
+          "bg-dc-background",
+          "border border-dc-border rounded-md",
           "cursor-pointer transition-[background-color,border-color,box-shadow] duration-180 overflow-hidden",
-          "hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900",
+          "hover:border-dc-border/60 hover:bg-dc-muted/60",
+          "focus:outline-none focus:ring-2 focus:ring-dc-ring/40",
           className,
         )}
         aria-expanded={isOpen}
@@ -546,7 +546,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         />
 
         {/* Label */}
-        <span className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[200px]">{displayLabel}</span>
+        <span className="text-xs text-dc-foreground truncate max-w-[200px]">{displayLabel}</span>
 
         {/* Aggregate TtC — shows average user review time when metrics are available */}
         {timingMetrics && timingMetrics.resolvedCount > 0 && (
@@ -555,7 +555,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
 
         {/* Chevron */}
         <svg
-          className="w-3 h-3 text-gray-400 dark:text-gray-500 shrink-0"
+          className="w-3 h-3 text-dc-pending shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

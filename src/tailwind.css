@@ -1,5 +1,75 @@
 /* DeepCitation Tailwind v4 source configuration
  * Import this file in your main CSS to include library classes:
  * @import "deepcitation/tailwind.css";
+ *
+ * Quick start — override any token on :root, .dark, or any ancestor:
+ *   :root   { --dc-background: #f8fafc; --dc-border: #cbd5e1; }
+ *   .dark   { --dc-background: #0f172a; --dc-border: #334155; }
+ *
+ * Or use the React component:
+ *   <DeepCitationTheme theme={{ background: "#f8fafc", border: "#cbd5e1" }} />
  */
 @source "./react";
+
+/* Light mode defaults */
+:root {
+  /* Surfaces */
+  --dc-background: #ffffff; /* card / popover / drawer surface */
+  --dc-muted: #f4f4f5; /* subdued surface: code blocks, tab bars, inactive areas */
+
+  /* Text */
+  --dc-foreground: #18181b; /* primary text: headings, labels */
+  --dc-muted-foreground: #71717a; /* body text, secondary labels */
+  --dc-subtle-foreground: #a1a1aa; /* icons, timestamps, tertiary text */
+
+  /* Structure */
+  --dc-border: #e4e4e7; /* all borders and dividers */
+  --dc-ring: #3b82f6; /* focus ring */
+
+  /* Status accents */
+  --dc-verified: #16a34a; /* verified / success */
+  --dc-partial: #f59e0b; /* partial match / warning */
+  --dc-destructive: #ef4444; /* not found / error */
+  --dc-pending: #a1a1aa; /* loading / unresolved */
+
+  /* Backward-compat aliases → old consumers using --dc-*-color still work */
+  --dc-popover-bg: var(--dc-background);
+  --dc-verified-color: var(--dc-verified);
+  --dc-partial-color: var(--dc-partial);
+  --dc-error-color: var(--dc-destructive);
+  --dc-pending-color: var(--dc-pending);
+}
+
+/* Dark mode defaults */
+.dark {
+  --dc-background: #27272a;
+  --dc-muted: #3f3f46;
+
+  --dc-foreground: #fafafa;
+  --dc-muted-foreground: #a1a1aa;
+  --dc-subtle-foreground: #71717a;
+
+  --dc-border: #3f3f46;
+  --dc-ring: #3b82f6;
+
+  --dc-verified: #22c55e;
+  --dc-partial: #fbbf24;
+  --dc-destructive: #f87171;
+  --dc-pending: #71717a;
+}
+
+/* Register tokens as Tailwind color utilities.
+   Result: bg-dc-background → background-color: var(--dc-background) */
+@theme inline {
+  --color-dc-background: var(--dc-background);
+  --color-dc-muted: var(--dc-muted);
+  --color-dc-foreground: var(--dc-foreground);
+  --color-dc-muted-foreground: var(--dc-muted-foreground);
+  --color-dc-subtle-foreground: var(--dc-subtle-foreground);
+  --color-dc-border: var(--dc-border);
+  --color-dc-ring: var(--dc-ring);
+  --color-dc-verified: var(--dc-verified);
+  --color-dc-partial: var(--dc-partial);
+  --color-dc-destructive: var(--dc-destructive);
+  --color-dc-pending: var(--dc-pending);
+}

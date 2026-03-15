@@ -1,0 +1,19 @@
+{
+  "name": "deepcitation-static-html-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static HTML example with CDN popover — generates fixture data from real API calls",
+  "type": "module",
+  "scripts": {
+    "generate": "bun run generate-fixtures.ts",
+    "serve": "python3 -m http.server 8080"
+  },
+  "dependencies": {
+    "deepcitation": "latest",
+    "openai": "^4.104.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.6.1",
+    "@types/node": "^20.19.37"
+  }
+}

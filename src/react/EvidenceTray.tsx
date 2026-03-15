@@ -749,7 +749,7 @@ function EvidenceTrayFooter({
     pageCtaLabel ?? (hasPageForCta ? t("aria.viewPageNum", { pageNumber: pageNumberForCta }) : t("aria.viewPage"));
 
   return (
-    <div className="px-3 py-2 min-h-[44px] flex items-center text-[11px] text-gray-400 dark:text-gray-500">
+    <div className="px-3 py-2 min-h-[44px] flex items-center text-[11px] text-slate-400 dark:text-slate-500">
       <div className="flex items-center justify-between w-full">
         <span className="flex items-center gap-1">
           {showToggle && (
@@ -821,19 +821,19 @@ function MatchSnippetDisplay({ snippet }: { snippet: import("./searchSummaryUtil
   const after = snippet.contextText.slice(snippet.matchEnd);
 
   return (
-    <div className="text-xs text-gray-600 dark:text-gray-300 font-mono leading-relaxed">
-      {before && <span className="text-gray-400 dark:text-gray-500">...{before}</span>}
-      <strong className="text-gray-800 dark:text-gray-100 bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">
+    <div className="text-xs text-slate-600 dark:text-slate-300 font-mono leading-relaxed">
+      {before && <span className="text-slate-400 dark:text-slate-500">...{before}</span>}
+      <strong className="text-slate-800 dark:text-slate-100 bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">
         {match}
       </strong>
-      {after && <span className="text-gray-400 dark:text-gray-500">{after}...</span>}
+      {after && <span className="text-slate-400 dark:text-slate-500">{after}...</span>}
       {snippet.page != null && (
-        <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1">
           ({t("location.page", { pageNumber: snippet.page })})
         </span>
       )}
       {!snippet.isProximate && (
-        <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-1 italic">
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 italic">
           {t("evidence.differentSection")}
         </span>
       )}
@@ -862,7 +862,7 @@ export function SearchAnalysisSummary({
   return (
     <div className="px-3 py-2 space-y-1.5">
       {/* Primary message */}
-      {primaryMessage && <div className="text-[11px] text-gray-600 dark:text-gray-300">{primaryMessage}</div>}
+      {primaryMessage && <div className="text-[11px] text-slate-600 dark:text-slate-300">{primaryMessage}</div>}
 
       {/* Snippets for related_found */}
       {snippets.length > 0 && (
@@ -1119,7 +1119,7 @@ export function EvidenceTray({
           {isSearchLogMounted ? (
             <div style={searchLogMotionStyle}>
               <div className="overflow-hidden" style={{ minHeight: 0 }}>
-                <div className="border-t border-gray-200 dark:border-gray-700">
+                <div className="border-t border-slate-200 dark:border-slate-700">
                   <div
                     ref={searchLogViewportRef}
                     className="max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain"
@@ -1827,7 +1827,7 @@ export function InlineExpandedImage({
   }, []);
 
   const footerEl = (
-    <div className="bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-slate-800 rounded-b-sm border border-t-0 border-slate-200 dark:border-slate-700">
       <EvidenceTrayFooter
         verifiedAt={verification?.verifiedAt}
         onPageClick={fill || !onExpand ? undefined : handleExpandToPage}
@@ -1864,7 +1864,7 @@ export function InlineExpandedImage({
             DOCUMENT_CANVAS_BG_CLASSES,
             // Top+sides border completes the box started by the footer's border-t-0.
             // Matches EvidenceTray's EVIDENCE_TRAY_BORDER_SOLID so the transition is seamless.
-            !fill && "border border-b-0 border-gray-200 dark:border-gray-700",
+            !fill && "border border-b-0 border-slate-200 dark:border-slate-700",
             fill && "flex-1 min-h-0",
           )}
           style={{
@@ -1967,7 +1967,7 @@ export function InlineExpandedImage({
             {!imageLoaded &&
               (expectedDimensions && expectedDimensions.width > 0 && expectedDimensions.height > 0 ? (
                 <div
-                  className="animate-pulse rounded bg-gray-200 dark:bg-gray-700"
+                  className="animate-pulse rounded bg-slate-200 dark:bg-slate-700"
                   style={{
                     width: "100%",
                     aspectRatio: `${expectedDimensions.width} / ${expectedDimensions.height}`,
@@ -1975,7 +1975,7 @@ export function InlineExpandedImage({
                 />
               ) : (
                 <div className="flex items-center justify-center h-24">
-                  <span className="size-5 animate-spin text-gray-400">
+                  <span className="size-5 animate-spin text-slate-400">
                     <SpinnerIcon />
                   </span>
                 </div>

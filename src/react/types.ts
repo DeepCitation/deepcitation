@@ -26,6 +26,7 @@ export type IndicatorVariant = "icon" | "dot" | "caret" | "none";
  * | `footnote`    | Clean footnote marker with neutral default     |
  * | `badge`       | Source chip showing name + count (ChatGPT-style) |
  * | `linter`      | Inline text with semantic underlines            |
+ * | `block`       | Sharp, square-bordered box (inline block marker)|
  */
 export type CitationVariant =
   | "chip" // Pill/badge with neutral gray background
@@ -34,7 +35,8 @@ export type CitationVariant =
   | "superscript" // Small raised footnote style
   | "footnote" // Clean footnote marker with neutral default
   | "badge" // Source name chip with count (ChatGPT-style)
-  | "linter"; // Inline text with semantic underlines
+  | "linter" // Inline text with semantic underlines
+  | "block"; // Sharp, square-bordered box (inline block marker)
 
 /**
  * Content to display in the citation.
@@ -215,6 +217,7 @@ export interface BaseCitationProps {
    * - `text` → `anchorText`
    * - `superscript` → `number`
    * - `footnote` → `number`
+   * - `block` → `number`
    * - `linter` → `anchorText`
    */
   content?: CitationContent;

@@ -75,7 +75,7 @@ const ICON_COLOR_CLASSES = {
   green: "text-green-600 dark:text-green-400",
   amber: "text-amber-500 dark:text-amber-400",
   red: "text-red-500 dark:text-red-400",
-  gray: "text-gray-400 dark:text-gray-500",
+  gray: "text-dc-pending",
 } as const;
 
 const METHOD_KEY_MAP: Record<SearchMethod, MessageKey> = {
@@ -104,7 +104,7 @@ function getMethodDisplayName(method: SearchMethod, t: TranslateFunction): strin
 }
 
 const HEADER_DOWNLOAD_BUTTON_BASE_CLASSES =
-  "shrink-0 size-8 flex items-center justify-center cursor-pointer text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-[opacity,color] duration-120";
+  "shrink-0 size-8 flex items-center justify-center cursor-pointer text-dc-pending hover:text-blue-500 dark:hover:text-blue-400 transition-[opacity,color] duration-120";
 const HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES =
   "focus-visible:opacity-100 focus-visible:pointer-events-auto md:opacity-30 md:group-hover/source-header:opacity-100 md:group-hover/source-header:pointer-events-auto md:group-focus-within/source-header:opacity-100 md:group-focus-within/source-header:pointer-events-auto";
 
@@ -328,7 +328,7 @@ export function FaviconImage({
   // Show GlobeIcon if no URL or if image failed to load
   if (!effectiveFaviconUrl || hasError) {
     return (
-      <span className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500">
+      <span className="w-4 h-4 shrink-0 text-dc-pending">
         <GlobeIcon />
       </span>
     );
@@ -364,10 +364,10 @@ interface PagePillProps {
 
 /** Page pill color classes by status */
 const PAGE_PILL_COLORS = {
-  green: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600",
-  amber: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600",
-  red: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600",
-  gray: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600",
+  green: "bg-dc-muted text-dc-muted-foreground border-dc-border",
+  amber: "bg-dc-muted text-dc-muted-foreground border-dc-border",
+  red: "bg-dc-muted text-dc-muted-foreground border-dc-border",
+  gray: "bg-dc-muted text-dc-subtle-foreground border-dc-border",
 } as const;
 
 /**
@@ -504,7 +504,7 @@ export function SourceContextHeader({
 
   return (
     <div
-      className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-gray-200 dark:border-gray-700"
+      className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-dc-border"
       onClick={e => e.stopPropagation()}
       onKeyDown={e => {
         // Let Escape propagate to the document-level handler where the
@@ -534,13 +534,11 @@ export function SourceContextHeader({
           />
         ) : (
           <>
-            <span className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500">
+            <span className="w-4 h-4 shrink-0 text-dc-pending">
               <DocumentIcon />
             </span>
             {displayName && (
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate max-w-[280px]">
-                {displayName}
-              </span>
+              <span className="text-xs font-medium text-dc-foreground truncate max-w-[280px]">{displayName}</span>
             )}
           </>
         )}
@@ -572,7 +570,7 @@ export function SourceContextHeader({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={t("action.openProof")}
-            className="shrink-0 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 transition-colors"
+            className="shrink-0 text-dc-pending hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
             onClick={e => e.stopPropagation()}
           >
             <span className="size-3.5 block">
@@ -590,9 +588,7 @@ export function SourceContextHeader({
           />
         )}
         {!showPagePill && pageLineText && (
-          <span className="text-[10px] text-gray-500 dark:text-gray-400 shrink-0 uppercase tracking-wide">
-            {pageLineText}
-          </span>
+          <span className="text-[10px] text-dc-subtle-foreground shrink-0 uppercase tracking-wide">{pageLineText}</span>
         )}
       </div>
     </div>
@@ -776,7 +772,7 @@ function PageBadge({ expectedPage, foundPage, isImage }: PageBadgeProps) {
 
   // Image sources: show "Image" instead of page numbers
   if (isImage && (hasExpected || hasFound)) {
-    return <span className="text-xs text-gray-500 dark:text-gray-400">{t("location.image")}</span>;
+    return <span className="text-xs text-dc-subtle-foreground">{t("location.image")}</span>;
   }
 
   const locationDiffers = hasExpected && hasFound && expectedPage !== foundPage;
@@ -784,10 +780,10 @@ function PageBadge({ expectedPage, foundPage, isImage }: PageBadgeProps) {
   // Show arrow format when location differs (e.g., "p.5 → 7")
   if (locationDiffers) {
     return (
-      <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-        <span className="text-gray-400 dark:text-gray-500">{t("location.page", { pageNumber: expectedPage })}</span>
-        <span className="text-gray-400 dark:text-gray-500">→</span>
-        <span className="text-gray-700 dark:text-gray-300">{foundPage}</span>
+      <span className="text-xs text-dc-subtle-foreground flex items-center gap-1">
+        <span className="text-dc-pending">{t("location.page", { pageNumber: expectedPage })}</span>
+        <span className="text-dc-pending">→</span>
+        <span className="text-dc-foreground">{foundPage}</span>
       </span>
     );
   }
@@ -795,9 +791,7 @@ function PageBadge({ expectedPage, foundPage, isImage }: PageBadgeProps) {
   // Show found page or expected page
   const pageToShow = hasFound ? foundPage : expectedPage;
   if (pageToShow != null && pageToShow > 0) {
-    return (
-      <span className="text-xs text-gray-500 dark:text-gray-400">{t("location.page", { pageNumber: pageToShow })}</span>
-    );
+    return <span className="text-xs text-dc-subtle-foreground">{t("location.page", { pageNumber: pageToShow })}</span>;
   }
 
   return null;
@@ -930,7 +924,7 @@ export function StatusHeader({
             {IconComponent && <IconComponent />}
           </span>
         ) : null}
-        {displayText && <span className="font-medium truncate text-gray-800 dark:text-gray-100">{displayText}</span>}
+        {displayText && <span className="font-medium truncate text-dc-foreground">{displayText}</span>}
       </div>
       {!hidePageBadge && <PageBadge expectedPage={expectedPage} foundPage={foundPage} isImage={isImage} />}
     </div>
@@ -950,7 +944,7 @@ export function QuoteBox({ phrase, maxLength = MAX_QUOTE_BOX_LENGTH }: QuoteBoxP
   const displayPhrase = phrase.length > maxLength ? `${phrase.slice(0, maxLength)}...` : phrase;
 
   return (
-    <blockquote className="text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 p-3 border-l-[3px] border-gray-300 dark:border-gray-600 leading-relaxed text-sm">
+    <blockquote className="text-dc-muted-foreground bg-dc-muted p-3 border-l-[3px] border-dc-border leading-relaxed text-sm">
       {displayPhrase}
     </blockquote>
   );
@@ -984,7 +978,7 @@ export function QuotedText({ children, className, mono = false }: QuotedTextProp
 
   return (
     <q
-      className={cn("border-l-2 border-gray-300 dark:border-gray-600 pl-1.5 ml-0.5", mono && "font-mono", className)}
+      className={cn("border-l-2 border-dc-border pl-1.5 ml-0.5", mono && "font-mono", className)}
       style={{ quotes: "none" }}
     >
       {children}
@@ -1094,7 +1088,7 @@ function VerificationLogSummary({
       aria-controls="verification-log-timeline"
       className="w-full px-4 py-1.5 flex items-center justify-between text-xs transition-colors cursor-pointer group"
     >
-      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
+      <div className="flex items-center gap-1.5 text-dc-pending group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
         <svg
           className={cn("size-3 transition-transform duration-120", isExpanded && "rotate-90")}
           viewBox="0 0 24 24"
@@ -1110,7 +1104,7 @@ function VerificationLogSummary({
       </div>
       {dateStr && (
         <span
-          className="text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2"
+          className="text-dc-pending flex-shrink-0 ml-2"
           title={
             isMiss
               ? t("verification.checkedAt", { date: formatted?.tooltip ?? dateStr })
@@ -1187,8 +1181,8 @@ function AttemptTableRow({ text, locationText, duplicateCount, success, isUnexpe
       className={cn(
         "py-1 px-2 text-xs font-mono border-l-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2",
         success
-          ? "border-amber-400 dark:border-amber-500 text-gray-700 dark:text-gray-200"
-          : "border-red-300 dark:border-red-500/60 text-gray-500 dark:text-gray-400",
+          ? "border-amber-400 dark:border-amber-500 text-dc-foreground"
+          : "border-red-300 dark:border-red-500/60 text-dc-subtle-foreground",
       )}
     >
       <span className="font-mono text-xxs truncate min-w-0" title={note || (isTruncated ? text : undefined)}>
@@ -1197,7 +1191,7 @@ function AttemptTableRow({ text, locationText, duplicateCount, success, isUnexpe
       <span
         className={cn(
           "text-[10px] whitespace-nowrap justify-self-end text-right self-center",
-          isUnexpectedHit ? "font-semibold text-gray-700 dark:text-gray-200" : "text-gray-500 dark:text-gray-400",
+          isUnexpectedHit ? "font-semibold text-dc-foreground" : "text-dc-subtle-foreground",
         )}
       >
         {locationText}
@@ -1219,16 +1213,14 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
 
   return (
     <div>
-      <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+      <div className="text-[11px] text-dc-subtle-foreground uppercase tracking-wide mb-1.5">
         {t("verification.lookingFor")}
       </div>
       {hasAnchorText && (
-        <div className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-1 border-l-2 border-gray-300 dark:border-gray-600 pl-2">
-          {anchorText}
-        </div>
+        <div className="text-sm font-medium text-dc-foreground mb-1 border-l-2 border-dc-border pl-2">{anchorText}</div>
       )}
       {hasFullPhrase && (
-        <div className="text-xs text-gray-600 dark:text-gray-300 font-mono break-all bg-gray-50 dark:bg-gray-800/50 p-2 rounded border-l-2 border-gray-300 dark:border-gray-600">
+        <div className="text-xs text-dc-muted-foreground font-mono break-all bg-dc-muted p-2 rounded border-l-2 border-dc-border">
           {fullPhrase}
         </div>
       )}
@@ -1273,16 +1265,16 @@ function AuditSearchDisplay({
     return (
       <div className="px-4 py-3 space-y-3 text-sm">
         <div>
-          <div className="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+          <div className="text-[11px] text-dc-subtle-foreground uppercase tracking-wide mb-1.5">
             {t("verification.searchedFor")}
           </div>
           <div className="space-y-1">
             {fallbackPhrases.map(phrase => (
               <div key={`fallback-${phrase.slice(0, 40)}`} className="flex items-start gap-2">
-                <span className="size-3 max-w-3 max-h-3 mt-0.5 text-gray-400 dark:text-gray-500 shrink-0">
+                <span className="size-3 max-w-3 max-h-3 mt-0.5 text-dc-pending shrink-0">
                   <MissIcon />
                 </span>
-                <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">
+                <QuotedText mono className="text-xs text-dc-foreground break-all">
                   {phrase}
                 </QuotedText>
               </div>
@@ -1312,18 +1304,18 @@ function AuditSearchDisplay({
     return (
       <div className="px-4 py-3 space-y-3 text-sm">
         <div>
-          <div className="p-2.5 bg-gray-50 dark:bg-gray-800/40 space-y-2">
+          <div className="p-2.5 bg-dc-muted space-y-2">
             {/* What was matched */}
             <div className="flex items-start gap-2">
               <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-600 dark:text-green-400 shrink-0">
                 <CheckIcon />
               </span>
-              <QuotedText mono className="text-xs text-gray-700 dark:text-gray-200 break-all">
+              <QuotedText mono className="text-xs text-dc-foreground break-all">
                 {displayPhrase}
               </QuotedText>
             </div>
             {/* Where it was found */}
-            <div className="flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-between text-[11px] text-dc-subtle-foreground">
               <span>{methodName}</span>
               {locationText && <span>{locationText}</span>}
             </div>
@@ -1502,7 +1494,7 @@ export function VerificationLog({
   const derivedFoundLine = foundLine ?? successfulAttempt?.foundLocation?.line;
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700">
+    <div className="border-t border-dc-border">
       {/* Ambiguity warning when multiple occurrences exist */}
       {ambiguity && <AmbiguityWarning ambiguity={ambiguity} />}
       <VerificationLogSummary
@@ -1553,10 +1545,10 @@ export function AttemptingToVerify({ anchorText, fullPhrase }: AttemptingToVerif
 
   return (
     <div className="px-4 py-3 space-y-2">
-      <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium tracking-wide">
+      <div className="text-[10px] text-dc-subtle-foreground uppercase font-medium tracking-wide">
         {t("verification.lookingFor")}
       </div>
-      <div className="text-[15px] font-semibold text-gray-800 dark:text-gray-100 border-l-2 border-gray-300 dark:border-gray-600 pl-2">
+      <div className="text-[15px] font-semibold text-dc-foreground border-l-2 border-dc-border pl-2">
         {displayAnchorText}
       </div>
       {displayPhrase && displayPhrase !== displayAnchorText && <QuoteBox phrase={displayPhrase} />}

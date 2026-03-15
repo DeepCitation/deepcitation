@@ -88,16 +88,16 @@ describe("Caret Indicator Variant", () => {
   // ACTIVE DARKENING
   // ==========================================================================
 
-  it("uses darker gray (text-gray-600) when open", () => {
+  it("uses inverted text color (text-white) when open", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={true} popoverSide="bottom" />);
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
-    expect(pill.classList.contains("text-gray-600")).toBe(true);
+    expect(pill.classList.contains("text-white")).toBe(true);
   });
 
-  it("uses lighter gray (text-gray-400) when closed", () => {
+  it("uses lighter gray (text-slate-400) when closed", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={false} />);
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
-    expect(pill.classList.contains("text-gray-400")).toBe(true);
+    expect(pill.classList.contains("text-slate-400")).toBe(true);
   });
 
   // ==========================================================================
@@ -122,7 +122,7 @@ describe("Caret Indicator Variant", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} isVerified={true} />);
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
     expect(pill).toBeInTheDocument();
-    expect(pill.classList.contains("text-gray-400")).toBe(true);
+    expect(pill.classList.contains("text-slate-400")).toBe(true);
   });
 
   it("renders gray caret for partial status", () => {
@@ -131,7 +131,7 @@ describe("Caret Indicator Variant", () => {
     );
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
     expect(pill).toBeInTheDocument();
-    expect(pill.classList.contains("text-gray-400")).toBe(true);
+    expect(pill.classList.contains("text-slate-400")).toBe(true);
   });
 
   // ==========================================================================
