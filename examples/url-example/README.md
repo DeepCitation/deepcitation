@@ -41,7 +41,7 @@ npm run start
   DeepCitation URL Example - Interactive TUI (gpt-5-mini)
 ============================================================
 
-Enter a URL to analyze: https://en.wikipedia.org/wiki/TypeScript
+Enter a URL to analyze: https://en.wikipedia.org/wiki/Attention_Is_All_You_Need
 
 Preparing URL for citation verification...
 (URLs take ~30s to process vs. <1s for images/PDFs)

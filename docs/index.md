@@ -4,7 +4,7 @@ title: Home
 nav_order: 1
 description: "DeepCitation - Verify AI citations against source documents with visual proof"
 permalink: /
-commit_sha: "cc9c7aa"
+commit_sha: "0ba7a82"
 stale_after_commits: 30
 watch_paths:
   - src/index.ts
