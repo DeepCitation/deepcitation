@@ -11,6 +11,51 @@ import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import type { RenderCitationWithStatus } from "./types.js";
 
+export type StatusKey = "verified" | "partial" | "notFound" | "pending";
+
+/**
+ * Map a CitationStatus to a status key used across renderers for
+ * CSS classes, ANSI colors, and status labels.
+ */
+export function getStatusKey(status: CitationStatus): StatusKey {
+  if (status.isMiss) return "notFound";
+  if (status.isPartialMatch) return "partial";
+  if (status.isVerified) return "verified";
+  return "pending";
+}
+
+export function getStatusLabel(status: CitationStatus): string {
+  if (status.isMiss) return "Not Found";
+  if (status.isPartialMatch) return "Partial Match";
+  if (status.isVerified) return "Verified";
+  if (status.isPending) return "Pending";
+  return "Unknown";
+}
+
+/**
+ * Escape a string for safe embedding in HTML text content and attributes.
+ * Covers the OWASP-recommended five characters to prevent XSS in both
+ * element content and quoted attribute values.
+ */
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
+/**
+ * Escape special Slack mrkdwn characters (`<`, `>`, `&`).
+ * Inside Slack messages these three characters must be entity-encoded
+ * to prevent them from being interpreted as link/mention/channel syntax.
+ * See: https://api.slack.com/reference/surfaces/formatting#escaping
+ */
+export function escapeSlackMrkdwn(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 /** A text segment (no citation marker). */
 export interface TextSegment {
   type: "text";

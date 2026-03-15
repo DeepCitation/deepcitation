@@ -1,7 +1,7 @@
 import { formatPageLocation } from "../../markdown/markdownVariants.js";
 import type { ParsedCitationResult } from "../../parsing/parseCitationResponse.js";
 import { buildProofUrl, buildSnippetImageUrl } from "../proofUrl.js";
-import { resolveSourceLabel, walkCitationSegments } from "../shared.js";
+import { escapeHtml, resolveSourceLabel, walkCitationSegments } from "../shared.js";
 import { renderHtmlCitation } from "./htmlVariants.js";
 import { generateStyleBlock } from "./styles.js";
 import type { HtmlOutput, HtmlRenderOptions } from "./types.js";
@@ -138,8 +138,4 @@ export function renderCitationsAsHtml(
     citations: citationsWithStatus,
     proofUrls: Object.keys(proofUrls).length > 0 ? proofUrls : undefined,
   };
-}
-
-function escapeHtml(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

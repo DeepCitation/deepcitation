@@ -1,32 +1,20 @@
 import { formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
+import type { IndicatorStyle } from "../../markdown/types.js";
 import type { ParsedCitationResult } from "../../parsing/parseCitationResponse.js";
 import type { CitationStatus } from "../../types/citation.js";
-import { resolveSourceLabel, walkCitationSegments } from "../shared.js";
+import { getStatusKey, resolveSourceLabel, walkCitationSegments } from "../shared.js";
 import { bold, colorize, dim, horizontalRule, shouldUseColor } from "./ansiColors.js";
 import type { TerminalOutput, TerminalRenderOptions, TerminalVariant } from "./types.js";
 
-/**
- * Map CitationStatus to a status key for color mapping.
- */
-function getStatusKey(status: CitationStatus): "verified" | "partial" | "notFound" | "pending" {
-  if (status.isMiss) return "notFound";
-  if (status.isPartialMatch) return "partial";
-  if (status.isVerified) return "verified";
-  return "pending";
-}
-
-/**
- * Render a single citation for terminal output.
- */
 function renderTerminalCitation(
   citationNumber: number,
   anchorText: string | undefined,
   status: CitationStatus,
-  indicatorStyle: string,
+  indicatorStyle: IndicatorStyle,
   variant: TerminalVariant,
   useColor: boolean,
 ): { colored: string; plain: string } {
-  const indicator = getIndicator(status, indicatorStyle as import("../../markdown/types.js").IndicatorStyle);
+  const indicator = getIndicator(status, indicatorStyle);
   const statusKey = getStatusKey(status);
 
   let plainText: string;
@@ -121,7 +109,7 @@ export function renderCitationsForTerminal(
         showPageNumber: true,
         showLinePosition: false,
       });
-      const indicator = getIndicator(cws.status, indicatorStyle as import("../../markdown/types.js").IndicatorStyle);
+      const indicator = getIndicator(cws.status, indicatorStyle);
       const statusKey = getStatusKey(cws.status);
 
       const marker = colorize(`[${cws.citationNumber}]`, statusKey, useColor);

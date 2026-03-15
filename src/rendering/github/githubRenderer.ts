@@ -1,9 +1,8 @@
 import { formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
 import type { ParsedCitationResult } from "../../parsing/parseCitationResponse.js";
 import { buildProofUrl, buildSnippetImageUrl } from "../proofUrl.js";
-import { resolveSourceLabel, walkCitationSegments } from "../shared.js";
+import { getStatusLabel, resolveSourceLabel, walkCitationSegments } from "../shared.js";
 import {
-  getStatusLabel,
   renderGitHubCitation,
   renderGitHubSourcesDetailed,
   renderGitHubSourcesList,

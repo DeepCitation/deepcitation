@@ -1,6 +1,7 @@
 import { getIndicator, toSuperscript } from "../../markdown/markdownVariants.js";
 import type { IndicatorStyle } from "../../markdown/types.js";
 import type { CitationStatus } from "../../types/citation.js";
+import { escapeSlackMrkdwn } from "../shared.js";
 import type { SlackVariant } from "./types.js";
 
 /**
@@ -20,7 +21,7 @@ export function renderSlackCitation(
 
   switch (variant) {
     case "inline":
-      text = `${anchorText || `Citation ${citationNumber}`}${indicator}`;
+      text = `${escapeSlackMrkdwn(anchorText || `Citation ${citationNumber}`)}${indicator}`;
       break;
     case "number":
       text = `${toSuperscript(citationNumber)}${indicator}`;
@@ -50,6 +51,6 @@ export function renderSlackSourceEntry(
   const indicator = getIndicator(status, indicatorStyle);
   const marker = proofUrl ? `<${proofUrl}|[${citationNumber}${indicator}]>` : `[${citationNumber}${indicator}]`;
 
-  const location = pageLocation ? ` — ${pageLocation}` : "";
-  return `• ${marker} ${sourceLabel}${location}`;
+  const location = pageLocation ? ` — ${escapeSlackMrkdwn(pageLocation)}` : "";
+  return `• ${marker} ${escapeSlackMrkdwn(sourceLabel)}${location}`;
 }

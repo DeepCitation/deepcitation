@@ -1,41 +1,19 @@
 import { getIndicator, toSuperscript } from "../../markdown/markdownVariants.js";
 import type { IndicatorStyle } from "../../markdown/types.js";
 import type { CitationStatus } from "../../types/citation.js";
+import type { StatusKey } from "../shared.js";
+import { escapeHtml, getStatusKey, getStatusLabel } from "../shared.js";
 import { getIndicatorInlineStyle, getInlineStyle } from "./styles.js";
 import type { HtmlTheme, HtmlVariant } from "./types.js";
 
-/**
- * Map a CitationStatus to a status key for CSS classes and inline styles.
- */
-export function getStatusKey(status: CitationStatus): "verified" | "partial" | "notFound" | "pending" {
-  if (status.isMiss) return "notFound";
-  if (status.isPartialMatch) return "partial";
-  if (status.isVerified) return "verified";
-  return "pending";
-}
-
-/**
- * Get the CSS class name for a status.
- */
 function getStatusClass(status: CitationStatus, prefix: string): string {
-  const key = getStatusKey(status);
-  const classMap: Record<string, string> = {
+  const classMap: Record<StatusKey, string> = {
     verified: `${prefix}verified`,
     partial: `${prefix}partial`,
     notFound: `${prefix}not-found`,
     pending: `${prefix}pending`,
   };
-  return classMap[key];
-}
-
-/**
- * Get a human-readable status label.
- */
-function getStatusLabel(status: CitationStatus): string {
-  if (status.isMiss) return "Not Found";
-  if (status.isPartialMatch) return "Partial Match";
-  if (status.isVerified) return "Verified";
-  return "Pending";
+  return classMap[getStatusKey(status)];
 }
 
 interface HtmlCitationOptions {
@@ -95,11 +73,11 @@ export function renderHtmlCitation(opts: HtmlCitationOptions): string {
 
   switch (variant) {
     case "linter":
-      displayText = anchorText || `Citation ${citationNumber}`;
+      displayText = escapeHtml(anchorText || `Citation ${citationNumber}`);
       variantClass = `${prefix}linter`;
       break;
     case "chip":
-      displayText = anchorText || `Citation ${citationNumber}`;
+      displayText = escapeHtml(anchorText || `Citation ${citationNumber}`);
       variantClass = `${prefix}chip`;
       break;
     case "superscript":
@@ -126,7 +104,7 @@ export function renderHtmlCitation(opts: HtmlCitationOptions): string {
 
   // Wrap in link if proofUrl provided
   if (proofUrl) {
-    inner = `<a href="${escapeHtmlAttr(proofUrl)}" target="_blank" rel="noopener" class="${prefix}citation-link">${inner}</a>`;
+    inner = `<a href="${escapeHtml(proofUrl)}" target="_blank" rel="noopener" class="${prefix}citation-link">${inner}</a>`;
   }
 
   // Add tooltip
@@ -142,7 +120,7 @@ export function renderHtmlCitation(opts: HtmlCitationOptions): string {
     }
     if (imageUrl) {
       tooltipParts.push(
-        `<img class="${prefix}tooltip-image" src="${escapeHtmlAttr(imageUrl)}" alt="Proof snippet" loading="lazy" />`,
+        `<img class="${prefix}tooltip-image" src="${escapeHtml(imageUrl)}" alt="Proof snippet" loading="lazy" />`,
       );
     }
     inner += `<span class="${prefix}tooltip">${tooltipParts.join("")}</span>`;
@@ -151,19 +129,11 @@ export function renderHtmlCitation(opts: HtmlCitationOptions): string {
   const classes = [`${prefix}citation`, statusCls, variantClass].filter(Boolean).join(" ");
 
   const dataAttrs = [
-    ` data-citation-key="${escapeHtmlAttr(citationKey)}"`,
-    proofUrl ? ` data-proof-url="${escapeHtmlAttr(proofUrl)}"` : "",
-    attachmentId ? ` data-dc-attachment-id="${escapeHtmlAttr(attachmentId)}"` : "",
+    ` data-citation-key="${escapeHtml(citationKey)}"`,
+    proofUrl ? ` data-proof-url="${escapeHtml(proofUrl)}"` : "",
+    attachmentId ? ` data-dc-attachment-id="${escapeHtml(attachmentId)}"` : "",
     pageNumber != null ? ` data-dc-page-number="${pageNumber}"` : "",
   ].join("");
 
   return `<span class="${classes}"${spanStyle}${dataAttrs}>${inner}</span>`;
-}
-
-function escapeHtml(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-function escapeHtmlAttr(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

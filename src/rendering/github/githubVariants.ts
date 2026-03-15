@@ -39,17 +39,6 @@ export function renderGitHubCitation(
 }
 
 /**
- * Get a status label for table/list display.
- */
-export function getStatusLabel(status: CitationStatus): string {
-  if (status.isMiss) return "Not Found";
-  if (status.isPartialMatch) return "Partial";
-  if (status.isVerified) return "Verified";
-  if (status.isPending) return "Pending";
-  return "Unknown";
-}
-
-/**
  * Render sources as a Markdown table inside <details>.
  */
 export function renderGitHubSourcesTable(

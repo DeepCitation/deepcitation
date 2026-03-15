@@ -1,7 +1,4 @@
-/**
- * ANSI escape code utilities for terminal output.
- * Supports NO_COLOR environment variable for plain text fallback.
- */
+import type { StatusKey } from "../shared.js";
 
 /** ANSI escape code prefix */
 const ESC = "\x1b[";
@@ -32,11 +29,7 @@ export function shouldUseColor(colorOption?: boolean): boolean {
 /**
  * Wrap text in ANSI color codes for a given status.
  */
-export function colorize(
-  text: string,
-  statusKey: "verified" | "partial" | "notFound" | "pending",
-  useColor: boolean,
-): string {
+export function colorize(text: string, statusKey: StatusKey, useColor: boolean): string {
   if (!useColor) return text;
 
   switch (statusKey) {
