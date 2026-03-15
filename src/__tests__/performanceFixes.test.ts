@@ -12,13 +12,8 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import { cleanRepeatingLastSentence } from "../parsing/parseWorkAround.js";
-import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import { diffLines, diffWordsWithSpace } from "../utils/diff.js";
-
-/** Build a numeric-format LLM response from visible text + citation data array. */
-function makeNumericResponse(visibleText: string, citations: unknown[]): string {
-  return `${visibleText}\n\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify(citations)}\n${CITATION_DATA_END_DELIMITER}`;
-}
+import { makeNumericResponse } from "./testHelpers.js";
 
 describe("Performance Fixes", () => {
   describe("Global Regex State Bug Fix (parseWorkAround.ts)", () => {

@@ -1,15 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
 import { parseCitationResponse } from "../parsing/parseCitationResponse.js";
-import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
+import { CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import type { VerificationRecord } from "../types/citation.js";
 import { getCitationKey } from "../utils/citationKey.js";
-
-// ─── Helpers ───────────────────────────────────────────────────
-
-/** Build a numeric-format LLM response from visible text + citation data array. */
-function makeNumericResponse(visibleText: string, citations: unknown[]): string {
-  return `${visibleText}\n\n${CITATION_DATA_START_DELIMITER}\n${JSON.stringify(citations)}\n${CITATION_DATA_END_DELIMITER}`;
-}
+import { makeNumericResponse } from "./testHelpers.js";
 
 // ─── Numeric Format ───────────────────────────────────────────
 
