@@ -140,13 +140,6 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--body-heading-color);
 }
 
-// Display headings (h1) use Playfair Display per BRANDING.md
-// This matches the main site's serif-display h1 pattern
-.main-content h1 {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-weight: 700;
-}
-
 // Scher's Rule: the DeepCitation wordmark must use Playfair Display, never Inter
 .site-title {
   font-family: 'Playfair Display', Georgia, serif;
@@ -159,7 +152,8 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 1rem; // 16px base
   line-height: 1.7;
 
-  h1 { font-size: 2rem; }
+  // Display headings use Playfair Display per BRANDING.md
+  h1 { font-size: 2rem; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; }
   h2 { font-size: 1.5rem; margin-top: 2rem; }
   h3 { font-size: 1.25rem; margin-top: 1.5rem; }
   h4 { font-size: 1.125rem; }
@@ -334,11 +328,7 @@ pre {
 // so we must override wrapper elements at runtime.
 // -----------------------------------------------------
 @media (prefers-color-scheme: dark) {
-  // Just the Docs wrapper elements have compiled white backgrounds
-  .main-content-wrap,
-  .main {
-    background-color: var(--body-background-color);
-  }
+  // .main-content-wrap and .main bg override is now unconditional (see line ~173)
 
   .page-header {
     background-color: var(--body-background-color);
