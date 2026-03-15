@@ -88,10 +88,10 @@ describe("Caret Indicator Variant", () => {
   // ACTIVE DARKENING
   // ==========================================================================
 
-  it("uses darker gray (text-gray-600) when open", () => {
+  it("uses inverted text color (text-white) when open", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={true} popoverSide="bottom" />);
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
-    expect(pill.classList.contains("text-gray-600")).toBe(true);
+    expect(pill.classList.contains("text-white")).toBe(true);
   });
 
   it("uses lighter gray (text-gray-400) when closed", () => {

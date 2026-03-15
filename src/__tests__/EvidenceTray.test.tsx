@@ -59,8 +59,8 @@ describe("EvidenceTray interaction styles", () => {
     );
 
     const viewPageButton = getByRole("button", { name: /view page/i });
-    expect(viewPageButton.className).toContain("text-gray-600");
-    expect(viewPageButton.className).toContain("hover:text-blue-600");
+    expect(viewPageButton.className).toContain("text-slate-600");
+    expect(viewPageButton.className).toContain("hover:text-slate-900");
     expect(viewPageButton.className).toContain("focus-visible:ring-2");
   });
 
