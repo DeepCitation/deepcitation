@@ -786,8 +786,6 @@ export function DefaultPopoverContent({
     prevIsPendingRef.current = isPending;
   }, [isPending, isVerified, isPartialMatch, isMiss, t]);
 
-  // Save/restore scroll position for back navigation
-
   // Resolve expanded image for the full-page viewer; allow caller to override the src
   const expandedImage = useMemo(() => {
     const resolved = resolveExpandedImage(verification, pageImages);

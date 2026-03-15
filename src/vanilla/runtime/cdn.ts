@@ -156,7 +156,6 @@ function bindTriggers(selector: string): void {
     if (!key || !verifications[key]) continue;
     boundTriggers.add(trigger);
     trigger.style.cursor = "pointer";
-    // Add status indicator icon after the trigger text
     const indicator = createStatusIndicator(verifications[key]);
     if (indicator && !trigger.querySelector(".dc-status-indicator")) {
       trigger.appendChild(indicator);

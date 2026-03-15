@@ -68,7 +68,6 @@ import { ZoomToolbar } from "./ZoomToolbar.js";
 // MODULE-LEVEL UTILITIES
 // =============================================================================
 
-/** Threshold (px) for considering the viewport "drifted" from the annotation. */
 /** Scroll drift threshold for locate dirty-bit detection (px).
  *  15px absorbs sub-pixel rendering jitter while being small enough
  *  to catch intentional user panning. */
@@ -309,10 +308,6 @@ export function resolveExpandedImageForPage(
 }
 
 // =============================================================================
-// VERIFICATION IMAGE COMPONENT — "Keyhole" Crop & Fade
-// =============================================================================
-
-// =============================================================================
 // ANCHOR TEXT FOCUSED IMAGE (Keyhole viewer)
 // =============================================================================
 
@@ -487,8 +482,6 @@ export function AnchorTextFocusedImage({
     [scrollState.canScrollLeft, scrollState.canScrollRight],
   );
 
-  const imageSrc = src;
-
   const stripHeightStyle = `var(${KEYHOLE_STRIP_HEIGHT_VAR}, ${KEYHOLE_STRIP_HEIGHT_DEFAULT}px)`;
   const isWidthFit = imageFitInfo?.isWidthFit ?? false;
   const isPannable =
@@ -618,7 +611,7 @@ export function AnchorTextFocusedImage({
             <div ref={imageWrapperRef} style={{ display: "inline-block", position: "relative" }}>
               <img
                 ref={imageRef}
-                src={imageSrc}
+                src={src}
                 alt={t("aria.verificationEvidence")}
                 className={cn(
                   DOCUMENT_IMAGE_EDGE_CLASSES,
@@ -1197,12 +1190,8 @@ export function EvidenceTray({
 }
 
 // =============================================================================
-// EXPANDED PAGE VIEWER
-// =============================================================================
 // INLINE EXPANDED IMAGE (Zone 3 replacement when keyhole is clicked)
 // =============================================================================
-
-// applyGestureTransform imported from ./hooks/useWheelZoom.js — shared by wheel zoom and touch pinch.
 
 /**
  * Replaces Zone 3 (evidence tray) when the keyhole is expanded in-place.
@@ -1780,10 +1769,6 @@ export function InlineExpandedImage({
   // Compute effective image width for zoom
   const zoomedWidth = fill && naturalWidth ? naturalWidth * zoom : undefined;
 
-  // Centering margin is currently always 0 (padding logic removed; kept as a
-  // named constant so the JSX spread below reads clearly).
-  const centeringMarginLeft = 0;
-
   // Show zoom controls in fill mode when image has loaded
   const showZoomControls = fill && imageLoaded && naturalWidth !== null;
   // Locate button shows when we are capable of drawing an overlay (annotation + renderScale exist).
@@ -1989,7 +1974,6 @@ export function InlineExpandedImage({
                 position: "relative",
                 display: "inline-block",
                 ...(zoomedWidth !== undefined ? { width: zoomedWidth } : {}),
-                ...(centeringMarginLeft > 0 ? { marginLeft: centeringMarginLeft } : {}),
               }}
             >
               <img
