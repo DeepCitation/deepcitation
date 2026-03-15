@@ -308,7 +308,7 @@ describe("VerificationLogTimeline attempts table", () => {
     expect(getByText("increased by 15%")).toBeInTheDocument();
 
     const mutedLocation = getByText(/^p[.\s\u202f]+5$/);
-    expect(mutedLocation.className).toContain("text-gray-400");
+    expect(mutedLocation.className).toContain("text-dc-subtle-foreground");
 
     const highlightedLocation = getByText(/^p[.\s\u202f]+7$/);
     expect(highlightedLocation.className).toContain("font-semibold");

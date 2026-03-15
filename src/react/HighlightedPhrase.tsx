@@ -21,14 +21,14 @@ export function HighlightedPhrase({
     return <span className="text-red-400 dark:text-red-400/70">{fullPhrase}</span>;
   }
   if (!anchorText || !fullPhrase.includes(anchorText)) {
-    return <span className="text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
+    return <span className="text-dc-muted-foreground">{fullPhrase}</span>;
   }
   if (!shouldHighlightAnchorText(anchorText, fullPhrase)) {
-    return <span className="text-gray-600 dark:text-gray-300">{fullPhrase}</span>;
+    return <span className="text-dc-muted-foreground">{fullPhrase}</span>;
   }
   const idx = fullPhrase.indexOf(anchorText);
   return (
-    <span className="text-gray-600 dark:text-gray-300">
+    <span className="text-dc-muted-foreground">
       {fullPhrase.slice(0, idx)}
       <span style={ANCHOR_HIGHLIGHT_STYLE}>{anchorText}</span>
       {fullPhrase.slice(idx + anchorText.length)}

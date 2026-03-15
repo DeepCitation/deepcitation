@@ -141,7 +141,7 @@ describe("CitationComponent source variant", () => {
 
       const chip = container.querySelector(".rounded-full");
       expect(chip).toBeInTheDocument();
-      expect(chip).toHaveClass("bg-gray-100");
+      expect(chip).toHaveClass("bg-slate-100");
     });
 
     it("hides broken favicon images on error", () => {
@@ -588,7 +588,7 @@ describe("CitationDrawer", () => {
     );
 
     // Handle bar is a rounded div
-    const handleBar = container.querySelector(".rounded-full.bg-gray-300");
+    const handleBar = container.querySelector(".rounded-full.bg-dc-border");
     expect(handleBar).toBeInTheDocument();
   });
 
@@ -598,7 +598,7 @@ describe("CitationDrawer", () => {
     );
 
     // Handle bar should not exist
-    const handleBar = container.querySelector(".rounded-full.bg-gray-300");
+    const handleBar = container.querySelector(".rounded-full.bg-dc-border");
     expect(handleBar).not.toBeInTheDocument();
   });
 
@@ -883,7 +883,7 @@ describe("CitationDrawerTrigger", () => {
 
     // Should have green, gray, and red status icons
     expect(container.querySelector(".text-green-500")).toBeInTheDocument();
-    expect(container.querySelector(".text-gray-400")).toBeInTheDocument();
+    expect(container.querySelector(".text-slate-400")).toBeInTheDocument();
     expect(container.querySelector(".text-red-500")).toBeInTheDocument();
   });
 

@@ -65,9 +65,9 @@ const SpinnerIcon = () => (
 const VERIFICATION_STATUS_CONFIG = {
   verified: { icon: "✓", className: "text-green-600 dark:text-green-500" },
   partial: { icon: "~", className: "text-amber-500 dark:text-amber-400" },
-  pending: { icon: "…", className: "text-gray-400 dark:text-gray-500" },
+  pending: { icon: "…", className: "text-dc-pending" },
   failed: { icon: "✗", className: "text-red-500 dark:text-red-400" },
-  unknown: { icon: "?", className: "text-gray-400 dark:text-gray-500" },
+  unknown: { icon: "?", className: "text-dc-subtle-foreground" },
 } as const;
 
 type VerificationStatusType = keyof typeof VERIFICATION_STATUS_CONFIG;
@@ -166,8 +166,8 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
         data-source-type={detectedType}
         className={classNames(
           "flex items-start gap-3 p-3 cursor-pointer transition-colors",
-          "hover:bg-gray-50 dark:hover:bg-gray-800/50",
-          "border-b border-gray-100 dark:border-gray-800 last:border-b-0",
+          "hover:bg-dc-muted/60",
+          "border-b border-dc-border last:border-b-0",
           className,
         )}
         onClick={handleClick}
@@ -214,9 +214,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
         <div className="flex-1 min-w-0">
           {/* Title */}
           <div className="flex items-center gap-1">
-            <span className="text-gray-900 dark:text-gray-100 font-medium text-sm leading-tight line-clamp-2">
-              {title}
-            </span>
+            <span className="text-dc-foreground font-medium text-sm leading-tight line-clamp-2">{title}</span>
             <VerificationBadge
               showVerificationIndicator={showVerificationIndicator}
               verificationStatus={verificationStatus}
@@ -225,19 +223,19 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
 
           {/* Platform/Domain */}
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-gray-500 dark:text-gray-400 text-xs">{platformName}</span>
+            <span className="text-dc-subtle-foreground text-xs">{platformName}</span>
             {showCitationBadges && citationNumbers && citationNumbers.length > 0 && (
               <div className="flex items-center gap-1">
                 {citationNumbers.slice(0, 3).map(num => (
                   <span
                     key={num}
-                    className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded"
+                    className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-medium bg-slate-200 dark:bg-slate-700 text-dc-muted-foreground rounded"
                   >
                     {num}
                   </span>
                 ))}
                 {citationNumbers.length > 3 && (
-                  <span className="text-xs text-gray-400 dark:text-gray-500">+{citationNumbers.length - 3}</span>
+                  <span className="text-xs text-dc-pending">+{citationNumbers.length - 3}</span>
                 )}
               </div>
             )}
@@ -246,13 +244,13 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
 
         {/* TtC indicator */}
         {ttcMs != null && (
-          <span className="shrink-0 text-gray-400 dark:text-gray-500 mt-1" style={TTC_TEXT_STYLE}>
+          <span className="shrink-0 text-dc-pending mt-1" style={TTC_TEXT_STYLE}>
             {formatTtc(ttcMs)}
           </span>
         )}
 
         {/* Arrow indicator */}
-        <div className="shrink-0 text-gray-400 dark:text-gray-500 mt-1">
+        <div className="shrink-0 text-dc-pending mt-1">
           <ChevronRightIcon />
         </div>
       </div>
@@ -284,9 +282,9 @@ export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>
         onClick={onClick}
         className={classNames(
           "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm",
-          "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
-          "hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+          "bg-dc-muted text-dc-foreground",
+          "hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors",
+          "focus:outline-none focus:ring-2 focus:ring-dc-ring/40",
           className,
         )}
         aria-expanded={isOpen}
@@ -301,7 +299,7 @@ export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>
               key={source.id}
               src={getFaviconUrl(source.url, source.faviconUrl)}
               alt=""
-              className={classNames("w-4 h-4 rounded-full ring-2 ring-gray-100 dark:ring-gray-800", i > 0 && "-ml-1")}
+              className={classNames("w-4 h-4 rounded-full ring-2 ring-dc-background", i > 0 && "-ml-1")}
               width={16}
               height={16}
               loading="lazy"
@@ -310,7 +308,7 @@ export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>
             />
           ))}
           {hasMore && (
-            <span className="w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 ring-2 ring-gray-100 dark:ring-gray-800 flex items-center justify-center text-[9px] font-medium text-gray-600 dark:text-gray-300">
+            <span className="w-4 h-4 rounded-full bg-dc-border ring-2 ring-dc-background flex items-center justify-center text-[9px] font-medium text-dc-muted-foreground">
               +{sources.length - maxIcons}
             </span>
           )}
@@ -357,26 +355,24 @@ const SourcesListHeader = ({
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-dc-border">
       {showCloseButton && variant !== "inline" && (
         <button
           type="button"
           onClick={handleClose}
-          className="p-1 -ml-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+          className="p-1 -ml-1 text-dc-subtle-foreground hover:text-dc-foreground transition-colors"
           aria-label={t("action.closeSources")}
         >
           <CloseIcon />
         </button>
       )}
-      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex-1 text-center">
+      <h2 className="text-base font-semibold text-dc-foreground flex-1 text-center">
         {resolvedTitle}
-        {showCount && (
-          <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({sources.length})</span>
-        )}
+        {showCount && <span className="ml-2 text-sm font-normal text-dc-subtle-foreground">({sources.length})</span>}
       </h2>
       {/* Aggregate TtC or spacer for centering */}
       {timingMetrics && timingMetrics.resolvedCount > 0 ? (
-        <span className="text-gray-400 dark:text-gray-500 shrink-0" style={TTC_TEXT_STYLE}>
+        <span className="text-dc-pending shrink-0" style={TTC_TEXT_STYLE}>
           avg rev {formatTtc(timingMetrics.avgTtcMs)}
         </span>
       ) : (
@@ -423,7 +419,7 @@ const SourcesListContentArea = ({
   if (isLoading) {
     if (renderLoading) return renderLoading();
     return (
-      <div className="flex items-center justify-center py-8 text-gray-500 dark:text-gray-400">
+      <div className="flex items-center justify-center py-8 text-dc-subtle-foreground">
         <SpinnerIcon />
         <span className="ml-2 text-sm">{t("sources.loading")}</span>
       </div>
@@ -433,9 +429,7 @@ const SourcesListContentArea = ({
   if (sources.length === 0) {
     if (renderEmpty) return renderEmpty();
     return (
-      <div className="flex items-center justify-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-        {emptyMessage}
-      </div>
+      <div className="flex items-center justify-center py-8 text-dc-subtle-foreground text-sm">{emptyMessage}</div>
     );
   }
 
@@ -444,7 +438,7 @@ const SourcesListContentArea = ({
       <div className={listClassName}>
         {Object.entries(groupedSources).map(([domain, domainSources]) => (
           <div key={domain}>
-            <div className="px-4 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800/50">
+            <div className="px-4 py-2 text-xs font-medium text-dc-subtle-foreground uppercase tracking-wider bg-dc-muted">
               {getPlatformName(domainSources[0].url, domain)}
             </div>
             {domainSources.map((source, index) =>
@@ -628,10 +622,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
       return (
         <div
           ref={ref}
-          className={classNames(
-            "bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700",
-            className,
-          )}
+          className={classNames("bg-dc-background rounded-lg border border-dc-border", className)}
           style={maxHeightStyle}
         >
           {headerElement}
@@ -647,10 +638,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
       return (
         <div
           ref={ref}
-          className={classNames(
-            "bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg",
-            className,
-          )}
+          className={classNames("bg-dc-background rounded-lg border border-dc-border shadow-lg", className)}
         >
           {headerElement}
           <div className="overflow-y-auto" style={maxHeightStyle || { maxHeight: "400px" }}>
@@ -686,7 +674,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
           <div
             ref={containerRef}
             className={classNames(
-              "absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl",
+              "absolute bottom-0 left-0 right-0 bg-dc-background rounded-t-2xl shadow-2xl",
               "transform transition-transform duration-180 ease-[cubic-bezier(0.2,0,0,1)]",
               isOpen ? "translate-y-0" : "translate-y-full",
               "max-h-[80vh] flex flex-col",
@@ -695,7 +683,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
           >
             {/* Drawer handle */}
             <div className="flex justify-center py-2">
-              <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+              <div className="w-10 h-1 bg-dc-border rounded-full" />
             </div>
             {headerElement}
             <div className="overflow-y-auto flex-1">{listContentElement}</div>
@@ -704,7 +692,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
           <div
             ref={containerRef}
             className={classNames(
-              "relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl",
+              "relative bg-dc-background rounded-xl shadow-2xl",
               "transform transition-all ease-[cubic-bezier(0.2,0,0,1)]",
               "opacity-100 scale-100 duration-180",
               "w-full max-w-md max-h-[80vh] flex flex-col mx-4",

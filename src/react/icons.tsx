@@ -10,13 +10,21 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
     stroke="currentColor"
     strokeWidth="2"
     strokeLinecap="square"
+    strokeLinejoin="miter"
     shapeRendering="crispEdges"
     className={className}
     width="1em"
     height="1em"
   >
-    <path d="M7 3 L3 3 L3 21 L7 21" />
-    <path d="M17 3 L21 3 L21 21 L17 21" />
+    {/* The Brackets (Reality / Verification) */}
+    <path d="M6 3 L3 3 L3 21 L6 21" className="text-slate-900 dark:text-slate-100" />
+    <path d="M18 3 L21 3 L21 21 L18 21" className="text-slate-900 dark:text-slate-100" />
+    {/* The Spark (The contained AI Payload) */}
+    <path
+      d="M12 6 L12 18 M6 12 L18 12 M8.5 8.5 L15.5 15.5 M15.5 8.5 L8.5 15.5"
+      strokeWidth="1.5"
+      className="text-blue-700 dark:text-sky-400"
+    />
   </svg>
 );
 

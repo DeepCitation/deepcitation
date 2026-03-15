@@ -9,6 +9,7 @@ Complete, runnable examples demonstrating DeepCitation integration patterns.
 | [**basic-verification**](./basic-verification) | Core 3-step workflow with OpenAI/Anthropic | Learning the basics, quick integration |
 | [**nextjs-ai-sdk**](./nextjs-ai-sdk) | Next.js chat app with Vercel AI SDK | Full-stack apps, streaming UI |
 | [**agui-chat**](./agui-chat) | AG-UI protocol chat with SSE streaming | AG-UI integration, protocol-level control |
+| [**static-html**](./static-html) | CDN popover in plain HTML, no build step | Static sites, CDN integration |
 
 ## Quick Start
 

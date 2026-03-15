@@ -155,7 +155,7 @@ describe("StatusHeader", () => {
     it("uses gray icon color for pending status", () => {
       const { container } = render(<StatusHeader status="pending" />);
 
-      const grayIcon = container.querySelector(".text-gray-400");
+      const grayIcon = container.querySelector(".text-dc-pending");
       expect(grayIcon).toBeInTheDocument();
     });
   });

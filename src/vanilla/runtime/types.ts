@@ -41,4 +41,11 @@ export interface VerificationData {
     anchorText?: string;
     type?: string;
   };
+  /** Page renders for the full-page viewer. */
+  pageImages?: Array<{
+    pageNumber: number;
+    dimensions: { width: number; height: number };
+    imageUrl: string;
+    isMatchPage?: boolean;
+  }>;
 }

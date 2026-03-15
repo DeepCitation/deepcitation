@@ -193,7 +193,7 @@ export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>
       status.isVerified && !status.isPartialMatch && "text-green-600 dark:text-green-500",
       status.isPartialMatch && "text-amber-500 dark:text-amber-400",
       status.isMiss && "text-red-500 dark:text-red-400",
-      status.isPending && "text-gray-400 dark:text-gray-500",
+      status.isPending && "text-slate-400 dark:text-slate-500",
     );
 
     return (
@@ -382,7 +382,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
       return (
         <span
           ref={ref}
-          className={classNames(baseClasses, "text-gray-400 dark:text-gray-500", className)}
+          className={classNames(baseClasses, "text-slate-400 dark:text-slate-500", className)}
           aria-label={t("indicator.verifying")}
           {...props}
         >
@@ -455,7 +455,7 @@ export const CitationPage = forwardRef<HTMLSpanElement, CitationPageProps>(
     }
 
     return (
-      <span ref={ref} className={classNames("text-xs text-gray-400 dark:text-gray-500", className)} {...props}>
+      <span ref={ref} className={classNames("text-xs text-slate-400 dark:text-slate-500", className)} {...props}>
         {prefix}
         {citation.pageNumber}
       </span>

@@ -60,7 +60,7 @@ describe("Dot Indicator Variant", () => {
       const { container } = render(
         <CitationComponent citation={baseCitation} verification={partialVerification} indicatorVariant="dot" />,
       );
-      const dot = container.querySelector(".bg-amber-500");
+      const dot = container.querySelector(".bg-dc-partial");
       expect(dot).toBeInTheDocument();
     });
 
@@ -68,7 +68,7 @@ describe("Dot Indicator Variant", () => {
       const { container } = render(
         <CitationComponent citation={baseCitation} verification={missVerification} indicatorVariant="dot" />,
       );
-      const dot = container.querySelector(".bg-red-500");
+      const dot = container.querySelector(".bg-dc-destructive");
       expect(dot).toBeInTheDocument();
     });
 
@@ -108,7 +108,7 @@ describe("Dot Indicator Variant", () => {
         <CitationComponent citation={baseCitation} verification={verifiedVerification} indicatorVariant="none" />,
       );
       // No dot indicator should be present
-      const greenDots = container.querySelectorAll(".bg-green-600.rounded-full");
+      const greenDots = container.querySelectorAll(".bg-dc-verified.rounded-full");
       expect(greenDots.length).toBe(0);
     });
 
@@ -121,7 +121,7 @@ describe("Dot Indicator Variant", () => {
           variant="chip"
         />,
       );
-      const dot = container.querySelector(".rounded-full.bg-green-600");
+      const dot = container.querySelector(".rounded-full.bg-dc-verified");
       expect(dot).toBeInTheDocument();
     });
   });
@@ -176,7 +176,7 @@ describe("Dot Indicator Variant", () => {
     it("returns correct label for pending with dot variant", () => {
       const result = getStatusInfo(pendingVerification, "dot");
       expect(result.label).toBe("Verifying");
-      expect(result.color).toBe("text-gray-400");
+      expect(result.color).toBe("text-slate-400");
     });
 
     it("defaults to icon variant when no variant specified", () => {

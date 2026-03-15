@@ -240,7 +240,7 @@ function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
 
   return (
     <div
-      className="w-full px-4 py-2.5 flex items-center gap-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700"
+      className="w-full px-4 py-2.5 flex items-center gap-2.5 bg-dc-muted border-b border-dc-border"
       role="heading"
       aria-level={3}
       aria-label={sourceAriaLabel}
@@ -254,15 +254,15 @@ function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
 
       {/* Source name and domain (for URL sources, show domain in muted text) */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 text-left truncate">{sourceName}</span>
+        <span className="text-sm font-medium text-dc-foreground text-left truncate">{sourceName}</span>
         {isUrlSource && group.sourceDomain && group.sourceDomain !== sourceName && (
-          <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{group.sourceDomain}</span>
+          <span className="text-[11px] text-dc-subtle-foreground truncate">{group.sourceDomain}</span>
         )}
       </div>
 
       {/* Citation count badge — only shown when > 1 (single item is self-evident) */}
       {citationCount > 1 && (
-        <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+        <span className="text-xs text-dc-subtle-foreground shrink-0">
           {tPlural(t, "drawer.citationCount", citationCount, { count: citationCount })}
         </span>
       )}
@@ -419,7 +419,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       data-dc-item={citationKey}
       className={cn(
         "cursor-pointer transition-colors border-l-[3px]",
-        !isLast && "border-b border-gray-200 dark:border-gray-700",
+        !isLast && "border-b border-dc-border",
         isExpanded ? statusBorderColor : "border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-800/50",
         className,
       )}
@@ -458,7 +458,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
 
           {/* Header: fullPhrase with anchorText highlighted */}
           <div className="flex-1 min-w-0">
-            <div className="text-sm text-gray-900 dark:text-gray-100 line-clamp-2" title={fullPhrase || anchorText}>
+            <div className="text-sm text-dc-foreground line-clamp-2" title={fullPhrase || anchorText}>
               <HighlightedPhrase
                 fullPhrase={fullPhrase || anchorText || ""}
                 anchorText={anchorText}
@@ -472,7 +472,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
             aria-hidden="true"
             className={cn(
               "w-4 h-4 shrink-0 transition-transform duration-120 ease-[cubic-bezier(0.2,0,0,1)]",
-              isExpanded ? "rotate-180 text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500",
+              isExpanded ? "rotate-180 text-dc-subtle-foreground" : "text-dc-pending",
             )}
             fill="none"
             viewBox="0 0 24 24"
@@ -496,7 +496,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           <div className="overflow-hidden" style={{ minHeight: 0 }}>
             <div
               className={cn(
-                "border-t border-gray-100 dark:border-gray-800",
+                "border-t border-dc-border",
                 wasAutoExpanded && isNotFound && "animate-[dc-pulse-once_800ms_ease-out]",
               )}
               onAnimationEnd={() => setWasAutoExpanded(false)}
@@ -586,7 +586,7 @@ function CompactSingleCitationRow({
       className={cn(
         "px-4 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors",
         "hover:bg-gray-50 dark:hover:bg-gray-800/50",
-        !isLast && "border-b border-gray-200 dark:border-gray-700",
+        !isLast && "border-b border-dc-border",
       )}
       onClick={handleClick}
       role="button"
@@ -606,7 +606,7 @@ function CompactSingleCitationRow({
       )}
 
       {/* Source name */}
-      <span className="text-sm text-gray-600 dark:text-gray-400 truncate flex-1 min-w-0" title={sourceName}>
+      <span className="text-sm text-dc-muted-foreground truncate flex-1 min-w-0" title={sourceName}>
         {sourceName}
       </span>
 
@@ -626,7 +626,7 @@ function CompactSingleCitationRow({
 
       {/* Anchor text */}
       {displayText && (
-        <span className="text-sm text-gray-900 dark:text-gray-100 truncate flex-1 min-w-0" title={displayText}>
+        <span className="text-sm text-dc-foreground truncate flex-1 min-w-0" title={displayText}>
           {displayText}
         </span>
       )}
@@ -789,7 +789,7 @@ function DrawerSourceHeading({
   const t = useTranslation();
 
   if (citationGroups.length === 0) {
-    return <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{fallbackTitle}</h2>;
+    return <h2 className="text-base font-semibold text-dc-foreground truncate">{fallbackTitle}</h2>;
   }
   const firstGroup = citationGroups[0];
   // Use the exact same label as CitationDrawerTrigger — generateDefaultLabel handles
@@ -811,7 +811,7 @@ function DrawerSourceHeading({
       )}
 
       {/* Source label — identical text to CitationDrawerTrigger */}
-      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{displayLabel}</h2>
+      <h2 className="text-base font-semibold text-dc-foreground truncate">{displayLabel}</h2>
     </div>
   );
 }
@@ -841,7 +841,7 @@ function IndicatorRow({
 }) {
   const t = useTranslation();
   return (
-    <div className="flex items-center gap-2 px-4 py-1.5 border-t border-gray-100 dark:border-gray-800">
+    <div className="flex items-center gap-2 px-4 py-1.5 border-t border-dc-border">
       {citations.map(item => {
         const isActive = item.citationKey === activeKey;
         const statusInfo = getStatusInfo(item.verification, indicatorVariant, t);
@@ -1201,7 +1201,7 @@ function OpenCitationDrawer({
       <div
         ref={drawerRef}
         className={cn(
-          "fixed bg-white dark:bg-gray-900 flex flex-col",
+          "fixed bg-dc-background flex flex-col",
           position === "bottom" && "inset-x-0 bottom-0",
           position === "bottom" && (isFullPage ? "max-h-[100dvh]" : "max-h-[80dvh] rounded-t-2xl"),
           position === "right" && "inset-y-0 right-0 w-full max-w-md",
@@ -1253,12 +1253,12 @@ function OpenCitationDrawer({
             ref={handleRef}
             className="flex justify-center pt-3 pb-1 shrink-0 touch-none cursor-grab active:cursor-grabbing"
           >
-            <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+            <div className="w-10 h-1 rounded-full bg-dc-border" />
           </div>
         )}
 
         {/* Header with summary, progress bar, and view toggle */}
-        <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 shrink-0">
+        <div className="px-4 py-2 border-b border-dc-border shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <DrawerSourceHeading citationGroups={resolvedGroups} label={label} fallbackTitle={resolvedTitle} />
@@ -1300,7 +1300,7 @@ function OpenCitationDrawer({
                 aria-label={t("action.close")}
               >
                 <svg
-                  className="w-5 h-5 text-gray-500 dark:text-gray-400"
+                  className="w-5 h-5 text-dc-subtle-foreground"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1321,7 +1321,7 @@ function OpenCitationDrawer({
 
         {/* Header inline panel — full-page proof image triggered by page badge or item row */}
         {headerInline && (
-          <div className="shrink-0 border-b border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="shrink-0 border-b border-dc-border overflow-hidden">
             <CitationErrorBoundary>
               <InlineExpandedImage
                 src={headerInline.src}
@@ -1358,9 +1358,7 @@ function OpenCitationDrawer({
         <DrawerEscapeContext.Provider value={escCtxValue}>
           <div className="flex-1 overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
             {totalCitations === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                {t("drawer.noCitationsToDisplay")}
-              </div>
+              <div className="px-4 py-8 text-center text-dc-subtle-foreground">{t("drawer.noCitationsToDisplay")}</div>
             ) : (
               sortedGroups.map((group, groupIndex) => (
                 <DrawerSourceGroup

@@ -2026,7 +2026,7 @@ const drawerSingleSource: CitationDrawerItem[] = [
     citationKey: "ds-1",
     citation: {
       type: "url",
-      url: "https://en.wikipedia.org/wiki/TypeScript",
+      url: "https://en.wikipedia.org/wiki/Attention_Is_All_You_Need",
       domain: "en.wikipedia.org",
       siteName: "Wikipedia",
       title: "TypeScript - Wikipedia",

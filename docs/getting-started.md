@@ -134,7 +134,7 @@ The SDK handles API routing automatically. You only need to configure your API k
 |:-----|:--------|
 | PDFs | `.pdf` |
 | Images | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` (auto-OCR) |
-| Office Docs | Word, Excel, Google Docs |
+| Office Docs | Word, Excel, PowerPoint, Google Docs |
 | URLs | Web pages via `prepareUrl` endpoint |
 
 ---

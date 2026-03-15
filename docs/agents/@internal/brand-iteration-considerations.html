@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Brand Iteration Considerations</title>
+    <style>
+      :root {
+        --paper-white: #fdfbf7;
+        --color-cream: #fdfcfa;
+        --slate-0: #ffffff;
+        --slate-50: #fafafa;
+        --slate-100: #f4f4f5;
+        --slate-200: #e4e4e7;
+        --slate-300: #d4d4d8;
+        --slate-400: #a1a1aa;
+        --slate-500: #71717a;
+        --slate-600: #52525b;
+        --slate-700: #3f3f46;
+        --slate-800: #27272a;
+        --slate-900: #18181b;
+        --slate-950: #09090b;
+        --anchor-highlight: rgba(251, 191, 36, 0.2);
+        --anchor-highlight-dark: rgba(251, 191, 36, 0.25);
+      }
+
+      body {
+        margin: 0;
+        padding: 32px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, var(--paper-white) 0%, var(--color-cream) 100%);
+        color: var(--slate-800);
+      }
+
+      main {
+        max-width: 960px;
+      }
+
+      h1,
+      h2 {
+        margin: 0 0 16px;
+      }
+
+      p,
+      li {
+        line-height: 1.55;
+      }
+
+      .note {
+        margin: 20px 0 28px;
+        padding: 16px 18px;
+        border: 1px solid var(--slate-200);
+        background: var(--slate-0);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0 28px;
+        background: var(--slate-0);
+      }
+
+      th,
+      td {
+        padding: 10px 12px;
+        border: 1px solid var(--slate-200);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--slate-50);
+      }
+
+      .swatch {
+        display: inline-block;
+        width: 2.75rem;
+        height: 1rem;
+        vertical-align: middle;
+        margin-right: 0.5rem;
+        border: 1px solid var(--slate-300);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Brand Iteration Considerations</h1>
+      <p>
+        Internal note for extending the DeepCitation brand language without collapsing the SDK into the
+        full web-app palette.
+      </p>
+
+      <div class="note">
+        The anchor-text highlight yellow is now a deliberate special accent in the brand system. It is not a
+        general-purpose CTA color. It exists to signal a semantic distinction: the verified anchor is narrower
+        than the full verified phrase.
+      </div>
+
+      <h2>Core Surface Reference</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Token</th>
+            <th>Variable</th>
+            <th>Value</th>
+            <th>Brand Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>paper-white</code></td>
+            <td><code>--paper-white</code></td>
+            <td><span class="swatch" style="background:#FDFBF7"></span><code>#FDFBF7</code></td>
+            <td>Warm white, selection highlight, editorial shell</td>
+          </tr>
+          <tr>
+            <td><code>cream</code></td>
+            <td><code>--color-cream</code></td>
+            <td><span class="swatch" style="background:#fdfcfa"></span><code>#fdfcfa</code></td>
+            <td>Page-level surfaces</td>
+          </tr>
+          <tr>
+            <td><code>slate-0</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#FFFFFF"></span><code>#FFFFFF</code></td>
+            <td>Pure white cards, inputs, elevated surfaces</td>
+          </tr>
+          <tr>
+            <td><code>slate-50</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#FAFAFA"></span><code>#FAFAFA</code></td>
+            <td>Light backgrounds, cards</td>
+          </tr>
+          <tr>
+            <td><code>slate-100</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#F4F4F5"></span><code>#F4F4F5</code></td>
+            <td>Secondary backgrounds</td>
+          </tr>
+          <tr>
+            <td><code>slate-200</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#E4E4E7"></span><code>#E4E4E7</code></td>
+            <td>Borders in light mode</td>
+          </tr>
+          <tr>
+            <td><code>slate-300</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#D4D4D8"></span><code>#D4D4D8</code></td>
+            <td>Disabled states</td>
+          </tr>
+          <tr>
+            <td><code>slate-400</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#A1A1AA"></span><code>#A1A1AA</code></td>
+            <td>Tertiary text, placeholders</td>
+          </tr>
+          <tr>
+            <td><code>slate-500</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#71717A"></span><code>#71717A</code></td>
+            <td>Secondary text</td>
+          </tr>
+          <tr>
+            <td><code>slate-600</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#52525B"></span><code>#52525B</code></td>
+            <td>Body text</td>
+          </tr>
+          <tr>
+            <td><code>slate-700</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#3F3F46"></span><code>#3F3F46</code></td>
+            <td>Strong text, dark borders</td>
+          </tr>
+          <tr>
+            <td><code>slate-800</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#27272A"></span><code>#27272A</code></td>
+            <td>Dark section backgrounds</td>
+          </tr>
+          <tr>
+            <td><code>slate-900</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#18181B"></span><code>#18181B</code></td>
+            <td>Dark mode surfaces</td>
+          </tr>
+          <tr>
+            <td><code>slate-950</code></td>
+            <td></td>
+            <td><span class="swatch" style="background:#09090B"></span><code>#09090B</code></td>
+            <td>Deepest dark, chassis</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Special Accent</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Accent</th>
+            <th>Value</th>
+            <th>Usage</th>
+            <th>Constraint</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>anchor-highlight</code></td>
+            <td><span class="swatch" style="background:rgba(251, 191, 36, 0.2)"></span><code>rgba(251, 191, 36, 0.2)</code></td>
+            <td>Anchor text highlight in light proof contexts</td>
+            <td>Use only when anchor text differs from the broader verified phrase</td>
+          </tr>
+          <tr>
+            <td><code>anchor-highlight-dark</code></td>
+            <td><span class="swatch" style="background:rgba(251, 191, 36, 0.25)"></span><code>rgba(251, 191, 36, 0.25)</code></td>
+            <td>Anchor text highlight in dark proof contexts</td>
+            <td>Preserve contrast without turning the accent into a general warning color</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Guidance</h2>
+      <ul>
+        <li>Keep <code>paper-white</code> and <code>cream</code> as the warm editorial base for first-party branded shells.</li>
+        <li>Use the slate ramp for typography, borders, and structure, not for flattening the interface into cold grayscale.</li>
+        <li>Reserve the amber anchor highlight for evidence semantics so it reads as a distinctive DeepCitation signature.</li>
+        <li>Do not reuse the anchor highlight yellow for primary actions, warnings, or generic decorative emphasis.</li>
+        <li>In SDK surfaces, preserve host override flexibility even when a first-party branded wrapper uses these reference tokens.</li>
+      </ul>
+    </main>
+  </body>
+</html>

@@ -25,3 +25,18 @@
 ## Related Issues
 
 <!-- Link related issues: Fixes #123, Closes #456 -->
+
+---
+
+## Documentation changes only — fill this out instead of the checklist above
+
+> Skip this section if your PR has no documentation changes.
+
+**What was wrong or missing?**
+<!-- Be specific. "Improved clarity" is not an answer. -->
+
+**Which source did you verify against?**
+<!-- e.g. "Checked against the TypeScript interface in src/types.ts", "Ran the example against v0.2.1", "The method signature in src/react/CitationComponent.tsx line 84" -->
+
+**What pages did you change and why only those pages?**
+<!-- If you touched more than one page, explain why each was necessary. -->

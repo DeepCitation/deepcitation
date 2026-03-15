@@ -67,18 +67,18 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
 
   if (status.isPending) {
     return {
-      background: "bg-gray-100 dark:bg-gray-800",
-      border: "border-gray-300 dark:border-gray-600 hover:border-gray-500 dark:hover:border-gray-500",
-      hover: "hover:bg-gray-700 hover:text-white dark:hover:bg-gray-200 dark:hover:text-gray-900",
-      text: "text-gray-500 dark:text-gray-400",
+      background: "bg-slate-100 dark:bg-slate-800",
+      border: "border-slate-300 dark:border-slate-600 hover:border-slate-500 dark:hover:border-slate-500",
+      hover: "hover:bg-slate-700 hover:text-white dark:hover:bg-slate-200 dark:hover:text-slate-900",
+      text: "text-slate-500 dark:text-slate-400",
     };
   }
 
   return {
-    background: "bg-blue-100 dark:bg-blue-900/30",
-    border: "border-blue-300 dark:border-blue-600 hover:border-blue-500 dark:hover:border-blue-500",
-    hover: "hover:bg-blue-700 hover:text-white dark:hover:bg-blue-200 dark:hover:text-blue-900",
-    text: "text-blue-600 dark:text-blue-400",
+    background: "bg-slate-100 dark:bg-slate-800",
+    border: "border-slate-300 dark:border-slate-600 hover:border-slate-700 dark:hover:border-slate-400",
+    hover: "hover:bg-slate-700 hover:text-white dark:hover:bg-slate-200 dark:hover:text-slate-900",
+    text: "text-slate-600 dark:text-slate-400",
   };
 }
 
@@ -86,8 +86,8 @@ function getStatusToneClass(status: CitationStatus, defaultClass: string): strin
   if (status.isPartialMatch) return "text-amber-500 dark:text-amber-400";
   if (status.isMiss) return "text-red-500 dark:text-red-400";
   if (status.isVerified) return "text-green-600 dark:text-green-500";
-  if (status.isPending) return "text-gray-400 dark:text-gray-500";
-  return defaultClass;
+  if (status.isPending) return "text-slate-400 dark:text-slate-500";
+  return defaultClass || "text-slate-600 dark:text-slate-400";
 }
 
 /**
@@ -365,7 +365,7 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
     // SuperscriptCitation shows number by default
     const displayText = useMemo(() => getCitationNumber(citation), [citation]);
 
-    const statusClass = getStatusToneClass(status, "text-blue-600 dark:text-blue-400");
+    const statusClass = getStatusToneClass(status, "text-slate-600 dark:text-slate-400");
 
     return (
       <>
@@ -457,7 +457,7 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
 
     const statusClass = getStatusToneClass(
       status,
-      "text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400",
+      "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100",
     );
 
     return (
@@ -494,6 +494,95 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
 );
 
 FootnoteCitation.displayName = "FootnoteCitation";
+
+// =============================================================================
+// BLOCK VARIANT - Sharp, square-bordered box
+// =============================================================================
+
+export type BlockCitationProps = CitationVariantProps;
+
+/**
+ * Block style citation component.
+ * Displays citation as a sharp, square-bordered inline box — similar to
+ * footnote/superscript but with a heavier, more explicit box treatment.
+ *
+ * @example
+ * ```tsx
+ * <BlockCitation citation={citation} verification={found} />
+ * // Renders: Text content [ 2 ]
+ * ```
+ */
+export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
+  (
+    {
+      citation,
+      children,
+      className,
+      verification,
+      eventHandlers,
+      preventTooltips = false,
+      pendingContent = TWO_DOTS_THINKING_CONTENT,
+      renderVerifiedIndicator = defaultRenderVerifiedIndicator,
+      renderPartialIndicator = defaultRenderPartialIndicator,
+    },
+    ref,
+  ) => {
+    const { citationKey, citationInstanceId, status } = useCitationData(citation, verification);
+    const { isMiss, isPartialMatch, isVerified, isPending } = status;
+    const t = useTranslation();
+    const events = useCitationEvents(citation, citationKey, eventHandlers, preventTooltips);
+
+    const displayText = useMemo(() => getCitationNumber(citation), [citation]);
+
+    // Status border color only — text/bg stay neutral
+    let borderClass: string;
+    if (isPending) {
+      borderClass = "border-slate-200 dark:border-slate-700 animate-pulse cursor-wait";
+    } else if (isMiss) {
+      borderClass = "border-red-500/60 dark:border-red-500/40 cursor-pointer";
+    } else if (isPartialMatch) {
+      borderClass = "border-amber-500/60 dark:border-amber-500/40 cursor-pointer";
+    } else if (isVerified) {
+      borderClass = "border-emerald-500/60 dark:border-emerald-500/40 cursor-pointer";
+    } else {
+      borderClass =
+        "border-slate-300 dark:border-slate-600 hover:border-slate-900 dark:hover:border-slate-100 cursor-pointer";
+    }
+
+    return (
+      <>
+        {children}
+        <span
+          ref={ref}
+          role="button"
+          tabIndex={0}
+          data-citation-id={citationKey}
+          data-citation-instance={citationInstanceId}
+          data-variant="block"
+          className={classNames(
+            "inline-flex items-center justify-center h-[1.4em] min-w-[1.4em] px-[0.3em] mx-0.5",
+            "font-mono text-xs font-medium rounded-sm transition-all duration-120 border align-baseline select-none",
+            "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400",
+            borderClass,
+            className,
+          )}
+          {...events}
+          aria-label={t("aria.citationNumber", { number: displayText })}
+        >
+          {displayText}
+          <StatusIndicators
+            status={status}
+            pendingContent={pendingContent}
+            renderVerifiedIndicator={renderVerifiedIndicator}
+            renderPartialIndicator={renderPartialIndicator}
+          />
+        </span>
+      </>
+    );
+  },
+);
+
+BlockCitation.displayName = "BlockCitation";
 
 // =============================================================================
 // INLINE VARIANT - Subtle inline style with underline
@@ -562,7 +651,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="inline"
           className={classNames(
-            "cursor-pointer transition-colors hover:bg-blue-500/5 inline-flex items-baseline",
+            "cursor-pointer transition-colors hover:bg-slate-500/5 inline-flex items-baseline",
             INLINE_UNDERLINE_CLASSES[underlineStyle],
             statusClass,
             className,
@@ -603,6 +692,8 @@ export interface VariantCitationProps extends CitationVariantProps {
   footnoteProps?: Partial<FootnoteCitationProps>;
   /** Inline-specific props */
   inlineProps?: Partial<InlineCitationProps>;
+  /** Block-specific props */
+  blockProps?: Partial<BlockCitationProps>;
 }
 
 /**
@@ -614,7 +705,7 @@ export interface VariantCitationProps extends CitationVariantProps {
  * ```
  */
 export const CitationVariantFactory = forwardRef<HTMLSpanElement, VariantCitationProps>(
-  ({ variant = "bracket", chipProps, superscriptProps, footnoteProps, inlineProps, ...props }, ref) => {
+  ({ variant = "bracket", chipProps, superscriptProps, footnoteProps, inlineProps, blockProps, ...props }, ref) => {
     switch (variant) {
       case "chip":
         return <ChipCitation ref={ref} {...props} {...chipProps} />;
@@ -624,6 +715,8 @@ export const CitationVariantFactory = forwardRef<HTMLSpanElement, VariantCitatio
         return <FootnoteCitation ref={ref} {...props} {...footnoteProps} />;
       case "inline":
         return <InlineCitation ref={ref} {...props} {...inlineProps} />;
+      case "block":
+        return <BlockCitation ref={ref} {...props} {...blockProps} />;
       default:
         // For bracket variant, we return null here as CitationComponent handles it
         // This factory is meant to be used for alternate variants
@@ -639,4 +732,5 @@ export const MemoizedChipCitation = memo(ChipCitation);
 export const MemoizedSuperscriptCitation = memo(SuperscriptCitation);
 export const MemoizedFootnoteCitation = memo(FootnoteCitation);
 export const MemoizedInlineCitation = memo(InlineCitation);
+export const MemoizedBlockCitation = memo(BlockCitation);
 export const MemoizedCitationVariantFactory = memo(CitationVariantFactory);

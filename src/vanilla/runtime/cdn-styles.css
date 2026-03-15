@@ -1,0 +1,5 @@
+/* CDN popover styles — skip preflight (host page has its own reset) */
+@layer theme, utilities;
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities";
+@source "../../react";

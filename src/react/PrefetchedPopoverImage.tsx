@@ -71,7 +71,7 @@ export function PrefetchedPopoverImage({ src, alt, onClick, className, imageStyl
       <div className={className}>
         <button
           type="button"
-          className="group block cursor-zoom-in relative overflow-hidden rounded-md bg-gray-50 dark:bg-gray-800"
+          className="group block cursor-zoom-in relative overflow-hidden rounded-md bg-dc-muted"
           onClick={e => {
             e.preventDefault();
             e.stopPropagation();

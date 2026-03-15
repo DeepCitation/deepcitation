@@ -97,6 +97,12 @@ export {
   Z_INDEX_OVERLAY_DEFAULT,
   Z_INDEX_POPOVER_VAR,
 } from "./constants.js";
+// Theme — single-entry-point design token overrides
+export {
+  DeepCitationTheme,
+  type DeepCitationThemeColors,
+  type DeepCitationThemeProps,
+} from "./DeepCitationTheme.js";
 export { type ExpandedImageSource, resolveExpandedImage } from "./EvidenceTray.js";
 // Accessibility Hooks
 export { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
