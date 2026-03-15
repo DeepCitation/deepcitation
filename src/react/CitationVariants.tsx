@@ -75,10 +75,10 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
   }
 
   return {
-    background: "bg-blue-100 dark:bg-blue-900/30",
-    border: "border-blue-300 dark:border-blue-600 hover:border-blue-500 dark:hover:border-blue-500",
-    hover: "hover:bg-blue-700 hover:text-white dark:hover:bg-blue-200 dark:hover:text-blue-900",
-    text: "text-blue-600 dark:text-blue-400",
+    background: "bg-gray-100 dark:bg-gray-800",
+    border: "border-gray-300 dark:border-gray-600 hover:border-gray-700 dark:hover:border-gray-400",
+    hover: "hover:bg-gray-700 hover:text-white dark:hover:bg-gray-200 dark:hover:text-gray-900",
+    text: "text-gray-600 dark:text-gray-400",
   };
 }
 
@@ -87,7 +87,7 @@ function getStatusToneClass(status: CitationStatus, defaultClass: string): strin
   if (status.isMiss) return "text-red-500 dark:text-red-400";
   if (status.isVerified) return "text-green-600 dark:text-green-500";
   if (status.isPending) return "text-gray-400 dark:text-gray-500";
-  return defaultClass;
+  return defaultClass || "text-gray-600 dark:text-gray-400";
 }
 
 /**
@@ -560,7 +560,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="block"
           className={classNames(
-            "inline-flex items-center justify-center aspect-square size-[1.4em] mx-0.5",
+            "inline-flex items-center justify-center h-[1.4em] min-w-[1.4em] px-[0.3em] mx-0.5",
             "font-mono text-xs font-medium rounded-sm transition-all duration-120 border align-baseline select-none",
             "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400",
             borderClass,
