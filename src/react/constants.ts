@@ -61,55 +61,35 @@ export const MISS_WAVY_UNDERLINE_STYLE: React.CSSProperties = {
 
 /**
  * CSS custom property name for verified/success indicator color.
- * @example
- * ```css
- * :root {
- *   --dc-verified-color: #22c55e; // Override default
- * }
- * ```
+ * Override via `--dc-verified` on `:root` or `.dark`, or use `<DeepCitationTheme>`.
  */
-export const VERIFIED_COLOR_VAR = "--dc-verified-color";
-/** Default verified indicator color (Tailwind green-600) */
+export const VERIFIED_COLOR_VAR = "--dc-verified";
+/** Default verified indicator color */
 export const VERIFIED_COLOR_DEFAULT = "#16a34a";
 
 /**
  * CSS custom property name for partial match indicator color.
- * @example
- * ```css
- * :root {
- *   --dc-partial-color: #eab308; // Override default
- * }
- * ```
+ * Override via `--dc-partial` on `:root` or `.dark`, or use `<DeepCitationTheme>`.
  */
-export const PARTIAL_COLOR_VAR = "--dc-partial-color";
-/** Default partial match indicator color (Tailwind amber-500) */
+export const PARTIAL_COLOR_VAR = "--dc-partial";
+/** Default partial match indicator color */
 export const PARTIAL_COLOR_DEFAULT = "#f59e0b";
 
 /**
  * CSS custom property name for error/not-found indicator color.
- * @example
- * ```css
- * :root {
- *   --dc-error-color: #dc2626; // Override default
- * }
- * ```
+ * Override via `--dc-destructive` on `:root` or `.dark`, or use `<DeepCitationTheme>`.
  */
-export const ERROR_COLOR_VAR = "--dc-error-color";
-/** Default error indicator color (Tailwind red-500) */
+export const ERROR_COLOR_VAR = "--dc-destructive";
+/** Default error indicator color */
 export const ERROR_COLOR_DEFAULT = "#ef4444";
 
 /**
  * CSS custom property name for pending indicator color.
- * @example
- * ```css
- * :root {
- *   --dc-pending-color: #6b7280; // Override default
- * }
- * ```
+ * Override via `--dc-pending` on `:root` or `.dark`, or use `<DeepCitationTheme>`.
  */
-export const PENDING_COLOR_VAR = "--dc-pending-color";
-/** Default pending indicator color (Tailwind gray-400) */
-export const PENDING_COLOR_DEFAULT = "#9ca3af";
+export const PENDING_COLOR_VAR = "--dc-pending";
+/** Default pending indicator color */
+export const PENDING_COLOR_DEFAULT = "#a1a1aa";
 
 /**
  * CSS custom property name for popover width.
@@ -246,8 +226,7 @@ export const PENDING_COLOR_STYLE: React.CSSProperties = {
  * Base CSS classes for popover containers in CitationComponent.
  * Provides consistent styling for all popover states (pending, success, partial, error).
  */
-export const POPOVER_CONTAINER_BASE_CLASSES =
-  "rounded-lg border border-slate-200 dark:border-slate-600 [background-color:var(--dc-popover-bg,#fff)] dark:[background-color:var(--dc-popover-bg,#27272a)] shadow-md";
+export const POPOVER_CONTAINER_BASE_CLASSES = "rounded-lg border border-dc-border bg-dc-background shadow-md";
 
 /**
  * Dynamic indicator size styles.
@@ -274,10 +253,10 @@ export const INDICATOR_SIZE_STYLE: React.CSSProperties = {
  * - gray: Pending/loading state
  */
 export const DOT_COLORS = {
-  green: "bg-green-600 dark:bg-green-500",
-  amber: "bg-amber-500 dark:bg-amber-400",
-  red: "bg-red-500 dark:bg-red-400",
-  gray: "bg-gray-400 dark:bg-gray-300",
+  green: "bg-dc-verified",
+  amber: "bg-dc-partial",
+  red: "bg-dc-destructive",
+  gray: "bg-dc-pending",
 } as const;
 
 /**
@@ -570,10 +549,10 @@ export const KEYHOLE_WIDTH_FIT_THRESHOLD = 0.4;
 // =============================================================================
 
 /** Border class for evidence tray in verified/partial states */
-export const EVIDENCE_TRAY_BORDER_SOLID = "border border-slate-200 dark:border-slate-700";
+export const EVIDENCE_TRAY_BORDER_SOLID = "border border-dc-border";
 
 /** Border class for evidence tray in not-found state (dashed = "broken") */
-export const EVIDENCE_TRAY_BORDER_DASHED = "border border-dashed border-slate-300 dark:border-slate-600";
+export const EVIDENCE_TRAY_BORDER_DASHED = "border border-dashed border-dc-border";
 
 /** CSS custom property for expanded popover width */
 export const EXPANDED_POPOVER_WIDTH_VAR = "--dc-expanded-width";
@@ -673,13 +652,13 @@ export const ANIM_MEASURED_MS = 250;
 export const ANIM_SLOW_MS = 350;
 
 /** Shared focus-visible ring treatment for interactive elements. */
-export const FOCUS_RING_CLASSES = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40";
+export const FOCUS_RING_CLASSES = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dc-ring/40";
 /** Shared neutral interactive styling for tertiary actions (links/buttons). */
 export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-120 ${FOCUS_RING_CLASSES}`;
 /** Idle tertiary action text color. */
-export const TERTIARY_ACTION_IDLE_CLASSES = "text-slate-600 dark:text-slate-400";
+export const TERTIARY_ACTION_IDLE_CLASSES = "text-dc-muted-foreground";
 /** Hover/focus tertiary action text color. */
-export const TERTIARY_ACTION_HOVER_CLASSES = "hover:text-slate-900 dark:hover:text-slate-100";
+export const TERTIARY_ACTION_HOVER_CLASSES = "hover:text-dc-foreground";
 /** Invisible hit-box extender — uniform 8px in all directions.
  *  Element must be positioned (relative/absolute/fixed). */
 export const HITBOX_EXTEND_8 = "after:content-[''] after:absolute after:inset-[-8px]";
