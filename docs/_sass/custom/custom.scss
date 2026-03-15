@@ -140,6 +140,13 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--body-heading-color);
 }
 
+// Display headings (h1) use Playfair Display per BRANDING.md
+// This matches the main site's serif-display h1 pattern
+.main-content h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+}
+
 // Scher's Rule: the DeepCitation wordmark must use Playfair Display, never Inter
 .site-title {
   font-family: 'Playfair Display', Georgia, serif;
@@ -161,6 +168,12 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 1rem;
     line-height: 1.7;
   }
+}
+
+// Override Just the Docs compiled white backgrounds in light mode
+.main-content-wrap,
+.main {
+  background-color: var(--body-background-color);
 }
 
 code, pre, .highlight {
@@ -641,7 +654,7 @@ blockquote {
   border: 1px solid var(--border-color);
   background-color: var(--body-background-color);
   color: var(--body-text-color);
-  border-radius: 2px; // Sharp, not rounded
+  border-radius: 0; // Sharp corners per BRANDING.md (Bass's Constant)
   padding: 0.625rem 1.25rem;
   font-size: 0.9375rem; // 15px
   font-weight: 500;
