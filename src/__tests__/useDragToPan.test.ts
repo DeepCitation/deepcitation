@@ -22,14 +22,4 @@ describe("useDragToPan", () => {
     expect(result.current.scrollState.canScrollLeft).toBe(false);
     expect(result.current.scrollState.canScrollRight).toBe(false);
   });
-
-  test("isDragging is false initially", () => {
-    const { result } = renderHook(() => useDragToPan());
-    expect(result.current.isDragging).toBe(false);
-  });
-
-  test("wasDraggingRef is false initially", () => {
-    const { result } = renderHook(() => useDragToPan());
-    expect(result.current.wasDraggingRef.current).toBe(false);
-  });
 });

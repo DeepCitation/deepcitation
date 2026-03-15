@@ -75,15 +75,6 @@ const partialVerification: Verification = {
   },
 };
 
-const _linePositionVerification: Verification = {
-  status: "found_on_other_line",
-  document: {
-    verifiedPageNumber: 3,
-    verifiedLineIds: [80],
-    totalLinesOnPage: 100,
-  },
-};
-
 const notFoundVerification: Verification = {
   status: "not_found",
 };
