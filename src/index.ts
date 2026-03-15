@@ -113,10 +113,10 @@ export {
   wrapSystemCitationPrompt,
 } from "./prompts/citationPrompts.js";
 export {
+  type CompressedResult,
   compressPromptIds,
   decompressPromptIds,
 } from "./prompts/promptCompression.js";
-export type { CompressedResult } from "./prompts/types.js";
 
 // React utilities
 export {

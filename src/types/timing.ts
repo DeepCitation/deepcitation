@@ -7,6 +7,8 @@
  * @packageDocumentation
  */
 
+import type { SearchStatus } from "./search.js";
+
 /**
  * Aggregate timing metrics across a set of citations.
  * Computed client-side from individual Verification.timeToCertaintyMs values.
@@ -49,7 +51,7 @@ export interface CitationTimingEvent {
   /** Time since citation was first seen (ms), null for "citation_seen" event */
   elapsedSinceSeenMs: number | null;
   /** Verification status at time of event, if available */
-  verificationStatus?: string | null;
+  verificationStatus?: SearchStatus | null;
   /** For popover_closed: duration popover was open (ms) */
   popoverDurationMs?: number;
   /** For evidence_ready: the computed system TtC (ms) */

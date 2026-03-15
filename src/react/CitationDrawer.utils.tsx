@@ -6,7 +6,6 @@ import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.t
 import { isPartialSearchStatus } from "./citationStatus.js";
 import type { MessageKey, TranslateFunction } from "./i18n.js";
 import { defaultMessages, defaultTranslator } from "./i18n.js";
-// Import icon components for JSX rendering in getStatusInfo
 import {
   CheckIcon as CheckIconComponent,
   SpinnerIcon as SpinnerIconComponent,
@@ -143,8 +142,7 @@ export function groupCitationsBySource(
         ? firstCitation.siteName || sourceDomain || "Unknown Source"
         : firstVerification?.label || firstCitation.attachmentId || "Document",
       sourceDomain,
-      sourceFavicon:
-        firstVerification?.url?.verifiedFaviconUrl || (isUrlSource ? firstCitation.faviconUrl : undefined) || undefined,
+      sourceFavicon: firstVerification?.url?.verifiedFaviconUrl || (isUrlSource ? firstCitation.faviconUrl : undefined),
       citations: items,
       additionalCount: items.length - 1,
     };

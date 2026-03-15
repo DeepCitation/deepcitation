@@ -1,4 +1,7 @@
-import type { CompressedResult } from "./types.js";
+export interface CompressedResult<T> {
+  compressed: T;
+  prefixMap: Record<string, string>;
+}
 
 const MIN_PREFIX_LENGTH = 4;
 const MIN_CHARACTERS_PER_PREFIX_WITH_AT_LEAST_ONE_DIGIT = 3;
