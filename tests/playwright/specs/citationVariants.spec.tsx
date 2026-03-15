@@ -109,8 +109,8 @@ test.describe("ChipCitation", () => {
     await mount(<ChipCitation citation={baseCitation} verification={pendingFoundCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
-    // Pending state shows gray background, text color is inherited
-    await expect(chip).toHaveClass(/bg-gray-/);
+    // Pending state shows slate background, text color is inherited
+    await expect(chip).toHaveClass(/bg-slate-/);
     await expect(chip.locator(".opacity-70")).toBeVisible();
   });
 
@@ -320,7 +320,7 @@ test.describe("InlineCitation", () => {
     await mount(<InlineCitation citation={baseCitation} verification={pendingFoundCitation} />);
     const inline = page.locator('[data-variant="inline"]');
 
-    await expect(inline).toHaveClass(/text-gray-/);
+    await expect(inline).toHaveClass(/text-slate-/);
     await expect(inline.locator(".opacity-70")).toBeVisible();
   });
 });

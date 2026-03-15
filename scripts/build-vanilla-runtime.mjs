@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,7 +23,7 @@ if (!generatedOnly) {
   const cdnCssTmp = resolve(ROOT, "lib/vanilla/.cdn-popover.css");
   const pkgJson = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf-8"));
   console.log("  Extracting Tailwind CSS for CDN bundle...");
-  execSync(`npx @tailwindcss/cli -i ${cdnCssInput} -o ${cdnCssTmp} --minify`, { cwd: ROOT, stdio: "pipe" });
+  execFileSync("npx", ["@tailwindcss/cli", "-i", cdnCssInput, "-o", cdnCssTmp, "--minify"], { cwd: ROOT, stdio: "pipe" });
   const cdnCss = readFileSync(cdnCssTmp, "utf-8").trim();
   console.log(`  ✓ CDN CSS extracted (${(cdnCss.length / 1024).toFixed(1)}KB)`);
   const cdnResult = await esbuild.build({
