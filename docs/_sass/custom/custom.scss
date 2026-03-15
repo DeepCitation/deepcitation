@@ -16,6 +16,9 @@ $slate-800: #1E293B;
 $slate-900: #0F172A;
 $slate-950: #020617;
 
+// Brand display font — Playfair Display for wordmark and h1 headings
+$font-display: 'Playfair Display', Georgia, serif;
+
 // Bracket accent — reusable left-edge indicator (app sidebar, testimonials, callouts)
 @mixin bracket-indicator {
   content: "";
@@ -142,7 +145,7 @@ h1, h2, h3, h4, h5, h6 {
 
 // Scher's Rule: the DeepCitation wordmark must use Playfair Display, never Inter
 .site-title {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: $font-display;
   font-weight: 700;
   color: var(--body-heading-color);
 }
@@ -153,7 +156,11 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.7;
 
   // Display headings use Playfair Display per BRANDING.md
-  h1 { font-size: 2rem; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; }
+  h1 {
+    font-size: 2rem;
+    font-family: $font-display;
+    font-weight: 700;
+  }
   h2 { font-size: 1.5rem; margin-top: 2rem; }
   h3 { font-size: 1.25rem; margin-top: 1.5rem; }
   h4 { font-size: 1.125rem; }
@@ -328,7 +335,7 @@ pre {
 // so we must override wrapper elements at runtime.
 // -----------------------------------------------------
 @media (prefers-color-scheme: dark) {
-  // .main-content-wrap and .main bg override is now unconditional (see line ~173)
+  // .main-content-wrap and .main bg is set unconditionally above
 
   .page-header {
     background-color: var(--body-background-color);
