@@ -67,18 +67,18 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
 
   if (status.isPending) {
     return {
-      background: "bg-gray-100 dark:bg-gray-800",
-      border: "border-gray-300 dark:border-gray-600 hover:border-gray-500 dark:hover:border-gray-500",
-      hover: "hover:bg-gray-700 hover:text-white dark:hover:bg-gray-200 dark:hover:text-gray-900",
-      text: "text-gray-500 dark:text-gray-400",
+      background: "bg-slate-100 dark:bg-slate-800",
+      border: "border-slate-300 dark:border-slate-600 hover:border-slate-500 dark:hover:border-slate-500",
+      hover: "hover:bg-slate-700 hover:text-white dark:hover:bg-slate-200 dark:hover:text-slate-900",
+      text: "text-slate-500 dark:text-slate-400",
     };
   }
 
   return {
-    background: "bg-gray-100 dark:bg-gray-800",
-    border: "border-gray-300 dark:border-gray-600 hover:border-gray-700 dark:hover:border-gray-400",
-    hover: "hover:bg-gray-700 hover:text-white dark:hover:bg-gray-200 dark:hover:text-gray-900",
-    text: "text-gray-600 dark:text-gray-400",
+    background: "bg-slate-100 dark:bg-slate-800",
+    border: "border-slate-300 dark:border-slate-600 hover:border-slate-700 dark:hover:border-slate-400",
+    hover: "hover:bg-slate-700 hover:text-white dark:hover:bg-slate-200 dark:hover:text-slate-900",
+    text: "text-slate-600 dark:text-slate-400",
   };
 }
 
@@ -365,7 +365,7 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
     // SuperscriptCitation shows number by default
     const displayText = useMemo(() => getCitationNumber(citation), [citation]);
 
-    const statusClass = getStatusToneClass(status, "text-blue-600 dark:text-blue-400");
+    const statusClass = getStatusToneClass(status, "text-slate-600 dark:text-slate-400");
 
     return (
       <>
@@ -457,7 +457,7 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
 
     const statusClass = getStatusToneClass(
       status,
-      "text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400",
+      "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100",
     );
 
     return (
@@ -537,7 +537,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
     // Status border color only — text/bg stay neutral
     let borderClass: string;
     if (isPending) {
-      borderClass = "border-gray-200 dark:border-gray-700 animate-pulse cursor-wait";
+      borderClass = "border-slate-200 dark:border-slate-700 animate-pulse cursor-wait";
     } else if (isMiss) {
       borderClass = "border-red-500/60 dark:border-red-500/40 cursor-pointer";
     } else if (isPartialMatch) {
@@ -546,7 +546,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
       borderClass = "border-emerald-500/60 dark:border-emerald-500/40 cursor-pointer";
     } else {
       borderClass =
-        "border-gray-300 dark:border-gray-600 hover:border-gray-900 dark:hover:border-gray-100 cursor-pointer";
+        "border-slate-300 dark:border-slate-600 hover:border-slate-900 dark:hover:border-slate-100 cursor-pointer";
     }
 
     return (
@@ -562,7 +562,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
           className={classNames(
             "inline-flex items-center justify-center h-[1.4em] min-w-[1.4em] px-[0.3em] mx-0.5",
             "font-mono text-xs font-medium rounded-sm transition-all duration-120 border align-baseline select-none",
-            "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400",
+            "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400",
             borderClass,
             className,
           )}
@@ -651,7 +651,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="inline"
           className={classNames(
-            "cursor-pointer transition-colors hover:bg-blue-500/5 inline-flex items-baseline",
+            "cursor-pointer transition-colors hover:bg-slate-500/5 inline-flex items-baseline",
             INLINE_UNDERLINE_CLASSES[underlineStyle],
             statusClass,
             className,

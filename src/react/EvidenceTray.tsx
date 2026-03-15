@@ -1119,7 +1119,7 @@ export function EvidenceTray({
           {isSearchLogMounted ? (
             <div style={searchLogMotionStyle}>
               <div className="overflow-hidden" style={{ minHeight: 0 }}>
-                <div className="border-t border-gray-200 dark:border-gray-700">
+                <div className="border-t border-slate-200 dark:border-slate-700">
                   <div
                     ref={searchLogViewportRef}
                     className="max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain"
@@ -1827,7 +1827,7 @@ export function InlineExpandedImage({
   }, []);
 
   const footerEl = (
-    <div className="bg-white dark:bg-gray-900 rounded-b-sm border border-t-0 border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-slate-800 rounded-b-sm border border-t-0 border-slate-200 dark:border-slate-700">
       <EvidenceTrayFooter
         verifiedAt={verification?.verifiedAt}
         onPageClick={fill || !onExpand ? undefined : handleExpandToPage}
@@ -1864,7 +1864,7 @@ export function InlineExpandedImage({
             DOCUMENT_CANVAS_BG_CLASSES,
             // Top+sides border completes the box started by the footer's border-t-0.
             // Matches EvidenceTray's EVIDENCE_TRAY_BORDER_SOLID so the transition is seamless.
-            !fill && "border border-b-0 border-gray-200 dark:border-gray-700",
+            !fill && "border border-b-0 border-slate-200 dark:border-slate-700",
             fill && "flex-1 min-h-0",
           )}
           style={{

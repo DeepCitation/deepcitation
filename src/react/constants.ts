@@ -570,10 +570,10 @@ export const KEYHOLE_WIDTH_FIT_THRESHOLD = 0.4;
 // =============================================================================
 
 /** Border class for evidence tray in verified/partial states */
-export const EVIDENCE_TRAY_BORDER_SOLID = "border border-gray-200 dark:border-gray-700";
+export const EVIDENCE_TRAY_BORDER_SOLID = "border border-slate-200 dark:border-slate-700";
 
 /** Border class for evidence tray in not-found state (dashed = "broken") */
-export const EVIDENCE_TRAY_BORDER_DASHED = "border border-dashed border-gray-300 dark:border-gray-600";
+export const EVIDENCE_TRAY_BORDER_DASHED = "border border-dashed border-slate-300 dark:border-slate-600";
 
 /** CSS custom property for expanded popover width */
 export const EXPANDED_POPOVER_WIDTH_VAR = "--dc-expanded-width";
@@ -677,9 +677,9 @@ export const FOCUS_RING_CLASSES = "focus-visible:outline-none focus-visible:ring
 /** Shared neutral interactive styling for tertiary actions (links/buttons). */
 export const TERTIARY_ACTION_BASE_CLASSES = `transition-colors duration-120 ${FOCUS_RING_CLASSES}`;
 /** Idle tertiary action text color. */
-export const TERTIARY_ACTION_IDLE_CLASSES = "text-gray-600 dark:text-gray-400";
+export const TERTIARY_ACTION_IDLE_CLASSES = "text-slate-600 dark:text-slate-400";
 /** Hover/focus tertiary action text color. */
-export const TERTIARY_ACTION_HOVER_CLASSES = "hover:text-blue-600 dark:hover:text-blue-400";
+export const TERTIARY_ACTION_HOVER_CLASSES = "hover:text-slate-900 dark:hover:text-slate-100";
 /** Invisible hit-box extender — uniform 8px in all directions.
  *  Element must be positioned (relative/absolute/fixed). */
 export const HITBOX_EXTEND_8 = "after:content-[''] after:absolute after:inset-[-8px]";

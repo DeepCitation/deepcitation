@@ -163,7 +163,7 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
   const t = useTranslation();
   if (snippets.length === 0) return null;
   return (
-    <div className="px-4 py-2 space-y-1.5 border-b border-gray-100 dark:border-gray-800">
+    <div className="px-4 py-2 space-y-1.5 border-b border-slate-100 dark:border-slate-800">
       {snippets.slice(0, 3).map((snippet, idx) => {
         const before = snippet.contextText.slice(0, snippet.matchStart);
         const match = snippet.contextText.slice(snippet.matchStart, snippet.matchEnd);
@@ -298,7 +298,7 @@ function ClaimQuote({
   return (
     <div
       className={cn(
-        "mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-gray-50 dark:bg-gray-800/50 border-l-[3px] max-w-prose",
+        "mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-slate-50 dark:bg-slate-800/50 border-l-[3px] max-w-prose",
         borderColor,
       )}
       style={maxWidth ? { maxWidth } : undefined}
@@ -642,7 +642,7 @@ function PopoverLoadingView({
           {t("popover.searching")}
         </span>
         {searchingPhrase && (
-          <p className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded font-mono text-[11px] break-words text-gray-700 dark:text-gray-300">
+          <p className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded font-mono text-[11px] break-words text-slate-700 dark:text-slate-300">
             &ldquo;{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}&rdquo;
           </p>
         )}
@@ -716,7 +716,7 @@ function PopoverFallbackView({
         )}
         {hasSnippet && (
           <q
-            className="border-l-2 border-gray-300 dark:border-gray-600 pl-1.5 ml-0.5 text-sm text-gray-700 dark:text-gray-200"
+            className="border-l-2 border-slate-300 dark:border-slate-600 pl-1.5 ml-0.5 text-sm text-slate-700 dark:text-slate-200"
             style={{ quotes: "none" }}
           >
             {hasSnippet}
