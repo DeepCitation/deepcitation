@@ -17,7 +17,7 @@ Verify AI citations against source documents. Visual proof for every claim.
 
 {: .fs-6 .fw-300 }
 
-[Get Started]({{ site.baseurl }}/getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Start Building]({{ site.baseurl }}/getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/DeepCitation/deepcitation){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
