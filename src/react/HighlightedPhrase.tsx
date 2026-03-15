@@ -20,10 +20,7 @@ export function HighlightedPhrase({
   if (isMiss) {
     return <span className="text-red-400 dark:text-red-400/70">{fullPhrase}</span>;
   }
-  if (!anchorText || !fullPhrase.includes(anchorText)) {
-    return <span className="text-dc-muted-foreground">{fullPhrase}</span>;
-  }
-  if (!shouldHighlightAnchorText(anchorText, fullPhrase)) {
+  if (!anchorText || !fullPhrase.includes(anchorText) || !shouldHighlightAnchorText(anchorText, fullPhrase)) {
     return <span className="text-dc-muted-foreground">{fullPhrase}</span>;
   }
   const idx = fullPhrase.indexOf(anchorText);

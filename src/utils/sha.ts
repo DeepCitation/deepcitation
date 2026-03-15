@@ -4,11 +4,6 @@
  * No external dependencies.
  */
 
-function utf8Encode(str: string): Uint8Array {
-  const encoder = new TextEncoder();
-  return encoder.encode(str);
-}
-
 function sha1(message: Uint8Array): string {
   // Initial hash values
   let h0 = 0x67452301;
@@ -113,7 +108,7 @@ export function sha1Hash(data: unknown): string {
   try {
     if (!data) return "";
     const str = typeof data === "string" ? data : JSON.stringify(data);
-    return sha1(utf8Encode(str));
+    return sha1(new TextEncoder().encode(str));
   } catch (error) {
     console.error("Error in making the hash:", error);
   }

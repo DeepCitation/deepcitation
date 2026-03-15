@@ -317,13 +317,6 @@ function longestCommonSuffix(a: string, b: string): string {
 }
 
 /**
- * Check if a string is only whitespace.
- */
-function _isWhitespace(str: string): boolean {
-  return /^\s*$/.test(str);
-}
-
-/**
  * Deduplicate whitespace in change objects.
  * This is a simplified version of jsdiff's dedupeWhitespaceInChangeObjects.
  *

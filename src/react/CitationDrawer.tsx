@@ -45,9 +45,6 @@ import type { IndicatorVariant } from "./types.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
 
-// HighlightedPhrase — imported from ./HighlightedPhrase.js (canonical location)
-// EvidenceTray, InlineExpandedImage — imported from ./EvidenceTray.js (canonical location)
-
 /**
  * Exponential-approach stagger delay: starts at ~DELAY gap, decelerates toward MAX (always monotonic).
  * Preferred over linear (index * DELAY capped at MAX) because the exponential curve avoids
@@ -817,10 +814,6 @@ function DrawerSourceHeading({
 }
 
 // =========
-// CitationDrawer
-// =========
-
-// =========
 // IndicatorRow — clickable status chips for citations visible in the header panel
 // =========
 
@@ -926,7 +919,6 @@ function OpenCitationDrawer({
   title,
   label,
   onCitationClick,
-  onReadMore: _onReadMore,
   className,
   position = "bottom",
   renderCitationItem,
@@ -1175,7 +1167,11 @@ function OpenCitationDrawer({
 
   const isSingleGroup = sortedGroups.length === 1;
 
-  const drawerContent = (
+  // Render via portal (SSR-safe: skip if document.body unavailable)
+  const portalContainer = getPortalContainer();
+  if (!portalContainer) return null;
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -1378,11 +1374,7 @@ function OpenCitationDrawer({
           </div>
         </DrawerEscapeContext.Provider>
       </div>
-    </>
+    </>,
+    portalContainer,
   );
-
-  // Render via portal (SSR-safe: skip if document.body unavailable)
-  const portalContainer = getPortalContainer();
-  if (!portalContainer) return null;
-  return createPortal(drawerContent, portalContainer);
 }

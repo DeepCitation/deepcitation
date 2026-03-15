@@ -8,6 +8,10 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function isValidProjectedWidth(px: number | null | undefined): px is number {
+  return px !== null && px !== undefined && Number.isFinite(px) && px > 0;
+}
+
 function computeAlignOffset(
   viewportWidth: number,
   triggerLeft: number,
@@ -77,13 +81,9 @@ export function usePopoverAlignOffset(
     // Use clientWidth (visible viewport excluding scrollbar) instead of
     // window.innerWidth (which includes scrollbar like CSS 100dvw).
     const viewportWidth = document.documentElement.clientWidth;
-    let popoverWidth =
-      projectedWidthPx !== null &&
-      projectedWidthPx !== undefined &&
-      Number.isFinite(projectedWidthPx) &&
-      projectedWidthPx > 0
-        ? projectedWidthPx
-        : (popoverContentRef.current?.getBoundingClientRect().width ?? 0);
+    let popoverWidth = isValidProjectedWidth(projectedWidthPx)
+      ? projectedWidthPx
+      : (popoverContentRef.current?.getBoundingClientRect().width ?? 0);
     if (popoverWidth <= 0) {
       // Fall back to the default width instead of preserving a stale offset.
       // This prevents reopening with an offset from a previous expanded view.
@@ -140,12 +140,7 @@ export function usePopoverAlignOffset(
   // biome-ignore lint/correctness/useExhaustiveDependencies: popoverContentRef has stable identity
   useEffect(() => {
     if (!isOpen) return;
-    if (
-      projectedWidthPx !== null &&
-      projectedWidthPx !== undefined &&
-      Number.isFinite(projectedWidthPx) &&
-      projectedWidthPx > 0
-    ) {
+    if (isValidProjectedWidth(projectedWidthPx)) {
       return;
     }
     const el = popoverContentRef.current;

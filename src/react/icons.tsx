@@ -318,55 +318,6 @@ export const LocateIcon = ({ className }: { className?: string }) => (
 );
 
 /**
- * Zoom/expand icon for enlarging images
- * Size is controlled by parent container
- */
-export const ZoomInIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    width="100%"
-    height="100%"
-  >
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    <line x1="11" y1="8" x2="11" y2="14" />
-    <line x1="8" y1="11" x2="14" y2="11" />
-  </svg>
-);
-
-/**
- * Zoom-out icon for shrinking images (magnifying glass with minus)
- * Size is controlled by parent container
- */
-export const ZoomOutIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    width="100%"
-    height="100%"
-  >
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    <line x1="8" y1="11" x2="14" y2="11" />
-  </svg>
-);
-
-/**
  * Chevron down icon for disclosure indicators (e.g., caret variant)
  * Size is controlled by parent container
  */
@@ -411,29 +362,6 @@ export const ChevronRightIcon = ({ className }: { className?: string }) => (
 );
 
 /**
- * Arrow left icon for back navigation
- * Size is controlled by parent container
- */
-export const ArrowLeftIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    width="100%"
-    height="100%"
-  >
-    <line x1="19" y1="12" x2="5" y2="12" />
-    <polyline points="12 19 5 12 12 5" />
-  </svg>
-);
-
-/**
  * Download icon (arrow-down into tray) for source download actions
  * Size is controlled by parent container
  */
@@ -454,51 +382,5 @@ export const DownloadIcon = ({ className }: { className?: string }) => (
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
     <polyline points="7 10 12 15 17 10" />
     <line x1="12" y1="15" x2="12" y2="3" />
-  </svg>
-);
-
-/**
- * Copy icon for clipboard operations
- * Size is controlled by parent container
- */
-export const CopyIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    width="100%"
-    height="100%"
-  >
-    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-  </svg>
-);
-
-/**
- * Open hand icon for drag-to-pan affordance
- * Size is controlled by parent container
- */
-export const HandIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    width="100%"
-    height="100%"
-  >
-    <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
-    <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
   </svg>
 );

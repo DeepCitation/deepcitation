@@ -85,14 +85,6 @@ export interface CitationDrawerTriggerProps {
 /** Icon overlap when bar is expanded (rem scales with root font size) */
 const ICON_MARGIN_EXPANDED = "-0.25rem";
 
-// =========
-// Internal types
-// =========
-
-// =========
-// Internal utilities
-// =========
-
 /**
  * Build a descriptive title for a citation icon tooltip.
  * Includes truncated anchor text to disambiguate icons from the same source.

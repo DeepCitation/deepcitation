@@ -29,7 +29,6 @@ import {
 } from "./icons.js";
 import { groupSearchAttempts, groupSearchAttemptsForNotFound } from "./searchAttemptGrouping.js";
 import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
-// import { isValidProofUrl } from "./urlUtils.js"; // temporarily unused while proof link is disabled
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn, isImageSource } from "./utils.js";
 
@@ -564,20 +563,6 @@ export function SourceContextHeader({
       </div>
       {/* Right: Proof link (expanded view) + Page pill */}
       <div className="flex items-center gap-3">
-        {/* Not ready {validatedProofUrl && (
-          <a
-            href={validatedProofUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={t("action.openProof")}
-            className="shrink-0 text-dc-pending hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-            onClick={e => e.stopPropagation()}
-          >
-            <span className="size-3.5 block">
-              <ExternalLinkIcon />
-            </span>
-          </a>
-        )} */}
         {showPagePill && (
           <PagePill
             pageNumber={pageNumber ?? undefined}
@@ -1117,10 +1102,6 @@ function VerificationLogSummary({
     </button>
   );
 }
-
-// =============================================================================
-// SEARCH SUMMARY BUILDER
-// =============================================================================
 
 // =============================================================================
 // AUDIT-FOCUSED SEARCH DISPLAY

@@ -78,7 +78,7 @@ for (const [canonical, aliases] of Object.entries(FIELD_ALIAS_MAP)) {
 }
 
 /**
- * Canonical camelCase → snake_case mapping for XML normalization.
+ * Canonical camelCase → snake_case mapping.
  * Built once at module load.
  */
 const CANONICAL_TO_SNAKE: Record<string, string> = {

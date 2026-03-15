@@ -38,6 +38,9 @@ const KNOWN_UNUSED = new Set([
   // surfaces error states in the popover UI.
   "citation.fallback",
   "error.citation",
+
+  // Proof link — feature not yet wired up in SourceContextHeader.
+  "action.openProof",
 ]);
 
 // =============================================================================

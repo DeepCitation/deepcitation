@@ -1,5 +1,6 @@
 import { renderCitationsAsHtml } from "../rendering/html/htmlRenderer.js";
 import { generateStyleBlock } from "../rendering/html/styles.js";
+import { escapeHtml } from "../rendering/shared.js";
 import { RUNTIME_JS } from "./_generated.js";
 import { POPOVER_CSS } from "./popoverStyles.js";
 import type { VanillaReportOptions } from "./types.js";
@@ -14,10 +15,6 @@ function escapeJsonForScript(json: string): string {
     .replace(/>/g, "\\u003e")
     .replace(/\u2028/g, "\\u2028")
     .replace(/\u2029/g, "\\u2029");
-}
-
-function escapeHtml(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 /**
