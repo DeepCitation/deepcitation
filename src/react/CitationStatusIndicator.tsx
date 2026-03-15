@@ -181,18 +181,18 @@ export const CitationStatusIndicator = ({
     // Only flip when popover is above; down-caret already points toward a bottom popover.
     const shouldFlip = isOpen === true && popoverSide === "top";
 
-    // Color: miss → red, open → darker gray, default → light gray.
+    // Color: miss → red, open → inverted (high contrast), default → muted gray.
     const pillTextClass = isMiss
       ? "text-red-500 dark:text-red-400"
       : isOpen
-        ? "text-gray-600 dark:text-gray-400"
+        ? "text-white dark:text-gray-900"
         : "text-gray-400 dark:text-gray-500";
 
-    // Pill background: miss → red tint, open → slightly darker, default → subtle gray.
+    // Pill background: miss → red tint, open → solid dark/light (inverted), default → subtle gray.
     const pillBgClass = isMiss
       ? "bg-red-50 dark:bg-red-950"
       : isOpen
-        ? "bg-gray-200/60 dark:bg-gray-700/60"
+        ? "bg-gray-800 dark:bg-gray-100"
         : "bg-gray-100/60 dark:bg-gray-800/40";
 
     if (shouldShowSpinner) {
