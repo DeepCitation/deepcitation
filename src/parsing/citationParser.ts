@@ -168,11 +168,6 @@ function parseCitationsFromJson(parsed: unknown): CitationData[] {
   return rawCitations.map(c => expandCompactKeys(c as Record<string, unknown>));
 }
 
-export type {
-  CitationData,
-  ParsedCitationResponse,
-} from "../prompts/citationPrompts.js";
-
 /**
  * Attempts to repair malformed JSON.
  * Handles common LLM output issues like:
@@ -350,7 +345,7 @@ export function parseCitationData(llmResponse: string): ParsedCitationResponse {
  * @param pageId - The page ID string
  * @returns Object with pageNumber and normalized startPageId, or undefined values
  */
-function parsePageId(pageId: string): {
+export function parsePageId(pageId: string): {
   pageNumber?: number;
   startPageId?: string;
 } {

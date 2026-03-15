@@ -9,22 +9,6 @@ const UPPER_A_CODE = 65;
 const UPPER_Z_CODE = 90;
 const LOWER_A_CODE = 97;
 const LOWER_Z_CODE = 122;
-const ID_ATTRIBUTE_KEYS = [
-  "attachmentId",
-  "attachment_id",
-  "attachment_ID",
-  "attachmentID",
-  "fileId",
-  "file_id",
-  "file_ID",
-  "fileID",
-  "fileid",
-] as const;
-const ID_ATTRIBUTE_KEY_PATTERN = ID_ATTRIBUTE_KEYS.join("|");
-const ID_ATTRIBUTE_QUOTE_PATTERN = "([\"'`])";
-
-/** Escape special regex characters in a string. Module-level to avoid per-call allocation. */
-const escapeRegex = (s: string): string => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
 
 function countOccurrences(text: string, needle: string): number {
   if (needle.length === 0) return 0;
@@ -199,18 +183,6 @@ export function decompressPromptIds<T>(compressed: T | string, prefixMap: Record
     text = text.replaceAll(prefix, full);
   }
 
-  // Handle cases where the LLM may output ID in a different attribute format
-  // We look for common ID attribute patterns and replace compressed prefixes within them
-  // Note: fileId variants are supported for backwards compatibility with legacy citations
-  // For each prefix, look for it within ID attribute values and replace with full ID
-  for (const [prefix, full] of entries) {
-    const escPrefix = escapeRegex(prefix);
-
-    // Match: attributeName = 'prefix' or attributeName="prefix" etc.
-    // Only replace the prefix part, preserving the attribute name and quotes
-    const re = new RegExp(`(${ID_ATTRIBUTE_KEY_PATTERN})(\\s*=\\s*)${ID_ATTRIBUTE_QUOTE_PATTERN}${escPrefix}\\3`, "g");
-    text = text.replace(re, `$1$2$3${full}$3`);
-  }
   const newLength = text.length;
 
   const diff = originalLength - newLength;
