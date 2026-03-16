@@ -341,6 +341,21 @@ pre {
     background-color: var(--body-background-color);
   }
 
+  // -------------------------------------------------
+  // Tables — JTD hardcodes background-color: #fff on td elements.
+  // tr/table are transparent, but td gets white directly, so we override td.
+  // tr:nth-child(even) td gets a slightly lighter shade for stripe contrast.
+  // -------------------------------------------------
+  .main-content td {
+    background-color: var(--body-background-color);
+    border-color: var(--border-color);
+    color: var(--body-text-color);
+  }
+
+  .main-content tr:nth-child(even) td {
+    background-color: var(--code-background-color); // slate-900 — subtle stripe
+  }
+
   // Horizontal rules
   .main-content hr {
     border-color: var(--border-color);
@@ -368,14 +383,27 @@ pre {
     color: var(--body-text-color);
   }
 
-  // Mobile navigation toggle
+  // Mobile navigation toggle — use high specificity to beat JTD compiled overrides
+  // JTD compiles .site-header .site-button with a hardcoded dark color that wins
+  // over the low-specificity .site-button rule, making the hamburger invisible on dark bg.
+  .site-header .site-button,
+  .site-nav .site-button,
   .site-button {
     color: var(--body-heading-color);
+    // SVG icon inside the button (uses currentColor in JTD v0.8)
+    svg { fill: var(--body-heading-color); }
   }
 
   // Navigation overlay on mobile
   .search-overlay {
     background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  // Table header borders (th background is set via CSS var outside media query,
+  // but JTD compiles a hardcoded border color on th that needs overriding here)
+  .main-content th {
+    border-color: var(--border-color);
+    color: var(--body-heading-color);
   }
 
   // Note/warning/important callouts (Just the Docs compiled backgrounds)
