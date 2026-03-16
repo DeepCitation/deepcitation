@@ -1166,7 +1166,8 @@ describe("replaceCitationMarkers with verifications", () => {
       verifications,
       showVerificationStatus: true,
     });
-    expect(result).toBe("Test [1☑️] and [2⌛].");
+    // [2] has no verification data → unknown ("◌"), not pending
+    expect(result).toBe("Test [1☑️] and [2◌].");
   });
 
   it("shows partial match indicator", () => {

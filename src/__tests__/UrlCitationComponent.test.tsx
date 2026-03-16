@@ -327,7 +327,8 @@ describe("URL utility functions", () => {
     });
 
     it("handles invalid URLs gracefully", () => {
-      expect(extractDomain("not-a-url")).toBe("not-a-url");
+      // Canonical extractDomain returns "" for invalid URLs (no fallback regex)
+      expect(extractDomain("not-a-url")).toBe("");
     });
   });
 

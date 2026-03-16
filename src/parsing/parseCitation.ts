@@ -6,6 +6,7 @@ import type {
   DocumentCitation,
   UrlCitation,
 } from "../types/citation.js";
+import type { MatchedVariation, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { getFieldAliases, resolveField } from "../utils/fieldAliases.js";
@@ -15,19 +16,27 @@ import { getAllCitationsFromNumericResponse, hasCitationData, parsePageId } from
 /**
  * Module-level status sets for O(1) lookups — avoids per-call array allocations.
  */
-const MISS_STATUSES = new Set(["not_found"]);
-const PARTIAL_STATUSES = new Set([
+const PARTIAL_STATUSES: ReadonlySet<SearchStatus> = new Set<SearchStatus>([
   "found_anchor_text_only",
   "partial_text_found",
   "found_on_other_page",
   "found_on_other_line",
   "first_word_found",
 ]);
-const VERIFIED_STATUSES = new Set(["found", "found_phrase_missed_anchor_text"]);
-const PENDING_STATUSES = new Set<string | null | undefined>(["pending", "loading", null, undefined]);
+
+const LOW_TRUST_VARIATIONS: ReadonlySet<MatchedVariation> = new Set<MatchedVariation>([
+  "partial_full_phrase",
+  "partial_anchor_text",
+  "first_word_only",
+]);
 
 /**
  * Calculates the verification status of a citation based on the found highlight and search state.
+ *
+ * Checks both the top-level SearchStatus and individual searchAttempts for
+ * low-trust matchedVariation values (partial_full_phrase, partial_anchor_text,
+ * first_word_only). A successful attempt with a low-trust variation is classified
+ * as a partial match (amber) rather than fully verified (green).
  *
  * @param verification - The found highlight location, or null/undefined if not found
  * @returns An object containing boolean flags for verification status
@@ -35,15 +44,21 @@ const PENDING_STATUSES = new Set<string | null | undefined>(["pending", "loading
 export function getCitationStatus(verification: Verification | null | undefined): CitationStatus {
   const status = verification?.status;
 
-  const isMiss = MISS_STATUSES.has(status || "");
+  if (!verification || !status) {
+    return { isVerified: false, isMiss: false, isPartialMatch: false, isPending: false };
+  }
 
-  // Partial matches: something found but not ideal (amber indicator)
-  const isPartialMatch = PARTIAL_STATUSES.has(status || "");
+  const isMiss = status === "not_found";
+  const isPending = status === "pending" || status === "loading";
 
-  // Verified: exact match or partial match (green or amber indicator)
-  const isVerified = VERIFIED_STATUSES.has(status || "") || isPartialMatch;
+  const hasLowTrustMatch =
+    verification.searchAttempts?.some(
+      a => a.success && a.matchedVariation && LOW_TRUST_VARIATIONS.has(a.matchedVariation),
+    ) ?? false;
 
-  const isPending = PENDING_STATUSES.has(status);
+  const isPartialMatch = PARTIAL_STATUSES.has(status) || hasLowTrustMatch;
+
+  const isVerified = status === "found" || status === "found_phrase_missed_anchor_text" || isPartialMatch;
 
   return { isVerified, isMiss, isPartialMatch, isPending };
 }

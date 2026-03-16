@@ -2,6 +2,7 @@ import type React from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { extractDomain } from "../utils/urlSafety.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
 import { isPartialSearchStatus } from "./citationStatus.js";
 import type { MessageKey, TranslateFunction } from "./i18n.js";
@@ -134,8 +135,10 @@ export function groupCitationsBySource(
   const result = Array.from(groups.entries()).map(([_key, items]) => {
     const firstCitation = items[0].citation;
     const firstVerification = items[0].verification;
-    const isUrlSource = firstCitation.type === "url";
-    const sourceDomain = isUrlSource ? firstCitation.domain || extractDomain(firstCitation.url) : undefined;
+    const isUrlSource = isUrlCitation(firstCitation);
+    const sourceDomain = isUrlSource
+      ? firstCitation.domain || (firstCitation.url ? extractDomain(firstCitation.url) : undefined)
+      : undefined;
 
     return {
       sourceName: isUrlSource
@@ -148,19 +151,6 @@ export function groupCitationsBySource(
     };
   });
   return resolveGroupLabels(result, sourceLabelMap);
-}
-
-/**
- * Extracts domain from a URL string.
- */
-export function extractDomain(url?: string | null): string | undefined {
-  if (!url) return undefined;
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname.replace(/^www\./, "");
-  } catch {
-    return undefined;
-  }
 }
 
 import { DOT_INDICATOR_FIXED_SIZE_STYLE } from "./constants.js";

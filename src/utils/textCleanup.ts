@@ -17,6 +17,7 @@ export const removeLineIdMetadata = (pageText: string): string => {
 
 export const getCitationPageNumber = (startPageId?: string | null): number | null => {
   if (!startPageId) return null;
-  const pageNumber = startPageId.match(/\d+/)?.[0];
-  return pageNumber ? parseInt(pageNumber, 10) : null;
+  // Try the structured format first (page_number_N_index_M), fall back to first digit run
+  const match = startPageId.match(/page_number_(\d+)/)?.[1] ?? startPageId.match(/\d+/)?.[0];
+  return match ? parseInt(match, 10) : null;
 };

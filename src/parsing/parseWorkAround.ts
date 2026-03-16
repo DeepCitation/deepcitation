@@ -1,5 +1,9 @@
 //flash and flash lite get super confused if we ask for a MD table and infinite loop
 const MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE = 64;
+const MIN_REPETITIONS = 2;
+const MIN_SENTENCE_CONTENT_LENGTH = 10;
+const SENTENCE_END_RE = /[.?!](?=\s+|$)/g;
+
 export const isGeminiGarbage = (content: string) => {
   if (!content) return false;
   const trimmedContent = content.trim();
@@ -16,15 +20,8 @@ export const isGeminiGarbage = (content: string) => {
 // helps clean up infinite rambling bug output from gemini
 export function cleanRepeatingLastSentence(text: string): string {
   text = text.trim();
-  const MIN_REPETITIONS = 2;
-  const MIN_SENTENCE_CONTENT_LENGTH = 10;
 
-  const sentenceEndRegex = /[.?!](?=\s+|$)/g;
-  const sentenceEndIndices: number[] = [];
-  let match: RegExpExecArray | null;
-  while ((match = sentenceEndRegex.exec(text)) !== null) {
-    sentenceEndIndices.push(match.index);
-  }
+  const sentenceEndIndices = Array.from(text.matchAll(SENTENCE_END_RE), m => m.index ?? 0);
 
   if (sentenceEndIndices.length < 2) {
     return text;
@@ -63,9 +60,7 @@ export function cleanRepeatingLastSentence(text: string): string {
       break;
     }
 
-    const chunk = text.substring(checkStartIndex, currentCheckEndIndex);
-
-    if (chunk === repeatingUnit) {
+    if (text.startsWith(repeatingUnit, checkStartIndex)) {
       repetitionsFound++;
       firstRepetitionStartIndex = checkStartIndex;
       currentCheckEndIndex = checkStartIndex;
