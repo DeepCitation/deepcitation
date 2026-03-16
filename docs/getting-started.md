@@ -35,7 +35,7 @@ Wrap prompts, call your LLM, verify citations, and optionally persist results.
 
 ### Section 3: Display with CitationComponent
 
-Parse `<cite>` tags, generate citation keys, and render inline with verification status.
+Parse numeric `[N]` markers via `parseCitationResponse`, map to citation keys, and render inline with verification status.
 
 ---
 

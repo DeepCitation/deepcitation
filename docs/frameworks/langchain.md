@@ -98,7 +98,7 @@ async function answerWithCitations(pdfPath: string, question: string) {
   const llmOutput = response.content as string;
 
   // 5. Extract and verify citations
-  //    getAllCitationsFromLlmOutput parses <cite> tags from the LLM response.
+  //    getAllCitationsFromLlmOutput parses numeric [N] markers from the LLM response's <<<CITATION_DATA>>> block.
   //    verifyAttachment checks each citation against the source document.
   const citations = getAllCitationsFromLlmOutput(llmOutput);
   const citationCount = Object.keys(citations).length;

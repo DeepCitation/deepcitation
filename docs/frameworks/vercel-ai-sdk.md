@@ -32,7 +32,7 @@ npm install deepcitation ai @ai-sdk/openai @ai-sdk/react
 
 ## How DeepCitation Integrates with streamText
 
-`streamText` streams tokens to the client. Citation verification must happen **after** streaming ends — `<cite>` tags in the LLM's response may span multiple chunks, so you need the complete output before calling `getAllCitationsFromLlmOutput()`.
+`streamText` streams tokens to the client. Citation verification must happen **after** streaming ends — the LLM appends its `<<<CITATION_DATA>>>` block at the very end of the response, so you need the complete output before calling `getAllCitationsFromLlmOutput()`.
 
 The integration model is:
 
