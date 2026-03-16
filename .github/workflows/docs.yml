@@ -67,7 +67,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
         with:
           path: docs/_site
 
@@ -120,33 +120,10 @@ jobs:
             if (lycheeReport) {
               const hasErrors = lycheeExitCode !== '0';
               const statusEmoji = hasErrors ? '⚠️' : '✅';
-              linkCheckSection = `
-
-## ${statusEmoji} Link Check Results
-
-<details>
-<summary>Click to expand link check report</summary>
-
-${lycheeReport}
-
-</details>
-`;
+              linkCheckSection = `\n\n## ${statusEmoji} Link Check Results\n\n<details>\n<summary>Click to expand link check report</summary>\n\n${lycheeReport}\n\n</details>\n`;
             }
 
-            const body = `## 📚 Documentation Preview
-
-The documentation has been built successfully.
-
-**To preview locally:**
-1. Download the \`github-pages\` artifact from [this workflow run](${artifactUrl})
-2. Extract and serve with any static file server:
-   \`\`\`bash
-   cd artifact && python -m http.server 8000
-   \`\`\`
-3. Open http://localhost:8000/deepcitation/
-${linkCheckSection}
----
-*Workflow run: ${runId}*`;
+            const body = `## 📚 Documentation Preview\n\nThe documentation has been built successfully.\n\n**To preview locally:**\n1. Download the \`github-pages\` artifact from [this workflow run](${artifactUrl})\n2. Extract and serve with any static file server:\n   \`\`\`bash\n   cd artifact && python -m http.server 8000\n   \`\`\`\n3. Open http://localhost:8000/deepcitation/\n${linkCheckSection}\n---\n*Workflow run: ${runId}*`;
 
             // Find existing comment
             const { data: comments } = await github.rest.issues.listComments({
