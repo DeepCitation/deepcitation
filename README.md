@@ -86,7 +86,7 @@ A set of high-quality React components to help you build production-ready attrib
 
 **Works with any LLM** -- OpenAI, Anthropic, Google, AI SDK, local models, or any leading model.
 
-| <img src="https://deepcitation.com/logos/openai.svg" width="32" height="32" alt="OpenAI logo"> | <img src="https://deepcitation.com/logos/anthropic.svg" width="32" height="32" alt="Anthropic logo"> | <img src="https://deepcitation.com/logos/google.svg" width="32" height="32" alt="Google Gemini logo"> | <img src="https://deepcitation.com/logos/vercel.svg" width="32" height="32" alt="Vercel AI SDK logo"> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="https://deepcitation.com/logos/color/openai.svg"><img src="https://deepcitation.com/logos/openai.svg" width="32" height="32" alt="OpenAI logo"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="https://deepcitation.com/logos/color/anthropic.svg"><img src="https://deepcitation.com/logos/anthropic.svg" width="32" height="32" alt="Anthropic logo"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="https://deepcitation.com/logos/color/google.svg"><img src="https://deepcitation.com/logos/google.svg" width="32" height="32" alt="Google Gemini logo"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DeepCitation/deepcitation/main/docs/assets/vercel-white.svg"><img src="https://deepcitation.com/logos/vercel.svg" width="32" height="32" alt="Vercel AI SDK logo"></picture> |
 | --- | --- | --- | --- |
 | OpenAI ✔ | Anthropic ✔ | Gemini ✔ | AI SDK ✔ |
 
