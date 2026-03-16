@@ -64,12 +64,13 @@ bun add deepcitation
 ```typescript
 import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "deepcitation";
 
-const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
+const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
-// 1. Upload your source document
-const { attachmentId, deepTextPromptPortion } = await deepcitation.uploadFile(pdfBuffer, {
-  filename: "report.pdf"
-});
+// 1. Prepare your source document
+const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+  { file: pdfBuffer, filename: "report.pdf" },
+]);
+const attachmentId = fileDataParts[0].attachmentId;
 
 // 2. Wrap your prompts with citation instructions
 const systemPrompt = "You are a helpful assistant that cites sources.";
@@ -77,7 +78,7 @@ const systemPrompt = "You are a helpful assistant that cites sources.";
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt,
   userPrompt,
-  deepTextPromptPortion // Pass file content directly
+  deepTextPromptPortion,
 });
 
 // 3. Call your LLM
@@ -85,20 +86,47 @@ const response = await yourLLM.chat({
   messages: [
     { role: "system", content: enhancedSystemPrompt },
     { role: "user", content: enhancedUserPrompt },
-  ]
+  ],
 });
 
 // 4. Extract and verify citations
 const citations = getAllCitationsFromLlmOutput(response.content);
-const verified = await deepcitation.verify(attachmentId, citations);
+const { verifications } = await dc.verifyAttachment(attachmentId, citations);
 
 // 5. Use verification results
-for (const [key, result] of Object.entries(verified.verifications)) {
+for (const [key, result] of Object.entries(verifications)) {
   console.log(`Citation ${key}: ${result.searchState?.status}`);
   if (result.verificationImageBase64) {
     // Display visual proof to users
   }
 }
+```
+
+### Section 3: Render (React)
+
+```tsx
+import { parseCitationResponse } from "deepcitation";
+import { CitationComponent } from "deepcitation/react";
+
+const { visibleText, citations, markerMap, splitPattern } = parseCitationResponse(llmOutput);
+
+return (
+  <p>
+    {visibleText.split(splitPattern).map((part, i) => {
+      const key = markerMap[Number(part.replace(/[\[\]]/g, ""))];
+      if (key) {
+        return (
+          <CitationComponent
+            key={`${key}-${i}`}
+            citation={citations[key]}
+            verification={verifications[key]}
+          />
+        );
+      }
+      return <span key={i}>{part}</span>;
+    })}
+  </p>
+);
 ```
 
 ---

@@ -65,12 +65,12 @@ npm install deepcitation
 ```typescript
 import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "deepcitation";
 
-const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
+const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
-// Upload and verify in 3 steps
-const { attachmentId, deepTextPromptPortion } = await deepcitation.uploadFile(pdfBuffer, { filename: "report.pdf" });
+// Prepare, wrap, verify in 3 steps
+const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([{ file: pdfBuffer, filename: "report.pdf" }]);
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({ systemPrompt, userPrompt, deepTextPromptPortion });
 // ... call your LLM ...
 const citations = getAllCitationsFromLlmOutput(response.content);
-const verified = await deepcitation.verify(attachmentId, citations);
+const { verifications } = await dc.verifyAttachment(fileDataParts[0].attachmentId, citations);
 ```
