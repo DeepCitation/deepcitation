@@ -143,10 +143,16 @@ export function compressPromptIds<T>(obj: T, ids: string[] | undefined): Compres
     compressedText = compressedText.replaceAll(full, prefix);
   }
 
-  return {
-    compressed: JSON.parse(compressedText) as T,
-    prefixMap,
-  };
+  try {
+    return {
+      compressed: JSON.parse(compressedText) as T,
+      prefixMap,
+    };
+  } catch {
+    // Replacement corrupted the JSON (prefix collision) — return original uncompressed
+    console.warn("[DeepCitation] compressPromptIds: JSON.parse failed after substitution, returning original");
+    return { compressed: obj, prefixMap: {} };
+  }
 }
 
 /**
@@ -193,5 +199,12 @@ export function decompressPromptIds<T>(compressed: T | string, prefixMap: Record
     throw new Error(`[decompressedPromptIds] diff ${diff} originalLength ${originalLength} newLength ${newLength}`);
   }
 
-  return shouldParseBack ? (JSON.parse(text) as T) : text;
+  if (!shouldParseBack) return text;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    // Replacement corrupted the JSON — return the compressed input unchanged
+    console.warn("[DeepCitation] decompressPromptIds: JSON.parse failed after substitution, returning compressed");
+    return compressed;
+  }
 }

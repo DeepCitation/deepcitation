@@ -5,7 +5,7 @@
  * These are separated from the component file to comply with Fast Refresh rules.
  */
 
-import { isApprovedDomain } from "../utils/urlSafety.js";
+import { extractDomain, isApprovedDomain } from "../utils/urlSafety.js";
 import { defaultMessages } from "./i18n.js";
 import type { UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus, isVerifiedStatus } from "./urlStatus.js";
@@ -93,19 +93,6 @@ export function isValidProofUrl(url: string): string | null {
 export function safeWindowOpen(url: string): void {
   if (sanitizeUrl(url)) {
     window.open(url, "_blank", "noopener,noreferrer");
-  }
-}
-
-/**
- * Extracts domain from URL for compact display.
- */
-export function extractDomain(url: string): string {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname.replace(/^www\./, "");
-  } catch {
-    // Fallback for invalid URLs
-    return url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
   }
 }
 

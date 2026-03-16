@@ -178,7 +178,6 @@ export {
   normalizeCitationFields,
   resolveField,
   resolveFieldName,
-  resolveFieldNameSnake,
 } from "./utils/fieldAliases.js";
 export {
   ALLOWED_UPLOAD_MIME_TYPES,

@@ -2,10 +2,14 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { sha1Hash } from "../utils/sha.js";
 
 describe("sha1Hash", () => {
-  it("returns empty string for falsy input", () => {
-    expect(sha1Hash("")).toBe("");
+  it("returns empty string for null/undefined input", () => {
     expect(sha1Hash(null)).toBe("");
     expect(sha1Hash(undefined)).toBe("");
+  });
+
+  it("hashes empty string to a valid hash (not empty)", () => {
+    // Empty string is valid data — should produce a hash, not ""
+    expect(sha1Hash("")).toMatch(/^[0-9a-f]{40}$/);
   });
 
   // Known SHA-1 test vectors (FIPS 180-4)
@@ -62,7 +66,7 @@ describe("sha1Hash", () => {
 
     // Should log error once
     expect(consoleSpy).toHaveBeenCalledTimes(1);
-    expect(consoleSpy).toHaveBeenCalledWith("Error in making the hash:", expect.any(Error));
+    expect(consoleSpy).toHaveBeenCalledWith("[DeepCitation] sha1Hash failed:", expect.any(Error));
 
     consoleSpy.mockRestore();
   });
@@ -102,13 +106,15 @@ describe("sha1Hash", () => {
   it("hashes numbers correctly", () => {
     const hash123 = sha1Hash(123);
     expect(hash123).toMatch(/^[0-9a-f]{40}$/);
-    expect(sha1Hash(0)).toBe("");
+    // 0 is valid data — should produce a hash, not ""
+    expect(sha1Hash(0)).toMatch(/^[0-9a-f]{40}$/);
     expect(sha1Hash(-1)).toMatch(/^[0-9a-f]{40}$/);
   });
 
   it("hashes boolean values", () => {
     expect(sha1Hash(true)).toMatch(/^[0-9a-f]{40}$/);
-    expect(sha1Hash(false)).toBe("");
+    // false is valid data — should produce a hash, not ""
+    expect(sha1Hash(false)).toMatch(/^[0-9a-f]{40}$/);
   });
 
   it("hashes nested objects deterministically", () => {

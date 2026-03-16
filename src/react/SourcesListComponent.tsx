@@ -1,13 +1,14 @@
 import type React from "react";
 import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { extractDomain } from "../utils/urlSafety.js";
 import { getPortalContainer, TTC_TEXT_STYLE } from "./constants.js";
 import { useTranslation } from "./i18n.js";
 import { handleImageError, handleImageErrorOpacity } from "./imageUtils.js";
 import { detectSourceType, getFaviconUrl, getPlatformName } from "./SourcesListComponent.utils.js";
 import { formatTtc } from "./timingUtils.js";
 import type { SourcesListItemProps, SourcesListProps, SourcesTriggerProps } from "./types.js";
-import { extractDomain, safeWindowOpen } from "./urlUtils.js";
+import { safeWindowOpen } from "./urlUtils.js";
 import { classNames } from "./utils.js";
 
 // ============================================================================

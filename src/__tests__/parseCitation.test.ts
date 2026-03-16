@@ -58,8 +58,11 @@ describe("getCitationStatus", () => {
     expect(status.isMiss).toBe(true);
     expect(status.isVerified).toBe(false);
 
-    const pendingStatus = getCitationStatus(undefined);
-    expect(pendingStatus.isPending).toBe(true);
+    // null/undefined verification → no data, not "pending"
+    // (isPending is only true for explicit "pending"/"loading" status)
+    const noDataStatus = getCitationStatus(undefined);
+    expect(noDataStatus.isPending).toBe(false);
+    expect(noDataStatus.isVerified).toBe(false);
   });
 
   describe("explicit status coverage", () => {
@@ -234,7 +237,7 @@ describe("getCitationStatus", () => {
       expect(status.isPartialMatch).toBe(false);
     });
 
-    it("treats null status as pending", () => {
+    it("treats null status as no-data (not pending)", () => {
       const verification: Verification = {
         citation: {
           anchorText: "term",
@@ -249,15 +252,34 @@ describe("getCitationStatus", () => {
         verifiedMatchSnippet: "snippet",
       };
       const status = getCitationStatus(verification);
-      expect(status.isPending).toBe(true);
+      // null status with a verification object that has no status → not pending
+      // isPending is only true for explicit "pending"/"loading" status
+      expect(status.isPending).toBe(false);
     });
 
-    it("treats null verification as pending", () => {
+    it("treats null verification as no-data (not pending)", () => {
       const status = getCitationStatus(null);
-      expect(status.isPending).toBe(true);
+      expect(status.isPending).toBe(false);
       expect(status.isVerified).toBe(false);
       expect(status.isMiss).toBe(false);
       expect(status.isPartialMatch).toBe(false);
+    });
+
+    it("detects low-trust match from searchAttempts even when status is null", () => {
+      // A Verification may have null status but still carry searchAttempts with low-trust
+      // variation data — getCitationStatus must check searchAttempts regardless of status.
+      const verification: Verification = {
+        citation: { anchorText: "term", fullPhrase: "term", attachmentId: "file", pageNumber: 1 },
+        document: { verifiedPageNumber: 1 },
+        status: null,
+        verifiedMatchSnippet: null,
+        searchAttempts: [{ success: true, matchedVariation: "partial_anchor_text", matchedText: "term" }],
+      };
+      const status = getCitationStatus(verification);
+      expect(status.isPartialMatch).toBe(true);
+      expect(status.isVerified).toBe(true);
+      expect(status.isPending).toBe(false);
+      expect(status.isMiss).toBe(false);
     });
   });
 });

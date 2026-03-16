@@ -55,6 +55,18 @@ const KEY_ALIAS_MAP: Record<string, keyof CitationData> = {
   fileId: "attachment_id",
 } as const;
 
+/** Matches compact page ID format "N_I" (e.g., "2_1") */
+const COMPACT_PAGE_ID_RE = /^(\d+)_(\d+)$/;
+/** Matches verbose page ID format "page_number_N_index_I" (bounded to prevent ReDoS) */
+const LEGACY_PAGE_ID_RE = /page[_a-z]{0,30}(\d+)_index_(\d+)/i;
+/**
+ * Matches [N] citation markers in text.
+ * Safe to reuse as a module-level constant: String.replace() and String.matchAll()
+ * do not mutate lastIndex, so there is no stateful cross-call contamination.
+ * Do NOT use with RegExp.exec() in a loop — exec() advances lastIndex.
+ */
+const CITATION_MARKER_RE = /\[(\d+)\]/g;
+
 /**
  * Type guard to validate that an object has the required CitationData structure.
  * Ensures at minimum the id field is present and is a number.
@@ -350,7 +362,7 @@ export function parsePageId(pageId: string): {
   startPageId?: string;
 } {
   // Try compact format first: "N_I" (e.g., "2_1")
-  const compactMatch = pageId.match(/^(\d+)_(\d+)$/);
+  const compactMatch = pageId.match(COMPACT_PAGE_ID_RE);
   if (compactMatch) {
     let pageNum = parseInt(compactMatch[1], 10);
     const index = parseInt(compactMatch[2], 10);
@@ -368,8 +380,7 @@ export function parsePageId(pageId: string): {
   }
 
   // Try verbose format: "page_number_N_index_I" or variations
-  // Use {0,30} bound to prevent polynomial backtracking (CodeQL js/polynomial-redos)
-  const legacyMatch = pageId.match(/page[_a-z]{0,30}(\d+)_index_(\d+)/i);
+  const legacyMatch = pageId.match(LEGACY_PAGE_ID_RE);
   if (legacyMatch) {
     let pageNum = parseInt(legacyMatch[1], 10);
     const index = parseInt(legacyMatch[2], 10);
@@ -594,8 +605,7 @@ export function replaceCitationMarkers(
   const verificationIndex =
     showVerificationStatus && verifications ? buildVerificationIndex(citationMap, verifications) : undefined;
 
-  // Match [N] patterns where N is one or more digits
-  return text.replace(/\[(\d+)\]/g, (_match, idStr) => {
+  return text.replace(CITATION_MARKER_RE, (_match, idStr) => {
     const id = parseInt(idStr, 10);
 
     // Custom replacer takes precedence
@@ -627,15 +637,7 @@ export function replaceCitationMarkers(
  * @returns Array of citation IDs in order of appearance
  */
 export function getCitationMarkerIds(text: string): number[] {
-  const ids: number[] = [];
-  const regex = /\[(\d+)\]/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(text)) !== null) {
-    ids.push(parseInt(match[1], 10));
-  }
-
-  return ids;
+  return Array.from(text.matchAll(CITATION_MARKER_RE), m => parseInt(m[1], 10));
 }
 
 /**

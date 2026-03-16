@@ -1,5 +1,5 @@
-<!-- FileLasso Symbol: Master Definition -->
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
-  <path d="M7 3 L3 3 L3 21 L7 21" />
-  <path d="M17 3 L21 3 L21 21 L17 21" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-linecap="square" stroke-linejoin="miter" shape-rendering="crispEdges" width="24" height="24">
+  <path d="M6 3 L3 3 L3 21 L6 21" stroke="#18181B" stroke-width="2" />
+  <path d="M18 3 L21 3 L21 21 L18 21" stroke="#18181B" stroke-width="2" />
+  <path d="M12 6 L12 18 M6 12 L18 12 M8.5 8.5 L15.5 15.5 M15.5 8.5 L8.5 15.5" stroke="#005595" stroke-width="1.5" />
 </svg>

@@ -1,12 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
-import {
-  getFieldAliases,
-  normalizeCitationFields,
-  resolveField,
-  resolveFieldName,
-  resolveFieldNameSnake,
-} from "../utils/fieldAliases.js";
+import { getFieldAliases, normalizeCitationFields, resolveField, resolveFieldName } from "../utils/fieldAliases.js";
 
 // ─── Unit tests: resolveFieldName ────────────────────────────────────
 
@@ -93,55 +87,6 @@ describe("resolveFieldName", () => {
     expect(resolveFieldName("unknownField")).toBe("unknownField");
     expect(resolveFieldName("something_else")).toBe("something_else");
     expect(resolveFieldName("foo-bar")).toBe("foo-bar");
-  });
-});
-
-// ─── Unit tests: resolveFieldNameSnake ───────────────────────────────
-
-describe("resolveFieldNameSnake", () => {
-  it("returns snake_case for camelCase input", () => {
-    expect(resolveFieldNameSnake("anchorText")).toBe("anchor_text");
-    expect(resolveFieldNameSnake("fullPhrase")).toBe("full_phrase");
-    expect(resolveFieldNameSnake("attachmentId")).toBe("attachment_id");
-    expect(resolveFieldNameSnake("startPageId")).toBe("start_page_id");
-    expect(resolveFieldNameSnake("lineIds")).toBe("line_ids");
-    expect(resolveFieldNameSnake("faviconUrl")).toBe("favicon_url");
-    expect(resolveFieldNameSnake("siteName")).toBe("site_name");
-  });
-
-  it("normalizes kebab-case to snake_case", () => {
-    expect(resolveFieldNameSnake("anchor-text")).toBe("anchor_text");
-    expect(resolveFieldNameSnake("full-phrase")).toBe("full_phrase");
-    expect(resolveFieldNameSnake("start-page-id")).toBe("start_page_id");
-  });
-
-  it("normalizes shortened names to snake_case", () => {
-    expect(resolveFieldNameSnake("anchor")).toBe("anchor_text");
-    expect(resolveFieldNameSnake("phrase")).toBe("full_phrase");
-    expect(resolveFieldNameSnake("page")).toBe("page_number");
-    expect(resolveFieldNameSnake("lines")).toBe("line_ids");
-    expect(resolveFieldNameSnake("favicon")).toBe("favicon_url");
-  });
-
-  it("normalizes legacy names to snake_case", () => {
-    expect(resolveFieldNameSnake("keySpan")).toBe("anchor_text");
-    expect(resolveFieldNameSnake("key_span")).toBe("anchor_text");
-    expect(resolveFieldNameSnake("fileId")).toBe("attachment_id");
-    expect(resolveFieldNameSnake("startPageKey")).toBe("start_page_id");
-  });
-
-  it("returns lowercase input for unknown fields", () => {
-    expect(resolveFieldNameSnake("UnknownField")).toBe("unknownfield");
-    expect(resolveFieldNameSnake("FOO")).toBe("foo");
-  });
-
-  it("returns canonical camelCase for fields without a snake_case mapping", () => {
-    // Fields like 'reasoning', 'value', 'domain' have no snake_case mapping —
-    // they're the same in both forms, so the canonical name is returned.
-    expect(resolveFieldNameSnake("reasoning")).toBe("reasoning");
-    expect(resolveFieldNameSnake("value")).toBe("value");
-    expect(resolveFieldNameSnake("domain")).toBe("domain");
-    expect(resolveFieldNameSnake("title")).toBe("title");
   });
 });
 

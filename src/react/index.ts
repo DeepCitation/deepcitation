@@ -13,6 +13,8 @@
 
 // Utilities - For type guards and display text
 export { isDocumentCitation, isUrlCitation } from "../types/citation.js";
+// URL Display utilities
+export { extractDomain } from "../utils/urlSafety.js";
 // Components
 // URL Citation Component - For displaying URL citations
 export {
@@ -250,9 +252,7 @@ export {
   isRedirectedStatus,
   isVerifiedStatus,
 } from "./urlStatus.js";
-// URL Display utilities
 export {
-  extractDomain,
   STATUS_ICONS as URL_STATUS_ICONS,
   safeWindowOpen,
   sanitizeUrl,

@@ -77,23 +77,6 @@ for (const [canonical, aliases] of Object.entries(FIELD_ALIAS_MAP)) {
   }
 }
 
-/**
- * Canonical camelCase → snake_case mapping.
- * Built once at module load.
- */
-const CANONICAL_TO_SNAKE: Record<string, string> = {
-  attachmentId: "attachment_id",
-  pageNumber: "page_number",
-  lineIds: "line_ids",
-  startPageId: "start_page_id",
-  fullPhrase: "full_phrase",
-  anchorText: "anchor_text",
-  citationNumber: "citation_number",
-  faviconUrl: "favicon_url",
-  siteName: "site_name",
-  sourceType: "source_type",
-};
-
 // ─── Public API ──────────────────────────────────────────────────────
 
 /**
@@ -109,22 +92,6 @@ const CANONICAL_TO_SNAKE: Record<string, string> = {
  */
 export function resolveFieldName(name: string): string {
   return ALIAS_TO_CANONICAL.get(name.toLowerCase()) ?? name;
-}
-
-/**
- * Resolves an LLM field name to its snake_case form for XML attributes.
- * Falls back to the lowercase input if no alias is found.
- *
- * @example
- * resolveFieldNameSnake("anchorText")   // "anchor_text"
- * resolveFieldNameSnake("anchor-text")  // "anchor_text"
- * resolveFieldNameSnake("anchor")       // "anchor_text"
- * resolveFieldNameSnake("unknown")      // "unknown"
- */
-export function resolveFieldNameSnake(name: string): string {
-  const canonical = ALIAS_TO_CANONICAL.get(name.toLowerCase());
-  if (!canonical) return name.toLowerCase();
-  return CANONICAL_TO_SNAKE[canonical] ?? canonical;
 }
 
 /**

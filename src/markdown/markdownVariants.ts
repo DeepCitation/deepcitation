@@ -252,11 +252,20 @@ export function renderReferencesSection(citations: CitationWithStatus[], options
       lines.push(renderReferenceEntry(citation, options));
     }
   } else {
-    // Group by status for better organization
-    const verified = citations.filter(c => c.status.isVerified && !c.status.isPartialMatch);
-    const partial = citations.filter(c => c.status.isPartialMatch);
-    const notFound = citations.filter(c => c.status.isMiss);
-    const pending = citations.filter(c => c.status.isPending && !c.status.isVerified && !c.status.isMiss);
+    // Group by status in a single pass — mutually exclusive buckets
+    const verified: typeof citations = [];
+    const partial: typeof citations = [];
+    const notFound: typeof citations = [];
+    const pending: typeof citations = [];
+    const unverified: typeof citations = [];
+    for (const c of citations) {
+      const s = c.status;
+      if (s.isPartialMatch) partial.push(c);
+      else if (s.isVerified) verified.push(c);
+      else if (s.isMiss) notFound.push(c);
+      else if (s.isPending) pending.push(c);
+      else unverified.push(c);
+    }
 
     if (verified.length > 0) {
       lines.push("### Verified", "");
@@ -282,6 +291,14 @@ export function renderReferencesSection(citations: CitationWithStatus[], options
     if (pending.length > 0) {
       lines.push("### Pending", "");
       for (const citation of pending) {
+        lines.push(renderReferenceEntry(citation, options), "");
+      }
+    }
+
+    // Catch-all: citations with no status data (null/undefined verification)
+    if (unverified.length > 0) {
+      lines.push("### Unverified", "");
+      for (const citation of unverified) {
         lines.push(renderReferenceEntry(citation, options), "");
       }
     }
