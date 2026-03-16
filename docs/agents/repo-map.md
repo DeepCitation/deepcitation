@@ -1,7 +1,7 @@
 ---
-generated_at: "2026-03-12T09:31:59Z"
-commit_sha: "224f843"
-commit_sha_full: "224f843143979aa746e08bc002a0407965686ec2"
+generated_at: "2026-03-16T09:26:13Z"
+commit_sha: "9e9dcbb"
+commit_sha_full: "9e9dcbb046ae65ba18fece1103ea7ff3ff68cce8"
 stale_after_commits: 30
 ---
 
@@ -30,10 +30,11 @@ Source
 src/  # Source files
   __tests__/  # Unit test files
   client/  # DeepCitation API client
+  docs/  # (no description)
   drawing/  # Drawing/canvas utilities
   markdown/  # Markdown rendering (renderMarkdown, markdownVariants)
     testing/  # Markdown test helpers
-  parsing/  # Citation extraction: parseCitation, parseCitationResponse, parseWorkAround
+  parsing/  # Citation extraction: parseCitation, normalizeCitation, parseWorkAround
   prompts/  # LLM prompt templates (citationPrompts, promptCompression)
   react/  # React components and hooks (CitationComponent, SourcesList, i18n, popovers)
     hooks/  # Extracted React hooks
@@ -85,5 +86,6 @@ examples/  # Integration examples (Next.js, etc.)
   assets/  # Shared example assets
   basic-verification/  # Basic citation verification example
   nextjs-ai-sdk/  # Next.js AI SDK integration example
+  static-html/  # (no description)
   url-example/  # URL citation verification example
 ```

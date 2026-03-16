@@ -43,7 +43,7 @@ Verify AI citations against source documents. Visual proof for every claim.
 
 1. **Install & Setup** — Install, import types, initialize client, prepare sources, configure proof images
 2. **Server Side** — Wrap prompts, call your LLM, verify citations, optionally persist results
-3. **Display with CitationComponent** — Parse `<cite>` tags, generate citation keys, render inline with verification status
+3. **Display with CitationComponent** — Parse numeric `[N]` markers via `parseCitationResponse`, map to citation keys, render inline with verification status
 
 ---
 
@@ -65,12 +65,12 @@ npm install deepcitation
 ```typescript
 import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "deepcitation";
 
-const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
+const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
-// Upload and verify in 3 steps
-const { attachmentId, deepTextPromptPortion } = await deepcitation.uploadFile(pdfBuffer, { filename: "report.pdf" });
+// Prepare, wrap, verify in 3 steps
+const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([{ file: pdfBuffer, filename: "report.pdf" }]);
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({ systemPrompt, userPrompt, deepTextPromptPortion });
 // ... call your LLM ...
 const citations = getAllCitationsFromLlmOutput(response.content);
-const verified = await deepcitation.verify(attachmentId, citations);
+const { verifications } = await dc.verifyAttachment(fileDataParts[0].attachmentId, citations);
 ```

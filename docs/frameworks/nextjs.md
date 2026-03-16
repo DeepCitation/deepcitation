@@ -259,7 +259,7 @@ export default function Home() {
 
 A common question: **does `verifyAttachment()` work on partial (mid-stream) responses?**
 
-**No — verification requires the complete LLM output.** The LLM writes `<cite>` tags that may span multiple streamed chunks. Calling `getAllCitationsFromLlmOutput()` on a partial response will miss citations whose tags haven't fully arrived yet.
+**No — verification requires the complete LLM output.** The LLM appends its `<<<CITATION_DATA>>>` block at the very end of the response. Calling `getAllCitationsFromLlmOutput()` on a partial response will miss the citation data if that block hasn't arrived yet.
 
 The correct pattern (used in the example above) is:
 

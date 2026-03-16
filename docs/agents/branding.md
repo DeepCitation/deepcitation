@@ -226,3 +226,4 @@ SDK uses `rounded-lg` (8px) as default. This is the opposite of the web app's `r
 - Animation rules: `docs/agents/animation-transition-rules.md`
 - React citation UI: `docs/agents/react-citation-ui.md`
 - Web app full brand: `packages/deepcitation-web/BRANDING.md`
+- Contributor-facing sub-brand overview: `packages/deepcitation/BRANDING.md`
