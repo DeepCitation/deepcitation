@@ -9,7 +9,6 @@ import type { Verification } from "../types/verification.js";
  * proper styled indicators with colors and accessibility.
  */
 export const getVerificationTextIndicator = (verification: Verification | null | undefined): string => {
-  if (verification == null) return "⌛";
   const status = getCitationStatus(verification);
 
   if (status.isMiss) return "❌";
