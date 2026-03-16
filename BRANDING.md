@@ -86,6 +86,22 @@ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
 
 ---
 
+## Animation Timing
+
+Shared 5-tier scale with the web app. Import constants from `src/react/constants.ts` — never inline values.
+
+| Constant | Duration | Easing | Usage |
+|----------|----------|--------|-------|
+| `ANIM_INSTANT_MS` | 75ms | `EASE_EXPAND` | Hover states ("The Spark") |
+| `ANIM_FAST_MS` | 120ms | `EASE_EXPAND` | Popover entry, list expand |
+| `ANIM_STANDARD_MS` | 180ms | `EASE_COLLAPSE` | Geometry changes, drawer |
+| `ANIM_MEASURED_MS` | 250ms | `EASE_COLLAPSE` | Cross-component morph |
+| `ANIM_SLOW_MS` | 350ms | `ease-out` | Staged sequences |
+
+**Asymmetric timing is required:** expand ≥ collapse. Example: popover enter = 120ms (`EASE_EXPAND`), popover exit = 80ms (`EASE_COLLAPSE`). Use `EASE_EXPAND = cubic-bezier(0.34, 1.02, 0.64, 1)` and `EASE_COLLAPSE = cubic-bezier(0.2, 0, 0, 1)` — never inline cubic-bezier strings.
+
+---
+
 ## Key Rules for Contributors
 
 - Use `text-dc-*` / `bg-dc-*` / `border-dc-*` Tailwind classes — never hardcode `slate-N` for persistent colors

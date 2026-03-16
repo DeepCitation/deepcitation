@@ -2,19 +2,19 @@
 // ====================================================
 
 // -----------------------------------------------------
-// Brand Colors - Slate Scale
+// Brand Colors - Slate Scale (zinc/warm, matches web app BRANDING.md)
 // -----------------------------------------------------
-$slate-50:  #F8FAFC;
-$slate-100: #F1F5F9;
-$slate-200: #E2E8F0;
-$slate-300: #CBD5E1;
-$slate-400: #94A3B8;
-$slate-500: #64748B;
-$slate-600: #475569;
-$slate-700: #334155;
-$slate-800: #1E293B;
-$slate-900: #0F172A;
-$slate-950: #020617;
+$slate-50:  #FAFAFA;
+$slate-100: #F4F4F5;
+$slate-200: #E4E4E7;
+$slate-300: #D4D4D8;
+$slate-400: #A1A1AA;
+$slate-500: #71717A;
+$slate-600: #52525B;
+$slate-700: #3F3F46;
+$slate-800: #27272A;
+$slate-900: #18181B;
+$slate-950: #09090B;
 
 // Brand display font — Playfair Display for wordmark and h1 headings
 $font-display: 'Playfair Display', Georgia, serif;
@@ -51,10 +51,12 @@ $btn-primary-color: $brand-blue-light;
 // Dark Mode Mixin (DRY)
 // -----------------------------------------------------
 @mixin dark-mode-colors {
+  color-scheme: dark;
   --body-background-color: #{$slate-950};
+  --body-background-image: none; // suppress JTD v0.8 body background-image gradient
   --sidebar-color: #{$slate-900};
   --body-heading-color: #{$slate-200}; // per BRANDING.md External Documentation Theme
-  --body-text-color: #{$slate-400}; // per BRANDING.md: #94A3B8
+  --body-text-color: #{$slate-400}; // per BRANDING.md: #A1A1AA (zinc-400)
   --link-color: #{$brand-blue-dark-link}; // #77bff6 (blue-dark) — not blue-luminous
   --link-hover-color: #{$brand-blue-dark-link-hover};
   --code-background-color: #{$slate-900};
@@ -335,17 +337,29 @@ pre {
 // so we must override wrapper elements at runtime.
 // -----------------------------------------------------
 @media (prefers-color-scheme: dark) {
+  // Suppress JTD v0.8 body background-image gradient (compiled from $body-background-image)
+  body {
+    background-image: none;
+  }
+
   // .main-content-wrap and .main bg is set unconditionally above
 
   .page-header {
     background-color: var(--body-background-color);
+    background-image: none;
   }
 
   // -------------------------------------------------
-  // Tables — JTD hardcodes background-color: #fff on td elements.
-  // tr/table are transparent, but td gets white directly, so we override td.
+  // Tables — JTD hardcodes background-color: #fff on td AND th elements.
+  // Both must be overridden; CSS vars alone lose to JTD's compiled specificity.
   // tr:nth-child(even) td gets a slightly lighter shade for stripe contrast.
   // -------------------------------------------------
+  .main-content th {
+    background-color: var(--sidebar-color); // slate-900 — visually distinct header
+    border-color: var(--border-color);
+    color: var(--body-heading-color);
+  }
+
   .main-content td {
     background-color: var(--body-background-color);
     border-color: var(--border-color);
@@ -397,13 +411,6 @@ pre {
   // Navigation overlay on mobile
   .search-overlay {
     background-color: rgba(0, 0, 0, 0.6);
-  }
-
-  // Table header borders (th background is set via CSS var outside media query,
-  // but JTD compiles a hardcoded border color on th that needs overriding here)
-  .main-content th {
-    border-color: var(--border-color);
-    color: var(--body-heading-color);
   }
 
   // Note/warning/important callouts (Just the Docs compiled backgrounds)
