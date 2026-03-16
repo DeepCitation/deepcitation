@@ -16,7 +16,7 @@ import { getAllCitationsFromNumericResponse, hasCitationData, parsePageId } from
 /**
  * Module-level status sets for O(1) lookups — avoids per-call array allocations.
  */
-const PARTIAL_STATUSES: ReadonlySet<SearchStatus> = new Set<SearchStatus>([
+export const PARTIAL_STATUSES: ReadonlySet<SearchStatus> = new Set<SearchStatus>([
   "found_anchor_text_only",
   "partial_text_found",
   "found_on_other_page",

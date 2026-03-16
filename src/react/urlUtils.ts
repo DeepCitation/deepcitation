@@ -96,9 +96,6 @@ export function safeWindowOpen(url: string): void {
   }
 }
 
-// extractDomain is imported from ../utils/urlSafety.js and re-exported
-export { extractDomain };
-
 /**
  * Truncates a string to max length with ellipsis.
  */

@@ -513,10 +513,10 @@ pre {
 
     // Logo styling
     .site-logo {
-      width: 28px;
+      width: auto;
       height: 28px;
       flex-shrink: 0;
-      color: var(--link-color);
+      max-width: 172px;
     }
   }
 }

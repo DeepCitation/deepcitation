@@ -1,4 +1,6 @@
 //flash and flash lite get super confused if we ask for a MD table and infinite loop
+import { validateRegexInput } from "../utils/regexSafety.js";
+
 const MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE = 64;
 const MIN_REPETITIONS = 2;
 const MIN_SENTENCE_CONTENT_LENGTH = 10;
@@ -20,6 +22,7 @@ export const isGeminiGarbage = (content: string) => {
 // helps clean up infinite rambling bug output from gemini
 export function cleanRepeatingLastSentence(text: string): string {
   text = text.trim();
+  validateRegexInput(text);
 
   const sentenceEndIndices = Array.from(text.matchAll(SENTENCE_END_RE), m => m.index ?? 0);
 

@@ -3,6 +3,7 @@ import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, use
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { FileDownload, PageImage, Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
+import { extractDomain } from "../utils/urlSafety.js";
 import { CitationContentDisplay } from "./CitationContentDisplay.js";
 import {
   getDefaultContent,
@@ -56,7 +57,7 @@ import type {
   UrlFetchStatus,
 } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
-import { extractDomain, getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";
+import { getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";
 import { cn, generateCitationInstanceId } from "./utils.js";
 import { isViewTransitioning, startEvidenceViewTransition } from "./viewTransition.js";
 

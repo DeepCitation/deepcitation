@@ -4,7 +4,7 @@ import type React from "react";
 import { UrlCitationComponent } from "../react/Citation";
 import type { UrlCitationMeta } from "../react/types";
 import { isBlockedStatus, isErrorStatus, isVerifiedStatus } from "../react/urlStatus";
-import { extractDomain } from "../react/urlUtils";
+import { extractDomain } from "../utils/urlSafety";
 
 // Mock createPortal to render content in place instead of portal.
 // Spread the real module AND synthesize a `default` export — bun's ESM wrapper

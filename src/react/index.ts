@@ -251,8 +251,8 @@ export {
   isVerifiedStatus,
 } from "./urlStatus.js";
 // URL Display utilities
+export { extractDomain } from "../utils/urlSafety.js";
 export {
-  extractDomain,
   STATUS_ICONS as URL_STATUS_ICONS,
   safeWindowOpen,
   sanitizeUrl,

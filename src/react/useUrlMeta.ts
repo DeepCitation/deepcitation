@@ -6,8 +6,8 @@
  */
 
 import { useMemo } from "react";
+import { extractDomain } from "../utils/urlSafety.js";
 import type { UrlCitationMeta, UrlFetchStatus } from "./types.js";
-import { extractDomain } from "./urlUtils.js";
 
 /**
  * Hook to parse URL and create UrlCitationMeta.
