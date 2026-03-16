@@ -264,6 +264,23 @@ describe("getCitationStatus", () => {
       expect(status.isMiss).toBe(false);
       expect(status.isPartialMatch).toBe(false);
     });
+
+    it("detects low-trust match from searchAttempts even when status is null", () => {
+      // A Verification may have null status but still carry searchAttempts with low-trust
+      // variation data — getCitationStatus must check searchAttempts regardless of status.
+      const verification: Verification = {
+        citation: { anchorText: "term", fullPhrase: "term", attachmentId: "file", pageNumber: 1 },
+        document: { verifiedPageNumber: 1 },
+        status: null,
+        verifiedMatchSnippet: null,
+        searchAttempts: [{ success: true, matchedVariation: "partial_anchor_text", matchedText: "term" }],
+      };
+      const status = getCitationStatus(verification);
+      expect(status.isPartialMatch).toBe(true);
+      expect(status.isVerified).toBe(true);
+      expect(status.isPending).toBe(false);
+      expect(status.isMiss).toBe(false);
+    });
   });
 });
 

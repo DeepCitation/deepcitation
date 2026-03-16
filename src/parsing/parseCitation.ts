@@ -42,22 +42,28 @@ const LOW_TRUST_VARIATIONS: ReadonlySet<MatchedVariation> = new Set<MatchedVaria
  * @returns An object containing boolean flags for verification status
  */
 export function getCitationStatus(verification: Verification | null | undefined): CitationStatus {
-  const status = verification?.status;
-
-  if (!verification || !status) {
+  if (!verification) {
     return { isVerified: false, isMiss: false, isPartialMatch: false, isPending: false };
   }
 
-  const isMiss = status === "not_found";
-  const isPending = status === "pending" || status === "loading";
+  const status = verification.status;
 
+  // Check searchAttempts regardless of status — a null status verification may
+  // still carry low-trust match data from completed search attempts.
   const hasLowTrustMatch =
     verification.searchAttempts?.some(
       a => a.success && a.matchedVariation && LOW_TRUST_VARIATIONS.has(a.matchedVariation),
     ) ?? false;
 
-  const isPartialMatch = PARTIAL_STATUSES.has(status) || hasLowTrustMatch;
+  if (!status) {
+    // Verification exists but server hasn't set a status yet — treat as partial
+    // if low-trust matches were found, otherwise unknown (all-false).
+    return { isVerified: hasLowTrustMatch, isMiss: false, isPartialMatch: hasLowTrustMatch, isPending: false };
+  }
 
+  const isMiss = status === "not_found";
+  const isPending = status === "pending" || status === "loading";
+  const isPartialMatch = PARTIAL_STATUSES.has(status) || hasLowTrustMatch;
   const isVerified = status === "found" || status === "found_phrase_missed_anchor_text" || isPartialMatch;
 
   return { isVerified, isMiss, isPartialMatch, isPending };

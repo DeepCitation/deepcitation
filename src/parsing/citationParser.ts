@@ -59,7 +59,12 @@ const KEY_ALIAS_MAP: Record<string, keyof CitationData> = {
 const COMPACT_PAGE_ID_RE = /^(\d+)_(\d+)$/;
 /** Matches verbose page ID format "page_number_N_index_I" (bounded to prevent ReDoS) */
 const LEGACY_PAGE_ID_RE = /page[_a-z]{0,30}(\d+)_index_(\d+)/i;
-/** Matches [N] citation markers in text */
+/**
+ * Matches [N] citation markers in text.
+ * Safe to reuse as a module-level constant: String.replace() and String.matchAll()
+ * do not mutate lastIndex, so there is no stateful cross-call contamination.
+ * Do NOT use with RegExp.exec() in a loop — exec() advances lastIndex.
+ */
 const CITATION_MARKER_RE = /\[(\d+)\]/g;
 
 /**
