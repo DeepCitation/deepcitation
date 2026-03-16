@@ -11,7 +11,7 @@ Show proof for every AI citation.
 
 <div align="center">
 
-[![CI](https://github.com/DeepCitation/deepcitation/actions/workflows/ci.yml/badge.svg)](https://github.com/DeepCitation/deepcitation/actions/workflows/ci.yml)
+[![CI](https://github.com/DeepCitation/deepcitation/actions/workflows/ci.yml/badge.svg)](https://github.com/DeepCitation/deepcitation/actions/workflows/ci.yml?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/License-MIT-005595?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Zero Dependencies](https://img.shields.io/badge/Zero%20Dependencies-trusted-10b981?style=flat-square)](https://www.npmjs.com/package/deepcitation)
 [![~17KB](https://img.shields.io/badge/gzip-~17KB-10b981?style=flat-square)](https://bundlephobia.com/package/deepcitation)
