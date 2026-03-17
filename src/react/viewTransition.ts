@@ -568,7 +568,7 @@ function waitForPageExpandTarget(
         Math.abs(targetRect.top - previousStableRect.top) <= 1 &&
         Math.abs(targetRect.width - previousStableRect.width) <= 1 &&
         Math.abs(targetRect.height - previousStableRect.height) <= 1;
-      if (isStable && stableFrames >= 1) {
+      if (isStable && stableFrames >=0) {
         callback(target);
         return;
       }
