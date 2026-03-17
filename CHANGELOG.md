@@ -7,17 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-03-17
+
 ### Breaking Changes
 
-- Removed XML citation support (`<cite>` tags) — all LLM outputs now use numeric `[N]` markers with `<<<CITATION_DATA>>>` JSON blocks
+- Removed XML citation support (`<cite>` tags) — all LLM outputs now use numeric `[N]` markers with `<<<CITATION_DATA>>>` JSON blocks (#337, #338)
 - Removed exports: `normalizeCitations()`, `parseCitation()`, `replaceCitations()`, `ReplaceCitationsOptions`
 - Migration: Use `parseCitationResponse()` for parsing and `replaceCitationMarkers()` for text replacement
+
+### Added
+
+- **CDN popover bundle** — new `deepcitation/vanilla/cdn` entry point for rendering citation popovers without React or a build step; includes a static HTML example (#340)
+- **Design token system** — centralized color and spacing tokens in `DeepCitationTheme` for consistent theming across React and vanilla renderers (#340)
+- **Page-expand ghost transition** — smooth geometry morph when expanding from keyhole evidence to full-page view, preventing layout flicker (#349)
+- **SDK version header** — API requests now include an `X-DeepCitation-SDK-Version` header for server-side analytics and compatibility checks (#349)
+
+### Fixed
+
+- **Undefined markerMap keys** — guarded against `undefined` keys in citation rendering, preventing silent rendering failures (#339)
+- **Null/undefined verification indicator** — restored `◌` symbol for null/undefined verification status instead of hourglass
 
 ### Removed
 
 - `src/parsing/normalizeCitation.ts` — XML citation parser/normalizer (598 lines)
 - `src/__tests__/normalizeCitation.test.ts` — XML format tests (948 lines)
 - `getUniqueSearchAttemptCount()` helper — replaced with `groupSearchAttemptsForNotFound().length` (switches from per-page to cross-page grouping for miss displays, resulting in lower search-attempt counts in the UI)
+- Dead code cleanup: ~2,000 lines of unused types, helpers, and redundant logic removed across the codebase (#341, #342)
 
 ## [0.2.1] - 2026-03-12
 
@@ -442,7 +457,8 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/deepcitation/deepcitation/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/deepcitation/deepcitation/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/deepcitation/deepcitation/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/deepcitation/deepcitation/compare/v1.1.53...v0.1.0
