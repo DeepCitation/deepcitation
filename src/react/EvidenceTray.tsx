@@ -1409,7 +1409,10 @@ export function InlineExpandedImage({
     (shouldHighlightAnchorText(vAnchor, vPhrase) ||
       (isStrategyOverride(vAnchor, vPhrase) && shouldHighlightAnchorText(vAnchor, effectivePhraseItem?.text)));
   const scrollTarget = anchorHighlightActive ? effectiveAnchorItem : effectivePhraseItem;
-  const sourceAnchorRatio = !fill ? resolveEvidenceSourceAnchorRatio(verification) : null;
+  const sourceAnchorRatio = useMemo(
+    () => (!fill ? resolveEvidenceSourceAnchorRatio(verification) : null),
+    [fill, verification],
+  );
 
   // Track container size via ResizeObserver (both width and height for fit-to-screen).
   // When the container transitions from display:none (zero) to visible (positive),
@@ -1985,15 +1988,18 @@ export function InlineExpandedImage({
         <div
           ref={containerRef}
           data-dc-inline-expanded=""
-          {...(fill && !(scrollTarget ?? effectivePhraseItem) ? { "data-dc-no-annotation": "" } : {})}
-          {...(!fill && onExpand ? { "data-dc-page-expand-source-kind": "expanded-keyhole" } : {})}
-          {...(!fill && onExpand ? { "data-dc-page-expand-source": "" } : {})}
-          {...(!fill && onExpand && sourceAnchorRatio
-            ? {
-                "data-dc-source-anchor-x": sourceAnchorRatio.x.toFixed(4),
-                "data-dc-source-anchor-y": sourceAnchorRatio.y.toFixed(4),
-              }
-            : {})}
+          {...(fill && !(scrollTarget ?? effectivePhraseItem)
+            ? { "data-dc-no-annotation": "" }
+            : !fill && onExpand
+              ? {
+                  "data-dc-page-expand-source": "",
+                  "data-dc-page-expand-source-kind": "expanded-keyhole" as const,
+                  ...(sourceAnchorRatio && {
+                    "data-dc-source-anchor-x": sourceAnchorRatio.x.toFixed(4),
+                    "data-dc-source-anchor-y": sourceAnchorRatio.y.toFixed(4),
+                  }),
+                }
+              : {})}
           role="button"
           tabIndex={0}
           aria-label={t("aria.expandedImageViewer")}
