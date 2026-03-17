@@ -32,7 +32,7 @@ Five tiers cover all UI interactions. Match the tier to the perceptual weight of
 
 | Constant | Value | Use |
 |---|---|---|
-| `ANIM_INSTANT_MS` | 75ms | Hover background, trigger color change |
+| `ANIM_INSTANT_MS` | 80ms | Hover background, trigger color change |
 | `ANIM_FAST_MS` | 120ms | Micro-interactions, exits, chevron rotations |
 | `ANIM_STANDARD_MS` | 180ms | Popover entry fade, grid row expand |
 | `ANIM_MEASURED_MS` | 250ms | Drawer slide-in, content morph |
@@ -302,6 +302,69 @@ The early opacity dip acts as perceptual motion blur — the user tracks the sha
 ### Reduced Motion
 
 `prefers-reduced-motion: reduce` sets `animation-duration: 0s !important` on all VT pseudo-elements — instant swap, no morph.
+
+---
+
+## Page-Expand Ghost Animation
+
+The keyhole→expanded-page transition uses a dedicated ghost element (not the View Transitions API) because the popover shell must snap to expanded-page layout while the image region animates independently.
+
+### Architecture
+
+```
+startEvidencePageExpandTransition (viewTransition.ts)
+  1. capturePageExpandSource    — snapshot keyhole geometry + image
+  2. Dim popover root           — opacity: PAGE_EXPAND_CONTENT_OPACITY_START
+  3. flushSync(update)          — popover snaps to expanded-page layout (already dimmed)
+  4. createPageExpandGhost      — fixed-position clone of keyhole image
+  5. waitForPageExpandTarget    — rAF poll until target is stable (~50ms)
+  6. runPageExpandGhostAnimation — ghost + popover content animate together
+  7. Cleanup                    — ghost.remove(), popover opacity cleared
+```
+
+**Critical**: The popover root (not just `[data-dc-inline-expanded]`) is dimmed. This
+ensures the header (Zone 1), status section (Zone 2), and image (Zone 3) are ALL
+dimmed together. Previously only the image container was dimmed, leaving the header
+at full opacity — which created a "page popped in" flash.
+
+### Choreography (250ms total)
+
+Mirrors the collapse's "dip-then-reveal" temporal structure:
+- **Collapse**: old snapshot dominates, dims early; new snapshot hidden until 60%, reveals sharply.
+- **Expand**: ghost dominates the first 60%; page near-invisible, reveals sharply in the last 40%.
+
+Two coordinated `Element.animate()` calls run in parallel:
+
+| Phase | Ghost | Page content | Visual effect |
+|---|---|---|---|
+| Polling (~50ms) | Not yet started | Dim at 0.03 | Nearly invisible — ghost will lead |
+| 0–18% | 0.55→0.75 | 0.03 | Ghost clearly dominates, page hidden |
+| 18–45% | 0.75→0.88 | 0.03 | Ghost at peak, eye tracks its motion |
+| 45–58% | 0.88→0.92 | 0.03→0.08 | Ghost landing, page barely emerging |
+| 58–72% | 0.92 | 0.08→0.35 | Handoff zone — ghost holds, page ramps |
+| 72–92% | 0.92→0.88 | 0.35→0.80 | Page takes over, ghost preparing exit |
+| 92–100% | 0.88→0 | 0.80→1.0 | Ghost exits decisively, page revealed |
+
+### Ghost mechanics
+
+- **`transform-origin: 0 0`** — mandatory. The `translate(tx, ty) scale(sx, sy)` math assumes top-left origin. Center origin causes the ghost to fly off-screen.
+- **Motion blur** — `filter: blur()` peaks at 6px mid-flight to mask the non-uniform scale distortion (squashed text from different scaleX/scaleY). Blur ramps: 0→3→6→4→1.5→0px across the keyframe offsets. GPU-composited, no layout cost.
+- **Ghost target** — `buildGhostTargetRect` queries `[data-dc-spotlight]` (the annotation overlay's dimming cutout). This is the "light area" — annotation rect + `SPOTLIGHT_PADDING`.
+- **Source priming** — `primeEvidencePageExpandSource(containerRef)` is called from the click handler. The primed ref is consumed within 500ms.
+- **Easing** — Ghost uses `EASE_COLLAPSE` (> 200px travel, per overshoot pixel budget rule). Page content uses `BLINK_ENTER_EASING` (near-linear settle).
+
+### Stale target detection
+
+`InlineExpandedImage` uses a ResizeObserver with `prevContainerVisibleRef` to detect `display:none → visible` transitions. On each visibility change, `pageExpandReady` and `hasAutoScrolledToAnnotationRef` are reset, forcing re-settle.
+
+### What NOT to change
+
+- Do not remove `transform-origin: 0 0` from `createPageExpandGhost`.
+- Do not remove `filter: blur()` from ghost keyframes — without it, non-uniform scale produces visibly squashed text mid-flight.
+- Do not use `startViewTransition` for page-expand — it uses `flushSync` + ghost.
+- Do not use the page container rect or full image rect as ghost target (giant flash).
+- Do not use `width`/`height` animation on the ghost — layout-triggering. Use `transform: scale()` + blur.
+- Do not let the popover shell visually participate in the motion.
 
 ---
 
