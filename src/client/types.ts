@@ -97,6 +97,11 @@ export interface DeepCitationConfig {
    * @default "url_only"
    */
   convertedPdfDownloadPolicy?: ConvertedPdfDownloadPolicy;
+  /**
+   * Optional callback invoked when the API responds with a latest SDK version header.
+   * Useful for detecting when a newer SDK version is available.
+   */
+  onLatestVersion?: (latestVersion: string) => void;
 }
 
 // ==========================================================================

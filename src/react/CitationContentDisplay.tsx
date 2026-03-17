@@ -12,7 +12,17 @@ import type { CitationStatus } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import { getInteractionClasses } from "./CitationContentDisplay.utils.js";
 import { CitationStatusIndicator, type CitationStatusIndicatorProps } from "./CitationStatusIndicator.js";
-import { MISS_WAVY_UNDERLINE_STYLE, SUPERSCRIPT_STYLE } from "./constants.js";
+import {
+  DOT_COLORS,
+  DOT_INDICATOR_SIZE_STYLE,
+  ERROR_COLOR_STYLE,
+  INDICATOR_SIZE_STYLE,
+  MISS_WAVY_UNDERLINE_STYLE,
+  PARTIAL_COLOR_STYLE,
+  SUPERSCRIPT_STYLE,
+  VERIFIED_COLOR_STYLE,
+} from "./constants.js";
+import { CheckIcon, XIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import type { CitationContent, CitationRenderProps, CitationVariant } from "./types.js";
 import { cn } from "./utils.js";
@@ -292,8 +302,35 @@ export const CitationContentDisplay = ({
             getInteractionClasses(isOpen, variant),
           )}
         >
-          {citationNumber}
-          {indicator}
+          {(() => {
+            if (!(isVerified || isPartialMatch || isMiss) || indicatorProps.indicatorVariant === "none") {
+              return citationNumber;
+            }
+            const iv = indicatorProps.indicatorVariant;
+            if (iv === "dot") {
+              const dotColor = isMiss ? "red" : isPartialMatch ? "amber" : "green";
+              return <span className={cn("rounded-full", DOT_COLORS[dotColor])} style={DOT_INDICATOR_SIZE_STYLE} />;
+            }
+            if (iv === "caret") {
+              const colorStyle = isMiss
+                ? ERROR_COLOR_STYLE
+                : isPartialMatch
+                  ? PARTIAL_COLOR_STYLE
+                  : VERIFIED_COLOR_STYLE;
+              return (
+                <span className="inline-flex" style={{ ...INDICATOR_SIZE_STYLE, ...colorStyle }}>
+                  {isMiss ? <XIcon /> : <CheckIcon />}
+                </span>
+              );
+            }
+            // icon (default)
+            const colorStyle = isMiss ? ERROR_COLOR_STYLE : isPartialMatch ? PARTIAL_COLOR_STYLE : VERIFIED_COLOR_STYLE;
+            return (
+              <span className="inline-flex" style={{ ...INDICATOR_SIZE_STYLE, ...colorStyle }}>
+                {isMiss ? <XIcon /> : <CheckIcon />}
+              </span>
+            );
+          })()}
         </span>
       </>
     );

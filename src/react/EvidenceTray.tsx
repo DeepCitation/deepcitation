@@ -61,7 +61,7 @@ import { groupSearchAttemptsForNotFound } from "./searchAttemptGrouping.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
-import { DC_EVIDENCE_VT_NAME } from "./viewTransition.js";
+import { DC_EVIDENCE_VT_NAME, primeEvidencePageExpandSource } from "./viewTransition.js";
 import { ZoomToolbar } from "./ZoomToolbar.js";
 
 // =============================================================================
@@ -307,6 +307,52 @@ export function resolveExpandedImageForPage(
   return resolveExpandedImage(verification, pageImages);
 }
 
+function normalizeEvidenceText(text: string | null | undefined): string {
+  return text?.toLowerCase().replace(/\s+/g, " ").trim() ?? "";
+}
+
+function resolveEvidenceSourceAnchorRatio(
+  verification: Verification | null | undefined,
+): { x: number; y: number } | null {
+  const evidence = verification?.evidence;
+  const dims = evidence?.dimensions;
+  const items = evidence?.textItems;
+  if (!dims || dims.width <= 0 || dims.height <= 0 || !items || items.length === 0) return null;
+
+  const targets = [
+    verification?.verifiedAnchorText,
+    verification?.document?.anchorTextMatchDeepItems?.[0]?.text,
+    verification?.verifiedFullPhrase,
+    verification?.document?.phraseMatchDeepItem?.text,
+  ]
+    .map(normalizeEvidenceText)
+    .filter(Boolean);
+
+  let bestItem: DeepTextItem | null = null;
+  let bestScore = 0;
+
+  for (const item of items) {
+    const itemText = normalizeEvidenceText(item.text);
+    if (!itemText) continue;
+    for (const target of targets) {
+      let score = 0;
+      if (itemText === target) score = 4000 + itemText.length;
+      else if (target.includes(itemText)) score = 3000 + itemText.length;
+      else if (itemText.includes(target)) score = 2000 + target.length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestItem = item;
+      }
+    }
+  }
+
+  if (!bestItem) return null;
+
+  const x = Math.max(0, Math.min(1, (bestItem.x + bestItem.width / 2) / dims.width));
+  const y = Math.max(0, Math.min(1, (bestItem.y + bestItem.height / 2) / dims.height));
+  return { x, y };
+}
+
 // =============================================================================
 // ANCHOR TEXT FOCUSED IMAGE (Keyhole viewer)
 // =============================================================================
@@ -330,6 +376,7 @@ export function AnchorTextFocusedImage({
   onPageExpand,
   onKeyholeWidth,
   onScrollCapture,
+  pageExpandSourceRef,
 }: {
   src: string;
   verification?: Verification | null;
@@ -339,6 +386,8 @@ export function AnchorTextFocusedImage({
   onKeyholeWidth?: (width: number) => void;
   /** Called with natural-pixel scroll coords just before onImageClick fires. */
   onScrollCapture?: (left: number, top: number) => void;
+  /** Exposes the visible summary keyhole node for page-expand transitions. */
+  pageExpandSourceRef?: React.MutableRefObject<HTMLElement | null>;
 }) {
   const t = useTranslation();
   // Anchor item and renderScale for scroll positioning.
@@ -588,8 +637,15 @@ export function AnchorTextFocusedImage({
           aria-label={keyholeAriaLabel}
         >
           <div
-            ref={containerRef}
+            ref={el => {
+              containerRef.current = el;
+              if (pageExpandSourceRef) {
+                pageExpandSourceRef.current = el;
+              }
+            }}
             data-dc-keyhole=""
+            data-dc-page-expand-source=""
+            data-dc-page-expand-source-kind="summary-keyhole"
             className={cn(
               DOCUMENT_CANVAS_BG_CLASSES,
               isWidthFit ? "overflow-auto" : "overflow-x-auto overflow-y-hidden",
@@ -925,8 +981,10 @@ export function EvidenceTray({
   // must gate the action here.
   const trayMouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const trayRootRef = useRef<HTMLDivElement>(null);
+  const pageExpandSourceRef = useRef<HTMLElement | null>(null);
 
   const handlePageExpand = useCallback(() => {
+    primeEvidencePageExpandSource(pageExpandSourceRef.current);
     onExpand?.();
   }, [onExpand]);
 
@@ -1090,18 +1148,20 @@ export function EvidenceTray({
           src={resolvedEvidenceSrc}
           verification={verification}
           onImageClick={onImageClick}
-          onPageExpand={onExpand}
+          onPageExpand={handlePageExpand}
           onKeyholeWidth={onKeyholeWidth}
           onScrollCapture={onScrollCapture}
+          pageExpandSourceRef={pageExpandSourceRef}
         />
       ) : (isMiss || isPartialMatch) && isValidProofImageSrc(pageImageSrc) ? (
         <AnchorTextFocusedImage
           key={pageImageSrc}
           src={pageImageSrc}
           onImageClick={onImageClick}
-          onPageExpand={onExpand}
+          onPageExpand={handlePageExpand}
           onKeyholeWidth={onKeyholeWidth}
           onScrollCapture={onScrollCapture}
+          pageExpandSourceRef={pageExpandSourceRef}
         />
       ) : null}
       {/* Miss/partial: search analysis and collapsible search log (only when there are search attempts) */}
@@ -1349,9 +1409,16 @@ export function InlineExpandedImage({
     (shouldHighlightAnchorText(vAnchor, vPhrase) ||
       (isStrategyOverride(vAnchor, vPhrase) && shouldHighlightAnchorText(vAnchor, effectivePhraseItem?.text)));
   const scrollTarget = anchorHighlightActive ? effectiveAnchorItem : effectivePhraseItem;
+  const sourceAnchorRatio = useMemo(
+    () => (!fill ? resolveEvidenceSourceAnchorRatio(verification) : null),
+    [fill, verification],
+  );
 
   // Track container size via ResizeObserver (both width and height for fit-to-screen).
-  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
+  // When the container transitions from display:none (zero) to visible (positive),
+  // reset the auto-scroll guard so annotation scroll + pageExpandReady re-settle.
+  const prevContainerVisibleRef = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef and prevContainerVisibleRef are stable refs — identity never changes
   useEffect(() => {
     if (!fill) return;
     const el = containerRef.current;
@@ -1359,7 +1426,18 @@ export function InlineExpandedImage({
     const observer = new ResizeObserver(entries => {
       const rect = entries[0]?.contentRect;
       if (rect && rect.width > 0 && rect.height > 0) {
+        const wasVisible = prevContainerVisibleRef.current;
+        prevContainerVisibleRef.current = true;
+        if (!wasVisible) {
+          // Container just became visible (display:none → visible).
+          // Reset scroll guards so the auto-scroll effect re-runs and
+          // pageExpandReady reflects the freshly settled annotation position.
+          hasAutoScrolledToAnnotationRef.current = false;
+          setPageExpandReady(false);
+        }
         setContainerSize({ width: rect.width, height: rect.height });
+      } else {
+        prevContainerVisibleRef.current = false;
       }
     });
     observer.observe(el);
@@ -1386,6 +1464,7 @@ export function InlineExpandedImage({
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref identities are stable; fill/onNaturalSize are read but not reactive triggers — only src change should fire this
   useLayoutEffect(() => {
     hasAutoScrolledToAnnotationRef.current = false;
+    setPageExpandReady(false);
     lastReportedSizeRef.current = null;
     touchGestureZoomRef.current = null;
     touchGestureAnchorRef.current = null;
@@ -1432,6 +1511,7 @@ export function InlineExpandedImage({
   // ---------------------------------------------------------------------------
   const [locateDirty, setLocateDirty] = useState(false);
   const [locatePulseKey, setLocatePulseKey] = useState(0);
+  const [pageExpandReady, setPageExpandReady] = useState(false);
   // Ref storing the expected scroll position after a programmatic scroll.
   // Used by the scroll listener to detect user-initiated drift.
   const annotationScrollTarget = useRef<{ left: number; top: number } | null>(null);
@@ -1465,7 +1545,9 @@ export function InlineExpandedImage({
     if (!scrollItem || !renderScale) return;
 
     hasAutoScrolledToAnnotationRef.current = true;
+    setPageExpandReady(false);
     const effectiveZoom = zoom;
+    let settleRafId = 0;
     const rafId = requestAnimationFrame(() => {
       const container = containerRef.current;
       if (!container) return;
@@ -1485,9 +1567,15 @@ export function InlineExpandedImage({
         container.scrollTop = st;
         annotationScrollTarget.current = { left: sl, top: st };
         setLocateDirty(false);
+        settleRafId = requestAnimationFrame(() => {
+          setPageExpandReady(true);
+        });
       }
     });
-    return () => cancelAnimationFrame(rafId);
+    return () => {
+      cancelAnimationFrame(rafId);
+      cancelAnimationFrame(settleRafId);
+    };
   }, [
     fill,
     imageLoaded,
@@ -1499,6 +1587,43 @@ export function InlineExpandedImage({
     scrollTarget,
     effectivePhraseItem,
     renderScale,
+    containerRef,
+  ]);
+
+  useEffect(() => {
+    if (!fill || !imageLoaded) return;
+    const scrollItem = scrollTarget ?? effectivePhraseItem;
+    if (manualZoom !== null || !scrollItem || !renderScale) {
+      // No annotation to auto-scroll to. If a keyhole viewport position is
+      // available (miss/not_found with page preview), scroll the expanded page
+      // to show the same region the user was viewing in the keyhole. This must
+      // happen before the ghost target is computed via rAF polling so the
+      // viewport-based fallback target reflects the correct scroll position.
+      //
+      // Guard on manualZoom === null (not a ref-equality one-shot) so the scroll
+      // re-applies when zoom settles from the initial fallback (1) to the real
+      // fittedZoom — the ResizeObserver that measures containerSize may not have
+      // fired yet on the first effect run after display:none → visible.
+      // Once the user sets manualZoom (pinch/wheel), we stop overriding.
+      if (initialScroll && manualZoom === null) {
+        const el = containerRef.current;
+        if (el) {
+          void el.scrollHeight; // Force reflow after display:none → visible
+          el.scrollLeft = initialScroll.left * zoom + CANVAS_PADDING_PX;
+          el.scrollTop = initialScroll.top * zoom + CANVAS_PADDING_PX;
+        }
+      }
+      setPageExpandReady(true);
+    }
+  }, [
+    fill,
+    imageLoaded,
+    manualZoom,
+    scrollTarget,
+    effectivePhraseItem,
+    renderScale,
+    initialScroll,
+    zoom,
     containerRef,
   ]);
 
@@ -1785,18 +1910,40 @@ export function InlineExpandedImage({
     annotationOriginItem && renderScale && naturalWidth && naturalHeight
       ? computeAnnotationOriginPercent(annotationOriginItem, renderScale, naturalWidth, naturalHeight)
       : null;
+  // VT geometry target: always use the full phrase rect so the View Transition
+  // morph envelope matches the visible overlay size on both expand and collapse.
+  // (scrollTarget may be the smaller anchor text — fine for scroll centering,
+  // but the VT rect must cover the full phrase to avoid starting from a smaller box.)
+  const annotationTargetItem = fill && renderScale ? effectivePhraseItem : null;
+  const annotationTargetNaturalWidth =
+    annotationTargetItem && renderScale ? annotationTargetItem.width * renderScale.x : null;
+  const annotationTargetNaturalHeight =
+    annotationTargetItem && renderScale ? annotationTargetItem.height * renderScale.y : null;
 
   // Annotation rect as CSS percentages — used as the View Transition anchor
   // in fill mode so the VT geometry morph tracks the annotation region instead
   // of the whole page container. When null, falls back to container-level VT.
+  const annotationBaseDimensions =
+    naturalWidth && naturalHeight
+      ? { width: naturalWidth, height: naturalHeight }
+      : expectedDimensions && expectedDimensions.width > 0 && expectedDimensions.height > 0
+        ? expectedDimensions
+        : null;
   const annotationVtRect =
-    fill && effectivePhraseItem && renderScale && naturalWidth && naturalHeight
-      ? toPercentRect(effectivePhraseItem, renderScale, naturalWidth, naturalHeight)
+    fill && annotationTargetItem && renderScale && annotationBaseDimensions
+      ? toPercentRect(
+          annotationTargetItem,
+          renderScale,
+          annotationBaseDimensions.width,
+          annotationBaseDimensions.height,
+        )
       : null;
+  const pageExpandTargetReady = !!fill && !!annotationVtRect && !!imageLoaded && pageExpandReady;
 
   const handleExpandToPage = useCallback(() => {
+    primeEvidencePageExpandSource(containerRef.current);
     onExpand?.();
-  }, [onExpand]);
+  }, [onExpand, containerRef]);
 
   const handleCollapse = useCallback(() => {
     onCollapse();
@@ -1841,6 +1988,18 @@ export function InlineExpandedImage({
         <div
           ref={containerRef}
           data-dc-inline-expanded=""
+          {...(fill && !(scrollTarget ?? effectivePhraseItem)
+            ? { "data-dc-no-annotation": "" }
+            : !fill && onExpand
+              ? {
+                  "data-dc-page-expand-source": "",
+                  "data-dc-page-expand-source-kind": "expanded-keyhole" as const,
+                  ...(sourceAnchorRatio && {
+                    "data-dc-source-anchor-x": sourceAnchorRatio.x.toFixed(4),
+                    "data-dc-source-anchor-y": sourceAnchorRatio.y.toFixed(4),
+                  }),
+                }
+              : {})}
           role="button"
           tabIndex={0}
           aria-label={t("aria.expandedImageViewer")}
@@ -1859,17 +2018,7 @@ export function InlineExpandedImage({
             // marker (if available) so the geometry morph tracks the annotation
             // region → keyhole strip. Falls back here when no marker exists.
             //
-            // PAGE EXPAND: VT name STAYS on this scroll container even when an
-            // annotation marker exists. This ensures the NEW VT snapshot has
-            // visible image content (the full page). Without this, the transparent
-            // marker produces an invisible NEW snapshot and the VT animation has
-            // nothing to show. The data-dc-page-expand attribute is set on <html>
-            // synchronously before the VT callback, so reading it during the
-            // flushSync render is deterministic and safe.
-            ...(!annotationVtRect ||
-            (typeof document !== "undefined" && "dcPageExpand" in document.documentElement.dataset)
-              ? { viewTransitionName: DC_EVIDENCE_VT_NAME }
-              : {}),
+            ...(!annotationVtRect ? { viewTransitionName: DC_EVIDENCE_VT_NAME } : {}),
             ...(fill ? {} : { maxHeight: "min(600px, 80dvh)" }),
             overscrollBehavior: "none",
             cursor: isDragging ? "move" : "zoom-out",
@@ -2030,13 +2179,18 @@ export function InlineExpandedImage({
               {annotationVtRect && (
                 <div
                   aria-hidden
+                  data-dc-page-expand-target=""
+                  data-dc-page-expand-ready={pageExpandTargetReady ? "true" : "false"}
+                  {...(annotationTargetNaturalWidth && annotationTargetNaturalHeight
+                    ? {
+                        "data-dc-target-natural-width": annotationTargetNaturalWidth,
+                        "data-dc-target-natural-height": annotationTargetNaturalHeight,
+                      }
+                    : {})}
                   style={{
                     position: "absolute",
                     ...annotationVtRect,
-                    // VT name only during collapse — page expand keeps it on the scroll container.
-                    ...(typeof document !== "undefined" && "dcPageExpand" in document.documentElement.dataset
-                      ? {}
-                      : { viewTransitionName: DC_EVIDENCE_VT_NAME }),
+                    viewTransitionName: DC_EVIDENCE_VT_NAME,
                     pointerEvents: "none",
                   }}
                 />

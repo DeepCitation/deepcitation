@@ -2,22 +2,22 @@
 // ====================================================
 
 // -----------------------------------------------------
-// Brand Colors - Slate Scale
+// Brand Colors - Slate Scale (zinc/warm, matches web app BRANDING.md)
 // -----------------------------------------------------
-$slate-50:  #F8FAFC;
-$slate-100: #F1F5F9;
-$slate-200: #E2E8F0;
-$slate-300: #CBD5E1;
-$slate-400: #94A3B8;
-$slate-500: #64748B;
-$slate-600: #475569;
-$slate-700: #334155;
-$slate-800: #1E293B;
-$slate-900: #0F172A;
-$slate-950: #020617;
+$slate-50:  #FAFAFA;
+$slate-100: #F4F4F5;
+$slate-200: #E4E4E7;
+$slate-300: #D4D4D8;
+$slate-400: #A1A1AA;
+$slate-500: #71717A;
+$slate-600: #52525B;
+$slate-700: #3F3F46;
+$slate-800: #27272A;
+$slate-900: #18181B;
+$slate-950: #09090B;
 
 // Brand display font — Playfair Display for wordmark and h1 headings
-$font-display: 'Playfair Display', Georgia, serif;
+$font-display: 'Playfair Display', serif;
 
 // Bracket accent — reusable left-edge indicator (app sidebar, testimonials, callouts)
 @mixin bracket-indicator {
@@ -51,10 +51,12 @@ $btn-primary-color: $brand-blue-light;
 // Dark Mode Mixin (DRY)
 // -----------------------------------------------------
 @mixin dark-mode-colors {
+  color-scheme: dark;
   --body-background-color: #{$slate-950};
+  --body-background-image: none; // suppress JTD v0.8 body background-image gradient
   --sidebar-color: #{$slate-900};
   --body-heading-color: #{$slate-200}; // per BRANDING.md External Documentation Theme
-  --body-text-color: #{$slate-400}; // per BRANDING.md: #94A3B8
+  --body-text-color: #{$slate-400}; // per BRANDING.md: #A1A1AA (zinc-400)
   --link-color: #{$brand-blue-dark-link}; // #77bff6 (blue-dark) — not blue-luminous
   --link-hover-color: #{$brand-blue-dark-link-hover};
   --code-background-color: #{$slate-900};
@@ -156,9 +158,10 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.7;
 
   // Display headings use Playfair Display per BRANDING.md
+  // !important to beat JTD compiled h1 rule that injects Georgia fallback
   h1 {
     font-size: 2rem;
-    font-family: $font-display;
+    font-family: $font-display !important;
     font-weight: 700;
   }
   h2 { font-size: 1.5rem; margin-top: 2rem; }
@@ -223,28 +226,28 @@ code, pre, .highlight {
 }
 
 // -----------------------------------------------------
-// "The Spark" - 75ms ease-out transitions (specific properties)
+// "The Spark" - 80ms ease-out transitions (Instant tier per BRANDING.md)
 // -----------------------------------------------------
 a {
-  transition: color 75ms ease-out,
-              text-decoration-thickness 75ms ease-out;
+  transition: color 80ms ease-out,
+              text-decoration-thickness 80ms ease-out;
 }
 
 .btn,
 .nav-list-link {
-  transition: color 75ms ease-out,
-              background-color 75ms ease-out,
-              border-color 75ms ease-out;
+  transition: color 80ms ease-out,
+              background-color 80ms ease-out,
+              border-color 80ms ease-out;
 }
 
 .search-input {
-  transition: border-color 75ms ease-out,
-              box-shadow 75ms ease-out;
+  transition: border-color 80ms ease-out,
+              box-shadow 80ms ease-out;
 }
 
 code {
-  transition: background-color 75ms ease-out,
-              border-color 75ms ease-out;
+  transition: background-color 80ms ease-out,
+              border-color 80ms ease-out;
 }
 
 // -----------------------------------------------------
@@ -335,17 +338,29 @@ pre {
 // so we must override wrapper elements at runtime.
 // -----------------------------------------------------
 @media (prefers-color-scheme: dark) {
+  // Suppress JTD v0.8 body background-image gradient (compiled from $body-background-image)
+  body {
+    background-image: none;
+  }
+
   // .main-content-wrap and .main bg is set unconditionally above
 
   .page-header {
     background-color: var(--body-background-color);
+    background-image: none;
   }
 
   // -------------------------------------------------
-  // Tables — JTD hardcodes background-color: #fff on td elements.
-  // tr/table are transparent, but td gets white directly, so we override td.
+  // Tables — JTD hardcodes background-color: #fff on td AND th elements.
+  // Both must be overridden; CSS vars alone lose to JTD's compiled specificity.
   // tr:nth-child(even) td gets a slightly lighter shade for stripe contrast.
   // -------------------------------------------------
+  .main-content th {
+    background-color: var(--sidebar-color); // slate-900 — visually distinct header
+    border-color: var(--border-color);
+    color: var(--body-heading-color);
+  }
+
   .main-content td {
     background-color: var(--body-background-color);
     border-color: var(--border-color);
@@ -394,16 +409,20 @@ pre {
     svg { fill: var(--body-heading-color); }
   }
 
+  // Active nav item — JTD compiles a light highlight color that wins in dark mode
+  .side-bar .nav-list .nav-list-link.active {
+    background-color: var(--nav-active-bg) !important;
+    color: var(--nav-active-text);
+  }
+
+  // Parent nav items in dark mode — heading color, not link color
+  .side-bar .nav-list > .nav-list-item > .nav-list-link {
+    color: var(--body-heading-color);
+  }
+
   // Navigation overlay on mobile
   .search-overlay {
     background-color: rgba(0, 0, 0, 0.6);
-  }
-
-  // Table header borders (th background is set via CSS var outside media query,
-  // but JTD compiles a hardcoded border color on th that needs overriding here)
-  .main-content th {
-    border-color: var(--border-color);
-    color: var(--body-heading-color);
   }
 
   // Note/warning/important callouts (Just the Docs compiled backgrounds)
@@ -437,6 +456,28 @@ pre {
   ::-webkit-scrollbar-thumb {
     background-color: #{$slate-600};
     border-radius: 4px;
+  }
+
+  // -------------------------------------------------
+  // Code blocks — override JTD compiled light-mode backgrounds
+  // JTD hardcodes background-color on pre, .highlight, figure.highlight
+  // at build time; CSS vars alone lose to that specificity.
+  // -------------------------------------------------
+  pre,
+  pre.highlight,
+  figure.highlight,
+  figure.highlight pre,
+  .main-content pre,
+  .main-content .highlight {
+    background-color: var(--code-background-color) !important;
+    border-color: var(--code-border-color);
+    color: #{$slate-300};
+  }
+
+  .main-content pre code,
+  .highlight code {
+    background-color: transparent;
+    color: #{$slate-300};
   }
 
   // -------------------------------------------------
@@ -561,15 +602,16 @@ pre {
   overflow: visible !important;
 }
 
-// Navigation links in sidebar - high specificity to override theme
+// Navigation links in sidebar - neutral text by default, blue on hover/active
+// (reduces visual weight of sidebar relative to content — per branding review)
 .side-bar .nav-list .nav-list-link {
   font-size: 1rem; // 16px - bigger nav items
   padding: 0.625rem 0.75rem;
-  color: var(--link-color);
+  color: var(--body-text-color);
 
   &:hover {
     background-color: var(--nav-active-bg);
-    color: var(--link-hover-color);
+    color: var(--link-color);
   }
 
   &.active {
@@ -598,11 +640,15 @@ pre {
   }
 }
 
-// Parent nav items (sections)
-.nav-list-item.parent {
-  > .nav-list-link {
-    font-weight: 600;
-    color: var(--body-heading-color);
+// Parent nav items (top-level sections like "Getting Started", "API Reference")
+// JTD does NOT add a .parent class — target top-level items that contain a child nav-list
+// These should be neutral heading color, not link blue
+.side-bar .nav-list > .nav-list-item > .nav-list-link {
+  font-weight: 600;
+  color: var(--body-heading-color);
+
+  &:hover {
+    color: var(--link-color);
   }
 }
 
@@ -699,6 +745,7 @@ blockquote {
   background-image: none !important; // Override Just the Docs purple gradient
   border-color: var(--btn-primary-bg) !important;
   color: var(--btn-primary-text) !important;
+  border-radius: 0 !important; // Bass's Constant — override JTD compiled radius
 
   &:hover {
     background-color: var(--btn-primary-bg-hover) !important;
@@ -786,6 +833,23 @@ blockquote {
   padding-left: 1.5rem; // clear the 6px bracket pseudo-element
 
   &::before { @include bracket-indicator; }
+}
+
+// -----------------------------------------------------
+// Mobile hamburger icon — override JTD compiled purple in BOTH modes
+// JTD compiles $link-color into .site-button at build time; this beats it.
+// Dark mode override also exists in the @media block below.
+// -----------------------------------------------------
+.site-header .site-button,
+.site-nav .site-button,
+.site-button.btn-reset,
+.site-button {
+  color: var(--body-heading-color) !important;
+
+  svg {
+    fill: var(--body-heading-color) !important;
+    color: var(--body-heading-color) !important;
+  }
 }
 
 // Active states

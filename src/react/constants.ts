@@ -545,6 +545,8 @@ export const EXPANDED_POPOVER_HEIGHT = "calc(100dvh - 2rem)";
 
 /** Duration (ms) for evidence image expand VT (keyhole → expanded). ANIM_STANDARD_MS tier. */
 export const VT_EVIDENCE_EXPAND_MS = 180;
+/** Duration (ms) for the page-expand ghost animation (summary/preview → expanded page). ANIM_MEASURED_MS tier (250ms). */
+export const VT_EVIDENCE_PAGE_EXPAND_MS = 250;
 /** Duration (ms) for evidence image collapse VT (expanded → keyhole). ANIM_FAST_MS tier. */
 export const VT_EVIDENCE_COLLAPSE_MS = 120;
 /**
@@ -553,6 +555,57 @@ export const VT_EVIDENCE_COLLAPSE_MS = 120;
  * high enough to preserve the shape silhouette for spatial tracking.
  */
 export const VT_EVIDENCE_DIP_OPACITY = 0.45;
+
+// Page-expand ghost animation keyframe tuning.
+//
+// Mirrors the collapse's "dip-then-reveal" structure:
+//   Collapse: old 1.0 → 0.45 (30%) → 0  /  new 0 → 0 (60%) → 1
+//   Expand:   ghost dominates first 60%   /  page near-invisible until ghost lands
+//
+// The ghost is the "old snapshot equivalent" — the thing the eye tracks.
+// It must be opaque enough to dominate over the dimmed page beneath.
+// The page is the "new snapshot equivalent" — stays hidden, then reveals sharply.
+/** Ghost initial opacity — clearly visible "card" from click origin. */
+export const GHOST_OPACITY_START = 0.55;
+/** Ghost opacity at early interpolation (18% progress) — building dominance. */
+export const GHOST_OPACITY_EARLY = 0.75;
+/** Ghost opacity at mid interpolation (42% progress) — peak visibility, mid-motion. */
+export const GHOST_OPACITY_MID = 0.88;
+/** Ghost opacity at late interpolation (68% progress) — near-peak, approaching target. */
+export const GHOST_OPACITY_LATE = 0.92;
+/** Ghost near-peak opacity before final fade-out (92% progress). */
+export const GHOST_OPACITY_PEAK = 0.88;
+
+// Page-expand ghost motion blur.
+// CSS `filter: blur()` masks the non-uniform scale distortion (squashed text)
+// mid-flight and reads as cinematic motion blur. GPU-composited, no layout cost.
+/** Ghost blur (px) at start — sharp at source position. */
+export const GHOST_BLUR_START_PX = 1;
+/** Ghost blur (px) at early interpolation — motion building. */
+export const GHOST_BLUR_EARLY_PX = 4;
+/** Ghost blur (px) at mid interpolation — peak distortion zone. */
+export const GHOST_BLUR_MID_PX = 8;
+/** Ghost blur (px) at late interpolation — clearing as ghost nears target. */
+export const GHOST_BLUR_LATE_PX = 5;
+/** Ghost blur (px) at near-peak — nearly clear before fade-out. */
+export const GHOST_BLUR_PEAK_PX = 2;
+
+/** Page content initial opacity during page-expand — nearly invisible.
+ *  Must be very low so the ghost dominates the first 60% of the animation
+ *  (mirroring how the collapse keeps new content at 0 until 60%). */
+export const PAGE_EXPAND_CONTENT_OPACITY_START = 0.03;
+/** Ghost keyframe offset: early interpolation. */
+export const GHOST_OFFSET_EARLY = 0.18;
+/** Ghost keyframe offset: mid interpolation. */
+export const GHOST_OFFSET_MID = 0.42;
+/** Ghost keyframe offset: late interpolation. */
+export const GHOST_OFFSET_LATE = 0.68;
+/** Ghost keyframe offset: near-peak before fade-out. */
+export const GHOST_OFFSET_PEAK = 0.92;
+/** Debug outline color for page-expand source phase. */
+export const DEBUG_PAGE_EXPAND_SOURCE_COLOR = "#ef4444";
+/** Debug outline color for page-expand target phase. */
+export const DEBUG_PAGE_EXPAND_TARGET_COLOR = "#22c55e";
 
 // =============================================================================
 // ANIMATION & TRANSITION TIMINGS

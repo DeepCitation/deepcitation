@@ -298,7 +298,7 @@ function ClaimQuote({
   return (
     <div
       className={cn(
-        "mx-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-slate-50 dark:bg-slate-800/50 border-l-[3px] max-w-prose",
+        "ml-[1.34375rem] mr-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-slate-50 dark:bg-slate-800/50 border-l-2 max-w-prose",
         borderColor,
       )}
       style={maxWidth ? { maxWidth } : undefined}
@@ -398,7 +398,11 @@ function EvidenceZone({
 }: {
   viewState: PopoverViewState;
   evidenceSrc: string | null;
-  expandedImage: { src: string; renderScale?: { x: number; y: number } | null } | null;
+  expandedImage: {
+    src: string;
+    renderScale?: { x: number; y: number } | null;
+    dimensions?: { width: number; height: number } | null;
+  } | null;
   onViewStateChange?: (viewState: PopoverViewState) => void;
   onRequestCollapseFromPage?: () => void;
   /** When provided, renders an expanded-keyhole footer CTA (for example, "View page" or "View image"). */
@@ -465,15 +469,7 @@ function EvidenceZone({
              throughout the morph. Size change is small enough that the
              geometry morph alone provides smooth continuity.
 
-          2. Page expand (data-dc-page-expand) — reverse-collapse cross-fade.
-             Both old (keyhole strip) and new (full page scroll container)
-             have visible content. Old fades out while new fades in, with
-             the group morphing from keyhole bounds → scroll container bounds.
-             The VT name is forced onto the scroll container (not the
-             transparent annotation marker) during page expand so the NEW
-             snapshot actually has image content.
-
-          3. Collapse (data-dc-collapse) — opacity cross-fade.
+          2. Collapse (data-dc-collapse) — opacity cross-fade.
              Quick exit where the opacity dip reinforces the "shrinking
              away" feel. Uses EASE_COLLAPSE (decisive deceleration). */}
       <style>{`
@@ -492,18 +488,6 @@ function EvidenceZone({
           animation: none;
         }
         ::view-transition-group(${DC_EVIDENCE_VT_NAME}) {
-          animation-duration: ${VT_EVIDENCE_EXPAND_MS}ms;
-          animation-timing-function: ${EASE_COLLAPSE};
-        }
-
-        :root[data-dc-page-expand] ::view-transition-old(${DC_EVIDENCE_VT_NAME}) {
-          animation: dc-expand-fly-out ${VT_EVIDENCE_EXPAND_MS}ms ${EASE_COLLAPSE} both;
-        }
-        :root[data-dc-page-expand] ::view-transition-new(${DC_EVIDENCE_VT_NAME}) {
-          animation: none;
-          opacity: 0;
-        }
-        :root[data-dc-page-expand] ::view-transition-group(${DC_EVIDENCE_VT_NAME}) {
           animation-duration: ${VT_EVIDENCE_EXPAND_MS}ms;
           animation-timing-function: ${EASE_COLLAPSE};
         }
@@ -536,19 +520,6 @@ function EvidenceZone({
           0%   { opacity: 0; }
           60%  { opacity: 0; }
           100% { opacity: 1; }
-        }
-
-        /* Page expand: keyhole image flies to the annotation position on the
-           full page. The OLD snapshot (keyhole) stays visible during the
-           geometry morph so the user sees it physically move + scale. It fades
-           out at the end to reveal the page underneath (which is fully visible
-           in the real DOM since the scroll container no longer carries a VT
-           name). The NEW snapshot is the transparent annotation marker — kept
-           invisible throughout. */
-        @keyframes dc-expand-fly-out {
-          0%   { opacity: 1; }
-          75%  { opacity: 0.6; }
-          100% { opacity: 0; }
         }
       `}</style>
       {/* Slot A: summary — EvidenceTray keyhole strip */}
@@ -585,6 +556,7 @@ function EvidenceZone({
             onNaturalSize={handlePageImageLoad}
             renderScale={expandedImage.renderScale}
             expectedDimensions={expandedImage.dimensions}
+            initialScroll={keyholeInitialScroll ?? undefined}
           />
         )}
       </div>
@@ -1064,7 +1036,7 @@ export function DefaultPopoverContent({
                 : undefined
           }
           pageCtaLabel={expandCtaLabel}
-          onScrollCapture={evidenceSrc ? handleKeyholeScrollCapture : undefined}
+          onScrollCapture={handleKeyholeScrollCapture}
           pageImageSrc={expandedImage?.src}
           onKeyholeWidth={setKeyholeDisplayedWidth}
           escapeInterceptRef={escapeInterceptRef}

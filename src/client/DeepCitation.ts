@@ -28,6 +28,9 @@ import type {
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
 
+/** Current SDK version — must be kept in sync with package.json. */
+export const SDK_VERSION = "0.2.1";
+
 /**
  * Default concurrency limit for parallel file uploads.
  * Prevents overwhelming the network/server with too many simultaneous requests.
@@ -156,6 +159,7 @@ export class DeepCitation {
   private readonly endUserId?: string;
   private readonly endFileId?: string;
   private readonly convertedPdfDownloadPolicy: ConvertedPdfDownloadPolicy;
+  private readonly onLatestVersion?: (latestVersion: string) => void;
 
   /**
    * Request deduplication cache for verify calls.
@@ -207,6 +211,7 @@ export class DeepCitation {
     this.endUserId = config.endUserId;
     this.endFileId = config.endFileId;
     this.convertedPdfDownloadPolicy = config.convertedPdfDownloadPolicy ?? "url_only";
+    this.onLatestVersion = config.onLatestVersion;
   }
 
   /** Resolve endUserId: per-request override wins over instance default. */
@@ -222,6 +227,21 @@ export class DeepCitation {
   /** Resolve converted PDF download policy: per-request override wins over instance default. */
   private resolveConvertedPdfDownloadPolicy(override?: ConvertedPdfDownloadPolicy): ConvertedPdfDownloadPolicy {
     return override ?? this.convertedPdfDownloadPolicy;
+  }
+
+  /** Common headers included in every API request. */
+  private baseHeaders(): Record<string, string> {
+    return {
+      Authorization: `Bearer ${this.apiKey}`,
+      "X-SDK-Version": SDK_VERSION,
+    };
+  }
+
+  /** If the response contains a latest SDK version header, notify the callback. */
+  private checkLatestVersion(response: Response): void {
+    if (!this.onLatestVersion) return;
+    const latest = response.headers.get("X-Latest-SDK-Version");
+    if (latest) this.onLatestVersion(latest);
   }
 
   /**
@@ -304,9 +324,10 @@ export class DeepCitation {
 
     const response = await fetch(`${this.apiUrl}/prepareAttachments`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${this.apiKey}` },
+      headers: { ...this.baseHeaders() },
       body: formData,
     });
+    this.checkLatestVersion(response);
 
     if (!response.ok) {
       this.logger.error?.("Upload failed", { filename: name, status: response.status });
@@ -367,10 +388,7 @@ export class DeepCitation {
     if (url) {
       response = await fetch(`${this.apiUrl}/convertFile`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
+        headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
           url,
           filename,
@@ -393,10 +411,12 @@ export class DeepCitation {
 
       response = await fetch(`${this.apiUrl}/convertFile`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+        headers: { ...this.baseHeaders() },
         body: formData,
       });
     }
+
+    this.checkLatestVersion(response);
 
     if (!response.ok) {
       this.logger.error?.("Conversion failed", { url, filename, status: response.status });
@@ -436,10 +456,7 @@ export class DeepCitation {
 
     const response = await fetch(`${this.apiUrl}/prepareAttachments`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({
         attachmentId: options.attachmentId,
         endUserId: resolvedEndUserId,
@@ -447,6 +464,7 @@ export class DeepCitation {
         convertedPdfDownloadPolicy,
       }),
     });
+    this.checkLatestVersion(response);
 
     if (!response.ok) {
       this.logger.error?.("Prepare converted file failed", {
@@ -503,10 +521,7 @@ export class DeepCitation {
     const convertedPdfDownloadPolicy = this.resolveConvertedPdfDownloadPolicy(options.convertedPdfDownloadPolicy);
     const response = await fetch(`${this.apiUrl}/prepareAttachments`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({
         url: options.url,
         attachmentId: options.attachmentId,
@@ -518,6 +533,7 @@ export class DeepCitation {
         convertedPdfDownloadPolicy,
       }),
     });
+    this.checkLatestVersion(response);
 
     if (!response.ok) {
       this.logger.error?.("Prepare URL failed", { url: options.url, status: response.status });
@@ -707,10 +723,7 @@ export class DeepCitation {
     const fetchPromise = (async (): Promise<VerifyCitationsResponse> => {
       const response = await fetch(`${this.apiUrl}/verifyCitations`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
+        headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
             attachmentId,
@@ -720,6 +733,7 @@ export class DeepCitation {
           },
         }),
       });
+      this.checkLatestVersion(response);
 
       if (!response.ok) {
         // Remove from cache on error so retry is possible
@@ -868,14 +882,12 @@ export class DeepCitation {
 
     const response = await fetch(`${this.apiUrl}/attachments/${options.attachmentId}/extend`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({
         duration: options.duration,
       }),
     });
+    this.checkLatestVersion(response);
 
     if (!response.ok) {
       this.logger.error?.("Extend expiration failed", { attachmentId: options.attachmentId, status: response.status });
@@ -909,10 +921,9 @@ export class DeepCitation {
 
     const response = await fetch(`${this.apiUrl}/attachments/${attachmentId}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-      },
+      headers: { ...this.baseHeaders() },
     });
+    this.checkLatestVersion(response);
 
     if (!response.ok) {
       this.logger.error?.("Delete attachment failed", { attachmentId, status: response.status });
@@ -962,12 +973,10 @@ export class DeepCitation {
 
     const response = await fetch(`${this.apiUrl}/getAttachment`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({ attachmentId, endUserId: resolvedEndUserId }),
     });
+    this.checkLatestVersion(response);
 
     if (!response.ok) {
       this.logger.error?.("Get attachment failed", { attachmentId, status: response.status });
