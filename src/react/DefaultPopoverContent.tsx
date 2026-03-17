@@ -556,6 +556,7 @@ function EvidenceZone({
             onNaturalSize={handlePageImageLoad}
             renderScale={expandedImage.renderScale}
             expectedDimensions={expandedImage.dimensions}
+            initialScroll={keyholeInitialScroll ?? undefined}
           />
         )}
       </div>
@@ -1035,7 +1036,7 @@ export function DefaultPopoverContent({
                 : undefined
           }
           pageCtaLabel={expandCtaLabel}
-          onScrollCapture={evidenceSrc ? handleKeyholeScrollCapture : undefined}
+          onScrollCapture={handleKeyholeScrollCapture}
           pageImageSrc={expandedImage?.src}
           onKeyholeWidth={setKeyholeDisplayedWidth}
           escapeInterceptRef={escapeInterceptRef}

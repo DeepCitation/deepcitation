@@ -1591,9 +1591,33 @@ export function InlineExpandedImage({
     if (!fill || !imageLoaded) return;
     const scrollItem = scrollTarget ?? effectivePhraseItem;
     if (manualZoom !== null || !scrollItem || !renderScale) {
+      // No annotation to auto-scroll to. If a keyhole viewport position is
+      // available (miss/not_found with page preview), scroll the expanded page
+      // to show the same region the user was viewing in the keyhole. This must
+      // happen before the ghost target is computed via rAF polling so the
+      // viewport-based fallback target reflects the correct scroll position.
+      if (initialScroll && lastAppliedInitialScrollRef.current !== initialScroll) {
+        lastAppliedInitialScrollRef.current = initialScroll;
+        const el = containerRef.current;
+        if (el) {
+          void el.scrollHeight; // Force reflow after display:none → visible
+          el.scrollLeft = initialScroll.left * zoom + CANVAS_PADDING_PX;
+          el.scrollTop = initialScroll.top * zoom + CANVAS_PADDING_PX;
+        }
+      }
       setPageExpandReady(true);
     }
-  }, [fill, imageLoaded, manualZoom, scrollTarget, effectivePhraseItem, renderScale]);
+  }, [
+    fill,
+    imageLoaded,
+    manualZoom,
+    scrollTarget,
+    effectivePhraseItem,
+    renderScale,
+    initialScroll,
+    zoom,
+    containerRef,
+  ]);
 
   // Clamp helper — shared by buttons, slider, pinch, and wheel.
   // Uses zoomFloor (not EXPANDED_ZOOM_MIN) so the lower bound respects the

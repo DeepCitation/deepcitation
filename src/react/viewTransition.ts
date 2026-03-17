@@ -285,6 +285,33 @@ function buildGhostTargetRect(_snapshot: GhostSnapshot, targetEl: HTMLElement, m
   return markerRect;
 }
 
+/**
+ * Fallback ghost target for miss/not_found states where no annotation marker
+ * exists. Maps the keyhole's visible viewport onto the expanded page's visible
+ * image area — the ghost lands on whatever region the user was already viewing.
+ */
+function buildGhostTargetFromViewport(root: ParentNode): PageExpandTarget | null {
+  const containers = root.querySelectorAll<HTMLElement>("[data-dc-inline-expanded]");
+  for (const container of containers) {
+    const containerRect = container.getBoundingClientRect();
+    if (!isVisibleRect(containerRect)) continue;
+    const img = container.querySelector<HTMLImageElement>("img");
+    if (!img) continue;
+    const imgRect = img.getBoundingClientRect();
+    if (!isVisibleRect(imgRect)) continue;
+    // Ghost target = intersection of the container viewport and the image rect
+    // (the visible portion of the page image on screen).
+    const left = Math.max(containerRect.left, imgRect.left);
+    const top = Math.max(containerRect.top, imgRect.top);
+    const right = Math.min(containerRect.right, imgRect.right);
+    const bottom = Math.min(containerRect.bottom, imgRect.bottom);
+    if (right <= left || bottom <= top) continue;
+    const visibleRect = new DOMRect(left, top, right - left, bottom - top);
+    return { markerRect: visibleRect, ghostRect: visibleRect };
+  }
+  return null;
+}
+
 function findPageExpandTarget(root: ParentNode, snapshot: GhostSnapshot): PageExpandTarget | null {
   const candidates = Array.from(root.querySelectorAll<HTMLElement>("[data-dc-page-expand-target]"));
   for (const targetEl of candidates) {
@@ -293,7 +320,11 @@ function findPageExpandTarget(root: ParentNode, snapshot: GhostSnapshot): PageEx
     if (!isVisibleRect(rect)) continue;
     return { markerRect: rect, ghostRect: buildGhostTargetRect(snapshot, targetEl, rect) };
   }
-  return null;
+  // Annotation target elements exist but aren't ready yet — keep polling.
+  if (candidates.length > 0) return null;
+  // No annotation target at all (miss/not_found without annotation data).
+  // Fall back to the visible viewport of the expanded page image.
+  return buildGhostTargetFromViewport(root);
 }
 
 function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement | null {
