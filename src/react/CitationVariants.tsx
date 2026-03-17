@@ -4,6 +4,8 @@ import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import {
+  ERROR_COLOR_STYLE,
+  INDICATOR_SIZE_STYLE,
   MISS_WAVY_UNDERLINE_STYLE,
   PARTIAL_COLOR_STYLE,
   SUPERSCRIPT_STYLE,
@@ -21,6 +23,18 @@ const TWO_DOTS_THINKING_CONTENT = "..";
 // can safely reorder expressions (inline ArrowFunctionExpression defaults block optimization).
 const defaultRenderVerifiedIndicator = () => <DefaultVerifiedIndicator />;
 const defaultRenderPartialIndicator = () => <DefaultPartialIndicator />;
+
+// Block-specific defaults — no left margin since the indicator replaces the number as sole content.
+const defaultBlockVerifiedIndicator = () => (
+  <span style={VERIFIED_COLOR_STYLE} aria-hidden="true">
+    ✓
+  </span>
+);
+const defaultBlockPartialIndicator = () => (
+  <span style={PARTIAL_COLOR_STYLE} aria-hidden="true">
+    *
+  </span>
+);
 
 interface ChipVisualClasses {
   background: string;
@@ -522,8 +536,8 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
       eventHandlers,
       preventTooltips = false,
       pendingContent = TWO_DOTS_THINKING_CONTENT,
-      renderVerifiedIndicator = defaultRenderVerifiedIndicator,
-      renderPartialIndicator = defaultRenderPartialIndicator,
+      renderVerifiedIndicator = defaultBlockVerifiedIndicator,
+      renderPartialIndicator = defaultBlockPartialIndicator,
     },
     ref,
   ) => {
@@ -569,13 +583,23 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
           {...events}
           aria-label={t("aria.citationNumber", { number: displayText })}
         >
-          {displayText}
-          <StatusIndicators
-            status={status}
-            pendingContent={pendingContent}
-            renderVerifiedIndicator={renderVerifiedIndicator}
-            renderPartialIndicator={renderPartialIndicator}
-          />
+          {isPartialMatch ? (
+            renderPartialIndicator(status)
+          ) : isVerified ? (
+            renderVerifiedIndicator(status)
+          ) : isMiss ? (
+            <span
+              className="shrink-0 inline-flex items-center justify-center"
+              style={{ ...INDICATOR_SIZE_STYLE, ...ERROR_COLOR_STYLE }}
+              aria-hidden="true"
+            >
+              <XIcon />
+            </span>
+          ) : isPending ? (
+            <span className="opacity-70">{pendingContent}</span>
+          ) : (
+            displayText
+          )}
         </span>
       </>
     );
