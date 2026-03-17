@@ -948,4 +948,85 @@ describe("DeepCitation Client", () => {
       expect(requestBody.endUserId).toBe("user-prepare");
     });
   });
+
+  describe("fetchWithRetry (network error resilience)", () => {
+    it("succeeds immediately on first attempt when no network error", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: 3 });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          attachmentId: "file_1",
+          deepTextPromptPortion: "content",
+          metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          status: "ready",
+        }),
+      } as Response);
+
+      const blob = new Blob(["content"]);
+      await client.uploadFile(blob, { filename: "test.pdf" });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("retries after network error and succeeds on second attempt", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: 3 });
+
+      mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          attachmentId: "file_1",
+          deepTextPromptPortion: "content",
+          metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
+          status: "ready",
+        }),
+      } as Response);
+
+      const blob = new Blob(["content"]);
+      const result = await client.uploadFile(blob, { filename: "test.pdf" });
+
+      expect(result.attachmentId).toBe("file_1");
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("throws after exhausting all retries", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: 2 });
+
+      const networkError = new TypeError("Failed to fetch");
+      mockFetch.mockRejectedValue(networkError);
+
+      const blob = new Blob(["content"]);
+      await expect(client.uploadFile(blob, { filename: "test.pdf" })).rejects.toThrow("Failed to fetch");
+
+      // 1 initial attempt + 2 retries = 3 total calls
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+
+    it("does not retry HTTP error responses (4xx/5xx)", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: 3 });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: { message: "Server error" } }),
+      } as Response);
+
+      const blob = new Blob(["content"]);
+      await expect(client.uploadFile(blob)).rejects.toThrow("Server error");
+
+      // Should only be called once — HTTP errors are not retried
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("maxRetries: 0 disables retries entirely", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: 0 });
+
+      mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+      const blob = new Blob(["content"]);
+      await expect(client.uploadFile(blob)).rejects.toThrow("Failed to fetch");
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+  });
 });
