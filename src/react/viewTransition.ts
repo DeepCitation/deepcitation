@@ -1,5 +1,28 @@
 import { flushSync } from "react-dom";
-import { EASE_COLLAPSE, VT_EVIDENCE_PAGE_EXPAND_MS } from "./constants.js";
+import { BOX_PADDING, SPOTLIGHT_PADDING } from "../drawing/citationDrawing.js";
+import {
+  BLINK_ENTER_EASING,
+  DEBUG_PAGE_EXPAND_SOURCE_COLOR,
+  DEBUG_PAGE_EXPAND_TARGET_COLOR,
+  EASE_COLLAPSE,
+  GHOST_BLUR_EARLY_PX,
+  GHOST_BLUR_LATE_PX,
+  GHOST_BLUR_MID_PX,
+  GHOST_BLUR_PEAK_PX,
+  GHOST_BLUR_START_PX,
+  GHOST_OFFSET_EARLY,
+  GHOST_OFFSET_LATE,
+  GHOST_OFFSET_MID,
+  GHOST_OFFSET_PEAK,
+  GHOST_OPACITY_EARLY,
+  GHOST_OPACITY_LATE,
+  GHOST_OPACITY_MID,
+  GHOST_OPACITY_PEAK,
+  GHOST_OPACITY_START,
+  isValidProofImageSrc,
+  PAGE_EXPAND_CONTENT_OPACITY_START,
+  VT_EVIDENCE_PAGE_EXPAND_MS,
+} from "./constants.js";
 
 /**
  * View-transition name applied to evidence image elements (keyhole strip,
@@ -20,12 +43,21 @@ export const DC_EVIDENCE_VT_NAME = "dc-evidence";
  */
 let _transitionDepth = 0;
 let _primedPageExpandSource: HTMLElement | null = null;
+let _primedPageExpandSourceTime = 0;
+/** Max age (ms) before the primed source is considered stale and discarded. */
+const _PRIMED_SOURCE_MAX_AGE_MS = 500;
 export function isViewTransitioning(): boolean {
   return _transitionDepth > 0;
 }
 
+/**
+ * Primes the source element for the next page-expand transition.
+ * Callers must invoke `startEvidencePageExpandTransition` immediately after —
+ * the primed ref is cleared on read or after `_PRIMED_SOURCE_MAX_AGE_MS`.
+ */
 export function primeEvidencePageExpandSource(sourceEl: HTMLElement | null): void {
   _primedPageExpandSource = sourceEl;
+  _primedPageExpandSourceTime = Date.now();
 }
 
 /**
@@ -93,6 +125,8 @@ type GhostSnapshot = {
   imageNaturalWidth: number;
   imageNaturalHeight: number;
   sourceKind: "summary-keyhole" | "expanded-keyhole" | null;
+  sourceAnchorX: number;
+  sourceAnchorY: number;
   borderRadius: string;
 };
 
@@ -100,16 +134,78 @@ function isVisibleRect(rect: DOMRect): boolean {
   return rect.width > 0.5 && rect.height > 0.5;
 }
 
-function getPageExpandDebugPhase(): "source" | "target" | null {
+type DebugPhase = "source" | "target" | "both" | null;
+
+function getPageExpandDebugPhase(): DebugPhase {
   if (typeof document === "undefined") return null;
   const phase = document.documentElement.dataset.dcPageExpandDebugPhase;
-  return phase === "source" || phase === "target" ? phase : null;
+  if (phase === "source" || phase === "target" || phase === "both") return phase;
+  return null;
+}
+
+/** Remove all debug overlays from the DOM. */
+function clearDebugOverlays(): void {
+  if (typeof document === "undefined") return;
+  document.querySelectorAll("[data-dc-debug-overlay]").forEach(el => el.remove());
+}
+
+/** Shared font for debug labels. */
+const DEBUG_LABEL_FONT = "10px/1.2 ui-monospace, SFMono-Regular, monospace";
+
+/** Create a debug overlay box at the given rect with a colored outline and label. */
+function createDebugOverlay(rect: DOMRect, color: string, label: string, sublabel?: string): HTMLDivElement {
+  const el = document.createElement("div");
+  el.setAttribute("aria-hidden", "true");
+  el.dataset.dcDebugOverlay = "";
+  el.style.position = "fixed";
+  el.style.left = `${rect.left}px`;
+  el.style.top = `${rect.top}px`;
+  el.style.width = `${rect.width}px`;
+  el.style.height = `${rect.height}px`;
+  el.style.outline = `2px solid ${color}`;
+  el.style.outlineOffset = "-1px";
+  el.style.backgroundColor = `${color}22`;
+  el.style.pointerEvents = "none";
+  el.style.zIndex = "2147483647";
+  el.style.overflow = "visible";
+
+  // Label badge
+  const badge = document.createElement("div");
+  badge.style.position = "absolute";
+  badge.style.top = "-18px";
+  badge.style.left = "0";
+  badge.style.background = color;
+  badge.style.color = "#fff";
+  badge.style.font = DEBUG_LABEL_FONT;
+  badge.style.padding = "1px 5px";
+  badge.style.borderRadius = "3px 3px 0 0";
+  badge.style.whiteSpace = "nowrap";
+  badge.textContent = label;
+  el.appendChild(badge);
+
+  // Dimensions sub-label
+  const dims = document.createElement("div");
+  dims.style.position = "absolute";
+  dims.style.bottom = "-16px";
+  dims.style.left = "0";
+  dims.style.font = DEBUG_LABEL_FONT;
+  dims.style.color = color;
+  dims.style.whiteSpace = "nowrap";
+  dims.style.textShadow = "0 0 3px #000, 0 0 3px #000";
+  const dimText = `${Math.round(rect.width)}×${Math.round(rect.height)} @ (${Math.round(rect.left)}, ${Math.round(rect.top)})`;
+  dims.textContent = sublabel ? `${dimText} — ${sublabel}` : dimText;
+  el.appendChild(dims);
+
+  document.body.appendChild(el);
+  return el;
 }
 
 function takePrimedPageExpandSource(root: ParentNode): HTMLElement | null {
   const sourceEl = _primedPageExpandSource;
   _primedPageExpandSource = null;
   if (!sourceEl) return null;
+  // Discard stale primed sources to prevent leaked refs from accumulating.
+  if (Date.now() - _primedPageExpandSourceTime > _PRIMED_SOURCE_MAX_AGE_MS) return null;
   if ("contains" in root && typeof root.contains === "function" && !root.contains(sourceEl)) {
     return null;
   }
@@ -129,6 +225,8 @@ function capturePageExpandSource(root: ParentNode): GhostSnapshot | null {
     const imageRect = img?.getBoundingClientRect();
     const imageSrc = img?.currentSrc || img?.src;
     if (!img || !imageRect || !imageSrc || !isVisibleRect(imageRect)) continue;
+    const sourceAnchorXRaw = Number.parseFloat(sourceEl.dataset.dcSourceAnchorX ?? "");
+    const sourceAnchorYRaw = Number.parseFloat(sourceEl.dataset.dcSourceAnchorY ?? "");
     return {
       viewportRect: rect,
       imageSrc,
@@ -143,6 +241,10 @@ function capturePageExpandSource(root: ParentNode): GhostSnapshot | null {
         sourceEl.dataset.dcPageExpandSourceKind === "expanded-keyhole"
           ? sourceEl.dataset.dcPageExpandSourceKind
           : null,
+      sourceAnchorX:
+        Number.isFinite(sourceAnchorXRaw) && sourceAnchorXRaw >= 0 && sourceAnchorXRaw <= 1 ? sourceAnchorXRaw : 0.5,
+      sourceAnchorY:
+        Number.isFinite(sourceAnchorYRaw) && sourceAnchorYRaw >= 0 && sourceAnchorYRaw <= 1 ? sourceAnchorYRaw : 0.5,
       borderRadius: getComputedStyle(sourceEl).borderRadius || "0px",
     };
   }
@@ -154,53 +256,33 @@ type PageExpandTarget = {
   ghostRect: DOMRect;
 };
 
-function buildGhostTargetRect(snapshot: GhostSnapshot, targetEl: HTMLElement, markerRect: DOMRect): DOMRect {
-  if (snapshot.sourceKind === "summary-keyhole") {
-    return markerRect;
+function buildGhostTargetRect(_snapshot: GhostSnapshot, targetEl: HTMLElement, markerRect: DOMRect): DOMRect {
+  // The ghost lands on the annotation spotlight — the "light area" cutout in
+  // the dimming overlay (annotation rect + SPOTLIGHT_PADDING). This is the
+  // visual focal point of the expanded page, sized to give surrounding context
+  // without covering the full page (which would create a giant flash).
+  const spotlight = targetEl.parentElement?.querySelector<HTMLElement>("[data-dc-spotlight]");
+  if (spotlight) {
+    const spotRect = spotlight.getBoundingClientRect();
+    if (isVisibleRect(spotRect)) return spotRect;
   }
-  const markerNaturalWidth = Number.parseFloat(targetEl.dataset.dcTargetNaturalWidth ?? "");
-  const markerNaturalHeight = Number.parseFloat(targetEl.dataset.dcTargetNaturalHeight ?? "");
-  if (
-    Number.isFinite(markerNaturalWidth) &&
-    markerNaturalWidth > 0 &&
-    Number.isFinite(markerNaturalHeight) &&
-    markerNaturalHeight > 0 &&
-    snapshot.imageNaturalWidth > 0 &&
-    snapshot.imageNaturalHeight > 0
-  ) {
-    const scaleX = markerRect.width / markerNaturalWidth;
-    const scaleY = markerRect.height / markerNaturalHeight;
-    const targetWidth = Math.max(markerRect.width, snapshot.imageNaturalWidth * scaleX);
-    const targetHeight = Math.max(markerRect.height, snapshot.imageNaturalHeight * scaleY);
-    const centerX = markerRect.left + markerRect.width / 2;
-    const centerY = markerRect.top + markerRect.height / 2;
-    return new DOMRect(centerX - targetWidth / 2, centerY - targetHeight / 2, targetWidth, targetHeight);
+  // Overlay dismissed or not yet rendered — synthesize the spotlight rect from
+  // the annotation marker + padding. The spotlight is the annotation bounding
+  // box expanded by (BOX_PADDING + SPOTLIGHT_PADDING) in natural image pixels,
+  // scaled to the rendered image size.
+  const img = targetEl.parentElement?.querySelector<HTMLImageElement>("img");
+  if (img && img.naturalWidth > 0 && targetEl.parentElement) {
+    const containerRect = targetEl.parentElement.getBoundingClientRect();
+    const scale = containerRect.width / img.naturalWidth;
+    const pad = (BOX_PADDING + SPOTLIGHT_PADDING) * scale;
+    return new DOMRect(
+      markerRect.left - pad,
+      markerRect.top - pad,
+      markerRect.width + 2 * pad,
+      markerRect.height + 2 * pad,
+    );
   }
-
-  const pageImg = targetEl.parentElement?.querySelector<HTMLImageElement>("img");
-  const pageImgRect = pageImg?.getBoundingClientRect();
-  const pageImgNaturalWidth = pageImg?.naturalWidth ?? 0;
-  const pageImgNaturalHeight = pageImg?.naturalHeight ?? 0;
-
-  if (
-    !pageImg ||
-    !pageImgRect ||
-    !isVisibleRect(pageImgRect) ||
-    pageImgNaturalWidth <= 0 ||
-    pageImgNaturalHeight <= 0 ||
-    snapshot.imageNaturalWidth <= 0 ||
-    snapshot.imageNaturalHeight <= 0
-  ) {
-    return markerRect;
-  }
-
-  const scaleX = pageImgRect.width / pageImgNaturalWidth;
-  const scaleY = pageImgRect.height / pageImgNaturalHeight;
-  const targetWidth = Math.max(markerRect.width, snapshot.imageNaturalWidth * scaleX);
-  const targetHeight = Math.max(markerRect.height, snapshot.imageNaturalHeight * scaleY);
-  const centerX = markerRect.left + markerRect.width / 2;
-  const centerY = markerRect.top + markerRect.height / 2;
-  return new DOMRect(centerX - targetWidth / 2, centerY - targetHeight / 2, targetWidth, targetHeight);
+  return markerRect;
 }
 
 function findPageExpandTarget(root: ParentNode, snapshot: GhostSnapshot): PageExpandTarget | null {
@@ -214,7 +296,10 @@ function findPageExpandTarget(root: ParentNode, snapshot: GhostSnapshot): PageEx
   return null;
 }
 
-function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement {
+function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement | null {
+  // Defensive re-validation: the source image was already validated before
+  // rendering, but a DOM mutation (e.g. browser extension) could have changed it.
+  if (!isValidProofImageSrc(snapshot.imageSrc)) return null;
   const ghost = document.createElement("div");
   ghost.setAttribute("aria-hidden", "true");
   ghost.dataset.dcPageExpandGhost = "";
@@ -227,10 +312,14 @@ function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement {
   ghost.style.pointerEvents = "none";
   ghost.style.zIndex = "2147483646";
   ghost.style.borderRadius = snapshot.borderRadius;
-  ghost.style.willChange = "left, top, width, height, opacity";
+  ghost.style.transformOrigin = "0 0";
+  ghost.style.willChange = "transform, opacity";
   const debugPhase = getPageExpandDebugPhase();
-  if (debugPhase) {
-    ghost.style.outline = debugPhase === "source" ? "2px solid #ef4444" : "2px solid #22c55e";
+  if (debugPhase && debugPhase !== "both") {
+    ghost.style.outline =
+      debugPhase === "source"
+        ? `2px solid ${DEBUG_PAGE_EXPAND_SOURCE_COLOR}`
+        : `2px solid ${DEBUG_PAGE_EXPAND_TARGET_COLOR}`;
     ghost.style.outlineOffset = "0";
   }
 
@@ -258,7 +347,12 @@ function applyGhostRect(ghost: HTMLDivElement, rect: DOMRect): void {
   ghost.style.height = `${rect.height}px`;
 }
 
-function runPageExpandGhostAnimation(ghost: HTMLDivElement, snapshot: GhostSnapshot, target: PageExpandTarget): void {
+function runPageExpandGhostAnimation(
+  ghost: HTMLDivElement,
+  snapshot: GhostSnapshot,
+  target: PageExpandTarget,
+  popoverRoot: HTMLElement | null,
+): void {
   const { ghostRect } = target;
   const debugPhase = getPageExpandDebugPhase();
   if (debugPhase === "source") {
@@ -268,53 +362,94 @@ function runPageExpandGhostAnimation(ghost: HTMLDivElement, snapshot: GhostSnaps
     applyGhostRect(ghost, ghostRect);
     return;
   }
+  if (debugPhase === "both") {
+    // "both" mode: hide the real ghost, draw persistent debug overlays for both rects
+    ghost.remove();
+    clearDebugOverlays();
+    const kindLabel =
+      snapshot.sourceKind === "summary-keyhole"
+        ? "summary keyhole"
+        : snapshot.sourceKind === "expanded-keyhole"
+          ? "expanded keyhole"
+          : "source";
+    createDebugOverlay(
+      snapshot.viewportRect,
+      DEBUG_PAGE_EXPAND_SOURCE_COLOR,
+      `SOURCE (${kindLabel})`,
+      `anchor: (${snapshot.sourceAnchorX.toFixed(2)}, ${snapshot.sourceAnchorY.toFixed(2)})`,
+    );
+    createDebugOverlay(ghostRect, DEBUG_PAGE_EXPAND_TARGET_COLOR, "TARGET (ghost destination)");
+    createDebugOverlay(target.markerRect, "#3b82f6", "MARKER (annotation VT rect)");
+    if (process.env.NODE_ENV !== "production") {
+      console.groupCollapsed("[DC debug] page-expand geometry");
+      console.table({
+        source: {
+          left: snapshot.viewportRect.left,
+          top: snapshot.viewportRect.top,
+          width: snapshot.viewportRect.width,
+          height: snapshot.viewportRect.height,
+        },
+        ghostTarget: {
+          left: ghostRect.left,
+          top: ghostRect.top,
+          width: ghostRect.width,
+          height: ghostRect.height,
+        },
+        marker: {
+          left: target.markerRect.left,
+          top: target.markerRect.top,
+          width: target.markerRect.width,
+          height: target.markerRect.height,
+        },
+      });
+      console.log("snapshot:", snapshot);
+      console.groupEnd();
+    }
+    return;
+  }
+
+  // Animate using transform (translate + scale) + opacity so the compositor
+  // handles the interpolation without triggering layout on every frame.
+  // The ghost is positioned at the source rect; we compute the transform needed
+  // to move and scale it to the target rect.
+  const src = snapshot.viewportRect;
+  const scaleX = ghostRect.width / src.width;
+  const scaleY = ghostRect.height / src.height;
+  const translateX = ghostRect.left - src.left;
+  const translateY = ghostRect.top - src.top;
+
+  // Helper: build a transform string at a given interpolation fraction t ∈ [0, 1].
+  const tfAt = (t: number) =>
+    `translate(${translateX * t}px, ${translateY * t}px) scale(${1 + (scaleX - 1) * t}, ${1 + (scaleY - 1) * t})`;
+
+  // Helper: build a blur filter string at a given blur radius.
+  const blurAt = (px: number) => (px > 0 ? `blur(${px}px)` : "none");
+
+  // Large-travel expand: EASE_COLLAPSE intentional (>200px travel, per BRANDING.md large-motion rule)
+  // Motion blur (filter: blur) masks the non-uniform scale distortion (squashed text)
+  // and reads as cinematic motion blur. Peaks mid-flight, clears near landing.
   const keyframes: Keyframe[] = [
+    { transform: tfAt(0), opacity: GHOST_OPACITY_START, filter: blurAt(GHOST_BLUR_START_PX) },
     {
-      left: `${snapshot.viewportRect.left}px`,
-      top: `${snapshot.viewportRect.top}px`,
-      width: `${snapshot.viewportRect.width}px`,
-      height: `${snapshot.viewportRect.height}px`,
-      opacity: 0.06,
+      transform: tfAt(GHOST_OFFSET_EARLY),
+      opacity: GHOST_OPACITY_EARLY,
+      filter: blurAt(GHOST_BLUR_EARLY_PX),
+      offset: GHOST_OFFSET_EARLY,
     },
     {
-      left: `${snapshot.viewportRect.left + (ghostRect.left - snapshot.viewportRect.left) * 0.18}px`,
-      top: `${snapshot.viewportRect.top + (ghostRect.top - snapshot.viewportRect.top) * 0.18}px`,
-      width: `${snapshot.viewportRect.width + (ghostRect.width - snapshot.viewportRect.width) * 0.18}px`,
-      height: `${snapshot.viewportRect.height + (ghostRect.height - snapshot.viewportRect.height) * 0.18}px`,
-      opacity: 0.1,
-      offset: 0.18,
+      transform: tfAt(GHOST_OFFSET_MID),
+      opacity: GHOST_OPACITY_MID,
+      filter: blurAt(GHOST_BLUR_MID_PX),
+      offset: GHOST_OFFSET_MID,
     },
     {
-      left: `${snapshot.viewportRect.left + (ghostRect.left - snapshot.viewportRect.left) * 0.42}px`,
-      top: `${snapshot.viewportRect.top + (ghostRect.top - snapshot.viewportRect.top) * 0.42}px`,
-      width: `${snapshot.viewportRect.width + (ghostRect.width - snapshot.viewportRect.width) * 0.42}px`,
-      height: `${snapshot.viewportRect.height + (ghostRect.height - snapshot.viewportRect.height) * 0.42}px`,
-      opacity: 0.22,
-      offset: 0.42,
+      transform: tfAt(GHOST_OFFSET_LATE),
+      opacity: GHOST_OPACITY_LATE,
+      filter: blurAt(GHOST_BLUR_LATE_PX),
+      offset: GHOST_OFFSET_LATE,
     },
-    {
-      left: `${snapshot.viewportRect.left + (ghostRect.left - snapshot.viewportRect.left) * 0.68}px`,
-      top: `${snapshot.viewportRect.top + (ghostRect.top - snapshot.viewportRect.top) * 0.68}px`,
-      width: `${snapshot.viewportRect.width + (ghostRect.width - snapshot.viewportRect.width) * 0.68}px`,
-      height: `${snapshot.viewportRect.height + (ghostRect.height - snapshot.viewportRect.height) * 0.68}px`,
-      opacity: 0.48,
-      offset: 0.68,
-    },
-    {
-      left: `${ghostRect.left}px`,
-      top: `${ghostRect.top}px`,
-      width: `${ghostRect.width}px`,
-      height: `${ghostRect.height}px`,
-      opacity: 0.96,
-      offset: 0.92,
-    },
-    {
-      left: `${ghostRect.left}px`,
-      top: `${ghostRect.top}px`,
-      width: `${ghostRect.width}px`,
-      height: `${ghostRect.height}px`,
-      opacity: 0,
-    },
+    { transform: tfAt(1), opacity: GHOST_OPACITY_PEAK, filter: blurAt(GHOST_BLUR_PEAK_PX), offset: GHOST_OFFSET_PEAK },
+    { transform: tfAt(1), opacity: 0, filter: blurAt(0) },
   ];
 
   const animation = ghost.animate(keyframes, {
@@ -322,6 +457,42 @@ function runPageExpandGhostAnimation(ghost: HTMLDivElement, snapshot: GhostSnaps
     easing: EASE_COLLAPSE,
     fill: "both",
   });
+
+  // Coordinated popover content fade-in — dims the ENTIRE popover (header,
+  // status section, image, toolbar — everything) so the ghost is the only
+  // visible element during the first 55% of the animation.
+  //
+  // Mirrors the collapse's "dip-then-reveal":
+  //   Collapse: new content stays at 0 until 60%, then reveals sharply 0→1.
+  //   Expand:   popover stays near-invisible while ghost dominates,
+  //             then reveals sharply in the last ~40%.
+  //
+  // Previously we only dimmed [data-dc-inline-expanded] (the image container),
+  // leaving Zone 1 (header) and Zone 2 (status/claim) at full opacity — which
+  // made the expand look like "the page popped in" despite the image being dimmed.
+  if (popoverRoot) {
+    const contentAnim = popoverRoot.animate(
+      [
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_START },
+        { opacity: 0.03, offset: 0.45 },
+        { opacity: 0.08, offset: 0.58 },
+        { opacity: 0.35, offset: 0.72 },
+        { opacity: 0.8, offset: 0.88 },
+        { opacity: 1 },
+      ],
+      { duration: VT_EVIDENCE_PAGE_EXPAND_MS, easing: BLINK_ENTER_EASING, fill: "forwards" },
+    );
+    contentAnim.finished
+      .catch(() => {})
+      .finally(() => {
+        // Cancel removes the WAAPI animation layer so its fill: "forwards"
+        // no longer overrides inline styles on subsequent transitions.
+        contentAnim.cancel();
+        popoverRoot.style.opacity = "";
+        popoverRoot.style.transition = "";
+      });
+  }
+
   animation.finished
     .catch(() => {})
     .finally(() => {
@@ -349,7 +520,7 @@ function waitForPageExpandTarget(
       targetRect.top < window.innerHeight &&
       targetRect.left < window.innerWidth
     ) {
-      if (debugPhase === "target") {
+      if (debugPhase === "target" || debugPhase === "both") {
         callback(target);
         return;
       }
@@ -384,19 +555,192 @@ export function startEvidencePageExpandTransition(
 ): void {
   const root = options?.root ?? null;
   if (options?.skipAnimation || typeof document === "undefined" || !root) {
-    update();
+    // Guard the transition depth even in the synchronous fallback so dismiss
+    // handlers see a consistent in-flight state during the state update.
+    _transitionDepth++;
+    try {
+      update();
+    } finally {
+      _transitionDepth = Math.max(0, _transitionDepth - 1);
+    }
     return;
   }
 
+  const debugPhase = getPageExpandDebugPhase();
+  // Clear stale debug overlays from a previous transition / popover session
+  // so every page-expand attempt starts fresh.
+  if (debugPhase) clearDebugOverlays();
+
+  _transitionDepth++;
   const source = capturePageExpandSource(root);
+
+  // Resolve root to an HTMLElement for style manipulation. The root is
+  // popoverContentRef.current — always an HTMLElement at runtime.
+  const rootEl = root instanceof HTMLElement ? root : null;
+
+  // Pre-dim the ENTIRE popover content BEFORE flushSync. This ensures that
+  // when flushSync makes the expanded-page slot visible, the whole popover
+  // (header, status, image — everything) appears already dimmed.
+  //
+  // CRITICAL: Disable CSS transitions first. The PopoverContent element has
+  // `transition: opacity 60ms ...` from getBlinkContainerMotionStyle("steady").
+  // Without disabling transitions, the opacity change animates from 1 → 0.03
+  // over ~60ms — the first paint frame shows the expanded page at ~50% opacity,
+  // which reads as a full-page flash before the ghost animation begins.
+  if (source && rootEl) {
+    // Cancel any lingering WAAPI animations from a previous page-expand.
+    // `fill: "forwards"` on the content fade-in holds opacity: 1 indefinitely
+    // at a higher cascade priority than inline styles — without cancelling,
+    // the inline opacity: 0.03 below would be silently overridden.
+    for (const anim of rootEl.getAnimations()) anim.cancel();
+    rootEl.style.transition = "none";
+    rootEl.style.opacity = String(PAGE_EXPAND_CONTENT_OPACITY_START);
+  }
+
+  // State must always commit even when source capture fails (graceful
+  // degradation: popover transitions without a ghost animation).
   flushSync(update);
-  if (!source) return;
+
+  if (!source) {
+    if (rootEl) {
+      rootEl.style.opacity = "";
+      rootEl.style.transition = "";
+    }
+    if (debugPhase) {
+      clearDebugOverlays();
+      const primedEls = root.querySelectorAll?.("[data-dc-page-expand-source]");
+      console.warn(
+        "[DC debug] source capture FAILED — no visible source element found.",
+        `${primedEls?.length ?? 0} [data-dc-page-expand-source] elements in root.`,
+      );
+    }
+    _transitionDepth = Math.max(0, _transitionDepth - 1);
+    return;
+  }
   const ghost = createPageExpandGhost(source);
+  if (!ghost) {
+    if (rootEl) {
+      rootEl.style.opacity = "";
+      rootEl.style.transition = "";
+    }
+    if (debugPhase) {
+      console.warn("[DC debug] ghost creation FAILED — image validation rejected:", source.imageSrc);
+    }
+    _transitionDepth = Math.max(0, _transitionDepth - 1);
+    return;
+  }
   waitForPageExpandTarget(root, source, target => {
+    _transitionDepth = Math.max(0, _transitionDepth - 1);
     if (!target) {
       ghost.remove();
+      if (rootEl) {
+        rootEl.style.opacity = "";
+        rootEl.style.transition = "";
+      }
+      if (debugPhase) {
+        clearDebugOverlays();
+        const targetEls = root.querySelectorAll?.("[data-dc-page-expand-target]");
+        const readyEls = root.querySelectorAll?.('[data-dc-page-expand-ready="true"]');
+        const kindLabel =
+          source.sourceKind === "summary-keyhole"
+            ? "summary keyhole"
+            : source.sourceKind === "expanded-keyhole"
+              ? "expanded keyhole"
+              : "source";
+        createDebugOverlay(
+          source.viewportRect,
+          DEBUG_PAGE_EXPAND_SOURCE_COLOR,
+          `SOURCE (${kindLabel}) — TARGET NOT FOUND`,
+          `anchor: (${source.sourceAnchorX.toFixed(2)}, ${source.sourceAnchorY.toFixed(2)})`,
+        );
+        console.warn(
+          "[DC debug] target NOT FOUND after 12 rAF polls.",
+          `\n  [data-dc-page-expand-target] elements: ${targetEls?.length ?? 0}`,
+          `\n  [data-dc-page-expand-ready="true"] elements: ${readyEls?.length ?? 0}`,
+          "\n  This usually means annotationVtRect is null (no text match on the page — not_found/miss state).",
+          "\n  Source snapshot:",
+          source,
+        );
+      }
       return;
     }
-    runPageExpandGhostAnimation(ghost, source, target);
+    runPageExpandGhostAnimation(ghost, source, target, rootEl);
   });
+}
+
+// =============================================================================
+// CONSOLE DEBUG API
+// =============================================================================
+//
+// Usage from browser DevTools:
+//   __dcDebugPageExpand("both")   — show source + target + marker overlays
+//   __dcDebugPageExpand("source") — freeze ghost at source rect
+//   __dcDebugPageExpand("target") — freeze ghost at target rect
+//   __dcDebugPageExpand(null)     — disable debug mode
+//   __dcDebugPageExpand()         — toggle: off → "both" → "source" → "target" → off
+//   __dcDebugPageExpand.clear()   — remove debug overlays without changing mode
+
+if (typeof window !== "undefined") {
+  const CYCLE: DebugPhase[] = ["both", "source", "target", null];
+
+  const api = (phase?: DebugPhase | undefined) => {
+    if (phase === undefined) {
+      // Cycle through modes
+      const current = getPageExpandDebugPhase();
+      const idx = CYCLE.indexOf(current);
+      const next = CYCLE[(idx + 1) % CYCLE.length];
+      return api(next ?? null);
+    }
+    if (phase === null) {
+      delete document.documentElement.dataset.dcPageExpandDebugPhase;
+      clearDebugOverlays();
+      console.log("[DC debug] page-expand debug OFF");
+    } else {
+      document.documentElement.dataset.dcPageExpandDebugPhase = phase;
+      if (phase !== "both") clearDebugOverlays();
+      console.log(
+        `[DC debug] page-expand debug: %c${phase}`,
+        `color: ${phase === "source" ? DEBUG_PAGE_EXPAND_SOURCE_COLOR : phase === "target" ? DEBUG_PAGE_EXPAND_TARGET_COLOR : "#3b82f6"}; font-weight: bold`,
+        "— click a page pill / View Page to trigger",
+      );
+    }
+    return phase;
+  };
+  api.clear = () => {
+    clearDebugOverlays();
+    console.log("[DC debug] overlays cleared");
+  };
+
+  /** Scan the live DOM and outline all page-expand source/target elements without triggering a transition. */
+  api.scan = () => {
+    clearDebugOverlays();
+    const sources = document.querySelectorAll<HTMLElement>("[data-dc-page-expand-source]");
+    const targets = document.querySelectorAll<HTMLElement>("[data-dc-page-expand-target]");
+    let sourceCount = 0;
+    let targetCount = 0;
+    sources.forEach(el => {
+      const rect = el.getBoundingClientRect();
+      if (!isVisibleRect(rect)) return;
+      sourceCount++;
+      const kind = el.dataset.dcPageExpandSourceKind ?? "unknown";
+      const anchorX = el.dataset.dcSourceAnchorX ?? "—";
+      const anchorY = el.dataset.dcSourceAnchorY ?? "—";
+      createDebugOverlay(rect, DEBUG_PAGE_EXPAND_SOURCE_COLOR, `SOURCE (${kind})`, `anchor: (${anchorX}, ${anchorY})`);
+    });
+    targets.forEach(el => {
+      const rect = el.getBoundingClientRect();
+      if (!isVisibleRect(rect)) return;
+      targetCount++;
+      const ready = el.dataset.dcPageExpandReady;
+      const color = ready === "true" ? DEBUG_PAGE_EXPAND_TARGET_COLOR : "#f59e0b";
+      createDebugOverlay(rect, color, `TARGET (ready=${ready ?? "?"})`);
+    });
+    console.log(
+      `[DC debug] scan: ${sourceCount} visible source(s), ${targetCount} visible target(s)`,
+      `\n  Total in DOM: ${sources.length} source(s), ${targets.length} target(s)`,
+    );
+    return { sources: sourceCount, targets: targetCount };
+  };
+
+  (window as unknown as Record<string, unknown>).__dcDebugPageExpand = api;
 }

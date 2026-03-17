@@ -307,6 +307,52 @@ export function resolveExpandedImageForPage(
   return resolveExpandedImage(verification, pageImages);
 }
 
+function normalizeEvidenceText(text: string | null | undefined): string {
+  return text?.toLowerCase().replace(/\s+/g, " ").trim() ?? "";
+}
+
+function resolveEvidenceSourceAnchorRatio(
+  verification: Verification | null | undefined,
+): { x: number; y: number } | null {
+  const evidence = verification?.evidence;
+  const dims = evidence?.dimensions;
+  const items = evidence?.textItems;
+  if (!dims || dims.width <= 0 || dims.height <= 0 || !items || items.length === 0) return null;
+
+  const targets = [
+    verification?.verifiedAnchorText,
+    verification?.document?.anchorTextMatchDeepItems?.[0]?.text,
+    verification?.verifiedFullPhrase,
+    verification?.document?.phraseMatchDeepItem?.text,
+  ]
+    .map(normalizeEvidenceText)
+    .filter(Boolean);
+
+  let bestItem: DeepTextItem | null = null;
+  let bestScore = 0;
+
+  for (const item of items) {
+    const itemText = normalizeEvidenceText(item.text);
+    if (!itemText) continue;
+    for (const target of targets) {
+      let score = 0;
+      if (itemText === target) score = 4000 + itemText.length;
+      else if (target.includes(itemText)) score = 3000 + itemText.length;
+      else if (itemText.includes(target)) score = 2000 + target.length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestItem = item;
+      }
+    }
+  }
+
+  if (!bestItem) return null;
+
+  const x = Math.max(0, Math.min(1, (bestItem.x + bestItem.width / 2) / dims.width));
+  const y = Math.max(0, Math.min(1, (bestItem.y + bestItem.height / 2) / dims.height));
+  return { x, y };
+}
+
 // =============================================================================
 // ANCHOR TEXT FOCUSED IMAGE (Keyhole viewer)
 // =============================================================================
@@ -1363,9 +1409,13 @@ export function InlineExpandedImage({
     (shouldHighlightAnchorText(vAnchor, vPhrase) ||
       (isStrategyOverride(vAnchor, vPhrase) && shouldHighlightAnchorText(vAnchor, effectivePhraseItem?.text)));
   const scrollTarget = anchorHighlightActive ? effectiveAnchorItem : effectivePhraseItem;
+  const sourceAnchorRatio = !fill ? resolveEvidenceSourceAnchorRatio(verification) : null;
 
   // Track container size via ResizeObserver (both width and height for fit-to-screen).
-  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef is a stable ref object from useDragToPan — its identity never changes
+  // When the container transitions from display:none (zero) to visible (positive),
+  // reset the auto-scroll guard so annotation scroll + pageExpandReady re-settle.
+  const prevContainerVisibleRef = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: containerRef and prevContainerVisibleRef are stable refs — identity never changes
   useEffect(() => {
     if (!fill) return;
     const el = containerRef.current;
@@ -1373,7 +1423,18 @@ export function InlineExpandedImage({
     const observer = new ResizeObserver(entries => {
       const rect = entries[0]?.contentRect;
       if (rect && rect.width > 0 && rect.height > 0) {
+        const wasVisible = prevContainerVisibleRef.current;
+        prevContainerVisibleRef.current = true;
+        if (!wasVisible) {
+          // Container just became visible (display:none → visible).
+          // Reset scroll guards so the auto-scroll effect re-runs and
+          // pageExpandReady reflects the freshly settled annotation position.
+          hasAutoScrolledToAnnotationRef.current = false;
+          setPageExpandReady(false);
+        }
         setContainerSize({ width: rect.width, height: rect.height });
+      } else {
+        prevContainerVisibleRef.current = false;
       }
     });
     observer.observe(el);
@@ -1400,6 +1461,7 @@ export function InlineExpandedImage({
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref identities are stable; fill/onNaturalSize are read but not reactive triggers — only src change should fire this
   useLayoutEffect(() => {
     hasAutoScrolledToAnnotationRef.current = false;
+    setPageExpandReady(false);
     lastReportedSizeRef.current = null;
     touchGestureZoomRef.current = null;
     touchGestureAnchorRef.current = null;
@@ -1446,6 +1508,7 @@ export function InlineExpandedImage({
   // ---------------------------------------------------------------------------
   const [locateDirty, setLocateDirty] = useState(false);
   const [locatePulseKey, setLocatePulseKey] = useState(0);
+  const [pageExpandReady, setPageExpandReady] = useState(false);
   // Ref storing the expected scroll position after a programmatic scroll.
   // Used by the scroll listener to detect user-initiated drift.
   const annotationScrollTarget = useRef<{ left: number; top: number } | null>(null);
@@ -1479,7 +1542,9 @@ export function InlineExpandedImage({
     if (!scrollItem || !renderScale) return;
 
     hasAutoScrolledToAnnotationRef.current = true;
+    setPageExpandReady(false);
     const effectiveZoom = zoom;
+    let settleRafId = 0;
     const rafId = requestAnimationFrame(() => {
       const container = containerRef.current;
       if (!container) return;
@@ -1499,9 +1564,15 @@ export function InlineExpandedImage({
         container.scrollTop = st;
         annotationScrollTarget.current = { left: sl, top: st };
         setLocateDirty(false);
+        settleRafId = requestAnimationFrame(() => {
+          setPageExpandReady(true);
+        });
       }
     });
-    return () => cancelAnimationFrame(rafId);
+    return () => {
+      cancelAnimationFrame(rafId);
+      cancelAnimationFrame(settleRafId);
+    };
   }, [
     fill,
     imageLoaded,
@@ -1515,6 +1586,14 @@ export function InlineExpandedImage({
     renderScale,
     containerRef,
   ]);
+
+  useEffect(() => {
+    if (!fill || !imageLoaded) return;
+    const scrollItem = scrollTarget ?? effectivePhraseItem;
+    if (manualZoom !== null || !scrollItem || !renderScale) {
+      setPageExpandReady(true);
+    }
+  }, [fill, imageLoaded, manualZoom, scrollTarget, effectivePhraseItem, renderScale]);
 
   // Clamp helper — shared by buttons, slider, pinch, and wheel.
   // Uses zoomFloor (not EXPANDED_ZOOM_MIN) so the lower bound respects the
@@ -1823,7 +1902,7 @@ export function InlineExpandedImage({
           annotationBaseDimensions.height,
         )
       : null;
-  const pageExpandTargetReady = !!fill && !!annotationVtRect && !!imageLoaded;
+  const pageExpandTargetReady = !!fill && !!annotationVtRect && !!imageLoaded && pageExpandReady;
 
   const handleExpandToPage = useCallback(() => {
     primeEvidencePageExpandSource(containerRef.current);
@@ -1875,6 +1954,12 @@ export function InlineExpandedImage({
           data-dc-inline-expanded=""
           {...(!fill && onExpand ? { "data-dc-page-expand-source-kind": "expanded-keyhole" } : {})}
           {...(!fill && onExpand ? { "data-dc-page-expand-source": "" } : {})}
+          {...(!fill && onExpand && sourceAnchorRatio
+            ? {
+                "data-dc-source-anchor-x": sourceAnchorRatio.x.toFixed(4),
+                "data-dc-source-anchor-y": sourceAnchorRatio.y.toFixed(4),
+              }
+            : {})}
           role="button"
           tabIndex={0}
           aria-label={t("aria.expandedImageViewer")}
