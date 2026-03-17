@@ -1596,8 +1596,13 @@ export function InlineExpandedImage({
       // to show the same region the user was viewing in the keyhole. This must
       // happen before the ghost target is computed via rAF polling so the
       // viewport-based fallback target reflects the correct scroll position.
-      if (initialScroll && lastAppliedInitialScrollRef.current !== initialScroll) {
-        lastAppliedInitialScrollRef.current = initialScroll;
+      //
+      // Guard on manualZoom === null (not a ref-equality one-shot) so the scroll
+      // re-applies when zoom settles from the initial fallback (1) to the real
+      // fittedZoom — the ResizeObserver that measures containerSize may not have
+      // fired yet on the first effect run after display:none → visible.
+      // Once the user sets manualZoom (pinch/wheel), we stop overriding.
+      if (initialScroll && manualZoom === null) {
         const el = containerRef.current;
         if (el) {
           void el.scrollHeight; // Force reflow after display:none → visible
