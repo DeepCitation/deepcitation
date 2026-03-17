@@ -545,6 +545,8 @@ export const EXPANDED_POPOVER_HEIGHT = "calc(100dvh - 2rem)";
 
 /** Duration (ms) for evidence image expand VT (keyhole → expanded). ANIM_STANDARD_MS tier. */
 export const VT_EVIDENCE_EXPAND_MS = 180;
+/** Duration (ms) for the page-expand ghost animation (summary/preview → expanded page). */
+export const VT_EVIDENCE_PAGE_EXPAND_MS = 220;
 /** Duration (ms) for evidence image collapse VT (expanded → keyhole). ANIM_FAST_MS tier. */
 export const VT_EVIDENCE_COLLAPSE_MS = 120;
 /**

@@ -59,7 +59,11 @@ import type {
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";
 import { cn, generateCitationInstanceId } from "./utils.js";
-import { isViewTransitioning, startEvidenceViewTransition } from "./viewTransition.js";
+import {
+  isViewTransitioning,
+  startEvidencePageExpandTransition,
+  startEvidenceViewTransition,
+} from "./viewTransition.js";
 
 // Re-export types for convenience
 export type {
@@ -609,17 +613,22 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         // crossfade behavior as before.
         const ORDER: Record<PopoverViewState, number> = { summary: 0, "expanded-keyhole": 1, "expanded-page": 2 };
         const isCollapse = ORDER[newState] < ORDER[prev];
+        const commitViewState = () => {
+          if (newState === "summary") {
+            setExpandedNaturalWidthForPosition(null);
+            setExpandedWidthSourceForPosition(null);
+          }
+          setPopoverViewState(newState);
+        };
         const isPageExpand = !isCollapse && newState === "expanded-page";
-        startEvidenceViewTransition(
-          () => {
-            if (newState === "summary") {
-              setExpandedNaturalWidthForPosition(null);
-              setExpandedWidthSourceForPosition(null);
-            }
-            setPopoverViewState(newState);
-          },
-          { isCollapse, isPageExpand, skipAnimation: prefersReducedMotion },
-        );
+        if (isPageExpand) {
+          startEvidencePageExpandTransition(commitViewState, {
+            root: popoverContentRef.current,
+            skipAnimation: prefersReducedMotion,
+          });
+          return;
+        }
+        startEvidenceViewTransition(commitViewState, { isCollapse, skipAnimation: prefersReducedMotion });
       },
       [experimentalHaptics, isMobile, prefersReducedMotion],
     );
