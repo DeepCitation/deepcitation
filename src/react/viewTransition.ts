@@ -291,9 +291,11 @@ function buildGhostTargetRect(_snapshot: GhostSnapshot, targetEl: HTMLElement, m
  * image area — the ghost lands on whatever region the user was already viewing.
  */
 function buildGhostTargetFromViewport(root: ParentNode): PageExpandTarget | null {
-  const containers = root.querySelectorAll<HTMLElement>(
-    '[data-dc-inline-expanded][data-dc-inline-expanded-ready="true"]',
-  );
+  // Only match containers that have no annotation data (miss/not_found).
+  // data-dc-no-annotation is set by InlineExpandedImage when fill=true and
+  // scrollTarget is null — derived from props, not layout measurements, so
+  // it's available immediately after flushSync (no useEffect timing issues).
+  const containers = root.querySelectorAll<HTMLElement>("[data-dc-inline-expanded][data-dc-no-annotation]");
   for (const container of containers) {
     const containerRect = container.getBoundingClientRect();
     if (!isVisibleRect(containerRect)) continue;

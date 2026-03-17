@@ -1981,7 +1981,7 @@ export function InlineExpandedImage({
         <div
           ref={containerRef}
           data-dc-inline-expanded=""
-          data-dc-inline-expanded-ready={pageExpandReady ? "true" : "false"}
+          {...(fill && !(scrollTarget ?? effectivePhraseItem) ? { "data-dc-no-annotation": "" } : {})}
           {...(!fill && onExpand ? { "data-dc-page-expand-source-kind": "expanded-keyhole" } : {})}
           {...(!fill && onExpand ? { "data-dc-page-expand-source": "" } : {})}
           {...(!fill && onExpand && sourceAnchorRatio
