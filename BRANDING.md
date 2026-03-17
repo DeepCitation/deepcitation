@@ -92,7 +92,7 @@ Shared 5-tier scale with the web app. Import constants from `src/react/constants
 
 | Constant | Duration | Easing | Usage |
 |----------|----------|--------|-------|
-| `ANIM_INSTANT_MS` | 75ms | `EASE_EXPAND` | Hover states ("The Spark") |
+| `ANIM_INSTANT_MS` | 80ms | `EASE_EXPAND` | Hover states ("The Spark") |
 | `ANIM_FAST_MS` | 120ms | `EASE_EXPAND` | Popover entry, list expand |
 | `ANIM_STANDARD_MS` | 180ms | `EASE_COLLAPSE` | Geometry changes, drawer |
 | `ANIM_MEASURED_MS` | 250ms | `EASE_COLLAPSE` | Cross-component morph |

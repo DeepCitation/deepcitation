@@ -13,8 +13,8 @@ Show proof for every AI citation.
 
 [![CI](https://img.shields.io/github/actions/workflow/status/DeepCitation/deepcitation/ci.yml?style=flat-square&label=CI)](https://github.com/DeepCitation/deepcitation/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-005595?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Zero Dependencies](https://img.shields.io/badge/Zero%20Dependencies-trusted-10b981?style=flat-square)](https://www.npmjs.com/package/deepcitation)
-[![~17KB](https://img.shields.io/badge/gzip-~17KB-10b981?style=flat-square)](https://bundlephobia.com/package/deepcitation)
+[![Zero Dependencies](https://img.shields.io/badge/Zero%20Dependencies-trusted-005595?style=flat-square)](https://www.npmjs.com/package/deepcitation)
+[![~17KB](https://img.shields.io/badge/gzip-~17KB-005595?style=flat-square)](https://bundlephobia.com/package/deepcitation)
 
 </div>
 
