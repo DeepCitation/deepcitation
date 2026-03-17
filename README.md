@@ -1,4 +1,4 @@
-![DeepCitation cover](https://deepcitation.com/og-images/deepcitation-og-1200x630.png)
+![DeepCitation cover](https://deepcitation.com/og-images/deepcitation-og-1200x630.png?v=2)
 
 
 <div align="center"><strong>DeepCitation</strong></div>
