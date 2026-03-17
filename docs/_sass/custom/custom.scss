@@ -17,7 +17,7 @@ $slate-900: #18181B;
 $slate-950: #09090B;
 
 // Brand display font — Playfair Display for wordmark and h1 headings
-$font-display: 'Playfair Display', Georgia, serif;
+$font-display: 'Playfair Display', serif;
 
 // Bracket accent — reusable left-edge indicator (app sidebar, testimonials, callouts)
 @mixin bracket-indicator {
@@ -158,9 +158,10 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.7;
 
   // Display headings use Playfair Display per BRANDING.md
+  // !important to beat JTD compiled h1 rule that injects Georgia fallback
   h1 {
     font-size: 2rem;
-    font-family: $font-display;
+    font-family: $font-display !important;
     font-weight: 700;
   }
   h2 { font-size: 1.5rem; margin-top: 2rem; }
@@ -225,28 +226,28 @@ code, pre, .highlight {
 }
 
 // -----------------------------------------------------
-// "The Spark" - 75ms ease-out transitions (specific properties)
+// "The Spark" - 80ms ease-out transitions (Instant tier per BRANDING.md)
 // -----------------------------------------------------
 a {
-  transition: color 75ms ease-out,
-              text-decoration-thickness 75ms ease-out;
+  transition: color 80ms ease-out,
+              text-decoration-thickness 80ms ease-out;
 }
 
 .btn,
 .nav-list-link {
-  transition: color 75ms ease-out,
-              background-color 75ms ease-out,
-              border-color 75ms ease-out;
+  transition: color 80ms ease-out,
+              background-color 80ms ease-out,
+              border-color 80ms ease-out;
 }
 
 .search-input {
-  transition: border-color 75ms ease-out,
-              box-shadow 75ms ease-out;
+  transition: border-color 80ms ease-out,
+              box-shadow 80ms ease-out;
 }
 
 code {
-  transition: background-color 75ms ease-out,
-              border-color 75ms ease-out;
+  transition: background-color 80ms ease-out,
+              border-color 80ms ease-out;
 }
 
 // -----------------------------------------------------
@@ -408,6 +409,17 @@ pre {
     svg { fill: var(--body-heading-color); }
   }
 
+  // Active nav item — JTD compiles a light highlight color that wins in dark mode
+  .side-bar .nav-list .nav-list-link.active {
+    background-color: var(--nav-active-bg) !important;
+    color: var(--nav-active-text);
+  }
+
+  // Parent nav items in dark mode — heading color, not link color
+  .side-bar .nav-list > .nav-list-item > .nav-list-link {
+    color: var(--body-heading-color);
+  }
+
   // Navigation overlay on mobile
   .search-overlay {
     background-color: rgba(0, 0, 0, 0.6);
@@ -444,6 +456,28 @@ pre {
   ::-webkit-scrollbar-thumb {
     background-color: #{$slate-600};
     border-radius: 4px;
+  }
+
+  // -------------------------------------------------
+  // Code blocks — override JTD compiled light-mode backgrounds
+  // JTD hardcodes background-color on pre, .highlight, figure.highlight
+  // at build time; CSS vars alone lose to that specificity.
+  // -------------------------------------------------
+  pre,
+  pre.highlight,
+  figure.highlight,
+  figure.highlight pre,
+  .main-content pre,
+  .main-content .highlight {
+    background-color: var(--code-background-color) !important;
+    border-color: var(--code-border-color);
+    color: #{$slate-300};
+  }
+
+  .main-content pre code,
+  .highlight code {
+    background-color: transparent;
+    color: #{$slate-300};
   }
 
   // -------------------------------------------------
@@ -568,15 +602,16 @@ pre {
   overflow: visible !important;
 }
 
-// Navigation links in sidebar - high specificity to override theme
+// Navigation links in sidebar - neutral text by default, blue on hover/active
+// (reduces visual weight of sidebar relative to content — per branding review)
 .side-bar .nav-list .nav-list-link {
   font-size: 1rem; // 16px - bigger nav items
   padding: 0.625rem 0.75rem;
-  color: var(--link-color);
+  color: var(--body-text-color);
 
   &:hover {
     background-color: var(--nav-active-bg);
-    color: var(--link-hover-color);
+    color: var(--link-color);
   }
 
   &.active {
@@ -605,11 +640,15 @@ pre {
   }
 }
 
-// Parent nav items (sections)
-.nav-list-item.parent {
-  > .nav-list-link {
-    font-weight: 600;
-    color: var(--body-heading-color);
+// Parent nav items (top-level sections like "Getting Started", "API Reference")
+// JTD does NOT add a .parent class — target top-level items that contain a child nav-list
+// These should be neutral heading color, not link blue
+.side-bar .nav-list > .nav-list-item > .nav-list-link {
+  font-weight: 600;
+  color: var(--body-heading-color);
+
+  &:hover {
+    color: var(--link-color);
   }
 }
 
@@ -793,6 +832,23 @@ blockquote {
   padding-left: 1.5rem; // clear the 6px bracket pseudo-element
 
   &::before { @include bracket-indicator; }
+}
+
+// -----------------------------------------------------
+// Mobile hamburger icon — override JTD compiled purple in BOTH modes
+// JTD compiles $link-color into .site-button at build time; this beats it.
+// Dark mode override also exists in the @media block below.
+// -----------------------------------------------------
+.site-header .site-button,
+.site-nav .site-button,
+.site-button.btn-reset,
+.site-button {
+  color: var(--body-heading-color) !important;
+
+  svg {
+    fill: var(--body-heading-color) !important;
+    color: var(--body-heading-color) !important;
+  }
 }
 
 // Active states
