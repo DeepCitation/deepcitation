@@ -745,6 +745,7 @@ blockquote {
   background-image: none !important; // Override Just the Docs purple gradient
   border-color: var(--btn-primary-bg) !important;
   color: var(--btn-primary-text) !important;
+  border-radius: 0 !important; // Bass's Constant — override JTD compiled radius
 
   &:hover {
     background-color: var(--btn-primary-bg-hover) !important;
