@@ -635,75 +635,85 @@ export function startEvidencePageExpandTransition(
     rootEl.style.opacity = String(PAGE_EXPAND_CONTENT_OPACITY_START);
   }
 
-  // State must always commit even when source capture fails (graceful
-  // degradation: popover transitions without a ghost animation).
-  flushSync(update);
+  // Commit the state update and run the ghost transition in a microtask.
+  // This matches the timing of the View Transition API (which defers its
+  // callback), and avoids mutating the DOM via flushSync while the browser
+  // is still processing the click event that triggered the expand — React
+  // can lose track of the event target when it's replaced mid-handler.
+  //
+  // queueMicrotask fires before the next paint, so the pre-dim + flushSync
+  // + ghost creation all complete within the same visual frame.
+  const commitAndAnimate = () => {
+    flushSync(update);
 
-  if (!source) {
-    if (rootEl) {
-      rootEl.style.opacity = "";
-      rootEl.style.transition = "";
-    }
-    if (debugPhase) {
-      clearDebugOverlays();
-      const primedEls = root.querySelectorAll?.("[data-dc-page-expand-source]");
-      console.warn(
-        "[DC debug] source capture FAILED — no visible source element found.",
-        `${primedEls?.length ?? 0} [data-dc-page-expand-source] elements in root.`,
-      );
-    }
-    _transitionDepth = Math.max(0, _transitionDepth - 1);
-    return;
-  }
-  const ghost = createPageExpandGhost(source);
-  if (!ghost) {
-    if (rootEl) {
-      rootEl.style.opacity = "";
-      rootEl.style.transition = "";
-    }
-    if (debugPhase) {
-      console.warn("[DC debug] ghost creation FAILED — image validation rejected:", source.imageSrc);
-    }
-    _transitionDepth = Math.max(0, _transitionDepth - 1);
-    return;
-  }
-  waitForPageExpandTarget(root, source, target => {
-    _transitionDepth = Math.max(0, _transitionDepth - 1);
-    if (!target) {
-      ghost.remove();
+    if (!source) {
       if (rootEl) {
         rootEl.style.opacity = "";
         rootEl.style.transition = "";
       }
       if (debugPhase) {
         clearDebugOverlays();
-        const targetEls = root.querySelectorAll?.("[data-dc-page-expand-target]");
-        const readyEls = root.querySelectorAll?.('[data-dc-page-expand-ready="true"]');
-        const kindLabel =
-          source.sourceKind === "summary-keyhole"
-            ? "summary keyhole"
-            : source.sourceKind === "expanded-keyhole"
-              ? "expanded keyhole"
-              : "source";
-        createDebugOverlay(
-          source.viewportRect,
-          DEBUG_PAGE_EXPAND_SOURCE_COLOR,
-          `SOURCE (${kindLabel}) — TARGET NOT FOUND`,
-          `anchor: (${source.sourceAnchorX.toFixed(2)}, ${source.sourceAnchorY.toFixed(2)})`,
-        );
+        const primedEls = root.querySelectorAll?.("[data-dc-page-expand-source]");
         console.warn(
-          "[DC debug] target NOT FOUND after 12 rAF polls.",
-          `\n  [data-dc-page-expand-target] elements: ${targetEls?.length ?? 0}`,
-          `\n  [data-dc-page-expand-ready="true"] elements: ${readyEls?.length ?? 0}`,
-          "\n  This usually means annotationVtRect is null (no text match on the page — not_found/miss state).",
-          "\n  Source snapshot:",
-          source,
+          "[DC debug] source capture FAILED — no visible source element found.",
+          `${primedEls?.length ?? 0} [data-dc-page-expand-source] elements in root.`,
         );
       }
+      _transitionDepth = Math.max(0, _transitionDepth - 1);
       return;
     }
-    runPageExpandGhostAnimation(ghost, source, target, rootEl);
-  });
+    const ghost = createPageExpandGhost(source);
+    if (!ghost) {
+      if (rootEl) {
+        rootEl.style.opacity = "";
+        rootEl.style.transition = "";
+      }
+      if (debugPhase) {
+        console.warn("[DC debug] ghost creation FAILED — image validation rejected:", source.imageSrc);
+      }
+      _transitionDepth = Math.max(0, _transitionDepth - 1);
+      return;
+    }
+    waitForPageExpandTarget(root, source, target => {
+      _transitionDepth = Math.max(0, _transitionDepth - 1);
+      if (!target) {
+        ghost.remove();
+        if (rootEl) {
+          rootEl.style.opacity = "";
+          rootEl.style.transition = "";
+        }
+        if (debugPhase) {
+          clearDebugOverlays();
+          const targetEls = root.querySelectorAll?.("[data-dc-page-expand-target]");
+          const readyEls = root.querySelectorAll?.('[data-dc-page-expand-ready="true"]');
+          const kindLabel =
+            source.sourceKind === "summary-keyhole"
+              ? "summary keyhole"
+              : source.sourceKind === "expanded-keyhole"
+                ? "expanded keyhole"
+                : "source";
+          createDebugOverlay(
+            source.viewportRect,
+            DEBUG_PAGE_EXPAND_SOURCE_COLOR,
+            `SOURCE (${kindLabel}) — TARGET NOT FOUND`,
+            `anchor: (${source.sourceAnchorX.toFixed(2)}, ${source.sourceAnchorY.toFixed(2)})`,
+          );
+          console.warn(
+            "[DC debug] target NOT FOUND after 12 rAF polls.",
+            `\n  [data-dc-page-expand-target] elements: ${targetEls?.length ?? 0}`,
+            `\n  [data-dc-page-expand-ready="true"] elements: ${readyEls?.length ?? 0}`,
+            "\n  This usually means annotationVtRect is null (no text match on the page — not_found/miss state).",
+            "\n  Source snapshot:",
+            source,
+          );
+        }
+        return;
+      }
+      runPageExpandGhostAnimation(ghost, source, target, rootEl);
+    });
+  };
+
+  queueMicrotask(commitAndAnimate);
 }
 
 // =============================================================================

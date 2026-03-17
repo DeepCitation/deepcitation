@@ -1907,7 +1907,11 @@ export function InlineExpandedImage({
     annotationOriginItem && renderScale && naturalWidth && naturalHeight
       ? computeAnnotationOriginPercent(annotationOriginItem, renderScale, naturalWidth, naturalHeight)
       : null;
-  const annotationTargetItem = fill && renderScale ? (scrollTarget ?? effectivePhraseItem) : null;
+  // VT geometry target: always use the full phrase rect so the View Transition
+  // morph envelope matches the visible overlay size on both expand and collapse.
+  // (scrollTarget may be the smaller anchor text — fine for scroll centering,
+  // but the VT rect must cover the full phrase to avoid starting from a smaller box.)
+  const annotationTargetItem = fill && renderScale ? effectivePhraseItem : null;
   const annotationTargetNaturalWidth =
     annotationTargetItem && renderScale ? annotationTargetItem.width * renderScale.x : null;
   const annotationTargetNaturalHeight =
