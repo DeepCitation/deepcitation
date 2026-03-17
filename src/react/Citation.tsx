@@ -1364,7 +1364,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Early return for miss with fallback display (only when showing anchorText)
     // Inline variants inherit color (dimmed via opacity), others use explicit gray.
     if (fallbackDisplay !== null && fallbackDisplay !== undefined && resolvedContent === "anchorText" && isMiss) {
-      const fallbackClasses = isInlineVariant ? "opacity-50" : "text-slate-400 dark:text-slate-500";
+      const fallbackClasses = isInlineVariant ? "opacity-50" : "text-slate-500 dark:text-slate-400";
       return <span className={cn(fallbackClasses, className)}>{fallbackDisplay}</span>;
     }
 
@@ -1533,6 +1533,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             <PopoverContent
               ref={popoverContentRef}
               id={popoverId}
+              aria-label={t("aria.citationVerificationStatus")}
               side={lockedSide}
               align="start"
               sideOffset={expandedPageSideOffset}
@@ -1646,7 +1647,7 @@ const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl
 
   if (isBroken) {
     return (
-      <span className="w-3.5 h-3.5 flex items-center justify-center text-xs text-slate-400 dark:text-slate-500 shrink-0">
+      <span className="w-3.5 h-3.5 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400 shrink-0">
         🌐
       </span>
     );
@@ -1692,14 +1693,14 @@ const ExternalLinkButton = ({
       type="button"
       onClick={handleExternalLinkClick}
       className={cn(
-        "inline-flex items-center justify-center w-3.5 h-3.5 ml-1 transition-all",
+        "relative inline-flex items-center justify-center w-6 h-6 -ml-0.5 transition-all",
         "text-slate-400 group-hover:text-blue-500 dark:text-slate-500 dark:group-hover:text-blue-400",
         !alwaysVisible && "opacity-30 group-hover:opacity-100 group-focus-within:opacity-100",
       )}
       aria-label={ariaLabel}
       title={title}
     >
-      <ExternalLinkIcon className="w-full h-full" />
+      <ExternalLinkIcon className="w-3.5 h-3.5" />
     </button>
   );
 };
@@ -2045,7 +2046,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             onKeyDown={handleKeyDown}
             role="button"
             tabIndex={0}
-            aria-label={t("aria.linkToDomainStatus", { domain, status: statusLabel })}
+            aria-label={t("aria.linkToDomainStatus", { domain: displayText || domain, status: statusLabel })}
           >
             {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} isBroken={isBroken} />}
             <span
@@ -2090,7 +2091,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             onKeyDown={handleKeyDown}
             role="button"
             tabIndex={0}
-            aria-label={t("aria.linkToDomainStatus", { domain, status: statusLabel })}
+            aria-label={t("aria.linkToDomainStatus", { domain: displayText || domain, status: statusLabel })}
           >
             {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
             <span className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap text-slate-700 dark:text-slate-300">
@@ -2130,7 +2131,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             onKeyDown={handleKeyDown}
             role="button"
             tabIndex={0}
-            aria-label={t("aria.linkToDomainStatus", { domain, status: statusLabel })}
+            aria-label={t("aria.linkToDomainStatus", { domain: displayText || domain, status: statusLabel })}
           >
             {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
             <span>{displayText}</span>
@@ -2166,7 +2167,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           onKeyDown={handleKeyDown}
           role="button"
           tabIndex={0}
-          aria-label={t("aria.linkToDomainStatus", { domain, status: statusLabel })}
+          aria-label={t("aria.linkToDomainStatus", { domain: displayText || domain, status: statusLabel })}
         >
           [{showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
           <span

@@ -186,7 +186,7 @@ export const CitationStatusIndicator = ({
       ? "text-red-500 dark:text-red-400"
       : isOpen
         ? "text-white dark:text-slate-900"
-        : "text-slate-400 dark:text-slate-500";
+        : "text-slate-500 dark:text-slate-400";
 
     // Pill background: miss → red tint, open → solid dark/light (inverted), default → subtle slate.
     const pillBgClass = isMiss
@@ -201,7 +201,7 @@ export const CitationStatusIndicator = ({
           className={cn(
             "inline-flex items-center justify-center relative ml-0.5 top-[0.05em] [text-decoration:none] rounded-full",
             pillBgClass,
-            "text-slate-400 dark:text-slate-500",
+            "text-slate-500 dark:text-slate-400",
           )}
           style={CARET_PILL_STYLE}
           data-dc-indicator="pending"

@@ -27,7 +27,7 @@ export function HighlightedPhrase({
   return (
     <span className="text-dc-muted-foreground">
       {fullPhrase.slice(0, idx)}
-      <span style={ANCHOR_HIGHLIGHT_STYLE}>{anchorText}</span>
+      <span style={ANCHOR_HIGHLIGHT_STYLE} className="text-dc-foreground">{anchorText}</span>
       {fullPhrase.slice(idx + anchorText.length)}
     </span>
   );

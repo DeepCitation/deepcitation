@@ -284,7 +284,7 @@ const PRIORITY_DOT_TEXT: Record<number, string> = {
   4: "text-red-600 dark:text-red-400",
   3: "text-amber-600 dark:text-amber-400",
   2: "text-dc-subtle-foreground",
-  1: "text-green-600 dark:text-green-400",
+  1: "text-green-700 dark:text-green-400",
 };
 
 export function StackedStatusIcons({

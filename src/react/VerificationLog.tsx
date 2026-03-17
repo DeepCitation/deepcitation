@@ -71,7 +71,7 @@ const MAX_URL_DISPLAY_LENGTH = 45;
 
 /** Icon color classes by status - defined outside component to avoid recreation on every render */
 const ICON_COLOR_CLASSES = {
-  green: "text-green-600 dark:text-green-400",
+  green: "text-green-700 dark:text-green-400",
   amber: "text-amber-500 dark:text-amber-400",
   red: "text-red-500 dark:text-red-400",
   gray: "text-dc-pending",
@@ -363,9 +363,9 @@ interface PagePillProps {
 
 /** Page pill color classes by status */
 const PAGE_PILL_COLORS = {
-  green: "bg-dc-muted text-dc-muted-foreground border-dc-border",
-  amber: "bg-dc-muted text-dc-muted-foreground border-dc-border",
-  red: "bg-dc-muted text-dc-muted-foreground border-dc-border",
+  green: "bg-dc-muted text-zinc-600 dark:text-zinc-300 border-dc-border",
+  amber: "bg-dc-muted text-zinc-600 dark:text-zinc-300 border-dc-border",
+  red: "bg-dc-muted text-zinc-600 dark:text-zinc-300 border-dc-border",
   gray: "bg-dc-muted text-dc-subtle-foreground border-dc-border",
 } as const;
 
@@ -444,10 +444,10 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
       )}
       aria-label={
         isImage
-          ? t("action.viewImage")
+          ? `${label}: ${t("action.viewImage")}`
           : hasPage
-            ? t("action.expandFullPageNum", { pageNumber })
-            : t("action.expandFullPage")
+            ? `${label}: ${t("action.expandFullPageNum", { pageNumber })}`
+            : `${label}: ${t("action.expandFullPage")}`
       }
     >
       <span>{label}</span>
@@ -1089,7 +1089,7 @@ function VerificationLogSummary({
       </div>
       {dateStr && (
         <span
-          className="text-dc-pending flex-shrink-0 ml-2"
+          className="text-dc-muted-foreground flex-shrink-0 ml-2"
           title={
             isMiss
               ? t("verification.checkedAt", { date: formatted?.tooltip ?? dateStr })
@@ -1288,7 +1288,7 @@ function AuditSearchDisplay({
           <div className="p-2.5 bg-dc-muted space-y-2">
             {/* What was matched */}
             <div className="flex items-start gap-2">
-              <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-600 dark:text-green-400 shrink-0">
+              <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-700 dark:text-green-400 shrink-0">
                 <CheckIcon />
               </span>
               <QuotedText mono className="text-xs text-dc-foreground break-all">

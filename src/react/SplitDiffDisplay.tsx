@@ -213,7 +213,7 @@ const SplitView: React.FC<SplitViewProps> = memo(
         {/* Found row */}
         <div className="rounded-md overflow-hidden">
           <div className="flex items-start gap-2 p-2.5 bg-green-50 dark:bg-green-900/20">
-            <span className="shrink-0 text-[10px] font-medium text-green-600 dark:text-green-400 uppercase tracking-wide pt-0.5 inline-flex items-center gap-1">
+            <span className="shrink-0 text-[10px] font-medium text-green-700 dark:text-green-400 uppercase tracking-wide pt-0.5 inline-flex items-center gap-1">
               {t("diff.foundLabel")}
               <span className="size-2.5 text-green-500 dark:text-green-400">
                 <CheckIcon />

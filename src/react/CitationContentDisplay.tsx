@@ -108,7 +108,10 @@ export const CitationContentDisplay = ({
         >
           {displayText}
         </span>
-        {indicator}
+        {/* aria-hidden: the button's aria-label already describes status; the live region
+            (statusDescId) announces changes. Including role="img" aria-labels here as
+            "visible text" causes label-content-name-mismatch (WCAG 2.5.3). */}
+        <span aria-hidden="true">{indicator}</span>
       </span>
     );
   }
@@ -146,7 +149,7 @@ export const CitationContentDisplay = ({
     // Priority chain: spinner > miss > partial > verified > neutral default
     let footnoteStatusClasses: string;
     if (shouldShowSpinner) {
-      footnoteStatusClasses = "text-slate-400 dark:text-slate-500";
+      footnoteStatusClasses = "text-slate-500 dark:text-slate-400";
     } else if (isMiss) {
       footnoteStatusClasses = "text-red-500 dark:text-red-400";
     } else if (isPartialMatch) {
