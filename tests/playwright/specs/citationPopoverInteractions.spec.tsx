@@ -237,7 +237,7 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     // Click the page pill to switch to expanded-page view (another internal transition)
     const pagePill = popover.getByRole("button", { name: /full page/i }).first();
     if (await pagePill.isVisible()) {
-      await pagePill.dispatchEvent("click");
+      await pagePill.click();
       await page.waitForTimeout(100);
     }
 
@@ -445,7 +445,8 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     await expect(toPageButton).toBeVisible();
 
     // keyhole -> expanded-page
-    await toPageButton.dispatchEvent("click");
+    // Use click() instead of dispatchEvent to ensure React handles the event
+    await toPageButton.click();
     const pageExpandSamples = await page.evaluate(async () => {
       const dialog = document.querySelector("[role='dialog']") as HTMLElement | null;
       if (!dialog) return { inlineOpacity: [] as number[] };
@@ -477,7 +478,7 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     // expanded-page -> keyhole
     const backToKeyholeButton = popover.getByRole("button", { name: /Close (page|image)/i }).first();
     await expect(backToKeyholeButton).toBeVisible();
-    await backToKeyholeButton.dispatchEvent("click");
+    await backToKeyholeButton.click();
     const pageCollapseSamples = await page.evaluate(async () => {
       const dialog = document.querySelector("[role='dialog']") as HTMLElement | null;
       if (!dialog) return { maxTransitionSeconds: 0 };

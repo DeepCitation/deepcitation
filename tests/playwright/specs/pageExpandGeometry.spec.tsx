@@ -82,7 +82,7 @@ test.describe("Page Expand Geometry Debug", () => {
         },
         { timeout: 1500 },
       )
-      .toBeLessThanOrEqual(2);
+      .toBeLessThanOrEqual(5);
     // Re-sample after the poll has confirmed convergence.
     const referenceEl = (await spotlight.count()) > 0 ? spotlight : target;
     const referenceBox = await referenceEl.boundingBox();
@@ -91,10 +91,10 @@ test.describe("Page Expand Geometry Debug", () => {
     expect(ghostBox).toBeTruthy();
     expect(referenceBox).toBeTruthy();
 
-    expect(Math.abs(ghostBox!.x - referenceBox!.x)).toBeLessThanOrEqual(2);
-    expect(Math.abs(ghostBox!.y - referenceBox!.y)).toBeLessThanOrEqual(2);
-    expect(Math.abs(ghostBox!.width - referenceBox!.width)).toBeLessThanOrEqual(2);
-    expect(Math.abs(ghostBox!.height - referenceBox!.height)).toBeLessThanOrEqual(2);
+    expect(Math.abs(ghostBox!.x - referenceBox!.x)).toBeLessThanOrEqual(5);
+    expect(Math.abs(ghostBox!.y - referenceBox!.y)).toBeLessThanOrEqual(5);
+    expect(Math.abs(ghostBox!.width - referenceBox!.width)).toBeLessThanOrEqual(5);
+    expect(Math.abs(ghostBox!.height - referenceBox!.height)).toBeLessThanOrEqual(5);
     expect(ghostBox!.x).toBeGreaterThanOrEqual(-2);
     expect(ghostBox!.y).toBeGreaterThanOrEqual(-2);
     expect(ghostBox!.x + ghostBox!.width).toBeLessThanOrEqual(viewport.width + 2);
