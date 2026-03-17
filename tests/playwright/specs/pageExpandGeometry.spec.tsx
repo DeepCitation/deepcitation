@@ -48,6 +48,7 @@ test.describe("Page Expand Geometry Debug", () => {
 
     expect(Math.abs(ghostBox!.x - sourceBox!.x)).toBeLessThanOrEqual(2);
     expect(Math.abs(ghostBox!.y - sourceBox!.y)).toBeLessThanOrEqual(2);
+    // Width tolerance 5px: ghost includes SPOTLIGHT_PADDING around the source keyhole
     expect(Math.abs(ghostBox!.width - sourceBox!.width)).toBeLessThanOrEqual(5);
     expect(Math.abs(ghostBox!.height - sourceBox!.height)).toBeLessThanOrEqual(2);
   });
@@ -63,11 +64,13 @@ test.describe("Page Expand Geometry Debug", () => {
     await expect(target).toBeVisible();
 
     // Prefer spotlight if it exists; fall back to the annotation marker.
-    const referenceEl = (await spotlight.count()) > 0 ? spotlight : target;
-    const referenceBox = await referenceEl.boundingBox();
+    // Resolve the reference element inside the poll so we pick up the spotlight
+    // even if it paints after the initial count check.
     await expect
       .poll(
         async () => {
+          const referenceEl = (await spotlight.count()) > 0 ? spotlight : target;
+          const referenceBox = await referenceEl.boundingBox();
           const ghostBox = await ghost.boundingBox();
           if (!ghostBox || !referenceBox) return Number.POSITIVE_INFINITY;
           return Math.max(
@@ -80,6 +83,9 @@ test.describe("Page Expand Geometry Debug", () => {
         { timeout: 1500 },
       )
       .toBeLessThanOrEqual(2);
+    // Re-sample after the poll has confirmed convergence.
+    const referenceEl = (await spotlight.count()) > 0 ? spotlight : target;
+    const referenceBox = await referenceEl.boundingBox();
     const ghostBox = await ghost.boundingBox();
     const viewport = page.viewportSize()!;
     expect(ghostBox).toBeTruthy();

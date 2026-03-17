@@ -609,31 +609,9 @@ export function startEvidencePageExpandTransition(
   // so every page-expand attempt starts fresh.
   if (debugPhase) clearDebugOverlays();
 
-  _transitionDepth++;
-  const source = capturePageExpandSource(root);
-
   // Resolve root to an HTMLElement for style manipulation. The root is
   // popoverContentRef.current — always an HTMLElement at runtime.
   const rootEl = root instanceof HTMLElement ? root : null;
-
-  // Pre-dim the ENTIRE popover content BEFORE flushSync. This ensures that
-  // when flushSync makes the expanded-page slot visible, the whole popover
-  // (header, status, image — everything) appears already dimmed.
-  //
-  // CRITICAL: Disable CSS transitions first. The PopoverContent element has
-  // `transition: opacity 60ms ...` from getBlinkContainerMotionStyle("steady").
-  // Without disabling transitions, the opacity change animates from 1 → 0.03
-  // over ~60ms — the first paint frame shows the expanded page at ~50% opacity,
-  // which reads as a full-page flash before the ghost animation begins.
-  if (source && rootEl) {
-    // Cancel any lingering WAAPI animations from a previous page-expand.
-    // `fill: "forwards"` on the content fade-in holds opacity: 1 indefinitely
-    // at a higher cascade priority than inline styles — without cancelling,
-    // the inline opacity: 0.03 below would be silently overridden.
-    for (const anim of rootEl.getAnimations()) anim.cancel();
-    rootEl.style.transition = "none";
-    rootEl.style.opacity = String(PAGE_EXPAND_CONTENT_OPACITY_START);
-  }
 
   // Commit the state update and run the ghost transition in a microtask.
   // This matches the timing of the View Transition API (which defers its
@@ -641,9 +619,32 @@ export function startEvidencePageExpandTransition(
   // is still processing the click event that triggered the expand — React
   // can lose track of the event target when it's replaced mid-handler.
   //
-  // queueMicrotask fires before the next paint, so the pre-dim + flushSync
+  // queueMicrotask typically fires before the next paint (within the same
+  // task frame during React event batching), so the pre-dim + flushSync
   // + ghost creation all complete within the same visual frame.
   const commitAndAnimate = () => {
+    _transitionDepth++;
+    const source = capturePageExpandSource(root);
+
+    // Pre-dim the ENTIRE popover content BEFORE flushSync. This ensures that
+    // when flushSync makes the expanded-page slot visible, the whole popover
+    // (header, status, image — everything) appears already dimmed.
+    //
+    // CRITICAL: Disable CSS transitions first. The PopoverContent element has
+    // `transition: opacity 60ms ...` from getBlinkContainerMotionStyle("steady").
+    // Without disabling transitions, the opacity change animates from 1 → 0.03
+    // over ~60ms — the first paint frame shows the expanded page at ~50% opacity,
+    // which reads as a full-page flash before the ghost animation begins.
+    if (rootEl) {
+      // Cancel any lingering WAAPI animations from a previous page-expand.
+      // `fill: "forwards"` on the content fade-in holds opacity: 1 indefinitely
+      // at a higher cascade priority than inline styles — without cancelling,
+      // the inline opacity: 0.03 below would be silently overridden.
+      for (const anim of rootEl.getAnimations()) anim.cancel();
+      rootEl.style.transition = "none";
+      rootEl.style.opacity = String(PAGE_EXPAND_CONTENT_OPACITY_START);
+    }
+
     flushSync(update);
 
     if (!source) {
