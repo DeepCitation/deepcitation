@@ -13,7 +13,7 @@
  */
 
 // Client & Errors
-export { DeepCitation } from "./client/DeepCitation.js";
+export { DeepCitation, SDK_VERSION } from "./client/DeepCitation.js";
 export {
   AuthenticationError,
   DeepCitationError,

@@ -1,4 +1,4 @@
-export { DeepCitation } from "./DeepCitation.js";
+export { DeepCitation, SDK_VERSION } from "./DeepCitation.js";
 export {
   AuthenticationError,
   DeepCitationError,
