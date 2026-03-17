@@ -291,7 +291,9 @@ function buildGhostTargetRect(_snapshot: GhostSnapshot, targetEl: HTMLElement, m
  * image area — the ghost lands on whatever region the user was already viewing.
  */
 function buildGhostTargetFromViewport(root: ParentNode): PageExpandTarget | null {
-  const containers = root.querySelectorAll<HTMLElement>("[data-dc-inline-expanded]");
+  const containers = root.querySelectorAll<HTMLElement>(
+    '[data-dc-inline-expanded][data-dc-inline-expanded-ready="true"]',
+  );
   for (const container of containers) {
     const containerRect = container.getBoundingClientRect();
     if (!isVisibleRect(containerRect)) continue;
@@ -324,6 +326,9 @@ function findPageExpandTarget(root: ParentNode, snapshot: GhostSnapshot): PageEx
   if (candidates.length > 0) return null;
   // No annotation target at all (miss/not_found without annotation data).
   // Fall back to the visible viewport of the expanded page image.
+  // The ready-attribute selector in buildGhostTargetFromViewport ensures we
+  // don't fire prematurely — pageExpandReady is only set after the component's
+  // useEffect has run and (for success states) annotation targets are rendered.
   return buildGhostTargetFromViewport(root);
 }
 
