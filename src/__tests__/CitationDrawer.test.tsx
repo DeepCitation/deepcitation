@@ -1323,8 +1323,8 @@ describe("CitationDrawer page badges", () => {
 
     const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
 
-    // Should render a clickable page pill button with aria-label (PagePill uses "Expand to full page N")
-    const pageButton = container.querySelector("button[aria-label='Expand to full page 3']");
+    // Should render a clickable page pill button with aria-label (PagePill uses "p.\u202fN: Expand to full page N")
+    const pageButton = container.querySelector("button[aria-label*='Expand to full page 3']");
     expect(pageButton).toBeInTheDocument();
     expect(pageButton?.textContent).toContain("p.\u202f3");
   });
@@ -1361,8 +1361,8 @@ describe("CitationDrawer page badges", () => {
 
     const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
 
-    // Click page 5 badge (PagePill uses "Expand to full page N")
-    const pageButton = container.querySelector("button[aria-label='Expand to full page 5']");
+    // Click page 5 badge (PagePill uses "p.\u202fN: Expand to full page N")
+    const pageButton = container.querySelector("button[aria-label*='Expand to full page 5']");
     expect(pageButton).toBeInTheDocument();
     if (pageButton) fireEvent.click(pageButton);
 
@@ -1431,7 +1431,7 @@ describe("CitationDrawer page badges", () => {
       />,
     );
 
-    const page5Button = container.querySelector("button[aria-label='Expand to full page 5']");
+    const page5Button = container.querySelector("button[aria-label*='Expand to full page 5']");
     expect(page5Button).toBeInTheDocument();
     if (page5Button) fireEvent.click(page5Button);
 
@@ -1484,9 +1484,9 @@ describe("CitationDrawer page badges", () => {
       />,
     );
 
-    const page1Button = container.querySelector("button[aria-label='Expand to full page 1']");
-    const page2Button = container.querySelector("button[aria-label='Expand to full page 2']");
-    const page5Button = container.querySelector("button[aria-label='Expand to full page 5']");
+    const page1Button = container.querySelector("button[aria-label*='Expand to full page 1']");
+    const page2Button = container.querySelector("button[aria-label*='Expand to full page 2']");
+    const page5Button = container.querySelector("button[aria-label*='Expand to full page 5']");
     expect(page1Button).toBeInTheDocument();
     expect(page2Button).toBeInTheDocument();
     expect(page5Button).toBeInTheDocument();
@@ -1527,8 +1527,8 @@ describe("CitationDrawer page badges", () => {
     const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
 
     // Both page pills should render
-    const page3Button = container.querySelector("button[aria-label='Expand to full page 3']");
-    const page7Button = container.querySelector("button[aria-label='Expand to full page 7']");
+    const page3Button = container.querySelector("button[aria-label*='Expand to full page 3']");
+    const page7Button = container.querySelector("button[aria-label*='Expand to full page 7']");
     expect(page3Button).toBeInTheDocument();
     expect(page7Button).toBeInTheDocument();
 
