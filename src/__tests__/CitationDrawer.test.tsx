@@ -1323,7 +1323,7 @@ describe("CitationDrawer page badges", () => {
 
     const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
 
-    // Should render a clickable page pill button with aria-label (PagePill uses "p.\u202fN: Expand to full page N")
+    // Should render a clickable page pill button with aria-label (PagePill uses "Expand to full page N")
     const pageButton = container.querySelector("button[aria-label*='Expand to full page 3']");
     expect(pageButton).toBeInTheDocument();
     expect(pageButton?.textContent).toContain("p.\u202f3");
@@ -1361,7 +1361,7 @@ describe("CitationDrawer page badges", () => {
 
     const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
 
-    // Click page 5 badge (PagePill uses "p.\u202fN: Expand to full page N")
+    // Click page 5 badge (PagePill uses "Expand to full page N")
     const pageButton = container.querySelector("button[aria-label*='Expand to full page 5']");
     expect(pageButton).toBeInTheDocument();
     if (pageButton) fireEvent.click(pageButton);

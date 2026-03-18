@@ -41,7 +41,8 @@ export interface PopoverViewStateHandle {
   expandedWidthSource: "expanded-keyhole" | "expanded-page" | null;
   /** Width change handler — wire to DefaultPopoverContent.onExpandedWidthChange */
   onExpandedWidthChange: (width: number | null, source?: "expanded-keyhole" | "expanded-page" | null) => void;
-  /** Reset view state to summary and clear width/expanded state (for popover open) */
+  /** Reset view state to summary and clear width/expanded state (for popover open).
+   *  NOTE: Does NOT invoke onCollapseToSummary — callers must handle side effects separately. */
   resetToSummary: () => void;
 }
 

@@ -213,6 +213,9 @@ export class DeepCitation {
     this.endFileId = config.endFileId;
     this.convertedPdfDownloadPolicy = config.convertedPdfDownloadPolicy ?? "url_only";
     this.onLatestVersion = config.onLatestVersion;
+    if (config.requestSource && /[\r\n]/.test(config.requestSource)) {
+      throw new Error("requestSource must not contain newline characters");
+    }
     this.requestSource = config.requestSource;
   }
 

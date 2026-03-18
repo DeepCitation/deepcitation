@@ -401,10 +401,10 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
       )}
       aria-label={
         isImage
-          ? `${label}: ${t("action.viewImage")}`
+          ? t("action.viewImage")
           : hasPage
-            ? `${label}: ${t("action.expandFullPageNum", { pageNumber })}`
-            : `${label}: ${t("action.expandFullPage")}`
+            ? t("action.expandFullPageNum", { pageNumber })
+            : t("action.expandFullPage")
       }
     >
       <span>{label}</span>
@@ -1010,7 +1010,7 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
         <div className="py-1 px-2 text-xs font-mono border-l-2 border-amber-400 dark:border-amber-500 text-dc-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <span
             className="font-mono text-xxs truncate min-w-0"
-            title={row.note || (isTruncated ? row.phraseDisplay : undefined)}
+            title={row.note || (isTruncated ? row.phraseFull : undefined)}
           >
             {row.phraseDisplay}
           </span>
@@ -1031,7 +1031,7 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
         <div className="py-1 px-2 text-xs font-mono border-l-2 border-red-300 dark:border-red-500/60 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <span
             className="font-mono text-xxs truncate min-w-0"
-            title={row.note || (isTruncated ? row.phraseDisplay : undefined)}
+            title={row.note || (isTruncated ? row.phraseFull : undefined)}
           >
             {row.phraseDisplay}
           </span>
@@ -1043,7 +1043,7 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
     case "collapsed_failure":
       return (
         <div className="py-1 px-2 text-xs font-mono border-l-2 border-red-300 dark:border-red-500/60 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-          <span className="font-mono text-xxs truncate min-w-0" title={isTruncated ? row.phraseDisplay : undefined}>
+          <span className="font-mono text-xxs truncate min-w-0" title={isTruncated ? row.phraseFull : undefined}>
             {row.phraseDisplay}
           </span>
           <span className="text-[10px] whitespace-nowrap justify-self-end text-right self-center text-dc-subtle-foreground">
@@ -1173,8 +1173,8 @@ export function VerificationLog({
   status,
   expectedPage,
   expectedLine,
-  foundPage: _foundPage,
-  foundLine: _foundLine,
+  foundPage: _foundPage, // kept for API compat; narrative derives from attempt.foundLocation
+  foundLine: _foundLine, // kept for API compat; narrative derives from attempt.foundLocation
   isExpanded: controlledIsExpanded,
   onExpandChange,
   fullPhrase,

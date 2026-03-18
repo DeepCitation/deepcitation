@@ -43,7 +43,6 @@ export interface FailureRow {
   phraseDisplay: string;
   phraseFull: string;
   locationLabel: string | null;
-  isUnexpectedHit: boolean;
   duplicateCount: number;
   note: string | undefined;
 }
@@ -360,7 +359,6 @@ function buildAllRows(
         phraseDisplay,
         phraseFull,
         locationLabel: locationText,
-        isUnexpectedHit,
         duplicateCount,
         note: attempt.note,
       });
