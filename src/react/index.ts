@@ -178,16 +178,6 @@ export {
   SplitDiffDisplay,
   type SplitDiffDisplayProps,
 } from "./SplitDiffDisplay.js";
-// Search Summary Utilities
-export {
-  buildIntentSummary,
-  buildSearchSummary,
-  type IntentSummary,
-  type MatchSnippet,
-  type SearchOutcome,
-  type SearchQueryGroup,
-  type SearchSummary,
-} from "./searchSummaryUtils.js";
 // Search Narrative (centralized interpretation of SearchAttempt[] → display-ready data)
 export {
   buildSearchNarrative,
@@ -198,6 +188,16 @@ export {
   type SearchNarrative,
   type SuccessRow,
 } from "./searchNarrative.js";
+// Search Summary Utilities
+export {
+  buildIntentSummary,
+  buildSearchSummary,
+  type IntentSummary,
+  type MatchSnippet,
+  type SearchOutcome,
+  type SearchQueryGroup,
+  type SearchSummary,
+} from "./searchSummaryUtils.js";
 // Status Message Utilities
 export { getContextualStatusMessage } from "./statusMessage.js";
 // Time to Certainty (TtC) — timing utilities and hooks

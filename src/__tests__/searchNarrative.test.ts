@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { SearchAttempt } from "../types/search";
 import { buildSearchNarrative } from "../react/searchNarrative";
+import type { SearchAttempt } from "../types/search";
 
 describe("buildSearchNarrative", () => {
   describe("outcome derivation", () => {

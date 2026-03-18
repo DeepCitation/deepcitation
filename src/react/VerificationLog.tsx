@@ -34,12 +34,9 @@ import {
   type NarrativeRow,
   type SearchNarrative,
 } from "./searchNarrative.js";
-// Re-export getStatusColorScheme for external consumers (e.g., EvidenceTray → PagePill)
-export { getStatusColorScheme } from "./searchNarrative.js";
 import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn, isImageSource } from "./utils.js";
-
 
 // =============================================================================
 // CONSTANTS
@@ -51,7 +48,6 @@ const MAX_QUOTE_BOX_LENGTH = 150;
 /** Maximum length for anchor text preview in headers */
 const MAX_ANCHOR_TEXT_PREVIEW_LENGTH = 50;
 
-
 /** Maximum length for URL display in popover header */
 const MAX_URL_DISPLAY_LENGTH = 45;
 
@@ -62,7 +58,6 @@ const ICON_COLOR_CLASSES = {
   red: "text-red-500 dark:text-red-400",
   gray: "text-dc-pending",
 } as const;
-
 
 const HEADER_DOWNLOAD_BUTTON_BASE_CLASSES =
   "shrink-0 size-8 flex items-center justify-center cursor-pointer text-dc-pending hover:text-blue-500 dark:hover:text-blue-400 transition-[opacity,color] duration-120";
@@ -635,7 +630,6 @@ export interface QuoteBoxProps {
   maxLength?: number;
 }
 
-
 // =============================================================================
 // PAGE BADGE COMPONENT
 // =============================================================================
@@ -895,13 +889,7 @@ interface VerificationLogSummaryProps {
  * Uses unified "Verification details" label across all states.
  * The parenthetical changes based on status: "(Exact match)" vs "(16 attempts)".
  */
-function VerificationLogSummary({
-  narrative,
-  status,
-  isExpanded,
-  onToggle,
-  verifiedAt,
-}: VerificationLogSummaryProps) {
+function VerificationLogSummary({ narrative, status, isExpanded, onToggle, verifiedAt }: VerificationLogSummaryProps) {
   const t = useTranslation();
   const locale = useLocale();
   const isMiss = status === "not_found";
@@ -986,7 +974,7 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
 /** Renders a single NarrativeRow as a compact timeline entry. */
 function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
   const t = useTranslation();
-  const isTruncated = row.phraseDisplay.length > MAX_PHRASE_DISPLAY_LENGTH;
+  const isTruncated = row.phraseFull.length > MAX_PHRASE_DISPLAY_LENGTH;
 
   switch (row.kind) {
     case "success": {
@@ -1020,7 +1008,10 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
         : null;
       return (
         <div className="py-1 px-2 text-xs font-mono border-l-2 border-amber-400 dark:border-amber-500 text-dc-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-          <span className="font-mono text-xxs truncate min-w-0" title={row.note || (isTruncated ? row.phraseDisplay : undefined)}>
+          <span
+            className="font-mono text-xxs truncate min-w-0"
+            title={row.note || (isTruncated ? row.phraseDisplay : undefined)}
+          >
             {row.phraseDisplay}
           </span>
           <span
@@ -1038,7 +1029,10 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
     case "failure":
       return (
         <div className="py-1 px-2 text-xs font-mono border-l-2 border-red-300 dark:border-red-500/60 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-          <span className="font-mono text-xxs truncate min-w-0" title={row.note || (isTruncated ? row.phraseDisplay : undefined)}>
+          <span
+            className="font-mono text-xxs truncate min-w-0"
+            title={row.note || (isTruncated ? row.phraseDisplay : undefined)}
+          >
             {row.phraseDisplay}
           </span>
           <span className="text-[10px] whitespace-nowrap justify-self-end text-right self-center text-dc-subtle-foreground">
@@ -1138,13 +1132,7 @@ export function VerificationLogTimeline({
   onCollapse,
 }: VerificationLogTimelineProps) {
   const t = useTranslation();
-  const content = (
-    <NarrativeRowsDisplay
-      narrative={narrative}
-      fullPhrase={fullPhrase}
-      anchorText={anchorText}
-    />
-  );
+  const content = <NarrativeRowsDisplay narrative={narrative} fullPhrase={fullPhrase} anchorText={anchorText} />;
 
   if (!onCollapse) {
     return <div id="verification-log-timeline">{content}</div>;
