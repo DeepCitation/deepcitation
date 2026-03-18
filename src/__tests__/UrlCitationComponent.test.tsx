@@ -50,8 +50,8 @@ describe("UrlCitationComponent", () => {
     const checkIcon = container.querySelector("svg");
     expect(checkIcon).toBeInTheDocument();
 
-    // The wrapper should have green color class
-    const statusWrapper = container.querySelector(".text-green-600");
+    // The wrapper should have emerald color class (emerald-500 is the verified brand color)
+    const statusWrapper = container.querySelector(".text-emerald-500");
     expect(statusWrapper).toBeInTheDocument();
   });
 
