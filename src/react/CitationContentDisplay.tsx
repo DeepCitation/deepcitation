@@ -13,6 +13,7 @@ import { isUrlCitation } from "../types/citation.js";
 import { getInteractionClasses } from "./CitationContentDisplay.utils.js";
 import { CitationStatusIndicator, type CitationStatusIndicatorProps } from "./CitationStatusIndicator.js";
 import {
+  CARET_INDICATOR_SIZE_STYLE,
   DOT_COLORS,
   DOT_INDICATOR_SIZE_STYLE,
   ERROR_COLOR_STYLE,
@@ -22,7 +23,7 @@ import {
   SUPERSCRIPT_STYLE,
   VERIFIED_COLOR_STYLE,
 } from "./constants.js";
-import { CheckIcon, XIcon } from "./icons.js";
+import { CheckIcon, ChevronDownIcon, XIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import type { CitationContent, CitationRenderProps, CitationVariant } from "./types.js";
 import { cn } from "./utils.js";
@@ -315,14 +316,12 @@ export const CitationContentDisplay = ({
               return <span className={cn("rounded-full", DOT_COLORS[dotColor])} style={DOT_INDICATOR_SIZE_STYLE} />;
             }
             if (iv === "caret") {
-              const colorStyle = isMiss
-                ? ERROR_COLOR_STYLE
-                : isPartialMatch
-                  ? PARTIAL_COLOR_STYLE
-                  : VERIFIED_COLOR_STYLE;
+              const caretColor = isMiss
+                ? "text-red-500 dark:text-red-400"
+                : "text-slate-500 dark:text-slate-400";
               return (
-                <span className="inline-flex" style={{ ...INDICATOR_SIZE_STYLE, ...colorStyle }}>
-                  {isMiss ? <XIcon /> : <CheckIcon />}
+                <span className={cn("inline-flex", caretColor)} style={CARET_INDICATOR_SIZE_STYLE}>
+                  <ChevronDownIcon />
                 </span>
               );
             }
