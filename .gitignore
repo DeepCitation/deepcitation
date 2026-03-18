@@ -7,7 +7,9 @@ lib/**/*
 bun.lock
 
 .turbo/
+.agents/
 .claude/
+skills-lock.json
 
 /scratch/
 /playwright/.cache/
