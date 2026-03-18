@@ -1725,6 +1725,7 @@ export function InlineExpandedImage({
     clampZoomRaw,
     clampZoom,
     gestureAnchorRef: expandedWheelAnchorRef,
+    requireCtrl: true,
     onZoomCommit: (z: number) => {
       setManualZoom(z);
     },
@@ -2022,7 +2023,7 @@ export function InlineExpandedImage({
             ...(!annotationVtRect ? { viewTransitionName: DC_EVIDENCE_VT_NAME } : {}),
             ...(fill ? {} : { maxHeight: "min(600px, 80dvh)" }),
             overscrollBehavior: "none",
-            cursor: isDragging ? "move" : "zoom-out",
+            cursor: isDragging ? "grabbing" : "zoom-out",
             ...HIDE_SCROLLBAR_STYLE,
           }}
           onDragStart={e => e.preventDefault()}
