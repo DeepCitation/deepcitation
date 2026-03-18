@@ -58,6 +58,7 @@ import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "./overlayGeometry.js";
 import { groupSearchAttemptsForNotFound } from "./searchAttemptGrouping.js";
+import { buildSearchNarrative } from "./searchNarrative.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
@@ -1178,16 +1179,15 @@ export function EvidenceTray({
                     className="max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain"
                   >
                     <VerificationLogTimeline
-                      searchAttempts={searchAttempts}
+                      narrative={buildSearchNarrative(
+                        searchAttempts,
+                        verification?.status ?? "not_found",
+                        verification?.citation?.type === "document" ? verification.citation.pageNumber : undefined,
+                        verification?.citation?.type === "document" ? verification.citation.lineIds?.[0] : undefined,
+                        t,
+                      )}
                       fullPhrase={verification?.citation?.fullPhrase ?? verification?.verifiedFullPhrase ?? undefined}
                       anchorText={verification?.citation?.anchorText ?? verification?.verifiedAnchorText ?? undefined}
-                      status={verification?.status ?? "not_found"}
-                      expectedPage={
-                        verification?.citation?.type === "document" ? verification.citation.pageNumber : undefined
-                      }
-                      expectedLine={
-                        verification?.citation?.type === "document" ? verification.citation.lineIds?.[0] : undefined
-                      }
                       onCollapse={() => setShowSearchLog(false)}
                     />
                   </div>

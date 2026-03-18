@@ -188,6 +188,16 @@ export {
   type SearchQueryGroup,
   type SearchSummary,
 } from "./searchSummaryUtils.js";
+// Search Narrative (centralized interpretation of SearchAttempt[] → display-ready data)
+export {
+  buildSearchNarrative,
+  type CollapsedFailureRow,
+  type FailureRow,
+  type NarrativeOutcome,
+  type NarrativeRow,
+  type SearchNarrative,
+  type SuccessRow,
+} from "./searchNarrative.js";
 // Status Message Utilities
 export { getContextualStatusMessage } from "./statusMessage.js";
 // Time to Certainty (TtC) — timing utilities and hooks

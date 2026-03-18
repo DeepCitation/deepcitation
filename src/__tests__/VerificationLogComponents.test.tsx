@@ -8,6 +8,7 @@ import {
   SourceContextHeader,
   VerificationLogTimeline,
 } from "../react/VerificationLog";
+import { buildSearchNarrative } from "../react/searchNarrative";
 import { getVariationLabel } from "../react/variationLabels";
 import type { Citation } from "../types/citation";
 import type { Verification } from "../types/verification";
@@ -294,13 +295,11 @@ describe("VerificationLogTimeline attempts table", () => {
       },
     ];
 
+    const narrative = buildSearchNarrative(searchAttempts, "found_on_other_page", 5, 12);
     const { getByText } = render(
       <VerificationLogTimeline
-        searchAttempts={searchAttempts}
-        status="found_on_other_page"
+        narrative={narrative}
         fullPhrase="Revenue increased by 15% in Q4 2024."
-        expectedPage={5}
-        expectedLine={12}
       />,
     );
 
@@ -324,13 +323,11 @@ describe("VerificationLogTimeline attempts table", () => {
       },
     ];
 
+    const narrative = buildSearchNarrative(searchAttempts, "found_on_other_line", 5, 12);
     const { getByText } = render(
       <VerificationLogTimeline
-        searchAttempts={searchAttempts}
-        status="found_on_other_line"
+        narrative={narrative}
         fullPhrase="Revenue increased by 15% in Q4 2024."
-        expectedPage={5}
-        expectedLine={12}
       />,
     );
 
