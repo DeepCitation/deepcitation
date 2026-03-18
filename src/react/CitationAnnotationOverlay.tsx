@@ -144,7 +144,7 @@ export function CitationAnnotationOverlay({
   if (!rect) return null;
 
   const bracketColor = getBracketColor(
-    highlightColor === "amber" ? "amber" : highlightColor === "red" ? "red" : "blue",
+    highlightColor === "amber" ? "amber" : highlightColor === "red" ? "red" : "green",
   );
 
   // Compute pixel height for bracket width calculation

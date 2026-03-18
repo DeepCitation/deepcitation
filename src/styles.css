@@ -30,7 +30,7 @@
   --dc-ring: #3b82f6; /* focus ring */
 
   /* Status accents */
-  --dc-verified: #16a34a; /* verified / success */
+  --dc-verified: #10b981; /* verified / success (emerald-500, BRANDING.md VERIFIED) */
   --dc-partial: #f59e0b; /* partial match / warning */
   --dc-destructive: #ef4444; /* not found / error */
   --dc-pending: #a1a1aa; /* loading / unresolved (same as subtle-foreground by default) */
@@ -55,7 +55,7 @@
   --dc-border: #3f3f46;
   --dc-ring: #3b82f6;
 
-  --dc-verified: #22c55e;
+  --dc-verified: #34d399; /* emerald-400 luminous, BRANDING.md VERIFIED dark mode */
   --dc-partial: #fbbf24;
   --dc-destructive: #f87171;
   --dc-pending: #71717a;

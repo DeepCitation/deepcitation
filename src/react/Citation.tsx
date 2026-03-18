@@ -1491,11 +1491,11 @@ const PendingDot = () => (
 
 /**
  * Green verified checkmark indicator.
- * Uses green-600 color to match DOT_COLORS.green for visual consistency.
+ * Uses emerald-500/400 to match BRANDING.md VERIFIED status color and SIGNAL_GREEN.
  */
 const VerifiedCheck = () => (
   <span aria-hidden="true">
-    <CheckIcon className={cn("w-full h-full", "text-green-600 dark:text-green-500")} />
+    <CheckIcon className={cn("w-full h-full", "text-emerald-500 dark:text-emerald-400")} />
   </span>
 );
 

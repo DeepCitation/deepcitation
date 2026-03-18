@@ -55,8 +55,8 @@ export const MISS_WAVY_UNDERLINE_STYLE: React.CSSProperties = {
  * Override via `--dc-verified` on `:root` or `.dark`, or use `<DeepCitationTheme>`.
  */
 export const VERIFIED_COLOR_VAR = "--dc-verified";
-/** Default verified indicator color */
-export const VERIFIED_COLOR_DEFAULT = "#16a34a";
+/** Default verified indicator color (emerald-500, BRANDING.md VERIFIED) */
+export const VERIFIED_COLOR_DEFAULT = "#10b981";
 
 /**
  * CSS custom property name for partial match indicator color.

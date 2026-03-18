@@ -15,11 +15,12 @@ import { safeSplit } from "../utils/regexSafety.js";
 
 /**
  * Highlight color category for citation annotations.
- * - 'blue': exact / full-phrase match
+ * - 'green': exact / full-phrase match (VERIFIED)
  * - 'amber': partial match (anchorText-only or value-only)
  * - 'red': not-found (AI claimed location overlay)
+ * - 'blue': legacy alias for 'green' — kept for backward compatibility
  */
-export type HighlightColor = "blue" | "amber" | "red";
+export type HighlightColor = "green" | "blue" | "amber" | "red";
 
 // =============================================================================
 // Color Constants
@@ -28,9 +29,14 @@ export type HighlightColor = "blue" | "amber" | "red";
 /** Border width for citation bracket outlines (px). */
 export const CITATION_LINE_BORDER_WIDTH = 2;
 
-/** Blue bracket color for exact/full-phrase matches. */
+/** Green bracket color for verified / exact-match citations (BRANDING.md VERIFIED, emerald-500). */
+export const SIGNAL_GREEN = "#10b981";
+/** Lighter green for dark-mode contexts (BRANDING.md VERIFIED luminous, emerald-400). */
+export const SIGNAL_GREEN_DARK = "#34d399";
+
+/** @deprecated Use SIGNAL_GREEN. Kept for any external consumers still referencing blue brackets. */
 export const SIGNAL_BLUE = "#005595";
-/** Lighter blue for dark-mode contexts. */
+/** @deprecated Use SIGNAL_GREEN_DARK. */
 export const SIGNAL_BLUE_DARK = "#77bff6";
 
 /** Amber bracket color for partial matches (Tailwind amber-400). */
@@ -88,12 +94,14 @@ export function getBracketWidth(height: number): number {
 
 /**
  * Returns the bracket stroke color for a given highlight category.
- * Blue for exact matches, amber for partial matches, red for not-found.
+ * Green for verified/exact matches, amber for partial matches, red for not-found.
+ * "blue" is a legacy alias that resolves to the deprecated SIGNAL_BLUE value.
  */
-export function getBracketColor(highlightColor: HighlightColor = "blue"): string {
+export function getBracketColor(highlightColor: HighlightColor = "green"): string {
   if (highlightColor === "amber") return SIGNAL_AMBER;
   if (highlightColor === "red") return SIGNAL_RED;
-  return SIGNAL_BLUE;
+  if (highlightColor === "blue") return SIGNAL_BLUE; // legacy
+  return SIGNAL_GREEN;
 }
 
 // =============================================================================
