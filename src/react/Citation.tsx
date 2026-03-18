@@ -29,11 +29,11 @@ import {
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
 import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
 import { getExpandedPopoverWidthPx, getSummaryPopoverWidthPx } from "./expandedWidthPolicy.js";
-import { triggerHaptic } from "./haptics.js";
 import { useExpandedPageSideOffset } from "./hooks/useExpandedPageSideOffset.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
 import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
 import { usePopoverAlignOffset } from "./hooks/usePopoverAlignOffset.js";
+import { usePopoverViewState } from "./hooks/usePopoverViewState.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
 import { useViewportBoundaryGuard } from "./hooks/useViewportBoundaryGuard.js";
 import { type MessageKey, type TranslateFunction, useTranslation } from "./i18n.js";
@@ -41,7 +41,6 @@ import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
-import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
 import { REVIEW_DWELL_THRESHOLD_MS, useCitationTiming } from "./timingUtils.js";
 import type {
   BaseCitationProps,
@@ -59,11 +58,7 @@ import type {
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";
 import { cn, generateCitationInstanceId } from "./utils.js";
-import {
-  isViewTransitioning,
-  startEvidencePageExpandTransition,
-  startEvidenceViewTransition,
-} from "./viewTransition.js";
+import { isViewTransitioning } from "./viewTransition.js";
 
 // Re-export types for convenience
 export type {
@@ -540,109 +535,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return getDefaultContent(variant);
     }, [contentProp, variant]);
     const [isHovering, setIsHovering] = useState(false);
-    const [popoverViewState, setPopoverViewState] = useState<PopoverViewState>("summary");
-    const [expandedNaturalWidthForPosition, setExpandedNaturalWidthForPosition] = useState<number | null>(null);
-    const [expandedWidthSourceForPosition, setExpandedWidthSourceForPosition] = useState<
-      "expanded-keyhole" | "expanded-page" | null
-    >(null);
     // Custom image src from behaviorConfig.onClick returning setImageExpanded: "<url>"
     const [customExpandedSrc, setCustomExpandedSrc] = useState<string | null>(null);
-    // Tracks which state preceded expanded-page so Escape can navigate back correctly.
-    // Lifted here (from DefaultPopoverContent) so onEscapeKeyDown on <PopoverContent> can read it.
-    const prevBeforeExpandedPageRef = useRef<"summary" | "expanded-keyhole">("summary");
-
-    // Set by sub-components (e.g. EvidenceTray search log) when they have an expanded
-    // section that should consume Escape before the popover closes.
-    const escapeInterceptRef = useRef<(() => void) | null>(null);
-
-    // Ref kept in sync with popoverViewState so setViewStateWithHaptics can read
-    // the current value inside callbacks without stale closure issues.
-    // useLayoutEffect (not useEffect) ensures the ref is updated before any
-    // synchronous reads in the same tick — React 18 automatic batching can call
-    // setViewStateWithHaptics twice in one handler, and useEffect would leave
-    // the ref stale until after paint.
-    const popoverViewStateRef = useRef<PopoverViewState>("summary");
-    useLayoutEffect(() => {
-      popoverViewStateRef.current = popoverViewState;
-    }, [popoverViewState]);
-    const handleExpandedWidthChange = useCallback(
-      (width: number | null, sourceOverride?: "expanded-keyhole" | "expanded-page" | null) => {
-        const source = sourceOverride ?? popoverViewStateRef.current;
-        if (source !== "expanded-keyhole" && source !== "expanded-page") {
-          setExpandedNaturalWidthForPosition(null);
-          setExpandedWidthSourceForPosition(null);
-          return;
-        }
-        setExpandedNaturalWidthForPosition(width);
-        setExpandedWidthSourceForPosition(source);
-      },
-      [],
-    );
-
-    // View-state setter that fires haptic feedback on mobile for expand/collapse
-    // transitions. Replaces direct setPopoverViewState calls in user-event handlers.
-    // closePopover still calls setPopoverViewState directly — a full dismiss is not
-    // a collapse in the haptic sense (it's a close, not a step-back navigation).
-    //
-    // Haptics are gated behind experimentalHaptics prop (off by default).
-    const setViewStateWithHaptics = useCallback(
-      (newState: PopoverViewState) => {
-        const prev = popoverViewStateRef.current;
-        if (experimentalHaptics && isMobile) {
-          // Haptic fires only on the initial expand from summary and the final
-          // collapse back to summary. Intermediate transitions (expanded-keyhole ↔
-          // expanded-page) are silent to avoid double-pulse when the user drills
-          // deeper within an already-expanded state.
-          const isExpanding = (newState === "expanded-page" || newState === "expanded-keyhole") && prev === "summary";
-          const isCollapsing = newState === "summary" && (prev === "expanded-page" || prev === "expanded-keyhole");
-          if (isExpanding) triggerHaptic("expand");
-          else if (isCollapsing) triggerHaptic("collapse");
-        }
-        // Track which state we entered expanded-page from, so Escape can navigate back.
-        // Lifted from DefaultPopoverContent's handleExpand to eliminate a ref mutation
-        // that caused a React Compiler bailout in that file.
-        if (newState === "expanded-page" && prev !== "expanded-page") {
-          prevBeforeExpandedPageRef.current = prev === "expanded-keyhole" ? "expanded-keyhole" : "summary";
-        }
-        // Determine collapse direction for View Transition timing.
-        // Full-page transitions are handled by an annotation-anchored VT marker
-        // in InlineExpandedImage — the marker is positioned at the annotation rect
-        // so the geometry morph tracks the annotation region, not the whole page.
-        // When no annotation data exists, InlineExpandedImage falls back to the
-        // container-level VT name (animatedShellRef), which produces the same
-        // crossfade behavior as before.
-        const ORDER: Record<PopoverViewState, number> = { summary: 0, "expanded-keyhole": 1, "expanded-page": 2 };
-        const isCollapse = ORDER[newState] < ORDER[prev];
-        const commitViewState = () => {
-          if (newState === "summary") {
-            setExpandedNaturalWidthForPosition(null);
-            setExpandedWidthSourceForPosition(null);
-          }
-          setPopoverViewState(newState);
-        };
-        const isPageExpand = !isCollapse && newState === "expanded-page";
-        if (isPageExpand) {
-          startEvidencePageExpandTransition(commitViewState, {
-            root: popoverContentRef.current,
-            skipAnimation: prefersReducedMotion,
-          });
-          return;
-        }
-        startEvidenceViewTransition(commitViewState, { isCollapse, skipAnimation: prefersReducedMotion });
-      },
-      [experimentalHaptics, isMobile, prefersReducedMotion],
-    );
-
-    // Lock body scroll only for expanded-page (full-viewport). Summary and
-    // expanded-keyhole are small overlays where scroll should pass through to
-    // the page behind — locking there "eats" scroll when the popover content
-    // isn't scrollable, trapping users. See acquireScrollLock().
-    useEffect(() => {
-      if (!isHovering) return;
-      if (popoverViewState !== "expanded-page") return;
-      acquireScrollLock();
-      return () => releaseScrollLock();
-    }, [isHovering, popoverViewState]);
 
     // Dismiss the popover.
     // Keep view/layout state intact during the exit animation; resetting to
@@ -680,6 +574,16 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // callback refs that mutate .current trigger "cannot modify local variables after render".
     const popoverContentRef = useRef<HTMLDivElement | null>(null);
 
+    const viewState = usePopoverViewState({
+      isOpen: isHovering,
+      popoverContentRef,
+      experimentalHaptics,
+      isMobile,
+      prefersReducedMotion,
+      onDismiss: closePopover,
+      onCollapseToSummary: () => setCustomExpandedSrc(null),
+    });
+
     // A.5.1 + A.5.2: Keyboard-open tracking, focus trap, and conditional focus return.
     // Isolated into a custom hook because the React Compiler can't handle a ref that's
     // both read in an effect (focus trap) and mutated in callbacks (click/keydown handlers).
@@ -711,7 +615,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
 
     // Isolated into separate hooks so the React Compiler can optimize CitationComponent
     // (setState in useLayoutEffect causes a compiler bailout for the entire component).
-    const expandedPageSideOffset = useExpandedPageSideOffset(popoverViewState, triggerRef, lockedSide);
+    const expandedPageSideOffset = useExpandedPageSideOffset(viewState.current, triggerRef, lockedSide);
     const projectedSummaryKeyholeWidth = useMemo(() => {
       const dims = verification?.evidence?.dimensions;
       if (!dims) return null;
@@ -723,32 +627,31 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const projectedPopoverWidthPx = useMemo(() => {
       if (!isHovering || typeof document === "undefined") return null;
       const viewportWidth = document.documentElement.clientWidth;
-      if (popoverViewState === "summary") {
+      if (viewState.current === "summary") {
         return getSummaryPopoverWidthPx(projectedSummaryKeyholeWidth, viewportWidth);
       }
 
-      if (expandedNaturalWidthForPosition === null) return null;
+      if (viewState.expandedNaturalWidth === null) return null;
 
       const shouldProjectExpandedWidth =
-        (popoverViewState === "expanded-keyhole" && expandedWidthSourceForPosition === "expanded-keyhole") ||
-        (popoverViewState === "expanded-page" &&
-          (expandedWidthSourceForPosition === "expanded-page" ||
-            expandedWidthSourceForPosition === "expanded-keyhole"));
+        (viewState.current === "expanded-keyhole" && viewState.expandedWidthSource === "expanded-keyhole") ||
+        (viewState.current === "expanded-page" &&
+          (viewState.expandedWidthSource === "expanded-page" || viewState.expandedWidthSource === "expanded-keyhole"));
 
       if (shouldProjectExpandedWidth) {
-        return getExpandedPopoverWidthPx(expandedNaturalWidthForPosition, viewportWidth);
+        return getExpandedPopoverWidthPx(viewState.expandedNaturalWidth, viewportWidth);
       }
       return null;
     }, [
       isHovering,
-      popoverViewState,
+      viewState.current,
       projectedSummaryKeyholeWidth,
-      expandedNaturalWidthForPosition,
-      expandedWidthSourceForPosition,
+      viewState.expandedNaturalWidth,
+      viewState.expandedWidthSource,
     ]);
     const popoverAlignOffset = usePopoverAlignOffset(
       isHovering,
-      popoverViewState,
+      viewState.current,
       triggerRef,
       popoverContentRef,
       projectedPopoverWidthPx,
@@ -757,7 +660,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Layer 3: hard viewport boundary guard. Observes the popover's actual
     // rendered rect and applies corrective CSS `translate` if any edge overflows.
     // If Layers 1–2 got it right, the guard is a no-op.
-    useViewportBoundaryGuard(isHovering, popoverViewState, popoverContentRef);
+    useViewportBoundaryGuard(isHovering, viewState.current, popoverContentRef);
     const citationKey = useMemo(() => getCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
 
@@ -898,10 +801,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         citationKey,
         verification: verification ?? null,
         isTooltipExpanded: isHovering,
-        isImageExpanded: popoverViewState !== "summary",
+        isImageExpanded: viewState.current !== "summary",
         hasImage: !!resolvedImageSrc,
       }),
-      [citation, citationKey, verification, isHovering, popoverViewState, resolvedImageSrc],
+      [citation, citationKey, verification, isHovering, viewState.current, resolvedImageSrc],
     );
 
     // Apply behavior actions from custom handler
@@ -914,7 +817,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           } else if (actions.setImageExpanded) {
             // Open: show popover in expanded (full page) view
             setIsHovering(true);
-            setViewStateWithHaptics("expanded-page");
+            viewState.transition("expanded-page");
             // If a custom image URL was provided, validate before storing
             if (typeof actions.setImageExpanded === "string" && isValidProofImageSrc(actions.setImageExpanded)) {
               setCustomExpandedSrc(actions.setImageExpanded);
@@ -922,7 +825,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           }
         }
       },
-      [closePopover, setViewStateWithHaptics],
+      [closePopover, viewState.transition],
     );
 
     // Shared tap/click action handler - used by both click and touch handlers.
@@ -934,9 +837,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // - "expandImage": Transition popover to expanded view
     //
     // Dependency chain explanation:
-    // - getBehaviorContext: Captures current state (citation, verification, isHovering, popoverViewState)
+    // - getBehaviorContext: Captures current state (citation, verification, isHovering, viewState)
     //   and is itself a useCallback that updates when those values change
-    // - applyBehaviorActions: Handles setImageExpanded by updating popoverViewState
+    // - applyBehaviorActions: Handles setImageExpanded by updating viewState
     // - behaviorConfig/eventHandlers: User-provided callbacks that may change
     // - citation/citationKey: Core data passed to callbacks
     // - State setters (setIsHovering, etc.): Stable references included for exhaustive-deps
@@ -968,8 +871,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           case "showPopover":
             // Reset to summary on open (not on close) so exit animations retain
             // the geometry of the state the user was viewing.
-            setPopoverViewState("summary");
-            setExpandedNaturalWidthForPosition(null);
+            viewState.resetToSummary();
             setCustomExpandedSrc(null);
             setIsHovering(true);
             break;
@@ -977,7 +879,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             closePopover();
             break;
           case "expandImage":
-            setViewStateWithHaptics("expanded-page");
+            viewState.transition("expanded-page");
             break;
         }
 
@@ -991,7 +893,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         getBehaviorContext,
         applyBehaviorActions,
         closePopover,
-        setViewStateWithHaptics,
+        viewState.transition,
+        viewState.resetToSummary,
       ],
     );
 
@@ -1323,32 +1226,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const handlePopoverOpenChange = useCallback(
       (open: boolean) => {
         if (!open && !isAnyOverlayOpenRef.current) {
-          if (popoverViewStateRef.current !== "summary") return;
+          if (viewState.ref.current !== "summary") return;
           closePopover();
         }
       },
-      [closePopover],
-    );
-
-    const handlePopoverEscapeKeyDown = useCallback(
-      (e: KeyboardEvent) => {
-        e.preventDefault();
-        if (escapeInterceptRef.current) {
-          escapeInterceptRef.current();
-          return;
-        }
-        const vs = popoverViewStateRef.current;
-        if (vs === "summary") {
-          closePopover();
-        } else if (vs === "expanded-page") {
-          const prev = prevBeforeExpandedPageRef.current;
-          setViewStateWithHaptics(prev);
-          if (prev === "summary") setCustomExpandedSrc(null);
-        } else {
-          setViewStateWithHaptics("summary");
-        }
-      },
-      [closePopover, setViewStateWithHaptics],
+      [closePopover, viewState.ref],
     );
 
     const handlePopoverBackdropClick = useCallback(
@@ -1494,14 +1376,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           isVisible={isHovering}
           sourceLabel={sourceLabel}
           indicatorVariant={indicatorVariant}
-          viewState={popoverViewState}
-          onViewStateChange={setViewStateWithHaptics}
+          viewState={viewState.current}
+          onViewStateChange={viewState.transition}
           expandedImageSrcOverride={customExpandedSrc}
-          onExpandedWidthChange={handleExpandedWidthChange}
+          onExpandedWidthChange={viewState.onExpandedWidthChange}
           pageImages={pageImages}
-          prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
+          prevBeforeExpandedPageRef={viewState.prevBeforeExpandedPageRef}
           downloadUrl={downloadUrl ?? undefined}
-          escapeInterceptRef={escapeInterceptRef}
+          escapeInterceptRef={viewState.escapeInterceptRef}
         />
       );
 
@@ -1539,9 +1421,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               sideOffset={expandedPageSideOffset}
               alignOffset={popoverAlignOffset}
               onCloseAutoFocus={handleCloseAutoFocus}
-              onEscapeKeyDown={handlePopoverEscapeKeyDown}
+              onEscapeKeyDown={viewState.onEscapeKeyDown}
               style={
-                popoverViewState === "expanded-page"
+                viewState.current === "expanded-page"
                   ? {
                       // Expanded-page keeps adaptive width when space allows and is
                       // clamped to viewport bounds via maxWidth + guard variable.
@@ -1554,7 +1436,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                       overflowX: "hidden" as const,
                       overflowY: "hidden" as const,
                     }
-                  : popoverViewState === "expanded-keyhole"
+                  : viewState.current === "expanded-keyhole"
                     ? {
                         maxWidth: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
                         // The inner InlineExpandedImage handles scrolling, so hide outer
