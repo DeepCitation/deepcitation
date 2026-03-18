@@ -106,7 +106,7 @@ describe("renderCitationsAsHtml", () => {
 
   it("generates dark theme styles", () => {
     const output = renderCitationsAsHtml(simpleInput, { theme: "dark" });
-    expect(output.styles).toContain("#4ade80"); // dark mode green
+    expect(output.styles).toContain("#34d399"); // dark mode emerald-400
   });
 
   it("generates auto theme styles with media query", () => {

@@ -19,16 +19,15 @@ import {
   VERIFIED_COLOR_DEFAULT,
   VERIFIED_COLOR_VAR,
 } from "./constants.js";
+import { useTranslation } from "./i18n.js";
+import { CloseIcon } from "./icons.js";
+import { toPercentRect } from "./overlayGeometry.js";
 
 // Hoisted bracket color strings — all inputs are static module-level constants,
 // so these never change and avoid per-render string allocations during zoom/pan.
 const VERIFIED_BRACKET_COLOR = `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`;
 const PARTIAL_BRACKET_COLOR = `var(${PARTIAL_COLOR_VAR}, ${PARTIAL_COLOR_DEFAULT})`;
 const ERROR_BRACKET_COLOR = `var(${ERROR_COLOR_VAR}, ${ERROR_COLOR_DEFAULT})`;
-
-import { useTranslation } from "./i18n.js";
-import { CloseIcon } from "./icons.js";
-import { toPercentRect } from "./overlayGeometry.js";
 
 const NONE: React.CSSProperties = { pointerEvents: "none" };
 
@@ -64,7 +63,8 @@ function SecondaryBrackets({
   const rect = toPercentRect(deepItem, renderScale, imageNaturalWidth, imageNaturalHeight);
   if (!rect) return null;
 
-  const bracketColor = PARTIAL_BRACKET_COLOR;
+  // amber → partial-match color; muted → verified color at lower opacity (distal supporting evidence)
+  const bracketColor = color === "muted" ? VERIFIED_BRACKET_COLOR : PARTIAL_BRACKET_COLOR;
   const opacity = color === "muted" ? 0.35 : 0.5;
 
   const baseLeft = parseFloat(rect.left);

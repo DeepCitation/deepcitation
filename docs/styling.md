@@ -25,10 +25,10 @@ Override these CSS variables to theme all DeepCitation components at once:
 ```css
 :root {
   /* Status indicator colors */
-  --dc-verified-color: #10b981;   /* Emerald - verified/exact match (default: emerald-500) */
-  --dc-partial-color: #f59e0b;    /* Amber - partial match (default: amber-500) */
-  --dc-error-color: #ef4444;      /* Red - not found/hallucination (default: red-500) */
-  --dc-pending-color: #9ca3af;    /* Gray - loading/pending (default: gray-400) */
+  --dc-verified: #10b981;   /* Emerald - verified/exact match (default: emerald-500) */
+  --dc-partial: #f59e0b;    /* Amber - partial match (default: amber-500) */
+  --dc-destructive: #ef4444;      /* Red - not found/hallucination (default: red-500) */
+  --dc-pending: #9ca3af;    /* Gray - loading/pending (default: gray-400) */
 
   /* Wavy underline for "not found" status (non-linter variants) */
   --dc-wavy-underline-color: #ef4444;  /* Default: red-500 */
@@ -53,10 +53,10 @@ Override these CSS variables to theme all DeepCitation components at once:
 ```css
 @media (prefers-color-scheme: dark) {
   :root {
-    --dc-verified-color: #4ade80;     /* green-400 */
-    --dc-partial-color: #fbbf24;      /* amber-400 */
-    --dc-error-color: #f87171;        /* red-400 */
-    --dc-pending-color: #6b7280;      /* gray-500 */
+    --dc-verified: #34d399;     /* emerald-400 */
+    --dc-partial: #fbbf24;      /* amber-400 */
+    --dc-destructive: #f87171;        /* red-400 */
+    --dc-pending: #6b7280;      /* gray-500 */
     --dc-linter-success: #6aab85;
     --dc-linter-warning: #fbbf24;
     --dc-linter-error: #d47d7c;
@@ -68,10 +68,10 @@ Override these CSS variables to theme all DeepCitation components at once:
 
 /* Or with a class-based approach (Tailwind dark mode) */
 .dark {
-  --dc-verified-color: #4ade80;
-  --dc-partial-color: #fbbf24;
-  --dc-error-color: #f87171;
-  --dc-pending-color: #6b7280;
+  --dc-verified: #34d399;
+  --dc-partial: #fbbf24;
+  --dc-destructive: #f87171;
+  --dc-pending: #6b7280;
   --dc-document-canvas-bg-light: #f3f4f6;
   --dc-document-canvas-bg-dark: #1f2937;
 }
@@ -165,22 +165,22 @@ Target specific citation elements using data attributes and selectors:
 
 /* Verified citations - specific styling */
 [data-dc-indicator="verified"] {
-  color: var(--dc-verified-color);
+  color: var(--dc-verified);
 }
 
 /* Partial match citations */
 [data-dc-indicator="partial"] {
-  color: var(--dc-partial-color);
+  color: var(--dc-partial);
 }
 
 /* Not found / hallucination citations */
 [data-dc-indicator="error"] {
-  color: var(--dc-error-color);
+  color: var(--dc-destructive);
 }
 
 /* Pending / loading citations */
 [data-dc-indicator="pending"] {
-  color: var(--dc-pending-color);
+  color: var(--dc-pending);
 }
 
 /* Citation trigger element */

@@ -41,10 +41,10 @@ const ANCHOR_ITEM: DeepTextItem = {
 const EXPECTED_BRACKET_WIDTH = "4px";
 // CITATION_LINE_BORDER_WIDTH = 2
 const EXPECTED_BORDER_WIDTH = "2px";
-// SIGNAL_BLUE #005595 → rgb(0, 85, 149)
-const EXPECTED_BLUE_RGB = "rgb(0, 85, 149)";
-// SIGNAL_AMBER #fbbf24 → rgb(251, 191, 36)
-const EXPECTED_AMBER_RGB = "rgb(251, 191, 36)";
+// VERIFIED_COLOR_DEFAULT #10b981 (emerald-500) → rgb(16, 185, 129)
+const EXPECTED_GREEN_RGB = "rgb(16, 185, 129)";
+// PARTIAL_COLOR_DEFAULT #f59e0b (amber-500) → rgb(245, 158, 11)
+const EXPECTED_AMBER_RGB = "rgb(245, 158, 11)";
 
 // =============================================================================
 // DRAWING CORRECTNESS — element rendering
@@ -102,7 +102,7 @@ test.describe("Annotation Overlay Drawing — elements", () => {
 // =============================================================================
 
 test.describe("Annotation Overlay Drawing — bracket colors", () => {
-  test("brackets use blue color by default (no highlightColor prop)", async ({ mount, page }) => {
+  test("brackets use green (verified) color by default (no highlightColor prop)", async ({ mount, page }) => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
@@ -120,10 +120,10 @@ test.describe("Annotation Overlay Drawing — bracket colors", () => {
     const borderColor = await leftBracket.evaluate(
       el => getComputedStyle(el).borderLeftColor,
     );
-    expect(borderColor).toBe(EXPECTED_BLUE_RGB);
+    expect(borderColor).toBe(EXPECTED_GREEN_RGB);
   });
 
-  test("brackets use blue color when highlightColor='blue'", async ({ mount, page }) => {
+  test("brackets use green (verified) color when highlightColor='green'", async ({ mount, page }) => {
     await mount(
       <div style={{ position: "relative", width: `${IMAGE_W}px`, height: `${IMAGE_H}px` }}>
         <CitationAnnotationOverlay
@@ -131,7 +131,7 @@ test.describe("Annotation Overlay Drawing — bracket colors", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          highlightColor="blue"
+          highlightColor="green"
         />
       </div>,
     );
@@ -141,8 +141,8 @@ test.describe("Annotation Overlay Drawing — bracket colors", () => {
 
     const leftColor = await leftBracket.evaluate(el => getComputedStyle(el).borderLeftColor);
     const rightColor = await rightBracket.evaluate(el => getComputedStyle(el).borderRightColor);
-    expect(leftColor).toBe(EXPECTED_BLUE_RGB);
-    expect(rightColor).toBe(EXPECTED_BLUE_RGB);
+    expect(leftColor).toBe(EXPECTED_GREEN_RGB);
+    expect(rightColor).toBe(EXPECTED_GREEN_RGB);
   });
 
   test("brackets use amber color when highlightColor='amber'", async ({ mount, page }) => {

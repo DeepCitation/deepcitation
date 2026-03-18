@@ -170,9 +170,11 @@ test.describe("URL Citation - Verification Status", () => {
     await mount(<UrlCitationComponent urlMeta={verifiedUrlMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    // Badge variant uses SVG checkmark with green color
+    // Badge variant uses SVG checkmark with emerald/green color (via inline style)
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-green-600, .text-green-500")).toBeVisible();
+    // Verified color is now applied via inline style (--dc-verified token, fallback #10b981)
+    const color = await url.locator("[role='img'] span[aria-hidden]").evaluate(el => getComputedStyle(el).color);
+    expect(color).toBe("rgb(16, 185, 129)");
   });
 
   test("shows partial match indicator", async ({ mount, page }) => {
