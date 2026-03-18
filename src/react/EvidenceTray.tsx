@@ -57,7 +57,6 @@ import { tPlural, useLocale, useTranslation } from "./i18n.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "./overlayGeometry.js";
-import { groupSearchAttemptsForNotFound } from "./searchAttemptGrouping.js";
 import { buildSearchNarrative } from "./searchNarrative.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
@@ -1117,13 +1116,6 @@ export function EvidenceTray({
       willChange: searchLogStage === "steady" ? undefined : "transform, padding-top, max-height, opacity",
     };
   }, [searchLogContentHeight, searchLogStage, prefersReducedMotion, showSearchLog]);
-  const searchCount = useMemo(
-    () =>
-      (isMiss || isPartialMatch) && searchAttempts.length > 0
-        ? groupSearchAttemptsForNotFound(searchAttempts).length
-        : 0,
-    [isMiss, isPartialMatch, searchAttempts],
-  );
   const searchNarrative = useMemo(
     () =>
       (isMiss || isPartialMatch) && searchAttempts.length > 0
@@ -1145,7 +1137,7 @@ export function EvidenceTray({
       onPageClick={onExpand ? handlePageExpand : undefined}
       pageNumberForCta={pageNumberForCta}
       pageCtaLabel={pageCtaLabel}
-      searchCount={isMiss || isPartialMatch ? searchCount : undefined}
+      searchCount={isMiss || isPartialMatch ? searchNarrative?.groupedAttemptCount : undefined}
       isSearchLogOpen={showSearchLog}
       onToggleSearchLog={isMiss || isPartialMatch ? () => setShowSearchLog(prev => !prev) : undefined}
     />
