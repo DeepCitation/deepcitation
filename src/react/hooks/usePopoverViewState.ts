@@ -1,7 +1,7 @@
 // React Compiler opt-out: viewStateRef is mutated in transition/onEscapeKeyDown
 // callbacks and read in useLayoutEffect — the compiler cannot safely memoize
 // across this boundary.
-"use no memo";
+// "use no memo" — React Compiler opt-out (would be a directive if compiler were active).
 
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
