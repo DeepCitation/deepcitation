@@ -156,7 +156,7 @@ export const CitationContentDisplay = ({
     } else if (isPartialMatch) {
       footnoteStatusClasses = "text-amber-500 dark:text-amber-400";
     } else if (isVerified) {
-      footnoteStatusClasses = "text-green-600 dark:text-green-500";
+      footnoteStatusClasses = "text-dc-verified";
     } else {
       footnoteStatusClasses = "text-slate-500 dark:text-slate-400";
     }
@@ -316,9 +316,7 @@ export const CitationContentDisplay = ({
               return <span className={cn("rounded-full", DOT_COLORS[dotColor])} style={DOT_INDICATOR_SIZE_STYLE} />;
             }
             if (iv === "caret") {
-              const caretColor = isMiss
-                ? "text-red-500 dark:text-red-400"
-                : "text-slate-500 dark:text-slate-400";
+              const caretColor = isMiss ? "text-red-500 dark:text-red-400" : "text-slate-500 dark:text-slate-400";
               return (
                 <span className={cn("inline-flex", caretColor)} style={CARET_INDICATOR_SIZE_STYLE}>
                   <ChevronDownIcon />

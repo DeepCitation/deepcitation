@@ -1335,6 +1335,15 @@ export function InlineExpandedImage({
   const [overlayHidden, setOverlayHidden] = useState(initialOverlayHidden);
   // When showOverlay is provided by parent (header panel mode), it overrides internal state.
   const effectiveOverlayHidden = showOverlay !== undefined ? !showOverlay : overlayHidden;
+
+  // Overlay bracket color derived from verification status (green/amber/red).
+  const overlayStatus = getStatusFromVerification(verification);
+  const overlayHighlightColor: import("../drawing/citationDrawing.js").HighlightColor = overlayStatus.isMiss
+    ? "red"
+    : overlayStatus.isPartialMatch
+      ? "amber"
+      : "green";
+
   // Manual zoom override: null = use fitted zoom (automatic), number = user-selected zoom.
   // Replaces the previous zoom + hasManualZoomRef pattern to avoid setState in effects.
   const [manualZoom, setManualZoom] = useState<number | null>(null);
@@ -2163,12 +2172,7 @@ export function InlineExpandedImage({
                     renderScale={renderScale}
                     imageNaturalWidth={naturalWidth}
                     imageNaturalHeight={naturalHeight}
-                    highlightColor={(() => {
-                      const s = getStatusFromVerification(verification);
-                      if (s.isMiss) return "red";
-                      if (s.isPartialMatch) return "amber";
-                      return "green";
-                    })()}
+                    highlightColor={overlayHighlightColor}
                     anchorTextDeepItem={verification?.status === "not_found" ? undefined : effectiveAnchorItem}
                     anchorText={verification?.verifiedAnchorText}
                     fullPhrase={verification?.verifiedFullPhrase}

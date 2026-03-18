@@ -73,7 +73,7 @@ describe("CitationContentDisplay — footnote variant", () => {
       />,
     );
     const sup = container.querySelector("sup");
-    expect(sup?.className).toContain("text-green-600");
+    expect(sup?.className).toContain("text-dc-verified");
   });
 
   it("renders amber for partial match status", () => {

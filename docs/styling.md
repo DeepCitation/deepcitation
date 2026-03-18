@@ -25,7 +25,7 @@ Override these CSS variables to theme all DeepCitation components at once:
 ```css
 :root {
   /* Status indicator colors */
-  --dc-verified-color: #16a34a;   /* Green - verified/exact match (default: green-600) */
+  --dc-verified-color: #10b981;   /* Emerald - verified/exact match (default: emerald-500) */
   --dc-partial-color: #f59e0b;    /* Amber - partial match (default: amber-500) */
   --dc-error-color: #ef4444;      /* Red - not found/hallucination (default: red-500) */
   --dc-pending-color: #9ca3af;    /* Gray - loading/pending (default: gray-400) */

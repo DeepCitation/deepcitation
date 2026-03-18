@@ -16,7 +16,7 @@ const WARNING_SVG = `<svg viewBox="0 0 256 256" fill="currentColor" width="100%"
 
 /** Status color constants matching the React component's CSS custom property defaults */
 const STATUS_COLORS = {
-  verified: "#16a34a", // green-600
+  verified: "#10b981", // emerald-500
   partial: "#f59e0b", // amber-500
   miss: "#ef4444", // red-500
 } as const;

@@ -19,13 +19,13 @@ interface ThemeColors {
  */
 const STATUS_COLORS: { light: ThemeColors; dark: ThemeColors } = {
   light: {
-    verified: { text: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+    verified: { text: "#10b981", bg: "#ecfdf5", border: "#a7f3d0" },
     partial: { text: "#d97706", bg: "#fffbeb", border: "#fde68a" },
     notFound: { text: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
     pending: { text: "#6b7280", bg: "#f9fafb", border: "#e5e7eb" },
   },
   dark: {
-    verified: { text: "#4ade80", bg: "#052e16", border: "#166534" },
+    verified: { text: "#34d399", bg: "#022c22", border: "#065f46" },
     partial: { text: "#fbbf24", bg: "#451a03", border: "#92400e" },
     notFound: { text: "#f87171", bg: "#450a0a", border: "#991b1b" },
     pending: { text: "#9ca3af", bg: "#1f2937", border: "#374151" },
