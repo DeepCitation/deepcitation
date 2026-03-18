@@ -7,6 +7,7 @@ Complete, runnable examples demonstrating DeepCitation integration patterns.
 | Example | Description | Best For |
 |---------|-------------|----------|
 | [**basic-verification**](./basic-verification) | Core 3-step workflow with OpenAI/Anthropic | Learning the basics, quick integration |
+| [**langchain-rag-chat**](./langchain-rag-chat) | Next.js + LangChain.js RAG app with DeepCitation verification | RAG pipelines, retrieval + proof UI |
 | [**nextjs-ai-sdk**](./nextjs-ai-sdk) | Next.js chat app with Vercel AI SDK | Full-stack apps, streaming UI |
 | [**agui-chat**](./agui-chat) | AG-UI protocol chat with SSE streaming | AG-UI integration, protocol-level control |
 | [**static-html**](./static-html) | CDN popover in plain HTML, no build step | Static sites, CDN integration |
@@ -18,7 +19,7 @@ Complete, runnable examples demonstrating DeepCitation integration patterns.
 cd packages/deepcitation/examples
 
 # Choose an example
-cd basic-verification  # or nextjs-ai-sdk
+cd basic-verification  # or langchain-rag-chat
 
 # Install and run
 npm install
@@ -87,6 +88,28 @@ return result.toDataStreamResponse();
 ```bash
 # Run the Next.js example
 cd nextjs-ai-sdk
+npm install
+npm run dev
+# Open http://localhost:3000
+```
+
+### LangChain RAG Chat
+
+Runnable RAG app with a bundled local PDF corpus and in-memory vector search:
+
+```typescript
+const retrievedSources = await vectorStore.similaritySearch(question, 2);
+const prepared = await dc.prepareAttachments(retrievedPdfBuffers);
+const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
+  systemPrompt,
+  userPrompt: question,
+  deepTextPromptPortion: prepared.map(item => item.deepTextPromptPortion),
+});
+```
+
+```bash
+# Run the LangChain RAG example
+cd langchain-rag-chat
 npm install
 npm run dev
 # Open http://localhost:3000
