@@ -17,6 +17,7 @@ import type { CitationStatus } from "../types/citation.js";
 import type { SearchAttempt } from "../types/search.js";
 import type { PageImage, Verification } from "../types/verification.js";
 import { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
+import { getStatusFromVerification } from "./citationStatus.js";
 import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
 import {
   BLINK_ENTER_EASING,
@@ -2162,7 +2163,12 @@ export function InlineExpandedImage({
                     renderScale={renderScale}
                     imageNaturalWidth={naturalWidth}
                     imageNaturalHeight={naturalHeight}
-                    highlightColor={verification?.status === "not_found" ? "red" : verification?.highlightColor}
+                    highlightColor={(() => {
+                      const s = getStatusFromVerification(verification);
+                      if (s.isMiss) return "red";
+                      if (s.isPartialMatch) return "amber";
+                      return "green";
+                    })()}
                     anchorTextDeepItem={verification?.status === "not_found" ? undefined : effectiveAnchorItem}
                     anchorText={verification?.verifiedAnchorText}
                     fullPhrase={verification?.verifiedFullPhrase}
