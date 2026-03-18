@@ -537,6 +537,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     const [isHovering, setIsHovering] = useState(false);
     // Custom image src from behaviorConfig.onClick returning setImageExpanded: "<url>"
     const [customExpandedSrc, setCustomExpandedSrc] = useState<string | null>(null);
+    const clearCustomExpandedSrc = useCallback(() => setCustomExpandedSrc(null), []);
 
     // Dismiss the popover.
     // Keep view/layout state intact during the exit animation; resetting to
@@ -581,7 +582,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       isMobile,
       prefersReducedMotion,
       onDismiss: closePopover,
-      onCollapseToSummary: () => setCustomExpandedSrc(null),
+      onCollapseToSummary: clearCustomExpandedSrc,
     });
 
     // A.5.1 + A.5.2: Keyboard-open tracking, focus trap, and conditional focus return.

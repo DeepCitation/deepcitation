@@ -402,12 +402,6 @@ export function buildSearchNarrative(
   const outcomeSummary = getOutcomeSummary(status, searchAttempts, t);
   const showAllRows = status == null || !SHOW_ONLY_HIT_STATUSES.has(status);
   const totalAttempts = searchAttempts.length;
-  // Grouped count must use the same grouping function as buildAllRows so
-  // the "N searches" toggle label matches the number of rendered timeline rows.
-  const isNotFound = status === "not_found";
-  const groupedAttemptCount = showAllRows
-    ? (isNotFound ? groupSearchAttemptsForNotFound(searchAttempts) : groupSearchAttempts(searchAttempts)).length
-    : 0;
 
   // Build rows
   let rows: NarrativeRow[];
@@ -418,6 +412,10 @@ export function buildSearchNarrative(
   } else {
     rows = buildAllRows(searchAttempts, status, expectedPage, expectedLine, t);
   }
+
+  // Derive from rows.length — buildAllRows produces exactly one row per grouped
+  // attempt, so this is always consistent with the rendered timeline.
+  const groupedAttemptCount = showAllRows ? rows.length : 0;
 
   return {
     outcome,
