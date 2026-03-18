@@ -1495,8 +1495,8 @@ const PendingDot = () => (
  * Color tracks --dc-verified so it stays in sync with the status dot and quote border.
  */
 const VerifiedCheck = () => (
-  <span aria-hidden="true">
-    <CheckIcon className="w-full h-full" style={VERIFIED_COLOR_STYLE} />
+  <span aria-hidden="true" style={VERIFIED_COLOR_STYLE}>
+    <CheckIcon className="w-full h-full" />
   </span>
 );
 
