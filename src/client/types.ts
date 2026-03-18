@@ -102,6 +102,8 @@ export interface DeepCitationConfig {
    * Useful for detecting when a newer SDK version is available.
    */
   onLatestVersion?: (latestVersion: string) => void;
+  /** Tag identifying request origin (e.g. "playground"). Sent as X-Request-Source header. */
+  requestSource?: string;
 }
 
 // ==========================================================================

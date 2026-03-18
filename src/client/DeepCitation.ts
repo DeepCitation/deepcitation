@@ -160,6 +160,7 @@ export class DeepCitation {
   private readonly endFileId?: string;
   private readonly convertedPdfDownloadPolicy: ConvertedPdfDownloadPolicy;
   private readonly onLatestVersion?: (latestVersion: string) => void;
+  private readonly requestSource?: string;
 
   /**
    * Request deduplication cache for verify calls.
@@ -212,6 +213,7 @@ export class DeepCitation {
     this.endFileId = config.endFileId;
     this.convertedPdfDownloadPolicy = config.convertedPdfDownloadPolicy ?? "url_only";
     this.onLatestVersion = config.onLatestVersion;
+    this.requestSource = config.requestSource;
   }
 
   /** Resolve endUserId: per-request override wins over instance default. */
@@ -231,10 +233,14 @@ export class DeepCitation {
 
   /** Common headers included in every API request. */
   private baseHeaders(): Record<string, string> {
-    return {
+    const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
       "X-SDK-Version": SDK_VERSION,
     };
+    if (this.requestSource) {
+      headers["X-Request-Source"] = this.requestSource;
+    }
+    return headers;
   }
 
   /** If the response contains a latest SDK version header, notify the callback. */
