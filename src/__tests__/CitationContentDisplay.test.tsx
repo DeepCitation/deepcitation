@@ -73,7 +73,7 @@ describe("CitationContentDisplay — footnote variant", () => {
       />,
     );
     const sup = container.querySelector("sup");
-    expect(sup?.className).toContain("text-green-600");
+    expect(sup?.className).toContain("text-dc-verified");
   });
 
   it("renders amber for partial match status", () => {
@@ -89,7 +89,7 @@ describe("CitationContentDisplay — footnote variant", () => {
       />,
     );
     const sup = container.querySelector("sup");
-    expect(sup?.className).toContain("text-amber-500");
+    expect(sup?.className).toContain("text-dc-partial");
   });
 
   it("renders red for miss status", () => {
@@ -105,7 +105,7 @@ describe("CitationContentDisplay — footnote variant", () => {
       />,
     );
     const sup = container.querySelector("sup");
-    expect(sup?.className).toContain("text-red-500");
+    expect(sup?.className).toContain("text-dc-destructive");
   });
 
   it("applies wavy underline style for miss state", () => {

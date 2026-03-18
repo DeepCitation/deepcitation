@@ -181,26 +181,12 @@ export const CitationStatusIndicator = ({
     // Only flip when popover is above; down-caret already points toward a bottom popover.
     const shouldFlip = isOpen === true && popoverSide === "top";
 
-    // Color: miss → red, open → inverted (high contrast), default → muted gray.
-    const pillTextClass = isMiss
-      ? "text-red-500 dark:text-red-400"
-      : isOpen
-        ? "text-white dark:text-slate-900"
-        : "text-slate-500 dark:text-slate-400";
-
-    // Pill background: miss → red tint, open → solid dark/light (inverted), default → subtle slate.
-    const pillBgClass = isMiss
-      ? "bg-red-50 dark:bg-red-950"
-      : isOpen
-        ? "bg-slate-800 dark:bg-slate-100"
-        : "bg-slate-100/60 dark:bg-slate-800/40";
-
     if (shouldShowSpinner) {
       return (
         <span
           className={cn(
             "inline-flex items-center justify-center relative ml-0.5 top-[0.05em] [text-decoration:none] rounded-full",
-            pillBgClass,
+            "bg-slate-100/60 dark:bg-slate-800/40",
             "text-slate-500 dark:text-slate-400",
           )}
           style={CARET_PILL_STYLE}
@@ -213,6 +199,11 @@ export const CitationStatusIndicator = ({
         </span>
       );
     }
+
+    // Color: miss → red, default → muted gray.
+    const pillTextClass = isMiss ? "text-red-500 dark:text-red-400" : "text-slate-500 dark:text-slate-400";
+    const pillBgClass = isMiss ? "bg-red-50 dark:bg-red-950" : "bg-slate-100/60 dark:bg-slate-800/40";
+
     return (
       <span
         className={cn(

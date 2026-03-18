@@ -41,7 +41,7 @@ The Tailwind classes `bg-dc-*`, `text-dc-*`, `border-dc-*` are registered via `@
 
 | Token | Light Default | Dark Default | Usage |
 |-------|--------------|--------------|-------|
-| `--dc-verified` | `#16a34a` | `#22c55e` | Verified/success indicator |
+| `--dc-verified` | `#10b981` | `#34d399` | Verified/success indicator (emerald-500 / emerald-400) |
 | `--dc-partial` | `#f59e0b` | `#fbbf24` | Partial match / warning indicator |
 | `--dc-destructive` | `#ef4444` | `#f87171` | Error/not-found indicator |
 | `--dc-pending` | `#a1a1aa` | `#71717a` | Pending/loading indicator |

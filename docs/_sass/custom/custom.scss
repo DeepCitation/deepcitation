@@ -679,6 +679,10 @@ pre {
   border: 1px solid var(--border-color);
 }
 
+.search-result-doc .search-result-icon {
+  color: var(--link-color);
+}
+
 // -----------------------------------------------------
 // Tables - Clean single thin borders (no double borders)
 // border-collapse eliminates double borders between cells

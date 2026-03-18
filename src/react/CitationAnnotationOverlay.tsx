@@ -4,17 +4,30 @@ import {
   BOX_PADDING,
   CITATION_LINE_BORDER_WIDTH,
   computeKeySpanHighlight,
-  getBracketColor,
   getBracketWidth,
   OVERLAY_COLOR,
   SPOTLIGHT_BORDER_RADIUS,
   SPOTLIGHT_PADDING,
 } from "../drawing/citationDrawing.js";
 import type { DeepTextItem } from "../types/boxes.js";
-import { HITBOX_EXTEND_8 } from "./constants.js";
+import {
+  ERROR_COLOR_DEFAULT,
+  ERROR_COLOR_VAR,
+  HITBOX_EXTEND_8,
+  PARTIAL_COLOR_DEFAULT,
+  PARTIAL_COLOR_VAR,
+  VERIFIED_COLOR_DEFAULT,
+  VERIFIED_COLOR_VAR,
+} from "./constants.js";
 import { useTranslation } from "./i18n.js";
 import { CloseIcon } from "./icons.js";
 import { toPercentRect } from "./overlayGeometry.js";
+
+// Hoisted bracket color strings — all inputs are static module-level constants,
+// so these never change and avoid per-render string allocations during zoom/pan.
+const VERIFIED_BRACKET_COLOR = `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`;
+const PARTIAL_BRACKET_COLOR = `var(${PARTIAL_COLOR_VAR}, ${PARTIAL_COLOR_DEFAULT})`;
+const ERROR_BRACKET_COLOR = `var(${ERROR_COLOR_VAR}, ${ERROR_COLOR_DEFAULT})`;
 
 const NONE: React.CSSProperties = { pointerEvents: "none" };
 
@@ -50,7 +63,8 @@ function SecondaryBrackets({
   const rect = toPercentRect(deepItem, renderScale, imageNaturalWidth, imageNaturalHeight);
   if (!rect) return null;
 
-  const bracketColor = getBracketColor(color === "muted" ? "blue" : "amber");
+  // amber → partial-match color; muted → verified color at lower opacity (distal supporting evidence)
+  const bracketColor = color === "muted" ? VERIFIED_BRACKET_COLOR : PARTIAL_BRACKET_COLOR;
   const opacity = color === "muted" ? 0.35 : 0.5;
 
   const baseLeft = parseFloat(rect.left);
@@ -143,9 +157,14 @@ export function CitationAnnotationOverlay({
   // Bail out if geometry is invalid (zero dimensions, NaN, Infinity, etc.)
   if (!rect) return null;
 
-  const bracketColor = getBracketColor(
-    highlightColor === "amber" ? "amber" : highlightColor === "red" ? "red" : "blue",
-  );
+  // All bracket colors resolve through --dc-* tokens so a host override to any
+  // one token automatically keeps brackets, status indicators, and quote borders in sync.
+  const bracketColor =
+    highlightColor === "amber"
+      ? PARTIAL_BRACKET_COLOR
+      : highlightColor === "red"
+        ? ERROR_BRACKET_COLOR
+        : VERIFIED_BRACKET_COLOR;
 
   // Compute pixel height for bracket width calculation
   const heightPx = phraseMatchDeepItem.height * renderScale.y;

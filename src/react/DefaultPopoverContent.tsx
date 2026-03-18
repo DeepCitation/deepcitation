@@ -677,9 +677,9 @@ function PopoverFallbackView({
           <span
             className={cn(
               "text-xs font-medium",
-              status.isVerified && !status.isPartialMatch && "text-green-700 dark:text-green-400",
-              status.isPartialMatch && "text-amber-500 dark:text-amber-400",
-              status.isMiss && "text-red-500 dark:text-red-400",
+              status.isVerified && !status.isPartialMatch && "text-dc-verified",
+              status.isPartialMatch && "text-dc-partial",
+              status.isMiss && "text-dc-destructive",
               status.isPending && "text-slate-500 dark:text-slate-400",
             )}
           >
@@ -1010,10 +1010,10 @@ export function DefaultPopoverContent({
     const isFullPage = viewState === "expanded-page";
 
     const claimBorderColor = isMiss
-      ? "border-red-500 dark:border-red-400"
+      ? "border-dc-destructive"
       : isPartialMatch
-        ? "border-amber-500 dark:border-amber-400"
-        : "border-green-500 dark:border-green-600";
+        ? "border-dc-partial"
+        : "border-dc-verified";
 
     // Unified summaryContent: success shows keyhole with onImageClick; miss/partial shows
     // keyhole or search analysis depending on what's available.

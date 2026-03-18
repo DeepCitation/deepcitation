@@ -35,7 +35,7 @@ export const POPOVER_CSS = `
 
 .dc-pop-verified {
   background: var(--dc-pop-verified-bg, #f0fdf4);
-  color: var(--dc-pop-verified-text, #16a34a);
+  color: var(--dc-pop-verified-text, #10b981);
 }
 
 .dc-pop-partial {

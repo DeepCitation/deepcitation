@@ -85,16 +85,16 @@ describe("Caret Indicator Variant", () => {
   });
 
   // ==========================================================================
-  // ACTIVE DARKENING
+  // COLOR STAYS GRAY REGARDLESS OF OPEN STATE (no inverted active style)
   // ==========================================================================
 
-  it("uses inverted text color (text-white) when open", () => {
+  it("uses gray text when open (no inverted active style)", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={true} popoverSide="bottom" />);
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
-    expect(pill.classList.contains("text-white")).toBe(true);
+    expect(pill.classList.contains("text-slate-500")).toBe(true);
   });
 
-  it("uses lighter gray (text-slate-500) when closed", () => {
+  it("uses gray text when closed", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={false} />);
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
     expect(pill.classList.contains("text-slate-500")).toBe(true);

@@ -37,7 +37,7 @@ All SDK colors are expressed as `--dc-*` CSS custom properties. Host application
 
 | Token | Light | Dark | Usage |
 |-------|-------|------|-------|
-| `--dc-verified` | `#16a34a` | `#22c55e` | Verified citation |
+| `--dc-verified` | `#10b981` | `#34d399` | Verified citation (emerald-500 / emerald-400) |
 | `--dc-partial` | `#f59e0b` | `#fbbf24` | Partial match |
 | `--dc-destructive` | `#ef4444` | `#f87171` | Not found / error |
 | `--dc-pending` | `#a1a1aa` | `#71717a` | Pending / loading |

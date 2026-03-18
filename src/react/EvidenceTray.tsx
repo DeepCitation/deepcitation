@@ -11,12 +11,13 @@
 
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
-import { isStrategyOverride, shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
+import { type HighlightColor, isStrategyOverride, shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
 import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { SearchAttempt } from "../types/search.js";
 import type { PageImage, Verification } from "../types/verification.js";
 import { CitationAnnotationOverlay } from "./CitationAnnotationOverlay.js";
+import { getStatusFromVerification } from "./citationStatus.js";
 import { computeKeyholeOffset } from "./computeKeyholeOffset.js";
 import {
   BLINK_ENTER_EASING,
@@ -1334,6 +1335,15 @@ export function InlineExpandedImage({
   const [overlayHidden, setOverlayHidden] = useState(initialOverlayHidden);
   // When showOverlay is provided by parent (header panel mode), it overrides internal state.
   const effectiveOverlayHidden = showOverlay !== undefined ? !showOverlay : overlayHidden;
+
+  // Overlay bracket color derived from verification status (green/amber/red).
+  // Memoized: getStatusFromVerification walks searchAttempts, and this component
+  // re-renders at 60fps during zoom/pan — verification is stable across those renders.
+  const overlayHighlightColor = useMemo((): HighlightColor => {
+    const s = getStatusFromVerification(verification);
+    return s.isMiss ? "red" : s.isPartialMatch ? "amber" : "green";
+  }, [verification]);
+
   // Manual zoom override: null = use fitted zoom (automatic), number = user-selected zoom.
   // Replaces the previous zoom + hasManualZoomRef pattern to avoid setState in effects.
   const [manualZoom, setManualZoom] = useState<number | null>(null);
@@ -1725,6 +1735,7 @@ export function InlineExpandedImage({
     clampZoomRaw,
     clampZoom,
     gestureAnchorRef: expandedWheelAnchorRef,
+    requireCtrl: true,
     onZoomCommit: (z: number) => {
       setManualZoom(z);
     },
@@ -2022,7 +2033,7 @@ export function InlineExpandedImage({
             ...(!annotationVtRect ? { viewTransitionName: DC_EVIDENCE_VT_NAME } : {}),
             ...(fill ? {} : { maxHeight: "min(600px, 80dvh)" }),
             overscrollBehavior: "none",
-            cursor: isDragging ? "move" : "zoom-out",
+            cursor: isDragging ? "grabbing" : "zoom-out",
             ...HIDE_SCROLLBAR_STYLE,
           }}
           onDragStart={e => e.preventDefault()}
@@ -2161,7 +2172,7 @@ export function InlineExpandedImage({
                     renderScale={renderScale}
                     imageNaturalWidth={naturalWidth}
                     imageNaturalHeight={naturalHeight}
-                    highlightColor={verification?.status === "not_found" ? "red" : verification?.highlightColor}
+                    highlightColor={overlayHighlightColor}
                     anchorTextDeepItem={verification?.status === "not_found" ? undefined : effectiveAnchorItem}
                     anchorText={verification?.verifiedAnchorText}
                     fullPhrase={verification?.verifiedFullPhrase}

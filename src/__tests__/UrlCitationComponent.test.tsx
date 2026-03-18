@@ -50,9 +50,8 @@ describe("UrlCitationComponent", () => {
     const checkIcon = container.querySelector("svg");
     expect(checkIcon).toBeInTheDocument();
 
-    // The wrapper should have green color class
-    const statusWrapper = container.querySelector(".text-green-600");
-    expect(statusWrapper).toBeInTheDocument();
+    // The check icon uses the --dc-verified CSS custom property so host themes can override it
+    expect(checkIcon).toHaveStyle({ color: "var(--dc-verified, #10b981)" });
   });
 
   it("shows lock icon when blocked", () => {
