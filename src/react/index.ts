@@ -183,6 +183,8 @@ export {
   buildSearchNarrative,
   type CollapsedFailureRow,
   type FailureRow,
+  getStatusColorScheme,
+  getStatusHeaderText,
   type NarrativeOutcome,
   type NarrativeRow,
   type SearchNarrative,
@@ -192,6 +194,7 @@ export {
 export {
   buildIntentSummary,
   buildSearchSummary,
+  deriveContextWindow,
   type IntentSummary,
   type MatchSnippet,
   type SearchOutcome,
