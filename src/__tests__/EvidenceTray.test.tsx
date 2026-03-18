@@ -54,18 +54,23 @@ describe("EvidenceTray interaction styles", () => {
   }
 
   it("renders tertiary View page action with blue hover and focus ring styles", () => {
-    const { getByRole } = render(
+    // When onExpand is provided, the tray interior is aria-hidden (entire tray = one button).
+    // Use querySelector to find the footer CTA button in the DOM directly.
+    const { container } = render(
       <EvidenceTray verification={baseVerification} status={baseStatus} onExpand={() => {}} />,
     );
 
-    const viewPageButton = getByRole("button", { name: /view page/i });
-    expect(viewPageButton.className).toContain("text-dc-muted-foreground");
-    expect(viewPageButton.className).toContain("hover:text-dc-foreground");
-    expect(viewPageButton.className).toContain("focus-visible:ring-2");
+    const viewPageButton = container.querySelector("button[aria-label*='View page']") as HTMLElement | null;
+    expect(viewPageButton).toBeTruthy();
+    expect(viewPageButton!.className).toContain("text-dc-muted-foreground");
+    expect(viewPageButton!.className).toContain("hover:text-dc-foreground");
+    expect(viewPageButton!.className).toContain("focus-visible:ring-2");
   });
 
   it('uses a custom footer CTA label when provided (for example, "View image")', () => {
-    const { getByRole, queryByRole } = render(
+    // When onExpand is provided, the tray interior is aria-hidden (entire tray = one button).
+    // Use querySelector to find the footer CTA button in the DOM directly.
+    const { container } = render(
       <EvidenceTray
         verification={baseVerification}
         status={baseStatus}
@@ -74,8 +79,8 @@ describe("EvidenceTray interaction styles", () => {
       />,
     );
 
-    expect(getByRole("button", { name: "View image" })).toBeInTheDocument();
-    expect(queryByRole("button", { name: /view page/i })).not.toBeInTheDocument();
+    expect(container.querySelector("button[aria-label='View image']")).toBeTruthy();
+    expect(container.querySelector("button[aria-label*='View page']")).toBeNull();
   });
 
   it("uses Attempts wording in miss-state search toggle", () => {
@@ -135,13 +140,19 @@ describe("EvidenceTray interaction styles", () => {
       ],
     };
 
-    const { getByRole, getByText, queryByText } = render(
+    const { container, getByText, queryByText } = render(
       <EvidenceTray verification={missVerification} status={missStatus} onExpand={onExpand} />,
     );
 
+    // When onExpand is provided the tray interior is aria-hidden — find toggle button via DOM.
+    const toggleButton = Array.from(container.querySelectorAll("button")).find(btn =>
+      /1 attempt/i.test(btn.textContent ?? ""),
+    );
+    expect(toggleButton).toBeTruthy();
+
     // Open search log and let React flush effects.
     await act(async () => {
-      fireEvent.click(getByRole("button", { name: /1 attempt/i }));
+      fireEvent.click(toggleButton!);
     });
     const attemptRowText = getByText("alpha");
 

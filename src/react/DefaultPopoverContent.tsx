@@ -173,18 +173,18 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
             key={`snippet-${snippet.matchStart}-${snippet.matchEnd}-${snippet.page ?? idx}`}
             className="text-xs text-slate-600 dark:text-slate-300 font-mono leading-relaxed"
           >
-            {before && <span className="text-slate-400 dark:text-slate-500">...{before}</span>}
+            {before && <span className="text-slate-500 dark:text-slate-400">...{before}</span>}
             <strong className="text-slate-800 dark:text-slate-100 bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">
               {match}
             </strong>
-            {after && <span className="text-slate-400 dark:text-slate-500">{after}...</span>}
+            {after && <span className="text-slate-500 dark:text-slate-400">{after}...</span>}
             {snippet.page != null && (
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">
                 ({t("location.page", { pageNumber: snippet.page })})
               </span>
             )}
             {!snippet.isProximate && (
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 italic">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1 italic">
                 {t("evidence.differentSection")}
               </span>
             )}
@@ -192,7 +192,7 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
         );
       })}
       {snippets.length > 3 && (
-        <div className="text-[10px] text-slate-400 dark:text-slate-500 italic">
+        <div className="text-[10px] text-slate-500 dark:text-slate-400 italic">
           {t("evidence.andMore", { count: snippets.length - 3 })}
         </div>
       )}
@@ -677,7 +677,7 @@ function PopoverFallbackView({
           <span
             className={cn(
               "text-xs font-medium",
-              status.isVerified && !status.isPartialMatch && "text-green-600 dark:text-green-400",
+              status.isVerified && !status.isPartialMatch && "text-green-700 dark:text-green-400",
               status.isPartialMatch && "text-amber-500 dark:text-amber-400",
               status.isMiss && "text-red-500 dark:text-red-400",
               status.isPending && "text-slate-500 dark:text-slate-400",

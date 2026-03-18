@@ -44,6 +44,55 @@ describe("DeepCitation Client", () => {
     });
   });
 
+  describe("requestSource", () => {
+    it("includes X-Request-Source header when configured", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123", requestSource: "my-app" });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          attachmentId: "file_abc",
+          deepTextPromptPortion: "",
+          metadata: { filename: "t.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 0 },
+          status: "ready",
+        }),
+      } as Response);
+
+      const blob = new Blob(["x"], { type: "application/pdf" });
+      await client.uploadFile(blob, { filename: "t.pdf" });
+
+      const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect((init.headers as Record<string, string>)["X-Request-Source"]).toBe("my-app");
+    });
+
+    it("omits X-Request-Source header when not configured", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          attachmentId: "file_abc",
+          deepTextPromptPortion: "",
+          metadata: { filename: "t.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 0 },
+          status: "ready",
+        }),
+      } as Response);
+
+      const blob = new Blob(["x"], { type: "application/pdf" });
+      await client.uploadFile(blob, { filename: "t.pdf" });
+
+      const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect((init.headers as Record<string, string>)["X-Request-Source"]).toBeUndefined();
+    });
+
+    it("rejects requestSource containing newline characters", () => {
+      expect(() => new DeepCitation({ apiKey: "sk-dc-123", requestSource: "bad\r\nvalue" })).toThrow(
+        "requestSource must not contain newline characters",
+      );
+      expect(() => new DeepCitation({ apiKey: "sk-dc-123", requestSource: "bad\nvalue" })).toThrow(
+        "requestSource must not contain newline characters",
+      );
+    });
+  });
+
   describe("uploadFile", () => {
     it("uploads a file and returns response", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-123" });

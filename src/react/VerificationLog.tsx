@@ -1,7 +1,7 @@
 import { type ReactNode, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
-import type { SearchAttempt, SearchMethod, SearchStatus } from "../types/search.js";
+import type { SearchAttempt, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 import { isDomainMatch } from "../utils/urlSafety.js";
 import { UrlCitationComponent } from "./Citation.js";
@@ -15,7 +15,7 @@ import {
   TRUSTED_IMAGE_HOSTS,
 } from "./constants.js";
 import { formatCaptureDate } from "./dateUtils.js";
-import { type MessageKey, type TranslateFunction, tPlural, useLocale, useTranslation } from "./i18n.js";
+import { type TranslateFunction, tPlural, useLocale, useTranslation } from "./i18n.js";
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -27,19 +27,16 @@ import {
   XCircleIcon,
   XIcon,
 } from "./icons.js";
-import { groupSearchAttempts, groupSearchAttemptsForNotFound } from "./searchAttemptGrouping.js";
+import {
+  buildSearchNarrative,
+  getStatusColorScheme,
+  getStatusHeaderText,
+  type NarrativeRow,
+  type SearchNarrative,
+} from "./searchNarrative.js";
 import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn, isImageSource } from "./utils.js";
-
-/**
- * Statuses that show only the successful hit (not the full search trail).
- * Everything else — miss, partial, and transient (loading/pending) — shows all attempts.
- */
-const SHOW_ONLY_HIT_STATUSES: ReadonlySet<SearchStatus> = new Set<SearchStatus>([
-  "found",
-  "found_phrase_missed_anchor_text",
-]);
 
 // =============================================================================
 // CONSTANTS
@@ -51,56 +48,16 @@ const MAX_QUOTE_BOX_LENGTH = 150;
 /** Maximum length for anchor text preview in headers */
 const MAX_ANCHOR_TEXT_PREVIEW_LENGTH = 50;
 
-/** Maximum length for phrase display in search attempt rows */
-const MAX_PHRASE_DISPLAY_LENGTH = 60;
-const TRUNCATED_PHRASE_PREFIX_LENGTH = 42;
-const TRUNCATED_PHRASE_SUFFIX_LENGTH = 14;
-
-/** Truncate a search phrase for display, showing "(empty)" for blank input. */
-function truncatePhrase(raw: string | undefined | null, t: TranslateFunction): string {
-  const phrase = raw ?? "";
-  if (phrase.length === 0) return t("search.empty");
-  if (phrase.length <= MAX_PHRASE_DISPLAY_LENGTH) return phrase;
-  const prefix = phrase.slice(0, TRUNCATED_PHRASE_PREFIX_LENGTH);
-  const suffix = phrase.slice(-TRUNCATED_PHRASE_SUFFIX_LENGTH);
-  return `${prefix}...${suffix}`;
-}
-
 /** Maximum length for URL display in popover header */
 const MAX_URL_DISPLAY_LENGTH = 45;
 
 /** Icon color classes by status - defined outside component to avoid recreation on every render */
 const ICON_COLOR_CLASSES = {
-  green: "text-green-600 dark:text-green-400",
+  green: "text-green-700 dark:text-green-400",
   amber: "text-amber-500 dark:text-amber-400",
   red: "text-red-500 dark:text-red-400",
   gray: "text-dc-pending",
 } as const;
-
-const METHOD_KEY_MAP: Record<SearchMethod, MessageKey> = {
-  exact_line_match: "search.method.exactLineMatch",
-  line_with_buffer: "search.method.lineWithBuffer",
-  expanded_line_buffer: "search.method.expandedLineBuffer",
-  current_page: "search.method.currentPage",
-  anchor_text_fallback: "search.method.anchorTextFallback",
-  adjacent_pages: "search.method.adjacentPages",
-  expanded_window: "search.method.expandedWindow",
-  regex_search: "search.method.regexSearch",
-  first_word_fallback: "search.method.firstWordFallback",
-  first_half_fallback: "search.method.firstHalfFallback",
-  last_half_fallback: "search.method.lastHalfFallback",
-  first_quarter_fallback: "search.method.firstQuarterFallback",
-  second_quarter_fallback: "search.method.secondQuarterFallback",
-  third_quarter_fallback: "search.method.thirdQuarterFallback",
-  fourth_quarter_fallback: "search.method.fourthQuarterFallback",
-  longest_word_fallback: "search.method.longestWordFallback",
-  custom_phrase_fallback: "search.method.customPhraseFallback",
-  keyspan_fallback: "search.method.keyspanFallback",
-};
-
-function getMethodDisplayName(method: SearchMethod, t: TranslateFunction): string {
-  return t(METHOD_KEY_MAP[method]);
-}
 
 const HEADER_DOWNLOAD_BUTTON_BASE_CLASSES =
   "shrink-0 size-8 flex items-center justify-center cursor-pointer text-dc-pending hover:text-blue-500 dark:hover:text-blue-400 transition-[opacity,color] duration-120";
@@ -363,9 +320,9 @@ interface PagePillProps {
 
 /** Page pill color classes by status */
 const PAGE_PILL_COLORS = {
-  green: "bg-dc-muted text-dc-muted-foreground border-dc-border",
-  amber: "bg-dc-muted text-dc-muted-foreground border-dc-border",
-  red: "bg-dc-muted text-dc-muted-foreground border-dc-border",
+  green: "bg-dc-muted text-zinc-600 dark:text-zinc-300 border-dc-border",
+  amber: "bg-dc-muted text-zinc-600 dark:text-zinc-300 border-dc-border",
+  red: "bg-dc-muted text-zinc-600 dark:text-zinc-300 border-dc-border",
   gray: "bg-dc-muted text-dc-subtle-foreground border-dc-border",
 } as const;
 
@@ -674,62 +631,6 @@ export interface QuoteBoxProps {
 }
 
 // =============================================================================
-// UTILITY FUNCTIONS
-// =============================================================================
-
-/**
- * Get the color scheme based on status.
- */
-// biome-ignore lint/style/useComponentExportOnlyModules: Utility function used by EvidenceTray for PagePill colorScheme
-export function getStatusColorScheme(status?: SearchStatus | null): "green" | "amber" | "red" | "gray" {
-  if (!status) return "gray";
-
-  switch (status) {
-    case "found":
-    case "found_anchor_text_only":
-    case "found_phrase_missed_anchor_text":
-      return "green";
-    case "found_on_other_page":
-    case "found_on_other_line":
-    case "partial_text_found":
-    case "first_word_found":
-      return "amber";
-    case "not_found":
-      return "red";
-    default:
-      return "gray";
-  }
-}
-
-/**
- * Get the header text based on status.
- */
-function getStatusHeaderText(status: SearchStatus | null | undefined, t: TranslateFunction): string {
-  if (!status) return t("status.verifying");
-
-  switch (status) {
-    case "found":
-    case "found_anchor_text_only":
-    case "found_phrase_missed_anchor_text":
-      return t("status.verified");
-    case "found_on_other_page":
-      return t("message.foundOnDifferentPage");
-    case "found_on_other_line":
-      return t("message.foundOnDifferentLine");
-    case "partial_text_found":
-    case "first_word_found":
-      return t("status.partialMatch");
-    case "not_found":
-      return t("status.notFound");
-    case "pending":
-    case "loading":
-      return t("status.verifying");
-    default:
-      return "";
-  }
-}
-
-// =============================================================================
 // PAGE BADGE COMPONENT
 // =============================================================================
 
@@ -976,72 +877,11 @@ export function QuotedText({ children, className, mono = false }: QuotedTextProp
 // =============================================================================
 
 interface VerificationLogSummaryProps {
+  narrative: SearchNarrative;
   status?: SearchStatus | null;
-  searchAttempts: SearchAttempt[];
-  expectedPage?: number;
-  expectedLine?: number;
-  foundPage?: number;
-  foundLine?: number;
   isExpanded: boolean;
   onToggle: () => void;
   verifiedAt?: Date | string | null;
-}
-
-/**
- * Get a human-readable outcome summary for the collapsed state.
- * Shows what kind of match was found (or that nothing was found).
- */
-function getOutcomeSummary(
-  status: SearchStatus | null | undefined,
-  searchAttempts: SearchAttempt[],
-  t: TranslateFunction,
-): string {
-  // Early return for not_found - no need to search for successful attempt
-  if (!status || status === "not_found") {
-    const count = groupSearchAttemptsForNotFound(searchAttempts).length;
-    return tPlural(t, "verification.attemptsTried", count, { count });
-  }
-
-  // Only search for successful attempt when we know something was found
-  const successfulAttempt = searchAttempts.find(a => a.success);
-
-  // For found states, describe the match type
-  if (successfulAttempt?.matchedVariation) {
-    switch (successfulAttempt.matchedVariation) {
-      case "exact_full_phrase":
-        return t("outcome.exactMatch");
-      case "normalized_full_phrase":
-        return t("outcome.normalizedMatch");
-      case "exact_anchor_text":
-      case "normalized_anchor_text":
-        return t("outcome.anchorTextMatch");
-      case "partial_full_phrase":
-      case "partial_anchor_text":
-        return t("outcome.partialMatch");
-      case "first_word_only":
-        return t("outcome.firstWordMatch");
-      default:
-        return t("outcome.matchFound");
-    }
-  }
-
-  // Fallback based on status
-  switch (status) {
-    case "found":
-    case "found_phrase_missed_anchor_text":
-      return t("outcome.exactMatch");
-    case "found_anchor_text_only":
-      return t("outcome.anchorTextMatch");
-    case "found_on_other_page":
-    case "found_on_other_line":
-      return t("outcome.foundDifferentLocation");
-    case "partial_text_found":
-      return t("outcome.partialMatch");
-    case "first_word_found":
-      return t("outcome.firstWordMatch");
-    default:
-      return t("outcome.matchFound");
-  }
 }
 
 /**
@@ -1049,17 +889,11 @@ function getOutcomeSummary(
  * Uses unified "Verification details" label across all states.
  * The parenthetical changes based on status: "(Exact match)" vs "(16 attempts)".
  */
-function VerificationLogSummary({
-  status,
-  searchAttempts,
-  isExpanded,
-  onToggle,
-  verifiedAt,
-}: VerificationLogSummaryProps) {
+function VerificationLogSummary({ narrative, status, isExpanded, onToggle, verifiedAt }: VerificationLogSummaryProps) {
   const t = useTranslation();
   const locale = useLocale();
   const isMiss = status === "not_found";
-  const outcomeSummary = getOutcomeSummary(status, searchAttempts, t);
+  const outcomeSummary = narrative.outcomeSummary;
 
   // Format the verified date for display
   const formatted = formatCaptureDate(verifiedAt, { locale });
@@ -1089,7 +923,7 @@ function VerificationLogSummary({
       </div>
       {dateStr && (
         <span
-          className="text-dc-pending flex-shrink-0 ml-2"
+          className="text-dc-muted-foreground flex-shrink-0 ml-2"
           title={
             isMiss
               ? t("verification.checkedAt", { date: formatted?.tooltip ?? dateStr })
@@ -1107,80 +941,8 @@ function VerificationLogSummary({
 // AUDIT-FOCUSED SEARCH DISPLAY
 // =============================================================================
 
-interface AuditSearchDisplayProps {
-  searchAttempts: SearchAttempt[];
-  /** Citation's full phrase (for display) */
-  fullPhrase?: string;
-  /** Citation's anchor text (for display) */
-  anchorText?: string;
-  /** Expected page from the original citation location */
-  expectedPage?: number;
-  /** Expected line from the original citation location */
-  expectedLine?: number;
-  /** Verification status (determines display mode) */
-  status?: SearchStatus | null;
-  /** Full verification object (for closest match extraction) */
-  verification?: Verification | null;
-}
-
-function getFirstLine(line: number | number[] | undefined): number | undefined {
-  if (Array.isArray(line)) return line[0];
-  return line;
-}
-
-function formatLocationLabel(page: number | undefined, line: number | undefined, t: TranslateFunction): string {
-  const hasPage = page != null && page > 0;
-  const hasLine = line != null && line > 0;
-  if (hasPage && hasLine) return t("location.pageLine", { pageNumber: page, lineNumber: line });
-  if (hasPage) return t("location.page", { pageNumber: page });
-  if (hasLine) return t("location.line", { lineNumber: line });
-  return t("location.unknown");
-}
-
-interface AttemptTableRowProps {
-  text: string;
-  locationText: string;
-  duplicateCount: number;
-  success: boolean;
-  isUnexpectedHit: boolean;
-  /** Skip reason or method note — shown as a tooltip on hover. */
-  note?: string;
-}
-
-/** Compact row used by the attempts table for not-found and partial states. */
-function AttemptTableRow({ text, locationText, duplicateCount, success, isUnexpectedHit, note }: AttemptTableRowProps) {
-  const t = useTranslation();
-  const isTruncated = (text ?? "").length > MAX_PHRASE_DISPLAY_LENGTH;
-  const showLocationMultiplicity = success && isUnexpectedHit && duplicateCount > 1;
-  const locationMultiplicityLabel = showLocationMultiplicity
-    ? tPlural(t, "location.matchingLocations", duplicateCount, { count: duplicateCount })
-    : null;
-
-  // success here means we successfully found a partial match, exact match does not need attempt details as the result is self evident
-  return (
-    <div
-      className={cn(
-        "py-1 px-2 text-xs font-mono border-l-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2",
-        success
-          ? "border-amber-400 dark:border-amber-500 text-dc-foreground"
-          : "border-red-300 dark:border-red-500/60 text-dc-subtle-foreground",
-      )}
-    >
-      <span className="font-mono text-xxs truncate min-w-0" title={note || (isTruncated ? text : undefined)}>
-        {text}
-      </span>
-      <span
-        className={cn(
-          "text-[10px] whitespace-nowrap justify-self-end text-right self-center",
-          isUnexpectedHit ? "font-semibold text-dc-foreground" : "text-dc-subtle-foreground",
-        )}
-      >
-        {locationText}
-        {locationMultiplicityLabel ? ` · ${locationMultiplicityLabel}` : ""}
-      </span>
-    </div>
-  );
-}
+/** Maximum length for phrase display — used for tooltip truncation detection. */
+const MAX_PHRASE_DISPLAY_LENGTH = 60;
 
 /**
  * "Looking for" section showing original citation text being searched.
@@ -1209,40 +971,109 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
   );
 }
 
+/** Renders a single NarrativeRow as a compact timeline entry. */
+function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
+  const t = useTranslation();
+  const isTruncated = row.phraseFull.length > MAX_PHRASE_DISPLAY_LENGTH;
+
+  switch (row.kind) {
+    case "success": {
+      // Card layout for the single "hit only" view (showAllRows=false)
+      if (row.duplicateCount === 1 && !row.isUnexpectedHit && row.methodLabel) {
+        return (
+          <div className="px-4 py-3 space-y-3 text-sm">
+            <div>
+              <div className="p-2.5 bg-dc-muted space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-700 dark:text-green-400 shrink-0">
+                    <CheckIcon />
+                  </span>
+                  <QuotedText mono className="text-xs text-dc-foreground break-all">
+                    {row.phraseDisplay}
+                  </QuotedText>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-dc-subtle-foreground">
+                  <span>{row.methodLabel}</span>
+                  {row.locationLabel && <span>{row.locationLabel}</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      // Compact row for "show all" mode — amber border
+      const showLocationMultiplicity = row.isUnexpectedHit && row.duplicateCount > 1;
+      const locationMultiplicityLabel = showLocationMultiplicity
+        ? tPlural(t, "location.matchingLocations", row.duplicateCount, { count: row.duplicateCount })
+        : null;
+      return (
+        <div className="py-1 px-2 text-xs font-mono border-l-2 border-amber-400 dark:border-amber-500 text-dc-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          <span
+            className="font-mono text-xxs truncate min-w-0"
+            title={row.note || (isTruncated ? row.phraseFull : undefined)}
+          >
+            {row.phraseDisplay}
+          </span>
+          <span
+            className={cn(
+              "text-[10px] whitespace-nowrap justify-self-end text-right self-center",
+              row.isUnexpectedHit ? "font-semibold text-dc-foreground" : "text-dc-subtle-foreground",
+            )}
+          >
+            {row.locationLabel}
+            {locationMultiplicityLabel ? ` · ${locationMultiplicityLabel}` : ""}
+          </span>
+        </div>
+      );
+    }
+    case "failure":
+      return (
+        <div className="py-1 px-2 text-xs font-mono border-l-2 border-red-300 dark:border-red-500/60 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          <span
+            className="font-mono text-xxs truncate min-w-0"
+            title={row.note || (isTruncated ? row.phraseFull : undefined)}
+          >
+            {row.phraseDisplay}
+          </span>
+          <span className="text-[10px] whitespace-nowrap justify-self-end text-right self-center text-dc-subtle-foreground">
+            {row.locationLabel}
+          </span>
+        </div>
+      );
+    case "collapsed_failure":
+      return (
+        <div className="py-1 px-2 text-xs font-mono border-l-2 border-red-300 dark:border-red-500/60 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          <span className="font-mono text-xxs truncate min-w-0" title={isTruncated ? row.phraseFull : undefined}>
+            {row.phraseDisplay}
+          </span>
+          <span className="text-[10px] whitespace-nowrap justify-self-end text-right self-center text-dc-subtle-foreground">
+            {row.locationLabel}
+          </span>
+        </div>
+      );
+  }
+}
+
 /**
- * Audit-focused search display.
- * - For exact matches ("found", "found_phrase_missed_anchor_text"): Shows only the successful match details
- * - For all other statuses (not_found, partial): Shows all search attempts to help debug
+ * Renders pre-computed narrative rows as the audit timeline.
+ * Replaces AuditSearchDisplay — all interpretation logic is in buildSearchNarrative().
  */
-function AuditSearchDisplay({
-  searchAttempts,
+function NarrativeRowsDisplay({
+  narrative,
   fullPhrase,
   anchorText,
-  expectedPage,
-  expectedLine,
-  status,
-}: AuditSearchDisplayProps) {
+}: {
+  narrative: SearchNarrative;
+  fullPhrase?: string;
+  anchorText?: string;
+}) {
   const t = useTranslation();
-  const groupedAttempts = useMemo(
-    () =>
-      status === "not_found" ? groupSearchAttemptsForNotFound(searchAttempts) : groupSearchAttempts(searchAttempts),
-    [searchAttempts, status],
-  );
-  // Show all searches unless the status is a confirmed exact match.
-  // Transient statuses (loading, pending) show partial attempts as they arrive.
-  // Null/undefined status is treated as "unknown" — show all searches.
-  const showAll = status == null || !SHOW_ONLY_HIT_STATUSES.has(status);
-  const successfulAttempt = useMemo(
-    () => groupedAttempts.find(group => group.attempt.success)?.attempt,
-    [groupedAttempts],
-  );
 
-  // If no search attempts, fall back to citation data
-  if (groupedAttempts.length === 0) {
+  // If no rows, fall back to citation data
+  if (narrative.rows.length === 0) {
     const fallbackPhrases = [fullPhrase, anchorText].filter((p): p is string => Boolean(p));
     if (fallbackPhrases.length === 0) return null;
 
-    // Display fallback as simple list
     return (
       <div className="px-4 py-3 space-y-3 text-sm">
         <div>
@@ -1266,97 +1097,11 @@ function AuditSearchDisplay({
     );
   }
 
-  // For exact matches: show only the successful match details
-  if (!showAll && successfulAttempt) {
-    const displayPhrase = truncatePhrase(successfulAttempt.searchPhrase, t);
-
-    const methodName = getMethodDisplayName(successfulAttempt.method, t);
-    const locationText = successfulAttempt.foundLocation
-      ? successfulAttempt.foundLocation.line
-        ? t("location.pageLineFull", {
-            pageNumber: successfulAttempt.foundLocation.page,
-            lineNumber: successfulAttempt.foundLocation.line,
-          })
-        : t("location.pageFull", { pageNumber: successfulAttempt.foundLocation.page })
-      : successfulAttempt.pageSearched != null
-        ? t("location.pageFull", { pageNumber: successfulAttempt.pageSearched })
-        : "";
-
-    return (
-      <div className="px-4 py-3 space-y-3 text-sm">
-        <div>
-          <div className="p-2.5 bg-dc-muted space-y-2">
-            {/* What was matched */}
-            <div className="flex items-start gap-2">
-              <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-600 dark:text-green-400 shrink-0">
-                <CheckIcon />
-              </span>
-              <QuotedText mono className="text-xs text-dc-foreground break-all">
-                {displayPhrase}
-              </QuotedText>
-            </div>
-            {/* Where it was found */}
-            <div className="flex items-center justify-between text-[11px] text-dc-subtle-foreground">
-              <span>{methodName}</span>
-              {locationText && <span>{locationText}</span>}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const attemptRows = groupedAttempts.map(group => {
-    const { attempt, key, duplicateCount } = group;
-    const foundPage = attempt.foundLocation?.page ?? attempt.pageSearched;
-    const foundLine = attempt.foundLocation?.line ?? getFirstLine(attempt.lineSearched);
-
-    // Use page range when the not_found grouping collapsed multiple pages
-    const locationText =
-      group.pageRange && group.pageRange.min !== group.pageRange.max
-        ? t("location.pageRange", { startPage: group.pageRange.min, endPage: group.pageRange.max })
-        : formatLocationLabel(foundPage, foundLine, t);
-
-    const unexpectedPage =
-      attempt.success &&
-      expectedPage != null &&
-      expectedPage > 0 &&
-      foundPage != null &&
-      foundPage > 0 &&
-      foundPage !== expectedPage;
-    const unexpectedLine =
-      attempt.success &&
-      expectedLine != null &&
-      expectedLine > 0 &&
-      foundLine != null &&
-      foundLine > 0 &&
-      foundLine !== expectedLine;
-
-    return {
-      key,
-      text: truncatePhrase(attempt.searchPhrase, t),
-      success: attempt.success,
-      isUnexpectedHit: unexpectedPage || unexpectedLine,
-      locationText,
-      duplicateCount,
-      note: attempt.note,
-    };
-  });
-
-  const orderedRows = [...attemptRows.filter(row => !row.success), ...attemptRows.filter(row => row.success)];
-
+  // Render all rows — NarrativeRowRenderer handles card vs compact layout per row.kind
   return (
-    <div className="px-4 py-2 space-y-1.5 text-sm">
-      {orderedRows.map(row => (
-        <AttemptTableRow
-          key={row.key}
-          text={row.text}
-          duplicateCount={row.duplicateCount}
-          success={row.success}
-          isUnexpectedHit={row.isUnexpectedHit}
-          locationText={row.locationText}
-          note={row.note}
-        />
+    <div className={narrative.showAllRows ? "px-4 py-2 space-y-1.5 text-sm" : undefined}>
+      {narrative.rows.map(row => (
+        <NarrativeRowRenderer key={row.key} row={row} />
       ))}
     </div>
   );
@@ -1367,43 +1112,27 @@ function AuditSearchDisplay({
 // =============================================================================
 
 interface VerificationLogTimelineProps {
-  searchAttempts: SearchAttempt[];
+  narrative: SearchNarrative;
   fullPhrase?: string;
   anchorText?: string;
-  expectedPage?: number;
-  expectedLine?: number;
-  status?: SearchStatus | null;
   /** Callback to collapse the expanded details. Skipped when the user is selecting text. */
   onCollapse?: () => void;
 }
 
 /**
  * Scrollable timeline showing search attempts.
- * - For exact matches ("found", "found_phrase_missed_anchor_text"): Shows only the successful match
- * - For not_found and all partial statuses: Shows all search attempts with clear count
+ * Renders pre-computed NarrativeRow[] — no interpretation logic.
  *
  * Clicking the area collapses it (unless the user is selecting text).
  */
 export function VerificationLogTimeline({
-  searchAttempts,
+  narrative,
   fullPhrase,
   anchorText,
-  expectedPage,
-  expectedLine,
-  status,
   onCollapse,
 }: VerificationLogTimelineProps) {
   const t = useTranslation();
-  const content = (
-    <AuditSearchDisplay
-      searchAttempts={searchAttempts}
-      fullPhrase={fullPhrase}
-      anchorText={anchorText}
-      expectedPage={expectedPage}
-      expectedLine={expectedLine}
-      status={status}
-    />
-  );
+  const content = <NarrativeRowsDisplay narrative={narrative} fullPhrase={fullPhrase} anchorText={anchorText} />;
 
   if (!onCollapse) {
     return <div id="verification-log-timeline">{content}</div>;
@@ -1435,14 +1164,17 @@ export function VerificationLogTimeline({
 /**
  * Collapsible verification log showing search attempt timeline.
  * Displays a summary header that can be clicked to expand the full log.
+ *
+ * Internally builds a SearchNarrative (via buildSearchNarrative) once per render
+ * and passes it to child components — all interpretation logic is centralized.
  */
 export function VerificationLog({
   searchAttempts,
   status,
   expectedPage,
   expectedLine,
-  foundPage,
-  foundLine,
+  foundPage: _foundPage, // kept for API compat; narrative derives from attempt.foundLocation
+  foundLine: _foundLine, // kept for API compat; narrative derives from attempt.foundLocation
   isExpanded: controlledIsExpanded,
   onExpandChange,
   fullPhrase,
@@ -1450,6 +1182,7 @@ export function VerificationLog({
   ambiguity,
   verifiedAt,
 }: VerificationLogProps) {
+  const t = useTranslation();
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
 
   // Use controlled state if provided, otherwise internal
@@ -1462,41 +1195,33 @@ export function VerificationLog({
     }
   };
 
-  // Memoize the successful attempt lookup
-  const successfulAttempt = useMemo(() => searchAttempts.find(a => a.success), [searchAttempts]);
+  // Build the narrative once — all interpretation logic is centralized here
+  const narrative = useMemo(
+    () => buildSearchNarrative(searchAttempts, status, expectedPage, expectedLine, t),
+    [searchAttempts, status, expectedPage, expectedLine, t],
+  );
 
   // Don't render if no attempts
   if (!searchAttempts || searchAttempts.length === 0) {
     return null;
   }
 
-  // Derive found location from successful attempt if not provided
-  const derivedFoundPage = foundPage ?? successfulAttempt?.foundLocation?.page ?? successfulAttempt?.pageSearched;
-  const derivedFoundLine = foundLine ?? successfulAttempt?.foundLocation?.line;
-
   return (
     <div className="border-t border-dc-border">
       {/* Ambiguity warning when multiple occurrences exist */}
       {ambiguity && <AmbiguityWarning ambiguity={ambiguity} />}
       <VerificationLogSummary
+        narrative={narrative}
         status={status}
-        searchAttempts={searchAttempts}
-        expectedPage={expectedPage}
-        expectedLine={expectedLine}
-        foundPage={derivedFoundPage}
-        foundLine={derivedFoundLine}
         isExpanded={isExpanded}
         onToggle={() => setIsExpanded(!isExpanded)}
         verifiedAt={verifiedAt}
       />
       {isExpanded && (
         <VerificationLogTimeline
-          searchAttempts={searchAttempts}
+          narrative={narrative}
           fullPhrase={fullPhrase}
           anchorText={anchorText}
-          expectedPage={expectedPage}
-          expectedLine={expectedLine}
-          status={status}
           onCollapse={() => setIsExpanded(false)}
         />
       )}

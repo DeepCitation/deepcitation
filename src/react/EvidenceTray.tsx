@@ -57,7 +57,7 @@ import { tPlural, useLocale, useTranslation } from "./i18n.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "./overlayGeometry.js";
-import { groupSearchAttemptsForNotFound } from "./searchAttemptGrouping.js";
+import { buildSearchNarrative } from "./searchNarrative.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { cn } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
@@ -798,7 +798,7 @@ function EvidenceTrayFooter({
     pageCtaLabel ?? (hasPageForCta ? t("aria.viewPageNum", { pageNumber: pageNumberForCta }) : t("aria.viewPage"));
 
   return (
-    <div className="px-3 py-2 min-h-[44px] flex items-center text-[11px] text-slate-400 dark:text-slate-500">
+    <div className="px-3 py-2 min-h-[44px] flex items-center text-[11px] text-slate-500 dark:text-slate-400">
       <div className="flex items-center justify-between w-full">
         <span className="flex items-center gap-1">
           {showToggle && (
@@ -871,18 +871,18 @@ function MatchSnippetDisplay({ snippet }: { snippet: import("./searchSummaryUtil
 
   return (
     <div className="text-xs text-slate-600 dark:text-slate-300 font-mono leading-relaxed">
-      {before && <span className="text-slate-400 dark:text-slate-500">...{before}</span>}
+      {before && <span className="text-slate-500 dark:text-slate-400">...{before}</span>}
       <strong className="text-slate-800 dark:text-slate-100 bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">
         {match}
       </strong>
-      {after && <span className="text-slate-400 dark:text-slate-500">{after}...</span>}
+      {after && <span className="text-slate-500 dark:text-slate-400">{after}...</span>}
       {snippet.page != null && (
-        <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1">
+        <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">
           ({t("location.page", { pageNumber: snippet.page })})
         </span>
       )}
       {!snippet.isProximate && (
-        <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 italic">
+        <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1 italic">
           {t("evidence.differentSection")}
         </span>
       )}
@@ -1116,12 +1116,18 @@ export function EvidenceTray({
       willChange: searchLogStage === "steady" ? undefined : "transform, padding-top, max-height, opacity",
     };
   }, [searchLogContentHeight, searchLogStage, prefersReducedMotion, showSearchLog]);
-  const searchCount = useMemo(
+  const searchNarrative = useMemo(
     () =>
       (isMiss || isPartialMatch) && searchAttempts.length > 0
-        ? groupSearchAttemptsForNotFound(searchAttempts).length
-        : 0,
-    [isMiss, isPartialMatch, searchAttempts],
+        ? buildSearchNarrative(
+            searchAttempts,
+            verification?.status ?? "not_found",
+            verification?.citation?.type === "document" ? verification.citation.pageNumber : undefined,
+            verification?.citation?.type === "document" ? verification.citation.lineIds?.[0] : undefined,
+            t,
+          )
+        : null,
+    [isMiss, isPartialMatch, searchAttempts, verification?.status, verification?.citation, t],
   );
 
   // Footer element — shared across top/bottom placement
@@ -1131,7 +1137,7 @@ export function EvidenceTray({
       onPageClick={onExpand ? handlePageExpand : undefined}
       pageNumberForCta={pageNumberForCta}
       pageCtaLabel={pageCtaLabel}
-      searchCount={isMiss || isPartialMatch ? searchCount : undefined}
+      searchCount={isMiss || isPartialMatch ? searchNarrative?.groupedAttemptCount : undefined}
       isSearchLogOpen={showSearchLog}
       onToggleSearchLog={isMiss || isPartialMatch ? () => setShowSearchLog(prev => !prev) : undefined}
     />
@@ -1178,16 +1184,9 @@ export function EvidenceTray({
                     className="max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain"
                   >
                     <VerificationLogTimeline
-                      searchAttempts={searchAttempts}
+                      narrative={searchNarrative!}
                       fullPhrase={verification?.citation?.fullPhrase ?? verification?.verifiedFullPhrase ?? undefined}
                       anchorText={verification?.citation?.anchorText ?? verification?.verifiedAnchorText ?? undefined}
-                      status={verification?.status ?? "not_found"}
-                      expectedPage={
-                        verification?.citation?.type === "document" ? verification.citation.pageNumber : undefined
-                      }
-                      expectedLine={
-                        verification?.citation?.type === "document" ? verification.citation.lineIds?.[0] : undefined
-                      }
                       onCollapse={() => setShowSearchLog(false)}
                     />
                   </div>
@@ -1239,7 +1238,9 @@ export function EvidenceTray({
           )}
           aria-label={onImageClick ? t("action.viewImage") : t("action.expandFullPage")}
         >
-          {content}
+          {/* aria-hidden: interior is decorative — the button's aria-label describes the action.
+              This also avoids nested interactive elements (footer CTA) inside a role="button". */}
+          <div aria-hidden="true">{content}</div>
         </div>
       ) : (
         /* Informational: non-clickable display */

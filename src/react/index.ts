@@ -178,10 +178,23 @@ export {
   SplitDiffDisplay,
   type SplitDiffDisplayProps,
 } from "./SplitDiffDisplay.js";
+// Search Narrative (centralized interpretation of SearchAttempt[] → display-ready data)
+export {
+  buildSearchNarrative,
+  type CollapsedFailureRow,
+  type FailureRow,
+  getStatusColorScheme,
+  getStatusHeaderText,
+  type NarrativeOutcome,
+  type NarrativeRow,
+  type SearchNarrative,
+  type SuccessRow,
+} from "./searchNarrative.js";
 // Search Summary Utilities
 export {
   buildIntentSummary,
   buildSearchSummary,
+  deriveContextWindow,
   type IntentSummary,
   type MatchSnippet,
   type SearchOutcome,

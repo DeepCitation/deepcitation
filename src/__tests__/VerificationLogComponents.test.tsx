@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { buildSearchNarrative } from "../react/searchNarrative";
 import {
   type AmbiguityInfo,
   AmbiguityWarning,
@@ -294,14 +295,9 @@ describe("VerificationLogTimeline attempts table", () => {
       },
     ];
 
+    const narrative = buildSearchNarrative(searchAttempts, "found_on_other_page", 5, 12);
     const { getByText } = render(
-      <VerificationLogTimeline
-        searchAttempts={searchAttempts}
-        status="found_on_other_page"
-        fullPhrase="Revenue increased by 15% in Q4 2024."
-        expectedPage={5}
-        expectedLine={12}
-      />,
+      <VerificationLogTimeline narrative={narrative} fullPhrase="Revenue increased by 15% in Q4 2024." />,
     );
 
     expect(getByText("Revenue increased by 15% in Q4 2024.")).toBeInTheDocument();
@@ -324,14 +320,9 @@ describe("VerificationLogTimeline attempts table", () => {
       },
     ];
 
+    const narrative = buildSearchNarrative(searchAttempts, "found_on_other_line", 5, 12);
     const { getByText } = render(
-      <VerificationLogTimeline
-        searchAttempts={searchAttempts}
-        status="found_on_other_line"
-        fullPhrase="Revenue increased by 15% in Q4 2024."
-        expectedPage={5}
-        expectedLine={12}
-      />,
+      <VerificationLogTimeline narrative={narrative} fullPhrase="Revenue increased by 15% in Q4 2024." />,
     );
 
     const unexpectedLocation = getByText(/^p[.\s\u202f]+7\s*\u00b7\s*l[.\s\u202f]+22$/);

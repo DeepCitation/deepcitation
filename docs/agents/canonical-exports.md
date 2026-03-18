@@ -103,7 +103,14 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `VIEWPORT_MARGIN_PX` | `src/react/constants.ts` | Viewport edge margin for popover positioning (16px) |
 | `useAnimatedHeight()` | `src/react/hooks/useAnimatedHeight.ts` | Imperative height animation for viewState transitions |
 | `useAnimationState()` | `src/react/hooks/useAnimationState.ts` | Enter/exit animation lifecycle |
+| `usePopoverViewState()` | `src/react/hooks/usePopoverViewState.ts` | Popover view-state machine (haptics, VT, scroll lock, escape) |
 | `useWheelZoom()` | `src/react/hooks/useWheelZoom.ts` | Wheel/trackpad zoom with gesture anchor |
+| `buildSearchNarrative()` | `src/react/searchNarrative.ts` | SearchAttempt[] → display-ready narrative for VerificationLog |
+| `getStatusColorScheme()` | `src/react/searchNarrative.ts` | SearchStatus → color scheme string |
+| `getStatusHeaderText()` | `src/react/searchNarrative.ts` | SearchStatus → localized header text |
+| `buildIntentSummary()` | `src/react/searchSummaryUtils.ts` | Intent summary from search attempts |
+| `buildSearchSummary()` | `src/react/searchSummaryUtils.ts` | Full search summary with query groups |
+| `deriveContextWindow()` | `src/react/searchSummaryUtils.ts` | Context window derivation from attempts |
 | `EXPANDED_POPOVER_MID_WIDTH` | `src/react/expandedWidthPolicy.ts` | Mid-width fallback for expanded popover states |
 | `getExpandedPopoverWidth()` | `src/react/expandedWidthPolicy.ts` | Computes expanded popover width from image width |
 | `getInteractionClasses()` | `src/react/CitationContentDisplay.utils.ts` | Hover/active interaction classes for citation triggers |

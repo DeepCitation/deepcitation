@@ -134,7 +134,7 @@ describe("StatusHeader", () => {
     it("uses green icon color for verified status", () => {
       const { container } = render(<StatusHeader status="found" foundPage={5} />);
 
-      const greenIcon = container.querySelector(".text-green-600");
+      const greenIcon = container.querySelector(".text-green-700");
       expect(greenIcon).toBeInTheDocument();
     });
 
