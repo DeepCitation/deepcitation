@@ -160,6 +160,30 @@ describe("usePopoverViewState", () => {
       expect(result.current.expandedNaturalWidth).toBeNull();
       expect(result.current.expandedWidthSource).toBeNull();
     });
+
+    it("does not fire onCollapseToSummary", () => {
+      const onCollapse = mock(() => {});
+      const { result } = renderHook(() => usePopoverViewState(createConfig({ onCollapseToSummary: onCollapse })));
+      act(() => result.current.transition("expanded-keyhole"));
+      act(() => result.current.resetToSummary());
+      expect(onCollapse).not.toHaveBeenCalled();
+    });
+
+    it("resets prevBeforeExpandedPageRef so next session starts clean", () => {
+      const { result } = renderHook(() => usePopoverViewState(createConfig()));
+      // Session 1: drill into expanded-page via expanded-keyhole
+      act(() => result.current.transition("expanded-keyhole"));
+      act(() => result.current.transition("expanded-page"));
+      expect(result.current.prevBeforeExpandedPageRef.current).toBe("expanded-keyhole");
+      // Simulate popover close + reopen
+      act(() => result.current.resetToSummary());
+      expect(result.current.prevBeforeExpandedPageRef.current).toBe("summary");
+      // Session 2: go directly to expanded-page, escape should land on summary
+      act(() => result.current.transition("expanded-page"));
+      const event = new KeyboardEvent("keydown", { key: "Escape" });
+      act(() => result.current.onEscapeKeyDown(event));
+      expect(result.current.current).toBe("summary");
+    });
   });
 
   describe("onExpandedWidthChange", () => {

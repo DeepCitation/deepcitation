@@ -1231,7 +1231,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           closePopover();
         }
       },
-      [closePopover, viewState.ref],
+      [closePopover],
     );
 
     const handlePopoverBackdropClick = useCallback(

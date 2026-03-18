@@ -167,6 +167,7 @@ export function usePopoverViewState(config: UsePopoverViewStateConfig): PopoverV
     setViewState("summary");
     setExpandedNaturalWidth(null);
     setExpandedWidthSource(null);
+    prevBeforeExpandedPageRef.current = "summary";
   }, []);
 
   return useMemo(
