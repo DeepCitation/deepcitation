@@ -1124,6 +1124,19 @@ export function EvidenceTray({
         : 0,
     [isMiss, isPartialMatch, searchAttempts],
   );
+  const searchNarrative = useMemo(
+    () =>
+      (isMiss || isPartialMatch) && searchAttempts.length > 0
+        ? buildSearchNarrative(
+            searchAttempts,
+            verification?.status ?? "not_found",
+            verification?.citation?.type === "document" ? verification.citation.pageNumber : undefined,
+            verification?.citation?.type === "document" ? verification.citation.lineIds?.[0] : undefined,
+            t,
+          )
+        : null,
+    [isMiss, isPartialMatch, searchAttempts, verification?.status, verification?.citation, t],
+  );
 
   // Footer element — shared across top/bottom placement
   const footerEl = (
@@ -1179,13 +1192,7 @@ export function EvidenceTray({
                     className="max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain"
                   >
                     <VerificationLogTimeline
-                      narrative={buildSearchNarrative(
-                        searchAttempts,
-                        verification?.status ?? "not_found",
-                        verification?.citation?.type === "document" ? verification.citation.pageNumber : undefined,
-                        verification?.citation?.type === "document" ? verification.citation.lineIds?.[0] : undefined,
-                        t,
-                      )}
+                      narrative={searchNarrative!}
                       fullPhrase={verification?.citation?.fullPhrase ?? verification?.verifiedFullPhrase ?? undefined}
                       anchorText={verification?.citation?.anchorText ?? verification?.verifiedAnchorText ?? undefined}
                       onCollapse={() => setShowSearchLog(false)}

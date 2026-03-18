@@ -990,8 +990,8 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
 
   switch (row.kind) {
     case "success": {
-      if (!row.locationLabel && row.methodLabel) {
-        // Exact-match "hit only" view: method + location card
+      // Card layout for the single "hit only" view (showAllRows=false)
+      if (row.duplicateCount === 1 && !row.isUnexpectedHit && row.methodLabel) {
         return (
           <div className="px-4 py-3 space-y-3 text-sm">
             <div>
@@ -1006,13 +1006,14 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-dc-subtle-foreground">
                   <span>{row.methodLabel}</span>
+                  {row.locationLabel && <span>{row.locationLabel}</span>}
                 </div>
               </div>
             </div>
           </div>
         );
       }
-      // Success row in "show all" mode — same layout as failure but amber border
+      // Compact row for "show all" mode — amber border
       const showLocationMultiplicity = row.isUnexpectedHit && row.duplicateCount > 1;
       const locationMultiplicityLabel = showLocationMultiplicity
         ? tPlural(t, "location.matchingLocations", row.duplicateCount, { count: row.duplicateCount })
@@ -1102,34 +1103,9 @@ function NarrativeRowsDisplay({
     );
   }
 
-  // For exact matches (showAllRows=false), render the single success row in card layout
-  if (!narrative.showAllRows && narrative.rows.length === 1 && narrative.rows[0].kind === "success") {
-    const row = narrative.rows[0];
-    return (
-      <div className="px-4 py-3 space-y-3 text-sm">
-        <div>
-          <div className="p-2.5 bg-dc-muted space-y-2">
-            <div className="flex items-start gap-2">
-              <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-700 dark:text-green-400 shrink-0">
-                <CheckIcon />
-              </span>
-              <QuotedText mono className="text-xs text-dc-foreground break-all">
-                {row.phraseDisplay}
-              </QuotedText>
-            </div>
-            <div className="flex items-center justify-between text-[11px] text-dc-subtle-foreground">
-              <span>{row.methodLabel}</span>
-              {row.locationLabel && <span>{row.locationLabel}</span>}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show all rows (not_found, partial, pending)
+  // Render all rows — NarrativeRowRenderer handles card vs compact layout per row.kind
   return (
-    <div className="px-4 py-2 space-y-1.5 text-sm">
+    <div className={narrative.showAllRows ? "px-4 py-2 space-y-1.5 text-sm" : undefined}>
       {narrative.rows.map(row => (
         <NarrativeRowRenderer key={row.key} row={row} />
       ))}
