@@ -19,6 +19,13 @@ import {
   VERIFIED_COLOR_DEFAULT,
   VERIFIED_COLOR_VAR,
 } from "./constants.js";
+
+// Hoisted bracket color strings — all inputs are static module-level constants,
+// so these never change and avoid per-render string allocations during zoom/pan.
+const VERIFIED_BRACKET_COLOR = `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`;
+const PARTIAL_BRACKET_COLOR = `var(${PARTIAL_COLOR_VAR}, ${PARTIAL_COLOR_DEFAULT})`;
+const ERROR_BRACKET_COLOR = `var(${ERROR_COLOR_VAR}, ${ERROR_COLOR_DEFAULT})`;
+
 import { useTranslation } from "./i18n.js";
 import { CloseIcon } from "./icons.js";
 import { toPercentRect } from "./overlayGeometry.js";
@@ -57,7 +64,7 @@ function SecondaryBrackets({
   const rect = toPercentRect(deepItem, renderScale, imageNaturalWidth, imageNaturalHeight);
   if (!rect) return null;
 
-  const bracketColor = `var(${PARTIAL_COLOR_VAR}, ${PARTIAL_COLOR_DEFAULT})`;
+  const bracketColor = PARTIAL_BRACKET_COLOR;
   const opacity = color === "muted" ? 0.35 : 0.5;
 
   const baseLeft = parseFloat(rect.left);
@@ -154,10 +161,10 @@ export function CitationAnnotationOverlay({
   // one token automatically keeps brackets, status indicators, and quote borders in sync.
   const bracketColor =
     highlightColor === "amber"
-      ? `var(${PARTIAL_COLOR_VAR}, ${PARTIAL_COLOR_DEFAULT})`
+      ? PARTIAL_BRACKET_COLOR
       : highlightColor === "red"
-        ? `var(${ERROR_COLOR_VAR}, ${ERROR_COLOR_DEFAULT})`
-        : `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`;
+        ? ERROR_BRACKET_COLOR
+        : VERIFIED_BRACKET_COLOR;
 
   // Compute pixel height for bracket width calculation
   const heightPx = phraseMatchDeepItem.height * renderScale.y;

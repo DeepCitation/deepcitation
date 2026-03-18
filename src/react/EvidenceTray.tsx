@@ -11,7 +11,7 @@
 
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
-import { isStrategyOverride, shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
+import { type HighlightColor, isStrategyOverride, shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
 import type { DeepTextItem, ScreenBox } from "../types/boxes.js";
 import type { CitationStatus } from "../types/citation.js";
 import type { SearchAttempt } from "../types/search.js";
@@ -1337,12 +1337,12 @@ export function InlineExpandedImage({
   const effectiveOverlayHidden = showOverlay !== undefined ? !showOverlay : overlayHidden;
 
   // Overlay bracket color derived from verification status (green/amber/red).
-  const overlayStatus = getStatusFromVerification(verification);
-  const overlayHighlightColor: import("../drawing/citationDrawing.js").HighlightColor = overlayStatus.isMiss
-    ? "red"
-    : overlayStatus.isPartialMatch
-      ? "amber"
-      : "green";
+  // Memoized: getStatusFromVerification walks searchAttempts, and this component
+  // re-renders at 60fps during zoom/pan — verification is stable across those renders.
+  const overlayHighlightColor = useMemo((): HighlightColor => {
+    const s = getStatusFromVerification(verification);
+    return s.isMiss ? "red" : s.isPartialMatch ? "amber" : "green";
+  }, [verification]);
 
   // Manual zoom override: null = use fitted zoom (automatic), number = user-selected zoom.
   // Replaces the previous zoom + hasManualZoomRef pattern to avoid setState in effects.

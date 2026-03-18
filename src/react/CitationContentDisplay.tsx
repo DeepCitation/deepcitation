@@ -152,9 +152,9 @@ export const CitationContentDisplay = ({
     if (shouldShowSpinner) {
       footnoteStatusClasses = "text-slate-500 dark:text-slate-400";
     } else if (isMiss) {
-      footnoteStatusClasses = "text-red-500 dark:text-red-400";
+      footnoteStatusClasses = "text-dc-destructive";
     } else if (isPartialMatch) {
-      footnoteStatusClasses = "text-amber-500 dark:text-amber-400";
+      footnoteStatusClasses = "text-dc-partial";
     } else if (isVerified) {
       footnoteStatusClasses = "text-dc-verified";
     } else {
