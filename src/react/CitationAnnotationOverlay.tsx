@@ -11,7 +11,7 @@ import {
   SPOTLIGHT_PADDING,
 } from "../drawing/citationDrawing.js";
 import type { DeepTextItem } from "../types/boxes.js";
-import { HITBOX_EXTEND_8 } from "./constants.js";
+import { HITBOX_EXTEND_8, VERIFIED_COLOR_DEFAULT, VERIFIED_COLOR_VAR } from "./constants.js";
 import { useTranslation } from "./i18n.js";
 import { CloseIcon } from "./icons.js";
 import { toPercentRect } from "./overlayGeometry.js";
@@ -143,9 +143,14 @@ export function CitationAnnotationOverlay({
   // Bail out if geometry is invalid (zero dimensions, NaN, Infinity, etc.)
   if (!rect) return null;
 
-  const bracketColor = getBracketColor(
-    highlightColor === "amber" ? "amber" : highlightColor === "red" ? "red" : "green",
-  );
+  // Use the CSS custom property for verified brackets so host theme overrides
+  // propagate here the same way they do for the status indicator and quote border.
+  const bracketColor =
+    highlightColor === "amber"
+      ? getBracketColor("amber")
+      : highlightColor === "red"
+        ? getBracketColor("red")
+        : `var(${VERIFIED_COLOR_VAR}, ${VERIFIED_COLOR_DEFAULT})`;
 
   // Compute pixel height for bracket width calculation
   const heightPx = phraseMatchDeepItem.height * renderScale.y;

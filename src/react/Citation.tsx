@@ -25,6 +25,7 @@ import {
   SPINNER_TIMEOUT_MS,
   TAP_SLOP_PX,
   TOUCH_CLICK_DEBOUNCE_MS,
+  VERIFIED_COLOR_STYLE,
 } from "./constants.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
 import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
@@ -1490,12 +1491,12 @@ const PendingDot = () => (
 );
 
 /**
- * Green verified checkmark indicator.
- * Uses emerald-500/400 to match BRANDING.md VERIFIED status color and SIGNAL_GREEN.
+ * Verified checkmark indicator.
+ * Color tracks --dc-verified so it stays in sync with the status dot and quote border.
  */
 const VerifiedCheck = () => (
   <span aria-hidden="true">
-    <CheckIcon className={cn("w-full h-full", "text-emerald-500 dark:text-emerald-400")} />
+    <CheckIcon className="w-full h-full" style={VERIFIED_COLOR_STYLE} />
   </span>
 );
 
