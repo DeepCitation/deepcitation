@@ -45,6 +45,20 @@ The popover height morph uses asymmetric durations separate from this scale:
 
 Collapse is always faster than expand — collapsing content should feel snappy and responsive, not linger.
 
+### Ambient / Decorative Tier
+
+For CSS-driven passive animations only — carousels, idle-state logo fades, background motion:
+
+| Tier | Range | Canonical Value | Rules |
+|------|-------|-----------------|-------|
+| Ambient Decorative | 800–2000ms | 1500ms | CSS-only. Never JS-triggered. Never represents state the user must notice. |
+
+**Rules:**
+- Must set `animation-play-state: paused` when `prefers-reduced-motion: reduce` is active.
+- Never apply to elements triggered by user interaction — use the 5-tier scale for those.
+- 1500ms is the canonical value, established by the `IntegrationStackSection` logo fade pattern.
+- Durations above 2000ms will be perceived as "broken" by users; durations below 800ms will feel interactive rather than ambient.
+
 ---
 
 ## Easing Curves
