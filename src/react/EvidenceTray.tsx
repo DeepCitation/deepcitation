@@ -1176,7 +1176,7 @@ export function EvidenceTray({
         <div key="analysis">
           <SearchAnalysisSummary searchAttempts={searchAttempts} verification={verification} />
           {footerEl}
-          {isSearchLogMounted ? (
+          {isSearchLogMounted && searchNarrative ? (
             <div style={searchLogMotionStyle}>
               <div className="overflow-hidden" style={{ minHeight: 0 }}>
                 <div className="border-t border-slate-200 dark:border-slate-700">
@@ -1185,7 +1185,7 @@ export function EvidenceTray({
                     className="max-h-[min(44dvh,420px)] overflow-y-auto overscroll-contain"
                   >
                     <VerificationLogTimeline
-                      narrative={searchNarrative!}
+                      narrative={searchNarrative}
                       fullPhrase={verification?.citation?.fullPhrase ?? verification?.verifiedFullPhrase ?? undefined}
                       anchorText={verification?.citation?.anchorText ?? verification?.verifiedAnchorText ?? undefined}
                       onCollapse={() => setShowSearchLog(false)}

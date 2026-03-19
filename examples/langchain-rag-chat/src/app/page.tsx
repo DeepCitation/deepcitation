@@ -1,13 +1,15 @@
 "use client";
 
 import { startTransition, useState } from "react";
-import { ChatMessage } from "@/components/ChatMessage";
+import { ChatMessage, LoadingSkeleton } from "@/components/ChatMessage";
+import { CORPUS_SOURCES } from "@/lib/corpus";
 import type { ChatResponse, ConversationMessage } from "@/lib/types";
 
 const SAMPLE_QUESTIONS = [
-  "Which company reported 42 percent revenue growth, and what else did management say?",
-  "What changed in the Solena battery safety pilot?",
-  "How did Aster Health improve onboarding and activation?",
+  "What discount rate applies when the YC SAFE converts, and what triggers a conversion event?",
+  "How many NVIDIA shares is Robertson planning to sell, and what is the estimated aggregate market value?",
+  "How does multi-head attention work, and why does the Transformer drop recurrence entirely?",
+  "What are the root causes of hallucination in language models, and how does RAG reduce them?",
 ];
 
 export default function Home() {
@@ -94,8 +96,8 @@ export default function Home() {
             </p>
             <div className="metrics-grid">
               <div className="metric-card">
-                <strong>3 PDFs</strong>
-                <span>Bundled local corpus, no upload flow</span>
+                <strong>4 PDFs</strong>
+                <span>Remote corpus, fetched and cached on first use</span>
               </div>
               <div className="metric-card">
                 <strong>0 infra</strong>
@@ -112,23 +114,11 @@ export default function Home() {
             {messages.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-card">
-                  <h2 className="mt-0 text-2xl font-semibold">Ask about the bundled research packets.</h2>
+                  <h2 className="mt-0 text-2xl font-semibold">Ask about the four corpus documents.</h2>
                   <p className="hero-copy">
-                    The server retrieves only the most relevant sources, then sends those exact PDFs through
-                    DeepCitation so the answer can be verified against page-level evidence.
+                    The server retrieves only the most relevant sources, then fetches those exact PDFs and sends them
+                    through DeepCitation so the answer can be verified against page-level evidence.
                   </p>
-                  <div className="sample-list">
-                    {SAMPLE_QUESTIONS.map(sample => (
-                      <button
-                        key={sample}
-                        type="button"
-                        className="sample-button"
-                        onClick={() => setQuestion(sample)}
-                      >
-                        {sample}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
             ) : (
@@ -136,12 +126,7 @@ export default function Home() {
                 {messages.map(message => (
                   <ChatMessage key={message.id} message={message} />
                 ))}
-                {isLoading ? (
-                  <div className="status-line">
-                    <span className="dot pending" />
-                    Retrieving sources, generating the answer, and verifying citations.
-                  </div>
-                ) : null}
+                {isLoading ? <LoadingSkeleton /> : null}
               </div>
             )}
           </div>
@@ -214,11 +199,18 @@ export default function Home() {
           </section>
 
           <section className="side-section">
-            <h3>Bundled corpus</h3>
-            <ul>
-              <li>Northstar Robotics Q1 Brief</li>
-              <li>Solena Energy Battery Safety Pilot</li>
-              <li>Aster Health Onboarding Study</li>
+            <h3>Corpus</h3>
+            <ul className="corpus-list">
+              {CORPUS_SOURCES.map(doc => (
+                <li key={doc.filename}>
+                  <a className="corpus-link" href={`/api/corpus/${doc.filename}`} target="_blank" rel="noreferrer">
+                    <span>{doc.title}</span>
+                    <svg className="external-link-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5ZM10 2.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V4.56l-5.22 5.22a.75.75 0 1 1-1.06-1.06l5.22-5.22h-4.69a.75.75 0 0 1-.75-.75Z" />
+                    </svg>
+                  </a>
+                </li>
+              ))}
             </ul>
           </section>
         </aside>

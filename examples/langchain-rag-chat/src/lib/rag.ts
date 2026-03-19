@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
@@ -10,13 +9,17 @@ import {
   getCitationStatus,
   wrapCitationPrompt,
 } from "deepcitation";
-import { CORPUS_SOURCES, getCorpusFilePath, type CorpusSource } from "@/lib/corpus";
+import { CORPUS_SOURCES, type CorpusSource } from "@/lib/corpus";
 import type { ChatResponse, RetrievedSource, VerificationSummary } from "@/lib/types";
 
 const deepCitationApiKey = process.env.DEEPCITATION_API_KEY;
 const openAiApiKey = process.env.OPENAI_API_KEY;
 
-const deepCitation = deepCitationApiKey ? new DeepCitation({ apiKey: deepCitationApiKey }) : null;
+// endUserId is a static app-level label here. In a multi-user deployment replace it
+// with a per-user identifier so DeepCitation can attribute usage correctly.
+const deepCitation = deepCitationApiKey
+  ? new DeepCitation({ apiKey: deepCitationApiKey, endUserId: "langchain-rag-chat" })
+  : null;
 const openai = openAiApiKey ? new OpenAI({ apiKey: openAiApiKey }) : null;
 
 // Module-level singleton — fine for local dev; serverless cold starts rebuild the store,
@@ -29,13 +32,78 @@ const preparedAttachmentCache = new Map<
 
 const MAX_RETRIEVED_SOURCES = 2;
 
+// ---------------------------------------------------------------------------
+// Attachment resolution
+// ---------------------------------------------------------------------------
+// Each corpus source may have a cached attachmentId stored as an env var
+// (e.g. DEEPCITATION_ATTACHMENT_YC_SAFE). When the var is set we call the
+// lightweight getAttachment() instead of re-uploading the full PDF on every
+// cold start. If deepTextPromptPortion is absent from that response (it is
+// optional) we fall back to uploading.
+//
+// All four sources are resolved eagerly at module load so the first request
+// doesn't pay the upload cost. Errors surface per-request via the rejected
+// promise stored in the cache.
+// ---------------------------------------------------------------------------
+
+async function resolveAttachment(
+  dc: DeepCitation,
+  source: CorpusSource,
+): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+  const savedId = process.env[source.attachmentEnvVar];
+
+  if (savedId) {
+    const attachment = await dc.getAttachment(savedId);
+    if (attachment.deepTextPromptPortion) {
+      return { attachmentId: savedId, deepTextPromptPortion: attachment.deepTextPromptPortion };
+    }
+    console.warn(
+      `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPromptPortion — re-uploading.`,
+    );
+  }
+
+  const response = await fetch(source.url, { signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch "${source.filename}": ${response.status} ${response.statusText}`);
+  }
+  const file = Buffer.from(await response.arrayBuffer());
+  const prepared = await dc.prepareAttachments([{ file, filename: source.filename }]);
+  const attachmentId = prepared.fileDataParts[0].attachmentId;
+
+  console.log(
+    `[DeepCitation] Uploaded "${source.title}". Add to env to skip re-upload on cold starts:\n  ${source.attachmentEnvVar}=${attachmentId}`,
+  );
+
+  return { attachmentId, deepTextPromptPortion: prepared.deepTextPromptPortion };
+}
+
+function getAttachmentPromise(
+  dc: DeepCitation,
+  source: CorpusSource,
+): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+  const existing = preparedAttachmentCache.get(source.id);
+  if (existing) return existing;
+  const pending = resolveAttachment(dc, source);
+  preparedAttachmentCache.set(source.id, pending);
+  return pending;
+}
+
+// Kick off warmup for all sources immediately (fire-and-forget).
+// Warm serverless instances reuse the cache; cold starts begin resolving
+// before the first request arrives, cutting per-request latency.
+if (deepCitation) {
+  for (const source of CORPUS_SOURCES) {
+    preparedAttachmentCache.set(source.id, resolveAttachment(deepCitation, source));
+  }
+}
+
 function getRequiredClient(): DeepCitation {
   if (!deepCitationApiKey || !deepCitation) {
-    throw new Error("DEEPCITATION_API_KEY is missing. Copy examples/basic-verification/.env into .env.local.");
+    throw new Error("DEEPCITATION_API_KEY is not set. Add it to your environment variables.");
   }
 
   if (!openAiApiKey) {
-    throw new Error("OPENAI_API_KEY is missing. Copy examples/basic-verification/.env into .env.local.");
+    throw new Error("OPENAI_API_KEY is not set. Add it to your environment variables.");
   }
 
   return deepCitation;
@@ -43,7 +111,7 @@ function getRequiredClient(): DeepCitation {
 
 function getRequiredOpenAiClient(): OpenAI {
   if (!openAiApiKey || !openai) {
-    throw new Error("OPENAI_API_KEY is missing. Copy examples/basic-verification/.env into .env.local.");
+    throw new Error("OPENAI_API_KEY is not set. Add it to your environment variables.");
   }
 
   return openai;
@@ -119,31 +187,6 @@ async function retrieveSources(question: string): Promise<RetrievedSource[]> {
   }));
 }
 
-async function prepareAttachment(
-  dc: DeepCitation,
-  source: CorpusSource,
-): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
-  const existing = preparedAttachmentCache.get(source.id);
-  if (existing) return existing;
-
-  const pending = (async () => {
-    const file = await readFile(getCorpusFilePath(source.filename));
-    const prepared = await dc.prepareAttachments([
-      {
-        file,
-        filename: source.filename,
-      },
-    ]);
-
-    return {
-      attachmentId: prepared.fileDataParts[0].attachmentId,
-      deepTextPromptPortion: prepared.deepTextPromptPortion,
-    };
-  })();
-
-  preparedAttachmentCache.set(source.id, pending);
-  return pending;
-}
 
 function buildRetrievalNarrative(retrievedSources: RetrievedSource[]): string {
   return retrievedSources
@@ -218,7 +261,7 @@ export async function answerQuestion(question: string): Promise<ChatResponse> {
   const openAiClient = getRequiredOpenAiClient();
   const retrievedSources = await retrieveSources(question);
   const sourceDefs = retrievedSources.map(source => getSourceById(source.sourceId));
-  const preparedSources = await Promise.all(sourceDefs.map(source => prepareAttachment(dc, source)));
+  const preparedSources = await Promise.all(sourceDefs.map(source => getAttachmentPromise(dc, source)));
 
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt:

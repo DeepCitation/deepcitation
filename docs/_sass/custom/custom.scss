@@ -773,8 +773,10 @@ blockquote {
   font-size: 0.875rem; // 14px
   padding: 1.5rem 0;
 
-  // Hide the "Built with Just the Docs" text
-  a[href*="just-the-docs"] {
+  // Hide JTD's default "This site uses [Just the Docs], a documentation theme
+  // for Jekyll" paragraph. Hiding only the link leaves orphaned text with a
+  // blank where the theme name was. The footer_content config provides our own.
+  > p:last-child {
     display: none;
   }
 }

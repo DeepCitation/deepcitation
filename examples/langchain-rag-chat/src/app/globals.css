@@ -266,38 +266,99 @@ textarea {
   color: var(--muted);
 }
 
-.summary-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
+.drawer-trigger-row {
   margin-top: 0.8rem;
 }
 
-.summary-badge {
-  border-radius: 999px;
-  padding: 0.38rem 0.68rem;
-  font-size: 0.78rem;
-  font-weight: 700;
+/* ── Loading skeleton ── */
+
+.skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
 }
 
-.summary-badge.verified {
-  background: rgba(220, 252, 231, 0.95);
-  color: #15803d;
+.skeleton-line {
+  height: 0.85rem;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(110, 82, 49, 0.08) 25%,
+    rgba(110, 82, 49, 0.16) 50%,
+    rgba(110, 82, 49, 0.08) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
 }
 
-.summary-badge.partial {
-  background: rgba(254, 249, 195, 0.95);
-  color: #854d0e;
+.loading-label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--muted);
+  font-size: 0.86rem;
 }
 
-.summary-badge.missed {
-  background: rgba(254, 226, 226, 0.95);
-  color: #b91c1c;
+.loading-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(110, 82, 49, 0.18);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
-.summary-badge.pending {
-  background: rgba(226, 232, 240, 0.95);
-  color: #475569;
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Corpus download links ── */
+
+.corpus-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.corpus-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.88rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.corpus-link:hover {
+  background: rgba(255, 247, 237, 0.9);
+  border-color: rgba(154, 52, 18, 0.25);
+}
+
+.corpus-link span {
+  flex: 1;
+  color: var(--ink);
+}
+
+.external-link-icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--muted);
+  flex-shrink: 0;
 }
 
 .retrieval-grid {
