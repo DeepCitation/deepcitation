@@ -95,16 +95,25 @@ A set of high-quality React components to help you build production-ready attrib
 Clone a working example and have citations running in under 2 minutes:
 
 ```bash
-# Next.js chat app with streaming citations
+# Quickest start — Next.js chat with Vercel AI SDK
 git clone https://github.com/DeepCitation/deepcitation.git
 cd deepcitation/examples/nextjs-ai-sdk
 cp .env.example .env.local  # add your API keys
 npm install && npm run dev
 ```
 
+For RAG pipelines with LangChain.js and in-memory vector search:
+
+```bash
+cd deepcitation/examples/langchain-rag-chat
+cp .env.example .env.local  # add DEEPCITATION_API_KEY + OPENAI_API_KEY
+npm install && npm run dev
+```
+
 ## Examples
 
 - [Basic Verification](./examples/basic-verification)
+- [LangChain RAG Chat](./examples/langchain-rag-chat)
 - [Next.js AI SDK Chat App](./examples/nextjs-ai-sdk)
 - [URL Citations](./examples/url-example)
 
@@ -127,7 +136,7 @@ npm run test:ct -- --grep "visual snapshot"
 ## Go deeper
 
 - [Full Documentation](https://docs.deepcitation.com)
-- [Examples](./examples) -- Basic verification, Next.js chat app, URL citations
+- [Examples](./examples) -- Basic verification, LangChain RAG chat, Next.js chat app, URL citations
 - [Integration Guide](./INTEGRATION.md) -- For AI coding assistants
 - [Error Handling Guide](./docs/error-handling.md) -- Production error patterns
 - [Styling Guide](./docs/styling.md) -- CSS custom properties and theming
