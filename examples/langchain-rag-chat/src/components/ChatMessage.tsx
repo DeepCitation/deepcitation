@@ -1,8 +1,14 @@
 "use client";
 
 import { parseCitationResponse } from "deepcitation";
-import { CitationComponent } from "deepcitation/react";
-import { useMemo } from "react";
+import {
+  CitationComponent,
+  CitationDrawer,
+  CitationDrawerTrigger,
+  groupCitationsBySource,
+} from "deepcitation/react";
+import type { CitationDrawerItem } from "deepcitation/react";
+import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ConversationMessage } from "@/lib/types";
@@ -13,11 +19,26 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Memoized so re-renders (e.g. summary badge updates) don't re-parse on every frame.
   const parsed = useMemo(
     () => (message.rawLlmOutput ? parseCitationResponse(message.rawLlmOutput) : null),
     [message.rawLlmOutput],
+  );
+
+  const drawerItems = useMemo<CitationDrawerItem[]>(() => {
+    const citations = message.citations ?? {};
+    const verifications = message.verifications ?? {};
+    return Object.entries(citations).map(([citationKey, citation]) => ({
+      citationKey,
+      citation,
+      verification: verifications[citationKey] ?? null,
+    }));
+  }, [message.citations, message.verifications]);
+
+  const citationGroups = useMemo(
+    () => groupCitationsBySource(drawerItems),
+    [drawerItems],
   );
 
   return (
@@ -37,20 +58,21 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 : <p>{message.content}</p>}
             </div>
 
-            {message.summary ? (
-              <div className="summary-badges">
-                <span className="summary-badge verified">{message.summary.verified} verified</span>
-                {message.summary.partial > 0 ? (
-                  <span className="summary-badge partial">{message.summary.partial} partial</span>
-                ) : null}
-                {message.summary.missed > 0 ? (
-                  <span className="summary-badge missed">{message.summary.missed} missed</span>
-                ) : null}
-                {message.summary.pending > 0 ? (
-                  <span className="summary-badge pending">{message.summary.pending} pending</span>
-                ) : null}
-                <span className="summary-badge pending">{message.summary.total} total</span>
-              </div>
+            {citationGroups.length > 0 ? (
+              <>
+                <div className="drawer-trigger-row">
+                  <CitationDrawerTrigger
+                    citationGroups={citationGroups}
+                    onClick={() => setDrawerOpen(true)}
+                    isOpen={drawerOpen}
+                  />
+                </div>
+                <CitationDrawer
+                  isOpen={drawerOpen}
+                  onClose={() => setDrawerOpen(false)}
+                  citationGroups={citationGroups}
+                />
+              </>
             ) : null}
 
             {message.retrievedSources && message.retrievedSources.length > 0 ? (
@@ -71,6 +93,28 @@ export function ChatMessage({ message }: ChatMessageProps) {
       </article>
 
       {isUser ? <div className="avatar user">U</div> : null}
+    </div>
+  );
+}
+
+/** Skeleton placeholder shown while the server is processing. */
+export function LoadingSkeleton() {
+  return (
+    <div className="message-row">
+      <div className="avatar">DC</div>
+      <article className="message-card">
+        <p className="message-heading">Answer</p>
+        <div className="skeleton-lines">
+          <div className="skeleton-line" style={{ width: "92%" }} />
+          <div className="skeleton-line" style={{ width: "78%" }} />
+          <div className="skeleton-line" style={{ width: "85%" }} />
+          <div className="skeleton-line" style={{ width: "60%" }} />
+        </div>
+        <div className="loading-label">
+          <span className="loading-spinner" />
+          Retrieving sources, generating answer, and verifying citations&hellip;
+        </div>
+      </article>
     </div>
   );
 }

@@ -1,9 +1,23 @@
 import { NextResponse } from "next/server";
 import { answerQuestion } from "@/lib/rag";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const { allowed, remaining, reason } = checkRateLimit(ip);
+  if (!allowed) {
+    const message =
+      reason === "ip"
+        ? "You\u2019ve reached the per-user daily limit (5 queries). Fork this example and add your own API keys to remove the limit."
+        : "Daily query limit reached. Fork this example and add your own API keys to remove the limit.";
+    return NextResponse.json(
+      { error: message },
+      { status: 429, headers: { "Retry-After": "86400" } },
+    );
+  }
+
   let body: { question?: unknown };
 
   try {
@@ -21,7 +35,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    return NextResponse.json(await answerQuestion(question));
+    const result = await answerQuestion(question);
+    return NextResponse.json(result, {
+      headers: { "X-RateLimit-Remaining": String(remaining) },
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },

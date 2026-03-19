@@ -1,13 +1,21 @@
 "use client";
 
 import { startTransition, useState } from "react";
-import { ChatMessage } from "@/components/ChatMessage";
+import { ChatMessage, LoadingSkeleton } from "@/components/ChatMessage";
 import type { ChatResponse, ConversationMessage } from "@/lib/types";
 
 const SAMPLE_QUESTIONS = [
-  "Which company reported 42 percent revenue growth, and what else did management say?",
-  "What changed in the Solena battery safety pilot?",
-  "How did Aster Health improve onboarding and activation?",
+  "What discount rate applies when the YC SAFE converts, and what triggers a conversion event?",
+  "How many NVIDIA shares is Robertson planning to sell, and what is the estimated aggregate market value?",
+  "How does multi-head attention work, and why does the Transformer drop recurrence entirely?",
+  "What are the root causes of hallucination in language models, and how does RAG reduce them?",
+];
+
+const CORPUS_DOCS = [
+  { title: "YC SAFE (Discount Only)", filename: "YC_SAFE_Discount_Only.docx.pdf" },
+  { title: "NVDA Form 144 – Robertson", filename: "NVDA_Form144_Robertson.pdf" },
+  { title: "Attention Is All You Need", filename: "Attention Is All You Need.pdf" },
+  { title: "Why Language Models Hallucinate", filename: "Why Language Models Hallucinate.pdf" },
 ];
 
 export default function Home() {
@@ -94,8 +102,8 @@ export default function Home() {
             </p>
             <div className="metrics-grid">
               <div className="metric-card">
-                <strong>3 PDFs</strong>
-                <span>Bundled local corpus, no upload flow</span>
+                <strong>4 PDFs</strong>
+                <span>Remote corpus, fetched and cached on first use</span>
               </div>
               <div className="metric-card">
                 <strong>0 infra</strong>
@@ -112,10 +120,10 @@ export default function Home() {
             {messages.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-card">
-                  <h2 className="mt-0 text-2xl font-semibold">Ask about the bundled research packets.</h2>
+                  <h2 className="mt-0 text-2xl font-semibold">Ask about the three corpus documents.</h2>
                   <p className="hero-copy">
-                    The server retrieves only the most relevant sources, then sends those exact PDFs through
-                    DeepCitation so the answer can be verified against page-level evidence.
+                    The server retrieves only the most relevant sources, then fetches those exact PDFs and sends them
+                    through DeepCitation so the answer can be verified against page-level evidence.
                   </p>
                   <div className="sample-list">
                     {SAMPLE_QUESTIONS.map(sample => (
@@ -136,12 +144,7 @@ export default function Home() {
                 {messages.map(message => (
                   <ChatMessage key={message.id} message={message} />
                 ))}
-                {isLoading ? (
-                  <div className="status-line">
-                    <span className="dot pending" />
-                    Retrieving sources, generating the answer, and verifying citations.
-                  </div>
-                ) : null}
+                {isLoading ? <LoadingSkeleton /> : null}
               </div>
             )}
           </div>
@@ -215,10 +218,17 @@ export default function Home() {
 
           <section className="side-section">
             <h3>Bundled corpus</h3>
-            <ul>
-              <li>Northstar Robotics Q1 Brief</li>
-              <li>Solena Energy Battery Safety Pilot</li>
-              <li>Aster Health Onboarding Study</li>
+            <ul className="corpus-list">
+              {CORPUS_DOCS.map(doc => (
+                <li key={doc.filename}>
+                  <a className="corpus-link" href={`/api/corpus/${doc.filename}`} download>
+                    <span>{doc.title}</span>
+                    <svg className="download-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path d="M10 3a.75.75 0 0 1 .75.75v7.19l2.72-2.72a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-1.06 0l-4-4a.75.75 0 0 1 1.06-1.06l2.72 2.72V3.75A.75.75 0 0 1 10 3ZM4 15.25a.75.75 0 0 1 .75.75v.5h10.5v-.5a.75.75 0 0 1 1.5 0v.5A1.5 1.5 0 0 1 15.25 18H4.75A1.5 1.5 0 0 1 3.25 16.5v-.5a.75.75 0 0 1 .75-.75Z" />
+                    </svg>
+                  </a>
+                </li>
+              ))}
             </ul>
           </section>
         </aside>
