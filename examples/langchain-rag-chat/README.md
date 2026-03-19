@@ -75,6 +75,6 @@ Rate limit state is in-process (module-level), so it resets on cold starts — i
 
 ## Notes
 
-- The example uses `gpt-4o-mini` for answer generation.
+- The example uses `gpt-5-mini` for answer generation.
 - The vector store is process-local and rebuilt on cold starts.
 - Corpus PDFs are served for download via the `/api/corpus/[filename]` route (redirects to the source URL).
