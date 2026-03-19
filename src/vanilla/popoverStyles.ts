@@ -16,8 +16,8 @@ export const POPOVER_CSS = `
   font-size: 14px;
   line-height: 1.5;
   background: var(--dc-pop-bg, #fff);
-  color: var(--dc-pop-text, #1f2937);
-  border: 1px solid var(--dc-pop-border, #e5e7eb);
+  color: var(--dc-pop-text, #27272a);
+  border: 1px solid var(--dc-pop-border, #e4e4e7);
 }
 
 .dc-pop-content {
@@ -30,7 +30,7 @@ export const POPOVER_CSS = `
   padding: 8px 12px;
   font-weight: 600;
   font-size: 13px;
-  border-bottom: 1px solid var(--dc-pop-border, #e5e7eb);
+  border-bottom: 1px solid var(--dc-pop-border, #e4e4e7);
 }
 
 .dc-pop-verified {
@@ -49,16 +49,16 @@ export const POPOVER_CSS = `
 }
 
 .dc-pop-pending {
-  background: var(--dc-pop-pending-bg, #f9fafb);
-  color: var(--dc-pop-pending-text, #6b7280);
+  background: var(--dc-pop-pending-bg, #fafafa);
+  color: var(--dc-pop-pending-text, #71717a);
 }
 
 /* ── Source label ── */
 .dc-pop-source {
   padding: 6px 12px;
   font-size: 12px;
-  color: var(--dc-pop-muted, #6b7280);
-  border-bottom: 1px solid var(--dc-pop-border, #e5e7eb);
+  color: var(--dc-pop-muted, #71717a);
+  border-bottom: 1px solid var(--dc-pop-border, #e4e4e7);
 }
 
 /* ── Quote blockquote ── */
@@ -67,8 +67,8 @@ export const POPOVER_CSS = `
   padding: 8px 12px;
   font-style: italic;
   font-size: 13px;
-  color: var(--dc-pop-muted, #6b7280);
-  border-left: 3px solid var(--dc-pop-border, #e5e7eb);
+  color: var(--dc-pop-muted, #71717a);
+  border-left: 3px solid var(--dc-pop-border, #e4e4e7);
 }
 
 /* ── Evidence image ── */
@@ -77,8 +77,8 @@ export const POPOVER_CSS = `
   width: 100%;
   max-height: 200px;
   object-fit: contain;
-  border-top: 1px solid var(--dc-pop-border, #e5e7eb);
-  background: var(--dc-pop-image-bg, #f9fafb);
+  border-top: 1px solid var(--dc-pop-border, #e4e4e7);
+  background: var(--dc-pop-image-bg, #fafafa);
 }
 
 /* ── Expanded image overlay ── */
@@ -103,37 +103,37 @@ export const POPOVER_CSS = `
 
 /* ── Dark theme via custom properties ── */
 [data-dc-theme="dark"] {
-  --dc-pop-bg: #1f2937;
-  --dc-pop-text: #f9fafb;
-  --dc-pop-border: #374151;
-  --dc-pop-muted: #9ca3af;
-  --dc-pop-image-bg: #111827;
+  --dc-pop-bg: #27272a;
+  --dc-pop-text: #fafafa;
+  --dc-pop-border: #3f3f46;
+  --dc-pop-muted: #a1a1aa;
+  --dc-pop-image-bg: #18181b;
   --dc-pop-verified-bg: #052e16;
   --dc-pop-verified-text: #4ade80;
   --dc-pop-partial-bg: #451a03;
   --dc-pop-partial-text: #fbbf24;
   --dc-pop-notfound-bg: #450a0a;
   --dc-pop-notfound-text: #f87171;
-  --dc-pop-pending-bg: #1f2937;
-  --dc-pop-pending-text: #9ca3af;
+  --dc-pop-pending-bg: #27272a;
+  --dc-pop-pending-text: #a1a1aa;
 }
 
 /* ── Auto theme (follow system) ── */
 @media (prefers-color-scheme: dark) {
   [data-dc-theme="auto"] {
-    --dc-pop-bg: #1f2937;
-    --dc-pop-text: #f9fafb;
-    --dc-pop-border: #374151;
-    --dc-pop-muted: #9ca3af;
-    --dc-pop-image-bg: #111827;
+    --dc-pop-bg: #27272a;
+    --dc-pop-text: #fafafa;
+    --dc-pop-border: #3f3f46;
+    --dc-pop-muted: #a1a1aa;
+    --dc-pop-image-bg: #18181b;
     --dc-pop-verified-bg: #052e16;
     --dc-pop-verified-text: #4ade80;
     --dc-pop-partial-bg: #451a03;
     --dc-pop-partial-text: #fbbf24;
     --dc-pop-notfound-bg: #450a0a;
     --dc-pop-notfound-text: #f87171;
-    --dc-pop-pending-bg: #1f2937;
-    --dc-pop-pending-text: #9ca3af;
+    --dc-pop-pending-bg: #27272a;
+    --dc-pop-pending-text: #a1a1aa;
   }
 }
 
@@ -145,6 +145,6 @@ export const POPOVER_CSS = `
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.7;
-  color: var(--dc-pop-text, #1f2937);
+  color: var(--dc-pop-text, #27272a);
 }
 `;

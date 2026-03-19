@@ -137,7 +137,7 @@ export const DOCUMENT_CANVAS_BG_LIGHT_VAR = "--dc-document-canvas-bg-light";
 export const DOCUMENT_CANVAS_BG_DARK_VAR = "--dc-document-canvas-bg-dark";
 /** Neutral canvas behind page images so white documents stay visually bounded. */
 export const DOCUMENT_CANVAS_BG_CLASSES =
-  "bg-[var(--dc-document-canvas-bg-light,rgb(243_244_246))] dark:bg-[var(--dc-document-canvas-bg-dark,rgb(31_41_55))]";
+  "bg-[var(--dc-document-canvas-bg-light,rgb(244_244_245))] dark:bg-[var(--dc-document-canvas-bg-dark,rgb(39_39_42))]";
 /** Subtle outline around document images to preserve edge contrast on light canvases. */
 export const DOCUMENT_IMAGE_EDGE_CLASSES = "ring-1 ring-black/10 dark:ring-white/15";
 

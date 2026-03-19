@@ -215,7 +215,7 @@ test.describe("Expanded-Page Basics - Dark Mode", () => {
     const { expandedView } = await expandToFullPage(page);
 
     const backgroundColor = await expandedView.evaluate(el => window.getComputedStyle(el as HTMLElement).backgroundColor);
-    expect(backgroundColor).toBe("rgb(31, 41, 55)");
+    expect(backgroundColor).toBe("rgb(39, 39, 42)");
   });
 });
 

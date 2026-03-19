@@ -68,8 +68,8 @@ Treat this amber as a **difference-revealing accent** and a small part of the De
 |----------|---------|-------|
 | `--dc-popover-width` | `480px` | Popover container width |
 | `--dc-keyhole-strip-height` | `120px` | Evidence keyhole strip height |
-| `--dc-document-canvas-bg-light` | `rgb(243 244 246)` | Light-mode proof image background |
-| `--dc-document-canvas-bg-dark` | `rgb(31 41 55)` | Dark-mode proof image background |
+| `--dc-document-canvas-bg-light` | `rgb(244 244 245)` | Light-mode proof image background |
+| `--dc-document-canvas-bg-dark` | `rgb(39 39 42)` | Dark-mode proof image background |
 | `--dc-guard-max-width` | `calc(100dvw - 2rem)` | Viewport-constrained max width |
 
 ### Surface Alignment Considerations
@@ -118,7 +118,7 @@ For the SDK, these are **reference surfaces, not defaults**:
 
 **React component (declarative):**
 ```tsx
-import { DeepCitationTheme } from "deepcitation";
+import { DeepCitationTheme } from "deepcitation/react";
 
 <DeepCitationTheme
   theme={{ background: "#fdfbf7", border: "#e2e0dc", verified: "#0d9488" }}

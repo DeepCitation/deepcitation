@@ -88,13 +88,13 @@ function getPreviewCss(): string {
     ".dc-preview-scope span.dc-citation.dc-not-found { text-decoration: underline wavy #ef4444; text-underline-offset: 3px; }",
     ".dc-preview-scope span.dc-citation.dc-pending { text-decoration: underline dotted #9ca3af; text-underline-offset: 3px; }",
     ".dc-preview-scope .dc-brackets { font-family: monospace; font-size: 0.85em; }",
-    ".dc-preview-scope .dc-chip { display: inline-flex; align-items: center; gap: 2px; padding: 1px 8px; border-radius: 9999px; font-size: 0.85em; background: #f3f4f6; border: 1px solid #e5e7eb; }",
+    ".dc-preview-scope .dc-chip { display: inline-flex; align-items: center; gap: 2px; padding: 1px 8px; border-radius: 9999px; font-size: 0.85em; background: #f4f4f5; border: 1px solid #e4e4e7; }",
     ".dc-preview-scope .dc-chip.dc-verified { background: #f0fdf4; border-color: #bbf7d0; }",
     ".dc-preview-scope .dc-chip.dc-partial { background: #fffbeb; border-color: #fde68a; }",
     ".dc-preview-scope .dc-chip.dc-not-found { background: #fef2f2; border-color: #fecaca; }",
     ".dc-preview-scope .dc-chip.dc-pending { background: #f9fafb; border-color: #e5e7eb; }",
     ".dc-preview-scope .dc-tooltip-wrap { position: relative; display: inline; }",
-    ".dc-preview-scope .dc-tooltip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #1f2937; color: #f9fafb; padding: 6px 10px; border-radius: 6px; font-size: 12px; white-space: nowrap; z-index: 10; margin-bottom: 4px; }",
+    ".dc-preview-scope .dc-tooltip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #27272a; color: #fafafa; padding: 6px 10px; border-radius: 6px; font-size: 12px; white-space: nowrap; z-index: 10; margin-bottom: 4px; }",
     ".dc-preview-scope .dc-tooltip-wrap:hover .dc-tooltip { display: block; }",
   ].join("\n");
 }

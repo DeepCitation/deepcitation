@@ -28,7 +28,7 @@ const STATUS_COLORS: { light: ThemeColors; dark: ThemeColors } = {
     verified: { text: "#34d399", bg: "#022c22", border: "#065f46" },
     partial: { text: "#fbbf24", bg: "#451a03", border: "#92400e" },
     notFound: { text: "#f87171", bg: "#450a0a", border: "#991b1b" },
-    pending: { text: "#9ca3af", bg: "#1f2937", border: "#374151" },
+    pending: { text: "#a1a1aa", bg: "#27272a", border: "#3f3f46" },
   },
 };
 

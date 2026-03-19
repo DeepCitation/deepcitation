@@ -24,9 +24,9 @@ function createCanvasDataUrl(width: number, height: number, label: string): stri
   if (!ctx) {
     return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mO8cuXKfwYGBgYGAAi7Av7W3NgAAAAASUVORK5CYII=";
   }
-  ctx.fillStyle = "#f3f4f6";
+  ctx.fillStyle = "#f4f4f5";
   ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = "#111827";
+  ctx.fillStyle = "#18181b";
   ctx.font = `${Math.max(16, Math.floor(height * 0.18))}px sans-serif`;
   ctx.fillText(label, 20, Math.max(30, Math.floor(height * 0.45)));
   ctx.strokeStyle = "#2563eb";
