@@ -13,7 +13,7 @@
   "dependencies": {
     "@langchain/core": "^0.3.79",
     "@langchain/openai": "^0.6.16",
-    "deepcitation": "file:../../",
+    "deepcitation": "latest",
     "langchain": "^0.3.36",
     "next": "^16.1.1",
     "openai": "^6.16.0",
