@@ -62,9 +62,10 @@ describe("EvidenceTray interaction styles", () => {
 
     const viewPageButton = container.querySelector("button[aria-label*='View page']") as HTMLElement | null;
     expect(viewPageButton).toBeTruthy();
-    expect(viewPageButton!.className).toContain("text-dc-muted-foreground");
-    expect(viewPageButton!.className).toContain("hover:text-dc-foreground");
-    expect(viewPageButton!.className).toContain("focus-visible:ring-2");
+    if (!viewPageButton) throw new Error("viewPageButton was null");
+    expect(viewPageButton.className).toContain("text-dc-muted-foreground");
+    expect(viewPageButton.className).toContain("hover:text-dc-foreground");
+    expect(viewPageButton.className).toContain("focus-visible:ring-2");
   });
 
   it('uses a custom footer CTA label when provided (for example, "View image")', () => {
@@ -149,10 +150,11 @@ describe("EvidenceTray interaction styles", () => {
       /1 attempt/i.test(btn.textContent ?? ""),
     );
     expect(toggleButton).toBeTruthy();
+    if (!toggleButton) throw new Error("toggleButton was null");
 
     // Open search log and let React flush effects.
     await act(async () => {
-      fireEvent.click(toggleButton!);
+      fireEvent.click(toggleButton);
     });
     const attemptRowText = getByText("alpha");
 

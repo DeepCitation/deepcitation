@@ -158,13 +158,13 @@ The popover has three states: `"summary"` → `"expanded-keyhole"` → `"expande
 
 Rules:
 - Side is picked once on open (`useLockedPopoverSide`) and never changes for the lifetime of the popover. Do not re-evaluate or flip.
-- `avoidCollisions` is unconditionally `false` on `<PopoverContent>`. Radix's flip/shift middleware is fully disabled. The hooks handle positioning.
+- `avoidCollisions` is unconditionally `false` on `<PopoverContent>`. Collision avoidance is disabled — `Popover.tsx` handles positioning directly via `computePosition`.
 - `expanded-page` records which state preceded it (`prevBeforeExpandedPageRef`) so Escape navigates back correctly.
 - Width snaps to target — no `transition: width`. Intermediate frames during width changes are incoherent for content-heavy containers (text rewraps, images rescale).
 
 Positioning is three-layer:
 
-1. Radix `transform: translate3d()` — primary placement
+1. `Popover.tsx` `computePosition` → `translate3d()` — primary placement
 2. `sideOffset` + `alignOffset` from hooks — optimize common cases
 3. `useViewportBoundaryGuard` CSS `translate` — hard safety net, no-op when layers 1–2 are correct
 
@@ -193,7 +193,7 @@ Rules:
 
 All three evidence view states (summary `EvidenceTray`, expanded-keyhole `InlineExpandedImage`, expanded-page `InlineExpandedImage`) must be rendered simultaneously. Inactive views are hidden with `display: none`.
 
-**Never conditionally mount or unmount a component inside the evidence zone.** React 19's StrictMode corrupts the fiber effect linked-list when components with hooks are conditionally swapped inside a Radix portal. This manifests as: `"Cannot read properties of undefined (reading 'destroy')"` in `commitHookEffectListUnmount`.
+**Never conditionally mount or unmount a component inside the evidence zone.** React 19's StrictMode corrupts the fiber effect linked-list when components with hooks are conditionally swapped inside a portaled popover. This manifests as: `"Cannot read properties of undefined (reading 'destroy')"` in `commitHookEffectListUnmount`.
 
 This applies to the `EvidenceZone` component in `DefaultPopoverContent.tsx`. If you need to add a fourth view state, add a fourth always-rendered slot — do not use conditional rendering.
 
@@ -391,5 +391,5 @@ Two coordinated `Element.animate()` calls run in parallel:
 - **No `avoidCollisions={true}`** on `<PopoverContent>`. It is unconditionally `false`.
 - **No conditional mount/unmount in EvidenceZone.** Always-render with `display: none`.
 - **No haptics on hover or scroll.** Only on committed user actions.
-- **No `document.body.setAttribute("inert", "")`** for focus trapping. It makes the Radix portal inert. Target `<main>` or individual body children instead.
+- **No `document.body.setAttribute("inert", "")`** for focus trapping. It makes the popover portal inert. Target `<main>` or individual body children instead.
 - **No `animation-duration: 0s` as a reduced-motion workaround.** Pass `0` to the hook params instead — `transitionend` does not fire at 0ms, leaving stale inline styles.

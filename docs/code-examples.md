@@ -260,4 +260,3 @@ try {
 
 - [Components]({{ site.baseurl }}/components/) - Full CitationComponent documentation
 - [Types]({{ site.baseurl }}/types/) - TypeScript interface definitions
-- [Real-World Examples]({{ site.baseurl }}/real-world-examples/) - Industry-specific integrations

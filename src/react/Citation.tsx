@@ -1231,6 +1231,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Extracted from inline JSX arrows so the React Compiler can cache them.
     // All three read refs (event-time, not render-time) — safe for useCallback.
     // Placed before the early return to satisfy the Rules of Hooks (consistent call order).
+    // biome-ignore lint/correctness/useExhaustiveDependencies: viewState.ref is a stable ref read at call time, not a render-time dep
     const handlePopoverOpenChange = useCallback(
       (open: boolean) => {
         if (!open && !isAnyOverlayOpenRef.current) {
@@ -1428,42 +1429,42 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             <CitationErrorBoundary fallback={null} key={errorBoundaryKeyRef.current}>
               <PopoverContent
                 ref={popoverContentRef}
-              id={popoverId}
-              aria-label={t("aria.citationVerificationStatus")}
-              side={lockedSide}
-              align="start"
-              sideOffset={expandedPageSideOffset}
-              alignOffset={popoverAlignOffset}
-              onCloseAutoFocus={handleCloseAutoFocus}
-              onEscapeKeyDown={viewState.onEscapeKeyDown}
-              style={
-                viewState.current === "expanded-page"
-                  ? {
-                      // Expanded-page keeps adaptive width when space allows and is
-                      // clamped to viewport bounds via maxWidth + guard variable.
-                      maxWidth: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
-                      maxHeight: "calc(100dvh - 2rem)",
-                      // The inner InlineExpandedImage handles its own scrolling (with hidden
-                      // scrollbars). Override PopoverContent's default overflow behavior to
-                      // prevent redundant outer scrollbars from appearing during transitions.
-                      // Use longhand to avoid React shorthand/longhand conflict with Popover's overflowX.
-                      overflowX: "hidden" as const,
-                      overflowY: "hidden" as const,
-                    }
-                  : viewState.current === "expanded-keyhole"
+                id={popoverId}
+                aria-label={t("aria.citationVerificationStatus")}
+                side={lockedSide}
+                align="start"
+                sideOffset={expandedPageSideOffset}
+                alignOffset={popoverAlignOffset}
+                onCloseAutoFocus={handleCloseAutoFocus}
+                onEscapeKeyDown={viewState.onEscapeKeyDown}
+                style={
+                  viewState.current === "expanded-page"
                     ? {
+                        // Expanded-page keeps adaptive width when space allows and is
+                        // clamped to viewport bounds via maxWidth + guard variable.
                         maxWidth: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
-                        // The inner InlineExpandedImage handles scrolling, so hide outer
-                        // overflow to avoid transient shell scrollbars during transitions.
+                        maxHeight: "calc(100dvh - 2rem)",
+                        // The inner InlineExpandedImage handles its own scrolling (with hidden
+                        // scrollbars). Override PopoverContent's default overflow behavior to
+                        // prevent redundant outer scrollbars from appearing during transitions.
                         // Use longhand to avoid React shorthand/longhand conflict with Popover's overflowX.
                         overflowX: "hidden" as const,
                         overflowY: "hidden" as const,
                       }
-                    : undefined
+                    : viewState.current === "expanded-keyhole"
+                      ? {
+                          maxWidth: `var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem))`,
+                          // The inner InlineExpandedImage handles scrolling, so hide outer
+                          // overflow to avoid transient shell scrollbars during transitions.
+                          // Use longhand to avoid React shorthand/longhand conflict with Popover's overflowX.
+                          overflowX: "hidden" as const,
+                          overflowY: "hidden" as const,
+                        }
+                      : undefined
                 }
                 onClick={handlePopoverBackdropClick}
               >
-              {popoverContentElement}
+                {popoverContentElement}
               </PopoverContent>
             </CitationErrorBoundary>
           </Popover>

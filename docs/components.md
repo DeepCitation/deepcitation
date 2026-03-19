@@ -530,8 +530,6 @@ Use these when `CitationComponent` doesn't fit your layout requirements.
 
 ## Next Steps
 
-- [Proof Hosting]({{ site.baseurl }}/proof-hosting/) - Shareable proof page URLs and view modes
 - [Types]({{ site.baseurl }}/types/) - Full TypeScript interface definitions
 - [Styling]({{ site.baseurl }}/styling/) - CSS customization
 - [Error Handling]({{ site.baseurl }}/error-handling/) - Production error patterns
-- [Real-World Examples]({{ site.baseurl }}/real-world-examples/) - Industry-specific integrations

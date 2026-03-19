@@ -73,7 +73,6 @@ docs/
 ├── verification-statuses.md  # Status explanations
 ├── code-examples.md      # SDK usage patterns
 ├── components.md         # React component docs
-├── real-world-examples.md    # Industry examples
 ├── styling.md            # CSS customization
 └── 404.md                # 404 page
 ```
