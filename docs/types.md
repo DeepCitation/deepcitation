@@ -22,28 +22,51 @@ TypeScript interfaces for the DeepCitation SDK and React components.
 
 ## Citation Types
 
-DeepCitation supports two citation shapes.
+DeepCitation supports three citation shapes, discriminated by `type`.
 
 ```typescript
-interface DocumentCitation {
-  type?: "document";
+interface CitationBase {
   attachmentId?: string;
-  pageNumber?: number | null;
-  fullPhrase?: string | null;
-  anchorText?: string | null;
-  lineIds?: number[] | null;
+  pageNumber?: number;
+  lineIds?: number[];
+  startPageId?: string;
+  fullPhrase?: string;
+  anchorText?: string;
+  citationNumber?: number;
+  reasoning?: string;
 }
 
-interface UrlCitation {
+interface DocumentCitation extends CitationBase {
+  type: "document";
+}
+
+interface UrlCitation extends CitationBase {
   type: "url";
   url?: string;
   domain?: string;
   title?: string;
-  fullPhrase?: string | null;
-  anchorText?: string | null;
+  description?: string;
+  faviconUrl?: string;
+  sourceType?: SourceType;
+  platform?: string;
+  siteName?: string;
+  author?: string;
+  publishedAt?: string;
+  imageUrl?: string;
+  accessedAt?: string;
 }
 
-type Citation = DocumentCitation | UrlCitation;
+interface AudioVideoCitation extends CitationBase {
+  type: "audio" | "video";
+  timestamps?: { startTime?: string; endTime?: string };
+}
+
+type Citation = DocumentCitation | UrlCitation | AudioVideoCitation;
+
+type SourceType =
+  | "web" | "pdf" | "document" | "social" | "video"
+  | "news" | "academic" | "code" | "forum" | "commerce"
+  | "reference" | "unknown";
 ```
 
 ---
@@ -54,10 +77,12 @@ Request body for `/verifyCitations`.
 
 ```typescript
 interface VerifyCitationRequest {
-  attachmentId: string;
+  attachmentId?: string;
+  sha256?: string;
   citations: { [key: string]: Citation };
-  outputImageFormat?: "jpeg" | "png" | "avif";
+  outputImageFormat?: "jpeg" | "png" | "avif" | "webp";
   apiKey?: string;
+  endUserId?: string;
 }
 ```
 
@@ -65,19 +90,49 @@ interface VerifyCitationRequest {
 
 ## Verification (SDK)
 
-The SDK normalizes backend responses into this shape.
+The SDK normalizes backend responses into this shape. Access the status directly as `verification.status`, not via a nested `searchState` object.
 
 ```typescript
 interface Verification {
-  status?: SearchStatus | null;
-  verifiedMatchSnippet?: string | null;
-  searchAttempts?: SearchAttempt[];
+  // Identity
   attachmentId?: string | null;
+  label?: string;
   citation?: Citation;
 
-  evidence?: EvidenceImage;
+  // Search results
+  status?: SearchStatus;
+  searchAttempts?: SearchAttempt[];
+  highlightColor?: string;
+
+  // Verified text
+  verifiedFullPhrase?: string;
+  verifiedAnchorText?: string;
+  verifiedMatchSnippet?: string;
+  verifiedTimestamps?: { startTime?: string; endTime?: string };
+  verifiedAt?: string;
+
+  // Type-specific results
   document?: DocumentVerificationResult;
   url?: UrlVerificationResult;
+
+  // Evidence image (keyhole crop)
+  evidence?: EvidenceImage;
+
+  // Timing
+  timeToCertaintyMs?: number;
+
+  // Attachment assets (also present on Verification for convenience)
+  pageImages?: PageImage[];
+  originalDownload?: FileDownload;
+  convertedDownload?: FileDownload;
+
+  // Ambiguity detection
+  ambiguity?: {
+    totalOccurrences: number;
+    occurrencesOnExpectedPage: number;
+    confidence: "high" | "medium" | "low";
+    note: string;
+  };
 }
 
 type SearchStatus =
@@ -125,24 +180,24 @@ interface SearchAttempt {
   searchScope?: "line" | "page" | "document";
   expectedLocation?: { page: number; line?: number };
   foundLocation?: { page: number; line?: number };
-  matchedVariation?:
-    | "exact_full_phrase"
-    | "normalized_full_phrase"
-    | "exact_anchor_text"
-    | "normalized_anchor_text"
-    | "partial_full_phrase"
-    | "partial_anchor_text"
-    | "first_word_only";
+  matchedVariation?: MatchedVariation;
   matchedText?: string;
   deepTextItems?: DeepTextItem[];
-  matchScore?: number;
-  matchSnippet?: string;
   note?: string;
   durationMs?: number;
   variationType?: "exact" | "normalized" | "currency" | "date" | "numeric" | "symbol" | "accent";
   occurrencesFound?: number;
   matchedExpectedOccurrence?: boolean;
 }
+
+type MatchedVariation =
+  | "exact_full_phrase"
+  | "normalized_full_phrase"
+  | "exact_anchor_text"
+  | "normalized_anchor_text"
+  | "partial_full_phrase"
+  | "partial_anchor_text"
+  | "first_word_only";
 ```
 
 ---
@@ -153,13 +208,9 @@ Artifacts are split by purpose so evidence (crop), page images, and source downl
 
 ```typescript
 interface EvidenceImage {
-  src: string | null;
-  dimensions?: { width: number; height: number } | null;
-}
-
-interface WebCaptureAsset {
-  src?: string | null;
-  capturedAt?: Date | string | null;
+  src: string;
+  dimensions?: { width: number; height: number };
+  textItems?: DeepTextItem[];
 }
 
 interface PageImage {
@@ -167,6 +218,11 @@ interface PageImage {
   dimensions: { width: number; height: number };
   imageUrl: string;
   thumbnailUrl?: string;
+  expiresAt?: string;
+  isMatchPage?: boolean;
+  highlightBox?: ScreenBox;
+  renderScale?: { x: number; y: number };
+  textItems?: DeepTextItem[];
 }
 ```
 
@@ -209,8 +265,8 @@ interface PreparedAttachment {
 
 ## Verify Response
 
-`verifyAttachment()` / `verify()` responses contain only verification results.
-File download artifacts are on the attachment, not the verification.
+`verifyAttachment()` / `verify()` responses contain verification results.
+Download artifacts are available on both the attachment and each verification.
 
 ```typescript
 interface VerifyCitationResponse {
@@ -251,29 +307,3 @@ Override per request on:
 - `prepareConvertedFile(options)`
 - `prepareAttachments([{ ... }])`
 
----
-
-## React Download Policy (`CitationComponent`)
-
-`CitationComponent` separates source-file download behavior from proof/evidence image download behavior.
-
-```typescript
-type CitationDownloadPolicy = "original_only" | "original_plus_url_pdf" | "original_plus_all_pdf";
-```
-
-Relevant props:
-
-```typescript
-interface CitationComponentProps {
-  originalDownload?: FileDownload;   // file as received
-  convertedDownload?: FileDownload;  // PDF rendition / URL PDF capture
-  downloadPolicy?: CitationDownloadPolicy; // default: "original_plus_url_pdf"
-  onSourceDownload?: (citation: Citation) => void;
-}
-```
-
-Default UI behavior:
-
-- `original_plus_url_pdf`: show `originalDownload` when present; for URL inputs (no `originalDownload`), show `convertedDownload`
-- `original_plus_all_pdf`: show `originalDownload` when present, else show `convertedDownload`
-- `original_only`: show `originalDownload` only, never `convertedDownload`

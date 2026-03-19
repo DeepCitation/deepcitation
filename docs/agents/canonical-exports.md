@@ -68,14 +68,8 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `getUrlAccessExplanation()` | `src/react/urlAccessExplanation.ts` | URL access failure explanation mapping |
 | `UrlAccessExplanationSection` | `src/react/DefaultPopoverContent.tsx` | URL access failure display component (private) |
 | `CitationErrorBoundary` | `src/react/CitationErrorBoundary.tsx` | Error boundary for citation components |
-| `SearchAnalysisSummary` | `src/react/SearchAnalysisSummary.tsx` | Search attempt display component |
-| `citationContainerVariants()` | `src/react/citationVariants.cva.ts` | Variant → container class resolver |
-| `citationHoverVariants()` | `src/react/citationVariants.cva.ts` | Status + opacity → hover class resolver |
-| `LINTER_STYLES` | `src/react/citationVariants.cva.ts` | Linter underline CSS by status |
-| `LINTER_HOVER_CLASSES` | `src/react/citationVariants.cva.ts` | Linter hover classes by status |
-| `BADGE_HOVER_CLASSES` | `src/react/citationVariants.cva.ts` | Badge hover classes by status |
-| `resolveStatusKey()` | `src/react/citationVariants.cva.ts` | Boolean flags → status key |
-| `SUPERSCRIPT_STYLE` | `src/react/citationVariants.cva.ts` | Superscript inline styles |
+| `SearchAnalysisSummary` | `src/react/EvidenceTray.tsx` | Search attempt display component |
+| `SUPERSCRIPT_STYLE` | `src/react/constants.ts` | Superscript inline styles |
 | `handleImageError()` | `src/react/imageUtils.ts` | Shared image error handler (`display: "none"`) |
 | `handleImageErrorOpacity()` | `src/react/imageUtils.ts` | Shared image error handler (`opacity: "0"`, preserves layout) |
 | `HIDE_SCROLLBAR_STYLE` | `src/react/constants.ts` | Scrollbar-hiding CSS (`scrollbarWidth: "none"`) |
@@ -91,18 +85,13 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `DRAWER_DRAG_CLOSE_THRESHOLD_PX` | `src/react/constants.ts` | Drag distance threshold for drawer close (80px) |
 | `HITBOX_EXTEND_8` | `src/react/constants.ts` | Invisible hit-box extender — uniform 8px |
 | `HITBOX_EXTEND_8x14` | `src/react/constants.ts` | Invisible hit-box extender — 8px horizontal, 14px vertical |
-| `usePopoverDismiss()` | `src/react/hooks/usePopoverDismiss.ts` | Platform-aware outside-click dismiss |
-| `usePopoverPosition()` | `src/react/hooks/usePopoverPosition.ts` | Expanded-page side offset calculation |
-| `useCitationTelemetry()` | `src/react/hooks/useCitationTelemetry.ts` | Popover timing + spinner staging |
-| `useZoomControls()` | `src/react/hooks/useZoomControls.ts` | Zoom state with clamping and steps |
-| `useCitationData()` | `src/react/hooks/useCitationData.ts` | Citation key, instance ID, status derivation |
-| `useCitationEvents()` | `src/react/hooks/useCitationEvents.ts` | Click/hover/keyboard event handlers |
+| `useCitationData()` | `src/react/CitationVariants.tsx` | Citation key, instance ID, status derivation |
+| `useCitationEvents()` | `src/react/CitationVariants.tsx` | Click/hover/keyboard event handlers |
 | `useExpandedPageSideOffset()` | `src/react/hooks/useExpandedPageSideOffset.ts` | Expanded-page popover vertical offset |
 | `usePopoverAlignOffset()` | `src/react/hooks/usePopoverAlignOffset.ts` | Horizontal viewport clamping (replaces shift middleware) |
 | `useViewportBoundaryGuard()` | `src/react/hooks/useViewportBoundaryGuard.ts` | Hard viewport boundary guard (Layer 3 safety net) |
 | `VIEWPORT_MARGIN_PX` | `src/react/constants.ts` | Viewport edge margin for popover positioning (16px) |
 | `useAnimatedHeight()` | `src/react/hooks/useAnimatedHeight.ts` | Imperative height animation for viewState transitions |
-| `useAnimationState()` | `src/react/hooks/useAnimationState.ts` | Enter/exit animation lifecycle |
 | `usePopoverViewState()` | `src/react/hooks/usePopoverViewState.ts` | Popover view-state machine (haptics, VT, scroll lock, escape) |
 | `useWheelZoom()` | `src/react/hooks/useWheelZoom.ts` | Wheel/trackpad zoom with gesture anchor |
 | `buildSearchNarrative()` | `src/react/searchNarrative.ts` | SearchAttempt[] → display-ready narrative for VerificationLog |
