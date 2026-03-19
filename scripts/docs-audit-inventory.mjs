@@ -25,6 +25,7 @@ import {
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { collectDocsFiles, parseYamlFrontmatter, loadDocsContents } from "./lib/docs-utils.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -43,46 +44,11 @@ const KNOWN_REMOVED_DEPS = [
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function collectDocsFiles(dir, relBase = "") {
-  const files = [];
-  if (!existsSync(dir)) return files;
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const relPath = relBase ? `${relBase}/${entry.name}` : entry.name;
-    if (entry.isDirectory()) {
-      if (entry.name.startsWith("_") || entry.name === "node_modules") continue;
-      files.push(...collectDocsFiles(join(dir, entry.name), relPath));
-    } else if (entry.name.endsWith(".md")) {
-      files.push(relPath);
-    }
-  }
-  return files;
-}
-
-/** Load all docs files into a Map<relPath, content> for single-pass I/O. */
-function loadDocsContents(docsDir, mdFiles) {
-  const contents = new Map();
-  for (const relPath of mdFiles) {
-    contents.set(relPath, readFileSync(join(docsDir, relPath), "utf8"));
-  }
-  return contents;
-}
-
-function parseJekyllFrontmatter(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return {};
-  const data = {};
-  for (const line of match[1].split("\n")) {
-    const kv = line.match(/^(\w[\w_-]*)\s*:\s*(.+)$/);
-    if (kv) data[kv[1]] = kv[2].replace(/^["']|["']$/g, "").trim();
-  }
-  return data;
-}
-
 function getJekyllSlugs(docContents) {
   const slugs = new Set();
   for (const [relPath, content] of docContents) {
     if (relPath.startsWith("agents/")) continue; // agent docs aren't public pages
-    const fm = parseJekyllFrontmatter(content);
+    const { data: fm } = parseYamlFrontmatter(content);
     if (!fm.layout) continue; // not a Jekyll page
     // Derive slug from permalink or filename
     if (fm.permalink) {
