@@ -16,6 +16,9 @@ export async function POST(request: Request) {
   if (!question) {
     return NextResponse.json({ error: "question is required." }, { status: 400 });
   }
+  if (question.length > 2000) {
+    return NextResponse.json({ error: "question must be 2000 characters or fewer." }, { status: 400 });
+  }
 
   try {
     return NextResponse.json(await answerQuestion(question));

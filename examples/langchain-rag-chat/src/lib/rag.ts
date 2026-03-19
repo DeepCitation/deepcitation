@@ -19,11 +19,15 @@ const openAiApiKey = process.env.OPENAI_API_KEY;
 const deepCitation = deepCitationApiKey ? new DeepCitation({ apiKey: deepCitationApiKey }) : null;
 const openai = openAiApiKey ? new OpenAI({ apiKey: openAiApiKey }) : null;
 
+// Module-level singleton — fine for local dev; serverless cold starts rebuild the store,
+// and warm instances share it across requests (safe here since the store is read-only).
 let vectorStorePromise: Promise<MemoryVectorStore> | null = null;
 const preparedAttachmentCache = new Map<
   string,
   Promise<{ attachmentId: string; deepTextPromptPortion: string }>
 >();
+
+const MAX_RETRIEVED_SOURCES = 2;
 
 function getRequiredClient(): DeepCitation {
   if (!deepCitationApiKey || !deepCitation) {
@@ -84,7 +88,7 @@ function getSourceById(sourceId: string): CorpusSource {
 
 async function retrieveSources(question: string): Promise<RetrievedSource[]> {
   const store = await getVectorStore();
-  const matches = await store.similaritySearchWithScore(question, 4);
+  const matches = await store.similaritySearchWithScore(question, MAX_RETRIEVED_SOURCES * 2);
   const deduped = new Map<string, RetrievedSource>();
 
   for (const [document, score] of matches) {
@@ -99,7 +103,7 @@ async function retrieveSources(question: string): Promise<RetrievedSource[]> {
       excerpt: document.pageContent,
     });
 
-    if (deduped.size === 2) break;
+    if (deduped.size === MAX_RETRIEVED_SOURCES) break;
   }
 
   if (deduped.size > 0) {
@@ -188,9 +192,11 @@ export function summarizeVerifications(summaryInput: ChatResponse["verifications
   for (const verification of Object.values(summaryInput)) {
     const status = getCitationStatus(verification);
 
-    if (status.isVerified) {
+    // Buckets are mutually exclusive: partial_text_found goes into partial only.
+    if (status.isPartialMatch) {
+      partial += 1;
+    } else if (status.isVerified) {
       verified += 1;
-      if (status.isPartialMatch) partial += 1;
     } else if (status.isMiss) {
       missed += 1;
     } else if (status.isPending) {
@@ -254,6 +260,9 @@ export async function answerQuestion(question: string): Promise<ChatResponse> {
 
   return {
     visibleText: extractVisibleText(rawLlmOutput).trim(),
+    // rawLlmOutput is sent to the client so renderMessageContent can re-parse citation
+    // markers inline. In production you'd drop it from the API response and accept
+    // pre-parsed `pieces` from the server instead to avoid the citation block crossing the wire.
     rawLlmOutput,
     citations,
     verifications: verificationResult.verifications,

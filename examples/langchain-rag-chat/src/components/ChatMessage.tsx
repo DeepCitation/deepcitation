@@ -2,6 +2,7 @@
 
 import { parseCitationResponse } from "deepcitation";
 import { CitationComponent } from "deepcitation/react";
+import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ConversationMessage } from "@/lib/types";
@@ -12,6 +13,12 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
+
+  // Memoized so re-renders (e.g. summary badge updates) don't re-parse on every frame.
+  const parsed = useMemo(
+    () => (message.rawLlmOutput ? parseCitationResponse(message.rawLlmOutput) : null),
+    [message.rawLlmOutput],
+  );
 
   return (
     <div className={`message-row ${isUser ? "user" : ""}`}>
@@ -25,11 +32,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
         ) : (
           <>
             <div>
-              {renderMessageContent(
-                message.rawLlmOutput ?? message.content,
-                message.citations ?? {},
-                message.verifications ?? {},
-              )}
+              {parsed
+                ? renderParsedContent(parsed, message.citations ?? {}, message.verifications ?? {})
+                : <p>{message.content}</p>}
             </div>
 
             {message.summary ? (
@@ -70,12 +75,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
   );
 }
 
-function renderMessageContent(
-  rawLlmOutput: string,
+function renderParsedContent(
+  parsed: ReturnType<typeof parseCitationResponse>,
   citations: ConversationMessage["citations"] = {},
   verifications: ConversationMessage["verifications"] = {},
 ): React.ReactNode {
-  const parsed = parseCitationResponse(rawLlmOutput);
   const pieces = parsed.visibleText.split(parsed.splitPattern);
 
   return (
