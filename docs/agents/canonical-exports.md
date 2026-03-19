@@ -85,8 +85,6 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `DRAWER_DRAG_CLOSE_THRESHOLD_PX` | `src/react/constants.ts` | Drag distance threshold for drawer close (80px) |
 | `HITBOX_EXTEND_8` | `src/react/constants.ts` | Invisible hit-box extender — uniform 8px |
 | `HITBOX_EXTEND_8x14` | `src/react/constants.ts` | Invisible hit-box extender — 8px horizontal, 14px vertical |
-| `useCitationData()` | `src/react/CitationVariants.tsx` | Citation key, instance ID, status derivation |
-| `useCitationEvents()` | `src/react/CitationVariants.tsx` | Click/hover/keyboard event handlers |
 | `useExpandedPageSideOffset()` | `src/react/hooks/useExpandedPageSideOffset.ts` | Expanded-page popover vertical offset |
 | `usePopoverAlignOffset()` | `src/react/hooks/usePopoverAlignOffset.ts` | Horizontal viewport clamping (replaces shift middleware) |
 | `useViewportBoundaryGuard()` | `src/react/hooks/useViewportBoundaryGuard.ts` | Hard viewport boundary guard (Layer 3 safety net) |

@@ -43,8 +43,8 @@ Override these CSS variables to theme all DeepCitation components at once:
   --dc-popover-width: 384px;      /* Popover container width */
 
   /* Proof image canvas (keyhole + expanded page + drawer) */
-  --dc-document-canvas-bg-light: #f4f4f5; /* Light-mode neutral canvas (slate-100) */
-  --dc-document-canvas-bg-dark: #27272a;  /* Dark-mode neutral canvas (slate-800) */
+  --dc-document-canvas-bg-light: #f4f4f5; /* Light-mode neutral canvas (zinc-100) */
+  --dc-document-canvas-bg-dark: #27272a;  /* Dark-mode neutral canvas (zinc-800) */
 }
 ```
 

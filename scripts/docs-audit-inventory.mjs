@@ -102,17 +102,6 @@ function getLastModifiedDate(filePath) {
   }
 }
 
-function getCommitsSince(sha, paths) {
-  try {
-    const output = execFileSync(
-      "git", ["log", "--oneline", `${sha}..HEAD`, "--", ...paths],
-      { cwd: ROOT, encoding: "utf8" },
-    ).trim();
-    return output ? output.split("\n").length : 0;
-  } catch {
-    return -1; // error
-  }
-}
 
 function getExportsFromModule(modulePath) {
   if (!existsSync(modulePath)) return null;
