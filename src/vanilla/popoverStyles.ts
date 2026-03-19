@@ -2,6 +2,20 @@
  * CSS for the vanilla popover runtime.
  * Self-contained — no Tailwind dependency.
  */
+const DARK_VARS = `--dc-pop-bg: #27272a;
+  --dc-pop-text: #fafafa;
+  --dc-pop-border: #3f3f46;
+  --dc-pop-muted: #a1a1aa;
+  --dc-pop-image-bg: #18181b;
+  --dc-pop-verified-bg: #052e16;
+  --dc-pop-verified-text: #4ade80;
+  --dc-pop-partial-bg: #451a03;
+  --dc-pop-partial-text: #fbbf24;
+  --dc-pop-notfound-bg: #450a0a;
+  --dc-pop-notfound-text: #f87171;
+  --dc-pop-pending-bg: #27272a;
+  --dc-pop-pending-text: #a1a1aa;`;
+
 export const POPOVER_CSS = `
 /* ── Popover container ── */
 .dc-popover {
@@ -103,37 +117,13 @@ export const POPOVER_CSS = `
 
 /* ── Dark theme via custom properties ── */
 [data-dc-theme="dark"] {
-  --dc-pop-bg: #27272a;
-  --dc-pop-text: #fafafa;
-  --dc-pop-border: #3f3f46;
-  --dc-pop-muted: #a1a1aa;
-  --dc-pop-image-bg: #18181b;
-  --dc-pop-verified-bg: #052e16;
-  --dc-pop-verified-text: #4ade80;
-  --dc-pop-partial-bg: #451a03;
-  --dc-pop-partial-text: #fbbf24;
-  --dc-pop-notfound-bg: #450a0a;
-  --dc-pop-notfound-text: #f87171;
-  --dc-pop-pending-bg: #27272a;
-  --dc-pop-pending-text: #a1a1aa;
+  ${DARK_VARS}
 }
 
 /* ── Auto theme (follow system) ── */
 @media (prefers-color-scheme: dark) {
   [data-dc-theme="auto"] {
-    --dc-pop-bg: #27272a;
-    --dc-pop-text: #fafafa;
-    --dc-pop-border: #3f3f46;
-    --dc-pop-muted: #a1a1aa;
-    --dc-pop-image-bg: #18181b;
-    --dc-pop-verified-bg: #052e16;
-    --dc-pop-verified-text: #4ade80;
-    --dc-pop-partial-bg: #451a03;
-    --dc-pop-partial-text: #fbbf24;
-    --dc-pop-notfound-bg: #450a0a;
-    --dc-pop-notfound-text: #f87171;
-    --dc-pop-pending-bg: #27272a;
-    --dc-pop-pending-text: #a1a1aa;
+    ${DARK_VARS}
   }
 }
 

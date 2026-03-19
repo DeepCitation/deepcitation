@@ -2,7 +2,7 @@
 /**
  * Docs Audit Inventory — Deterministic checks for documentation drift
  *
- * Runs 5 checks against the docs/ directory and outputs JSON to stdout.
+ * Runs 6 checks against the docs/ directory and outputs JSON to stdout.
  * Designed to be consumed by the `/docs-audit` Claude command for semantic evaluation.
  *
  * Usage:
@@ -14,6 +14,7 @@
  *   3. Referenced source file existence (`src/...` paths in docs)
  *   4. Agent doc staleness (commits to watched source files since doc last modified)
  *   5. Code block import validation (verify exported symbols in fenced code blocks)
+ *   6. Interface field drift (doc vs source interface shapes)
  */
 
 import {
@@ -57,6 +58,15 @@ function collectDocsFiles(dir, relBase = "") {
   return files;
 }
 
+/** Load all docs files into a Map<relPath, content> for single-pass I/O. */
+function loadDocsContents(docsDir, mdFiles) {
+  const contents = new Map();
+  for (const relPath of mdFiles) {
+    contents.set(relPath, readFileSync(join(docsDir, relPath), "utf8"));
+  }
+  return contents;
+}
+
 function parseJekyllFrontmatter(content) {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return {};
@@ -68,13 +78,10 @@ function parseJekyllFrontmatter(content) {
   return data;
 }
 
-function getJekyllSlugs() {
-  const docsDir = join(ROOT, "docs");
+function getJekyllSlugs(docContents) {
   const slugs = new Set();
-  const mdFiles = collectDocsFiles(docsDir);
-  for (const relPath of mdFiles) {
+  for (const [relPath, content] of docContents) {
     if (relPath.startsWith("agents/")) continue; // agent docs aren't public pages
-    const content = readFileSync(join(docsDir, relPath), "utf8");
     const fm = parseJekyllFrontmatter(content);
     if (!fm.layout) continue; // not a Jekyll page
     // Derive slug from permalink or filename
@@ -102,10 +109,22 @@ function getLastModifiedDate(filePath) {
   }
 }
 
+/** Module content cache for getExportsFromModule — avoids re-reading the same file. */
+const moduleContentCache = new Map();
 
 function getExportsFromModule(modulePath) {
-  if (!existsSync(modulePath)) return null;
-  const content = readFileSync(modulePath, "utf8");
+  if (moduleContentCache.has(modulePath)) {
+    return moduleContentCache.get(modulePath);
+  }
+
+  let content;
+  try {
+    content = readFileSync(modulePath, "utf8");
+  } catch {
+    moduleContentCache.set(modulePath, null);
+    return null;
+  }
+
   const exports = new Set();
 
   // Match: export { Foo, Bar }
@@ -124,23 +143,21 @@ function getExportsFromModule(modulePath) {
     exports.add("default");
   }
 
-  return exports;
+  const result = { exports, content };
+  moduleContentCache.set(modulePath, result);
+  return result;
 }
 
 // ─── Check 1: Broken Internal Links ────────────────────────────────────────
 
-function checkBrokenLinks() {
+function checkBrokenLinks(docContents) {
   const findings = [];
-  const validSlugs = getJekyllSlugs();
-  const docsDir = join(ROOT, "docs");
-  const mdFiles = collectDocsFiles(docsDir);
+  const validSlugs = getJekyllSlugs(docContents);
 
   // Match {{ site.baseurl }}/slug/ patterns
   const linkPattern = /\{\{\s*site\.baseurl\s*\}\}\/([a-z0-9_-]+(?:\/[a-z0-9_-]+)*)\//gi;
 
-  for (const relPath of mdFiles) {
-    const fullPath = join(docsDir, relPath);
-    const content = readFileSync(fullPath, "utf8");
+  for (const [relPath, content] of docContents) {
     const lines = content.split("\n");
 
     for (let i = 0; i < lines.length; i++) {
@@ -163,20 +180,18 @@ function checkBrokenLinks() {
 
 // ─── Check 2: Removed Dependency Mentions ──────────────────────────────────
 
-function checkRemovedDeps() {
+function checkRemovedDeps(docContents) {
   const findings = [];
-  const docsDir = join(ROOT, "docs");
-  const mdFiles = collectDocsFiles(docsDir);
 
   // Build search terms from removed deps (package name + short name)
   const searchTerms = [];
   for (const dep of KNOWN_REMOVED_DEPS) {
-    searchTerms.push({ term: dep, package: dep });
+    searchTerms.push({ termLower: dep.toLowerCase(), term: dep, package: dep });
     // Also search for the unscoped short name (e.g. "radix" from "@radix-ui/react-popover")
     const shortMatch = dep.match(/@([^/]+)\//);
     if (shortMatch) {
       const shortName = shortMatch[1].replace(/-ui$/, ""); // "radix-ui" → "radix"
-      searchTerms.push({ term: shortName, package: dep });
+      searchTerms.push({ termLower: shortName.toLowerCase(), term: shortName, package: dep });
     }
   }
 
@@ -188,15 +203,13 @@ function checkRemovedDeps() {
     return true;
   });
 
-  for (const relPath of mdFiles) {
-    const fullPath = join(docsDir, relPath);
-    const content = readFileSync(fullPath, "utf8");
+  for (const [relPath, content] of docContents) {
     const lines = content.split("\n");
 
     for (let i = 0; i < lines.length; i++) {
       const lower = lines[i].toLowerCase();
-      for (const { term, package: pkg } of uniqueTerms) {
-        if (lower.includes(term.toLowerCase())) {
+      for (const { termLower, term, package: pkg } of uniqueTerms) {
+        if (lower.includes(termLower)) {
           findings.push({
             file: `docs/${relPath}`,
             line: i + 1,
@@ -214,17 +227,13 @@ function checkRemovedDeps() {
 
 // ─── Check 3: Referenced Source File Existence ─────────────────────────────
 
-function checkSourceFileRefs() {
+function checkSourceFileRefs(docContents) {
   const findings = [];
-  const docsDir = join(ROOT, "docs");
-  const mdFiles = collectDocsFiles(docsDir);
 
   // Match src/... paths (backtick-wrapped or bare) - common patterns in docs
   const srcPattern = /`(src\/[a-zA-Z0-9_./-]+(?:\.[a-z]+)?)`/g;
 
-  for (const relPath of mdFiles) {
-    const fullPath = join(docsDir, relPath);
-    const content = readFileSync(fullPath, "utf8");
+  for (const [relPath, content] of docContents) {
     const lines = content.split("\n");
 
     for (let i = 0; i < lines.length; i++) {
@@ -303,20 +312,15 @@ function checkAgentDocStaleness() {
 
 // ─── Check 5: Code Block Import Validation ─────────────────────────────────
 
-function checkCodeBlockImports() {
+function checkCodeBlockImports(docContents) {
   const findings = [];
-  const docsDir = join(ROOT, "docs");
-  const mdFiles = collectDocsFiles(docsDir);
 
   // Match fenced code blocks
   const codeBlockPattern = /```(?:tsx?|jsx?|javascript|typescript)\n([\s\S]*?)```/g;
   // Match import statements
   const importPattern = /import\s+\{([^}]+)\}\s+from\s+["']([^"']+)["']/g;
 
-  for (const relPath of mdFiles) {
-    const fullPath = join(docsDir, relPath);
-    const content = readFileSync(fullPath, "utf8");
-
+  for (const [relPath, content] of docContents) {
     for (const blockMatch of content.matchAll(codeBlockPattern)) {
       const codeBlock = blockMatch[1];
       const blockStart = content.substring(0, blockMatch.index).split("\n").length;
@@ -348,16 +352,15 @@ function checkCodeBlockImports() {
 
         if (!resolvedPath || !existsSync(resolvedPath)) continue;
 
-        const exports = getExportsFromModule(resolvedPath);
-        if (!exports) continue;
+        const moduleResult = getExportsFromModule(resolvedPath);
+        if (!moduleResult) continue;
 
         for (const sym of symbols) {
           // Handle `type X` imports
           const cleanSym = sym.replace(/^type\s+/, "");
-          if (!exports.has(cleanSym)) {
+          if (!moduleResult.exports.has(cleanSym)) {
             // Check re-exports by searching for the symbol in the file content
-            const fileContent = readFileSync(resolvedPath, "utf8");
-            if (!fileContent.includes(cleanSym)) {
+            if (!moduleResult.content.includes(cleanSym)) {
               const lineInBlock = codeBlock.substring(0, impMatch.index).split("\n").length;
               findings.push({
                 file: `docs/${relPath}`,
@@ -451,21 +454,21 @@ const TRACKED_INTERFACES = {
   CitationStatus: "src/types/citation.ts",
 };
 
-function checkInterfaceFieldDrift() {
+function checkInterfaceFieldDrift(docContents) {
   const findings = [];
-  const docsDir = join(ROOT, "docs");
-  const mdFiles = collectDocsFiles(docsDir);
 
   // Cache source interfaces per file
   const sourceCache = new Map();
   function getSourceInterfaces(srcRelPath) {
     if (sourceCache.has(srcRelPath)) return sourceCache.get(srcRelPath);
     const fullPath = join(ROOT, srcRelPath);
-    if (!existsSync(fullPath)) {
+    let content;
+    try {
+      content = readFileSync(fullPath, "utf8");
+    } catch {
       sourceCache.set(srcRelPath, null);
       return null;
     }
-    const content = readFileSync(fullPath, "utf8");
     const parsed = parseInterfaces(content);
     sourceCache.set(srcRelPath, parsed);
     return parsed;
@@ -473,11 +476,7 @@ function checkInterfaceFieldDrift() {
 
   const codeBlockPattern = /```(?:tsx?|jsx?|javascript|typescript)\n([\s\S]*?)```/g;
 
-  for (const relPath of mdFiles) {
-    const fullPath = join(docsDir, relPath);
-    const content = readFileSync(fullPath, "utf8");
-    const lines = content.split("\n");
-
+  for (const [relPath, content] of docContents) {
     for (const blockMatch of content.matchAll(codeBlockPattern)) {
       const codeBlock = blockMatch[1];
       const blockStartLine = content.substring(0, blockMatch.index).split("\n").length;
@@ -553,15 +552,20 @@ function checkInterfaceFieldDrift() {
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 function main() {
+  // Single-pass: collect and read all docs files once
+  const docsDir = join(ROOT, "docs");
+  const mdFiles = collectDocsFiles(docsDir);
+  const docContents = loadDocsContents(docsDir, mdFiles);
+
   const results = {
     generated_at: new Date().toISOString(),
     checks: {
-      broken_links: checkBrokenLinks(),
-      removed_dep_mentions: checkRemovedDeps(),
-      missing_source_files: checkSourceFileRefs(),
+      broken_links: checkBrokenLinks(docContents),
+      removed_dep_mentions: checkRemovedDeps(docContents),
+      missing_source_files: checkSourceFileRefs(docContents),
       agent_doc_staleness: checkAgentDocStaleness(),
-      code_block_imports: checkCodeBlockImports(),
-      interface_field_drift: checkInterfaceFieldDrift(),
+      code_block_imports: checkCodeBlockImports(docContents),
+      interface_field_drift: checkInterfaceFieldDrift(docContents),
     },
   };
 
