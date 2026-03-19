@@ -1,9 +1,15 @@
 /**
  * Simple daily rate limiter for the hosted demo.
+ * Kept in sync with examples/langchain-rag-chat/src/lib/rateLimit.ts
  *
  * Two tiers:
  *   - Global: 100 queries/day across all users
  *   - Per-IP: 5 queries/day per client IP
+ *
+ * Null-IP behaviour: when `ip` is null (e.g. local dev without x-forwarded-for),
+ * the per-IP tier is skipped and the request counts only against the global cap.
+ * On Vercel production, x-forwarded-for is always injected by the edge network,
+ * so null-IP requests do not occur in practice.
  *
  * Uses module-level state, which persists within a single Vercel serverless
  * instance. On cold starts the counter resets — this is intentionally lenient

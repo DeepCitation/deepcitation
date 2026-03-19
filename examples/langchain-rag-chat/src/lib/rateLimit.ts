@@ -1,5 +1,6 @@
 /**
  * Simple daily rate limiter for the hosted demo.
+ * Kept in sync with examples/agui-chat/src/lib/rateLimit.ts
  *
  * Two tiers:
  *   - Global: 100 queries/day across all users

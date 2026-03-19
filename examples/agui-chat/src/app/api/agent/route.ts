@@ -76,8 +76,8 @@ export async function POST(req: Request) {
         ? "You\u2019ve reached the per-user daily limit (5 queries). Fork this example and add your own API keys to remove the limit."
         : "Daily query limit reached. Fork this example and add your own API keys to remove the limit.";
     const nowMs = Date.now();
-    const midnightMs =
-      new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").getTime() + 86_400_000;
+    const d = new Date();
+    const midnightMs = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1);
     const retryAfter = String(Math.ceil((midnightMs - nowMs) / 1000));
     return new Response(JSON.stringify({ error: message }), {
       status: 429,
