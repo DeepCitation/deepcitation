@@ -31,6 +31,7 @@ import {
   runFinished,
   runError,
 } from "@/lib/agui-events";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // Check for API keys at startup
 const dcApiKey = process.env.DEEPCITATION_API_KEY;
@@ -48,7 +49,9 @@ if (!openaiApiKey) {
   console.error("\n⚠️  OPENAI_API_KEY is not set!\n");
 }
 
-const dc = dcApiKey ? new DeepCitation({ apiKey: dcApiKey }) : null;
+// endUserId is a static app-level label here. In a multi-user deployment replace it
+// with a real per-user identifier so DeepCitation usage is tracked per user.
+const dc = dcApiKey ? new DeepCitation({ apiKey: dcApiKey, endUserId: "agui-chat" }) : null;
 const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 
 const textEncoder = new TextEncoder();
@@ -61,6 +64,27 @@ interface FileDataPart {
 export const maxDuration = 120; // LLM streaming + verification can exceed default timeout
 
 export async function POST(req: Request) {
+  // NOTE: x-forwarded-for is client-controlled behind Vercel's edge network — the
+  // leftmost value can be spoofed to bypass the per-IP cap. This is acceptable for a
+  // demo. For a production deployment use `x-real-ip` or Next.js edge middleware's
+  // `request.ip`, which Vercel sets from the trusted edge layer.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const { allowed, reason } = checkRateLimit(ip);
+  if (!allowed) {
+    const message =
+      reason === "ip"
+        ? "You\u2019ve reached the per-user daily limit (5 queries). Fork this example and add your own API keys to remove the limit."
+        : "Daily query limit reached. Fork this example and add your own API keys to remove the limit.";
+    const nowMs = Date.now();
+    const midnightMs =
+      new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").getTime() + 86_400_000;
+    const retryAfter = String(Math.ceil((midnightMs - nowMs) / 1000));
+    return new Response(JSON.stringify({ error: message }), {
+      status: 429,
+      headers: { "Content-Type": "application/json", "Retry-After": retryAfter },
+    });
+  }
+
   // Per-request encoder — EventEncoder may carry internal state
   const encoder = new EventEncoder();
 
@@ -184,7 +208,7 @@ export async function POST(req: Request) {
             for (const [key, citation] of citationEntries) {
               console.log(
                 `[agui-chat] Citation ${key}: anchor="${citation.anchorText ?? ""}" full="${citation.fullPhrase ?? ""}" ` +
-                  `pageId="${citation.startPageId ?? citation.pageId ?? ""}" lineIds="${citation.lineIds?.join(",") ?? ""}"`,
+                  `pageId="${citation.startPageId ?? ""}" lineIds="${citation.lineIds?.join(",") ?? ""}"`,
               );
             }
 
