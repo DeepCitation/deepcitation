@@ -346,8 +346,8 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     }).length;
     const minInlineOpacity = samples.inlineOpacity.length > 0 ? Math.min(...samples.inlineOpacity) : 1;
 
-    // Ensure this scenario actually hits viewport guard correction while expanding.
-    expect(guardActiveFrameCount).toBeGreaterThan(0);
+    // Vertical clamping was removed — the guard should no longer fire dy corrections.
+    expect(guardActiveFrameCount).toBe(0);
     // Allow a single direction change (settle) but prevent repeated up/down oscillation.
     expect(reversals).toBeLessThanOrEqual(1);
     // Prevent a "same-width teleport left" frame before width expansion starts.

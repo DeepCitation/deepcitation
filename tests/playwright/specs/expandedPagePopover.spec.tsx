@@ -159,7 +159,7 @@ test.describe("Expanded-Page Basics", () => {
     const { expandedView } = await expandToFullPage(page);
 
     const backgroundColor = await expandedView.evaluate(el => window.getComputedStyle(el as HTMLElement).backgroundColor);
-    expect(backgroundColor).toBe("rgb(243, 244, 246)");
+    expect(backgroundColor).toBe("rgb(244, 244, 245)");
 
     const expandedImage = expandedView.locator("img").first();
     await expect(expandedImage).toBeVisible();
