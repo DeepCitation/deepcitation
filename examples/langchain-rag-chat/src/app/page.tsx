@@ -2,6 +2,7 @@
 
 import { startTransition, useState } from "react";
 import { ChatMessage, LoadingSkeleton } from "@/components/ChatMessage";
+import { CORPUS_SOURCES } from "@/lib/corpus";
 import type { ChatResponse, ConversationMessage } from "@/lib/types";
 
 const SAMPLE_QUESTIONS = [
@@ -9,13 +10,6 @@ const SAMPLE_QUESTIONS = [
   "How many NVIDIA shares is Robertson planning to sell, and what is the estimated aggregate market value?",
   "How does multi-head attention work, and why does the Transformer drop recurrence entirely?",
   "What are the root causes of hallucination in language models, and how does RAG reduce them?",
-];
-
-const CORPUS_DOCS = [
-  { title: "YC SAFE (Discount Only)", filename: "YC_SAFE_Discount_Only.docx.pdf" },
-  { title: "NVDA Form 144 – Robertson", filename: "NVDA_Form144_Robertson.pdf" },
-  { title: "Attention Is All You Need", filename: "Attention Is All You Need.pdf" },
-  { title: "Why Language Models Hallucinate", filename: "Why Language Models Hallucinate.pdf" },
 ];
 
 export default function Home() {
@@ -219,7 +213,7 @@ export default function Home() {
           <section className="side-section">
             <h3>Bundled corpus</h3>
             <ul className="corpus-list">
-              {CORPUS_DOCS.map(doc => (
+              {CORPUS_SOURCES.map(doc => (
                 <li key={doc.filename}>
                   <a className="corpus-link" href={`/api/corpus/${doc.filename}`} download>
                     <span>{doc.title}</span>

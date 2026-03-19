@@ -536,6 +536,12 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       return getDefaultContent(variant);
     }, [contentProp, variant]);
     const [isHovering, setIsHovering] = useState(false);
+    // Increments each time the popover opens (false → true) so the error
+    // boundary gets a fresh key on re-open without remounting on close.
+    const errorBoundaryKeyRef = useRef(0);
+    const prevIsHoveringRef = useRef(false);
+    if (isHovering && !prevIsHoveringRef.current) errorBoundaryKeyRef.current += 1;
+    prevIsHoveringRef.current = isHovering;
     // Custom image src from behaviorConfig.onClick returning setImageExpanded: "<url>"
     const [customExpandedSrc, setCustomExpandedSrc] = useState<string | null>(null);
     const clearCustomExpandedSrc = useCallback(() => setCustomExpandedSrc(null), []);
@@ -1417,11 +1423,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
             {/* Error boundary above PopoverContent (not inside it) so that hook lifecycle
                 errors thrown by PopoverContent itself — e.g. during ThemeProvider-triggered
                 full-tree re-renders — are caught here rather than propagating to the app.
-                key resets the boundary on each open cycle so a transient crash never
-                permanently hides the popover. */}
-            <CitationErrorBoundary fallback={null} key={String(isHovering)}>
+                key increments on each open (not on close) so a transient crash never
+                permanently hides the popover without remounting the subtree on every close. */}
+            <CitationErrorBoundary fallback={null} key={errorBoundaryKeyRef.current}>
               <PopoverContent
-              ref={popoverContentRef}
+                ref={popoverContentRef}
               id={popoverId}
               aria-label={t("aria.citationVerificationStatus")}
               side={lockedSide}
@@ -1454,9 +1460,9 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                         overflowY: "hidden" as const,
                       }
                     : undefined
-              }
-              onClick={handlePopoverBackdropClick}
-            >
+                }
+                onClick={handlePopoverBackdropClick}
+              >
               {popoverContentElement}
               </PopoverContent>
             </CitationErrorBoundary>

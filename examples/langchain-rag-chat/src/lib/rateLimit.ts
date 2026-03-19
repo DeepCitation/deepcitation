@@ -14,8 +14,13 @@
  * and remove the check in the chat route.
  */
 
-const MAX_QUERIES_PER_DAY = 100;
-const MAX_QUERIES_PER_IP_PER_DAY = 5;
+function parsePositiveInt(val: string | undefined, fallback: number): number {
+  const n = Number(val);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+}
+
+const MAX_QUERIES_PER_DAY = parsePositiveInt(process.env.RATE_LIMIT_MAX_PER_DAY, 100);
+const MAX_QUERIES_PER_IP_PER_DAY = parsePositiveInt(process.env.RATE_LIMIT_MAX_PER_IP_PER_DAY, 5);
 
 let globalCount = 0;
 let windowStart = todayKey();
