@@ -26,12 +26,15 @@ export class CitationErrorBoundary extends React.Component<ErrorBoundaryProps, E
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    console.error("[DeepCitation] Citation component error:", error, errorInfo);
+    console.error("[DeepCitation] Citation component error:", error.message, {
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   render(): React.ReactNode {
     if (this.state.hasError) {
-      if (this.props.fallback) {
+      if (this.props.fallback !== undefined) {
         return this.props.fallback;
       }
       // Default fallback: minimal error indicator

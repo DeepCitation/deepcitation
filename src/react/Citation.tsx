@@ -1414,7 +1414,13 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
                 {citationContentNode}
               </span>
             </PopoverTrigger>
-            <PopoverContent
+            {/* Error boundary above PopoverContent (not inside it) so that hook lifecycle
+                errors thrown by PopoverContent itself — e.g. during ThemeProvider-triggered
+                full-tree re-renders — are caught here rather than propagating to the app.
+                key resets the boundary on each open cycle so a transient crash never
+                permanently hides the popover. */}
+            <CitationErrorBoundary fallback={null} key={String(isHovering)}>
+              <PopoverContent
               ref={popoverContentRef}
               id={popoverId}
               aria-label={t("aria.citationVerificationStatus")}
@@ -1452,7 +1458,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
               onClick={handlePopoverBackdropClick}
             >
               {popoverContentElement}
-            </PopoverContent>
+              </PopoverContent>
+            </CitationErrorBoundary>
           </Popover>
         </>
       );
