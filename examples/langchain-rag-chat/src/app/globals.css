@@ -354,7 +354,7 @@ textarea {
   color: var(--ink);
 }
 
-.download-icon {
+.external-link-icon {
   width: 1rem;
   height: 1rem;
   color: var(--muted);

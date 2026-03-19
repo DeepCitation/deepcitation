@@ -199,14 +199,14 @@ export default function Home() {
           </section>
 
           <section className="side-section">
-            <h3>Bundled corpus</h3>
+            <h3>Corpus</h3>
             <ul className="corpus-list">
               {CORPUS_SOURCES.map(doc => (
                 <li key={doc.filename}>
-                  <a className="corpus-link" href={`/api/corpus/${doc.filename}`}>
+                  <a className="corpus-link" href={`/api/corpus/${doc.filename}`} target="_blank" rel="noreferrer">
                     <span>{doc.title}</span>
-                    <svg className="download-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                      <path d="M10 3a.75.75 0 0 1 .75.75v7.19l2.72-2.72a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-1.06 0l-4-4a.75.75 0 0 1 1.06-1.06l2.72 2.72V3.75A.75.75 0 0 1 10 3ZM4 15.25a.75.75 0 0 1 .75.75v.5h10.5v-.5a.75.75 0 0 1 1.5 0v.5A1.5 1.5 0 0 1 15.25 18H4.75A1.5 1.5 0 0 1 3.25 16.5v-.5a.75.75 0 0 1 .75-.75Z" />
+                    <svg className="external-link-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5ZM10 2.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V4.56l-5.22 5.22a.75.75 0 1 1-1.06-1.06l5.22-5.22h-4.69a.75.75 0 0 1-.75-.75Z" />
                     </svg>
                   </a>
                 </li>
