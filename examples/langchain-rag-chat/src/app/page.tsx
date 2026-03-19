@@ -114,23 +114,11 @@ export default function Home() {
             {messages.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-card">
-                  <h2 className="mt-0 text-2xl font-semibold">Ask about the three corpus documents.</h2>
+                  <h2 className="mt-0 text-2xl font-semibold">Ask about the four corpus documents.</h2>
                   <p className="hero-copy">
                     The server retrieves only the most relevant sources, then fetches those exact PDFs and sends them
                     through DeepCitation so the answer can be verified against page-level evidence.
                   </p>
-                  <div className="sample-list">
-                    {SAMPLE_QUESTIONS.map(sample => (
-                      <button
-                        key={sample}
-                        type="button"
-                        className="sample-button"
-                        onClick={() => setQuestion(sample)}
-                      >
-                        {sample}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
             ) : (
@@ -215,7 +203,7 @@ export default function Home() {
             <ul className="corpus-list">
               {CORPUS_SOURCES.map(doc => (
                 <li key={doc.filename}>
-                  <a className="corpus-link" href={`/api/corpus/${doc.filename}`} download>
+                  <a className="corpus-link" href={`/api/corpus/${doc.filename}`}>
                     <span>{doc.title}</span>
                     <svg className="download-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path d="M10 3a.75.75 0 0 1 .75.75v7.19l2.72-2.72a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-1.06 0l-4-4a.75.75 0 0 1 1.06-1.06l2.72 2.72V3.75A.75.75 0 0 1 10 3ZM4 15.25a.75.75 0 0 1 .75.75v.5h10.5v-.5a.75.75 0 0 1 1.5 0v.5A1.5 1.5 0 0 1 15.25 18H4.75A1.5 1.5 0 0 1 3.25 16.5v-.5a.75.75 0 0 1 .75-.75Z" />

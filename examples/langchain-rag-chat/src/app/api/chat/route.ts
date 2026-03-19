@@ -5,6 +5,10 @@ import { checkRateLimit } from "@/lib/rateLimit";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  // NOTE: x-forwarded-for is client-controlled behind Vercel's edge network — the
+  // leftmost value can be spoofed to bypass the per-IP cap. This is acceptable for a
+  // demo. For a production deployment use `x-real-ip` or Next.js edge middleware's
+  // `request.ip`, which Vercel sets from the trusted edge layer.
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const { allowed, remaining, reason } = checkRateLimit(ip);
   if (!allowed) {
@@ -12,9 +16,15 @@ export async function POST(request: Request) {
       reason === "ip"
         ? "You\u2019ve reached the per-user daily limit (5 queries). Fork this example and add your own API keys to remove the limit."
         : "Daily query limit reached. Fork this example and add your own API keys to remove the limit.";
+    // Compute seconds remaining until the next UTC midnight window reset rather than
+    // always returning 86400 — a user hitting the cap at 23:58 UTC only waits ~2 min.
+    const nowMs = Date.now();
+    const midnightMs =
+      new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").getTime() + 86_400_000;
+    const retryAfter = String(Math.ceil((midnightMs - nowMs) / 1000));
     return NextResponse.json(
       { error: message },
-      { status: 429, headers: { "Retry-After": "86400" } },
+      { status: 429, headers: { "Retry-After": retryAfter } },
     );
   }
 

@@ -15,6 +15,8 @@ import type { ChatResponse, RetrievedSource, VerificationSummary } from "@/lib/t
 const deepCitationApiKey = process.env.DEEPCITATION_API_KEY;
 const openAiApiKey = process.env.OPENAI_API_KEY;
 
+// endUserId is a static app-level label here. In a multi-user deployment replace it
+// with a per-user identifier so DeepCitation can attribute usage correctly.
 const deepCitation = deepCitationApiKey
   ? new DeepCitation({ apiKey: deepCitationApiKey, endUserId: "langchain-rag-chat" })
   : null;
@@ -60,7 +62,7 @@ async function resolveAttachment(
     );
   }
 
-  const response = await fetch(source.url);
+  const response = await fetch(source.url, { signal: AbortSignal.timeout(30_000) });
   if (!response.ok) {
     throw new Error(`Failed to fetch "${source.filename}": ${response.status} ${response.statusText}`);
   }

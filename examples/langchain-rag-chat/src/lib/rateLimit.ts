@@ -11,7 +11,8 @@
  * exact billing limits.
  *
  * To disable: set RATE_LIMIT_DISABLED=true in your env, or delete this file
- * and remove the check in the chat route.
+ * and remove the check in the chat route. Only the exact string "true" is
+ * accepted — "1", "yes", and "TRUE" are treated as enabled.
  */
 
 function parsePositiveInt(val: string | undefined, fallback: number): number {
