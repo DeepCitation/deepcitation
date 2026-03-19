@@ -22,6 +22,7 @@ import {
 import { execSync, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { collectDocsFiles, parseYamlFrontmatter } from "./lib/docs-utils.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -136,32 +137,6 @@ function getSubdirs(dirPath) {
   }
 }
 
-function parseYamlFrontmatter(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return { data: {}, watchPaths: [] };
-  const text = match[1];
-  const data = {};
-  let currentKey = null;
-  const watchPaths = [];
-  for (const line of text.split("\n")) {
-    const kvMatch = line.match(/^(\w[\w_]*)\s*:\s*(.+)$/);
-    if (kvMatch) {
-      currentKey = kvMatch[1];
-      data[currentKey] = kvMatch[2].replace(/^["']|["']$/g, "").trim();
-      continue;
-    }
-    const keyOnly = line.match(/^(\w[\w_]*)\s*:\s*$/);
-    if (keyOnly) {
-      currentKey = keyOnly[1];
-      continue;
-    }
-    const arrMatch = line.match(/^\s+-\s+"?([^"]*)"?\s*$/);
-    if (arrMatch && currentKey === "watch_paths") {
-      watchPaths.push(arrMatch[1]);
-    }
-  }
-  return { data, watchPaths };
-}
 
 // ─── Section 1: Generate repo-map.md ────────────────────────────────────────
 function generateRepoMap(gitInfo) {
@@ -383,24 +358,7 @@ function validatePathRouter(gitInfo) {
 function inventoryPublicDocs(gitInfo) {
   const docsDir = join(ROOT, "docs");
 
-  // Collect all .md files under docs/ except docs/agents/
-  function collectMdFiles(dir, relBase = "") {
-    const files = [];
-    if (!existsSync(dir)) return files;
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const relPath = relBase ? `${relBase}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) {
-        if (entry.name === "agents") continue; // skip agent docs
-        if (entry.name.startsWith("_")) continue; // skip Jekyll internals
-        files.push(...collectMdFiles(join(dir, entry.name), relPath));
-      } else if (entry.name.endsWith(".md") && !entry.name.startsWith("_")) {
-        files.push(relPath);
-      }
-    }
-    return files;
-  }
-
-  const mdFiles = collectMdFiles(docsDir).sort();
+  const mdFiles = collectDocsFiles(docsDir, { exclude: ["agents"] }).sort();
   const pages = [];
 
   for (const relPath of mdFiles) {

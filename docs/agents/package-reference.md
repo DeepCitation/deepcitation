@@ -61,6 +61,7 @@ High-level package areas:
 - `src/react`: citation components, hooks, variants, UI behavior.
 - `src/rendering`: Slack/GitHub/HTML/terminal rendering targets.
 - `src/utils`: security and safety utilities.
+- `src/vanilla`: framework-agnostic vanilla JS/TS runtime and rendering.
 - `src/types`: shared TypeScript models.
 
 ## API Endpoints

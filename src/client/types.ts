@@ -449,6 +449,8 @@ export interface AttachmentResponse {
   urlSource?: UrlSource;
   /** Expiration date */
   expiresAt?: (string & {}) | "never";
+  /** Developer-provided end-user identifier for per-customer usage attribution */
+  endUserId?: string;
   /** Original file as received (PDF, DOCX, MP4, …). Absent for URL inputs. */
   originalDownload?: FileDownload;
   /** Converted artifact: PDF rendition for docs/URLs, transcript for audio/video. */

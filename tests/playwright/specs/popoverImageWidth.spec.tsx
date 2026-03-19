@@ -119,7 +119,7 @@ test.describe("Popover Image Keyhole Strip", () => {
     await expect(strip).toBeVisible();
 
     const backgroundColor = await strip.evaluate(el => window.getComputedStyle(el as HTMLElement).backgroundColor);
-    expect(backgroundColor).toBe("rgb(243, 244, 246)");
+    expect(backgroundColor).toBe("rgb(244, 244, 245)");
   });
 
   test("image renders at natural scale (not squashed)", async ({ mount, page }) => {
@@ -223,7 +223,7 @@ test.describe("Popover Image Keyhole Strip - Dark Mode", () => {
     await expect(strip).toBeVisible();
 
     const backgroundColor = await strip.evaluate(el => window.getComputedStyle(el as HTMLElement).backgroundColor);
-    expect(backgroundColor).toBe("rgb(31, 41, 55)");
+    expect(backgroundColor).toBe("rgb(39, 39, 42)");
   });
 });
 
