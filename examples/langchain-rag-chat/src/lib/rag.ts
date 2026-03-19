@@ -97,11 +97,11 @@ if (deepCitation) {
 
 function getRequiredClient(): DeepCitation {
   if (!deepCitationApiKey || !deepCitation) {
-    throw new Error("DEEPCITATION_API_KEY is missing. Copy examples/basic-verification/.env into .env.local.");
+    throw new Error("DEEPCITATION_API_KEY is not set. Add it to your environment variables.");
   }
 
   if (!openAiApiKey) {
-    throw new Error("OPENAI_API_KEY is missing. Copy examples/basic-verification/.env into .env.local.");
+    throw new Error("OPENAI_API_KEY is not set. Add it to your environment variables.");
   }
 
   return deepCitation;
@@ -109,7 +109,7 @@ function getRequiredClient(): DeepCitation {
 
 function getRequiredOpenAiClient(): OpenAI {
   if (!openAiApiKey || !openai) {
-    throw new Error("OPENAI_API_KEY is missing. Copy examples/basic-verification/.env into .env.local.");
+    throw new Error("OPENAI_API_KEY is not set. Add it to your environment variables.");
   }
 
   return openai;

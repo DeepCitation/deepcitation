@@ -29,7 +29,7 @@ DEEPCITATION_API_KEY=dc-...
 OPENAI_API_KEY=sk-...
 ```
 
-For local validation in this repo, you can copy the values from `../basic-verification/.env`.
+For local development in this repo, you can copy the values from `../basic-verification/.env`.
 
 ## Optional Environment Variables
 
