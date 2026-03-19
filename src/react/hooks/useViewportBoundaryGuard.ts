@@ -135,14 +135,12 @@ export function useViewportBoundaryGuard(
 
 function clamp(el: HTMLElement): void {
   const vw = getVisibleViewportWidth();
-  const vh = document.documentElement.clientHeight;
   applyGuardMaxWidth(el, vw);
 
   el.style.translate = "";
   const rect = el.getBoundingClientRect();
 
   let dx = 0;
-  let dy = 0;
 
   if (rect.left < VIEWPORT_MARGIN_PX) {
     dx = VIEWPORT_MARGIN_PX - rect.left;
@@ -150,13 +148,11 @@ function clamp(el: HTMLElement): void {
     dx = vw - VIEWPORT_MARGIN_PX - rect.right;
   }
 
-  if (rect.top < VIEWPORT_MARGIN_PX) {
-    dy = VIEWPORT_MARGIN_PX - rect.top;
-  } else if (rect.bottom > vh - VIEWPORT_MARGIN_PX) {
-    dy = vh - VIEWPORT_MARGIN_PX - rect.bottom;
-  }
+  // Vertical clamping intentionally omitted — the popover should stay
+  // anchored to its trigger and render out of view rather than detaching
+  // upward to stay in the viewport. The user can scroll to reveal it.
 
-  if (dx !== 0 || dy !== 0) {
-    el.style.translate = `${dx}px ${dy}px`;
+  if (dx !== 0) {
+    el.style.translate = `${dx}px 0px`;
   }
 }
