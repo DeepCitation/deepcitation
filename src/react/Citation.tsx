@@ -1724,7 +1724,7 @@ const UrlStatusIndicator = ({
   if (isError) {
     if (renderBlockedIndicator) return <>{renderBlockedIndicator(fetchStatus, errorMessage)}</>;
     return (
-      <StatusIconWrapper className="text-red-500 dark:text-red-400" ariaLabel={statusLabel}>
+      <StatusIconWrapper className="text-dc-destructive" ariaLabel={statusLabel}>
         <XCircleIcon className="w-full h-full" />
       </StatusIconWrapper>
     );

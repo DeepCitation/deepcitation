@@ -190,9 +190,9 @@ export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>
     );
 
     const statusClasses = classNames(
-      status.isVerified && !status.isPartialMatch && "text-green-600 dark:text-green-500",
-      status.isPartialMatch && "text-amber-500 dark:text-amber-400",
-      status.isMiss && "text-red-500 dark:text-red-400",
+      status.isVerified && !status.isPartialMatch && "text-dc-verified",
+      status.isPartialMatch && "text-dc-partial",
+      status.isMiss && "text-dc-destructive",
       status.isPending && "text-dc-subtle-foreground",
     );
 
@@ -356,7 +356,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
       return (
         <span
           ref={ref}
-          className={classNames(baseClasses, "text-green-600 dark:text-green-500", className)}
+          className={classNames(baseClasses, "text-dc-verified", className)}
           aria-label={t("indicator.verified")}
           {...props}
         >
@@ -369,7 +369,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
       return (
         <span
           ref={ref}
-          className={classNames(baseClasses, "text-red-500 dark:text-red-400", className)}
+          className={classNames(baseClasses, "text-dc-destructive", className)}
           aria-label={t("indicator.notFound")}
           {...props}
         >

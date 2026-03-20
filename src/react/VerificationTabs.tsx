@@ -48,7 +48,7 @@ const TabButton = ({ isActive, onClick, label }: { isActive: boolean; onClick: (
       "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
       isActive
         ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-        : "text-dc-muted-foreground hover:text-gray-900 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-800",
+        : "text-dc-muted-foreground hover:text-zinc-900 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800",
     )}
     type="button"
     data-active={isActive}
@@ -78,7 +78,7 @@ const ModeToggle = ({
           "p-1 rounded transition-colors",
           mode === "inline"
             ? "bg-dc-muted text-dc-foreground"
-            : "text-dc-pending hover:text-gray-600 dark:hover:text-gray-400",
+            : "text-dc-pending hover:text-zinc-600 dark:hover:text-zinc-400",
         )}
         title={t("diff.inlineView")}
         aria-label={t("diff.inlineView")}
@@ -97,7 +97,7 @@ const ModeToggle = ({
           "p-1 rounded transition-colors",
           mode === "split"
             ? "bg-dc-muted text-dc-foreground"
-            : "text-dc-pending hover:text-gray-600 dark:hover:text-gray-400",
+            : "text-dc-pending hover:text-zinc-600 dark:hover:text-zinc-400",
         )}
         title={t("diff.splitView")}
         aria-label={t("diff.splitView")}
@@ -211,7 +211,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
 
         <div
           data-testid="exact-match-badge"
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-dc-verified/10 text-dc-verified rounded-full text-sm font-medium"
         >
           <span className="size-2">
             <CheckIcon />
@@ -241,9 +241,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
           data-testid="status-message"
           className={cn(
             "text-xs font-medium px-2 py-1 rounded-md inline-flex items-center gap-1.5",
-            status === "not_found"
-              ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-              : "bg-amber-100 dark:bg-amber-900/30 text-amber-500 dark:text-amber-400",
+            status === "not_found" ? "bg-dc-destructive/10 text-dc-destructive" : "bg-dc-partial/10 text-dc-partial",
           )}
         >
           {status !== "not_found" && (
@@ -294,7 +292,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
             {!hasDiff ? (
               <div
                 data-testid="exact-match-indicator"
-                className="inline-flex items-center gap-1.5 text-green-600 dark:text-green-500 text-sm"
+                className="inline-flex items-center gap-1.5 text-dc-verified text-sm"
               >
                 <span className="size-2">
                   <CheckIcon />

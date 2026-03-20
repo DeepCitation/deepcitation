@@ -53,9 +53,9 @@ const MAX_URL_DISPLAY_LENGTH = 45;
 
 /** Icon color classes by status - defined outside component to avoid recreation on every render */
 const ICON_COLOR_CLASSES = {
-  green: "text-green-700 dark:text-green-400",
-  amber: "text-amber-500 dark:text-amber-400",
-  red: "text-red-500 dark:text-red-400",
+  green: "text-dc-verified",
+  amber: "text-dc-partial",
+  red: "text-dc-destructive",
   gray: "text-dc-pending",
 } as const;
 
@@ -351,7 +351,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
           onClose();
         }}
         className={cn(
-          "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border cursor-pointer",
+          "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-md border cursor-pointer",
           "transition-colors bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40",
           FOCUS_RING_CLASSES,
           HITBOX_EXTEND_8x14,
@@ -366,7 +366,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
         title={t("action.closeExpanded")}
       >
         <span>{label}</span>
-        <span className="size-3">
+        <span className="size-3 inline-flex items-center justify-center">
           <XIcon />
         </span>
       </button>
@@ -376,7 +376,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
   if (!onClick) {
     return (
       <span
-        className={cn("inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border", colorClasses)}
+        className={cn("inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-md border", colorClasses)}
       >
         {label}
       </span>
@@ -391,11 +391,11 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
         onClick();
       }}
       className={cn(
-        "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded border cursor-pointer",
+        "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-md border cursor-pointer",
         TERTIARY_ACTION_BASE_CLASSES,
         TERTIARY_ACTION_IDLE_CLASSES,
         TERTIARY_ACTION_HOVER_CLASSES,
-        "hover:bg-gray-200 dark:hover:bg-gray-700",
+        "hover:bg-zinc-200 dark:hover:bg-zinc-700",
         HITBOX_EXTEND_8x14,
         colorClasses,
       )}
@@ -907,7 +907,7 @@ function VerificationLogSummary({ narrative, status, isExpanded, onToggle, verif
       aria-controls="verification-log-timeline"
       className="w-full px-4 py-1.5 flex items-center justify-between text-xs transition-colors cursor-pointer group"
     >
-      <div className="flex items-center gap-1.5 text-dc-pending group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
+      <div className="flex items-center gap-1.5 text-dc-pending group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors">
         <svg
           className={cn("size-3 transition-transform duration-120", isExpanded && "rotate-90")}
           viewBox="0 0 24 24"
@@ -919,7 +919,7 @@ function VerificationLogSummary({ narrative, status, isExpanded, onToggle, verif
           <path d="M9 6l6 6-6 6" />
         </svg>
         <span>{t("verification.details")}</span>
-        <span className="text-gray-400/70 dark:text-gray-600">({outcomeSummary})</span>
+        <span className="text-zinc-400/70 dark:text-zinc-600">({outcomeSummary})</span>
       </div>
       {dateStr && (
         <span
@@ -985,7 +985,7 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
             <div>
               <div className="p-2.5 bg-dc-muted space-y-2">
                 <div className="flex items-start gap-2">
-                  <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-green-700 dark:text-green-400 shrink-0">
+                  <span className="size-3.5 max-w-3.5 max-h-3.5 mt-0.5 text-dc-verified shrink-0">
                     <CheckIcon />
                   </span>
                   <QuotedText mono className="text-xs text-dc-foreground break-all">
@@ -1028,7 +1028,7 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
     }
     case "failure":
       return (
-        <div className="py-1 px-2 text-xs font-mono border-l-2 border-red-300 dark:border-red-500/60 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <div className="py-1 px-2 text-xs font-mono border-l-2 border-dc-destructive/40 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <span
             className="font-mono text-xxs truncate min-w-0"
             title={row.note || (isTruncated ? row.phraseFull : undefined)}
@@ -1042,7 +1042,7 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
       );
     case "collapsed_failure":
       return (
-        <div className="py-1 px-2 text-xs font-mono border-l-2 border-red-300 dark:border-red-500/60 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <div className="py-1 px-2 text-xs font-mono border-l-2 border-dc-destructive/40 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <span className="font-mono text-xxs truncate min-w-0" title={isTruncated ? row.phraseFull : undefined}>
             {row.phraseDisplay}
           </span>

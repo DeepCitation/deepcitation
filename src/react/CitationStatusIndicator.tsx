@@ -201,8 +201,8 @@ export const CitationStatusIndicator = ({
     }
 
     // Color: miss → red, default → muted gray.
-    const pillTextClass = isMiss ? "text-red-500 dark:text-red-400" : "text-dc-subtle-foreground";
-    const pillBgClass = isMiss ? "bg-red-50 dark:bg-red-950" : "bg-dc-muted/[0.3]";
+    const pillTextClass = isMiss ? "text-dc-destructive" : "text-dc-subtle-foreground";
+    const pillBgClass = isMiss ? "bg-dc-destructive/10" : "bg-dc-muted/[0.3]";
 
     return (
       <span

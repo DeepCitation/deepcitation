@@ -31,13 +31,13 @@ const DiffDisplay: React.FC<DiffDisplayProps> = memo(({ expected, actual, label,
       {label && (
         <div
           data-testid="diff-label"
-          className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"
+          className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide"
         >
           {label}
         </div>
       )}
 
-      <div data-testid="diff-content" className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+      <div data-testid="diff-content" className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-md">
         <div data-testid="diff-blocks" className="text-sm font-mono whitespace-pre-wrap break-words">
           {diffResult.map((block, blockIndex) => {
             const blockContent = block.parts.map(p => p.value).join("");
@@ -81,7 +81,7 @@ const DiffDisplay: React.FC<DiffDisplayProps> = memo(({ expected, actual, label,
 
                   // Unchanged text
                   return (
-                    <span key={key} className="text-gray-700 dark:text-gray-300">
+                    <span key={key} className="text-zinc-700 dark:text-zinc-300">
                       {part.value}
                     </span>
                   );

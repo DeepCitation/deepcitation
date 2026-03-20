@@ -18,7 +18,7 @@ export function HighlightedPhrase({
 }) {
   // Don't highlight when citation is "not found" - misleading to highlight text that wasn't found
   if (isMiss) {
-    return <span className="text-red-400 dark:text-red-400/70">{fullPhrase}</span>;
+    return <span className="text-dc-destructive">{fullPhrase}</span>;
   }
   if (!anchorText || !fullPhrase.includes(anchorText) || !shouldHighlightAnchorText(anchorText, fullPhrase)) {
     return <span className="text-dc-muted-foreground">{fullPhrase}</span>;

@@ -199,10 +199,12 @@ export const PENDING_COLOR_STYLE: React.CSSProperties = {
 };
 
 /**
- * Base CSS classes for popover containers in CitationComponent.
- * Provides consistent styling for all popover states (pending, success, partial, error).
+ * Base CSS classes for inner popover containers.
+ * Border, rounded corners, background, and shadow are provided by the outer
+ * PopoverContent wrapper — this constant exists only so layout classes
+ * (min/max-width) can be composed with cn().
  */
-export const POPOVER_CONTAINER_BASE_CLASSES = "rounded-lg border border-dc-border bg-dc-background shadow-md";
+export const POPOVER_CONTAINER_BASE_CLASSES = "";
 
 /**
  * Dynamic indicator size styles.
@@ -811,7 +813,7 @@ export const BLINK_ROW_INSET_B_PX = 2;
 
 /** CSS custom property for TtC text color. */
 export const TTC_COLOR_VAR = "--dc-ttc-color";
-/** Default TtC text color (Tailwind gray-400) — intentionally muted/ambient */
+/** Default TtC text color (Tailwind zinc-400) — intentionally muted/ambient */
 export const TTC_COLOR_DEFAULT = "#9ca3af";
 
 /** CSS custom property for TtC "fast" highlight color. */

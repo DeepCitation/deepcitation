@@ -66,7 +66,7 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
       background: "bg-red-100 dark:bg-red-900/30",
       border: "border-dashed border-red-300 dark:border-red-500 hover:border-red-500 dark:hover:border-red-400",
       hover: "hover:bg-red-700 hover:text-white dark:hover:bg-red-200 dark:hover:text-red-900",
-      text: "text-red-600 dark:text-red-400",
+      text: "text-dc-destructive",
     };
   }
 
@@ -75,7 +75,7 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
       background: "bg-green-100 dark:bg-green-900/30",
       border: "border-green-300 dark:border-green-600 hover:border-green-600 dark:hover:border-green-500",
       hover: "hover:bg-green-700 hover:text-white dark:hover:bg-green-200 dark:hover:text-green-900",
-      text: "text-green-600 dark:text-green-500",
+      text: "text-dc-verified",
     };
   }
 
@@ -97,9 +97,9 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
 }
 
 function getStatusToneClass(status: CitationStatus, defaultClass: string): string {
-  if (status.isPartialMatch) return "text-amber-500 dark:text-amber-400";
-  if (status.isMiss) return "text-red-500 dark:text-red-400";
-  if (status.isVerified) return "text-green-600 dark:text-green-500";
+  if (status.isPartialMatch) return "text-dc-partial";
+  if (status.isMiss) return "text-dc-destructive";
+  if (status.isVerified) return "text-dc-verified";
   if (status.isPending) return "text-dc-subtle-foreground";
   return defaultClass || "text-dc-muted-foreground";
 }
@@ -553,11 +553,11 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
     if (isPending) {
       borderClass = "border-dc-border animate-pulse cursor-wait";
     } else if (isMiss) {
-      borderClass = "border-red-500/60 dark:border-red-500/40 cursor-pointer";
+      borderClass = "border-dc-destructive/60 cursor-pointer";
     } else if (isPartialMatch) {
-      borderClass = "border-amber-500/60 dark:border-amber-500/40 cursor-pointer";
+      borderClass = "border-dc-partial/60 cursor-pointer";
     } else if (isVerified) {
-      borderClass = "border-emerald-500/60 dark:border-emerald-500/40 cursor-pointer";
+      borderClass = "border-dc-verified/60 cursor-pointer";
     } else {
       borderClass = "border-dc-border hover:border-slate-900 dark:hover:border-slate-100 cursor-pointer";
     }

@@ -241,7 +241,7 @@ function CitationTooltip({
           <div
             role="button"
             tabIndex={0}
-            className="block w-full rounded overflow-hidden border border-dc-border hover:border-gray-300 dark:hover:border-gray-600 transition-colors cursor-pointer"
+            className="block w-full rounded overflow-hidden border border-dc-border hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors cursor-pointer"
             onClick={handleProofClick}
             onKeyDown={e => {
               if (e.key === "Enter" || e.key === " ") {
@@ -273,18 +273,18 @@ function CitationTooltip({
 
 /** Map from priority tier to dot background color class. */
 const PRIORITY_DOT_BG: Record<number, string> = {
-  4: "bg-red-500",
-  3: "bg-amber-500",
+  4: "bg-dc-destructive",
+  3: "bg-dc-partial",
   2: "bg-dc-pending",
-  1: "bg-green-500",
+  1: "bg-dc-verified",
 };
 
 /** Map from priority tier to dot text color class (for count label). */
 const PRIORITY_DOT_TEXT: Record<number, string> = {
-  4: "text-red-600 dark:text-red-400",
-  3: "text-amber-600 dark:text-amber-400",
+  4: "text-dc-destructive",
+  3: "text-dc-partial",
   2: "text-dc-subtle-foreground",
-  1: "text-green-700 dark:text-green-400",
+  1: "text-dc-verified",
 };
 
 export function StackedStatusIcons({
