@@ -339,10 +339,8 @@ test.describe("Pre-render boundary alignment", () => {
 
     const popover = page.getByRole("dialog");
     await expect(popover).toBeVisible();
-    const container = popover.locator(POPOVER_CONTAINER_SELECTOR);
-    await expect(container).toBeVisible();
-
-    const containerWidth = await container.evaluate(el => el.getBoundingClientRect().width);
+    // The dialog element is the popover container — measure it directly.
+    const containerWidth = await popover.evaluate(el => el.getBoundingClientRect().width);
     const fullUsableWidth = 700 - POPOVER_SIDE_GUTTER_TOTAL_PX;
     // Allow small cross-platform/sub-pixel variance while still enforcing
     // "near default width" (not collapsed to a narrow adaptive width).
