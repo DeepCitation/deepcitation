@@ -168,7 +168,7 @@ export function ZoomToolbar({
               CARD_CLASSES,
               "w-10 h-10 flex items-center justify-center transition-all duration-180",
               locateDirty
-                ? "text-blue-700 dark:text-blue-luminous opacity-90 hover:bg-dc-muted"
+                ? "text-blue-700 dark:text-sky-400 opacity-90 hover:bg-dc-muted"
                 : "opacity-45 hover:opacity-65",
             )}
             aria-label={locateDirty ? t("zoom.reCenter") : t("zoom.centered")}

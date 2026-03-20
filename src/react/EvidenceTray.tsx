@@ -873,9 +873,7 @@ function MatchSnippetDisplay({ snippet }: { snippet: import("./searchSummaryUtil
   return (
     <div className="text-xs text-dc-muted-foreground font-mono leading-relaxed">
       {before && <span className="text-dc-subtle-foreground">...{before}</span>}
-      <strong className="text-dc-foreground bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">
-        {match}
-      </strong>
+      <strong className="text-dc-foreground bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">{match}</strong>
       {after && <span className="text-dc-subtle-foreground">{after}...</span>}
       {snippet.page != null && (
         <span className="text-[10px] text-dc-subtle-foreground ml-1">
@@ -883,9 +881,7 @@ function MatchSnippetDisplay({ snippet }: { snippet: import("./searchSummaryUtil
         </span>
       )}
       {!snippet.isProximate && (
-        <span className="text-[10px] text-dc-subtle-foreground ml-1 italic">
-          {t("evidence.differentSection")}
-        </span>
+        <span className="text-[10px] text-dc-subtle-foreground ml-1 italic">{t("evidence.differentSection")}</span>
       )}
     </div>
   );

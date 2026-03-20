@@ -480,7 +480,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
               "rounded-lg border bg-dc-background shadow-xl outline-none",
               "w-fit",
               // overflow-x is handled via inline style (clip, not hidden — avoids scroll container)
-              "border-dc-border bg-dc-background",
+              "border-dc-border",
               className,
             )}
             {...props}

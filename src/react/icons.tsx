@@ -17,13 +17,13 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
     height="1em"
   >
     {/* The Brackets (Reality / Verification) */}
-    <path d="M4 1 L1 1 L1 23 L4 23" className="text-dc-foreground" />
-    <path d="M20 1 L23 1 L23 23 L20 23" className="text-dc-foreground" />
+    <path d="M4 1 L1 1 L1 23 L4 23" className="text-dc-foreground" strokeWidth="1.5" />
+    <path d="M20 1 L23 1 L23 23 L20 23" className="text-dc-foreground" strokeWidth="1.5" />
     {/* The Spark (The contained AI Payload) */}
     <path
       d="M12 6 L12 18 M6 12 L18 12 M7.5 7.5 L16.5 16.5 M16.5 7.5 L7.5 16.5"
       strokeWidth="1.5"
-      className="text-blue-700 dark:text-blue-luminous"
+      className="text-blue-700 dark:text-sky-400"
     />
   </svg>
 );
@@ -75,7 +75,7 @@ export const CheckIcon = ({ className }: { className?: string }) => (
  * Default size is 1em (inherits font size). Use className to override.
  */
 export const WarningIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" width="100%" height="100%">
+  <svg className={className} viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" width="1em" height="1em">
     <path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z" />
   </svg>
 );

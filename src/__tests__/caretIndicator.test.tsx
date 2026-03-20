@@ -91,13 +91,13 @@ describe("Caret Indicator Variant", () => {
   it("uses gray text when open (no inverted active style)", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={true} popoverSide="bottom" />);
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
-    expect(pill.classList.contains("text-slate-500")).toBe(true);
+    expect(pill.classList.contains("text-dc-subtle-foreground")).toBe(true);
   });
 
   it("uses gray text when closed", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} isOpen={false} />);
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
-    expect(pill.classList.contains("text-slate-500")).toBe(true);
+    expect(pill.classList.contains("text-dc-subtle-foreground")).toBe(true);
   });
 
   // ==========================================================================
@@ -122,7 +122,7 @@ describe("Caret Indicator Variant", () => {
     const { container } = render(<CitationStatusIndicator {...baseProps} isVerified={true} />);
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
     expect(pill).toBeInTheDocument();
-    expect(pill.classList.contains("text-slate-500")).toBe(true);
+    expect(pill.classList.contains("text-dc-subtle-foreground")).toBe(true);
   });
 
   it("renders gray caret for partial status", () => {
@@ -131,7 +131,7 @@ describe("Caret Indicator Variant", () => {
     );
     const pill = container.querySelector("[data-dc-indicator='caret']") as HTMLElement;
     expect(pill).toBeInTheDocument();
-    expect(pill.classList.contains("text-slate-500")).toBe(true);
+    expect(pill.classList.contains("text-dc-subtle-foreground")).toBe(true);
   });
 
   // ==========================================================================

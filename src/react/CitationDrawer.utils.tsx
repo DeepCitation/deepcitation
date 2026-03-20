@@ -190,7 +190,12 @@ export function getStatusInfo(
     if (!status || status === "pending" || status === "loading") {
       return {
         color: "text-dc-subtle-foreground",
-        icon: <span className="block rounded-full bg-dc-subtle-foreground animate-pulse" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
+        icon: (
+          <span
+            className="block rounded-full bg-dc-subtle-foreground animate-pulse"
+            style={DOT_INDICATOR_FIXED_SIZE_STYLE}
+          />
+        ),
         label: t("indicator.verifying"),
       };
     }
