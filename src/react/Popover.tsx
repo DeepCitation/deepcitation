@@ -477,10 +477,10 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
             className={cn(
               // Base styling: fit-content dimensions, viewport-aware max height
               // Ensures popover never exceeds screen bounds, leaving room for positioning
-              "rounded-lg border bg-white shadow-xl outline-none",
+              "rounded-lg border bg-dc-background shadow-xl outline-none",
               "w-fit",
               // overflow-x is handled via inline style (clip, not hidden — avoids scroll container)
-              "border-slate-200 dark:border-slate-600 dark:bg-slate-800",
+              "border-dc-border bg-dc-background",
               className,
             )}
             {...props}

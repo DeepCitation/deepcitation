@@ -11,18 +11,19 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
     strokeWidth="2"
     strokeLinecap="square"
     strokeLinejoin="miter"
+    shapeRendering="crispEdges"
     className={className}
     width="1em"
     height="1em"
   >
     {/* The Brackets (Reality / Verification) */}
-    <path d="M4 1 L1 1 L1 23 L4 23" className="text-slate-900 dark:text-slate-100" />
-    <path d="M20 1 L23 1 L23 23 L20 23" className="text-slate-900 dark:text-slate-100" />
+    <path d="M4 1 L1 1 L1 23 L4 23" className="text-dc-foreground" />
+    <path d="M20 1 L23 1 L23 23 L20 23" className="text-dc-foreground" />
     {/* The Spark (The contained AI Payload) */}
     <path
       d="M12 6 L12 18 M6 12 L18 12 M7.5 7.5 L16.5 16.5 M16.5 7.5 L7.5 16.5"
       strokeWidth="1.5"
-      className="text-blue-700 dark:text-sky-400"
+      className="text-blue-700 dark:text-blue-luminous"
     />
   </svg>
 );
@@ -30,7 +31,7 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
 /**
  * Miss/fail indicator - horizontal line (dash)
  * Semantically indicates "not found" without implying "close/delete"
- * Size is controlled by parent container - use size-4 or similar on wrapper
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const MissIcon = ({ className }: { className?: string }) => (
   <svg
@@ -41,8 +42,8 @@ export const MissIcon = ({ className }: { className?: string }) => (
     strokeWidth="3"
     strokeLinecap="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <line x1="6" y1="12" x2="18" y2="12" />
   </svg>
@@ -50,7 +51,7 @@ export const MissIcon = ({ className }: { className?: string }) => (
 
 /**
  * Check icon SVG (no dependencies)
- * Size is controlled by parent container - use size-4 or similar on wrapper
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const CheckIcon = ({ className }: { className?: string }) => (
   <svg
@@ -62,8 +63,8 @@ export const CheckIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <polyline points="20 6 9 17 4 12" />
   </svg>
@@ -71,7 +72,7 @@ export const CheckIcon = ({ className }: { className?: string }) => (
 
 /**
  * Warning icon SVG (no dependencies)
- * Size is controlled by parent container - use size-4 or similar on wrapper
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const WarningIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" width="100%" height="100%">
@@ -81,7 +82,7 @@ export const WarningIcon = ({ className }: { className?: string }) => (
 
 /**
  * Spinner component for loading/pending state
- * Size is controlled by parent container - use size-4 or similar on wrapper
+ * Default size is 1em (inherits font size). Use className to override.
  * Animation (animate-spin) should be applied to the wrapper
  */
 export const SpinnerIcon = ({ className }: { className?: string }) => (
@@ -90,8 +91,8 @@ export const SpinnerIcon = ({ className }: { className?: string }) => (
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" style={{ opacity: 0.25 }} />
     <path
@@ -104,7 +105,7 @@ export const SpinnerIcon = ({ className }: { className?: string }) => (
 
 /**
  * Link/chain icon for inline URL citations (Gemini-style)
- * Size is controlled by parent container - use size-3 or similar on wrapper
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const LinkIcon = ({ className }: { className?: string }) => (
   <svg
@@ -117,8 +118,8 @@ export const LinkIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
@@ -151,7 +152,7 @@ export const ExternalLinkIcon = ({ className }: { className?: string }) => (
 
 /**
  * Close/X icon
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const CloseIcon = ({ className }: { className?: string }) => (
   <svg
@@ -164,8 +165,8 @@ export const CloseIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
@@ -174,7 +175,7 @@ export const CloseIcon = ({ className }: { className?: string }) => (
 
 /**
  * Lock icon for restricted/paywall content
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const LockIcon = ({ className }: { className?: string }) => (
   <svg
@@ -183,8 +184,8 @@ export const LockIcon = ({ className }: { className?: string }) => (
     viewBox="0 0 24 24"
     fill="currentColor"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm3 8H9V7a3 3 0 0 1 6 0v3z" />
   </svg>
@@ -192,7 +193,7 @@ export const LockIcon = ({ className }: { className?: string }) => (
 
 /**
  * Document icon for document citations in source context headers
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const DocumentIcon = ({ className }: { className?: string }) => (
   <svg
@@ -205,8 +206,8 @@ export const DocumentIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
     <polyline points="14 2 14 8 20 8" />
@@ -218,7 +219,7 @@ export const DocumentIcon = ({ className }: { className?: string }) => (
 
 /**
  * Globe icon for URL citations without favicon
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const GlobeIcon = ({ className }: { className?: string }) => (
   <svg
@@ -231,8 +232,8 @@ export const GlobeIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <circle cx="12" cy="12" r="10" />
     <line x1="2" y1="12" x2="22" y2="12" />
@@ -243,7 +244,7 @@ export const GlobeIcon = ({ className }: { className?: string }) => (
 /**
  * X in circle icon for "not found" status
  * Used in popover headers and status indicators for miss/not_found state
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const XCircleIcon = ({ className }: { className?: string }) => (
   <svg
@@ -256,8 +257,8 @@ export const XCircleIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <circle cx="12" cy="12" r="10" />
     <line x1="15" y1="9" x2="9" y2="15" />
@@ -269,7 +270,7 @@ export const XCircleIcon = ({ className }: { className?: string }) => (
  * Simple X icon for "not found" status at smaller sizes
  * Simpler than XCircleIcon - just the X without the circle
  * Better visibility at small font sizes where the circle becomes hard to see
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const XIcon = ({ className }: { className?: string }) => (
   <svg
@@ -282,8 +283,8 @@ export const XIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
@@ -292,7 +293,7 @@ export const XIcon = ({ className }: { className?: string }) => (
 
 /**
  * Crosshair/locate icon for scrolling to an annotation
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const LocateIcon = ({ className }: { className?: string }) => (
   <svg
@@ -305,8 +306,8 @@ export const LocateIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <circle cx="12" cy="12" r="5" />
     <line x1="12" y1="2" x2="12" y2="6" />
@@ -318,7 +319,7 @@ export const LocateIcon = ({ className }: { className?: string }) => (
 
 /**
  * Chevron down icon for disclosure indicators (e.g., caret variant)
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const ChevronDownIcon = ({ className }: { className?: string }) => (
   <svg
@@ -331,8 +332,8 @@ export const ChevronDownIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <path d="M6 9l6 6 6-6" />
   </svg>
@@ -340,7 +341,7 @@ export const ChevronDownIcon = ({ className }: { className?: string }) => (
 
 /**
  * Chevron right icon for expansion indicators (e.g., page pill)
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const ChevronRightIcon = ({ className }: { className?: string }) => (
   <svg
@@ -353,8 +354,8 @@ export const ChevronRightIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <path d="M9 6l6 6-6 6" />
   </svg>
@@ -362,7 +363,7 @@ export const ChevronRightIcon = ({ className }: { className?: string }) => (
 
 /**
  * Download icon (arrow-down into tray) for source download actions
- * Size is controlled by parent container
+ * Default size is 1em (inherits font size). Use className to override.
  */
 export const DownloadIcon = ({ className }: { className?: string }) => (
   <svg
@@ -375,8 +376,8 @@ export const DownloadIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
-    width="100%"
-    height="100%"
+    width="1em"
+    height="1em"
   >
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
     <polyline points="7 10 12 15 17 10" />

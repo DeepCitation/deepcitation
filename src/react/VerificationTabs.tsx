@@ -77,7 +77,7 @@ const ModeToggle = ({
         className={cn(
           "p-1 rounded transition-colors",
           mode === "inline"
-            ? "bg-slate-200 dark:bg-slate-700 text-dc-foreground"
+            ? "bg-dc-muted text-dc-foreground"
             : "text-dc-pending hover:text-gray-600 dark:hover:text-gray-400",
         )}
         title={t("diff.inlineView")}
@@ -96,7 +96,7 @@ const ModeToggle = ({
         className={cn(
           "p-1 rounded transition-colors",
           mode === "split"
-            ? "bg-slate-200 dark:bg-slate-700 text-dc-foreground"
+            ? "bg-dc-muted text-dc-foreground"
             : "text-dc-pending hover:text-gray-600 dark:hover:text-gray-400",
         )}
         title={t("diff.splitView")}

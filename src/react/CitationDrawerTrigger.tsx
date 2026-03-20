@@ -220,7 +220,7 @@ function CitationTooltip({
             onError={handleImageErrorOpacity}
           />
         ) : (
-          <span className="w-4 h-4 rounded-sm bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[8px] font-medium text-dc-muted-foreground shrink-0">
+          <span className="w-4 h-4 rounded-sm bg-dc-muted flex items-center justify-center text-[8px] font-medium text-dc-muted-foreground shrink-0">
             {sourceName.charAt(0).toUpperCase()}
           </span>
         )}

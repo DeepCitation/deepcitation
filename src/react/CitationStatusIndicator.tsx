@@ -186,8 +186,8 @@ export const CitationStatusIndicator = ({
         <span
           className={cn(
             "inline-flex items-center justify-center relative ml-0.5 top-[0.05em] [text-decoration:none] rounded-full",
-            "bg-slate-100/60 dark:bg-slate-800/40",
-            "text-slate-500 dark:text-slate-400",
+            "bg-dc-muted/[0.3]",
+            "text-dc-subtle-foreground",
           )}
           style={CARET_PILL_STYLE}
           data-dc-indicator="pending"
@@ -201,8 +201,8 @@ export const CitationStatusIndicator = ({
     }
 
     // Color: miss → red, default → muted gray.
-    const pillTextClass = isMiss ? "text-red-500 dark:text-red-400" : "text-slate-500 dark:text-slate-400";
-    const pillBgClass = isMiss ? "bg-red-50 dark:bg-red-950" : "bg-slate-100/60 dark:bg-slate-800/40";
+    const pillTextClass = isMiss ? "text-red-500 dark:text-red-400" : "text-dc-subtle-foreground";
+    const pillBgClass = isMiss ? "bg-red-50 dark:bg-red-950" : "bg-dc-muted/[0.3]";
 
     return (
       <span

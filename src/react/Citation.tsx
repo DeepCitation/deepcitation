@@ -1255,7 +1255,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // Early return for miss with fallback display (only when showing anchorText)
     // Inline variants inherit color (dimmed via opacity), others use explicit gray.
     if (fallbackDisplay !== null && fallbackDisplay !== undefined && resolvedContent === "anchorText" && isMiss) {
-      const fallbackClasses = isInlineVariant ? "opacity-50" : "text-slate-500 dark:text-slate-400";
+      const fallbackClasses = isInlineVariant ? "opacity-50" : "text-dc-subtle-foreground";
       return <span className={cn(fallbackClasses, className)}>{fallbackDisplay}</span>;
     }
 
@@ -1267,11 +1267,11 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       // Miss state: opacity dims the inherited/explicit color
       isMiss && "opacity-70",
       // Explicit gray only for non-inline variants (inline variants inherit from parent)
-      isMiss && !isInlineVariant && "text-slate-700 dark:text-slate-200",
+      isMiss && !isInlineVariant && "text-dc-foreground",
       // Pending/spinner: muted color for non-inline variants only.
       // Inline variants inherit color; the spinner icon signals loading.
       // (Linter handles pending color in its own inline styles.)
-      shouldShowSpinner && !isInlineVariant && "text-slate-500 dark:text-slate-400",
+      shouldShowSpinner && !isInlineVariant && "text-dc-subtle-foreground",
     );
 
     // Build props for the extracted CitationStatusIndicator component
@@ -1545,7 +1545,7 @@ const DefaultFavicon = ({ url, faviconUrl, isBroken }: { url: string; faviconUrl
 
   if (isBroken) {
     return (
-      <span className="w-3.5 h-3.5 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400 shrink-0">
+      <span className="w-3.5 h-3.5 flex items-center justify-center text-xs text-dc-subtle-foreground shrink-0">
         🌐
       </span>
     );
@@ -1592,7 +1592,7 @@ const ExternalLinkButton = ({
       onClick={handleExternalLinkClick}
       className={cn(
         "relative inline-flex items-center justify-center w-6 h-6 -ml-0.5 transition-all",
-        "text-slate-400 group-hover:text-blue-500 dark:text-slate-500 dark:group-hover:text-blue-400",
+        "text-dc-subtle-foreground group-hover:text-blue-500 dark:group-hover:text-blue-400",
         !alwaysVisible && "opacity-30 group-hover:opacity-100 group-focus-within:opacity-100",
       )}
       aria-label={ariaLabel}
@@ -1925,14 +1925,14 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             className={cn(
               // Base styles matching the HTML design
               "group inline-flex items-center gap-2 px-2 py-1",
-              "bg-white dark:bg-slate-900",
-              "border border-slate-200 dark:border-slate-700",
+              "bg-dc-background",
+              "border border-dc-border",
               "rounded-md",
-              "text-slate-800 dark:text-slate-200",
+              "text-dc-foreground",
               "no-underline cursor-pointer",
               "transition-all duration-120 ease-[cubic-bezier(0.2,0,0,1)]",
-              "hover:border-slate-400 dark:hover:border-slate-500",
-              "hover:bg-slate-50 dark:hover:bg-slate-800",
+              "hover:border-dc-border",
+              "hover:bg-dc-muted",
               // Broken state: muted styling
               isBroken && "opacity-60",
               className,
@@ -1950,7 +1950,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             <span
               className={cn(
                 "font-mono text-[11px] font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[140px]",
-                "text-slate-800 dark:text-slate-200",
+                "text-dc-foreground",
               )}
               style={isBroken ? MISS_WAVY_UNDERLINE_STYLE : undefined}
             >
@@ -1977,8 +1977,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             data-variant="chip"
             className={cn(
               "group inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm cursor-pointer transition-colors no-underline mr-0.5",
-              "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
-              "hover:bg-slate-200 dark:hover:bg-slate-700",
+              "bg-dc-muted text-dc-foreground",
+              "hover:bg-dc-muted",
               isBroken && "opacity-60",
               className,
             )}
@@ -1992,7 +1992,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             aria-label={t("aria.linkToDomainStatus", { domain: displayText || domain, status: statusLabel })}
           >
             {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
-            <span className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap text-slate-700 dark:text-slate-300">
+            <span className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap text-dc-foreground">
               {displayText}
             </span>
             {showStatusIndicator && statusIndicatorElement}
@@ -2016,8 +2016,8 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             data-variant="inline"
             className={cn(
               "group inline-flex items-center gap-1 cursor-pointer transition-colors no-underline border-b border-dotted mr-0.5",
-              "text-slate-700 dark:text-slate-300 border-slate-400 dark:border-slate-500",
-              "hover:border-slate-600 dark:hover:border-slate-300",
+              "text-dc-foreground border-dc-border",
+              "hover:border-dc-border",
               isBroken && "opacity-60",
               className,
             )}
@@ -2054,7 +2054,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
           className={cn(
             "group inline-flex items-baseline gap-0.5 whitespace-nowrap cursor-pointer transition-colors mr-0.5",
             "font-mono text-xs leading-tight",
-            "text-slate-500 dark:text-slate-400",
+            "text-dc-subtle-foreground",
             isBroken && "opacity-60",
             className,
           )}

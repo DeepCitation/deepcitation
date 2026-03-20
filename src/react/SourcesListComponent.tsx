@@ -230,7 +230,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
                 {citationNumbers.slice(0, 3).map(num => (
                   <span
                     key={num}
-                    className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-medium bg-slate-200 dark:bg-slate-700 text-dc-muted-foreground rounded"
+                    className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-medium bg-dc-muted text-dc-muted-foreground rounded"
                   >
                     {num}
                   </span>
@@ -284,7 +284,7 @@ export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>
         className={classNames(
           "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm",
           "bg-dc-muted text-dc-foreground",
-          "hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors",
+          "hover:bg-dc-muted transition-colors",
           "focus:outline-none focus:ring-2 focus:ring-dc-ring/40",
           className,
         )}

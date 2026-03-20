@@ -163,7 +163,7 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
   const t = useTranslation();
   if (snippets.length === 0) return null;
   return (
-    <div className="px-4 py-2 space-y-1.5 border-b border-slate-100 dark:border-slate-800">
+    <div className="px-4 py-2 space-y-1.5 border-b border-dc-border">
       {snippets.slice(0, 3).map((snippet, idx) => {
         const before = snippet.contextText.slice(0, snippet.matchStart);
         const match = snippet.contextText.slice(snippet.matchStart, snippet.matchEnd);
@@ -171,20 +171,20 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
         return (
           <div
             key={`snippet-${snippet.matchStart}-${snippet.matchEnd}-${snippet.page ?? idx}`}
-            className="text-xs text-slate-600 dark:text-slate-300 font-mono leading-relaxed"
+            className="text-xs text-dc-muted-foreground font-mono leading-relaxed"
           >
-            {before && <span className="text-slate-500 dark:text-slate-400">...{before}</span>}
-            <strong className="text-slate-800 dark:text-slate-100 bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">
+            {before && <span className="text-dc-subtle-foreground">...{before}</span>}
+            <strong className="text-dc-foreground bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">
               {match}
             </strong>
-            {after && <span className="text-slate-500 dark:text-slate-400">{after}...</span>}
+            {after && <span className="text-dc-subtle-foreground">{after}...</span>}
             {snippet.page != null && (
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1">
+              <span className="text-[10px] text-dc-subtle-foreground ml-1">
                 ({t("location.page", { pageNumber: snippet.page })})
               </span>
             )}
             {!snippet.isProximate && (
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1 italic">
+              <span className="text-[10px] text-dc-subtle-foreground ml-1 italic">
                 {t("evidence.differentSection")}
               </span>
             )}
@@ -192,7 +192,7 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
         );
       })}
       {snippets.length > 3 && (
-        <div className="text-[10px] text-slate-500 dark:text-slate-400 italic">
+        <div className="text-[10px] text-dc-subtle-foreground italic">
           {t("evidence.andMore", { count: snippets.length - 3 })}
         </div>
       )}
@@ -298,7 +298,7 @@ function ClaimQuote({
   return (
     <div
       className={cn(
-        "ml-[1.34375rem] mr-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-slate-50 dark:bg-slate-800/50 border-l-2 max-w-prose",
+        "ml-[1.34375rem] mr-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-dc-background border-l-2 max-w-prose",
         borderColor,
       )}
       style={maxWidth ? { maxWidth } : undefined}
@@ -598,28 +598,28 @@ function PopoverLoadingView({
       />
       <div className="p-3 flex flex-col gap-2.5">
         {/* Skeleton: status bar placeholder */}
-        <div className="h-3 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+        <div className="h-3 w-24 animate-pulse rounded bg-dc-muted" />
         {/* Skeleton: quote box placeholder */}
-        <div className="pl-3 border-l-[3px] border-slate-200 dark:border-slate-700 space-y-1.5">
-          <div className="h-3 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
-          <div className="h-3 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+        <div className="pl-3 border-l-[3px] border-dc-border space-y-1.5">
+          <div className="h-3 w-full animate-pulse rounded bg-dc-muted" />
+          <div className="h-3 w-3/4 animate-pulse rounded bg-dc-muted" />
         </div>
         {/* Skeleton: image strip placeholder */}
-        <div className="h-[60px] w-full animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+        <div className="h-[60px] w-full animate-pulse rounded bg-dc-muted" />
         {/* Actual search status */}
-        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+        <span className="text-xs font-medium text-dc-muted-foreground">
           <span className="inline-block relative top-[0.1em] mr-1.5 size-2 animate-spin">
             <SpinnerIcon />
           </span>
           {t("popover.searching")}
         </span>
         {searchingPhrase && (
-          <p className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded font-mono text-[11px] break-words text-slate-700 dark:text-slate-300">
+          <p className="p-2 bg-dc-background rounded font-mono text-[11px] break-words text-dc-foreground">
             &ldquo;{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}&rdquo;
           </p>
         )}
         {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
-          <span className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-xs text-dc-subtle-foreground">
             {isImageSource(verification)
               ? t("popover.searchingImage")
               : t("popover.lookingOnPage", { pageNumber: citation.pageNumber })}
@@ -680,7 +680,7 @@ function PopoverFallbackView({
               status.isVerified && !status.isPartialMatch && "text-dc-verified",
               status.isPartialMatch && "text-dc-partial",
               status.isMiss && "text-dc-destructive",
-              status.isPending && "text-slate-500 dark:text-slate-400",
+              status.isPending && "text-dc-subtle-foreground",
             )}
           >
             {statusLabel}
@@ -688,14 +688,14 @@ function PopoverFallbackView({
         )}
         {hasSnippet && (
           <q
-            className="border-l-2 border-slate-300 dark:border-slate-600 pl-1.5 ml-0.5 text-sm text-slate-700 dark:text-slate-200"
+            className="border-l-2 border-dc-border pl-1.5 ml-0.5 text-sm text-dc-foreground"
             style={{ quotes: "none" }}
           >
             {hasSnippet}
           </q>
         )}
         {pageNumber && pageNumber > 0 && (
-          <span className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-xs text-dc-subtle-foreground">
             {isImageSource(verification) ? t("location.image") : t("location.page", { pageNumber })}
           </span>
         )}
