@@ -16,10 +16,10 @@ import { getStatusLabel } from "./citationStatus.js";
 import {
   BLINK_ENTER_EASING,
   EASE_COLLAPSE,
+  FONT_FAMILY_VAR,
   isValidProofImageSrc,
   KEYHOLE_STRIP_HEIGHT_DEFAULT,
   POPOVER_CONTAINER_BASE_CLASSES,
-  POPOVER_FONT_VAR,
   POPOVER_MORPH_COLLAPSE_MS,
   POPOVER_MORPH_EXPAND_MS,
   VT_EVIDENCE_COLLAPSE_MS,
@@ -120,9 +120,7 @@ function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessEx
     <div
       className={cn(
         "px-4 py-3 border-b",
-        isAmber
-          ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
-          : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800",
+        isAmber ? "bg-dc-partial-bg border-dc-partial-border" : "bg-dc-destructive-bg border-dc-destructive-border",
       )}
       role="status"
       aria-label={`${isAmber ? t("misc.warning") : t("misc.error")}: ${explanation.title}`}
@@ -174,7 +172,7 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
             className="text-xs text-dc-muted-foreground font-mono leading-relaxed"
           >
             {before && <span className="text-dc-subtle-foreground">...{before}</span>}
-            <strong className="text-dc-foreground bg-amber-100/50 dark:bg-amber-900/30 px-0.5 rounded">{match}</strong>
+            <strong className="text-dc-foreground bg-dc-partial/15 px-0.5 rounded">{match}</strong>
             {after && <span className="text-dc-subtle-foreground">{after}...</span>}
             {snippet.page != null && (
               <span className="text-[10px] text-dc-subtle-foreground ml-1">
@@ -260,7 +258,7 @@ function PopoverLayoutShell({
         style={{
           width: shellWidth,
           maxWidth: "100%",
-          fontFamily: `var(${POPOVER_FONT_VAR}, inherit)`,
+          fontFamily: `var(${FONT_FAMILY_VAR}, inherit)`,
           ...shellMotionOpacityPinned,
           ...(isFullPage && {
             display: "flex",
@@ -585,7 +583,7 @@ function PopoverLoadingView({
   return (
     <div
       className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[200px] max-w-[480px]")}
-      style={{ fontFamily: `var(${POPOVER_FONT_VAR}, inherit)` }}
+      style={{ fontFamily: `var(${FONT_FAMILY_VAR}, inherit)` }}
     >
       <SourceContextHeader
         citation={citation}
@@ -660,7 +658,7 @@ function PopoverFallbackView({
   return (
     <div
       className={cn(POPOVER_CONTAINER_BASE_CLASSES, "min-w-[180px] max-w-full")}
-      style={{ fontFamily: `var(${POPOVER_FONT_VAR}, inherit)` }}
+      style={{ fontFamily: `var(${FONT_FAMILY_VAR}, inherit)` }}
     >
       <SourceContextHeader
         citation={citation}

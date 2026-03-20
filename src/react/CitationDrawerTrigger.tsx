@@ -201,7 +201,7 @@ function CitationTooltip({
       className={cn(
         "absolute bottom-full left-1/2 mb-2 z-50",
         "bg-dc-background border border-dc-border",
-        "rounded-lg min-w-[180px] max-w-[260px] max-h-[50vh] overflow-y-auto",
+        "rounded-dc-lg min-w-[180px] max-w-[260px] max-h-[50vh] overflow-y-auto",
         "pointer-events-auto",
       )}
       style={{
@@ -215,12 +215,12 @@ function CitationTooltip({
           <img
             src={sourceFavicon}
             alt=""
-            className="w-4 h-4 rounded-sm object-contain shrink-0"
+            className="w-4 h-4 rounded-dc-sm object-contain shrink-0"
             loading="lazy"
             onError={handleImageErrorOpacity}
           />
         ) : (
-          <span className="w-4 h-4 rounded-sm bg-dc-muted flex items-center justify-center text-[8px] font-medium text-dc-muted-foreground shrink-0">
+          <span className="w-4 h-4 rounded-dc-sm bg-dc-muted flex items-center justify-center text-[8px] font-medium text-dc-muted-foreground shrink-0">
             {sourceName.charAt(0).toUpperCase()}
           </span>
         )}
@@ -513,7 +513,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
         className={cn(
           "inline-flex items-center gap-2 px-2 py-1",
           "bg-dc-background",
-          "border border-dc-border rounded-md",
+          "border border-dc-border rounded-dc-md",
           "cursor-pointer transition-[background-color,border-color,box-shadow] duration-180 overflow-hidden",
           "hover:border-dc-border/60 hover:bg-dc-muted/60",
           "focus:outline-none focus:ring-2 focus:ring-dc-ring/40",

@@ -29,14 +29,41 @@
   --dc-border: #e4e4e7; /* all borders and dividers */
   --dc-ring: #3b82f6; /* focus ring */
 
+  /* Primary accent */
+  --dc-primary: #3b82f6; /* active tabs, links, interactive accent */
+  --dc-primary-foreground: #ffffff; /* text on primary surfaces */
+
   /* Status accents */
   --dc-verified: #10b981; /* verified / success (emerald-500, BRANDING.md VERIFIED) */
   --dc-partial: #f59e0b; /* partial match / warning */
   --dc-destructive: #ef4444; /* not found / error */
   --dc-pending: #a1a1aa; /* loading / unresolved (same as subtle-foreground by default) */
 
+  /* Status tint backgrounds */
+  --dc-verified-bg: #f0fdf4;
+  --dc-verified-border: #86efac;
+  --dc-verified-hover: #15803d;
+  --dc-partial-bg: #fffbeb;
+  --dc-partial-border: #fcd34d;
+  --dc-partial-hover: #b45309;
+  --dc-destructive-bg: #fef2f2;
+  --dc-destructive-border: #fca5a5;
+  --dc-destructive-hover: #b91c1c;
+  --dc-pending-bg: var(--dc-muted);
+  --dc-pending-border: var(--dc-border);
+  --dc-pending-hover: #71717a;
+
+  /* Border radius */
+  --dc-radius-sm: 0.25rem;
+  --dc-radius-md: 0.375rem;
+  --dc-radius-lg: 0.5rem;
+
+  /* Font */
+  --dc-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
   /* Backward-compat aliases → old consumers using --dc-*-color still work */
   --dc-popover-bg: var(--dc-background);
+  --dc-popover-font: var(--dc-font-family);
   --dc-verified-color: var(--dc-verified);
   --dc-partial-color: var(--dc-partial);
   --dc-error-color: var(--dc-destructive);
@@ -55,16 +82,35 @@
   --dc-border: #3f3f46;
   --dc-ring: #3b82f6;
 
+  --dc-primary: #60a5fa;
+  --dc-primary-foreground: #ffffff;
+
   --dc-verified: #34d399; /* emerald-400, BRANDING.md VERIFIED dark mode */
   --dc-partial: #fbbf24;
   --dc-destructive: #f87171;
   --dc-pending: #71717a;
+
+  --dc-verified-bg: rgba(34, 197, 94, 0.1);
+  --dc-verified-border: #166534;
+  --dc-verified-hover: #bbf7d0;
+  --dc-partial-bg: rgba(245, 158, 11, 0.1);
+  --dc-partial-border: #92400e;
+  --dc-partial-hover: #fde68a;
+  --dc-destructive-bg: rgba(239, 68, 68, 0.1);
+  --dc-destructive-border: #991b1b;
+  --dc-destructive-hover: #fecaca;
+  --dc-pending-bg: var(--dc-muted);
+  --dc-pending-border: var(--dc-border);
+  --dc-pending-hover: #a1a1aa;
 }
 
-/* Register tokens as Tailwind color utilities.
+/* Register tokens as Tailwind utilities.
    "inline" = emit var() references directly, no intermediary custom property.
-   Result: bg-dc-background → background-color: var(--dc-background) */
+   Color: bg-dc-background → background-color: var(--dc-background)
+   Radius: rounded-dc-lg → border-radius: var(--dc-radius-lg)
+   Font: font-dc → font-family: var(--dc-font-family) */
 @theme inline {
+  /* Colors */
   --color-dc-background: var(--dc-background);
   --color-dc-muted: var(--dc-muted);
   --color-dc-foreground: var(--dc-foreground);
@@ -72,8 +118,30 @@
   --color-dc-subtle-foreground: var(--dc-subtle-foreground);
   --color-dc-border: var(--dc-border);
   --color-dc-ring: var(--dc-ring);
+  --color-dc-primary: var(--dc-primary);
+  --color-dc-primary-foreground: var(--dc-primary-foreground);
   --color-dc-verified: var(--dc-verified);
   --color-dc-partial: var(--dc-partial);
   --color-dc-destructive: var(--dc-destructive);
   --color-dc-pending: var(--dc-pending);
+  --color-dc-verified-bg: var(--dc-verified-bg);
+  --color-dc-verified-border: var(--dc-verified-border);
+  --color-dc-verified-hover: var(--dc-verified-hover);
+  --color-dc-partial-bg: var(--dc-partial-bg);
+  --color-dc-partial-border: var(--dc-partial-border);
+  --color-dc-partial-hover: var(--dc-partial-hover);
+  --color-dc-destructive-bg: var(--dc-destructive-bg);
+  --color-dc-destructive-border: var(--dc-destructive-border);
+  --color-dc-destructive-hover: var(--dc-destructive-hover);
+  --color-dc-pending-bg: var(--dc-pending-bg);
+  --color-dc-pending-border: var(--dc-pending-border);
+  --color-dc-pending-hover: var(--dc-pending-hover);
+
+  /* Border radius */
+  --radius-dc-sm: var(--dc-radius-sm);
+  --radius-dc-md: var(--dc-radius-md);
+  --radius-dc-lg: var(--dc-radius-lg);
+
+  /* Font family */
+  --font-dc: var(--dc-font-family);
 }

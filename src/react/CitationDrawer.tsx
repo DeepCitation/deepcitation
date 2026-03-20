@@ -423,7 +423,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     >
       {/* Clickable summary row */}
       <div
-        className={cn("group px-4 py-3", isExpanded && "bg-blue-50/60 dark:bg-blue-950/30")}
+        className={cn("group px-4 py-3", isExpanded && "bg-dc-primary/10")}
         onClick={handleClick}
         role="button"
         tabIndex={0}

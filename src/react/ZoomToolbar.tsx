@@ -58,7 +58,7 @@ export interface ZoomToolbarProps {
 type LocatePulseStage = "idle" | "grow" | "settle";
 
 /** Shared card style for both the zoom card and the standalone locate card. */
-const CARD_CLASSES = "rounded-lg border border-dc-border bg-dc-background shadow-md text-dc-foreground";
+const CARD_CLASSES = "rounded-dc-lg border border-dc-border bg-dc-background shadow-md text-dc-foreground";
 
 /** Shared zoom button style (40×40 target). */
 const ZOOM_BTN_CLASSES =
@@ -167,9 +167,7 @@ export function ZoomToolbar({
             className={cn(
               CARD_CLASSES,
               "w-10 h-10 flex items-center justify-center transition-all duration-180",
-              locateDirty
-                ? "text-blue-700 dark:text-sky-400 opacity-90 hover:bg-dc-muted"
-                : "opacity-45 hover:opacity-65",
+              locateDirty ? "text-dc-primary opacity-90 hover:bg-dc-muted" : "opacity-45 hover:opacity-65",
             )}
             aria-label={locateDirty ? t("zoom.reCenter") : t("zoom.centered")}
           >
@@ -189,7 +187,7 @@ export function ZoomToolbar({
               set(zoom + zoomStep);
             }}
             disabled={zoom >= zoomMax}
-            className={cn(ZOOM_BTN_CLASSES, "rounded-t-lg hover:bg-dc-muted active:bg-dc-muted")}
+            className={cn(ZOOM_BTN_CLASSES, "rounded-t-dc-lg hover:bg-dc-muted active:bg-dc-muted")}
             aria-label={t("zoom.in")}
           >
             +
@@ -206,7 +204,7 @@ export function ZoomToolbar({
               set(zoom - zoomStep);
             }}
             disabled={zoom <= zoomFloor}
-            className={cn(ZOOM_BTN_CLASSES, "rounded-b-lg hover:bg-dc-muted active:bg-dc-muted")}
+            className={cn(ZOOM_BTN_CLASSES, "rounded-b-dc-lg hover:bg-dc-muted active:bg-dc-muted")}
             aria-label={t("zoom.out")}
           >
             {"\u2212"}

@@ -308,7 +308,7 @@ export function CitationAnnotationOverlay({
           className={`size-7 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white/90 hover:bg-black/70 active:bg-black/80 transition-colors shadow-md cursor-pointer ${HITBOX_EXTEND_8}`}
           aria-label={t("aria.hideOverlay")}
         >
-          <span className="size-4.5">
+          <span className="size-4.5 flex items-center justify-center">
             <CloseIcon />
           </span>
         </button>

@@ -44,11 +44,11 @@ const TabButton = ({ isActive, onClick, label }: { isActive: boolean; onClick: (
       onClick();
     }}
     className={cn(
-      "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
+      "px-3 py-1.5 text-sm font-medium rounded-dc-md transition-colors",
+      "focus:outline-none focus:ring-2 focus:ring-dc-ring focus:ring-offset-1",
       isActive
-        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-        : "text-dc-muted-foreground hover:text-zinc-900 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800",
+        ? "bg-dc-primary/10 text-dc-primary"
+        : "text-dc-muted-foreground hover:text-dc-foreground hover:bg-dc-muted",
     )}
     type="button"
     data-active={isActive}
@@ -76,9 +76,7 @@ const ModeToggle = ({
         }}
         className={cn(
           "p-1 rounded transition-colors",
-          mode === "inline"
-            ? "bg-dc-muted text-dc-foreground"
-            : "text-dc-pending hover:text-zinc-600 dark:hover:text-zinc-400",
+          mode === "inline" ? "bg-dc-muted text-dc-foreground" : "text-dc-pending hover:text-dc-muted-foreground",
         )}
         title={t("diff.inlineView")}
         aria-label={t("diff.inlineView")}
@@ -95,9 +93,7 @@ const ModeToggle = ({
         }}
         className={cn(
           "p-1 rounded transition-colors",
-          mode === "split"
-            ? "bg-dc-muted text-dc-foreground"
-            : "text-dc-pending hover:text-zinc-600 dark:hover:text-zinc-400",
+          mode === "split" ? "bg-dc-muted text-dc-foreground" : "text-dc-pending hover:text-dc-muted-foreground",
         )}
         title={t("diff.splitView")}
         aria-label={t("diff.splitView")}
@@ -133,12 +129,12 @@ const FoundContentTab = ({
     {actual ? (
       <div className="relative">
         {renderCopyButton && <div className="absolute top-2 right-2">{renderCopyButton(actual, "found")}</div>}
-        <div className="p-3 bg-dc-muted rounded-md text-sm text-dc-foreground font-mono whitespace-pre-wrap break-words">
+        <div className="p-3 bg-dc-muted rounded-dc-md text-sm text-dc-foreground font-mono whitespace-pre-wrap break-words">
           <CollapsibleText
             text={actual}
             maxLength={maxCollapsedLength}
             anchorText={verifiedKeySpan}
-            anchorTextClass="bg-green-200 dark:bg-green-800/50 px-0.5 rounded border-b-2 border-green-400 dark:border-green-500"
+            anchorTextClass="bg-dc-verified/20 px-0.5 rounded border-b-2 border-dc-verified"
           />
         </div>
       </div>
@@ -240,7 +236,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
         <div
           data-testid="status-message"
           className={cn(
-            "text-xs font-medium px-2 py-1 rounded-md inline-flex items-center gap-1.5",
+            "text-xs font-medium px-2 py-1 rounded-dc-md inline-flex items-center gap-1.5",
             status === "not_found" ? "bg-dc-destructive/10 text-dc-destructive" : "bg-dc-partial/10 text-dc-partial",
           )}
         >
@@ -254,7 +250,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
       )}
 
       <div data-testid="tabs-container">
-        <div data-testid="tabs-nav" className="flex gap-1 p-1 bg-dc-muted rounded-lg items-center">
+        <div data-testid="tabs-nav" className="flex gap-1 p-1 bg-dc-muted rounded-dc-lg items-center">
           <TabButton
             label={t("tab.expected")}
             isActive={activeTab === "expected"}
@@ -275,12 +271,12 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
               {renderCopyButton && (
                 <div className="absolute top-2 right-2">{renderCopyButton(expected, "expected")}</div>
               )}
-              <div className="p-3 bg-dc-muted rounded-md text-sm text-dc-foreground font-mono whitespace-pre-wrap break-words">
+              <div className="p-3 bg-dc-muted rounded-dc-md text-sm text-dc-foreground font-mono whitespace-pre-wrap break-words">
                 <CollapsibleText
                   text={expected}
                   maxLength={maxCollapsedLength}
                   anchorText={anchorText}
-                  anchorTextClass="bg-blue-200 dark:bg-blue-800/50 px-0.5 rounded border-b-2 border-blue-400 dark:border-blue-500"
+                  anchorTextClass="bg-dc-primary/20 px-0.5 rounded border-b-2 border-dc-primary"
                 />
               </div>
             </div>
@@ -316,13 +312,13 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
               // Inline diff mode
               <div data-testid="diff-result" className="space-y-2">
                 {showMatchQuality && <MatchQualityBar similarity={similarity} className="mb-2" />}
-                <div className="p-3 bg-dc-muted rounded-md text-sm font-mono whitespace-pre-wrap break-words">
+                <div className="p-3 bg-dc-muted rounded-dc-md text-sm font-mono whitespace-pre-wrap break-words">
                   {diffResult.map((block, blockIdx) => (
                     <div
                       key={`${block.type}-${blockIdx}`}
                       className={cn(
-                        block.type === "added" && "bg-green-50 dark:bg-green-900/20",
-                        block.type === "removed" && "bg-red-50 dark:bg-red-900/20",
+                        block.type === "added" && "bg-dc-verified-bg",
+                        block.type === "removed" && "bg-dc-destructive-bg",
                       )}
                     >
                       {block.parts.map((part, partIdx) => {
@@ -332,7 +328,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                             <span
                               key={partKey}
                               data-diff-type="removed"
-                              className="bg-red-200 dark:bg-red-800/50 text-red-800 dark:text-red-200 line-through"
+                              className="bg-dc-destructive/20 text-dc-destructive line-through"
                               title={t("diff.expectedNotFound")}
                             >
                               {part.value}
@@ -344,7 +340,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
                             <span
                               key={partKey}
                               data-diff-type="added"
-                              className="bg-green-200 dark:bg-green-800/50 text-green-800 dark:text-green-200"
+                              className="bg-dc-verified/20 text-dc-verified"
                               title={t("diff.actuallyFound")}
                             >
                               {part.value}

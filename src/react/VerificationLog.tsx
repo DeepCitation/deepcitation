@@ -60,7 +60,7 @@ const ICON_COLOR_CLASSES = {
 } as const;
 
 const HEADER_DOWNLOAD_BUTTON_BASE_CLASSES =
-  "shrink-0 size-8 flex items-center justify-center cursor-pointer text-dc-pending hover:text-blue-500 dark:hover:text-blue-400 transition-[opacity,color] duration-120";
+  "shrink-0 size-8 flex items-center justify-center cursor-pointer text-dc-pending hover:text-dc-primary transition-[opacity,color] duration-120";
 const HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES =
   "focus-visible:opacity-100 focus-visible:pointer-events-auto md:opacity-30 md:group-hover/source-header:opacity-100 md:group-hover/source-header:pointer-events-auto md:group-focus-within/source-header:opacity-100 md:group-focus-within/source-header:pointer-events-auto";
 
@@ -351,8 +351,8 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
           onClose();
         }}
         className={cn(
-          "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-md border cursor-pointer",
-          "transition-colors bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/40",
+          "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-dc-md border cursor-pointer",
+          "transition-colors bg-dc-primary/10 text-dc-primary border-dc-primary/30 hover:bg-dc-primary/15",
           FOCUS_RING_CLASSES,
           HITBOX_EXTEND_8x14,
         )}
@@ -376,7 +376,10 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
   if (!onClick) {
     return (
       <span
-        className={cn("inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-md border", colorClasses)}
+        className={cn(
+          "inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-dc-md border",
+          colorClasses,
+        )}
       >
         {label}
       </span>
@@ -391,7 +394,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
         onClick();
       }}
       className={cn(
-        "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-md border cursor-pointer",
+        "relative inline-flex items-center gap-0.5 px-2 py-1 text-xs font-medium rounded-dc-md border cursor-pointer",
         TERTIARY_ACTION_BASE_CLASSES,
         TERTIARY_ACTION_IDLE_CLASSES,
         TERTIARY_ACTION_HOVER_CLASSES,
@@ -708,14 +711,10 @@ export function AmbiguityWarning({ ambiguity }: AmbiguityWarningProps) {
   }
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800"
-    >
+    <div role="status" aria-live="polite" className="px-4 py-2 bg-dc-partial-bg border-b border-dc-partial-border">
       <div className="flex items-start gap-2">
         <svg
-          className="size-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5"
+          className="size-4 text-dc-partial shrink-0 mt-0.5"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -919,7 +918,7 @@ function VerificationLogSummary({ narrative, status, isExpanded, onToggle, verif
           <path d="M9 6l6 6-6 6" />
         </svg>
         <span>{t("verification.details")}</span>
-        <span className="text-zinc-400/70 dark:text-zinc-600">({outcomeSummary})</span>
+        <span className="text-dc-muted-foreground/70">({outcomeSummary})</span>
       </div>
       {dateStr && (
         <span

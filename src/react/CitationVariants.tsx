@@ -54,44 +54,44 @@ function getAriaStatusLabel(status: CitationStatus, t: TranslateFunction): strin
 function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
   if (status.isPartialMatch) {
     return {
-      background: "bg-amber-100 dark:bg-amber-900/30",
-      border: "border-amber-300 dark:border-amber-600 hover:border-amber-500 dark:hover:border-amber-500",
-      hover: "hover:bg-amber-700 hover:text-white dark:hover:bg-amber-200 dark:hover:text-amber-900",
-      text: "text-amber-600 dark:text-amber-400",
+      background: "bg-dc-partial-bg",
+      border: "border-dc-partial-border hover:border-dc-partial",
+      hover: "hover:bg-dc-partial-hover hover:text-dc-primary-foreground",
+      text: "text-dc-partial",
     };
   }
 
   if (status.isMiss) {
     return {
-      background: "bg-red-100 dark:bg-red-900/30",
-      border: "border-dashed border-red-300 dark:border-red-500 hover:border-red-500 dark:hover:border-red-400",
-      hover: "hover:bg-red-700 hover:text-white dark:hover:bg-red-200 dark:hover:text-red-900",
+      background: "bg-dc-destructive-bg",
+      border: "border-dashed border-dc-destructive-border hover:border-dc-destructive",
+      hover: "hover:bg-dc-destructive-hover hover:text-dc-primary-foreground",
       text: "text-dc-destructive",
     };
   }
 
   if (status.isVerified) {
     return {
-      background: "bg-green-100 dark:bg-green-900/30",
-      border: "border-green-300 dark:border-green-600 hover:border-green-600 dark:hover:border-green-500",
-      hover: "hover:bg-green-700 hover:text-white dark:hover:bg-green-200 dark:hover:text-green-900",
+      background: "bg-dc-verified-bg",
+      border: "border-dc-verified-border hover:border-dc-verified",
+      hover: "hover:bg-dc-verified-hover hover:text-dc-primary-foreground",
       text: "text-dc-verified",
     };
   }
 
   if (status.isPending) {
     return {
-      background: "bg-dc-muted",
-      border: "border-dc-border hover:border-dc-border",
-      hover: "hover:bg-slate-700 hover:text-white dark:hover:bg-slate-200 dark:hover:text-slate-900",
+      background: "bg-dc-pending-bg",
+      border: "border-dc-pending-border hover:border-dc-pending-border",
+      hover: "hover:bg-dc-pending-hover hover:text-dc-primary-foreground",
       text: "text-dc-subtle-foreground",
     };
   }
 
   return {
     background: "bg-dc-muted",
-    border: "border-dc-border hover:border-slate-700 dark:hover:border-slate-400",
-    hover: "hover:bg-slate-700 hover:text-white dark:hover:bg-slate-200 dark:hover:text-slate-900",
+    border: "border-dc-border hover:border-dc-muted-foreground",
+    hover: "hover:bg-dc-pending-hover hover:text-dc-primary-foreground",
     text: "text-dc-muted-foreground",
   };
 }
@@ -469,10 +469,7 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
       return "*";
     }, [symbolStyle, customSymbol, citation.citationNumber]);
 
-    const statusClass = getStatusToneClass(
-      status,
-      "text-dc-subtle-foreground hover:text-slate-900 dark:hover:text-slate-100",
-    );
+    const statusClass = getStatusToneClass(status, "text-dc-subtle-foreground hover:text-dc-foreground");
 
     return (
       <>
@@ -559,7 +556,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
     } else if (isVerified) {
       borderClass = "border-dc-verified/60 cursor-pointer";
     } else {
-      borderClass = "border-dc-border hover:border-slate-900 dark:hover:border-slate-100 cursor-pointer";
+      borderClass = "border-dc-border hover:border-dc-muted-foreground cursor-pointer";
     }
 
     return (
@@ -574,7 +571,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
           data-variant="block"
           className={classNames(
             "inline-flex items-center justify-center h-[1.4em] min-w-[1.4em] px-[0.3em] mx-0.5",
-            "font-mono text-xs font-medium rounded-sm transition-all duration-120 border align-baseline select-none",
+            "font-mono text-xs font-medium rounded-dc-sm transition-all duration-120 border align-baseline select-none",
             "bg-dc-background text-dc-muted-foreground",
             borderClass,
             className,
