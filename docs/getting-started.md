@@ -57,6 +57,25 @@ pnpm add deepcitation
 bun add deepcitation
 ```
 
+### Import Styles
+
+If you use React components from `deepcitation/react`, you must also import the stylesheet.
+
+**With Tailwind CSS v4** — add to your main CSS file (e.g. `globals.css`):
+
+```css
+@import "tailwindcss";
+@import "deepcitation/tailwind.css";
+```
+
+**Without Tailwind** — import the pre-built stylesheet in your JS/TS entry point:
+
+```typescript
+import "deepcitation/styles.css";
+```
+
+See [Styling]({{ site.baseurl }}/styling/) for CSS custom properties and theming options.
+
 ---
 
 ## Full Integration Example
