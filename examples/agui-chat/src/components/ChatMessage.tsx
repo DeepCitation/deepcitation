@@ -21,6 +21,7 @@ interface ChatMessageProps {
     id: string;
     role: "user" | "assistant";
     content: string;
+    rawContent?: string;
   };
   citations?: Record<string, Citation>;
   verifications?: Record<string, Verification>;
@@ -44,8 +45,11 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const processedContent = useMemo(() => {
-    return processContentWithCitations(message.content, citations ?? {}, verifications ?? {});
-  }, [message.content, citations, verifications]);
+    // Use rawContent (with <<<CITATION_DATA>>>) when available so parseCitationResponse
+    // can build the markerMap. Falls back to stripped content for streaming display.
+    const textForParsing = message.rawContent ?? message.content;
+    return processContentWithCitations(textForParsing, citations ?? {}, verifications ?? {});
+  }, [message.rawContent, message.content, citations, verifications]);
 
   const citationGroups = useMemo(() => {
     if (!drawerItems || drawerItems.length === 0) return [];

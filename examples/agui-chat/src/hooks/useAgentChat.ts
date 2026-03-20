@@ -13,6 +13,8 @@ export interface AgentMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Raw LLM output before stripping <<<CITATION_DATA>>>. Used by ChatMessage for parseCitationResponse. */
+  rawContent?: string;
 }
 
 export interface MessageVerificationResult {
@@ -88,11 +90,11 @@ export function useAgentChat({
 
       case "TEXT_MESSAGE_CONTENT":
         setMessages(prev =>
-          prev.map(message =>
-            message.id === event.messageId
-              ? { ...message, content: applyVisibleText(message.content + event.delta) }
-              : message,
-          ),
+          prev.map(message => {
+            if (message.id !== event.messageId) return message;
+            const raw = (message.rawContent ?? "") + event.delta;
+            return { ...message, content: applyVisibleText(raw), rawContent: raw };
+          }),
         );
         break;
 
