@@ -32,6 +32,7 @@ import {
   runError,
 } from "@/lib/agui-events";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { CORPUS_SOURCES, type CorpusSource } from "@/lib/corpus";
 
 // Check for API keys at startup
 const dcApiKey = process.env.DEEPCITATION_API_KEY;
@@ -59,6 +60,69 @@ const textEncoder = new TextEncoder();
 interface FileDataPart {
   attachmentId: string;
   filename?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Corpus attachment resolution (mirrors langchain-rag-chat/src/lib/rag.ts)
+// ---------------------------------------------------------------------------
+// Each corpus source may have a cached attachmentId stored as an env var.
+// When set we call the lightweight getAttachment() instead of re-uploading.
+// All sources are resolved eagerly at module load so the first request
+// doesn't pay the upload cost.
+// ---------------------------------------------------------------------------
+
+const preparedAttachmentCache = new Map<
+  string,
+  Promise<{ attachmentId: string; deepTextPromptPortion: string }>
+>();
+
+async function resolveAttachment(
+  dcClient: DeepCitation,
+  source: CorpusSource,
+): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+  const savedId = process.env[source.attachmentEnvVar];
+
+  if (savedId) {
+    const attachment = await dcClient.getAttachment(savedId);
+    if (attachment.deepTextPromptPortion) {
+      return { attachmentId: savedId, deepTextPromptPortion: attachment.deepTextPromptPortion };
+    }
+    console.warn(
+      `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPromptPortion — re-uploading.`,
+    );
+  }
+
+  const response = await fetch(source.url, { signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch "${source.filename}": ${response.status} ${response.statusText}`);
+  }
+  const file = Buffer.from(await response.arrayBuffer());
+  const prepared = await dcClient.prepareAttachments([{ file, filename: source.filename }]);
+  const attachmentId = prepared.fileDataParts[0].attachmentId;
+
+  console.log(
+    `[DeepCitation] Uploaded "${source.title}". Add to env to skip re-upload on cold starts:\n  ${source.attachmentEnvVar}=${attachmentId}`,
+  );
+
+  return { attachmentId, deepTextPromptPortion: prepared.deepTextPromptPortion };
+}
+
+function getAttachmentPromise(
+  dcClient: DeepCitation,
+  source: CorpusSource,
+): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+  const existing = preparedAttachmentCache.get(source.id);
+  if (existing) return existing;
+  const pending = resolveAttachment(dcClient, source);
+  preparedAttachmentCache.set(source.id, pending);
+  return pending;
+}
+
+// Kick off warmup for all corpus sources immediately (fire-and-forget).
+if (dc) {
+  for (const source of CORPUS_SOURCES) {
+    preparedAttachmentCache.set(source.id, resolveAttachment(dc, source));
+  }
 }
 
 export const maxDuration = 120; // LLM streaming + verification can exceed default timeout
@@ -99,8 +163,21 @@ export async function POST(req: Request) {
   }
 
   const { threadId, runId, messages, state } = body;
-  const fileDataParts: FileDataPart[] = state?.fileDataParts ?? [];
-  const deepTextPromptPortions: string[] = state?.deepTextPromptPortions ?? [];
+  let fileDataParts: FileDataPart[] = state?.fileDataParts ?? [];
+  let deepTextPromptPortions: string[] = state?.deepTextPromptPortions ?? [];
+
+  // When no user-uploaded files, use pre-resolved corpus attachments
+  if (fileDataParts.length === 0 && dc) {
+    const corpusResults = await Promise.all(
+      CORPUS_SOURCES.map(source => getAttachmentPromise(dc, source)),
+    );
+    fileDataParts = corpusResults.map((r, i) => ({
+      attachmentId: r.attachmentId,
+      filename: CORPUS_SOURCES[i].filename,
+    }));
+    deepTextPromptPortions = corpusResults.map(r => r.deepTextPromptPortion);
+  }
+
   const hasDocuments = fileDataParts.length > 0;
 
   if (!openai) {
@@ -212,11 +289,10 @@ export async function POST(req: Request) {
               );
             }
 
-            const attachmentId = fileDataParts[0].attachmentId;
-
-            const result = await dc.verifyAttachment(attachmentId, citations, {
-              outputImageFormat: "avif",
-            });
+            const result = await dc.verify(
+              { llmOutput: fullResponse, outputImageFormat: "avif" },
+              citations,
+            );
 
             const { verifications } = result;
 
