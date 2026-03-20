@@ -110,8 +110,8 @@ describe("Caret Indicator Variant", () => {
     );
     const pill = container.querySelector("[data-dc-indicator='caret-error']") as HTMLElement;
     expect(pill).toBeInTheDocument();
-    expect(pill.classList.contains("text-red-500")).toBe(true);
-    expect(pill.classList.contains("bg-red-50")).toBe(true);
+    expect(pill.classList.contains("text-dc-destructive")).toBe(true);
+    expect(pill.classList.contains("bg-dc-destructive/10")).toBe(true);
   });
 
   // ==========================================================================

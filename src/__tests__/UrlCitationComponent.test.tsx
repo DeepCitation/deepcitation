@@ -70,7 +70,7 @@ describe("UrlCitationComponent", () => {
     const { container } = render(<UrlCitationComponent urlMeta={createUrlMeta({ fetchStatus: "error_not_found" })} />);
 
     // Should have red X icon
-    const errorWrapper = container.querySelector(".text-red-500");
+    const errorWrapper = container.querySelector(".text-dc-destructive");
     expect(errorWrapper).toBeInTheDocument();
 
     // Should have an SVG (the close/X icon)
