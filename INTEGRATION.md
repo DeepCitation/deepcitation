@@ -283,6 +283,23 @@ npm install deepcitation@latest
 
 React components are included in the same package — import from `deepcitation/react`. No separate install needed.
 
+### 1.1b Import Styles
+
+If you use React components from `deepcitation/react`, you must import the stylesheet.
+
+**With Tailwind CSS v4** — add to your main CSS file (e.g. `globals.css`):
+
+```css
+@import "tailwindcss";
+@import "deepcitation/tailwind.css";
+```
+
+**Without Tailwind** — import the pre-built stylesheet in your JS/TS entry point:
+
+```typescript
+import "deepcitation/styles.css";
+```
+
 ### 1.2 Import Types
 
 Always import types from `deepcitation`. Never define your own.

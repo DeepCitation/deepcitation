@@ -2,7 +2,7 @@
 /**
  * Docs Audit Inventory — Deterministic checks for documentation drift
  *
- * Runs 6 checks against the docs/ directory and outputs JSON to stdout.
+ * Runs 7 checks against the docs/ directory and outputs JSON to stdout.
  * Designed to be consumed by the `/docs-audit` Claude command for semantic evaluation.
  *
  * Usage:
@@ -15,6 +15,7 @@
  *   4. Agent doc staleness (commits to watched source files since doc last modified)
  *   5. Code block import validation (verify exported symbols in fenced code blocks)
  *   6. Interface field drift (doc vs source interface shapes)
+ *   7. Missing CSS setup (docs mentioning React components without stylesheet import)
  */
 
 import {
@@ -515,6 +516,32 @@ function checkInterfaceFieldDrift(docContents) {
   return findings;
 }
 
+// ─── Check 7: Missing CSS Setup ─────────────────────────────────────────────
+// Docs that import from `deepcitation/react` should also mention the CSS import
+// (either `deepcitation/tailwind.css` or `deepcitation/styles.css`).
+
+function checkMissingCssSetup(docContents) {
+  const findings = [];
+  const CSS_MENTION_RE = /deepcitation\/(tailwind|styles)\.css/;
+  const REACT_IMPORT_RE = /deepcitation\/react/;
+
+  for (const [relPath, content] of docContents) {
+    if (relPath.startsWith("agents/")) continue; // internal docs, not user-facing
+    if (!REACT_IMPORT_RE.test(content)) continue;
+    if (CSS_MENTION_RE.test(content)) continue;
+    // Find the first line mentioning the React import for context
+    const lines = content.split("\n");
+    const lineNum = lines.findIndex((l) => REACT_IMPORT_RE.test(l)) + 1;
+    findings.push({
+      file: `docs/${relPath}`,
+      line: lineNum,
+      message: `Imports from "deepcitation/react" but never mentions CSS setup (deepcitation/tailwind.css or deepcitation/styles.css)`,
+    });
+  }
+
+  return findings;
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 function main() {
@@ -532,6 +559,7 @@ function main() {
       agent_doc_staleness: checkAgentDocStaleness(),
       code_block_imports: checkCodeBlockImports(docContents),
       interface_field_drift: checkInterfaceFieldDrift(docContents),
+      missing_css_setup: checkMissingCssSetup(docContents),
     },
   };
 
