@@ -320,9 +320,9 @@ interface PagePillProps {
 
 /** Page pill color classes by status */
 const PAGE_PILL_COLORS = {
-  green: "bg-dc-muted text-zinc-600 dark:text-zinc-300 border-dc-border",
-  amber: "bg-dc-muted text-zinc-600 dark:text-zinc-300 border-dc-border",
-  red: "bg-dc-muted text-zinc-600 dark:text-zinc-300 border-dc-border",
+  green: "bg-dc-muted text-dc-muted-foreground border-dc-border",
+  amber: "bg-dc-muted text-dc-muted-foreground border-dc-border",
+  red: "bg-dc-muted text-dc-muted-foreground border-dc-border",
   gray: "bg-dc-muted text-dc-subtle-foreground border-dc-border",
 } as const;
 
