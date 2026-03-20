@@ -16,7 +16,7 @@ type ModelProvider = keyof typeof MODELS;
 
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  const { allowed, remaining, reason } = checkRateLimit(ip);
+  const { allowed, reason } = checkRateLimit(ip);
   if (!allowed) {
     const message =
       reason === "ip"

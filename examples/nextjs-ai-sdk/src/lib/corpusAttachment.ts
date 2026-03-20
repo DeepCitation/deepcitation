@@ -1,4 +1,4 @@
-import { DeepCitation } from "deepcitation";
+import { DeepCitation, sanitizeForLog } from "deepcitation";
 import { CORPUS_SOURCE } from "./corpus";
 
 type FileDataPart = { attachmentId: string; filename?: string };
@@ -22,7 +22,7 @@ async function resolveAttachment(
       };
     }
     console.warn(
-      `[DeepCitation] ${CORPUS_SOURCE.attachmentEnvVar}=${savedId} did not return deepTextPromptPortion — re-uploading.`,
+      `[DeepCitation] ${CORPUS_SOURCE.attachmentEnvVar}=${sanitizeForLog(savedId)} did not return deepTextPromptPortion — re-uploading.`,
     );
   }
 
@@ -35,7 +35,7 @@ async function resolveAttachment(
   const attachmentId = prepared.fileDataParts[0].attachmentId;
 
   console.log(
-    `[DeepCitation] Uploaded "${CORPUS_SOURCE.title}". Add to env to skip re-upload on cold starts:\n  ${CORPUS_SOURCE.attachmentEnvVar}=${attachmentId}`,
+    `[DeepCitation] Uploaded "${CORPUS_SOURCE.title}". Add to env to skip re-upload on cold starts:\n  ${CORPUS_SOURCE.attachmentEnvVar}=${sanitizeForLog(attachmentId)}`,
   );
 
   return {

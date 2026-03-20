@@ -14,7 +14,7 @@ const deepcitation = apiKey ? new DeepCitation({ apiKey, endUserId: "nextjs-ai-s
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  const { allowed, remaining, reason } = checkRateLimit(ip);
+  const { allowed, reason } = checkRateLimit(ip);
   if (!allowed) {
     const message =
       reason === "ip"

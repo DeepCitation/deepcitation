@@ -128,7 +128,7 @@ function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessEx
       <div
         className={cn(
           "text-sm font-medium mb-1 flex items-center gap-1.5",
-          isAmber ? "text-amber-800 dark:text-amber-200" : "text-red-800 dark:text-red-200",
+          isAmber ? "text-dc-partial" : "text-dc-destructive",
         )}
       >
         <span className="shrink-0 text-xs" aria-hidden="true">
@@ -136,16 +136,9 @@ function UrlAccessExplanationSection({ explanation }: { explanation: UrlAccessEx
         </span>
         {explanation.title}
       </div>
-      <p className={cn("text-xs", isAmber ? "text-amber-700 dark:text-amber-300" : "text-red-700 dark:text-red-300")}>
-        {explanation.description}
-      </p>
+      <p className={cn("text-xs", isAmber ? "text-dc-partial" : "text-dc-destructive")}>{explanation.description}</p>
       {explanation.suggestion && (
-        <p
-          className={cn(
-            "text-xs mt-1.5 opacity-80",
-            isAmber ? "text-amber-700 dark:text-amber-300" : "text-red-700 dark:text-red-300",
-          )}
-        >
+        <p className={cn("text-xs mt-1.5 opacity-80", isAmber ? "text-dc-partial" : "text-dc-destructive")}>
           {explanation.suggestion}
         </p>
       )}

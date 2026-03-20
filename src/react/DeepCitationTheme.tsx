@@ -129,8 +129,14 @@ function colorsToStyleObject(colors: DeepCitationThemeColors): Record<string, st
 }
 
 export const DeepCitationTheme = ({ theme, darkTheme, scoped, children }: DeepCitationThemeProps): React.ReactNode => {
-  // Scoped mode: wrap children in a <div> with inline CSS custom properties
+  // Scoped mode: wrap children in a <div> with inline CSS custom properties.
+  // darkTheme is not supported in scoped mode — inline styles cannot target .dark descendants.
   if (scoped) {
+    if (darkTheme && process.env.NODE_ENV !== "production") {
+      console.warn(
+        "[DeepCitationTheme] darkTheme is ignored in scoped mode. Use global mode (scoped={false}) for dark theme support.",
+      );
+    }
     const vars = theme ? colorsToStyleObject(theme) : {};
     return (
       <div data-dc-theme-scope="" style={vars}>

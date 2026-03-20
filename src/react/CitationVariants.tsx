@@ -56,7 +56,7 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
     return {
       background: "bg-dc-partial-bg",
       border: "border-dc-partial-border hover:border-dc-partial",
-      hover: "hover:bg-dc-partial-hover hover:text-dc-primary-foreground",
+      hover: "hover:bg-dc-partial-hover hover:text-dc-foreground",
       text: "text-dc-partial",
     };
   }
@@ -65,7 +65,7 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
     return {
       background: "bg-dc-destructive-bg",
       border: "border-dashed border-dc-destructive-border hover:border-dc-destructive",
-      hover: "hover:bg-dc-destructive-hover hover:text-dc-primary-foreground",
+      hover: "hover:bg-dc-destructive-hover hover:text-dc-foreground",
       text: "text-dc-destructive",
     };
   }
@@ -74,7 +74,7 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
     return {
       background: "bg-dc-verified-bg",
       border: "border-dc-verified-border hover:border-dc-verified",
-      hover: "hover:bg-dc-verified-hover hover:text-dc-primary-foreground",
+      hover: "hover:bg-dc-verified-hover hover:text-dc-foreground",
       text: "text-dc-verified",
     };
   }
@@ -83,7 +83,7 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
     return {
       background: "bg-dc-pending-bg",
       border: "border-dc-pending-border hover:border-dc-pending-border",
-      hover: "hover:bg-dc-pending-hover hover:text-dc-primary-foreground",
+      hover: "hover:bg-dc-pending-hover hover:text-dc-foreground",
       text: "text-dc-subtle-foreground",
     };
   }
@@ -91,7 +91,7 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
   return {
     background: "bg-dc-muted",
     border: "border-dc-border hover:border-dc-muted-foreground",
-    hover: "hover:bg-dc-pending-hover hover:text-dc-primary-foreground",
+    hover: "hover:bg-dc-pending-hover hover:text-dc-foreground",
     text: "text-dc-muted-foreground",
   };
 }

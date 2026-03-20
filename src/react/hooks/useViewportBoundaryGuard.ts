@@ -154,17 +154,19 @@ function clamp(el: HTMLElement): void {
     el.style.translate = `${dx}px 0px`;
   }
 
-  // Dynamic max-height: use the wrapper's top position (from translate3d)
-  // to compute available vertical space. For side="bottom" popovers, the
-  // wrapper Y is triggerBottom + sideOffset — independent of content height,
-  // so this is correct even before recomputePosition fires.
+  // Dynamic max-height: constrain so the popover cannot exceed the viewport.
+  // For side="bottom": available = viewport bottom − wrapper top.
+  // For side="top": available = content bottom − viewport top (the content's
+  // bottom edge is anchored near the trigger; it grows upward).
   // This runs in useLayoutEffect (before paint), preventing the single-frame
   // overflow flash that occurs when content grows on viewState change.
   const wrapper = el.parentElement;
   if (wrapper) {
     const vh = window.innerHeight;
-    const wrapperTop = wrapper.getBoundingClientRect().top;
-    const available = vh - wrapperTop - VIEWPORT_MARGIN_PX;
+    const isTop = el.dataset.side === "top";
+    const available = isTop
+      ? el.getBoundingClientRect().bottom - VIEWPORT_MARGIN_PX
+      : vh - wrapper.getBoundingClientRect().top - VIEWPORT_MARGIN_PX;
     if (available > 0) {
       el.style.setProperty(GUARD_MAX_HEIGHT_VAR, `${available}px`);
     }

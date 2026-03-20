@@ -151,12 +151,15 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       coordsRef.current = next;
       wrapper.style.transform = `translate3d(${next.x}px, ${next.y}px, 0)`;
 
-      // Update dynamic max-height based on the resolved Y position so the
+      // Update dynamic max-height based on the resolved position so the
       // popover cannot grow taller than the viewport allows. This runs in
       // the same callback as the position update, keeping them in sync
       // (avoids the clamp-before-reposition ordering bug).
       const vh = window.innerHeight;
-      const available = vh - next.y - VIEWPORT_MARGIN_PX;
+      // For side="bottom", constrain to space below the wrapper top.
+      // For side="top", constrain to space above the trigger (the anchor point).
+      const available =
+        side === "top" ? triggerRect.top - sideOffset - VIEWPORT_MARGIN_PX : vh - next.y - VIEWPORT_MARGIN_PX;
       if (available > 0) {
         contentEl.style.setProperty(GUARD_MAX_HEIGHT_VAR, `${available}px`);
       }
