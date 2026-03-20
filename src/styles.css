@@ -43,15 +43,19 @@
   --dc-verified-bg: #f0fdf4;
   --dc-verified-border: #86efac;
   --dc-verified-hover: #15803d;
+  --dc-verified-hover-foreground: #ffffff;
   --dc-partial-bg: #fffbeb;
   --dc-partial-border: #fcd34d;
   --dc-partial-hover: #b45309;
+  --dc-partial-hover-foreground: #ffffff;
   --dc-destructive-bg: #fef2f2;
   --dc-destructive-border: #fca5a5;
   --dc-destructive-hover: #b91c1c;
+  --dc-destructive-hover-foreground: #ffffff;
   --dc-pending-bg: var(--dc-muted);
   --dc-pending-border: var(--dc-border);
   --dc-pending-hover: #71717a;
+  --dc-pending-hover-foreground: #ffffff;
 
   /* Border radius */
   --dc-radius-sm: 0.25rem;
@@ -93,15 +97,19 @@
   --dc-verified-bg: rgba(34, 197, 94, 0.1);
   --dc-verified-border: #166534;
   --dc-verified-hover: #bbf7d0;
+  --dc-verified-hover-foreground: #14532d;
   --dc-partial-bg: rgba(245, 158, 11, 0.1);
   --dc-partial-border: #92400e;
   --dc-partial-hover: #fde68a;
+  --dc-partial-hover-foreground: #78350f;
   --dc-destructive-bg: rgba(239, 68, 68, 0.1);
   --dc-destructive-border: #991b1b;
   --dc-destructive-hover: #fecaca;
+  --dc-destructive-hover-foreground: #7f1d1d;
   --dc-pending-bg: var(--dc-muted);
   --dc-pending-border: var(--dc-border);
   --dc-pending-hover: #a1a1aa;
+  --dc-pending-hover-foreground: #18181b;
 }
 
 /* Register tokens as Tailwind utilities.
@@ -127,15 +135,19 @@
   --color-dc-verified-bg: var(--dc-verified-bg);
   --color-dc-verified-border: var(--dc-verified-border);
   --color-dc-verified-hover: var(--dc-verified-hover);
+  --color-dc-verified-hover-foreground: var(--dc-verified-hover-foreground);
   --color-dc-partial-bg: var(--dc-partial-bg);
   --color-dc-partial-border: var(--dc-partial-border);
   --color-dc-partial-hover: var(--dc-partial-hover);
+  --color-dc-partial-hover-foreground: var(--dc-partial-hover-foreground);
   --color-dc-destructive-bg: var(--dc-destructive-bg);
   --color-dc-destructive-border: var(--dc-destructive-border);
   --color-dc-destructive-hover: var(--dc-destructive-hover);
+  --color-dc-destructive-hover-foreground: var(--dc-destructive-hover-foreground);
   --color-dc-pending-bg: var(--dc-pending-bg);
   --color-dc-pending-border: var(--dc-pending-border);
   --color-dc-pending-hover: var(--dc-pending-hover);
+  --color-dc-pending-hover-foreground: var(--dc-pending-hover-foreground);
 
   /* Border radius */
   --radius-dc-sm: var(--dc-radius-sm);

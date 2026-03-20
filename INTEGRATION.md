@@ -114,7 +114,7 @@ const rendered = segments.map((seg, i) => {
 
 See [Section 3.2](#32-post-stream-full-response) for the full post-stream pattern.
 
-### Recipe 5 — Customize colors, radius, and font
+### Recipe 4 — Customize colors, radius, and font
 
 **"I want citations to match my brand"**
 
@@ -142,7 +142,7 @@ import { DeepCitationTheme } from "deepcitation/react";
 
 See [Section 1.1c](#11c-customize-styles-optional) for the full token list and scoped theming.
 
-### Recipe 4 — Verify and show status indicators
+### Recipe 5 — Verify and show status indicators
 
 **"I want checkmarks/X marks next to citations after verification"**
 

@@ -183,7 +183,7 @@ test.describe("URL Citation - Verification Status", () => {
 
     // Partial uses amber checkmark SVG
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
+    await expect(url.locator(".text-dc-partial")).toBeVisible();
   });
 
   test("shows pending indicator", async ({ mount, page }) => {
@@ -206,7 +206,7 @@ test.describe("URL Citation - Blocked Status", () => {
 
     // Blocked statuses use lock icon SVG with amber color
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
+    await expect(url.locator(".text-dc-partial")).toBeVisible();
   });
 
   test("shows blocked_login indicator", async ({ mount, page }) => {
@@ -214,7 +214,7 @@ test.describe("URL Citation - Blocked Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
+    await expect(url.locator(".text-dc-partial")).toBeVisible();
   });
 
   test("shows blocked_paywall indicator", async ({ mount, page }) => {
@@ -222,7 +222,7 @@ test.describe("URL Citation - Blocked Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
+    await expect(url.locator(".text-dc-partial")).toBeVisible();
   });
 
   test("shows blocked_geo indicator", async ({ mount, page }) => {
@@ -230,7 +230,7 @@ test.describe("URL Citation - Blocked Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
+    await expect(url.locator(".text-dc-partial")).toBeVisible();
   });
 
   test("shows blocked_rate_limit indicator", async ({ mount, page }) => {
@@ -238,7 +238,7 @@ test.describe("URL Citation - Blocked Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-amber-600, .text-amber-500")).toBeVisible();
+    await expect(url.locator(".text-dc-partial")).toBeVisible();
   });
 
   test("blocked indicator has tooltip with error message", async ({ mount, page }) => {
@@ -274,7 +274,7 @@ test.describe("URL Citation - Error Status", () => {
 
     // Error statuses use X icon SVG with red color
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
+    await expect(url.locator(".text-dc-destructive")).toBeVisible();
   });
 
   test("shows error_not_found indicator", async ({ mount, page }) => {
@@ -282,7 +282,7 @@ test.describe("URL Citation - Error Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
+    await expect(url.locator(".text-dc-destructive")).toBeVisible();
   });
 
   test("shows error_server indicator", async ({ mount, page }) => {
@@ -290,7 +290,7 @@ test.describe("URL Citation - Error Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
+    await expect(url.locator(".text-dc-destructive")).toBeVisible();
   });
 
   test("shows error_network indicator", async ({ mount, page }) => {
@@ -298,7 +298,7 @@ test.describe("URL Citation - Error Status", () => {
     const url = page.locator("[data-fetch-status]");
 
     await expect(url.locator("[role='img'] svg")).toBeVisible();
-    await expect(url.locator(".text-red-500, .text-red-400")).toBeVisible();
+    await expect(url.locator(".text-dc-destructive")).toBeVisible();
   });
 
   test("shows unknown status indicator", async ({ mount, page }) => {

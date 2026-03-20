@@ -867,7 +867,7 @@ export const BLINK_ROW_INSET_B_PX = 2;
 /** CSS custom property for TtC text color. */
 export const TTC_COLOR_VAR = "--dc-ttc-color";
 /** Default TtC text color (Tailwind zinc-400) — intentionally muted/ambient */
-export const TTC_COLOR_DEFAULT = "#9ca3af";
+export const TTC_COLOR_DEFAULT = "#a1a1aa";
 
 /** CSS custom property for TtC "fast" highlight color. */
 export const TTC_FAST_COLOR_VAR = "--dc-ttc-fast-color";

@@ -4,6 +4,8 @@ import { CORPUS_SOURCE } from "./corpus";
 type FileDataPart = { attachmentId: string; filename?: string };
 
 const apiKey = process.env.DEEPCITATION_API_KEY;
+// All demo users intentionally share a single endUserId. In production,
+// use a per-user identifier for usage attribution.
 const dc = apiKey ? new DeepCitation({ apiKey, endUserId: "nextjs-ai-sdk" }) : null;
 
 let cachedPromise: Promise<{ fileDataPart: FileDataPart; deepTextPromptPortion: string }> | null = null;
@@ -54,7 +56,10 @@ export function getCorpusAttachment(): Promise<{ fileDataPart: FileDataPart; dee
   return cachedPromise;
 }
 
-// Fire-and-forget warmup on module load
+// Fire-and-forget warmup on module load. The .catch() prevents an
+// unhandledRejection warning — callers still see the rejection via
+// getCorpusAttachment() since cachedPromise is the same reference.
 if (dc) {
   cachedPromise = resolveAttachment(dc);
+  cachedPromise.catch(() => {});
 }

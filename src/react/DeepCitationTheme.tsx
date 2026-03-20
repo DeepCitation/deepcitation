@@ -40,24 +40,32 @@ export interface DeepCitationThemeColors {
   verifiedBorder?: string;
   /** Verified chip hover background. */
   verifiedHover?: string;
+  /** Verified chip hover text color (ensures contrast on hover background). */
+  verifiedHoverForeground?: string;
   /** Partial chip/banner background. */
   partialBg?: string;
   /** Partial chip/banner border. */
   partialBorder?: string;
   /** Partial chip hover background. */
   partialHover?: string;
+  /** Partial chip hover text color. */
+  partialHoverForeground?: string;
   /** Error chip/banner background. */
   destructiveBg?: string;
   /** Error chip/banner border. */
   destructiveBorder?: string;
   /** Destructive chip hover background. */
   destructiveHover?: string;
+  /** Destructive chip hover text color. */
+  destructiveHoverForeground?: string;
   /** Pending chip/banner background. */
   pendingBg?: string;
   /** Pending chip/banner border. */
   pendingBorder?: string;
   /** Pending chip hover background. */
   pendingHover?: string;
+  /** Pending chip hover text color. */
+  pendingHoverForeground?: string;
   /** Small border radius. */
   radiusSm?: string;
   /** Medium border radius. */
@@ -96,15 +104,19 @@ const TOKEN_MAP: Record<keyof DeepCitationThemeColors, string> = {
   verifiedBg: "--dc-verified-bg",
   verifiedBorder: "--dc-verified-border",
   verifiedHover: "--dc-verified-hover",
+  verifiedHoverForeground: "--dc-verified-hover-foreground",
   partialBg: "--dc-partial-bg",
   partialBorder: "--dc-partial-border",
   partialHover: "--dc-partial-hover",
+  partialHoverForeground: "--dc-partial-hover-foreground",
   destructiveBg: "--dc-destructive-bg",
   destructiveBorder: "--dc-destructive-border",
   destructiveHover: "--dc-destructive-hover",
+  destructiveHoverForeground: "--dc-destructive-hover-foreground",
   pendingBg: "--dc-pending-bg",
   pendingBorder: "--dc-pending-border",
   pendingHover: "--dc-pending-hover",
+  pendingHoverForeground: "--dc-pending-hover-foreground",
   radiusSm: "--dc-radius-sm",
   radiusMd: "--dc-radius-md",
   radiusLg: "--dc-radius-lg",

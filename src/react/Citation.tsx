@@ -1704,7 +1704,7 @@ const UrlStatusIndicator = ({
   // Partial: Amber check
   if (isPartial) {
     return (
-      <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel={t("indicator.partial")}>
+      <StatusIconWrapper className="text-dc-partial" ariaLabel={t("indicator.partial")}>
         <CheckIcon className="w-full h-full" />
       </StatusIconWrapper>
     );
@@ -1714,7 +1714,7 @@ const UrlStatusIndicator = ({
   if (isBlocked) {
     if (renderBlockedIndicator) return <>{renderBlockedIndicator(fetchStatus, errorMessage)}</>;
     return (
-      <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel={statusLabel}>
+      <StatusIconWrapper className="text-dc-partial" ariaLabel={statusLabel}>
         <LockIcon className="w-full h-full" />
       </StatusIconWrapper>
     );
