@@ -51,3 +51,10 @@ export const CORPUS_SOURCES: CorpusSource[] = [
       "Why Language Models Hallucinate. Large language models generate plausible-sounding but factually incorrect information due to distributional gaps in training data and the autoregressive generation process. Retrieval-augmented generation and citation verification reduce hallucination by grounding outputs in specific source documents. Temperature settings, decoding strategies, and RLHF training all affect hallucination rates. Models can confidently fabricate citations, statistics, and quotes that do not appear in any source.",
   },
 ];
+
+export const SAMPLE_QUESTIONS = [
+  "What discount rate applies when the YC SAFE converts, and what triggers a conversion event?",
+  "How many NVIDIA shares is Robertson planning to sell, and what is the estimated aggregate market value?",
+  "How does multi-head attention work, and why does the Transformer drop recurrence entirely?",
+  "What are the root causes of hallucination in language models, and how does RAG reduce them?",
+];
