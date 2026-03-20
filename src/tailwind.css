@@ -10,6 +10,7 @@
  *   <DeepCitationTheme theme={{ background: "#f8fafc", border: "#cbd5e1" }} />
  */
 @source "./react";
+@source "../lib/react";
 
 /* Light mode defaults */
 :root {

@@ -219,7 +219,7 @@ const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttac
   { file: imageBuffer, filename: "chart.png" }, // multiple files supported
 ]);
 
-// Save attachmentId for verification (valid for 24 hours)
+// Save attachmentId for verification
 const attachmentId = fileDataParts[0].attachmentId; // e.g. "a1b2c3d4e5f6g7h8i9j0"`;
 
 /** Section 1.4 — Prepare URLs */
