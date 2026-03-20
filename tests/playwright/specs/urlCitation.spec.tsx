@@ -305,7 +305,7 @@ test.describe("URL Citation - Error Status", () => {
     await mount(<UrlCitationComponent urlMeta={unknownStatusMeta} />);
     const url = page.locator("[data-fetch-status]");
 
-    await expect(url).toHaveClass(/text-slate-/);
+    await expect(url).toHaveClass(/text-dc-foreground/);
   });
 });
 
