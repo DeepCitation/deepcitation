@@ -74,7 +74,7 @@ export function VerificationPanel({ verification }: VerificationPanelProps) {
       <div className="flex-1 overflow-y-auto">
         {Object.entries(verifications).map(([key, v]: [string, Verification]) => {
           const isVerified = v.status === "found";
-          const isPartial = ["partial_text_found", "found_on_other_page", "found_on_other_line"].includes(v.status);
+          const isPartial = v.status != null && ["partial_text_found", "found_on_other_page", "found_on_other_line"].includes(v.status);
           const isMiss = v.status === "not_found";
           const isExpanded = expandedCitation === key;
           const evidenceSrc = v.evidence?.src ?? null;

@@ -38,6 +38,7 @@ examples/**/next-env.d.ts
 firebase-debug.log
 
 ag-ui-client*
+.playwright-mcp/
 
 # Auto-generated vanilla runtime
 src/vanilla/_generated.ts

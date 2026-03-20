@@ -1,7 +1,8 @@
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import { sanitizeForLog, type FileDataPart, wrapCitationPrompt } from "deepcitation";
+import { sanitizeForLog, wrapCitationPrompt } from "deepcitation";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const maxDuration = 60;
 
@@ -14,6 +15,23 @@ const MODELS = {
 type ModelProvider = keyof typeof MODELS;
 
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const { allowed, remaining, reason } = checkRateLimit(ip);
+  if (!allowed) {
+    const message =
+      reason === "ip"
+        ? "You\u2019ve reached the per-user daily limit (5 queries). Fork this example and add your own API keys to remove the limit."
+        : "Daily query limit reached. Fork this example and add your own API keys to remove the limit.";
+    const nowMs = Date.now();
+    const midnightMs =
+      new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").getTime() + 86_400_000;
+    const retryAfter = String(Math.ceil((midnightMs - nowMs) / 1000));
+    return new Response(JSON.stringify({ error: message }), {
+      status: 429,
+      headers: { "Content-Type": "application/json", "Retry-After": retryAfter },
+    });
+  }
+
   let body;
   try {
     body = await req.json();
@@ -27,7 +45,7 @@ export async function POST(req: Request) {
 
   console.log("[Chat API] Received messages:", JSON.stringify(messages?.slice(-1), null, 2));
 
-  const fileDataParts: FileDataPart[] = clientFileDataParts;
+  const fileDataParts: Array<{ attachmentId: string; filename?: string }> = clientFileDataParts;
 
   // deepTextPromptPortions is passed from the client (accumulated per upload)
   const deepTextPromptPortion: string[] = deepTextPromptPortions;

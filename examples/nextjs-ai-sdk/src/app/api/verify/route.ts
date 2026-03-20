@@ -1,5 +1,6 @@
 import { DeepCitation, getAllCitationsFromLlmOutput, getCitationStatus, sanitizeForLog } from "deepcitation";
 import { type NextRequest, NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // Check for API key at startup
 const apiKey = process.env.DEEPCITATION_API_KEY;
@@ -9,9 +10,26 @@ if (!apiKey) {
   );
 }
 
-const deepcitation = apiKey ? new DeepCitation({ apiKey }) : null;
+const deepcitation = apiKey ? new DeepCitation({ apiKey, endUserId: "nextjs-ai-sdk" }) : null;
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const { allowed, remaining, reason } = checkRateLimit(ip);
+  if (!allowed) {
+    const message =
+      reason === "ip"
+        ? "You\u2019ve reached the per-user daily limit (5 queries). Fork this example and add your own API keys to remove the limit."
+        : "Daily query limit reached. Fork this example and add your own API keys to remove the limit.";
+    const nowMs = Date.now();
+    const midnightMs =
+      new Date(new Date().toISOString().slice(0, 10) + "T00:00:00Z").getTime() + 86_400_000;
+    const retryAfter = String(Math.ceil((midnightMs - nowMs) / 1000));
+    return NextResponse.json(
+      { error: message },
+      { status: 429, headers: { "Retry-After": retryAfter } },
+    );
+  }
+
   console.log("🚀 /api/verify called");
   if (!deepcitation) {
     return NextResponse.json(
