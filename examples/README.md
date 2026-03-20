@@ -8,6 +8,7 @@ Complete, runnable examples demonstrating DeepCitation integration patterns.
 |---------|-------------|----------|
 | [**basic-verification**](./basic-verification) | Core 3-step workflow with OpenAI/Anthropic | Learning the basics, quick integration |
 | [**langchain-rag-chat**](./langchain-rag-chat) | Next.js + LangChain.js RAG app with DeepCitation verification | RAG pipelines, retrieval + proof UI |
+| [**mastra-rag-chat**](./mastra-rag-chat) | Next.js + Mastra RAG app with DeepCitation verification | Mastra framework, TypeScript-native RAG |
 | [**nextjs-ai-sdk**](./nextjs-ai-sdk) | Next.js chat app with Vercel AI SDK | Full-stack apps, streaming UI |
 | [**agui-chat**](./agui-chat) | AG-UI protocol chat with SSE streaming | AG-UI integration, protocol-level control |
 | [**static-html**](./static-html) | CDN popover in plain HTML, no build step | Static sites, CDN integration |
@@ -110,6 +111,25 @@ const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
 ```bash
 # Run the LangChain RAG example
 cd langchain-rag-chat
+npm install
+npm run dev
+# Open http://localhost:3000
+```
+
+### Mastra RAG Chat
+
+Runnable RAG app using Mastra for chunking and vector search, with in-memory LibSQLVector:
+
+```typescript
+const doc = MDocument.fromText(source.retrievalText, metadata);
+const chunks = await doc.chunk({ strategy: "recursive", size: 180, overlap: 32 });
+const { embeddings } = await embedMany({ model: embeddingModel, values: chunkTexts });
+await vectorStore.upsert({ indexName: "corpus", vectors: embeddings, metadata });
+```
+
+```bash
+# Run the Mastra RAG example
+cd mastra-rag-chat
 npm install
 npm run dev
 # Open http://localhost:3000
