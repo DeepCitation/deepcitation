@@ -37,6 +37,13 @@ The Tailwind classes `bg-dc-*`, `text-dc-*`, `border-dc-*` are registered via `@
 | `--dc-border` | `#e4e4e7` | `#3f3f46` | All borders and dividers |
 | `--dc-ring` | `#3b82f6` | `#3b82f6` | Focus ring color |
 
+### Primary Accent
+
+| Token | Light Default | Dark Default | Usage |
+|-------|--------------|--------------|-------|
+| `--dc-primary` | `#3b82f6` | `#60a5fa` | Active tabs, links, interactive accent |
+| `--dc-primary-foreground` | `#ffffff` | `#ffffff` | Text on primary surfaces |
+
 ### Status Indicator Colors
 
 | Token | Light Default | Dark Default | Usage |
@@ -47,7 +54,38 @@ The Tailwind classes `bg-dc-*`, `text-dc-*`, `border-dc-*` are registered via `@
 | `--dc-pending` | `#a1a1aa` | `#71717a` | Pending/loading indicator |
 | `--dc-wavy-underline-color` | `#ef4444` (red-500) | — | Miss/hallucination underline |
 
-**Backward-compat aliases** (in `src/styles.css` only): `--dc-popover-bg`, `--dc-verified-color`, `--dc-partial-color`, `--dc-error-color`, `--dc-pending-color` — these still resolve correctly for old consumer CSS that reads these vars. New code should use the canonical tokens above.
+### Status Tint Backgrounds
+
+| Token | Light Default | Dark Default | Usage |
+|-------|--------------|--------------|-------|
+| `--dc-verified-bg` | `#f0fdf4` | `rgba(34,197,94,0.1)` | Verified chip/banner background |
+| `--dc-verified-border` | `#86efac` | `#166534` | Verified chip/banner border |
+| `--dc-verified-hover` | `#15803d` | `#bbf7d0` | Verified chip hover background |
+| `--dc-partial-bg` | `#fffbeb` | `rgba(245,158,11,0.1)` | Partial chip/banner background |
+| `--dc-partial-border` | `#fcd34d` | `#92400e` | Partial chip/banner border |
+| `--dc-partial-hover` | `#b45309` | `#fde68a` | Partial chip hover background |
+| `--dc-destructive-bg` | `#fef2f2` | `rgba(239,68,68,0.1)` | Error chip/banner background |
+| `--dc-destructive-border` | `#fca5a5` | `#991b1b` | Error chip/banner border |
+| `--dc-destructive-hover` | `#b91c1c` | `#fecaca` | Destructive chip hover background |
+| `--dc-pending-bg` | `var(--dc-muted)` | `var(--dc-muted)` | Pending chip background |
+| `--dc-pending-border` | `var(--dc-border)` | `var(--dc-border)` | Pending chip border |
+| `--dc-pending-hover` | `#71717a` | `#a1a1aa` | Pending chip hover background |
+
+### Border Radius Tokens
+
+| Token | Default | Tailwind class |
+|-------|---------|----------------|
+| `--dc-radius-sm` | `0.25rem` | `rounded-dc-sm` |
+| `--dc-radius-md` | `0.375rem` | `rounded-dc-md` |
+| `--dc-radius-lg` | `0.5rem` | `rounded-dc-lg` |
+
+### Font Token
+
+| Token | Default | Tailwind class |
+|-------|---------|----------------|
+| `--dc-font-family` | system font stack | `font-dc` |
+
+**Backward-compat aliases** (in `src/styles.css` only): `--dc-popover-bg`, `--dc-popover-font`, `--dc-verified-color`, `--dc-partial-color`, `--dc-error-color`, `--dc-pending-color` — these still resolve correctly for old consumer CSS that reads these vars. New code should use the canonical tokens above.
 
 ### Accent Considerations
 
@@ -196,21 +234,33 @@ Keep absolute overshoot ≤ 4px. Use `EASE_EXPAND` only when travel ≤ 200px. F
 
 ## Border Radius
 
-SDK uses `rounded-lg` (8px) as default. This is the opposite of the web app's `rounded-none`.
+SDK uses `rounded-dc-lg` (default 0.5rem) as the container radius. This is the opposite of the web app's `rounded-none`.
 
-| Element | Radius |
-|---------|--------|
-| Popover container | `rounded-lg` |
-| Evidence tray | `rounded-lg` |
-| Buttons within popover | `rounded-md` |
-| Status badges | `rounded-full` |
+| Element | Token/Class |
+|---------|-------------|
+| Popover container | `rounded-dc-lg` |
+| Evidence tray | `rounded-dc-lg` |
+| Tab bars, code blocks | `rounded-dc-md` / `rounded-dc-lg` |
+| Buttons within popover | `rounded-dc-md` |
+| Status badges | `rounded-full` (not tokenized) |
+
+**Never use plain `rounded-lg` / `rounded-md` / `rounded-sm`** for brandable containers — always use the `rounded-dc-*` variants so consumers can override via `--dc-radius-*` tokens.
+
+---
+
+## Font
+
+The SDK font is controlled by `--dc-font-family` (Tailwind class: `font-dc`). The old `--dc-popover-font` is a backward-compat alias.
 
 ---
 
 ## Do NOT
 
 - Hardcode persistent colors as `text-slate-N dark:text-slate-M` or `text-gray-N dark:text-gray-M` — use `text-dc-*` tokens instead
+- Use `bg-green-100` or `bg-amber-100` for status backgrounds — use `bg-dc-verified-bg`, `bg-dc-partial-bg`, etc.
+- Use `text-blue-700` for accents — use `text-dc-primary`
 - Use old `--dc-*-color` property names in new code (`--dc-verified-color` etc.) — use canonical tokens (`--dc-verified` etc.)
+- Use plain `rounded-lg` / `rounded-md` / `rounded-sm` for brandable containers — use `rounded-dc-lg` / `rounded-dc-md` / `rounded-dc-sm`
 - Require Inter or any loaded font
 - Use `rounded-none` in SDK (hosts expect soft corners)
 - Bypass `--dc-*` overrides with `!important` or inline styles
@@ -227,3 +277,5 @@ SDK uses `rounded-lg` (8px) as default. This is the opposite of the web app's `r
 - React citation UI: `docs/agents/react-citation-ui.md`
 - Web app full brand: `packages/deepcitation-web/BRANDING.md`
 - Contributor-facing sub-brand overview: `packages/deepcitation/BRANDING.md`
+- Consumer theming guide: `INTEGRATION.md` → Appendix E: Design Tokens
+- Consumer styling docs: `docs/styling.md`

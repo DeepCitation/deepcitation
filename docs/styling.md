@@ -10,130 +10,231 @@ watch_paths:
   - src/react/constants.ts
   - src/react/Citation.tsx
   - src/react/CitationVariants.tsx
+  - src/react/DeepCitationTheme.tsx
+  - src/tailwind.css
+  - src/styles.css
 ---
 
 # Styling
 
-Customize the appearance of CitationComponent using CSS custom properties, class names, and Tailwind utilities.
+Customize the appearance of DeepCitation components using `--dc-*` CSS custom properties, the `<DeepCitationTheme>` React component, or Tailwind utilities.
 
 ---
 
-## CSS Custom Properties
-
-Override these CSS variables to theme all DeepCitation components at once:
+## Brand Your Citations in 5 Lines
 
 ```css
 :root {
-  /* Status indicator colors */
-  --dc-verified: #10b981;   /* Emerald - verified/exact match (default: emerald-500) */
-  --dc-partial: #f59e0b;    /* Amber - partial match (default: amber-500) */
-  --dc-destructive: #ef4444;      /* Red - not found/hallucination (default: red-500) */
-  --dc-pending: #9ca3af;    /* Gray - loading/pending (default: gray-400) */
-
-  /* Wavy underline for "not found" status (non-linter variants) */
-  --dc-wavy-underline-color: #ef4444;  /* Default: red-500 */
-
-  /* Linter variant underline colors */
-  --dc-linter-success: #4a7c5f;   /* Solid muted green underline for verified */
-  --dc-linter-warning: #f59e0b;   /* Dashed amber underline for partial */
-  --dc-linter-error: #c0605f;     /* Wavy muted red underline for not found */
-  --dc-linter-pending: #9ca3af;   /* Dotted gray underline for pending */
-
-  /* Popover dimensions */
-  --dc-popover-width: 384px;      /* Popover container width */
-
-  /* Proof image canvas (keyhole + expanded page + drawer) */
-  --dc-document-canvas-bg-light: #f4f4f5; /* Light-mode neutral canvas (zinc-100) */
-  --dc-document-canvas-bg-dark: #27272a;  /* Dark-mode neutral canvas (zinc-800) */
+  --dc-primary: #6366f1;        /* indigo accent */
+  --dc-verified: #059669;       /* teal success */
+  --dc-verified-bg: #ecfdf5;    /* light teal chip bg */
+  --dc-radius-lg: 0.75rem;      /* rounder corners */
 }
 ```
 
-### Dark Mode
+---
+
+## Token Reference
+
+### Surface & Text
+
+| Token | Light | Dark | Purpose |
+|-------|-------|------|---------|
+| `--dc-background` | `#ffffff` | `#27272a` | Card / popover / drawer surface |
+| `--dc-muted` | `#f4f4f5` | `#3f3f46` | Subdued surface: code blocks, tab bars |
+| `--dc-foreground` | `#18181b` | `#fafafa` | Primary text: headings, labels |
+| `--dc-muted-foreground` | `#71717a` | `#a1a1aa` | Body text, secondary labels |
+| `--dc-subtle-foreground` | `#a1a1aa` | `#71717a` | Icons, timestamps, tertiary text |
+| `--dc-border` | `#e4e4e7` | `#3f3f46` | Borders and dividers |
+| `--dc-ring` | `#3b82f6` | `#3b82f6` | Focus ring |
+
+### Primary Accent
+
+| Token | Light | Dark | Purpose |
+|-------|-------|------|---------|
+| `--dc-primary` | `#3b82f6` | `#60a5fa` | Active tabs, links, interactive accent |
+| `--dc-primary-foreground` | `#ffffff` | `#ffffff` | Text on primary surfaces |
+
+### Status Colors
+
+| Token | Light | Dark | Purpose |
+|-------|-------|------|---------|
+| `--dc-verified` | `#10b981` | `#34d399` | Verified / success indicator |
+| `--dc-partial` | `#f59e0b` | `#fbbf24` | Partial match / warning |
+| `--dc-destructive` | `#ef4444` | `#f87171` | Not found / error |
+| `--dc-pending` | `#a1a1aa` | `#71717a` | Loading / unresolved |
+
+### Status Tint Backgrounds
+
+| Token | Light | Dark | Purpose |
+|-------|-------|------|---------|
+| `--dc-verified-bg` | `#f0fdf4` | `rgba(34,197,94,0.1)` | Verified chip/banner background |
+| `--dc-verified-border` | `#86efac` | `#166534` | Verified chip/banner border |
+| `--dc-verified-hover` | `#15803d` | `#bbf7d0` | Verified chip hover background |
+| `--dc-partial-bg` | `#fffbeb` | `rgba(245,158,11,0.1)` | Partial chip/banner background |
+| `--dc-partial-border` | `#fcd34d` | `#92400e` | Partial chip/banner border |
+| `--dc-partial-hover` | `#b45309` | `#fde68a` | Partial chip hover background |
+| `--dc-destructive-bg` | `#fef2f2` | `rgba(239,68,68,0.1)` | Error chip/banner background |
+| `--dc-destructive-border` | `#fca5a5` | `#991b1b` | Error chip/banner border |
+| `--dc-destructive-hover` | `#b91c1c` | `#fecaca` | Destructive chip hover background |
+| `--dc-pending-bg` | `var(--dc-muted)` | `var(--dc-muted)` | Pending chip background |
+| `--dc-pending-border` | `var(--dc-border)` | `var(--dc-border)` | Pending chip border |
+| `--dc-pending-hover` | `#71717a` | `#a1a1aa` | Pending chip hover background |
+
+### Border Radius
+
+| Token | Default | Tailwind class |
+|-------|---------|----------------|
+| `--dc-radius-sm` | `0.25rem` | `rounded-dc-sm` |
+| `--dc-radius-md` | `0.375rem` | `rounded-dc-md` |
+| `--dc-radius-lg` | `0.5rem` | `rounded-dc-lg` |
+
+### Font
+
+| Token | Default | Tailwind class |
+|-------|---------|----------------|
+| `--dc-font-family` | system font stack | `font-dc` |
+
+`--dc-popover-font` is a backward-compat alias that resolves to `var(--dc-font-family)`.
+
+---
+
+## Dark Mode
+
+```css
+.dark {
+  --dc-primary: #818cf8;
+  --dc-verified: #34d399;
+  --dc-verified-bg: rgba(34, 197, 94, 0.1);
+  --dc-verified-border: #166534;
+  --dc-radius-lg: 0.75rem;
+}
+```
+
+Or use `prefers-color-scheme`:
 
 ```css
 @media (prefers-color-scheme: dark) {
   :root {
-    --dc-verified: #34d399;     /* emerald-400 */
-    --dc-partial: #fbbf24;      /* amber-400 */
-    --dc-destructive: #f87171;        /* red-400 */
-    --dc-pending: #6b7280;      /* gray-500 */
-    --dc-linter-success: #6aab85;
-    --dc-linter-warning: #fbbf24;
-    --dc-linter-error: #d47d7c;
-    --dc-linter-pending: #6b7280;
-    --dc-document-canvas-bg-light: #f4f4f5;
-    --dc-document-canvas-bg-dark: #27272a;
+    --dc-primary: #818cf8;
+    --dc-verified: #34d399;
   }
-}
-
-/* Or with a class-based approach (Tailwind dark mode) */
-.dark {
-  --dc-verified: #34d399;
-  --dc-partial: #fbbf24;
-  --dc-destructive: #f87171;
-  --dc-pending: #6b7280;
-  --dc-document-canvas-bg-light: #f4f4f5;
-  --dc-document-canvas-bg-dark: #27272a;
 }
 ```
 
-### Indicator Variants
+---
 
-The `indicatorVariant` prop controls whether status is shown as icons (checkmarks, spinners, X) or subtle colored dots:
+## React Component Theming
+
+### Global
 
 ```tsx
-// Icon indicators (default)
-<CitationComponent citation={citation} verification={verification} />
+import { DeepCitationTheme } from "deepcitation/react";
 
-// Dot indicators (like GitHub status dots)
+<DeepCitationTheme
+  theme={{
+    primary: "#6366f1",
+    verified: "#059669",
+    verifiedBg: "#ecfdf5",
+    radiusLg: "0.75rem",
+    fontFamily: "Georgia, serif",
+  }}
+  darkTheme={{
+    primary: "#818cf8",
+    verified: "#34d399",
+    verifiedBg: "rgba(34, 197, 94, 0.1)",
+  }}
+/>
+```
+
+### Scoped (per-instance)
+
+```tsx
+<DeepCitationTheme
+  scoped
+  theme={{ primary: "#ec4899", verified: "#14b8a6" }}
+>
+  <CitationComponent citation={citation} verification={verification} />
+</DeepCitationTheme>
+```
+
+When `scoped` is true, a `<div>` wrapper sets CSS custom properties for that subtree only.
+
+---
+
+## Brand Examples
+
+### Warm brand
+
+```css
+:root {
+  --dc-primary: #d97706;
+  --dc-verified: #059669;
+  --dc-verified-bg: #ecfdf5;
+  --dc-partial: #ea580c;
+  --dc-partial-bg: #fff7ed;
+  --dc-radius-lg: 0.75rem;
+  --dc-font-family: Georgia, "Times New Roman", serif;
+}
+```
+
+### Cool brand
+
+```css
+:root {
+  --dc-primary: #6366f1;
+  --dc-verified: #0891b2;
+  --dc-verified-bg: #ecfeff;
+  --dc-partial: #7c3aed;
+  --dc-partial-bg: #f5f3ff;
+  --dc-radius-lg: 1rem;
+}
+```
+
+### Monochrome
+
+```css
+:root {
+  --dc-primary: #525252;
+  --dc-verified: #404040;
+  --dc-verified-bg: #f5f5f5;
+  --dc-partial: #737373;
+  --dc-partial-bg: #fafafa;
+  --dc-destructive: #525252;
+  --dc-destructive-bg: #f5f5f5;
+  --dc-radius-lg: 0;
+}
+```
+
+---
+
+## Indicator Variants
+
+The `indicatorVariant` prop controls status display:
+
+```tsx
+<CitationComponent citation={citation} verification={verification} />
 <CitationComponent citation={citation} verification={verification} indicatorVariant="dot" />
 ```
 
-Dot indicators use Tailwind `bg-*` classes for color (`bg-green-600`, `bg-amber-500`, `bg-red-500`, `bg-gray-400`) and `rounded-full` for shape. The pending dot uses `animate-pulse` for subtle animation.
-
-The dot size is controlled by the `DOT_INDICATOR_SIZE_STYLE` constant (`0.45em`, min `6px`), which is roughly half the size of icon indicators (`0.85em`, min `10px`).
-
 ---
 
-## Using className Prop
-
-Pass custom classes to the component:
-
-```tsx
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  className="my-custom-citation"
-/>
-```
-
----
-
-## Tailwind CSS Integration
-
-If using Tailwind CSS, components work out of the box. You can add utility classes:
-
-```tsx
-<CitationComponent
-  citation={citation}
-  verification={verification}
-  className="font-semibold hover:underline"
-/>
-```
-
-Or define component styles in your CSS:
+## CSS Class Targets
 
 ```css
-@layer components {
-  .citation-legal {
-    @apply font-serif text-blue-800 dark:text-blue-300;
-  }
-
-  .citation-medical {
-    @apply font-mono text-sm text-green-700 dark:text-green-400;
-  }
-}
+[data-dc-indicator="verified"] { color: var(--dc-verified); }
+[data-dc-indicator="partial"]  { color: var(--dc-partial); }
+[data-dc-indicator="error"]    { color: var(--dc-destructive); }
+[data-dc-indicator="pending"]  { color: var(--dc-pending); }
 ```
+
+### Available Data Attributes
+
+| Attribute | Values | Description |
+|-----------|--------|-------------|
+| `data-dc-indicator` | `verified`, `partial`, `pending`, `error` | Citation status indicator |
+| `data-citation-id` | string | Unique citation identifier |
+| `data-dc-theme-scope` | (present) | Scoped theme wrapper |
 
 ---
 
@@ -153,104 +254,7 @@ import "deepcitation/tailwind.css";
 
 ---
 
-## CSS Class Targets
-
-Target specific citation elements using data attributes and selectors:
-
-```css
-/* All citations with verified status */
-[data-dc-indicator="verified"] {
-  font-weight: 500;
-}
-
-/* Verified citations - specific styling */
-[data-dc-indicator="verified"] {
-  color: var(--dc-verified);
-}
-
-/* Partial match citations */
-[data-dc-indicator="partial"] {
-  color: var(--dc-partial);
-}
-
-/* Not found / hallucination citations */
-[data-dc-indicator="error"] {
-  color: var(--dc-destructive);
-}
-
-/* Pending / loading citations */
-[data-dc-indicator="pending"] {
-  color: var(--dc-pending);
-}
-
-/* Citation trigger element */
-[data-citation-id] {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-/* On hover */
-[data-citation-id]:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-[data-citation-id]:hover:dark {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-```
-
-### Available Data Attributes
-
-| Attribute | Values | Description |
-|-----------|--------|-------------|
-| `data-dc-indicator` | `verified`, `partial`, `pending`, `error` | Citation status indicator |
-| `data-citation-id` | string | Unique citation identifier (present on trigger element) |
-
----
-
-## Animation
-
-Add animations to citations:
-
-```css
-/* Pulse animation for pending state */
-.dc-citation-wrapper[data-status="pending"] {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-```
-
----
-
-## Print Styles
-
-Optimize for printing:
-
-```css
-@media print {
-  .dc-citation-wrapper {
-    color: black !important;
-    text-decoration: underline;
-  }
-
-  .dc-citation-indicator {
-    display: none;
-  }
-
-  .dc-citation-popover {
-    display: none;
-  }
-}
-```
-
----
-
 ## Related
 
 - [Components]({{ site.baseurl }}/components/) - Component API reference
 - [Getting Started]({{ site.baseurl }}/getting-started/) - Installation and setup
-- [Error Handling]({{ site.baseurl }}/error-handling/) - Production error patterns
