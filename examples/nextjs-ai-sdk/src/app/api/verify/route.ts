@@ -9,7 +9,10 @@ if (!apiKey) {
   );
 }
 
-const deepcitation = apiKey ? new DeepCitation({ apiKey }) : null;
+// Rate limiting is only applied on the /api/chat route. Verify is called as
+// part of the same user interaction, so rate-limiting here would double-count.
+// All demo users share a single endUserId — see corpusAttachment.ts
+const deepcitation = apiKey ? new DeepCitation({ apiKey, endUserId: "nextjs-ai-sdk" }) : null;
 
 export async function POST(req: NextRequest) {
   console.log("🚀 /api/verify called");

@@ -68,9 +68,9 @@ test.describe("ChipCitation", () => {
     await mount(<ChipCitation citation={baseCitation} verification={verification} />);
     const chip = page.locator('[data-variant="chip"]');
 
-    // Wrapper has background color, text color is on inner span
-    await expect(chip).toHaveClass(/bg-green-/);
-    await expect(chip.locator(".text-green-600").first()).toBeVisible();
+    // Wrapper has background color via design token
+    await expect(chip).toHaveClass(/bg-dc-verified-bg/);
+    await expect(chip.locator(".text-dc-verified").first()).toBeVisible();
     // Verified indicator is a checkmark
     const text = await chip.textContent();
     expect(text).toContain("✓");
@@ -80,8 +80,8 @@ test.describe("ChipCitation", () => {
     await mount(<ChipCitation citation={baseCitation} verification={missFoundCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
-    // Wrapper has background color, text color is on inner span
-    await expect(chip).toHaveClass(/bg-red-/);
+    // Wrapper has background color via design token
+    await expect(chip).toHaveClass(/bg-dc-destructive-bg/);
     // Chip variant does NOT use wavy underline - status is conveyed via indicator icon
     // Check that the X indicator SVG is present (miss state icon)
     const xIndicator = chip.locator('svg[stroke="currentColor"]').first();
@@ -98,8 +98,8 @@ test.describe("ChipCitation", () => {
     await mount(<ChipCitation citation={baseCitation} verification={partialFoundCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
-    // Wrapper has background color, text color is on inner span
-    await expect(chip).toHaveClass(/bg-amber-/);
+    // Wrapper has background color via design token
+    await expect(chip).toHaveClass(/bg-dc-partial-bg/);
     // Partial indicator is an asterisk rendered in an aria-hidden span
     const text = await chip.textContent();
     expect(text).toContain("*");
@@ -109,8 +109,8 @@ test.describe("ChipCitation", () => {
     await mount(<ChipCitation citation={baseCitation} verification={pendingFoundCitation} />);
     const chip = page.locator('[data-variant="chip"]');
 
-    // Pending state shows slate background, text color is inherited
-    await expect(chip).toHaveClass(/bg-slate-/);
+    // Pending state shows muted background via design token
+    await expect(chip).toHaveClass(/bg-dc-pending-bg/);
     await expect(chip.locator(".opacity-70")).toBeVisible();
   });
 
@@ -181,7 +181,7 @@ test.describe("SuperscriptCitation", () => {
     await mount(<SuperscriptCitation citation={baseCitation} verification={verification} />);
     const sup = page.locator('[data-variant="superscript"]');
 
-    await expect(sup).toHaveClass(/text-green-/);
+    await expect(sup).toHaveClass(/text-dc-verified/);
   });
 
   test("renders with brackets when hideBrackets is false", async ({ mount, page }) => {
@@ -207,7 +207,7 @@ test.describe("SuperscriptCitation", () => {
     await mount(<SuperscriptCitation citation={baseCitation} verification={missFoundCitation} />);
     const sup = page.locator('[data-variant="superscript"]');
 
-    await expect(sup).toHaveClass(/text-red-/);
+    await expect(sup).toHaveClass(/text-dc-destructive/);
     // Superscript variant does NOT use wavy underline - status is conveyed via indicator icon
     // Check that the X indicator is present
     const hasXIndicator = await sup.evaluate(el => {
@@ -261,7 +261,7 @@ test.describe("FootnoteCitation", () => {
     await mount(<FootnoteCitation citation={baseCitation} verification={verification} />);
     const footnote = page.locator('[data-variant="footnote"]');
 
-    await expect(footnote).toHaveClass(/text-green-/);
+    await expect(footnote).toHaveClass(/text-dc-verified/);
   });
 });
 
@@ -313,7 +313,7 @@ test.describe("InlineCitation", () => {
     await mount(<InlineCitation citation={baseCitation} verification={verification} />);
     const inline = page.locator('[data-variant="inline"]');
 
-    await expect(inline).toHaveClass(/text-green-/);
+    await expect(inline).toHaveClass(/text-dc-verified/);
   });
 
   test("renders with pending indicator", async ({ mount, page }) => {

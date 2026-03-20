@@ -284,11 +284,11 @@ export const CitationContentDisplay = ({
     if (shouldShowSpinner) {
       blockBorderClass = "border-dc-border animate-pulse cursor-wait";
     } else if (isMiss) {
-      blockBorderClass = "border-red-500/60 dark:border-red-500/40";
+      blockBorderClass = "border-dc-destructive/60";
     } else if (isPartialMatch) {
-      blockBorderClass = "border-amber-500/60 dark:border-amber-500/40";
+      blockBorderClass = "border-dc-partial/60";
     } else if (isVerified) {
-      blockBorderClass = "border-emerald-500/60 dark:border-emerald-500/40";
+      blockBorderClass = "border-dc-verified/60";
     } else {
       blockBorderClass = "border-dc-border";
     }
@@ -316,7 +316,7 @@ export const CitationContentDisplay = ({
               return <span className={cn("rounded-full", DOT_COLORS[dotColor])} style={DOT_INDICATOR_SIZE_STYLE} />;
             }
             if (iv === "caret") {
-              const caretColor = isMiss ? "text-red-500 dark:text-red-400" : "text-dc-subtle-foreground";
+              const caretColor = isMiss ? "text-dc-destructive" : "text-dc-subtle-foreground";
               return (
                 <span className={cn("inline-flex", caretColor)} style={CARET_INDICATOR_SIZE_STYLE}>
                   <ChevronDownIcon />

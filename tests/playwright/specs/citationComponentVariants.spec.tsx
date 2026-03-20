@@ -653,9 +653,9 @@ test.describe("CitationComponent - Text Color Inheritance", () => {
         <CitationComponent citation={baseCitation} variant="brackets" verification={verifiedVerification} />
       </div>,
     );
-    // Brackets verified status applies text-blue-600 on the content wrapper
+    // Brackets verified status applies text-dc-primary on the content wrapper
     const allText = await page.locator("[data-citation-id]").evaluate(el => el.innerHTML);
-    expect(allText).toMatch(/text-blue-/);
+    expect(allText).toMatch(/text-dc-primary/);
   });
 
   test("className prop can override inherited color for linter", async ({ mount, page }) => {

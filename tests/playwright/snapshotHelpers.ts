@@ -2,9 +2,9 @@ import type { Page } from "@playwright/test";
 
 /**
  * CSS selector for the popover's inner layout container.
- * Excludes the ZoomToolbar which shares shadow-md + rounded-lg classes.
+ * Uses the data attribute added by PopoverContent for stable targeting.
  */
-export const POPOVER_CONTAINER_SELECTOR = ".shadow-md.rounded-lg:not([role='toolbar'])";
+export const POPOVER_CONTAINER_SELECTOR = "[data-dc-popover-content]";
 
 /**
  * Scale down and compress spacing in a showcase element before snapshot.

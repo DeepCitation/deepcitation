@@ -1263,7 +1263,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       // Found status (text color) - verified or partial match, for brackets variant
       (isVerified || isPartialMatch) &&
         variant === "brackets" &&
-        "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline",
+        "text-dc-primary hover:text-dc-primary/80 hover:underline",
       // Miss state: opacity dims the inherited/explicit color
       isMiss && "opacity-70",
       // Explicit gray only for non-inline variants (inline variants inherit from parent)
@@ -1592,7 +1592,7 @@ const ExternalLinkButton = ({
       onClick={handleExternalLinkClick}
       className={cn(
         "relative inline-flex items-center justify-center w-6 h-6 -ml-0.5 transition-all",
-        "text-dc-subtle-foreground group-hover:text-blue-500 dark:group-hover:text-blue-400",
+        "text-dc-subtle-foreground group-hover:text-dc-primary",
         !alwaysVisible && "opacity-30 group-hover:opacity-100 group-focus-within:opacity-100",
       )}
       aria-label={ariaLabel}
@@ -1704,7 +1704,7 @@ const UrlStatusIndicator = ({
   // Partial: Amber check
   if (isPartial) {
     return (
-      <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel={t("indicator.partial")}>
+      <StatusIconWrapper className="text-dc-partial" ariaLabel={t("indicator.partial")}>
         <CheckIcon className="w-full h-full" />
       </StatusIconWrapper>
     );
@@ -1714,7 +1714,7 @@ const UrlStatusIndicator = ({
   if (isBlocked) {
     if (renderBlockedIndicator) return <>{renderBlockedIndicator(fetchStatus, errorMessage)}</>;
     return (
-      <StatusIconWrapper className="text-amber-500 dark:text-amber-400" ariaLabel={statusLabel}>
+      <StatusIconWrapper className="text-dc-partial" ariaLabel={statusLabel}>
         <LockIcon className="w-full h-full" />
       </StatusIconWrapper>
     );
@@ -1724,7 +1724,7 @@ const UrlStatusIndicator = ({
   if (isError) {
     if (renderBlockedIndicator) return <>{renderBlockedIndicator(fetchStatus, errorMessage)}</>;
     return (
-      <StatusIconWrapper className="text-red-500 dark:text-red-400" ariaLabel={statusLabel}>
+      <StatusIconWrapper className="text-dc-destructive" ariaLabel={statusLabel}>
         <XCircleIcon className="w-full h-full" />
       </StatusIconWrapper>
     );

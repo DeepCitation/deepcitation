@@ -360,7 +360,7 @@ describe("CitationDrawerItemComponent", () => {
       <CitationDrawerItemComponent item={createItem({ verification: { status: "found" } })} />,
     );
 
-    const indicator = container.querySelector(".text-green-500");
+    const indicator = container.querySelector(".text-dc-verified");
     expect(indicator).toBeInTheDocument();
   });
 
@@ -369,7 +369,7 @@ describe("CitationDrawerItemComponent", () => {
       <CitationDrawerItemComponent item={createItem({ verification: { status: "not_found" } })} />,
     );
 
-    const indicator = container.querySelector(".text-red-500");
+    const indicator = container.querySelector(".text-dc-destructive");
     expect(indicator).toBeInTheDocument();
   });
 
@@ -882,9 +882,9 @@ describe("CitationDrawerTrigger", () => {
     const { container } = render(<CitationDrawerTrigger citationGroups={groups} />);
 
     // Should have green, gray, and red status icons
-    expect(container.querySelector(".text-green-500")).toBeInTheDocument();
+    expect(container.querySelector(".text-dc-verified")).toBeInTheDocument();
     expect(container.querySelector(".text-dc-subtle-foreground")).toBeInTheDocument();
-    expect(container.querySelector(".text-red-500")).toBeInTheDocument();
+    expect(container.querySelector(".text-dc-destructive")).toBeInTheDocument();
   });
 
   it("renders spinner for pending status icons", () => {

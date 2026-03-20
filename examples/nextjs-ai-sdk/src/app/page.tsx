@@ -1,13 +1,15 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import type { Citation, FileDataPart, Verification } from "deepcitation";
+import type { Citation, Verification } from "deepcitation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { FileUpload } from "@/components/FileUpload";
 import { VerificationPanel } from "@/components/VerificationPanel";
 import { toDrawerItems } from "@/utils/citationDrawerAdapter";
+import { SAMPLE_QUESTIONS } from "@/lib/corpus";
 
+type FileDataPart = { attachmentId: string; filename?: string };
 type ModelProvider = "openai" | "gemini";
 
 // Type for the verify API response (per message)
@@ -35,6 +37,9 @@ export default function Home() {
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
   // Accumulated text portions for LLM prompts (one string per uploaded file)
   const [deepTextPromptPortions, setDeepTextPromptPortions] = useState<string[]>([]);
+  // Whether the file came from the bundled corpus (vs user upload)
+  const [isCorpusLoaded, setIsCorpusLoaded] = useState(false);
+  const [corpusLoading, setCorpusLoading] = useState(true);
 
   // Map of message ID to its full verification result (citations + verifications + summary)
   const [messageVerifications, setMessageVerifications] = useState<Record<string, MessageVerificationResult>>({});
@@ -42,6 +47,29 @@ export default function Home() {
   const [verificationError, setVerificationError] = useState<Record<string, string>>({});
   const [provider, setProvider] = useState<ModelProvider>("gemini");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load bundled corpus on mount
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/corpus/init")
+      .then(res => {
+        if (!res.ok) throw new Error("Corpus init failed");
+        return res.json();
+      })
+      .then((data: { fileDataPart: FileDataPart; deepTextPromptPortion: string }) => {
+        if (cancelled) return;
+        setFileDataParts([data.fileDataPart]);
+        setDeepTextPromptPortions([data.deepTextPromptPortion]);
+        setIsCorpusLoaded(true);
+      })
+      .catch(err => {
+        if (!cancelled) console.error("Corpus load failed:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setCorpusLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // Stable event handler for verification - doesn't need to be in deps
   const onVerifyMessage = useEffectEvent((messageId: string, messageContent: string) => {
@@ -86,7 +114,7 @@ export default function Home() {
       .finally(() => setIsVerifying(false));
   });
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, append, isLoading, error } = useChat({
     streamProtocol: "text",
     body: {
       provider,
@@ -95,13 +123,7 @@ export default function Home() {
     },
     onFinish: message => {
       if (message.role === "assistant") {
-        const content =
-          message.content ||
-          (message as Record<string, unknown> & { parts?: Array<{ type: string; text?: string }> }).parts
-            ?.filter((p): p is { type: "text"; text: string } => p.type === "text")
-            .map(p => p.text)
-            .join("") ||
-          "";
+        const content = message.content || "";
         setIsVerifying(true);
         onVerifyMessage(message.id, content);
       }
@@ -133,16 +155,22 @@ export default function Home() {
     if (uploadResult) {
       const { res, data } = uploadResult;
       if (res.ok && data.fileDataPart) {
-        setFileDataParts(prev => [...prev, data.fileDataPart]);
-        if (data.deepTextPromptPortion) {
-          setDeepTextPromptPortions(prev => [...prev, data.deepTextPromptPortion]);
-        }
+        // User upload replaces the corpus document
+        setFileDataParts([data.fileDataPart as FileDataPart]);
+        setDeepTextPromptPortions(
+          data.deepTextPromptPortion ? [data.deepTextPromptPortion as string] : [],
+        );
+        setIsCorpusLoaded(false);
       } else {
         const errorMsg = String(data.details ?? data.error ?? "Upload failed");
         setUploadError(errorMsg);
         console.error("Upload failed:", errorMsg);
       }
     }
+  };
+
+  const handleSampleQuestion = (question: string) => {
+    append({ role: "user", content: question });
   };
 
   // Auto-scroll to bottom when messages change
@@ -152,6 +180,9 @@ export default function Home() {
 
   // Get latest message's verification result
   const latestVerification = messages.length > 0 ? messageVerifications[messages[messages.length - 1]?.id] : null;
+
+  const hasDocuments = fileDataParts.length > 0;
+  const isBusy = isLoading || isVerifying;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -174,7 +205,7 @@ export default function Home() {
                   id="provider-select"
                   value={provider}
                   onChange={e => setProvider(e.target.value as ModelProvider)}
-                  disabled={isLoading || isVerifying}
+                  disabled={isBusy}
                   className="text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {MODEL_OPTIONS.map(option => (
@@ -195,18 +226,39 @@ export default function Home() {
               <div className="bg-white rounded-xl p-8 shadow-sm max-w-lg">
                 <h2 className="text-lg font-medium text-gray-900 mb-2">Welcome to DeepCitation Chat</h2>
                 <p className="text-gray-600 mb-4">
-                  Upload a document to get started, then ask questions. Every AI response will be verified against your
-                  attachments.
+                  {corpusLoading
+                    ? "Loading sample document..."
+                    : hasDocuments && isCorpusLoaded
+                      ? "A sample paper (Attention Is All You Need) is pre-loaded. Try a question below, or upload your own document."
+                      : "Upload a document to get started, then ask questions. Every AI response will be verified against your attachments."}
                 </p>
 
-                <div className="text-left text-sm text-gray-500">
-                  <p className="font-medium mb-1">How it works:</p>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Upload a PDF or document</li>
-                    <li>Ask questions about its content</li>
-                    <li>See verified citations with proof</li>
-                  </ol>
-                </div>
+                {!corpusLoading && hasDocuments && (
+                  <div className="flex flex-col gap-2 mt-4">
+                    {SAMPLE_QUESTIONS.map(q => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => handleSampleQuestion(q)}
+                        disabled={isBusy}
+                        className="text-left text-sm px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {!hasDocuments && !corpusLoading && (
+                  <div className="text-left text-sm text-gray-500 mt-4">
+                    <p className="font-medium mb-1">How it works:</p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Upload a PDF or document</li>
+                      <li>Ask questions about its content</li>
+                      <li>See verified citations with proof</li>
+                    </ol>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -250,7 +302,7 @@ export default function Home() {
                       const msg = messages.find(m => m.id === msgId);
                       if (msg) {
                         setIsVerifying(true);
-                        const content = msg.content || msg.parts?.filter((p): p is { type: "text"; text: string } => p.type === "text").map(p => p.text).join("") || "";
+                        const content = msg.content || "";
                         onVerifyMessage(msgId, content);
                       }
                     }}
@@ -280,16 +332,18 @@ export default function Home() {
               value={input}
               onChange={handleInputChange}
               placeholder={
-                fileDataParts.length > 0
-                  ? "Ask a question about your documents..."
-                  : "Upload a document first, then ask questions..."
+                corpusLoading
+                  ? "Loading sample document..."
+                  : hasDocuments
+                    ? "Ask a question about your documents..."
+                    : "Upload a document first, then ask questions..."
               }
               className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading || isVerifying}
+              disabled={isBusy || corpusLoading}
             />
             <button
               type="submit"
-              disabled={isLoading || isVerifying || !input.trim()}
+              disabled={isBusy || corpusLoading || !input.trim()}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Send
@@ -312,6 +366,11 @@ export default function Home() {
                     />
                   </svg>
                   {file.filename || "Document"}
+                  {isCorpusLoaded && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
+                      Sample
+                    </span>
+                  )}
                 </span>
               ))}
             </div>

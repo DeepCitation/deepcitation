@@ -139,7 +139,7 @@ export const STATUS_ICONS: Record<UrlFetchStatus, { icon: string; label: string;
   accessible: {
     icon: "○",
     label: defaultMessages["urlStatus.accessible"],
-    className: "text-blue-500 dark:text-blue-400",
+    className: "text-dc-primary",
   },
   redirected: {
     icon: "↪",

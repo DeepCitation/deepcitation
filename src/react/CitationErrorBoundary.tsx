@@ -40,7 +40,7 @@ export class CitationErrorBoundary extends React.Component<ErrorBoundaryProps, E
       // Default fallback: minimal error indicator
       return (
         <span
-          className="inline-flex items-center text-red-500 dark:text-red-400"
+          className="inline-flex items-center text-dc-destructive"
           title={`Citation error: ${this.state.error?.message || "Unknown error"}`}
         >
           <WarningIcon className="size-3" />

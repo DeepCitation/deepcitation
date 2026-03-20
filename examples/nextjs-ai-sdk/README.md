@@ -1,30 +1,33 @@
 # Next.js AI SDK Example
 
-A complete chat application built with Next.js, Vercel AI SDK, and DeepCitation. Upload documents, ask questions, and see every AI citation verified in real-time.
+A complete chat application built with Next.js, Vercel AI SDK, and DeepCitation. A sample paper is pre-loaded so you can try it immediately — or upload your own documents. Every AI citation is verified in real-time.
 
 ## Features
 
+- **Bundled sample paper** (Attention Is All You Need) with sample questions for instant demo
 - **Streaming responses** with Vercel AI SDK
 - **Real-time citation verification** as responses complete
 - **Visual proof panel** showing verification status for each citation
-- **Document upload** with drag-and-drop support
+- **Document upload** with drag-and-drop support (replaces sample)
+- **Rate limiting** for safe public deployment
 - **Responsive chat UI** with Tailwind CSS
 
 ## Screenshot
 
 ```
-┌─────────────────────────────────────┬──────────────────────┐
-│ DeepCitation Chat                   │ Citation Verification│
-│                                     │                      │
-│ ┌─────────────────────────────────┐ │ Verification Rate    │
-│ │ AI: Revenue grew by 23% in 2024 │ │ ████████████░░ 85%   │
-│ │     [1]✓ [2]✓                   │ │                      │
-│ │                                 │ │ ✓ Citation [1]       │
-│ │     ✓ 2/2 citations verified    │ │   found • Page 3     │
-│ └─────────────────────────────────┘ │                      │
-│                                     │ ✓ Citation [2]       │
-│ [📎 report.pdf] [Ask a question...] │   found • Page 5     │
-└─────────────────────────────────────┴──────────────────────┘
++-----------------------------------------+----------------------+
+| DeepCitation Chat                       | Citation Verification|
+|                                         |                      |
+| +-------------------------------------+| Verification Rate    |
+| | AI: Revenue grew by 23% in 2024     || 85%                  |
+| |     [1] [2]                         ||                      |
+| |                                     || Citation [1]         |
+| |     2/2 citations verified          ||   found - Page 3     |
+| +-------------------------------------+|                      |
+|                                         | Citation [2]         |
+| [Attention Is All You Need.pdf Sample]  |   found - Page 5     |
+| [Ask a question...]                     |                      |
++-----------------------------------------+----------------------+
 ```
 
 ## Quick Start
@@ -54,47 +57,40 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 src/
 ├── app/
 │   ├── api/
-│   │   ├── chat/route.ts      # Streaming chat with AI SDK
-│   │   ├── upload/route.ts    # Document upload endpoint
-│   │   └── verify/route.ts    # Citation verification endpoint
-│   ├── globals.css            # Tailwind + citation styles
-│   ├── layout.tsx             # Root layout
-│   └── page.tsx               # Main chat page
+│   │   ├── chat/route.ts              # Streaming chat with AI SDK + rate limiting
+│   │   ├── upload/route.ts            # Document upload endpoint
+│   │   ├── verify/route.ts            # Citation verification + rate limiting
+│   │   └── corpus/
+│   │       ├── init/route.ts          # Pre-resolve bundled corpus attachment
+│   │       └── [filename]/route.ts    # Serve/redirect to corpus PDF
+│   ├── globals.css                    # Tailwind + citation styles
+│   ├── layout.tsx                     # Root layout
+│   └── page.tsx                       # Main chat page
 ├── components/
-│   ├── ChatMessage.tsx        # Message bubble with citations
-│   ├── CitationBadge.tsx      # Citation status indicator
-│   ├── FileUpload.tsx         # Document upload button
-│   └── VerificationPanel.tsx  # Side panel with verification details
+│   ├── ChatMessage.tsx                # Message bubble with citations
+│   ├── FileUpload.tsx                 # Document upload button
+│   └── VerificationPanel.tsx          # Side panel with verification details
 └── lib/
-    └── deepcitation.ts        # DeepCitation client wrapper
+    ├── corpus.ts                      # Sample source definition + questions
+    ├── corpusAttachment.ts            # Server-side attachment resolution with caching
+    └── rateLimit.ts                   # Per-IP daily rate limiting
 ```
 
 ## How It Works
 
-### 1. Document Upload
+### 1. Bundled Corpus
 
-When a user uploads a document, it's sent to DeepCitation for processing:
+On page load, the client calls `GET /api/corpus/init` which resolves the sample PDF attachment server-side (with env-var caching for fast cold starts). The `fileDataPart` and `deepTextPromptPortion` are sent to the client so it can pass them through `useChat`'s body — same flow as a user-uploaded file.
+
+### 2. Document Upload
+
+When a user uploads a document, it replaces the sample. The file is sent to DeepCitation for processing:
 
 ```typescript
 // src/app/api/upload/route.ts
-const { attachmentId, deepTextPromptPortion } = await uploadDocument(
-  sessionId,
-  buffer,
-  file.name
-);
-```
-
-### 2. Enhanced Prompts
-
-Before calling the LLM, prompts are enhanced with citation instructions:
-
-```typescript
-// src/lib/deepcitation.ts
-const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
-  systemPrompt,
-  userPrompt: question,
-  deepTextPromptPortion, 
-});
+const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+  { file: buffer, filename: file.name },
+]);
 ```
 
 ### 3. Streaming Response
@@ -109,7 +105,7 @@ const result = streamText({
   messages: enhancedMessages,
 });
 
-return result.toDataStreamResponse();
+return result.toTextStreamResponse();
 ```
 
 ### 4. Citation Verification
@@ -120,20 +116,26 @@ After streaming completes, citations are verified:
 // src/app/page.tsx
 const res = await fetch("/api/verify", {
   method: "POST",
-  body: JSON.stringify({ sessionId, content: message.content }),
+  body: JSON.stringify({ llmOutput: content, attachmentId }),
 });
-const data = await res.json();
-// data.summary = { total: 3, verified: 3, missed: 0, pending: 0 }
 ```
 
 ### 5. Visual Proof
 
 The VerificationPanel shows detailed status for each citation:
 
-- ✓ Verified (green) - Found at expected location
-- ◐ Partial (yellow) - Found with discrepancies
-- ✗ Missed (red) - Not found in document
-- ○ Pending (gray) - Still verifying
+- Verified (green) - Found at expected location
+- Partial (yellow) - Found with discrepancies
+- Missed (red) - Not found in document
+- Pending (gray) - Still verifying
+
+## Rate Limiting
+
+The demo includes per-IP daily rate limiting (5 queries/user, 100 global). To disable for local development:
+
+```env
+RATE_LIMIT_DISABLED=true
+```
 
 ## Customization
 
@@ -149,75 +151,30 @@ const result = streamText({
 });
 ```
 
-### Custom Citation Styling
-
-Edit `src/app/globals.css`:
-
-```css
-.citation-verified {
-  @apply bg-green-100 text-green-800;
-}
-```
-
-### Persistent Storage
-
-Replace the in-memory store in `src/lib/deepcitation.ts` with Redis or a database:
-
-```typescript
-// Example with Redis
-import { Redis } from "@upstash/redis";
-
-const redis = new Redis({ url: "...", token: "..." });
-
-export async function uploadDocument(sessionId: string, ...) {
-  // Store in Redis instead of Map
-  await redis.set(`files:${sessionId}`, JSON.stringify(fileDataParts));
-}
-```
-
 ## API Routes
+
+### GET /api/corpus/init
+
+Pre-resolve the bundled sample PDF attachment.
+
+### GET /api/corpus/[filename]
+
+Redirects to the corpus PDF URL.
 
 ### POST /api/upload
 
 Upload a document for processing.
 
-```bash
-curl -X POST http://localhost:3000/api/upload \
-  -F "file=@document.pdf" \
-  -F "sessionId=user123"
-```
-
 ### POST /api/chat
 
-Stream a chat response (AI SDK format).
-
-```bash
-curl -X POST http://localhost:3000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"messages": [{"role": "user", "content": "Summarize the document"}], "sessionId": "user123"}'
-```
+Stream a chat response (AI SDK format). Rate-limited.
 
 ### POST /api/verify
 
-Verify citations in a response.
-
-```bash
-curl -X POST http://localhost:3000/api/verify \
-  -H "Content-Type: application/json" \
-  -d '{"sessionId": "user123", "content": "Revenue grew 23% <cite.../>"}'
-```
-
-## Production Considerations
-
-1. **Session Management**: Use proper session IDs (auth tokens, UUIDs)
-2. **File Storage**: Store `fileDataParts` in Redis/DB, not memory
-3. **Rate Limiting**: Add rate limits to API routes
-4. **Error Handling**: Add proper error boundaries and retry logic
-5. **Caching**: Cache verification results for repeated queries
+Verify citations in a response. Rate-limited.
 
 ## Next Steps
 
 - See the [basic-verification example](../basic-verification) for a simpler integration
-- Check out the [support-bot example](../support-bot) for invisible citations
 - Read the [full documentation](https://docs.deepcitation.com/) for advanced patterns
 - Explore [React components](../../README.md#react-components) from the main package

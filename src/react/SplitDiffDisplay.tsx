@@ -107,22 +107,17 @@ interface MatchQualityBarProps {
 
 const MatchQualityBar: React.FC<MatchQualityBarProps> = memo(({ similarity, className }) => {
   const percentage = Math.round(similarity * 100);
-  const fillColor =
-    percentage >= 80
-      ? "bg-green-500 dark:bg-green-400"
-      : percentage >= 40
-        ? "bg-amber-500 dark:bg-amber-400"
-        : "bg-red-500 dark:bg-red-400";
+  const fillColor = percentage >= 80 ? "bg-dc-verified" : percentage >= 40 ? "bg-dc-partial" : "bg-dc-destructive";
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-dc-muted rounded-full overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all duration-[250ms]", fillColor)}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 tabular-nums">{percentage}%</span>
+      <span className="text-[10px] font-medium text-dc-muted-foreground tabular-nums">{percentage}%</span>
     </div>
   );
 });
@@ -142,7 +137,7 @@ interface CollapsibleTextProps {
 }
 
 const CollapsibleText: React.FC<CollapsibleTextProps> = memo(
-  ({ text, maxLength, className, anchorText, anchorTextClass = "border-b-2 border-blue-400 dark:border-blue-500" }) => {
+  ({ text, maxLength, className, anchorText, anchorTextClass = "border-b-2 border-dc-primary" }) => {
     const t = useTranslation();
     const [isExpanded, setIsExpanded] = useState(false);
     const shouldCollapse = text.length > maxLength;
@@ -161,7 +156,7 @@ const CollapsibleText: React.FC<CollapsibleTextProps> = memo(
               e.stopPropagation();
               setIsExpanded(!isExpanded);
             }}
-            className="ml-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 text-[10px] font-medium"
+            className="ml-1 text-dc-primary hover:text-dc-primary/80 text-[10px] font-medium"
           >
             {isExpanded ? t("diff.showLess") : t("diff.showFullText")}
           </button>
@@ -195,27 +190,27 @@ const SplitView: React.FC<SplitViewProps> = memo(
         {showMatchQuality && <MatchQualityBar similarity={similarity} className="mb-3" />}
 
         {/* Expected row */}
-        <div className="rounded-md overflow-hidden">
-          <div className="flex items-start gap-2 p-2.5 bg-red-50 dark:bg-red-900/20">
-            <span className="shrink-0 text-[10px] font-medium text-red-600 dark:text-red-400 uppercase tracking-wide pt-0.5">
+        <div className="rounded-dc-md overflow-hidden">
+          <div className="flex items-start gap-2 p-2.5 bg-dc-destructive-bg">
+            <span className="shrink-0 text-[10px] font-medium text-dc-destructive uppercase tracking-wide pt-0.5">
               {t("diff.expectedLabel")}
             </span>
             <CollapsibleText
               text={expected}
               maxLength={maxCollapsedLength}
-              className="flex-1 font-mono text-[11px] text-red-700 dark:text-red-300"
+              className="flex-1 font-mono text-[11px] text-dc-destructive"
               anchorText={anchorTextExpected}
-              anchorTextClass="bg-red-200 dark:bg-red-800/50 px-0.5 rounded"
+              anchorTextClass="bg-dc-destructive/20 px-0.5 rounded"
             />
           </div>
         </div>
 
         {/* Found row */}
-        <div className="rounded-md overflow-hidden">
-          <div className="flex items-start gap-2 p-2.5 bg-green-50 dark:bg-green-900/20">
-            <span className="shrink-0 text-[10px] font-medium text-green-700 dark:text-green-400 uppercase tracking-wide pt-0.5 inline-flex items-center gap-1">
+        <div className="rounded-dc-md overflow-hidden">
+          <div className="flex items-start gap-2 p-2.5 bg-dc-verified-bg">
+            <span className="shrink-0 text-[10px] font-medium text-dc-verified uppercase tracking-wide pt-0.5 inline-flex items-center gap-1">
               {t("diff.foundLabel")}
-              <span className="size-2.5 text-green-500 dark:text-green-400">
+              <span className="size-2.5 text-dc-verified">
                 <CheckIcon />
               </span>
             </span>
@@ -223,12 +218,12 @@ const SplitView: React.FC<SplitViewProps> = memo(
               <CollapsibleText
                 text={actual}
                 maxLength={maxCollapsedLength}
-                className="flex-1 font-mono text-[11px] text-green-700 dark:text-green-300"
+                className="flex-1 font-mono text-[11px] text-dc-verified"
                 anchorText={anchorTextFound}
-                anchorTextClass="bg-green-200 dark:bg-green-800/50 px-0.5 rounded"
+                anchorTextClass="bg-dc-verified/20 px-0.5 rounded"
               />
             ) : (
-              <span className="flex-1 font-mono text-[11px] text-gray-500 dark:text-gray-400 italic">
+              <span className="flex-1 font-mono text-[11px] text-dc-muted-foreground italic">
                 {t("misc.noTextFound")}
               </span>
             )}
@@ -311,16 +306,14 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
     if (isExactMatch) {
       return (
         <div data-testid="split-diff-display" data-exact-match="true" className={cn("space-y-2", className)}>
-          {label && (
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
-          )}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-medium">
+          {label && <div className="text-xs font-medium text-dc-muted-foreground uppercase tracking-wide">{label}</div>}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-dc-verified/10 text-dc-verified rounded-full text-sm font-medium">
             <span className="size-2.5">
               <CheckIcon />
             </span>
             <span>{t("outcome.exactMatch")}</span>
           </div>
-          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-sm text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap break-words">
+          <div className="p-3 bg-dc-muted rounded-dc-md text-sm text-dc-foreground font-mono whitespace-pre-wrap break-words">
             {sanitizedActual}
           </div>
         </div>
@@ -329,9 +322,7 @@ export const SplitDiffDisplay: React.FC<SplitDiffDisplayProps> = memo(
 
     return (
       <div data-testid="split-diff-display" data-mode={effectiveMode} className={cn("space-y-2", className)}>
-        {label && (
-          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
-        )}
+        {label && <div className="text-xs font-medium text-dc-muted-foreground uppercase tracking-wide">{label}</div>}
 
         <SplitView
           expected={sanitizedExpected}

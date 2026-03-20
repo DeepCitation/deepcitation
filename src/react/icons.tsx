@@ -23,7 +23,7 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
     <path
       d="M12 6 L12 18 M6 12 L18 12 M7.5 7.5 L16.5 16.5 M16.5 7.5 L7.5 16.5"
       strokeWidth="1.5"
-      className="text-blue-700 dark:text-sky-400"
+      className="text-dc-primary"
     />
   </svg>
 );

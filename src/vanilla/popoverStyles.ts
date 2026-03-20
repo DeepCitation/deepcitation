@@ -23,10 +23,10 @@ export const POPOVER_CSS = `
   z-index: 10000;
   width: 340px;
   max-width: calc(100vw - 16px);
-  border-radius: 8px;
+  border-radius: var(--dc-radius-lg, 8px);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), 0 1px 4px rgba(0, 0, 0, 0.1);
   overflow: clip;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--dc-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   font-size: 14px;
   line-height: 1.5;
   background: var(--dc-pop-bg, #fff);
@@ -48,23 +48,23 @@ export const POPOVER_CSS = `
 }
 
 .dc-pop-verified {
-  background: var(--dc-pop-verified-bg, #f0fdf4);
-  color: var(--dc-pop-verified-text, #10b981);
+  background: var(--dc-verified-bg, var(--dc-pop-verified-bg, #f0fdf4));
+  color: var(--dc-verified, var(--dc-pop-verified-text, #10b981));
 }
 
 .dc-pop-partial {
-  background: var(--dc-pop-partial-bg, #fffbeb);
-  color: var(--dc-pop-partial-text, #d97706);
+  background: var(--dc-partial-bg, var(--dc-pop-partial-bg, #fffbeb));
+  color: var(--dc-partial, var(--dc-pop-partial-text, #d97706));
 }
 
 .dc-pop-not-found {
-  background: var(--dc-pop-notfound-bg, #fef2f2);
-  color: var(--dc-pop-notfound-text, #dc2626);
+  background: var(--dc-destructive-bg, var(--dc-pop-notfound-bg, #fef2f2));
+  color: var(--dc-destructive, var(--dc-pop-notfound-text, #dc2626));
 }
 
 .dc-pop-pending {
-  background: var(--dc-pop-pending-bg, #fafafa);
-  color: var(--dc-pop-pending-text, #71717a);
+  background: var(--dc-pending-bg, var(--dc-pop-pending-bg, #fafafa));
+  color: var(--dc-pending, var(--dc-pop-pending-text, #71717a));
 }
 
 /* ── Source label ── */
@@ -112,7 +112,7 @@ export const POPOVER_CSS = `
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: var(--dc-radius-sm, 4px);
 }
 
 /* ── Dark theme via custom properties ── */

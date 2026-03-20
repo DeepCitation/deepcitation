@@ -114,7 +114,35 @@ const rendered = segments.map((seg, i) => {
 
 See [Section 3.2](#32-post-stream-full-response) for the full post-stream pattern.
 
-### Recipe 4 — Verify and show status indicators
+### Recipe 4 — Customize colors, radius, and font
+
+**"I want citations to match my brand"**
+
+```css
+/* CSS — override any --dc-* token */
+:root {
+  --dc-primary: #6366f1;
+  --dc-verified: #059669;
+  --dc-verified-bg: #ecfdf5;
+  --dc-radius-lg: 0.75rem;
+  --dc-font-family: Georgia, serif;
+}
+```
+
+Or use the React component:
+
+```tsx
+import { DeepCitationTheme } from "deepcitation/react";
+
+<DeepCitationTheme
+  theme={{ primary: "#6366f1", verified: "#059669", radiusLg: "0.75rem" }}
+  darkTheme={{ primary: "#818cf8", verified: "#34d399" }}
+/>
+```
+
+See [Section 1.1c](#11c-customize-styles-optional) for the full token list and scoped theming.
+
+### Recipe 5 — Verify and show status indicators
 
 **"I want checkmarks/X marks next to citations after verification"**
 
@@ -271,6 +299,8 @@ function MessageWithCitations({
 }
 ```
 
+> **Theming**: Citation components use `--dc-*` CSS custom properties for all colors, border radius, and font. Override them in CSS or use `<DeepCitationTheme>` from `deepcitation/react` for declarative theming. See [Section 1.1c](#11c-customize-styles-optional) and [Appendix E](#appendix-e-design-tokens).
+
 ---
 
 ## Section 1: Install & Setup
@@ -299,6 +329,61 @@ If you use React components from `deepcitation/react`, you must import the style
 ```typescript
 import "deepcitation/styles.css";
 ```
+
+### 1.1c Customize Styles (Optional)
+
+All DeepCitation components use `--dc-*` CSS custom properties for colors, border radius, and font. Override any token to match your brand — no build tool required.
+
+**CSS (global):**
+
+```css
+:root {
+  --dc-primary: #6366f1;        /* accent: tabs, links, active states */
+  --dc-verified: #059669;       /* success indicator */
+  --dc-verified-bg: #ecfdf5;    /* success chip background */
+  --dc-radius-lg: 0.75rem;      /* container corner radius */
+  --dc-font-family: Georgia, serif;
+}
+.dark {
+  --dc-primary: #818cf8;
+  --dc-verified: #34d399;
+  --dc-verified-bg: rgba(34, 197, 94, 0.1);
+}
+```
+
+**React component (declarative):**
+
+```tsx
+import { DeepCitationTheme } from "deepcitation/react";
+
+// Place once at the top of your app — injects a <style> block
+<DeepCitationTheme
+  theme={{
+    primary: "#6366f1",
+    verified: "#059669",
+    verifiedBg: "#ecfdf5",
+    radiusLg: "0.75rem",
+    fontFamily: "Georgia, serif",
+  }}
+  darkTheme={{
+    primary: "#818cf8",
+    verified: "#34d399",
+    verifiedBg: "rgba(34, 197, 94, 0.1)",
+  }}
+/>
+```
+
+**Scoped theming (per-instance):**
+
+```tsx
+<DeepCitationTheme scoped theme={{ primary: "#ec4899" }}>
+  <CitationComponent citation={citation} verification={verification} />
+</DeepCitationTheme>
+```
+
+When `scoped` is true, tokens are set on a wrapper `<div>` and only affect its children — useful for theming individual citations differently.
+
+All `--dc-*` tokens are accepted as camelCase props on `DeepCitationTheme` (e.g., `mutedForeground`, `verifiedBg`, `radiusLg`, `fontFamily`). See [Appendix E](#appendix-e-design-tokens) for the full token reference.
 
 ### 1.2 Import Types
 
@@ -349,7 +434,7 @@ const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttac
   { file: imageBuffer, filename: "chart.png" }, // multiple files supported
 ]);
 
-// Save attachmentId for verification (valid for 24 hours)
+// Save attachmentId for verification
 const attachmentId = fileDataParts[0].attachmentId; // e.g. "a1b2c3d4e5f6g7h8i9j0"
 ```
 
@@ -750,3 +835,115 @@ See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) for complete upload, c
 For file size limits and page limits, check the [full documentation](https://docs.deepcitation.com/).
 
 > **Production note**: `attachmentId` values are valid for **24 hours**. Cache them to avoid re-uploading. Store API keys in environment variables. Implement error handling for API failures. See [`examples/`](./examples) for production-ready patterns.
+
+---
+
+## Appendix E: Design Tokens
+
+DeepCitation components are fully themeable via `--dc-*` CSS custom properties. Override any token in `:root` (light) and `.dark` (dark mode) to match your brand. All tokens are also available as camelCase props on the `<DeepCitationTheme>` React component (imported from `deepcitation/react`).
+
+### Surface & Text
+
+| Token | Light | Dark | `<DeepCitationTheme>` prop |
+|-------|-------|------|---------------------------|
+| `--dc-background` | `#ffffff` | `#27272a` | `background` |
+| `--dc-muted` | `#f4f4f5` | `#3f3f46` | `muted` |
+| `--dc-foreground` | `#18181b` | `#fafafa` | `foreground` |
+| `--dc-muted-foreground` | `#71717a` | `#a1a1aa` | `mutedForeground` |
+| `--dc-subtle-foreground` | `#a1a1aa` | `#71717a` | `subtleForeground` |
+| `--dc-border` | `#e4e4e7` | `#3f3f46` | `border` |
+| `--dc-ring` | `#3b82f6` | `#3b82f6` | `ring` |
+
+### Primary Accent
+
+| Token | Light | Dark | `<DeepCitationTheme>` prop |
+|-------|-------|------|---------------------------|
+| `--dc-primary` | `#3b82f6` | `#60a5fa` | `primary` |
+| `--dc-primary-foreground` | `#ffffff` | `#ffffff` | `primaryForeground` |
+
+### Status Indicator Colors
+
+| Token | Light | Dark | `<DeepCitationTheme>` prop |
+|-------|-------|------|---------------------------|
+| `--dc-verified` | `#10b981` | `#34d399` | `verified` |
+| `--dc-partial` | `#f59e0b` | `#fbbf24` | `partial` |
+| `--dc-destructive` | `#ef4444` | `#f87171` | `destructive` |
+| `--dc-pending` | `#a1a1aa` | `#71717a` | `pending` |
+
+### Status Tint Backgrounds
+
+Each status has background, border, and hover tokens for full chip/banner control:
+
+| Token | Light | Dark | `<DeepCitationTheme>` prop |
+|-------|-------|------|---------------------------|
+| `--dc-verified-bg` | `#f0fdf4` | `rgba(34,197,94,0.1)` | `verifiedBg` |
+| `--dc-verified-border` | `#86efac` | `#166534` | `verifiedBorder` |
+| `--dc-verified-hover` | `#15803d` | `#bbf7d0` | `verifiedHover` |
+| `--dc-partial-bg` | `#fffbeb` | `rgba(245,158,11,0.1)` | `partialBg` |
+| `--dc-partial-border` | `#fcd34d` | `#92400e` | `partialBorder` |
+| `--dc-partial-hover` | `#b45309` | `#fde68a` | `partialHover` |
+| `--dc-destructive-bg` | `#fef2f2` | `rgba(239,68,68,0.1)` | `destructiveBg` |
+| `--dc-destructive-border` | `#fca5a5` | `#991b1b` | `destructiveBorder` |
+| `--dc-destructive-hover` | `#b91c1c` | `#fecaca` | `destructiveHover` |
+| `--dc-pending-bg` | `var(--dc-muted)` | `var(--dc-muted)` | `pendingBg` |
+| `--dc-pending-border` | `var(--dc-border)` | `var(--dc-border)` | `pendingBorder` |
+| `--dc-pending-hover` | `#71717a` | `#a1a1aa` | `pendingHover` |
+
+### Border Radius
+
+| Token | Default | `<DeepCitationTheme>` prop |
+|-------|---------|---------------------------|
+| `--dc-radius-sm` | `0.25rem` | `radiusSm` |
+| `--dc-radius-md` | `0.375rem` | `radiusMd` |
+| `--dc-radius-lg` | `0.5rem` | `radiusLg` |
+
+### Font
+
+| Token | Default | `<DeepCitationTheme>` prop |
+|-------|---------|---------------------------|
+| `--dc-font-family` | system font stack | `fontFamily` |
+
+`--dc-popover-font` is a backward-compat alias that resolves to `var(--dc-font-family)`.
+
+### Brand Examples
+
+**Warm brand:**
+```css
+:root {
+  --dc-primary: #d97706;
+  --dc-verified: #059669;
+  --dc-verified-bg: #ecfdf5;
+  --dc-partial: #ea580c;
+  --dc-partial-bg: #fff7ed;
+  --dc-radius-lg: 0.75rem;
+  --dc-font-family: Georgia, "Times New Roman", serif;
+}
+```
+
+**Cool brand:**
+```css
+:root {
+  --dc-primary: #6366f1;
+  --dc-verified: #0891b2;
+  --dc-verified-bg: #ecfeff;
+  --dc-partial: #7c3aed;
+  --dc-partial-bg: #f5f3ff;
+  --dc-radius-lg: 1rem;
+}
+```
+
+**Monochrome:**
+```css
+:root {
+  --dc-primary: #525252;
+  --dc-verified: #404040;
+  --dc-verified-bg: #f5f5f5;
+  --dc-partial: #737373;
+  --dc-partial-bg: #fafafa;
+  --dc-destructive: #525252;
+  --dc-destructive-bg: #f5f5f5;
+  --dc-radius-lg: 0;
+}
+```
+
+For the full styling guide, see [`docs/styling.md`](./docs/styling.md). For contributor rules on token usage, see [`BRANDING.md`](./BRANDING.md).

@@ -64,10 +64,10 @@ const SpinnerIcon = () => (
 // ============================================================================
 
 const VERIFICATION_STATUS_CONFIG = {
-  verified: { icon: "✓", className: "text-green-600 dark:text-green-500" },
-  partial: { icon: "~", className: "text-amber-500 dark:text-amber-400" },
+  verified: { icon: "✓", className: "text-dc-verified" },
+  partial: { icon: "~", className: "text-dc-partial" },
   pending: { icon: "…", className: "text-dc-pending" },
-  failed: { icon: "✗", className: "text-red-500 dark:text-red-400" },
+  failed: { icon: "✗", className: "text-dc-destructive" },
   unknown: { icon: "?", className: "text-dc-subtle-foreground" },
 } as const;
 

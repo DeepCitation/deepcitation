@@ -82,6 +82,55 @@ export const PENDING_COLOR_VAR = "--dc-pending";
 /** Default pending indicator color */
 export const PENDING_COLOR_DEFAULT = "#a1a1aa";
 
+// =============================================================================
+// Primary Accent Token
+// =============================================================================
+
+/** CSS custom property name for primary accent color (active tabs, links). */
+export const PRIMARY_COLOR_VAR = "--dc-primary";
+/** Default primary accent color (blue-500). */
+export const PRIMARY_COLOR_DEFAULT = "#3b82f6";
+
+/** CSS custom property name for text on primary surfaces. */
+export const PRIMARY_FOREGROUND_VAR = "--dc-primary-foreground";
+/** Default primary foreground color. */
+export const PRIMARY_FOREGROUND_DEFAULT = "#ffffff";
+
+// =============================================================================
+// Status Tint Background Tokens
+// =============================================================================
+
+export const VERIFIED_BG_VAR = "--dc-verified-bg";
+export const VERIFIED_BORDER_VAR = "--dc-verified-border";
+export const VERIFIED_HOVER_VAR = "--dc-verified-hover";
+
+export const PARTIAL_BG_VAR = "--dc-partial-bg";
+export const PARTIAL_BORDER_VAR = "--dc-partial-border";
+export const PARTIAL_HOVER_VAR = "--dc-partial-hover";
+
+export const DESTRUCTIVE_BG_VAR = "--dc-destructive-bg";
+export const DESTRUCTIVE_BORDER_VAR = "--dc-destructive-border";
+export const DESTRUCTIVE_HOVER_VAR = "--dc-destructive-hover";
+
+export const PENDING_BG_VAR = "--dc-pending-bg";
+export const PENDING_BORDER_VAR = "--dc-pending-border";
+export const PENDING_HOVER_VAR = "--dc-pending-hover";
+
+// =============================================================================
+// Border Radius Tokens
+// =============================================================================
+
+export const RADIUS_SM_VAR = "--dc-radius-sm";
+export const RADIUS_MD_VAR = "--dc-radius-md";
+export const RADIUS_LG_VAR = "--dc-radius-lg";
+
+// =============================================================================
+// Font Token
+// =============================================================================
+
+/** CSS custom property name for the font family used in citation components. */
+export const FONT_FAMILY_VAR = "--dc-font-family";
+
 /**
  * CSS custom property name for popover width.
  * @example
@@ -123,6 +172,10 @@ export const VIEWPORT_MARGIN_PX = 16;
  *  (visible viewport excluding scrollbar). All maxWidth formulas reference this
  *  with a fallback to `calc(100dvw - 2rem)` for SSR/pre-guard. */
 export const GUARD_MAX_WIDTH_VAR = "--dc-guard-max-width";
+/** CSS custom property for the guard's viewport-constrained max height.
+ *  Set by useViewportBoundaryGuard based on the popover's current Y position.
+ *  Prevents expansion animations from overshooting the viewport bottom. */
+export const GUARD_MAX_HEIGHT_VAR = "--dc-guard-max-height";
 
 /** Shell padding (px) around the keyhole image for summary popover sizing.
  *  EvidenceTray m-3 (12px×2) + borders (~4px) + breathing room = 32px. */
@@ -199,10 +252,12 @@ export const PENDING_COLOR_STYLE: React.CSSProperties = {
 };
 
 /**
- * Base CSS classes for popover containers in CitationComponent.
- * Provides consistent styling for all popover states (pending, success, partial, error).
+ * Base CSS classes for inner popover containers.
+ * Border, rounded corners, background, and shadow are provided by the outer
+ * PopoverContent wrapper — this constant exists only so layout classes
+ * (min/max-width) can be composed with cn().
  */
-export const POPOVER_CONTAINER_BASE_CLASSES = "rounded-lg border border-dc-border bg-dc-background shadow-md";
+export const POPOVER_CONTAINER_BASE_CLASSES = "";
 
 /**
  * Dynamic indicator size styles.
@@ -811,8 +866,8 @@ export const BLINK_ROW_INSET_B_PX = 2;
 
 /** CSS custom property for TtC text color. */
 export const TTC_COLOR_VAR = "--dc-ttc-color";
-/** Default TtC text color (Tailwind gray-400) — intentionally muted/ambient */
-export const TTC_COLOR_DEFAULT = "#9ca3af";
+/** Default TtC text color (Tailwind zinc-400) — intentionally muted/ambient */
+export const TTC_COLOR_DEFAULT = "#a1a1aa";
 
 /** CSS custom property for TtC "fast" highlight color. */
 export const TTC_FAST_COLOR_VAR = "--dc-ttc-fast-color";

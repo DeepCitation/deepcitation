@@ -211,7 +211,7 @@ describe("AmbiguityWarning", () => {
       };
 
       const { container } = render(<AmbiguityWarning ambiguity={ambiguity} />);
-      const warningDiv = container.querySelector(".bg-amber-50");
+      const warningDiv = container.querySelector(".bg-dc-partial-bg");
       expect(warningDiv).toBeInTheDocument();
     });
   });
@@ -560,7 +560,7 @@ describe("SourceContextHeader", () => {
       );
 
       const button = getByRole("button", { name: /expand to full page 5/i });
-      expect(button.className).toContain("hover:bg-gray-200");
+      expect(button.className).toContain("hover:bg-zinc-200");
       expect(button.className).toContain("focus-visible:ring-2");
       expect(button.className).not.toContain("hover:opacity-80");
     });
@@ -581,8 +581,8 @@ describe("SourceContextHeader", () => {
       );
 
       const button = getByRole("button", { name: /close page 5 view/i });
-      expect(button.className).toContain("bg-blue-50");
-      expect(button.className).toContain("hover:bg-blue-100");
+      expect(button.className).toContain("bg-dc-primary/10");
+      expect(button.className).toContain("hover:bg-dc-primary/15");
       expect(button.className).toContain("focus-visible:ring-2");
     });
   });

@@ -29,15 +29,12 @@ const DiffDisplay: React.FC<DiffDisplayProps> = memo(({ expected, actual, label,
   return (
     <div data-testid="diff-display" className={cn("space-y-2", className)}>
       {label && (
-        <div
-          data-testid="diff-label"
-          className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"
-        >
+        <div data-testid="diff-label" className="text-xs font-medium text-dc-muted-foreground uppercase tracking-wide">
           {label}
         </div>
       )}
 
-      <div data-testid="diff-content" className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+      <div data-testid="diff-content" className="p-3 bg-dc-muted rounded-dc-md">
         <div data-testid="diff-blocks" className="text-sm font-mono whitespace-pre-wrap break-words">
           {diffResult.map((block, blockIndex) => {
             const blockContent = block.parts.map(p => p.value).join("");
@@ -46,8 +43,8 @@ const DiffDisplay: React.FC<DiffDisplayProps> = memo(({ expected, actual, label,
               <div
                 key={blockKey}
                 className={cn(
-                  block.type === "added" && "bg-green-50 dark:bg-green-900/20",
-                  block.type === "removed" && "bg-red-50 dark:bg-red-900/20",
+                  block.type === "added" && "bg-dc-verified-bg",
+                  block.type === "removed" && "bg-dc-destructive-bg",
                 )}
               >
                 {block.parts.map((part, partIndex) => {
@@ -58,7 +55,7 @@ const DiffDisplay: React.FC<DiffDisplayProps> = memo(({ expected, actual, label,
                       <span
                         key={key}
                         data-diff-type="removed"
-                        className="bg-red-200 dark:bg-red-800/50 text-red-800 dark:text-red-200 line-through"
+                        className="bg-dc-destructive/20 text-dc-destructive line-through"
                         title={t("diff.expectedText")}
                       >
                         {part.value}
@@ -71,7 +68,7 @@ const DiffDisplay: React.FC<DiffDisplayProps> = memo(({ expected, actual, label,
                       <span
                         key={key}
                         data-diff-type="added"
-                        className="bg-green-200 dark:bg-green-800/50 text-green-800 dark:text-green-200"
+                        className="bg-dc-verified/20 text-dc-verified"
                         title={t("diff.actualTextFound")}
                       >
                         {part.value}
@@ -81,7 +78,7 @@ const DiffDisplay: React.FC<DiffDisplayProps> = memo(({ expected, actual, label,
 
                   // Unchanged text
                   return (
-                    <span key={key} className="text-gray-700 dark:text-gray-300">
+                    <span key={key} className="text-dc-foreground">
                       {part.value}
                     </span>
                   );

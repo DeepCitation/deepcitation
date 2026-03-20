@@ -158,19 +158,19 @@ describe("Dot Indicator Variant", () => {
     it("returns correct label for verified with dot variant", () => {
       const result = getStatusInfo(verifiedVerification, "dot");
       expect(result.label).toBe("Verified");
-      expect(result.color).toBe("text-green-500");
+      expect(result.color).toBe("text-dc-verified");
     });
 
     it("returns correct label for partial with dot variant", () => {
       const result = getStatusInfo(partialVerification, "dot");
       expect(result.label).toBe("Partial match");
-      expect(result.color).toBe("text-amber-500");
+      expect(result.color).toBe("text-dc-partial");
     });
 
     it("returns correct label for miss with dot variant", () => {
       const result = getStatusInfo(missVerification, "dot");
       expect(result.label).toBe("Not found");
-      expect(result.color).toBe("text-red-500");
+      expect(result.color).toBe("text-dc-destructive");
     });
 
     it("returns correct label for pending with dot variant", () => {
@@ -182,7 +182,7 @@ describe("Dot Indicator Variant", () => {
     it("defaults to icon variant when no variant specified", () => {
       const result = getStatusInfo(verifiedVerification);
       expect(result.label).toBe("Verified");
-      expect(result.color).toBe("text-green-500");
+      expect(result.color).toBe("text-dc-verified");
     });
   });
 

@@ -57,8 +57,8 @@ describe("UrlCitationComponent", () => {
   it("shows lock icon when blocked", () => {
     const { container } = render(<UrlCitationComponent urlMeta={createUrlMeta({ fetchStatus: "blocked_paywall" })} />);
 
-    // Should have amber lock icon (text-amber-500 - more yellow amber)
-    const lockWrapper = container.querySelector(".text-amber-500");
+    // Should have partial/warning lock icon via design token
+    const lockWrapper = container.querySelector(".text-dc-partial");
     expect(lockWrapper).toBeInTheDocument();
 
     // Should have an SVG (the lock icon)
@@ -70,7 +70,7 @@ describe("UrlCitationComponent", () => {
     const { container } = render(<UrlCitationComponent urlMeta={createUrlMeta({ fetchStatus: "error_not_found" })} />);
 
     // Should have red X icon
-    const errorWrapper = container.querySelector(".text-red-500");
+    const errorWrapper = container.querySelector(".text-dc-destructive");
     expect(errorWrapper).toBeInTheDocument();
 
     // Should have an SVG (the close/X icon)

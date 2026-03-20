@@ -134,21 +134,21 @@ describe("StatusHeader", () => {
     it("uses green icon color for verified status", () => {
       const { container } = render(<StatusHeader status="found" foundPage={5} />);
 
-      const greenIcon = container.querySelector(".text-green-700");
+      const greenIcon = container.querySelector(".text-dc-verified");
       expect(greenIcon).toBeInTheDocument();
     });
 
     it("uses amber icon color for partial match status", () => {
       const { container } = render(<StatusHeader status="found_on_other_page" foundPage={7} />);
 
-      const amberIcon = container.querySelector(".text-amber-500");
+      const amberIcon = container.querySelector(".text-dc-partial");
       expect(amberIcon).toBeInTheDocument();
     });
 
     it("uses red icon color for not_found status", () => {
       const { container } = render(<StatusHeader status="not_found" />);
 
-      const redIcon = container.querySelector(".text-red-500");
+      const redIcon = container.querySelector(".text-dc-destructive");
       expect(redIcon).toBeInTheDocument();
     });
 

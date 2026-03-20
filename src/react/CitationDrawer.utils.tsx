@@ -201,21 +201,21 @@ export function getStatusInfo(
     }
     if (status === "not_found") {
       return {
-        color: "text-red-500",
-        icon: <span className="block rounded-full bg-red-500" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
+        color: "text-dc-destructive",
+        icon: <span className="block rounded-full bg-dc-destructive" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
         label: t("indicator.notFound"),
       };
     }
     if (isPartial) {
       return {
-        color: "text-amber-500",
-        icon: <span className="block rounded-full bg-amber-500" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
+        color: "text-dc-partial",
+        icon: <span className="block rounded-full bg-dc-partial" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
         label: t("indicator.partial"),
       };
     }
     return {
-      color: "text-green-500",
-      icon: <span className="block rounded-full bg-green-500" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
+      color: "text-dc-verified",
+      icon: <span className="block rounded-full bg-dc-verified" style={DOT_INDICATOR_FIXED_SIZE_STYLE} />,
       label: t("indicator.verified"),
     };
   }
@@ -231,7 +231,7 @@ export function getStatusInfo(
 
   if (status === "not_found") {
     return {
-      color: "text-red-500",
+      color: "text-dc-destructive",
       icon: <XCircleIconComponent />,
       label: t("indicator.notFound"),
     };
@@ -239,7 +239,7 @@ export function getStatusInfo(
 
   if (isPartial) {
     return {
-      color: "text-amber-500",
+      color: "text-dc-partial",
       icon: <CheckIconComponent />,
       label: t("indicator.partial"),
     };
@@ -247,7 +247,7 @@ export function getStatusInfo(
 
   // Verified statuses
   return {
-    color: "text-green-500",
+    color: "text-dc-verified",
     icon: <CheckIconComponent />,
     label: t("indicator.verified"),
   };
@@ -299,13 +299,13 @@ export interface StatusSection {
 export const STATUS_DISPLAY_MAP: Record<StatusCategory, { label: string; textColor: string; borderColor: string }> = {
   notFound: {
     label: defaultMessages["indicator.notFound"],
-    textColor: "text-red-500",
-    borderColor: "border-l-red-400 dark:border-l-red-500",
+    textColor: "text-dc-destructive",
+    borderColor: "border-l-dc-destructive",
   },
   partial: {
     label: defaultMessages["indicator.partial"],
-    textColor: "text-amber-500",
-    borderColor: "border-l-amber-400 dark:border-l-amber-500",
+    textColor: "text-dc-partial",
+    borderColor: "border-l-dc-partial",
   },
   pending: {
     label: defaultMessages["indicator.verifying"],
@@ -314,8 +314,8 @@ export const STATUS_DISPLAY_MAP: Record<StatusCategory, { label: string; textCol
   },
   verified: {
     label: defaultMessages["indicator.verified"],
-    textColor: "text-green-500",
-    borderColor: "border-l-green-400 dark:border-l-green-500",
+    textColor: "text-dc-verified",
+    borderColor: "border-l-dc-verified",
   },
 };
 
