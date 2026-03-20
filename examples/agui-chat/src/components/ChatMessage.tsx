@@ -122,7 +122,7 @@ function processContentWithCitations(
 
   const segments = result.visibleText.split(result.splitPattern);
 
-  const mdComponents = { p: ({ children }: { children: React.ReactNode }) => <span>{children}</span> };
+  const mdComponents = { p: ({ children }: { children?: React.ReactNode }) => <span>{children}</span> };
 
   return (
     <>
