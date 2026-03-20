@@ -38,7 +38,7 @@ $brand-blue-dark: #38BDF8;
 $brand-blue-hover-light: #004578;
 $brand-blue-hover-dark: #7DD3FC;
 
-// Dark mode link color — use blue-dark for body links, not blue-luminous (per BRANDING.md)
+// Dark mode link color — use blue-dark for body links, not blue-400 (per BRANDING.md)
 $brand-blue-dark-link: #77bff6;
 $brand-blue-dark-link-hover: #93cbf8;
 
@@ -57,7 +57,7 @@ $btn-primary-color: $brand-blue-light;
   --sidebar-color: #{$slate-900};
   --body-heading-color: #{$slate-200}; // per BRANDING.md External Documentation Theme
   --body-text-color: #{$slate-400}; // per BRANDING.md: #A1A1AA (zinc-400)
-  --link-color: #{$brand-blue-dark-link}; // #77bff6 (blue-dark) — not blue-luminous
+  --link-color: #{$brand-blue-dark-link}; // #77bff6 (blue-dark) — not blue-400
   --link-hover-color: #{$brand-blue-dark-link-hover};
   --code-background-color: #{$slate-900};
   --code-border-color: #{$slate-800};
@@ -70,7 +70,7 @@ $btn-primary-color: $brand-blue-light;
   --nav-active-text: #{$slate-50};
   --inline-code-color: inherit;
   --inline-code-bg: transparent;
-  // Buttons — CTAs use blue-luminous (#38BDF8), distinct from body links
+  // Buttons — CTAs use blue-400 (#38BDF8), distinct from body links
   --btn-primary-bg: #{$brand-blue-dark};
   --btn-primary-bg-hover: #{$brand-blue-hover-dark};
   --btn-primary-text: #{$slate-950};

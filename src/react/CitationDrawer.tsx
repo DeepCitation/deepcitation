@@ -1249,6 +1249,7 @@ function OpenCitationDrawer({
             ref={handleRef}
             className="flex justify-center pt-3 pb-1 shrink-0 touch-none cursor-grab active:cursor-grabbing"
           >
+            {/* BRANDING: rounded-full exception — drawer drag handle, universally recognized affordance */}
             <div className="w-10 h-1 rounded-full bg-dc-border" />
           </div>
         )}

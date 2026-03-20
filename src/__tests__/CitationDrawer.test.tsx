@@ -141,7 +141,7 @@ describe("CitationComponent source variant", () => {
 
       const chip = container.querySelector(".rounded-full");
       expect(chip).toBeInTheDocument();
-      expect(chip).toHaveClass("bg-slate-100");
+      expect(chip).toHaveClass("bg-dc-muted");
     });
 
     it("hides broken favicon images on error", () => {
@@ -883,7 +883,7 @@ describe("CitationDrawerTrigger", () => {
 
     // Should have green, gray, and red status icons
     expect(container.querySelector(".text-green-500")).toBeInTheDocument();
-    expect(container.querySelector(".text-slate-400")).toBeInTheDocument();
+    expect(container.querySelector(".text-dc-subtle-foreground")).toBeInTheDocument();
     expect(container.querySelector(".text-red-500")).toBeInTheDocument();
   });
 

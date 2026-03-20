@@ -18,6 +18,9 @@ watch_paths:
 
 In your Next.js App Router app, DeepCitation runs entirely server-side until the final render step. This guide answers the architectural questions up front, then walks through three complete integration patterns.
 
+{: .important }
+**CSS setup required.** Add `@import "deepcitation/tailwind.css"` to your `globals.css` (Tailwind v4), or `import "deepcitation/styles.css"` in your root layout (non-Tailwind). See [Styling]({{ site.baseurl }}/styling/).
+
 ---
 
 ## "use client" Boundary Map

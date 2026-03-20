@@ -97,7 +97,7 @@ export const CitationContentDisplay = ({
       <span
         className={cn(
           "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full text-[0.9em] font-normal transition-colors",
-          "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+          "bg-dc-muted text-dc-foreground",
           getInteractionClasses(isOpen, variant),
         )}
       >
@@ -124,8 +124,8 @@ export const CitationContentDisplay = ({
   // Variant: superscript (footnote style)
   if (variant === "superscript") {
     const supStatusClasses = cn(
-      !shouldShowSpinner && "text-slate-700 dark:text-slate-200",
-      shouldShowSpinner && "text-slate-500 dark:text-slate-400",
+      !shouldShowSpinner && "text-dc-foreground",
+      shouldShowSpinner && "text-dc-subtle-foreground",
     );
     return (
       <>
@@ -150,7 +150,7 @@ export const CitationContentDisplay = ({
     // Priority chain: spinner > miss > partial > verified > neutral default
     let footnoteStatusClasses: string;
     if (shouldShowSpinner) {
-      footnoteStatusClasses = "text-slate-500 dark:text-slate-400";
+      footnoteStatusClasses = "text-dc-subtle-foreground";
     } else if (isMiss) {
       footnoteStatusClasses = "text-dc-destructive";
     } else if (isPartialMatch) {
@@ -158,7 +158,7 @@ export const CitationContentDisplay = ({
     } else if (isVerified) {
       footnoteStatusClasses = "text-dc-verified";
     } else {
-      footnoteStatusClasses = "text-slate-500 dark:text-slate-400";
+      footnoteStatusClasses = "text-dc-subtle-foreground";
     }
 
     return (
@@ -200,7 +200,7 @@ export const CitationContentDisplay = ({
       <span
         className={cn(
           "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium",
-          "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+          "bg-dc-muted text-dc-foreground",
           "transition-colors cursor-pointer",
           getInteractionClasses(isOpen, variant),
         )}
@@ -224,7 +224,7 @@ export const CitationContentDisplay = ({
           {displayText}
         </span>
         {additionalCount !== undefined && additionalCount > 0 && (
-          <span className="text-slate-500 dark:text-slate-400">+{additionalCount}</span>
+          <span className="text-dc-subtle-foreground">+{additionalCount}</span>
         )}
         {indicator}
       </span>
@@ -265,7 +265,7 @@ export const CitationContentDisplay = ({
 
     const linterClasses = cn(
       "cursor-pointer font-normal",
-      isPendingState && "bg-slate-500/[0.05] dark:bg-slate-400/[0.05]",
+      isPendingState && "bg-dc-muted/[0.3]",
       getInteractionClasses(isOpen, variant),
     );
 
@@ -282,7 +282,7 @@ export const CitationContentDisplay = ({
     // Status border color only — text/bg stay neutral
     let blockBorderClass: string;
     if (shouldShowSpinner) {
-      blockBorderClass = "border-slate-200 dark:border-slate-700 animate-pulse cursor-wait";
+      blockBorderClass = "border-dc-border animate-pulse cursor-wait";
     } else if (isMiss) {
       blockBorderClass = "border-red-500/60 dark:border-red-500/40";
     } else if (isPartialMatch) {
@@ -290,7 +290,7 @@ export const CitationContentDisplay = ({
     } else if (isVerified) {
       blockBorderClass = "border-emerald-500/60 dark:border-emerald-500/40";
     } else {
-      blockBorderClass = "border-slate-300 dark:border-slate-600";
+      blockBorderClass = "border-dc-border";
     }
 
     return (
@@ -300,7 +300,7 @@ export const CitationContentDisplay = ({
           className={cn(
             "inline-flex items-center justify-center aspect-square size-[1.4em] mx-0.5",
             "font-mono text-xs font-medium rounded-sm border align-baseline select-none",
-            "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400",
+            "bg-dc-background text-dc-muted-foreground",
             "transition-all duration-120",
             blockBorderClass,
             getInteractionClasses(isOpen, variant),
@@ -316,7 +316,7 @@ export const CitationContentDisplay = ({
               return <span className={cn("rounded-full", DOT_COLORS[dotColor])} style={DOT_INDICATOR_SIZE_STYLE} />;
             }
             if (iv === "caret") {
-              const caretColor = isMiss ? "text-red-500 dark:text-red-400" : "text-slate-500 dark:text-slate-400";
+              const caretColor = isMiss ? "text-red-500 dark:text-red-400" : "text-dc-subtle-foreground";
               return (
                 <span className={cn("inline-flex", caretColor)} style={CARET_INDICATOR_SIZE_STYLE}>
                   <ChevronDownIcon />
@@ -342,7 +342,7 @@ export const CitationContentDisplay = ({
       className={cn(
         "inline-flex items-baseline gap-0.5 whitespace-nowrap",
         "font-mono font-normal text-xs leading-tight",
-        "text-slate-500 dark:text-slate-400",
+        "text-dc-subtle-foreground",
         "transition-colors",
       )}
       aria-hidden="true"

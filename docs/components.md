@@ -41,11 +41,14 @@ How well the citation matched. Green checkmark for exact match, orange checkmark
 npm install deepcitation
 ```
 
-Then import the component:
+Then import the component and stylesheet:
 
 ```typescript
 import { CitationComponent } from "deepcitation/react";
 ```
+
+{: .important }
+You must also import the stylesheet. With Tailwind v4, add `@import "deepcitation/tailwind.css"` to your CSS. Without Tailwind, use `import "deepcitation/styles.css"` in JS. See [Styling]({{ site.baseurl }}/styling/) for details.
 
 ---
 

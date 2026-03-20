@@ -31,7 +31,7 @@ export const CITATION_LINE_BORDER_WIDTH = 2;
 
 /** Green bracket color for verified / exact-match citations (BRANDING.md VERIFIED, emerald-500). */
 export const SIGNAL_GREEN = "#10b981";
-/** Lighter green for dark-mode contexts (BRANDING.md VERIFIED luminous, emerald-400). */
+/** Lighter green for dark-mode contexts (BRANDING.md VERIFIED, emerald-400). */
 export const SIGNAL_GREEN_DARK = "#34d399";
 
 /** @deprecated Use SIGNAL_GREEN. Kept for any external consumers still referencing blue brackets. */

@@ -81,18 +81,18 @@ function getChipVisualClasses(status: CitationStatus): ChipVisualClasses {
 
   if (status.isPending) {
     return {
-      background: "bg-slate-100 dark:bg-slate-800",
-      border: "border-slate-300 dark:border-slate-600 hover:border-slate-500 dark:hover:border-slate-500",
+      background: "bg-dc-muted",
+      border: "border-dc-border hover:border-dc-border",
       hover: "hover:bg-slate-700 hover:text-white dark:hover:bg-slate-200 dark:hover:text-slate-900",
-      text: "text-slate-500 dark:text-slate-400",
+      text: "text-dc-subtle-foreground",
     };
   }
 
   return {
-    background: "bg-slate-100 dark:bg-slate-800",
-    border: "border-slate-300 dark:border-slate-600 hover:border-slate-700 dark:hover:border-slate-400",
+    background: "bg-dc-muted",
+    border: "border-dc-border hover:border-slate-700 dark:hover:border-slate-400",
     hover: "hover:bg-slate-700 hover:text-white dark:hover:bg-slate-200 dark:hover:text-slate-900",
-    text: "text-slate-600 dark:text-slate-400",
+    text: "text-dc-muted-foreground",
   };
 }
 
@@ -100,8 +100,8 @@ function getStatusToneClass(status: CitationStatus, defaultClass: string): strin
   if (status.isPartialMatch) return "text-amber-500 dark:text-amber-400";
   if (status.isMiss) return "text-red-500 dark:text-red-400";
   if (status.isVerified) return "text-green-600 dark:text-green-500";
-  if (status.isPending) return "text-slate-500 dark:text-slate-400";
-  return defaultClass || "text-slate-600 dark:text-slate-400";
+  if (status.isPending) return "text-dc-subtle-foreground";
+  return defaultClass || "text-dc-muted-foreground";
 }
 
 /**
@@ -379,7 +379,7 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
     // SuperscriptCitation shows number by default
     const displayText = useMemo(() => getCitationNumber(citation), [citation]);
 
-    const statusClass = getStatusToneClass(status, "text-slate-600 dark:text-slate-400");
+    const statusClass = getStatusToneClass(status, "text-dc-muted-foreground");
 
     return (
       <>
@@ -471,7 +471,7 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
 
     const statusClass = getStatusToneClass(
       status,
-      "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100",
+      "text-dc-subtle-foreground hover:text-slate-900 dark:hover:text-slate-100",
     );
 
     return (
@@ -551,7 +551,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
     // Status border color only — text/bg stay neutral
     let borderClass: string;
     if (isPending) {
-      borderClass = "border-slate-200 dark:border-slate-700 animate-pulse cursor-wait";
+      borderClass = "border-dc-border animate-pulse cursor-wait";
     } else if (isMiss) {
       borderClass = "border-red-500/60 dark:border-red-500/40 cursor-pointer";
     } else if (isPartialMatch) {
@@ -559,8 +559,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
     } else if (isVerified) {
       borderClass = "border-emerald-500/60 dark:border-emerald-500/40 cursor-pointer";
     } else {
-      borderClass =
-        "border-slate-300 dark:border-slate-600 hover:border-slate-900 dark:hover:border-slate-100 cursor-pointer";
+      borderClass = "border-dc-border hover:border-slate-900 dark:hover:border-slate-100 cursor-pointer";
     }
 
     return (
@@ -576,7 +575,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
           className={classNames(
             "inline-flex items-center justify-center h-[1.4em] min-w-[1.4em] px-[0.3em] mx-0.5",
             "font-mono text-xs font-medium rounded-sm transition-all duration-120 border align-baseline select-none",
-            "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400",
+            "bg-dc-background text-dc-muted-foreground",
             borderClass,
             className,
           )}
@@ -675,7 +674,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           data-citation-instance={citationInstanceId}
           data-variant="inline"
           className={classNames(
-            "cursor-pointer transition-colors hover:bg-slate-500/5 inline-flex items-baseline",
+            "cursor-pointer transition-colors hover:bg-dc-muted/50 inline-flex items-baseline",
             INLINE_UNDERLINE_CLASSES[underlineStyle],
             statusClass,
             className,

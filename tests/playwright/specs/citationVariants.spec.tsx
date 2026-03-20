@@ -320,7 +320,7 @@ test.describe("InlineCitation", () => {
     await mount(<InlineCitation citation={baseCitation} verification={pendingFoundCitation} />);
     const inline = page.locator('[data-variant="inline"]');
 
-    await expect(inline).toHaveClass(/text-slate-/);
+    await expect(inline).toHaveClass(/text-dc-subtle-foreground/);
     await expect(inline.locator(".opacity-70")).toBeVisible();
   });
 });

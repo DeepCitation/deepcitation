@@ -28,6 +28,9 @@ This guide assumes you have a working `useChat` / `streamText` setup. If you're 
 npm install deepcitation ai @ai-sdk/openai @ai-sdk/react
 ```
 
+{: .important }
+**CSS setup required.** Add `@import "deepcitation/tailwind.css"` to your `globals.css` (Tailwind v4), or `import "deepcitation/styles.css"` in your root layout (non-Tailwind). See [Styling]({{ site.baseurl }}/styling/).
+
 ---
 
 ## How DeepCitation Integrates with streamText

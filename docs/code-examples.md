@@ -69,6 +69,9 @@ const results = await Promise.all(verificationPromises);
 
 ## React Component
 
+{: .important }
+Requires CSS setup. Add `@import "deepcitation/tailwind.css"` to your CSS (Tailwind v4) or `import "deepcitation/styles.css"` in JS. See [Styling]({{ site.baseurl }}/styling/).
+
 Use the React component to display verified citations with hover tooltips showing visual proof:
 
 ```tsx

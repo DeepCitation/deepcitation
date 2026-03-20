@@ -2,15 +2,8 @@
 
 import { startTransition, useState } from "react";
 import { ChatMessage, LoadingSkeleton } from "@/components/ChatMessage";
-import { CORPUS_SOURCES } from "@/lib/corpus";
+import { CORPUS_SOURCES, SAMPLE_QUESTIONS } from "@/lib/corpus";
 import type { ChatResponse, ConversationMessage } from "@/lib/types";
-
-const SAMPLE_QUESTIONS = [
-  "What discount rate applies when the YC SAFE converts, and what triggers a conversion event?",
-  "How many NVIDIA shares is Robertson planning to sell, and what is the estimated aggregate market value?",
-  "How does multi-head attention work, and why does the Transformer drop recurrence entirely?",
-  "What are the root causes of hallucination in language models, and how does RAG reduce them?",
-];
 
 export default function Home() {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
@@ -139,19 +132,21 @@ export default function Home() {
                 await sendQuestion(question);
               }}
             >
-              <div className="sample-list">
-                {SAMPLE_QUESTIONS.map(sample => (
-                  <button
-                    key={sample}
-                    type="button"
-                    className="sample-button"
-                    onClick={() => setQuestion(sample)}
-                    disabled={isLoading}
-                  >
-                    {sample}
-                  </button>
-                ))}
-              </div>
+              {messages.length === 0 && (
+                <div className="sample-list">
+                  {SAMPLE_QUESTIONS.map(sample => (
+                    <button
+                      key={sample}
+                      type="button"
+                      className="sample-button"
+                      onClick={() => sendQuestion(sample)}
+                      disabled={isLoading}
+                    >
+                      {sample}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="composer-row">
                 <textarea
                   className="question-input"

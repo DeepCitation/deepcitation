@@ -176,7 +176,7 @@ describe("Dot Indicator Variant", () => {
     it("returns correct label for pending with dot variant", () => {
       const result = getStatusInfo(pendingVerification, "dot");
       expect(result.label).toBe("Verifying");
-      expect(result.color).toBe("text-slate-400");
+      expect(result.color).toBe("text-dc-subtle-foreground");
     });
 
     it("defaults to icon variant when no variant specified", () => {

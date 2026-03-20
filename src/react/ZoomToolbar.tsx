@@ -58,8 +58,7 @@ export interface ZoomToolbarProps {
 type LocatePulseStage = "idle" | "grow" | "settle";
 
 /** Shared card style for both the zoom card and the standalone locate card. */
-const CARD_CLASSES =
-  "rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md text-slate-700 dark:text-slate-200";
+const CARD_CLASSES = "rounded-lg border border-dc-border bg-dc-background shadow-md text-dc-foreground";
 
 /** Shared zoom button style (40×40 target). */
 const ZOOM_BTN_CLASSES =
@@ -169,7 +168,7 @@ export function ZoomToolbar({
               CARD_CLASSES,
               "w-10 h-10 flex items-center justify-center transition-all duration-180",
               locateDirty
-                ? "text-sky-700 dark:text-sky-300 opacity-90 hover:bg-slate-50 dark:hover:bg-slate-700"
+                ? "text-blue-700 dark:text-sky-400 opacity-90 hover:bg-dc-muted"
                 : "opacity-45 hover:opacity-65",
             )}
             aria-label={locateDirty ? t("zoom.reCenter") : t("zoom.centered")}
@@ -190,17 +189,14 @@ export function ZoomToolbar({
               set(zoom + zoomStep);
             }}
             disabled={zoom >= zoomMax}
-            className={cn(
-              ZOOM_BTN_CLASSES,
-              "rounded-t-lg hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600",
-            )}
+            className={cn(ZOOM_BTN_CLASSES, "rounded-t-lg hover:bg-dc-muted active:bg-dc-muted")}
             aria-label={t("zoom.in")}
           >
             +
           </button>
 
           {/* Divider */}
-          <div className="h-px bg-slate-200 dark:bg-slate-600 mx-2" role="separator" />
+          <div className="h-px bg-dc-border mx-2" role="separator" />
 
           {/* Zoom out — Unicode minus U+2212 */}
           <button
@@ -210,10 +206,7 @@ export function ZoomToolbar({
               set(zoom - zoomStep);
             }}
             disabled={zoom <= zoomFloor}
-            className={cn(
-              ZOOM_BTN_CLASSES,
-              "rounded-b-lg hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600",
-            )}
+            className={cn(ZOOM_BTN_CLASSES, "rounded-b-lg hover:bg-dc-muted active:bg-dc-muted")}
             aria-label={t("zoom.out")}
           >
             {"\u2212"}
