@@ -559,8 +559,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
     } else if (isVerified) {
       borderClass = "border-emerald-500/60 dark:border-emerald-500/40 cursor-pointer";
     } else {
-      borderClass =
-        "border-dc-border hover:border-slate-900 dark:hover:border-slate-100 cursor-pointer";
+      borderClass = "border-dc-border hover:border-slate-900 dark:hover:border-slate-100 cursor-pointer";
     }
 
     return (

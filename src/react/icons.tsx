@@ -17,8 +17,8 @@ export const DeepCitationIcon = ({ className }: { className?: string }) => (
     height="1em"
   >
     {/* The Brackets (Reality / Verification) */}
-    <path d="M4 1 L1 1 L1 23 L4 23" className="text-dc-foreground" strokeWidth="1.5" />
-    <path d="M20 1 L23 1 L23 23 L20 23" className="text-dc-foreground" strokeWidth="1.5" />
+    <path d="M4 1 L1 1 L1 23 L4 23" className="text-dc-foreground" strokeWidth="1" />
+    <path d="M20 1 L23 1 L23 23 L20 23" className="text-dc-foreground" strokeWidth="1" />
     {/* The Spark (The contained AI Payload) */}
     <path
       d="M12 6 L12 18 M6 12 L18 12 M7.5 7.5 L16.5 16.5 M16.5 7.5 L7.5 16.5"
