@@ -55,9 +55,7 @@ export function getInteractionClasses(isOpen: boolean, variant: CitationVariant)
   }
 
   // Hover state — only when not active
-  return isSolid
-    ? "hover:bg-dc-muted/70"
-    : "hover:bg-black/[0.06] dark:hover:bg-white/[0.06]";
+  return isSolid ? "hover:bg-dc-muted/70" : "hover:bg-black/[0.06] dark:hover:bg-white/[0.06]";
 }
 
 /**
