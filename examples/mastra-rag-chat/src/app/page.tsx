@@ -35,7 +35,19 @@ export default function Home() {
       body: JSON.stringify({ question: trimmedQuestion }),
     })
       .then(async result => {
-        const payload = (await result.json()) as ChatResponse | { error?: string };
+        if (result.status === 504) {
+          throw new Error(
+            "The server timed out. This usually happens on the first request after a cold start — please try again in a moment.",
+          );
+        }
+
+        let payload: ChatResponse | { error?: string };
+        try {
+          payload = (await result.json()) as ChatResponse | { error?: string };
+        } catch {
+          throw new Error(`Server returned an unexpected response (HTTP ${result.status}).`);
+        }
+
         if (!result.ok || !("rawLlmOutput" in payload)) {
           const errorMessage =
             "error" in payload && typeof payload.error === "string"

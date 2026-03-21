@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { answerQuestion } from "@/lib/rag";
 import { checkRateLimit } from "@/lib/rateLimit";
 
-export const maxDuration = 60;
+// Cold starts may need extra time for vector-store embedding + PDF attachment
+// resolution. 120s is within Vercel Pro limits; Hobby silently caps at 60s.
+export const maxDuration = 120;
 
 export async function POST(request: Request) {
   // NOTE: x-forwarded-for is client-controlled behind Vercel's edge network — the

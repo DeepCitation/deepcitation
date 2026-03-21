@@ -101,12 +101,12 @@ describe("Recipe snippets", () => {
     expect(RECIPE_KEEP_MARKERS).toContain('from "deepcitation"');
   });
 
-  it("RECIPE_REACT_INLINE uses parseCitationResponse + markerMap + CitationComponent", () => {
+  it("RECIPE_REACT_INLINE uses parseCitationResponse + remarkCitationMarkers + CitationComponent", () => {
     expect(RECIPE_REACT_INLINE).toContain("parseCitationResponse");
     expect(RECIPE_REACT_INLINE).toContain("markerMap");
     expect(RECIPE_REACT_INLINE).toContain("CitationComponent");
-    expect(RECIPE_REACT_INLINE).toContain("splitPattern");
-    expect(RECIPE_REACT_INLINE).toContain('"numeric"');
+    expect(RECIPE_REACT_INLINE).toContain("remarkCitationMarkers");
+    expect(RECIPE_REACT_INLINE).toContain("ReactMarkdown");
     expect(RECIPE_REACT_INLINE).toContain('from "deepcitation/react"');
   });
 
@@ -142,7 +142,7 @@ describe("Quick Start snippets", () => {
     expect(QUICKSTART_REACT_CLIENT).toContain("CitationDrawerTrigger");
     expect(QUICKSTART_REACT_CLIENT).toContain("groupCitationsBySource");
     expect(QUICKSTART_REACT_CLIENT).toContain("markerMap");
-    expect(QUICKSTART_REACT_CLIENT).toContain("splitPattern");
+    expect(QUICKSTART_REACT_CLIENT).toContain("remarkCitationMarkers");
   });
 });
 
@@ -230,12 +230,12 @@ describe("Display snippets", () => {
     expect(DISPLAY_CITATION_KEY).toContain('from "deepcitation"');
   });
 
-  it("DISPLAY_POST_STREAM uses parseCitationResponse + markerMap pattern", () => {
+  it("DISPLAY_POST_STREAM uses parseCitationResponse + remarkCitationMarkers pattern", () => {
     expect(DISPLAY_POST_STREAM).toContain("parseCitationResponse");
     expect(DISPLAY_POST_STREAM).toContain("markerMap");
-    expect(DISPLAY_POST_STREAM).toContain("splitPattern");
+    expect(DISPLAY_POST_STREAM).toContain("remarkCitationMarkers");
     expect(DISPLAY_POST_STREAM).toContain("CitationComponent");
-    expect(DISPLAY_POST_STREAM).toContain('"numeric"');
+    expect(DISPLAY_POST_STREAM).toContain("ReactMarkdown");
     expect(DISPLAY_POST_STREAM).toContain('from "deepcitation/react"');
   });
 

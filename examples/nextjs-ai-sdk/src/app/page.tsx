@@ -10,7 +10,6 @@ import { toDrawerItems } from "@/utils/citationDrawerAdapter";
 import { SAMPLE_QUESTIONS } from "@/lib/corpus";
 
 type FileDataPart = { attachmentId: string; filename?: string };
-type ModelProvider = "openai" | "gemini";
 
 // Type for the verify API response (per message)
 interface MessageVerificationResult {
@@ -24,28 +23,16 @@ interface MessageVerificationResult {
   };
 }
 
-const MODEL_OPTIONS: {
-  value: ModelProvider;
-  label: string;
-  description: string;
-}[] = [
-  { value: "gemini", label: "Gemini", description: "gemini-2.0-flash-lite" },
-  { value: "openai", label: "OpenAI", description: "gpt-5-mini" },
-];
-
 export default function Home() {
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
-  // Accumulated text portions for LLM prompts (one string per uploaded file)
   const [deepTextPromptPortions, setDeepTextPromptPortions] = useState<string[]>([]);
-  // Whether the file came from the bundled corpus (vs user upload)
   const [isCorpusLoaded, setIsCorpusLoaded] = useState(false);
   const [corpusLoading, setCorpusLoading] = useState(true);
 
-  // Map of message ID to its full verification result (citations + verifications + summary)
+  // Map of message ID to its full verification result
   const [messageVerifications, setMessageVerifications] = useState<Record<string, MessageVerificationResult>>({});
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState<Record<string, string>>({});
-  const [provider, setProvider] = useState<ModelProvider>("gemini");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load bundled corpus on mount
@@ -56,10 +43,10 @@ export default function Home() {
         if (!res.ok) throw new Error("Corpus init failed");
         return res.json();
       })
-      .then((data: { fileDataPart: FileDataPart; deepTextPromptPortion: string }) => {
+      .then((data: { fileDataParts: FileDataPart[]; deepTextPromptPortions: string[] }) => {
         if (cancelled) return;
-        setFileDataParts([data.fileDataPart]);
-        setDeepTextPromptPortions([data.deepTextPromptPortion]);
+        setFileDataParts(data.fileDataParts);
+        setDeepTextPromptPortions(data.deepTextPromptPortions);
         setIsCorpusLoaded(true);
       })
       .catch(err => {
@@ -71,18 +58,14 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  // Stable event handler for verification - doesn't need to be in deps
+  // Stable event handler for verification
   const onVerifyMessage = useEffectEvent((messageId: string, messageContent: string) => {
     if (!messageContent || fileDataParts.length === 0) return;
 
-    // Send llmOutput to verify API - citation extraction happens server-side
     fetch("/api/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        llmOutput: messageContent,
-        attachmentId: fileDataParts[0].attachmentId,
-      }),
+      body: JSON.stringify({ llmOutput: messageContent }),
     })
       .then(async res => {
         if (!res.ok) {
@@ -92,7 +75,6 @@ export default function Home() {
         return res.json();
       })
       .then((data: MessageVerificationResult) => {
-        // Clear error on success, store verification result
         setVerificationError(prev => {
           if (!(messageId in prev)) return prev;
           const next = { ...prev };
@@ -117,7 +99,6 @@ export default function Home() {
   const { messages, input, handleInputChange, handleSubmit, append, isLoading, error } = useChat({
     streamProtocol: "text",
     body: {
-      provider,
       fileDataParts,
       deepTextPromptPortions,
     },
@@ -140,8 +121,6 @@ export default function Home() {
     formData.append("file", file);
     setUploadError(null);
 
-    // Fetch result extracted so complex conditionals stay outside try/catch.
-    // (React Compiler limitation: can't handle value blocks inside try/catch.)
     let uploadResult: { res: Response; data: Record<string, unknown> } | null = null;
     try {
       const res = await fetch("/api/upload", { method: "POST", body: formData });
@@ -155,7 +134,7 @@ export default function Home() {
     if (uploadResult) {
       const { res, data } = uploadResult;
       if (res.ok && data.fileDataPart) {
-        // User upload replaces the corpus document
+        // User upload replaces the corpus documents
         setFileDataParts([data.fileDataPart as FileDataPart]);
         setDeepTextPromptPortions(
           data.deepTextPromptPortion ? [data.deepTextPromptPortion as string] : [],
@@ -195,27 +174,7 @@ export default function Home() {
               <h1 className="text-xl font-semibold text-gray-900">DeepCitation Chat</h1>
               <p className="text-sm text-gray-500">Upload documents and ask questions with verified citations</p>
             </div>
-
-            {/* Settings */}
-            <div className="flex items-center gap-4">
-              {/* Model Provider Selection */}
-              <div className="flex items-center gap-2">
-                <label htmlFor="provider-select" className="text-xs font-medium text-gray-500">Model:</label>
-                <select
-                  id="provider-select"
-                  value={provider}
-                  onChange={e => setProvider(e.target.value as ModelProvider)}
-                  disabled={isBusy}
-                  className="text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {MODEL_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} ({option.description})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <div className="text-xs text-gray-400">gpt-5-mini</div>
           </div>
         </header>
 
@@ -227,9 +186,9 @@ export default function Home() {
                 <h2 className="text-lg font-medium text-gray-900 mb-2">Welcome to DeepCitation Chat</h2>
                 <p className="text-gray-600 mb-4">
                   {corpusLoading
-                    ? "Loading sample document..."
+                    ? "Loading sample documents..."
                     : hasDocuments && isCorpusLoaded
-                      ? "A sample paper (Attention Is All You Need) is pre-loaded. Try a question below, or upload your own document."
+                      ? "Sample documents are pre-loaded. Try a question below, or upload your own document."
                       : "Upload a document to get started, then ask questions. Every AI response will be verified against your attachments."}
                 </p>
 
@@ -333,7 +292,7 @@ export default function Home() {
               onChange={handleInputChange}
               placeholder={
                 corpusLoading
-                  ? "Loading sample document..."
+                  ? "Loading sample documents..."
                   : hasDocuments
                     ? "Ask a question about your documents..."
                     : "Upload a document first, then ask questions..."

@@ -15,6 +15,7 @@ import {
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CONTINUE, visit } from "unist-util-visit";
 
 interface ChatMessageProps {
   message: {
@@ -44,12 +45,12 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
   const isUser = message.role === "user";
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const processedContent = useMemo(() => {
+  const parsed = useMemo(() => {
     // Use rawContent (with <<<CITATION_DATA>>>) when available so parseCitationResponse
     // can build the markerMap. Falls back to stripped content for streaming display.
     const textForParsing = message.rawContent ?? message.content;
-    return processContentWithCitations(textForParsing, citations ?? {}, verifications ?? {});
-  }, [message.rawContent, message.content, citations, verifications]);
+    return parseCitationResponse(textForParsing);
+  }, [message.rawContent, message.content]);
 
   const citationGroups = useMemo(() => {
     if (!drawerItems || drawerItems.length === 0) return [];
@@ -73,7 +74,21 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
           <>
-            <div className="prose prose-sm max-w-none">{processedContent}</div>
+            <div className="prose prose-sm max-w-none">
+              {parsed.format === "numeric" ? (
+                <MarkdownWithCitations
+                  visibleText={parsed.visibleText}
+                  markerMap={parsed.markerMap}
+                  parsedCitations={parsed.citations}
+                  citations={citations ?? {}}
+                  verifications={verifications ?? {}}
+                />
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {parsed.visibleText}
+                </ReactMarkdown>
+              )}
+            </div>
 
             {citationGroups.length > 0 && (
               <div className="mt-3 pt-2 border-t border-gray-100">
@@ -105,53 +120,71 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
   );
 }
 
-/**
- * Process content and replace [N] citation markers with CitationComponent inline.
- * Uses parseCitationResponse to parse the numeric citation format.
- */
-function processContentWithCitations(
-  content: string,
-  citations: Record<string, Citation>,
-  verifications: Record<string, Verification>,
-): React.ReactNode {
-  const result = parseCitationResponse(content);
+// ---------------------------------------------------------------------------
+// Remark plugin: find `[N]` citation markers in text nodes and replace them
+// with custom `citation-marker` MDAST nodes so the full markdown AST stays
+// intact (bold, lists, etc. are never broken by the split).
+// ---------------------------------------------------------------------------
+const MARKER_RE = /(\[\d+\])/g;
 
-  if (result.format !== "numeric") {
-    return (
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {result.visibleText}
-      </ReactMarkdown>
-    );
-  }
+function remarkCitationMarkers() {
+  return (tree: any) => {
+    visit(tree, "text", (node: any, index: any, parent: any) => {
+      if (index == null || !parent || !node.value) return;
+      const parts = node.value.split(MARKER_RE);
+      if (parts.length <= 1) return;
 
-  const segments = result.visibleText.split(result.splitPattern);
+      const newNodes = parts
+        .filter(Boolean)
+        .map((part: string) => {
+          const m = part.match(/^\[(\d+)\]$/);
+          if (m) {
+            return {
+              type: "citation-marker" as const,
+              data: { hName: "citation-marker", hProperties: { n: m[1] } },
+            };
+          }
+          return { type: "text" as const, value: part };
+        });
 
-  const mdComponents = { p: ({ children }: { children?: React.ReactNode }) => <span>{children}</span> };
+      parent.children.splice(index, 1, ...(newNodes as typeof parent.children));
+      return [CONTINUE, index + newNodes.length] as const;
+    });
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Single-pass markdown renderer that keeps citation markers inline.
+// ---------------------------------------------------------------------------
+interface MarkdownWithCitationsProps {
+  visibleText: string;
+  markerMap: Record<number, string>;
+  parsedCitations: Record<string, Citation>;
+  citations: Record<string, Citation>;
+  verifications: Record<string, Verification>;
+}
+
+function MarkdownWithCitations({
+  visibleText,
+  markerMap,
+  parsedCitations,
+  citations,
+  verifications,
+}: MarkdownWithCitationsProps) {
+  const plugins = useMemo(() => [remarkGfm, remarkCitationMarkers], []);
+
+  const components = useMemo(() => ({
+    "citation-marker": ({ n }: { n: string }) => {
+      const key = markerMap[Number(n)];
+      const citation = key ? (citations[key] ?? parsedCitations[key]) : null;
+      if (!key || !citation) return <sup>[{n}]</sup>;
+      return <CitationComponent citation={citation} verification={verifications[key]} />;
+    },
+  }), [markerMap, citations, parsedCitations, verifications]);
 
   return (
-    <>
-      {segments.map((seg, i) => {
-        const match = seg.match(/^\[(\d+)\]$/);
-        if (match) {
-          const key = result.markerMap[Number(match[1])];
-          if (!key) return <span key={`citation-${i}`}>{seg}</span>;
-          const citation = citations[key] ?? result.citations[key];
-          if (!citation) return <span key={`citation-${i}`}>{seg}</span>;
-          const verification = verifications[key];
-          return (
-            <CitationComponent key={`citation-${i}`} citation={citation} verification={verification} />
-          );
-        }
-        return (
-          <ReactMarkdown
-            key={`text-${i}`}
-            remarkPlugins={[remarkGfm]}
-            components={mdComponents}
-          >
-            {seg}
-          </ReactMarkdown>
-        );
-      })}
-    </>
+    <ReactMarkdown remarkPlugins={plugins} components={components as any}>
+      {visibleText}
+    </ReactMarkdown>
   );
 }
