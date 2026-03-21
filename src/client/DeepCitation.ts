@@ -31,6 +31,59 @@ const DEFAULT_API_URL = "https://api.deepcitation.com";
 /** Current SDK version — must be kept in sync with package.json. */
 export const SDK_VERSION = "0.2.1";
 
+const DEFAULT_MAX_RETRIES = 3;
+
+/**
+ * Fetch with exponential backoff retry for transient network failures.
+ *
+ * Retries ONLY when `fetch` itself throws (connection dropped, DNS failure, etc.).
+ * HTTP error responses (4xx/5xx) are returned as-is — those are intentional server
+ * responses and should not be blindly retried.
+ *
+ * Backoff schedule: 2^(attempt-1) * 100ms ± 10% jitter, capped at 16 000ms.
+ * Example delays for maxRetries=3: ~100ms, ~200ms, ~400ms.
+ *
+ * If `options.signal` is provided, it is respected during backoff delays: the delay
+ * is cancelled immediately and an AbortError is thrown when the signal fires.
+ *
+ * @internal Exported for unit testing only; not part of the public package API.
+ */
+export async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries: number,
+  logger?: { warn?: (msg: string, meta?: Record<string, unknown>) => void },
+): Promise<Response> {
+  const signal = options.signal instanceof AbortSignal ? options.signal : null;
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      if (signal?.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
+      const base = 2 ** (attempt - 1) * 100;
+      const jitter = base * 0.1 * (Math.random() * 2 - 1);
+      const delay = Math.min(base + jitter, 16_000);
+      logger?.warn?.("Retrying request after network error", { attempt, delayMs: Math.round(delay) });
+      await new Promise<void>((resolve, reject) => {
+        const id = setTimeout(resolve, delay);
+        signal?.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(id);
+            reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+          },
+          { once: true },
+        );
+      });
+    }
+    try {
+      return await fetch(url, options);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
+
 /**
  * Default concurrency limit for parallel file uploads.
  * Prevents overwhelming the network/server with too many simultaneous requests.
@@ -161,6 +214,7 @@ export class DeepCitation {
   private readonly convertedPdfDownloadPolicy: ConvertedPdfDownloadPolicy;
   private readonly onLatestVersion?: (latestVersion: string) => void;
   private readonly requestSource?: string;
+  private readonly maxRetries: number;
 
   /**
    * Request deduplication cache for verify calls.
@@ -217,6 +271,7 @@ export class DeepCitation {
       throw new Error("requestSource must not contain newline characters");
     }
     this.requestSource = config.requestSource;
+    this.maxRetries = Math.max(0, Math.floor(config.maxRetries ?? DEFAULT_MAX_RETRIES));
   }
 
   /** Resolve endUserId: per-request override wins over instance default. */
@@ -244,6 +299,11 @@ export class DeepCitation {
       headers["X-Request-Source"] = this.requestSource;
     }
     return headers;
+  }
+
+  /** Fetch with retry, forwarding instance-level maxRetries and logger. */
+  private _fetch(url: string, options: RequestInit): Promise<Response> {
+    return fetchWithRetry(url, options, this.maxRetries, this.logger);
   }
 
   /** If the response contains a latest SDK version header, notify the callback. */
@@ -331,7 +391,7 @@ export class DeepCitation {
     if (resolvedEndFileId) formData.append("endFileId", resolvedEndFileId);
     formData.append("convertedPdfDownloadPolicy", convertedPdfDownloadPolicy);
 
-    const response = await fetch(`${this.apiUrl}/prepareAttachments`, {
+    const response = await this._fetch(`${this.apiUrl}/prepareAttachments`, {
       method: "POST",
       headers: { ...this.baseHeaders() },
       body: formData,
@@ -395,7 +455,7 @@ export class DeepCitation {
     let response: Response;
 
     if (url) {
-      response = await fetch(`${this.apiUrl}/convertFile`, {
+      response = await this._fetch(`${this.apiUrl}/convertFile`, {
         method: "POST",
         headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -418,7 +478,7 @@ export class DeepCitation {
       if (resolvedEndFileId) formData.append("endFileId", resolvedEndFileId);
       formData.append("convertedPdfDownloadPolicy", convertedPdfDownloadPolicy);
 
-      response = await fetch(`${this.apiUrl}/convertFile`, {
+      response = await this._fetch(`${this.apiUrl}/convertFile`, {
         method: "POST",
         headers: { ...this.baseHeaders() },
         body: formData,
@@ -463,7 +523,7 @@ export class DeepCitation {
     const resolvedEndFileId = this.resolveEndFileId(options.endFileId);
     const convertedPdfDownloadPolicy = this.resolveConvertedPdfDownloadPolicy(options.convertedPdfDownloadPolicy);
 
-    const response = await fetch(`${this.apiUrl}/prepareAttachments`, {
+    const response = await this._fetch(`${this.apiUrl}/prepareAttachments`, {
       method: "POST",
       headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -528,7 +588,7 @@ export class DeepCitation {
     const resolvedEndUserId = this.resolveEndUserId(options.endUserId);
     const resolvedEndFileId = this.resolveEndFileId(options.endFileId);
     const convertedPdfDownloadPolicy = this.resolveConvertedPdfDownloadPolicy(options.convertedPdfDownloadPolicy);
-    const response = await fetch(`${this.apiUrl}/prepareAttachments`, {
+    const response = await this._fetch(`${this.apiUrl}/prepareAttachments`, {
       method: "POST",
       headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -730,7 +790,7 @@ export class DeepCitation {
 
     // Create the fetch promise and cache it
     const fetchPromise = (async (): Promise<VerifyCitationsResponse> => {
-      const response = await fetch(`${this.apiUrl}/verifyCitations`, {
+      const response = await this._fetch(`${this.apiUrl}/verifyCitations`, {
         method: "POST",
         headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -889,12 +949,10 @@ export class DeepCitation {
   async extendExpiration(options: ExtendExpirationOptions): Promise<ExtendExpirationResponse> {
     this.logger.info?.("Extending expiration", { attachmentId: options.attachmentId, duration: options.duration });
 
-    const response = await fetch(`${this.apiUrl}/attachments/${options.attachmentId}/extend`, {
+    const response = await this._fetch(`${this.apiUrl}/attachments/${options.attachmentId}/extend`, {
       method: "POST",
       headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({
-        duration: options.duration,
-      }),
+      body: JSON.stringify({ duration: options.duration }),
     });
     this.checkLatestVersion(response);
 
@@ -928,7 +986,7 @@ export class DeepCitation {
   async deleteAttachment(attachmentId: string): Promise<DeleteAttachmentResponse> {
     this.logger.info?.("Deleting attachment", { attachmentId });
 
-    const response = await fetch(`${this.apiUrl}/attachments/${attachmentId}`, {
+    const response = await this._fetch(`${this.apiUrl}/attachments/${attachmentId}`, {
       method: "DELETE",
       headers: { ...this.baseHeaders() },
     });
@@ -980,7 +1038,7 @@ export class DeepCitation {
     const resolvedEndUserId = this.resolveEndUserId(options?.endUserId);
     this.logger.info?.("Getting attachment", { attachmentId });
 
-    const response = await fetch(`${this.apiUrl}/getAttachment`, {
+    const response = await this._fetch(`${this.apiUrl}/getAttachment`, {
       method: "POST",
       headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({ attachmentId, endUserId: resolvedEndUserId }),

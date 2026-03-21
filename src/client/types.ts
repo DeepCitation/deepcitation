@@ -104,6 +104,15 @@ export interface DeepCitationConfig {
   onLatestVersion?: (latestVersion: string) => void;
   /** Tag identifying request origin (e.g. "playground"). Sent as X-Request-Source header. */
   requestSource?: string;
+  /**
+   * Maximum number of retries for transient network failures (when the connection
+   * drops before a response is received). Uses exponential backoff with jitter:
+   * delay = 2^attempt * 100ms ± 10%, capped at 16s.
+   *
+   * Does NOT retry HTTP error responses (4xx/5xx) — only low-level network throws.
+   * @default 3
+   */
+  maxRetries?: number;
 }
 
 // ==========================================================================
