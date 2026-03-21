@@ -186,7 +186,7 @@ export const CitationContentDisplay = ({
   // Variant: text
   if (variant === "text") {
     return (
-      <span className={cn("inline-flex items-center font-normal", statusClasses)}>
+      <span className={cn("font-normal", statusClasses)}>
         {displayText}
         {indicator}
       </span>
