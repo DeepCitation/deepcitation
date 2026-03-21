@@ -49,6 +49,7 @@ export const esOverrides = {
   "popover.searching": "Buscando…",
   "popover.lookingOnPage": "Buscando en p. {pageNumber}",
   "popover.searchingImage": "Buscando imagen…",
+  "popover.displayedAs": "(mostrado como \u201c{label}\u201d)",
   "tab.expected": "Esperado",
   "tab.diff": "Diferencia",
   "tab.found": "Encontrado",

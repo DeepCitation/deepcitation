@@ -79,6 +79,11 @@ export interface PopoverContentProps {
    */
   sourceLabel?: string;
   /**
+   * Override label displayed on the trigger. When this differs from the
+   * verified claim (anchorText), an inline annotation is shown in the popover.
+   */
+  displayLabel?: string;
+  /**
    * Visual style for status indicators inside the popover.
    * @default "icon"
    */
@@ -277,22 +282,29 @@ function ClaimQuote({
   isMiss,
   borderColor,
   maxWidth,
+  displayLabelAnnotation,
 }: {
   fullPhrase: string;
   anchorText?: string;
   isMiss: boolean;
   borderColor: string;
   maxWidth?: string;
+  displayLabelAnnotation?: string;
 }) {
   return (
     <div
       className={cn(
-        "ml-[1.34375rem] mr-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-dc-background border-l-2 max-w-prose",
+        "ml-[1.34375rem] mr-3 mt-1 mb-3 pl-3 pr-3 py-2 text-xs leading-relaxed break-words bg-dc-background border-l max-w-prose",
         borderColor,
       )}
       style={maxWidth ? { maxWidth } : undefined}
     >
       <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
+      {displayLabelAnnotation && (
+        <div className="mt-1 text-[11px] text-dc-subtle-foreground">
+          {displayLabelAnnotation}
+        </div>
+      )}
     </div>
   );
 }
@@ -627,6 +639,7 @@ function PopoverFallbackView({
   citation,
   verification,
   sourceLabel,
+  displayLabel,
   status,
   urlAccessExplanation,
   indicatorVariant = "icon",
@@ -635,6 +648,7 @@ function PopoverFallbackView({
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
   sourceLabel?: string;
+  displayLabel?: string;
   status: CitationStatus;
   urlAccessExplanation: UrlAccessExplanation | null;
   indicatorVariant?: IndicatorVariant;
@@ -683,6 +697,11 @@ function PopoverFallbackView({
             {hasSnippet}
           </q>
         )}
+        {displayLabel && displayLabel !== citation.anchorText?.toString() && (
+          <span className="text-[11px] text-dc-subtle-foreground">
+            {t("popover.displayedAs", { label: displayLabel })}
+          </span>
+        )}
         {pageNumber && pageNumber > 0 && (
           <span className="text-xs text-dc-subtle-foreground">
             {isImageSource(verification) ? t("location.image") : t("location.page", { pageNumber })}
@@ -705,6 +724,7 @@ export function DefaultPopoverContent({
   isLoading = false,
   isVisible = true,
   sourceLabel,
+  displayLabel,
   indicatorVariant = "icon",
   viewState = "summary",
   onViewStateChange,
@@ -949,6 +969,7 @@ export function DefaultPopoverContent({
 
   // Get humanizing message for partial/not-found states (URL citations only)
   const anchorText = citation.anchorText?.toString();
+  const showDisplayLabelAnnotation = displayLabel && displayLabel !== anchorText;
   const fullPhrase = citation.fullPhrase;
 
   // Intent summary for document citations — snippet-based display for partial matches
@@ -1080,6 +1101,7 @@ export function DefaultPopoverContent({
                   isMiss={isMiss}
                   borderColor={claimBorderColor}
                   maxWidth={viewState === "summary" ? summaryWidth : undefined}
+                  displayLabelAnnotation={showDisplayLabelAnnotation ? t("popover.displayedAs", { label: displayLabel }) : undefined}
                 />
               )}
             </AnimatedHeightWrapper>
@@ -1116,6 +1138,7 @@ export function DefaultPopoverContent({
         citation={citation}
         verification={verification}
         sourceLabel={sourceLabel}
+        displayLabel={displayLabel}
         status={status}
         urlAccessExplanation={urlAccessExplanation}
         indicatorVariant={indicatorVariant}

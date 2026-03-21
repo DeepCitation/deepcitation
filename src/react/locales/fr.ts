@@ -49,6 +49,7 @@ export const frOverrides = {
   "popover.searching": "Recherche…",
   "popover.lookingOnPage": "Recherche p. {pageNumber}",
   "popover.searchingImage": "Recherche dans l'image…",
+  "popover.displayedAs": "(affiché comme \u201c{label}\u201d)",
   "tab.expected": "Attendu",
   "tab.diff": "Différence",
   "tab.found": "Trouvé",

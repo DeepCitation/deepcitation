@@ -377,6 +377,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   isLoading,
   isVisible,
   sourceLabel,
+  displayLabel,
   indicatorVariant,
   viewState,
   onViewStateChange,
@@ -394,6 +395,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   isLoading: boolean;
   isVisible: boolean;
   sourceLabel?: string;
+  displayLabel?: string;
   indicatorVariant: IndicatorVariant;
   viewState: PopoverViewState;
   onViewStateChange: (viewState: PopoverViewState) => void;
@@ -421,6 +423,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
         isLoading={isLoading}
         isVisible={isVisible}
         sourceLabel={sourceLabel}
+        displayLabel={displayLabel}
         indicatorVariant={indicatorVariant}
         viewState={viewState}
         onViewStateChange={onViewStateChange}
@@ -462,6 +465,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       children,
       className,
       fallbackDisplay,
+      displayLabel,
       verification,
       isLoading = false,
       variant = "text",
@@ -799,8 +803,8 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     }, [prefetchMode, prefetchEvidenceSrc, prefetchExpandedSrc]);
 
     const displayText = useMemo(() => {
-      return getDisplayText(citation, resolvedContent, fallbackDisplay);
-    }, [citation, resolvedContent, fallbackDisplay]);
+      return getDisplayText(citation, resolvedContent, fallbackDisplay, displayLabel);
+    }, [citation, resolvedContent, fallbackDisplay, displayLabel]);
 
     // Behavior context for custom handlers
     const getBehaviorContext = useCallback(
@@ -1384,6 +1388,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           isLoading={isLoading || shouldShowSpinner}
           isVisible={isHovering}
           sourceLabel={sourceLabel}
+          displayLabel={displayLabel}
           indicatorVariant={indicatorVariant}
           viewState={viewState.current}
           onViewStateChange={viewState.transition}

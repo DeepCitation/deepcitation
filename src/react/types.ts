@@ -184,6 +184,27 @@ export interface BaseCitationProps {
   content?: CitationContent;
   /** Fallback display text when citation anchorText is empty */
   fallbackDisplay?: string | null;
+  /**
+   * Override the display text shown on the citation trigger.
+   *
+   * When provided with `content: "anchorText"` (or variants that default to it),
+   * this text replaces `citation.anchorText` on the trigger. The popover still
+   * shows the original verified claim, with an inline annotation when the label
+   * differs from the verified text.
+   *
+   * Has no effect when `content` is `"number"`, `"source"`, or `"indicator"`.
+   *
+   * @example
+   * ```tsx
+   * <CitationComponent
+   *   citation={citation}
+   *   verification={verification}
+   *   displayLabel="99.99%"
+   * />
+   * // Trigger shows "99.99%", popover shows verified claim "100%"
+   * ```
+   */
+  displayLabel?: string;
   /** Suppress all telemetry events (citation_seen, evidence_ready, popover timing). */
   disableTelemetry?: boolean;
   /** Image prefetch strategy. `"eager"` (default) prefetches on verification; `"lazy"` skips prefetch. */
