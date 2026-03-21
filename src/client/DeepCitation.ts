@@ -40,24 +40,40 @@ const DEFAULT_MAX_RETRIES = 3;
  * HTTP error responses (4xx/5xx) are returned as-is — those are intentional server
  * responses and should not be blindly retried.
  *
- * Backoff schedule: 2^attempt * 100ms ± 10% jitter, capped at 16 000ms.
+ * Backoff schedule: 2^(attempt-1) * 100ms ± 10% jitter, capped at 16 000ms.
  * Example delays for maxRetries=3: ~100ms, ~200ms, ~400ms.
  *
+ * If `options.signal` is provided, it is respected during backoff delays: the delay
+ * is cancelled immediately and an AbortError is thrown when the signal fires.
+ *
+ * @internal Exported for unit testing only; not part of the public package API.
  */
-async function fetchWithRetry(
+export async function fetchWithRetry(
   url: string,
   options: RequestInit,
   maxRetries: number,
   logger?: { warn?: (msg: string, meta?: Record<string, unknown>) => void },
 ): Promise<Response> {
+  const signal = options.signal instanceof AbortSignal ? options.signal : null;
   let lastError: unknown;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     if (attempt > 0) {
+      if (signal?.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
       const base = 2 ** (attempt - 1) * 100;
       const jitter = base * 0.1 * (Math.random() * 2 - 1);
       const delay = Math.min(base + jitter, 16_000);
       logger?.warn?.("Retrying request after network error", { attempt, delayMs: Math.round(delay) });
-      await new Promise<void>(resolve => setTimeout(resolve, delay));
+      await new Promise<void>((resolve, reject) => {
+        const id = setTimeout(resolve, delay);
+        signal?.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(id);
+            reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+          },
+          { once: true },
+        );
+      });
     }
     try {
       return await fetch(url, options);
@@ -255,7 +271,7 @@ export class DeepCitation {
       throw new Error("requestSource must not contain newline characters");
     }
     this.requestSource = config.requestSource;
-    this.maxRetries = config.maxRetries ?? DEFAULT_MAX_RETRIES;
+    this.maxRetries = Math.max(0, Math.floor(config.maxRetries ?? DEFAULT_MAX_RETRIES));
   }
 
   /** Resolve endUserId: per-request override wins over instance default. */

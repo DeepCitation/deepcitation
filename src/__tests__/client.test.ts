@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { DeepCitation } from "../client/DeepCitation.js";
+import { DeepCitation, fetchWithRetry } from "../client/DeepCitation.js";
 import { makeNumericResponse } from "./testHelpers.js";
 
 // Mock global fetch
@@ -41,6 +41,20 @@ describe("DeepCitation Client", () => {
         apiUrl: "https://custom.api.com/",
       });
       expect(client).toBeInstanceOf(DeepCitation);
+    });
+
+    it("clamps negative maxRetries to 0 — does not throw undefined", async () => {
+      // With maxRetries < 0, the for loop would never run and lastError stays undefined,
+      // causing `throw undefined`. The constructor must clamp to 0.
+      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: -5 });
+
+      mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+      const blob = new Blob(["content"]);
+      // Should throw the actual network error, not undefined
+      await expect(client.uploadFile(blob)).rejects.toThrow("Failed to fetch");
+      // Clamped to 0 retries — only one attempt
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -1026,6 +1040,26 @@ describe("DeepCitation Client", () => {
       const blob = new Blob(["content"]);
       await expect(client.uploadFile(blob)).rejects.toThrow("Failed to fetch");
 
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it("aborts during backoff delay when AbortSignal fires", async () => {
+      const controller = new AbortController();
+
+      // Reject on first attempt to trigger the backoff delay
+      mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+
+      // fetchWithRetry is called directly so we can inject the signal.
+      // The delay for attempt=1 is ~100ms; we abort synchronously after the
+      // first rejection propagates so the abort listener fires before the timer.
+      const promise = fetchWithRetry("https://example.com/test", { signal: controller.signal }, 3);
+
+      // Let the first fetch rejection settle, then abort during the backoff window
+      await Promise.resolve();
+      controller.abort(new DOMException("Aborted", "AbortError"));
+
+      await expect(promise).rejects.toThrow("Aborted");
+      // Only one fetch attempt — aborted during the delay before the second attempt
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
