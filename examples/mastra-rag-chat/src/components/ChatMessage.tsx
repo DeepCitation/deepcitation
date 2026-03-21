@@ -192,7 +192,7 @@ function MarkdownWithCitations({
   }), [markerMap, citations, parsedCitations, verifications]);
 
   return (
-    <ReactMarkdown remarkPlugins={plugins} components={components}>
+    <ReactMarkdown remarkPlugins={plugins} components={components as any}>
       {visibleText}
     </ReactMarkdown>
   );
