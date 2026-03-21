@@ -1,6 +1,12 @@
 /* DeepCitation Tailwind v4 source configuration
  * Import this file in your main CSS to include library classes:
- * @import "deepcitation/tailwind.css";
+ *   @import "deepcitation/tailwind.css";
+ *
+ * IMPORTANT: Tailwind v4 does not scan node_modules for class usage.
+ * You must add an explicit @source directive in your CSS so that
+ * Tailwind generates the utility classes used by DeepCitation components:
+ *   @source "../node_modules/deepcitation/lib/react";
+ * (adjust the relative path to match your CSS file's location)
  *
  * Quick start — override any token on :root, .dark, or any ancestor:
  *   :root   { --dc-background: #f8fafc; --dc-border: #cbd5e1; }

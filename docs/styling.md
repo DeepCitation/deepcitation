@@ -246,11 +246,22 @@ Import the bundled stylesheet:
 import "deepcitation/styles.css";
 ```
 
-Or reference the Tailwind source for your own build:
+Or reference the Tailwind v4 source configuration for your own build:
 
-```typescript
-import "deepcitation/tailwind.css";
+```css
+@import "deepcitation/tailwind.css";
 ```
+
+> **Important (Tailwind v4):** Tailwind does not scan `node_modules` for class
+> usage. Add an explicit `@source` directive so the utility classes used by
+> DeepCitation components are generated:
+>
+> ```css
+> @source "../node_modules/deepcitation/lib/react";
+> ```
+>
+> Adjust the relative path to match your CSS file's location relative to
+> `node_modules`.
 
 ---
 
