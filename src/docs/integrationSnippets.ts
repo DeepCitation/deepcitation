@@ -152,10 +152,9 @@ import {
 } from "deepcitation/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { visit } from "unist-util-visit";
 
-// Remark plugin — see Recipe 3 for implementation
-// remarkCitationMarkers()
+// remarkCitationMarkers — see Recipe 3 for the full implementation.
+// It replaces [N] text nodes with <citation-marker n="N"/> AST nodes.
 
 function MessageWithCitations({
   llmOutput,
