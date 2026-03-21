@@ -50,6 +50,11 @@ export const OVERLAY_COLOR = "rgba(26, 26, 26, 0.25)";
 /** Hex equivalent of OVERLAY_COLOR for contexts that need hex. */
 export const OVERLAY_COLOR_HEX = "#1a1a1a40";
 
+/** Light overlay for dark page content — white semi-transparent inverse of OVERLAY_COLOR. */
+export const OVERLAY_COLOR_LIGHT = "rgba(255, 255, 255, 0.25)";
+/** Hex equivalent of OVERLAY_COLOR_LIGHT for contexts that need hex. */
+export const OVERLAY_COLOR_LIGHT_HEX = "#ffffff40";
+
 /** Special amber accent behind anchorText when it differs from fullPhrase. */
 export const ANCHOR_HIGHLIGHT_COLOR = "rgba(251, 191, 36, 0.2)";
 /** Slightly more visible special-accent variant for dark-mode contexts. */
