@@ -2139,7 +2139,6 @@ export function InlineExpandedImage({
             >
               <img
                 ref={expandedImgRef}
-                crossOrigin="anonymous"
                 src={isValidProofImageSrc(src) ? src : undefined}
                 alt={t("aria.verificationEvidence")}
                 className={cn("block", DOCUMENT_IMAGE_EDGE_CLASSES, !imageLoaded && "hidden")}

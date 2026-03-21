@@ -78,8 +78,10 @@ function sampleBorderLuminance(
  * Returns true when the image content around the spotlight region is dark
  * and the overlay should use a light color instead of the default dark one.
  *
- * Accepts the image element directly (from a ref). Recomputes only when
- * the image or phrase item changes. Returns false on any error.
+ * Creates a detached CORS probe image to sample pixels without adding
+ * `crossOrigin` to the displayed `<img>` (which would break loading for
+ * servers that don't send CORS headers). If the probe fails (no CORS),
+ * returns false (light overlay default).
  */
 export function useImageDarkness(
   img: HTMLImageElement | null,
@@ -93,7 +95,7 @@ export function useImageDarkness(
   const scaleY = renderScale?.y ?? null;
 
   useEffect(() => {
-    if (!img || !imageLoaded || !phraseItem) {
+    if (!img || !imageLoaded || !phraseItem || !img.src) {
       setIsDark(false);
       return;
     }
@@ -107,8 +109,21 @@ export function useImageDarkness(
     const spotW = phraseItem.width * sx + 2 * pad;
     const spotH = phraseItem.height * sy + 2 * pad;
 
-    const lum = sampleBorderLuminance(img, spotX, spotY, spotW, spotH);
-    setIsDark(lum !== null && lum < DARK_THRESHOLD);
+    // Load a separate CORS-enabled probe image. The browser will serve it
+    // from cache (same URL), but the crossOrigin flag makes the canvas
+    // readable. If the server lacks CORS headers, the probe's onerror fires
+    // and we gracefully keep the default light overlay — the displayed
+    // image (without crossOrigin) is unaffected.
+    const probe = new Image();
+    probe.crossOrigin = "anonymous";
+    probe.onload = () => {
+      const lum = sampleBorderLuminance(probe, spotX, spotY, spotW, spotH);
+      setIsDark(lum !== null && lum < DARK_THRESHOLD);
+    };
+    probe.onerror = () => {
+      setIsDark(false);
+    };
+    probe.src = img.src;
   }, [img, imageLoaded, phraseItem, scaleX, scaleY]);
 
   return isDark;

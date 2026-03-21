@@ -99,7 +99,7 @@ export function getDisplayText(
 
   if (content === "anchorText") {
     if (displayLabel) {
-      return stripBrackets(displayLabel);
+      return displayLabel;
     }
     const raw = citation.anchorText?.toString() || citation.citationNumber?.toString() || fallbackDisplay || "1";
     return stripBrackets(raw);
