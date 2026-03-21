@@ -306,7 +306,7 @@ function MessageWithCitations({
 
   // Render markdown with inline citation components
   const plugins = useMemo(() => [remarkGfm, remarkCitationMarkers], []);
-  const components: Components = useMemo(() => ({
+  const components = useMemo(() => ({
     // @ts-expect-error — custom element injected by remarkCitationMarkers
     "citation-marker": ({ n }: { n: string }) => {
       const key = result.markerMap[Number(n)];

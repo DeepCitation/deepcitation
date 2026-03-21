@@ -10,7 +10,6 @@ import {
 } from "deepcitation/react";
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CONTINUE, visit } from "unist-util-visit";
 
@@ -181,7 +180,7 @@ function MarkdownWithCitations({
 }: MarkdownWithCitationsProps) {
   const plugins = useMemo(() => [remarkGfm, remarkCitationMarkers], []);
 
-  const components: Components = useMemo(() => ({
+  const components = useMemo(() => ({
     // @ts-expect-error — custom element injected by remarkCitationMarkers
     "citation-marker": ({ n }: { n: string }) => {
       const key = markerMap[Number(n)];
