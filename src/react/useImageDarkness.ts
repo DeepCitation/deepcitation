@@ -2,7 +2,7 @@
  * Hook that samples the image region around the spotlight cutout to detect
  * whether the page content is dark, so the overlay can flip to a light color.
  */
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { BOX_PADDING, SPOTLIGHT_PADDING } from "../drawing/citationDrawing.js";
 import type { DeepTextItem } from "../types/boxes.js";
 
@@ -87,21 +87,29 @@ export function useImageDarkness(
   phraseItem: DeepTextItem | null,
   renderScale: { x: number; y: number } | null,
 ): boolean {
-  return useMemo(() => {
-    if (!img || !imageLoaded || !phraseItem) return false;
+  const [isDark, setIsDark] = useState(false);
+
+  const scaleX = renderScale?.x ?? null;
+  const scaleY = renderScale?.y ?? null;
+
+  useEffect(() => {
+    if (!img || !imageLoaded || !phraseItem) {
+      setIsDark(false);
+      return;
+    }
 
     // Compute spotlight rect in natural-image-pixel coordinates.
-    // Fall back to 1:1 scale when renderScale is not yet available.
-    const scale = renderScale || { x: 1, y: 1 };
+    const sx = scaleX ?? 1;
+    const sy = scaleY ?? 1;
     const pad = BOX_PADDING + SPOTLIGHT_PADDING;
-    const spotX = phraseItem.x * scale.x - pad;
-    const spotY = phraseItem.y * scale.y - pad;
-    const spotW = phraseItem.width * scale.x + 2 * pad;
-    const spotH = phraseItem.height * scale.y + 2 * pad;
+    const spotX = phraseItem.x * sx - pad;
+    const spotY = phraseItem.y * sy - pad;
+    const spotW = phraseItem.width * sx + 2 * pad;
+    const spotH = phraseItem.height * sy + 2 * pad;
 
     const lum = sampleBorderLuminance(img, spotX, spotY, spotW, spotH);
-    if (lum === null) return false;
+    setIsDark(lum !== null && lum < DARK_THRESHOLD);
+  }, [img, imageLoaded, phraseItem, scaleX, scaleY]);
 
-    return lum < DARK_THRESHOLD;
-  }, [img, imageLoaded, phraseItem, renderScale]);
+  return isDark;
 }

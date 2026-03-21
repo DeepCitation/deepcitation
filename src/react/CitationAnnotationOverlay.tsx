@@ -139,7 +139,7 @@ export function CitationAnnotationOverlay({
   fullPhrase,
   additionalHighlights,
   onDismiss,
-  isDark
+  isDark,
 }: {
   phraseMatchDeepItem: DeepTextItem;
   renderScale: { x: number; y: number };

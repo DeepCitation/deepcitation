@@ -289,6 +289,7 @@ function ClaimQuote({
   isMiss: boolean;
   borderColor: string;
   maxWidth?: string;
+  /** Pre-translated annotation via t("popover.displayedAs"). */
   displayLabelAnnotation?: string;
 }) {
   return (
@@ -301,9 +302,7 @@ function ClaimQuote({
     >
       <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
       {displayLabelAnnotation && (
-        <div className="mt-1 text-[11px] text-dc-subtle-foreground">
-          {displayLabelAnnotation}
-        </div>
+        <div className="mt-1 text-[11px] text-dc-subtle-foreground">{displayLabelAnnotation}</div>
       )}
     </div>
   );
@@ -1101,7 +1100,9 @@ export function DefaultPopoverContent({
                   isMiss={isMiss}
                   borderColor={claimBorderColor}
                   maxWidth={viewState === "summary" ? summaryWidth : undefined}
-                  displayLabelAnnotation={showDisplayLabelAnnotation ? t("popover.displayedAs", { label: displayLabel }) : undefined}
+                  displayLabelAnnotation={
+                    showDisplayLabelAnnotation ? t("popover.displayedAs", { label: displayLabel }) : undefined
+                  }
                 />
               )}
             </AnimatedHeightWrapper>
