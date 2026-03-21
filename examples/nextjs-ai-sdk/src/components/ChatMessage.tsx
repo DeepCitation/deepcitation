@@ -12,7 +12,7 @@ import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { visit } from "unist-util-visit";
+import { CONTINUE, visit } from "unist-util-visit";
 
 interface ChatMessageProps {
   message: {
@@ -156,6 +156,7 @@ function remarkCitationMarkers() {
         });
 
       parent.children.splice(index, 1, ...(newNodes as typeof parent.children));
+      return [CONTINUE, index + newNodes.length] as const;
     });
   };
 }

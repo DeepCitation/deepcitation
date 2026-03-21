@@ -34,7 +34,7 @@ export const RECIPE_REACT_INLINE = `import { CitationComponent } from "deepcitat
 import { parseCitationResponse } from "deepcitation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { visit } from "unist-util-visit";
+import { CONTINUE, visit } from "unist-util-visit";
 
 // Remark plugin — replaces [N] text with custom AST nodes
 function remarkCitationMarkers() {
@@ -49,6 +49,7 @@ function remarkCitationMarkers() {
         return { type: "text", value: part };
       });
       parent.children.splice(index, 1, ...newNodes);
+      return [CONTINUE, index + newNodes.length];
     });
   };
 }

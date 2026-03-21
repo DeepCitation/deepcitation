@@ -98,7 +98,7 @@ import { CitationComponent } from "deepcitation/react";
 import { parseCitationResponse } from "deepcitation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { visit } from "unist-util-visit"; // transitive dep of react-markdown
+import { CONTINUE, visit } from "unist-util-visit";
 
 // Remark plugin — replaces [N] text with custom AST nodes
 function remarkCitationMarkers() {
@@ -113,6 +113,7 @@ function remarkCitationMarkers() {
         return { type: "text", value: part };
       });
       parent.children.splice(index, 1, ...newNodes);
+      return [CONTINUE, index + newNodes.length];
     });
   };
 }
@@ -260,7 +261,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { visit } from "unist-util-visit"; // transitive dep of react-markdown
+import { CONTINUE, visit } from "unist-util-visit";
 
 // Remark plugin — replaces [N] in text nodes with custom AST nodes,
 // keeping markdown formatting (bold, lists, etc.) intact.
@@ -277,6 +278,7 @@ function remarkCitationMarkers() {
         return { type: "text", value: part };
       });
       parent.children.splice(index, 1, ...newNodes);
+      return [CONTINUE, index + newNodes.length];
     });
   };
 }
@@ -653,7 +655,7 @@ import type { VerificationRecord } from "deepcitation";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { visit } from "unist-util-visit"; // transitive dep of react-markdown
+import { CONTINUE, visit } from "unist-util-visit";
 
 // See Recipe 3 above for the remarkCitationMarkers plugin implementation.
 

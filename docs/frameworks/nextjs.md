@@ -311,7 +311,7 @@ import { parseCitationResponse, type Citation, type Verification } from "deepcit
 import { CitationComponent } from "deepcitation/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { visit } from "unist-util-visit"; // transitive dep of react-markdown
+import { CONTINUE, visit } from "unist-util-visit";
 
 // Remark plugin — replaces [N] in text nodes with custom AST nodes,
 // keeping markdown formatting (bold, lists, etc.) intact.
@@ -329,6 +329,7 @@ function remarkCitationMarkers() {
         return { type: "text", value: part };
       });
       parent.children.splice(index, 1, ...newNodes);
+      return [CONTINUE, index + newNodes.length];
     });
   };
 }
