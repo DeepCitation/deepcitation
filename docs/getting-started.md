@@ -125,6 +125,7 @@ for (const [key, result] of Object.entries(verifications)) {
 
 Use a remark plugin to replace `[N]` markers inline — this preserves markdown formatting (bold, lists, headers) that the old split approach would break. See [INTEGRATION.md Recipe 3](../INTEGRATION.md#recipe-3--render-react-citationcomponent-inline) for the full `remarkCitationMarkers` plugin.
 
+{% raw %}
 ```tsx
 import { parseCitationResponse } from "deepcitation";
 import { CitationComponent } from "deepcitation/react";
@@ -149,6 +150,7 @@ return (
   </ReactMarkdown>
 );
 ```
+{% endraw %}
 
 ---
 

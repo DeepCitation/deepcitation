@@ -285,6 +285,7 @@ export default function Chat() {
 
 Once you have `citations` and `verifications` for a message, replace `[N]` citation markers with `CitationComponent`. This must be in a `"use client"` file.
 
+{% raw %}
 ```tsx
 "use client";
 
@@ -342,6 +343,7 @@ function MessageContent({
   );
 }
 ```
+{% endraw %}
 
 ---
 

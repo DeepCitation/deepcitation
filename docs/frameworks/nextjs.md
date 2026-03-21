@@ -303,6 +303,7 @@ Use `useEffectEvent` for the verification handler so it captures the latest `fil
 
 In your chat message component:
 
+{% raw %}
 ```tsx
 "use client";
 
@@ -361,6 +362,7 @@ function RenderWithCitations({
   );
 }
 ```
+{% endraw %}
 
 ---
 
