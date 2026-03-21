@@ -4,14 +4,14 @@ Complete, runnable examples demonstrating DeepCitation integration patterns.
 
 ## Examples
 
-| Example | Description | Best For |
-|---------|-------------|----------|
-| [**basic-verification**](./basic-verification) | Core 3-step workflow with OpenAI/Anthropic | Learning the basics, quick integration |
-| [**langchain-rag-chat**](./langchain-rag-chat) | Next.js + LangChain.js RAG app with DeepCitation verification | RAG pipelines, retrieval + proof UI |
-| [**mastra-rag-chat**](./mastra-rag-chat) | Next.js + Mastra RAG app with DeepCitation verification | Mastra framework, TypeScript-native RAG |
-| [**nextjs-ai-sdk**](./nextjs-ai-sdk) | Next.js chat app with Vercel AI SDK | Full-stack apps, streaming UI |
-| [**agui-chat**](./agui-chat) | AG-UI protocol chat with SSE streaming | AG-UI integration, protocol-level control |
-| [**static-html**](./static-html) | CDN popover in plain HTML, no build step | Static sites, CDN integration |
+| Example | Description | Best For | Demo |
+|---------|-------------|----------|------|
+| [**basic-verification**](./basic-verification) | Core 3-step workflow with OpenAI/Anthropic | Learning the basics, quick integration | — |
+| [**langchain-rag-chat**](./langchain-rag-chat) | Next.js + LangChain.js RAG app with DeepCitation verification | RAG pipelines, retrieval + proof UI | [Live Demo](https://langchain-rag-chat-deepcitation.vercel.app/) |
+| [**mastra-rag-chat**](./mastra-rag-chat) | Next.js + Mastra RAG app with DeepCitation verification | Mastra framework, TypeScript-native RAG | [Live Demo](https://mastra-rag-deepcitation.vercel.app/) |
+| [**nextjs-ai-sdk**](./nextjs-ai-sdk) | Next.js chat app with Vercel AI SDK | Full-stack apps, streaming UI | — |
+| [**agui-chat**](./agui-chat) | AG-UI protocol chat with SSE streaming | AG-UI integration, protocol-level control | [Live Demo](https://agui-chat-deepcitation.vercel.app/) |
+| [**static-html**](./static-html) | CDN popover in plain HTML, no build step | Static sites, CDN integration | — |
 
 ## Quick Start
 
