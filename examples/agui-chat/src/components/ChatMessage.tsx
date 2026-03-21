@@ -174,7 +174,6 @@ function MarkdownWithCitations({
   const plugins = useMemo(() => [remarkGfm, remarkCitationMarkers], []);
 
   const components = useMemo(() => ({
-    // @ts-expect-error — custom element injected by remarkCitationMarkers
     "citation-marker": ({ n }: { n: string }) => {
       const key = markerMap[Number(n)];
       const citation = key ? (citations[key] ?? parsedCitations[key]) : null;
