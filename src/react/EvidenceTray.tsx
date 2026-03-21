@@ -60,6 +60,7 @@ import { handleImageError } from "./imageUtils.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "./overlayGeometry.js";
 import { buildSearchNarrative } from "./searchNarrative.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
+import { useImageDarkness } from "./useImageDarkness.js";
 import { cn } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
 import { DC_EVIDENCE_VT_NAME, primeEvidencePageExpandSource } from "./viewTransition.js";
@@ -1407,6 +1408,9 @@ export function InlineExpandedImage({
   const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
   const effectiveAnchorItem = anchorItem ?? verification?.document?.anchorTextMatchDeepItems?.[0] ?? null;
 
+  // Detect dark page content so the overlay can flip to a light color.
+  const isDarkContent = useImageDarkness(expandedImgRef.current, imageLoaded, effectivePhraseItem, renderScale ?? null);
+
   // Anchor-aware scroll/zoom target: when anchor text is highlighted, center on it
   // instead of the (potentially wider) full phrase box.
   const vAnchor = verification?.verifiedAnchorText;
@@ -2173,6 +2177,7 @@ export function InlineExpandedImage({
                     anchorText={verification?.verifiedAnchorText}
                     fullPhrase={verification?.verifiedFullPhrase}
                     onDismiss={fill ? handleOverlayDismiss : undefined}
+                    isDark={isDarkContent}
                   />
                 )}
               {/* View Transition anchor: positioned at the annotation rect so the

@@ -796,14 +796,15 @@ export function StatusHeader({
     <div className={cn("flex items-center justify-between gap-2 text-sm", compact ? "px-3 pt-2.5" : "px-4 pt-3")}>
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {indicatorVariant === "dot" ? (
-          <span
-            className={cn(
-              "size-2.5 rounded-full shrink-0",
-              DOT_COLORS[colorScheme],
-              colorScheme === "gray" && "animate-pulse",
-            )}
-            aria-hidden="true"
-          />
+          <span className="size-4 flex items-center justify-center shrink-0 -ml-px" aria-hidden="true">
+            <span
+              className={cn(
+                "size-2.5 rounded-full",
+                DOT_COLORS[colorScheme],
+                colorScheme === "gray" && "animate-pulse",
+              )}
+            />
+          </span>
         ) : indicatorVariant === "icon" ? (
           <span className={cn("size-4 max-w-4 max-h-4 shrink-0", ICON_COLOR_CLASSES[colorScheme])}>
             {IconComponent && <IconComponent />}

@@ -91,12 +91,16 @@ export function getDisplayText(
   citation: BaseCitationProps["citation"],
   content: CitationContent,
   fallbackDisplay?: string | null,
+  displayLabel?: string,
 ): string {
   if (content === "indicator") {
     return "";
   }
 
   if (content === "anchorText") {
+    if (displayLabel) {
+      return displayLabel;
+    }
     const raw = citation.anchorText?.toString() || citation.citationNumber?.toString() || fallbackDisplay || "1";
     return stripBrackets(raw);
   }

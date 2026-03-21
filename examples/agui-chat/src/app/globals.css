@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "deepcitation/tailwind.css";
 
+@source "../../node_modules/deepcitation/lib/react";
 @source "../../components/**/*.{js,ts,jsx,tsx}";
 @source "../**/*.{js,ts,jsx,tsx}";
 

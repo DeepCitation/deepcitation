@@ -6,6 +6,7 @@ import {
   computeKeySpanHighlight,
   getBracketWidth,
   OVERLAY_COLOR,
+  OVERLAY_COLOR_LIGHT,
   SPOTLIGHT_BORDER_RADIUS,
   SPOTLIGHT_PADDING,
 } from "../drawing/citationDrawing.js";
@@ -138,6 +139,7 @@ export function CitationAnnotationOverlay({
   fullPhrase,
   additionalHighlights,
   onDismiss,
+  isDark,
 }: {
   phraseMatchDeepItem: DeepTextItem;
   renderScale: { x: number; y: number };
@@ -151,8 +153,11 @@ export function CitationAnnotationOverlay({
   additionalHighlights?: AdditionalHighlight[];
   /** When provided, renders a dismiss button at the spotlight top-right corner. */
   onDismiss?: () => void;
+  /** When true, uses a light overlay for dark page content. */
+  isDark?: boolean;
 }) {
   const t = useTranslation();
+
   const rect = toPercentRect(phraseMatchDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight);
   // Bail out if geometry is invalid (zero dimensions, NaN, Infinity, etc.)
   if (!rect) return null;
@@ -212,7 +217,6 @@ export function CitationAnnotationOverlay({
     showKeySpanHighlight && anchorTextDeepItem
       ? toPercentRect(anchorTextDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight)
       : null;
-
   return (
     <div
       data-dc-annotation-overlay=""
@@ -229,7 +233,7 @@ export function CitationAnnotationOverlay({
         style={{
           position: "absolute",
           ...spotlightRect,
-          boxShadow: `0 0 0 9999px ${OVERLAY_COLOR}`,
+          boxShadow: `0 0 0 9999px ${isDark ? OVERLAY_COLOR_LIGHT : OVERLAY_COLOR}`,
           ...NONE,
         }}
       />
@@ -305,7 +309,7 @@ export function CitationAnnotationOverlay({
             left: `min(calc(100% - ${DISMISS_BUTTON_SIZE_PX}px), calc(${spotlightRect.left} + ${spotlightRect.width} - ${DISMISS_BUTTON_HALF_PX}px))`,
             pointerEvents: "auto",
           }}
-          className={`size-7 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white/90 hover:bg-black/70 active:bg-black/80 transition-colors shadow-md cursor-pointer ${HITBOX_EXTEND_8}`}
+          className={`size-7 flex items-center justify-center rounded-full backdrop-blur-sm transition-colors shadow-md cursor-pointer ${isDark ? "bg-white/50 text-black/90 hover:bg-white/70 active:bg-white/80" : "bg-black/50 text-white/90 hover:bg-black/70 active:bg-black/80"} ${HITBOX_EXTEND_8}`}
           aria-label={t("aria.hideOverlay")}
         >
           <span className="size-4.5 flex items-center justify-center">
