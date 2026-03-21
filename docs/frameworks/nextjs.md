@@ -303,47 +303,61 @@ Use `useEffectEvent` for the verification handler so it captures the latest `fil
 
 In your chat message component:
 
-```typescript
+```tsx
 "use client";
 
 import { parseCitationResponse, type Citation, type Verification } from "deepcitation";
 import { CitationComponent } from "deepcitation/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { visit } from "unist-util-visit"; // transitive dep of react-markdown
+
+// Remark plugin — replaces [N] in text nodes with custom AST nodes,
+// keeping markdown formatting (bold, lists, etc.) intact.
+// See INTEGRATION.md Recipe 3 for details.
+const MARKER_RE = /(\[\d+\])/g;
+function remarkCitationMarkers() {
+  return (tree: any) => {
+    visit(tree, "text", (node: any, index: any, parent: any) => {
+      if (index == null || !parent || !node.value) return;
+      const parts = node.value.split(MARKER_RE);
+      if (parts.length <= 1) return;
+      const newNodes = parts.filter(Boolean).map((part: string) => {
+        const m = part.match(/^\[(\d+)\]$/);
+        if (m) return { type: "citation-marker", data: { hName: "citation-marker", hProperties: { n: m[1] } } };
+        return { type: "text", value: part };
+      });
+      parent.children.splice(index, 1, ...newNodes);
+    });
+  };
+}
 
 // Replace [N] citation markers in LLM output with CitationComponent
-function renderWithCitations(
-  content: string,
-  citations: Record<string, Citation>,
-  verifications: Record<string, Verification>,
-): React.ReactNode {
+function RenderWithCitations({
+  content,
+  citations,
+  verifications,
+}: {
+  content: string;
+  citations: Record<string, Citation>;
+  verifications: Record<string, Verification>;
+}) {
   const result = parseCitationResponse(content);
 
-  if (result.format !== "numeric") {
-    return <span>{result.visibleText}</span>;
-  }
-
-  const segments = result.visibleText.split(result.splitPattern);
-
   return (
-    <>
-      {segments.map((seg, i) => {
-        const match = seg.match(/^\[(\d+)\]$/);
-        if (match) {
-          const key = result.markerMap[Number(match[1])];
-          if (!key) return <span key={`citation-${i}`}>{seg}</span>;
-          const citation = citations[key] ?? result.citations[key];
-          if (!citation) return <span key={`citation-${i}`}>{seg}</span>;
-          const verification = verifications[key];
-          return (
-            <CitationComponent
-              key={`citation-${i}`}
-              citation={citation}
-              verification={verification}
-            />
-          );
-        }
-        return <span key={i}>{seg}</span>;
-      })}
-    </>
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm, remarkCitationMarkers]}
+      components={{
+        "citation-marker": ({ n }: { n: string }) => {
+          const key = result.markerMap[Number(n)];
+          const citation = key ? (citations[key] ?? result.citations[key]) : null;
+          if (!key || !citation) return <sup>[{n}]</sup>;
+          return <CitationComponent citation={citation} verification={verifications[key]} />;
+        },
+      }}
+    >
+      {result.visibleText}
+    </ReactMarkdown>
   );
 }
 ```

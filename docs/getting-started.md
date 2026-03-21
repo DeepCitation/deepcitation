@@ -123,28 +123,30 @@ for (const [key, result] of Object.entries(verifications)) {
 
 ### Section 3: Render (React)
 
+Use a remark plugin to replace `[N]` markers inline — this preserves markdown formatting (bold, lists, headers) that the old split approach would break. See [INTEGRATION.md Recipe 3](../INTEGRATION.md#recipe-3--render-react-citationcomponent-inline) for the full `remarkCitationMarkers` plugin.
+
 ```tsx
 import { parseCitationResponse } from "deepcitation";
 import { CitationComponent } from "deepcitation/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-const { visibleText, citations, markerMap, splitPattern } = parseCitationResponse(llmOutput);
+const result = parseCitationResponse(llmOutput);
 
 return (
-  <p>
-    {visibleText.split(splitPattern).map((part, i) => {
-      const key = markerMap[Number(part.replace(/[\[\]]/g, ""))];
-      if (key) {
-        return (
-          <CitationComponent
-            key={`${key}-${i}`}
-            citation={citations[key]}
-            verification={verifications[key]}
-          />
-        );
-      }
-      return <span key={i}>{part}</span>;
-    })}
-  </p>
+  <ReactMarkdown
+    remarkPlugins={[remarkGfm, remarkCitationMarkers]}
+    components={{
+      "citation-marker": ({ n }) => {
+        const key = result.markerMap[Number(n)];
+        const citation = key ? result.citations[key] : null;
+        if (!key || !citation) return <sup>[{n}]</sup>;
+        return <CitationComponent citation={citation} verification={verifications[key]} />;
+      },
+    }}
+  >
+    {result.visibleText}
+  </ReactMarkdown>
 );
 ```
 

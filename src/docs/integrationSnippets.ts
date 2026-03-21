@@ -29,24 +29,45 @@ const text = extractVisibleText(llmResponse);
 // Render as markdown with bracket-style references
 const { markdown, references } = renderCitationsAsMarkdown(llmResponse, { variant: "brackets" });`;
 
-/** Recipe 3 — Render React <CitationComponent> inline */
+/** Recipe 3 — Render React <CitationComponent> inline with markdown support */
 export const RECIPE_REACT_INLINE = `import { CitationComponent } from "deepcitation/react";
-import { parseCitationResponse, getCitationKey } from "deepcitation";
+import { parseCitationResponse } from "deepcitation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { visit } from "unist-util-visit";
+
+// Remark plugin — replaces [N] text with custom AST nodes
+function remarkCitationMarkers() {
+  return (tree) => {
+    visit(tree, "text", (node, index, parent) => {
+      if (index == null || !parent || !node.value) return;
+      const parts = node.value.split(/(\\[\\d+\\])/g);
+      if (parts.length <= 1) return;
+      const newNodes = parts.filter(Boolean).map((part) => {
+        const m = part.match(/^\\[(\\d+)\\]$/);
+        if (m) return { type: "citation-marker", data: { hName: "citation-marker", hProperties: { n: m[1] } } };
+        return { type: "text", value: part };
+      });
+      parent.children.splice(index, 1, ...newNodes);
+    });
+  };
+}
 
 const result = parseCitationResponse(llmOutput);
-const segments = result.visibleText.split(result.splitPattern);
 
-const rendered = segments.map((seg, i) => {
-  if (result.format === "numeric") {
-    const match = seg.match(/^\\[(\\d+)\\]$/);
-    if (match) {
-      const key = result.markerMap[Number(match[1])];
-      if (!key) return <span key={i}>{seg}</span>;
-      return <CitationComponent key={i} citation={result.citations[key]} verification={verifications[key] ?? null} />;
-    }
-  }
-  return <span key={i}>{seg}</span>;
-});`;
+<ReactMarkdown
+  remarkPlugins={[remarkGfm, remarkCitationMarkers]}
+  components={{
+    "citation-marker": ({ n }) => {
+      const key = result.markerMap[Number(n)];
+      const citation = key ? result.citations[key] : null;
+      if (!key || !citation) return <sup>[{n}]</sup>;
+      return <CitationComponent citation={citation} verification={verifications[key] ?? null} />;
+    },
+  }}
+>
+  {result.visibleText}
+</ReactMarkdown>`;
 
 /** Recipe 4 — Verify and show status indicators (numeric format) */
 export const RECIPE_VERIFY_STATUS = `import { extractVisibleText, parseCitationData, replaceCitationMarkers } from "deepcitation";
@@ -118,17 +139,22 @@ async function analyzeDocument(filePath: string, question: string) {
 }`;
 
 /** Quick Start — React client side */
-export const QUICKSTART_REACT_CLIENT = `import { useState } from "react";
+export const QUICKSTART_REACT_CLIENT = `import { useState, useMemo } from "react";
 import { parseCitationResponse } from "deepcitation";
-import type { Citation, Verification } from "deepcitation";
+import type { Verification } from "deepcitation";
 import {
   CitationComponent,
   CitationDrawer,
   CitationDrawerTrigger,
-  getCitationKey,
   groupCitationsBySource,
   type CitationDrawerItem,
-} from "deepcitation";
+} from "deepcitation/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { visit } from "unist-util-visit";
+
+// Remark plugin — see Recipe 3 for implementation
+// remarkCitationMarkers()
 
 function MessageWithCitations({
   llmOutput,
@@ -138,7 +164,7 @@ function MessageWithCitations({
   verifications: Record<string, Verification>;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const result = parseCitationResponse(llmOutput);
+  const result = useMemo(() => parseCitationResponse(llmOutput), [llmOutput]);
   const citations = result.citations;
 
   // Build drawer items
@@ -151,26 +177,22 @@ function MessageWithCitations({
   );
   const citationGroups = groupCitationsBySource(drawerItems);
 
-  // Split text on [N] markers and render CitationComponent for each
-  const segments = result.visibleText.split(result.splitPattern);
-  const rendered = segments.map((seg, i) => {
-    const match = seg.match(/^\\[(\\d+)\\]$/);
-    if (match) {
-      const key = result.markerMap[Number(match[1])];
-      return (
-        <CitationComponent
-          key={i}
-          citation={citations[key]}
-          verification={verifications[key] ?? null}
-        />
-      );
-    }
-    return <span key={i}>{seg}</span>;
-  });
+  // Render markdown with inline citation components
+  const plugins = useMemo(() => [remarkGfm, remarkCitationMarkers], []);
+  const components = useMemo(() => ({
+    "citation-marker": ({ n }) => {
+      const key = result.markerMap[Number(n)];
+      const citation = key ? citations[key] : null;
+      if (!key || !citation) return <sup>[{n}]</sup>;
+      return <CitationComponent citation={citation} verification={verifications[key] ?? null} />;
+    },
+  }), [result.markerMap, citations, verifications]);
 
   return (
     <div>
-      <div>{rendered}</div>
+      <ReactMarkdown remarkPlugins={plugins} components={components}>
+        {result.visibleText}
+      </ReactMarkdown>
       {citationGroups.length > 0 && (
         <>
           <CitationDrawerTrigger
@@ -328,8 +350,12 @@ const verification = verifications[key] ?? null;`;
 
 /** Section 3.2 — Post-stream full response */
 export const DISPLAY_POST_STREAM = `import { CitationComponent } from "deepcitation/react";
-import { parseCitationResponse, getCitationKey } from "deepcitation";
-import type { CitationRecord, VerificationRecord } from "deepcitation";
+import { parseCitationResponse } from "deepcitation";
+import type { VerificationRecord } from "deepcitation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+// See Recipe 3 for the remarkCitationMarkers plugin implementation.
 
 function MessageWithCitations({
   llmOutput,
@@ -339,32 +365,20 @@ function MessageWithCitations({
   verifications: VerificationRecord;
 }) {
   const result = parseCitationResponse(llmOutput);
-  // result.format is "numeric" | "none"
 
-  if (result.format !== "numeric") {
-    return <p>{result.visibleText}</p>;
-  }
-
-  const segments = result.visibleText.split(result.splitPattern);
+  const components = {
+    "citation-marker": ({ n }) => {
+      const key = result.markerMap[Number(n)];
+      const citation = key ? result.citations[key] : null;
+      if (!key || !citation) return <sup>[{n}]</sup>;
+      return <CitationComponent citation={citation} verification={verifications[key] ?? null} />;
+    },
+  };
 
   return (
-    <p>
-      {segments.map((seg, i) => {
-        const match = seg.match(/^\\[(\\d+)\\]$/);
-        if (match) {
-          const key = result.markerMap[Number(match[1])];
-          if (!key) return <span key={i}>{seg}</span>;
-          return (
-            <CitationComponent
-              key={i}
-              citation={result.citations[key]}
-              verification={verifications[key] ?? null}
-            />
-          );
-        }
-        return <span key={i}>{seg}</span>;
-      })}
-    </p>
+    <ReactMarkdown remarkPlugins={[remarkGfm, remarkCitationMarkers]} components={components}>
+      {result.visibleText}
+    </ReactMarkdown>
   );
 }`;
 
