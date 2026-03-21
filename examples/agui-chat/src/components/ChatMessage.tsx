@@ -128,8 +128,8 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
 const MARKER_RE = /(\[\d+\])/g;
 
 function remarkCitationMarkers() {
-  return (tree: Parameters<Exclude<Parameters<typeof visit>[2], undefined>>[0]) => {
-    visit(tree, "text", (node: { type: string; value?: string }, index, parent) => {
+  return (tree: any) => {
+    visit(tree, "text", (node: any, index: any, parent: any) => {
       if (index == null || !parent || !node.value) return;
       const parts = node.value.split(MARKER_RE);
       if (parts.length <= 1) return;
