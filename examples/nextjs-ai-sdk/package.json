@@ -12,7 +12,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.7",
     "@ai-sdk/openai": "^3.0.9",
     "@ai-sdk/react": "^1.2.12",
     "deepcitation": "^0.2.2",

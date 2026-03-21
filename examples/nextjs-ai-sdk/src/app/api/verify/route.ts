@@ -1,7 +1,6 @@
 import { DeepCitation, getAllCitationsFromLlmOutput, getCitationStatus, sanitizeForLog } from "deepcitation";
 import { type NextRequest, NextResponse } from "next/server";
 
-// Check for API key at startup
 const apiKey = process.env.DEEPCITATION_API_KEY;
 if (!apiKey) {
   console.error(
@@ -11,11 +10,9 @@ if (!apiKey) {
 
 // Rate limiting is only applied on the /api/chat route. Verify is called as
 // part of the same user interaction, so rate-limiting here would double-count.
-// All demo users share a single endUserId — see corpusAttachment.ts
 const deepcitation = apiKey ? new DeepCitation({ apiKey, endUserId: "nextjs-ai-sdk" }) : null;
 
 export async function POST(req: NextRequest) {
-  console.log("🚀 /api/verify called");
   if (!deepcitation) {
     return NextResponse.json(
       {
@@ -37,13 +34,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { llmOutput, attachmentId } = body;
+    const { llmOutput } = body;
 
     // Extract citations from LLM output
     const citations = getAllCitationsFromLlmOutput(llmOutput);
     const citationCount = Object.keys(citations).length;
 
-    console.log(`📥 Found ${citationCount} citations in LLM output`);
+    console.log(`[verify] Found ${citationCount} citations in LLM output`);
 
     if (citationCount === 0) {
       return NextResponse.json({
@@ -53,68 +50,35 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // INTENTIONAL: Allow returning unverified citations if no attachmentId provided.
-    // This is a valid use case (extraction-only mode) and not a security bypass.
-    // lgtm[js/user-controlled-bypass]
-    // codeql[js/user-controlled-bypass]
-    if (!attachmentId) {
-      // No attachmentId - return citations without verification
-      return NextResponse.json({
-        citations,
-        verifications: {},
-        summary: {
-          total: citationCount,
-          verified: 0,
-          missed: 0,
-          pending: citationCount,
-        },
-      });
-    }
-
-    console.log("[verify] citations", citations);
-
-    // Verify citations against the source document
-    const result = await deepcitation.verifyAttachment(attachmentId, citations, {
-      outputImageFormat: "avif",
-    });
+    // Verify citations against all source documents
+    const result = await deepcitation.verify(
+      { llmOutput, outputImageFormat: "avif" },
+      citations,
+    );
 
     const { verifications } = result;
 
-    console.log("[verify] verifications", verifications);
-
-    // Log verification results and calculate summary in a single pass
-    // (Performance fix: avoid N+1 calls to getCitationStatus)
-    console.log("✨ Verification Results\n");
-
+    // Log verification results and calculate summary
     let verified = 0;
     let missed = 0;
     let pending = 0;
 
     for (const [key, verification] of Object.entries(verifications)) {
       const status = getCitationStatus(verification);
-
-      // Count by status
       if (status.isVerified) verified++;
       if (status.isMiss) missed++;
       if (status.isPending) pending++;
 
-      // Log with appropriate icon
       const statusIcon = status.isVerified ? (status.isPartialMatch ? "⚠️ " : "✅") : status.isPending ? "⏳" : "❌";
-
       console.log(`Citation [${key}]: ${statusIcon}`);
     }
 
-    console.log(`📊 Summary: ${verified} verified, ${missed} missed, ${pending} pending`);
+    console.log(`[verify] Summary: ${verified} verified, ${missed} missed, ${pending} pending`);
 
     return NextResponse.json({
       citations,
       verifications,
-      summary: {
-        total: citationCount,
-        verified,
-        missed,
-        pending,
-      },
+      summary: { total: citationCount, verified, missed, pending },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";

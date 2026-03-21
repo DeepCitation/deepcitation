@@ -28,7 +28,9 @@ const INDEX_NAME = "corpus";
 
 // Module-level singleton — fine for local dev; serverless cold starts rebuild the store,
 // and warm instances share it across requests (safe here since the store is read-only).
-let vectorStorePromise: Promise<LibSQLVector> | null = null;
+// Eagerly initialized so the vector store builds in parallel with attachment warmup,
+// cutting cold-start latency roughly in half vs. waiting for the first request.
+let vectorStorePromise: Promise<LibSQLVector> | null = openAiApiKey ? buildVectorStore() : null;
 const preparedAttachmentCache = new Map<
   string,
   Promise<{ attachmentId: string; deepTextPromptPortion: string }>
@@ -312,7 +314,15 @@ export function summarizeVerifications(summaryInput: ChatResponse["verifications
 export async function answerQuestion(question: string): Promise<ChatResponse> {
   const dc = getRequiredClient();
   const openAiClient = getRequiredOpenAiClient();
+
+  // Ensure all attachment warmups are resolved before we need them. On warm
+  // instances the promises are already settled; on cold starts this runs in
+  // parallel with retrieveSources below, so neither blocks the other.
+  const allAttachmentsReady = Promise.all(CORPUS_SOURCES.map(source => getAttachmentPromise(dc, source)));
+
   const retrievedSources = await retrieveSources(question);
+  await allAttachmentsReady;
+
   const sourceDefs = retrievedSources.map(source => getSourceById(source.sourceId));
   const preparedSources = await Promise.all(sourceDefs.map(source => getAttachmentPromise(dc, source)));
 

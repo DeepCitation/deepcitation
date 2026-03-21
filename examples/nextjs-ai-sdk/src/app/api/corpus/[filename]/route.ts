@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CORPUS_SOURCE } from "@/lib/corpus";
+import { CORPUS_SOURCES } from "@/lib/corpus";
 
 export async function GET(
   _request: Request,
@@ -7,9 +7,10 @@ export async function GET(
 ) {
   const { filename } = await params;
 
-  if (filename !== CORPUS_SOURCE.filename) {
+  const source = CORPUS_SOURCES.find((s) => s.filename === filename);
+  if (!source) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.redirect(CORPUS_SOURCE.url);
+  return NextResponse.redirect(source.url);
 }

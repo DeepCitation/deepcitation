@@ -1,6 +1,7 @@
 "use client";
 
 import { parseCitationResponse } from "deepcitation";
+import type { Citation, Verification } from "deepcitation";
 import {
   CitationComponent,
   CitationDrawer,
@@ -10,7 +11,9 @@ import {
 import type { CitationDrawerItem } from "deepcitation/react";
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { visit } from "unist-util-visit";
 import type { ConversationMessage } from "@/lib/types";
 
 interface ChatMessageProps {
@@ -52,10 +55,18 @@ export function ChatMessage({ message }: ChatMessageProps) {
           <p className="m-0 whitespace-pre-wrap">{message.content}</p>
         ) : (
           <>
-            <div>
-              {parsed
-                ? renderParsedContent(parsed, message.citations ?? {}, message.verifications ?? {})
-                : <p>{message.content}</p>}
+            <div className="prose">
+              {parsed ? (
+                <MarkdownWithCitations
+                  visibleText={parsed.visibleText}
+                  markerMap={parsed.markerMap}
+                  parsedCitations={parsed.citations}
+                  citations={message.citations ?? {}}
+                  verifications={message.verifications ?? {}}
+                />
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+              )}
             </div>
 
             {citationGroups.length > 0 ? (
@@ -119,44 +130,71 @@ export function LoadingSkeleton() {
   );
 }
 
-function renderParsedContent(
-  parsed: ReturnType<typeof parseCitationResponse>,
-  citations: ConversationMessage["citations"] = {},
-  verifications: ConversationMessage["verifications"] = {},
-): React.ReactNode {
-  const pieces = parsed.visibleText.split(parsed.splitPattern);
+// ---------------------------------------------------------------------------
+// Remark plugin: find `[N]` citation markers in text nodes and replace them
+// with custom `citation-marker` MDAST nodes so the full markdown AST stays
+// intact (bold, lists, etc. are never broken by the split).
+// ---------------------------------------------------------------------------
+const MARKER_RE = /(\[\d+\])/g;
+
+function remarkCitationMarkers() {
+  return (tree: Parameters<Exclude<Parameters<typeof visit>[2], undefined>>[0]) => {
+    visit(tree, "text", (node: { type: string; value?: string }, index, parent) => {
+      if (index == null || !parent || !node.value) return;
+      const parts = node.value.split(MARKER_RE);
+      if (parts.length <= 1) return;
+
+      const newNodes = parts
+        .filter(Boolean)
+        .map((part: string) => {
+          const m = part.match(/^\[(\d+)\]$/);
+          if (m) {
+            return {
+              type: "citation-marker" as const,
+              data: { hName: "citation-marker", hProperties: { n: m[1] } },
+            };
+          }
+          return { type: "text" as const, value: part };
+        });
+
+      parent.children.splice(index, 1, ...(newNodes as typeof parent.children));
+    });
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Single-pass markdown renderer that keeps citation markers inline.
+// ---------------------------------------------------------------------------
+interface MarkdownWithCitationsProps {
+  visibleText: string;
+  markerMap: Record<number, string>;
+  parsedCitations: Record<string, Citation>;
+  citations: Record<string, Citation>;
+  verifications: Record<string, Verification>;
+}
+
+function MarkdownWithCitations({
+  visibleText,
+  markerMap,
+  parsedCitations,
+  citations,
+  verifications,
+}: MarkdownWithCitationsProps) {
+  const plugins = useMemo(() => [remarkGfm, remarkCitationMarkers], []);
+
+  const components: Components = useMemo(() => ({
+    // @ts-expect-error — custom element injected by remarkCitationMarkers
+    "citation-marker": ({ n }: { n: string }) => {
+      const key = markerMap[Number(n)];
+      const citation = key ? (citations[key] ?? parsedCitations[key]) : null;
+      if (!key || !citation) return <sup>[{n}]</sup>;
+      return <CitationComponent citation={citation} verification={verifications[key]} />;
+    },
+  }), [markerMap, citations, parsedCitations, verifications]);
 
   return (
-    <>
-      {pieces.map((piece, index) => {
-        const markerMatch = piece.match(/^\[(\d+)\]$/);
-        if (markerMatch) {
-          const key = parsed.markerMap[Number(markerMatch[1])];
-          const citation = key ? (citations?.[key] ?? parsed.citations[key]) : null;
-
-          if (!key || !citation) {
-            return <span key={`marker-${index}`}>{piece}</span>;
-          }
-
-          return (
-            <CitationComponent
-              key={`marker-${index}`}
-              citation={citation}
-              verification={verifications?.[key]}
-            />
-          );
-        }
-
-        return (
-          <ReactMarkdown
-            key={`text-${index}`}
-            remarkPlugins={[remarkGfm]}
-            components={{ p: ({ children }) => <span>{children}</span> }}
-          >
-            {piece}
-          </ReactMarkdown>
-        );
-      })}
-    </>
+    <ReactMarkdown remarkPlugins={plugins} components={components}>
+      {visibleText}
+    </ReactMarkdown>
   );
 }

@@ -1,18 +1,9 @@
-import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { sanitizeForLog, wrapCitationPrompt } from "deepcitation";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 export const maxDuration = 60;
-
-// Available models - using fast/cheap models for examples
-const MODELS = {
-  openai: openai("gpt-5-mini"),
-  gemini: google("gemini-2.0-flash-lite"),
-} as const;
-
-type ModelProvider = keyof typeof MODELS;
 
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
@@ -41,18 +32,13 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const { messages, provider = "openai", fileDataParts: clientFileDataParts = [], deepTextPromptPortions = [] } = body;
-
-  console.log("[Chat API] Received messages:", JSON.stringify(messages?.slice(-1), null, 2));
+  const { messages, fileDataParts: clientFileDataParts = [], deepTextPromptPortions = [] } = body;
 
   const fileDataParts: Array<{ attachmentId: string; filename?: string }> = clientFileDataParts;
-
-  // deepTextPromptPortions is passed from the client (accumulated per upload)
   const deepTextPromptPortion: string[] = deepTextPromptPortions;
-
   const hasDocuments = fileDataParts.length > 0;
 
-  console.log(`[Chat API] ${fileDataParts.length} files, provider=${sanitizeForLog(provider)}`);
+  console.log(`[Chat API] ${fileDataParts.length} files`);
 
   // Helper to extract text content from UI message parts
   const getMessageContent = (msg: UIMessage): string => {
@@ -68,7 +54,7 @@ export async function POST(req: Request) {
   const lastUserContent = lastUserMessage ? getMessageContent(lastUserMessage) : "";
 
   // Prepare system prompt
-  const baseSystemPrompt = `You are a helpful assistant that answers questions accurately.`;
+  const baseSystemPrompt = `You are a helpful assistant that answers questions accurately. Cite every factual claim.`;
 
   // Enhance prompts with citation instructions if documents are uploaded
   const { enhancedSystemPrompt, enhancedUserPrompt } = hasDocuments
@@ -86,7 +72,6 @@ export async function POST(req: Request) {
   const uiMessages = messages as UIMessage[];
   const enhancedUIMessages = uiMessages.map((m, i) => {
     if (i === uiMessages.length - 1 && m.role === "user" && hasDocuments) {
-      // Replace the text content with enhanced version
       return {
         ...m,
         parts: [{ type: "text" as const, text: enhancedUserPrompt }],
@@ -95,16 +80,10 @@ export async function POST(req: Request) {
     return m;
   });
 
-  // Convert to model messages (async in AI SDK v6)
   const modelMessages = await convertToModelMessages(enhancedUIMessages);
 
-  // Validate and select model based on provider
-  const validatedProvider: ModelProvider = (provider in MODELS) ? provider as ModelProvider : "openai";
-  const selectedModel = MODELS[validatedProvider];
-
-  // Stream the response
   const result = streamText({
-    model: selectedModel,
+    model: openai("gpt-5-mini"),
     system: enhancedSystemPrompt,
     messages: modelMessages,
   });
