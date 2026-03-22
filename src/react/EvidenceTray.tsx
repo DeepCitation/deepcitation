@@ -1152,7 +1152,7 @@ export function EvidenceTray({
           src={resolvedEvidenceSrc}
           verification={verification}
           onImageClick={onImageClick}
-          onPageExpand={handlePageExpand}
+          onPageExpand={onExpand ? handlePageExpand : undefined}
           onKeyholeWidth={onKeyholeWidth}
           onScrollCapture={onScrollCapture}
           pageExpandSourceRef={pageExpandSourceRef}
@@ -1162,7 +1162,7 @@ export function EvidenceTray({
           key={pageImageSrc}
           src={pageImageSrc}
           onImageClick={onImageClick}
-          onPageExpand={handlePageExpand}
+          onPageExpand={onExpand ? handlePageExpand : undefined}
           onKeyholeWidth={onKeyholeWidth}
           onScrollCapture={onScrollCapture}
           pageExpandSourceRef={pageExpandSourceRef}

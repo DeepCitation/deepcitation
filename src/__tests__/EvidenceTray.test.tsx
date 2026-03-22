@@ -291,12 +291,13 @@ describe("EvidenceTray interaction styles", () => {
     setKeyholeViewportSize(container, 500, 100);
     fireKeyholeImageLoad(container, 800, 200);
 
-    // When the image fits completely, the keyhole redirects to page-expand
-    // (handlePageExpand is always passed internally). onImageClick is suppressed.
+    // When the image fits completely and there is no page to expand to,
+    // the keyhole shows "already full size" — no zoom-in cursor, no click action.
     await waitFor(() => {
       const strip = container.querySelector("[data-dc-keyhole]");
       const button = strip?.closest("button");
-      expect(button).toHaveAttribute("aria-label", "Click to view full page");
+      expect(button?.style.cursor).toBe("default");
+      expect(button?.getAttribute("title")).toBe("Already full size");
     });
 
     clickKeyholeButton(container);
