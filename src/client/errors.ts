@@ -22,12 +22,16 @@ export class DeepCitationError extends Error {
   /** HTTP status code if applicable */
   readonly statusCode?: number;
 
+  /** Link to documentation for this error code */
+  readonly docUrl: string;
+
   constructor(message: string, code: string, isRetryable: boolean, statusCode?: number) {
     super(message);
     this.name = "DeepCitationError";
     this.code = code;
     this.isRetryable = isRetryable;
     this.statusCode = statusCode;
+    this.docUrl = `https://docs.deepcitation.com/errors#${code}`;
   }
 }
 

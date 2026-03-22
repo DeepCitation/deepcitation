@@ -24,6 +24,7 @@ DeepCitation works with any LLM provider or framework. These guides show the exa
 | [LangChain]({{ site.baseurl }}/frameworks/langchain) | Backend RAG pipelines — legal, medical, financial AI |
 | [Next.js App Router]({{ site.baseurl }}/frameworks/nextjs) | Full-stack apps with React Server Components + streaming |
 | [Vercel AI SDK]({{ site.baseurl }}/frameworks/vercel-ai-sdk) | `useChat` / `streamText` apps on Vercel infrastructure |
+| [Express.js]({{ site.baseurl }}/frameworks/express) | Node.js REST APIs with upload, chat, and verification routes |
 
 ---
 

@@ -497,7 +497,7 @@ export function SourceContextHeader({
               <DocumentIcon />
             </span>
             {displayName && (
-              <span className="text-xs font-medium text-dc-foreground truncate max-w-[280px]">{displayName}</span>
+              <span className="text-xs font-medium text-dc-foreground truncate max-w-[360px]">{displayName}</span>
             )}
           </>
         )}

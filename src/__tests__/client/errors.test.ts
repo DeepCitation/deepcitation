@@ -27,6 +27,11 @@ describe("DeepCitationError", () => {
     const error = new DeepCitationError("Test", "CODE", false, 400);
     expect(error.statusCode).toBe(400);
   });
+
+  it("includes docUrl derived from error code", () => {
+    const error = new DeepCitationError("Test", "DC_AUTH_INVALID", false, 401);
+    expect(error.docUrl).toBe("https://docs.deepcitation.com/errors#DC_AUTH_INVALID");
+  });
 });
 
 describe("AuthenticationError", () => {
@@ -38,6 +43,7 @@ describe("AuthenticationError", () => {
     expect(error.isRetryable).toBe(false);
     expect(error.statusCode).toBe(401);
     expect(error.name).toBe("AuthenticationError");
+    expect(error.docUrl).toBe("https://docs.deepcitation.com/errors#DC_AUTH_INVALID");
   });
 });
 
@@ -50,6 +56,7 @@ describe("NetworkError", () => {
     expect(error.isRetryable).toBe(true);
     expect(error.statusCode).toBeUndefined();
     expect(error.name).toBe("NetworkError");
+    expect(error.docUrl).toBe("https://docs.deepcitation.com/errors#DC_NETWORK_ERROR");
   });
 });
 
@@ -62,6 +69,7 @@ describe("RateLimitError", () => {
     expect(error.isRetryable).toBe(true);
     expect(error.statusCode).toBe(429);
     expect(error.name).toBe("RateLimitError");
+    expect(error.docUrl).toBe("https://docs.deepcitation.com/errors#DC_RATE_LIMITED");
   });
 });
 
@@ -74,6 +82,7 @@ describe("ValidationError", () => {
     expect(error.isRetryable).toBe(false);
     expect(error.statusCode).toBe(400);
     expect(error.name).toBe("ValidationError");
+    expect(error.docUrl).toBe("https://docs.deepcitation.com/errors#DC_VALIDATION_ERROR");
   });
 
   it("handles custom status code", () => {
@@ -92,6 +101,7 @@ describe("ServerError", () => {
     expect(error.isRetryable).toBe(true);
     expect(error.statusCode).toBe(500);
     expect(error.name).toBe("ServerError");
+    expect(error.docUrl).toBe("https://docs.deepcitation.com/errors#DC_SERVER_ERROR");
   });
 
   it("handles custom status codes", () => {
