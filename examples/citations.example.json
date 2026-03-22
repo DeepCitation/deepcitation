@@ -1,0 +1,71 @@
+{
+  "sources": [
+    {
+      "url": "https://bundlephobia.com/package/deepcitation@0.2.2",
+      "name": "bundlephobia.com/deepcitation"
+    },
+    {
+      "url": "https://deepcitation.com/enterprise",
+      "name": "deepcitation.com/enterprise"
+    },
+    {
+      "url": "https://deepcitation.com/legal/dpa",
+      "name": "deepcitation.com/legal/dpa"
+    },
+    {
+      "url": "https://status.deepcitation.com/",
+      "name": "status.deepcitation.com"
+    },
+    {
+      "url": "https://github.com/DeepCitation/deepcitation?tab=MIT-1-ov-file",
+      "name": "github.com/DeepCitation"
+    }
+  ],
+  "citations": [
+    {
+      "type": "url",
+      "url": "https://bundlephobia.com/package/deepcitation@0.2.2",
+      "anchorText": "no dependencies",
+      "fullPhrase": "tree-shakeable side-effect free no dependencies",
+      "reasoning": "Bundlephobia confirms the deepcitation package has no runtime dependencies.",
+      "pageNumber": 1,
+      "lineIds": [1, 5]
+    },
+    {
+      "type": "url",
+      "url": "https://deepcitation.com/enterprise",
+      "anchorText": "VPC, or air-gapped environment",
+      "fullPhrase": "confidence. Works with any LLM and deploys in your cloud, VPC, or air-gapped environment.",
+      "reasoning": "Enterprise page confirms flexible deployment options including cloud, VPC, and air-gapped environments.",
+      "pageNumber": 1,
+      "lineIds": [5, 10]
+    },
+    {
+      "type": "url",
+      "url": "https://deepcitation.com/legal/dpa",
+      "anchorText": "Business Associate Agreement",
+      "fullPhrase": "Includes Business Associate Agreement BAA) and Information Manager Agreement IMA",
+      "reasoning": "The Data Processing Addendum includes a HIPAA Business Associate Agreement (BAA).",
+      "pageNumber": 1,
+      "lineIds": [1, 5]
+    },
+    {
+      "type": "url",
+      "url": "https://status.deepcitation.com/",
+      "anchorText": "100% uptime",
+      "fullPhrase": "Citation Verification 100% uptime",
+      "reasoning": "Status page shows 100% uptime for Citation Verification.",
+      "pageNumber": 1,
+      "lineIds": [5]
+    },
+    {
+      "type": "url",
+      "url": "https://github.com/DeepCitation/deepcitation?tab=MIT-1-ov-file",
+      "anchorText": "MIT License",
+      "fullPhrase": "MIT License Copyright (c) 2026 FileLasso, Inc.",
+      "reasoning": "GitHub repository MIT license tab confirms open-source MIT licensing.",
+      "pageNumber": 2,
+      "lineIds": [15, 20]
+    }
+  ]
+}
