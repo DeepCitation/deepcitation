@@ -181,8 +181,8 @@ async function main() {
     return null;
   }
 
-  const results = await Promise.all(config.sources.map(prepareSource));
-  const prepared = results.filter((r): r is PreparedSource => r !== null);
+  const prepareResults = await Promise.all(config.sources.map(prepareSource));
+  const prepared = prepareResults.filter((r): r is PreparedSource => r !== null);
 
   if (prepared.length === 0) {
     console.error("No sources prepared successfully");
@@ -229,7 +229,7 @@ async function main() {
     }
   }
 
-  const results: (OutputResult | null)[] = new Array(config.citations.length).fill(null);
+  const verificationResults: (OutputResult | null)[] = new Array(config.citations.length).fill(null);
 
   for (const [attachmentId, group] of citationsByAttachment) {
     const sourceName = attachmentIdToName.get(attachmentId) ?? "unknown";
@@ -246,7 +246,7 @@ async function main() {
 
       if (!v) {
         console.warn(`    [missing] ${citation.anchorText}`);
-        results[originalIndex] = {
+        verificationResults[originalIndex] = {
           citation,
           verification: { status: "not_found", verifiedAt: new Date().toISOString() } as Verification,
           sourceLabel: sourceName,
@@ -258,7 +258,7 @@ async function main() {
       const status = v.status === "found" || v.status === "partial_text_found" ? "found" : v.status;
       console.log(`    [${status}] ${citation.anchorText}`);
 
-      results[originalIndex] = {
+      verificationResults[originalIndex] = {
         citation,
         verification: cleaned,
         sourceLabel: sourceName,
@@ -266,11 +266,11 @@ async function main() {
     }
   }
 
-  const foundCount = results.filter(r => {
+  const foundCount = verificationResults.filter(r => {
     const s = r?.verification.status;
     return s === "found" || s === "partial_text_found";
   }).length;
-  console.log(`\n  Results: ${foundCount}/${results.length} found`);
+  console.log(`\n  Results: ${foundCount}/${verificationResults.length} found`);
 
   // 4. Build output
   const output = {
@@ -281,7 +281,7 @@ async function main() {
       ...(s.mimeType ? { mimeType: s.mimeType } : {}),
       ...(s.pageCount ? { pageCount: s.pageCount } : {}),
     })),
-    results: results.filter((r): r is OutputResult => r !== null),
+    results: verificationResults.filter((r): r is OutputResult => r !== null),
   };
 
   if (outputPath) {
