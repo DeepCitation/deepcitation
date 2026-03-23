@@ -255,7 +255,7 @@ export class DeepCitation {
     if (!config.apiKey) {
       throw new AuthenticationError("DeepCitation API key is required. Get one at https://deepcitation.com");
     }
-    if (!config.apiKey.startsWith("sk-dc-")) {
+    if (!config.apiKey.startsWith("sk-dc-") || config.apiKey.length < 20) {
       throw new AuthenticationError(
         `Invalid API key format — keys start with "sk-dc-". Check your key at https://deepcitation.com/keys`,
       );

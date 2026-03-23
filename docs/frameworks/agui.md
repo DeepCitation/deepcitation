@@ -54,7 +54,7 @@ export async function POST(req: Request) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      function send(event: any) {
+      function send(event: Record<string, unknown>) {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       }
 
@@ -111,7 +111,7 @@ On the client, listen for `STATE_DELTA` events to receive verification results a
 import { CitationComponent } from "deepcitation/react";
 
 // When STATE_DELTA arrives with verifications:
-function onStateDelta(delta) {
+function onStateDelta(delta: Array<{ op: string; path: string; value: unknown }>) {
   for (const op of delta) {
     if (op.path === "/verifications") {
       setVerifications(op.value);

@@ -42,11 +42,7 @@ Mastra handles the RAG pipeline (chunking, embedding, retrieval). DeepCitation a
 ```typescript
 import { MDocument } from "@mastra/rag";
 import { LibSQLVector } from "@mastra/libsql";
-import {
-  DeepCitation,
-  wrapCitationPrompt,
-  getAllCitationsFromLlmOutput,
-} from "deepcitation";
+import { DeepCitation, wrapCitationPrompt } from "deepcitation";
 
 const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
@@ -70,7 +66,7 @@ const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
 });
 
 const response = await openai.chat.completions.create({
-  model: "gpt-4o",
+  model: "gpt-5-mini",
   messages: [
     { role: "system", content: enhancedSystemPrompt },
     { role: "user", content: enhancedUserPrompt },
@@ -78,7 +74,6 @@ const response = await openai.chat.completions.create({
 });
 
 // 4. Verify citations
-const citations = getAllCitationsFromLlmOutput(response.choices[0].message.content);
 const { verifications } = await dc.verify({
   llmOutput: response.choices[0].message.content,
 });
