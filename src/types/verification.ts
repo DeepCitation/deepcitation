@@ -12,7 +12,7 @@ import type { SearchAttempt, SearchStatus } from "./search.js";
 export interface DownloadLink {
   url: string;
   /** Optional expiration timestamp (ISO 8601) for signed links, or "never" for permanent links */
-  expiresAt?: string;
+  expiresAt?: (string & {}) | "never";
 }
 
 /**
@@ -174,7 +174,7 @@ export interface PageImage {
   /** Optional base64-encoded thumbnail image (e.g., avif) for quick preview */
   thumbnailUrl?: string;
   /** Optional expiration date for the page data (ISO 8601 string or "never" for enterprise). */
-  expiresAt?: string;
+  expiresAt?: (string & {}) | "never";
   /** Whether this page contains the verified citation match */
   isMatchPage?: boolean;
   /** Highlighted region on this page (if match found) */
