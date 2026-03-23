@@ -103,6 +103,24 @@ export function getHeadingSlugs(content) {
 }
 
 /**
+ * Yield non-fenced lines from markdown content.
+ * Skips lines inside ``` code fences.
+ * @param {string[]} lines
+ * @yields {{ line: string, lineNum: number }}
+ */
+export function* nonFencedLines(lines) {
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trimStart().startsWith("```")) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    yield { line: lines[i], lineNum: i + 1 };
+  }
+}
+
+/**
  * Load all docs files into a Map<relPath, content> for single-pass I/O.
  */
 export function loadDocsContents(docsDir, mdFiles) {

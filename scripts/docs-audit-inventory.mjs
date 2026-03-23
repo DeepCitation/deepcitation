@@ -31,7 +31,7 @@ import {
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, relative, normalize } from "node:path";
-import { collectDocsFiles, parseYamlFrontmatter, loadDocsContents, getHeadingSlugs } from "./lib/docs-utils.mjs";
+import { collectDocsFiles, parseYamlFrontmatter, loadDocsContents, getHeadingSlugs, nonFencedLines } from "./lib/docs-utils.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -554,20 +554,12 @@ function checkBrokenRelativeLinks(docContents) {
   const findings = [];
   const docsDir = join(ROOT, "docs");
   // Match [text](../path) or [text](./path), with optional #fragment
-  const linkPattern = /\]\((\.\.\/.+?|\.\/[^)#\s]+)(#[^)]+)?\)/g;
+  const linkPattern = /\]\((\.\.\/[^)#\n]+|\.\/[^)#\s]+)(#[^)]+)?\)/g;
 
   for (const [relPath, content] of docContents) {
     const lines = content.split("\n");
-    let inFence = false;
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line.trimStart().startsWith("```")) {
-        inFence = !inFence;
-        continue;
-      }
-      if (inFence) continue;
-
+    for (const { line, lineNum } of nonFencedLines(lines)) {
       for (const match of line.matchAll(linkPattern)) {
         const linkPath = match[1];
         // Resolve relative to the doc file's directory within docs/
@@ -578,7 +570,7 @@ function checkBrokenRelativeLinks(docContents) {
         if (relToDocsDir.startsWith("..")) {
           findings.push({
             file: `docs/${relPath}`,
-            line: i + 1,
+            line: lineNum,
             linkPath,
             issue: "escapes_docs_boundary",
             text: line.trim(),
@@ -586,7 +578,7 @@ function checkBrokenRelativeLinks(docContents) {
         } else if (!existsSync(resolved)) {
           findings.push({
             file: `docs/${relPath}`,
-            line: i + 1,
+            line: lineNum,
             linkPath,
             issue: "target_not_found",
             text: line.trim(),
@@ -654,26 +646,18 @@ function checkProseApiDrift(docContents) {
   for (const [relPath, content] of docContents) {
     if (relPath.startsWith("agents/")) continue;
     const lines = content.split("\n");
-    let inFence = false;
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line.trimStart().startsWith("```")) {
-        inFence = !inFence;
-        continue;
-      }
-      if (inFence) continue;
-
+    for (const { line, lineNum } of nonFencedLines(lines)) {
       for (const match of line.matchAll(apiRefPattern)) {
         const funcName = match[1];
         if (PROSE_API_ALLOWLIST.has(funcName)) continue;
         if (allExports.has(funcName)) continue;
         // Also check if it's a known class name (PascalCase) — skip those
-        if (funcName[0] === funcName[0].toUpperCase() && funcName[0] !== funcName[0].toLowerCase()) continue;
+        if (/^[A-Z]/.test(funcName)) continue;
 
         findings.push({
           file: `docs/${relPath}`,
-          line: i + 1,
+          line: lineNum,
           functionName: funcName,
           text: line.trim(),
         });
@@ -718,24 +702,16 @@ function checkAnchorFragments(docContents) {
   }
 
   // Pattern 1: {{ site.baseurl }}/slug/#fragment
-  const jekyllFragPattern = /\{\{\s*site\.baseurl\s*\}\}\/([a-z0-9_-]+(?:\/[a-z0-9_-]+)*)\/(?:#([a-z0-9_-]+(?:-[a-z0-9_-]+)*))/gi;
+  const jekyllFragPattern = /\{\{\s*site\.baseurl\s*\}\}\/([a-z0-9_-]+(?:\/[a-z0-9_-]+)*)\/(?:#([a-z0-9][a-z0-9_-]*))/gi;
   // Pattern 2: same-page ](#fragment)
-  const samePagePattern = /\]\(#([a-z0-9_-]+(?:-[a-z0-9_-]+)*)\)/gi;
+  const samePagePattern = /\]\(#([a-z0-9][a-z0-9_-]*)\)/gi;
   // Pattern 3: relative link with fragment: ](./file.md#fragment) or ](../file.md#fragment)
-  const relativeFragPattern = /\]\((\.\.\/.+?|\.\/[^)#\s]+)#([a-z0-9_-]+(?:-[a-z0-9_-]+)*)\)/gi;
+  const relativeFragPattern = /\]\((\.\.\/[^)#\n]+|\.\/[^)#\s]+)#([a-z0-9][a-z0-9_-]*)\)/gi;
 
   for (const [relPath, content] of docContents) {
     const lines = content.split("\n");
-    let inFence = false;
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line.trimStart().startsWith("```")) {
-        inFence = !inFence;
-        continue;
-      }
-      if (inFence) continue;
-
+    for (const { line, lineNum } of nonFencedLines(lines)) {
       // Jekyll fragment links
       for (const match of line.matchAll(jekyllFragPattern)) {
         const slug = match[1];
@@ -746,7 +722,7 @@ function checkAnchorFragments(docContents) {
         if (slugs && !slugs.has(fragment)) {
           findings.push({
             file: `docs/${relPath}`,
-            line: i + 1,
+            line: lineNum,
             fragment,
             targetPage: `docs/${targetFile}`,
             issue: "fragment_not_found",
@@ -762,7 +738,7 @@ function checkAnchorFragments(docContents) {
         if (slugs && !slugs.has(fragment)) {
           findings.push({
             file: `docs/${relPath}`,
-            line: i + 1,
+            line: lineNum,
             fragment,
             targetPage: `docs/${relPath}`,
             issue: "fragment_not_found",
@@ -784,7 +760,7 @@ function checkAnchorFragments(docContents) {
         if (slugs && !slugs.has(fragment)) {
           findings.push({
             file: `docs/${relPath}`,
-            line: i + 1,
+            line: lineNum,
             fragment,
             targetPage: `docs/${relToDocsDir}`,
             issue: "fragment_not_found",
@@ -822,7 +798,7 @@ function checkExampleDirRefs(docContents) {
             issue: "directory_not_found",
             text: lines[i].trim(),
           });
-        } else if (!existsSync(join(dirPath, "package.json")) && !existsSync(join(dirPath, "index.html"))) {
+        } else if (!existsSync(join(dirPath, "package.json")) && !existsSync(join(dirPath, "index.html")) && !existsSync(join(dirPath, "README.md"))) {
           findings.push({
             file: `docs/${relPath}`,
             line: i + 1,

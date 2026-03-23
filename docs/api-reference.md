@@ -193,11 +193,12 @@ Each `Verification` contains:
 
 | Field | Type | Description |
 |:------|:-----|:------------|
-| `pageNumber` | number | Page where the citation was found |
-| `lowerCaseSearchTerm` | string | Normalized search term used |
-| `matchSnippet` | string | Text context around the match |
+| `status` | `SearchStatus` | Verification outcome (`"found"`, `"partial_text_found"`, `"not_found"`) |
+| `verifiedFullPhrase` | string | The full phrase that was matched |
+| `verifiedMatchSnippet` | string | Text context around the match |
 | `evidence` | object | Visual proof screenshot (`{ src: "data:image/..." }`) |
-| `searchState` | object | Search outcome (`{ status: "found" \| "partial_text_found" \| "not_found" }`) |
+| `document` | object | Document-specific results (includes `pageNumber`, `lineId`, `boundingBoxes`) |
+| `url` | object | URL-specific results (when verifying against a web page) |
 | `verifiedAt` | string | ISO 8601 timestamp of verification |
 
 ### Example Request
