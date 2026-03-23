@@ -152,9 +152,8 @@ function clamp(el: HTMLElement): void {
     el.style.translate = `${dx}px 0px`;
   }
 
-  // Max-height is handled statically by the CSS on the content element:
-  //   maxHeight: min(EXPANDED_POPOVER_HEIGHT, var(--dc-guard-max-height, EXPANDED_POPOVER_HEIGHT))
-  // Without --dc-guard-max-height set, this resolves to calc(100dvh - 2rem),
-  // which is the correct viewport constraint. Dynamic calculation was removed
+  // Max-height is handled statically in Popover.tsx:
+  //   maxHeight: EXPANDED_POPOVER_HEIGHT  (= "calc(100dvh - 2rem)")
+  // Internal scrolling handles overflow. Dynamic height clamping was removed
   // because it caused the popover to squish on scroll and viewState changes.
 }

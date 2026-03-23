@@ -554,7 +554,8 @@ function checkBrokenRelativeLinks(docContents) {
   const findings = [];
   const docsDir = join(ROOT, "docs");
   // Match [text](../path) or [text](./path), with optional #fragment
-  const linkPattern = /\]\((\.\.\/[^)#\n]+|\.\/[^)#\s]+)(#[^)]+)?\)/g;
+  // Both branches exclude ), #, and whitespace (including newlines) for consistency
+  const linkPattern = /\]\((\.\.\/[^)#\s]+|\.\/[^)#\s]+)(#[^)]+)?\)/g;
 
   for (const [relPath, content] of docContents) {
     const lines = content.split("\n");
@@ -830,8 +831,7 @@ function checkStaleTextFormat(docContents) {
     if (relPath.startsWith("agents/")) continue;
     const lines = content.split("\n");
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+    for (const { line, lineNum } of nonFencedLines(lines)) {
       const pageMatches = [...line.matchAll(oldPagePattern)];
       const lineMatches = [...line.matchAll(oldLinePattern)];
 
@@ -842,7 +842,7 @@ function checkStaleTextFormat(docContents) {
         ];
         findings.push({
           file: `docs/${relPath}`,
-          line: i + 1,
+          line: lineNum,
           staleTokens,
           message: `Uses old bracket format (${staleTokens.join(", ")}); should use <page_number_N_index_I> and <line id="N"> XML tags`,
           text: line.trim(),

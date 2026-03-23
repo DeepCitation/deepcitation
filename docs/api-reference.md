@@ -309,6 +309,12 @@ Extend the expiration date of an attachment.
 
 `application/json`
 
+### Path Parameters
+
+| Field | Type | Required | Description |
+|:------|:-----|:---------|:------------|
+| `id` | string | Yes | Attachment ID to extend |
+
 ### Request Parameters
 
 | Field | Type | Required | Description |

@@ -172,10 +172,6 @@ export const VIEWPORT_MARGIN_PX = 16;
  *  (visible viewport excluding scrollbar). All maxWidth formulas reference this
  *  with a fallback to `calc(100dvw - 2rem)` for SSR/pre-guard. */
 export const GUARD_MAX_WIDTH_VAR = "--dc-guard-max-width";
-/** CSS custom property for the guard's viewport-constrained max height.
- *  Set by useViewportBoundaryGuard based on the popover's current Y position.
- *  Prevents expansion animations from overshooting the viewport bottom. */
-export const GUARD_MAX_HEIGHT_VAR = "--dc-guard-max-height";
 
 /** Shell padding (px) around the keyhole image for summary popover sizing.
  *  EvidenceTray m-3 (12px×2) + borders (~4px) + breathing room = 32px. */
