@@ -111,8 +111,10 @@ async function getAttachment(source: { id: string; url: string; filename: string
     };
   })();
 
-  cache.set(source.id, pending);
-  return pending;
+  // Evict on failure so the next call retries instead of returning a rejected promise
+  const safe = pending.catch((e) => { cache.delete(source.id); throw e; });
+  cache.set(source.id, safe);
+  return safe;
 }
 ```
 

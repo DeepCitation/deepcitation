@@ -257,7 +257,7 @@ export class DeepCitation {
     }
     if (!config.apiKey.startsWith("sk-dc-") || config.apiKey.length < 20) {
       throw new AuthenticationError(
-        `Invalid API key format — keys start with "sk-dc-". Check your key at https://deepcitation.com/keys`,
+        `Invalid API key format — keys must start with "sk-dc-" and be at least 20 characters. Check your key at https://deepcitation.com/keys`,
       );
     }
     const apiUrl = config.apiUrl?.replace(/\/$/, "") || DEFAULT_API_URL;

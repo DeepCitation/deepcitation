@@ -109,9 +109,10 @@ On the client, listen for `STATE_DELTA` events to receive verification results a
 
 ```tsx
 import { CitationComponent } from "deepcitation/react";
+import type { StateDeltaEvent } from "@ag-ui/core";
 
 // When STATE_DELTA arrives with verifications:
-function onStateDelta(delta: Array<{ op: string; path: string; value: unknown }>) {
+function onStateDelta(delta: StateDeltaEvent["delta"]) {
   for (const op of delta) {
     if (op.path === "/verifications") {
       setVerifications(op.value);
