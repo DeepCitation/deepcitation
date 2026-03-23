@@ -101,6 +101,7 @@ def prepare_url(url: str) -> dict:
 
 ```python
 from fastapi import FastAPI, UploadFile, File
+from pydantic import BaseModel
 import httpx
 
 app = FastAPI()
@@ -118,16 +119,21 @@ async def upload_document(file: UploadFile = File(...)):
     return response.json()
 
 
+class VerifyRequest(BaseModel):
+    attachment_id: str
+    citations: dict
+
+
 @app.post("/verify")
-async def verify(attachment_id: str, citations: dict):
+async def verify(request: VerifyRequest):
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{BASE_URL}/verifyCitations",
             headers={**HEADERS, "Content-Type": "application/json"},
             json={
                 "data": {
-                    "attachmentId": attachment_id,
-                    "citations": citations,
+                    "attachmentId": request.attachment_id,
+                    "citations": request.citations,
                 }
             },
             timeout=30.0,

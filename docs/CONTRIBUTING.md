@@ -169,7 +169,7 @@ To use a custom domain (e.g., `docs.deepcitation.com`):
      ```
    - For subdomain (`docs.deepcitation.com`): Add a `CNAME` record:
      ```
-     docs.deepcitation.com -> docs.deepcitation.com
+     docs.deepcitation.com -> deepcitation.github.io
      ```
 
 3. **Update `_config.yml`**:
