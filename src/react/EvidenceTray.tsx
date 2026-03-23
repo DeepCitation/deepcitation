@@ -405,7 +405,6 @@ export function AnchorTextFocusedImage({
   // renderScale converts item coords → image pixel coords, matching
   // the same transform used by computeAnnotationScrollTarget / toPercentRect in overlayGeometry.
   // For image sources (mimeType: "image/*"), coords are already in pixel space — default to identity.
-  const keyholeCoordinateOrigin: CoordinateOrigin = isImageSource(verification) ? "image" : "pdf";
   const anchorScrollData = useMemo(() => {
     if (!verification) return null;
     const anchorItem =
@@ -483,7 +482,6 @@ export function AnchorTextFocusedImage({
           readableScale,
           containerWidth,
           stripHeight,
-          keyholeCoordinateOrigin,
         );
       if (widthFitTarget) {
         container.scrollLeft = widthFitTarget.scrollLeft;
@@ -520,7 +518,6 @@ export function AnchorTextFocusedImage({
           displayScale,
           containerWidth,
           stripHeight,
-          keyholeCoordinateOrigin,
         );
       if (heightFitTarget) {
         container.scrollLeft = heightFitTarget.scrollLeft;
@@ -533,7 +530,7 @@ export function AnchorTextFocusedImage({
     // Trigger scroll event so useDragToPan updates fade state for initial position
     container.dispatchEvent(new Event("scroll"));
     keyholeInitAppliedRef.current = true;
-  }, [imageLoaded, anchorScrollData, keyholeCoordinateOrigin]);
+  }, [imageLoaded, anchorScrollData]);
 
   // Compute fade mask based on scroll state
   const maskImage = useMemo(
@@ -1416,14 +1413,11 @@ export function InlineExpandedImage({
   const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
   const effectiveAnchorItem = anchorItem ?? verification?.document?.anchorTextMatchDeepItems?.[0] ?? null;
 
-  // For image sources (mimeType: "image/*"), OCR coordinates use top-down Y (y=0 at top).
-  // PDF coordinates use bottom-up Y (y=0 at bottom). The overlay geometry functions need
-  // to know which convention to use for the Y-axis transform.
-  // For image sources without a server-provided renderScale, coords are already in pixel
-  // space so identity scale is correct. If the backend provides a non-identity renderScale
-  // (e.g. for downscaled proof images), it takes precedence via the ?? operator.
-  const coordinateOrigin: CoordinateOrigin = isImageSource(verification) ? "image" : "pdf";
-  const effectiveRenderScale = renderScale ?? (coordinateOrigin === "image" ? { x: 1, y: 1 } : null);
+  // The server always provides coordinates in PDF convention (bottom-up Y) for both
+  // PDFs and images. For images, renderScale is 1:1 (pixel coords) — the server sets
+  // this in generateImageVerificationImage, but it may be absent in the frontend data.
+  // Default to identity when the source is an image and renderScale is missing.
+  const effectiveRenderScale = renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
 
   // Detect dark page content so the overlay can flip to a light color.
   const isDarkContent = useImageDarkness(
@@ -1431,7 +1425,6 @@ export function InlineExpandedImage({
     imageLoaded,
     effectivePhraseItem,
     effectiveRenderScale,
-    coordinateOrigin,
   );
 
   // Anchor-aware scroll/zoom target: when anchor text is highlighted, center on it
@@ -1593,7 +1586,6 @@ export function InlineExpandedImage({
         effectiveZoom,
         container.clientWidth,
         container.clientHeight,
-        coordinateOrigin,
       );
       if (target) {
         const sl = target.scrollLeft + CANVAS_PADDING_PX;
@@ -1622,7 +1614,6 @@ export function InlineExpandedImage({
     scrollTarget,
     effectivePhraseItem,
     effectiveRenderScale,
-    coordinateOrigin,
     containerRef,
   ]);
 
@@ -1694,7 +1685,6 @@ export function InlineExpandedImage({
       zoomRef.current,
       container.clientWidth,
       container.clientHeight,
-      coordinateOrigin,
     );
     if (target) {
       // Offset by canvas padding — image starts at CANVAS_PADDING_PX inside the shell.
@@ -1716,7 +1706,6 @@ export function InlineExpandedImage({
     effectivePhraseItem,
     containerRef,
     effectiveRenderScale,
-    coordinateOrigin,
     naturalWidth,
     naturalHeight,
   ]);
@@ -1959,7 +1948,6 @@ export function InlineExpandedImage({
           effectiveRenderScale,
           naturalWidth,
           naturalHeight,
-          coordinateOrigin,
         )
       : null;
   // VT geometry target: always use the full phrase rect so the View Transition
@@ -1988,7 +1976,6 @@ export function InlineExpandedImage({
           effectiveRenderScale,
           annotationBaseDimensions.width,
           annotationBaseDimensions.height,
-          coordinateOrigin,
         )
       : null;
   const pageExpandTargetReady = !!fill && !!annotationVtRect && !!imageLoaded && pageExpandReady;
@@ -2219,7 +2206,6 @@ export function InlineExpandedImage({
                     fullPhrase={verification?.verifiedFullPhrase}
                     onDismiss={fill ? handleOverlayDismiss : undefined}
                     isDark={isDarkContent}
-                    coordinateOrigin={coordinateOrigin}
                   />
                 )}
               {/* View Transition anchor: positioned at the annotation rect so the
