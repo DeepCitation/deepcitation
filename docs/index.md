@@ -27,6 +27,7 @@ Verify AI citations against source documents. Visual proof for every claim.
 | Section | Description |
 |:--------|:------------|
 | [Getting Started]({{ site.baseurl }}/getting-started) | Installation and quick start guide |
+| [Prompts]({{ site.baseurl }}/prompts) | How DeepCitation instructs LLMs to produce verifiable citations |
 | [API Reference]({{ site.baseurl }}/api-reference) | REST API endpoints for file preparation and verification |
 | [Curl Guide]({{ site.baseurl }}/curl-guide) | Direct API usage with curl examples |
 | [Types]({{ site.baseurl }}/types) | TypeScript interface definitions |
@@ -49,10 +50,16 @@ Verify AI citations against source documents. Visual proof for every claim.
 
 ## Example Projects
 
-Complete working examples are available on GitHub:
+Complete, runnable examples are available on GitHub:
 
-- [Basic Verification](https://github.com/DeepCitation/deepcitation/tree/main/examples/basic-verification) - Simple file upload and verification
-- [Next.js AI SDK](https://github.com/DeepCitation/deepcitation/tree/main/examples/nextjs-ai-sdk) - Integration with Vercel AI SDK
+| Example | Description | Demo |
+|:--------|:------------|:-----|
+| [basic-verification](https://github.com/DeepCitation/deepcitation/tree/main/examples/basic-verification) | Core 3-step workflow with OpenAI/Anthropic | -- |
+| [langchain-rag-chat](https://github.com/DeepCitation/deepcitation/tree/main/examples/langchain-rag-chat) | Next.js + LangChain.js RAG app with verification | [Live Demo](https://langchain-rag-chat-deepcitation.vercel.app/) |
+| [mastra-rag-chat](https://github.com/DeepCitation/deepcitation/tree/main/examples/mastra-rag-chat) | Next.js + Mastra RAG app with verification | [Live Demo](https://mastra-rag-deepcitation.vercel.app/) |
+| [nextjs-ai-sdk](https://github.com/DeepCitation/deepcitation/tree/main/examples/nextjs-ai-sdk) | Next.js chat app with Vercel AI SDK streaming | [Live Demo](https://nextjs-ai-sdk-deepcitation.vercel.app/) |
+| [agui-chat](https://github.com/DeepCitation/deepcitation/tree/main/examples/agui-chat) | AG-UI protocol chat with SSE streaming | [Live Demo](https://agui-chat-deepcitation.vercel.app/) |
+| [static-html](https://github.com/DeepCitation/deepcitation/tree/main/examples/static-html) | CDN popover in plain HTML, no build step | -- |
 
 ---
 
