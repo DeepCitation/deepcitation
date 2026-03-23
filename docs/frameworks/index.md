@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Frameworks
-nav_order: 5
+nav_order: 6
 description: "Framework-specific integration guides for DeepCitation"
 has_children: true
 commit_sha: "cc9c7aa"
@@ -25,6 +25,8 @@ DeepCitation works with any LLM provider or framework. These guides show the exa
 | [Next.js App Router]({{ site.baseurl }}/frameworks/nextjs) | Full-stack apps with React Server Components + streaming | [nextjs-ai-sdk](https://github.com/DeepCitation/deepcitation/tree/main/examples/nextjs-ai-sdk) ([demo](https://nextjs-ai-sdk-deepcitation.vercel.app/)) |
 | [Vercel AI SDK]({{ site.baseurl }}/frameworks/vercel-ai-sdk) | `useChat` / `streamText` apps on Vercel infrastructure | [nextjs-ai-sdk](https://github.com/DeepCitation/deepcitation/tree/main/examples/nextjs-ai-sdk) (shared with Next.js, [demo](https://nextjs-ai-sdk-deepcitation.vercel.app/)) |
 | [Express.js]({{ site.baseurl }}/frameworks/express) | Node.js REST APIs with upload, chat, and verification routes | [basic-verification](https://github.com/DeepCitation/deepcitation/tree/main/examples/basic-verification) |
+| [Mastra]({{ site.baseurl }}/frameworks/mastra) | Mastra RAG pipelines with TypeScript-native chunking + verification | [mastra-rag-chat](https://github.com/DeepCitation/deepcitation/tree/main/examples/mastra-rag-chat) ([demo](https://mastra-rag-deepcitation.vercel.app/)) |
+| [AG-UI]({{ site.baseurl }}/frameworks/agui) | AG-UI protocol agents with SSE streaming + verification | [agui-chat](https://github.com/DeepCitation/deepcitation/tree/main/examples/agui-chat) ([demo](https://agui-chat-deepcitation.vercel.app/)) |
 | [Python / FastAPI]({{ site.baseurl }}/frameworks/python) | Python backends using the REST API directly | — |
 
 ---
