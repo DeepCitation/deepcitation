@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { computeAnnotationOriginPercent, computeAnnotationScrollTarget } from "../react/overlayGeometry";
+import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "../react/overlayGeometry";
 
 // Helper: a standard annotation item and rendering context for tests.
 // Represents text near the center of a 1000×1400 PDF page rendered to a
@@ -162,5 +162,61 @@ describe("computeAnnotationOriginPercent", () => {
     expect(result).not.toBeNull();
     expect(result?.xPercent).toBeCloseTo(50, 5);
     expect(result?.yPercent).toBeCloseTo(50, 5);
+  });
+});
+
+// =========================================================================
+// Image coordinate origin (top-down Y) — origin = "image"
+// =========================================================================
+
+describe("image coordinate origin (top-down Y)", () => {
+  // Image OCR coords: y increases downward (y=0 at top).
+  // 795×491 image, renderScale 1×1 — matches the medicalDemo fixture.
+  const IMG_W = 795;
+  const IMG_H = 491;
+  const IDENTITY = { x: 1, y: 1 };
+
+  test("toPercentRect places item at correct position (no Y-flip)", () => {
+    // "DOE JOHN" at y=370 in a 491px image → ~75.4% from top
+    const item = { x: 296, y: 370, width: 72, height: 44 };
+    const rect = toPercentRect(item, IDENTITY, IMG_W, IMG_H, "image");
+    expect(rect).not.toBeNull();
+    // top ≈ 370/491 * 100 ≈ 75.36%
+    expect(parseFloat(rect?.top ?? "")).toBeCloseTo(75.356, 1);
+    // left ≈ 296/795 * 100 ≈ 37.23%
+    expect(parseFloat(rect?.left ?? "")).toBeCloseTo(37.233, 1);
+  });
+
+  test("toPercentRect with PDF origin flips Y (would be wrong for image coords)", () => {
+    const item = { x: 296, y: 370, width: 72, height: 44 };
+    const rect = toPercentRect(item, IDENTITY, IMG_W, IMG_H, "pdf");
+    expect(rect).not.toBeNull();
+    // PDF flip: top = (491 - 370) / 491 * 100 ≈ 24.64% — wrong for top-down image coords
+    expect(parseFloat(rect?.top ?? "")).toBeCloseTo(24.643, 1);
+  });
+
+  test("computeAnnotationScrollTarget uses top-down Y for image origin", () => {
+    // Item near bottom of a 795×491 image
+    const item = { x: 296, y: 370, width: 72, height: 44 };
+    const result = computeAnnotationScrollTarget(item, IDENTITY, IMG_W, IMG_H, 1, 400, 300, "image");
+    expect(result).not.toBeNull();
+    // Center: (296+36, 370+22) = (332, 392)
+    // Raw scrollTop = 392 - 150 = 242, max = 491-300 = 191, clamped to 191
+    expect(result?.scrollTop).toBe(191);
+  });
+
+  test("computeAnnotationOriginPercent uses top-down Y for image origin", () => {
+    const item = { x: 296, y: 370, width: 72, height: 44 };
+    const result = computeAnnotationOriginPercent(item, IDENTITY, IMG_W, IMG_H, "image");
+    expect(result).not.toBeNull();
+    // centerY = 370 + 22 = 392 → 392/491 * 100 ≈ 79.84%
+    expect(result?.yPercent).toBeCloseTo(79.837, 1);
+  });
+
+  test("defaults to PDF origin when origin parameter is omitted", () => {
+    const item = { x: 296, y: 370, width: 72, height: 44 };
+    const withDefault = toPercentRect(item, IDENTITY, IMG_W, IMG_H);
+    const withPdf = toPercentRect(item, IDENTITY, IMG_W, IMG_H, "pdf");
+    expect(withDefault).toEqual(withPdf);
   });
 });

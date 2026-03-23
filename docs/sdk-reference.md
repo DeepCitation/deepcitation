@@ -159,6 +159,7 @@ const { verifications } = await dc.verify({
 |:----------|:-----|:------------|
 | `input.llmOutput` | `string` | Raw LLM output containing `[N]` markers and `<<<CITATION_DATA>>>` block |
 | `input.outputImageFormat` | `"avif" \| "jpeg" \| "png"` | Proof image format (default: `"avif"`) |
+| `input.fileDataParts` | `Array<{ attachmentId: string; filename?: string }>` | File metadata for Zero Data Retention / post-expiry scenarios |
 | `input.endUserId` | `string` | Your end-user identifier |
 | `citations` | `Record<string, Citation>` | Pre-parsed citations (if omitted, parsed from `llmOutput`) |
 
@@ -255,9 +256,9 @@ import {
 | Function | Signature | Description |
 |:---------|:----------|:------------|
 | `getAllCitationsFromLlmOutput` | `(llmOutput: string) => Record<string, Citation>` | Parse `<<<CITATION_DATA>>>` block from LLM output. Returns `{}` on failure — never throws. |
-| `parseCitationResponse` | `(llmOutput: string) => ParsedCitationResponse` | Parse LLM output into `{ visibleText, citations, markerMap }` for rendering. |
+| `parseCitationResponse` | `(llmOutput: string) => ParsedCitationResult` | Parse LLM output into `{ visibleText, citations, markerMap }` for rendering. |
 | `groupCitationsByAttachmentId` | `(citations: Record<string, Citation>) => Map<string, Record<string, Citation>>` | Group citations by their `attachmentId` for per-attachment verification. |
-| `getCitationKey` | `(attachmentId: string, citation: Citation) => string` | Generate a unique key for a citation. |
+| `getCitationKey` | `(citation: Citation) => string` | Generate a unique key for a citation (16-char hash). |
 
 ### Prompt Wrapping
 

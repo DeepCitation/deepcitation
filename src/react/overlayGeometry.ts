@@ -1,6 +1,15 @@
 import type { DeepTextItem } from "../types/boxes.js";
 import { safeSplit } from "../utils/regexSafety.js";
 
+/**
+ * Coordinate origin convention for DeepTextItem positions.
+ * - `"pdf"`: Y-axis is bottom-up (y=0 at page bottom). Standard for PDF text extraction.
+ * - `"image"`: Y-axis is top-down (y=0 at image top). Standard for image OCR (e.g. Tesseract, Google Vision).
+ *
+ * All overlay geometry functions accept this as an optional parameter (default: `"pdf"`).
+ */
+export type CoordinateOrigin = "pdf" | "image";
+
 /** Count whitespace-delimited words in a string. */
 export function wordCount(s: string): number {
   const trimmed = s.trim();
@@ -35,29 +44,33 @@ export function isValidOverlayGeometry(
 }
 
 /**
- * Converts a DeepTextItem (PDF coords) to percentage-based CSS position
+ * Converts a DeepTextItem to percentage-based CSS position
  * relative to the image's natural dimensions.
  *
- * PDF y-axis is bottom-up; image y-axis is top-down, so we flip:
- *   imageY = imageNaturalHeight - (item.y * renderScale.y)
+ * For PDF coordinates (`origin = "pdf"`, default): Y-axis is bottom-up,
+ * so we flip: `imageY = imageNaturalHeight - (item.y * renderScale.y)`.
+ *
+ * For image coordinates (`origin = "image"`): Y-axis is already top-down,
+ * so no flip: `imageY = item.y * renderScale.y`.
  *
  * All outputs are clamped to [0, 100]% to prevent overlays from bleeding
- * outside the image bounds due to rounding errors in PDF coordinates.
+ * outside the image bounds due to rounding errors.
  */
 export function toPercentRect(
   item: DeepTextItem,
   renderScale: { x: number; y: number },
   imageNaturalWidth: number,
   imageNaturalHeight: number,
+  origin: CoordinateOrigin = "pdf",
 ): { left: string; top: string; width: string; height: string } | null {
   if (!isValidOverlayGeometry(renderScale, imageNaturalWidth, imageNaturalHeight)) {
     return null;
   }
 
-  // Clamp edges independently so negative PDF coords don't shift the origin
+  // Clamp edges independently so negative coords don't shift the origin
   // while leaving the far edge unbounded.
   const rawX = item.x * renderScale.x;
-  const rawY = imageNaturalHeight - item.y * renderScale.y;
+  const rawY = origin === "image" ? item.y * renderScale.y : imageNaturalHeight - item.y * renderScale.y;
   const rawW = item.width * renderScale.x;
   const rawH = item.height * renderScale.y;
 
@@ -78,9 +91,10 @@ export function toPercentRect(
 }
 
 /**
- * Computes the scroll position needed to center a PDF annotation in a
+ * Computes the scroll position needed to center an annotation in a
  * scrollable container. Uses the same coordinate transform as `toPercentRect()`
- * (PDF y-axis flip), then applies zoom and centers in the container viewport.
+ * (Y-axis flip for PDF, direct for image), then applies zoom and centers in
+ * the container viewport.
  *
  * Returns `null` for invalid inputs (zero dimensions, non-finite values, or
  * zero/negative zoom).
@@ -93,6 +107,7 @@ export function computeAnnotationScrollTarget(
   zoom: number,
   containerWidth: number,
   containerHeight: number,
+  origin: CoordinateOrigin = "pdf",
 ): { scrollLeft: number; scrollTop: number } | null {
   if (!isValidOverlayGeometry(renderScale, imageNaturalWidth, imageNaturalHeight)) {
     return null;
@@ -101,9 +116,9 @@ export function computeAnnotationScrollTarget(
   if (!Number.isFinite(containerWidth) || !Number.isFinite(containerHeight)) return null;
   if (containerWidth <= 0 || containerHeight <= 0) return null;
 
-  // Convert PDF coords to image pixel coords (same math as toPercentRect)
+  // Convert item coords to image pixel coords (same math as toPercentRect)
   const pixelX = item.x * renderScale.x;
-  const pixelY = imageNaturalHeight - item.y * renderScale.y;
+  const pixelY = origin === "image" ? item.y * renderScale.y : imageNaturalHeight - item.y * renderScale.y;
   const pixelW = item.width * renderScale.x;
   const pixelH = item.height * renderScale.y;
 
@@ -137,14 +152,15 @@ export function computeAnnotationOriginPercent(
   renderScale: { x: number; y: number },
   imageNaturalWidth: number,
   imageNaturalHeight: number,
+  origin: CoordinateOrigin = "pdf",
 ): { xPercent: number; yPercent: number } | null {
   if (!isValidOverlayGeometry(renderScale, imageNaturalWidth, imageNaturalHeight)) {
     return null;
   }
 
-  // Convert PDF coords to image pixel coords (same math as toPercentRect)
+  // Convert item coords to image pixel coords (same math as toPercentRect)
   const pixelX = item.x * renderScale.x;
-  const pixelY = imageNaturalHeight - item.y * renderScale.y;
+  const pixelY = origin === "image" ? item.y * renderScale.y : imageNaturalHeight - item.y * renderScale.y;
   const pixelW = item.width * renderScale.x;
   const pixelH = item.height * renderScale.y;
 

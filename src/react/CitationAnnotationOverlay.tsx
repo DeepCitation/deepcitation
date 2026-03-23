@@ -22,7 +22,7 @@ import {
 } from "./constants.js";
 import { useTranslation } from "./i18n.js";
 import { CloseIcon } from "./icons.js";
-import { toPercentRect } from "./overlayGeometry.js";
+import { type CoordinateOrigin, toPercentRect } from "./overlayGeometry.js";
 
 // Hoisted bracket color strings — all inputs are static module-level constants,
 // so these never change and avoid per-render string allocations during zoom/pan.
@@ -54,14 +54,16 @@ function SecondaryBrackets({
   imageNaturalWidth,
   imageNaturalHeight,
   color = "amber",
+  coordinateOrigin,
 }: {
   deepItem: DeepTextItem;
   renderScale: { x: number; y: number };
   imageNaturalWidth: number;
   imageNaturalHeight: number;
   color?: "amber" | "muted";
+  coordinateOrigin?: CoordinateOrigin;
 }) {
-  const rect = toPercentRect(deepItem, renderScale, imageNaturalWidth, imageNaturalHeight);
+  const rect = toPercentRect(deepItem, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin);
   if (!rect) return null;
 
   // amber → partial-match color; muted → verified color at lower opacity (distal supporting evidence)
@@ -140,6 +142,7 @@ export function CitationAnnotationOverlay({
   additionalHighlights,
   onDismiss,
   isDark,
+  coordinateOrigin,
 }: {
   phraseMatchDeepItem: DeepTextItem;
   renderScale: { x: number; y: number };
@@ -155,10 +158,12 @@ export function CitationAnnotationOverlay({
   onDismiss?: () => void;
   /** When true, uses a light overlay for dark page content. */
   isDark?: boolean;
+  /** Coordinate origin convention for DeepTextItem positions. Defaults to "pdf". */
+  coordinateOrigin?: CoordinateOrigin;
 }) {
   const t = useTranslation();
 
-  const rect = toPercentRect(phraseMatchDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight);
+  const rect = toPercentRect(phraseMatchDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin);
   // Bail out if geometry is invalid (zero dimensions, NaN, Infinity, etc.)
   if (!rect) return null;
 
@@ -215,7 +220,7 @@ export function CitationAnnotationOverlay({
 
   const anchorRect =
     showKeySpanHighlight && anchorTextDeepItem
-      ? toPercentRect(anchorTextDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight)
+      ? toPercentRect(anchorTextDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin)
       : null;
   return (
     <div
@@ -290,6 +295,7 @@ export function CitationAnnotationOverlay({
           imageNaturalWidth={imageNaturalWidth}
           imageNaturalHeight={imageNaturalHeight}
           color={h.color}
+          coordinateOrigin={coordinateOrigin}
         />
       ))}
 

@@ -201,7 +201,7 @@ When displaying citations, group statuses by user impact:
 
 | Group | Statuses | UI Treatment |
 |:------|:---------|:-------------|
-| **Verified** | `found` | Green checkmark, blue text |
-| **Partial** | `partial_text_found`, `found_anchor_text_only`, `found_on_other_page`, `found_on_other_line`, `first_word_found`, `found_phrase_missed_anchor_text` | Orange indicator, blue text |
+| **Verified** | `found`, `found_phrase_missed_anchor_text` | Green checkmark, blue text |
+| **Partial** | `partial_text_found`, `found_anchor_text_only`, `found_on_other_page`, `found_on_other_line`, `first_word_found` | Orange indicator, blue text |
 | **Not Found** | `not_found`, `skipped` | Gray text, strikethrough optional |
 | **Loading** | `pending`, `loading`, `timestamp_wip` | Spinner or skeleton |

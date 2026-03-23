@@ -14,6 +14,7 @@ import {
   CARET_PILL_STYLE,
   DOT_COLORS,
   DOT_INDICATOR_SIZE_STYLE,
+  ERROR_COLOR_STYLE,
   INDICATOR_SIZE_STYLE,
   PARTIAL_COLOR_STYLE,
   PENDING_COLOR_STYLE,
@@ -68,6 +69,7 @@ const PartialIndicator = () => (
 const MissIndicator = () => (
   <StatusIndicatorWrapper
     className="align-middle [text-decoration:none] animate-in fade-in-0 duration-75"
+    colorStyle={ERROR_COLOR_STYLE}
     dataIndicator="error"
   >
     <XIcon />

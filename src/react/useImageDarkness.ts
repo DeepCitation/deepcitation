@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { BOX_PADDING, SPOTLIGHT_PADDING } from "../drawing/citationDrawing.js";
 import type { DeepTextItem } from "../types/boxes.js";
+import type { CoordinateOrigin } from "./overlayGeometry.js";
 
 /** Luminance threshold (0–255). Below this → dark content. */
 const DARK_THRESHOLD = 100;
@@ -88,6 +89,7 @@ export function useImageDarkness(
   imageLoaded: boolean,
   phraseItem: DeepTextItem | null,
   renderScale: { x: number; y: number } | null,
+  coordinateOrigin: CoordinateOrigin = "pdf",
 ): boolean {
   const [isDark, setIsDark] = useState(false);
 
@@ -104,8 +106,10 @@ export function useImageDarkness(
     const sx = scaleX ?? 1;
     const sy = scaleY ?? 1;
     const pad = BOX_PADDING + SPOTLIGHT_PADDING;
+    const nh = img.naturalHeight || 1;
     const spotX = phraseItem.x * sx - pad;
-    const spotY = phraseItem.y * sy - pad;
+    // For PDF coords (bottom-up Y), flip to image top-down; for image coords, use directly.
+    const spotY = coordinateOrigin === "image" ? phraseItem.y * sy - pad : nh - phraseItem.y * sy - pad;
     const spotW = phraseItem.width * sx + 2 * pad;
     const spotH = phraseItem.height * sy + 2 * pad;
 
@@ -124,7 +128,7 @@ export function useImageDarkness(
       setIsDark(false);
     };
     probe.src = img.src;
-  }, [img, imageLoaded, phraseItem, scaleX, scaleY]);
+  }, [img, imageLoaded, phraseItem, scaleX, scaleY, coordinateOrigin]);
 
   return isDark;
 }

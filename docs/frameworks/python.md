@@ -25,7 +25,6 @@ pip install httpx python-dotenv
 ```python
 import httpx
 import os
-import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -161,6 +160,7 @@ def parse_citations(llm_output: str) -> dict:
     citations = {}
     for attachment_id, items in data.items():
         for item in items:
+            # LLMs may use shorthand keys (n, f, k, p, l) to save tokens
             cid = item.get("id") or item.get("n")
             citations[f"{attachment_id}_{cid}"] = {
                 "fullPhrase": item.get("full_phrase") or item.get("f", ""),
