@@ -101,6 +101,35 @@ Customize the appearance of DeepCitation components using `--dc-*` CSS custom pr
 
 ## Dark Mode
 
+DeepCitation ships with a full set of dark-mode tokens that activate when a `.dark` class is present on **any ancestor element** (including `<html>` or `<body>`). No extra CSS import is needed — the built-in `tokens.css` already defines both `:root` (light) and `.dark` (dark) defaults.
+
+### How dark mode activates
+
+| Approach | How it works |
+|----------|-------------|
+| **Class-based** (Tailwind, shadcn/ui, Next.js themes) | Add `class="dark"` to `<html>` or `<body>`. DeepCitation's `.dark { … }` selector matches automatically. |
+| **`prefers-color-scheme`** | Use a media query to set tokens when the OS is in dark mode. |
+| **React component** | Pass `darkTheme` to `<DeepCitationTheme>` — it injects a `.dark { … }` style block for you. |
+
+### Force dark mode (class-based)
+
+If your app already toggles a `.dark` class, DeepCitation picks it up with zero config. To **always** render citations in dark mode regardless of user preference:
+
+```html
+<!-- Wrap citations in a .dark ancestor -->
+<div class="dark">
+  <!-- all DeepCitation components inside here render in dark mode -->
+</div>
+```
+
+Or set it globally:
+
+```html
+<html class="dark">
+```
+
+You can override specific dark-mode tokens in CSS:
+
 ```css
 .dark {
   --dc-primary: #818cf8;
@@ -111,16 +140,48 @@ Customize the appearance of DeepCitation components using `--dc-*` CSS custom pr
 }
 ```
 
-Or use `prefers-color-scheme`:
+### Auto dark mode (`prefers-color-scheme`)
+
+Let the browser switch automatically based on the OS setting:
 
 ```css
 @media (prefers-color-scheme: dark) {
   :root {
+    --dc-background: #27272a;
+    --dc-muted: #3f3f46;
+    --dc-foreground: #fafafa;
+    --dc-muted-foreground: #a1a1aa;
+    --dc-border: #3f3f46;
     --dc-primary: #818cf8;
     --dc-verified: #34d399;
+    --dc-verified-bg: rgba(34, 197, 94, 0.1);
   }
 }
 ```
+
+> **Tip:** If you use `prefers-color-scheme`, you generally don't need the `.dark` class approach — pick one or the other to avoid conflicts.
+
+### Force dark mode (React)
+
+```tsx
+import { DeepCitationTheme } from "deepcitation/react";
+
+// Apply dark tokens globally, regardless of .dark class
+<DeepCitationTheme
+  theme={{
+    background: "#27272a",
+    muted: "#3f3f46",
+    foreground: "#fafafa",
+    mutedForeground: "#a1a1aa",
+    border: "#3f3f46",
+    primary: "#60a5fa",
+    verified: "#34d399",
+    verifiedBg: "rgba(34, 197, 94, 0.1)",
+  }}
+/>
+```
+
+This injects the dark palette into `:root` directly, so it applies everywhere — no `.dark` class needed.
 
 ---
 
@@ -204,6 +265,100 @@ When `scoped` is true, a `<div>` wrapper sets CSS custom properties for that sub
   --dc-destructive-bg: #f5f5f5;
   --dc-radius-lg: 0;
 }
+```
+
+### Y Combinator
+
+A complete rebrand showing how to match an external brand identity — YC's signature orange with clean, tight UI.
+
+```css
+:root {
+  /* YC orange as the primary accent */
+  --dc-primary: #f26522;
+  --dc-primary-foreground: #ffffff;
+
+  /* Surfaces — warm off-white background */
+  --dc-background: #ffffff;
+  --dc-muted: #faf5f0;
+  --dc-foreground: #1a1a1a;
+  --dc-muted-foreground: #6b6b6b;
+  --dc-subtle-foreground: #999999;
+  --dc-border: #e5e0db;
+
+  /* Status colors in the YC palette */
+  --dc-verified: #f26522;
+  --dc-verified-bg: #fff4ed;
+  --dc-verified-border: #fdba8c;
+  --dc-verified-hover: #c44d15;
+  --dc-partial: #d97706;
+  --dc-partial-bg: #fffbeb;
+  --dc-partial-border: #fcd34d;
+  --dc-destructive: #dc2626;
+  --dc-destructive-bg: #fef2f2;
+  --dc-destructive-border: #fca5a5;
+
+  /* Tight, modern radii */
+  --dc-radius-sm: 0.125rem;
+  --dc-radius-md: 0.25rem;
+  --dc-radius-lg: 0.375rem;
+
+  /* Clean sans-serif stack */
+  --dc-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+```
+
+Dark mode companion:
+
+```css
+.dark {
+  --dc-primary: #ff8c55;
+  --dc-background: #1a1a1a;
+  --dc-muted: #2a2420;
+  --dc-foreground: #f5f5f5;
+  --dc-muted-foreground: #a3a3a3;
+  --dc-subtle-foreground: #737373;
+  --dc-border: #3d3530;
+
+  --dc-verified: #ff8c55;
+  --dc-verified-bg: rgba(242, 101, 34, 0.1);
+  --dc-verified-border: #7c2d12;
+  --dc-verified-hover: #fdba8c;
+}
+```
+
+Or via the React component:
+
+```tsx
+<DeepCitationTheme
+  theme={{
+    primary: "#f26522",
+    primaryForeground: "#ffffff",
+    background: "#ffffff",
+    muted: "#faf5f0",
+    foreground: "#1a1a1a",
+    mutedForeground: "#6b6b6b",
+    border: "#e5e0db",
+    verified: "#f26522",
+    verifiedBg: "#fff4ed",
+    verifiedBorder: "#fdba8c",
+    verifiedHover: "#c44d15",
+    radiusSm: "0.125rem",
+    radiusMd: "0.25rem",
+    radiusLg: "0.375rem",
+    fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+  }}
+  darkTheme={{
+    primary: "#ff8c55",
+    background: "#1a1a1a",
+    muted: "#2a2420",
+    foreground: "#f5f5f5",
+    border: "#3d3530",
+    verified: "#ff8c55",
+    verifiedBg: "rgba(242, 101, 34, 0.1)",
+    verifiedBorder: "#7c2d12",
+    verifiedHover: "#fdba8c",
+  }}
+/>
 ```
 
 ---

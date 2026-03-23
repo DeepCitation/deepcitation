@@ -17,7 +17,9 @@ Use curl for quick testing or when you prefer direct API calls without an SDK.
 
 ---
 
-## 1. Upload a Document
+## 1. Prepare a Document
+
+### File upload (PDF or image)
 
 Upload a PDF or image file to extract text for your LLM prompt:
 
@@ -36,6 +38,20 @@ curl -X POST "https://api.deepcitation.com/prepareAttachments" \
   -H "Authorization: Bearer dc_live_your_api_key" \
   -F "file=@scanned-invoice.jpg"
 ```
+
+### URL preparation (web pages, Office files)
+
+Prepare a URL for citation verification. The page is rendered to PDF server-side (~30s first time, cached after):
+
+```bash
+# Prepare a web page
+curl -X POST "https://api.deepcitation.com/prepareAttachments" \
+  -H "Authorization: Bearer dc_live_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{ "url": "https://example.com/article" }'
+```
+
+The response includes `urlSource.url` and `urlSource.domain` — use these when constructing citations for URL-based sources.
 
 ---
 
@@ -67,7 +83,7 @@ curl -X POST "https://api.deepcitation.com/verifyCitations" \
 ```
 
 {: .note }
-Store the `attachmentId` in your database alongside the file reference. This lets you verify citations against the same document later without re-uploading. Attachments are retained for 30 days.
+Store the `attachmentId` in your database alongside the file reference. This lets you verify citations against the same document later without re-uploading.
 
 ---
 
@@ -149,7 +165,7 @@ curl -s ... | jq '.verifications | to_entries[] | {key: .key, page: .value.pageN
 | **Base URL** | `https://api.deepcitation.com` |
 | **Auth Header** | `Authorization: Bearer dc_live_xxx` |
 | **Content-Type** | `application/json` (for verify) |
-| **Endpoints** | `POST /prepareAttachments`, `POST /verifyCitations` |
-| **File Types** | PDFs, Images, Office Docs, URLs |
+| **Endpoints** | `POST /prepareAttachments`, `POST /verifyCitations`, `POST /getAttachment`, `POST /attachments/:id/extend`, `DELETE /attachments/:id` |
+| **File Types** | PDFs, images (auto-OCR), web pages, Office docs (via URL) |
 | **Image Formats** | `avif` (default, smallest), `jpeg`, `png` |
-| **File Retention** | 30 days |
+| **File Retention** | 365 days (auto-renewing with active account) |
