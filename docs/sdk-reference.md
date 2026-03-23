@@ -1,7 +1,8 @@
 ---
 layout: default
 title: SDK Reference
-nav_order: 4
+parent: API Reference
+nav_order: 1
 description: "TypeScript SDK client methods and utility functions"
 commit_sha: "cc9c7aa"
 stale_after_commits: 10
