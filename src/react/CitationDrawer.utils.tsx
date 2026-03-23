@@ -5,9 +5,9 @@ import type { Verification } from "../types/verification.js";
 import { extractDomain } from "../utils/urlSafety.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
 import { isPartialSearchStatus } from "./citationStatus.js";
+import { DOT_INDICATOR_FIXED_SIZE_STYLE } from "./constants.js";
 import type { MessageKey, TranslateFunction } from "./i18n.js";
 import { defaultMessages, defaultTranslator } from "./i18n.js";
-import { DOT_INDICATOR_FIXED_SIZE_STYLE } from "./constants.js";
 import { CheckIcon, SpinnerIcon, XCircleIcon } from "./icons.js";
 import type { IndicatorVariant } from "./types.js";
 
