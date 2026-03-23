@@ -42,7 +42,7 @@ npm install deepcitation langchain @langchain/openai
 
 ```bash
 # .env
-DEEPCITATION_API_KEY=dc_live_your_key
+DEEPCITATION_API_KEY=dc_live_your_api_key
 OPENAI_API_KEY=sk-your-key
 ```
 
@@ -125,12 +125,11 @@ const result = await answerWithCitations(
 console.log(result.llmOutput);
 
 for (const [key, verification] of Object.entries(result.verifications)) {
-  const status = verification.searchState?.status;
-  console.log(`[${key}] status=${status}`);
+  console.log(`[${key}] status=${verification.status}`);
 
-  if (verification.verificationImageBase64) {
+  if (verification.evidence?.src) {
     // Save or serve the visual proof image
-    console.log(`  proof image available (${verification.verificationImageBase64.length} bytes)`);
+    console.log(`  proof image available`);
   }
 }
 ```

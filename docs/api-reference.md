@@ -127,7 +127,7 @@ curl -X POST "https://api.deepcitation.com/verifyCitations" \
       "pageNumber": 1,
       "lowerCaseSearchTerm": "revenue increased by 25% in q4",
       "matchSnippet": "...the company reported that Revenue increased by 25% in Q4 compared to...",
-      "verificationImageBase64": "data:image/avif;base64,AAAAIGZ0eXBhdmlm...",
+      "evidence": { "src": "data:image/avif;base64,AAAAIGZ0eXBhdmlm..." },
       "searchState": {
         "status": "found"
       },
@@ -137,7 +137,7 @@ curl -X POST "https://api.deepcitation.com/verifyCitations" \
       "pageNumber": 1,
       "lowerCaseSearchTerm": "net profit margin improved",
       "matchSnippet": "...operating costs. Net profit margin improved by 3.2 percentage points...",
-      "verificationImageBase64": "data:image/avif;base64,AAAAIGZ0eXBhdmlm...",
+      "evidence": { "src": "data:image/avif;base64,AAAAIGZ0eXBhdmlm..." },
       "searchState": {
         "status": "found"
       },
@@ -166,12 +166,12 @@ curl -X POST "https://api.deepcitation.com/verifyCitations" \
 
 ### Rate Limits
 
-- 30 day file retention (re-upload if needed)
+- 365 day file retention (auto renewing with an active account)
 - 429 status when limit exceeded
 
 ### Pricing
 
-- First $10/month free (no credit card required)
+- First $20/month free (no credit card required)
 - Pay only for what you use
 - Volume discounts available
 

@@ -24,7 +24,7 @@ Upload a PDF or image file to extract text for your LLM prompt:
 ```bash
 # Upload a PDF file
 curl -X POST "https://api.deepcitation.com/prepareAttachments" \
-  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
+  -H "Authorization: Bearer dc_live_your_api_key" \
   -F "file=@document.pdf"
 ```
 
@@ -33,7 +33,7 @@ For images (auto-OCR):
 ```bash
 # Upload an image for OCR
 curl -X POST "https://api.deepcitation.com/prepareAttachments" \
-  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
+  -H "Authorization: Bearer dc_live_your_api_key" \
   -F "file=@scanned-invoice.jpg"
 ```
 
@@ -46,7 +46,7 @@ After your LLM generates a response, verify citations against the source:
 ```bash
 # Verify citations
 curl -X POST "https://api.deepcitation.com/verifyCitations" \
-  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
+  -H "Authorization: Bearer dc_live_your_api_key" \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -79,7 +79,7 @@ Complete bash script for the entire DeepCitation workflow:
 #!/bin/bash
 # Full DeepCitation workflow with curl
 
-API_KEY="dc_live_YOUR_API_KEY"
+API_KEY="dc_live_your_api_key"
 BASE_URL="https://api.deepcitation.com"
 
 # Step 1: Upload file
@@ -134,7 +134,7 @@ curl -s ... | jq '.verifications | to_entries[] | {key: .key, status: .value.sea
 curl -s ... | jq '[.verifications[].searchState.status] | all(. == "found")'
 
 # Extract verification images
-curl -s ... | jq '.verifications | to_entries[] | {key: .key, image: .value.verificationImageBase64}'
+curl -s ... | jq '.verifications | to_entries[] | {key: .key, image: .value.evidence.src}'
 
 # Get page numbers where citations were found
 curl -s ... | jq '.verifications | to_entries[] | {key: .key, page: .value.pageNumber}'

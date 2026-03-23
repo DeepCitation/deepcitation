@@ -138,7 +138,7 @@ Verification is still in progress. Wait and retry.
 
 ## Verification Image
 
-When a citation is found, the `verificationImageBase64` field contains a cropped image of the source document showing the matched text. This provides visual proof for users.
+When a citation is found, the `evidence.src` field contains a cropped image of the source document showing the matched text. This provides visual proof for users.
 
 ### Format
 

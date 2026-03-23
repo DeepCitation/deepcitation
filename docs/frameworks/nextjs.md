@@ -367,7 +367,7 @@ function RenderWithCitations({
 
 ---
 
-## Pattern 3: Static / SSG Pre-Verified Citations
+## Pattern 4: Static / SSG Pre-Verified Citations
 
 For published articles or documentation where citations are pre-verified at build time, run `verifyAttachment()` during the build and embed the results in your page props.
 
@@ -416,7 +416,7 @@ export function ArticleContent({
 
 ```bash
 # .env.local
-DEEPCITATION_API_KEY=dc_live_your_key   # Server-only — never prefix with NEXT_PUBLIC_
+DEEPCITATION_API_KEY=dc_live_your_api_key   # Server-only — never prefix with NEXT_PUBLIC_
 OPENAI_API_KEY=sk-your-key              # Server-only
 ```
 
