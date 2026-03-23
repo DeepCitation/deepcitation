@@ -8,7 +8,6 @@
 import * as React from "react";
 import {
   EXPANDED_POPOVER_HEIGHT,
-  GUARD_MAX_HEIGHT_VAR,
   GUARD_MAX_WIDTH_VAR,
   HIDE_SCROLLBAR_STYLE,
   POPOVER_WIDTH_DEFAULT,
@@ -471,11 +470,9 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
                 // document.documentElement.clientWidth (visible viewport excluding scrollbar).
                 // Falls back to calc(100dvw - 2rem) for SSR or before the guard runs.
                 maxWidth: `min(var(${POPOVER_WIDTH_VAR}, ${POPOVER_WIDTH_DEFAULT}), var(${GUARD_MAX_WIDTH_VAR}, calc(100dvw - 2rem)))`,
-                // Caps to the smaller of the static viewport limit and the dynamic
-                // guard height (set by useViewportBoundaryGuard based on the popover's
-                // actual Y position). This prevents expansion animations from
-                // overshooting the viewport bottom on mobile.
-                maxHeight: `min(${EXPANDED_POPOVER_HEIGHT}, var(${GUARD_MAX_HEIGHT_VAR}, ${EXPANDED_POPOVER_HEIGHT}))`,
+                // Static viewport cap — the popover renders at full size and stays there.
+                // No dynamic height clamping; overflow is handled by internal scrolling.
+                maxHeight: EXPANDED_POPOVER_HEIGHT,
                 ...getBlinkContainerMotionStyle(blinkStage, prefersReducedMotion),
                 overflowX: "clip",
                 ...styleWithoutOverflow,
