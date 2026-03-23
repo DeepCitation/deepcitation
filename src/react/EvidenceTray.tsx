@@ -57,12 +57,7 @@ import { applyGestureTransform, useWheelZoom, type WheelZoomAnchor } from "./hoo
 import { tPlural, useLocale, useTranslation } from "./i18n.js";
 import { ChevronRightIcon, SpinnerIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
-import {
-  type CoordinateOrigin,
-  computeAnnotationOriginPercent,
-  computeAnnotationScrollTarget,
-  toPercentRect,
-} from "./overlayGeometry.js";
+import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "./overlayGeometry.js";
 import { buildSearchNarrative } from "./searchNarrative.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { useImageDarkness } from "./useImageDarkness.js";
@@ -1701,14 +1696,7 @@ export function InlineExpandedImage({
         isAnimatingScroll.current = false;
       });
     }
-  }, [
-    scrollTarget,
-    effectivePhraseItem,
-    containerRef,
-    effectiveRenderScale,
-    naturalWidth,
-    naturalHeight,
-  ]);
+  }, [scrollTarget, effectivePhraseItem, containerRef, effectiveRenderScale, naturalWidth, naturalHeight]);
 
   // Scroll listener for locate dirty-bit detection.
   // Compares current scroll position against the stored annotation target.
@@ -1943,12 +1931,7 @@ export function InlineExpandedImage({
     fill && effectiveRenderScale && naturalWidth && naturalHeight ? (scrollTarget ?? effectivePhraseItem) : null;
   const annotationOrigin =
     annotationOriginItem && effectiveRenderScale && naturalWidth && naturalHeight
-      ? computeAnnotationOriginPercent(
-          annotationOriginItem,
-          effectiveRenderScale,
-          naturalWidth,
-          naturalHeight,
-        )
+      ? computeAnnotationOriginPercent(annotationOriginItem, effectiveRenderScale, naturalWidth, naturalHeight)
       : null;
   // VT geometry target: always use the full phrase rect so the View Transition
   // morph envelope matches the visible overlay size on both expand and collapse.
