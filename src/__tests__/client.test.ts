@@ -16,20 +16,28 @@ describe("DeepCitation Client", () => {
       expect(() => new DeepCitation({ apiKey: "" })).toThrow("DeepCitation API key is required");
     });
 
+    it("throws AuthenticationError for key without sk-dc- prefix", () => {
+      expect(() => new DeepCitation({ apiKey: "abc-notvalid-key-here" })).toThrow("Invalid API key format");
+    });
+
+    it("throws AuthenticationError for key that is too short", () => {
+      expect(() => new DeepCitation({ apiKey: "sk-dc-" })).toThrow("Invalid API key format");
+    });
+
     it("creates client with valid API key", () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
       expect(client).toBeInstanceOf(DeepCitation);
     });
 
     it("uses default API URL when not specified", () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
       // Client should work without custom URL
       expect(client).toBeInstanceOf(DeepCitation);
     });
 
     it("uses custom API URL when provided", () => {
       const client = new DeepCitation({
-        apiKey: "sk-dc-123",
+        apiKey: "sk-dc-test-key-00000001",
         apiUrl: "https://custom.api.com/",
       });
       expect(client).toBeInstanceOf(DeepCitation);
@@ -37,7 +45,7 @@ describe("DeepCitation Client", () => {
 
     it("strips trailing slash from custom API URL", () => {
       const client = new DeepCitation({
-        apiKey: "sk-dc-123",
+        apiKey: "sk-dc-test-key-00000001",
         apiUrl: "https://custom.api.com/",
       });
       expect(client).toBeInstanceOf(DeepCitation);
@@ -46,7 +54,7 @@ describe("DeepCitation Client", () => {
     it("clamps negative maxRetries to 0 — does not throw undefined", async () => {
       // With maxRetries < 0, the for loop would never run and lastError stays undefined,
       // causing `throw undefined`. The constructor must clamp to 0.
-      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: -5 });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", maxRetries: -5 });
 
       mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
@@ -60,7 +68,7 @@ describe("DeepCitation Client", () => {
 
   describe("requestSource", () => {
     it("includes X-Request-Source header when configured", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", requestSource: "my-app" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", requestSource: "my-app" });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -79,7 +87,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("omits X-Request-Source header when not configured", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -98,10 +106,10 @@ describe("DeepCitation Client", () => {
     });
 
     it("rejects requestSource containing newline characters", () => {
-      expect(() => new DeepCitation({ apiKey: "sk-dc-123", requestSource: "bad\r\nvalue" })).toThrow(
+      expect(() => new DeepCitation({ apiKey: "sk-dc-test-key-00000001", requestSource: "bad\r\nvalue" })).toThrow(
         "requestSource must not contain newline characters",
       );
-      expect(() => new DeepCitation({ apiKey: "sk-dc-123", requestSource: "bad\nvalue" })).toThrow(
+      expect(() => new DeepCitation({ apiKey: "sk-dc-test-key-00000001", requestSource: "bad\nvalue" })).toThrow(
         "requestSource must not contain newline characters",
       );
     });
@@ -109,7 +117,7 @@ describe("DeepCitation Client", () => {
 
   describe("uploadFile", () => {
     it("uploads a file and returns response", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -135,7 +143,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("throws error on upload failure", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -148,7 +156,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("handles custom attachmentId option", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -174,7 +182,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("throws error for invalid file type", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       // @ts-expect-error - testing invalid input
       await expect(client.uploadFile("not a file")).rejects.toThrow("Invalid file type");
@@ -183,7 +191,7 @@ describe("DeepCitation Client", () => {
 
   describe("prepareAttachments", () => {
     it("uploads multiple files and returns aggregated response", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       // Mock two successful uploads
       mockFetch
@@ -238,7 +246,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("handles single file", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -264,7 +272,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("handles empty files array", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       const result = await client.prepareAttachments([]);
 
@@ -273,7 +281,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("propagates upload errors", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -286,7 +294,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("supports custom attachmentId per file", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -314,7 +322,7 @@ describe("DeepCitation Client", () => {
 
   describe("verify", () => {
     it("parses and verifies citations from LLM output", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       // First upload a file
       mockFetch.mockResolvedValueOnce({
@@ -374,7 +382,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("verifies citations with attachmentId in citation", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -400,7 +408,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("returns empty verifications when no citations in output", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       const result = await client.verify({
         llmOutput: "Just plain text with no citations.",
@@ -412,7 +420,7 @@ describe("DeepCitation Client", () => {
 
   describe("verifyAttachment", () => {
     it("verifies citations with attachmentId and citation map", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       // Verify citations directly with attachmentId
       mockFetch.mockResolvedValueOnce({
@@ -436,7 +444,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("handles API error gracefully", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -452,7 +460,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("returns empty verifications when no citations provided", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       const result = await client.verifyAttachment("file_abc", {});
 
@@ -461,7 +469,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("deduplicates identical verification requests", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -495,7 +503,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("makes separate calls for different citations", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch
         .mockResolvedValueOnce({
@@ -530,7 +538,7 @@ describe("DeepCitation Client", () => {
 
   describe("prepareAttachments with concurrency limits", () => {
     it("uploads files with concurrency limit", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
       let concurrentCalls = 0;
       let maxConcurrentCalls = 0;
 
@@ -579,7 +587,7 @@ describe("DeepCitation Client", () => {
     it("respects custom concurrency limit from config", async () => {
       const customLimit = 3;
       const client = new DeepCitation({
-        apiKey: "sk-dc-123",
+        apiKey: "sk-dc-test-key-00000001",
         maxUploadConcurrency: customLimit,
       });
       let concurrentCalls = 0;
@@ -624,7 +632,7 @@ describe("DeepCitation Client", () => {
 
   describe("getAttachment", () => {
     it("returns attachment metadata on success", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -650,7 +658,7 @@ describe("DeepCitation Client", () => {
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({
-            Authorization: "Bearer sk-dc-123",
+            Authorization: "Bearer sk-dc-test-key-00000001",
             "Content-Type": "application/json",
           }),
           body: JSON.stringify({ attachmentId: "att_abc123" }),
@@ -659,13 +667,13 @@ describe("DeepCitation Client", () => {
     });
 
     it("throws ValidationError for empty attachmentId", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       await expect(client.getAttachment("")).rejects.toThrow("attachmentId is required");
     });
 
     it("throws error on API failure", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -679,7 +687,7 @@ describe("DeepCitation Client", () => {
 
   describe("cache key completeness", () => {
     it("differentiates citations with same text but different lineIds", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch
         .mockResolvedValueOnce({
@@ -723,7 +731,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("uses same cache for identical citations with different numbering", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValue({
         ok: true,
@@ -762,7 +770,7 @@ describe("DeepCitation Client", () => {
 
   describe("endUserId attribution", () => {
     it("includes instance-level endUserId in uploadFile FormData", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", endUserId: "user-instance" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -782,7 +790,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("per-request endUserId overrides instance default in uploadFile", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", endUserId: "user-instance" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -802,7 +810,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("omits endUserId from FormData when neither instance nor request set", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -822,7 +830,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("includes endUserId in verifyAttachment request body", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", endUserId: "user-instance" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -842,7 +850,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("includes instance endUserId in verifyAttachment when no override", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", endUserId: "user-instance" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -858,7 +866,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("threads endUserId from verify through to verifyAttachment", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -879,7 +887,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("includes endUserId in prepareUrl JSON body", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", endUserId: "user-instance" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -898,7 +906,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("includes endUserId in getAttachment with per-request override", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", endUserId: "user-instance" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -921,7 +929,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("includes endUserId in convertToPdf JSON body", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", endUserId: "user-instance" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", endUserId: "user-instance" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -944,7 +952,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("includes endUserId in prepareConvertedFile JSON body", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123" });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -965,7 +973,7 @@ describe("DeepCitation Client", () => {
 
   describe("fetchWithRetry (network error resilience)", () => {
     it("succeeds immediately on first attempt when no network error", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: 3 });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", maxRetries: 3 });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -984,7 +992,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("retries after network error and succeeds on second attempt", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: 3 });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", maxRetries: 3 });
 
       mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce({
         ok: true,
@@ -1004,7 +1012,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("throws after exhausting all retries", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: 2 });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", maxRetries: 2 });
 
       const networkError = new TypeError("Failed to fetch");
       mockFetch.mockRejectedValue(networkError);
@@ -1017,7 +1025,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("does not retry HTTP error responses (4xx/5xx)", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: 3 });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", maxRetries: 3 });
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -1033,7 +1041,7 @@ describe("DeepCitation Client", () => {
     });
 
     it("maxRetries: 0 disables retries entirely", async () => {
-      const client = new DeepCitation({ apiKey: "sk-dc-123", maxRetries: 0 });
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001", maxRetries: 0 });
 
       mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
