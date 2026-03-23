@@ -1,6 +1,6 @@
 import type React from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { BLINK_ENTER_TOTAL_MS, GUARD_MAX_HEIGHT_VAR, GUARD_MAX_WIDTH_VAR, VIEWPORT_MARGIN_PX } from "../constants.js";
+import { BLINK_ENTER_TOTAL_MS, GUARD_MAX_WIDTH_VAR, VIEWPORT_MARGIN_PX } from "../constants.js";
 import type { PopoverViewState } from "../DefaultPopoverContent.js";
 import { SCROLL_LOCK_LAYOUT_SHIFT_EVENT } from "../scrollLock.js";
 
@@ -45,7 +45,6 @@ export function useViewportBoundaryGuard(
       if (el) {
         el.style.translate = "";
         el.style.removeProperty(GUARD_MAX_WIDTH_VAR);
-        el.style.removeProperty(GUARD_MAX_HEIGHT_VAR);
       }
       prevViewStateRef.current = null;
       return;
@@ -130,7 +129,6 @@ export function useViewportBoundaryGuard(
       window.removeEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, onGeometryChange as EventListener);
       el.style.translate = "";
       el.style.removeProperty(GUARD_MAX_WIDTH_VAR);
-      el.style.removeProperty(GUARD_MAX_HEIGHT_VAR);
     };
   }, [isOpen]);
 }
@@ -154,21 +152,8 @@ function clamp(el: HTMLElement): void {
     el.style.translate = `${dx}px 0px`;
   }
 
-  // Dynamic max-height: constrain so the popover cannot exceed the viewport.
-  // For side="bottom": available = viewport bottom − wrapper top.
-  // For side="top": available = content bottom − viewport top (the content's
-  // bottom edge is anchored near the trigger; it grows upward).
-  // This runs in useLayoutEffect (before paint), preventing the single-frame
-  // overflow flash that occurs when content grows on viewState change.
-  const wrapper = el.parentElement;
-  if (wrapper) {
-    const vh = window.innerHeight;
-    const isTop = el.dataset.side === "top";
-    const available = isTop
-      ? el.getBoundingClientRect().bottom - VIEWPORT_MARGIN_PX
-      : vh - wrapper.getBoundingClientRect().top - VIEWPORT_MARGIN_PX;
-    if (available > 0) {
-      el.style.setProperty(GUARD_MAX_HEIGHT_VAR, `${available}px`);
-    }
-  }
+  // Max-height is handled statically in Popover.tsx:
+  //   maxHeight: EXPANDED_POPOVER_HEIGHT  (= "calc(100dvh - 2rem)")
+  // Internal scrolling handles overflow. Dynamic height clamping was removed
+  // because it caused the popover to squish on scroll and viewState changes.
 }

@@ -181,7 +181,7 @@ import { CITATION_DATA_START_DELIMITER, CITATION_DATA_END_DELIMITER } from "deep
 ```
 
 {: .warning }
-Users must **never** see the `<<<CITATION_DATA>>>` block. Always call `extractVisibleText(llmOutput)` before displaying LLM output. See [Golden Rule 2](../INTEGRATION.md#golden-rules).
+Users must **never** see the `<<<CITATION_DATA>>>` block. Always call `parseCitationResponse(llmOutput)` and use `.visibleText` before displaying LLM output. See [Golden Rules]({{ site.baseurl }}/frameworks/express/#golden-rules).
 
 ---
 

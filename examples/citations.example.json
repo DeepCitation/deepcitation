@@ -29,7 +29,7 @@
       "fullPhrase": "tree-shakeable side-effect free no dependencies",
       "reasoning": "Bundlephobia confirms the deepcitation package has no runtime dependencies.",
       "pageNumber": 1,
-      "lineIds": [1, 5]
+      "lineIds": [5]
     },
     {
       "type": "url",

@@ -18,6 +18,40 @@ Common integration patterns and code examples for DeepCitation.
 
 ---
 
+## Runnable Examples
+
+Complete, runnable apps you can clone and run locally. Each example includes setup instructions and environment configuration.
+
+| Example | Description | Best For | Demo |
+|:--------|:------------|:---------|:-----|
+| [basic-verification](https://github.com/DeepCitation/deepcitation/tree/main/examples/basic-verification) | Core 3-step workflow with OpenAI/Anthropic | Learning the basics, quick integration | — |
+| [langchain-rag-chat](https://github.com/DeepCitation/deepcitation/tree/main/examples/langchain-rag-chat) | Next.js + LangChain.js RAG app with verification | RAG pipelines, retrieval + proof UI | [Live Demo](https://langchain-rag-chat-deepcitation.vercel.app/) |
+| [mastra-rag-chat](https://github.com/DeepCitation/deepcitation/tree/main/examples/mastra-rag-chat) | Next.js + Mastra RAG app with verification | Mastra framework, TypeScript-native RAG | [Live Demo](https://mastra-rag-deepcitation.vercel.app/) |
+| [nextjs-ai-sdk](https://github.com/DeepCitation/deepcitation/tree/main/examples/nextjs-ai-sdk) | Next.js chat app with Vercel AI SDK streaming | Full-stack apps, streaming UI | [Live Demo](https://nextjs-ai-sdk-deepcitation.vercel.app/) |
+| [agui-chat](https://github.com/DeepCitation/deepcitation/tree/main/examples/agui-chat) | AG-UI protocol chat with SSE streaming | AG-UI integration, protocol-level control | [Live Demo](https://agui-chat-deepcitation.vercel.app/) |
+| [static-html](https://github.com/DeepCitation/deepcitation/tree/main/examples/static-html) | CDN popover in plain HTML, no build step | Static sites, CDN integration | — |
+
+### Quick Start
+
+```bash
+# Clone the repo
+git clone https://github.com/DeepCitation/deepcitation.git
+cd deepcitation/examples
+
+# Choose an example
+cd basic-verification  # or nextjs-ai-sdk, langchain-rag-chat, etc.
+
+# Install and run
+npm install
+cp .env.example .env   # Add your API keys
+npm start
+```
+
+{: .note }
+All examples require a free DeepCitation API key from [deepcitation.com/signup](https://deepcitation.com/signup). Some examples also require an OpenAI or Anthropic key.
+
+---
+
 ## Multi-File Workflow
 
 Work with multiple documents and verify citations across files:
@@ -274,5 +308,6 @@ See [Error Handling]({{ site.baseurl }}/error-handling/) for retry patterns with
 
 ## Next Steps
 
-- [Components]({{ site.baseurl }}/components/) - Full CitationComponent documentation
-- [Types]({{ site.baseurl }}/types/) - TypeScript interface definitions
+- [Framework Guides]({{ site.baseurl }}/frameworks/) — LangChain, Next.js, Vercel AI SDK, Express with runnable examples
+- [Components]({{ site.baseurl }}/components/) — Full CitationComponent documentation
+- [Types]({{ site.baseurl }}/types/) — TypeScript interface definitions

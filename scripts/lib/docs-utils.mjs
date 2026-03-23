@@ -63,6 +63,64 @@ export function parseYamlFrontmatter(content) {
 }
 
 /**
+ * Extract heading slugs from markdown content (Kramdown-compatible).
+ * Handles ATX headings (`## Foo Bar`) and custom IDs (`{#custom-id}`).
+ * @param {string} content — markdown file content
+ * @returns {Set<string>} — set of heading slug strings
+ */
+export function getHeadingSlugs(content) {
+  const slugs = new Set();
+  let inFence = false;
+  for (const line of content.split("\n")) {
+    if (/^\s*(`{3,}|~{3,})/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const headingMatch = line.match(/^#{1,6}\s+(.+)$/);
+    if (!headingMatch) continue;
+    let text = headingMatch[1].trim();
+    // Check for Kramdown custom ID: {#custom-id}
+    const customId = text.match(/\{#([^}]+)\}\s*$/);
+    if (customId) {
+      slugs.add(customId[1]);
+      continue;
+    }
+    // Strip inline code, bold, italic, links
+    text = text.replace(/`[^`]*`/g, (m) => m.slice(1, -1)); // keep text inside backticks
+    text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1"); // [text](url) → text
+    text = text.replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1"); // bold/italic → text
+    // Kramdown slugification: lowercase, strip non-word except hyphens/spaces, collapse
+    const slug = text
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+    if (slug) slugs.add(slug);
+  }
+  return slugs;
+}
+
+/**
+ * Yield non-fenced lines from markdown content.
+ * Skips lines inside backtick or tilde code fences.
+ * @param {string[]} lines
+ * @yields {{ line: string, lineNum: number }}
+ */
+export function* nonFencedLines(lines) {
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*(`{3,}|~{3,})/.test(lines[i])) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    yield { line: lines[i], lineNum: i + 1 };
+  }
+}
+
+/**
  * Load all docs files into a Map<relPath, content> for single-pass I/O.
  */
 export function loadDocsContents(docsDir, mdFiles) {
