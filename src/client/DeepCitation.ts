@@ -255,6 +255,11 @@ export class DeepCitation {
     if (!config.apiKey) {
       throw new AuthenticationError("DeepCitation API key is required. Get one at https://deepcitation.com");
     }
+    if (!config.apiKey.startsWith("sk-dc-")) {
+      throw new AuthenticationError(
+        `Invalid API key format — keys start with "sk-dc-". Check your key at https://deepcitation.com/keys`,
+      );
+    }
     const apiUrl = config.apiUrl?.replace(/\/$/, "") || DEFAULT_API_URL;
     if (!/^https:\/\//i.test(apiUrl) && !apiUrl.startsWith("http://localhost")) {
       throw new ValidationError("apiUrl must use HTTPS to protect your API key in transit");
