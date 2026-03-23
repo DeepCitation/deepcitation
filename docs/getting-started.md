@@ -159,7 +159,10 @@ for (const [key, result] of Object.entries(verifications)) {
 
 ### Section 3: Render (React)
 
-Use a remark plugin to replace `[N]` markers inline — this preserves markdown formatting (bold, lists, headers) that the old split approach would break. See the [Next.js guide]({{ site.baseurl }}/frameworks/nextjs/#pattern-3-rendering-citations-client-side) or the [Vercel AI SDK guide]({{ site.baseurl }}/frameworks/vercel-ai-sdk/#rendering-citationcomponent) for the full `remarkCitationMarkers` plugin.
+Use a remark plugin to replace `[N]` markers inline — this preserves markdown formatting (bold, lists, headers) that splitting on markers would break.
+
+{: .note }
+This requires `react-markdown`, `remark-gfm`, and `unist-util-visit`. Install them with: `npm install react-markdown remark-gfm unist-util-visit`
 
 {% raw %}
 ```tsx
@@ -167,26 +170,51 @@ import { parseCitationResponse } from "deepcitation";
 import { CitationComponent } from "deepcitation/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { visit, CONTINUE } from "unist-util-visit";
 
-const result = parseCitationResponse(llmOutput);
+// Remark plugin — replaces [N] text with custom AST nodes
+const MARKER_RE = /(\[\d+\])/g;
+function remarkCitationMarkers() {
+  return (tree: any) => {
+    visit(tree, "text", (node: any, index: any, parent: any) => {
+      if (index == null || !parent || !node.value) return;
+      const parts = node.value.split(MARKER_RE);
+      if (parts.length <= 1) return;
+      const newNodes = parts.filter(Boolean).map((part: string) => {
+        const m = part.match(/^\[(\d+)\]$/);
+        if (m) return { type: "citation-marker", data: { hName: "citation-marker", hProperties: { n: m[1] } } };
+        return { type: "text", value: part };
+      });
+      parent.children.splice(index, 1, ...newNodes);
+      return [CONTINUE, index + newNodes.length];
+    });
+  };
+}
 
-return (
-  <ReactMarkdown
-    remarkPlugins={[remarkGfm, remarkCitationMarkers]}
-    components={{
-      "citation-marker": ({ n }) => {
-        const key = result.markerMap[Number(n)];
-        const citation = key ? result.citations[key] : null;
-        if (!key || !citation) return <sup>[{n}]</sup>;
-        return <CitationComponent citation={citation} verification={verifications[key]} />;
-      },
-    }}
-  >
-    {result.visibleText}
-  </ReactMarkdown>
-);
+// Render LLM output with inline CitationComponents
+function RenderWithCitations({ content, verifications }) {
+  const result = parseCitationResponse(content);
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm, remarkCitationMarkers]}
+      components={{
+        "citation-marker": ({ n }) => {
+          const key = result.markerMap[Number(n)];
+          const citation = key ? result.citations[key] : null;
+          if (!key || !citation) return <sup>[{n}]</sup>;
+          return <CitationComponent citation={citation} verification={verifications[key]} />;
+        },
+      }}
+    >
+      {result.visibleText}
+    </ReactMarkdown>
+  );
+}
 ```
 {% endraw %}
+
+See the [Next.js guide]({{ site.baseurl }}/frameworks/nextjs/#pattern-3-rendering-citations-client-side) or the [Vercel AI SDK guide]({{ site.baseurl }}/frameworks/vercel-ai-sdk/#rendering-citationcomponent) for framework-specific patterns.
 
 ---
 
@@ -223,6 +251,13 @@ The SDK handles API routing automatically. You only need to configure your API k
 | Images | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` (auto-OCR) |
 | Office Docs | Word, Excel, PowerPoint, Google Docs |
 | URLs | Web pages via `prepareUrl` endpoint |
+
+---
+
+## Troubleshooting
+
+{: .note }
+Having issues? Check [Common Mistakes]({{ site.baseurl }}/error-handling/#common-mistakes) for the most frequent integration problems (unstyled citations, unexpected `not_found` results, exposed API keys).
 
 ---
 

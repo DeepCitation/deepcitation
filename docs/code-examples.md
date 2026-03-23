@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Code Examples
-nav_order: 4
+nav_order: 5
 description: "SDK usage examples and integration patterns"
 has_children: true
 commit_sha: "cc9c7aa"

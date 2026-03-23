@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Error Handling
-nav_order: 8
+nav_order: 9
 description: "Error handling patterns for DeepCitation in production"
 commit_sha: "cc9c7aa"
 stale_after_commits: 15
@@ -78,9 +78,20 @@ try {
 ```
 
 All errors extend `DeepCitationError` and include:
-- `code` - Machine-readable error code (e.g., `"DC_AUTH_INVALID"`, `"DC_RATE_LIMITED"`)
+- `code` - Machine-readable error code (see table below)
 - `isRetryable` - Boolean flag indicating whether the operation can be safely retried
 - `statusCode` - HTTP status code if applicable
+- `docUrl` - Link to documentation for this error code (e.g., `https://docs.deepcitation.com/errors#DC_AUTH_INVALID`)
+
+### Error Code Reference
+
+| Code | Error Class | HTTP Status | Retryable | Recovery Action |
+|:-----|:------------|:------------|:----------|:----------------|
+| `DC_AUTH_INVALID` | `AuthenticationError` | 401, 403 | No | Check API key — rotate at [deepcitation.com/keys](https://deepcitation.com/keys) |
+| `DC_NETWORK_ERROR` | `NetworkError` | — | Yes | Retry with exponential backoff — check network connectivity |
+| `DC_RATE_LIMITED` | `RateLimitError` | 429 | Yes | Free tier or balance exhausted — add payment method at [deepcitation.com/pricing](https://deepcitation.com/pricing) |
+| `DC_VALIDATION_ERROR` | `ValidationError` | 400, 404, 413 | No | Fix the input — check file size (max 100 MB), format, or attachment ID |
+| `DC_SERVER_ERROR` | `ServerError` | 5xx | Yes | Retry with exponential backoff — if persistent, check [status.deepcitation.com](https://status.deepcitation.com) |
 
 ---
 
@@ -120,6 +131,12 @@ async function withRetry<T>(
 const { verifications } = await withRetry(() =>
   dc.verify({ llmOutput: response.content })
 );
+
+// Production guidance:
+// - 3 retries is sufficient for transient errors (network blips, 503s)
+// - Never retry auth errors (fix the key) or validation errors (fix the input)
+// - For 429 billing errors, retrying won't help — add a payment method
+// - If you see persistent 5xx errors after 3 retries, check status.deepcitation.com
 ```
 
 ---
