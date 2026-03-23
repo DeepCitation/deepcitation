@@ -1,8 +1,7 @@
 ---
 layout: default
 title: Styling
-parent: Code Examples
-nav_order: 2
+nav_order: 7
 description: "CSS customization options for CitationComponent"
 commit_sha: "cc9c7aa"
 stale_after_commits: 20

@@ -18,7 +18,7 @@ Add citation verification to any Express.js API. Three endpoints: upload, chat (
 ## Install
 
 ```bash
-npm install deepcitation express multer
+npm install deepcitation express multer @types/multer
 ```
 
 ---

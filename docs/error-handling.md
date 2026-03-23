@@ -1,8 +1,7 @@
 ---
 layout: default
 title: Error Handling
-parent: Getting Started
-nav_order: 5
+nav_order: 8
 description: "Error handling patterns for DeepCitation in production"
 commit_sha: "cc9c7aa"
 stale_after_commits: 15
@@ -35,6 +34,9 @@ Production patterns for handling DeepCitation errors gracefully.
 ## Error types
 
 DeepCitation provides structured error classes for programmatic error handling:
+
+{: .note }
+`verify({ llmOutput })` is a convenience wrapper — it parses citations from the raw LLM output (via `getAllCitationsFromLlmOutput()`), groups them by attachment, then verifies each group. Use `verifyAttachment(attachmentId, citations)` when you extract and manage citations yourself. See [SDK Reference]({{ site.baseurl }}/sdk-reference/) for full method signatures.
 
 ```typescript
 import {
@@ -124,7 +126,9 @@ const { verifications } = await withRetry(() =>
 
 ## Rate limits
 
-The DeepCitation API enforces rate limits. When exceeded, you'll receive a `429` status code. The retry pattern above handles this automatically via exponential backoff.
+DeepCitation uses **billing-based limits** — there are no per-minute or per-second request caps. You can make as many API calls as your account balance allows. When your free tier ($20/month) or balance is exhausted, the API returns `429 resource-exhausted`.
+
+The retry pattern above handles `429` errors via exponential backoff, but for billing-related 429s you'll need to add a payment method at [deepcitation.com/pricing](https://deepcitation.com/pricing).
 
 If you're processing many documents in parallel, use the built-in concurrency limiter:
 
@@ -170,8 +174,24 @@ If `verify()` returns `{ verifications: {} }`, the client found no citations to 
 
 ---
 
+## Common Mistakes
+
+**"My citations aren't styled"**
+You forgot to import the stylesheet. Add `@import "deepcitation/tailwind.css"` to your CSS (Tailwind v4) or `import "deepcitation/styles.css"` in JS. See [Styling]({{ site.baseurl }}/styling/).
+
+**"Verification says not_found but the text is there"**
+The LLM likely paraphrased the source. Check if you got a `partial_text_found` or `found_anchor_text_only` status instead. See [Verification Statuses]({{ site.baseurl }}/verification-statuses/) for the full list of partial match statuses.
+
+**"I exposed my API key in the browser"**
+Rotate it immediately at [deepcitation.com/keys](https://deepcitation.com/keys). Never prefix your key with `NEXT_PUBLIC_` or expose it in client-side code — all DeepCitation API calls should happen server-side.
+
+**"API key format"**
+Keys always start with `dc_live_` (production) or `dc_test_` (test mode). If you're getting authentication errors, check for trailing whitespace or newlines in your environment variable.
+
+---
+
 ## Related
 
-- [Getting Started](./getting-started.md)
-- [API Reference](./api-reference.md)
-- [Styling Guide](./styling.md)
+- [Getting Started]({{ site.baseurl }}/getting-started/)
+- [API Reference]({{ site.baseurl }}/api-reference/)
+- [Styling Guide]({{ site.baseurl }}/styling/)

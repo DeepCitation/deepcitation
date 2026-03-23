@@ -1,8 +1,7 @@
 ---
 layout: default
 title: Components
-parent: Code Examples
-nav_order: 1
+nav_order: 6
 description: "React CitationComponent documentation"
 commit_sha: "cc9c7aa"
 stale_after_commits: 15
@@ -16,6 +15,9 @@ watch_paths:
 # CitationComponent
 
 Display verified citations with status indicators and interactive popovers.
+
+{: .note }
+See all variants and verification states interactively at [deepcitation.com](https://deepcitation.com).
 
 ---
 
@@ -531,8 +533,171 @@ Use these when `CitationComponent` doesn't fit your layout requirements.
 
 ---
 
+## CitationDrawer
+
+A bottom sheet (or side panel) that displays citations grouped by source document — similar to ChatGPT's citation panel. Use it alongside `CitationComponent` for a full citation browsing experience.
+
+### Setup
+
+```tsx
+import {
+  CitationDrawer,
+  CitationDrawerTrigger,
+  useCitationDrawer,
+  groupCitationsBySource,
+} from "deepcitation/react";
+```
+
+### Usage with `useCitationDrawer()`
+
+The hook manages drawer state and citation collection:
+
+{% raw %}
+```tsx
+function ChatMessage({ citations, verifications }) {
+  const drawer = useCitationDrawer();
+  const citationGroups = groupCitationsBySource(drawer.citations);
+
+  return (
+    <>
+      {/* Inline citations that feed into the drawer */}
+      <CitationComponent
+        citation={citation}
+        verification={verification}
+        eventHandlers={{
+          onClick: (c, key) => {
+            drawer.addCitation({
+              citationKey: key,
+              citation: c,
+              verification: verifications[key],
+            });
+            drawer.openDrawer();
+          },
+        }}
+      />
+
+      {/* Trigger button showing source summary */}
+      <CitationDrawerTrigger
+        citationGroups={citationGroups}
+        onClick={drawer.toggleDrawer}
+        isOpen={drawer.isOpen}
+      />
+
+      {/* The drawer itself */}
+      <CitationDrawer
+        isOpen={drawer.isOpen}
+        onClose={drawer.closeDrawer}
+        citationGroups={citationGroups}
+      />
+    </>
+  );
+}
+```
+{% endraw %}
+
+### CitationDrawer Props
+
+| Prop | Type | Required | Description |
+|:-----|:-----|:---------|:------------|
+| `isOpen` | `boolean` | Yes | Whether the drawer is visible |
+| `onClose` | `() => void` | Yes | Called when the user closes the drawer |
+| `citationGroups` | `SourceCitationGroup[]` | Yes | Citation groups from `groupCitationsBySource()` |
+| `title` | `string` | No | Drawer heading override |
+| `label` | `string` | No | Source name override |
+| `position` | `"bottom" \| "right"` | No | Drawer position (default: `"bottom"`) |
+| `onCitationClick` | `(item) => void` | No | Click handler for individual citations |
+| `onReadMore` | `(item) => void` | No | Handler for "read more" action |
+| `indicatorVariant` | `IndicatorVariant` | No | Status indicator style (default: `"icon"`) |
+| `sourceLabelMap` | `Record<string, string>` | No | Map of attachmentId/URL to friendly display label |
+| `className` | `string` | No | Additional CSS class |
+
+### CitationDrawerTrigger Props
+
+| Prop | Type | Required | Description |
+|:-----|:-----|:---------|:------------|
+| `citationGroups` | `SourceCitationGroup[]` | Yes | Same groups as the drawer |
+| `onClick` | `() => void` | No | Click handler (typically toggles the drawer) |
+| `onSourceClick` | `(group) => void` | No | Click handler for a specific source icon |
+| `isOpen` | `boolean` | No | Controls `aria-expanded` attribute |
+| `label` | `string` | No | Label text override (default: auto-generated from status counts) |
+| `maxIcons` | `number` | No | Max source icons before +N overflow (default: `5`) |
+| `className` | `string` | No | Additional CSS class |
+
+### Helper Functions
+
+- `groupCitationsBySource(citations, sourceLabelMap?)` — Groups drawer items by source document, returning `SourceCitationGroup[]`
+- `resolveGroupLabels(groups, sourceLabelMap?)` — Resolves display labels for each group from the label map or auto-derives from metadata
+
+---
+
+## UrlCitationComponent
+
+For URL-based citations (web pages), use `UrlCitationComponent` instead of `CitationComponent`. It displays the source domain, favicon, and OG metadata.
+
+```tsx
+import { UrlCitationComponent } from "deepcitation/react";
+
+<UrlCitationComponent
+  citation={urlCitation}
+  verification={verification}
+/>
+```
+
+Use `UrlCitationComponent` when `citation.type === "url"`. For document citations (`citation.type === "document"`), use `CitationComponent`.
+
+---
+
+## SourcesListComponent
+
+Renders a list of source documents with their verification status summaries. Useful for showing all sources referenced in a response.
+
+```tsx
+import { SourcesListComponent } from "deepcitation/react";
+
+<SourcesListComponent
+  sources={sources}
+  onSourceClick={(source) => console.log("Selected:", source)}
+/>
+```
+
+---
+
+## Internationalization
+
+The React components ship with built-in i18n support for English (default), Spanish, French, and Vietnamese.
+
+```tsx
+import { DeepCitationI18nProvider } from "deepcitation/react";
+import { esMessages } from "deepcitation/react"; // or frMessages, viMessages
+
+function App() {
+  return (
+    <DeepCitationI18nProvider messages={esMessages}>
+      <CitationComponent ... />
+    </DeepCitationI18nProvider>
+  );
+}
+```
+
+Available locale packs: `esMessages` (Spanish), `frMessages` (French), `viMessages` (Vietnamese).
+
+---
+
+## Accessibility
+
+CitationComponent includes built-in accessibility support:
+
+- **Keyboard navigation**: Citations are focusable and can be activated with Enter/Space
+- **ARIA attributes**: `aria-expanded` on popovers, `aria-label` on status indicators
+- **Screen readers**: Status text is announced (e.g., "Verified citation" / "Citation not found")
+- **Focus management**: Popover traps focus when open, returns focus on close
+- **Reduced motion**: Animations respect `prefers-reduced-motion` media query
+
+---
+
 ## Next Steps
 
 - [Types]({{ site.baseurl }}/types/) - Full TypeScript interface definitions
+- [SDK Reference]({{ site.baseurl }}/sdk-reference/) - All client methods and utility functions
 - [Styling]({{ site.baseurl }}/styling/) - CSS customization
 - [Error Handling]({{ site.baseurl }}/error-handling/) - Production error patterns

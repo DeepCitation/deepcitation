@@ -20,6 +20,8 @@ Verify AI citations against source documents. Visual proof for every claim.
 [Start Building]({{ site.baseurl }}/getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/DeepCitation/deepcitation){: .btn .fs-5 .mb-4 .mb-md-0 }
 
+DeepCitation is an API and React component library that verifies whether your AI's citations actually appear in the source documents. Upload a PDF, let your LLM cite it, and get back visual proof screenshots showing exactly where each claim was found — or flagging it as hallucinated.
+
 ---
 
 ## Quick Navigation
@@ -29,6 +31,7 @@ Verify AI citations against source documents. Visual proof for every claim.
 | [Getting Started]({{ site.baseurl }}/getting-started) | Installation and quick start guide |
 | [Prompts]({{ site.baseurl }}/prompts) | How DeepCitation instructs LLMs to produce verifiable citations |
 | [API Reference]({{ site.baseurl }}/api-reference) | REST API endpoints for file preparation and verification |
+| [SDK Reference]({{ site.baseurl }}/sdk-reference) | TypeScript SDK client methods and utility functions |
 | [Curl Guide]({{ site.baseurl }}/curl-guide) | Direct API usage with curl examples |
 | [Types]({{ site.baseurl }}/types) | TypeScript interface definitions |
 | [Verification Statuses]({{ site.baseurl }}/verification-statuses) | Understanding verification result statuses |

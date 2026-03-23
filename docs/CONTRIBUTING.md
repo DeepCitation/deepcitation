@@ -64,17 +64,27 @@ The fastest way to get a PR closed is a description that could have been written
 
 ```
 docs/
-├── _config.yml           # Jekyll configuration
-├── index.md              # Home page
-├── getting-started.md    # Installation guide
-├── api-reference.md      # REST API docs
-├── curl-guide.md         # Curl examples
-├── types.md              # TypeScript interfaces
-├── verification-statuses.md  # Status explanations
-├── code-examples.md      # SDK usage patterns
-├── components.md         # React component docs
-├── styling.md            # CSS customization
-└── 404.md                # 404 page
+├── _config.yml              # Jekyll configuration
+├── index.md                 # Home page
+├── getting-started.md       # Installation guide
+├── prompts.md               # Prompt wrapping explained
+├── api-reference.md         # REST API docs
+├── sdk-reference.md         # TypeScript SDK methods
+├── curl-guide.md            # Curl examples
+├── types.md                 # TypeScript interfaces
+├── verification-statuses.md # Status explanations
+├── code-examples.md         # SDK usage patterns
+├── error-handling.md        # Error patterns & retry logic
+├── components.md            # React component docs
+├── styling.md               # CSS customization
+├── frameworks/
+│   ├── index.md             # Framework guides hub
+│   ├── langchain.md         # LangChain integration
+│   ├── nextjs.md            # Next.js App Router
+│   ├── vercel-ai-sdk.md     # Vercel AI SDK
+│   ├── express.md           # Express.js
+│   └── python.md            # Python / FastAPI
+└── 404.md                   # 404 page
 ```
 
 ## Writing Guidelines
@@ -159,7 +169,7 @@ To use a custom domain (e.g., `docs.deepcitation.com`):
      ```
    - For subdomain (`docs.deepcitation.com`): Add a `CNAME` record:
      ```
-     docs.deepcitation.com -> deepcitation.github.io
+     docs.deepcitation.com -> docs.deepcitation.com
      ```
 
 3. **Update `_config.yml`**:
