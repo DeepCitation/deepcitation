@@ -377,6 +377,7 @@ export function groupCitationsByAttachmentId(citations: Citation[] | CitationRec
       grouped.set(attachmentId, {});
     }
 
+    // biome-ignore lint/style/noNonNullAssertion: guaranteed by has() check above
     const group = grouped.get(attachmentId)!;
     group[key] = citation;
   }

@@ -1,8 +1,8 @@
 /* Input CSS for generating standalone styles.css */
 @import "tailwindcss";
-@source "./react";
-
 @import "./tokens.css";
+
+@source "./react";
 
 /* Register tokens as Tailwind utilities.
    "inline" = emit var() references directly, no intermediary custom property.

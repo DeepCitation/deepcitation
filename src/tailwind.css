@@ -15,10 +15,10 @@
  * Or use the React component:
  *   <DeepCitationTheme theme={{ background: "#f8fafc", border: "#cbd5e1" }} />
  */
+@import "./tokens.css";
+
 @source "./react";
 @source "../lib/react"; /* built output path — only exists after `bun run build` */
-
-@import "./tokens.css";
 
 /* Register tokens as Tailwind utilities.
    Color: bg-dc-background → background-color: var(--dc-background)

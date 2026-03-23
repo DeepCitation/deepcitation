@@ -41,31 +41,29 @@ import { cn } from "./utils.js";
 // Use `renderIndicator` prop to customize. Use `variant="indicator"` to show only the icon.
 // =============================================================================
 
-/** Verified indicator - green checkmark for exact matches (subscript-positioned) */
+/** Verified indicator - green checkmark for exact matches */
 const VerifiedIndicator = () => (
-  <span
-    className="inline-flex ml-0.5 align-middle [text-decoration:none] animate-in fade-in-0 zoom-in-90 duration-120"
-    style={{ ...INDICATOR_SIZE_STYLE, ...VERIFIED_COLOR_STYLE }}
-    data-dc-indicator="verified"
-    aria-hidden="true"
+  <StatusIndicatorWrapper
+    className="align-middle [text-decoration:none] animate-in fade-in-0 zoom-in-90 duration-120"
+    colorStyle={VERIFIED_COLOR_STYLE}
+    dataIndicator="verified"
   >
     <CheckIcon />
-  </span>
+  </StatusIndicatorWrapper>
 );
 
-/** Partial match indicator - amber checkmark for partial/relocated matches (subscript-positioned) */
+/** Partial match indicator - amber checkmark for partial/relocated matches */
 const PartialIndicator = () => (
-  <span
-    className="inline-flex ml-0.5 align-middle [text-decoration:none] animate-in fade-in-0 zoom-in-90 duration-120"
-    style={{ ...INDICATOR_SIZE_STYLE, ...PARTIAL_COLOR_STYLE }}
-    data-dc-indicator="partial"
-    aria-hidden="true"
+  <StatusIndicatorWrapper
+    className="align-middle [text-decoration:none] animate-in fade-in-0 zoom-in-90 duration-120"
+    colorStyle={PARTIAL_COLOR_STYLE}
+    dataIndicator="partial"
   >
     <CheckIcon />
-  </span>
+  </StatusIndicatorWrapper>
 );
 
-/** Miss indicator - red X for not found (centered, not subscript).
+/** Miss indicator - red X for not found.
  * Subtle fade-in entry so the miss result doesn't feel like the UI "gave up". */
 const MissIndicator = () => (
   <StatusIndicatorWrapper
