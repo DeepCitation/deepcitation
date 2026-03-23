@@ -26,7 +26,7 @@ Upload a PDF or image file to extract text for your LLM prompt:
 ```bash
 # Upload a PDF file
 curl -X POST "https://api.deepcitation.com/prepareAttachments" \
-  -H "Authorization: Bearer dc_live_your_api_key" \
+  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -F "file=@document.pdf"
 ```
 
@@ -35,7 +35,7 @@ For images (auto-OCR):
 ```bash
 # Upload an image for OCR
 curl -X POST "https://api.deepcitation.com/prepareAttachments" \
-  -H "Authorization: Bearer dc_live_your_api_key" \
+  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -F "file=@scanned-invoice.jpg"
 ```
 
@@ -46,7 +46,7 @@ Prepare a URL for citation verification. The page is rendered to PDF server-side
 ```bash
 # Prepare a web page
 curl -X POST "https://api.deepcitation.com/prepareAttachments" \
-  -H "Authorization: Bearer dc_live_your_api_key" \
+  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{ "url": "https://example.com/article" }'
 ```
@@ -62,7 +62,7 @@ After your LLM generates a response, verify citations against the source:
 ```bash
 # Verify citations
 curl -X POST "https://api.deepcitation.com/verifyCitations" \
-  -H "Authorization: Bearer dc_live_your_api_key" \
+  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -95,7 +95,7 @@ Complete bash script for the entire DeepCitation workflow:
 #!/bin/bash
 # Full DeepCitation workflow with curl
 
-API_KEY="dc_live_your_api_key"
+API_KEY="dc_live_YOUR_API_KEY"
 BASE_URL="https://api.deepcitation.com"
 
 # Step 1: Upload file

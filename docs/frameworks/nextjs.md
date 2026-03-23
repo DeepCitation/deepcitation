@@ -416,7 +416,7 @@ export function ArticleContent({
 
 ```bash
 # .env.local
-DEEPCITATION_API_KEY=dc_live_your_api_key   # Server-only — never prefix with NEXT_PUBLIC_
+DEEPCITATION_API_KEY=dc_live_YOUR_API_KEY   # Server-only — never prefix with NEXT_PUBLIC_
 OPENAI_API_KEY=sk-your-key              # Server-only
 ```
 

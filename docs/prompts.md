@@ -87,6 +87,45 @@ const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
 2. Appends a brief citation reminder to the end of the system prompt (recency effect)
 3. If `deepTextPromptPortion` is provided, prepends the file text to the user prompt with a reminder
 
+### Example output
+
+After calling `wrapCitationPrompt()`, the `enhancedSystemPrompt` will contain your original system prompt with citation instructions prepended and a reminder appended:
+
+```
+<citation-instructions priority="critical">
+## REQUIRED: Citation Format
+
+### In-Text Markers
+For every claim, value, or fact from attachments, place a sequential
+integer marker like [1], [2], [3] at the end of the claim...
+
+### Citation Data Block
+At the END of your response, append a citation block. Group citations
+by attachment_id to avoid repetition.
+
+### Format
+<<<CITATION_DATA>>>
+{
+  "attachment_id_here": [
+    {"id": 1, "reasoning": "why", "full_phrase": "quote",
+     "anchor_text": "key", "page_id": "page_number_2_index_1",
+     "line_ids": [12]}
+  ]
+}
+<<<END_CITATION_DATA>>>
+...
+</citation-instructions>
+
+You are a helpful assistant.    ← your original system prompt
+
+<citation-reminder>
+Remember: use [N] markers for every claim and include the
+<<<CITATION_DATA>>> block at the end.
+</citation-reminder>
+```
+
+The `enhancedUserPrompt` will have the file text (from `deepTextPromptPortion`) prepended before your user message.
+
 ### `wrapSystemCitationPrompt(options)`
 
 Wraps only the system prompt. Use this when you manage user prompt construction yourself.
@@ -182,6 +221,21 @@ import { CITATION_DATA_START_DELIMITER, CITATION_DATA_END_DELIMITER } from "deep
 
 {: .warning }
 Users must **never** see the `<<<CITATION_DATA>>>` block. Always call `parseCitationResponse(llmOutput)` and use `.visibleText` before displaying LLM output. See [Golden Rules]({{ site.baseurl }}/frameworks/express/#golden-rules).
+
+---
+
+## Why Not Inline XML?
+
+If you've seen citation systems that use inline XML tags (e.g., `<cite source="doc1" line="5">Revenue grew</cite>`), you may wonder why DeepCitation uses deferred JSON instead.
+
+| Concern | Inline XML | Numeric JSON (DeepCitation) |
+|:--------|:-----------|:----------------------------|
+| **Streaming** | Tags interrupt mid-sentence — the UI must buffer until the closing tag | `[N]` markers are 3-4 characters; the UI renders immediately |
+| **Token cost** | ~100+ tokens per citation (repeated attributes) | ~40% fewer tokens (metadata deferred to one block) |
+| **Parsing** | Custom parser needed; must handle malformed/nested tags | `JSON.parse` handles escaping natively |
+| **Robustness** | Quotes inside attributes cause escaping issues | JSON escaping is well-defined |
+
+The tradeoff is that citation metadata isn't available until the response finishes streaming. In practice, this matches the UX — verification popovers aren't useful until the full response is visible.
 
 ---
 

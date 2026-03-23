@@ -78,6 +78,42 @@ See [Styling]({{ site.baseurl }}/styling/) for CSS custom properties and theming
 
 ---
 
+## Quick Test (No LLM Required)
+
+Verify that your API key works by uploading a document and verifying a citation — no LLM provider needed:
+
+```bash
+# 1. Upload a document
+curl -X POST "https://api.deepcitation.com/prepareAttachments" \
+  -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
+  -F "file=@your-document.pdf"
+
+# Response includes attachmentId and deepTextPromptPortion
+# Copy the attachmentId from the response
+
+# 2. Verify a citation against it
+curl -X POST "https://api.deepcitation.com/verifyCitations" \
+  -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "data": {
+      "attachmentId": "PASTE_ATTACHMENT_ID_HERE",
+      "citations": {
+        "test-1": {
+          "fullPhrase": "paste a sentence from your document here"
+        }
+      }
+    }
+  }'
+
+# Expected: { "verifications": { "test-1": { "searchState": { "status": "found" }, ... } } }
+```
+
+{: .note }
+This isolates DeepCitation's verification — you can confirm it works before integrating with an LLM. See the [Curl Guide]({{ site.baseurl }}/curl-guide/) for more examples.
+
+---
+
 ## Full Integration Example
 
 ```typescript
@@ -159,7 +195,7 @@ return (
 Include your API key in the Authorization header:
 
 ```
-Authorization: Bearer dc_live_your_api_key
+Authorization: Bearer dc_live_YOUR_API_KEY
 ```
 
 Get your API key from the [API Keys Page](https://deepcitation.com/signup).

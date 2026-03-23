@@ -25,6 +25,7 @@ DeepCitation works with any LLM provider or framework. These guides show the exa
 | [Next.js App Router]({{ site.baseurl }}/frameworks/nextjs) | Full-stack apps with React Server Components + streaming | [nextjs-ai-sdk](https://github.com/DeepCitation/deepcitation/tree/main/examples/nextjs-ai-sdk) ([demo](https://nextjs-ai-sdk-deepcitation.vercel.app/)) |
 | [Vercel AI SDK]({{ site.baseurl }}/frameworks/vercel-ai-sdk) | `useChat` / `streamText` apps on Vercel infrastructure | [nextjs-ai-sdk](https://github.com/DeepCitation/deepcitation/tree/main/examples/nextjs-ai-sdk) (shared with Next.js, [demo](https://nextjs-ai-sdk-deepcitation.vercel.app/)) |
 | [Express.js]({{ site.baseurl }}/frameworks/express) | Node.js REST APIs with upload, chat, and verification routes | [basic-verification](https://github.com/DeepCitation/deepcitation/tree/main/examples/basic-verification) |
+| [Python / FastAPI]({{ site.baseurl }}/frameworks/python) | Python backends using the REST API directly | — |
 
 ---
 

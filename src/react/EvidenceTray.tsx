@@ -61,7 +61,7 @@ import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercen
 import { buildSearchNarrative } from "./searchNarrative.js";
 import { buildIntentSummary } from "./searchSummaryUtils.js";
 import { useImageDarkness } from "./useImageDarkness.js";
-import { cn } from "./utils.js";
+import { cn, isImageSource } from "./utils.js";
 import { VerificationLogTimeline } from "./VerificationLog.js";
 import { DC_EVIDENCE_VT_NAME, primeEvidencePageExpandSource } from "./viewTransition.js";
 import { ZoomToolbar } from "./ZoomToolbar.js";
@@ -78,6 +78,9 @@ const DRIFT_THRESHOLD_PX = 15;
 /** Grey canvas padding (px) around the page image in expanded-page (fill) mode.
  *  Creates a document-viewer-like gutter so the image sits in a visible container. */
 const CANVAS_PADDING_PX = 16;
+
+/** Identity render scale for image sources where coords are already in pixel space. */
+const IDENTITY_RENDER_SCALE = { x: 1, y: 1 } as const;
 
 function getSearchSummaryPrimaryMessage(
   outcome: string | null | undefined,
@@ -394,14 +397,16 @@ export function AnchorTextFocusedImage({
   const t = useTranslation();
   // Anchor item and renderScale for scroll positioning.
   // Uses anchorTextMatchDeepItems[0] (specific cited word) with phraseMatchDeepItem fallback.
-  // renderScale is required to convert PDF point coords → image pixel coords, matching
+  // renderScale converts item coords → image pixel coords, matching
   // the same transform used by computeAnnotationScrollTarget / toPercentRect in overlayGeometry.
+  // For image sources (mimeType: "image/*"), coords are already in pixel space — default to identity.
   const anchorScrollData = useMemo(() => {
     if (!verification) return null;
     const anchorItem =
       verification.document?.anchorTextMatchDeepItems?.[0] ?? verification.document?.phraseMatchDeepItem;
     if (!anchorItem) return null;
-    const renderScale = verification.document?.renderScale ?? null;
+    const renderScale =
+      verification.document?.renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
     if (!renderScale) return null;
     return { anchorItem, renderScale };
   }, [verification]);
@@ -461,8 +466,7 @@ export function AnchorTextFocusedImage({
       onKeyholeWidth?.(Math.min(effectiveWidth, containerWidth));
 
       // Center on the anchor text (both axes); fall back to image center.
-      // computeAnnotationScrollTarget uses the same PDF→pixel transform as the overlay
-      // (item.x * renderScale.x, flipping Y), with readableScale as zoom.
+      // computeAnnotationScrollTarget uses the same coord transform as the overlay.
       const widthFitTarget =
         anchorScrollData &&
         computeAnnotationScrollTarget(
@@ -496,11 +500,7 @@ export function AnchorTextFocusedImage({
         onKeyholeWidth?.(displayedWidth);
       }
 
-      // Set initial scroll position using the same PDF→pixel transform as the overlay:
-      //   pixelX = item.x * renderScale.x  (crop starts at x=0 in PDF space)
-      //   pixelY = img.naturalHeight - item.y * renderScale.y  (Y-axis flip)
-      // For a crop strip, pixelY is typically negative (the crop covers different page rows),
-      // so scrollTop clamps to 0 — correct for the horizontal-only keyhole.
+      // Set initial scroll position using the same coord transform as the overlay.
       // Falls back to centering the image when renderScale is unavailable.
       const displayScale = img.naturalWidth > 0 ? displayedWidth / img.naturalWidth : 1;
       const heightFitTarget =
@@ -1408,8 +1408,19 @@ export function InlineExpandedImage({
   const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
   const effectiveAnchorItem = anchorItem ?? verification?.document?.anchorTextMatchDeepItems?.[0] ?? null;
 
+  // The server always provides coordinates in PDF convention (bottom-up Y) for both
+  // PDFs and images. For images, renderScale is 1:1 (pixel coords) — the server sets
+  // this in generateImageVerificationImage, but it may be absent in the frontend data.
+  // Default to identity when the source is an image and renderScale is missing.
+  const effectiveRenderScale = renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
+
   // Detect dark page content so the overlay can flip to a light color.
-  const isDarkContent = useImageDarkness(expandedImgRef.current, imageLoaded, effectivePhraseItem, renderScale ?? null);
+  const isDarkContent = useImageDarkness(
+    expandedImgRef.current,
+    imageLoaded,
+    effectivePhraseItem,
+    effectiveRenderScale,
+  );
 
   // Anchor-aware scroll/zoom target: when anchor text is highlighted, center on it
   // instead of the (potentially wider) full phrase box.
@@ -1553,7 +1564,7 @@ export function InlineExpandedImage({
     if (hasAutoScrolledToAnnotationRef.current || manualZoom !== null) return;
 
     const scrollItem = scrollTarget ?? effectivePhraseItem;
-    if (!scrollItem || !renderScale) return;
+    if (!scrollItem || !effectiveRenderScale) return;
 
     hasAutoScrolledToAnnotationRef.current = true;
     setPageExpandReady(false);
@@ -1564,7 +1575,7 @@ export function InlineExpandedImage({
       if (!container) return;
       const target = computeAnnotationScrollTarget(
         scrollItem,
-        renderScale,
+        effectiveRenderScale,
         naturalWidth,
         naturalHeight,
         effectiveZoom,
@@ -1597,14 +1608,14 @@ export function InlineExpandedImage({
     zoom,
     scrollTarget,
     effectivePhraseItem,
-    renderScale,
+    effectiveRenderScale,
     containerRef,
   ]);
 
   useEffect(() => {
     if (!fill || !imageLoaded) return;
     const scrollItem = scrollTarget ?? effectivePhraseItem;
-    if (manualZoom !== null || !scrollItem || !renderScale) {
+    if (manualZoom !== null || !scrollItem || !effectiveRenderScale) {
       // No annotation to auto-scroll to. If a keyhole viewport position is
       // available (miss/not_found with page preview), scroll the expanded page
       // to show the same region the user was viewing in the keyhole. This must
@@ -1632,7 +1643,7 @@ export function InlineExpandedImage({
     manualZoom,
     scrollTarget,
     effectivePhraseItem,
-    renderScale,
+    effectiveRenderScale,
     initialScroll,
     zoom,
     containerRef,
@@ -1657,13 +1668,13 @@ export function InlineExpandedImage({
   // Prefers anchor text position when it will be highlighted.
   const handleScrollToAnnotation = useCallback(() => {
     const scrollItem = scrollTarget ?? effectivePhraseItem;
-    if (!containerRef.current || !scrollItem || !renderScale || !naturalWidth || !naturalHeight) return;
+    if (!containerRef.current || !scrollItem || !effectiveRenderScale || !naturalWidth || !naturalHeight) return;
     // Restore the overlay when re-centering on the annotation
     setOverlayHidden(false);
     const container = containerRef.current;
     const target = computeAnnotationScrollTarget(
       scrollItem,
-      renderScale,
+      effectiveRenderScale,
       naturalWidth,
       naturalHeight,
       zoomRef.current,
@@ -1685,7 +1696,7 @@ export function InlineExpandedImage({
         isAnimatingScroll.current = false;
       });
     }
-  }, [scrollTarget, effectivePhraseItem, containerRef, renderScale, naturalWidth, naturalHeight]);
+  }, [scrollTarget, effectivePhraseItem, containerRef, effectiveRenderScale, naturalWidth, naturalHeight]);
 
   // Scroll listener for locate dirty-bit detection.
   // Compares current scroll position against the stored annotation target.
@@ -1910,27 +1921,27 @@ export function InlineExpandedImage({
   const showZoomControls = fill && imageLoaded && naturalWidth !== null;
   // Locate button shows when we are capable of drawing an overlay (annotation + renderScale exist).
   // Stays visible even when the overlay is currently dismissed (effectiveOverlayHidden).
-  const showScrollToAnnotation = showZoomControls && !!effectivePhraseItem && !!renderScale;
+  const showScrollToAnnotation = showZoomControls && !!effectivePhraseItem && !!effectiveRenderScale;
 
   // Compute transform-origin from annotation position (fill mode only).
   // Prefers anchor text center when it will be highlighted.
   // Inline computation (no useMemo) — computeAnnotationOriginPercent is pure
   // arithmetic, cheaper than the overhead of a hook in this effect-heavy component.
   const annotationOriginItem =
-    fill && renderScale && naturalWidth && naturalHeight ? (scrollTarget ?? effectivePhraseItem) : null;
+    fill && effectiveRenderScale && naturalWidth && naturalHeight ? (scrollTarget ?? effectivePhraseItem) : null;
   const annotationOrigin =
-    annotationOriginItem && renderScale && naturalWidth && naturalHeight
-      ? computeAnnotationOriginPercent(annotationOriginItem, renderScale, naturalWidth, naturalHeight)
+    annotationOriginItem && effectiveRenderScale && naturalWidth && naturalHeight
+      ? computeAnnotationOriginPercent(annotationOriginItem, effectiveRenderScale, naturalWidth, naturalHeight)
       : null;
   // VT geometry target: always use the full phrase rect so the View Transition
   // morph envelope matches the visible overlay size on both expand and collapse.
   // (scrollTarget may be the smaller anchor text — fine for scroll centering,
   // but the VT rect must cover the full phrase to avoid starting from a smaller box.)
-  const annotationTargetItem = fill && renderScale ? effectivePhraseItem : null;
+  const annotationTargetItem = fill && effectiveRenderScale ? effectivePhraseItem : null;
   const annotationTargetNaturalWidth =
-    annotationTargetItem && renderScale ? annotationTargetItem.width * renderScale.x : null;
+    annotationTargetItem && effectiveRenderScale ? annotationTargetItem.width * effectiveRenderScale.x : null;
   const annotationTargetNaturalHeight =
-    annotationTargetItem && renderScale ? annotationTargetItem.height * renderScale.y : null;
+    annotationTargetItem && effectiveRenderScale ? annotationTargetItem.height * effectiveRenderScale.y : null;
 
   // Annotation rect as CSS percentages — used as the View Transition anchor
   // in fill mode so the VT geometry morph tracks the annotation region instead
@@ -1942,10 +1953,10 @@ export function InlineExpandedImage({
         ? expectedDimensions
         : null;
   const annotationVtRect =
-    fill && annotationTargetItem && renderScale && annotationBaseDimensions
+    fill && annotationTargetItem && effectiveRenderScale && annotationBaseDimensions
       ? toPercentRect(
           annotationTargetItem,
-          renderScale,
+          effectiveRenderScale,
           annotationBaseDimensions.width,
           annotationBaseDimensions.height,
         )
@@ -2162,14 +2173,14 @@ export function InlineExpandedImage({
                 draggable={false}
               />
               {imageLoaded &&
-                renderScale &&
+                effectiveRenderScale &&
                 naturalWidth &&
                 naturalHeight &&
                 effectivePhraseItem &&
                 !effectiveOverlayHidden && (
                   <CitationAnnotationOverlay
                     phraseMatchDeepItem={effectivePhraseItem}
-                    renderScale={renderScale}
+                    renderScale={effectiveRenderScale}
                     imageNaturalWidth={naturalWidth}
                     imageNaturalHeight={naturalHeight}
                     highlightColor={overlayHighlightColor}

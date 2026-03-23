@@ -21,7 +21,7 @@ REST API endpoints for preparing files, verifying citations, and managing attach
 
 **Authentication**: All requests require a Bearer token in the `Authorization` header:
 ```
-Authorization: Bearer dc_live_your_api_key
+Authorization: Bearer dc_live_YOUR_API_KEY
 ```
 
 ---
@@ -72,7 +72,7 @@ For Office files (DOCX, XLSX, PPTX, ODT, ODS, ODP) and web pages, use the [URL p
 
 ```bash
 curl -X POST "https://api.deepcitation.com/prepareAttachments" \
-  -H "Authorization: Bearer dc_live_your_api_key" \
+  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -F "file=@document.pdf"
 ```
 
@@ -128,7 +128,7 @@ Same as [file upload response](#response-fields), plus:
 
 ```bash
 curl -X POST "https://api.deepcitation.com/prepareAttachments" \
-  -H "Authorization: Bearer dc_live_your_api_key" \
+  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://example.com/article"
@@ -205,7 +205,7 @@ Each `Verification` contains:
 
 ```bash
 curl -X POST "https://api.deepcitation.com/verifyCitations" \
-  -H "Authorization: Bearer dc_live_your_api_key" \
+  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "data": {
@@ -254,6 +254,9 @@ curl -X POST "https://api.deepcitation.com/verifyCitations" \
 }
 ```
 
+{: .note }
+**SDK users**: The TypeScript SDK provides two verification methods — `verifyAttachment(attachmentId, citations)` for explicit control, and `verify({ llmOutput })` as a convenience wrapper that parses and groups citations automatically. See [SDK Reference]({{ site.baseurl }}/sdk-reference/) for all client methods.
+
 ---
 
 ## POST /getAttachment
@@ -294,7 +297,7 @@ Retrieve full attachment metadata by ID, including page renders, verifications, 
 
 ```bash
 curl -X POST "https://api.deepcitation.com/getAttachment" \
-  -H "Authorization: Bearer dc_live_your_api_key" \
+  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{ "attachmentId": "abc123-def456-ghi789" }'
 ```
@@ -333,7 +336,7 @@ Extend the expiration date of an attachment.
 
 ```bash
 curl -X POST "https://api.deepcitation.com/attachments/abc123-def456-ghi789/extend" \
-  -H "Authorization: Bearer dc_live_your_api_key" \
+  -H "Authorization: Bearer dc_live_YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{ "duration": "month" }'
 ```
@@ -358,7 +361,7 @@ Permanently delete an attachment and all associated data. This action is irrever
 
 ```bash
 curl -X DELETE "https://api.deepcitation.com/attachments/abc123-def456-ghi789" \
-  -H "Authorization: Bearer dc_live_your_api_key"
+  -H "Authorization: Bearer dc_live_YOUR_API_KEY"
 ```
 
 ### Example Response
@@ -388,17 +391,30 @@ See [Error Handling]({{ site.baseurl }}/error-handling/) for retry patterns with
 
 ---
 
-## Rate Limits & Pricing
+## Limits & Pricing
 
-### Rate Limits
+### File Limits
 
-- 365 day file retention (auto-renewing with an active account)
-- 429 status when limit exceeded
+| Limit | Value |
+|:------|:------|
+| **Maximum file size** | 100 MB |
+| **File retention** | 365 days (auto-renewing with active account) |
 
-### Pricing
+The server returns the current maximum via the `X-DeepCitation-Max-File-Size` response header. Files exceeding this limit return a `413` error.
 
-- First $20/month free (no credit card required)
-- Pay only for what you use
-- Volume discounts available
+### Billing Model
 
-See [full pricing](https://deepcitation.com/pricing) for details.
+DeepCitation uses **billing-based limits** rather than request-per-minute rate limits. You can make as many API calls as your account balance allows.
+
+| Operation | Cost |
+|:----------|:-----|
+| **Free tier** | $20/month (no credit card required) |
+| **Document processing** | $0.035 per 15-page unit |
+| **Verification request** | $0.01 per request (includes first 25 citations) |
+| **Additional citations** | $0.01 per citation beyond 25 |
+
+The `X-DeepCitation-Included-Citations` response header indicates how many citations are included per verification request.
+
+When your free tier or account balance is exhausted, the API returns `429 resource-exhausted`. Add a payment method to continue.
+
+See [full pricing](https://deepcitation.com/pricing) for volume discounts and enterprise plans.

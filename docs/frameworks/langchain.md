@@ -42,7 +42,7 @@ npm install deepcitation langchain @langchain/openai
 
 ```bash
 # .env
-DEEPCITATION_API_KEY=dc_live_your_api_key
+DEEPCITATION_API_KEY=dc_live_YOUR_API_KEY
 OPENAI_API_KEY=sk-your-key
 ```
 

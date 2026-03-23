@@ -14,6 +14,8 @@ remote_theme: just-the-docs/just-the-docs@v0.8.2
 aux_links:
   "GitHub": "https://github.com/DeepCitation/deepcitation"
   "Get API Key": "https://deepcitation.com/keys"
+  "Changelog": "https://github.com/DeepCitation/deepcitation/releases"
+  "Status": "https://status.deepcitation.com"
 
 aux_links_new_tab: true
 
@@ -24,7 +26,7 @@ search:
   previews: 3
 
 # Footer
-footer_content: "DeepCitation is a product of FileLasso, Inc. &copy; 2026 FileLasso, Inc. All rights reserved."
+footer_content: "DeepCitation v0.2.2 &mdash; a product of FileLasso, Inc. &copy; 2026 FileLasso, Inc. All rights reserved."
 
 # Back to top link
 back_to_top: true

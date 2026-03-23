@@ -27,7 +27,7 @@ const INLINE_TEXT_TRUNCATION_LIMIT = 50;
 
 /** Escape characters that have special meaning in markdown. */
 function escapeMd(text: string): string {
-  return text.replace(/([\\*_`\[\]<>~#|])/g, "\\$1");
+  return text.replace(/([\\*_`[\]<>~#|])/g, "\\$1");
 }
 
 /**

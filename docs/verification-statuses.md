@@ -16,6 +16,9 @@ watch_paths:
 
 Learn how to interpret the `searchState.status` field in verification responses.
 
+{: .note }
+This page documents the **raw REST API response shape** (`searchState.status`). If you're using the TypeScript SDK, the status is normalized to `verification.status` — no `searchState` wrapper. See [Types]({{ site.baseurl }}/types/) for the SDK interface.
+
 ---
 
 ## Search Status Values
@@ -105,6 +108,38 @@ Only the first word of the phrase was found. This may indicate a partial match o
 
 ---
 
+### found_phrase_missed_anchor_text
+
+The full phrase was found in the document, but the anchor text (short value) was not a valid substring match within it. This typically means the LLM chose an anchor text that doesn't appear verbatim in the phrase.
+
+```json
+{
+  "searchState": {
+    "status": "found_phrase_missed_anchor_text"
+  }
+}
+```
+
+---
+
+### loading
+
+Initial client-side state before the verification request is sent. You will only see this status if you are rendering citations before verification completes.
+
+---
+
+### timestamp_wip
+
+Timestamp-based verification is still in progress. This applies to audio/video citations where start/end timestamps are being matched.
+
+---
+
+### skipped
+
+Verification was intentionally skipped for this citation (e.g., the citation was marked as not requiring verification, or the attachment could not be resolved).
+
+---
+
 ### not_found
 
 Citation could not be verified - text not found in document. This may indicate:
@@ -166,7 +201,7 @@ When displaying citations, group statuses by user impact:
 
 | Group | Statuses | UI Treatment |
 |:------|:---------|:-------------|
-| **Verified** | `found` | Green checkmark, blue text |
+| **Verified** | `found`, `found_phrase_missed_anchor_text` | Green checkmark, blue text |
 | **Partial** | `partial_text_found`, `found_anchor_text_only`, `found_on_other_page`, `found_on_other_line`, `first_word_found` | Orange indicator, blue text |
-| **Not Found** | `not_found` | Gray text, strikethrough optional |
-| **Loading** | `pending` | Spinner or skeleton |
+| **Not Found** | `not_found`, `skipped` | Gray text, strikethrough optional |
+| **Loading** | `pending`, `loading`, `timestamp_wip` | Spinner or skeleton |
