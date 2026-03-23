@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@jest/globals";
 import { buildSearchNarrative } from "../react/searchNarrative";
 import type { SearchAttempt } from "../types/search";
 

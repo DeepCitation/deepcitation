@@ -63,15 +63,6 @@ export function dim(text: string, useColor: boolean): string {
 }
 
 /**
- * Strip all ANSI escape codes from a string.
- */
-export function stripAnsi(str: string): string {
-  // Matches all ANSI escape sequences
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences require control characters
-  return str.replace(/\u001b\[[0-9;]*m/g, "");
-}
-
-/**
  * Box-drawing characters for sources section.
  */
 export const BOX_CHARS = {

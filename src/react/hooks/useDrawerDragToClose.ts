@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DRAWER_DRAG_CLOSE_THRESHOLD_PX } from "../constants.js";
 import { triggerHaptic } from "../haptics.js";
 
@@ -67,10 +67,10 @@ export function useDrawerDragToClose({
 
   const onCloseRef = useRef(onClose);
   const onExpandRef = useRef(onExpand);
-  useEffect(() => {
+  useLayoutEffect(() => {
     onCloseRef.current = onClose;
     onExpandRef.current = onExpand;
-  });
+  }, [onClose, onExpand]);
 
   const isMountedRef = useRef(true);
   useEffect(

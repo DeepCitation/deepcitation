@@ -240,6 +240,11 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
     [cancelMomentum],
   );
 
+  const isDraggingRef = useRef(false);
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
+
   const onMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (!isPressed.current) return;
@@ -253,7 +258,7 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
       dragDistance.current = direction === "xy" ? Math.max(Math.abs(dx), Math.abs(dy)) : Math.abs(dx);
 
       if (dragDistance.current > DRAG_THRESHOLD) {
-        if (!isDragging) setIsDragging(true);
+        if (!isDraggingRef.current) setIsDragging(true);
       }
 
       el.scrollLeft = startScrollLeft.current - dx;
@@ -269,7 +274,7 @@ export function useDragToPan(options: { direction?: "x" | "xy" } = {}): {
         history.shift();
       }
     },
-    [isDragging, direction],
+    [direction],
   );
 
   const finishDrag = useCallback(() => {

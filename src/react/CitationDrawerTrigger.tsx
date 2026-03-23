@@ -241,7 +241,7 @@ function CitationTooltip({
           <div
             role="button"
             tabIndex={0}
-            className="block w-full rounded overflow-hidden border border-dc-border hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors cursor-pointer"
+            className="block w-full rounded overflow-hidden border border-dc-border hover:border-dc-border/60 transition-colors cursor-pointer"
             onClick={handleProofClick}
             onKeyDown={e => {
               if (e.key === "Enter" || e.key === " ") {

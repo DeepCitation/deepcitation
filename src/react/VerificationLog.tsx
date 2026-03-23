@@ -398,7 +398,7 @@ export function PagePill({ pageNumber, colorScheme, onClick, onClose, isImage }:
         TERTIARY_ACTION_BASE_CLASSES,
         TERTIARY_ACTION_IDLE_CLASSES,
         TERTIARY_ACTION_HOVER_CLASSES,
-        "hover:bg-zinc-200 dark:hover:bg-zinc-700",
+        "hover:bg-dc-muted",
         HITBOX_EXTEND_8x14,
         colorClasses,
       )}
@@ -724,19 +724,19 @@ export function AmbiguityWarning({ ambiguity }: AmbiguityWarningProps) {
         >
           <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <div className="text-xs text-amber-800 dark:text-amber-200">
+        <div className="text-xs text-dc-partial">
           <span className="font-medium">
             {t("ambiguity.found", { totalOccurrences: ambiguity.totalOccurrences.toLocaleString() })}
           </span>
           {ambiguity.occurrencesOnExpectedPage > 0 && (
-            <span className="text-amber-700 dark:text-amber-300">
+            <span className="text-dc-partial/85">
               {" "}
               {t("ambiguity.onExpectedPage", {
                 occurrencesOnExpectedPage: ambiguity.occurrencesOnExpectedPage.toLocaleString(),
               })}
             </span>
           )}
-          {displayNote && <p className="mt-0.5 text-amber-700 dark:text-amber-300 max-w-prose">{displayNote}</p>}
+          {displayNote && <p className="mt-0.5 text-dc-partial/85 max-w-prose">{displayNote}</p>}
         </div>
       </div>
     </div>
@@ -907,7 +907,7 @@ function VerificationLogSummary({ narrative, status, isExpanded, onToggle, verif
       aria-controls="verification-log-timeline"
       className="w-full px-4 py-1.5 flex items-center justify-between text-xs transition-colors cursor-pointer group"
     >
-      <div className="flex items-center gap-1.5 text-dc-pending group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors">
+      <div className="flex items-center gap-1.5 text-dc-pending group-hover:text-dc-muted-foreground transition-colors">
         <svg
           className={cn("size-3 transition-transform duration-120", isExpanded && "rotate-90")}
           viewBox="0 0 24 24"
@@ -1007,7 +1007,7 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
         ? tPlural(t, "location.matchingLocations", row.duplicateCount, { count: row.duplicateCount })
         : null;
       return (
-        <div className="py-1 px-2 text-xs font-mono border-l-2 border-amber-400 dark:border-amber-500 text-dc-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <div className="py-1 px-2 text-xs font-mono border-l-2 border-dc-partial text-dc-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <span
             className="font-mono text-xxs truncate min-w-0"
             title={row.note || (isTruncated ? row.phraseFull : undefined)}

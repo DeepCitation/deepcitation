@@ -95,12 +95,6 @@ function getUrlStatusLabel(fetchStatus: UrlFetchStatus, t: TranslateFunction): s
   return t(KEY_MAP[fetchStatus]);
 }
 
-// Body scroll lock — imported from scrollLock.ts (canonical location, ref-counted)
-// CitationErrorBoundary — imported from ./CitationErrorBoundary.js (canonical location)
-
-// Utility functions and CitationContentDisplay
-// imported from ./CitationContentDisplay.js (canonical location)
-
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -239,21 +233,6 @@ export interface CitationComponentProps extends BaseCitationProps {
    */
   experimentalHaptics?: boolean;
 }
-
-// getStatusLabel, getStatusFromVerification
-// imported from ./citationStatus.js (canonical location)
-
-// Indicator components, SpinnerStage, CitationStatusIndicator
-// imported from ./CitationStatusIndicator.js (canonical location)
-
-// FooterHint, EvidenceTray components — imported from ./EvidenceTray.js
-// CitationContentDisplay — imported from ./CitationContentDisplay.js
-
-// ExpandedImageSource, resolveExpandedImage,
-// AnchorTextFocusedImage, EvidenceTray, InlineExpandedImage, SearchAnalysisSummary
-// — imported from ./EvidenceTray.js (canonical location)
-
-// DefaultPopoverContent, PopoverViewState — imported from ./DefaultPopoverContent.js (canonical location)
 
 // =============================================================================
 // SPINNER STAGE HOOK
@@ -479,7 +458,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       renderPopoverContent,
       additionalCount,
       faviconUrl,
-      indicatorVariant: indicatorVariantProp = "icon",
+      indicatorVariant = "icon",
       sourceLabel,
       onTimingEvent,
       originalDownload,
@@ -504,8 +483,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         }
       }
     }, [eventHandlers?.onClick, behaviorConfig?.onClick]);
-
-    const indicatorVariant: IndicatorVariant = indicatorVariantProp;
 
     const pageImages = useMemo(() => {
       if (verification?.pageImages) return verification.pageImages;
@@ -1358,7 +1335,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         // Neutral hover/active for variants that don't handle their own hover styling
         ...(variantHasOwnHover ? [] : [getInteractionClasses(isHovering, variant)]),
         // Focus styles for keyboard accessibility
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dc-ring/40",
         className,
       ),
       // ARIA attributes for accessibility

@@ -417,7 +417,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       className={cn(
         "cursor-pointer transition-colors border-l-[3px]",
         !isLast && "border-b border-dc-border",
-        isExpanded ? statusBorderColor : "border-l-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800/50",
+        isExpanded ? statusBorderColor : "border-l-transparent hover:bg-dc-muted/60",
         className,
       )}
     >
@@ -582,7 +582,7 @@ function CompactSingleCitationRow({
     <div
       className={cn(
         "px-4 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors",
-        "hover:bg-zinc-50 dark:hover:bg-zinc-800/50",
+        "hover:bg-dc-muted/60",
         !isLast && "border-b border-dc-border",
       )}
       onClick={handleClick}
@@ -1293,7 +1293,7 @@ function OpenCitationDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded hover:bg-dc-muted transition-colors cursor-pointer"
                 aria-label={t("action.close")}
               >
                 <svg

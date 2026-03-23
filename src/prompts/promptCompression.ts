@@ -81,9 +81,8 @@ function buildSafePrefixMap(ids: string[], prompt: string): Record<string, strin
 
       const prefix = id.slice(0, len);
 
-      // Check minimum requirements
+      // Check minimum character-type requirements
       if (
-        prefix.length < MIN_PREFIX_LENGTH ||
         (digitCount > 0 && letterCount < MIN_CHARACTERS_PER_PREFIX_WITH_AT_LEAST_ONE_DIGIT) ||
         (digitCount === 0 && letterCount < MIN_CHARACTERS_PER_PREFIX_WITH_NO_DIGITS)
       ) {
@@ -134,12 +133,12 @@ export function compressPromptIds<T>(obj: T, ids: string[] | undefined): Compres
   const text = JSON.stringify(obj);
   const prefixMap = buildSafePrefixMap(uniqueIds, text);
 
-  // Sort prefixes by descending length to avoid partial matches
-  const prefixes = Object.keys(prefixMap).sort((a, b) => b.length - a.length);
+  // Sort by full-ID length descending so a longer ID is replaced before
+  // a shorter one that might be its substring.
+  const entries = Object.entries(prefixMap).sort((a, b) => b[1].length - a[1].length);
 
   let compressedText = text;
-  for (const prefix of prefixes) {
-    const full = prefixMap[prefix];
+  for (const [prefix, full] of entries) {
     compressedText = compressedText.replaceAll(full, prefix);
   }
 
@@ -185,18 +184,9 @@ export function decompressPromptIds<T>(compressed: T | string, prefixMap: Record
     shouldParseBack = true;
   }
 
-  const originalLength = text.length;
-
   // Perform all prefix → full-ID replacements
   for (const [prefix, full] of entries) {
     text = text.replaceAll(prefix, full);
-  }
-
-  const newLength = text.length;
-
-  const diff = originalLength - newLength;
-  if (diff > 0) {
-    throw new Error(`[decompressedPromptIds] diff ${diff} originalLength ${originalLength} newLength ${newLength}`);
   }
 
   if (!shouldParseBack) return text;

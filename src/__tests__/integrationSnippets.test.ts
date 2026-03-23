@@ -8,7 +8,7 @@
  *
  * Run with: bun test src/__tests__/integrationSnippets.test.ts
  */
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "@jest/globals";
 
 import {
   DISPLAY_CITATION_KEY,

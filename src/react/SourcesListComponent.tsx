@@ -5,59 +5,12 @@ import { extractDomain } from "../utils/urlSafety.js";
 import { getPortalContainer, TTC_TEXT_STYLE } from "./constants.js";
 import { useTranslation } from "./i18n.js";
 import { handleImageError, handleImageErrorOpacity } from "./imageUtils.js";
+import { ChevronRightIcon, CloseIcon, SpinnerIcon } from "./icons.js";
 import { detectSourceType, getFaviconUrl, getPlatformName } from "./SourcesListComponent.utils.js";
 import { formatTtc } from "./timingUtils.js";
 import type { SourcesListItemProps, SourcesListProps, SourcesTriggerProps } from "./types.js";
 import { safeWindowOpen } from "./urlUtils.js";
 import { classNames } from "./utils.js";
-
-// ============================================================================
-// Icons
-// ============================================================================
-
-const CloseIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
-const ChevronRightIcon = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <polyline points="9 18 15 12 9 6" />
-  </svg>
-);
-
-const SpinnerIcon = () => (
-  <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-    <path
-      className="opacity-75"
-      fill="currentColor"
-      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-    />
-  </svg>
-);
 
 // ============================================================================
 // VerificationBadge Component (extracted from inline renderVerificationBadge)
@@ -251,7 +204,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
         )}
 
         {/* Arrow indicator */}
-        <div className="shrink-0 text-dc-pending mt-1">
+        <div className="shrink-0 text-dc-pending mt-1 size-4">
           <ChevronRightIcon />
         </div>
       </div>
@@ -364,7 +317,7 @@ const SourcesListHeader = ({
           className="p-1 -ml-1 text-dc-subtle-foreground hover:text-dc-foreground transition-colors"
           aria-label={t("action.closeSources")}
         >
-          <CloseIcon />
+          <CloseIcon className="size-5" />
         </button>
       )}
       <h2 className="text-base font-semibold text-dc-foreground flex-1 text-center">
@@ -374,7 +327,7 @@ const SourcesListHeader = ({
       {/* Aggregate TtC or spacer for centering */}
       {timingMetrics && timingMetrics.resolvedCount > 0 ? (
         <span className="text-dc-pending shrink-0" style={TTC_TEXT_STYLE}>
-          avg rev {formatTtc(timingMetrics.avgTtcMs)}
+          {t("drawer.avgReviewTime", { time: formatTtc(timingMetrics.avgTtcMs) })}
         </span>
       ) : (
         showCloseButton && variant !== "inline" && <div className="w-8" />
@@ -421,7 +374,7 @@ const SourcesListContentArea = ({
     if (renderLoading) return renderLoading();
     return (
       <div className="flex items-center justify-center py-8 text-dc-subtle-foreground">
-        <SpinnerIcon />
+        <SpinnerIcon className="size-4 animate-spin" />
         <span className="ml-2 text-sm">{t("sources.loading")}</span>
       </div>
     );

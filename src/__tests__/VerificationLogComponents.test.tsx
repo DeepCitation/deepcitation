@@ -560,7 +560,7 @@ describe("SourceContextHeader", () => {
       );
 
       const button = getByRole("button", { name: /expand to full page 5/i });
-      expect(button.className).toContain("hover:bg-zinc-200");
+      expect(button.className).toContain("hover:bg-dc-muted");
       expect(button.className).toContain("focus-visible:ring-2");
       expect(button.className).not.toContain("hover:opacity-80");
     });

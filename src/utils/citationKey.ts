@@ -25,7 +25,7 @@ export function getCitationKey(citation: Citation): string {
   // Common key parts
   const keyParts = [
     citation.fullPhrase || "",
-    citation.anchorText?.toString() || "",
+    citation.anchorText || "",
     pageNumber?.toString() || "",
     citation.lineIds?.join(",") || "",
   ];

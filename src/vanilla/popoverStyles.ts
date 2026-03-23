@@ -2,19 +2,19 @@
  * CSS for the vanilla popover runtime.
  * Self-contained — no Tailwind dependency.
  */
-const DARK_VARS = `--dc-pop-bg: #27272a;
-  --dc-pop-text: #fafafa;
-  --dc-pop-border: #3f3f46;
-  --dc-pop-muted: #a1a1aa;
+const DARK_VARS = `--dc-pop-bg: var(--dc-background, #27272a);
+  --dc-pop-text: var(--dc-foreground, #fafafa);
+  --dc-pop-border: var(--dc-border, #3f3f46);
+  --dc-pop-muted: var(--dc-muted-foreground, #a1a1aa);
   --dc-pop-image-bg: #18181b;
   --dc-pop-verified-bg: #052e16;
-  --dc-pop-verified-text: #4ade80;
+  --dc-pop-verified-text: var(--dc-verified, #4ade80);
   --dc-pop-partial-bg: #451a03;
-  --dc-pop-partial-text: #fbbf24;
+  --dc-pop-partial-text: var(--dc-partial, #fbbf24);
   --dc-pop-notfound-bg: #450a0a;
-  --dc-pop-notfound-text: #f87171;
-  --dc-pop-pending-bg: #27272a;
-  --dc-pop-pending-text: #a1a1aa;`;
+  --dc-pop-notfound-text: var(--dc-destructive, #f87171);
+  --dc-pop-pending-bg: var(--dc-background, #27272a);
+  --dc-pop-pending-text: var(--dc-pending, #a1a1aa);`;
 
 export const POPOVER_CSS = `
 /* ── Popover container ── */
@@ -132,7 +132,7 @@ export const POPOVER_CSS = `
   max-width: 800px;
   margin: 0 auto;
   padding: 24px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--dc-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   font-size: 16px;
   line-height: 1.7;
   color: var(--dc-pop-text, #27272a);

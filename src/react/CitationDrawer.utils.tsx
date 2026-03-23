@@ -7,11 +7,8 @@ import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.t
 import { isPartialSearchStatus } from "./citationStatus.js";
 import type { MessageKey, TranslateFunction } from "./i18n.js";
 import { defaultMessages, defaultTranslator } from "./i18n.js";
-import {
-  CheckIcon as CheckIconComponent,
-  SpinnerIcon as SpinnerIconComponent,
-  XCircleIcon as XCircleIconComponent,
-} from "./icons.js";
+import { DOT_INDICATOR_FIXED_SIZE_STYLE } from "./constants.js";
+import { CheckIcon, SpinnerIcon, XCircleIcon } from "./icons.js";
 import type { IndicatorVariant } from "./types.js";
 
 // =========
@@ -153,8 +150,6 @@ export function groupCitationsBySource(
   return resolveGroupLabels(result, sourceLabelMap);
 }
 
-import { DOT_INDICATOR_FIXED_SIZE_STYLE } from "./constants.js";
-
 /**
  * Get verification status indicator info.
  * @param verification - The verification result
@@ -224,7 +219,7 @@ export function getStatusInfo(
   if (!status || status === "pending" || status === "loading") {
     return {
       color: "text-dc-subtle-foreground",
-      icon: <SpinnerIconComponent />,
+      icon: <SpinnerIcon />,
       label: t("indicator.verifying"),
     };
   }
@@ -232,7 +227,7 @@ export function getStatusInfo(
   if (status === "not_found") {
     return {
       color: "text-dc-destructive",
-      icon: <XCircleIconComponent />,
+      icon: <XCircleIcon />,
       label: t("indicator.notFound"),
     };
   }
@@ -240,7 +235,7 @@ export function getStatusInfo(
   if (isPartial) {
     return {
       color: "text-dc-partial",
-      icon: <CheckIconComponent />,
+      icon: <CheckIcon />,
       label: t("indicator.partial"),
     };
   }
@@ -248,7 +243,7 @@ export function getStatusInfo(
   // Verified statuses
   return {
     color: "text-dc-verified",
-    icon: <CheckIconComponent />,
+    icon: <CheckIcon />,
     label: t("indicator.verified"),
   };
 }
