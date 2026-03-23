@@ -32,7 +32,8 @@ export function renderSlackCitation(
   }
 
   if (proofUrl) {
-    return `<${proofUrl}|${text}>`;
+    // Pipe character delimits URL from label in Slack links; strip from label text
+    return `<${proofUrl}|${text.replace(/\|/g, "")}>`;
   }
   return text;
 }

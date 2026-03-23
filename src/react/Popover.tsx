@@ -13,7 +13,6 @@ import {
   HIDE_SCROLLBAR_STYLE,
   POPOVER_WIDTH_DEFAULT,
   POPOVER_WIDTH_VAR,
-  VIEWPORT_MARGIN_PX,
   Z_INDEX_BACKDROP_DEFAULT,
   Z_INDEX_POPOVER_VAR,
 } from "./constants.js";
@@ -151,18 +150,11 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       coordsRef.current = next;
       wrapper.style.transform = `translate3d(${next.x}px, ${next.y}px, 0)`;
 
-      // Update dynamic max-height based on the resolved position so the
-      // popover cannot grow taller than the viewport allows. This runs in
-      // the same callback as the position update, keeping them in sync
-      // (avoids the clamp-before-reposition ordering bug).
-      const vh = window.innerHeight;
-      // For side="bottom", constrain to space below the wrapper top.
-      // For side="top", constrain to space above the trigger (the anchor point).
-      const available =
-        side === "top" ? triggerRect.top - sideOffset - VIEWPORT_MARGIN_PX : vh - next.y - VIEWPORT_MARGIN_PX;
-      if (available > 0) {
-        contentEl.style.setProperty(GUARD_MAX_HEIGHT_VAR, `${available}px`);
-      }
+      // Max-height is managed solely by useViewportBoundaryGuard (Layer 3).
+      // It sets --dc-guard-max-height on initial open and resize — NOT on scroll.
+      // Previously this callback also updated max-height on every scroll event,
+      // which caused the popover to shrink ("squish") as the trigger scrolled
+      // toward the viewport edge.
     }, [align, alignOffset, isMounted, open, side, sideOffset, triggerRef]);
 
     React.useLayoutEffect(() => {

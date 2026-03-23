@@ -25,6 +25,11 @@ const LINE_POSITION_THRESHOLDS = {
 /** Maximum characters for truncated fullPhrase fallback in inline variant */
 const INLINE_TEXT_TRUNCATION_LIMIT = 50;
 
+/** Escape characters that have special meaning in markdown. */
+function escapeMd(text: string): string {
+  return text.replace(/([\\*_`\[\]<>~#|])/g, "\\$1");
+}
+
 /**
  * Get the indicator string for a verification status.
  */
@@ -185,8 +190,10 @@ export function renderCitationVariant(citationWithStatus: CitationWithStatus, op
         : `(${sourceLabel}${page})${indicator}`;
     }
 
-    default:
+    default: {
+      const _exhaustive: never = variant;
       return indicator;
+    }
   }
 }
 
@@ -207,29 +214,28 @@ export function renderReferenceEntry(citationWithStatus: CitationWithStatus, opt
   if (variant === "footnote") {
     // Footnote style: [^1]: "quote" - location ✓
     let entry = `[^${citationNumber}]: `;
-    if (quote) entry += `"${quote}"`;
+    if (quote) entry += `"${escapeMd(quote)}"`;
     if (location) entry += ` - ${location}`;
     entry += ` ${indicator}`;
     lines.push(entry);
   } else {
     // Standard reference style with anchor
-    const anchorText = citation.anchorText || `Citation ${citationNumber}`;
     let entry = `<a id="ref-${citationNumber}"></a>\n`;
     entry += `**[${citationNumber}]** ${indicator}`;
-    if (anchorText && anchorText !== `Citation ${citationNumber}`) {
-      entry += ` **${anchorText}**`;
+    if (citation.anchorText) {
+      entry += ` **${escapeMd(citation.anchorText)}**`;
     }
     if (location) entry += ` - ${location}`;
     lines.push(entry);
 
     // Add quote as blockquote
     if (quote) {
-      lines.push(`> "${quote}"`);
+      lines.push(`> "${escapeMd(quote)}"`);
     }
 
     // Add reasoning if requested
     if (showReasoning && citation.reasoning) {
-      lines.push(`> *${citation.reasoning}*`);
+      lines.push(`> *${escapeMd(citation.reasoning)}*`);
     }
   }
 
@@ -252,54 +258,21 @@ export function renderReferencesSection(citations: CitationWithStatus[], options
       lines.push(renderReferenceEntry(citation, options));
     }
   } else {
-    // Group by status in a single pass — mutually exclusive buckets
-    const verified: typeof citations = [];
-    const partial: typeof citations = [];
-    const notFound: typeof citations = [];
-    const pending: typeof citations = [];
-    const unverified: typeof citations = [];
-    for (const c of citations) {
-      const s = c.status;
-      if (s.isPartialMatch) partial.push(c);
-      else if (s.isVerified) verified.push(c);
-      else if (s.isMiss) notFound.push(c);
-      else if (s.isPending) pending.push(c);
-      else unverified.push(c);
-    }
+    const STATUS_GROUPS: { heading: string; test: (s: CitationStatus) => boolean }[] = [
+      { heading: "### Verified", test: s => s.isVerified && !s.isPartialMatch },
+      { heading: "### Partial Match", test: s => s.isPartialMatch },
+      { heading: "### Not Found", test: s => s.isMiss },
+      { heading: "### Pending", test: s => s.isPending },
+      { heading: "### Unverified", test: s => !s.isVerified && !s.isPartialMatch && !s.isMiss && !s.isPending },
+    ];
 
-    if (verified.length > 0) {
-      lines.push("### Verified", "");
-      for (const citation of verified) {
-        lines.push(renderReferenceEntry(citation, options), "");
-      }
-    }
-
-    if (partial.length > 0) {
-      lines.push("### Partial Match", "");
-      for (const citation of partial) {
-        lines.push(renderReferenceEntry(citation, options), "");
-      }
-    }
-
-    if (notFound.length > 0) {
-      lines.push("### Not Found", "");
-      for (const citation of notFound) {
-        lines.push(renderReferenceEntry(citation, options), "");
-      }
-    }
-
-    if (pending.length > 0) {
-      lines.push("### Pending", "");
-      for (const citation of pending) {
-        lines.push(renderReferenceEntry(citation, options), "");
-      }
-    }
-
-    // Catch-all: citations with no status data (null/undefined verification)
-    if (unverified.length > 0) {
-      lines.push("### Unverified", "");
-      for (const citation of unverified) {
-        lines.push(renderReferenceEntry(citation, options), "");
+    for (const { heading, test } of STATUS_GROUPS) {
+      const group = citations.filter(c => test(c.status));
+      if (group.length > 0) {
+        lines.push(heading, "");
+        for (const citation of group) {
+          lines.push(renderReferenceEntry(citation, options), "");
+        }
       }
     }
   }

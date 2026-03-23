@@ -27,9 +27,9 @@ export function getStatusFromVerification(verification: Verification | null | un
 }
 
 export function getStatusLabel(status: CitationStatus, t: TranslateFunction = defaultTranslator): string {
+  if (status.isMiss) return t("status.notFound");
   if (status.isVerified && !status.isPartialMatch) return t("status.verified");
   if (status.isPartialMatch) return t("status.partialMatch");
-  if (status.isMiss) return t("status.notFound");
   if (status.isPending) return t("status.verifying");
   return "";
 }

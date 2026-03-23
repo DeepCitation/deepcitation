@@ -1,0 +1,109 @@
+/* =============================================================================
+   DEEPCITATION DESIGN TOKENS
+   Override any token on :root, .dark, or any ancestor wrapper element.
+
+   Quick start — single CSS override (light + dark):
+     :root   { --dc-background: #f8fafc; --dc-border: #cbd5e1; }
+     .dark   { --dc-background: #0f172a; --dc-border: #334155; }
+
+   Or via the React component (see DeepCitationTheme):
+     <DeepCitationTheme theme={{ background: "#f8fafc", border: "#cbd5e1" }} />
+============================================================================= */
+
+/* Light mode defaults */
+:root {
+  /* Surfaces */
+  --dc-background: #ffffff;
+  --dc-muted: #f4f4f5;
+
+  /* Text */
+  --dc-foreground: #18181b;
+  --dc-muted-foreground: #71717a;
+  --dc-subtle-foreground: #a1a1aa;
+
+  /* Structure */
+  --dc-border: #e4e4e7;
+  --dc-ring: #3b82f6;
+
+  /* Primary accent */
+  --dc-primary: #3b82f6;
+  --dc-primary-foreground: #ffffff;
+
+  /* Status accents */
+  --dc-verified: #10b981;
+  --dc-partial: #f59e0b;
+  --dc-destructive: #ef4444;
+  --dc-pending: #a1a1aa;
+
+  /* Status tint backgrounds */
+  --dc-verified-bg: #f0fdf4;
+  --dc-verified-border: #86efac;
+  --dc-verified-hover: #15803d;
+  --dc-verified-hover-foreground: #ffffff;
+  --dc-partial-bg: #fffbeb;
+  --dc-partial-border: #fcd34d;
+  --dc-partial-hover: #b45309;
+  --dc-partial-hover-foreground: #ffffff;
+  --dc-destructive-bg: #fef2f2;
+  --dc-destructive-border: #fca5a5;
+  --dc-destructive-hover: #b91c1c;
+  --dc-destructive-hover-foreground: #ffffff;
+  --dc-pending-bg: var(--dc-muted);
+  --dc-pending-border: var(--dc-border);
+  --dc-pending-hover: #71717a;
+  --dc-pending-hover-foreground: #ffffff;
+
+  /* Border radius */
+  --dc-radius-sm: 0.25rem;
+  --dc-radius-md: 0.375rem;
+  --dc-radius-lg: 0.5rem;
+
+  /* Font */
+  --dc-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Backward-compat aliases */
+  --dc-popover-bg: var(--dc-background);
+  --dc-popover-font: var(--dc-font-family);
+  --dc-verified-color: var(--dc-verified);
+  --dc-partial-color: var(--dc-partial);
+  --dc-error-color: var(--dc-destructive);
+  --dc-pending-color: var(--dc-pending);
+}
+
+/* Dark mode defaults */
+.dark {
+  --dc-background: #27272a;
+  --dc-muted: #3f3f46;
+
+  --dc-foreground: #fafafa;
+  --dc-muted-foreground: #a1a1aa;
+  --dc-subtle-foreground: #71717a;
+
+  --dc-border: #3f3f46;
+  --dc-ring: #3b82f6;
+
+  --dc-primary: #60a5fa;
+  --dc-primary-foreground: #ffffff;
+
+  --dc-verified: #34d399;
+  --dc-partial: #fbbf24;
+  --dc-destructive: #f87171;
+  --dc-pending: #71717a;
+
+  --dc-verified-bg: rgba(34, 197, 94, 0.1);
+  --dc-verified-border: #166534;
+  --dc-verified-hover: #bbf7d0;
+  --dc-verified-hover-foreground: #14532d;
+  --dc-partial-bg: rgba(245, 158, 11, 0.1);
+  --dc-partial-border: #92400e;
+  --dc-partial-hover: #fde68a;
+  --dc-partial-hover-foreground: #78350f;
+  --dc-destructive-bg: rgba(239, 68, 68, 0.1);
+  --dc-destructive-border: #991b1b;
+  --dc-destructive-hover: #fecaca;
+  --dc-destructive-hover-foreground: #7f1d1d;
+  --dc-pending-bg: var(--dc-muted);
+  --dc-pending-border: var(--dc-border);
+  --dc-pending-hover: #a1a1aa;
+  --dc-pending-hover-foreground: #18181b;
+}

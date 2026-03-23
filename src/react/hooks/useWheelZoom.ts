@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /**
  * GPU-accelerated wheel-zoom hook for scroll-to-zoom without Ctrl key.
@@ -117,13 +117,13 @@ export function useWheelZoom({
   const clampZoomRef = useRef(clampZoom);
   const clampZoomRawRef = useRef(clampZoomRaw);
   const onZoomCommitRef = useRef(onZoomCommit);
-  useEffect(() => {
+  useLayoutEffect(() => {
     zoomRef.current = zoom;
     committedZoomRef.current = null; // React caught up — no pending commit
     clampZoomRef.current = clampZoom;
     clampZoomRawRef.current = clampZoomRaw;
     onZoomCommitRef.current = onZoomCommit;
-  });
+  }, [zoom, clampZoom, clampZoomRaw, onZoomCommit]);
 
   // Hover tracking via pointer events on the container.
   useEffect(() => {

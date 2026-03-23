@@ -238,24 +238,37 @@ import { CitationComponent } from "deepcitation/react";
 
 ## Error Handling
 
-Handle common API errors gracefully:
+Use structured error classes instead of string matching:
 
 ```typescript
+import {
+  AuthenticationError,
+  RateLimitError,
+  ValidationError,
+  ServerError,
+  NetworkError,
+} from "deepcitation";
+
 try {
   const result = await deepcitation.verifyAttachment(attachmentId, citations);
   // Handle success
-} catch (error) {
-  if (error.message.includes("401")) {
-    // Invalid or expired API key
-  } else if (error.message.includes("429")) {
-    // Rate limit exceeded - add payment method or wait
-  } else if (error.message.includes("404")) {
-    // Attachment not found - may have expired (30 day retention)
-  } else {
-    // Other error
+} catch (err) {
+  if (err instanceof AuthenticationError) {
+    // Invalid or expired API key (401/403) — fix the key
+  } else if (err instanceof RateLimitError) {
+    // Rate limit exceeded (429) — retry after delay
+  } else if (err instanceof ValidationError) {
+    // Bad input: invalid format, not found, file too large (400/404/413)
+  } else if (err instanceof ServerError) {
+    // API error (5xx) — safe to retry with backoff
+  } else if (err instanceof NetworkError) {
+    // Network failure — safe to retry with backoff
   }
 }
 ```
+
+{: .note }
+See [Error Handling]({{ site.baseurl }}/error-handling/) for retry patterns with exponential backoff, `isRetryable` flags, and the full error class reference.
 
 ---
 

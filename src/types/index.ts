@@ -44,6 +44,7 @@ export type {
   FileDownload,
   PageImage,
   PageImagesStatus,
+  RenderScale,
   UrlAccessStatus,
   UrlVerificationResult,
   Verification,

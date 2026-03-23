@@ -751,11 +751,45 @@ blockquote {
   color: var(--btn-primary-text) !important;
   border-radius: 0 !important; // Bass's Constant — override JTD compiled radius
 
-  &:hover {
+  &:hover,
+  &.zeroclipboard-is-hover {
     background-color: var(--btn-primary-bg-hover) !important;
     background-image: none !important;
     border-color: var(--btn-primary-bg-hover) !important;
     color: var(--btn-primary-text) !important;
+  }
+
+  &:focus,
+  &:focus-visible,
+  &:focus:hover,
+  &.selected:focus {
+    box-shadow: 0 0 0 3px var(--focus-ring-color) !important;
+  }
+}
+
+// Global .btn overrides — beat JTD compiled bare selectors that leak purple
+// outside .main-content (e.g. sidebar, header, search area)
+.btn {
+  &:hover,
+  &:active,
+  &.zeroclipboard-is-hover,
+  &.zeroclipboard-is-active {
+    color: var(--link-color);
+    background-color: var(--sidebar-color);
+    text-decoration: none;
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring-color);
+  }
+
+  // Compound: .btn:focus:hover and .btn.selected:focus have higher specificity
+  // than plain .btn:focus — must override explicitly
+  &:focus:hover,
+  &.selected:focus {
+    box-shadow: 0 0 0 3px var(--focus-ring-color);
   }
 }
 

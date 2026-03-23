@@ -49,7 +49,10 @@ export function sanitizeForLog(value: unknown, maxLength = 1000): string {
     // Matches: ESC [ ... (any letter), ESC ] ... BEL/ST, ESC ( ... ), etc.
     // See: https://en.wikipedia.org/wiki/ANSI_escape_code
     // biome-ignore lint/suspicious/noControlCharactersInRegex: Intentionally matching ANSI control codes
-    .replace(/\x1b(?:\[[0-9;]*[a-zA-Z]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[()][0-9A-Za-z]|\[[0-9;?]*[hl])/g, "");
+    .replace(/\x1b(?:\[[0-9;]*[a-zA-Z]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[()][0-9A-Za-z]|\[[0-9;?]*[hl])/g, "")
+    // Strip remaining control characters (null, backspace, vertical tab, form feed, etc.)
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: Intentionally stripping control characters for log safety
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
 
   // Truncate with indicator if needed
   if (sanitized.length > maxLength) {
@@ -79,14 +82,7 @@ export function sanitizeForLog(value: unknown, maxLength = 1000): string {
  * ```
  */
 export function createLogEntry(...parts: unknown[]): string {
-  return parts
-    .map(part => {
-      if (typeof part === "string") {
-        return part; // Keep strings as-is (assume they're trusted)
-      }
-      return sanitizeForLog(part);
-    })
-    .join(" ");
+  return parts.map(part => sanitizeForLog(part)).join(" ");
 }
 
 /**

@@ -268,7 +268,7 @@ export class DeepCitation {
     this.convertedPdfDownloadPolicy = config.convertedPdfDownloadPolicy ?? "url_only";
     this.onLatestVersion = config.onLatestVersion;
     if (config.requestSource && /[\r\n]/.test(config.requestSource)) {
-      throw new Error("requestSource must not contain newline characters");
+      throw new ValidationError("requestSource must not contain newline characters");
     }
     this.requestSource = config.requestSource;
     this.maxRetries = Math.max(0, Math.floor(config.maxRetries ?? DEFAULT_MAX_RETRIES));

@@ -22,16 +22,16 @@ Display verified citations with status indicators and interactive popovers.
 ## Key Concepts
 
 {: .note }
-Understanding the difference between **found status** and **match quality** is essential.
+Citations have **four distinct states**, each with its own color and indicator.
 
-**Found Status (text styling):**
-Whether the citation was found in the document. Both verified and partial matches show blue text (found), while misses show gray text.
+| State | Color | Indicator | Meaning |
+|:------|:------|:----------|:--------|
+| **Verified** | Green (`--dc-verified`) | ✓ checkmark | Exact match found in source |
+| **Partial** | Amber (`--dc-partial`) | * asterisk | Found but not an exact match |
+| **Not Found** | Red (`--dc-destructive`) | ✗ x-mark | Citation not found in source |
+| **Pending** | Gray (subtle) | Spinner | Verification still in progress |
 
-**Match Quality (indicator):**
-How well the citation matched. Green checkmark for exact match, orange checkmark for partial match, no indicator for miss.
-
-{: .highlight }
-**Partial matches** have blue text (because they were found) but an orange indicator (because they didn't match exactly).
+How these colors apply depends on the variant. For example, the **linter** variant uses underline styles (solid green, dashed amber, wavy red, dotted gray) while the **chip** variant uses background, border, and text colors.
 
 ---
 

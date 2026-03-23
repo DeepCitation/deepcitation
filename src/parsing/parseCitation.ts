@@ -339,6 +339,12 @@ export const getAllCitationsFromLlmOutput = (llmOutput: unknown): CitationRecord
   return citations;
 };
 
+function toCitationEntries(citations: Citation[] | CitationRecord): [string, Citation][] {
+  return Array.isArray(citations)
+    ? citations.map((c, idx) => [getCitationKey(c) || String(idx + 1), c])
+    : Object.entries(citations);
+}
+
 /**
  * Groups citations by their attachmentId for multi-file verification scenarios.
  * This is useful when you have citations from multiple files and need to
@@ -362,22 +368,17 @@ export const getAllCitationsFromLlmOutput = (llmOutput: unknown): CitationRecord
 export function groupCitationsByAttachmentId(citations: Citation[] | CitationRecord): Map<string, CitationRecord> {
   const grouped = new Map<string, CitationRecord>();
 
-  // Normalize input to entries
-  const entries: [string, Citation][] = Array.isArray(citations)
-    ? citations.map((c, idx) => [getCitationKey(c) || String(idx + 1), c])
-    : Object.entries(citations);
+  for (const [key, citation] of toCitationEntries(citations)) {
+    if (!isSafeKey(key)) continue;
 
-  for (const [key, citation] of entries) {
     const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
 
     if (!grouped.has(attachmentId)) {
       grouped.set(attachmentId, {});
     }
 
-    const group = grouped.get(attachmentId);
-    if (group) {
-      group[key] = citation;
-    }
+    const group = grouped.get(attachmentId)!;
+    group[key] = citation;
   }
 
   return grouped;
@@ -407,12 +408,7 @@ export function groupCitationsByAttachmentIdObject(
 ): Record<string, CitationRecord> {
   const grouped: Record<string, CitationRecord> = {};
 
-  // Normalize input to entries
-  const entries: [string, Citation][] = Array.isArray(citations)
-    ? citations.map((c, idx) => [getCitationKey(c) || String(idx + 1), c])
-    : Object.entries(citations);
-
-  for (const [key, citation] of entries) {
+  for (const [key, citation] of toCitationEntries(citations)) {
     const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
 
     // Only assign if both attachmentId and key are safe (prevents prototype pollution)
@@ -420,7 +416,7 @@ export function groupCitationsByAttachmentIdObject(
       continue;
     }
 
-    // attachmentId and key are guaranteed safe by isSafeKey checks above (line 696)
+    // attachmentId and key are guaranteed safe by isSafeKey checks above
     // lgtm[js/prototype-polluting-assignment]
     if (!grouped[attachmentId]) {
       grouped[attachmentId] = createSafeObject<Citation>();

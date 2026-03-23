@@ -11,7 +11,7 @@ import type { SearchAttempt, SearchStatus } from "./search.js";
  */
 export interface DownloadLink {
   url: string;
-  /** Optional expiration timestamp for signed links */
+  /** Optional expiration timestamp (ISO 8601) for signed links, or "never" for permanent links */
   expiresAt?: (string & {}) | "never";
 }
 
@@ -27,6 +27,15 @@ export interface FileDownload {
   mimeType?: string;
   /** Signed download link */
   link: DownloadLink;
+}
+
+// ==========================================================================
+// Shared geometry helpers
+// ==========================================================================
+
+export interface RenderScale {
+  x: number;
+  y: number;
 }
 
 // ==========================================================================
@@ -110,7 +119,7 @@ export interface DocumentVerificationResult {
   /** Highlighted region on the verified page (image pixel coordinates) */
   highlightBox?: ScreenBox;
   /** Scale factors from PDF coordinate units to page image pixels */
-  renderScale?: { x: number; y: number };
+  renderScale?: RenderScale;
 }
 
 /**
@@ -165,14 +174,14 @@ export interface PageImage {
   /** Optional base64-encoded thumbnail image (e.g., avif) for quick preview */
   thumbnailUrl?: string;
   /** Optional expiration date for the page data (ISO 8601 string or "never" for enterprise). */
-  expiresAt?: string;
+  expiresAt?: (string & {}) | "never";
   /** Whether this page contains the verified citation match */
   isMatchPage?: boolean;
   /** Highlighted region on this page (if match found) */
   highlightBox?: ScreenBox;
   /** Scale factors from PDF coordinate units to page image pixels.
    *  Use to convert DeepTextItem coords: imageX = item.x * renderScale.x */
-  renderScale?: { x: number; y: number };
+  renderScale?: RenderScale;
   /** OCR text items on this page (forward-compatible: text selection, annotations) */
   textItems?: DeepTextItem[];
 }

@@ -114,8 +114,8 @@ const { verifications } = await dc.verifyAttachment(attachmentId, citations);
 
 // 5. Use verification results
 for (const [key, result] of Object.entries(verifications)) {
-  console.log(`Citation ${key}: ${result.searchState?.status}`);
-  if (result.verificationImageBase64) {
+  console.log(`Citation ${key}: ${result.status}`);
+  if (result.evidence?.src) {
     // Display visual proof to users
   }
 }
