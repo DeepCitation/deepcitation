@@ -28,18 +28,13 @@ DeepCitation is an API and React component library that verifies whether your AI
 
 | Section | Description |
 |:--------|:------------|
-| [Getting Started]({{ site.baseurl }}/getting-started) | Installation and quick start guide |
-| [Prompts]({{ site.baseurl }}/prompts) | How DeepCitation instructs LLMs to produce verifiable citations |
-| [API Reference]({{ site.baseurl }}/api-reference) | REST API endpoints for file preparation and verification |
-| [SDK Reference]({{ site.baseurl }}/sdk-reference) | TypeScript SDK client methods and utility functions |
-| [Curl Guide]({{ site.baseurl }}/curl-guide) | Direct API usage with curl examples |
-| [Types]({{ site.baseurl }}/types) | TypeScript interface definitions |
-| [Verification Statuses]({{ site.baseurl }}/verification-statuses) | Understanding verification result statuses |
-| [Framework Guides]({{ site.baseurl }}/frameworks) | LangChain, Next.js App Router, Vercel AI SDK |
-| [Code Examples]({{ site.baseurl }}/code-examples) | SDK usage examples and patterns |
-| [Components]({{ site.baseurl }}/components) | React CitationComponent documentation |
-| [Styling]({{ site.baseurl }}/styling) | CSS customization options |
-| [Error Handling]({{ site.baseurl }}/error-handling) | Production error patterns and retry logic |
+| [Getting Started]({{ site.baseurl }}/getting-started) | Install, configure, and verify your first citation in 5 minutes |
+| [API Reference]({{ site.baseurl }}/api-reference) | REST endpoints, SDK methods, and TypeScript types |
+| [Components]({{ site.baseurl }}/components) | React CitationComponent — 7 variants, CitationDrawer, SourcesList |
+| [Framework Guides]({{ site.baseurl }}/frameworks) | LangChain, Next.js, Vercel AI SDK, Express, Python |
+| [Styling]({{ site.baseurl }}/styling) | 50+ CSS tokens, dark mode, brand theming examples |
+| [Error Handling]({{ site.baseurl }}/error-handling) | Error classes, retry patterns, common mistakes |
+| [Code Examples]({{ site.baseurl }}/code-examples) | 6 runnable example apps with live demos |
 
 ---
 

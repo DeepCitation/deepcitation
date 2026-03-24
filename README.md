@@ -21,7 +21,7 @@ Show proof for every AI citation.
 
 <div align="center">
 
-[Documentation](https://docs.deepcitation.com) · [Get API Key](https://deepcitation.com/signup) · [Examples](./examples) · [Agent Integration](./INTEGRATION.md) · [Terms](https://deepcitation.com/legal/terms-of-service) · [Privacy](https://deepcitation.com/legal/privacy)
+[Documentation](https://docs.deepcitation.com) · [Get API Key](https://deepcitation.com/signup) · [Examples](./examples) · [Integration Guide](./INTEGRATION.md) · [Error Handling](./docs/error-handling.md) · [Terms](https://deepcitation.com/legal/terms-of-service) · [Privacy](https://deepcitation.com/legal/privacy)
 
 </div>
 
@@ -72,7 +72,7 @@ const { verifications } = await deepCitation.verify({ llmOutput: response.conten
 const visibleText = extractVisibleText(response.content);
 ```
 
-
+> **Complete integration guide**: See **[INTEGRATION.md](./INTEGRATION.md)** for golden rules, 5 ready-to-use recipes, and common mistakes to avoid. Read **[Error Handling](./docs/error-handling.md)** for production error patterns.
 
 ## Components
 

@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Components
-nav_order: 6
+nav_order: 7
 description: "React CitationComponent documentation"
 commit_sha: "cc9c7aa"
 stale_after_commits: 15
@@ -18,6 +18,22 @@ Display verified citations with status indicators and interactive popovers.
 
 {: .note }
 See all variants and verification states interactively at [deepcitation.com](https://deepcitation.com).
+
+---
+
+## Which Component Should I Use?
+
+| Use case | Component | Variant | Why |
+|:---------|:----------|:--------|:----|
+| **Chat messages** (inline citations) | `CitationComponent` | `chip` or `superscript` | Compact, fits within flowing text |
+| **Articles / reports** | `CitationComponent` | `footnote` or `brackets` | Academic feel, familiar to readers |
+| **Code/technical docs** | `CitationComponent` | `linter` | Underline style like IDE diagnostics |
+| **Minimal / clean UI** | `CitationComponent` | `text` or `badge` | Subtle, doesn't dominate the content |
+| **ChatGPT-style bottom sheet** | `CitationDrawer` | — | Full verification details in a slide-up panel |
+| **References section** | `SourcesListComponent` | — | Anthropic-style aggregated citation list at the end |
+| **Search results** | `UrlCitationComponent` | — | URL citations with favicon and domain display |
+
+Start with `CitationComponent` using the `chip` variant — it works for most use cases. Switch variants or components as your UI matures.
 
 ---
 
@@ -649,15 +665,95 @@ Use `UrlCitationComponent` when `citation.type === "url"`. For document citation
 
 ## SourcesListComponent
 
-Renders a list of source documents with their verification status summaries. Useful for showing all sources referenced in a response.
+Renders a list of source documents with their verification status summaries — similar to Anthropic's citation sources panel. Useful for showing all sources referenced in a response.
 
+{% raw %}
 ```tsx
 import { SourcesListComponent } from "deepcitation/react";
 
 <SourcesListComponent
-  sources={sources}
-  onSourceClick={(source) => console.log("Selected:", source)}
+  sources={[
+    {
+      id: "src-1",
+      url: "https://example.com/report.pdf",
+      title: "Q4 Financial Report",
+      domain: "example.com",
+      citationNumbers: [1, 2, 5],
+      verificationStatus: "verified",
+    },
+    {
+      id: "src-2",
+      url: "https://sec.gov/filing",
+      title: "SEC Filing 10-K",
+      domain: "sec.gov",
+      citationNumbers: [3, 4],
+      verificationStatus: "partial",
+    },
+  ]}
+  onSourceClick={(source, event) => console.log("Selected:", source.title)}
+  showVerificationIndicators
+  showCitationBadges
 />
+```
+{% endraw %}
+
+### SourcesListComponent Props
+
+| Prop | Type | Required | Description |
+|:-----|:-----|:---------|:------------|
+| `sources` | `SourcesListItemProps[]` | Yes | Array of source items to display |
+| `variant` | `"panel" \| "inline" \| "drawer"` | No | Visual layout variant |
+| `isOpen` | `boolean` | No | Whether the list is visible (for collapsible variants) |
+| `onOpenChange` | `(isOpen: boolean) => void` | No | Callback when visibility toggles |
+| `header` | `SourcesListHeaderConfig` | No | Header configuration (title, subtitle, show count) |
+| `isLoading` | `boolean` | No | Show loading skeleton |
+| `emptyMessage` | `string` | No | Message when no sources |
+| `maxHeight` | `string \| number` | No | Max height before scrolling (panel/inline variants) |
+| `className` | `string` | No | Additional CSS class for container |
+| `listClassName` | `string` | No | CSS class for the list items container |
+| `onSourceClick` | `(source, event) => void` | No | Click handler for source items |
+| `showVerificationIndicators` | `boolean` | No | Show status indicators on items |
+| `showCitationBadges` | `boolean` | No | Show citation number badges |
+| `groupByDomain` | `boolean` | No | Group sources by domain/platform |
+| `renderItem` | `(props, index) => ReactNode` | No | Custom render for source items |
+| `renderEmpty` | `() => ReactNode` | No | Custom render for empty state |
+| `renderLoading` | `() => ReactNode` | No | Custom render for loading state |
+
+### SourcesListItemProps
+
+Each source item in the `sources` array:
+
+| Prop | Type | Required | Description |
+|:-----|:-----|:---------|:------------|
+| `id` | `string` | Yes | Unique identifier |
+| `url` | `string` | Yes | Source URL |
+| `title` | `string` | Yes | Page/document title |
+| `domain` | `string` | Yes | Display domain (e.g., "sec.gov") |
+| `sourceType` | `SourceType` | No | Platform type for icon selection |
+| `faviconUrl` | `string` | No | Custom favicon URL |
+| `citationNumbers` | `number[]` | No | Citation numbers referencing this source |
+| `verificationStatus` | `"verified" \| "partial" \| "pending" \| "failed" \| "unknown"` | No | Verification status |
+| `onClick` | `(source, event) => void` | No | Item-level click handler |
+| `showVerificationIndicator` | `boolean` | No | Show status indicator |
+| `showCitationBadges` | `boolean` | No | Show citation number badges |
+
+### Compact Trigger
+
+Use `SourcesTrigger` to show a compact bar of source favicons that opens the full list:
+
+```tsx
+import { SourcesTrigger, SourcesListComponent } from "deepcitation/react";
+import { useState } from "react";
+
+function SourcesPanel({ sources }) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <>
+      <SourcesTrigger sources={sources} onClick={() => setIsOpen(!isOpen)} />
+      <SourcesListComponent sources={sources} isOpen={isOpen} onOpenChange={setIsOpen} />
+    </>
+  );
+}
 ```
 
 ---
@@ -681,6 +777,39 @@ function App() {
 
 Available locale packs: `esMessages` (Spanish), `frMessages` (French), `viMessages` (Vietnamese).
 
+### Custom Translations
+
+Use `createTranslator` to build a custom locale or override specific strings:
+
+```tsx
+import { DeepCitationI18nProvider, createTranslator, defaultMessages } from "deepcitation/react";
+
+// Override specific messages while keeping English defaults
+const customMessages = {
+  ...defaultMessages,
+  "status.verified": "Confirmed",
+  "status.notFound": "Unverified",
+  "message.exactMatch": "This quote was confirmed in the source document.",
+};
+
+function App() {
+  return (
+    <DeepCitationI18nProvider messages={customMessages}>
+      <CitationComponent ... />
+    </DeepCitationI18nProvider>
+  );
+}
+```
+
+You can also create a standalone translator for server-side rendering or non-React contexts:
+
+```typescript
+import { createTranslator } from "deepcitation/react";
+
+const t = createTranslator({ "status.verified": "Bestätigt" }); // German
+console.log(t("status.verified")); // "Bestätigt"
+```
+
 ---
 
 ## Accessibility
@@ -692,6 +821,40 @@ CitationComponent includes built-in accessibility support:
 - **Screen readers**: Status text is announced (e.g., "Verified citation" / "Citation not found")
 - **Focus management**: Popover traps focus when open, returns focus on close
 - **Reduced motion**: Animations respect `prefers-reduced-motion` media query
+
+---
+
+## Advanced Components
+
+The following components are exported from `deepcitation/react` for building custom verification UIs. They power the built-in popover and drawer internals.
+
+| Component | Import | Description |
+|:----------|:-------|:------------|
+| `VerificationTabs` | `deepcitation/react` | Tabbed panel showing search attempts, diff view, and proof image for a single citation |
+| `VerificationLog` | `deepcitation/react` | Timeline display of search attempts with status indicators and match snippets |
+| `SplitDiffDisplay` | `deepcitation/react` | Side-by-side diff comparing the cited phrase with the matched text |
+| `CollapsibleText` | `deepcitation/react` | Text block that collapses long content with "Show more" toggle |
+| `MatchQualityBar` | `deepcitation/react` | Visual bar showing match quality percentage |
+| `CitationOverlayProvider` | `deepcitation/react` | Context provider that coordinates expanded image overlays across citations |
+
+### Performance Hooks
+
+| Hook | Description |
+|:-----|:------------|
+| `useCitationTiming` | Track verification timing for a single citation (time-to-certainty metrics) |
+| `useTtcMetrics` | Aggregate timing metrics across multiple citations |
+| `prefetchImages` | Pre-fetch proof images before hover for instant popover display |
+| `usePrefetchImage` | React hook version of `prefetchImages` for component-level prefetching |
+| `usePrefersReducedMotion` | Respect user's `prefers-reduced-motion` system setting |
+
+### Search Narrative Utilities
+
+| Function | Description |
+|:---------|:------------|
+| `buildSearchNarrative` | Convert raw search attempts into display-ready narrative rows |
+| `buildSearchSummary` | Summarize search results into outcome + context window |
+| `getStatusColorScheme` | Map verification status to color scheme (green/amber/red) |
+| `getContextualStatusMessage` | Get human-readable status message for display |
 
 ---
 

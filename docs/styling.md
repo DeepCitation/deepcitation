@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Styling
-nav_order: 7
+nav_order: 8
 description: "CSS customization options for CitationComponent"
 commit_sha: "cc9c7aa"
 stale_after_commits: 20
