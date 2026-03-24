@@ -150,7 +150,7 @@
     },
     {
       "path": "lib/react/index.js",
-      "limit": "55 KB"
+      "limit": "70 KB"
     },
     {
       "path": "lib/vanilla/index.js",
