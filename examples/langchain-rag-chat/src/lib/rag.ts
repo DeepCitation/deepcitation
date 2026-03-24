@@ -53,13 +53,19 @@ async function resolveAttachment(
   const savedId = process.env[source.attachmentEnvVar];
 
   if (savedId) {
-    const attachment = await dc.getAttachment(savedId);
-    if (attachment.deepTextPromptPortion) {
-      return { attachmentId: savedId, deepTextPromptPortion: attachment.deepTextPromptPortion };
+    try {
+      const attachment = await dc.getAttachment(savedId);
+      if (attachment.deepTextPromptPortion) {
+        return { attachmentId: savedId, deepTextPromptPortion: attachment.deepTextPromptPortion };
+      }
+      console.warn(
+        `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPromptPortion — re-uploading.`,
+      );
+    } catch (err) {
+      console.warn(
+        `[DeepCitation] Cached ${source.attachmentEnvVar}=${savedId} failed (${err instanceof Error ? err.message : err}) — re-uploading.`,
+      );
     }
-    console.warn(
-      `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPromptPortion — re-uploading.`,
-    );
   }
 
   const response = await fetch(source.url, { signal: AbortSignal.timeout(30_000) });
@@ -77,15 +83,23 @@ async function resolveAttachment(
   return { attachmentId, deepTextPromptPortion: prepared.deepTextPromptPortion };
 }
 
+function cacheAttachment(
+  dc: DeepCitation,
+  source: CorpusSource,
+): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+  const pending = resolveAttachment(dc, source);
+  preparedAttachmentCache.set(source.id, pending);
+  pending.catch(() => preparedAttachmentCache.delete(source.id));
+  return pending;
+}
+
 function getAttachmentPromise(
   dc: DeepCitation,
   source: CorpusSource,
 ): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
   const existing = preparedAttachmentCache.get(source.id);
   if (existing) return existing;
-  const pending = resolveAttachment(dc, source);
-  preparedAttachmentCache.set(source.id, pending);
-  return pending;
+  return cacheAttachment(dc, source);
 }
 
 // Kick off warmup for all sources immediately (fire-and-forget).
@@ -93,7 +107,7 @@ function getAttachmentPromise(
 // before the first request arrives, cutting per-request latency.
 if (deepCitation) {
   for (const source of CORPUS_SOURCES) {
-    preparedAttachmentCache.set(source.id, resolveAttachment(deepCitation, source));
+    cacheAttachment(deepCitation, source);
   }
 }
 

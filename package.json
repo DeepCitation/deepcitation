@@ -1,6 +1,6 @@
 {
   "name": "deepcitation",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "DeepCitation JavaScript SDK for deterministic AI citation verification",
   "type": "module",
   "private": false,
@@ -150,7 +150,7 @@
     },
     {
       "path": "lib/react/index.js",
-      "limit": "55 KB"
+      "limit": "70 KB"
     },
     {
       "path": "lib/vanilla/index.js",

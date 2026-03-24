@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-03-24
+
+### Added
+
+- **`CoordinateOrigin` option for image OCR** — specify coordinate origin (`top-left` or `bottom-left`) when working with OCR bounding boxes on image evidence (#367)
+- **`displayLabel` prop** — customize the display label shown on citation markers (#361)
+- **`docUrl` on error objects** — all SDK errors now include a `docUrl` linking to relevant documentation (#364)
+- **Keyhole full-size state** — evidence keyhole can expand to full-size view for detailed inspection (#364)
+- **Network error resilience** — automatic exponential backoff retry for transient network failures (#360)
+- **Adaptive overlays** — citation overlays adapt to content context for better visibility (#361)
+- **Express.js guide** — new framework guide for integrating DeepCitation with Express (#364)
+- **Mastra and AG-UI guides** — new framework guides with API key validation (#370)
+- **LangChain RAG chat example** — full example of LangChain + DeepCitation integration (#353)
+
+### Changed
+
+- **Design token migration** — migrated to `--dc-*` CSS custom properties with zinc color palette for consistent, overridable theming (#352, #358, #359)
+- **Remark-based citation rendering** — switched docs and examples to use remark for citation rendering (#362)
+- **Verified color rebrand** — verified status now uses `emerald-500` routed through design tokens (#352)
+- **Popover simplification** — simplified popover internals and expanded API reference docs (#366)
+- **Codebase simplification** — extracted `searchNarrative` module and `usePopoverViewState` hook for cleaner architecture (#351, #365)
+
+### Fixed
+
+- **Popover squish on scroll** — fixed popover content getting compressed during scroll (#365)
+- **AG-UI chat type error and rate limiting** — fixed type errors, `endUserId`, and rate limiting in agui-chat example (#357)
+- **Tailwind v4 `@source` fix** — corrected Tailwind v4 source configuration (#361)
+
 ## [0.2.2] - 2026-03-17
 
 ### Breaking Changes
@@ -457,7 +485,8 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/deepcitation/deepcitation/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/deepcitation/deepcitation/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/deepcitation/deepcitation/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/deepcitation/deepcitation/compare/v0.1.0...v0.2.0

@@ -28,6 +28,7 @@ export default function Home() {
   const [deepTextPromptPortions, setDeepTextPromptPortions] = useState<string[]>([]);
   const [isCorpusLoaded, setIsCorpusLoaded] = useState(false);
   const [corpusLoading, setCorpusLoading] = useState(true);
+  const [corpusError, setCorpusError] = useState<string | null>(null);
 
   // Map of message ID to its full verification result
   const [messageVerifications, setMessageVerifications] = useState<Record<string, MessageVerificationResult>>({});
@@ -35,28 +36,29 @@ export default function Home() {
   const [verificationError, setVerificationError] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Load the bundled corpus (called on mount and retried on demand)
+  const loadCorpus = async () => {
+    setCorpusLoading(true);
+    setCorpusError(null);
+    try {
+      const res = await fetch("/api/corpus/init");
+      if (!res.ok) throw new Error("Corpus init failed");
+      const data: { fileDataParts: FileDataPart[]; deepTextPromptPortions: string[] } = await res.json();
+      setFileDataParts(data.fileDataParts);
+      setDeepTextPromptPortions(data.deepTextPromptPortions);
+      setIsCorpusLoaded(true);
+      return true;
+    } catch (err) {
+      console.error("Corpus load failed:", err);
+      setCorpusError(err instanceof Error ? err.message : "Failed to load sample documents");
+      return false;
+    } finally {
+      setCorpusLoading(false);
+    }
+  };
+
   // Load bundled corpus on mount
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/corpus/init")
-      .then(res => {
-        if (!res.ok) throw new Error("Corpus init failed");
-        return res.json();
-      })
-      .then((data: { fileDataParts: FileDataPart[]; deepTextPromptPortions: string[] }) => {
-        if (cancelled) return;
-        setFileDataParts(data.fileDataParts);
-        setDeepTextPromptPortions(data.deepTextPromptPortions);
-        setIsCorpusLoaded(true);
-      })
-      .catch(err => {
-        if (!cancelled) console.error("Corpus load failed:", err);
-      })
-      .finally(() => {
-        if (!cancelled) setCorpusLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
+  useEffect(() => { loadCorpus(); }, []);
 
   // Stable event handler for verification
   const onVerifyMessage = useEffectEvent((messageId: string, messageContent: string) => {
@@ -148,7 +150,12 @@ export default function Home() {
     }
   };
 
-  const handleSampleQuestion = (question: string) => {
+  const handleSampleQuestion = async (question: string) => {
+    // Load corpus on-demand if it hasn't loaded yet
+    if (!hasDocuments) {
+      const ok = await loadCorpus();
+      if (!ok) return;
+    }
     append({ role: "user", content: question });
   };
 
@@ -189,35 +196,35 @@ export default function Home() {
                     ? "Loading sample documents..."
                     : hasDocuments && isCorpusLoaded
                       ? "Sample documents are pre-loaded. Try a question below, or upload your own document."
-                      : "Upload a document to get started, then ask questions. Every AI response will be verified against your attachments."}
+                      : "Try a sample question below or upload your own document. Every AI response will be verified against your attachments."}
                 </p>
 
-                {!corpusLoading && hasDocuments && (
-                  <div className="flex flex-col gap-2 mt-4">
-                    {SAMPLE_QUESTIONS.map(q => (
-                      <button
-                        key={q}
-                        type="button"
-                        onClick={() => handleSampleQuestion(q)}
-                        disabled={isBusy}
-                        className="text-left text-sm px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {q}
-                      </button>
-                    ))}
+                {corpusError && (
+                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                    Documents will be loaded when you ask a question.{" "}
+                    <button
+                      type="button"
+                      onClick={() => loadCorpus()}
+                      className="underline hover:text-amber-900"
+                    >
+                      Retry now
+                    </button>
                   </div>
                 )}
 
-                {!hasDocuments && !corpusLoading && (
-                  <div className="text-left text-sm text-gray-500 mt-4">
-                    <p className="font-medium mb-1">How it works:</p>
-                    <ol className="list-decimal list-inside space-y-1">
-                      <li>Upload a PDF or document</li>
-                      <li>Ask questions about its content</li>
-                      <li>See verified citations with proof</li>
-                    </ol>
-                  </div>
-                )}
+                <div className="flex flex-col gap-2 mt-4">
+                  {SAMPLE_QUESTIONS.map(q => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => handleSampleQuestion(q)}
+                      disabled={isBusy || corpusLoading}
+                      className="text-left text-sm px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           ) : (

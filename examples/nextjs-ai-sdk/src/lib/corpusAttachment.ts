@@ -20,16 +20,22 @@ async function resolveAttachment(
   const savedId = process.env[source.attachmentEnvVar];
 
   if (savedId) {
-    const attachment = await client.getAttachment(savedId);
-    if (attachment.deepTextPromptPortion) {
-      return {
-        fileDataPart: { attachmentId: savedId, filename: source.filename },
-        deepTextPromptPortion: attachment.deepTextPromptPortion,
-      };
+    try {
+      const attachment = await client.getAttachment(savedId);
+      if (attachment.deepTextPromptPortion) {
+        return {
+          fileDataPart: { attachmentId: savedId, filename: source.filename },
+          deepTextPromptPortion: attachment.deepTextPromptPortion,
+        };
+      }
+      console.warn(
+        `[DeepCitation] ${source.attachmentEnvVar}=${sanitizeForLog(savedId)} did not return deepTextPromptPortion — re-uploading.`,
+      );
+    } catch (err) {
+      console.warn(
+        `[DeepCitation] Cached ${source.attachmentEnvVar}=${sanitizeForLog(savedId)} failed (${err instanceof Error ? err.message : err}) — re-uploading.`,
+      );
     }
-    console.warn(
-      `[DeepCitation] ${source.attachmentEnvVar}=${sanitizeForLog(savedId)} did not return deepTextPromptPortion — re-uploading.`,
-    );
   }
 
   const response = await fetch(source.url, { signal: AbortSignal.timeout(30_000) });
@@ -52,6 +58,16 @@ async function resolveAttachment(
 
 export type { FileDataPart };
 
+function cacheAttachment(
+  client: DeepCitation,
+  source: CorpusSource,
+): Promise<{ fileDataPart: FileDataPart; deepTextPromptPortion: string }> {
+  const pending = resolveAttachment(client, source);
+  preparedAttachmentCache.set(source.id, pending);
+  pending.catch(() => preparedAttachmentCache.delete(source.id));
+  return pending;
+}
+
 export async function getCorpusAttachments(): Promise<{
   fileDataParts: FileDataPart[];
   deepTextPromptPortions: string[];
@@ -62,12 +78,9 @@ export async function getCorpusAttachments(): Promise<{
 
   const results = await Promise.all(
     CORPUS_SOURCES.map((source) => {
-      let cached = preparedAttachmentCache.get(source.id);
-      if (!cached) {
-        cached = resolveAttachment(dc, source);
-        preparedAttachmentCache.set(source.id, cached);
-      }
-      return cached;
+      const cached = preparedAttachmentCache.get(source.id);
+      if (cached) return cached;
+      return cacheAttachment(dc, source);
     }),
   );
 
@@ -80,8 +93,6 @@ export async function getCorpusAttachments(): Promise<{
 // Fire-and-forget warmup on module load.
 if (dc) {
   for (const source of CORPUS_SOURCES) {
-    const p = resolveAttachment(dc, source);
-    preparedAttachmentCache.set(source.id, p);
-    p.catch(() => {}); // prevent unhandledRejection
+    cacheAttachment(dc, source);
   }
 }

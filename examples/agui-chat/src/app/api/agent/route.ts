@@ -83,13 +83,19 @@ async function resolveAttachment(
   const savedId = process.env[source.attachmentEnvVar];
 
   if (savedId) {
-    const attachment = await dcClient.getAttachment(savedId);
-    if (attachment.deepTextPromptPortion) {
-      return { attachmentId: savedId, deepTextPromptPortion: attachment.deepTextPromptPortion };
+    try {
+      const attachment = await dcClient.getAttachment(savedId);
+      if (attachment.deepTextPromptPortion) {
+        return { attachmentId: savedId, deepTextPromptPortion: attachment.deepTextPromptPortion };
+      }
+      console.warn(
+        `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPromptPortion — re-uploading.`,
+      );
+    } catch (err) {
+      console.warn(
+        `[DeepCitation] Cached ${source.attachmentEnvVar}=${savedId} failed (${err instanceof Error ? err.message : err}) — re-uploading.`,
+      );
     }
-    console.warn(
-      `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPromptPortion — re-uploading.`,
-    );
   }
 
   const response = await fetch(source.url, { signal: AbortSignal.timeout(30_000) });
@@ -107,21 +113,29 @@ async function resolveAttachment(
   return { attachmentId, deepTextPromptPortion: prepared.deepTextPromptPortion };
 }
 
+function cacheAttachment(
+  dcClient: DeepCitation,
+  source: CorpusSource,
+): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+  const pending = resolveAttachment(dcClient, source);
+  preparedAttachmentCache.set(source.id, pending);
+  pending.catch(() => preparedAttachmentCache.delete(source.id));
+  return pending;
+}
+
 function getAttachmentPromise(
   dcClient: DeepCitation,
   source: CorpusSource,
 ): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
   const existing = preparedAttachmentCache.get(source.id);
   if (existing) return existing;
-  const pending = resolveAttachment(dcClient, source);
-  preparedAttachmentCache.set(source.id, pending);
-  return pending;
+  return cacheAttachment(dcClient, source);
 }
 
 // Kick off warmup for all corpus sources immediately (fire-and-forget).
 if (dc) {
   for (const source of CORPUS_SOURCES) {
-    preparedAttachmentCache.set(source.id, resolveAttachment(dc, source));
+    cacheAttachment(dc, source);
   }
 }
 
