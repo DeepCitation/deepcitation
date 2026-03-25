@@ -123,8 +123,8 @@ export function usePopoverAlignOffset(
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => recompute());
     };
-    window.addEventListener("resize", onGeometryChange);
-    window.addEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, onGeometryChange as EventListener);
+    window.addEventListener("resize", onGeometryChange, { passive: true });
+    window.addEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, onGeometryChange as EventListener, { passive: true });
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onGeometryChange);
