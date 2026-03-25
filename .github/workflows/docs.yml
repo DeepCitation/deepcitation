@@ -94,7 +94,7 @@ jobs:
               repo: context.repo.repo,
               environment: 'github-pages',
             });
-            // Keep only the most recent deployment, delete the rest
+            // GitHub API returns deployments newest-first; skip index 0 to preserve the latest
             const old = deployments.slice(1);
             for (const d of old) {
               await github.rest.repos.createDeploymentStatus({

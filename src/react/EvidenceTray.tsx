@@ -1296,7 +1296,7 @@ export function InlineExpandedImage({
   renderScale?: { x: number; y: number } | null;
   /** Override phraseMatchDeepItem from verification.document (for direct DeepTextItem injection). */
   highlightItem?: DeepTextItem | null;
-  /** Override anchorTextMatchDeepItems from verification.document (for direct DeepTextItem injection). */
+  /** Override: injects a single anchor item in place of the server-provided array. */
   anchorItem?: DeepTextItem | null;
   /** When true, the annotation overlay starts hidden (e.g. drawer context where overlay is unwanted). */
   initialOverlayHidden?: boolean;
