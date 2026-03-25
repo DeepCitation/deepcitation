@@ -316,6 +316,10 @@ function longestCommonSuffix(a: string, b: string): string {
   return a.slice(a.length - i);
 }
 
+// Precompiled whitespace regexes for deduplication
+const LEADING_WS_RE = /^\s*/;
+const TRAILING_WS_RE = /\s*$/;
+
 /**
  * Deduplicate whitespace in change objects.
  * This is a simplified version of jsdiff's dedupeWhitespaceInChangeObjects.
@@ -338,13 +342,13 @@ function dedupeWhitespaceInChangeObjects(changes: Change[]): Change[] {
 
       // Find common prefix (must be whitespace)
       const commonPrefix = longestCommonPrefix(deletion.value, insertion.value);
-      const wsPrefix = commonPrefix.match(/^\s*/)?.[0] || "";
+      const wsPrefix = commonPrefix.match(LEADING_WS_RE)?.[0] || "";
 
       // Find common suffix (must be whitespace)
       const delWithoutPrefix = deletion.value.slice(wsPrefix.length);
       const insWithoutPrefix = insertion.value.slice(wsPrefix.length);
       const commonSuffix = longestCommonSuffix(delWithoutPrefix, insWithoutPrefix);
-      const wsSuffix = commonSuffix.match(/\s*$/)?.[0] || "";
+      const wsSuffix = commonSuffix.match(TRAILING_WS_RE)?.[0] || "";
 
       // Build the cleaned changes
       if (wsPrefix) {
@@ -374,8 +378,8 @@ function dedupeWhitespaceInChangeObjects(changes: Change[]): Change[] {
       const prev = result[result.length - 1];
       if (prev && !prev.added && !prev.removed) {
         // Check for duplicate leading whitespace
-        const leadingWs = change.value.match(/^\s*/)?.[0] || "";
-        const trailingWs = prev.value.match(/\s*$/)?.[0] || "";
+        const leadingWs = change.value.match(LEADING_WS_RE)?.[0] || "";
+        const trailingWs = prev.value.match(TRAILING_WS_RE)?.[0] || "";
 
         if (leadingWs && trailingWs) {
           const overlap = longestCommonSuffix(trailingWs, leadingWs);
@@ -398,10 +402,10 @@ function dedupeWhitespaceInChangeObjects(changes: Change[]): Change[] {
       const next = changes[i + 1];
 
       if (prev && next && !next.added && !next.removed) {
-        const leadingWs = change.value.match(/^\s*/)?.[0] || "";
-        const trailingWs = change.value.match(/\s*$/)?.[0] || "";
-        const prevTrailingWs = prev.value.match(/\s*$/)?.[0] || "";
-        const nextLeadingWs = next.value.match(/^\s*/)?.[0] || "";
+        const leadingWs = change.value.match(LEADING_WS_RE)?.[0] || "";
+        const trailingWs = change.value.match(TRAILING_WS_RE)?.[0] || "";
+        const prevTrailingWs = prev.value.match(TRAILING_WS_RE)?.[0] || "";
+        const nextLeadingWs = next.value.match(LEADING_WS_RE)?.[0] || "";
 
         // If deletion starts/ends with whitespace that overlaps with neighbors
         if (leadingWs && prevTrailingWs) {

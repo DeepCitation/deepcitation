@@ -5,9 +5,15 @@ import type { Verification } from "../types/verification.js";
 // UTILITY FUNCTIONS
 // =============================================================================
 
-export function cn(...classes: (string | undefined | null | false)[]): string {
+/**
+ * Joins class names, filtering out falsy values.
+ */
+export function classNames(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
 }
+
+/** Shorthand alias for {@link classNames}. */
+export const cn = classNames;
 
 /**
  * Generates a unique instance ID for a citation component render.
@@ -43,14 +49,6 @@ export function getCitationNumber(citation: Citation): string {
  */
 export function getCitationAnchorText(citation: Citation): string {
   return citation.anchorText?.toString() || "";
-}
-
-/**
- * Joins class names, filtering out falsy values.
- * This is a minimal implementation for the base component.
- */
-export function classNames(...classes: (string | undefined | null | false)[]): string {
-  return classes.filter(Boolean).join(" ");
 }
 
 /**
