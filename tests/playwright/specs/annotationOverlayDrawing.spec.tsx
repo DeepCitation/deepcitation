@@ -62,7 +62,7 @@ test.describe("Annotation Overlay Drawing — elements", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorTextDeepItem={ANCHOR_ITEM}
+          anchorTextDeepItems={[ANCHOR_ITEM]}
           anchorText="Functional status"
           fullPhrase="Functional status: He is at baseline, no assistance needed, independent ADLs"
         />
@@ -408,7 +408,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorTextDeepItem={ANCHOR_ITEM}
+          anchorTextDeepItems={[ANCHOR_ITEM]}
           anchorText="Functional status"
           fullPhrase="Functional status: He is at baseline, no assistance needed, independent ADLs"
         />
@@ -433,7 +433,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorTextDeepItem={ANCHOR_ITEM}
+          anchorTextDeepItems={[ANCHOR_ITEM]}
           anchorText="Functional status"
           fullPhrase="Functional status: He is at baseline, no assistance needed, independent ADLs"
         />
@@ -472,7 +472,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorTextDeepItem={sameTextAnchor}
+          anchorTextDeepItems={[sameTextAnchor]}
           anchorText="Functional status"
           fullPhrase="Functional status" // same as anchorText → word diff < 2
         />
@@ -495,7 +495,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           renderScale={RENDER_SCALE}
           imageNaturalWidth={IMAGE_W}
           imageNaturalHeight={IMAGE_H}
-          anchorTextDeepItem={shortAnchor}
+          anchorTextDeepItems={[shortAnchor]}
           anchorText="Functional status"
           fullPhrase="Functional status is" // 3 words vs 2 → diff=1, below threshold for 2-word anchor
         />
@@ -505,7 +505,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
     await expect(page.locator("[data-dc-anchor-highlight]")).toHaveCount(0);
   });
 
-  test("anchor highlight hidden when no anchorTextDeepItem is provided", async ({
+  test("anchor highlight hidden when no anchorTextDeepItems is provided", async ({
     mount,
     page,
   }) => {
@@ -522,7 +522,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
       </div>,
     );
 
-    // No anchorTextDeepItem → computeKeySpanHighlight has no item to compare
+    // No anchorTextDeepItems → computeKeySpanHighlight has no items to compare
     await expect(page.locator("[data-dc-anchor-highlight]")).toHaveCount(0);
   });
 });
