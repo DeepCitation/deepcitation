@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: useblacksmith/setup-node@65c6ca86fdeb0ab3d85e78f57e4f6a7e4780b391 # v5.0.4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint
+        run: npx biome ci ./src
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build
+
+      - name: Bundle size check
+        run: bun run size
+
+      - name: Bump version
+        id: bump
+        run: |
+          # Bump version in package.json (no git tag, no commit)
+          NEW_VERSION=$(npm version ${{ inputs.version }} --no-git-tag-version)
+          echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "Bumped to ${NEW_VERSION}"
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          # Strip the leading 'v'
+          SEMVER="${VERSION#v}"
+          DATE=$(date +%Y-%m-%d)
+
+          if [ -f CHANGELOG.md ] && grep -q '\[Unreleased\]' CHANGELOG.md; then
+            # Replace [Unreleased] heading with the new version heading,
+            # and add a fresh [Unreleased] section above it
+            sed -i "s/## \[Unreleased\]/## [Unreleased]\n\n## [${SEMVER}] - ${DATE}/" CHANGELOG.md
+          fi
+
+      - name: Commit and tag
+        run: |
+          VERSION="${{ steps.bump.outputs.version }}"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add package.json CHANGELOG.md
+          git commit -m "chore: release ${VERSION}"
+          git tag "${VERSION}"
+          git push origin main --tags
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const version = '${{ steps.bump.outputs.version }}';
+            const release = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: version,
+              name: version,
+              generate_release_notes: true,
+              draft: false,
+              prerelease: false,
+            });
+            core.setOutput('release_id', release.data.id);
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Append publish status to release
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const releaseId = ${{ steps.create_release.outputs.release_id }};
+            const release = await github.rest.repos.getRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: releaseId,
+            });
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: releaseId,
+              body: release.data.body + '\n\n✅ **Published to npm registry**',
+            });

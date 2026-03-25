@@ -7,52 +7,79 @@ search_exclude: true
 
 # Release Checklist
 
-Actionable checklist for preparing and publishing a release of `deepcitation`. Copy into a GitHub issue or use in-place.
+Actionable checklist for preparing and publishing a release of `deepcitation`.
+
+There are two ways to release: **automated** (recommended) via the `release.yml` workflow, or **manual** via the CLI.
 
 ---
 
-## Phase 1: Pre-Release Preparation
+## Automated Release (recommended)
+
+The `release.yml` workflow handles version bumping, changelog generation, tagging, GitHub Release creation, and npm publish in one shot.
+
+### Trigger via GitHub UI
+
+1. Go to **Actions → Release → Run workflow**
+2. Select the `main` branch
+3. Choose the version bump: `patch`, `minor`, or `major`
+4. Click **Run workflow**
+
+### Trigger via CLI
+
+```bash
+gh workflow run release.yml -f version=patch   # or minor / major
+```
+
+### What it does
+
+1. Checks out `main` and runs lint, test, and build
+2. Bumps `package.json` version and updates `CHANGELOG.md`
+3. Commits, tags, and pushes `chore: release vX.Y.Z`
+4. Creates a GitHub Release with auto-generated notes
+5. Publishes to npm with provenance
+6. Appends "Published to npm registry" to the release notes
+
+### After the workflow completes
+
+- [ ] **Verify on npm** — `npm view deepcitation version` returns the new version
+- [ ] **Review release notes** — edit the GitHub Release body if the auto-generated notes need cleanup (see [v0.2.2](https://github.com/DeepCitation/deepcitation/releases/tag/v0.2.2) for style reference)
+
+---
+
+## Manual Release
+
+Use this if you need more control over the changelog or release notes.
+
+### Phase 1: Pre-Release Preparation
 
 - [ ] **Decide version number** — patch / minor / major based on changes since last release. Follow [semver](https://semver.org/).
 - [ ] **Review merged PRs** — scan PRs merged since the last release tag to ensure nothing is missed in the changelog.
 - [ ] **Update `CHANGELOG.md`** — move items from `[Unreleased]` into a new `## [x.y.z] - YYYY-MM-DD` heading. Use [Keep a Changelog](https://keepachangelog.com/) format (Added, Changed, Fixed, Removed).
 - [ ] **Bump `package.json` version** — set `"version"` to match the new release number.
 
-## Phase 2: Documentation Updates
+### Phase 2: Quality Checks
 
-- [ ] **Review `README.md`** — update badges, installation instructions, feature tables, or examples if affected by this release.
-- [ ] **Review `llms.txt`** — update if there are new exports, API changes, or significant features an LLM code-gen context should know about.
-- [ ] **Review `AGENTS.md`** — update if there are new build commands, project structure changes, or code conventions.
-- [ ] **Review `INTEGRATION.md`** — update if there are new API endpoints, workflow changes, or integration patterns.
-- [ ] **Review `CLAUDE.md`** — update if there are new exports, component props, canonical locations, or API surface changes.
-- [ ] **Review `docs/` site pages** — update affected pages (`components.md`, `api-reference.md`, `types.md`, `styling.md`, etc.) for any user-facing changes.
-
-## Phase 3: Quality Checks
-
-- [ ] **Build** — `bun run build` succeeds cleanly.
-- [ ] **Tests** — `bun test` passes.
 - [ ] **Lint** — `bun run lint` passes (Biome).
+- [ ] **Tests** — `bun test` passes.
+- [ ] **Build** — `bun run build` succeeds cleanly.
 - [ ] **Bundle size** — `bun run size` confirms size limits are not exceeded.
-- [ ] **Verify exports** — spot-check that any new exports are in both `package.json` exports map and `tsup.config.ts` entry points.
 
-## Phase 4: Commit & Tag
+### Phase 3: Commit & Tag
 
 - [ ] **Commit all changes** — stage `package.json`, `CHANGELOG.md`, and any updated docs. Message: `chore: release vX.Y.Z`.
 - [ ] **Push to main** — ensure the release commit lands on `main` (direct push or merge PR).
 - [ ] **Wait for CI** — the "CI" (`ci.yml`) and "Playwright Tests" (`playwright.yml`) workflows must pass on the main branch.
 
-## Phase 5: GitHub Release
+### Phase 4: GitHub Release
 
 - [ ] **Create a GitHub Release** — tag `vX.Y.Z` (must match `package.json` version exactly).
-  - Copy the CHANGELOG entry for this version into a `notes.md` file, then:
-    ```bash
-    gh release create vX.Y.Z --title "vX.Y.Z" --notes-file notes.md
-    ```
-  - Or create via the GitHub UI — paste the CHANGELOG entry as the body.
-  - **Alternative**: create as pre-release first, then promote to full release when ready.
-- [ ] **Mark as latest release** — must be marked as **not** a pre-release and **not** a draft. Publishing triggers the `publish.yml` workflow automatically.
+  ```bash
+  gh release create vX.Y.Z --title "vX.Y.Z" --generate-notes
+  ```
+  Edit the body afterward if you want curated notes instead of the auto-generated list.
+- [ ] **Mark as latest release** — must be **not** a pre-release and **not** a draft. Publishing triggers the `publish.yml` workflow automatically.
 
-## Phase 6: Post-Release Verification
+### Phase 5: Post-Release Verification
 
 - [ ] **Monitor publish workflow** — watch `.github/workflows/publish.yml`. It will build, publish to npm with provenance, and append "Published to npm registry" to the release notes.
 - [ ] **Verify on npm** — `npm view deepcitation version` returns the new version.
@@ -63,27 +90,23 @@ Actionable checklist for preparing and publishing a release of `deepcitation`. C
   npm install deepcitation@X.Y.Z
   node --eval "import('deepcitation').then(m => console.log('OK:', Object.keys(m).length, 'exports'))"
   ```
-- [ ] **Update `[Unreleased]` comparison link** — at the bottom of `CHANGELOG.md`, update the comparison URL:
-  ```markdown
-  [Unreleased]: https://github.com/DeepCitation/deepcitation/compare/vX.Y.Z...HEAD
-  [X.Y.Z]: https://github.com/DeepCitation/deepcitation/compare/vPREVIOUS...vX.Y.Z
-  ```
 
 ---
 
 ## Quick Reference
 
-| Step | Command |
-|------|---------|
+| Action | Command |
+|--------|---------|
+| Automated release | `gh workflow run release.yml -f version=patch` |
 | Build | `bun run build` |
 | Test | `bun test` |
 | Lint | `bun run lint` |
 | Size check | `bun run size` |
-| Create release | `gh release create vX.Y.Z --title "vX.Y.Z" --notes-file notes.md` |
+| Manual release | `gh release create vX.Y.Z --title "vX.Y.Z" --generate-notes` |
 | Verify npm | `npm view deepcitation version` |
 
 ## Notes
 
-- The `publish.yml` workflow triggers on `release` events where `prerelease == false`. Creating a pre-release first and then marking it as a full release also works.
+- The `publish.yml` workflow triggers on `release` events where `prerelease == false`. Creating a pre-release first and then promoting to a full release also works.
 - The `prepublishOnly` script in `package.json` runs `npm run build` automatically, but the workflow builds with `bun run build` explicitly.
 - npm provenance is enabled via `publishConfig.provenance: true` — the workflow needs `id-token: write` permission (already configured).
