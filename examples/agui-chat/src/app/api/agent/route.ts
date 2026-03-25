@@ -177,22 +177,8 @@ export async function POST(req: Request) {
   }
 
   const { threadId, runId, messages, state } = body;
-  let fileDataParts: FileDataPart[] = state?.fileDataParts ?? [];
-  let deepTextPromptPortions: string[] = state?.deepTextPromptPortions ?? [];
-
-  // When no user-uploaded files, use pre-resolved corpus attachments
-  if (fileDataParts.length === 0 && dc) {
-    const corpusResults = await Promise.all(
-      CORPUS_SOURCES.map(source => getAttachmentPromise(dc, source)),
-    );
-    fileDataParts = corpusResults.map((r, i) => ({
-      attachmentId: r.attachmentId,
-      filename: CORPUS_SOURCES[i].filename,
-    }));
-    deepTextPromptPortions = corpusResults.map(r => r.deepTextPromptPortion);
-  }
-
-  const hasDocuments = fileDataParts.length > 0;
+  const clientFileDataParts: FileDataPart[] = state?.fileDataParts ?? [];
+  const clientDeepTextPromptPortions: string[] = state?.deepTextPromptPortions ?? [];
 
   if (!openai) {
     return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
@@ -214,6 +200,24 @@ export async function POST(req: Request) {
       };
 
       try {
+        // Resolve corpus attachments inside the stream so the SSE
+        // connection opens immediately (avoids cold-start hang).
+        let fileDataParts = clientFileDataParts;
+        let deepTextPromptPortions = clientDeepTextPromptPortions;
+
+        if (fileDataParts.length === 0 && dc) {
+          const corpusResults = await Promise.all(
+            CORPUS_SOURCES.map(source => getAttachmentPromise(dc, source)),
+          );
+          fileDataParts = corpusResults.map((r, i) => ({
+            attachmentId: r.attachmentId,
+            filename: CORPUS_SOURCES[i].filename,
+          }));
+          deepTextPromptPortions = corpusResults.map(r => r.deepTextPromptPortion);
+        }
+
+        const hasDocuments = fileDataParts.length > 0;
+
         // --- Phase 1: Stream LLM response ---
         emit(runStarted(threadId, runId));
 

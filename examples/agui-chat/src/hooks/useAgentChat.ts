@@ -183,31 +183,43 @@ export function useAgentChat({
       const decoder = new TextDecoder();
       let buffer = "";
 
+      const processFrames = (raw: string) => {
+        const frames = raw.split("\n\n");
+        const remainder = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          const dataLines = frame
+            .split("\n")
+            .filter(line => line.startsWith("data:"))
+            .map(line => line.slice(5).trim())
+            .filter(Boolean);
+
+          if (dataLines.length === 0) continue;
+
+          try {
+            processEvent(JSON.parse(dataLines.join("\n")) as AgUiEvent);
+          } catch {
+            // malformed event — skip rather than break the stream
+          }
+        }
+
+        return remainder;
+      };
+
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const frames = buffer.split("\n\n");
-          buffer = frames.pop() ?? "";
-
-          for (const frame of frames) {
-            const dataLines = frame
-              .split("\n")
-              .filter(line => line.startsWith("data:"))
-              .map(line => line.slice(5).trim())
-              .filter(Boolean);
-
-            if (dataLines.length === 0) continue;
-
-            processEvent(JSON.parse(dataLines.join("\n")) as AgUiEvent);
-          }
+          buffer = processFrames(buffer);
         }
 
-        const finalChunk = decoder.decode();
-        if (finalChunk) {
-          buffer += finalChunk;
+        // Flush any remaining bytes from the TextDecoder and process the
+        // final buffer — the last SSE frame may not end with \n\n.
+        buffer += decoder.decode();
+        if (buffer.trim()) {
+          processFrames(buffer + "\n\n");
         }
       } finally {
         reader.releaseLock();

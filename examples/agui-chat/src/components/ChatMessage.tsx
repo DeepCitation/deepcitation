@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CITATION_DATA_END_DELIMITER,
   type Citation,
   parseCitationResponse,
   type Verification,
@@ -49,6 +50,12 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
     // Use rawContent (with <<<CITATION_DATA>>>) when available so parseCitationResponse
     // can build the markerMap. Falls back to stripped content for streaming display.
     const textForParsing = message.rawContent ?? message.content;
+    // During streaming the citation data block arrives incrementally. Avoid parsing
+    // until the closing delimiter is present — partial JSON triggers noisy repair
+    // warnings and produces no useful result.
+    if (message.rawContent && !message.rawContent.includes(CITATION_DATA_END_DELIMITER)) {
+      return parseCitationResponse(message.content);
+    }
     return parseCitationResponse(textForParsing);
   }, [message.rawContent, message.content]);
 
