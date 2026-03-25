@@ -13,6 +13,8 @@ import type { RenderCitationWithStatus } from "./types.js";
 
 export type StatusKey = "verified" | "partial" | "notFound" | "pending";
 
+const CITATION_MARKER_RE = /^\[(\d+)\]$/;
+
 /**
  * Map a CitationStatus to a status key used across renderers for
  * CSS classes, ANSI colors, and status labels.
@@ -99,7 +101,7 @@ export function walkCitationSegments(
   let citationIndex = 0;
 
   for (const segment of rawSegments) {
-    const match = segment.match(/^\[(\d+)\]$/);
+    const match = segment.match(CITATION_MARKER_RE);
     if (!match) {
       segments.push({ type: "text", value: segment });
       continue;

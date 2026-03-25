@@ -1,4 +1,4 @@
-import { formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
+import { escapeMd, formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
 import type { ParsedCitationResult } from "../../parsing/parseCitationResponse.js";
 import { buildProofUrl, buildSnippetImageUrl } from "../proofUrl.js";
 import { getStatusLabel, resolveSourceLabel, walkCitationSegments } from "../shared.js";
@@ -108,9 +108,9 @@ export function renderCitationsForGitHub(
     if (variant === "footnote") {
       // Generate footnote definitions
       const footnoteLines = entries.map(entry => {
-        const location = entry.location ? ` — ${entry.location}` : "";
+        const location = entry.location ? ` — ${escapeMd(entry.location)}` : "";
         const proofLink = entry.proofUrl ? ` [View proof](${entry.proofUrl})` : "";
-        return `[^${entry.citationNumber}]: ${entry.indicator} ${entry.sourceLabel}${location}${proofLink}`;
+        return `[^${entry.citationNumber}]: ${entry.indicator} ${escapeMd(entry.sourceLabel)}${location}${proofLink}`;
       });
       sources = footnoteLines.join("\n");
     } else if (sourcesFormat === "detailed") {
