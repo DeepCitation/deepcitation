@@ -140,11 +140,17 @@ function isGroupedFormat(parsed: unknown): parsed is Record<string, unknown[]> {
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     return false;
   }
-  const values = Object.values(parsed);
-  return (
-    values.length > 0 &&
-    values.every(v => Array.isArray(v) && v.every(item => typeof item === "object" && item !== null))
-  );
+  const record = parsed as Record<string, unknown>;
+  const keys = Object.keys(record);
+  if (keys.length === 0) return false;
+  for (const key of keys) {
+    const v = record[key];
+    if (!Array.isArray(v)) return false;
+    for (const item of v) {
+      if (typeof item !== "object" || item === null) return false;
+    }
+  }
+  return true;
 }
 
 /**

@@ -137,10 +137,13 @@ export function compressPromptIds<T>(obj: T, ids: string[] | undefined): Compres
   // a shorter one that might be its substring.
   const entries = Object.entries(prefixMap).sort((a, b) => b[1].length - a[1].length);
 
-  let compressedText = text;
-  for (const [prefix, full] of entries) {
-    compressedText = compressedText.replaceAll(full, prefix);
-  }
+  // Build a single regex for all IDs to replace in one pass instead of N string allocations
+  const fullToPrefix = new Map(entries.map(([prefix, full]) => [full, prefix]));
+  const escapedIds = entries.map(([, full]) => full.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const compressedText =
+    escapedIds.length > 0
+      ? text.replace(new RegExp(escapedIds.join("|"), "g"), match => fullToPrefix.get(match) || match)
+      : text;
 
   try {
     return {
