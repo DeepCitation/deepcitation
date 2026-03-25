@@ -136,7 +136,7 @@ export function CitationAnnotationOverlay({
   imageNaturalWidth,
   imageNaturalHeight,
   highlightColor,
-  anchorTextDeepItem,
+  anchorTextDeepItems,
   anchorText,
   fullPhrase,
   additionalHighlights,
@@ -149,7 +149,7 @@ export function CitationAnnotationOverlay({
   imageNaturalWidth: number;
   imageNaturalHeight: number;
   highlightColor?: string | null;
-  anchorTextDeepItem?: DeepTextItem | null;
+  anchorTextDeepItems?: DeepTextItem[] | null;
   anchorText?: string | null;
   fullPhrase?: string | null;
   /** Additional bracket pairs for partial match locations (no spotlight). */
@@ -183,7 +183,7 @@ export function CitationAnnotationOverlay({
   // Determine if anchor text highlight should be shown (uses canonical logic from drawing module)
   const { showKeySpanHighlight } = computeKeySpanHighlight(
     phraseMatchDeepItem,
-    anchorTextDeepItem ? [anchorTextDeepItem] : undefined,
+    anchorTextDeepItems ?? undefined,
     anchorText,
     fullPhrase,
   );
@@ -218,10 +218,12 @@ export function CitationAnnotationOverlay({
     borderRadius: `${SPOTLIGHT_BORDER_RADIUS}px`,
   };
 
-  const anchorRect =
-    showKeySpanHighlight && anchorTextDeepItem
-      ? toPercentRect(anchorTextDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin)
-      : null;
+  const anchorRects =
+    showKeySpanHighlight && anchorTextDeepItems?.length
+      ? anchorTextDeepItems
+          .map(item => toPercentRect(item, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin))
+          .filter((r): r is NonNullable<typeof r> => r != null)
+      : [];
   return (
     <div
       data-dc-annotation-overlay=""
@@ -273,18 +275,19 @@ export function CitationAnnotationOverlay({
         }}
       />
 
-      {/* Anchor text highlight (amber background) */}
-      {anchorRect && (
+      {/* Anchor text highlight (amber background) — one rect per anchor item, matching server rendering */}
+      {anchorRects.map((rect, i) => (
         <div
+          key={`anchor-${i}`}
           data-dc-anchor-highlight=""
           style={{
             position: "absolute",
-            ...anchorRect,
+            ...rect,
             backgroundColor: ANCHOR_HIGHLIGHT_COLOR,
             ...NONE,
           }}
         />
-      )}
+      ))}
 
       {/* Additional highlights for partial match locations */}
       {additionalHighlights?.map(h => (

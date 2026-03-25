@@ -113,8 +113,10 @@ npm install && npm run dev
 ## Examples
 
 - [Basic Verification](./examples/basic-verification)
-- [LangChain RAG Chat](./examples/langchain-rag-chat)
+- [LangChain RAG Chat](./examples/langchain-rag-chat) — [Live Demo](https://langchain-rag-chat-deepcitation.vercel.app/)
+- [Mastra RAG Chat](./examples/mastra-rag-chat) — [Live Demo](https://mastra-rag-deepcitation.vercel.app/)
 - [Next.js AI SDK Chat App](./examples/nextjs-ai-sdk) — [Live Demo](https://nextjs-ai-sdk-deepcitation.vercel.app/)
+- [AG-UI Chat](./examples/agui-chat) — [Live Demo](https://agui-chat-deepcitation.vercel.app/)
 - [URL Citations](./examples/url-example)
 
 

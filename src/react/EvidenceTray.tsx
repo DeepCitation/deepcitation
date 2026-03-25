@@ -1296,7 +1296,7 @@ export function InlineExpandedImage({
   renderScale?: { x: number; y: number } | null;
   /** Override phraseMatchDeepItem from verification.document (for direct DeepTextItem injection). */
   highlightItem?: DeepTextItem | null;
-  /** Override anchorTextMatchDeepItems[0] from verification.document (for direct DeepTextItem injection). */
+  /** Override: injects a single anchor item in place of the server-provided array. */
   anchorItem?: DeepTextItem | null;
   /** When true, the annotation overlay starts hidden (e.g. drawer context where overlay is unwanted). */
   initialOverlayHidden?: boolean;
@@ -1406,7 +1406,7 @@ export function InlineExpandedImage({
 
   // Effective annotation items: override props take precedence, then verification.document, then null.
   const effectivePhraseItem = highlightItem ?? verification?.document?.phraseMatchDeepItem ?? null;
-  const effectiveAnchorItem = anchorItem ?? verification?.document?.anchorTextMatchDeepItems?.[0] ?? null;
+  const effectiveAnchorItems = anchorItem ? [anchorItem] : (verification?.document?.anchorTextMatchDeepItems ?? null);
 
   // The server always provides coordinates in PDF convention (bottom-up Y) for both
   // PDFs and images. For images, renderScale is 1:1 (pixel coords) — the server sets
@@ -1427,10 +1427,10 @@ export function InlineExpandedImage({
   const vAnchor = verification?.verifiedAnchorText;
   const vPhrase = verification?.verifiedFullPhrase;
   const anchorHighlightActive =
-    effectiveAnchorItem &&
+    effectiveAnchorItems?.[0] &&
     (shouldHighlightAnchorText(vAnchor, vPhrase) ||
       (isStrategyOverride(vAnchor, vPhrase) && shouldHighlightAnchorText(vAnchor, effectivePhraseItem?.text)));
-  const scrollTarget = anchorHighlightActive ? effectiveAnchorItem : effectivePhraseItem;
+  const scrollTarget = anchorHighlightActive ? effectiveAnchorItems[0] : effectivePhraseItem;
   const sourceAnchorRatio = useMemo(
     () => (!fill ? resolveEvidenceSourceAnchorRatio(verification) : null),
     [fill, verification],
@@ -2184,7 +2184,7 @@ export function InlineExpandedImage({
                     imageNaturalWidth={naturalWidth}
                     imageNaturalHeight={naturalHeight}
                     highlightColor={overlayHighlightColor}
-                    anchorTextDeepItem={verification?.status === "not_found" ? undefined : effectiveAnchorItem}
+                    anchorTextDeepItems={verification?.status === "not_found" ? undefined : effectiveAnchorItems}
                     anchorText={verification?.verifiedAnchorText}
                     fullPhrase={verification?.verifiedFullPhrase}
                     onDismiss={fill ? handleOverlayDismiss : undefined}
