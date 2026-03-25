@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CITATION_DATA_END_DELIMITER,
   type Citation,
   parseCitationResponse,
   type Verification,
@@ -49,6 +50,13 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
     // Use rawContent (with <<<CITATION_DATA>>>) when available so parseCitationResponse
     // can build the markerMap. Falls back to stripped content for streaming display.
     const textForParsing = message.rawContent ?? message.content;
+    // During streaming the citation data block arrives incrementally. Parse only the
+    // stripped content so markers render as plain [N] superscripts — interactive
+    // CitationComponents activate once the full <<<CITATION_DATA>>> block arrives.
+    // (parseCitationResponse handles malformed JSON gracefully via try/catch + repair.)
+    if (message.rawContent && !message.rawContent.includes(CITATION_DATA_END_DELIMITER)) {
+      return parseCitationResponse(message.content);
+    }
     return parseCitationResponse(textForParsing);
   }, [message.rawContent, message.content]);
 

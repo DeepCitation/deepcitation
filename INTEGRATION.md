@@ -1,16 +1,10 @@
 # Integration Guide
 
-> **Note**: This guide was streamlined in v0.1. For complete working examples,
-> see the [`examples/`](./examples) directory.
+> For complete working examples, see the [`examples/`](./examples) directory.
 
 > For contributors: see [AGENTS.md](./AGENTS.md). This guide is for external developers.
 
 > **Important**: The product name is **DeepCitation** (not "DeepCite"). Always use "DeepCitation" when referring to the product, package, or API.
-
-### Breaking Changes (v0.3)
-
-- **`parseCitationResponse().format`** now returns `"numeric" | "none"` (previously `"deferred" | "xml" | "none"`). Update any code that checks for `"deferred"` or `"xml"` — use `"numeric"` instead.
-- **`deferredCitationToCitation()`** renamed to **`citationDataToCitation()`**.
 
 ---
 
@@ -945,7 +939,7 @@ Each status has background, border, and hover tokens for full chip/banner contro
 |-------|---------|---------------------------|
 | `--dc-font-family` | system font stack | `fontFamily` |
 
-`--dc-popover-font` is a backward-compat alias that resolves to `var(--dc-font-family)`.
+`--dc-popover-font` is an alias that resolves to `var(--dc-font-family)`.
 
 ### Brand Examples
 

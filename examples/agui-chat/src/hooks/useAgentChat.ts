@@ -4,6 +4,8 @@ import type { Citation, Verification } from "deepcitation";
 import { extractVisibleText } from "deepcitation";
 import { useCallback, useRef, useState } from "react";
 
+const applyVisibleText = (content: string) => extractVisibleText(content).trimEnd();
+
 interface FileDataPart {
   attachmentId: string;
   filename?: string;
@@ -30,7 +32,9 @@ export interface MessageVerificationResult {
 
 interface UseAgentChatOptions {
   agentUrl: string;
+  /** Must be a stable reference (memoized at the call site) to avoid unnecessary re-renders. */
   fileDataParts: FileDataPart[];
+  /** Must be a stable reference (memoized at the call site) to avoid unnecessary re-renders. */
   deepTextPromptPortions: string[];
 }
 
@@ -78,8 +82,6 @@ export function useAgentChat({
     setIsLoading(false);
     setIsVerifying(false);
   }, []);
-
-  const applyVisibleText = (content: string) => extractVisibleText(content).trimEnd();
 
   const processEvent = useCallback((event: AgUiEvent) => {
     switch (event.type) {
@@ -183,31 +185,50 @@ export function useAgentChat({
       const decoder = new TextDecoder();
       let buffer = "";
 
+      const processFrames = (raw: string) => {
+        const frames = raw.split("\n\n");
+        const remainder = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          const dataLines = frame
+            .split("\n")
+            .filter(line => line.startsWith("data:"))
+            .map(line => line.slice(5).trim())
+            .filter(Boolean);
+
+          if (dataLines.length === 0) continue;
+
+          try {
+            // Join without separator: each data: line is a JSON fragment;
+            // JSON is whitespace-insensitive between tokens so "" and "\n"
+            // are equivalent here.
+            processEvent(JSON.parse(dataLines.join("")) as AgUiEvent);
+          } catch (err) {
+            // Malformed event — skip rather than break the stream.
+            if (process.env.NODE_ENV === "development") {
+              console.warn("[useAgentChat] Skipped malformed SSE frame:", err);
+            }
+          }
+        }
+
+        return remainder;
+      };
+
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const frames = buffer.split("\n\n");
-          buffer = frames.pop() ?? "";
-
-          for (const frame of frames) {
-            const dataLines = frame
-              .split("\n")
-              .filter(line => line.startsWith("data:"))
-              .map(line => line.slice(5).trim())
-              .filter(Boolean);
-
-            if (dataLines.length === 0) continue;
-
-            processEvent(JSON.parse(dataLines.join("\n")) as AgUiEvent);
-          }
+          buffer = processFrames(buffer);
         }
 
-        const finalChunk = decoder.decode();
-        if (finalChunk) {
-          buffer += finalChunk;
+        // Flush any remaining bytes from the TextDecoder and process the
+        // final buffer — the last SSE frame may not end with \n\n.
+        buffer += decoder.decode();
+        if (buffer.trim()) {
+          // Remainder intentionally discarded — stream is complete
+          processFrames(buffer + "\n\n");
         }
       } finally {
         reader.releaseLock();
