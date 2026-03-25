@@ -46,3 +46,4 @@ src/vanilla/_generated.ts
 **/package-lock.json
 **/node_modules
 **/scratch/
+.vercel
