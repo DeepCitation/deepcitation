@@ -53,6 +53,7 @@ export function ChatMessage({ message, citations, verifications, drawerItems }: 
     // During streaming the citation data block arrives incrementally. Parse only the
     // stripped content so markers render as plain [N] superscripts — interactive
     // CitationComponents activate once the full <<<CITATION_DATA>>> block arrives.
+    // (parseCitationResponse handles malformed JSON gracefully via try/catch + repair.)
     if (message.rawContent && !message.rawContent.includes(CITATION_DATA_END_DELIMITER)) {
       return parseCitationResponse(message.content);
     }

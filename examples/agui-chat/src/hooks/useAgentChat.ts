@@ -199,9 +199,15 @@ export function useAgentChat({
           if (dataLines.length === 0) continue;
 
           try {
+            // Join without separator: each data: line is a JSON fragment;
+            // JSON is whitespace-insensitive between tokens so "" and "\n"
+            // are equivalent here.
             processEvent(JSON.parse(dataLines.join("")) as AgUiEvent);
-          } catch {
-            // malformed event — skip rather than break the stream
+          } catch (err) {
+            // Malformed event — skip rather than break the stream.
+            if (process.env.NODE_ENV === "development") {
+              console.warn("[useAgentChat] Skipped malformed SSE frame:", err);
+            }
           }
         }
 
