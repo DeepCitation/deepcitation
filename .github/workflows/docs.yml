@@ -18,6 +18,7 @@ permissions:
   pages: write
   id-token: write
   pull-requests: write
+  deployments: write
 
 concurrency:
   group: "pages-${{ github.head_ref || github.ref }}"
@@ -83,6 +84,32 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+
+      - name: Clean up old deployments
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const deployments = await github.paginate(github.rest.repos.listDeployments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment: 'github-pages',
+            });
+            // Keep only the most recent deployment, delete the rest
+            const old = deployments.slice(1);
+            for (const d of old) {
+              await github.rest.repos.createDeploymentStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: d.id,
+                state: 'inactive',
+              });
+              await github.rest.repos.deleteDeployment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: d.id,
+              });
+            }
+            console.log(`Cleaned up ${old.length} old deployment(s)`);
 
   # Comment on PR with preview info
   preview-comment:
