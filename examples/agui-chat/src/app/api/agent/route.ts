@@ -200,8 +200,9 @@ export async function POST(req: Request) {
       };
 
       try {
-        // Resolve corpus attachments inside the stream so the SSE
-        // connection opens immediately (avoids cold-start hang).
+        // Resolve corpus attachments inside the stream so the HTTP response
+        // (SSE connection) opens immediately — avoids HTTP-level timeout on
+        // cold start. First event is still delayed by corpus resolution.
         let fileDataParts = clientFileDataParts;
         let deepTextPromptPortions = clientDeepTextPromptPortions;
 

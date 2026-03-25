@@ -4,6 +4,8 @@ import type { Citation, Verification } from "deepcitation";
 import { extractVisibleText } from "deepcitation";
 import { useCallback, useRef, useState } from "react";
 
+const applyVisibleText = (content: string) => extractVisibleText(content).trimEnd();
+
 interface FileDataPart {
   attachmentId: string;
   filename?: string;
@@ -30,7 +32,9 @@ export interface MessageVerificationResult {
 
 interface UseAgentChatOptions {
   agentUrl: string;
+  /** Must be a stable reference (memoized at the call site) to avoid unnecessary re-renders. */
   fileDataParts: FileDataPart[];
+  /** Must be a stable reference (memoized at the call site) to avoid unnecessary re-renders. */
   deepTextPromptPortions: string[];
 }
 
@@ -78,8 +82,6 @@ export function useAgentChat({
     setIsLoading(false);
     setIsVerifying(false);
   }, []);
-
-  const applyVisibleText = (content: string) => extractVisibleText(content).trimEnd();
 
   const processEvent = useCallback((event: AgUiEvent) => {
     switch (event.type) {
@@ -197,7 +199,7 @@ export function useAgentChat({
           if (dataLines.length === 0) continue;
 
           try {
-            processEvent(JSON.parse(dataLines.join("\n")) as AgUiEvent);
+            processEvent(JSON.parse(dataLines.join("")) as AgUiEvent);
           } catch {
             // malformed event — skip rather than break the stream
           }
@@ -219,6 +221,7 @@ export function useAgentChat({
         // final buffer — the last SSE frame may not end with \n\n.
         buffer += decoder.decode();
         if (buffer.trim()) {
+          // Remainder intentionally discarded — stream is complete
           processFrames(buffer + "\n\n");
         }
       } finally {
