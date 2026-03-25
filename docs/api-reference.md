@@ -409,9 +409,9 @@ DeepCitation uses **billing-based limits** rather than request-per-minute rate l
 | Operation | Cost |
 |:----------|:-----|
 | **Free tier** | $20/month (no credit card required) |
-| **Document processing** | $0.05 per 15-page unit |
+| **Document processing** | $0.05 per 25-page unit |
 | **Verification request** | $0.01 per request (includes first 25 citations) |
-| **Additional citations** | $0.01 per citation beyond 25 |
+| **Additional citations** | $0.01 per block of 25 citations beyond first 25 |
 
 The `X-DeepCitation-Included-Citations` response header indicates how many citations are included per verification request.
 
