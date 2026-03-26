@@ -56,19 +56,17 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `getTrustLevel()`, `isLowTrustMatch()` | `src/react/citationStatus.ts` | Trust classification from MatchedVariation |
 | `getStatusFromVerification()` | `src/react/citationStatus.ts` | Verification → CitationStatus mapping |
 | `getStatusLabel()` | `src/react/citationStatus.ts` | Status → display string |
-| `deriveOutcomeLabel()` | `src/react/outcomeLabel.ts` | Shared outcome label (Exact match / Scan complete / etc.) |
-| `normalizeScreenshotSrc()` | `src/react/EvidenceTray.tsx` | Screenshot data URI normalization + validation |
-| `resolveEvidenceSrc()` | `src/react/EvidenceTray.tsx` | Resolve evidence crop image (keyhole source) |
-| `resolveExpandedImage()` | `src/react/EvidenceTray.tsx` | Resolve best image source for expanded view |
-| `EvidenceTray` | `src/react/EvidenceTray.tsx` | Evidence display with keyhole viewer |
-| `InlineExpandedImage` | `src/react/EvidenceTray.tsx` | Expanded page image viewer with zoom + arrow-key pan |
+| `resolveEvidenceSrc()` | `src/react/evidence/resolvers.ts` | Resolve evidence crop image (keyhole source) |
+| `resolveExpandedImage()` | `src/react/evidence/resolvers.ts` | Resolve best image source for expanded view |
+| `EvidenceTray` | `src/react/evidence/EvidenceTray.tsx` | Evidence display with keyhole viewer (re-exported from `EvidenceTray.tsx` barrel) |
+| `InlineExpandedImage` | `src/react/evidence/InlineExpandedImage.tsx` | Expanded page image viewer with zoom + arrow-key pan |
 | `DefaultPopoverContent` | `src/react/DefaultPopoverContent.tsx` | Three-zone popover layout (success/partial/miss) |
 | `CitationStatusIndicator` | `src/react/CitationStatusIndicator.tsx` | Unified status indicator component |
 | `CitationContentDisplay` | `src/react/CitationContentDisplay.tsx` | Variant rendering (chip, superscript, badge, etc.) |
 | `getUrlAccessExplanation()` | `src/react/urlAccessExplanation.ts` | URL access failure explanation mapping |
 | `UrlAccessExplanationSection` | `src/react/DefaultPopoverContent.tsx` | URL access failure display component (private) |
 | `CitationErrorBoundary` | `src/react/CitationErrorBoundary.tsx` | Error boundary for citation components |
-| `SearchAnalysisSummary` | `src/react/EvidenceTray.tsx` | Search attempt display component |
+| `SearchAnalysisSummary` | `src/react/evidence/SearchAnalysisSummary.tsx` | Search attempt display component |
 | `SUPERSCRIPT_STYLE` | `src/react/constants.ts` | Superscript inline styles |
 | `handleImageError()` | `src/react/imageUtils.ts` | Shared image error handler (`display: "none"`) |
 | `handleImageErrorOpacity()` | `src/react/imageUtils.ts` | Shared image error handler (`opacity: "0"`, preserves layout) |
@@ -103,8 +101,8 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `getInteractionClasses()` | `src/react/CitationContentDisplay.utils.ts` | Hover/active interaction classes for citation triggers |
 | `VARIANTS_WITH_OWN_HOVER` | `src/react/CitationContentDisplay.utils.ts` | Set of variants handling own hover styling |
 | `openedViaKeyboardRef` | `src/react/Citation.tsx` | Tracks keyboard vs mouse/touch open (focus trap + focus return) |
-| `UrlCitationComponent` | `src/react/Citation.tsx` | URL citation display (badge/chip/inline/bracket variants) — co-located with CitationComponent |
-| `MemoizedUrlCitationComponent` | `src/react/Citation.tsx` | Memoized URL citation component |
+| `UrlCitationComponent` | `src/react/UrlCitationComponent.tsx` | URL citation display (badge/chip/inline/bracket variants); re-exported from `Citation.tsx` |
+| `MemoizedUrlCitationComponent` | `src/react/UrlCitationComponent.tsx` | Memoized URL citation component; re-exported from `Citation.tsx` |
 | `AnimatedHeightWrapper` | `src/react/DefaultPopoverContent.tsx` | Height morph wrapper (keep DOM, never Fragment) |
 | `defaultMessages` | `src/react/i18n.tsx` | Default English message dictionary (all i18n keys) |
 | `DeepCitationI18nProvider` | `src/react/i18n.tsx` | React context provider for custom translations |
