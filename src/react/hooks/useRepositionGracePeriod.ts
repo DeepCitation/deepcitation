@@ -76,6 +76,12 @@ export function useRepositionGracePeriod(
       }, gracePeriodMs);
     }
     prevContentExpandedRef.current = contentExpanded;
+    return () => {
+      if (graceTimerRef.current) {
+        clearTimeout(graceTimerRef.current);
+        graceTimerRef.current = null;
+      }
+    };
   }, [contentExpanded, isOpen, gracePeriodMs]);
 
   // Cleanup grace timer on unmount and when popover closes
