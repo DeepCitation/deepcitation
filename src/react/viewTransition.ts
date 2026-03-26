@@ -20,7 +20,8 @@ import {
   GHOST_OPACITY_PEAK,
   GHOST_OPACITY_START,
   isValidProofImageSrc,
-  PAGE_EXPAND_CONTENT_OPACITY_START,
+  PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
+  PAGE_EXPAND_RECESSION_MS,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
 
@@ -394,13 +395,28 @@ function runPageExpandGhostAnimation(
   const { ghostRect } = target;
   const debugPhase = getPageExpandDebugPhase();
   if (debugPhase === "source") {
+    if (popoverRoot) {
+      for (const anim of popoverRoot.getAnimations()) anim.cancel();
+      popoverRoot.style.transition = "";
+      popoverRoot.style.opacity = "";
+    }
     return;
   }
   if (debugPhase === "target") {
+    if (popoverRoot) {
+      for (const anim of popoverRoot.getAnimations()) anim.cancel();
+      popoverRoot.style.transition = "";
+      popoverRoot.style.opacity = "";
+    }
     applyGhostRect(ghost, ghostRect);
     return;
   }
   if (debugPhase === "both") {
+    if (popoverRoot) {
+      for (const anim of popoverRoot.getAnimations()) anim.cancel();
+      popoverRoot.style.transition = "";
+      popoverRoot.style.opacity = "";
+    }
     // "both" mode: hide the real ghost, draw persistent debug overlays for both rects
     ghost.remove();
     clearDebugOverlays();
@@ -496,23 +512,25 @@ function runPageExpandGhostAnimation(
     fill: "both",
   });
 
-  // Coordinated popover content fade-in — dims the ENTIRE popover (header,
-  // status section, image, toolbar — everything) so the ghost is the only
-  // visible element during the first 55% of the animation.
+  // Coordinated popover content reveal — continues from wherever the recession
+  // fade-down left off, holds at the floor while the ghost dominates, then
+  // reveals sharply in the last ~40%.
   //
-  // Mirrors the collapse's "dip-then-reveal":
-  //   Collapse: new content stays at 0 until 60%, then reveals sharply 0→1.
-  //   Expand:   popover stays near-invisible while ghost dominates,
-  //             then reveals sharply in the last ~40%.
-  //
-  // Previously we only dimmed [data-dc-inline-expanded] (the image container),
-  // leaving Zone 1 (header) and Zone 2 (status/claim) at full opacity — which
-  // made the expand look like "the page popped in" despite the image being dimmed.
+  // The recession (started in commitAndAnimate) fades the popover gradually
+  // via ease-in so the background stays perceptually solid during the first
+  // frames. Here we capture its current opacity, cancel it, and start a
+  // reveal animation that smoothly continues the journey.
   if (popoverRoot) {
+    // Capture the recession's current animated opacity before cancelling so
+    // the reveal can continue from the same value — no inter-frame jump.
+    const currentOpacity = Number(getComputedStyle(popoverRoot).opacity) || PAGE_EXPAND_CONTENT_OPACITY_FLOOR;
+    for (const anim of popoverRoot.getAnimations()) anim.cancel();
+
     const contentAnim = popoverRoot.animate(
       [
-        { opacity: PAGE_EXPAND_CONTENT_OPACITY_START },
-        { opacity: 0.03, offset: 0.45 },
+        { opacity: currentOpacity },
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: 0.15 },
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: 0.45 },
         { opacity: 0.08, offset: 0.58 },
         { opacity: 0.35, offset: 0.72 },
         { opacity: 0.8, offset: 0.88 },
@@ -625,31 +643,35 @@ export function startEvidencePageExpandTransition(
   const commitAndAnimate = () => {
     _transitionDepth++;
     const source = capturePageExpandSource(root);
+    let contentRecession: Animation | null = null;
 
-    // Pre-dim the ENTIRE popover content BEFORE flushSync. This ensures that
-    // when flushSync makes the expanded-page slot visible, the whole popover
-    // (header, status, image — everything) appears already dimmed.
+    // Gradually fade ("recede") the popover content instead of instantly jumping
+    // to near-zero opacity. The human eye is extremely sensitive to sudden
+    // luminance changes in peripheral vision — an instant opacity jump makes the
+    // popover background disappear in one frame, exposing page content underneath
+    // and triggering the perception of a flash. A gradual ease-in recession keeps
+    // the background perceptually solid for the first few frames while the ghost
+    // captures attention via motion, then fades quickly to the floor.
     //
-    // CRITICAL: Disable CSS transitions first. The PopoverContent element has
-    // `transition: opacity 60ms ...` from getBlinkContainerMotionStyle("steady").
-    // Without disabling transitions, the opacity change animates from 1 → 0.03
-    // over ~60ms — the first paint frame shows the expanded page at ~50% opacity,
-    // which reads as a full-page flash before the ghost animation begins.
+    // Disable CSS transitions first so the blink-motion `transition: opacity 60ms`
+    // doesn't compete. Cancel lingering WAAPI from a previous page-expand so
+    // fill: "forwards" doesn't override the new recession.
     if (rootEl) {
-      // Cancel any lingering WAAPI animations from a previous page-expand.
-      // `fill: "forwards"` on the content fade-in holds opacity: 1 indefinitely
-      // at a higher cascade priority than inline styles — without cancelling,
-      // the inline opacity: 0.03 below would be silently overridden.
       for (const anim of rootEl.getAnimations()) anim.cancel();
       rootEl.style.transition = "none";
-      rootEl.style.opacity = String(PAGE_EXPAND_CONTENT_OPACITY_START);
+      const startOpacity = Number(getComputedStyle(rootEl).opacity) || 1;
+      contentRecession = rootEl.animate([{ opacity: startOpacity }, { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR }], {
+        duration: PAGE_EXPAND_RECESSION_MS,
+        easing: "ease-in",
+        fill: "forwards",
+      });
     }
 
     flushSync(update);
 
     if (!source) {
       if (rootEl) {
-        rootEl.style.opacity = "";
+        contentRecession?.cancel();
         rootEl.style.transition = "";
       }
       if (debugPhase) {
@@ -666,7 +688,7 @@ export function startEvidencePageExpandTransition(
     const ghost = createPageExpandGhost(source);
     if (!ghost) {
       if (rootEl) {
-        rootEl.style.opacity = "";
+        contentRecession?.cancel();
         rootEl.style.transition = "";
       }
       if (debugPhase) {
@@ -680,7 +702,7 @@ export function startEvidencePageExpandTransition(
       if (!target) {
         ghost.remove();
         if (rootEl) {
-          rootEl.style.opacity = "";
+          contentRecession?.cancel();
           rootEl.style.transition = "";
         }
         if (debugPhase) {
