@@ -71,9 +71,12 @@ function collectSourceFiles(dir: string, exclude: string[]): string[] {
 // =============================================================================
 
 describe("i18n unused keys", () => {
-  // Scan all react source except i18n.tsx (definitions) and locales/ (translations)
+  // Scan all react + analysis source except i18n.tsx (definitions) and locales/ (translations)
   const reactDir = path.join(__dirname, "../react");
-  const sourceFiles = collectSourceFiles(reactDir, ["__tests__", "locales"]).filter(f => !f.endsWith("i18n.tsx"));
+  const analysisDir = path.join(__dirname, "../analysis");
+  const reactFiles = collectSourceFiles(reactDir, ["__tests__", "locales"]).filter(f => !f.endsWith("i18n.tsx"));
+  const analysisFiles = fs.existsSync(analysisDir) ? collectSourceFiles(analysisDir, ["__tests__"]) : [];
+  const sourceFiles = [...reactFiles, ...analysisFiles];
   const sourceContent = sourceFiles.map(f => fs.readFileSync(f, "utf-8")).join("\n");
 
   const allKeys = Object.keys(defaultMessages) as (keyof typeof defaultMessages)[];
