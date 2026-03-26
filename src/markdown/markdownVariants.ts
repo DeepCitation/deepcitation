@@ -25,10 +25,10 @@ const LINE_POSITION_THRESHOLDS = {
 /** Maximum characters for truncated fullPhrase fallback in inline variant */
 const INLINE_TEXT_TRUNCATION_LIMIT = 50;
 
-const MD_ESCAPE_RE = /([\\*_`\[\]<>~#|])/g;
+const MD_ESCAPE_RE = /([\\*_`[\]<>~#|])/g;
 
 /** Escape characters that have special meaning in markdown. */
-function escapeMd(text: string): string {
+export function escapeMd(text: string): string {
   return text.replace(MD_ESCAPE_RE, "\\$1");
 }
 

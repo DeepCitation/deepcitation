@@ -1,0 +1,346 @@
+$ bun run src/gemini.ts
+🔍 DeepCitation Basic Example - Google Gemini (gemini-2.0-flash-lite)
+
+
+📋 Running 1 source(s):
+   [0] pdf   — PDF presentation (PPT1.pdf)
+
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+▓  Source: PDF presentation
+▓  Type:   pdf
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+
+📄 Step 1: Uploading document and preparing prompts...
+
+✅ Document uploaded successfully
+   Attachment ID: sChm4Rh4JduVv6iCvHYg
+
+📋 System Prompt (BEFORE):
+──────────────────────────────────────────────────
+You are a helpful assistant. Answer questions about the
+provided documents accurately and cite your sources.
+──────────────────────────────────────────────────
+
+📋 User Prompt (BEFORE):
+──────────────────────────────────────────────────
+Summarize the key information shown in this document.
+──────────────────────────────────────────────────
+
+📋 System Prompt (AFTER):
+──────────────────────────────────────────────────
+<citation-instructions priority="critical">
+## REQUIRED: Citation Format
+
+### In-Text Markers
+For every claim, value, or fact from attachments, place a sequential integer marker like [1], [2], [3] at the end of the claim. Each distinct piece of information needs its own unique marker number.
+
+### Citation Data Block
+At the END of your response, append a citation block. Group citations by attachment_id to avoid repetition.
+
+### Format
+```
+<<<CITATION_DATA>>>
+{
+  "attachment_id_here": [
+    {"id": 1, "reasoning": "why", "full_phrase": "quote", "anchor_text": "key", "page_id": "page_number_2_index_1", "line_ids": [12]}
+  ]
+}
+<<<END_CITATION_DATA>>>
+```
+
+### Shorthand Keys (Optional)
+To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, p=page_id, l=line_ids
+
+### JSON Field Rules
+
+1. **Group key**: The attachment_id (exact ID from source document)
+2. **id** (or n): Each citation MUST have a unique ID matching its [N] marker. Do NOT reuse the same ID for different citations.
+3. **reasoning** (or r): Brief explanation connecting the citation to your claim (think first!)
+4. **full_phrase** (or f): Copy text VERBATIM from source. Use proper JSON escaping for quotes.
+5. **anchor_text** (or k): The 1-3 most important words from full_phrase
+6. **page_id** (or p): Format "page_number_N_index_I" where N=page number, I=index (copy exactly from `<page_number_N_index_I>` tags in the source)
+7. **line_ids** (or l): Array of line IDs from the source (copy from line ID markers in the text). Include IDs for all relevant lines.
+
+### Placement Rules
+
+- Place [N] markers inline, typically at the end of a claim
+- One marker per distinct idea, concept, or value
+- Use sequential numbering starting from [1] - each citation gets a unique number
+- The JSON block MUST appear at the very end of your response
+
+### Example Response
+
+The company reported strong growth [1]. Revenue increased significantly in Q4 [2]. The competitor also grew [3].
+
+<<<CITATION_DATA>>>
+{
+  "abc123": [
+    {"id": 1, "reasoning": "directly states growth metrics", "full_phrase": "The company achieved 45% year-over-year growth", "anchor_text": "45% year-over-year growth", "page_id": "page_number_2_index_1", "line_ids": [12, 13]},
+    {"id": 2, "reasoning": "states Q4 revenue figure", "full_phrase": "Q4 revenue reached $2.3 billion, up from $1.8 billion", "anchor_text": "$2.3 billion", "page_id": "page_number_3_index_2", "line_ids": [5, 6, 7]}
+  ],
+  "def456": [
+    {"id": 3, "reasoning": "competitor data", "full_phrase": "Competitor X reported 20% growth", "anchor_text": "20% growth", "page_id": "page_number_1_index_0", "line_ids": [8]}
+  ]
+}
+<<<END_CITATION_DATA>>>
+</citation-instructions>
+
+You are a helpful assistant. Answer questions about the
+provided documents accurately and cite your sources.
+
+<citation-reminder>STOP and CHECK: Did you use [N] markers for every claim and include the <<<CITATION_DATA>>> JSON block at the end?</citation-reminder>
+──────────────────────────────────────────────────
+
+📋 User Prompt (AFTER):
+──────────────────────────────────────────────────
+
+<attachment id="sChm4Rh4JduVv6iCvHYg"><page_number_1_index_0>
+<line id="1">FINAL REPORT</line>
+Ordering Provider
+Doe, John A.  Sample Information
+(ODNA0001) 
+<line id="5">Date Of Birth: 09/20/1961 Accession: 00000001 Received: 06/27/2009 07:08</line>
+Gender: Male Specimen: Oral Rinse Reported: 06/30/2009 21:45
+Collected: 06/27/2009 07:08 Printed: 07/06/2009 08:22
+Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD
+Bacterial Risk: HIGH - Very strong evidence of increased risk for attachment loss
+<line id="10">Legend Result Interpretation:Periodontal disease is caused by specific, or groups of specific bacteria. Threshold</line>
+= Pathogen Load Threshold* levels represent the concentration above which patients are generally at increased risk for attachment loss.
+DL = Detection Limit Bacterial levels should be considered collectively and in context with clinical signs and other risk factors.
+High Risk Pathogens Moderate Risk Pathogens Low Risk Pathogens
+10 7 10 7 10 7
+<line id="15">10 6 10 6 10 6</line>
+10 5 10 5 10 5
+10 4 10 4 10 4
+DL DL DL
+Pathogen  Result  Clinical Significance
+<line id="20">Aggregatibacter High Very strong association with PD: Transmittable, tissue invasive, and pathogenic at relatively low</line>
+actinomycetemcomitans bacterial counts. Associated with aggressive forms of disease.
+Porphyromonas gingivalis  High Very strong association with PD: Transmittable, tissue invasive, and pathogenic at relatively low
+bacterial counts. Associated with aggressive forms of disease.
+Fusobacterium High Strong association with PD: adherence properties to several oral pathogens; often seen in refractory
+<line id="25">nucleatum/periodonticum disease.</line>
+Prevotella intermedia  High Strong association with PD: virulent properties similar to Pg; often seen in refractory disease.
+Capnocytophaga species High Some association with PD: Frequently found in gingivitis. Often found in association with other
+(gingavalis,ochracea,sputigena) periodontal pathogens. May increase temporarily following active therapy.
+Cr Campylobacter rectus  Low Moderate association with development of PD: usually found in combination with other suspected
+<line id="30">pathogens in refractory disease.</line>
+Pm Peptostreptococcus (Micromonas) Low Moderate association with PD: detected in higher numbers at sites of active disease.
+micros
+Ec Eikenella corrodens  Low Moderate association with PD: Found more frequently in active sites of disease; often seen in
+refractory disease.
+<line id="35">Not Detected:  (Tf) Tannerella forsythia, (Td) Treponema denticola, (En) Eubacterium nodatum</line>
+Additional information is available from MyOralDNA.com on Interpreting Results
+Methodology: Genomic DNA is extracted from the submitted sample and tested for 13 bacteria associated with periodontal disease. The bacteria are tested by
+polymerase chain reaction (PCR) amplification followed by fluorescent endpoint detection of sample bacterial concentrations (e.g. 10^3 = 1000 bacteria copies per
+amplified reaction). *Modified from: Microbiological goals of periodontal therapy; Periodontology 2000, Vol. 42, 2006, 180-218.
+<line id="40">Disclaimer: 1. OralDNA is not liable for any outcomes arising from clinician's treatment protocols and decisions. Dentists should consult with a periodontist or patient's</line>
+physician when infections are advanced or as indicated by patient's medical condition. 2. OralDNA is not responsible for inaccurate test results due to poor sample
+collection. 3. This test was developed and its performance characteristics determined by OralDNA Labs, Inc pursuant to CLIA requirements. It has not been cleared or
+approved by the U.S. Food and Drug Administration. The FDA has determined that such clearance or approval is not necessary.
+OralDNA Labs, Inc., 214 Overlook Circle, Suite 120, Brentwood, TN 37027 6155779055; Fax: 6156272826 www.oraldna.com
+<line id="45">Medical Director: Ronald McGlennen, MD  Chief Dental Officer: Thomas W. Nabors, DDS  Page 1 of 2</line>
+<line id="46">Doe, John A.  Sample Information</line>
+</page_number_1_index_0>
+
+<page_number_2_index_1>
+<line id="1">Doe, John A.  Sample Information</line>
+Date Of Birth: Accession: 00000001
+09/20/1961 Specimen: Oral Rinse
+CLINICAL CONSIDERATIONS Gender: Male Collected: 06/27/2009
+<line id="5">07:08</line>
+Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD
+Bacterial Risk: HIGH - Very strong evidence of increased risk for attachment loss
+High Risk Pathogens Moderate Risk Pathogens Low Risk Pathogens
+10 7 10 7 10 7
+<line id="10">10 6 10 6 10 6</line>
+10 5 10 5 10 5
+10 4 10 4 10 4
+DL DL DL
+Treatment Considerations
+<line id="15">Office Periodontal Therapy: Protocols to disrupt biofilm and reduce pathogens.</line>
+Systemic Antibiotic Option to Augment Therapy at Clinician's Discretion:
+Clinician to determine if local antimicrobials (e.g. Chlorhexidine) and/or local antibiotics (e.g. Arestin) are sufficient to resolve infection.
+Published guidelines suggest (subject to allergy, drug interaction, and other medical considerations) the following as a possible adjunct
+to treatment based on patient's bacterial profile: Amoxicillin 500 mg tid 8 days and Metronidazole 500 mg bid 8 days.
+<line id="20">Note: Doctor is responsible for patient therapy. Complete dental and medical history (e.g, pregnancy, diabetes, immuno-suppression, other patient medications)</line>
+should be considered when prescribing. Antibiotics may impact other medications (e.g. birth control pills) and may have adverse side effects.
+Home Care: Office recommended procedures to daily disrupt biofilm and reduce pathogens.
+Reassessment: Compare clinical signs and bacterial levels pre- and post-treatment.
+- A 2nd sample should be collected six to eight weeks post-therapy.
+<line id="25">Additional Risk Factors</line>
+Clinical  Diagnostic  Medical
+BOP Localized Type V Refractory Periodontitis; ADA Code 4900 Family History of
+PD
+Inflammation/Swelling Generalized Type IV (>6mm); Advanced Periodontitis; ADA
+<line id="30">Code 4800 Pregnant/Nursing</line>
+Bone Loss
+Type III (4-6mm); Moderate Periodontitis; ADA Immunosupressed
+Redness/Discoloration Code 4700
+Diabetes
+<line id="35">Halitosis/Malodor Type II (3-4mm); Mild Periodontitis; ADA Code</line>
+4600 Cardiovascular
+Type I (1-3mm); Gingivitis; ADA Code 4500 Disease
+Current Smoker
+Good Periodontal Health
+<line id="40">Antibiotic Allergies:None Reported</line>
+Additional Clinical Information: This patient has a test sample note and test Tooth Numbers  3  9  14  19  24  30
+note attached. Pocket Depths 3mm 3mm 4mm 3mm 2mm 3mm
+Additional information is available from MyOralDNA.com on:
+Interpreting Results  Office Periodontal Protocols  Patient Home Care Steps
+<line id="45">Patient Reassessment  Using OralDNA  The Oral-Systemic Connection</line>
+Disclaimer: 1. OralDNA is not liable for any outcomes arising from clinician's treatment protocols and decisions. Dentists should consult with a periodontist or patient's
+physician when infections are advanced or as indicated by patient's medical condition. 2. OralDNA is not responsible for inaccurate test results due to poor sample
+collection. 3. This test was developed and its performance characteristics determined by OralDNA Labs, Inc pursuant to CLIA requirements. It has not been cleared or
+approved by the U.S. Food and Drug Administration. The FDA has determined that such clearance or approval is not necessary.
+<line id="50">OralDNA Labs, Inc., 214 Overlook Circle, Suite 120, Brentwood, TN 37027 6155779055; Fax: 6156272826 www.oraldna.com</line>
+<line id="51">Medical Director: Ronald McGlennen, MD  Chief Dental Officer: Thomas W. Nabors, DDS  Page 2 of 2</line>
+</page_number_2_index_1></attachment>
+
+<citation-reminder>STOP and CHECK: Did you use [N] markers for every claim and include the <<<CITATION_DATA>>> JSON block at the end?</citation-reminder>
+
+Summarize the key information shown in this document.
+──────────────────────────────────────────────────
+
+🤖 Step 2: Calling Google Gemini (gemini-2.0-flash-lite)...
+
+📝 LLM Response (raw with citations):
+──────────────────────────────────────────────────
+The patient, John A. Doe, born on 09/20/1961, underwent an oral rinse test on 06/27/2009, with results reported on 06/30/2009 [1]. The test result was positive, with five pathogenic bacteria reported above the threshold, indicating a HIGH bacterial risk and very strong evidence of increased risk for attachment loss [1, 5]. The report lists high-risk pathogens such as *Aggregatibacter actinomycetemcomitans*, *Porphyromonas gingivalis*, and *Fusobacterium nucleatum/periodonticum* [2, 3, 4]. Moderate and low-risk pathogens are also listed [10, 30, 34]. Treatment considerations include office periodontal therapy to disrupt biofilm and reduce pathogens, and systemic antibiotic options such as Amoxicillin and Metronidazole, at the clinician's discretion [15, 19]. Additional risk factors include clinical, diagnostic, and medical factors such as inflammation, bone loss, and smoking [25, 29, 39]. The patient's tooth numbers with pocket depths are also listed [41].
+
+<<<CITATION_DATA>>>
+{
+  "sChm4Rh4JduVv6iCvHYg": [
+    {"id": 1, "reasoning": "Summary of results and risk assessment", "full_phrase": "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD\nBacterial Risk: HIGH - Very strong evidence of increased risk for attachment loss", "anchor_text": "POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD\nBacterial Risk: HIGH", "page_id": "page_number_1_index_0", "line_ids": [9]},
+    {"id": 2, "reasoning": "Identifies a high-risk pathogen", "full_phrase": "Aggregatibacter", "anchor_text": "Aggregatibacter", "page_id": "page_number_1_index_0", "line_ids": [20]},
+    {"id": 3, "reasoning": "Identifies a high-risk pathogen", "full_phrase": "Porphyromonas gingivalis", "anchor_text": "Porphyromonas gingivalis", "page_id": "page_number_1_index_0", "line_ids": [22]},
+    {"id": 4, "reasoning": "Identifies a high-risk pathogen", "full_phrase": "Fusobacterium", "anchor_text": "Fusobacterium", "page_id": "page_number_1_index_0", "line_ids": [24]},
+    {"id": 5, "reasoning": "Summary of results and risk assessment", "full_phrase": "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD\nBacterial Risk: HIGH - Very strong evidence of increased risk for attachment loss", "anchor_text": "POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD\nBacterial Risk: HIGH", "page_id": "page_number_2_index_1", "line_ids": [5]},
+    {"id": 6, "reasoning": "Lists potential treatment options", "full_phrase": "Office Periodontal Therapy: Protocols to disrupt biofilm and reduce pathogens.", "anchor_text": "Office Periodontal Therapy", "page_id": "page_number_2_index_1", "line_ids": [15]},
+    {"id": 7, "reasoning": "Lists potential treatment options", "full_phrase": "Clinician to determine if local antimicrobials (e.g. Chlorhexidine) and/or local antibiotics (e.g. Arestin) are sufficient to resolve infection.", "anchor_text": "Clinician to determine if local antimicrobials", "page_id": "page_number_2_index_1", "line_ids": [17]},
+    {"id": 8, "reasoning": "Lists potential treatment options", "full_phrase": "Published guidelines suggest (subject to allergy, drug interaction, and other medical considerations) the following as a possible adjunct to treatment based on patient's bacterial profile: Amoxicillin 500 mg tid 8 days and Metronidazole 500 mg bid 8 days.", "anchor_text": "Amoxicillin 500 mg tid 8 days and Metronidazole 500 mg bid 8 days", "page_id": "page_number_2_index_1", "line_ids": [19]},
+    {"id": 9, "reasoning": "Lists additional risk factors", "full_phrase": "Clinical", "anchor_text": "Clinical", "page_id": "page_number_2_index_1", "line_ids": [25]},
+    {"id": 10, "reasoning": "Lists additional risk factors", "full_phrase": "Moderate Risk Pathogens", "anchor_text": "Moderate Risk Pathogens", "page_id": "page_number_1_index_0", "line_ids": [12]},
+    {"id": 11, "reasoning": "Lists additional risk factors", "full_phrase": "Low Risk Pathogens", "anchor_text": "Low Risk Pathogens", "page_id": "page_number_1_index_0", "line_ids": [13]},
+    {"id": 12, "reasoning": "Lists patient data", "full_phrase": "Pocket Depths 3mm 3mm 4mm 3mm 2mm 3mm", "anchor_text": "Pocket Depths", "page_id": "page_number_2_index_1", "line_ids": [42]}
+  ]
+}
+<<<END_CITATION_DATA>>>
+──────────────────────────────────────────────────
+
+🔍 Step 3: Parsing citations and extracting visible text...
+
+📋 Parsed 12 citation(s) from LLM output
+   [67c1a86fc6919e2e]: "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ..."
+   [2bb874c6de9a2470]: "Aggregatibacter..."
+   [77dfdfa2c0be00c3]: "Porphyromonas gingivalis..."
+   [e6114f049ce661ad]: "Fusobacterium..."
+   [b2e69c109b04fa87]: "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ..."
+   [962eb79bff1aa9eb]: "Office Periodontal Therapy: Protocols to disrupt b..."
+   [38b9822b80d28cbe]: "Clinician to determine if local antimicrobials (e...."
+   [af64e34fbe33947e]: "Published guidelines suggest (subject to allergy, ..."
+   [4adcbcfe62f282db]: "Clinical..."
+   [c1921262bc48e588]: "Moderate Risk Pathogens..."
+   [c8ac6879aece215d]: "Low Risk Pathogens..."
+   [858add49271a78cc]: "Pocket Depths 3mm 3mm 4mm 3mm 2mm 3mm..."
+
+📖 Visible Text (citation data block stripped):
+──────────────────────────────────────────────────
+The patient, John A. Doe, born on 09/20/1961, underwent an oral rinse test on 06/27/2009, with results reported on 06/30/2009 [1]. The test result was positive, with five pathogenic bacteria reported above the threshold, indicating a HIGH bacterial risk and very strong evidence of increased risk for attachment loss [1, 5]. The report lists high-risk pathogens such as *Aggregatibacter actinomycetemcomitans*, *Porphyromonas gingivalis*, and *Fusobacterium nucleatum/periodonticum* [2, 3, 4]. Moderate and low-risk pathogens are also listed [10, 30, 34]. Treatment considerations include office periodontal therapy to disrupt biofilm and reduce pathogens, and systemic antibiotic options such as Amoxicillin and Metronidazole, at the clinician's discretion [15, 19]. Additional risk factors include clinical, diagnostic, and medical factors such as inflammation, bone loss, and smoking [25, 29, 39]. The patient's tooth numbers with pocket depths are also listed [41].
+──────────────────────────────────────────────────
+
+🔍 Step 4: Verifying citations against source document...
+
+✨ Step 5: Verification Results
+
+Found 12 citation(s):
+
+════════════════════════════════════════════════════════════
+Citation [962eb79bff1aa9eb]: ☑️ found | Page: 2
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Office Periodontal Therapy: Protocols to disrupt biofilm and reduce pathogens."
+  🔍 Found: "Office Periodontal Therapy: Protocols to disrupt biofilm and reduce pathogens."
+
+════════════════════════════════════════════════════════════
+Citation [67c1a86fc6919e2e]: ☑️ found | Page: 1
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD
+Bacterial Risk: HIGH - Very strong..."
+  🔍 Found: "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD Bacterial Risk: HIGH - Very strong..."
+
+════════════════════════════════════════════════════════════
+Citation [2bb874c6de9a2470]: ☑️ found | Page: 1
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Aggregatibacter"
+  🔍 Found: "Aggregatibacter High Very strong association with PD: Transmittable, tissue invasive, and pathogenic..."
+
+════════════════════════════════════════════════════════════
+Citation [77dfdfa2c0be00c3]: ☑️ found | Page: 1
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Porphyromonas gingivalis"
+  🔍 Found: "Porphyromonas gingivalis  High Very strong association with PD: Transmittable, tissue invasive, and ..."
+
+════════════════════════════════════════════════════════════
+Citation [e6114f049ce661ad]: ☑️ found | Page: 1
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Fusobacterium"
+  🔍 Found: "Fusobacterium High Strong association with PD: adherence properties to several oral pathogens; often..."
+
+════════════════════════════════════════════════════════════
+Citation [b2e69c109b04fa87]: ☑️ found | Page: 2
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD
+Bacterial Risk: HIGH - Very strong..."
+  🔍 Found: "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD Bacterial Risk: HIGH - Very strong..."
+
+════════════════════════════════════════════════════════════
+Citation [38b9822b80d28cbe]: ☑️ found | Page: 2
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Clinician to determine if local antimicrobials (e.g. Chlorhexidine) and/or local antibiotics (e.g. A..."
+  🔍 Found: "Clinician to determine if local antimicrobials (e.g. Chlorhexidine) and/or local antibiotics (e.g. A..."
+
+════════════════════════════════════════════════════════════
+Citation [af64e34fbe33947e]: ✅ partial_text_found | Page: 2
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Published guidelines suggest (subject to allergy, drug interaction, and other medical considerations..."
+  🔍 Found: "to treatment based on patient's bacterial profile: Amoxicillin 500 mg tid 8 days and Metronidazole 5..."
+
+════════════════════════════════════════════════════════════
+Citation [4adcbcfe62f282db]: ☑️ found | Page: 2
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Clinical"
+  🔍 Found: "Clinical  Diagnostic  Medical"
+
+════════════════════════════════════════════════════════════
+Citation [c1921262bc48e588]: ☑️ found | Page: 1
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Moderate Risk Pathogens"
+  🔍 Found: "High Risk Pathogens Moderate Risk Pathogens Low Risk Pathogens"
+
+════════════════════════════════════════════════════════════
+Citation [c8ac6879aece215d]: ☑️ found | Page: 1
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Low Risk Pathogens"
+  🔍 Found: "High Risk Pathogens Moderate Risk Pathogens Low Risk Pathogens"
+
+════════════════════════════════════════════════════════════
+Citation [858add49271a78cc]: ☑️ found | Page: 2
+────────────────────────────────────────────────────────────
+  📝 Claimed: "Pocket Depths 3mm 3mm 4mm 3mm 2mm 3mm"
+  🔍 Found: "note attached. Pocket Depths 3mm 3mm 4mm 3mm 2mm 3mm"
+
+════════════════════════════════════════════════════════════
+
+📖 Clean Response (for display, with verification status):
+──────────────────────────────────────────────────
+The patient, John A. Doe, born on 09/20/1961, underwent an oral rinse test on 06/27/2009, with results reported on 06/30/2009 [1☑️]. The test result was positive, with five pathogenic bacteria reported above the threshold, indicating a HIGH bacterial risk and very strong evidence of increased risk for attachment loss [1, 5]. The report lists high-risk pathogens such as *Aggregatibacter actinomycetemcomitans*, *Porphyromonas gingivalis*, and *Fusobacterium nucleatum/periodonticum* [2, 3, 4]. Moderate and low-risk pathogens are also listed [10, 30, 34]. Treatment considerations include office periodontal therapy to disrupt biofilm and reduce pathogens, and systemic antibiotic options such as Amoxicillin and Metronidazole, at the clinician's discretion [15, 19]. Additional risk factors include clinical, diagnostic, and medical factors such as inflammation, bone loss, and smoking [25, 29, 39]. The patient's tooth numbers with pocket depths are also listed [41⌛].
+──────────────────────────────────────────────────
+
+📊 Summary:
+   Total citations: 12
+   Verified: 12 (100%)
+   Partial: 1 (8%)
+   Not found: 0
+
+✅ All sources processed.
+

@@ -1,4 +1,4 @@
-import { getIndicator, toSuperscript } from "../../markdown/markdownVariants.js";
+import { escapeMd, getIndicator, toSuperscript } from "../../markdown/markdownVariants.js";
 import type { IndicatorStyle } from "../../markdown/types.js";
 import type { CitationStatus } from "../../types/citation.js";
 import type { GitHubVariant } from "./types.js";
@@ -62,8 +62,10 @@ export function renderGitHubSourcesTable(
 
   for (const entry of entries) {
     const proofLink = entry.proofUrl ? `[View proof](${entry.proofUrl})` : "—";
+    const label = escapeMd(entry.sourceLabel);
+    const loc = entry.location ? escapeMd(entry.location) : "—";
     lines.push(
-      `| ${entry.citationNumber} | ${entry.indicator} ${entry.statusLabel} | ${entry.sourceLabel} | ${entry.location || "—"} | ${proofLink} |`,
+      `| ${entry.citationNumber} | ${entry.indicator} ${entry.statusLabel} | ${label} | ${loc} | ${proofLink} |`,
     );
   }
 
@@ -88,8 +90,10 @@ export function renderGitHubSourcesList(
 
   for (const entry of entries) {
     const proofLink = entry.proofUrl ? ` — [View proof](${entry.proofUrl})` : "";
-    const location = entry.location ? ` — ${entry.location}` : "";
-    lines.push(`- **[${entry.citationNumber}]** ${entry.indicator} ${entry.sourceLabel}${location}${proofLink}`);
+    const location = entry.location ? ` — ${escapeMd(entry.location)}` : "";
+    lines.push(
+      `- **[${entry.citationNumber}]** ${entry.indicator} ${escapeMd(entry.sourceLabel)}${location}${proofLink}`,
+    );
   }
 
   lines.push("", "</details>");
@@ -114,12 +118,11 @@ export function renderGitHubSourcesDetailed(
   const lines: string[] = ["<details>", `<summary><b>Sources (${entries.length})</b></summary>`, "<br>", ""];
 
   for (const entry of entries) {
-    lines.push(
-      `**[${entry.citationNumber}${entry.indicator}] ${entry.sourceLabel}${entry.location ? ` — ${entry.location}` : ""}**`,
-    );
+    const loc = entry.location ? ` — ${escapeMd(entry.location)}` : "";
+    lines.push(`**[${entry.citationNumber}${entry.indicator}] ${escapeMd(entry.sourceLabel)}${loc}**`);
 
     if (entry.quote) {
-      lines.push(`> "${entry.quote}"`);
+      lines.push(`> "${escapeMd(entry.quote)}"`);
     }
 
     if (entry.imageUrl) {

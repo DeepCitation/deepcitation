@@ -39,6 +39,11 @@ const KNOWN_UNUSED = new Set([
   "citation.fallback",
   "error.citation",
 
+  // Outcome labels — used by outcomeLabel.ts (removed as dead code).
+  // Keys kept in i18n for external consumers that may reference them.
+  "outcome.scanComplete_one",
+  "outcome.scanComplete_other",
+
   // Proof link — feature not yet wired up in SourceContextHeader.
   "action.openProof",
 ]);

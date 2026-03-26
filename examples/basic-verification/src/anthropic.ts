@@ -18,7 +18,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-const model = "claude-3-5-haiku-20241022";
+const model = "claude-haiku-4-5-20251001";
 
 runWorkflow(`Anthropic Claude (${model})`, async ({ enhancedSystemPrompt, enhancedUserPrompt, imageBase64 }) => {
   const userContent: Anthropic.MessageCreateParams["messages"][0]["content"] = [];

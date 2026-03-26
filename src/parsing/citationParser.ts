@@ -140,11 +140,17 @@ function isGroupedFormat(parsed: unknown): parsed is Record<string, unknown[]> {
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     return false;
   }
-  const values = Object.values(parsed);
-  return (
-    values.length > 0 &&
-    values.every(v => Array.isArray(v) && v.every(item => typeof item === "object" && item !== null))
-  );
+  const record = parsed as Record<string, unknown>;
+  const keys = Object.keys(record);
+  if (keys.length === 0) return false;
+  for (const key of keys) {
+    const v = record[key];
+    if (!Array.isArray(v)) return false;
+    for (const item of v) {
+      if (typeof item !== "object" || item === null) return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -638,6 +644,166 @@ export function replaceCitationMarkers(
  */
 export function getCitationMarkerIds(text: string): number[] {
   return Array.from(text.matchAll(CITATION_MARKER_RE), m => parseInt(m[1], 10));
+}
+
+/**
+ * Regex for comma-separated multi-citation markers like [1, 5] or [2, 3, 4].
+ * Matches brackets containing comma-separated integers with optional whitespace.
+ */
+const MULTI_CITATION_MARKER_RE = /\[(\d+(?:\s*,\s*\d+)+)\]/g;
+
+/** Maximum characters to scan forward/backward when finding sentence boundaries. */
+const SENTENCE_SEARCH_WINDOW = 500;
+
+/** Truncate text to ~maxLen characters at a word boundary. */
+function truncateAtWord(text: string, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  const truncated = text.substring(0, maxLen).replace(/\s+\S*$/, "");
+  return truncated || text.substring(0, maxLen);
+}
+
+/**
+ * Check if a period at position `i` in `text` is part of an abbreviation
+ * (e.g. "Dr.", "U.S.", "3.") rather than a sentence-ending period.
+ * Looks at the word ending at the period — abbreviations are typically
+ * 1–2 characters or all-digits.
+ */
+function isAbbreviationPeriod(text: string, i: number): boolean {
+  const wordMatch = text.slice(0, i).match(/\b(\w+)$/);
+  const prevWord = wordMatch?.[1] ?? "";
+  return prevWord.length <= 2 || /^\d+$/.test(prevWord);
+}
+
+/**
+ * Extracts the sentence or clause surrounding a citation marker position.
+ * Looks for sentence boundaries (. ! ? newline) or list item boundaries (- *).
+ */
+function extractSurroundingSentence(text: string, markerStart: number, markerEnd: number): string {
+  // Look backward for sentence start
+  let sentenceStart = markerStart;
+  for (let i = markerStart - 1; i >= 0 && i >= markerStart - SENTENCE_SEARCH_WINDOW; i--) {
+    const ch = text[i];
+    if (ch === "\n") {
+      sentenceStart = i + 1;
+      break;
+    }
+    if ((ch === "." || ch === "!" || ch === "?") && i < markerStart - 1) {
+      const nextChar = text[i + 1];
+      if ((nextChar === " " || nextChar === "\n") && !isAbbreviationPeriod(text, i)) {
+        sentenceStart = i + 2;
+        break;
+      }
+    }
+    if (i === 0) {
+      sentenceStart = 0;
+    }
+  }
+
+  // Look forward for sentence end
+  let sentenceEnd = markerEnd;
+  for (let i = markerEnd; i < text.length && i < markerEnd + SENTENCE_SEARCH_WINDOW; i++) {
+    const ch = text[i];
+    if (ch === "\n") {
+      sentenceEnd = i;
+      break;
+    }
+    if (ch === "." || ch === "!" || ch === "?") {
+      const nextChar = text[i + 1];
+      if ((!nextChar || nextChar === " " || nextChar === "\n") && !isAbbreviationPeriod(text, i)) {
+        sentenceEnd = i + 1;
+        break;
+      }
+    }
+    if (i === text.length - 1) {
+      sentenceEnd = text.length;
+    }
+  }
+
+  // Extract and clean the sentence
+  let sentence = text.substring(sentenceStart, sentenceEnd).trim();
+
+  // Remove leading list markers (-, *, numbers)
+  sentence = sentence.replace(/^[-*•]\s+/, "").replace(/^\d+\.\s+/, "");
+
+  // Strip all [N] markers from the extracted sentence to get clean text
+  sentence = sentence.replace(CITATION_MARKER_RE, "").replace(MULTI_CITATION_MARKER_RE, "");
+
+  // Remove markdown bold/italic markers for cleaner full_phrase
+  sentence = sentence.replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1");
+
+  // Clean up extra whitespace
+  sentence = sentence.replace(/\s{2,}/g, " ").trim();
+
+  return sentence;
+}
+
+/**
+ * Extracts citations from raw LLM output that contains only [N] markers
+ * (no <<<CITATION_DATA>>> JSON block). Uses the surrounding sentence/clause
+ * as the `full_phrase` for each citation.
+ *
+ * Handles three marker styles observed across LLM providers:
+ * - Sequential: `[1]`, `[2]`, `[3]` (all providers)
+ * - Adjacent: `[9][10][11]` (OpenAI)
+ * - Comma-separated: `[1, 5]`, `[2, 3, 4]` (Gemini)
+ *
+ * @param text - Raw LLM output with [N] markers but no citation data block
+ * @returns Citation dictionary keyed by citation number as a string (e.g. "1", "2"),
+ *   NOT by content hash like `getCitationKey()`. This is because marker-only citations
+ *   lack the metadata needed for content hashing, and numeric keys match citationNumber.
+ */
+export function extractCitationsFromMarkers(text: string): { [key: string]: Citation } {
+  if (!text || typeof text !== "string") return {};
+
+  const citations: { [key: string]: Citation } = {};
+  const seenIds = new Set<number>();
+
+  // First pass: find all multi-citation markers [N, N, N]
+  for (const match of text.matchAll(MULTI_CITATION_MARKER_RE)) {
+    const ids = match[1].split(",").map(s => parseInt(s.trim(), 10));
+    const markerStart = match.index;
+    const markerEnd = markerStart + match[0].length;
+    const sentence = extractSurroundingSentence(text, markerStart, markerEnd);
+
+    if (!sentence) continue;
+
+    for (const id of ids) {
+      if (seenIds.has(id) || Number.isNaN(id)) continue;
+      seenIds.add(id);
+
+      const citation: Citation = {
+        type: "document" as const,
+        fullPhrase: sentence,
+        citationNumber: id,
+        anchorText: truncateAtWord(sentence, 50),
+      };
+      // Use citationNumber as key to avoid collisions when multiple IDs share the same sentence
+      citations[String(id)] = citation;
+    }
+  }
+
+  // Second pass: find single [N] markers not already captured
+  for (const match of text.matchAll(CITATION_MARKER_RE)) {
+    const id = parseInt(match[1], 10);
+    if (seenIds.has(id) || Number.isNaN(id)) continue;
+    seenIds.add(id);
+
+    const markerStart = match.index;
+    const markerEnd = markerStart + match[0].length;
+    const sentence = extractSurroundingSentence(text, markerStart, markerEnd);
+
+    if (!sentence) continue;
+
+    const citation: Citation = {
+      type: "document" as const,
+      fullPhrase: sentence,
+      citationNumber: id,
+      anchorText: truncateAtWord(sentence, 50),
+    };
+    citations[String(id)] = citation;
+  }
+
+  return citations;
 }
 
 /**

@@ -1,0 +1,38 @@
+# Summary of OralDNA Labs Report
+
+This is a final report from OralDNA Labs for patient John A. Doe documenting the results of a periodontal pathogen test. Here are the key findings:
+
+## Test Results
+The patient's oral rinse specimen was collected on 06/27/2009 and reported on 06/30/2009. The result was [1] **POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD** with a [2] **HIGH bacterial risk**, indicating very strong evidence of increased risk for attachment loss.
+
+## Bacteria Detected
+Five high-risk pathogens were identified above threshold levels:
+- [3] Aggregatibacter actinomycetemcomitans (High risk - very strong association with periodontal disease)
+- [4] Porphyromonas gingivalis (High risk - very strong association with periodontal disease)
+- [5] Fusobacterium nucleatum/periodonticum (High risk - strong association with periodontal disease)
+- [6] Prevotella intermedia (High risk - strong association with periodontal disease)
+- [7] Capnocytophaga species (High risk - some association with periodontal disease)
+
+Additionally, [8] three bacteria were not detected: Tannerella forsythia, Treponema denticola, and Eubacterium nodatum.
+
+## Treatment Recommendations
+The report recommends [9] office periodontal therapy protocols to disrupt biofilm and reduce pathogens, with possible systemic antibiotic augmentation at the clinician's discretion. [10] A second sample should be collected six to eight weeks post-therapy for reassessment.
+
+The patient's pocket depths ranged from 2mm to 4mm, with the deepest pocket at tooth #14.
+
+<<<CITATION_DATA>>>
+{
+  "sChm4Rh4JduVv6iCvHYg": [
+    {"id": 1, "reasoning": "main test result", "full_phrase": "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD", "anchor_text": "POSITIVE - 5 PATHOGENIC BACTERIA", "page_id": "page_number_1_index_0", "line_ids": [7]},
+    {"id": 2, "reasoning": "bacterial risk level statement", "full_phrase": "Bacterial Risk: HIGH - Very strong evidence of increased risk for attachment loss", "anchor_text": "HIGH - Very strong evidence", "page_id": "page_number_1_index_0", "line_ids": [8]},
+    {"id": 3, "reasoning": "first high-risk pathogen identified", "full_phrase": "Aggregatibacter actinomycetemcomitans  High Very strong association with PD: Transmittable, tissue invasive, and pathogenic at relatively low bacterial counts. Associated with aggressive forms of disease.", "anchor_text": "Aggregatibacter actinomycetemcomitans", "page_id": "page_number_1_index_0", "line_ids": [20, 21]},
+    {"id": 4, "reasoning": "second high-risk pathogen identified", "full_phrase": "Porphyromonas gingivalis  High Very strong association with PD: Transmittable, tissue invasive, and pathogenic at relatively low bacterial counts. Associated with aggressive forms of disease.", "anchor_text": "Porphyromonas gingivalis", "page_id": "page_number_1_index_0", "line_ids": [22, 23]},
+    {"id": 5, "reasoning": "third high-risk pathogen identified", "full_phrase": "Fusobacterium nucleatum/periodonticum  High Strong association with PD: adherence properties to several oral pathogens; often seen in refractory disease.", "anchor_text": "Fusobacterium nucleatum/periodonticum", "page_id": "page_number_1_index_0", "line_ids": [24, 25]},
+    {"id": 6, "reasoning": "fourth high-risk pathogen identified", "full_phrase": "Prevotella intermedia  High Strong association with PD: virulent properties similar to Pg; often seen in refractory disease.", "anchor_text": "Prevotella intermedia", "page_id": "page_number_1_index_0", "line_ids": [25]},
+    {"id": 7, "reasoning": "fifth high-risk pathogen identified", "full_phrase": "Capnocytophaga species High Some association with PD: Frequently found in gingivitis. Often found in association with other periodontal pathogens. May increase temporarily following active therapy.", "anchor_text": "Capnocytophaga species", "page_id": "page_number_1_index_0", "line_ids": [26, 27]},
+    {"id": 8, "reasoning": "bacteria not detected", "full_phrase": "Not Detected:  (Tf) Tannerella forsythia, (Td) Treponema denticola, (En) Eubacterium nodatum", "anchor_text": "Tannerella forsythia, Treponema denticola, Eubacterium nodatum", "page_id": "page_number_1_index_0", "line_ids": [35]},
+    {"id": 9, "reasoning": "treatment recommendation", "full_phrase": "Office Periodontal Therapy: Protocols to disrupt biofilm and reduce pathogens.", "anchor_text": "Office Periodontal Therapy", "page_id": "page_number_2_index_1", "line_ids": [15]},
+    {"id": 10, "reasoning": "reassessment protocol", "full_phrase": "A 2nd sample should be collected six to eight weeks post-therapy.", "anchor_text": "2nd sample six to eight weeks", "page_id": "page_number_2_index_1", "line_ids": [24]}
+  ]
+}
+<<<END_CITATION_DATA>>>

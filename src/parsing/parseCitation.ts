@@ -11,7 +11,12 @@ import type { Verification } from "../types/verification.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { getFieldAliases, resolveField } from "../utils/fieldAliases.js";
 import { createSafeObject, isSafeKey } from "../utils/objectSafety.js";
-import { getAllCitationsFromNumericResponse, hasCitationData, parsePageId } from "./citationParser.js";
+import {
+  extractCitationsFromMarkers,
+  getAllCitationsFromNumericResponse,
+  hasCitationData,
+  parsePageId,
+} from "./citationParser.js";
 
 /**
  * Module-level status sets for O(1) lookups — avoids per-call array allocations.
@@ -333,6 +338,11 @@ export const getAllCitationsFromLlmOutput = (llmOutput: unknown): CitationRecord
     if (hasCitationData(llmOutput)) {
       const numericCitations = getAllCitationsFromNumericResponse(llmOutput);
       Object.assign(citations, numericCitations);
+    } else {
+      // Fallback: extract citations from [N] markers in raw LLM output
+      // (no <<<CITATION_DATA>>> block — uses surrounding sentence as full_phrase)
+      const markerCitations = extractCitationsFromMarkers(llmOutput);
+      Object.assign(citations, markerCitations);
     }
   }
 

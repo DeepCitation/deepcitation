@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import {
   citationDataToCitation,
+  extractCitationsFromMarkers,
   extractVisibleText,
   getAllCitationsFromNumericResponse,
   getCitationMarkerIds,
@@ -1253,5 +1254,99 @@ describe("stripCitations", () => {
   it("does not strip XML cite tags (numeric-only)", () => {
     const xmlInput = `Text <cite attachment_id='abc' full_phrase='foo' anchor_text='bar' /> more`;
     expect(stripCitations(xmlInput)).toBe(xmlInput);
+  });
+});
+
+describe("extractCitationsFromMarkers", () => {
+  it("extracts citations from post-claim markers (OpenAI style)", () => {
+    const text = `- Patient: Doe, John A. [1]
+- Date of birth: 09/20/1961 [2]
+- Test result: POSITIVE [3]`;
+
+    const citations = extractCitationsFromMarkers(text);
+    const values = Object.values(citations);
+    expect(values.length).toBe(3);
+
+    const byNumber = values.sort((a, b) => (a.citationNumber ?? 0) - (b.citationNumber ?? 0));
+    expect(byNumber[0].fullPhrase).toContain("Patient: Doe, John A.");
+    expect(byNumber[1].fullPhrase).toContain("Date of birth: 09/20/1961");
+    expect(byNumber[2].fullPhrase).toContain("Test result: POSITIVE");
+  });
+
+  it("extracts citations from pre-claim markers (Anthropic style)", () => {
+    const text = `The result was [1] POSITIVE with a [2] HIGH bacterial risk.`;
+
+    const citations = extractCitationsFromMarkers(text);
+    const values = Object.values(citations);
+    expect(values.length).toBe(2);
+    // Both markers share the same sentence
+    expect(values[0].fullPhrase).toContain("POSITIVE");
+    expect(values[0].fullPhrase).toContain("HIGH bacterial risk");
+  });
+
+  it("extracts citations from comma-separated markers (Gemini style)", () => {
+    const text = `The report lists high-risk pathogens [2, 3, 4]. Treatment options are available [15, 19].`;
+
+    const citations = extractCitationsFromMarkers(text);
+    const values = Object.values(citations);
+    // Should extract 5 unique citation IDs: 2, 3, 4, 15, 19
+    expect(values.length).toBe(5);
+
+    const ids = values.map(c => c.citationNumber).sort((a, b) => (a ?? 0) - (b ?? 0));
+    expect(ids).toEqual([2, 3, 4, 15, 19]);
+  });
+
+  it("extracts citations from adjacent markers (OpenAI style)", () => {
+    const text = `High-risk pathogens: A. actinomycetemcomitans; P. gingivalis; F. nucleatum [9][10][11]`;
+
+    const citations = extractCitationsFromMarkers(text);
+    const values = Object.values(citations);
+    expect(values.length).toBe(3);
+
+    const ids = values.map(c => c.citationNumber).sort((a, b) => (a ?? 0) - (b ?? 0));
+    expect(ids).toEqual([9, 10, 11]);
+    // All should share the same sentence context
+    for (const c of values) {
+      expect(c.fullPhrase).toContain("High-risk pathogens");
+    }
+  });
+
+  it("handles mixed marker styles in one text", () => {
+    const text = `Result was positive [1]. Five bacteria detected [2, 3, 4]. Treatment: therapy [5] and antibiotics [6][7].`;
+
+    const citations = extractCitationsFromMarkers(text);
+    const ids = Object.values(citations)
+      .map(c => c.citationNumber)
+      .sort((a, b) => (a ?? 0) - (b ?? 0));
+    expect(ids).toEqual([1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  it("returns empty for text without markers", () => {
+    const citations = extractCitationsFromMarkers("No citations here.");
+    expect(Object.keys(citations).length).toBe(0);
+  });
+
+  it("returns empty for empty/null input", () => {
+    expect(Object.keys(extractCitationsFromMarkers("")).length).toBe(0);
+    expect(Object.keys(extractCitationsFromMarkers(null as unknown as string)).length).toBe(0);
+  });
+
+  it("strips markdown bold from full_phrase", () => {
+    const text = `The result was [1] **POSITIVE** with **HIGH** risk.`;
+    const citations = extractCitationsFromMarkers(text);
+    const phrase = Object.values(citations)[0].fullPhrase;
+    expect(phrase).not.toContain("**");
+    expect(phrase).toContain("POSITIVE");
+    expect(phrase).toContain("HIGH");
+  });
+
+  it("deduplicates citation IDs", () => {
+    // Same ID appears in both single and multi markers
+    const text = `Result was positive [1]. More details about the result [1, 2].`;
+    const citations = extractCitationsFromMarkers(text);
+    const ids = Object.values(citations).map(c => c.citationNumber);
+    // Should have exactly 2 unique IDs, not 3
+    expect(ids.length).toBe(2);
+    expect(new Set(ids).size).toBe(2);
   });
 });
