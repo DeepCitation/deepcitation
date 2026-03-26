@@ -8,48 +8,6 @@ allowed-tools: Read, Write, Bash, Glob, Grep, Edit, Agent
 
 Verify claims against source documents using the DeepCitation 2-step API, saving JSON artifacts at each step, and generate a branded interactive HTML report.
 
-## Setup
-
-### 1. Get an API key
-
-Sign up at [deepcitation.com/keys](https://deepcitation.com/keys) and create a new API key.
-
-### 2. Set the environment variable
-
-Add your key to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.):
-
-```bash
-export DEEPCITATION_API_KEY="dc_your_key_here"
-```
-
-Or add it to your project's `.env` file (make sure `.env` is in `.gitignore`).
-
-### 3. Install the skill in Claude Code
-
-1. Open **Claude Code** → go to [claude.ai/customize/skills](https://claude.ai/customize/skills)
-2. Click **"Add Skill"**
-3. Paste the raw URL of this file:
-   ```
-   https://raw.githubusercontent.com/DeepCitation/deepcitation/main/docs/skills/verify/SKILL.md
-   ```
-   Or copy this file into your project at `.claude/skills/verify/SKILL.md`.
-
-### 4. Install the SDK (for report generation)
-
-```bash
-npm install deepcitation
-```
-
-### 5. Use it
-
-In any Claude Code conversation with source documents available:
-
-```
-/verify my-report.pdf
-```
-
-Claude will upload the source, generate cited analysis, verify each citation against the document, and produce a branded HTML report you can open in your browser.
-
 ## Prerequisites
 
 - `DEEPCITATION_API_KEY` environment variable must be set
