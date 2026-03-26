@@ -648,7 +648,11 @@ export const PAGE_EXPAND_CONTENT_OPACITY_FLOOR = 0.03;
 /** Duration (ms) of the popover content recession (fade-down) at the start of
  *  a page-expand transition. Uses ease-in so opacity stays high for the first
  *  ~40ms (perceptually solid backing), then drops quickly to the floor.
- *  Prevents the peripheral-vision flash caused by an instant opacity jump. */
+ *  Prevents the peripheral-vision flash caused by an instant opacity jump.
+ *
+ *  Intentionally off the 5-tier scale — perceptual tuning: long enough for the
+ *  ease-in to keep the background solid for 2–3 frames, short enough to finish
+ *  before the ghost animation's dominant phase. */
 export const PAGE_EXPAND_RECESSION_MS = 100;
 /** Ghost keyframe offset: early interpolation. */
 export const GHOST_OFFSET_EARLY = 0.18;

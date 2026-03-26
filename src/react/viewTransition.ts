@@ -479,7 +479,7 @@ function runPageExpandGhostAnimation(
   // Helper: build a blur filter string at a given blur radius.
   const blurAt = (px: number) => (px > 0 ? `blur(${px}px)` : "none");
 
-  // Large-travel expand: EASE_COLLAPSE intentional (>200px travel, per BRANDING.md large-motion rule)
+  // Large-travel expand: EASE_COLLAPSE intentional (>200px travel, per animation-transition-rules.md large-motion rule)
   // Motion blur (filter: blur) masks the non-uniform scale distortion (squashed text)
   // and reads as cinematic motion blur. Peaks mid-flight, clears near landing.
   const keyframes: Keyframe[] = [
@@ -521,8 +521,9 @@ function runPageExpandGhostAnimation(
   // frames. Here we capture its current opacity, cancel it, and start a
   // reveal animation that smoothly continues the journey.
   if (popoverRoot) {
-    // Capture the recession's current animated opacity before cancelling so
-    // the reveal can continue from the same value — no inter-frame jump.
+    // getComputedStyle forces a style recalc — acceptable here (single element,
+    // once per transition) to capture the recession's current animated opacity so
+    // the reveal can continue from the same value without an inter-frame jump.
     const currentOpacity = Number(getComputedStyle(popoverRoot).opacity) || PAGE_EXPAND_CONTENT_OPACITY_FLOOR;
     for (const anim of popoverRoot.getAnimations()) anim.cancel();
 
