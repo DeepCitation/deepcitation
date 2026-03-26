@@ -368,6 +368,15 @@ body {
 .dcr-stat:nth-child(3) { animation-delay: 120ms; }
 .dcr-stat:nth-child(4) { animation-delay: 180ms; }
 
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .dcr-animate-in { animation: none; }
+  .dcr-stat:hover { transform: none; }
+  .dcr-evidence-thumb:hover { transform: none; }
+  .dcr-section-chevron { transition: none; }
+  .dcr-evidence-thumb { transition: none; }
+}
+
 /* ── Print ── */
 @media print {
   body { background: white; color: black; font-size: 12pt; }

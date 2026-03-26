@@ -99,7 +99,7 @@ function buildSectionsHtml(groups: StatusGroups, summary: { notFound: number; pa
     parts.push(buildSection("Partially Verified", "partial", groups.partial, true));
   }
   if (groups.verified.length > 0) {
-    parts.push(buildSection("Verified", "verified", groups.verified, summary.notFound > 0 || summary.partial > 0));
+    parts.push(buildSection("Verified", "verified", groups.verified, !(summary.notFound > 0 || summary.partial > 0)));
   }
   if (groups.pending.length > 0) {
     parts.push(buildSection("Pending", "pending", groups.pending, true));
@@ -193,8 +193,9 @@ export function renderBrandedReport(input: string | ParsedCitationResult, option
 
   const triggerCssBody = stripStyleTags(generateStyleBlock(classPrefix, theme));
 
-  // Format timestamp
-  const date = new Date(generatedAt);
+  // Format timestamp — fall back to now if the input is unparseable
+  const parsed_date = new Date(generatedAt);
+  const date = Number.isNaN(parsed_date.getTime()) ? new Date() : parsed_date;
   const formattedDate = date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
