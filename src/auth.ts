@@ -90,7 +90,9 @@ const ALLOWED_ORIGIN = "https://deepcitation.com";
 const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 function corsHeaders(origin: string | undefined): Record<string, string> {
-  // Use isDomainMatch for safe subdomain validation (prevents evil.deepcitation.com.attacker.com)
+  // Intentionally trusts all *.deepcitation.com subdomains — the callback server
+  // only runs on 127.0.0.1 during interactive login so the blast radius is limited.
+  // isDomainMatch prevents suffix-spoofing (e.g. evil.deepcitation.com.attacker.com).
   const allowed = origin && isDomainMatch(origin, "deepcitation.com") ? origin : ALLOWED_ORIGIN;
   return {
     "Access-Control-Allow-Origin": allowed,

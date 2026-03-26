@@ -109,6 +109,10 @@ function report(argv: string[]) {
   const llmOutput = readFileSync(resolve(llmOutputPath), "utf-8");
   const verifyResponse = JSON.parse(readFileSync(resolve(verifyResponsePath), "utf-8"));
 
+  if (!verifyResponse.verifications || typeof verifyResponse.verifications !== "object") {
+    die("verify-response JSON must contain a 'verifications' object", REPORT_HELP);
+  }
+
   const sourceLabels = args["source-labels"]
     ? (JSON.parse(args["source-labels"]) as Record<string, string>)
     : undefined;
@@ -171,7 +175,7 @@ function inject(argv: string[]) {
     `<script type="application/json" id="dc-data">${jsonData}</script>`,
     keyMapSnippet,
     `<script>${escapeJsForScript(CDN_JS)}</script>`,
-    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"${theme}"});</script>`,
+    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:${JSON.stringify(theme)}});</script>`,
   ]
     .filter(Boolean)
     .join("\n");
