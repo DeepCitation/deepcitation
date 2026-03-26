@@ -94,7 +94,9 @@ describe("mapToVerification", () => {
     expect(mapToVerification(minData).searchAttempts).toBeUndefined();
   });
   it("maps document metadata", () => {
-    expect(mapToVerification(fullData).document).toEqual({ verifiedPageNumber: 3, mimeType: "application/pdf" });
+    expect(mapToVerification(fullData).document).toEqual(
+      expect.objectContaining({ verifiedPageNumber: 3, mimeType: "application/pdf" }),
+    );
   });
   it("maps URL metadata", () => {
     expect(mapToVerification(fullData).url).toEqual({

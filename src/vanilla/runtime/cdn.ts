@@ -24,7 +24,7 @@ const STATUS_COLORS = {
 } as const;
 
 /** Indicator variant type — mirrors React's IndicatorVariant */
-type CdnIndicatorVariant = "icon" | "dot" | "caret" | "none";
+type CdnIndicatorVariant = "icon" | "dot" | "none";
 
 declare const __CDN_CSS__: string;
 const SIDE_OFFSET = 8;
@@ -69,7 +69,7 @@ interface CdnOptions {
   verifications?: Record<string, VerificationData>;
   theme?: "light" | "dark" | "auto";
   selector?: string;
-  /** Status indicator variant: "icon" (check/x), "dot" (colored circle), "caret" (chevron), "none" */
+  /** Status indicator variant: "icon" (check/x), "dot" (colored circle), "none" */
   indicatorVariant?: CdnIndicatorVariant;
 }
 interface DeepCitationPopoverAPI {
@@ -106,7 +106,8 @@ let pageScrollEl: Element | null = null;
 let coastRafId: number | null = null;
 const boundTriggers = new WeakSet<HTMLElement>();
 
-const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const prefersReducedMotion =
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 function injectStyles(): void {
   if (document.getElementById("dc-popover-styles")) return;
@@ -131,7 +132,8 @@ function ensurePopoverEls(): { wrapper: HTMLDivElement; content: HTMLDivElement 
 
     // Inner content: overflow, max-size, visual styling (matches React's content div)
     const content = document.createElement("div");
-    content.className = "dc-cdn-popover rounded-dc-lg border border-dc-border bg-dc-background shadow-xl font-dc text-dc-foreground";
+    content.className =
+      "dc-cdn-popover rounded-dc-lg border border-dc-border bg-dc-background shadow-xl font-dc text-dc-foreground";
     content.setAttribute("data-dc-popover-content", "");
     content.style.maxWidth = "calc(100vw - 2rem)";
     content.style.maxHeight = "calc(100dvh - 2rem)";
@@ -224,7 +226,8 @@ function setupScrollPassthrough(): void {
       if (e.defaultPrevented || e.deltaY === 0) return;
       if (canChildScrollVertically(e.target as HTMLElement | null, wrapperEl, e.deltaY)) return;
       e.preventDefault();
-      const pixelDelta = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY;
+      const pixelDelta =
+        e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY;
       getPageScrollEl().scrollTop += pixelDelta;
     },
     { passive: false, signal },
