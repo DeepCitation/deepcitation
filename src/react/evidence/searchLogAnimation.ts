@@ -8,6 +8,13 @@ import {
 
 const SETTLE_MS = Math.max(16, EVIDENCE_LIST_EXPAND_TOTAL_MS - EVIDENCE_LIST_EXPAND_STEP_MS);
 
+const TRANSITION_PROPS = ["max-height", "opacity", "padding-top", "transform"] as const;
+
+/** Build a uniform CSS transition for all animated properties at the given duration and easing. */
+function buildTransition(ms: number, easing: string): string {
+  return TRANSITION_PROPS.map(p => `${p} ${ms}ms ${easing}`).join(", ");
+}
+
 // Evidence list expand/collapse uses an inlined motion state machine instead of
 // useBlinkMotionStage because it needs proportional height reveal (measuring
 // actual scrollHeight via searchLogViewportRef) and per-stage CSS property
@@ -46,13 +53,9 @@ export function resolveEvidenceListTransform(stage: EvidenceListMotionStage): st
 
 export function resolveEvidenceListTransition(stage: EvidenceListMotionStage): string {
   if (stage === "enter-a" || stage === "idle" || stage === "exit-a") return "none";
-  if (stage === "enter-b") {
-    return `max-height ${EVIDENCE_LIST_EXPAND_STEP_MS}ms ${BLINK_ENTER_EASING}, opacity ${EVIDENCE_LIST_EXPAND_STEP_MS}ms ${BLINK_ENTER_EASING}, padding-top ${EVIDENCE_LIST_EXPAND_STEP_MS}ms ${BLINK_ENTER_EASING}, transform ${EVIDENCE_LIST_EXPAND_STEP_MS}ms ${BLINK_ENTER_EASING}`;
-  }
-  if (stage === "steady") {
-    return `max-height ${SETTLE_MS}ms ${BLINK_ENTER_EASING}, opacity ${SETTLE_MS}ms ${BLINK_ENTER_EASING}, padding-top ${SETTLE_MS}ms ${BLINK_ENTER_EASING}, transform ${SETTLE_MS}ms ${BLINK_ENTER_EASING}`;
-  }
-  return `max-height ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}, opacity ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}, padding-top ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}, transform ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}`;
+  if (stage === "enter-b") return buildTransition(EVIDENCE_LIST_EXPAND_STEP_MS, BLINK_ENTER_EASING);
+  if (stage === "steady") return buildTransition(SETTLE_MS, BLINK_ENTER_EASING);
+  return buildTransition(EVIDENCE_LIST_COLLAPSE_TOTAL_MS, BLINK_EXIT_EASING);
 }
 
 // Combined reducer for search-log animation state — a single dispatch replaces

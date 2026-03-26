@@ -56,6 +56,7 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `getTrustLevel()`, `isLowTrustMatch()` | `src/react/citationStatus.ts` | Trust classification from MatchedVariation |
 | `getStatusFromVerification()` | `src/react/citationStatus.ts` | Verification → CitationStatus mapping |
 | `getStatusLabel()` | `src/react/citationStatus.ts` | Status → display string |
+| `IDENTITY_RENDER_SCALE` | `src/react/evidence/resolvers.ts` | Identity scale for image sources where coords are already in pixel space |
 | `resolveEvidenceSrc()` | `src/react/evidence/resolvers.ts` | Resolve evidence crop image (keyhole source) |
 | `resolveExpandedImage()` | `src/react/evidence/resolvers.ts` | Resolve best image source for expanded view |
 | `EvidenceTray` | `src/react/evidence/EvidenceTray.tsx` | Evidence display with keyhole viewer (re-exported from `EvidenceTray.tsx` barrel) |
