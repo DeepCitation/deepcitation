@@ -313,8 +313,6 @@ function findPageTextItems(
   pageNumber: number | null | undefined,
 ): DeepTextItem[] | undefined {
   if (!pageNumber || !verification?.document?.textItems) return undefined;
-  const matchPage = verification.document?.verifiedPageNumber;
-  if (!matchPage || matchPage !== pageNumber) return undefined;
   return verification.document.textItems;
 }
 

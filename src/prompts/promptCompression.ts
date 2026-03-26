@@ -171,7 +171,10 @@ export function decompressPromptIds<T>(compressed: T | string, prefixMap: Record
   const prefixKeys = Object.keys(prefixMap);
   if (prefixKeys.length === 0) return compressed;
 
-  // Prepare sorted [prefix, full] entries (longest prefix first)
+  // Prepare sorted [prefix, full] entries (longest prefix first).
+  // Longest-first ordering is required because regex alternation uses
+  // first-match semantics — a short prefix that is a prefix of a longer
+  // one would shadow it otherwise.
   const entries = prefixKeys
     .map(prefix => [prefix, prefixMap[prefix]] as const)
     .sort((a, b) => b[0].length - a[0].length);

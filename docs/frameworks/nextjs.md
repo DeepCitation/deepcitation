@@ -425,7 +425,7 @@ import { DeepCitationTheme } from "deepcitation/react";
 
 // In your layout or chat wrapper:
 <DeepCitationTheme
-  colors={{
+  theme={{
     verified: "#16a34a",
     partial: "#eab308",
     error: "#dc2626",

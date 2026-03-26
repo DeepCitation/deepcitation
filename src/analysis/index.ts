@@ -2,7 +2,8 @@
  * Search Analysis Module
  *
  * Pure-function module for transforming search/verification data into
- * display-ready structures. Zero React dependency.
+ * display-ready structures. No React hooks — depends only on i18n types
+ * and `defaultTranslator` from `src/react/i18n.ts` for string resolution.
  *
  * Primary entry point: `analyzeVerification(verification, t?)`
  * Escape hatch: `buildNarrativeFromParts(attempts, status, ...)`

@@ -65,6 +65,7 @@ export {
   toMarkdown,
   toSuperscript,
 } from "./markdown/index.js";
+
 // Citation parsing — core API + display helpers
 export {
   citationDataToCitation,
@@ -76,6 +77,7 @@ export {
   replaceCitationMarkers,
   stripCitations,
 } from "./parsing/citationParser.js";
+
 export {
   getAllCitationsFromLlmOutput,
   getCitationStatus,
@@ -85,10 +87,12 @@ export {
 } from "./parsing/parseCitation.js";
 export type { ParsedCitationResult } from "./parsing/parseCitationResponse.js";
 export { parseCitationResponse } from "./parsing/parseCitationResponse.js";
+
 export {
   cleanRepeatingLastSentence,
   isGeminiGarbage,
 } from "./parsing/parseWorkAround.js";
+
 // Prompts
 export type {
   CitationData,
@@ -114,6 +118,7 @@ export {
   compressPromptIds,
   decompressPromptIds,
 } from "./prompts/promptCompression.js";
+
 // React utilities
 export {
   CITATION_X_PADDING,
