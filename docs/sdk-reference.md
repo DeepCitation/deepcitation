@@ -4,7 +4,7 @@ title: SDK Reference
 parent: API Reference
 nav_order: 1
 description: "TypeScript SDK client methods and utility functions"
-commit_sha: "cc9c7aa"
+commit_sha: "80dfecd"
 stale_after_commits: 10
 watch_paths:
   - src/client/DeepCitation.ts
@@ -35,7 +35,13 @@ const dc = new DeepCitation({
 
 | Option | Type | Required | Description |
 |:-------|:-----|:---------|:------------|
-| `apiKey` | `string` | Yes | Your DeepCitation API key (`dc_live_...`) |
+| `apiKey` | `string` | Yes | Your DeepCitation API key. Must start with `sk-dc-` and be at least 20 characters. |
+| `maxRetries` | `number` | No | Maximum retries for transient network failures (connection drops, DNS errors). Uses exponential backoff with jitter: `2^(attempt-1) * 100ms ± 10%`, capped at 16s. Does **not** retry HTTP error responses (4xx/5xx). Default: `3`. |
+| `requestSource` | `string` | No | Tag identifying request origin (e.g. `"playground"`). Sent as `X-Request-Source` header. |
+| `onLatestVersion` | `(latestVersion: string) => void` | No | Callback invoked when the API responds with a latest SDK version header. Useful for detecting when a newer SDK version is available. |
+
+{: .warning }
+`apiUrl` must use HTTPS (except `http://localhost` for local development). The client throws a `ValidationError` at construction time if this requirement is not met.
 
 ---
 

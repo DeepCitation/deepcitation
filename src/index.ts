@@ -125,6 +125,14 @@ export {
   CITATION_Y_PADDING,
   generateCitationInstanceId,
 } from "./react/utils.js";
+// Rendering port (prepare-once, render-many pattern)
+export {
+  type CitationAdapter,
+  type CitationIR,
+  type PrepareCitationsOptions,
+  prepareCitations,
+  type ResolvedCitation,
+} from "./rendering/prepareCitations.js";
 
 // Types
 export type { DeepTextItem, ScreenBox } from "./types/boxes.js";

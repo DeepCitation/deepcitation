@@ -7,6 +7,7 @@
  */
 export {
   AnchorTextFocusedImage,
+  type EvidenceImages,
   EvidenceTray,
   type ExpandedImageSource,
   InlineExpandedImage,
@@ -14,4 +15,6 @@ export {
   resolveExpandedImage,
   resolveExpandedImageForPage,
   SearchAnalysisSummary,
+  useEvidenceImages,
+  useEvidenceImagesForPage,
 } from "./evidence/index.js";

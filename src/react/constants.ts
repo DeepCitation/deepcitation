@@ -641,10 +641,19 @@ export const GHOST_BLUR_LATE_PX = 5;
 /** Ghost blur (px) at near-peak — nearly clear before fade-out. */
 export const GHOST_BLUR_PEAK_PX = 2;
 
-/** Page content initial opacity during page-expand — nearly invisible.
+/** Page content floor opacity during page-expand — nearly invisible.
  *  Must be very low so the ghost dominates the first 60% of the animation
  *  (mirroring how the collapse keeps new content at 0 until 60%). */
-export const PAGE_EXPAND_CONTENT_OPACITY_START = 0.03;
+export const PAGE_EXPAND_CONTENT_OPACITY_FLOOR = 0.03;
+/** Duration (ms) of the popover content recession (fade-down) at the start of
+ *  a page-expand transition. Uses ease-in so opacity stays high for the first
+ *  ~40ms (perceptually solid backing), then drops quickly to the floor.
+ *  Prevents the peripheral-vision flash caused by an instant opacity jump.
+ *
+ *  Intentionally off the 5-tier scale — perceptual tuning: long enough for the
+ *  ease-in to keep the background solid for 2–3 frames, short enough to finish
+ *  before the ghost animation's dominant phase. */
+export const PAGE_EXPAND_RECESSION_MS = 100;
 /** Ghost keyframe offset: early interpolation. */
 export const GHOST_OFFSET_EARLY = 0.18;
 /** Ghost keyframe offset: mid interpolation. */

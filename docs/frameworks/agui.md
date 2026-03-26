@@ -4,6 +4,11 @@ title: AG-UI
 parent: Frameworks
 nav_order: 7
 description: "Using DeepCitation with the AG-UI protocol for SSE streaming"
+commit_sha: "80dfecd"
+stale_after_commits: 20
+watch_paths:
+  - src/client/DeepCitation.ts
+  - examples/agui-chat/
 ---
 
 # DeepCitation + AG-UI

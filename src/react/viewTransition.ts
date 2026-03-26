@@ -20,7 +20,7 @@ import {
   GHOST_OPACITY_PEAK,
   GHOST_OPACITY_START,
   isValidProofImageSrc,
-  PAGE_EXPAND_CONTENT_OPACITY_START,
+  PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
 
@@ -71,7 +71,12 @@ export function primeEvidencePageExpandSource(sourceEl: HTMLElement | null): voi
  */
 export function startEvidenceViewTransition(
   update: () => void,
-  options?: { isCollapse?: boolean; isPageExpand?: boolean; skipAnimation?: boolean },
+  options?: {
+    isCollapse?: boolean;
+    isPageExpand?: boolean;
+    skipAnimation?: boolean;
+    root?: ParentNode | null;
+  },
 ): void {
   const skip = options?.skipAnimation;
   if (skip || typeof document === "undefined" || !("startViewTransition" in document)) {
@@ -86,6 +91,17 @@ export function startEvidenceViewTransition(
   }
   if (options?.isPageExpand) {
     document.documentElement.dataset.dcPageExpand = "";
+  }
+
+  // For expand transitions (not collapse), create a scrim at the pre-expand
+  // popover rect so the existing visual is preserved while the popover grows.
+  // The FLIP morph (usePopoverMorphTransition) clips the expansion area with
+  // clip-path, but the scrim provides a solid anchor if any frame renders
+  // before the clip is applied.
+  const rootEl = options?.root instanceof HTMLElement ? options.root : null;
+  let scrim: HTMLDivElement | null = null;
+  if (!options?.isCollapse && rootEl) {
+    scrim = createPreExpandScrim(rootEl);
   }
 
   // Safe cast: the `"startViewTransition" in document` guard above ensures
@@ -111,6 +127,7 @@ export function startEvidenceViewTransition(
     _transitionDepth = Math.max(0, _transitionDepth - 1);
     delete document.documentElement.dataset.dcCollapse;
     delete document.documentElement.dataset.dcPageExpand;
+    scrim?.remove();
   };
   transition.finished.then(cleanup).catch(cleanup);
 }
@@ -378,6 +395,53 @@ function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement | null {
   return ghost;
 }
 
+const PAGE_EXPAND_SCRIM_ATTR = "data-dc-page-expand-scrim";
+
+/**
+ * Create a fixed-position scrim at the popover's CURRENT rect (before it
+ * expands). Inserted before the popover wrapper in the DOM so it sits behind
+ * the popover at the same z-index. When the popover is dimmed to near-zero
+ * opacity:
+ *   - Pre-expand area: scrim provides solid backing (same visual as before)
+ *   - Expansion area: no scrim → 0.03 popover → nearly invisible over page
+ *
+ * This prevents BOTH bleed-through (scrim blocks it in the old area) AND
+ * white-rectangle flash (expansion area stays transparent).
+ */
+function createPreExpandScrim(popoverRoot: HTMLElement): HTMLDivElement | null {
+  const wrapper = popoverRoot.parentElement;
+  if (!wrapper?.parentElement) return null;
+  const rect = popoverRoot.getBoundingClientRect();
+  const cs = getComputedStyle(popoverRoot);
+  const wrapperZ = getComputedStyle(wrapper).zIndex;
+
+  const scrim = document.createElement("div");
+  scrim.setAttribute(PAGE_EXPAND_SCRIM_ATTR, "");
+  scrim.setAttribute("aria-hidden", "true");
+  scrim.style.position = "fixed";
+  scrim.style.left = `${rect.left}px`;
+  scrim.style.top = `${rect.top}px`;
+  scrim.style.width = `${rect.width}px`;
+  scrim.style.height = `${rect.height}px`;
+  scrim.style.borderRadius = cs.borderRadius;
+  scrim.style.backgroundColor = cs.backgroundColor;
+  scrim.style.pointerEvents = "none";
+  scrim.style.zIndex = wrapperZ;
+  // Insert before the wrapper → same z-index, earlier in DOM = renders behind
+  wrapper.parentElement.insertBefore(scrim, wrapper);
+  return scrim;
+}
+
+/** Remove the pre-expand scrim and restore popover styles. */
+function cleanupPageExpandScrim(popoverRoot: HTMLElement | null): void {
+  if (!popoverRoot) return;
+  popoverRoot.style.opacity = "";
+  popoverRoot.style.transition = "";
+  // Scrim is a sibling of the wrapper, find by attribute
+  const scrim = document.querySelector(`[${PAGE_EXPAND_SCRIM_ATTR}]`);
+  scrim?.remove();
+}
+
 function applyGhostRect(ghost: HTMLDivElement, rect: DOMRect): void {
   ghost.style.left = `${rect.left}px`;
   ghost.style.top = `${rect.top}px`;
@@ -394,13 +458,16 @@ function runPageExpandGhostAnimation(
   const { ghostRect } = target;
   const debugPhase = getPageExpandDebugPhase();
   if (debugPhase === "source") {
+    cleanupPageExpandScrim(popoverRoot);
     return;
   }
   if (debugPhase === "target") {
+    cleanupPageExpandScrim(popoverRoot);
     applyGhostRect(ghost, ghostRect);
     return;
   }
   if (debugPhase === "both") {
+    cleanupPageExpandScrim(popoverRoot);
     // "both" mode: hide the real ghost, draw persistent debug overlays for both rects
     ghost.remove();
     clearDebugOverlays();
@@ -463,7 +530,7 @@ function runPageExpandGhostAnimation(
   // Helper: build a blur filter string at a given blur radius.
   const blurAt = (px: number) => (px > 0 ? `blur(${px}px)` : "none");
 
-  // Large-travel expand: EASE_COLLAPSE intentional (>200px travel, per BRANDING.md large-motion rule)
+  // Large-travel expand: EASE_COLLAPSE intentional (>200px travel, per animation-transition-rules.md large-motion rule)
   // Motion blur (filter: blur) masks the non-uniform scale distortion (squashed text)
   // and reads as cinematic motion blur. Peaks mid-flight, clears near landing.
   const keyframes: Keyframe[] = [
@@ -496,23 +563,18 @@ function runPageExpandGhostAnimation(
     fill: "both",
   });
 
-  // Coordinated popover content fade-in — dims the ENTIRE popover (header,
-  // status section, image, toolbar — everything) so the ghost is the only
-  // visible element during the first 55% of the animation.
+  // Coordinated popover content fade-in — the popover is pre-dimmed to
+  // PAGE_EXPAND_CONTENT_OPACITY_FLOOR via inline style. A fixed-position scrim
+  // at the pre-expand rect provides solid backing only where the popover was,
+  // while the expansion area stays nearly transparent (no white-rectangle flash).
   //
-  // Mirrors the collapse's "dip-then-reveal":
-  //   Collapse: new content stays at 0 until 60%, then reveals sharply 0→1.
-  //   Expand:   popover stays near-invisible while ghost dominates,
-  //             then reveals sharply in the last ~40%.
-  //
-  // Previously we only dimmed [data-dc-inline-expanded] (the image container),
-  // leaving Zone 1 (header) and Zone 2 (status/claim) at full opacity — which
-  // made the expand look like "the page popped in" despite the image being dimmed.
+  // Holds at the floor while the ghost dominates, then reveals sharply in the
+  // last ~40%, mirroring the collapse's "dip-then-reveal" temporal structure.
   if (popoverRoot) {
     const contentAnim = popoverRoot.animate(
       [
-        { opacity: PAGE_EXPAND_CONTENT_OPACITY_START },
-        { opacity: 0.03, offset: 0.45 },
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR },
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: 0.45 },
         { opacity: 0.08, offset: 0.58 },
         { opacity: 0.35, offset: 0.72 },
         { opacity: 0.8, offset: 0.88 },
@@ -523,11 +585,8 @@ function runPageExpandGhostAnimation(
     contentAnim.finished
       .catch(() => {})
       .finally(() => {
-        // Cancel removes the WAAPI animation layer so its fill: "forwards"
-        // no longer overrides inline styles on subsequent transitions.
         contentAnim.cancel();
-        popoverRoot.style.opacity = "";
-        popoverRoot.style.transition = "";
+        cleanupPageExpandScrim(popoverRoot);
       });
   }
 
@@ -626,32 +685,31 @@ export function startEvidencePageExpandTransition(
     _transitionDepth++;
     const source = capturePageExpandSource(root);
 
-    // Pre-dim the ENTIRE popover content BEFORE flushSync. This ensures that
-    // when flushSync makes the expanded-page slot visible, the whole popover
-    // (header, status, image — everything) appears already dimmed.
+    // Pre-dim the popover content BEFORE flushSync so when the expanded-page
+    // slot becomes visible, it's already nearly invisible — preventing a flash
+    // of the final layout.
     //
-    // CRITICAL: Disable CSS transitions first. The PopoverContent element has
-    // `transition: opacity 60ms ...` from getBlinkContainerMotionStyle("steady").
-    // Without disabling transitions, the opacity change animates from 1 → 0.03
-    // over ~60ms — the first paint frame shows the expanded page at ~50% opacity,
-    // which reads as a full-page flash before the ghost animation begins.
+    // CSS opacity on a parent makes its own background transparent too. A
+    // fixed-position scrim at the popover's PRE-EXPAND rect (created before
+    // the dim) provides solid backing only where the popover already was.
+    // The expansion area (new area from the larger expanded-page layout) has
+    // no scrim → stays at 0.03 opacity → nearly invisible over the page,
+    // preventing the white-rectangle flash that a full-area backing creates.
+    //
+    // Disable CSS transitions first so the blink-motion `transition: opacity 60ms`
+    // doesn't compete. Cancel lingering WAAPI from a previous page-expand so
+    // fill: "forwards" doesn't override the inline opacity.
     if (rootEl) {
-      // Cancel any lingering WAAPI animations from a previous page-expand.
-      // `fill: "forwards"` on the content fade-in holds opacity: 1 indefinitely
-      // at a higher cascade priority than inline styles — without cancelling,
-      // the inline opacity: 0.03 below would be silently overridden.
       for (const anim of rootEl.getAnimations()) anim.cancel();
       rootEl.style.transition = "none";
-      rootEl.style.opacity = String(PAGE_EXPAND_CONTENT_OPACITY_START);
+      createPreExpandScrim(rootEl);
+      rootEl.style.opacity = String(PAGE_EXPAND_CONTENT_OPACITY_FLOOR);
     }
 
     flushSync(update);
 
     if (!source) {
-      if (rootEl) {
-        rootEl.style.opacity = "";
-        rootEl.style.transition = "";
-      }
+      cleanupPageExpandScrim(rootEl);
       if (debugPhase) {
         clearDebugOverlays();
         const primedEls = root.querySelectorAll?.("[data-dc-page-expand-source]");
@@ -665,10 +723,7 @@ export function startEvidencePageExpandTransition(
     }
     const ghost = createPageExpandGhost(source);
     if (!ghost) {
-      if (rootEl) {
-        rootEl.style.opacity = "";
-        rootEl.style.transition = "";
-      }
+      cleanupPageExpandScrim(rootEl);
       if (debugPhase) {
         console.warn("[DC debug] ghost creation FAILED — image validation rejected:", source.imageSrc);
       }
@@ -679,10 +734,7 @@ export function startEvidencePageExpandTransition(
       _transitionDepth = Math.max(0, _transitionDepth - 1);
       if (!target) {
         ghost.remove();
-        if (rootEl) {
-          rootEl.style.opacity = "";
-          rootEl.style.transition = "";
-        }
+        cleanupPageExpandScrim(rootEl);
         if (debugPhase) {
           clearDebugOverlays();
           const targetEls = root.querySelectorAll?.("[data-dc-page-expand-target]");

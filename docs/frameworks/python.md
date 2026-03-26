@@ -4,6 +4,10 @@ title: Python / FastAPI
 parent: Frameworks
 nav_order: 5
 description: "Using the DeepCitation REST API from Python"
+commit_sha: "80dfecd"
+stale_after_commits: 20
+watch_paths:
+  - src/client/DeepCitation.ts
 ---
 
 # DeepCitation + Python

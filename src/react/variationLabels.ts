@@ -1,28 +1,5 @@
-import type { VariationType } from "../types/search.js";
-import { defaultTranslator, type MessageKey, type TranslateFunction } from "./i18n.js";
-
 /**
- * Maps VariationType to i18n message key.
+ * @deprecated Import from `../analysis/variationLabels.js` instead.
+ * This file is a backward-compatibility re-export.
  */
-const VARIATION_KEY_MAP: Record<VariationType, MessageKey> = {
-  exact: "variation.exact",
-  normalized: "variation.normalized",
-  currency: "variation.currency",
-  date: "variation.date",
-  numeric: "variation.numeric",
-  symbol: "variation.symbol",
-  accent: "variation.accent",
-};
-
-/**
- * Get the user-friendly label for a variation type.
- * Returns null for undefined types (caller should fall back to "Also tried").
- * Pass a `t` function from `useTranslation()` for i18n support.
- */
-export function getVariationLabel(
-  variationType: VariationType | undefined,
-  t: TranslateFunction = defaultTranslator,
-): string | null {
-  if (!variationType) return null;
-  return t(VARIATION_KEY_MAP[variationType]);
-}
+export { getVariationLabel } from "../analysis/variationLabels.js";

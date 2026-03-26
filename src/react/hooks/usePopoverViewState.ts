@@ -131,7 +131,11 @@ export function usePopoverViewState(config: UsePopoverViewStateConfig): PopoverV
         });
         return;
       }
-      startEvidenceViewTransition(commitViewState, { isCollapse, skipAnimation: prefersReducedMotion });
+      startEvidenceViewTransition(commitViewState, {
+        isCollapse,
+        skipAnimation: prefersReducedMotion,
+        root: popoverContentRef.current,
+      });
     },
     [experimentalHaptics, isMobile, prefersReducedMotion, popoverContentRef],
   );

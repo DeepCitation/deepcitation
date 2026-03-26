@@ -4,7 +4,7 @@ title: Getting Started
 nav_order: 2
 description: "Installation and quick start guide for DeepCitation"
 has_children: true
-commit_sha: "cc9c7aa"
+commit_sha: "80dfecd"
 stale_after_commits: 20
 watch_paths:
   - src/index.ts
@@ -119,7 +119,12 @@ This isolates DeepCitation's verification — you can confirm it works before in
 ```typescript
 import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "deepcitation";
 
-const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
+const dc = new DeepCitation({
+  apiKey: process.env.DEEPCITATION_API_KEY, // must start with "sk-dc-" (≥20 chars)
+  // maxRetries: 3,        // retries for transient network failures (default: 3)
+  // requestSource: "my-app", // optional tag identifying request origin
+  // onLatestVersion: (v) => console.log(`New SDK version available: ${v}`),
+});
 
 // 1. Prepare your source document
 const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
@@ -223,8 +228,10 @@ See the [Next.js guide]({{ site.baseurl }}/frameworks/nextjs/#pattern-3-renderin
 Include your API key in the Authorization header:
 
 ```
-Authorization: Bearer dc_live_YOUR_API_KEY
+Authorization: Bearer sk-dc-YOUR_API_KEY
 ```
+
+API keys must start with `sk-dc-` and be at least 20 characters long. The SDK validates this on construction and throws an `AuthenticationError` if the format is invalid.
 
 Get your API key from the [API Keys Page](https://deepcitation.com/signup).
 
@@ -239,7 +246,7 @@ https://api.deepcitation.com
 ```
 
 {: .note }
-The SDK handles API routing automatically. You only need to configure your API key.
+The SDK handles API routing automatically. You only need to configure your API key. If you provide a custom `apiUrl`, it must use HTTPS (except `http://localhost` for local development).
 
 ---
 
@@ -249,6 +256,8 @@ The SDK handles API routing automatically. You only need to configure your API k
 |:-----|:--------|
 | PDFs | `.pdf` |
 | Images | `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp` (auto-OCR) |
+| Audio | `.mp3`, `.wav`, `.m4a`, `.ogg` and other audio formats (auto-transcribed) |
+| Video | `.mp4`, `.webm`, `.mov` and other video formats (auto-transcribed) |
 | Office Docs | Word, Excel, PowerPoint, Google Docs |
 | URLs | Web pages via `prepareUrl` endpoint |
 
@@ -257,7 +266,7 @@ The SDK handles API routing automatically. You only need to configure your API k
 ## Troubleshooting
 
 {: .note }
-Having issues? Check [Common Mistakes]({{ site.baseurl }}/error-handling/#common-mistakes) for the most frequent integration problems (unstyled citations, unexpected `not_found` results, exposed API keys).
+Having issues? Error objects include a `docUrl` property linking to relevant documentation (e.g. `https://docs.deepcitation.com/errors#AUTH_INVALID_KEY`). Check [Common Mistakes]({{ site.baseurl }}/error-handling/#common-mistakes) for the most frequent integration problems (unstyled citations, unexpected `not_found` results, exposed API keys).
 
 ---
 

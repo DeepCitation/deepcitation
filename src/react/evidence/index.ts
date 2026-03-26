@@ -9,3 +9,4 @@ export {
   resolveExpandedImageForPage,
 } from "./resolvers.js";
 export { SearchAnalysisSummary } from "./SearchAnalysisSummary.js";
+export { type EvidenceImages, useEvidenceImages, useEvidenceImagesForPage } from "./useEvidenceImages.js";

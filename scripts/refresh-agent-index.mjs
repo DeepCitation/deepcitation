@@ -66,6 +66,7 @@ const DESCRIPTIONS = {
   "src/react": "React components and hooks (CitationComponent, SourcesList, i18n, popovers)",
   "src/react/hooks": "Extracted React hooks",
   "src/react/locales": "i18n locale JSON files (en, es, fr, ...)",
+  "src/react/evidence": "Evidence tray, expanded images, search analysis summary components",
   "src/react/motion": "Animation/motion utilities",
   "src/react/testing": "React testing helpers",
   "src/markdown": "Markdown rendering (renderMarkdown, markdownVariants)",
@@ -78,6 +79,9 @@ const DESCRIPTIONS = {
   "src/rendering/testing": "Renderer test helpers",
   "src/types": "Core TypeScript types (citation, verification, boxes, search, timing, diff)",
   "src/utils": "Security utilities: urlSafety, logSafety, objectSafety, regexSafety, sha, fileSafety",
+  "src/analysis": "Search analysis: grouping, intent, narrative, and variation labels (pure functions, no React)",
+  "src/docs": "Centralized code snippets for INTEGRATION.md",
+  "src/vanilla": "Framework-free popover bundle (CDN/vanilla JS runtime)",
   "src/drawing": "Drawing/canvas utilities",
   "src/__tests__": "Unit test files",
 
@@ -92,6 +96,7 @@ const DESCRIPTIONS = {
 
   // scripts/
   "scripts": "Build, validation, and maintenance scripts",
+  "scripts/docs-audit-inventory.mjs": "Deterministic checks for documentation drift (broken links, staleness, etc.)",
 
   // .github/
   ".github/workflows": "CI/CD workflows",
@@ -101,6 +106,7 @@ const DESCRIPTIONS = {
   ".github/workflows/docs.yml": "GitHub Pages deploy",
   ".github/workflows/claude-code-review.yml": "Automated PR review via Claude Code",
   ".github/workflows/claude.yml": "Claude Code on issue comments",
+  ".github/workflows/release.yml": "Manual version bump and release workflow",
   ".github/workflows/codeql.yml": "CodeQL security scanning",
 
   // examples/
@@ -109,6 +115,9 @@ const DESCRIPTIONS = {
   "examples/assets": "Shared example assets",
   "examples/basic-verification": "Basic citation verification example",
   "examples/nextjs-ai-sdk": "Next.js AI SDK integration example",
+  "examples/langchain-rag-chat": "LangChain.js RAG chat example with Next.js",
+  "examples/mastra-rag-chat": "Mastra RAG chat example with Next.js and LibSQLVector",
+  "examples/static-html": "CDN popover bundle in a plain HTML page (no build step)",
   "examples/url-example": "URL citation verification example",
 };
 
