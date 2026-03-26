@@ -62,7 +62,7 @@ function buildCitationCards(citations: ResolvedCitation[]): string {
     .map(cws => {
       const statusKey = getStatusKey(cws.status);
       const statusLabel = getStatusLabel(cws.status);
-      const location = formatPageLocation(cws.citation, cws.verification ?? undefined, {
+      const location = formatPageLocation(cws.citation, cws.verification ?? null, {
         showPageNumber: true,
         showLinePosition: false,
       });
@@ -70,10 +70,10 @@ function buildCitationCards(citations: ResolvedCitation[]): string {
       const quote = cws.citation.fullPhrase ? truncate(cws.citation.fullPhrase, 200) : "";
 
       const evidenceSrc = cws.verification?.evidence?.src;
-      const thumbHtml =
-        evidenceSrc && !evidenceSrc.startsWith("javascript:") && !evidenceSrc.includes("image/svg")
-          ? `<img class="dcr-evidence-thumb" src="${escapeHtml(evidenceSrc)}" alt="Evidence for citation ${cws.citationNumber}" loading="lazy" data-citation-key="${escapeHtml(cws.citationKey)}">`
-          : "";
+      const isSafeSrc = typeof evidenceSrc === "string" && /^data:image\/(png|jpe?g|webp|avif|gif);/.test(evidenceSrc);
+      const thumbHtml = isSafeSrc
+        ? `<img class="dcr-evidence-thumb" src="${escapeHtml(evidenceSrc)}" alt="Evidence for citation ${cws.citationNumber}" loading="lazy" data-citation-key="${escapeHtml(cws.citationKey)}">`
+        : "";
 
       return `<div class="dcr-citation-card">
   <div class="dcr-citation-num dcr-citation-num-${statusKey}">${cws.citationNumber}</div>
@@ -231,7 +231,6 @@ ${POPOVER_CSS}
 <body>
 <div class="dcr-shell">
 
-  <!-- Header -->
   <header class="dcr-header">
     <div class="dcr-wordmark">
       ${WORDMARK_SVG}
@@ -244,7 +243,6 @@ ${POPOVER_CSS}
     </div>
   </header>
 
-  <!-- Summary Dashboard -->
   <div class="dcr-summary">
     <div class="dcr-stat dcr-stat-total dcr-animate-in">
       <div class="dcr-stat-count">${summary.total}</div>
@@ -264,13 +262,10 @@ ${POPOVER_CSS}
     </div>
   </div>
 
-  <!-- Citation Details (Progressive Disclosure) -->
   ${sectionsHtml}
 
-  <!-- Response Body with inline citations -->
   ${bodySection}
 
-  <!-- Footer -->
   <footer class="dcr-footer">
     <span>Verified by <a href="https://deepcitation.com" target="_blank" rel="noopener">DeepCitation</a></span>
     <span>${escapeHtml(formattedDate)}</span>
@@ -278,7 +273,6 @@ ${POPOVER_CSS}
 
 </div>
 
-<!-- Verification data for popover runtime -->
 <script type="application/json" id="dc-data">${jsonData}</script>
 <script>${RUNTIME_JS}</script>
 </body>
