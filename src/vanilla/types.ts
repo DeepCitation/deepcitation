@@ -39,3 +39,38 @@ export interface VanillaReportOptions {
   /** Attachment ID → display name mapping */
   sourceLabels?: Record<string, string>;
 }
+
+/**
+ * Options for `renderBrandedReport()`.
+ */
+export interface BrandedReportOptions {
+  /** Verification results keyed by citationKey */
+  verifications?: VerificationRecord;
+
+  /** Citation display variant (default: "brackets") */
+  variant?: HtmlVariant;
+
+  /** Color theme (default: "auto") */
+  theme?: HtmlTheme;
+
+  /** Report title shown in header and document title (default: "Citation Report") */
+  title?: string;
+
+  /** Indicator symbol set (default: "check") */
+  indicatorStyle?: IndicatorStyle;
+
+  /** CSS class prefix for citation trigger spans (default: "dc-") */
+  classPrefix?: string;
+
+  /** Base URL for proof links */
+  proofBaseUrl?: string;
+
+  /** Attachment ID → display name mapping */
+  sourceLabels?: Record<string, string>;
+
+  /** ISO 8601 timestamp for report generation (default: now) */
+  generatedAt?: string;
+
+  /** Show the full response body with inline citations (default: true) */
+  showResponseBody?: boolean;
+}
