@@ -864,7 +864,7 @@ export function QuotedText({ children, className, mono = false }: QuotedTextProp
 
   return (
     <q
-      className={cn("border-l-2 border-dc-border pl-1.5 ml-0.5", mono && "font-mono", className)}
+      className={cn("border-l border-dc-border pl-1.5 ml-0.5", mono && "font-mono", className)}
       style={{ quotes: "none" }}
     >
       {children}
@@ -960,10 +960,10 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
         {t("verification.lookingFor")}
       </div>
       {hasAnchorText && (
-        <div className="text-sm font-medium text-dc-foreground mb-1 border-l-2 border-dc-border pl-2">{anchorText}</div>
+        <div className="text-sm font-medium text-dc-foreground mb-1 border-l border-dc-border pl-2">{anchorText}</div>
       )}
       {hasFullPhrase && (
-        <div className="text-xs text-dc-muted-foreground font-mono break-all bg-dc-muted p-2 rounded border-l-2 border-dc-border">
+        <div className="text-xs text-dc-muted-foreground font-mono break-all bg-dc-muted p-2 rounded border-l border-dc-border">
           {fullPhrase}
         </div>
       )}
@@ -1007,7 +1007,7 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
         ? tPlural(t, "location.matchingLocations", row.duplicateCount, { count: row.duplicateCount })
         : null;
       return (
-        <div className="py-1 px-2 text-xs font-mono border-l-2 border-dc-partial text-dc-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <div className="py-1 px-2 text-xs font-mono border-l border-dc-partial text-dc-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <span
             className="font-mono text-xxs truncate min-w-0"
             title={row.note || (isTruncated ? row.phraseFull : undefined)}
@@ -1028,7 +1028,7 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
     }
     case "failure":
       return (
-        <div className="py-1 px-2 text-xs font-mono border-l-2 border-dc-destructive/40 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <div className="py-1 px-2 text-xs font-mono border-l border-dc-destructive/40 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <span
             className="font-mono text-xxs truncate min-w-0"
             title={row.note || (isTruncated ? row.phraseFull : undefined)}
@@ -1042,7 +1042,7 @@ function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
       );
     case "collapsed_failure":
       return (
-        <div className="py-1 px-2 text-xs font-mono border-l-2 border-dc-destructive/40 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+        <div className="py-1 px-2 text-xs font-mono border-l border-dc-destructive/40 text-dc-subtle-foreground grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <span className="font-mono text-xxs truncate min-w-0" title={isTruncated ? row.phraseFull : undefined}>
             {row.phraseDisplay}
           </span>
@@ -1254,7 +1254,7 @@ export function AttemptingToVerify({ anchorText, fullPhrase }: AttemptingToVerif
       <div className="text-[10px] text-dc-subtle-foreground uppercase font-medium tracking-wide">
         {t("verification.lookingFor")}
       </div>
-      <div className="text-[15px] font-semibold text-dc-foreground border-l-2 border-dc-border pl-2">
+      <div className="text-[15px] font-semibold text-dc-foreground border-l border-dc-border pl-2">
         {displayAnchorText}
       </div>
       {displayPhrase && displayPhrase !== displayAnchorText && <QuoteBox phrase={displayPhrase} />}

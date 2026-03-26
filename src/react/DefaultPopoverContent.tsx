@@ -690,7 +690,7 @@ function PopoverFallbackView({
         )}
         {hasSnippet && (
           <q
-            className="border-l-2 border-dc-border pl-1.5 ml-0.5 text-sm text-dc-foreground"
+            className="border-l border-dc-border pl-1.5 ml-0.5 text-sm text-dc-foreground"
             style={{ quotes: "none" }}
           >
             {hasSnippet}
