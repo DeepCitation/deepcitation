@@ -3,19 +3,8 @@ import { generateStyleBlock } from "../rendering/html/styles.js";
 import { escapeHtml } from "../rendering/shared.js";
 import { RUNTIME_JS } from "./_generated.js";
 import { POPOVER_CSS } from "./popoverStyles.js";
+import { escapeJsonForScript, stripStyleTags } from "./reportUtils.js";
 import type { VanillaReportOptions } from "./types.js";
-
-/**
- * Escape a string for safe embedding in a JSON `<script>` block.
- * Prevents `</script>` injection and problematic Unicode line terminators.
- */
-function escapeJsonForScript(json: string): string {
-  return json
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/\u2028/g, "\\u2028")
-    .replace(/\u2029/g, "\\u2029");
-}
 
 /**
  * Render a fully self-contained HTML report with interactive citation popovers.
@@ -66,8 +55,7 @@ export function renderCitationReport(input: string, options: VanillaReportOption
 
   // Citation trigger styles from the HTML renderer
   const triggerStyles = includeStyles ? generateStyleBlock(classPrefix, theme) : "";
-  // Remove wrapping <style> tags since we'll add our own
-  const triggerCssBody = triggerStyles.replace(/^<style>\n?/, "").replace(/\n?<\/style>$/, "");
+  const triggerCssBody = stripStyleTags(triggerStyles);
 
   // Build styles block
   if (includeStyles) {

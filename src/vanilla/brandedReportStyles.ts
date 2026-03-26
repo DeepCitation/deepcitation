@@ -11,55 +11,56 @@
  * - Responsive layout
  */
 
-const DARK_VARS = `--dcr-bg: #1a1a1e;
-  --dcr-surface: #27272a;
+/** Dark theme uses var() fallbacks to inherit from host --dc-* tokens when available. */
+const DARK_VARS = `--dcr-bg: var(--dc-background, #1a1a1e);
+  --dcr-surface: var(--dc-muted, #27272a);
   --dcr-surface-raised: #2e2e33;
-  --dcr-text: #fafafa;
-  --dcr-text-secondary: #a1a1aa;
-  --dcr-text-tertiary: #71717a;
-  --dcr-border: #3f3f46;
+  --dcr-text: var(--dc-foreground, #fafafa);
+  --dcr-text-secondary: var(--dc-muted-foreground, #a1a1aa);
+  --dcr-text-tertiary: var(--dc-subtle-foreground, #71717a);
+  --dcr-border: var(--dc-border, #3f3f46);
   --dcr-border-subtle: #2e2e33;
   --dcr-shadow: rgba(0,0,0,0.4);
-  --dcr-verified-bg: #052e16;
-  --dcr-verified-text: #4ade80;
-  --dcr-verified-pill: #166534;
-  --dcr-partial-bg: #451a03;
-  --dcr-partial-text: #fbbf24;
-  --dcr-partial-pill: #92400e;
-  --dcr-notfound-bg: #450a0a;
-  --dcr-notfound-text: #f87171;
-  --dcr-notfound-pill: #991b1b;
-  --dcr-pending-bg: #27272a;
-  --dcr-pending-text: #a1a1aa;
-  --dcr-pending-pill: #3f3f46;`;
+  --dcr-verified-bg: var(--dc-verified-bg, #052e16);
+  --dcr-verified-text: var(--dc-verified, #4ade80);
+  --dcr-verified-pill: var(--dc-verified-border, #166534);
+  --dcr-partial-bg: var(--dc-partial-bg, #451a03);
+  --dcr-partial-text: var(--dc-partial, #fbbf24);
+  --dcr-partial-pill: var(--dc-partial-border, #92400e);
+  --dcr-notfound-bg: var(--dc-destructive-bg, #450a0a);
+  --dcr-notfound-text: var(--dc-destructive, #f87171);
+  --dcr-notfound-pill: var(--dc-destructive-border, #991b1b);
+  --dcr-pending-bg: var(--dc-pending-bg, #27272a);
+  --dcr-pending-text: var(--dc-pending, #a1a1aa);
+  --dcr-pending-pill: var(--dc-pending-border, #3f3f46);`;
 
 export const BRANDED_REPORT_CSS = `
 /* ── Reset & Base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --dcr-bg: #ffffff;
-  --dcr-surface: #f9fafb;
-  --dcr-surface-raised: #ffffff;
-  --dcr-text: #18181b;
-  --dcr-text-secondary: #52525b;
-  --dcr-text-tertiary: #a1a1aa;
-  --dcr-border: #e4e4e7;
+  --dcr-bg: var(--dc-background, #ffffff);
+  --dcr-surface: var(--dc-muted, #f9fafb);
+  --dcr-surface-raised: var(--dc-background, #ffffff);
+  --dcr-text: var(--dc-foreground, #18181b);
+  --dcr-text-secondary: var(--dc-muted-foreground, #52525b);
+  --dcr-text-tertiary: var(--dc-subtle-foreground, #a1a1aa);
+  --dcr-border: var(--dc-border, #e4e4e7);
   --dcr-border-subtle: #f4f4f5;
   --dcr-shadow: rgba(0,0,0,0.06);
-  --dcr-verified-bg: #f0fdf4;
-  --dcr-verified-text: #15803d;
-  --dcr-verified-pill: #dcfce7;
-  --dcr-partial-bg: #fffbeb;
-  --dcr-partial-text: #b45309;
-  --dcr-partial-pill: #fef3c7;
-  --dcr-notfound-bg: #fef2f2;
-  --dcr-notfound-text: #b91c1c;
-  --dcr-notfound-pill: #fee2e2;
-  --dcr-pending-bg: #f9fafb;
-  --dcr-pending-text: #6b7280;
-  --dcr-pending-pill: #f3f4f6;
-  --dcr-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --dcr-verified-bg: var(--dc-verified-bg, #f0fdf4);
+  --dcr-verified-text: var(--dc-verified, #15803d);
+  --dcr-verified-pill: var(--dc-verified-border, #dcfce7);
+  --dcr-partial-bg: var(--dc-partial-bg, #fffbeb);
+  --dcr-partial-text: var(--dc-partial, #b45309);
+  --dcr-partial-pill: var(--dc-partial-border, #fef3c7);
+  --dcr-notfound-bg: var(--dc-destructive-bg, #fef2f2);
+  --dcr-notfound-text: var(--dc-destructive, #b91c1c);
+  --dcr-notfound-pill: var(--dc-destructive-border, #fee2e2);
+  --dcr-pending-bg: var(--dc-pending-bg, #f9fafb);
+  --dcr-pending-text: var(--dc-pending, #6b7280);
+  --dcr-pending-pill: var(--dc-pending-border, #f3f4f6);
+  --dcr-font: var(--dc-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   --dcr-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --dcr-radius: 12px;
   --dcr-radius-sm: 8px;

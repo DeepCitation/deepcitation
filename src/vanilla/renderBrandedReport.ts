@@ -1,5 +1,6 @@
 import { formatPageLocation } from "../markdown/markdownVariants.js";
 import type { ParsedCitationResult } from "../parsing/parseCitationResponse.js";
+import { parseCitationResponse } from "../parsing/parseCitationResponse.js";
 import { renderCitationsAsHtml } from "../rendering/html/htmlRenderer.js";
 import { generateStyleBlock } from "../rendering/html/styles.js";
 import {
@@ -7,50 +8,51 @@ import {
   getStatusKey,
   getStatusLabel,
   resolveSourceLabel,
+  type StatusKey,
   walkCitationSegments,
 } from "../rendering/shared.js";
 import type { RenderCitationWithStatus } from "../rendering/types.js";
 import { RUNTIME_JS } from "./_generated.js";
 import { BRANDED_REPORT_CSS } from "./brandedReportStyles.js";
 import { POPOVER_CSS } from "./popoverStyles.js";
+import { escapeJsonForScript, stripStyleTags } from "./reportUtils.js";
 import type { BrandedReportOptions } from "./types.js";
-
-/**
- * Escape a string for safe embedding in a JSON `<script>` block.
- */
-function escapeJsonForScript(json: string): string {
-  return json
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/\u2028/g, "\\u2028")
-    .replace(/\u2029/g, "\\u2029");
-}
 
 /** DeepCitation shield SVG wordmark — inline, no external deps. */
 const WORDMARK_SVG = `<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <rect width="28" height="28" rx="6" fill="#10b981"/>
+  <rect width="28" height="28" rx="6" fill="currentColor"/>
   <path d="M7 14.5L11.5 19L21 9.5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-/** Chevron-right SVG for collapsible sections. */
 const CHEVRON_SVG = `<svg class="dcr-section-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>`;
 
-function buildSummary(citations: RenderCitationWithStatus[]): {
+interface StatusGroups {
+  verified: RenderCitationWithStatus[];
+  partial: RenderCitationWithStatus[];
+  notFound: RenderCitationWithStatus[];
+  pending: RenderCitationWithStatus[];
+}
+
+/** Single-pass grouping of citations by status + summary counts. */
+function groupAndSummarize(citations: RenderCitationWithStatus[]): {
+  groups: StatusGroups;
   total: number;
   verified: number;
   partial: number;
   notFound: number;
 } {
-  let verified = 0;
-  let partial = 0;
-  let notFound = 0;
+  const groups: StatusGroups = { verified: [], partial: [], notFound: [], pending: [] };
   for (const c of citations) {
     const key = getStatusKey(c.status);
-    if (key === "verified") verified++;
-    else if (key === "partial") partial++;
-    else if (key === "notFound") notFound++;
+    groups[key].push(c);
   }
-  return { total: citations.length, verified, partial, notFound };
+  return {
+    groups,
+    total: citations.length,
+    verified: groups.verified.length,
+    partial: groups.partial.length,
+    notFound: groups.notFound.length,
+  };
 }
 
 function truncate(str: string, max: number): string {
@@ -95,49 +97,52 @@ function buildCitationCards(citations: RenderCitationWithStatus[], sourceLabels:
 }
 
 function buildSectionsHtml(
-  citations: RenderCitationWithStatus[],
-  summary: ReturnType<typeof buildSummary>,
+  groups: StatusGroups,
+  summary: { notFound: number; partial: number },
   sourceLabels: Record<string, string>,
 ): string {
   const parts: string[] = [];
 
-  // Group by status for progressive disclosure
-  const verified = citations.filter(c => getStatusKey(c.status) === "verified");
-  const partial = citations.filter(c => getStatusKey(c.status) === "partial");
-  const notFound = citations.filter(c => getStatusKey(c.status) === "notFound");
-  const pending = citations.filter(c => getStatusKey(c.status) === "pending");
-
-  // Show problematic citations first (notFound, then partial) — progressive disclosure
-  if (notFound.length > 0) {
-    parts.push(buildSection("Not Verified", "notfound", notFound, sourceLabels, true));
+  // Show problematic citations first — progressive disclosure
+  if (groups.notFound.length > 0) {
+    parts.push(buildSection("Not Verified", "notFound", groups.notFound, sourceLabels, true));
   }
-  if (partial.length > 0) {
-    parts.push(buildSection("Partially Verified", "partial", partial, sourceLabels, true));
+  if (groups.partial.length > 0) {
+    parts.push(buildSection("Partially Verified", "partial", groups.partial, sourceLabels, true));
   }
-  if (verified.length > 0) {
+  if (groups.verified.length > 0) {
     parts.push(
-      buildSection("Verified", "verified", verified, sourceLabels, summary.notFound > 0 || summary.partial > 0),
+      buildSection("Verified", "verified", groups.verified, sourceLabels, summary.notFound > 0 || summary.partial > 0),
     );
   }
-  if (pending.length > 0) {
-    parts.push(buildSection("Pending", "pending", pending, sourceLabels, true));
+  if (groups.pending.length > 0) {
+    parts.push(buildSection("Pending", "pending", groups.pending, sourceLabels, true));
   }
 
   return parts.join("\n");
 }
 
+/** CSS class suffix for badge styling — maps StatusKey to the CSS convention. */
+const STATUS_CSS_CLASS: Record<StatusKey, string> = {
+  verified: "verified",
+  partial: "partial",
+  notFound: "notfound",
+  pending: "pending",
+};
+
 function buildSection(
   title: string,
-  statusKey: string,
+  statusKey: StatusKey,
   citations: RenderCitationWithStatus[],
   sourceLabels: Record<string, string>,
   startOpen: boolean,
 ): string {
+  const cssClass = STATUS_CSS_CLASS[statusKey];
   return `<details class="dcr-section"${startOpen ? " open" : ""}>
   <summary class="dcr-section-header">
     ${CHEVRON_SVG}
     ${escapeHtml(title)}
-    <span class="dcr-section-badge dcr-badge-${statusKey}">${citations.length}</span>
+    <span class="dcr-section-badge dcr-badge-${cssClass}">${citations.length}</span>
   </summary>
   <div class="dcr-section-body">
     ${buildCitationCards(citations, sourceLabels)}
@@ -185,12 +190,16 @@ export function renderBrandedReport(input: string | ParsedCitationResult, option
     showResponseBody = true,
   } = options;
 
+  // Parse once, reuse for both the walk and the HTML renderer
+  const parsed = typeof input === "string" ? parseCitationResponse(input) : input;
+
   // Walk citations for summary and cards
-  const { citationsWithStatus } = walkCitationSegments(input, verifications);
-  const summary = buildSummary(citationsWithStatus);
+  const { citationsWithStatus } = walkCitationSegments(parsed, verifications);
+  const { groups, ...summary } = groupAndSummarize(citationsWithStatus);
 
   // Render the response body with inline citation markers + popovers
-  const rendered = renderCitationsAsHtml(input, {
+  // Passes parsed result to avoid re-parsing the input
+  const rendered = renderCitationsAsHtml(parsed, {
     verifications,
     variant,
     indicatorStyle,
@@ -203,9 +212,7 @@ export function renderBrandedReport(input: string | ParsedCitationResult, option
     classPrefix,
   });
 
-  // Citation trigger CSS from the HTML renderer
-  const triggerStyles = generateStyleBlock(classPrefix, theme);
-  const triggerCssBody = triggerStyles.replace(/^<style>\n?/, "").replace(/\n?<\/style>$/, "");
+  const triggerCssBody = stripStyleTags(generateStyleBlock(classPrefix, theme));
 
   // Format timestamp
   const date = new Date(generatedAt);
@@ -219,8 +226,7 @@ export function renderBrandedReport(input: string | ParsedCitationResult, option
     minute: "2-digit",
   });
 
-  // Build HTML
-  const sectionsHtml = buildSectionsHtml(citationsWithStatus, summary, sourceLabels);
+  const sectionsHtml = buildSectionsHtml(groups, summary, sourceLabels);
 
   const bodySection = showResponseBody
     ? `<div class="dcr-body">
