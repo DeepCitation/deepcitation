@@ -90,7 +90,7 @@ function parseArgs(argv: string[], help: string): Record<string, string> {
       process.exit(0);
     }
     if (key?.startsWith("--") && i + 1 < argv.length) {
-      args[key.slice(2)] = argv[++i]!;
+      args[key.slice(2)] = argv[++i] as string;
     }
   }
   return args;
