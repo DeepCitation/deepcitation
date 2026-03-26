@@ -28,16 +28,13 @@ import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME, primeEvidencePageExpandSource } from "../viewTransition.js";
 import { ZoomToolbar } from "../ZoomToolbar.js";
 import { EvidenceTrayFooter } from "./EvidenceTray.js";
-import { resolveEvidenceSourceAnchorRatio } from "./resolvers.js";
+import { IDENTITY_RENDER_SCALE, resolveEvidenceSourceAnchorRatio } from "./resolvers.js";
 
 /** Scroll drift threshold for locate dirty-bit detection (px). */
 const DRIFT_THRESHOLD_PX = 15;
 
 /** Grey canvas padding (px) around the page image in expanded-page (fill) mode. */
 const CANVAS_PADDING_PX = 16;
-
-/** Identity render scale for image sources where coords are already in pixel space. */
-const IDENTITY_RENDER_SCALE = { x: 1, y: 1 } as const;
 
 /**
  * Replaces Zone 3 (evidence tray) when the keyhole is expanded in-place.
@@ -755,10 +752,6 @@ export function InlineExpandedImage({
     onExpand?.();
   }, [onExpand, containerRef]);
 
-  const handleCollapse = useCallback(() => {
-    onCollapse();
-  }, [onCollapse]);
-
   const handleOverlayDismiss = useCallback(() => {
     setOverlayHidden(true);
     // Emphasize the locate button so the user sees where to restore the overlay.
@@ -841,7 +834,7 @@ export function InlineExpandedImage({
               wasDraggingRef.current = false;
               return;
             }
-            handleCollapse();
+            onCollapse();
           }}
           onKeyDown={e => {
             if (e.key === "Escape") {
@@ -855,13 +848,13 @@ export function InlineExpandedImage({
               // of the "step back" branch.
               e.preventDefault();
               e.stopPropagation();
-              handleCollapse();
+              onCollapse();
               return;
             }
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               e.stopPropagation();
-              handleCollapse();
+              onCollapse();
               return;
             }
             // A.5.4 Arrow key panning for expanded-page: Shift = large pan (200px), default = 50px.

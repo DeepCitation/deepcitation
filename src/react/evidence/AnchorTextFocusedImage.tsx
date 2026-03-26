@@ -22,8 +22,7 @@ import { computeAnnotationScrollTarget } from "../overlayGeometry.js";
 import { cn, isImageSource } from "../utils.js";
 import { DC_EVIDENCE_VT_NAME } from "../viewTransition.js";
 import { animateScrollLeft } from "./animateScrollLeft.js";
-
-const IDENTITY_RENDER_SCALE = { x: 1, y: 1 } as const;
+import { IDENTITY_RENDER_SCALE } from "./resolvers.js";
 
 /**
  * Displays a verification image as a "keyhole" strip — a fixed-height horizontal
