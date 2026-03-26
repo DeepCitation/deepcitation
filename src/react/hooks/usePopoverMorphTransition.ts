@@ -6,7 +6,10 @@ import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";
 
 type RectSnapshot = { left: number; top: number; width: number; height: number };
 const POSITION_SETTLE_FRACTION = 0.35; // Keep first frame close enough to avoid recenter flash.
-const SIZE_SETTLE_FRACTION = 0.35; // Symmetric two-sided reveal from a stable starting box.
+// Full inset so the clip-path starts at the OLD dimensions — no new white
+// area is exposed on the first frame. The clip opens gradually to reveal the
+// expanded content, preventing the white-rectangle flash over dark pages.
+const SIZE_SETTLE_FRACTION = 1;
 
 function hasActiveGuardTranslate(translateValue: string): boolean {
   if (!translateValue || translateValue === "none") return false;

@@ -21,7 +21,6 @@ import {
   GHOST_OPACITY_START,
   isValidProofImageSrc,
   PAGE_EXPAND_CONTENT_OPACITY_FLOOR,
-  PAGE_EXPAND_RECESSION_MS,
   VT_EVIDENCE_PAGE_EXPAND_MS,
 } from "./constants.js";
 
@@ -379,6 +378,53 @@ function createPageExpandGhost(snapshot: GhostSnapshot): HTMLDivElement | null {
   return ghost;
 }
 
+const PAGE_EXPAND_SCRIM_ATTR = "data-dc-page-expand-scrim";
+
+/**
+ * Create a fixed-position scrim at the popover's CURRENT rect (before it
+ * expands). Inserted before the popover wrapper in the DOM so it sits behind
+ * the popover at the same z-index. When the popover is dimmed to near-zero
+ * opacity:
+ *   - Pre-expand area: scrim provides solid backing (same visual as before)
+ *   - Expansion area: no scrim → 0.03 popover → nearly invisible over page
+ *
+ * This prevents BOTH bleed-through (scrim blocks it in the old area) AND
+ * white-rectangle flash (expansion area stays transparent).
+ */
+function createPreExpandScrim(popoverRoot: HTMLElement): HTMLDivElement | null {
+  const wrapper = popoverRoot.parentElement;
+  if (!wrapper?.parentElement) return null;
+  const rect = popoverRoot.getBoundingClientRect();
+  const cs = getComputedStyle(popoverRoot);
+  const wrapperZ = getComputedStyle(wrapper).zIndex;
+
+  const scrim = document.createElement("div");
+  scrim.setAttribute(PAGE_EXPAND_SCRIM_ATTR, "");
+  scrim.setAttribute("aria-hidden", "true");
+  scrim.style.position = "fixed";
+  scrim.style.left = `${rect.left}px`;
+  scrim.style.top = `${rect.top}px`;
+  scrim.style.width = `${rect.width}px`;
+  scrim.style.height = `${rect.height}px`;
+  scrim.style.borderRadius = cs.borderRadius;
+  scrim.style.backgroundColor = cs.backgroundColor;
+  scrim.style.pointerEvents = "none";
+  scrim.style.zIndex = wrapperZ;
+  // Insert before the wrapper → same z-index, earlier in DOM = renders behind
+  wrapper.parentElement.insertBefore(scrim, wrapper);
+  return scrim;
+}
+
+/** Remove the pre-expand scrim and restore popover styles. */
+function cleanupPageExpandScrim(popoverRoot: HTMLElement | null): void {
+  if (!popoverRoot) return;
+  popoverRoot.style.opacity = "";
+  popoverRoot.style.transition = "";
+  // Scrim is a sibling of the wrapper, find by attribute
+  const scrim = document.querySelector(`[${PAGE_EXPAND_SCRIM_ATTR}]`);
+  scrim?.remove();
+}
+
 function applyGhostRect(ghost: HTMLDivElement, rect: DOMRect): void {
   ghost.style.left = `${rect.left}px`;
   ghost.style.top = `${rect.top}px`;
@@ -395,28 +441,16 @@ function runPageExpandGhostAnimation(
   const { ghostRect } = target;
   const debugPhase = getPageExpandDebugPhase();
   if (debugPhase === "source") {
-    if (popoverRoot) {
-      for (const anim of popoverRoot.getAnimations()) anim.cancel();
-      popoverRoot.style.transition = "";
-      popoverRoot.style.opacity = "";
-    }
+    cleanupPageExpandScrim(popoverRoot);
     return;
   }
   if (debugPhase === "target") {
-    if (popoverRoot) {
-      for (const anim of popoverRoot.getAnimations()) anim.cancel();
-      popoverRoot.style.transition = "";
-      popoverRoot.style.opacity = "";
-    }
+    cleanupPageExpandScrim(popoverRoot);
     applyGhostRect(ghost, ghostRect);
     return;
   }
   if (debugPhase === "both") {
-    if (popoverRoot) {
-      for (const anim of popoverRoot.getAnimations()) anim.cancel();
-      popoverRoot.style.transition = "";
-      popoverRoot.style.opacity = "";
-    }
+    cleanupPageExpandScrim(popoverRoot);
     // "both" mode: hide the real ghost, draw persistent debug overlays for both rects
     ghost.remove();
     clearDebugOverlays();
@@ -512,25 +546,17 @@ function runPageExpandGhostAnimation(
     fill: "both",
   });
 
-  // Coordinated popover content reveal — continues from wherever the recession
-  // fade-down left off, holds at the floor while the ghost dominates, then
-  // reveals sharply in the last ~40%.
+  // Coordinated popover content fade-in — the popover is pre-dimmed to
+  // PAGE_EXPAND_CONTENT_OPACITY_FLOOR via inline style. A fixed-position scrim
+  // at the pre-expand rect provides solid backing only where the popover was,
+  // while the expansion area stays nearly transparent (no white-rectangle flash).
   //
-  // The recession (started in commitAndAnimate) fades the popover gradually
-  // via ease-in so the background stays perceptually solid during the first
-  // frames. Here we capture its current opacity, cancel it, and start a
-  // reveal animation that smoothly continues the journey.
+  // Holds at the floor while the ghost dominates, then reveals sharply in the
+  // last ~40%, mirroring the collapse's "dip-then-reveal" temporal structure.
   if (popoverRoot) {
-    // getComputedStyle forces a style recalc — acceptable here (single element,
-    // once per transition) to capture the recession's current animated opacity so
-    // the reveal can continue from the same value without an inter-frame jump.
-    const currentOpacity = Number(getComputedStyle(popoverRoot).opacity) || PAGE_EXPAND_CONTENT_OPACITY_FLOOR;
-    for (const anim of popoverRoot.getAnimations()) anim.cancel();
-
     const contentAnim = popoverRoot.animate(
       [
-        { opacity: currentOpacity },
-        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: 0.15 },
+        { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR },
         { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR, offset: 0.45 },
         { opacity: 0.08, offset: 0.58 },
         { opacity: 0.35, offset: 0.72 },
@@ -542,11 +568,8 @@ function runPageExpandGhostAnimation(
     contentAnim.finished
       .catch(() => {})
       .finally(() => {
-        // Cancel removes the WAAPI animation layer so its fill: "forwards"
-        // no longer overrides inline styles on subsequent transitions.
         contentAnim.cancel();
-        popoverRoot.style.opacity = "";
-        popoverRoot.style.transition = "";
+        cleanupPageExpandScrim(popoverRoot);
       });
   }
 
@@ -644,37 +667,32 @@ export function startEvidencePageExpandTransition(
   const commitAndAnimate = () => {
     _transitionDepth++;
     const source = capturePageExpandSource(root);
-    let contentRecession: Animation | null = null;
 
-    // Gradually fade ("recede") the popover content instead of instantly jumping
-    // to near-zero opacity. The human eye is extremely sensitive to sudden
-    // luminance changes in peripheral vision — an instant opacity jump makes the
-    // popover background disappear in one frame, exposing page content underneath
-    // and triggering the perception of a flash. A gradual ease-in recession keeps
-    // the background perceptually solid for the first few frames while the ghost
-    // captures attention via motion, then fades quickly to the floor.
+    // Pre-dim the popover content BEFORE flushSync so when the expanded-page
+    // slot becomes visible, it's already nearly invisible — preventing a flash
+    // of the final layout.
+    //
+    // CSS opacity on a parent makes its own background transparent too. A
+    // fixed-position scrim at the popover's PRE-EXPAND rect (created before
+    // the dim) provides solid backing only where the popover already was.
+    // The expansion area (new area from the larger expanded-page layout) has
+    // no scrim → stays at 0.03 opacity → nearly invisible over the page,
+    // preventing the white-rectangle flash that a full-area backing creates.
     //
     // Disable CSS transitions first so the blink-motion `transition: opacity 60ms`
     // doesn't compete. Cancel lingering WAAPI from a previous page-expand so
-    // fill: "forwards" doesn't override the new recession.
+    // fill: "forwards" doesn't override the inline opacity.
     if (rootEl) {
       for (const anim of rootEl.getAnimations()) anim.cancel();
       rootEl.style.transition = "none";
-      const startOpacity = Number(getComputedStyle(rootEl).opacity) || 1;
-      contentRecession = rootEl.animate([{ opacity: startOpacity }, { opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR }], {
-        duration: PAGE_EXPAND_RECESSION_MS,
-        easing: "ease-in",
-        fill: "forwards",
-      });
+      createPreExpandScrim(rootEl);
+      rootEl.style.opacity = String(PAGE_EXPAND_CONTENT_OPACITY_FLOOR);
     }
 
     flushSync(update);
 
     if (!source) {
-      if (rootEl) {
-        contentRecession?.cancel();
-        rootEl.style.transition = "";
-      }
+      cleanupPageExpandScrim(rootEl);
       if (debugPhase) {
         clearDebugOverlays();
         const primedEls = root.querySelectorAll?.("[data-dc-page-expand-source]");
@@ -688,10 +706,7 @@ export function startEvidencePageExpandTransition(
     }
     const ghost = createPageExpandGhost(source);
     if (!ghost) {
-      if (rootEl) {
-        contentRecession?.cancel();
-        rootEl.style.transition = "";
-      }
+      cleanupPageExpandScrim(rootEl);
       if (debugPhase) {
         console.warn("[DC debug] ghost creation FAILED — image validation rejected:", source.imageSrc);
       }
@@ -702,10 +717,7 @@ export function startEvidencePageExpandTransition(
       _transitionDepth = Math.max(0, _transitionDepth - 1);
       if (!target) {
         ghost.remove();
-        if (rootEl) {
-          contentRecession?.cancel();
-          rootEl.style.transition = "";
-        }
+        cleanupPageExpandScrim(rootEl);
         if (debugPhase) {
           clearDebugOverlays();
           const targetEls = root.querySelectorAll?.("[data-dc-page-expand-target]");
