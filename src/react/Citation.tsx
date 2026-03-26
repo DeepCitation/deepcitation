@@ -17,21 +17,15 @@ import { getStatusFromVerification, getStatusLabel } from "./citationStatus.js";
 import {
   GUARD_MAX_WIDTH_VAR,
   isValidProofImageSrc,
-  KEYHOLE_STRIP_HEIGHT_DEFAULT,
   SPINNER_TIMEOUT_MS,
   TAP_SLOP_PX,
   TOUCH_CLICK_DEBOUNCE_MS,
 } from "./constants.js";
 import { DefaultPopoverContent, type PopoverViewState } from "./DefaultPopoverContent.js";
 import { resolveEvidenceSrc, resolveExpandedImage } from "./EvidenceTray.js";
-import { getExpandedPopoverWidthPx, getSummaryPopoverWidthPx } from "./expandedWidthPolicy.js";
-import { useExpandedPageSideOffset } from "./hooks/useExpandedPageSideOffset.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
-import { useLockedPopoverSide } from "./hooks/useLockedPopoverSide.js";
-import { usePopoverAlignOffset } from "./hooks/usePopoverAlignOffset.js";
-import { usePopoverViewState } from "./hooks/usePopoverViewState.js";
+import { usePopoverPosition } from "./hooks/usePopoverPosition.js";
 import { usePrefersReducedMotion } from "./hooks/usePrefersReducedMotion.js";
-import { useViewportBoundaryGuard } from "./hooks/useViewportBoundaryGuard.js";
 import { useTranslation } from "./i18n.js";
 import { PopoverContent } from "./Popover.js";
 import { Popover, PopoverTrigger } from "./PopoverPrimitives.js";
@@ -528,16 +522,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     // callback refs that mutate .current trigger "cannot modify local variables after render".
     const popoverContentRef = useRef<HTMLDivElement | null>(null);
 
-    const viewState = usePopoverViewState({
-      isOpen: isHovering,
-      popoverContentRef,
-      experimentalHaptics,
-      isMobile,
-      prefersReducedMotion,
-      onDismiss: closePopover,
-      onCollapseToSummary: clearCustomExpandedSrc,
-    });
-
     // A.5.1 + A.5.2: Keyboard-open tracking, focus trap, and conditional focus return.
     // Isolated into a custom hook because the React Compiler can't handle a ref that's
     // both read in an effect (focus trap) and mutated in callbacks (click/keydown handlers).
@@ -563,58 +547,35 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       [ref],
     );
 
-    // Lock the popover side (top/bottom) on open so the popover doesn't jump
-    // between sides during scroll. Also isolated for compiler.
-    const lockedSide = useLockedPopoverSide(isHovering, popoverPosition === "top" ? "top" : "bottom", triggerRef);
-
-    // Isolated into separate hooks so the React Compiler can optimize CitationComponent
-    // (setState in useLayoutEffect causes a compiler bailout for the entire component).
-    const expandedPageSideOffset = useExpandedPageSideOffset(viewState.current, triggerRef, lockedSide);
-    const projectedSummaryKeyholeWidth = useMemo(() => {
-      const dims = verification?.evidence?.dimensions;
-      if (!dims) return null;
-      const width = dims.width;
-      const height = dims.height;
-      if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
-      return width * (KEYHOLE_STRIP_HEIGHT_DEFAULT / height);
-    }, [verification?.evidence?.dimensions]);
-    const projectedPopoverWidthPx = useMemo(() => {
-      if (!isHovering || typeof document === "undefined") return null;
-      const viewportWidth = document.documentElement.clientWidth;
-      if (viewState.current === "summary") {
-        return getSummaryPopoverWidthPx(projectedSummaryKeyholeWidth, viewportWidth);
-      }
-
-      if (viewState.expandedNaturalWidth === null) return null;
-
-      const shouldProjectExpandedWidth =
-        (viewState.current === "expanded-keyhole" && viewState.expandedWidthSource === "expanded-keyhole") ||
-        (viewState.current === "expanded-page" &&
-          (viewState.expandedWidthSource === "expanded-page" || viewState.expandedWidthSource === "expanded-keyhole"));
-
-      if (shouldProjectExpandedWidth) {
-        return getExpandedPopoverWidthPx(viewState.expandedNaturalWidth, viewportWidth);
-      }
-      return null;
-    }, [
-      isHovering,
-      viewState.current,
-      projectedSummaryKeyholeWidth,
-      viewState.expandedNaturalWidth,
-      viewState.expandedWidthSource,
-    ]);
-    const popoverAlignOffset = usePopoverAlignOffset(
-      isHovering,
-      viewState.current,
+    // Composed popover positioning — replaces 5 individual hooks + width projection
+    const popover = usePopoverPosition({
+      isOpen: isHovering,
       triggerRef,
       popoverContentRef,
-      projectedPopoverWidthPx,
-    );
-
-    // Layer 3: hard viewport boundary guard. Observes the popover's actual
-    // rendered rect and applies corrective CSS `translate` if any edge overflows.
-    // If Layers 1–2 got it right, the guard is a no-op.
-    useViewportBoundaryGuard(isHovering, viewState.current, popoverContentRef);
+      preferredSide: popoverPosition === "top" ? "top" : "bottom",
+      experimentalHaptics,
+      isMobile,
+      prefersReducedMotion,
+      onDismiss: closePopover,
+      onCollapseToSummary: clearCustomExpandedSrc,
+      evidenceDimensions: verification?.evidence?.dimensions,
+    });
+    // Aliases — existing code reads viewState.current, viewState.transition, etc.
+    const viewState = {
+      current: popover.viewState,
+      ref: popover.viewStateRef,
+      transition: popover.transition,
+      onEscapeKeyDown: popover.onEscapeKeyDown,
+      escapeInterceptRef: popover.escapeInterceptRef,
+      prevBeforeExpandedPageRef: popover.prevBeforeExpandedPageRef,
+      expandedNaturalWidth: popover.expandedNaturalWidth,
+      expandedWidthSource: popover.expandedWidthSource,
+      onExpandedWidthChange: popover.onExpandedWidthChange,
+      resetToSummary: popover.resetToSummary,
+    };
+    const lockedSide = popover.side;
+    const expandedPageSideOffset = popover.sideOffset;
+    const popoverAlignOffset = popover.alignOffset;
     const citationKey = useMemo(() => getCitationKey(citation), [citation]);
     const citationInstanceId = useMemo(() => generateCitationInstanceId(citationKey), [citationKey]);
 
