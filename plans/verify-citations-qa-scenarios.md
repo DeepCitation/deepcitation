@@ -53,7 +53,7 @@ Scanned documents produce OCR text with curly quotes, ligatures, superscript-as-
 |---|------------------|-------------------|-------|
 | 3a | "patient\u2019s" (curly apostrophe) | "patient's" (straight) | Quote normalization |
 | 3b | "70th percentile" (superscript "th") | "70th percentile" | Superscript flattening |
-| 3c | "fl" (fi ligature) | "fl" (two chars) | Ligature decomposition |
+| 3c | "ﬂ" (U+FB02 fl ligature) | "fl" (two ASCII chars) | Ligature decomposition |
 | 3d | "5.5\u00a0%" (non-breaking space) | "5.5 %" (regular space) | Whitespace normalization |
 | 3e | "résumé" (accented) | "resume" (unaccented) | Diacritic stripping — should NOT match |
 
