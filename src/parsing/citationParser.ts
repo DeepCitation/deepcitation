@@ -652,6 +652,28 @@ export function getCitationMarkerIds(text: string): number[] {
  */
 const MULTI_CITATION_MARKER_RE = /\[(\d+(?:\s*,\s*\d+)+)\]/g;
 
+/** Maximum characters to scan forward/backward when finding sentence boundaries. */
+const SENTENCE_SEARCH_WINDOW = 500;
+
+/** Truncate text to ~maxLen characters at a word boundary. */
+function truncateAtWord(text: string, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  const truncated = text.substring(0, maxLen).replace(/\s+\S*$/, "");
+  return truncated || text.substring(0, maxLen);
+}
+
+/**
+ * Check if a period at position `i` in `text` is part of an abbreviation
+ * (e.g. "Dr.", "U.S.", "3.") rather than a sentence-ending period.
+ * Looks at the word ending at the period — abbreviations are typically
+ * 1–2 characters or all-digits.
+ */
+function isAbbreviationPeriod(text: string, i: number): boolean {
+  const wordMatch = text.slice(0, i).match(/\b(\w+)$/);
+  const prevWord = wordMatch?.[1] ?? "";
+  return prevWord.length <= 2 || /^\d+$/.test(prevWord);
+}
+
 /**
  * Extracts the sentence or clause surrounding a citation marker position.
  * Looks for sentence boundaries (. ! ? newline) or list item boundaries (- *).
@@ -659,7 +681,7 @@ const MULTI_CITATION_MARKER_RE = /\[(\d+(?:\s*,\s*\d+)+)\]/g;
 function extractSurroundingSentence(text: string, markerStart: number, markerEnd: number): string {
   // Look backward for sentence start
   let sentenceStart = markerStart;
-  for (let i = markerStart - 1; i >= 0 && i >= markerStart - 500; i--) {
+  for (let i = markerStart - 1; i >= 0 && i >= markerStart - SENTENCE_SEARCH_WINDOW; i--) {
     const ch = text[i];
     if (ch === "\n") {
       sentenceStart = i + 1;
@@ -667,10 +689,7 @@ function extractSurroundingSentence(text: string, markerStart: number, markerEnd
     }
     if ((ch === "." || ch === "!" || ch === "?") && i < markerStart - 1) {
       const nextChar = text[i + 1];
-      const prevChar = i > 0 ? text[i - 1] : "";
-      // Skip abbreviations: single letter + period (e.g. "A.", "Dr."), or digit + period (e.g. "3.")
-      const isAbbreviation = /^[A-Z]$/i.test(prevChar) || /^\d$/.test(prevChar);
-      if ((nextChar === " " || nextChar === "\n") && !isAbbreviation) {
+      if ((nextChar === " " || nextChar === "\n") && !isAbbreviationPeriod(text, i)) {
         sentenceStart = i + 2;
         break;
       }
@@ -682,7 +701,7 @@ function extractSurroundingSentence(text: string, markerStart: number, markerEnd
 
   // Look forward for sentence end
   let sentenceEnd = markerEnd;
-  for (let i = markerEnd; i < text.length && i < markerEnd + 500; i++) {
+  for (let i = markerEnd; i < text.length && i < markerEnd + SENTENCE_SEARCH_WINDOW; i++) {
     const ch = text[i];
     if (ch === "\n") {
       sentenceEnd = i;
@@ -690,10 +709,7 @@ function extractSurroundingSentence(text: string, markerStart: number, markerEnd
     }
     if (ch === "." || ch === "!" || ch === "?") {
       const nextChar = text[i + 1];
-      const prevChar = i > 0 ? text[i - 1] : "";
-      // Skip abbreviations: single letter + period or digit + period
-      const isAbbreviation = /^[A-Z]$/i.test(prevChar) || /^\d$/.test(prevChar);
-      if ((!nextChar || nextChar === " " || nextChar === "\n") && !isAbbreviation) {
+      if ((!nextChar || nextChar === " " || nextChar === "\n") && !isAbbreviationPeriod(text, i)) {
         sentenceEnd = i + 1;
         break;
       }
@@ -732,7 +748,9 @@ function extractSurroundingSentence(text: string, markerStart: number, markerEnd
  * - Comma-separated: `[1, 5]`, `[2, 3, 4]` (Gemini)
  *
  * @param text - Raw LLM output with [N] markers but no citation data block
- * @returns Citation dictionary keyed by citation key hash
+ * @returns Citation dictionary keyed by citation number as a string (e.g. "1", "2"),
+ *   NOT by content hash like `getCitationKey()`. This is because marker-only citations
+ *   lack the metadata needed for content hashing, and numeric keys match citationNumber.
  */
 export function extractCitationsFromMarkers(text: string): { [key: string]: Citation } {
   if (!text || typeof text !== "string") return {};
@@ -757,7 +775,7 @@ export function extractCitationsFromMarkers(text: string): { [key: string]: Cita
         type: "document" as const,
         fullPhrase: sentence,
         citationNumber: id,
-        anchorText: sentence.length > 50 ? sentence.substring(0, 50) : sentence,
+        anchorText: truncateAtWord(sentence, 50),
       };
       // Use citationNumber as key to avoid collisions when multiple IDs share the same sentence
       citations[String(id)] = citation;
@@ -780,7 +798,7 @@ export function extractCitationsFromMarkers(text: string): { [key: string]: Cita
       type: "document" as const,
       fullPhrase: sentence,
       citationNumber: id,
-      anchorText: sentence.length > 50 ? sentence.substring(0, 50) : sentence,
+      anchorText: truncateAtWord(sentence, 50),
     };
     citations[String(id)] = citation;
   }
