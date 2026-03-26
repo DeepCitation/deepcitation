@@ -187,10 +187,10 @@ export function decompressPromptIds<T>(compressed: T | string, prefixMap: Record
     shouldParseBack = true;
   }
 
-  // Perform all prefix → full-ID replacements
-  for (const [prefix, full] of entries) {
-    text = text.replaceAll(prefix, full);
-  }
+  // Perform all prefix → full-ID replacements in a single pass
+  const prefixToFull = new Map(entries);
+  const escapedPrefixes = entries.map(([prefix]) => prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  text = text.replace(new RegExp(escapedPrefixes.join("|"), "g"), match => prefixToFull.get(match) ?? match);
 
   if (!shouldParseBack) return text;
   try {
