@@ -48,7 +48,17 @@ POST /verifyCitations
 }
 ```
 
-**Detection**: If top-level `attachmentId` is absent but every citation has an `attachmentId` field, treat as batch mode. If top-level `attachmentId` is present, use single-attachment mode (existing behavior). If both are present, top-level wins (backward-compatible).
+**Detection**: Batch mode requires an explicit `"mode": "batch"` field at the top level. This avoids silent mode switching if a client accidentally omits the top-level `attachmentId`.
+
+```jsonc
+{
+  "mode": "batch",   // ← required for batch mode
+  "citations": { ... },
+  "outputImageFormat": "avif"
+}
+```
+
+If `mode` is absent or `"single"`, use single-attachment mode (existing behavior, `attachmentId` required at top level). If `mode` is `"batch"` but a top-level `attachmentId` is also present, return `400` with `"Cannot specify both mode:batch and top-level attachmentId"`.
 
 ### Response
 

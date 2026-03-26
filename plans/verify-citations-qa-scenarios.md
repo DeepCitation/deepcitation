@@ -12,7 +12,7 @@ Short anchor text (1-2 words) within long narrative fullPhrases often returns `p
 | # | fullPhrase | anchorText | Expected | Why it's hard |
 |---|-----------|------------|----------|---------------|
 | 1a | "Large left paracentral disc protrusion at L4-5, likely impinging the traversing left L5 nerve root" | "disc protrusion" | found | Common medical term, appears once in phrase |
-| 1b | Same as 1a | "L4-5" | found | Short but unique within phrase |
+| 1b | Same as 1a | "L4-5" | found | Short but unique on the page (identifiers can be short; the 5+ word rule applies when the anchor appears in multiple contexts) |
 | 1c | Same as 1a | "Large left paracentral disc protrusion" | found | Long, distinctive — should be easy |
 | 1d | "The patient was seen in consultation for evaluation of right lower limb pain" | "pain" | partial? | Single word, appears in many contexts |
 | 1e | "WBC (BẠCH CẦU) 5.71 G/L 3.9 - 10" | "5.71" | found | Numeric value in structured line |

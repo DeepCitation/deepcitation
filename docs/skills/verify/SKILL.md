@@ -133,7 +133,7 @@ Prepare ALL of them in Step 1 — not just one. Each produces a separate `attach
 
 Think like a lawyer: every claim, every entity, every date, every value. If it asserts a fact, it needs a source. When in doubt, cite it — overciting costs nothing, underciting defeats the purpose.
 
-**Coverage target: 50-150 citations for a typical multi-section report.** If you have fewer than 30, you are underciting. Common failure: only citing the first section and skipping the rest.
+**Coverage target: 50-150 citations for a typical multi-section report.** Hard floor: 30 (below this the validation script warns). Target: 50+. Common failure: only citing the first section and skipping the rest.
 
 **Walk every section explicitly.** After building your initial list, enumerate every `<h2>` section and count citations per section. Any section with zero citations means the user has to check it manually.
 
@@ -350,12 +350,14 @@ curl -s -X POST https://api.deepcitation.com/verifyCitations \
 # For each attachmentId, build a request with only that attachment's citations
 # Then merge all responses:
 python3 -c "
-import json, glob
+import json, glob, sys
 merged = {'verifications': {}}
-for f in glob.glob('.deepcitation/verify-resp-*.json'):
+for f in sorted(glob.glob('.deepcitation/verify-resp-*.json')):
     data = json.loads(open(f).read())
-    v = data.get('verifications', data)
-    merged['verifications'].update(v)
+    if 'verifications' not in data:
+        print(f'WARNING: {f} has no verifications key — skipping (got keys: {list(data.keys())})', file=sys.stderr)
+        continue
+    merged['verifications'].update(data['verifications'])
 json.dump(merged, open('.deepcitation/verify-response.json', 'w'), indent=2)
 print(f'Merged {len(merged[\"verifications\"])} verifications')
 "
@@ -396,9 +398,7 @@ The `--key-map` flag embeds a `<script id="dc-key-map">` block that the CDN runt
 This injects before `</body>`:
 - Verification JSON (`<script id="dc-data">`)
 - The CDN runtime bundle (Preact + React popover components + Tailwind CSS)
-- Auto-init script that wires up `[data-citation-key]` click handlers
-
-The original design is fully preserved. The injected popover uses the same component tree as the DeepCitation web app.
+- Auto-init script that resolves `data-cite` → `data-citation-key` via the key map, then wires up click handlers
 
 ### Step 5: Validate Before Declaring Done
 
@@ -431,8 +431,9 @@ vdata = vr.get('verifications', vr)
 orphans = [c for c in set(p.cites) if c not in km]
 missing_verify = [c for c, h in km.items() if h not in vdata]
 
+PARTIAL_STATUSES = {'partial_text_found', 'found_anchor_text_only', 'found_on_other_page'}
 found = sum(1 for v in vdata.values() if v.get('status') == 'found')
-partial = sum(1 for v in vdata.values() if 'found' in v.get('status','') and v.get('status') != 'found')
+partial = sum(1 for v in vdata.values() if v.get('status') in PARTIAL_STATUSES)
 nf = sum(1 for v in vdata.values() if v.get('status') == 'not_found')
 
 print(f'data-cite elements: {cite_count} unique')
