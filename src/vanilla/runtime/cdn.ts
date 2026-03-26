@@ -5,29 +5,73 @@ import type { PopoverViewState } from "../../react/DefaultPopoverContent.js";
 import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
 import type { Citation } from "../../types/citation.js";
 import type { PageImage, Verification } from "../../types/verification.js";
+import { resolveKeyMap } from "./cdn-keymap.js";
 import { mapToCitation, mapToVerification } from "./cdn-mappers.js";
 import { computePosition } from "./positioning.js";
 import type { VerificationData } from "./types.js";
 
-// Status indicator SVGs (inline to avoid JSX in imperative DOM code)
+// Status indicator SVGs — must match React's icons.tsx exactly
+// CheckIcon: used for both verified (green) and partial (amber)
 const CHECK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" width="100%" height="100%"><polyline points="20 6 9 17 4 12"/></svg>`;
-const MISS_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" width="100%" height="100%"><line x1="6" y1="12" x2="18" y2="12"/></svg>`;
-const WARNING_SVG = `<svg viewBox="0 0 256 256" fill="currentColor" width="100%" height="100%"><path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM120,104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm8,88a12,12,0,1,1,12-12A12,12,0,0,1,128,192Z"/></svg>`;
+// XIcon: used for miss (red) — two crossing diagonal lines, NOT a dash
+const X_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" width="100%" height="100%"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
 
-/** Status color constants matching the React component's CSS custom property defaults */
+/** Status color constants — use CSS custom properties with fallbacks matching React constants.ts */
 const STATUS_COLORS = {
-  verified: "#10b981", // emerald-500
-  partial: "#f59e0b", // amber-500
-  miss: "#ef4444", // red-500
+  verified: "var(--dc-verified, #10b981)", // emerald-500
+  partial: "var(--dc-partial, #f59e0b)", // amber-500
+  miss: "var(--dc-destructive, #ef4444)", // red-500
+  pending: "var(--dc-pending, #a1a1aa)", // zinc-400
 } as const;
+
+/** Indicator variant type — mirrors React's IndicatorVariant */
+type CdnIndicatorVariant = "icon" | "dot" | "none";
 
 declare const __CDN_CSS__: string;
 const SIDE_OFFSET = 8;
+
+// ── Scroll passthrough helpers (mirrors Popover.tsx) ──────────────────────
+
+/** Walk up from `el` to find the page's actual scroll container. */
+function findPageScrollEl(el: HTMLElement | null): Element {
+  let n: Element | null = el?.parentElement ?? null;
+  while (n) {
+    const oy = getComputedStyle(n).overflowY;
+    if ((oy === "auto" || oy === "scroll") && n.scrollHeight > n.clientHeight) return n;
+    n = n.parentElement;
+  }
+  return document.scrollingElement ?? document.documentElement;
+}
+
+/** Check if any ancestor between `target` and `boundary` can scroll vertically. */
+function canChildScrollVertically(target: HTMLElement | null, boundary: HTMLElement | null, deltaY: number): boolean {
+  let node = target;
+  while (node && node !== boundary) {
+    const oy = getComputedStyle(node).overflowY;
+    if ((oy === "auto" || oy === "scroll") && node.scrollHeight > node.clientHeight) {
+      if (deltaY > 0 && Math.ceil(node.scrollTop) < node.scrollHeight - node.clientHeight) return true;
+      if (deltaY < 0 && node.scrollTop > 0) return true;
+    }
+    node = node.parentElement;
+  }
+  return false;
+}
+
+// ── Blink animation constants ─────────────────────────────────────────────
+
+const BLINK_ENTER_DURATION_MS = 180;
+const BLINK_ENTER_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
+const BLINK_EXIT_DURATION_MS = 120;
+const BLINK_EXIT_EASING = "cubic-bezier(0.4, 0, 1, 1)";
+
+// ── Types & globals ───────────────────────────────────────────────────────
 
 interface CdnOptions {
   verifications?: Record<string, VerificationData>;
   theme?: "light" | "dark" | "auto";
   selector?: string;
+  /** Status indicator variant: "icon" (check/x), "dot" (colored circle), "none" */
+  indicatorVariant?: CdnIndicatorVariant;
 }
 interface DeepCitationPopoverAPI {
   init(options?: CdnOptions): void;
@@ -44,13 +88,27 @@ declare global {
   }
 }
 
-let popoverEl: HTMLDivElement | null = null;
+// Two-div architecture (matches React Popover.tsx):
+//   wrapperEl  — position:fixed, transform positioning, pointerEvents
+//   contentEl  — overflow:clip, max-size, border, bg, shadow, renders React tree
+let wrapperEl: HTMLDivElement | null = null;
+let contentEl: HTMLDivElement | null = null;
 let isOpen = false;
 let activeTrigger: HTMLElement | null = null;
 let verifications: Record<string, VerificationData> = {};
 let activeSelector = "[data-citation-key]";
+let activeIndicatorVariant: CdnIndicatorVariant = "icon";
 let dismissController: AbortController | null = null;
+let positionRafId = 0;
+let resizeObserver: ResizeObserver | null = null;
+let lastCoords = { x: NaN, y: NaN };
+let scrollPassthroughController: AbortController | null = null;
+let pageScrollEl: Element | null = null;
+let coastRafId: number | null = null;
 const boundTriggers = new WeakSet<HTMLElement>();
+
+const prefersReducedMotion =
+  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 function injectStyles(): void {
   if (document.getElementById("dc-popover-styles")) return;
@@ -59,19 +117,47 @@ function injectStyles(): void {
   style.textContent = typeof __CDN_CSS__ === "string" ? __CDN_CSS__ : "";
   document.head.appendChild(style);
 }
-function ensurePopoverEl(): HTMLDivElement {
-  if (!popoverEl) {
-    const el = document.createElement("div");
-    el.className = "dc-cdn-popover";
-    el.style.position = "fixed";
-    el.style.zIndex = "10000";
-    el.style.width = "max-content";
-    el.style.maxWidth = "min(480px, calc(100vw - 2rem))";
-    el.style.display = "none";
-    document.body.appendChild(el);
-    popoverEl = el;
+
+function ensurePopoverEls(): { wrapper: HTMLDivElement; content: HTMLDivElement } {
+  if (!wrapperEl || !contentEl) {
+    // Outer wrapper: position + transform only (matches React's wrapper div)
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("data-dc-popover-wrapper", "");
+    wrapper.style.position = "fixed";
+    wrapper.style.left = "0";
+    wrapper.style.top = "0";
+    wrapper.style.width = "max-content";
+    wrapper.style.zIndex = "10000";
+    wrapper.style.pointerEvents = "none";
+    wrapper.style.willChange = "transform";
+
+    // Inner content: overflow, max-size, visual styling (matches React's content div)
+    const content = document.createElement("div");
+    content.className =
+      "dc-cdn-popover rounded-dc-lg border border-dc-border bg-dc-background shadow-xl font-dc text-dc-foreground";
+    content.setAttribute("data-dc-popover-content", "");
+    content.style.maxWidth = "calc(100vw - 2rem)";
+    content.style.maxHeight = "calc(100dvh - 2rem)";
+    content.style.overflowX = "clip";
+    content.style.overflowY = "clip";
+    content.style.transformOrigin = "center center";
+
+    // Scrollbar hide + base resets.  :where() has zero specificity so Tailwind
+    // utility classes on individual elements always win, but browser defaults
+    // and host-page global styles are overridden.
+    const scrollbarStyle = document.createElement("style");
+    scrollbarStyle.textContent = [
+      `[data-dc-popover-content]::-webkit-scrollbar { display: none; }`,
+      `:where([data-dc-popover-content]) :where(button) { border: none; background: none; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; outline: none; }`,
+      `:where([data-dc-popover-content]) :where(svg) { border: none; outline: none; box-shadow: none; }`,
+    ].join("\n");
+    wrapper.appendChild(scrollbarStyle);
+    wrapper.appendChild(content);
+    document.body.appendChild(wrapper);
+    wrapperEl = wrapper;
+    contentEl = content;
   }
-  return popoverEl;
+  return { wrapper: wrapperEl, content: contentEl };
 }
 
 function CdnPopoverWrapper(props: {
@@ -85,15 +171,232 @@ function CdnPopoverWrapper(props: {
   return createElement(DefaultPopoverContent, { ...props, viewState, onViewStateChange: setViewState });
 }
 
+// ── Positioning ───────────────────────────────────────────────────────────
+
+function reposition(): void {
+  if (!wrapperEl || !contentEl || !activeTrigger || !isOpen) return;
+  const triggerRect = activeTrigger.getBoundingClientRect();
+  const contentRect = contentEl.getBoundingClientRect();
+  const pos = computePosition(triggerRect, contentRect.width, contentRect.height, SIDE_OFFSET);
+  // Skip if coords haven't changed (< 0.5px delta) — avoids unnecessary style writes
+  if (Math.abs(lastCoords.x - pos.x) < 0.5 && Math.abs(lastCoords.y - pos.y) < 0.5) return;
+  lastCoords = { x: pos.x, y: pos.y };
+  wrapperEl.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+  wrapperEl.setAttribute("data-side", pos.side);
+}
+function scheduleReposition(): void {
+  cancelAnimationFrame(positionRafId);
+  positionRafId = requestAnimationFrame(reposition);
+}
+function startPositionTracking(): void {
+  stopPositionTracking();
+  window.addEventListener("scroll", scheduleReposition, { capture: true, passive: true });
+  window.addEventListener("resize", scheduleReposition);
+  resizeObserver = new ResizeObserver(scheduleReposition);
+  if (contentEl) resizeObserver.observe(contentEl);
+  if (activeTrigger) resizeObserver.observe(activeTrigger);
+}
+function stopPositionTracking(): void {
+  cancelAnimationFrame(positionRafId);
+  window.removeEventListener("scroll", scheduleReposition, { capture: true });
+  window.removeEventListener("resize", scheduleReposition);
+  resizeObserver?.disconnect();
+  resizeObserver = null;
+}
+
+// ── Scroll passthrough (wheel + touch) ────────────────────────────────────
+
+function getPageScrollEl(): Element {
+  return pageScrollEl ?? findPageScrollEl(activeTrigger);
+}
+
+function setupScrollPassthrough(): void {
+  teardownScrollPassthrough();
+  if (!contentEl) return;
+  pageScrollEl = activeTrigger ? findPageScrollEl(activeTrigger) : null;
+
+  const ac = new AbortController();
+  scrollPassthroughController = ac;
+  const { signal } = ac;
+  const el = contentEl;
+
+  // ── Wheel passthrough ──
+  el.addEventListener(
+    "wheel",
+    (e: WheelEvent) => {
+      if (e.defaultPrevented || e.deltaY === 0) return;
+      if (canChildScrollVertically(e.target as HTMLElement | null, wrapperEl, e.deltaY)) return;
+      e.preventDefault();
+      const pixelDelta =
+        e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY;
+      getPageScrollEl().scrollTop += pixelDelta;
+    },
+    { passive: false, signal },
+  );
+
+  // ── Touch passthrough with momentum ──
+  const AXIS_LOCK_PX = 8;
+  const COAST_DECELERATION = 0.95;
+  const COAST_CUTOFF = 0.5;
+  const VELOCITY_SAMPLES = 5;
+  const STALE_MS = 100;
+
+  let startX = 0;
+  let startY = 0;
+  let axis: "undecided" | "vertical" | "horizontal" = "undecided";
+  let velocityHistory: { y: number; t: number }[] = [];
+
+  const cancelCoast = () => {
+    if (coastRafId !== null) {
+      cancelAnimationFrame(coastRafId);
+      coastRafId = null;
+    }
+  };
+
+  el.addEventListener(
+    "touchstart",
+    (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      cancelCoast();
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      axis = "undecided";
+      velocityHistory = [{ y: t.clientY, t: Date.now() }];
+    },
+    { passive: true, signal },
+  );
+
+  el.addEventListener(
+    "touchmove",
+    (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      if (e.defaultPrevented) {
+        const t = e.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        axis = "undecided";
+        velocityHistory = [{ y: t.clientY, t: Date.now() }];
+        return;
+      }
+      const t = e.touches[0];
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (axis === "undecided") {
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < AXIS_LOCK_PX) return;
+        axis = Math.abs(dy) >= Math.abs(dx) ? "vertical" : "horizontal";
+      }
+      if (axis === "horizontal") return;
+      if (canChildScrollVertically(e.target as HTMLElement | null, wrapperEl, dy > 0 ? 1 : -1)) return;
+      e.preventDefault();
+      const pEl = getPageScrollEl();
+      pEl.scrollTop -= dy;
+      startX = t.clientX;
+      startY = t.clientY;
+      const now = Date.now();
+      velocityHistory.push({ y: t.clientY, t: now });
+      if (velocityHistory.length > VELOCITY_SAMPLES) velocityHistory.shift();
+    },
+    { passive: false, signal },
+  );
+
+  const onTouchEnd = () => {
+    if (axis !== "vertical") {
+      axis = "undecided";
+      return;
+    }
+    if (velocityHistory.length >= 2) {
+      const first = velocityHistory[0];
+      const last = velocityHistory[velocityHistory.length - 1];
+      const timeSinceLast = Date.now() - last.t;
+      if (timeSinceLast < STALE_MS) {
+        const dt = last.t - first.t;
+        if (dt > 0) {
+          const vy = (first.y - last.y) / dt;
+          if (Math.abs(vy) > 0.08) {
+            let frameVy = vy * 16.67;
+            let lastTime = performance.now();
+            const pEl = getPageScrollEl();
+            const coast = () => {
+              const now = performance.now();
+              const frameDt = now - lastTime;
+              lastTime = now;
+              const factor = COAST_DECELERATION ** (frameDt / 16.67);
+              pEl.scrollTop += frameVy;
+              frameVy *= factor;
+              if (Math.abs(frameVy) > COAST_CUTOFF) {
+                coastRafId = requestAnimationFrame(coast);
+              } else {
+                coastRafId = null;
+              }
+            };
+            coastRafId = requestAnimationFrame(coast);
+          }
+        }
+      }
+    }
+    axis = "undecided";
+    velocityHistory = [];
+  };
+
+  el.addEventListener("touchend", onTouchEnd, { passive: true, signal });
+  el.addEventListener("touchcancel", onTouchEnd, { passive: true, signal });
+}
+
+function teardownScrollPassthrough(): void {
+  scrollPassthroughController?.abort();
+  scrollPassthroughController = null;
+  pageScrollEl = null;
+  if (coastRafId !== null) {
+    cancelAnimationFrame(coastRafId);
+    coastRafId = null;
+  }
+}
+
+// ── Blink animation helpers ───────────────────────────────────────────────
+
+function animateOpen(): void {
+  if (!contentEl || prefersReducedMotion) return;
+  // Start state: slightly scaled down + transparent
+  contentEl.style.opacity = "0";
+  contentEl.style.transform = "translateY(4px) scale(0.96)";
+  contentEl.style.transition = "none";
+  // Force reflow so the start state is committed before the transition
+  contentEl.offsetHeight; // eslint-disable-line @typescript-eslint/no-unused-expressions
+  // End state: fully visible
+  contentEl.style.transition = `opacity ${BLINK_ENTER_DURATION_MS}ms ${BLINK_ENTER_EASING}, transform ${BLINK_ENTER_DURATION_MS}ms ${BLINK_ENTER_EASING}`;
+  contentEl.style.opacity = "1";
+  contentEl.style.transform = "translateY(0) scale(1)";
+}
+
+function animateClose(onDone: () => void): void {
+  if (!contentEl || prefersReducedMotion) {
+    onDone();
+    return;
+  }
+  contentEl.style.transition = `opacity ${BLINK_EXIT_DURATION_MS}ms ${BLINK_EXIT_EASING}, transform ${BLINK_EXIT_DURATION_MS}ms ${BLINK_EXIT_EASING}`;
+  contentEl.style.opacity = "0";
+  contentEl.style.transform = "translateY(4px) scale(0.98)";
+  setTimeout(onDone, BLINK_EXIT_DURATION_MS);
+}
+
+// ── Show / Hide ───────────────────────────────────────────────────────────
+
 function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
   if (activeTrigger === trigger && isOpen) {
     hidePopoverInner();
     return;
   }
-  const el = ensurePopoverEl();
+  const { wrapper, content } = ensurePopoverEls();
   const verification = mapToVerification(data);
   const citation = mapToCitation(data);
   const status = getStatusFromVerification(verification);
+  // Keep wrapper invisible during initial render + layout to prevent a 1-frame flash
+  // at the wrong size/position.  visibility:hidden still allows layout measurement.
+  wrapper.style.display = "";
+  wrapper.style.visibility = "hidden";
+  wrapper.style.pointerEvents = "none";
   render(
     createElement(CdnPopoverWrapper, {
       citation,
@@ -102,49 +405,80 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
       status,
       sourceLabel: data.label,
     }),
-    el,
+    content,
   );
-  el.style.display = "block";
   isOpen = true;
   activeTrigger = trigger;
+  lastCoords = { x: NaN, y: NaN };
   requestAnimationFrame(() => {
-    const triggerRect = trigger.getBoundingClientRect();
-    const popoverRect = el.getBoundingClientRect();
-    const pos = computePosition(triggerRect, popoverRect.width, popoverRect.height, SIDE_OFFSET);
-    el.style.left = `${pos.x}px`;
-    el.style.top = `${pos.y}px`;
-    el.setAttribute("data-side", pos.side);
+    reposition();
+    // Now reveal — position is correct, content has been laid out
+    wrapper.style.visibility = "";
+    wrapper.style.pointerEvents = "auto";
+    startPositionTracking();
+    setupScrollPassthrough();
+    animateOpen();
   });
 }
-function hidePopoverInner(): void {
-  if (popoverEl) {
-    render(null as unknown as ReturnType<typeof createElement>, popoverEl);
-    popoverEl.style.display = "none";
+
+function hidePopoverCleanup(): void {
+  stopPositionTracking();
+  teardownScrollPassthrough();
+  if (wrapperEl) {
+    wrapperEl.style.pointerEvents = "none";
+    wrapperEl.style.display = "none";
+  }
+  if (contentEl) {
+    render(null as unknown as ReturnType<typeof createElement>, contentEl);
+    contentEl.style.transition = "none";
+    contentEl.style.opacity = "";
+    contentEl.style.transform = "";
   }
   isOpen = false;
   activeTrigger = null;
+  lastCoords = { x: NaN, y: NaN };
 }
-function createStatusIndicator(data: VerificationData): HTMLSpanElement | null {
+
+function hidePopoverInner(): void {
+  if (!isOpen) return;
+  animateClose(hidePopoverCleanup);
+}
+
+function createStatusIndicator(data: VerificationData, variant: CdnIndicatorVariant = "icon"): HTMLSpanElement | null {
+  if (variant === "none") return null;
   const verification = mapToVerification(data);
   const status = getStatusFromVerification(verification);
-  let svg: string;
+  // Determine state and color
+  let state: "verified" | "partial" | "miss" | null = null;
   let color: string;
   if (status.isMiss) {
-    svg = MISS_SVG;
+    state = "miss";
     color = STATUS_COLORS.miss;
   } else if (status.isPartialMatch) {
-    svg = WARNING_SVG;
+    state = "partial";
     color = STATUS_COLORS.partial;
   } else if (status.isVerified) {
-    svg = CHECK_SVG;
+    state = "verified";
     color = STATUS_COLORS.verified;
   } else {
     return null; // pending or unknown — no indicator
   }
   const span = document.createElement("span");
   span.className = "dc-status-indicator";
-  span.style.cssText = `display:inline-flex;width:0.85em;height:0.85em;min-width:10px;min-height:10px;color:${color};vertical-align:middle;margin-left:0.1em;`;
+  span.setAttribute("aria-hidden", "true");
+  span.setAttribute("data-dc-indicator", state === "miss" ? "error" : state);
+  if (variant === "dot") {
+    // Dot variant: small colored circle, matches React's DotIndicator (0.4em, 6px min)
+    span.style.cssText = `display:inline-block;width:0.4em;height:0.4em;min-width:6px;min-height:6px;border-radius:9999px;vertical-align:0.1em;margin-left:0.125rem;background:${color};`;
+    return span;
+  }
+  // Icon variant: checkmark (verified/partial) or X (miss), matches React's StatusIndicatorWrapper (0.85em, 10px min)
+  const svg = state === "miss" ? X_SVG : CHECK_SVG;
+  span.style.cssText = `display:inline-flex;align-items:center;justify-content:center;width:0.85em;height:0.85em;min-width:10px;min-height:10px;color:${color};vertical-align:middle;margin-left:0.125rem;border:none;outline:none;background:none;padding:0;`;
   span.innerHTML = svg;
+  // Reset SVG styles to prevent host page CSS bleed
+  const svgEl = span.querySelector("svg");
+  if (svgEl) svgEl.style.cssText = "border:none;outline:none;box-shadow:none;width:100%;height:100%;";
   return span;
 }
 
@@ -156,7 +490,7 @@ function bindTriggers(selector: string): void {
     if (!key || !verifications[key]) continue;
     boundTriggers.add(trigger);
     trigger.style.cursor = "pointer";
-    const indicator = createStatusIndicator(verifications[key]);
+    const indicator = createStatusIndicator(verifications[key], activeIndicatorVariant);
     if (indicator && !trigger.querySelector(".dc-status-indicator")) {
       trigger.appendChild(indicator);
     }
@@ -168,33 +502,46 @@ function bindTriggers(selector: string): void {
     });
   }
 }
+function parseScriptTagJson<T>(id: string, errorMsg: string): T | null {
+  const el = document.getElementById(id);
+  if (!el?.textContent) return null;
+  try {
+    return JSON.parse(el.textContent) as T;
+  } catch {
+    console.error(errorMsg);
+    return null;
+  }
+}
 function init(options: CdnOptions = {}): void {
-  if (popoverEl) return;
-  const { theme = "auto", selector = "[data-citation-key]" } = options;
+  if (wrapperEl) return;
+  const { theme = "auto", selector = "[data-citation-key]", indicatorVariant = "icon" } = options;
   activeSelector = selector;
+  activeIndicatorVariant = indicatorVariant;
   injectStyles();
   document.documentElement.setAttribute("data-dc-theme", theme);
   if (options.verifications) {
     verifications = { ...options.verifications };
   } else {
-    const dataEl = document.getElementById("dc-data");
-    if (dataEl?.textContent) {
-      try {
-        verifications = JSON.parse(dataEl.textContent);
-      } catch {
-        console.error("[deepcitation] Failed to parse embedded verification data");
-      }
-    }
+    verifications =
+      parseScriptTagJson<Record<string, VerificationData>>(
+        "dc-data",
+        "[deepcitation] Failed to parse embedded verification data",
+      ) ?? {};
   }
-  ensurePopoverEl();
+  // Resolve human-readable data-cite attributes to hashed data-citation-key
+  // using the key map embedded as <script id="dc-key-map">{...}</script>.
+  // Key-map resolution is one-shot: only runs on first init(), not on update().
+  resolveKeyMap();
+
+  ensurePopoverEls();
   dismissController = new AbortController();
   const { signal } = dismissController;
   document.addEventListener(
     "mousedown",
     e => {
-      if (!isOpen || !popoverEl) return;
+      if (!isOpen || !wrapperEl) return;
       const target = e.target as Node;
-      if (popoverEl.contains(target)) return;
+      if (wrapperEl.contains(target)) return;
       if (target instanceof HTMLElement && target.closest(selector)) return;
       hidePopoverInner();
     },
@@ -222,16 +569,25 @@ function hide(): void {
   hidePopoverInner();
 }
 function destroy(): void {
-  hidePopoverInner();
-  if (popoverEl) {
-    popoverEl.remove();
-    popoverEl = null;
+  // Skip animation on destroy — clean up immediately
+  stopPositionTracking();
+  teardownScrollPassthrough();
+  if (contentEl) {
+    render(null as unknown as ReturnType<typeof createElement>, contentEl);
+  }
+  if (wrapperEl) {
+    wrapperEl.remove();
+    wrapperEl = null;
+    contentEl = null;
   }
   dismissController?.abort();
   dismissController = null;
   document.getElementById("dc-popover-styles")?.remove();
   document.documentElement.removeAttribute("data-dc-theme");
+  isOpen = false;
+  activeTrigger = null;
   verifications = {};
+  lastCoords = { x: NaN, y: NaN };
 }
 
 if (!window.DeepCitationPopover) {

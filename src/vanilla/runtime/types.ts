@@ -29,6 +29,9 @@ export interface VerificationData {
   document?: {
     verifiedPageNumber?: number;
     mimeType?: string;
+    phraseMatchDeepItem?: { x: number; y: number; width: number; height: number; text?: string };
+    anchorTextMatchDeepItems?: Array<{ x: number; y: number; width: number; height: number; text?: string }>;
+    renderScale?: { x: number; y: number };
   };
   url?: {
     verifiedTitle?: string;
@@ -41,11 +44,33 @@ export interface VerificationData {
     anchorText?: string;
     type?: string;
   };
+  /** Ordered list of search attempts made during verification. */
+  searchAttempts?: Array<{
+    method?: string;
+    success?: boolean;
+    searchPhrase?: string;
+    searchPhraseType?: string;
+    regexPattern?: string;
+    pageSearched?: number;
+    lineSearched?: number | number[];
+    searchScope?: string;
+    expectedLocation?: { page: number; line?: number };
+    foundLocation?: { page: number; line?: number };
+    matchedVariation?: string;
+    matchedText?: string;
+    deepTextItems?: Array<{ x: number; y: number; width: number; height: number; text?: string }>;
+    note?: string;
+    durationMs?: number;
+    variationType?: string;
+    occurrencesFound?: number;
+    matchedExpectedOccurrence?: boolean;
+  }>;
   /** Page renders for the full-page viewer. */
   pageImages?: Array<{
     pageNumber: number;
     dimensions: { width: number; height: number };
     imageUrl: string;
     isMatchPage?: boolean;
+    renderScale?: { x: number; y: number };
   }>;
 }

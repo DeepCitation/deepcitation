@@ -2,4 +2,47 @@
 @layer theme, utilities;
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities";
+@import "../../tokens.css";
 @source "../../react";
+
+/* Register DeepCitation tokens as Tailwind utilities (mirrors styles.css) */
+@theme inline {
+  /* Colors */
+  --color-dc-background: var(--dc-background);
+  --color-dc-muted: var(--dc-muted);
+  --color-dc-foreground: var(--dc-foreground);
+  --color-dc-muted-foreground: var(--dc-muted-foreground);
+  --color-dc-subtle-foreground: var(--dc-subtle-foreground);
+  --color-dc-border: var(--dc-border);
+  --color-dc-ring: var(--dc-ring);
+  --color-dc-primary: var(--dc-primary);
+  --color-dc-primary-foreground: var(--dc-primary-foreground);
+  --color-dc-verified: var(--dc-verified);
+  --color-dc-partial: var(--dc-partial);
+  --color-dc-destructive: var(--dc-destructive);
+  --color-dc-pending: var(--dc-pending);
+  --color-dc-verified-bg: var(--dc-verified-bg);
+  --color-dc-verified-border: var(--dc-verified-border);
+  --color-dc-verified-hover: var(--dc-verified-hover);
+  --color-dc-verified-hover-foreground: var(--dc-verified-hover-foreground);
+  --color-dc-partial-bg: var(--dc-partial-bg);
+  --color-dc-partial-border: var(--dc-partial-border);
+  --color-dc-partial-hover: var(--dc-partial-hover);
+  --color-dc-partial-hover-foreground: var(--dc-partial-hover-foreground);
+  --color-dc-destructive-bg: var(--dc-destructive-bg);
+  --color-dc-destructive-border: var(--dc-destructive-border);
+  --color-dc-destructive-hover: var(--dc-destructive-hover);
+  --color-dc-destructive-hover-foreground: var(--dc-destructive-hover-foreground);
+  --color-dc-pending-bg: var(--dc-pending-bg);
+  --color-dc-pending-border: var(--dc-pending-border);
+  --color-dc-pending-hover: var(--dc-pending-hover);
+  --color-dc-pending-hover-foreground: var(--dc-pending-hover-foreground);
+
+  /* Border radius */
+  --radius-dc-sm: var(--dc-radius-sm);
+  --radius-dc-md: var(--dc-radius-md);
+  --radius-dc-lg: var(--dc-radius-lg);
+
+  /* Font family */
+  --font-dc: var(--dc-font-family);
+}

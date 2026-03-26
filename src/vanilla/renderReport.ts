@@ -1,9 +1,8 @@
 import { renderCitationsAsHtml } from "../rendering/html/htmlRenderer.js";
 import { generateStyleBlock } from "../rendering/html/styles.js";
 import { escapeHtml } from "../rendering/shared.js";
-import { RUNTIME_JS } from "./_generated.js";
-import { POPOVER_CSS } from "./popoverStyles.js";
-import { escapeJsonForScript, stripStyleTags } from "./reportUtils.js";
+import { CDN_JS } from "./_generated_cdn.js";
+import { escapeJsForScript, escapeJsonForScript, stripStyleTags } from "./reportUtils.js";
 import type { VanillaReportOptions } from "./types.js";
 
 /**
@@ -59,7 +58,7 @@ export function renderCitationReport(input: string, options: VanillaReportOption
 
   // Build styles block
   if (includeStyles) {
-    parts.push(`<style>\n${triggerCssBody}\n${POPOVER_CSS}\n</style>`);
+    parts.push(`<style>\n${triggerCssBody}\n</style>`);
   }
 
   // Report content
@@ -71,9 +70,10 @@ export function renderCitationReport(input: string, options: VanillaReportOption
     parts.push(`<script type="application/json" id="dc-data">${jsonData}</script>`);
   }
 
-  // Popover runtime IIFE
+  // CDN bundle: Preact + real React components + Tailwind CSS
   if (includeRuntime) {
-    parts.push(`<script>${RUNTIME_JS}</script>`);
+    parts.push(`<script>${escapeJsForScript(CDN_JS)}</script>`);
+    parts.push(`<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"${theme}"});</script>`);
   }
 
   const body = parts.join("\n\n");

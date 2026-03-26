@@ -15,6 +15,7 @@ export default defineConfig({
     "rendering/html/htmlRenderer": "src/rendering/html/htmlRenderer.ts",
     "rendering/terminal/terminalRenderer": "src/rendering/terminal/terminalRenderer.ts",
     "vanilla/index": "src/vanilla/index.ts",
+    cli: "src/cli.ts",
   },
   format: ["esm", "cjs"],
   dts: {

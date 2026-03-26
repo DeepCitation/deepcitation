@@ -94,9 +94,9 @@ describe("renderCitationReport", () => {
       expect(html).toContain("Q4 Report");
     });
 
-    it("embeds runtime IIFE script", () => {
+    it("embeds CDN runtime script", () => {
       const html = renderCitationReport(simpleInput);
-      expect(html).toMatch(/<script>\(.*\)\(\);<\/script>/s);
+      expect(html).toContain("DeepCitationPopover");
     });
 
     it("omits runtime when includeRuntime is false", () => {
