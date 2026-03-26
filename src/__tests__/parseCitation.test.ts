@@ -317,6 +317,44 @@ describe("getAllCitationsFromLlmOutput", () => {
     });
   });
 
+  describe("marker-only fallback (no <<<CITATION_DATA>>> block)", () => {
+    it("extracts citations from string with [N] markers but no data block", () => {
+      const text = "The test result was POSITIVE [1]. Five bacteria detected [2]. Treatment recommended [3].";
+      const result = getAllCitationsFromLlmOutput(text);
+      expect(Object.keys(result).length).toBe(3);
+      const values = Object.values(result);
+      expect(values.some(c => c.fullPhrase?.includes("POSITIVE"))).toBe(true);
+      expect(values.some(c => c.fullPhrase?.includes("bacteria"))).toBe(true);
+      expect(values.some(c => c.fullPhrase?.includes("Treatment"))).toBe(true);
+    });
+
+    it("extracts from comma-separated markers like [2, 3, 4]", () => {
+      const text = "High-risk pathogens were identified [2, 3, 4].";
+      const result = getAllCitationsFromLlmOutput(text);
+      expect(Object.keys(result).length).toBe(3);
+      const numbers = Object.values(result).map(c => c.citationNumber).sort((a, b) => (a ?? 0) - (b ?? 0));
+      expect(numbers).toEqual([2, 3, 4]);
+    });
+
+    it("prefers <<<CITATION_DATA>>> block over marker extraction when both present", () => {
+      const text = `Result was positive [1].
+
+<<<CITATION_DATA>>>
+{"att1": [{"id": 1, "full_phrase": "specific phrase from JSON", "page_id": "1_0", "line_ids": [5]}]}
+<<<END_CITATION_DATA>>>`;
+      const result = getAllCitationsFromLlmOutput(text);
+      const values = Object.values(result);
+      expect(values.length).toBe(1);
+      // Should use the JSON block phrase, not the sentence extraction
+      expect(values[0].fullPhrase).toBe("specific phrase from JSON");
+    });
+
+    it("returns empty for plain text without any [N] markers", () => {
+      const result = getAllCitationsFromLlmOutput("Just some plain text without any citations");
+      expect(result).toEqual({});
+    });
+  });
+
   describe("JSON citation extraction", () => {
     it("extracts citation from single JSON object with fullPhrase (backward compat: startPageKey -> startPageId)", () => {
       // Input uses old naming: startPageKey
