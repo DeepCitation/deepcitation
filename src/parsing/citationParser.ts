@@ -647,6 +647,153 @@ export function getCitationMarkerIds(text: string): number[] {
 }
 
 /**
+ * Regex for comma-separated multi-citation markers like [1, 5] or [2, 3, 4].
+ * Matches brackets containing comma-separated integers with optional whitespace.
+ */
+const MULTI_CITATION_MARKER_RE = /\[(\d+(?:\s*,\s*\d+)+)\]/g;
+
+/**
+ * Regex for single [N] markers. Non-global version for targeted use.
+ */
+const SINGLE_CITATION_MARKER_RE = /\[(\d+)\]/;
+
+/**
+ * Extracts the sentence or clause surrounding a citation marker position.
+ * Looks for sentence boundaries (. ! ? newline) or list item boundaries (- *).
+ */
+function extractSurroundingSentence(text: string, markerStart: number, markerEnd: number): string {
+  // Look backward for sentence start
+  let sentenceStart = markerStart;
+  for (let i = markerStart - 1; i >= 0 && i >= markerStart - 500; i--) {
+    const ch = text[i];
+    if (ch === "\n") {
+      sentenceStart = i + 1;
+      break;
+    }
+    if ((ch === "." || ch === "!" || ch === "?") && i < markerStart - 1) {
+      const nextChar = text[i + 1];
+      const prevChar = i > 0 ? text[i - 1] : "";
+      // Skip abbreviations: single letter + period (e.g. "A.", "Dr."), or digit + period (e.g. "3.")
+      const isAbbreviation = /^[A-Z]$/i.test(prevChar) || /^\d$/.test(prevChar);
+      if ((nextChar === " " || nextChar === "\n") && !isAbbreviation) {
+        sentenceStart = i + 2;
+        break;
+      }
+    }
+    if (i === 0) {
+      sentenceStart = 0;
+    }
+  }
+
+  // Look forward for sentence end
+  let sentenceEnd = markerEnd;
+  for (let i = markerEnd; i < text.length && i < markerEnd + 500; i++) {
+    const ch = text[i];
+    if (ch === "\n") {
+      sentenceEnd = i;
+      break;
+    }
+    if (ch === "." || ch === "!" || ch === "?") {
+      const nextChar = text[i + 1];
+      const prevChar = i > 0 ? text[i - 1] : "";
+      // Skip abbreviations: single letter + period or digit + period
+      const isAbbreviation = /^[A-Z]$/i.test(prevChar) || /^\d$/.test(prevChar);
+      if ((!nextChar || nextChar === " " || nextChar === "\n") && !isAbbreviation) {
+        sentenceEnd = i + 1;
+        break;
+      }
+    }
+    if (i === text.length - 1) {
+      sentenceEnd = text.length;
+    }
+  }
+
+  // Extract and clean the sentence
+  let sentence = text.substring(sentenceStart, sentenceEnd).trim();
+
+  // Remove leading list markers (-, *, numbers)
+  sentence = sentence.replace(/^[-*•]\s+/, "").replace(/^\d+\.\s+/, "");
+
+  // Strip all [N] markers from the extracted sentence to get clean text
+  sentence = sentence.replace(CITATION_MARKER_RE, "").replace(MULTI_CITATION_MARKER_RE, "");
+
+  // Remove markdown bold/italic markers for cleaner full_phrase
+  sentence = sentence.replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1");
+
+  // Clean up extra whitespace
+  sentence = sentence.replace(/\s{2,}/g, " ").trim();
+
+  return sentence;
+}
+
+/**
+ * Extracts citations from raw LLM output that contains only [N] markers
+ * (no <<<CITATION_DATA>>> JSON block). Uses the surrounding sentence/clause
+ * as the `full_phrase` for each citation.
+ *
+ * Handles three marker styles observed across LLM providers:
+ * - Sequential: `[1]`, `[2]`, `[3]` (all providers)
+ * - Adjacent: `[9][10][11]` (OpenAI)
+ * - Comma-separated: `[1, 5]`, `[2, 3, 4]` (Gemini)
+ *
+ * @param text - Raw LLM output with [N] markers but no citation data block
+ * @returns Citation dictionary keyed by citation key hash
+ */
+export function extractCitationsFromMarkers(text: string): { [key: string]: Citation } {
+  if (!text || typeof text !== "string") return {};
+
+  const citations: { [key: string]: Citation } = {};
+  const seenIds = new Set<number>();
+
+  // First pass: find all multi-citation markers [N, N, N]
+  for (const match of text.matchAll(MULTI_CITATION_MARKER_RE)) {
+    const ids = match[1].split(",").map(s => parseInt(s.trim(), 10));
+    const markerStart = match.index;
+    const markerEnd = markerStart + match[0].length;
+    const sentence = extractSurroundingSentence(text, markerStart, markerEnd);
+
+    if (!sentence) continue;
+
+    for (const id of ids) {
+      if (seenIds.has(id) || isNaN(id)) continue;
+      seenIds.add(id);
+
+      const citation: Citation = {
+        type: "document" as const,
+        fullPhrase: sentence,
+        citationNumber: id,
+        anchorText: sentence.length > 50 ? sentence.substring(0, 50) : sentence,
+      };
+      // Use citationNumber as key to avoid collisions when multiple IDs share the same sentence
+      citations[String(id)] = citation;
+    }
+  }
+
+  // Second pass: find single [N] markers not already captured
+  for (const match of text.matchAll(CITATION_MARKER_RE)) {
+    const id = parseInt(match[1], 10);
+    if (seenIds.has(id) || isNaN(id)) continue;
+    seenIds.add(id);
+
+    const markerStart = match.index;
+    const markerEnd = markerStart + match[0].length;
+    const sentence = extractSurroundingSentence(text, markerStart, markerEnd);
+
+    if (!sentence) continue;
+
+    const citation: Citation = {
+      type: "document" as const,
+      fullPhrase: sentence,
+      citationNumber: id,
+      anchorText: sentence.length > 50 ? sentence.substring(0, 50) : sentence,
+    };
+    citations[String(id)] = citation;
+  }
+
+  return citations;
+}
+
+/**
  * Strips all citation artifacts from LLM output, returning clean readable text.
  * Strips `[N]` markers and `<<<CITATION_DATA>>>` block.
  *

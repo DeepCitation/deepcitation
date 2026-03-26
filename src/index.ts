@@ -69,6 +69,7 @@ export {
 // Citation parsing — core API + display helpers
 export {
   citationDataToCitation,
+  extractCitationsFromMarkers,
   extractVisibleText,
   getCitationMarkerIds,
   hasCitationData,
