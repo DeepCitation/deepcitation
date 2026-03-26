@@ -1,5 +1,5 @@
 import type { Citation } from "../../types/citation.js";
-import type { SearchStatus } from "../../types/search.js";
+import type { SearchAttempt, SearchStatus } from "../../types/search.js";
 import type { PageImage, Verification } from "../../types/verification.js";
 import type { VerificationData } from "./types.js";
 
@@ -12,7 +12,13 @@ export function mapToVerification(data: VerificationData): Verification {
     verifiedMatchSnippet: data.verifiedMatchSnippet,
     evidence: data.evidence?.src ? { src: data.evidence.src, dimensions: data.evidence.dimensions } : undefined,
     document: data.document
-      ? { verifiedPageNumber: data.document.verifiedPageNumber, mimeType: data.document.mimeType }
+      ? {
+          verifiedPageNumber: data.document.verifiedPageNumber,
+          mimeType: data.document.mimeType,
+          phraseMatchDeepItem: data.document.phraseMatchDeepItem,
+          anchorTextMatchDeepItems: data.document.anchorTextMatchDeepItems,
+          renderScale: data.document.renderScale,
+        }
       : undefined,
     url: data.url
       ? {
@@ -22,6 +28,7 @@ export function mapToVerification(data: VerificationData): Verification {
           verifiedFaviconUrl: data.url.verifiedFaviconUrl,
         }
       : undefined,
+    searchAttempts: data.searchAttempts as SearchAttempt[] | undefined,
     pageImages: data.pageImages as PageImage[] | undefined,
   };
 }

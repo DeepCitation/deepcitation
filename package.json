@@ -3,6 +3,9 @@
   "version": "0.3.0",
   "description": "DeepCitation JavaScript SDK for deterministic AI citation verification",
   "type": "module",
+  "bin": {
+    "deepcitation": "./lib/cli.js"
+  },
   "private": false,
   "license": "MIT",
   "author": "DeepCitation <opensource@deepcitation.com>",
@@ -63,9 +66,8 @@
     "!lib/**/*.map"
   ],
   "scripts": {
-    "build:vanilla-runtime": "bun scripts/build-vanilla-runtime.mjs --generated-only",
-    "build:vanilla-iife": "bun scripts/build-vanilla-runtime.mjs",
-    "build": "npm run build:vanilla-runtime && tsup && npm run build:vanilla-iife && npm run build:css",
+    "build:cdn": "bun scripts/build-vanilla-runtime.mjs",
+    "build": "npm run build:cdn && tsup && npm run build:css",
     "build:css": "tailwindcss -i ./src/styles.css -o ./lib/styles.css --minify",
     "build:watch": "tsup --watch",
     "build:tsc": "rm -rf lib && bun ./node_modules/typescript/bin/tsc",

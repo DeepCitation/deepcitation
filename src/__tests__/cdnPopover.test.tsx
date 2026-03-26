@@ -27,6 +27,17 @@ const fullData: VerificationData = {
     verifiedFaviconUrl: "https://example.com/favicon.ico",
   },
   citation: { fullPhrase: "The quick brown fox", anchorText: "brown fox", type: "url" },
+  searchAttempts: [
+    {
+      method: "exact_line_match",
+      success: true,
+      searchPhrase: "The quick brown fox",
+      pageSearched: 3,
+      searchScope: "line",
+      note: "Searching line IDs 5",
+      durationMs: 0.12,
+    },
+  ],
   pageImages: [
     { pageNumber: 3, dimensions: { width: 1200, height: 1600 }, imageUrl: PAGE_IMAGE_URL, isMatchPage: true },
     {
@@ -71,6 +82,16 @@ describe("mapToVerification", () => {
   });
   it("sets pageImages undefined when absent", () => {
     expect(mapToVerification(minData).pageImages).toBeUndefined();
+  });
+  it("preserves searchAttempts array", () => {
+    const r = mapToVerification(fullData);
+    expect(r.searchAttempts).toHaveLength(1);
+    expect(r.searchAttempts?.[0].method).toBe("exact_line_match");
+    expect(r.searchAttempts?.[0].success).toBe(true);
+    expect(r.searchAttempts?.[0].searchPhrase).toBe("The quick brown fox");
+  });
+  it("sets searchAttempts undefined when absent", () => {
+    expect(mapToVerification(minData).searchAttempts).toBeUndefined();
   });
   it("maps document metadata", () => {
     expect(mapToVerification(fullData).document).toEqual({ verifiedPageNumber: 3, mimeType: "application/pdf" });
@@ -182,14 +203,24 @@ describe("cdn.ts source invariants", () => {
   it("passes pageImages", () => {
     expect(cdnSource).toContain("pageImages: verification.pageImages");
   });
-  it("sets max-width on popover container", () => {
-    expect(cdnSource).toContain('maxWidth = "min(480px, calc(100vw - 2rem))"');
+  it("sets max-width on content container", () => {
+    expect(cdnSource).toContain('maxWidth = "calc(100vw - 2rem)"');
   });
-  it("sets width max-content on popover container", () => {
+  it("sets width max-content on wrapper", () => {
     expect(cdnSource).toContain('width = "max-content"');
   });
   it("creates status indicator icons", () => {
     expect(cdnSource).toContain("createStatusIndicator");
     expect(cdnSource).toContain("dc-status-indicator");
+  });
+  it("uses checkmark for both verified and partial (not warning triangle)", () => {
+    // Partial match uses CHECK_SVG (amber checkmark), same icon as verified — NOT a warning triangle
+    expect(cdnSource).toContain("CHECK_SVG");
+    expect(cdnSource).toContain("X_SVG");
+    expect(cdnSource).not.toContain("WARNING_SVG");
+  });
+  it("supports indicator variant option", () => {
+    expect(cdnSource).toContain("indicatorVariant");
+    expect(cdnSource).toContain("activeIndicatorVariant");
   });
 });

@@ -5,10 +5,9 @@ import { renderCitationsAsHtml } from "../rendering/html/htmlRenderer.js";
 import { generateStyleBlock } from "../rendering/html/styles.js";
 import { prepareCitations, type ResolvedCitation } from "../rendering/prepareCitations.js";
 import { escapeHtml, getStatusKey, getStatusLabel, type StatusKey } from "../rendering/shared.js";
-import { RUNTIME_JS } from "./_generated.js";
+import { CDN_JS } from "./_generated_cdn.js";
 import { BRANDED_REPORT_CSS } from "./brandedReportStyles.js";
-import { POPOVER_CSS } from "./popoverStyles.js";
-import { escapeJsonForScript, stripStyleTags } from "./reportUtils.js";
+import { escapeJsForScript, escapeJsonForScript, stripStyleTags } from "./reportUtils.js";
 import type { BrandedReportOptions } from "./types.js";
 
 /** DeepCitation shield SVG wordmark — inline, no external deps. */
@@ -226,7 +225,6 @@ export function renderBrandedReport(input: string | ParsedCitationResult, option
 <style>
 ${BRANDED_REPORT_CSS}
 ${triggerCssBody}
-${POPOVER_CSS}
 </style>
 </head>
 <body>
@@ -275,7 +273,8 @@ ${POPOVER_CSS}
 </div>
 
 <script type="application/json" id="dc-data">${jsonData}</script>
-<script>${RUNTIME_JS}</script>
+<script>${escapeJsForScript(CDN_JS)}</script>
+<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"${escapeHtml(theme)}"});</script>
 </body>
 </html>`;
 }
