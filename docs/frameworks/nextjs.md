@@ -4,7 +4,7 @@ title: Next.js App Router
 parent: Frameworks
 nav_order: 2
 description: "DeepCitation + Next.js App Router: server components, streaming, and use client boundaries"
-commit_sha: "cc9c7aa"
+commit_sha: "80dfecd"
 stale_after_commits: 15
 watch_paths:
   - src/react/Citation.tsx
@@ -27,6 +27,9 @@ In your Next.js App Router app, DeepCitation runs entirely server-side until the
 
 This is the question most developers hit first. Here's the complete split:
 
+{: .note }
+The `deepcitation/react` entry point now ships with a `"use client"` directive at the top of the module. This means React components imported from `deepcitation/react` are automatically marked as client components — **you no longer need to add your own `"use client"` boundary in wrapper files that only re-export DeepCitation components.** You still need `"use client"` in your own page/component files that use React hooks or browser APIs.
+
 | Import | Where it runs | Why |
 |:-------|:-------------|:----|
 | `DeepCitation` (class) | Server only | Makes network calls to DC API; never expose API key to client |
@@ -35,9 +38,10 @@ This is the question most developers hit first. Here's the complete split:
 | `getAllCitationsFromLlmOutput()` | Server only (Route Handler) | Called after streaming completes |
 | `verifyAttachment()` | Server only (Route Handler) | Makes DC API call |
 | `validateUploadFile()` | Server only | File validation before upload |
-| `CitationComponent` | Client only (`"use client"`) | Uses React state/hooks, renders interactive popover |
-| `CitationDrawer` | Client only (`"use client"`) | Interactive drawer with animation |
-| `CitationDrawerTrigger` | Client only (`"use client"`) | Trigger button for the drawer |
+| `CitationComponent` | Client only (auto via `"use client"`) | Uses React state/hooks, renders interactive popover |
+| `CitationDrawer` | Client only (auto via `"use client"`) | Interactive drawer with animation |
+| `CitationDrawerTrigger` | Client only (auto via `"use client"`) | Trigger button for the drawer |
+| `DeepCitationTheme` | Client only (auto via `"use client"`) | CSS variable provider for theming |
 | `parseCitationResponse()` | Either | Pure function, no side effects |
 | `getCitationKey()` | Either | Pure function, no side effects (import from `"deepcitation"`) |
 
@@ -409,6 +413,29 @@ export function ArticleContent({
 ```
 
 **Can `CitationComponent` be server-rendered for SEO?** Not with its interactive popover — the component uses React state and browser APIs. For SEO, render citation text in the Server Component and hydrate the interactive CitationComponent on the client.
+
+---
+
+## Theming with DeepCitationTheme
+
+`DeepCitationTheme` is a provider component that sets CSS custom properties (design tokens) for all nested DeepCitation components. Wrap it around your citation rendering area — typically in your root layout or chat container:
+
+```tsx
+import { DeepCitationTheme } from "deepcitation/react";
+
+// In your layout or chat wrapper:
+<DeepCitationTheme
+  colors={{
+    verified: "#16a34a",
+    partial: "#eab308",
+    error: "#dc2626",
+  }}
+>
+  {children}
+</DeepCitationTheme>
+```
+
+`DeepCitationTheme` renders a `<div>` that applies `--dc-*` CSS variables. Any CitationComponent or CitationDrawer nested inside will inherit these values. See [Styling]({{ site.baseurl }}/styling/) for the full list of supported tokens.
 
 ---
 

@@ -3,13 +3,14 @@ layout: default
 title: Components
 nav_order: 7
 description: "React CitationComponent documentation"
-commit_sha: "cc9c7aa"
+commit_sha: "80dfecd"
 stale_after_commits: 15
 watch_paths:
   - src/react/Citation.tsx
   - src/react/index.ts
   - src/react/DefaultPopoverContent.tsx
   - src/react/SourcesListComponent.tsx
+  - src/react/DeepCitationTheme.tsx
 ---
 
 # CitationComponent
@@ -64,6 +65,9 @@ Then import the component and stylesheet:
 ```typescript
 import { CitationComponent } from "deepcitation/react";
 ```
+
+{: .note }
+All `deepcitation/react` exports are marked with `"use client"`, making them safe to import from React Server Components (RSC) without additional wrappers.
 
 {: .important }
 You must also import the stylesheet. With Tailwind v4, add `@import "deepcitation/tailwind.css"` to your CSS. Without Tailwind, use `import "deepcitation/styles.css"` in JS. See [Styling]({{ site.baseurl }}/styling/) for details.
@@ -646,6 +650,40 @@ function ChatMessage({ citations, verifications }) {
 
 ---
 
+## DeepCitationTheme
+
+Override `--dc-*` design tokens for all citation components without writing raw CSS. Supports light/dark mode and scoped (per-instance) theming.
+
+```tsx
+import { DeepCitationTheme } from "deepcitation/react";
+
+// Global override: injects a <style> block targeting :root / .dark
+<DeepCitationTheme
+  theme={{ verified: "#16a34a", primary: "#2563eb", radiusMd: "8px" }}
+  darkTheme={{ background: "#1e1e2e", foreground: "#cdd6f4" }}
+>
+  <App />
+</DeepCitationTheme>
+
+// Scoped override: wraps children in a <div> with inline CSS custom properties
+<DeepCitationTheme scoped theme={{ verified: "#16a34a" }}>
+  <CitationComponent ... />
+</DeepCitationTheme>
+```
+
+### DeepCitationTheme Props
+
+| Prop | Type | Required | Description |
+|:-----|:-----|:---------|:------------|
+| `theme` | `DeepCitationThemeColors` | No | Light-mode token overrides (targets `:root`) |
+| `darkTheme` | `DeepCitationThemeColors` | No | Dark-mode token overrides (targets `.dark`). Ignored when `scoped` is true. |
+| `scoped` | `boolean` | No | Render a `<div>` wrapper with inline CSS vars instead of global `<style>` injection |
+| `children` | `ReactNode` | No | Content to render |
+
+Token names map 1:1 to `--dc-*` CSS custom properties (e.g., `verified` sets `--dc-verified`). See `DeepCitationThemeColors` in the TypeScript source for the full list of overridable tokens including status colors, backgrounds, borders, radii, and font family.
+
+---
+
 ## UrlCitationComponent
 
 For URL-based citations (web pages), use `UrlCitationComponent` instead of `CitationComponent`. It displays the source domain, favicon, and OG metadata.
@@ -660,6 +698,9 @@ import { UrlCitationComponent } from "deepcitation/react";
 ```
 
 Use `UrlCitationComponent` when `citation.type === "url"`. For document citations (`citation.type === "document"`), use `CitationComponent`.
+
+{: .note }
+`UrlCitationComponent` is exported from `"deepcitation/react"` alongside `CitationComponent`. Internally it lives in `Citation.tsx` (not a separate file).
 
 ---
 
@@ -836,6 +877,8 @@ The following components are exported from `deepcitation/react` for building cus
 | `CollapsibleText` | `deepcitation/react` | Text block that collapses long content with "Show more" toggle |
 | `MatchQualityBar` | `deepcitation/react` | Visual bar showing match quality percentage |
 | `CitationOverlayProvider` | `deepcitation/react` | Context provider that coordinates expanded image overlays across citations |
+| `DeepCitationTheme` | `deepcitation/react` | Centralized design token overrides via `--dc-*` CSS custom properties |
+| `extractDomain` | `deepcitation/react` | Extract display domain from a URL string |
 
 ### Performance Hooks
 
@@ -846,6 +889,7 @@ The following components are exported from `deepcitation/react` for building cus
 | `prefetchImages` | Pre-fetch proof images before hover for instant popover display |
 | `usePrefetchImage` | React hook version of `prefetchImages` for component-level prefetching |
 | `usePrefersReducedMotion` | Respect user's `prefers-reduced-motion` system setting |
+| `useLocale` | Access the current locale from `DeepCitationI18nProvider` |
 
 ### Search Narrative Utilities
 
@@ -853,6 +897,8 @@ The following components are exported from `deepcitation/react` for building cus
 |:---------|:------------|
 | `buildSearchNarrative` | Convert raw search attempts into display-ready narrative rows |
 | `buildSearchSummary` | Summarize search results into outcome + context window |
+| `deriveContextWindow` | Extract the context window (surrounding text) from search attempts |
+| `buildIntentSummary` | Summarize the search intent (query groups and outcomes) |
 | `getStatusColorScheme` | Map verification status to color scheme (green/amber/red) |
 | `getContextualStatusMessage` | Get human-readable status message for display |
 

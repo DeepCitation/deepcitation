@@ -1,7 +1,7 @@
 ---
-generated_at: "2026-03-16T09:26:13Z"
-commit_sha: "9e9dcbb"
-commit_sha_full: "9e9dcbb046ae65ba18fece1103ea7ff3ff68cce8"
+generated_at: "2026-03-26T03:39:42Z"
+commit_sha: "80dfecd"
+commit_sha_full: "80dfecdc2584149d536c341ab2fad685b55b3a55"
 stale_after_commits: 30
 ---
 
@@ -29,14 +29,16 @@ Source
 
 src/  # Source files
   __tests__/  # Unit test files
+  analysis/  # Search analysis: grouping, intent, narrative, and variation labels (pure functions, no React)
   client/  # DeepCitation API client
-  docs/  # (no description)
+  docs/  # Centralized code snippets for INTEGRATION.md
   drawing/  # Drawing/canvas utilities
   markdown/  # Markdown rendering (renderMarkdown, markdownVariants)
     testing/  # Markdown test helpers
   parsing/  # Citation extraction: parseCitation, normalizeCitation, parseWorkAround
   prompts/  # LLM prompt templates (citationPrompts, promptCompression)
   react/  # React components and hooks (CitationComponent, SourcesList, i18n, popovers)
+    evidence/  # Evidence tray, expanded images, search analysis summary components
     hooks/  # Extracted React hooks
     locales/  # i18n locale JSON files (en, es, fr, ...)
     motion/  # Animation/motion utilities
@@ -49,7 +51,7 @@ src/  # Source files
     testing/  # Renderer test helpers
   types/  # Core TypeScript types (citation, verification, boxes, search, timing, diff)
   utils/  # Security utilities: urlSafety, logSafety, objectSafety, regexSafety, sha, fileSafety
-  vanilla/  # (no description)
+  vanilla/  # Framework-free popover bundle (CDN/vanilla JS runtime)
 
 Tests
 
@@ -65,6 +67,7 @@ Scripts
 scripts/  # Build, validation, and maintenance scripts
   build-vanilla-runtime.mjs
   convert-snapshots-to-avif.js
+  docs-audit-inventory.mjs  # Deterministic checks for documentation drift (broken links, staleness, etc.)
   refresh-agent-index.mjs
   test-skill.mjs
 
@@ -78,6 +81,7 @@ workflows/  # CI/CD workflows
   docs.yml  # GitHub Pages deploy
   playwright.yml  # Playwright component tests
   publish.yml  # npm publish on release
+  release.yml  # Manual version bump and release workflow
 
 Examples
 
@@ -85,7 +89,9 @@ examples/  # Integration examples (Next.js, etc.)
   agui-chat/  # AG-UI chat integration example
   assets/  # Shared example assets
   basic-verification/  # Basic citation verification example
+  langchain-rag-chat/  # LangChain.js RAG chat example with Next.js
+  mastra-rag-chat/  # Mastra RAG chat example with Next.js and LibSQLVector
   nextjs-ai-sdk/  # Next.js AI SDK integration example
-  static-html/  # (no description)
+  static-html/  # CDN popover bundle in a plain HTML page (no build step)
   url-example/  # URL citation verification example
 ```

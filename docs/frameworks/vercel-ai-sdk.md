@@ -4,7 +4,7 @@ title: Vercel AI SDK
 parent: Frameworks
 nav_order: 3
 description: "DeepCitation + Vercel AI SDK: streamText, useChat, and citation verification"
-commit_sha: "cc9c7aa"
+commit_sha: "80dfecd"
 stale_after_commits: 15
 watch_paths:
   - src/react/Citation.tsx
@@ -144,6 +144,7 @@ export async function POST(req: Request) {
     model: openai("gpt-4o-mini"),
     system: enhancedSystemPrompt,
     messages: modelMessages,
+    maxRetries: 2, // Retry transient LLM failures (default: 2; set 0 to disable)
   });
 
   return result.toTextStreamResponse();
@@ -283,7 +284,7 @@ export default function Chat() {
 
 ## Rendering CitationComponent
 
-Once you have `citations` and `verifications` for a message, replace `[N]` citation markers with `CitationComponent`. This must be in a `"use client"` file.
+Once you have `citations` and `verifications` for a message, replace `[N]` citation markers with `CitationComponent`. The `deepcitation/react` entry point now ships with a `"use client"` directive, so imports from it are automatically client components. Your own component file still needs `"use client"` if it uses hooks or browser APIs.
 
 {% raw %}
 ```tsx
@@ -416,6 +417,31 @@ const results = await Promise.all(
 
 ---
 
+## Audio & Video Citation Support
+
+DeepCitation supports audio and video file uploads in addition to documents. The upload and verification flow is identical — `prepareAttachments()` accepts audio/video files and `verifyAttachment()` returns time-range evidence for media citations. No changes to your `streamText` or `useChat` wiring are needed; the citation type is determined by the uploaded file.
+
+---
+
+## Error Handling & Retry Behavior
+
+DeepCitation API errors now include a `docUrl` property pointing to the relevant documentation page. Use this for actionable error messages in your UI:
+
+```typescript
+try {
+  const { verifications } = await dc.verifyAttachment(attachmentId, citations);
+} catch (err: any) {
+  console.error(err.message);
+  if (err.docUrl) {
+    console.error(`See: ${err.docUrl}`);
+  }
+}
+```
+
+For the `streamText` / `generateText` calls, configure `maxRetries` to handle transient LLM provider failures (the Vercel AI SDK retries automatically). For DeepCitation API calls (`prepareAttachments`, `verifyAttachment`), implement your own retry logic or use the SDK's built-in retry where available.
+
+---
+
 ## Scaffold This Integration
 
 ```bash
@@ -430,6 +456,7 @@ npm install && npm run dev
 
 ## Next Steps
 
-- [Next.js App Router guide]({{ site.baseurl }}/frameworks/nextjs) — "use client" boundary table, SSG pattern
+- [Next.js App Router guide]({{ site.baseurl }}/frameworks/nextjs) — "use client" boundary table, SSG pattern, DeepCitationTheme setup
 - [Components]({{ site.baseurl }}/components) — CitationDrawer for grouped source browsing
+- [Styling]({{ site.baseurl }}/styling) — CSS customization and DeepCitationTheme provider
 - [Error Handling]({{ site.baseurl }}/error-handling) — retry logic, invalid key errors

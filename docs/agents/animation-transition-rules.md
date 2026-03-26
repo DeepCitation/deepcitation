@@ -328,19 +328,21 @@ The keyhole→expanded-page transition uses a dedicated ghost element (not the V
 ```
 startEvidencePageExpandTransition (viewTransition.ts)
   1. capturePageExpandSource    — snapshot keyhole geometry + image
-  2. Start recession animation   — WAAPI ease-in fade 1→PAGE_EXPAND_CONTENT_OPACITY_FLOOR (100ms)
-  3. flushSync(update)          — popover snaps to expanded-page layout (recession fading)
-  4. createPageExpandGhost      — fixed-position clone of keyhole image
-  5. waitForPageExpandTarget    — rAF poll until target is stable (~50ms)
-  6. runPageExpandGhostAnimation — ghost + popover content animate together
-  7. Cleanup                    — ghost.remove(), popover opacity cleared
+  2. createPreExpandScrim       — fixed-pos div at current popover rect (solid backing)
+  3. Dim popover root           — opacity: PAGE_EXPAND_CONTENT_OPACITY_FLOOR
+  4. flushSync(update)          — popover snaps to expanded-page layout (already dimmed)
+  5. createPageExpandGhost      — fixed-position clone of keyhole image
+  6. waitForPageExpandTarget    — rAF poll until target is stable (~50ms)
+  7. runPageExpandGhostAnimation — ghost + popover content animate together
+  8. Cleanup                    — ghost.remove(), scrim.remove(), popover opacity cleared
 ```
 
-**Critical**: The popover root (not just `[data-dc-inline-expanded]`) is faded. This
+**Critical**: The popover root (not just `[data-dc-inline-expanded]`) is dimmed. This
 ensures the header (Zone 1), status section (Zone 2), and image (Zone 3) are ALL
-faded together. The recession uses `ease-in` so the background stays perceptually
-solid for the first ~40ms (2–3 frames), then drops quickly — preventing the
-peripheral-vision flash caused by an instant opacity jump to near-zero.
+dimmed together. A fixed-position scrim at the pre-expand rect prevents bleed-through
+where the popover already was, while the expansion area (new area from the larger
+expanded-page layout) stays at 0.03 opacity — nearly invisible over the page,
+preventing the white-rectangle flash that a full-area backing would create.
 
 ### Choreography (250ms total)
 

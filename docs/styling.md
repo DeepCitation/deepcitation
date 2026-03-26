@@ -3,13 +3,14 @@ layout: default
 title: Styling
 nav_order: 8
 description: "CSS customization options for CitationComponent"
-commit_sha: "cc9c7aa"
+commit_sha: "80dfecd"
 stale_after_commits: 20
 watch_paths:
   - src/react/constants.ts
   - src/react/Citation.tsx
   - src/react/CitationVariants.tsx
   - src/react/DeepCitationTheme.tsx
+  - src/tokens.css
   - src/tailwind.css
   - src/styles.css
 ---
@@ -70,15 +71,19 @@ Customize the appearance of DeepCitation components using `--dc-*` CSS custom pr
 | `--dc-verified-bg` | `#f0fdf4` | `rgba(34,197,94,0.1)` | Verified chip/banner background |
 | `--dc-verified-border` | `#86efac` | `#166534` | Verified chip/banner border |
 | `--dc-verified-hover` | `#15803d` | `#bbf7d0` | Verified chip hover background |
+| `--dc-verified-hover-foreground` | `#ffffff` | `#14532d` | Verified chip hover text color |
 | `--dc-partial-bg` | `#fffbeb` | `rgba(245,158,11,0.1)` | Partial chip/banner background |
 | `--dc-partial-border` | `#fcd34d` | `#92400e` | Partial chip/banner border |
 | `--dc-partial-hover` | `#b45309` | `#fde68a` | Partial chip hover background |
+| `--dc-partial-hover-foreground` | `#ffffff` | `#78350f` | Partial chip hover text color |
 | `--dc-destructive-bg` | `#fef2f2` | `rgba(239,68,68,0.1)` | Error chip/banner background |
 | `--dc-destructive-border` | `#fca5a5` | `#991b1b` | Error chip/banner border |
 | `--dc-destructive-hover` | `#b91c1c` | `#fecaca` | Destructive chip hover background |
+| `--dc-destructive-hover-foreground` | `#ffffff` | `#7f1d1d` | Destructive chip hover text color |
 | `--dc-pending-bg` | `var(--dc-muted)` | `var(--dc-muted)` | Pending chip background |
 | `--dc-pending-border` | `var(--dc-border)` | `var(--dc-border)` | Pending chip border |
 | `--dc-pending-hover` | `#71717a` | `#a1a1aa` | Pending chip hover background |
+| `--dc-pending-hover-foreground` | `#ffffff` | `#18181b` | Pending chip hover text color |
 
 ### Border Radius
 

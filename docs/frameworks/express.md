@@ -4,6 +4,12 @@ title: Express.js
 parent: Frameworks
 nav_order: 3
 description: "DeepCitation + Express.js: citation verification in your Node.js API"
+commit_sha: "80dfecd"
+stale_after_commits: 20
+watch_paths:
+  - src/client/DeepCitation.ts
+  - src/parsing/
+  - examples/
 ---
 
 # DeepCitation + Express.js

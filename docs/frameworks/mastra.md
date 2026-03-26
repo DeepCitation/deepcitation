@@ -4,6 +4,11 @@ title: Mastra
 parent: Frameworks
 nav_order: 6
 description: "Using DeepCitation with Mastra RAG pipelines"
+commit_sha: "80dfecd"
+stale_after_commits: 20
+watch_paths:
+  - src/client/DeepCitation.ts
+  - examples/mastra-rag-chat/
 ---
 
 # DeepCitation + Mastra

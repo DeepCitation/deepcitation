@@ -4,7 +4,7 @@ title: Types
 parent: API Reference
 nav_order: 1
 description: "TypeScript interface definitions for DeepCitation"
-commit_sha: "cc9c7aa"
+commit_sha: "80dfecd"
 stale_after_commits: 10
 watch_paths:
   - src/types/citation.ts

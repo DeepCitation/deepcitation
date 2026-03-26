@@ -3,6 +3,10 @@ layout: default
 title: Contributing
 nav_exclude: true
 search_exclude: true
+commit_sha: "80dfecd"
+stale_after_commits: 50
+watch_paths:
+  - docs/
 ---
 
 # Contributing to Documentation
