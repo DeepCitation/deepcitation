@@ -62,8 +62,8 @@ export function renderGitHubSourcesTable(
 
   for (const entry of entries) {
     const proofLink = entry.proofUrl ? `[View proof](${entry.proofUrl})` : "—";
-    const label = escapeMd(entry.sourceLabel).replace(/\|/g, "\\|");
-    const loc = entry.location ? escapeMd(entry.location).replace(/\|/g, "\\|") : "—";
+    const label = escapeMd(entry.sourceLabel);
+    const loc = entry.location ? escapeMd(entry.location) : "—";
     lines.push(
       `| ${entry.citationNumber} | ${entry.indicator} ${entry.statusLabel} | ${label} | ${loc} | ${proofLink} |`,
     );
