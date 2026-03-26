@@ -10,8 +10,6 @@ import {
   VERIFIED_COLOR_STYLE,
 } from "./constants.js";
 import { useIsTouchDevice } from "./hooks/useIsTouchDevice.js";
-// =============================================================================
-// URL CITATION COMPONENT
 import type { MessageKey } from "./i18n.js";
 import { type TranslateFunction, useTranslation } from "./i18n.js";
 import { CheckIcon, ExternalLinkIcon, LockIcon, XCircleIcon } from "./icons.js";
@@ -42,8 +40,6 @@ function getUrlStatusLabel(fetchStatus: UrlFetchStatus, t: TranslateFunction): s
   };
   return t(KEY_MAP[fetchStatus]);
 }
-
-// =============================================================================
 
 /**
  * Pulsing dot indicator for pending state.

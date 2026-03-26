@@ -1,6 +1,3 @@
-// Resolvers (pure functions)
-
-// Components
 export { AnchorTextFocusedImage } from "./AnchorTextFocusedImage.js";
 export { EvidenceTray } from "./EvidenceTray.js";
 export { InlineExpandedImage } from "./InlineExpandedImage.js";
