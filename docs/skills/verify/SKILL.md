@@ -16,6 +16,35 @@ Verify claims against source documents using the DeepCitation 2-step API, saving
 
 ## Workflow
 
+### Step 0: Analyze Input & Determine What to Verify
+
+Before doing anything, analyze the arguments and context to figure out what needs to happen. The user may provide:
+
+**A) Source files** (`/verify report.pdf quarterly-results.docx`)
+→ Prepare these files, generate a cited analysis, verify, and report.
+
+**B) An existing LLM response with citations** (`/verify` in a conversation where Claude already generated cited output)
+→ The conversation history already contains `[N]` markers and a `<<<CITATION_DATA>>>` block. Skip Step 2 (generation). Extract the citations and source file references, prepare any source files not yet uploaded, then verify and report.
+
+**C) A text file or report** (`/verify analysis.txt`)
+→ Read the file. If it contains `<<<CITATION_DATA>>>`, treat it as an existing LLM response (path B). If not, treat it as a source document (path A).
+
+**D) No arguments** (`/verify`)
+→ Look for context: check conversation history for prior cited output, scan the current directory for relevant files (PDFs, DOCX, etc.), or check `.deepcitation/` for existing artifacts from a previous run. Ask the user to confirm which files to verify against.
+
+**Discovery steps:**
+
+1. Parse `$ARGUMENTS` — are they file paths, URLs, or empty?
+2. For each file argument, check: is it a source document (PDF, DOCX, image) or a text file with existing citations?
+3. Check conversation history for any prior LLM output containing `[N]` citation markers and `<<<CITATION_DATA>>>` blocks.
+4. Check `.deepcitation/` for existing prepare artifacts (to avoid re-uploading sources already processed).
+5. Summarize the plan to the user before proceeding:
+   - Which source files will be prepared (and which are already prepared)
+   - Whether a new cited response needs to be generated or an existing one will be verified
+   - Expected output
+
+If the input is ambiguous, ask the user to clarify before proceeding.
+
 ### Step 1: Prepare Sources → save JSON
 
 Upload each source file to the DeepCitation API. Save the full response as JSON — it contains the `attachmentId` (needed for verify) and `deepTextPromptPortion` (the extracted text with page/line metadata for accurate lookups).
@@ -35,9 +64,11 @@ curl -s -X POST https://api.deepcitation.com/prepareAttachments \
 
 **Important**: If multiple source files are uploaded, save each prepare response separately and track the `attachmentId` for each one. The `attachmentId` maps directly to the source file and is required by the verify endpoint.
 
-### Step 2: Generate Response with Citations
+### Step 2: Generate Response with Citations (skip if existing cited output found in Step 0)
 
-You ARE the LLM. Use the `deepTextPromptPortion` from Step 1 as context and follow the citation prompt pattern from the open-source prompts:
+If Step 0 found an existing LLM response with `<<<CITATION_DATA>>>`, skip this step — go directly to Step 3 using that output.
+
+Otherwise, you ARE the LLM. Use the `deepTextPromptPortion` from Step 1 as context and follow the citation prompt pattern from the open-source prompts:
 https://github.com/DeepCitation/deepcitation/blob/main/src/prompts/citationPrompts.ts
 
 1. Read the `deepTextPromptPortion` from the saved prepare JSON
