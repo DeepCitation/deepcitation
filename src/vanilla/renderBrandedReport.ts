@@ -3,15 +3,8 @@ import type { ParsedCitationResult } from "../parsing/parseCitationResponse.js";
 import { parseCitationResponse } from "../parsing/parseCitationResponse.js";
 import { renderCitationsAsHtml } from "../rendering/html/htmlRenderer.js";
 import { generateStyleBlock } from "../rendering/html/styles.js";
-import {
-  escapeHtml,
-  getStatusKey,
-  getStatusLabel,
-  resolveSourceLabel,
-  type StatusKey,
-  walkCitationSegments,
-} from "../rendering/shared.js";
-import type { RenderCitationWithStatus } from "../rendering/types.js";
+import { prepareCitations, type ResolvedCitation } from "../rendering/prepareCitations.js";
+import { escapeHtml, getStatusKey, getStatusLabel, type StatusKey } from "../rendering/shared.js";
 import { RUNTIME_JS } from "./_generated.js";
 import { BRANDED_REPORT_CSS } from "./brandedReportStyles.js";
 import { POPOVER_CSS } from "./popoverStyles.js";
@@ -27,14 +20,14 @@ const WORDMARK_SVG = `<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.
 const CHEVRON_SVG = `<svg class="dcr-section-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>`;
 
 interface StatusGroups {
-  verified: RenderCitationWithStatus[];
-  partial: RenderCitationWithStatus[];
-  notFound: RenderCitationWithStatus[];
-  pending: RenderCitationWithStatus[];
+  verified: ResolvedCitation[];
+  partial: ResolvedCitation[];
+  notFound: ResolvedCitation[];
+  pending: ResolvedCitation[];
 }
 
 /** Single-pass grouping of citations by status + summary counts. */
-function groupAndSummarize(citations: RenderCitationWithStatus[]): {
+function groupAndSummarize(citations: ReadonlyArray<ResolvedCitation>): {
   groups: StatusGroups;
   total: number;
   verified: number;
@@ -60,7 +53,7 @@ function truncate(str: string, max: number): string {
   return `${str.slice(0, max - 1)}\u2026`;
 }
 
-function buildCitationCards(citations: RenderCitationWithStatus[], sourceLabels: Record<string, string>): string {
+function buildCitationCards(citations: ResolvedCitation[]): string {
   if (citations.length === 0) {
     return `<div class="dcr-empty"><div class="dcr-empty-icon">\u{1F50D}</div><p>No citations found in the response.</p></div>`;
   }
@@ -69,7 +62,6 @@ function buildCitationCards(citations: RenderCitationWithStatus[], sourceLabels:
     .map(cws => {
       const statusKey = getStatusKey(cws.status);
       const statusLabel = getStatusLabel(cws.status);
-      const label = resolveSourceLabel(cws, sourceLabels);
       const location = formatPageLocation(cws.citation, cws.verification ?? undefined, {
         showPageNumber: true,
         showLinePosition: false,
@@ -87,7 +79,7 @@ function buildCitationCards(citations: RenderCitationWithStatus[], sourceLabels:
   <div class="dcr-citation-num dcr-citation-num-${statusKey}">${cws.citationNumber}</div>
   <div class="dcr-citation-content">
     <div class="dcr-citation-status" style="color:var(--dcr-${statusKey}-text)">${escapeHtml(statusLabel)}</div>
-    <div class="dcr-citation-source">${escapeHtml(label)}${loc}</div>
+    <div class="dcr-citation-source">${escapeHtml(cws.sourceLabel)}${loc}</div>
     ${quote ? `<blockquote class="dcr-citation-quote">\u201C${escapeHtml(quote)}\u201D</blockquote>` : ""}
   </div>
   ${thumbHtml}
@@ -96,27 +88,21 @@ function buildCitationCards(citations: RenderCitationWithStatus[], sourceLabels:
     .join("\n");
 }
 
-function buildSectionsHtml(
-  groups: StatusGroups,
-  summary: { notFound: number; partial: number },
-  sourceLabels: Record<string, string>,
-): string {
+function buildSectionsHtml(groups: StatusGroups, summary: { notFound: number; partial: number }): string {
   const parts: string[] = [];
 
   // Show problematic citations first — progressive disclosure
   if (groups.notFound.length > 0) {
-    parts.push(buildSection("Not Verified", "notFound", groups.notFound, sourceLabels, true));
+    parts.push(buildSection("Not Verified", "notFound", groups.notFound, true));
   }
   if (groups.partial.length > 0) {
-    parts.push(buildSection("Partially Verified", "partial", groups.partial, sourceLabels, true));
+    parts.push(buildSection("Partially Verified", "partial", groups.partial, true));
   }
   if (groups.verified.length > 0) {
-    parts.push(
-      buildSection("Verified", "verified", groups.verified, sourceLabels, summary.notFound > 0 || summary.partial > 0),
-    );
+    parts.push(buildSection("Verified", "verified", groups.verified, summary.notFound > 0 || summary.partial > 0));
   }
   if (groups.pending.length > 0) {
-    parts.push(buildSection("Pending", "pending", groups.pending, sourceLabels, true));
+    parts.push(buildSection("Pending", "pending", groups.pending, true));
   }
 
   return parts.join("\n");
@@ -130,13 +116,7 @@ const STATUS_CSS_CLASS: Record<StatusKey, string> = {
   pending: "pending",
 };
 
-function buildSection(
-  title: string,
-  statusKey: StatusKey,
-  citations: RenderCitationWithStatus[],
-  sourceLabels: Record<string, string>,
-  startOpen: boolean,
-): string {
+function buildSection(title: string, statusKey: StatusKey, citations: ResolvedCitation[], startOpen: boolean): string {
   const cssClass = STATUS_CSS_CLASS[statusKey];
   return `<details class="dcr-section"${startOpen ? " open" : ""}>
   <summary class="dcr-section-header">
@@ -145,7 +125,7 @@ function buildSection(
     <span class="dcr-section-badge dcr-badge-${cssClass}">${citations.length}</span>
   </summary>
   <div class="dcr-section-body">
-    ${buildCitationCards(citations, sourceLabels)}
+    ${buildCitationCards(citations)}
   </div>
 </details>`;
 }
@@ -190,15 +170,14 @@ export function renderBrandedReport(input: string | ParsedCitationResult, option
     showResponseBody = true,
   } = options;
 
-  // Parse once, reuse for both the walk and the HTML renderer
+  // Parse once, reuse for both the IR and the HTML renderer
   const parsed = typeof input === "string" ? parseCitationResponse(input) : input;
 
-  // Walk citations for summary and cards
-  const { citationsWithStatus } = walkCitationSegments(parsed, verifications);
-  const { groups, ...summary } = groupAndSummarize(citationsWithStatus);
+  // Use the ports-and-adapters IR — walk + resolve source labels in one pass
+  const ir = prepareCitations(parsed, { verifications, sourceLabels });
+  const { groups, ...summary } = groupAndSummarize(ir.citations);
 
   // Render the response body with inline citation markers + popovers
-  // Passes parsed result to avoid re-parsing the input
   const rendered = renderCitationsAsHtml(parsed, {
     verifications,
     variant,
@@ -226,7 +205,7 @@ export function renderBrandedReport(input: string | ParsedCitationResult, option
     minute: "2-digit",
   });
 
-  const sectionsHtml = buildSectionsHtml(groups, summary, sourceLabels);
+  const sectionsHtml = buildSectionsHtml(groups, summary);
 
   const bodySection = showResponseBody
     ? `<div class="dcr-body">
