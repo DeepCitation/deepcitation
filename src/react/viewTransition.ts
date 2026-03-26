@@ -71,7 +71,12 @@ export function primeEvidencePageExpandSource(sourceEl: HTMLElement | null): voi
  */
 export function startEvidenceViewTransition(
   update: () => void,
-  options?: { isCollapse?: boolean; isPageExpand?: boolean; skipAnimation?: boolean },
+  options?: {
+    isCollapse?: boolean;
+    isPageExpand?: boolean;
+    skipAnimation?: boolean;
+    root?: ParentNode | null;
+  },
 ): void {
   const skip = options?.skipAnimation;
   if (skip || typeof document === "undefined" || !("startViewTransition" in document)) {
@@ -86,6 +91,17 @@ export function startEvidenceViewTransition(
   }
   if (options?.isPageExpand) {
     document.documentElement.dataset.dcPageExpand = "";
+  }
+
+  // For expand transitions (not collapse), create a scrim at the pre-expand
+  // popover rect so the existing visual is preserved while the popover grows.
+  // The FLIP morph (usePopoverMorphTransition) clips the expansion area with
+  // clip-path, but the scrim provides a solid anchor if any frame renders
+  // before the clip is applied.
+  const rootEl = options?.root instanceof HTMLElement ? options.root : null;
+  let scrim: HTMLDivElement | null = null;
+  if (!options?.isCollapse && rootEl) {
+    scrim = createPreExpandScrim(rootEl);
   }
 
   // Safe cast: the `"startViewTransition" in document` guard above ensures
@@ -111,6 +127,7 @@ export function startEvidenceViewTransition(
     _transitionDepth = Math.max(0, _transitionDepth - 1);
     delete document.documentElement.dataset.dcCollapse;
     delete document.documentElement.dataset.dcPageExpand;
+    scrim?.remove();
   };
   transition.finished.then(cleanup).catch(cleanup);
 }
