@@ -3,9 +3,9 @@ import type { HtmlTheme, HtmlVariant } from "../rendering/html/types.js";
 import type { VerificationRecord } from "../types/citation.js";
 
 /**
- * Options for `renderCitationReport()`.
+ * Shared options for all report renderers.
  */
-export interface VanillaReportOptions {
+export interface ReportOptionsBase {
   /** Verification results keyed by citationKey */
   verifications?: VerificationRecord;
 
@@ -18,15 +18,6 @@ export interface VanillaReportOptions {
   /** HTML document <title> (default: "Citation Report") */
   title?: string;
 
-  /** Wrap output in <!DOCTYPE html> (default: true) */
-  fullPage?: boolean;
-
-  /** Embed <style> block (default: true) */
-  includeStyles?: boolean;
-
-  /** Embed popover <script> (default: true) */
-  includeRuntime?: boolean;
-
   /** Indicator symbol set (default: "check") */
   indicatorStyle?: IndicatorStyle;
 
@@ -38,4 +29,29 @@ export interface VanillaReportOptions {
 
   /** Attachment ID → display name mapping */
   sourceLabels?: Record<string, string>;
+}
+
+/**
+ * Options for `renderCitationReport()`.
+ */
+export interface VanillaReportOptions extends ReportOptionsBase {
+  /** Wrap output in <!DOCTYPE html> (default: true) */
+  fullPage?: boolean;
+
+  /** Embed <style> block (default: true) */
+  includeStyles?: boolean;
+
+  /** Embed popover <script> (default: true) */
+  includeRuntime?: boolean;
+}
+
+/**
+ * Options for `renderBrandedReport()`.
+ */
+export interface BrandedReportOptions extends ReportOptionsBase {
+  /** ISO 8601 timestamp for report generation (default: now) */
+  generatedAt?: string;
+
+  /** Show the full response body with inline citations (default: true) */
+  showResponseBody?: boolean;
 }

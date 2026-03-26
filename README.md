@@ -120,6 +120,38 @@ npm install && npm run dev
 - [URL Citations](./examples/url-example)
 
 
+## Claude Code Skill
+
+Verify citations directly from Claude Code with the `/verify` skill — no app code needed.
+
+### Setup
+
+1. **Get an API key** at [deepcitation.com/keys](https://deepcitation.com/keys)
+
+2. **Set the environment variable**
+   ```bash
+   export DEEPCITATION_API_KEY="dc_your_key_here"
+   ```
+
+3. **Install the SDK**
+   ```bash
+   npm install deepcitation
+   ```
+
+4. **Install the skill** — open [claude.ai/customize/skills](https://claude.ai/customize/skills), click **"Add Skill"**, and paste:
+   ```
+   https://raw.githubusercontent.com/DeepCitation/deepcitation/main/docs/skills/verify/SKILL.md
+   ```
+
+5. **Use it** — in any Claude Code conversation:
+   ```
+   /verify my-report.pdf
+   ```
+
+Claude uploads your document, generates a cited analysis, verifies each claim against the source, and opens a branded HTML report in your browser with interactive evidence.
+
+> **Full guide**: See [Claude Code Skill docs](https://docs.deepcitation.com/claude-code-skill) for troubleshooting and artifact details.
+
 ## Development
 
 ### Running Tests
@@ -139,6 +171,7 @@ npm run test:ct -- --grep "visual snapshot"
 
 - [Full Documentation](https://docs.deepcitation.com)
 - [Examples](./examples) -- Basic verification, LangChain RAG chat, Next.js chat app, URL citations
+- [Claude Code Skill](./docs/claude-code-skill.md) -- `/verify` skill setup and usage
 - [Integration Guide](./INTEGRATION.md) -- For AI coding assistants
 - [Error Handling Guide](./docs/error-handling.md) -- Production error patterns
 - [Styling Guide](./docs/styling.md) -- CSS custom properties and theming
