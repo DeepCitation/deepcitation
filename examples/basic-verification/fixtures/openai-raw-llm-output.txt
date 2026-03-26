@@ -1,0 +1,48 @@
+Summary — key information from the report:
+
+- Patient: Doe, John A. [1]
+- Date of birth: 09/20/1961 [2]
+- Accession number: 00000001 [3]
+- Specimen: Oral Rinse [4]
+- Collected/Received: 06/27/2009 07:08 [5]
+- Reported: 06/30/2009 21:45 (reported timestamp on the record) [6]
+- Test result: POSITIVE — 5 pathogenic bacteria reported above threshold [7]
+- Bacterial risk: HIGH — "Very strong evidence of increased risk for attachment loss" [8]
+- High‑risk pathogens reported: Aggregatibacter actinomycetemcomitans; Porphyromonas gingivalis; Fusobacterium nucleatum/periodonticum; Prevotella intermedia; Capnocytophaga species [9][10][11][12][13]
+- Organisms not detected: Tannerella forsythia (Tf), Treponema denticola (Td), Eubacterium nodatum (En) [14]
+- Treatment considerations:
+  - Office periodontal therapy to disrupt biofilm and reduce pathogens [15]
+  - Published antibiotic adjunct suggestion (subject to clinician judgment): Amoxicillin 500 mg tid for 8 days plus Metronidazole 500 mg bid for 8 days [16]
+  - Home care recommendations and reassessment plan; a 2nd sample recommended 6–8 weeks post‑therapy [17]
+- Antibiotic allergies: None reported [18]
+- Additional clinical info: test tooth numbers 3, 9, 14, 19, 24, 30; pocket depths recorded as 3 mm, 3 mm, 4 mm, 3 mm, 2 mm, 3 mm [19]
+- Lab / contact: OralDNA Labs, Inc., 214 Overlook Circle, Suite 120, Brentwood, TN 37027; phone and fax listed on report [20]
+- Report signatories / roles: Medical Director Ronald McGlennen, MD; Chief Dental Officer Thomas W. Nabors, DDS [21]
+
+<<<CITATION_DATA>>>
+{
+  "sChm4Rh4JduVv6iCvHYg": [
+    {"id": 1, "reasoning": "patient name on the report header", "full_phrase": "Doe, John A.  Sample Information", "anchor_text": "Doe, John A.", "page_id": "page_number_1_index_0", "line_ids": [46]},
+    {"id": 2, "reasoning": "date of birth shown on the report", "full_phrase": "Date Of Birth: 09/20/1961 Accession: 00000001 Received: 06/27/2009 07:08", "anchor_text": "Date Of Birth: 09/20/1961", "page_id": "page_number_1_index_0", "line_ids": [5]},
+    {"id": 3, "reasoning": "accession identifier for the test", "full_phrase": "Date Of Birth: 09/20/1961 Accession: 00000001 Received: 06/27/2009 07:08", "anchor_text": "Accession: 00000001", "page_id": "page_number_1_index_0", "line_ids": [5]},
+    {"id": 4, "reasoning": "type of specimen submitted", "full_phrase": "Date Of Birth: 09/20/1961 Accession: 00000001 Received: 06/27/2009 07:08", "anchor_text": "Specimen: Oral Rinse", "page_id": "page_number_1_index_0", "line_ids": [5]},
+    {"id": 5, "reasoning": "date/time specimen was received/collected", "full_phrase": "Date Of Birth: 09/20/1961 Accession: 00000001 Received: 06/27/2009 07:08", "anchor_text": "Received: 06/27/2009 07:08", "page_id": "page_number_1_index_0", "line_ids": [5]},
+    {"id": 6, "reasoning": "reported timestamp shown on the report header", "full_phrase": "Gender: Male Specimen: Oral Rinse Reported: 06/30/2009 21:45", "anchor_text": "Reported: 06/30/2009 21:45", "page_id": "page_number_1_index_0", "line_ids": [5]},
+    {"id": 7, "reasoning": "overall test result summary", "full_phrase": "Result: POSITIVE - 5 PATHOGENIC BACTERIA REPORTED ABOVE THRESHOLD", "anchor_text": "POSITIVE - 5 PATHOGENIC BACTERIA", "page_id": "page_number_2_index_1", "line_ids": [5]},
+    {"id": 8, "reasoning": "report's bacterial risk interpretation", "full_phrase": "Bacterial Risk: HIGH - Very strong evidence of increased risk for attachment loss", "anchor_text": "Bacterial Risk: HIGH", "page_id": "page_number_1_index_0", "line_ids": [5]},
+    {"id": 9, "reasoning": "lists Aggregatibacter as a high-risk pathogen", "full_phrase": "Aggregatibacter High Very strong association with PD: Transmittable, tissue invasive, and pathogenic at relatively low", "anchor_text": "Aggregatibacter", "page_id": "page_number_1_index_0", "line_ids": [20]},
+    {"id": 10, "reasoning": "lists Porphyromonas gingivalis as a high-risk pathogen", "full_phrase": "Porphyromonas gingivalis  High Very strong association with PD: Transmittable, tissue invasive, and pathogenic at relatively low", "anchor_text": "Porphyromonas gingivalis", "page_id": "page_number_1_index_0", "line_ids": [20]},
+    {"id": 11, "reasoning": "lists Fusobacterium nucleatum/periodonticum as high-risk", "full_phrase": "Fusobacterium High Strong association with PD: adherence properties to several oral pathogens; often seen in refractory", "anchor_text": "Fusobacterium nucleatum/periodonticum", "page_id": "page_number_1_index_0", "line_ids": [24,25]},
+    {"id": 12, "reasoning": "lists Prevotella intermedia as high-risk", "full_phrase": "Prevotella intermedia  High Strong association with PD: virulent properties similar to Pg; often seen in refractory disease.", "anchor_text": "Prevotella intermedia", "page_id": "page_number_1_index_0", "line_ids": [25]},
+    {"id": 13, "reasoning": "lists Capnocytophaga species as high-risk", "full_phrase": "Capnocytophaga species High Some association with PD: Frequently found in gingivitis. Often found in association with other", "anchor_text": "Capnocytophaga species", "page_id": "page_number_1_index_0", "line_ids": [25]},
+    {"id": 14, "reasoning": "organisms explicitly shown as not detected", "full_phrase": "Not Detected:  (Tf) Tannerella forsythia, (Td) Treponema denticola, (En) Eubacterium nodatum", "anchor_text": "Not Detected: Tannerella forsythia, Treponema denticola, Eubacterium nodatum", "page_id": "page_number_1_index_0", "line_ids": [35]},
+    {"id": 15, "reasoning": "recommended office therapy statement", "full_phrase": "Office Periodontal Therapy: Protocols to disrupt biofilm and reduce pathogens.", "anchor_text": "Office Periodontal Therapy", "page_id": "page_number_2_index_1", "line_ids": [15]},
+    {"id": 16, "reasoning": "published antibiotic adjunct recommendation given in report", "full_phrase": "Published guidelines suggest (subject to allergy, drug interaction, and other medical considerations) the following as a possible adjunct to treatment based on patient's bacterial profile: Amoxicillin 500 mg tid 8 days and Metronidazole 500 mg bid 8 days.", "anchor_text": "Amoxicillin 500 mg tid 8 days and Metronidazole 500 mg bid 8 days", "page_id": "page_number_2_index_1", "line_ids": [15]},
+    {"id": 17, "reasoning": "reassessment guidance including timing for 2nd sample", "full_phrase": "- A 2nd sample should be collected six to eight weeks post-therapy.", "anchor_text": "2nd sample should be collected six to eight weeks post-therapy", "page_id": "page_number_2_index_1", "line_ids": [20]},
+    {"id": 18, "reasoning": "antibiotic allergy status recorded on the report", "full_phrase": "Antibiotic Allergies:None Reported", "anchor_text": "Antibiotic Allergies:None Reported", "page_id": "page_number_2_index_1", "line_ids": [40]},
+    {"id": 19, "reasoning": "additional clinical information: tested tooth numbers and pocket depths", "full_phrase": "Additional Clinical Information: This patient has a test sample note and test Tooth Numbers  3  9  14  19  24  30", "anchor_text": "Tooth Numbers  3  9  14  19  24  30", "page_id": "page_number_2_index_1", "line_ids": [45]},
+    {"id": 20, "reasoning": "laboratory contact/address information listed on report", "full_phrase": "OralDNA Labs, Inc., 214 Overlook Circle, Suite 120, Brentwood, TN 37027 6155779055; Fax: 6156272826 www.oraldna.com", "anchor_text": "OralDNA Labs, Inc., 214 Overlook Circle", "page_id": "page_number_2_index_1", "line_ids": [50]},
+    {"id": 21, "reasoning": "report lists Medical Director and Chief Dental Officer", "full_phrase": "Medical Director: Ronald McGlennen, MD  Chief Dental Officer: Thomas W. Nabors, DDS  Page 1 of 2", "anchor_text": "Medical Director: Ronald McGlennen, MD", "page_id": "page_number_1_index_0", "line_ids": [45]}
+  ]
+}
+<<<END_CITATION_DATA>>>
