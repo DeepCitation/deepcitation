@@ -332,7 +332,9 @@ describe("getAllCitationsFromLlmOutput", () => {
       const text = "High-risk pathogens were identified [2, 3, 4].";
       const result = getAllCitationsFromLlmOutput(text);
       expect(Object.keys(result).length).toBe(3);
-      const numbers = Object.values(result).map(c => c.citationNumber).sort((a, b) => (a ?? 0) - (b ?? 0));
+      const numbers = Object.values(result)
+        .map(c => c.citationNumber)
+        .sort((a, b) => (a ?? 0) - (b ?? 0));
       expect(numbers).toEqual([2, 3, 4]);
     });
 

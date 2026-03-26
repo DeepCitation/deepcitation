@@ -653,11 +653,6 @@ export function getCitationMarkerIds(text: string): number[] {
 const MULTI_CITATION_MARKER_RE = /\[(\d+(?:\s*,\s*\d+)+)\]/g;
 
 /**
- * Regex for single [N] markers. Non-global version for targeted use.
- */
-const SINGLE_CITATION_MARKER_RE = /\[(\d+)\]/;
-
-/**
  * Extracts the sentence or clause surrounding a citation marker position.
  * Looks for sentence boundaries (. ! ? newline) or list item boundaries (- *).
  */
@@ -755,7 +750,7 @@ export function extractCitationsFromMarkers(text: string): { [key: string]: Cita
     if (!sentence) continue;
 
     for (const id of ids) {
-      if (seenIds.has(id) || isNaN(id)) continue;
+      if (seenIds.has(id) || Number.isNaN(id)) continue;
       seenIds.add(id);
 
       const citation: Citation = {
@@ -772,7 +767,7 @@ export function extractCitationsFromMarkers(text: string): { [key: string]: Cita
   // Second pass: find single [N] markers not already captured
   for (const match of text.matchAll(CITATION_MARKER_RE)) {
     const id = parseInt(match[1], 10);
-    if (seenIds.has(id) || isNaN(id)) continue;
+    if (seenIds.has(id) || Number.isNaN(id)) continue;
     seenIds.add(id);
 
     const markerStart = match.index;

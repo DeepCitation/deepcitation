@@ -64,7 +64,9 @@ export function renderGitHubSourcesTable(
     const proofLink = entry.proofUrl ? `[View proof](${entry.proofUrl})` : "—";
     const label = escapeMd(entry.sourceLabel).replace(/\|/g, "\\|");
     const loc = entry.location ? escapeMd(entry.location).replace(/\|/g, "\\|") : "—";
-    lines.push(`| ${entry.citationNumber} | ${entry.indicator} ${entry.statusLabel} | ${label} | ${loc} | ${proofLink} |`);
+    lines.push(
+      `| ${entry.citationNumber} | ${entry.indicator} ${entry.statusLabel} | ${label} | ${loc} | ${proofLink} |`,
+    );
   }
 
   lines.push("", "</details>");
@@ -89,7 +91,9 @@ export function renderGitHubSourcesList(
   for (const entry of entries) {
     const proofLink = entry.proofUrl ? ` — [View proof](${entry.proofUrl})` : "";
     const location = entry.location ? ` — ${escapeMd(entry.location)}` : "";
-    lines.push(`- **[${entry.citationNumber}]** ${entry.indicator} ${escapeMd(entry.sourceLabel)}${location}${proofLink}`);
+    lines.push(
+      `- **[${entry.citationNumber}]** ${entry.indicator} ${escapeMd(entry.sourceLabel)}${location}${proofLink}`,
+    );
   }
 
   lines.push("", "</details>");
