@@ -1,10 +1,10 @@
 ---
-name: cite
+name: verify
 description: Verify AI claims against source documents and generate a branded DeepCitation HTML report
 allowed-tools: Read, Write, Bash, Glob, Grep, Edit, Agent
 ---
 
-# /cite — DeepCitation Report
+# /verify — DeepCitation Report
 
 Verify claims against source documents using the DeepCitation 2-step API, saving JSON artifacts at each step, and generate a branded interactive HTML report.
 
