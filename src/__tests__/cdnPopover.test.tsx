@@ -5,6 +5,7 @@ import { resolve } from "path";
 import React, { useState } from "react";
 import type { PopoverViewState } from "../react/DefaultPopoverContent.js";
 import { DefaultPopoverContent } from "../react/DefaultPopoverContent.js";
+import { resolveKeyMap } from "../vanilla/runtime/cdn-keymap.js";
 import { mapToCitation, mapToVerification } from "../vanilla/runtime/cdn-mappers.js";
 import type { VerificationData } from "../vanilla/runtime/types.js";
 
@@ -224,5 +225,82 @@ describe("cdn.ts source invariants", () => {
   it("supports indicator variant option", () => {
     expect(cdnSource).toContain("indicatorVariant");
     expect(cdnSource).toContain("activeIndicatorVariant");
+  });
+  it("imports resolveKeyMap from cdn-keymap", () => {
+    expect(cdnSource).toContain('from "./cdn-keymap.js"');
+    expect(cdnSource).toContain("resolveKeyMap()");
+  });
+});
+
+describe("resolveKeyMap DOM behavior", () => {
+  afterEach(() => {
+    document.getElementById("dc-key-map")?.remove();
+    document.querySelectorAll("[data-cite]").forEach(el => el.remove());
+  });
+
+  function injectKeyMap(map: Record<string, unknown>) {
+    const script = document.createElement("script");
+    script.type = "application/json";
+    script.id = "dc-key-map";
+    script.textContent = JSON.stringify(map);
+    document.body.appendChild(script);
+  }
+
+  function addCiteEl(humanKey: string): HTMLElement {
+    const el = document.createElement("span");
+    el.setAttribute("data-cite", humanKey);
+    document.body.appendChild(el);
+    return el;
+  }
+
+  it("resolves data-cite to data-citation-key", () => {
+    injectKeyMap({ "my claim": "abc123" });
+    const el = addCiteEl("my claim");
+    resolveKeyMap();
+    expect(el.getAttribute("data-citation-key")).toBe("abc123");
+  });
+
+  it("ignores keys not in the map", () => {
+    injectKeyMap({ "my claim": "abc123" });
+    const el = addCiteEl("unknown claim");
+    resolveKeyMap();
+    expect(el.hasAttribute("data-citation-key")).toBe(false);
+  });
+
+  it("skips non-string values in the map", () => {
+    injectKeyMap({ "my claim": null as unknown as string, other: 42 as unknown as string });
+    const el1 = addCiteEl("my claim");
+    const el2 = addCiteEl("other");
+    resolveKeyMap();
+    expect(el1.hasAttribute("data-citation-key")).toBe(false);
+    expect(el2.hasAttribute("data-citation-key")).toBe(false);
+  });
+
+  it("handles malformed JSON gracefully", () => {
+    const script = document.createElement("script");
+    script.type = "application/json";
+    script.id = "dc-key-map";
+    script.textContent = "NOT VALID JSON";
+    document.body.appendChild(script);
+    const el = addCiteEl("anything");
+    resolveKeyMap(); // should not throw
+    expect(el.hasAttribute("data-citation-key")).toBe(false);
+  });
+
+  it("is a no-op when no dc-key-map element exists", () => {
+    const el = addCiteEl("my claim");
+    resolveKeyMap(); // should not throw
+    expect(el.hasAttribute("data-citation-key")).toBe(false);
+  });
+
+  it("ignores non-object key map shapes (array, null, primitive)", () => {
+    for (const value of [["abc"], null, 42, "string"]) {
+      injectKeyMap(value as unknown as Record<string, unknown>);
+      const el = addCiteEl("my claim");
+      resolveKeyMap(); // should not throw
+      expect(el.hasAttribute("data-citation-key")).toBe(false);
+      document.getElementById("dc-key-map")?.remove();
+      el.remove();
+    }
   });
 });

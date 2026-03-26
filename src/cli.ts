@@ -59,12 +59,15 @@ any elements with data-citation-key attributes become interactive.
 Options:
   --html <file>             Path to existing HTML file to augment
   --verify-response <file>  Path to verify-response.json from /verifyCitations
+  --key-map <file>          Path to key mapping JSON (human-readable → hashed keys)
   --theme <auto|light|dark> Popover color theme (default: "auto")
   --out <file>              Output file path (default: overwrites input)
   -h, --help                Show this help message
 
 The injected assets are:
   - A <script type="application/json" id="dc-data"> block with verification data
+  - (Optional) A <script type="application/json" id="dc-key-map"> block that maps
+    human-readable data-cite attributes to hashed data-citation-key values
   - DeepCitation popover CSS
   - The vanilla runtime JS that wires up [data-citation-key] click handlers
 
@@ -147,13 +150,31 @@ function inject(argv: string[]) {
   const theme = args.theme ?? "auto";
   if (!["auto", "light", "dark"].includes(theme)) die("--theme must be auto, light, or dark", INJECT_HELP);
 
+  // Optional key map: resolves human-readable data-cite attrs to hashed data-citation-key
+  const keyMapPath = args["key-map"];
+  let keyMapSnippet = "";
+  if (keyMapPath) {
+    const raw = readFileSync(resolve(keyMapPath), "utf-8").trim();
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      die(`--key-map file is not valid JSON: ${sanitizeForLog(keyMapPath)}`, INJECT_HELP);
+    }
+    keyMapSnippet = `<script type="application/json" id="dc-key-map">${escapeJsonForScript(JSON.stringify(parsed))}</script>`;
+  }
+
   // CDN bundle: Preact + real React components + extracted Tailwind CSS.
-  // init() reads #dc-data, injects its own <style>, and wires up [data-citation-key] handlers.
+  // init() reads #dc-data + optional #dc-key-map, injects its own <style>,
+  // resolves data-cite → data-citation-key, and wires up click handlers.
   const snippet = [
     `<script type="application/json" id="dc-data">${jsonData}</script>`,
+    keyMapSnippet,
     `<script>${escapeJsForScript(CDN_JS)}</script>`,
     `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"${theme}"});</script>`,
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   let output = html;
 

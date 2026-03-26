@@ -198,6 +198,23 @@ This prints the mapping (e.g. `cite-hba1c → bfd6ec10bd261161`) to stderr and w
 
 Write the annotated HTML to `.deepcitation/annotated.html`.
 
+**CRITICAL — anchorText comes from the source document. The component handles display mismatches.**
+
+`anchorText` and `fullPhrase` are always **verbatim from the source document** (the `deepTextPromptPortion`). The verification API searches the source for these exact strings. The indicator (✓/⚠/✗) reflects whether **that exact source text** was found.
+
+If the HTML displays a different value than what's in the source, there are exactly two correct outcomes:
+
+1. **The citation uses source text as anchorText.** The popover component detects the mismatch between the source's anchorText and the HTML's displayed text, and shows a `displayLabel` annotation ("displayed as X") so the user understands the discrepancy. The indicator is trustworthy — it reflects what the source actually says.
+
+2. **Don't cite it.** If the displayed value can't be traced to any source document, it shouldn't get an indicator at all. An unverified claim is honest. A ✓ next to a value verified against a *different* value is a lie.
+
+**The skill must NEVER:**
+- Set `anchorText` to the HTML's displayed text to force a match — that's fabricating evidence
+- Add interpretive text, labels, or inline annotations near `data-cite` elements — the indicator is the SOLE visual signal and must not compete with skill-generated annotations
+- Assume a value in the HTML matches the source without checking the `deepTextPromptPortion`
+
+**Example:** The HTML displays "PHN 305005112". The source document contains "Mã BN/ID: 260006301". These are different identifiers — 305005112 is a provincial health number, 260006301 is a hospital patient ID. The skill must NOT cite "305005112" using the source text for "260006301". Either find "305005112" in a source document, or leave it uncited.
+
 **2B-6. Choose where to place `data-citation-key`.** The attribute should go on the most specific element containing the claim. Placement rules:
 
 - **Single value** (e.g. `<span class="stat-value">5.5%</span>`) → put it directly on the value element
@@ -208,6 +225,8 @@ Write the annotated HTML to `.deepcitation/annotated.html`.
 - **Never** put it on wrapper/layout elements (`<div class="card">`, `<section>`) — be specific
 
 The CDN runtime automatically appends a small status indicator icon (✓/⚠/✗) next to each annotated element. The icon inherits the element's font size and is styled inline, so it works regardless of the host page's CSS framework.
+
+**Do NOT add your own text, labels, or visual annotations near cited elements.** The verification indicators are the SOLE visual signal of verification status. Adding interpretive text like "(verified)", "(source: report.pdf)", or inline notes next to cited values undermines the indicator system — users must be able to trust that ✓ means "this exact value was found in the source" without competing annotations muddying the signal.
 
 **2B-7. Citation drawer for source/reference areas.** If the HTML has **any** area that collects sources, references, files, or citations — a "Files" tab, a references section, a sidebar with document links, a footer with source attributions — you MUST inject a citation drawer trigger there. This gives users a single place to browse all verification results. Do not skip this step.
 

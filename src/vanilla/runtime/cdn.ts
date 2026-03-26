@@ -5,6 +5,7 @@ import type { PopoverViewState } from "../../react/DefaultPopoverContent.js";
 import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
 import type { Citation } from "../../types/citation.js";
 import type { PageImage, Verification } from "../../types/verification.js";
+import { resolveKeyMap } from "./cdn-keymap.js";
 import { mapToCitation, mapToVerification } from "./cdn-mappers.js";
 import { computePosition } from "./positioning.js";
 import type { VerificationData } from "./types.js";
@@ -501,6 +502,16 @@ function bindTriggers(selector: string): void {
     });
   }
 }
+function parseScriptTagJson<T>(id: string, errorMsg: string): T | null {
+  const el = document.getElementById(id);
+  if (!el?.textContent) return null;
+  try {
+    return JSON.parse(el.textContent) as T;
+  } catch {
+    console.error(errorMsg);
+    return null;
+  }
+}
 function init(options: CdnOptions = {}): void {
   if (wrapperEl) return;
   const { theme = "auto", selector = "[data-citation-key]", indicatorVariant = "icon" } = options;
@@ -511,15 +522,17 @@ function init(options: CdnOptions = {}): void {
   if (options.verifications) {
     verifications = { ...options.verifications };
   } else {
-    const dataEl = document.getElementById("dc-data");
-    if (dataEl?.textContent) {
-      try {
-        verifications = JSON.parse(dataEl.textContent);
-      } catch {
-        console.error("[deepcitation] Failed to parse embedded verification data");
-      }
-    }
+    verifications =
+      parseScriptTagJson<Record<string, VerificationData>>(
+        "dc-data",
+        "[deepcitation] Failed to parse embedded verification data",
+      ) ?? {};
   }
+  // Resolve human-readable data-cite attributes to hashed data-citation-key
+  // using the key map embedded as <script id="dc-key-map">{...}</script>.
+  // Key-map resolution is one-shot: only runs on first init(), not on update().
+  resolveKeyMap();
+
   ensurePopoverEls();
   dismissController = new AbortController();
   const { signal } = dismissController;
