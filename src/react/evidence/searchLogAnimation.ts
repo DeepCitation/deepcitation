@@ -6,6 +6,8 @@ import {
   EVIDENCE_LIST_EXPAND_TOTAL_MS,
 } from "../constants.js";
 
+const SETTLE_MS = Math.max(16, EVIDENCE_LIST_EXPAND_TOTAL_MS - EVIDENCE_LIST_EXPAND_STEP_MS);
+
 // Evidence list expand/collapse uses an inlined motion state machine instead of
 // useBlinkMotionStage because it needs proportional height reveal (measuring
 // actual scrollHeight via searchLogViewportRef) and per-stage CSS property
@@ -48,8 +50,7 @@ export function resolveEvidenceListTransition(stage: EvidenceListMotionStage): s
     return `max-height ${EVIDENCE_LIST_EXPAND_STEP_MS}ms ${BLINK_ENTER_EASING}, opacity ${EVIDENCE_LIST_EXPAND_STEP_MS}ms ${BLINK_ENTER_EASING}, padding-top ${EVIDENCE_LIST_EXPAND_STEP_MS}ms ${BLINK_ENTER_EASING}, transform ${EVIDENCE_LIST_EXPAND_STEP_MS}ms ${BLINK_ENTER_EASING}`;
   }
   if (stage === "steady") {
-    const settleMs = Math.max(16, EVIDENCE_LIST_EXPAND_TOTAL_MS - EVIDENCE_LIST_EXPAND_STEP_MS);
-    return `max-height ${settleMs}ms ${BLINK_ENTER_EASING}, opacity ${settleMs}ms ${BLINK_ENTER_EASING}, padding-top ${settleMs}ms ${BLINK_ENTER_EASING}, transform ${settleMs}ms ${BLINK_ENTER_EASING}`;
+    return `max-height ${SETTLE_MS}ms ${BLINK_ENTER_EASING}, opacity ${SETTLE_MS}ms ${BLINK_ENTER_EASING}, padding-top ${SETTLE_MS}ms ${BLINK_ENTER_EASING}, transform ${SETTLE_MS}ms ${BLINK_ENTER_EASING}`;
   }
   return `max-height ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}, opacity ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}, padding-top ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}, transform ${EVIDENCE_LIST_COLLAPSE_TOTAL_MS}ms ${BLINK_EXIT_EASING}`;
 }
