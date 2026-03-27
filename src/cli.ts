@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { resolve, basename } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, resolve } from "node:path";
 import {
   CREDENTIALS_PATH,
   deleteCredentials,
@@ -132,11 +132,15 @@ async function prepare(argv: string[]) {
   if (!positional) die("A file path or URL is required", PREPARE_HELP);
 
   const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
-  if (!apiKey) die("DEEPCITATION_API_KEY not set. Run \"deepcitation login\" or set the env var.", PREPARE_HELP);
+  if (!apiKey) die('DEEPCITATION_API_KEY not set. Run "deepcitation login" or set the env var.', PREPARE_HELP);
 
   const dc = new DeepCitation({ apiKey });
 
   const isUrl = positional.startsWith("http://") || positional.startsWith("https://");
+
+  if (isUrl && positional.startsWith("http://") && !positional.startsWith("http://localhost")) {
+    console.error("Warning: using http:// URL — content will be fetched over plaintext.");
+  }
 
   let result;
   let label: string;
@@ -160,7 +164,7 @@ async function prepare(argv: string[]) {
   const outPath = resolve(args.out ?? `.deepcitation/prepare-${label}.json`);
   writeFileSync(outPath, JSON.stringify(result, null, 2));
 
-  console.error(`  Attachment ID: ${result.attachmentId}`);
+  console.error(`  Attachment ID: ${sanitizeForLog(result.attachmentId)}`);
   console.error(`  Pages: ${result.metadata.pageCount}`);
   console.error(`  Text: ${Math.round(result.metadata.textByteSize / 1024)}KB`);
   if (result.processingTimeMs) {
@@ -194,20 +198,37 @@ async function verify(argv: string[]) {
   if (!citationsPath) die("--citations is required", VERIFY_HELP);
 
   const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
-  if (!apiKey) die("DEEPCITATION_API_KEY not set. Run \"deepcitation login\" or set the env var.", VERIFY_HELP);
+  if (!apiKey) die('DEEPCITATION_API_KEY not set. Run "deepcitation login" or set the env var.', VERIFY_HELP);
 
   const dc = new DeepCitation({ apiKey });
-  const imageFormat = args["image-format"] ?? "avif";
+
+  const allowedFormats = ["avif", "png", "jpeg", "webp"] as const;
+  const imageFormat = (args["image-format"] ?? "avif") as (typeof allowedFormats)[number];
+  if (!allowedFormats.includes(imageFormat)) {
+    die(`Invalid --image-format "${sanitizeForLog(imageFormat)}". Allowed: ${allowedFormats.join(", ")}`, VERIFY_HELP);
+  }
 
   const citations = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<
     string,
     Record<string, unknown>
   >;
 
+  // Validate all citations have attachmentId
+  const missing = Object.entries(citations).filter(([, c]) => !(c.attachmentId as string));
+  if (missing.length > 0) {
+    die(
+      `${missing.length} citation(s) missing attachmentId: ${missing
+        .map(([k]) => k)
+        .slice(0, 5)
+        .join(", ")}`,
+      VERIFY_HELP,
+    );
+  }
+
   // Group citations by attachmentId
   const groups = new Map<string, Record<string, Record<string, unknown>>>();
   for (const [key, citation] of Object.entries(citations)) {
-    const aid = (citation.attachmentId as string) ?? "unknown";
+    const aid = citation.attachmentId as string;
     if (!groups.has(aid)) groups.set(aid, {});
     groups.get(aid)![key] = citation;
   }
@@ -217,11 +238,11 @@ async function verify(argv: string[]) {
   // Verify each group and merge
   const merged: Record<string, unknown> = {};
   for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
-    console.error(`  ${attachmentId}: ${Object.keys(groupCitations).length} citations...`);
+    console.error(`  ${sanitizeForLog(attachmentId)}: ${Object.keys(groupCitations).length} citations...`);
     const result = await dc.verifyAttachment(
       attachmentId,
       groupCitations as unknown as Parameters<typeof dc.verifyAttachment>[1],
-      { outputImageFormat: imageFormat as "avif" | "png" | "jpeg" | "webp" },
+      { outputImageFormat: imageFormat },
     );
     Object.assign(merged, result.verifications);
   }
@@ -477,10 +498,16 @@ if (!command || command === "-h" || command === "--help") {
 
 switch (command) {
   case "prepare":
-    prepare(rest);
+    prepare(rest).catch(err => {
+      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      process.exit(1);
+    });
     break;
   case "verify":
-    verify(rest);
+    verify(rest).catch(err => {
+      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      process.exit(1);
+    });
     break;
   case "report":
     report(rest);
