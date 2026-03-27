@@ -131,19 +131,20 @@ The `deepTextPromptPortion` uses `<line id="N">` tags to mark lines. These IDs a
 Example:
 ```
 <page_number_1_index_0>
-<line id="1">Mã BN/ID:  260006301</line>
-Đối tượng/Group: Không bảo hiểm           ← untagged
-Lis Barcode: 2603160079                    ← untagged
-Họ và tên/Name:BENSON WONG Nam/ Male ...   ← untagged
-<line id="5">Địa chỉ/Address:...</line>
+<line id="1">Company Overview</line>
+Founded in 2015 as a healthcare technology startup   ← untagged
+Headquarters: San Francisco, CA                      ← untagged
+<line id="4">Total employees: 1,200</line>
 ...
-WBC (BẠCH CẦU) 5.71 G/L 3.9 - 10         ← untagged
-<line id="15">- NEU % 59.6 % 45 - 75</line>
+<page_number_2_index_1>
+<line id="20">Revenue grew 45% year-over-year to $2.3B</line>
+Operating margin improved to 18.5%                   ← untagged
+<line id="22">Net income: $415M, up from $290M</line>
 ```
 
-For "BENSON WONG" on page 1: the text is between `<line id="1">` and `<line id="5">`. Use the nearest tagged line — `lineIds: [1]` or `[5]`.
+For "Founded in 2015": between `<line id="1">` and `<line id="4">`. Use the nearest tagged line — `lineIds: [1]` or `[4]`.
 
-For "WBC 5.71": between `<line id="10">` and `<line id="15">`. Use `lineIds: [10]` or `[15]`.
+For "Operating margin improved to 18.5%": between `<line id="20">` and `<line id="22">`. Use `lineIds: [20]` or `[22]`.
 
 **How to find the right lineId:**
 1. Read the `deepTextPromptPortion` from `.deepcitation/prepare-*.json`
@@ -155,11 +156,11 @@ For "WBC 5.71": between `<line id="10">` and `<line id="15">`. Use `lineIds: [10
 
 ```json
 {
-  "cite-hba1c": {
-    "fullPhrase": "Định lượng HbA1c 5.5 % 4.0 - 6.0",
-    "anchorText": "5.5",
+  "cite-revenue": {
+    "fullPhrase": "Revenue grew 45% year-over-year to $2.3B",
+    "anchorText": "$2.3B",
     "pageNumber": 2,
-    "lineIds": [13],
+    "lineIds": [20],
     "attachmentId": "ATTACHMENT_ID_FROM_STEP_1"
   }
 }
@@ -170,9 +171,9 @@ Save as `.deepcitation/citations.json`.
 **Anchor text guidelines.** Short anchor text (1-2 words) works for structured/tabular data. For narrative prose, use **5+ word** distinctive anchor text. Keep `fullPhrase` to a single line from the deepTextPromptPortion — multi-line values often degrade to `partial_text_found`.
 
 Examples:
-- **Good** (structured): `fullPhrase: "WBC 5.71 G/L 3.9 - 10"`, `anchorText: "5.71"`
-- **Good** (narrative): `fullPhrase: "Large left paracentral disc protrusion at L4-5"`, `anchorText: "Large left paracentral disc protrusion"`
-- **Bad** (narrative): `anchorText: "disc protrusion"` — too short, often results in `partial_text_found`
+- **Good** (structured): `fullPhrase: "Revenue grew 45% year-over-year to $2.3B"`, `anchorText: "$2.3B"`
+- **Good** (narrative): `fullPhrase: "The court held that Section 4(b) was unconstitutional"`, `anchorText: "Section 4(b) was unconstitutional"`
+- **Bad** (narrative): `anchorText: "unconstitutional"` — too short, often results in `partial_text_found`
 
 **2B-4. Generate deterministic keys.** The DeepCitation API uses content-hashed keys (SHA-1 based). Use the CLI to compute them:
 
@@ -331,52 +332,14 @@ This injects before `</body>`:
 
 ### Step 5: Validate Before Declaring Done
 
-Do not tell the user the report is ready until you've run these checks:
+Do not tell the user the report is ready until you've checked the resolution chain. Use the timestamped filenames from this run:
 
-```bash
-python3 -c "
-import json
-from html.parser import HTMLParser
+1. Count `data-citation-key` elements in the annotated HTML
+2. Count key-map entries
+3. Count verifications and their statuses (found / partial / not_found)
+4. Check for orphans (data-citation-key values with no key-map entry) and missing verifications (key-map entries with no verification result)
 
-class CiteCounter(HTMLParser):
-    def __init__(self): super().__init__(); self.cites = []
-    def handle_starttag(self, tag, attrs):
-        d = dict(attrs)
-        if 'data-citation-key' in d: self.cites.append(d['data-citation-key'])
-
-# 1. Count data-citation-key elements in annotated HTML
-html = open('.deepcitation/annotated.html').read()
-p = CiteCounter(); p.feed(html)
-cite_count = len(set(p.cites))
-
-# 2. Count key-map entries
-km = json.load(open('.deepcitation/key-map.json'))
-
-# 3. Count verifications
-vr = json.load(open('.deepcitation/verify-response.json'))
-vdata = vr.get('verifications', vr)
-
-# 4. Check resolution chain
-orphans = [c for c in set(p.cites) if c not in km]
-missing_verify = [c for c, h in km.items() if h not in vdata]
-
-PARTIAL_STATUSES = {'partial_text_found', 'found_anchor_text_only', 'found_on_other_page'}
-found = sum(1 for v in vdata.values() if v.get('status') == 'found')
-partial = sum(1 for v in vdata.values() if v.get('status') in PARTIAL_STATUSES)
-nf = sum(1 for v in vdata.values() if v.get('status') == 'not_found')
-
-print(f'data-citation-key elements: {cite_count} unique')
-print(f'key-map entries:    {len(km)}')
-print(f'verifications:      {len(vdata)} (found={found}, partial={partial}, not_found={nf})')
-print(f'orphan data-citation-keys:  {len(orphans)} {orphans[:5] if orphans else \"\"}')
-print(f'missing verifies:   {len(missing_verify)} {missing_verify[:5] if missing_verify else \"\"}')
-if orphans: print('ERROR: data-citation-key elements with no key-map entry — popovers will not activate')
-if missing_verify: print('ERROR: key-map entries with no verification — indicators will show but popover will be empty')
-if cite_count == 0: print('WARNING: no citations found — did you forget to annotate?')
-"
-```
-
-If orphans or missing verifications are found, fix them before injecting. If the citation count is low, go back to Step 2B-2 and add more citations.
+If orphans or missing verifications are found, fix them before injecting.
 
 **Then open the result:**
 ```bash
