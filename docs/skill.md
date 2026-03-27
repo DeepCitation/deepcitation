@@ -14,6 +14,30 @@ Verify every claim an LLM makes by tracing it back to the source document, page,
 
 Think out loud at every step. Before mapping a claim to a source, reason explicitly about **which document**, **which page**, and **which phrase** supports it.
 
+## Getting Started
+
+### Install as an Agent Skill
+
+The fastest way to get started is to install DeepCitation as an agent skill. This gives AI tools like Claude Code, Codex, and Cursor the ability to verify citations automatically.
+
+```bash
+npx skills add DeepCitation/skills
+```
+
+This installs the DeepCitation skill into your project so your AI agent can verify claims against source documents.
+
+### During Project Setup
+
+If you're already using an AI coding agent, you can also add the skill manually by copying it from the [DeepCitation/skills](https://github.com/DeepCitation/skills) repository into your project's skill directory.
+
+### Get an API Key
+
+Sign up at [deepcitation.com/keys](https://deepcitation.com/keys) and set the environment variable:
+
+```bash
+export DEEPCITATION_API_KEY=your_key_here
+```
+
 ## When to Use
 
 Use this skill when the user asks you to:
@@ -282,6 +306,6 @@ Only citation metadata (phrases, page numbers, line IDs) is sent to the DeepCita
 | Upload source | `/prepareAttachments` | POST (multipart) |
 | Verify citations | `/verifyCitations` | POST (JSON) |
 
-**Open-source prompts & parsers:** [github.com/DeepCitation/deepcitation](https://github.com/DeepCitation/deepcitation)
+**Agent skills:** [github.com/DeepCitation/skills](https://github.com/DeepCitation/skills)
 
 **API keys:** [deepcitation.com/keys](https://deepcitation.com/keys)
