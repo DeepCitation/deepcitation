@@ -253,6 +253,12 @@ export interface VerifyCitationsOptions {
 }
 
 /**
+ * Options for batch citation verification across multiple attachments.
+ * Structurally identical to VerifyCitationsOptions — aliased to prevent silent drift.
+ */
+export type VerifyBatchOptions = VerifyCitationsOptions;
+
+/**
  * Simplified citation input for verification
  */
 export type CitationInput = Citation | Record<string, Citation>;
