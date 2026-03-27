@@ -2,7 +2,7 @@
  * Tests for performance fixes identified in PERFORMANCE_ANALYSIS.md
  *
  * These tests verify:
- * 1. Global regex state bug fix (parseWorkAround.ts)
+ * 1. Global regex state bug fix (geminiSanitizer.ts)
  * 2. String concatenation fix (diff.ts splitLines)
  * 3. Unshift optimization (diff.ts backtrack)
  * 4. Range size limits for line ID parsing (prevents memory exhaustion)
@@ -11,12 +11,12 @@
 
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
-import { cleanRepeatingLastSentence } from "../parsing/parseWorkAround.js";
+import { cleanRepeatingLastSentence } from "../parsing/geminiSanitizer.js";
 import { diffLines, diffWordsWithSpace } from "../utils/diff.js";
 import { makeNumericResponse } from "./testHelpers.js";
 
 describe("Performance Fixes", () => {
-  describe("Global Regex State Bug Fix (parseWorkAround.ts)", () => {
+  describe("Global Regex State Bug Fix (geminiSanitizer.ts)", () => {
     it("should correctly find sentence endings on multiple consecutive calls", () => {
       const text = "Hello world. This is a test. More content here.";
 

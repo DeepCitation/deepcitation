@@ -50,7 +50,9 @@ export function renderSlackSourceEntry(
   proofUrl: string | undefined,
 ): string {
   const indicator = getIndicator(status, indicatorStyle);
-  const marker = proofUrl ? `<${proofUrl}|[${citationNumber}${indicator}]>` : `[${citationNumber}${indicator}]`;
+  const markerText = `[${citationNumber}${indicator}]`;
+  // Pipe character delimits URL from label in Slack links; strip from label text
+  const marker = proofUrl ? `<${proofUrl}|${markerText.replace(/\|/g, "")}>` : markerText;
 
   const location = pageLocation ? ` — ${escapeSlackMrkdwn(pageLocation)}` : "";
   return `• ${marker} ${escapeSlackMrkdwn(sourceLabel)}${location}`;

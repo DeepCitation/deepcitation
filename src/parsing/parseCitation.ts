@@ -1,3 +1,13 @@
+/**
+ * Citation Orchestrator (high-level)
+ *
+ * Provides the primary public API for citation extraction: {@link getAllCitationsFromLlmOutput}.
+ * Auto-detects the citation format (numeric JSON, marker-only, or structured object)
+ * and delegates to the appropriate low-level parser in {@link citationParser.ts}.
+ *
+ * Also provides grouping utilities ({@link groupCitationsByAttachmentId}) and
+ * verification status logic ({@link getCitationStatus}).
+ */
 import type {
   AudioVideoCitation,
   Citation,
@@ -18,8 +28,14 @@ import {
   parsePageId,
 } from "./citationParser.js";
 
+/** Resolves a field alias and returns its value only if it is a string. */
+function resolveStringField(obj: Record<string, unknown>, canonical: string): string | undefined {
+  const v = resolveField(obj, canonical);
+  return typeof v === "string" ? v : undefined;
+}
+
 /**
- * Module-level status sets for O(1) lookups — avoids per-call array allocations.
+ * Module-level status sets for O(1) lookups -- avoids per-call array allocations.
  */
 export const PARTIAL_STATUSES: ReadonlySet<SearchStatus> = new Set<SearchStatus>([
   "found_anchor_text_only",
@@ -91,27 +107,16 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
   const obj = jsonCitation as Record<string, unknown>;
 
   // Resolve field names using centralized alias map (handles camelCase, snake_case,
-  // kebab-case, and shortened LLM variants like "anchor" → anchorText)
-  const fullPhraseValue = resolveField(obj, "fullPhrase");
-  const fullPhrase = typeof fullPhraseValue === "string" ? fullPhraseValue : undefined;
-
-  const startPageIdValue = resolveField(obj, "startPageId");
-  const startPageId = typeof startPageIdValue === "string" ? startPageIdValue : undefined;
-
-  const anchorTextValue = resolveField(obj, "anchorText");
-  const anchorText = typeof anchorTextValue === "string" ? anchorTextValue : undefined;
+  // kebab-case, and shortened LLM variants like "anchor" -> anchorText)
+  const fullPhrase = resolveStringField(obj, "fullPhrase");
+  const startPageId = resolveStringField(obj, "startPageId");
+  const anchorText = resolveStringField(obj, "anchorText");
+  const attachmentId = resolveStringField(obj, "attachmentId");
+  const reasoning = resolveStringField(obj, "reasoning");
+  const value = resolveStringField(obj, "value");
 
   const rawLineIdsValue = resolveField(obj, "lineIds");
   const rawLineIds = Array.isArray(rawLineIdsValue) ? rawLineIdsValue : undefined;
-
-  const attachmentIdValue = resolveField(obj, "attachmentId");
-  const attachmentId = typeof attachmentIdValue === "string" ? attachmentIdValue : undefined;
-
-  const reasoningValue = resolveField(obj, "reasoning");
-  const reasoning = typeof reasoningValue === "string" ? reasoningValue : undefined;
-
-  const valueValue = resolveField(obj, "value");
-  const value = typeof valueValue === "string" ? valueValue : undefined;
 
   if (!fullPhrase) {
     return null;
@@ -122,19 +127,13 @@ const parseJsonCitation = (jsonCitation: unknown, citationNumber?: number): Cita
   // Sort lineIds if present
   const lineIds = rawLineIds?.length ? [...rawLineIds].sort((a: number, b: number) => a - b) : undefined;
 
-  // Extract URL-specific fields via centralized alias resolution
-  const urlValue = resolveField(obj, "url");
-  const url = typeof urlValue === "string" ? urlValue : undefined;
-  const domainValue = resolveField(obj, "domain");
-  const domain = typeof domainValue === "string" ? domainValue : undefined;
-  const titleValue = resolveField(obj, "title");
-  const title = typeof titleValue === "string" ? titleValue : undefined;
-  const descriptionValue = resolveField(obj, "description");
-  const description = typeof descriptionValue === "string" ? descriptionValue : undefined;
-  const siteNameValue = resolveField(obj, "siteName");
-  const siteName = typeof siteNameValue === "string" ? siteNameValue : undefined;
-  const faviconUrlValue = resolveField(obj, "faviconUrl");
-  const faviconUrl = typeof faviconUrlValue === "string" ? faviconUrlValue : undefined;
+  // URL-specific fields via centralized alias resolution
+  const url = resolveStringField(obj, "url");
+  const domain = resolveStringField(obj, "domain");
+  const title = resolveStringField(obj, "title");
+  const description = resolveStringField(obj, "description");
+  const siteName = resolveStringField(obj, "siteName");
+  const faviconUrl = resolveStringField(obj, "faviconUrl");
 
   // Determine citation type: URL citation if url is present and no attachmentId
   if (url && !attachmentId) {

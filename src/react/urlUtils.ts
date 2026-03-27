@@ -204,7 +204,8 @@ export const STATUS_ICONS: Record<UrlFetchStatus, { icon: string; label: string;
 };
 
 /**
- * Compact URL display utilities.
+ * @deprecated Import individual functions directly instead of this bag object.
+ * Scheduled for removal in v0.4.0.
  */
 export const urlDisplayUtils = {
   extractDomain,

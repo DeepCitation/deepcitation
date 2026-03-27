@@ -18,6 +18,13 @@ export interface CitationOverlayContextValue {
 
 export const CitationOverlayContext = createContext<CitationOverlayContextValue | null>(null);
 
+/** Stable fallback when no provider is present — avoids allocating a new object per render. */
+const FALLBACK_OVERLAY_CONTEXT: CitationOverlayContextValue = {
+  isAnyOverlayOpen: false,
+  registerOverlay: () => {},
+  unregisterOverlay: () => {},
+};
+
 /**
  * Hook to access citation overlay state.
  *
@@ -39,19 +46,7 @@ export const CitationOverlayContext = createContext<CitationOverlayContextValue 
  * ```
  */
 export function useCitationOverlay(): CitationOverlayContextValue {
-  const context = useContext(CitationOverlayContext);
-
-  // Fallback for when no provider is present - allows hover, no-op register
-  // This provides graceful degradation for users who don't wrap with provider
-  if (!context) {
-    return {
-      isAnyOverlayOpen: false,
-      registerOverlay: () => {},
-      unregisterOverlay: () => {},
-    };
-  }
-
-  return context;
+  return useContext(CitationOverlayContext) ?? FALLBACK_OVERLAY_CONTEXT;
 }
 
 /**

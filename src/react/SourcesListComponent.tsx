@@ -10,7 +10,7 @@ import { detectSourceType, getFaviconUrl, getPlatformName } from "./SourcesListC
 import { formatTtc } from "./timingUtils.js";
 import type { SourcesListItemProps, SourcesListProps, SourcesTriggerProps } from "./types.js";
 import { safeWindowOpen } from "./urlUtils.js";
-import { classNames } from "./utils.js";
+import { cn } from "./utils.js";
 
 // ============================================================================
 // VerificationBadge Component (extracted from inline renderVerificationBadge)
@@ -48,7 +48,7 @@ const VerificationBadge = ({
   const config = VERIFICATION_STATUS_CONFIG[verificationStatus];
   return (
     <span
-      className={classNames("text-sm ml-1", config.className)}
+      className={cn("text-sm ml-1", config.className)}
       aria-label={t(VERIFICATION_STATUS_LABEL_KEY[verificationStatus])}
     >
       {config.icon}
@@ -118,7 +118,7 @@ export const SourcesListItem = forwardRef<HTMLDivElement, SourcesListItemProps>(
         ref={ref}
         data-source-id={id}
         data-source-type={detectedType}
-        className={classNames(
+        className={cn(
           "flex items-start gap-3 p-3 cursor-pointer transition-colors",
           "hover:bg-dc-muted/60",
           "border-b border-dc-border last:border-b-0",
@@ -234,7 +234,7 @@ export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>
         ref={ref}
         type="button"
         onClick={onClick}
-        className={classNames(
+        className={cn(
           "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm",
           "bg-dc-muted text-dc-foreground",
           "hover:bg-dc-muted transition-colors",
@@ -253,7 +253,7 @@ export const SourcesTrigger = forwardRef<HTMLButtonElement, SourcesTriggerProps>
               key={source.id}
               src={getFaviconUrl(source.url, source.faviconUrl)}
               alt=""
-              className={classNames("w-4 h-4 rounded-full ring-2 ring-dc-background", i > 0 && "-ml-1")}
+              className={cn("w-4 h-4 rounded-full ring-2 ring-dc-background", i > 0 && "-ml-1")}
               width={16}
               height={16}
               loading="lazy"
@@ -576,7 +576,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
       return (
         <div
           ref={ref}
-          className={classNames("bg-dc-background rounded-lg border border-dc-border", className)}
+          className={cn("bg-dc-background rounded-lg border border-dc-border", className)}
           style={maxHeightStyle}
         >
           {headerElement}
@@ -590,10 +590,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
     if (variant === "panel") {
       if (!isOpen) return null;
       return (
-        <div
-          ref={ref}
-          className={classNames("bg-dc-background rounded-lg border border-dc-border shadow-lg", className)}
-        >
+        <div ref={ref} className={cn("bg-dc-background rounded-lg border border-dc-border shadow-lg", className)}>
           {headerElement}
           <div className="overflow-y-auto" style={maxHeightStyle || { maxHeight: "400px" }}>
             {listContentElement}
@@ -608,14 +605,14 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
     const portalContent = (
       <div
         ref={ref}
-        className={classNames("fixed inset-0 z-50", variant === "modal" && "flex items-center justify-center")}
+        className={cn("fixed inset-0 z-50", variant === "modal" && "flex items-center justify-center")}
         role="dialog"
         aria-modal="true"
         aria-labelledby="sources-title"
       >
         {/* Backdrop */}
         <div
-          className={classNames(
+          className={cn(
             "absolute inset-0 bg-black/40 dark:bg-black/60 transition-opacity duration-180",
             isOpen ? "opacity-100" : "opacity-0",
           )}
@@ -627,7 +624,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
         {variant === "drawer" ? (
           <div
             ref={containerRef}
-            className={classNames(
+            className={cn(
               "absolute bottom-0 left-0 right-0 bg-dc-background rounded-t-2xl shadow-2xl",
               "transform transition-transform duration-180 ease-[cubic-bezier(0.2,0,0,1)]",
               isOpen ? "translate-y-0" : "translate-y-full",
@@ -645,7 +642,7 @@ export const SourcesListComponent = forwardRef<HTMLDivElement, SourcesListProps>
         ) : (
           <div
             ref={containerRef}
-            className={classNames(
+            className={cn(
               "relative bg-dc-background rounded-xl shadow-2xl",
               "transform transition-all ease-[cubic-bezier(0.2,0,0,1)]",
               "opacity-100 scale-100 duration-180",

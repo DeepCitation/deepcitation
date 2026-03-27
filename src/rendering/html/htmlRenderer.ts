@@ -60,10 +60,7 @@ export function renderCitationsAsHtml(
       proofUrls[seg.citationKey] = proofUrl;
     }
 
-    const label =
-      seg.citation.type === "url"
-        ? sourceLabels[""] || seg.verification?.label || seg.citation.title
-        : sourceLabels[seg.citation.attachmentId || ""] || seg.verification?.label;
+    const label = resolveSourceLabel(seg, sourceLabels);
     const location = formatPageLocation(seg.citation, seg.verification, {
       showPageNumber: true,
       showLinePosition: false,
@@ -87,7 +84,7 @@ export function renderCitationsAsHtml(
         includeTooltips,
         theme,
         citationKey: seg.citationKey,
-        sourceLabel: label ?? undefined,
+        sourceLabel: label,
         location,
         quote: seg.citation.fullPhrase ?? undefined,
         imageUrl,

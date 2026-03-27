@@ -1,16 +1,18 @@
 /**
- * Citation Parser
+ * Citation Data Parser (low-level)
  *
- * Implements the "Split & Parse" strategy for the numeric citation pattern.
- * This parser extracts citations from LLM responses that use [N] markers in text
- * and include a JSON data block at the end.
+ * Low-level parser that extracts and normalizes citation data from raw LLM output.
+ * For the high-level entry point that auto-detects formats, see parseCitation.ts.
  *
- * Algorithm:
+ * Implements the "Split & Parse" strategy for the numeric citation pattern:
  * 1. Detection: Look for the start delimiter <<<CITATION_DATA>>>
  * 2. Splitting: Separate visible content from the citation data block
  * 3. Data Extraction: Extract the JSON string between delimiters
  * 4. Sanitization: Parse with JSON.parse, with fallback repair for common issues
  * 5. Hydration: Map the JSON objects to a usable format
+ *
+ * Also provides marker-only extraction (extractCitationsFromMarkers) for
+ * responses that use [N] markers without a JSON data block.
  */
 
 import {

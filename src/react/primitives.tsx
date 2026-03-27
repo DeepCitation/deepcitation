@@ -22,7 +22,7 @@ import { getCitationKey } from "../utils/citationKey.js";
 import { MISS_WAVY_UNDERLINE_STYLE, TAP_SLOP_PX } from "./constants.js";
 import { useTranslation } from "./i18n.js";
 import { CitationContext, type CitationContextValue, useCitationContext } from "./useCitationContext.js";
-import { classNames, generateCitationInstanceId } from "./utils.js";
+import { cn, generateCitationInstanceId } from "./utils.js";
 
 export interface CitationRootProps {
   citation: Citation;
@@ -63,7 +63,7 @@ export const CitationRoot = forwardRef<HTMLSpanElement, CitationRootProps & HTML
           ref={ref}
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
-          className={classNames("inline", className)}
+          className={cn("inline", className)}
           {...props}
         >
           {children}
@@ -189,7 +189,7 @@ export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>
       [onCitationClick, citation, citationKey],
     );
 
-    const statusClasses = classNames(
+    const statusClasses = cn(
       status.isVerified && !status.isPartialMatch && "text-dc-verified",
       status.isPartialMatch && "text-dc-partial",
       status.isMiss && "text-dc-destructive",
@@ -201,7 +201,7 @@ export const CitationTrigger = forwardRef<HTMLSpanElement, CitationTriggerProps>
         ref={ref}
         role="button"
         tabIndex={0}
-        className={classNames(
+        className={cn(
           "cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-blue-500 focus-visible:outline-offset-2 focus-visible:rounded-sm",
           statusClasses,
           className,
@@ -233,7 +233,7 @@ export interface CitationBracketProps extends HTMLAttributes<HTMLSpanElement> {
 export const CitationBracket = forwardRef<HTMLSpanElement, CitationBracketProps>(
   ({ children, className, open = "[", close = "]", ...props }, ref) => {
     return (
-      <span ref={ref} className={classNames("inline", className)} aria-hidden="true" {...props}>
+      <span ref={ref} className={cn("inline", className)} aria-hidden="true" {...props}>
         <span className="inline">{open}</span>
         <span className="inline">{children}</span>
         <span className="inline">{close}</span>
@@ -260,14 +260,14 @@ export const CitationNumber = forwardRef<HTMLSpanElement, CitationNumberProps>(
 
     if (status.isPending) {
       return (
-        <span ref={ref} className={classNames("font-medium opacity-60", className)} {...props}>
+        <span ref={ref} className={cn("font-medium opacity-60", className)} {...props}>
           {config.pendingContent}
         </span>
       );
     }
 
     return (
-      <span ref={ref} className={classNames("font-medium", className)} {...props}>
+      <span ref={ref} className={cn("font-medium", className)} {...props}>
         {displayNumber}
       </span>
     );
@@ -294,7 +294,7 @@ export const CitationAnchorText = forwardRef<HTMLSpanElement, CitationAnchorText
     if (!displayKeySpan) return null;
 
     return (
-      <span ref={ref} className={classNames("italic", className)} {...props}>
+      <span ref={ref} className={cn("italic", className)} {...props}>
         {displayKeySpan}
         {separator}
       </span>
@@ -343,7 +343,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
       return (
         <span
           ref={ref}
-          className={classNames(baseClasses, "text-amber-500 dark:text-amber-400", className)}
+          className={cn(baseClasses, "text-amber-500 dark:text-amber-400", className)}
           aria-label={t("indicator.partial")}
           {...props}
         >
@@ -356,7 +356,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
       return (
         <span
           ref={ref}
-          className={classNames(baseClasses, "text-dc-verified", className)}
+          className={cn(baseClasses, "text-dc-verified", className)}
           aria-label={t("indicator.verified")}
           {...props}
         >
@@ -369,7 +369,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
       return (
         <span
           ref={ref}
-          className={classNames(baseClasses, "text-dc-destructive", className)}
+          className={cn(baseClasses, "text-dc-destructive", className)}
           aria-label={t("indicator.notFound")}
           {...props}
         >
@@ -382,7 +382,7 @@ export const CitationIndicator = forwardRef<HTMLSpanElement, CitationIndicatorPr
       return (
         <span
           ref={ref}
-          className={classNames(baseClasses, "text-dc-subtle-foreground", className)}
+          className={cn(baseClasses, "text-dc-subtle-foreground", className)}
           aria-label={t("indicator.verifying")}
           {...props}
         >
@@ -428,7 +428,7 @@ export const CitationPhrase = forwardRef<HTMLSpanElement, CitationPhraseProps>(
     if (!displayPhrase) return null;
 
     return (
-      <span ref={ref} className={classNames("italic", className)} {...props}>
+      <span ref={ref} className={cn("italic", className)} {...props}>
         {displayPhrase}
       </span>
     );
@@ -455,7 +455,7 @@ export const CitationPage = forwardRef<HTMLSpanElement, CitationPageProps>(
     }
 
     return (
-      <span ref={ref} className={classNames("text-xs text-dc-subtle-foreground", className)} {...props}>
+      <span ref={ref} className={cn("text-xs text-dc-subtle-foreground", className)} {...props}>
         {prefix}
         {citation.pageNumber}
       </span>

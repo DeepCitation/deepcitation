@@ -26,6 +26,8 @@ export type {
   AttachmentResponse,
   CitationInput,
   ConvertedPdfDownloadPolicy,
+  ConvertFileInput,
+  ConvertFileResponse,
   DeepCitationConfig,
   DeepCitationLogger,
   DeleteAttachmentResponse,
@@ -35,13 +37,16 @@ export type {
   FileInput,
   GetAttachmentOptions,
   PrepareAttachmentsResult,
+  PrepareConvertedFileOptions,
   PreparedAttachment,
+  PrepareUrlOptions,
   UploadFileOptions,
   UploadFileResponse,
   UrlCacheInfo,
   UrlSource,
   VerifyCitationsOptions,
   VerifyCitationsResponse,
+  VerifyInput,
 } from "./client/index.js";
 
 // Markdown rendering (display helpers)
@@ -77,7 +82,10 @@ export {
   replaceCitationMarkers,
   stripCitations,
 } from "./parsing/citationParser.js";
-
+export {
+  cleanRepeatingLastSentence,
+  isGeminiGarbage,
+} from "./parsing/geminiSanitizer.js";
 export {
   getAllCitationsFromLlmOutput,
   getCitationStatus,
@@ -87,11 +95,6 @@ export {
 } from "./parsing/parseCitation.js";
 export type { ParsedCitationResult } from "./parsing/parseCitationResponse.js";
 export { parseCitationResponse } from "./parsing/parseCitationResponse.js";
-
-export {
-  cleanRepeatingLastSentence,
-  isGeminiGarbage,
-} from "./parsing/parseWorkAround.js";
 
 // Prompts
 export type {

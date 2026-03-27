@@ -5,6 +5,12 @@
  * to malicious input, causing catastrophic backtracking. This module provides safe
  * wrappers that validate input length before regex operations.
  *
+ * **Limitation**: Length validation reduces risk but does not eliminate ReDoS.
+ * A carefully crafted string shorter than MAX_REGEX_INPUT_LENGTH can still trigger
+ * exponential backtracking on a vulnerable pattern (e.g., `/(a+)+$/` against "aaa...!").
+ * For regexes applied to untrusted input, prefer linear-time patterns (no nested
+ * quantifiers) or use the Node.js `--regexp-time-limit` flag as an additional safeguard.
+ *
  * @module utils/regexSafety
  */
 

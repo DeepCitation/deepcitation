@@ -63,17 +63,9 @@ export function dim(text: string, useColor: boolean): string {
 }
 
 /**
- * Box-drawing characters for sources section.
+ * Box-drawing character for sources section horizontal rules.
  */
-export const BOX_CHARS = {
-  topLeft: "┌",
-  topRight: "┐",
-  bottomLeft: "└",
-  bottomRight: "┘",
-  horizontal: "─",
-  vertical: "│",
-  tee: "├",
-} as const;
+const BOX_HORIZONTAL = "─";
 
 /**
  * Render a horizontal rule with a title.
@@ -82,8 +74,8 @@ export function horizontalRule(title: string, width: number, useColor: boolean):
   const titleWithPad = ` ${title} `;
   const leftLen = 3;
   const rightLen = Math.max(1, width - leftLen - titleWithPad.length);
-  const left = BOX_CHARS.horizontal.repeat(leftLen);
-  const right = BOX_CHARS.horizontal.repeat(rightLen);
+  const left = BOX_HORIZONTAL.repeat(leftLen);
+  const right = BOX_HORIZONTAL.repeat(rightLen);
   const line = `${left}${titleWithPad}${right}`;
   return useColor ? bold(line, true) : line;
 }

@@ -705,9 +705,10 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       };
     }, [prefetchMode, prefetchEvidenceSrc, prefetchExpandedSrc]);
 
-    const displayText = useMemo(() => {
-      return getDisplayText(citation, resolvedContent, fallbackDisplay, displayLabel);
-    }, [citation, resolvedContent, fallbackDisplay, displayLabel]);
+    const displayText = useMemo(
+      () => getDisplayText(citation, resolvedContent, fallbackDisplay, displayLabel),
+      [citation, resolvedContent, fallbackDisplay, displayLabel],
+    );
 
     // Behavior context for custom handlers
     const getBehaviorContext = useCallback(
@@ -1234,11 +1235,6 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         // Miss state (show what was searched)
         isMiss);
 
-    // Shared trigger element props
-    // All variants use neutral hover/active colors (shadcn-inspired grey palette)
-    // Cursor is always pointer since click toggles popover/details
-    const cursorClass = "cursor-pointer";
-
     // Generate unique IDs for ARIA attributes
     const popoverId = `citation-popover-${citationInstanceId}`;
     const statusDescId = `citation-status-${citationInstanceId}`;
@@ -1254,7 +1250,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         "relative inline-flex items-baseline",
         "px-0.5 -mx-0.5 rounded-sm",
         "transition-colors duration-[80ms] active:scale-[0.98]",
-        cursorClass,
+        "cursor-pointer",
         // Improved touch target size on mobile (minimum 44px recommended)
         // Using py-1.5 for better touch accessibility without breaking layout
         isMobile && "py-1.5 touch-manipulation",

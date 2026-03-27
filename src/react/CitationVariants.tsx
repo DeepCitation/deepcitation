@@ -15,7 +15,7 @@ import { type TranslateFunction, useTranslation } from "./i18n.js";
 import { XIcon } from "./icons.js";
 import { StatusIndicatorWrapper } from "./StatusIndicatorWrapper.js";
 import type { BaseCitationProps, CitationEventHandlers, CitationVariant as CitationVariantType } from "./types.js";
-import { classNames, generateCitationInstanceId, getCitationDisplayText, getCitationNumber } from "./utils.js";
+import { cn, generateCitationInstanceId, getCitationDisplayText, getCitationNumber } from "./utils.js";
 
 const TWO_DOTS_THINKING_CONTENT = "..";
 
@@ -310,7 +310,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="chip"
-          className={classNames(
+          className={cn(
             "inline-flex items-center gap-0.5 px-1.5 py-0 rounded-full font-normal cursor-pointer transition-colors duration-120 text-[0.9em]",
             "border",
             chipClasses.background,
@@ -322,7 +322,7 @@ export const ChipCitation = forwardRef<HTMLSpanElement, ChipCitationProps>(
           aria-label={ariaLabel}
         >
           {showIcon && (icon || <span className="text-[0.9em]">📄</span>)}
-          <span className={classNames(chipClasses.text, isMiss && "opacity-70")}>{displayText}</span>
+          <span className={cn(chipClasses.text, isMiss && "opacity-70")}>{displayText}</span>
           <StatusIndicators
             status={status}
             pendingContent={pendingContent}
@@ -391,7 +391,7 @@ export const SuperscriptCitation = forwardRef<HTMLSpanElement, SuperscriptCitati
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="superscript"
-          className={classNames("cursor-pointer font-medium transition-colors hover:underline", statusClass, className)}
+          className={cn("cursor-pointer font-medium transition-colors hover:underline", statusClass, className)}
           style={SUPERSCRIPT_STYLE}
           {...events}
           aria-label={t("aria.citationNumber", { number: displayText })}
@@ -481,7 +481,7 @@ export const FootnoteCitation = forwardRef<HTMLSpanElement, FootnoteCitationProp
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="footnote"
-          className={classNames(
+          className={cn(
             "text-xs cursor-pointer font-normal transition-colors inline-flex items-center",
             statusClass,
             className,
@@ -569,7 +569,7 @@ export const BlockCitation = forwardRef<HTMLSpanElement, BlockCitationProps>(
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="block"
-          className={classNames(
+          className={cn(
             "inline-flex items-center justify-center h-[1.4em] min-w-[1.4em] px-[0.3em] mx-0.5",
             "font-mono text-xs font-medium rounded-dc-sm transition-all duration-120 border align-baseline select-none",
             "bg-dc-background text-dc-muted-foreground",
@@ -670,7 +670,7 @@ export const InlineCitation = forwardRef<HTMLSpanElement, InlineCitationProps>(
           data-citation-id={citationKey}
           data-citation-instance={citationInstanceId}
           data-variant="inline"
-          className={classNames(
+          className={cn(
             "cursor-pointer transition-colors hover:bg-dc-muted/50 inline-flex items-baseline",
             INLINE_UNDERLINE_CLASSES[underlineStyle],
             statusClass,

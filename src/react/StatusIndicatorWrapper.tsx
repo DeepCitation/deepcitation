@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { ERROR_COLOR_STYLE, INDICATOR_SIZE_STYLE } from "./constants.js";
+import { cn } from "./utils.js";
 
 /**
  * Props for StatusIndicatorWrapper component.
@@ -90,7 +91,7 @@ export const StatusIndicatorWrapper = ({
   dataIndicator,
 }: StatusIndicatorWrapperProps) => (
   <span
-    className={`ml-0.5 shrink-0 inline-flex items-center justify-center ${className}`.trim()}
+    className={cn("ml-0.5 shrink-0 inline-flex items-center justify-center", className)}
     style={{ ...INDICATOR_SIZE_STYLE, ...colorStyle }}
     aria-hidden="true"
     {...(dataIndicator && { "data-dc-indicator": dataIndicator })}

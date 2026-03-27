@@ -16,6 +16,7 @@ export {
   getBracketColor,
   getBracketWidth,
   type HighlightColor,
+  isStrategyOverride,
   OVERLAY_COLOR,
   OVERLAY_COLOR_HEX,
   OVERLAY_COLOR_LIGHT,

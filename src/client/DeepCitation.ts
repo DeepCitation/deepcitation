@@ -319,6 +319,19 @@ export class DeepCitation {
   }
 
   /**
+   * Evict the oldest entries from the verify cache until it is at or below `targetSize`.
+   * Shared by periodic cleanup and pre-insert eviction to avoid duplicated sort-and-delete logic.
+   */
+  private evictOldestEntries(targetSize: number): void {
+    if (this.verifyCache.size <= targetSize) return;
+    const entries = Array.from(this.verifyCache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp);
+    const toRemove = entries.slice(0, this.verifyCache.size - targetSize);
+    for (const [key] of toRemove) {
+      this.verifyCache.delete(key);
+    }
+  }
+
+  /**
    * Clean expired entries from the verify cache.
    * Only runs periodically to avoid performance overhead on every call.
    * Also enforces max cache size with LRU eviction to prevent memory leaks.
@@ -341,13 +354,7 @@ export class DeepCitation {
       }
 
       // LRU eviction: if still too large, remove oldest entries
-      if (this.verifyCache.size > this.MAX_CACHE_SIZE) {
-        const entries = Array.from(this.verifyCache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp);
-        const toRemove = entries.slice(0, this.verifyCache.size - this.MAX_CACHE_SIZE);
-        for (const [key] of toRemove) {
-          this.verifyCache.delete(key);
-        }
-      }
+      this.evictOldestEntries(this.MAX_CACHE_SIZE);
     } catch (err) {
       // Silently fail - do not break the main verification flow
       // Serialize error to avoid passing non-serializable objects to logger
@@ -819,16 +826,10 @@ export class DeepCitation {
       return (await response.json()) as VerifyCitationsResponse;
     })();
 
-    // Force cleanup if cache is at or approaching the limit to prevent memory leaks
-    // This ensures we never exceed MAX_CACHE_SIZE even under heavy concurrent load
+    // Force cleanup if cache is at or approaching the limit to prevent memory leaks.
+    // Evict to 90% capacity to avoid thrashing on every insert.
     if (this.verifyCache.size >= this.MAX_CACHE_SIZE) {
-      // Sort by timestamp and remove oldest entries to make room
-      const entries = Array.from(this.verifyCache.entries()).sort((a, b) => a[1].timestamp - b[1].timestamp);
-      // Remove at least 10% of entries to avoid thrashing
-      const toRemove = Math.max(1, Math.floor(this.MAX_CACHE_SIZE * 0.1));
-      for (let i = 0; i < toRemove && i < entries.length; i++) {
-        this.verifyCache.delete(entries[i][0]);
-      }
+      this.evictOldestEntries(Math.floor(this.MAX_CACHE_SIZE * 0.9));
     }
 
     // Cache the promise

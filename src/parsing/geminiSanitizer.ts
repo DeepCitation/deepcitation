@@ -1,4 +1,10 @@
-//flash and flash lite get super confused if we ask for a MD table and infinite loop
+/**
+ * Gemini Output Sanitizer
+ *
+ * Handles known Gemini model output pathologies:
+ * - Flash/Flash Lite produce single-character repetition when asked for MD tables
+ * - Models sometimes enter infinite loops repeating the last sentence
+ */
 import { validateRegexInput } from "../utils/regexSafety.js";
 
 const MIN_CONTENT_LENGTH_FOR_GEMINI_GARBAGE = 64;
