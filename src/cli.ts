@@ -354,37 +354,28 @@ function keygen(argv: string[]) {
 
 const BASE_URL = "https://deepcitation.com";
 
+function saveApiKey(key: string, source: string): void {
+  if (!key || !key.startsWith("sk-dc-") || key.length < 20) {
+    die(
+      `Invalid API key format${source ? ` (${source})` : ""}. Keys start with 'sk-dc-' and are at least 20 characters.`,
+      HELP,
+    );
+  }
+  writeCredentials({ version: 1, apiKey: key, createdAt: new Date().toISOString() });
+  console.log(`API key: ${maskKey(key)}`);
+  console.log(`Saved to ${CREDENTIALS_PATH}`);
+}
+
 async function login(argv: string[]) {
-  // Non-interactive login: deepcitation login --key sk-dc-...
   const keyIdx = argv.indexOf("--key");
   if (keyIdx !== -1) {
-    const key = argv[keyIdx + 1];
-    if (!key || !key.startsWith("sk-dc-") || key.length < 20) {
-      die("Invalid API key format. Keys start with 'sk-dc-' and are at least 20 characters.", HELP);
-    }
-    writeCredentials({
-      version: 1,
-      apiKey: key,
-      createdAt: new Date().toISOString(),
-    });
-    console.log(`API key: ${maskKey(key)}`);
-    console.log(`Saved to ${CREDENTIALS_PATH}`);
+    saveApiKey(argv[keyIdx + 1], "--key flag");
     return;
   }
 
-  // Also accept DEEPCITATION_API_KEY env var for headless login
   const envKey = process.env.DEEPCITATION_API_KEY;
   if (envKey) {
-    if (!envKey.startsWith("sk-dc-") || envKey.length < 20) {
-      die("DEEPCITATION_API_KEY has an invalid format. Keys start with 'sk-dc-' and are at least 20 characters.", HELP);
-    }
-    writeCredentials({
-      version: 1,
-      apiKey: envKey,
-      createdAt: new Date().toISOString(),
-    });
-    console.log(`Saved key from DEEPCITATION_API_KEY to ${CREDENTIALS_PATH}`);
-    console.log(`API key: ${maskKey(envKey)}`);
+    saveApiKey(envKey, "DEEPCITATION_API_KEY");
     return;
   }
 

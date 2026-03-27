@@ -67,18 +67,15 @@ import { stripCitations } from "deepcitation";
 const cleanText = stripCitations(llmResponse);
 ```
 
-### Recipe 2 — Keep [N] numbers, add references section
+### Recipe 2 — Keep [N] numbers, show clean text
 
-**"I want [1], [2] markers in text and a references section at the bottom"**
+**"I want [1], [2] markers in text with a clean display"**
 
 ```typescript
-import { extractVisibleText, renderCitationsAsMarkdown } from "deepcitation";
+import { extractVisibleText } from "deepcitation";
 
 // Numeric format: text already has [N] markers after stripping the data block
 const text = extractVisibleText(llmResponse);
-
-// Render [N] markers as bracket-style references with optional footnote section
-const { markdown, references } = renderCitationsAsMarkdown(llmResponse, { variant: "brackets" });
 ```
 
 ### Recipe 3 — Render React `<CitationComponent>` inline
@@ -723,13 +720,7 @@ See [`examples/nextjs-ai-sdk/`](./examples/nextjs-ai-sdk) and [`examples/agui-ch
 | Display Path | Function / Import | Use Case |
 |-------------|-------------------|----------|
 | **Numeric markers with indicators** | `replaceCitationMarkers(text, { verifications, showVerificationStatus: true })` | Non-React apps, `[N]` marker format |
-| **Rich Markdown** | `renderCitationsAsMarkdown(llmOutput, verifications)` | Markdown renderers |
-| **Slack** | `import { renderCitationsForSlack } from "deepcitation/slack"` | Slack bot output |
-| **GitHub** | `import { renderCitationsForGitHub } from "deepcitation/github"` | GitHub comments/PRs |
-| **HTML** | `import { renderCitationsAsHtml } from "deepcitation/html"` | Emails, embeds |
 | **Terminal** | `import { renderCitationsForTerminal } from "deepcitation/terminal"` | CLI tools |
-
-All renderers accept `(llmOutput, verifications, options?)` and return formatted strings.
 
 #### Numeric markers with verification (OpenAI example)
 

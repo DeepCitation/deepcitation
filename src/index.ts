@@ -5,7 +5,7 @@
  * for recipe-based guidance on which functions to use.
  *
  * - Core API: DeepCitation client, getAllCitationsFromLlmOutput, stripCitations, getCitationKey
- * - Display Helpers: replaceCitationMarkers, renderCitationsAsMarkdown, toMarkdown
+ * - Display Helpers: replaceCitationMarkers, extractVisibleText, parseCitationResponse
  * - Prompts: wrapCitationPrompt, wrapSystemCitationPrompt, format constants
  * - Advanced: groupCitationsBy*, field normalization, LLM workarounds
  *

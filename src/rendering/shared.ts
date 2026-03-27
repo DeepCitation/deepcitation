@@ -1,8 +1,8 @@
 /**
  * Shared utilities for citation rendering targets.
  *
- * Extracts the common segment-walk loop and source label resolution
- * used by the terminal renderer.
+ * Provides the segment-walk loop and source label resolution
+ * used by prepareCitations and the terminal renderer.
  */
 
 import { getCitationStatus } from "../parsing/parseCitation.js";
