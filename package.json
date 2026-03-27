@@ -62,7 +62,7 @@
     "build": "rimraf lib && npm run build:cdn && tsup && npm run build:css",
     "build:css": "tailwindcss -i ./src/styles.css -o ./lib/styles.css --minify",
     "build:watch": "tsup --watch",
-    "build:tsc": "rm -rf lib && bun ./node_modules/typescript/bin/tsc",
+    "build:tsc": "rimraf lib && bun ./node_modules/typescript/bin/tsc",
     "test": "bun test ./src/__tests__/*.test.ts ./src/__tests__/*.test.tsx",
     "test:jest": "jest",
     "test:watch": "jest --watch",

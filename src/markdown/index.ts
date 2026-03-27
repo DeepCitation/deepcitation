@@ -1,23 +1,5 @@
 /**
- * Markdown output module for DeepCitation.
- *
- * Converts LLM responses with numeric citation markers into clean, readable markdown
- * with verification status indicators.
- *
- * @example Basic usage
- * ```typescript
- * import { toMarkdown, renderCitationsAsMarkdown } from "deepcitation/markdown";
- *
- * // Simple string output
- * const md = toMarkdown(llmOutput, { verifications, variant: "brackets" });
- *
- * // Structured output with metadata
- * const { markdown, references, citations } = renderCitationsAsMarkdown(llmOutput, {
- *   verifications,
- *   variant: "footnote",
- *   includeReferences: true,
- * });
- * ```
+ * Shared citation indicator and formatting utilities.
  *
  * @packageDocumentation
  */
@@ -37,6 +19,7 @@ export type {
   IndicatorStyle,
   LinePosition,
   MarkdownVariant,
+  RenderMarkdownOptions,
 } from "./types.js";
 
 // Constants
