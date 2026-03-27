@@ -171,7 +171,6 @@ npm run test:ct -- --grep "visual snapshot"
 
 - [Full Documentation](https://docs.deepcitation.com)
 - [Examples](./examples) -- Basic verification, LangChain RAG chat, Next.js chat app, URL citations
-- [Claude Code Skill](./docs/claude-code-skill.md) -- `/verify` skill setup and usage
 - [Integration Guide](./INTEGRATION.md) -- For AI coding assistants
 - [Error Handling Guide](./docs/error-handling.md) -- Production error patterns
 - [Styling Guide](./docs/styling.md) -- CSS custom properties and theming
