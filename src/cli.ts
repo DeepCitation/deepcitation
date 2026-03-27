@@ -27,6 +27,7 @@ Commands:
   whoami    Show the currently logged-in user
   env       Print export DEEPCITATION_API_KEY=... for shell eval
   prepare   Prepare a file or URL for citation verification
+  verify    Verify citations against prepared attachments
   report    Generate a branded DeepCitation HTML verification report
   inject    Inject DeepCitation verification into an existing HTML file
   keygen    Compute deterministic citation keys from a citations JSON file
@@ -165,6 +166,73 @@ async function prepare(argv: string[]) {
   if (result.processingTimeMs) {
     console.error(`  Time: ${(result.processingTimeMs / 1000).toFixed(1)}s`);
   }
+  console.log(outPath);
+}
+
+// ── verify ──────────────────────────────────────────────────────────
+
+const VERIFY_HELP = `Usage: deepcitation verify [options]
+
+Verify citations against prepared attachments. Groups citations by attachmentId,
+sends one request per group, and merges all responses into a single output file.
+
+Options:
+  --citations <file>        Path to citations JSON (keyed or raw)
+  --out <file>              Output path (default: .deepcitation/verify-response.json)
+  --image-format <format>   Evidence image format: avif, png, jpeg, webp (default: avif)
+  -h, --help                Show this help message
+
+Examples:
+  deepcitation verify --citations .deepcitation/citations-keyed.json
+  deepcitation verify --citations .deepcitation/citations-keyed.json --out .deepcitation/verify-response.json
+`;
+
+async function verify(argv: string[]) {
+  const args = parseArgs(argv, VERIFY_HELP);
+
+  const citationsPath = args.citations;
+  if (!citationsPath) die("--citations is required", VERIFY_HELP);
+
+  const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
+  if (!apiKey) die("DEEPCITATION_API_KEY not set. Run \"deepcitation login\" or set the env var.", VERIFY_HELP);
+
+  const dc = new DeepCitation({ apiKey });
+  const imageFormat = args["image-format"] ?? "avif";
+
+  const citations = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<
+    string,
+    Record<string, unknown>
+  >;
+
+  // Group citations by attachmentId
+  const groups = new Map<string, Record<string, Record<string, unknown>>>();
+  for (const [key, citation] of Object.entries(citations)) {
+    const aid = (citation.attachmentId as string) ?? "unknown";
+    if (!groups.has(aid)) groups.set(aid, {});
+    groups.get(aid)![key] = citation;
+  }
+
+  console.error(`Verifying ${Object.keys(citations).length} citations across ${groups.size} attachment(s)...`);
+
+  // Verify each group and merge
+  const merged: Record<string, unknown> = {};
+  for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
+    console.error(`  ${attachmentId}: ${Object.keys(groupCitations).length} citations...`);
+    const result = await dc.verifyAttachment(
+      attachmentId,
+      groupCitations as unknown as Parameters<typeof dc.verifyAttachment>[1],
+      { outputImageFormat: imageFormat as "avif" | "png" | "jpeg" | "webp" },
+    );
+    Object.assign(merged, result.verifications);
+  }
+
+  const output = { verifications: merged };
+  const outPath = resolve(args.out ?? ".deepcitation/verify-response.json");
+  writeFileSync(outPath, JSON.stringify(output, null, 2));
+
+  const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
+  const total = Object.keys(merged).length;
+  console.error(`  Done: ${found}/${total} found`);
   console.log(outPath);
 }
 
@@ -410,6 +478,9 @@ if (!command || command === "-h" || command === "--help") {
 switch (command) {
   case "prepare":
     prepare(rest);
+    break;
+  case "verify":
+    verify(rest);
     break;
   case "report":
     report(rest);

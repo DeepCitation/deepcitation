@@ -298,78 +298,17 @@ ENDOFOUTPUT
 
 ### Step 3: Verify Claims → save JSON
 
-Extract citations and call the verify endpoint using the `attachmentId` from Step 1.
+The CLI handles grouping by `attachmentId` and merging responses automatically:
 
 ```bash
-# Build verify-request.json using the attachmentId from Step 1
-cat > .deepcitation/verify-request.json << 'ENDOFJSON'
-{
-  "attachmentId": "ATTACHMENT_ID_FROM_STEP_1",
-  "citations": {
-    "citation-key-1": {
-      "fullPhrase": "exact verbatim quote",
-      "anchorText": "key words",
-      "pageNumber": 1,
-      "lineIds": [1],
-      "attachmentId": "ATTACHMENT_ID_FROM_STEP_1"
-    }
-  },
-  "outputImageFormat": "avif"
-}
-ENDOFJSON
-
-# Call verify
-curl -s -X POST https://api.deepcitation.com/verifyCitations \
-  -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d @.deepcitation/verify-request.json \
-  > .deepcitation/verify-response.json
+npx -y deepcitation verify --citations .deepcitation/citations-keyed.json
 ```
 
-**Save** `.deepcitation/verify-response.json` — contains verification statuses and evidence images.
-
-**Multi-attachment verification**: The API verifies against one attachment at a time. Group citations from `citations-keyed.json` by `attachmentId`, send one request per group, then merge all responses:
-
-```bash
-# For each attachmentId, build a request with only that attachment's citations
-# Then merge all responses:
-python3 -c "
-import json, glob, sys
-merged = {'verifications': {}}
-for f in sorted(glob.glob('.deepcitation/verify-resp-*.json')):
-    try:
-        data = json.loads(open(f).read())
-    except json.JSONDecodeError as e:
-        print(f'WARNING: {f} is malformed JSON — skipping ({e})', file=sys.stderr)
-        continue
-    if 'verifications' not in data:
-        print(f'WARNING: {f} has no verifications key — skipping (got keys: {list(data.keys())})', file=sys.stderr)
-        continue
-    merged['verifications'].update(data['verifications'])
-json.dump(merged, open('.deepcitation/verify-response.json', 'w'), indent=2)
-print(f'Merged {len(merged[\"verifications\"])} verifications')
-"
-```
+Output is saved to `.deepcitation/verify-response.json` by default. Contains verification statuses and evidence images.
 
 Also save the extracted citations as `.deepcitation/citations.json` — the `CitationRecord` (object keyed by citation key, NOT an array).
 
-### Step 4: Generate Branded HTML Report
-
-Use the saved JSON artifacts to generate the report. All CLI commands use `npx -y deepcitation` — no pre-install needed.
-
-**Option A: Generate a new branded report** (from LLM text output)
-
-```bash
-npx -y deepcitation report \
-  --llm-output .deepcitation/llm-output.txt \
-  --verify-response .deepcitation/verify-response.json \
-  --title "Your Report Title" \
-  --source-labels '{"ATTACHMENT_ID": "Source Name"}' \
-  --theme auto \
-  --out .deepcitation/
-```
-
-**Option B: Inject into an existing HTML file** (dashboard, report, etc.)
+### Step 4: Inject Verification into HTML
 
 Use this when you followed Path B in Step 2 — you annotated the HTML with `data-citation-key` attributes and built a key-map.
 
@@ -448,20 +387,18 @@ ls -t .deepcitation/*.html | head -1 | xargs xdg-open  # Linux
 
 All artifacts are saved in `.deepcitation/` for auditability and re-runs:
 
+Use `{topic}-{timestamp}` naming for all artifacts so re-runs (different chats, different files) don't clobber each other:
+
 | File | Contents |
 |------|----------|
-| `prepare-{source}.json` | Upload response with `attachmentId` and `deepTextPromptPortion` |
-| `llm-output.txt` | Full LLM response including `<<<CITATION_DATA>>>` block |
-| `citations.json` | Extracted `CitationRecord` with human-readable keys |
-| `citations-keyed.json` | Re-keyed citations with hashed keys (from `keygen`) |
-| `key-map.json` | Human-readable key → hashed key mapping |
-| `annotated.html` | HTML with `data-citation-key` attributes (before injection) |
-| `verify-request.json` | Request body sent to `/verifyCitations` |
-| `verify-response.json` | Verification results with statuses and evidence |
-| `report-{topic}-{timestamp}.html` | Branded interactive HTML report |
-| `dashboard-verified.html` | Injected HTML with CDN runtime (Path B output) |
-
-Reports use `{topic}-{timestamp}` naming so re-runs don't clobber previous results.
+| `prepare-{source}-{timestamp}.json` | Upload response with `attachmentId` and `deepTextPromptPortion` |
+| `llm-output-{timestamp}.txt` | Full LLM response including `<<<CITATION_DATA>>>` block |
+| `citations-{timestamp}.json` | Extracted `CitationRecord` with human-readable keys |
+| `citations-keyed-{timestamp}.json` | Re-keyed citations with hashed keys (from `keygen`) |
+| `key-map-{timestamp}.json` | Human-readable key → hashed key mapping |
+| `annotated-{timestamp}.html` | HTML with `data-citation-key` attributes (before injection) |
+| `verify-response-{timestamp}.json` | Verification results with statuses and evidence |
+| `injected-{timestamp}.html` | Injected HTML with CDN runtime (Path B output) |
 
 ## Important Rules
 
@@ -487,7 +424,6 @@ Reports use `{topic}-{timestamp}` naming so re-runs don't clobber previous resul
 - Citation format spec (read at runtime): `docs/prompts/citation-format.md`
 - SDK prompt implementation: `src/prompts/citationPrompts.ts`
 - Citation parser: https://github.com/DeepCitation/deepcitation/blob/main/src/parsing/parseCitation.ts
-- Branded report: https://github.com/DeepCitation/deepcitation/blob/main/src/vanilla/renderBrandedReport.ts
 - API docs: https://deepcitation.com/docs
 
 ARGUMENTS: $ARGUMENTS
