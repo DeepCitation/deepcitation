@@ -21,6 +21,7 @@ import type {
   PrepareUrlOptions,
   UploadFileOptions,
   UploadFileResponse,
+  VerifyBatchOptions,
   VerifyCitationsOptions,
   VerifyCitationsResponse,
   VerifyInput,
@@ -841,16 +842,125 @@ export class DeepCitation {
   }
 
   /**
+   * Verify citations across multiple attachments in a single batch request.
+   *
+   * Instead of making one API call per attachment, batch mode sends all citations
+   * in a single request. The API groups internally, verifies each attachment in
+   * parallel, and returns a single merged response.
+   *
+   * Each citation must include an `attachmentId` field. Citations without an
+   * `attachmentId` are returned with `status: "skipped"`.
+   *
+   * @param citations - Record of citations keyed by citation key, each with its own attachmentId
+   * @param options - Optional verification options (image format, endUserId)
+   * @returns Verification results with status and verification artifacts
+   *
+   * @example
+   * ```typescript
+   * const result = await deepcitation.verifyBatch({
+   *   key1: { type: "document", fullPhrase: "HbA1c 5.5%", attachmentId: "abc123", pageNumber: 2 },
+   *   key2: { type: "document", fullPhrase: "disc protrusion", attachmentId: "def456", pageNumber: 1 },
+   * });
+   *
+   * for (const [key, verification] of Object.entries(result.verifications)) {
+   *   console.log(key, verification.status);
+   * }
+   * ```
+   */
+  async verifyBatch(
+    citations: Record<string, Citation>,
+    options?: VerifyBatchOptions,
+  ): Promise<VerifyCitationsResponse> {
+    const citationEntries = Object.entries(citations);
+    const totalCount = citationEntries.length;
+
+    if (totalCount === 0) {
+      return { verifications: {} };
+    }
+
+    if (totalCount > 500) {
+      throw new ValidationError(`Batch request contains ${totalCount} citations, max is 500`);
+    }
+
+    // Separate citations with and without attachmentId
+    const batchCitations: Record<string, Citation> = {};
+    const skippedKeys: string[] = [];
+
+    for (const [key, citation] of citationEntries) {
+      if (citation.attachmentId) {
+        batchCitations[key] = citation;
+      } else {
+        skippedKeys.push(key);
+      }
+    }
+
+    // Validate max distinct attachments
+    const distinctAttachments = new Set(Object.values(batchCitations).map(c => c.attachmentId));
+    if (distinctAttachments.size > 50) {
+      throw new ValidationError(`Batch request references ${distinctAttachments.size} distinct attachments, max is 50`);
+    }
+
+    if (skippedKeys.length > 0) {
+      this.logger.warn?.(`${skippedKeys.length} citation(s) skipped in batch: missing attachmentId`, {
+        skippedCount: skippedKeys.length,
+      });
+    }
+
+    const resolvedEndUserId = this.resolveEndUserId(options?.endUserId);
+    const outputImageFormat = options?.outputImageFormat || "avif";
+
+    this.logger.info?.("Verifying citations (batch)", {
+      citationCount: Object.keys(batchCitations).length,
+      attachmentCount: distinctAttachments.size,
+    });
+
+    // Build the result, starting with any skipped citations
+    const allVerifications: VerifyCitationsResponse["verifications"] = {};
+    for (const key of skippedKeys) {
+      allVerifications[key] = { status: "skipped" };
+    }
+
+    // If all were skipped, return early
+    if (Object.keys(batchCitations).length === 0) {
+      return { verifications: allVerifications };
+    }
+
+    const response = await this._fetch(`${this.apiUrl}/verifyCitations`, {
+      method: "POST",
+      headers: { ...this.baseHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        data: {
+          mode: "batch",
+          citations: batchCitations,
+          outputImageFormat,
+          endUserId: resolvedEndUserId,
+        },
+      }),
+    });
+    this.checkLatestVersion(response);
+
+    if (!response.ok) {
+      this.logger.error?.("Batch verification failed", { status: response.status });
+      throw await createApiError(response, "Batch verification");
+    }
+
+    const result = (await response.json()) as VerifyCitationsResponse;
+    Object.assign(allVerifications, result.verifications);
+
+    return { verifications: allVerifications };
+  }
+
+  /**
    * Parse and verify all citations from LLM output.
    *
    * This is the recommended method for citation verification. It automatically:
    * 1. Parses citations from LLM output (no raw content sent to our servers)
    * 2. Groups citations by attachment ID
-   * 3. Verifies each attachment in parallel
+   * 3. Sends a single batch verification request for all attachments
    *
    * For privacy-conscious users: we only receive the parsed citation metadata,
    * not your raw LLM output. This method is a convenience wrapper that parses
-   * locally and makes per-attachment verification calls.
+   * locally and sends one batch request.
    *
    * @param input - Object containing llmOutput and optional outputImageFormat
    * @param citations - Optional pre-parsed citations (skips parsing if provided)
@@ -882,48 +992,8 @@ export class DeepCitation {
 
     this.logger.info?.("Verifying LLM output", { citationCount: totalCount });
 
-    // Group citations by attachmentId
-    const citationsByAttachment = new Map<string, Record<string, Citation>>();
-    for (const [key, citation] of Object.entries(citations)) {
-      const attachmentId = (citation.type !== "url" ? citation.attachmentId : undefined) || "";
-      if (!citationsByAttachment.has(attachmentId)) {
-        citationsByAttachment.set(attachmentId, {});
-      }
-      const attachmentCitations = citationsByAttachment.get(attachmentId);
-      if (attachmentCitations) {
-        attachmentCitations[key] = citation;
-      }
-    }
-
-    const verificationPromises: Promise<VerifyCitationsResponse>[] = [];
-    const skippedCitations: Record<string, Citation> = {};
-
-    for (const [attachmentId, fileCitations] of citationsByAttachment) {
-      if (attachmentId) {
-        verificationPromises.push(
-          this.verifyAttachment(attachmentId, fileCitations, {
-            outputImageFormat,
-            endUserId,
-          }),
-        );
-      } else {
-        Object.assign(skippedCitations, fileCitations);
-        const skippedCount = Object.keys(fileCitations).length;
-        this.logger.warn?.(`${skippedCount} citation(s) skipped: missing attachmentId`, { skippedCount });
-      }
-    }
-
-    const results = await Promise.all(verificationPromises);
-    const allVerifications: VerifyCitationsResponse["verifications"] = {};
-    for (const result of results) {
-      Object.assign(allVerifications, result.verifications);
-    }
-
-    for (const key of Object.keys(skippedCitations)) {
-      allVerifications[key] = { status: "skipped" };
-    }
-
-    return { verifications: allVerifications };
+    // Use batch mode: send all citations in a single request
+    return this.verifyBatch(citations, { outputImageFormat, endUserId });
   }
 
   /**

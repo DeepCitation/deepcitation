@@ -536,6 +536,191 @@ describe("DeepCitation Client", () => {
     });
   });
 
+  describe("verifyBatch", () => {
+    it("sends batch request with mode:batch and per-citation attachmentId", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verifications: {
+            key1: { status: "found" },
+            key2: { status: "partial_text_found" },
+          },
+        }),
+      } as Response);
+
+      const result = await client.verifyBatch({
+        key1: {
+          type: "document",
+          fullPhrase: "HbA1c 5.5%",
+          anchorText: "5.5",
+          pageNumber: 2,
+          attachmentId: "abc123",
+        },
+        key2: {
+          type: "document",
+          fullPhrase: "disc protrusion",
+          anchorText: "disc protrusion",
+          pageNumber: 1,
+          attachmentId: "def456",
+        },
+      });
+
+      expect(result.verifications.key1.status).toBe("found");
+      expect(result.verifications.key2.status).toBe("partial_text_found");
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.data.mode).toBe("batch");
+      expect(requestBody.data.citations.key1.attachmentId).toBe("abc123");
+      expect(requestBody.data.citations.key2.attachmentId).toBe("def456");
+    });
+
+    it("returns empty verifications for empty citations", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+      const result = await client.verifyBatch({});
+
+      expect(result.verifications).toEqual({});
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("skips citations without attachmentId", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verifications: {
+            key1: { status: "found" },
+          },
+        }),
+      } as Response);
+
+      const result = await client.verifyBatch({
+        key1: {
+          type: "document",
+          fullPhrase: "test phrase",
+          attachmentId: "abc123",
+          pageNumber: 1,
+        },
+        key2: {
+          type: "document",
+          fullPhrase: "no attachment",
+          pageNumber: 1,
+        },
+      });
+
+      expect(result.verifications.key1.status).toBe("found");
+      expect(result.verifications.key2.status).toBe("skipped");
+
+      // Only key1 should be sent to the API
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.data.citations.key1).toBeDefined();
+      expect(requestBody.data.citations.key2).toBeUndefined();
+    });
+
+    it("returns all skipped when no citations have attachmentId", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+      const result = await client.verifyBatch({
+        key1: { type: "document", fullPhrase: "test", pageNumber: 1 },
+      });
+
+      expect(result.verifications.key1.status).toBe("skipped");
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("throws ValidationError when citations exceed 500", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+      const citations: Record<string, { type: "document"; fullPhrase: string; attachmentId: string }> = {};
+      for (let i = 0; i < 501; i++) {
+        citations[`key${i}`] = { type: "document", fullPhrase: `phrase ${i}`, attachmentId: "abc" };
+      }
+
+      await expect(client.verifyBatch(citations)).rejects.toThrow("max is 500");
+    });
+
+    it("throws ValidationError when distinct attachments exceed 50", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+      const citations: Record<string, { type: "document"; fullPhrase: string; attachmentId: string }> = {};
+      for (let i = 0; i < 51; i++) {
+        citations[`key${i}`] = { type: "document", fullPhrase: `phrase ${i}`, attachmentId: `att_${i}` };
+      }
+
+      await expect(client.verifyBatch(citations)).rejects.toThrow("max is 50");
+    });
+
+    it("handles API error in batch mode", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: { message: "Internal server error" } }),
+      } as Response);
+
+      await expect(
+        client.verifyBatch({
+          key1: { type: "document", fullPhrase: "test", attachmentId: "abc123", pageNumber: 1 },
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("includes endUserId and outputImageFormat in batch request", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ verifications: { key1: { status: "found" } } }),
+      } as Response);
+
+      await client.verifyBatch(
+        { key1: { type: "document", fullPhrase: "test", attachmentId: "abc123", pageNumber: 1 } },
+        { outputImageFormat: "png", endUserId: "user-batch-1" },
+      );
+
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.data.outputImageFormat).toBe("png");
+      expect(requestBody.data.endUserId).toBe("user-batch-1");
+    });
+  });
+
+  describe("verify uses batch mode", () => {
+    it("sends a single batch request instead of per-attachment calls", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verifications: {
+            citation_key_1: { status: "found" },
+          },
+        }),
+      } as Response);
+
+      const llmOutput = makeNumericResponse("Test [1].", [
+        {
+          id: 1,
+          attachment_id: "file_123",
+          full_phrase: "Test content",
+          anchor_text: "Test",
+          page_id: "1_0",
+          line_ids: [1],
+        },
+      ]);
+
+      await client.verify({ llmOutput });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(requestBody.data.mode).toBe("batch");
+    });
+  });
+
   describe("prepareAttachments with concurrency limits", () => {
     it("uploads files with concurrency limit", async () => {
       const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });

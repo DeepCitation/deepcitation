@@ -29,6 +29,7 @@ export type {
   UploadFileResponse,
   UrlCacheInfo,
   UrlSource,
+  VerifyBatchOptions,
   VerifyCitationsOptions,
   VerifyCitationsResponse,
   VerifyInput,

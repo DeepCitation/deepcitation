@@ -9,6 +9,7 @@ export type { DeepTextItem, ScreenBox } from "./boxes.js";
 // Citation core types
 export type {
   AudioVideoCitation,
+  BatchVerifyCitationRequest,
   Citation,
   CitationRecord,
   CitationStatus,

@@ -253,6 +253,16 @@ export interface VerifyCitationsOptions {
 }
 
 /**
+ * Options for batch citation verification across multiple attachments.
+ */
+export interface VerifyBatchOptions {
+  /** Output image format for verification screenshots */
+  outputImageFormat?: ImageFormat;
+  /** Developer's end-user identifier for usage attribution. Overrides the instance-level endUserId if set. */
+  endUserId?: string;
+}
+
+/**
  * Simplified citation input for verification
  */
 export type CitationInput = Citation | Record<string, Citation>;

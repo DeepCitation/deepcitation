@@ -40,6 +40,7 @@ export type {
   UploadFileResponse,
   UrlCacheInfo,
   UrlSource,
+  VerifyBatchOptions,
   VerifyCitationsOptions,
   VerifyCitationsResponse,
 } from "./client/index.js";

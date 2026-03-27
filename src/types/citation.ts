@@ -30,6 +30,20 @@ export interface VerifyCitationRequest {
 }
 
 /**
+ * Batch verification request — citations span multiple attachments.
+ * Each citation carries its own `attachmentId`.
+ */
+export interface BatchVerifyCitationRequest {
+  /** Must be "batch" to enable batch mode. */
+  mode: "batch";
+  /** Citations keyed by citationKey. Each citation must include an `attachmentId` field. */
+  citations: CitationRecord;
+  outputImageFormat?: ImageFormat;
+  /** Developer's end-user identifier for usage attribution */
+  endUserId?: string;
+}
+
+/**
  * Citation type discriminator.
  * - `"document"`: PDF or uploaded document citation (uses attachmentId, pageNumber, lineIds)
  * - `"url"`: URL/web citation (uses url, domain, title, etc.)
