@@ -5,6 +5,9 @@
  * The LLM uses lightweight markers (e.g., [1], [2]) in the text and outputs
  * a structured JSON block at the end of the response.
  *
+ * Canonical format spec: docs/prompts/citation-format.md
+ * (shared with the /verify skill — keep in sync)
+ *
  * Benefits:
  * - **Robustness**: JSON.parse handles escaping naturally, avoiding quote-escaping issues
  * - **Streaming Latency**: No mid-sentence pausing for hidden metadata generation

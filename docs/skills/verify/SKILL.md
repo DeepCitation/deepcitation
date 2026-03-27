@@ -17,6 +17,11 @@ Verify claims against source documents using the DeepCitation 2-step API, saving
   If that also fails (no saved credentials), tell the user to run `npx -y deepcitation login` first, then retry.
 - Source files (PDF, DOCX, images, etc.) must be accessible on disk or via URL
 
+## Key Rules (repeated at end for reference)
+
+- **`page_id` and `line_ids` MUST come from the `deepTextPromptPortion`** — use `<page_number_N_index_I>` tags for page_id and `<line id="N">` tags for line_ids. These are **sparse** (not every line is tagged). Always read the `deepTextPromptPortion` from Step 1 as context. See Step 2B-3 for details.
+- **Coverage audit**: After generating citations, spawn a subagent to audit the report/chat and confirm all facts, sources, names, dates, and values have deepcitations. The subagent should flag any uncited claims. Do not rely on absolute count thresholds — coverage depends on the document's content density.
+
 ## Workflow
 
 ### Step 0: Analyze Input & Determine What to Verify
@@ -124,7 +129,7 @@ If the HTML has 15 source file links, prepare 15 files. If some are duplicates (
 - It **restates or summarizes** content from a source document
 - A human would need to **open a PDF to verify it**
 
-**Be exhaustive.** The whole point is that the user doesn't have to manually check anything. Every uncited claim is something the user still has to verify themselves. When in doubt, cite it. The API handles the verification — overciting costs nothing, underciting defeats the purpose.
+**Be exhaustive.** The whole point is that the user doesn't have to manually check anything. Every uncited claim is something the user still has to verify themselves. When in doubt, cite it. The API handles the verification — overciting costs nothing, underciting defeats the purpose. After citation generation, spawn a subagent to audit coverage: walk every section and confirm all facts, sources, names, dates, and values have deepcitations.
 
 Think like a lawyer: every claim, every entity, every date, every location, every value, every name. If it asserts a fact about the world, it needs a source.
 
@@ -186,14 +191,14 @@ npx -y deepcitation keygen \
 
 This prints the mapping (e.g. `cite-hba1c → bfd6ec10bd261161`) to stderr and writes the re-keyed citations to `citations-keyed.json`. Use `citations-keyed.json` for the verify request in Step 3.
 
-**2B-5. Annotate the HTML with hashed keys.** For each claim, add `data-citation-key` with the **hashed key** (not the human-readable label). The hashed key must match what the verify API returns.
+**2B-5. Annotate the HTML with hashed keys.** For each claim, add `data-verification` with the **hashed key** (not the human-readable label). The hashed key must match what the verify API returns.
 
 ```html
 <!-- Before -->
 <div class="stat-value">5.5%</div>
 
 <!-- After -->
-<div class="stat-value" data-citation-key="bfd6ec10bd261161">5.5%</div>
+<div class="stat-value" data-verification="bfd6ec10bd261161">5.5%</div>
 ```
 
 Write the annotated HTML to `.deepcitation/annotated.html`.
@@ -202,20 +207,19 @@ Write the annotated HTML to `.deepcitation/annotated.html`.
 
 `anchorText` and `fullPhrase` are always **verbatim from the source document** (the `deepTextPromptPortion`). The verification API searches the source for these exact strings. The indicator (✓/⚠/✗) reflects whether **that exact source text** was found.
 
-If the HTML displays a different value than what's in the source, there are exactly two correct outcomes:
+If the HTML displays a different value than what's in the source, **always cite it using source text as anchorText.** The verification API will search for that text, and the popover component shows the user:
+- The verification status (✓/⚠/✗)
+- The context surrounding where the text was (or wasn't) found in the source
+- Variant matches the API attempted
 
-1. **The citation uses source text as anchorText.** The popover component detects the mismatch between the source's anchorText and the HTML's displayed text, and shows a `displayLabel` annotation ("displayed as X") so the user understands the discrepancy. The indicator is trustworthy — it reflects what the source actually says.
-
-2. **Don't cite it.** If the displayed value can't be traced to any source document, it shouldn't get an indicator at all. An unverified claim is honest. A ✓ next to a value verified against a *different* value is a lie.
+This means the user can investigate discrepancies themselves. A ⚠ or ✗ next to a claim is more useful than no indicator at all — it flags exactly which claims need human review.
 
 **The skill must NEVER:**
-- Set `anchorText` to the HTML's displayed text to force a match — that's fabricating evidence
-- Add interpretive text, labels, or inline annotations near `data-cite` elements — the indicator is the SOLE visual signal and must not compete with skill-generated annotations
+- Set `anchorText` to the HTML's displayed text to force a match — that's fabricating evidence. Text near a `data-verification` element must come from either `anchorText` or `displayLabel`.
+- Add interpretive text, labels, or inline annotations near `data-verification` elements — the indicator is the SOLE visual signal and must not compete with skill-generated annotations
 - Assume a value in the HTML matches the source without checking the `deepTextPromptPortion`
 
-**Example:** The HTML displays "PHN 305005112". The source document contains "Mã BN/ID: 260006301". These are different identifiers — 305005112 is a provincial health number, 260006301 is a hospital patient ID. The skill must NOT cite "305005112" using the source text for "260006301". Either find "305005112" in a source document, or leave it uncited.
-
-**2B-6. Choose where to place `data-citation-key`.** The attribute should go on the most specific element containing the claim. Placement rules:
+**2B-6. Choose where to place `data-verification`.** The attribute should go on the most specific element containing the claim. Placement rules:
 
 - **Single value** (e.g. `<span class="stat-value">5.5%</span>`) → put it directly on the value element
 - **Value + label pair** (e.g. `HbA1c: 5.5%`) → put it on the value element, not the label
@@ -253,39 +257,23 @@ The drawer shows a scrollable list of all citations with their verification stat
 
 #### Path C: Generate new cited response from scratch
 
-You ARE the LLM. Use the `deepTextPromptPortion` from Step 1 as context and follow the citation prompt pattern from the open-source prompts:
-https://github.com/DeepCitation/deepcitation/blob/main/src/prompts/citationPrompts.ts
+You ARE the LLM. Read the canonical citation format spec:
+
+```bash
+cat docs/prompts/citation-format.md
+```
+
+This is the single source of truth for field rules, format, and examples.
 
 1. Read the `deepTextPromptPortion` from the saved prepare JSON
-2. Wrap your system and user prompts with DeepCitation's citation instructions:
-   - Add the citation format instructions to your system prompt
-   - Include the `deepTextPromptPortion` in the user prompt as source context
+2. Read `docs/prompts/citation-format.md` for the citation format specification
 3. Generate your response with:
-   - `[N]` markers after each claim sourced from the documents
-   - A `<<<CITATION_DATA>>>` block at the end with structured citation metadata
+   - `[N]` markers after each claim sourced from the documents — **every claim, value, or fact from attachments gets a sequential integer marker like [1], [2], [3] at the end of the claim. Each distinct piece of information needs its own unique marker number.**
+   - A `<<<CITATION_DATA>>>` block at the end with structured citation metadata grouped by `attachmentId`
 
 **Think out loud** for each citation — reason about which document, page, and line supports the claim before placing the marker.
 
-The citation data block format (group by `attachmentId` from Step 1).
-
 **CRITICAL**: `page_id` and `line_ids` MUST come from the `deepTextPromptPortion` — use the `<page_number_N_index_I>` tags for page_id, and the `<line id="N">` tags for line_ids. These are **sparse** (not every line is tagged). See Step 2B-3 for details.
-
-```
-<<<CITATION_DATA>>>
-{
-  "ATTACHMENT_ID_FROM_STEP_1": [
-    {
-      "id": 1,
-      "reasoning": "why this citation is correct",
-      "fullPhrase": "exact verbatim quote from source",
-      "anchorText": "1-3 key words from the phrase",
-      "page_id": "page_number_N_index_I",
-      "line_ids": [LINE_NUMBER]
-    }
-  ]
-}
-<<<END_CITATION_DATA>>>
-```
 
 Save the full output (including the citation data block):
 ```bash
@@ -352,7 +340,7 @@ npx -y deepcitation report \
 
 **Option B: Inject into an existing HTML file** (dashboard, report, etc.)
 
-Use this when you followed Path B in Step 2 — you already annotated the HTML with `data-citation-key` attributes. The `inject` command adds the verification data and interactive runtime on top.
+Use this when you followed Path B in Step 2 — you already annotated the HTML with `data-verification` attributes. The `inject` command adds the verification data and interactive runtime on top.
 
 ```bash
 npx -y deepcitation inject \
@@ -364,7 +352,7 @@ npx -y deepcitation inject \
 This injects before `</body>`:
 - Verification JSON (`<script id="dc-data">`)
 - The CDN runtime bundle (Preact + real React popover components + Tailwind CSS)
-- Auto-init script that wires up `[data-citation-key]` click handlers
+- Auto-init script that wires up `[data-verification]` click handlers
 
 The original design is fully preserved. The injected popover uses the same React component tree as the DeepCitation web app — including animations, highlighted phrases with anchor text, evidence images with click-to-expand, and status icons.
 
@@ -409,9 +397,15 @@ Reports use `{topic}-{timestamp}` naming so re-runs don't clobber previous resul
 | `found_on_other_page` | ⚠ Partial | Found on different page |
 | `not_found` | ✗ Not Found | Could not verify |
 
+## Key Rules (repeated from top)
+
+- **`page_id` and `line_ids` MUST come from the `deepTextPromptPortion`** — use `<page_number_N_index_I>` tags for page_id and `<line id="N">` tags for line_ids. These are **sparse** (not every line is tagged). Always read the `deepTextPromptPortion` from Step 1 as context.
+- **Coverage audit**: After generating citations, spawn a subagent to audit the report/chat and confirm all facts, sources, names, dates, and values have deepcitations. The subagent should flag any uncited claims.
+
 ## References
 
-- Open-source prompts: https://github.com/DeepCitation/deepcitation/blob/main/src/prompts/citationPrompts.ts
+- Citation format spec (read at runtime): `docs/prompts/citation-format.md`
+- SDK prompt implementation: `src/prompts/citationPrompts.ts`
 - Citation parser: https://github.com/DeepCitation/deepcitation/blob/main/src/parsing/parseCitation.ts
 - Branded report: https://github.com/DeepCitation/deepcitation/blob/main/src/vanilla/renderBrandedReport.ts
 - API docs: https://deepcitation.com/docs
