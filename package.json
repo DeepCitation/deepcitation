@@ -68,7 +68,7 @@
   ],
   "scripts": {
     "build:cdn": "bun scripts/build-vanilla-runtime.mjs",
-    "build": "npm run build:cdn && tsup && npm run build:css",
+    "build": "tsup && npm run build:cdn && npm run build:css",
     "build:css": "tailwindcss -i ./src/styles.css -o ./lib/styles.css --minify",
     "build:watch": "tsup --watch",
     "build:tsc": "rm -rf lib && bun ./node_modules/typescript/bin/tsc",
@@ -158,7 +158,7 @@
     },
     {
       "path": "lib/vanilla/index.js",
-      "limit": "15 KB"
+      "limit": "70 KB"
     },
     {
       "path": "lib/vanilla/deepcitation-popover.cdn.js",

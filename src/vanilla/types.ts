@@ -44,14 +44,3 @@ export interface VanillaReportOptions extends ReportOptionsBase {
   /** Embed popover <script> (default: true) */
   includeRuntime?: boolean;
 }
-
-/**
- * Options for `renderBrandedReport()`.
- */
-export interface BrandedReportOptions extends ReportOptionsBase {
-  /** ISO 8601 timestamp for report generation (default: now) */
-  generatedAt?: string;
-
-  /** Show the full response body with inline citations (default: true) */
-  showResponseBody?: boolean;
-}

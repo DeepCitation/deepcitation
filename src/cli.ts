@@ -16,7 +16,6 @@ import { DeepCitation } from "./client/DeepCitation.js";
 import { getCitationKey } from "./utils/citationKey.js";
 import { sanitizeForLog } from "./utils/logSafety.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
-import { renderBrandedReport } from "./vanilla/renderBrandedReport.js";
 import { escapeJsForScript, escapeJsonForScript } from "./vanilla/reportUtils.js";
 
 const HELP = `deepcitation CLI
@@ -28,29 +27,10 @@ Commands:
   env       Print export DEEPCITATION_API_KEY=... for shell eval
   prepare   Prepare a file or URL for citation verification
   verify    Verify citations against prepared attachments
-  report    Generate a branded DeepCitation HTML verification report
   inject    Inject DeepCitation verification into an existing HTML file
   keygen    Compute deterministic citation keys from a citations JSON file
 
 Run "deepcitation <command> --help" for command-specific options.
-`;
-
-const REPORT_HELP = `Usage: deepcitation report [options]
-
-Generate a branded DeepCitation HTML verification report from LLM output.
-
-Options:
-  --llm-output <file>       Path to LLM output text file (with <<<CITATION_DATA>>>)
-  --verify-response <file>  Path to verify-response.json from /verifyCitations
-  --title <string>          Report title (default: "Citation Report")
-  --source-labels <json>    JSON object mapping attachmentId → display name
-  --theme <auto|light|dark> Color theme (default: "auto")
-  --out <dir>               Output directory (default: ".")
-  -h, --help                Show this help message
-
-Examples:
-  deepcitation report --llm-output out.txt --verify-response verify.json
-  deepcitation report --llm-output out.txt --verify-response verify.json --title "Q4 Analysis" --out .deepcitation/
 `;
 
 const INJECT_HELP = `Usage: deepcitation inject [options]
@@ -230,7 +210,8 @@ async function verify(argv: string[]) {
   for (const [key, citation] of Object.entries(citations)) {
     const aid = citation.attachmentId as string;
     if (!groups.has(aid)) groups.set(aid, {});
-    groups.get(aid)![key] = citation;
+    const group = groups.get(aid);
+    if (group) group[key] = citation;
   }
 
   console.error(`Verifying ${Object.keys(citations).length} citations across ${groups.size} attachment(s)...`);
@@ -255,46 +236,6 @@ async function verify(argv: string[]) {
   const total = Object.keys(merged).length;
   console.error(`  Done: ${found}/${total} found`);
   console.log(outPath);
-}
-
-// ── report ──────────────────────────────────────────────────────────
-
-function report(argv: string[]) {
-  const args = parseArgs(argv, REPORT_HELP);
-
-  const llmOutputPath = args["llm-output"];
-  const verifyResponsePath = args["verify-response"];
-  if (!llmOutputPath) die("--llm-output is required", REPORT_HELP);
-  if (!verifyResponsePath) die("--verify-response is required", REPORT_HELP);
-
-  const llmOutput = readFileSync(resolve(llmOutputPath), "utf-8");
-  const verifyResponse = JSON.parse(readFileSync(resolve(verifyResponsePath), "utf-8"));
-
-  if (!verifyResponse.verifications || typeof verifyResponse.verifications !== "object") {
-    die("verify-response JSON must contain a 'verifications' object", REPORT_HELP);
-  }
-
-  const sourceLabels = args["source-labels"]
-    ? (JSON.parse(args["source-labels"]) as Record<string, string>)
-    : undefined;
-
-  const html = renderBrandedReport(llmOutput, {
-    verifications: verifyResponse.verifications,
-    title: args.title ?? "Citation Report",
-    sourceLabels,
-    theme: (args.theme as "auto" | "light" | "dark") ?? "auto",
-  });
-
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const slug = (args.title ?? "report")
-    .replace(/\s+/g, "-")
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "");
-  const outDir = args.out ?? ".";
-  const filename = resolve(outDir, `report-${slug}-${timestamp}.html`);
-
-  writeFileSync(filename, html);
-  console.log(filename);
 }
 
 // ── inject ──────────────────────────────────────────────────────────
@@ -508,9 +449,6 @@ switch (command) {
       console.error(`Error: ${err instanceof Error ? err.message : err}`);
       process.exit(1);
     });
-    break;
-  case "report":
-    report(rest);
     break;
   case "inject":
     inject(rest);

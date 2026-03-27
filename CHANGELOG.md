@@ -12,9 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Batch verification mode** — new `verifyBatch()` method sends all citations in a single API call instead of per-attachment fan-out; `verify()` now delegates to `verifyBatch()` internally (#381)
 - **`BatchVerifyCitationRequest` and `VerifyInput` types** exported from root entry point (#381)
 - **`skipped` discriminant** on `Verification` for citations that cannot be sent (e.g. URL citations without `prepareUrl`) (#381)
-- **CLI commands** — `deepcitation prepare`, `deepcitation verify`, `deepcitation inject`, `deepcitation login`, `deepcitation report`, `deepcitation keygen` for headless workflows (#378, #379)
+- **CLI commands** — `deepcitation prepare`, `deepcitation verify`, `deepcitation inject`, `deepcitation login`, `deepcitation keygen` for headless workflows (#378, #379)
 - **CDN key-map resolution** — `data-citation-key` attributes resolved to hashed keys at runtime via an inline key-map, enabling human-readable HTML annotation (#378)
-- **Branded HTML report** — `renderBrandedReport()` for styled, standalone verification reports with DeepCitation branding (#377)
 - **`/verify` Claude Code skill** — end-to-end citation verification skill with progressive-disclosure rules, now hosted at `DeepCitation/skills` (#377, #379)
 - **Canonical citation-format spec** — `docs/prompts/citation-format.md` as single source of truth for citation field names (#379)
 - **Analysis module** — extracted `src/analysis/` with citation grouping, statistics, and export utilities (#376)
@@ -31,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **AG-UI chat SSE hang** — resolved cold-start hang and streaming parse issues in the agui-chat example (#374)
 - **Release notes extraction** — changelog entry is now correctly extracted for GitHub release notes instead of raw PR list (#065b602)
+- **Build order** — CDN bundle now built after tsup to prevent `clean: true` from deleting it
+
+### Removed
+
+- **Branded HTML report** — removed `renderBrandedReport()`, `BrandedReportOptions`, and `deepcitation report` CLI command; use `deepcitation inject` instead
 
 ## [0.3.0] - 2026-03-25
 
