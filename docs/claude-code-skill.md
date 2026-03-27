@@ -40,15 +40,13 @@ npm install deepcitation
 Open [claude.ai/customize/skills](https://claude.ai/customize/skills) and click **"Add Skill"**. Paste the raw URL:
 
 ```
-https://raw.githubusercontent.com/DeepCitation/deepcitation/main/docs/skills/verify/SKILL.md
+https://raw.githubusercontent.com/DeepCitation/skills/main/skills/verify/SKILL.md
 ```
 
-**Or** copy the skill file into your project manually:
+**Or** clone the skills repo into your project:
 
 ```bash
-mkdir -p .claude/skills/verify
-curl -sL https://raw.githubusercontent.com/DeepCitation/deepcitation/main/docs/skills/verify/SKILL.md \
-  -o .claude/skills/verify/SKILL.md
+git clone https://github.com/DeepCitation/skills.git .claude/skills
 ```
 
 ### 5. Verify it works
@@ -106,4 +104,4 @@ The report opens in your browser automatically. All intermediate artifacts are s
 - [Getting Started]({{ site.baseurl }}/getting-started) — full SDK integration guide
 - [API Reference]({{ site.baseurl }}/api-reference) — REST endpoints and TypeScript types
 - [Verification Statuses]({{ site.baseurl }}/verification-statuses) — what each status means
-- [Source code](https://github.com/DeepCitation/deepcitation/blob/main/docs/skills/verify/SKILL.md) — the skill file itself
+- [Source code](https://github.com/DeepCitation/skills/tree/main/skills/verify) — the skill files

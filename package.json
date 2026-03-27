@@ -61,6 +61,7 @@
   "sideEffects": false,
   "files": [
     "lib",
+    "docs/prompts",
     "src/tailwind.css",
     "src/tokens.css",
     "!lib/**/*.map"

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, resolve } from "node:path";
 import {
   CREDENTIALS_PATH,
   deleteCredentials,
@@ -12,6 +12,7 @@ import {
   startCallbackServer,
   writeCredentials,
 } from "./auth.js";
+import { DeepCitation } from "./client/DeepCitation.js";
 import { getCitationKey } from "./utils/citationKey.js";
 import { sanitizeForLog } from "./utils/logSafety.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
@@ -25,6 +26,8 @@ Commands:
   logout    Remove saved credentials
   whoami    Show the currently logged-in user
   env       Print export DEEPCITATION_API_KEY=... for shell eval
+  prepare   Prepare a file or URL for citation verification
+  verify    Verify citations against prepared attachments
   report    Generate a branded DeepCitation HTML verification report
   inject    Inject DeepCitation verification into an existing HTML file
   keygen    Compute deterministic citation keys from a citations JSON file
@@ -94,6 +97,164 @@ function parseArgs(argv: string[], help: string): Record<string, string> {
     }
   }
   return args;
+}
+
+// ── prepare ─────────────────────────────────────────────────────────
+
+const PREPARE_HELP = `Usage: deepcitation prepare <file-or-url> [options]
+
+Prepare a file or URL for citation verification. Uploads the source to the
+DeepCitation API and saves the response JSON (attachmentId + deepTextPromptPortion).
+
+Arguments:
+  <file-or-url>             Local file path or URL to prepare
+
+Options:
+  --out <file>              Output JSON path (default: .deepcitation/prepare-{name}.json)
+  --unsafe-fast             Use fast mode for URLs (skips rendering, vulnerable to hidden text)
+  -h, --help                Show this help message
+
+Examples:
+  deepcitation prepare report.pdf
+  deepcitation prepare https://example.com/article --out .deepcitation/prepare-article.json
+  deepcitation prepare scan.jpg
+`;
+
+async function prepare(argv: string[]) {
+  // Extract boolean flags before parseArgs (which only handles --key value pairs)
+  const unsafeFast = argv.includes("--unsafe-fast");
+  const filteredArgv = argv.filter(a => a !== "--unsafe-fast");
+
+  const args = parseArgs(filteredArgv, PREPARE_HELP);
+
+  // The positional argument is the first non-flag arg
+  const positional = filteredArgv.find(a => !a.startsWith("--"));
+  if (!positional) die("A file path or URL is required", PREPARE_HELP);
+
+  const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
+  if (!apiKey) die('DEEPCITATION_API_KEY not set. Run "deepcitation login" or set the env var.', PREPARE_HELP);
+
+  const dc = new DeepCitation({ apiKey });
+
+  const isUrl = positional.startsWith("http://") || positional.startsWith("https://");
+
+  if (isUrl && positional.startsWith("http://") && !positional.startsWith("http://localhost")) {
+    console.error("Warning: using http:// URL — content will be fetched over plaintext.");
+  }
+
+  let result;
+  let label: string;
+
+  if (isUrl) {
+    label = new URL(positional).hostname.replace(/^www\./, "");
+    console.error(unsafeFast ? `Preparing URL (fast mode)...` : `Preparing URL (this may take ~30s)...`);
+    result = await dc.prepareUrl({ url: positional, unsafeFastUrlOutput: unsafeFast });
+  } else {
+    const filePath = resolve(positional);
+    if (!existsSync(filePath)) die(`File not found: ${positional}`, PREPARE_HELP);
+    label = basename(filePath).replace(/\.[^.]+$/, "");
+    console.error(`Preparing file: ${basename(filePath)}...`);
+    const buffer = readFileSync(filePath);
+    result = await dc.uploadFile(buffer, { filename: basename(filePath) });
+  }
+
+  const outDir = resolve(".deepcitation");
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+
+  const outPath = resolve(args.out ?? `.deepcitation/prepare-${label}.json`);
+  writeFileSync(outPath, JSON.stringify(result, null, 2));
+
+  console.error(`  Attachment ID: ${sanitizeForLog(result.attachmentId)}`);
+  console.error(`  Pages: ${result.metadata.pageCount}`);
+  console.error(`  Text: ${Math.round(result.metadata.textByteSize / 1024)}KB`);
+  if (result.processingTimeMs) {
+    console.error(`  Time: ${(result.processingTimeMs / 1000).toFixed(1)}s`);
+  }
+  console.log(outPath);
+}
+
+// ── verify ──────────────────────────────────────────────────────────
+
+const VERIFY_HELP = `Usage: deepcitation verify [options]
+
+Verify citations against prepared attachments. Groups citations by attachmentId,
+sends one request per group, and merges all responses into a single output file.
+
+Options:
+  --citations <file>        Path to citations JSON (keyed or raw)
+  --out <file>              Output path (default: .deepcitation/verify-response.json)
+  --image-format <format>   Evidence image format: avif, png, jpeg, webp (default: avif)
+  -h, --help                Show this help message
+
+Examples:
+  deepcitation verify --citations .deepcitation/citations-keyed.json
+  deepcitation verify --citations .deepcitation/citations-keyed.json --out .deepcitation/verify-response.json
+`;
+
+async function verify(argv: string[]) {
+  const args = parseArgs(argv, VERIFY_HELP);
+
+  const citationsPath = args.citations;
+  if (!citationsPath) die("--citations is required", VERIFY_HELP);
+
+  const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
+  if (!apiKey) die('DEEPCITATION_API_KEY not set. Run "deepcitation login" or set the env var.', VERIFY_HELP);
+
+  const dc = new DeepCitation({ apiKey });
+
+  const allowedFormats = ["avif", "png", "jpeg", "webp"] as const;
+  const imageFormat = (args["image-format"] ?? "avif") as (typeof allowedFormats)[number];
+  if (!allowedFormats.includes(imageFormat)) {
+    die(`Invalid --image-format "${sanitizeForLog(imageFormat)}". Allowed: ${allowedFormats.join(", ")}`, VERIFY_HELP);
+  }
+
+  const citations = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<
+    string,
+    Record<string, unknown>
+  >;
+
+  // Validate all citations have attachmentId
+  const missing = Object.entries(citations).filter(([, c]) => !(c.attachmentId as string));
+  if (missing.length > 0) {
+    die(
+      `${missing.length} citation(s) missing attachmentId: ${missing
+        .map(([k]) => k)
+        .slice(0, 5)
+        .join(", ")}`,
+      VERIFY_HELP,
+    );
+  }
+
+  // Group citations by attachmentId
+  const groups = new Map<string, Record<string, Record<string, unknown>>>();
+  for (const [key, citation] of Object.entries(citations)) {
+    const aid = citation.attachmentId as string;
+    if (!groups.has(aid)) groups.set(aid, {});
+    groups.get(aid)![key] = citation;
+  }
+
+  console.error(`Verifying ${Object.keys(citations).length} citations across ${groups.size} attachment(s)...`);
+
+  // Verify each group and merge
+  const merged: Record<string, unknown> = {};
+  for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
+    console.error(`  ${sanitizeForLog(attachmentId)}: ${Object.keys(groupCitations).length} citations...`);
+    const result = await dc.verifyAttachment(
+      attachmentId,
+      groupCitations as unknown as Parameters<typeof dc.verifyAttachment>[1],
+      { outputImageFormat: imageFormat },
+    );
+    Object.assign(merged, result.verifications);
+  }
+
+  const output = { verifications: merged };
+  const outPath = resolve(args.out ?? ".deepcitation/verify-response.json");
+  writeFileSync(outPath, JSON.stringify(output, null, 2));
+
+  const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
+  const total = Object.keys(merged).length;
+  console.error(`  Done: ${found}/${total} found`);
+  console.log(outPath);
 }
 
 // ── report ──────────────────────────────────────────────────────────
@@ -336,6 +497,18 @@ if (!command || command === "-h" || command === "--help") {
 }
 
 switch (command) {
+  case "prepare":
+    prepare(rest).catch(err => {
+      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      process.exit(1);
+    });
+    break;
+  case "verify":
+    verify(rest).catch(err => {
+      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      process.exit(1);
+    });
+    break;
   case "report":
     report(rest);
     break;
