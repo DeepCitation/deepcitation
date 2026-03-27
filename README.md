@@ -120,37 +120,11 @@ npm install && npm run dev
 - [URL Citations](./examples/url-example)
 
 
-## Claude Code Skill
+## Agent Skills
 
-Verify citations directly from Claude Code with the `/verify` skill — no app code needed.
+Verify citations directly from your AI coding agent with the `/verify` skill — no app code needed. Works with Claude Code, Cursor, Windsurf, and other agents that support skills.
 
-### Setup
-
-1. **Get an API key** at [deepcitation.com/keys](https://deepcitation.com/keys)
-
-2. **Set the environment variable**
-   ```bash
-   export DEEPCITATION_API_KEY="dc_your_key_here"
-   ```
-
-3. **Install the SDK**
-   ```bash
-   npm install deepcitation
-   ```
-
-4. **Install the skill** — open [claude.ai/customize/skills](https://claude.ai/customize/skills), click **"Add Skill"**, and paste:
-   ```
-   https://raw.githubusercontent.com/DeepCitation/skills/main/skills/verify/SKILL.md
-   ```
-
-5. **Use it** — in any Claude Code conversation:
-   ```
-   /verify my-report.pdf
-   ```
-
-Claude uploads your document, generates a cited analysis, verifies each claim against the source, and opens a branded HTML report in your browser with interactive evidence.
-
-> **Full guide**: See [Claude Code Skill docs](https://docs.deepcitation.com/claude-code-skill) for troubleshooting and artifact details.
+Install from [**DeepCitation/skills**](https://github.com/DeepCitation/skills).
 
 ## Development
 
