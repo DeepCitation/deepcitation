@@ -878,10 +878,6 @@ export class DeepCitation {
       return { verifications: {} };
     }
 
-    if (totalCount > 500) {
-      throw new ValidationError(`Batch request contains ${totalCount} citations, max is 500`);
-    }
-
     // Separate citations with and without attachmentId
     const batchCitations: Record<string, Citation> = {};
     const skippedKeys: string[] = [];
@@ -892,6 +888,11 @@ export class DeepCitation {
       } else {
         skippedKeys.push(key);
       }
+    }
+
+    const sendableCount = Object.keys(batchCitations).length;
+    if (sendableCount > 500) {
+      throw new ValidationError(`Batch request contains ${sendableCount} citations, max is 500`);
     }
 
     // Validate max distinct attachments
@@ -914,10 +915,11 @@ export class DeepCitation {
       attachmentCount: distinctAttachments.size,
     });
 
-    // Build the result, starting with any skipped citations
+    // Build the result, starting with any skipped citations.
+    // Skipped entries only have `status` — no label, evidence, or document fields.
     const allVerifications: VerifyCitationsResponse["verifications"] = {};
     for (const key of skippedKeys) {
-      allVerifications[key] = { status: "skipped" };
+      allVerifications[key] = { status: "skipped", skipped: true };
     }
 
     // If all were skipped, return early

@@ -614,6 +614,7 @@ describe("DeepCitation Client", () => {
 
       expect(result.verifications.key1.status).toBe("found");
       expect(result.verifications.key2.status).toBe("skipped");
+      expect(result.verifications.key2.skipped).toBe(true);
 
       // Only key1 should be sent to the API
       const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -629,6 +630,7 @@ describe("DeepCitation Client", () => {
       });
 
       expect(result.verifications.key1.status).toBe("skipped");
+      expect(result.verifications.key1.skipped).toBe(true);
       expect(mockFetch).not.toHaveBeenCalled();
     });
 

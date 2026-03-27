@@ -43,6 +43,7 @@ export type {
   VerifyBatchOptions,
   VerifyCitationsOptions,
   VerifyCitationsResponse,
+  VerifyInput,
 } from "./client/index.js";
 
 // Markdown rendering (display helpers)
@@ -139,6 +140,7 @@ export {
 export type { DeepTextItem, ScreenBox } from "./types/boxes.js";
 export type {
   AudioVideoCitation,
+  BatchVerifyCitationRequest,
   Citation,
   // Record types (object dictionaries, NOT arrays)
   CitationRecord,

@@ -201,6 +201,9 @@ export interface Verification {
   /** The original citation being verified */
   citation?: Citation;
 
+  /** True when the citation was skipped (e.g. missing attachmentId). Only `status` is set on skipped entries. */
+  skipped?: boolean;
+
   // ========== Search ==========
   /** Verification status. Every verification has a status. */
   status?: SearchStatus;
