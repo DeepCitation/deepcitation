@@ -397,11 +397,6 @@ Reports use `{topic}-{timestamp}` naming so re-runs don't clobber previous resul
 | `found_on_other_page` | ⚠ Partial | Found on different page |
 | `not_found` | ✗ Not Found | Could not verify |
 
-## Key Rules (repeated from top)
-
-- **`page_id` and `line_ids` MUST come from the `deepTextPromptPortion`** — use `<page_number_N_index_I>` tags for page_id and `<line id="N">` tags for line_ids. These are **sparse** (not every line is tagged). Always read the `deepTextPromptPortion` from Step 1 as context.
-- **Coverage audit**: After generating citations, spawn a subagent to audit the report/chat and confirm all facts, sources, names, dates, and values have deepcitations. The subagent should flag any uncited claims.
-
 ## References
 
 - Citation format spec (read at runtime): `docs/prompts/citation-format.md`

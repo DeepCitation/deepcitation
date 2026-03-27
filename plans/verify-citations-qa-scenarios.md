@@ -192,7 +192,7 @@ Lawyers, compliance officers, and legal researchers are a primary audience. Lega
 
 Each test follows this flow:
 1. Run `/verify <url>` with a specific user prompt
-2. Confirm the output HTML has `data-citation-key` attributes on expected claims
+2. Confirm the output HTML has `data-verification` attributes on expected claims
 3. Confirm verification statuses match expectations
 4. Open the HTML, click a citation, and screenshot the popover
 
@@ -277,13 +277,13 @@ npx -y deepcitation prepare "$URL" --out scratch/legal-qa/test-{N}/prepare.json
 #    The skill will read prepare.json, build citations, verify, and inject HTML
 
 # 3. Validate outcomes
-#    - Count data-citation-key elements in output HTML
+#    - Count data-verification elements in output HTML
 #    - Check verify-response.json statuses against expectations
 #    - Flag any unexpected not_found on real claims or found on hallucinated claims
 
 # 4. Playwright screenshots
 #    - Navigate to the output HTML (serve via http-server)
-#    - Click each data-citation-key element
+#    - Click each data-verification element
 #    - Wait for popover to appear ([data-dc-popover] or similar)
 #    - Screenshot to scratch/legal-qa/test-{N}/popover-{cite-key}.png
 ```

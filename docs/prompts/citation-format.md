@@ -8,13 +8,13 @@ For every claim, value, or fact from attachments, place a sequential integer mar
 
 ## Citation Data Block
 
-At the END of your response, append a citation block. Group citations by `attachment_id` to avoid repetition.
+At the END of your response, append a citation block. Group citations by `attachmentId` to avoid repetition.
 
 ```
 <<<CITATION_DATA>>>
 {
   "ATTACHMENT_ID": [
-    {"id": 1, "reasoning": "why", "full_phrase": "quote", "anchor_text": "key", "page_id": "page_number_2_index_1", "line_ids": [12]}
+    {"id": 1, "reasoning": "why", "fullPhrase": "quote", "anchorText": "key", "pageId": "page_number_2_index_1", "lineIds": [12]}
   ]
 }
 <<<END_CITATION_DATA>>>
@@ -22,17 +22,17 @@ At the END of your response, append a citation block. Group citations by `attach
 
 ## JSON Field Rules
 
-1. **Group key**: The `attachment_id` (exact ID from source document)
+1. **Group key**: The `attachmentId` (exact ID from source document)
 2. **id**: Each citation MUST have a unique ID matching its [N] marker. Do NOT reuse the same ID for different citations.
 3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
-4. **full_phrase**: Copy text VERBATIM from source. Use proper JSON escaping for quotes.
-5. **anchor_text**: The 1-3 most important words from `full_phrase`
-6. **page_id**: Format `page_number_N_index_I` where N=page number, I=index. Copy exactly from `<page_number_N_index_I>` tags in the source.
-7. **line_ids**: Array of line IDs from the source. Copy from `<line id="N">` tags in the text. Include IDs for all relevant lines. These are **sparse** — not every line is tagged. Use the nearest tagged line.
+4. **fullPhrase**: Copy text VERBATIM from source. Use proper JSON escaping for quotes.
+5. **anchorText**: The 1-3 most important words from `fullPhrase`
+6. **pageId**: Format `page_number_N_index_I` where N=page number, I=index. Copy exactly from `<page_number_N_index_I>` tags in the source.
+7. **lineIds**: Array of line IDs from the source. Copy from `<line id="N">` tags in the text. Include IDs for all relevant lines. These are **sparse** — not every line is tagged. Use the nearest tagged line.
 
 ### Shorthand Keys (Optional)
 
-To save tokens: `n`=id, `r`=reasoning, `f`=full_phrase, `k`=anchor_text, `p`=page_id, `l`=line_ids
+To save tokens: `n`=id, `r`=reasoning, `f`=fullPhrase, `k`=anchorText, `p`=pageId, `l`=lineIds
 
 ## Placement Rules
 
@@ -49,11 +49,11 @@ The company reported strong growth [1]. Revenue increased significantly in Q4 [2
 <<<CITATION_DATA>>>
 {
   "abc123": [
-    {"id": 1, "reasoning": "directly states growth metrics", "full_phrase": "The company achieved 45% year-over-year growth", "anchor_text": "45% year-over-year growth", "page_id": "page_number_2_index_1", "line_ids": [12, 13]},
-    {"id": 2, "reasoning": "states Q4 revenue figure", "full_phrase": "Q4 revenue reached $2.3 billion, up from $1.8 billion", "anchor_text": "$2.3 billion", "page_id": "page_number_3_index_2", "line_ids": [5, 6, 7]}
+    {"id": 1, "reasoning": "directly states growth metrics", "fullPhrase": "The company achieved 45% year-over-year growth", "anchorText": "45% year-over-year growth", "pageId": "page_number_2_index_1", "lineIds": [12, 13]},
+    {"id": 2, "reasoning": "states Q4 revenue figure", "fullPhrase": "Q4 revenue reached $2.3 billion, up from $1.8 billion", "anchorText": "$2.3 billion", "pageId": "page_number_3_index_2", "lineIds": [5, 6, 7]}
   ],
   "def456": [
-    {"id": 3, "reasoning": "competitor data", "full_phrase": "Competitor X reported 20% growth", "anchor_text": "20% growth", "page_id": "page_number_1_index_0", "line_ids": [8]}
+    {"id": 3, "reasoning": "competitor data", "fullPhrase": "Competitor X reported 20% growth", "anchorText": "20% growth", "pageId": "page_number_1_index_0", "lineIds": [8]}
   ]
 }
 <<<END_CITATION_DATA>>>
