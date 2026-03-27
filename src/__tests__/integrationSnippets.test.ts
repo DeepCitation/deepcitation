@@ -95,9 +95,8 @@ describe("Recipe snippets", () => {
     expect(RECIPE_STRIP).toContain('from "deepcitation"');
   });
 
-  it("RECIPE_KEEP_MARKERS uses extractVisibleText and renderCitationsAsMarkdown", () => {
+  it("RECIPE_KEEP_MARKERS uses extractVisibleText", () => {
     expect(RECIPE_KEEP_MARKERS).toContain("extractVisibleText");
-    expect(RECIPE_KEEP_MARKERS).toContain("renderCitationsAsMarkdown");
     expect(RECIPE_KEEP_MARKERS).toContain('from "deepcitation"');
   });
 
@@ -287,7 +286,6 @@ describe("snippets reference real SDK exports", () => {
     const expectedFunctions = [
       "stripCitations",
       "extractVisibleText",
-      "renderCitationsAsMarkdown",
       "parseCitationResponse",
       "getCitationKey",
       "replaceCitationMarkers",

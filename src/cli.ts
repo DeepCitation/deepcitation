@@ -21,7 +21,7 @@ import { escapeJsForScript, escapeJsonForScript } from "./vanilla/reportUtils.js
 const HELP = `deepcitation CLI
 
 Commands:
-  login     Log in to DeepCitation and save your API key locally
+  login     Log in to DeepCitation (browser flow, --key <key>, or DEEPCITATION_API_KEY)
   logout    Remove saved credentials
   whoami    Show the currently logged-in user
   env       Print export DEEPCITATION_API_KEY=... for shell eval
@@ -354,7 +354,32 @@ function keygen(argv: string[]) {
 
 const BASE_URL = "https://deepcitation.com";
 
-async function login() {
+function saveApiKey(key: string, source: string): void {
+  if (!key || !key.startsWith("sk-dc-") || key.length < 20) {
+    die(
+      `Invalid API key format${source ? ` (${source})` : ""}. Keys start with 'sk-dc-' and are at least 20 characters.`,
+      HELP,
+    );
+  }
+  writeCredentials({ version: 1, apiKey: key, createdAt: new Date().toISOString() });
+  console.log(`API key: ${maskKey(key)}`);
+  console.log(`Saved to ${CREDENTIALS_PATH}`);
+}
+
+async function login(argv: string[]) {
+  const keyIdx = argv.indexOf("--key");
+  if (keyIdx !== -1) {
+    if (keyIdx + 1 >= argv.length) die("--key requires a value", HELP);
+    saveApiKey(argv[keyIdx + 1], "--key flag");
+    return;
+  }
+
+  const envKey = process.env.DEEPCITATION_API_KEY;
+  if (envKey) {
+    saveApiKey(envKey, "DEEPCITATION_API_KEY");
+    return;
+  }
+
   const existing = readCredentials();
   if (existing) {
     console.log(`Already logged in as ${sanitizeForLog(existing.email ?? "unknown")} (${maskKey(existing.apiKey)})`);
@@ -457,7 +482,7 @@ switch (command) {
     keygen(rest);
     break;
   case "login":
-    login();
+    login(rest);
     break;
   case "logout":
     logout();

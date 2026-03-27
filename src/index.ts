@@ -5,7 +5,7 @@
  * for recipe-based guidance on which functions to use.
  *
  * - Core API: DeepCitation client, getAllCitationsFromLlmOutput, stripCitations, getCitationKey
- * - Display Helpers: replaceCitationMarkers, renderCitationsAsMarkdown, toMarkdown
+ * - Display Helpers: replaceCitationMarkers, extractVisibleText, parseCitationResponse
  * - Prompts: wrapCitationPrompt, wrapSystemCitationPrompt, format constants
  * - Advanced: groupCitationsBy*, field normalization, LLM workarounds
  *
@@ -46,25 +46,19 @@ export type {
   VerifyInput,
 } from "./client/index.js";
 
-// Markdown rendering (display helpers)
+// Markdown utilities
 export type {
   CitationWithStatus,
   IndicatorSet,
   IndicatorStyle,
   LinePosition,
-  MarkdownOutput,
   MarkdownVariant,
-  RenderMarkdownOptions,
 } from "./markdown/index.js";
 export {
   getIndicator,
-  getVerificationIndicator,
   humanizeLinePosition,
   INDICATOR_SETS,
-  renderCitationsAsMarkdown,
-  renderReferencesSection,
   SUPERSCRIPT_DIGITS,
-  toMarkdown,
   toSuperscript,
 } from "./markdown/index.js";
 

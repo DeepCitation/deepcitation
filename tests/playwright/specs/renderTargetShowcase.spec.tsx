@@ -1,9 +1,6 @@
 import { expect, test } from "@playwright/experimental-ct-react";
 import { RenderTargetShowcase } from "../../../src/rendering/testing/RenderTargetShowcase";
 import {
-  GITHUB_VARIANTS,
-  HTML_VARIANTS,
-  SLACK_VARIANTS,
   TERMINAL_VARIANTS,
 } from "../../../src/rendering/testing/RenderTargetShowcase.constants";
 import { scaleDownForSnapshot } from "../snapshotHelpers";
@@ -18,90 +15,6 @@ test.describe("Render Target Showcase - Desktop", () => {
 
     const showcase = page.locator('[data-testid="render-target-showcase"]');
     await expect(showcase).toBeVisible();
-  });
-
-  // --- Slack ---
-
-  test("Slack section renders all variants", async ({ mount, page }) => {
-    await mount(<RenderTargetShowcase />);
-
-    const section = page.locator('[data-testid="slack-section"]');
-    await expect(section).toBeVisible();
-
-    for (const variant of SLACK_VARIANTS) {
-      const variantRow = page.locator(`[data-slack-variant="${variant}"]`);
-      await expect(variantRow).toBeVisible();
-    }
-  });
-
-  test("Slack sources section renders", async ({ mount, page }) => {
-    await mount(<RenderTargetShowcase />);
-
-    await expect(page.locator('[data-testid="slack-sources-section"]')).toBeVisible();
-  });
-
-  test("Slack complete message renders", async ({ mount, page }) => {
-    await mount(<RenderTargetShowcase />);
-
-    await expect(page.locator('[data-testid="slack-complete-section"]')).toBeVisible();
-  });
-
-  // --- GitHub ---
-
-  test("GitHub section renders all variants", async ({ mount, page }) => {
-    await mount(<RenderTargetShowcase />);
-
-    const section = page.locator('[data-testid="github-section"]');
-    await expect(section).toBeVisible();
-
-    for (const variant of GITHUB_VARIANTS) {
-      const variantRow = page.locator(`[data-github-variant="${variant}"]`);
-      await expect(variantRow).toBeVisible();
-    }
-  });
-
-  test("GitHub sources table format renders", async ({ mount, page }) => {
-    await mount(<RenderTargetShowcase />);
-
-    await expect(page.locator('[data-testid="github-sources-table-section"]')).toBeVisible();
-  });
-
-  test("GitHub sources detailed format renders", async ({ mount, page }) => {
-    await mount(<RenderTargetShowcase />);
-
-    await expect(page.locator('[data-testid="github-sources-detailed-section"]')).toBeVisible();
-  });
-
-  test("GitHub complete PR comment renders", async ({ mount, page }) => {
-    await mount(<RenderTargetShowcase />);
-
-    await expect(page.locator('[data-testid="github-complete-section"]')).toBeVisible();
-  });
-
-  // --- HTML ---
-
-  test("HTML section renders all variants", async ({ mount, page }) => {
-    await mount(<RenderTargetShowcase />);
-
-    const section = page.locator('[data-testid="html-section"]');
-    await expect(section).toBeVisible();
-
-    for (const variant of HTML_VARIANTS) {
-      const variantRow = page.locator(`[data-html-variant="${variant}"]`);
-      await expect(variantRow).toBeVisible();
-    }
-  });
-
-  test("HTML tooltip section renders", async ({ mount, page }) => {
-    await mount(<RenderTargetShowcase />);
-
-    await expect(page.locator('[data-testid="html-tooltip-section"]')).toBeVisible();
-  });
-
-  test("HTML complete section renders", async ({ mount, page }) => {
-    await mount(<RenderTargetShowcase />);
-
-    await expect(page.locator('[data-testid="html-complete-section"]')).toBeVisible();
   });
 
   // --- Terminal ---

@@ -1,4 +1,4 @@
-import type { Citation, CitationStatus, VerificationRecord } from "../types/citation.js";
+import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 
 export type MarkdownVariant =
@@ -21,23 +21,8 @@ export type IndicatorStyle =
 export type LinePosition = "start" | "early" | "middle" | "late" | "end";
 
 export interface RenderMarkdownOptions {
-  variant?: MarkdownVariant;
-  indicatorStyle?: IndicatorStyle;
-  verifications?: VerificationRecord;
-  includeReferences?: boolean;
-  referenceHeading?: string;
-  showReasoning?: boolean;
   showPageNumber?: boolean;
   showLinePosition?: boolean;
-  sourceLabels?: Record<string, string>;
-  linkStyle?: "anchor" | "none";
-}
-
-export interface MarkdownOutput {
-  markdown: string;
-  references?: string;
-  full: string;
-  citations: CitationWithStatus[];
 }
 
 export interface CitationWithStatus {
