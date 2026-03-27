@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { resolve, basename } from "node:path";
 import {
   CREDENTIALS_PATH,
   deleteCredentials,
@@ -12,6 +12,7 @@ import {
   startCallbackServer,
   writeCredentials,
 } from "./auth.js";
+import { DeepCitation } from "./client/DeepCitation.js";
 import { getCitationKey } from "./utils/citationKey.js";
 import { sanitizeForLog } from "./utils/logSafety.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
@@ -25,6 +26,7 @@ Commands:
   logout    Remove saved credentials
   whoami    Show the currently logged-in user
   env       Print export DEEPCITATION_API_KEY=... for shell eval
+  prepare   Prepare a file or URL for citation verification
   report    Generate a branded DeepCitation HTML verification report
   inject    Inject DeepCitation verification into an existing HTML file
   keygen    Compute deterministic citation keys from a citations JSON file
@@ -94,6 +96,76 @@ function parseArgs(argv: string[], help: string): Record<string, string> {
     }
   }
   return args;
+}
+
+// ── prepare ─────────────────────────────────────────────────────────
+
+const PREPARE_HELP = `Usage: deepcitation prepare <file-or-url> [options]
+
+Prepare a file or URL for citation verification. Uploads the source to the
+DeepCitation API and saves the response JSON (attachmentId + deepTextPromptPortion).
+
+Arguments:
+  <file-or-url>             Local file path or URL to prepare
+
+Options:
+  --out <file>              Output JSON path (default: .deepcitation/prepare-{name}.json)
+  --unsafe-fast             Use fast mode for URLs (skips rendering, vulnerable to hidden text)
+  -h, --help                Show this help message
+
+Examples:
+  deepcitation prepare report.pdf
+  deepcitation prepare https://example.com/article --out .deepcitation/prepare-article.json
+  deepcitation prepare scan.jpg
+`;
+
+async function prepare(argv: string[]) {
+  // Extract boolean flags before parseArgs (which only handles --key value pairs)
+  const unsafeFast = argv.includes("--unsafe-fast");
+  const filteredArgv = argv.filter(a => a !== "--unsafe-fast");
+
+  const args = parseArgs(filteredArgv, PREPARE_HELP);
+
+  // The positional argument is the first non-flag arg
+  const positional = filteredArgv.find(a => !a.startsWith("--"));
+  if (!positional) die("A file path or URL is required", PREPARE_HELP);
+
+  const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
+  if (!apiKey) die("DEEPCITATION_API_KEY not set. Run \"deepcitation login\" or set the env var.", PREPARE_HELP);
+
+  const dc = new DeepCitation({ apiKey });
+
+  const isUrl = positional.startsWith("http://") || positional.startsWith("https://");
+
+  let result;
+  let label: string;
+
+  if (isUrl) {
+    label = new URL(positional).hostname.replace(/^www\./, "");
+    console.error(unsafeFast ? `Preparing URL (fast mode)...` : `Preparing URL (this may take ~30s)...`);
+    result = await dc.prepareUrl({ url: positional, unsafeFastUrlOutput: unsafeFast });
+  } else {
+    const filePath = resolve(positional);
+    if (!existsSync(filePath)) die(`File not found: ${positional}`, PREPARE_HELP);
+    label = basename(filePath).replace(/\.[^.]+$/, "");
+    console.error(`Preparing file: ${basename(filePath)}...`);
+    const buffer = readFileSync(filePath);
+    result = await dc.uploadFile(buffer, { filename: basename(filePath) });
+  }
+
+  const outDir = resolve(".deepcitation");
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+
+  const outPath = resolve(args.out ?? `.deepcitation/prepare-${label}.json`);
+  writeFileSync(outPath, JSON.stringify(result, null, 2));
+
+  console.error(`  Attachment ID: ${result.attachmentId}`);
+  console.error(`  Pages: ${result.metadata.pageCount}`);
+  console.error(`  Text: ${Math.round(result.metadata.textByteSize / 1024)}KB`);
+  if (result.processingTimeMs) {
+    console.error(`  Time: ${(result.processingTimeMs / 1000).toFixed(1)}s`);
+  }
+  console.log(outPath);
 }
 
 // ── report ──────────────────────────────────────────────────────────
@@ -336,6 +408,9 @@ if (!command || command === "-h" || command === "--help") {
 }
 
 switch (command) {
+  case "prepare":
+    prepare(rest);
+    break;
   case "report":
     report(rest);
     break;

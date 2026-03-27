@@ -64,34 +64,24 @@ Before calling any API, scan all available context:
 
 Upload **every** source file to the DeepCitation API. Every prepared file enables verification of the claims it backs — skipping a file means those claims go unverified.
 
-Save the full response as JSON — it contains the `attachmentId` (needed for verify) and `deepTextPromptPortion` (extracted text with page/line metadata).
+The response JSON contains the `attachmentId` (needed for verify) and `deepTextPromptPortion` (extracted text with page/line metadata).
 
 ```bash
-mkdir -p .deepcitation
+# Prepare a local file (PDF, image, DOCX, XLSX, PPTX, CSV, etc.)
+npx -y deepcitation prepare source.pdf
 
-# Upload each source file — save with descriptive name
-curl -s -X POST https://api.deepcitation.com/prepareAttachments \
-  -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
-  -F "file=@source.pdf" \
-  -F "filename=source.pdf" \
-  > .deepcitation/prepare-source.json
+# Prepare a URL (handles rendering + text extraction server-side)
+npx -y deepcitation prepare https://example.com/article
+
+# Custom output path
+npx -y deepcitation prepare report.pdf --out .deepcitation/prepare-report.json
 ```
 
-**Save** `.deepcitation/prepare-{source-name}.json` — retain both the `attachmentId` and `deepTextPromptPortion`. The `deepTextPromptPortion` is the **sole source of truth** for `lineIds` and `pageNumber` values — read it before building citations in Step 2.
+Output is saved to `.deepcitation/prepare-{name}.json` by default. URLs and Office files take ~30s to process vs <1s for images/PDFs.
 
-If multiple source files are uploaded, save each prepare response separately and track each `attachmentId`.
+**Save** each prepare response separately — retain both the `attachmentId` and `deepTextPromptPortion`. The `deepTextPromptPortion` is the **sole source of truth** for `lineIds` and `pageNumber` values — read it before building citations in Step 2.
 
 Always read the `deepTextPromptPortion` before building citations. Line IDs are **sparse** (not every line is tagged) — see Step 2B-3.
-
-**URL sources**: Use the `prepareUrl` API — it handles conversion and text extraction in one call:
-```bash
-curl -s -X POST https://api.deepcitation.com/prepareAttachments \
-  -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com/page"}' \
-  > .deepcitation/prepare-source.json
-```
-URLs and Office files take ~30s to process vs <1s for images/PDFs. The API handles rendering, conversion, and text extraction server-side — do NOT download and re-upload.
 
 If a URL is inaccessible (DNS failure, 403, auth required), report it clearly and continue with available sources. Do not fabricate citations for sources you couldn't prepare.
 
@@ -114,13 +104,11 @@ Prepare ALL of them in Step 1 — not just one. Each produces a separate `attach
 
 **Common blind spots:**
 
-1. **Collapsed/hidden content.** Cards, accordions, `display:none` panels — cite every value inside.
-2. **Summary/alert banners.** Restated values ("HbA1c 5.5%, improved from 5.7%") — each restated value is a separate claim.
-3. **Footer and metadata.** Dates, patient identifiers, report dates.
-4. **Tabs and alternate views.** Walk through every tab's content.
-5. **Inline narrative.** Text like "Large left paracentral disc protrusion at L4-5" is a verifiable finding.
-6. **"All normal" summaries.** "Urinalysis: all normal" is a claim about every individual value — cite the specifics.
-7. **Citation/source areas.** If the HTML has a references section or source links, add a citation drawer trigger there (see 2B-7).
+1. **Hidden/collapsed content.** Accordions, toggles, `display:none` panels — all values inside need citations.
+2. **Restated values.** Summaries, banners, or narrative that repeats a value from elsewhere — each instance is a separate claim.
+3. **Metadata.** Dates, identifiers, report timestamps in headers/footers.
+4. **All views.** Tabs, timelines, alternate panels — walk every view, not just the default.
+5. **Source/reference areas.** If the HTML has a references section, file list, or source links, add a citation drawer trigger there (see 2B-7).
 
 **Signals that something needs a citation:**
 - It's a value (number, measurement, percentage, date, score)
@@ -136,35 +124,34 @@ When in doubt, cite it — overciting costs nothing, underciting defeats the pur
 
 **2B-3. Build citation data.** Create a citation record mapping each claim to its source. Each citation must use the `attachmentId` of the specific source document that backs it.
 
-**lineIds and pageNumber come from `deepTextPromptPortion`, not from sequential counting.**
+**lineIds and pageNumber come from `deepTextPromptPortion`.**
 
-The `deepTextPromptPortion` uses **sparse, non-sequential** `<line id="N">` tags. Only some lines are tagged. You must find the actual `<line id>` value for the line containing your citation text.
+The `deepTextPromptPortion` uses `<line id="N">` tags to mark lines. These IDs are **sparse and non-sequential** because the API uses them to handle columns, tables, and non-linear text layouts. You can count lines between tagged IDs, but always use our `<line id="N">` values — do not invent your own IDs.
 
 Example:
 ```
 <page_number_1_index_0>
 <line id="1">Mã BN/ID:  260006301</line>
-Đối tượng/Group: Không bảo hiểm           ← NO line id (untagged)
-Lis Barcode: 2603160079                    ← NO line id (untagged)
-Họ và tên/Name:BENSON WONG Nam/ Male ...   ← NO line id (untagged)
+Đối tượng/Group: Không bảo hiểm           ← untagged
+Lis Barcode: 2603160079                    ← untagged
+Họ và tên/Name:BENSON WONG Nam/ Male ...   ← untagged
 <line id="5">Địa chỉ/Address:...</line>
 ...
-WBC (BẠCH CẦU) 5.71 G/L 3.9 - 10         ← NO line id (untagged)
+WBC (BẠCH CẦU) 5.71 G/L 3.9 - 10         ← untagged
 <line id="15">- NEU % 59.6 % 45 - 75</line>
 ```
 
-For "BENSON WONG" on page 1: the text is on an **untagged** line between `<line id="1">` and `<line id="5">`. Use the nearest line id — `lineIds: [1]` (before) or `[5]` (after). Do NOT use `[4]` — there is no line 4.
+For "BENSON WONG" on page 1: the text is between `<line id="1">` and `<line id="5">`. Use the nearest tagged line — `lineIds: [1]` or `[5]`.
 
-For "WBC 5.71": the text is untagged, between `<line id="10">` and `<line id="15">`. Use `lineIds: [10]` or `[15]`.
+For "WBC 5.71": between `<line id="10">` and `<line id="15">`. Use `lineIds: [10]` or `[15]`.
 
 **How to find the right lineId:**
 1. Read the `deepTextPromptPortion` from `.deepcitation/prepare-*.json`
-2. Search for your citation text in the deepTextPromptPortion
-3. Find the nearest `<line id="N">` tag on or before that text
-4. Use that N as the lineId. If the text spans multiple tagged lines, include all of them.
-5. For `pageNumber`, use the number from the enclosing `<page_number_N_index_I>` tag (use N, not I)
+2. Search for your citation text
+3. Use the nearest `<line id="N">` tag. If the text spans multiple tagged lines, include all of them.
+4. For `pageNumber`, use N from the enclosing `<page_number_N_index_I>` tag (use N, not I)
 
-**Why this matters:** If you provide a nonexistent lineId, the API falls back to page-level search, resulting in `partial_text_found` instead of `found`.
+**Why this matters:** The line IDs encode spatial position (columns, tables). Providing an incorrect ID causes the API to fall back to page-level search, resulting in `partial_text_found` instead of `found`.
 
 ```json
 {
