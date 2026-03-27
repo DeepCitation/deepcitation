@@ -49,7 +49,7 @@ Before calling any API, scan all available context:
 → Skip Step 2. Extract citations and source file references, prepare any source files not yet uploaded, then verify and generate a report.
 
 **C) Uncited AI-generated content found** (substantive claims WITHOUT citation markers)
-→ Most common case when a user runs `/verify` after getting a response. Identify the source documents (from conversation context, file references, or ask if truly unclear), prepare them, re-generate the content WITH citations, verify, and generate a report.
+→ Most common case when a user runs `/verify` after getting a response. Identify the source documents (from conversation context, file references, or ask if truly unclear). **Ask before guessing** — especially when sources are internal/intranet URLs or documents the user may need to manually download, print to PDF, or upload for the API to access. Running the full pipeline against the wrong sources wastes time and produces misleading results. Prepare them, re-generate the content WITH citations, verify, and generate a report.
 
 **D) A text/HTML file provided** (`/verify analysis.txt` or `/verify report.html`)
 → Read the file. If it contains `<<<CITATION_DATA>>>`, treat as path B. Otherwise, treat the file's content as the claims to verify and proceed through the full pipeline.
