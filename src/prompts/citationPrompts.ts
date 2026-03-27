@@ -6,7 +6,7 @@
  * a structured JSON block at the end of the response.
  *
  * Canonical format spec: docs/prompts/citation-format.md
- * (shared with the /verify skill — keep in sync)
+ * (single source of truth — update the spec file, not here)
  *
  * Benefits:
  * - **Robustness**: JSON.parse handles escaping naturally, avoiding quote-escaping issues

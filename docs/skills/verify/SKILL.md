@@ -21,7 +21,7 @@ Verify claims against source documents using the DeepCitation 2-step API, saving
 ## Key Rules
 
 - **`page_id` and `line_ids` MUST come from the `deepTextPromptPortion`** — use `<page_number_N_index_I>` tags for page_id and `<line id="N">` tags for line_ids. These are **sparse** (not every line is tagged). Always read the `deepTextPromptPortion` from Step 1 as context. See Step 2B-3 for details.
-- **Coverage audit**: After generating citations, spawn a subagent to audit the report/chat and confirm all facts, sources, names, dates, and values have deepcitations. The subagent should flag any uncited claims. Do not rely on absolute count thresholds — coverage depends on the document's content density.
+- **Coverage audit**: After generating citations, spawn a subagent to audit the report/chat and confirm all facts, sources, names, dates, and values have deepcitations. The subagent should flag any uncited claims.
 
 ## Workflow
 
@@ -49,7 +49,7 @@ Before calling any API, scan all available context:
 → Skip Step 2. Extract citations and source file references, prepare any source files not yet uploaded, then verify and generate a report.
 
 **C) Uncited AI-generated content found** (substantive claims WITHOUT citation markers)
-→ Most common case when a user runs `/verify` after getting a response. Identify the source documents (from conversation context or file references), prepare them, re-generate the content WITH citations, verify, and generate a report.
+→ Most common case when a user runs `/verify` after getting a response. Identify the source documents (from conversation context, file references, or ask if truly unclear), prepare them, re-generate the content WITH citations, verify, and generate a report.
 
 **D) A text/HTML file provided** (`/verify analysis.txt` or `/verify report.html`)
 → Read the file. If it contains `<<<CITATION_DATA>>>`, treat as path B. Otherwise, treat the file's content as the claims to verify and proceed through the full pipeline.
@@ -138,7 +138,7 @@ Prepare ALL of them in Step 1 — not just one. Each produces a separate `attach
 
 Think like a lawyer: every claim, every entity, every date, every value. If it asserts a fact, it needs a source. When in doubt, cite it — overciting costs nothing, underciting defeats the purpose. After citation generation, spawn a subagent to audit coverage: walk every section and confirm all facts, sources, names, dates, and values have deepcitations.
 
-**Coverage target: 50-150 citations for a typical multi-section report.** Hard floor: 30 (below this the validation script warns). Target: 50+. Common failure: only citing the first section and skipping the rest.
+**Coverage target: 50-150 citations for a typical multi-section report.** Soft floor: 30 (below this the validation script warns). Target: 50+. Common failure: only citing the first section and skipping the rest. These are guidelines, not rigid thresholds — coverage depends on the document's content density.
 
 **Walk every section explicitly.** After building your initial list, enumerate every `<h2>` section and count citations per section. Any section with zero citations means the user has to check it manually.
 
@@ -361,7 +361,11 @@ python3 -c "
 import json, glob, sys
 merged = {'verifications': {}}
 for f in sorted(glob.glob('.deepcitation/verify-resp-*.json')):
-    data = json.loads(open(f).read())
+    try:
+        data = json.loads(open(f).read())
+    except json.JSONDecodeError as e:
+        print(f'WARNING: {f} is malformed JSON — skipping ({e})', file=sys.stderr)
+        continue
     if 'verifications' not in data:
         print(f'WARNING: {f} has no verifications key — skipping (got keys: {list(data.keys())})', file=sys.stderr)
         continue

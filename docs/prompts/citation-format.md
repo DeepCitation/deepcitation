@@ -26,7 +26,7 @@ At the END of your response, append a citation block. Group citations by `attach
 2. **id**: Each citation MUST have a unique ID matching its [N] marker. Do NOT reuse the same ID for different citations.
 3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
 4. **fullPhrase**: Copy text VERBATIM from source. Use proper JSON escaping for quotes.
-5. **anchorText**: The 1-3 most important words from `fullPhrase`
+5. **anchorText**: The most distinctive words from `fullPhrase`. For structured/tabular data, 1-3 words suffice (e.g., a lab value). For narrative prose, use 5+ distinctive words to avoid ambiguous matches.
 6. **pageId**: Format `page_number_N_index_I` where N=page number, I=index. Copy exactly from `<page_number_N_index_I>` tags in the source.
 7. **lineIds**: Array of line IDs from the source. Copy from `<line id="N">` tags in the text. Include IDs for all relevant lines. These are **sparse** — not every line is tagged. Use the nearest tagged line.
 
