@@ -872,13 +872,14 @@ export class DeepCitation {
     options?: VerifyBatchOptions,
   ): Promise<VerifyCitationsResponse> {
     const citationEntries = Object.entries(citations);
-    const totalCount = citationEntries.length;
 
-    if (totalCount === 0) {
+    if (citationEntries.length === 0) {
       return { verifications: {} };
     }
 
-    // Separate citations with and without attachmentId
+    // Separate citations into sendable (have attachmentId) and skipped.
+    // URL citations without an attachmentId are intentionally skipped here —
+    // they require a separate URL verification flow (prepareUrl → verify).
     const batchCitations: Record<string, Citation> = {};
     const skippedKeys: string[] = [];
 
@@ -890,13 +891,18 @@ export class DeepCitation {
       }
     }
 
+    // Limits apply to sendable citations only (skipped citations are not sent to the API)
     const sendableCount = Object.keys(batchCitations).length;
     if (sendableCount > 500) {
       throw new ValidationError(`Batch request contains ${sendableCount} citations, max is 500`);
     }
 
     // Validate max distinct attachments
-    const distinctAttachments = new Set(Object.values(batchCitations).map(c => c.attachmentId));
+    const distinctAttachments = new Set(
+      Object.values(batchCitations)
+        .map(c => c.attachmentId)
+        .filter(Boolean),
+    );
     if (distinctAttachments.size > 50) {
       throw new ValidationError(`Batch request references ${distinctAttachments.size} distinct attachments, max is 50`);
     }
@@ -908,10 +914,10 @@ export class DeepCitation {
     }
 
     const resolvedEndUserId = this.resolveEndUserId(options?.endUserId);
-    const outputImageFormat = options?.outputImageFormat || "avif";
+    const outputImageFormat = options?.outputImageFormat ?? "avif";
 
     this.logger.info?.("Verifying citations (batch)", {
-      citationCount: Object.keys(batchCitations).length,
+      citationCount: sendableCount,
       attachmentCount: distinctAttachments.size,
     });
 

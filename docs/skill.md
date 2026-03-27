@@ -308,4 +308,6 @@ Only citation metadata (phrases, page numbers, line IDs) is sent to the DeepCita
 
 **Agent skills:** [github.com/DeepCitation/skills](https://github.com/DeepCitation/skills)
 
+**Open-source library:** [github.com/DeepCitation/deepcitation](https://github.com/DeepCitation/deepcitation)
+
 **API keys:** [deepcitation.com/keys](https://deepcitation.com/keys)

@@ -254,13 +254,9 @@ export interface VerifyCitationsOptions {
 
 /**
  * Options for batch citation verification across multiple attachments.
+ * Structurally identical to VerifyCitationsOptions — aliased to prevent silent drift.
  */
-export interface VerifyBatchOptions {
-  /** Output image format for verification screenshots */
-  outputImageFormat?: ImageFormat;
-  /** Developer's end-user identifier for usage attribution. Overrides the instance-level endUserId if set. */
-  endUserId?: string;
-}
+export type VerifyBatchOptions = VerifyCitationsOptions;
 
 /**
  * Simplified citation input for verification

@@ -721,6 +721,45 @@ describe("DeepCitation Client", () => {
       const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(requestBody.data.mode).toBe("batch");
     });
+
+    it("propagates skipped: true for citations without attachmentId", async () => {
+      const client = new DeepCitation({ apiKey: "sk-dc-test-key-00000001" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          verifications: {
+            citation_key_1: { status: "found" },
+          },
+        }),
+      } as Response);
+
+      // Citation [1] has an attachment, citation [2] does not
+      const llmOutput = makeNumericResponse("Test [1]. Also [2].", [
+        {
+          id: 1,
+          attachment_id: "file_123",
+          full_phrase: "Test content",
+          anchor_text: "Test",
+          page_id: "1_0",
+          line_ids: [1],
+        },
+        {
+          id: 2,
+          full_phrase: "No attachment",
+          anchor_text: "Also",
+          page_id: "1_0",
+          line_ids: [2],
+        },
+      ]);
+
+      const result = await client.verify({ llmOutput });
+
+      // The citation without attachmentId should be skipped with discriminant
+      const skippedEntry = Object.values(result.verifications).find(v => v.status === "skipped");
+      expect(skippedEntry).toBeDefined();
+      expect(skippedEntry?.skipped).toBe(true);
+    });
   });
 
   describe("prepareAttachments with concurrency limits", () => {
