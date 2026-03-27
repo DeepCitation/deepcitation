@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Batch verification mode** — new `verifyBatch()` method sends all citations in a single API call instead of per-attachment fan-out; `verify()` now delegates to `verifyBatch()` internally (#381)
+- **`BatchVerifyCitationRequest` and `VerifyInput` types** exported from root entry point (#381)
+- **`skipped` discriminant** on `Verification` for citations that cannot be sent (e.g. URL citations without `prepareUrl`) (#381)
+- **CLI commands** — `deepcitation prepare`, `deepcitation verify`, `deepcitation inject`, `deepcitation login`, `deepcitation report`, `deepcitation keygen` for headless workflows (#378, #379)
+- **CDN key-map resolution** — `data-citation-key` attributes resolved to hashed keys at runtime via an inline key-map, enabling human-readable HTML annotation (#378)
+- **Branded HTML report** — `renderBrandedReport()` for styled, standalone verification reports with DeepCitation branding (#377)
+- **`/verify` Claude Code skill** — end-to-end citation verification skill with progressive-disclosure rules, now hosted at `DeepCitation/skills` (#377, #379)
+- **Canonical citation-format spec** — `docs/prompts/citation-format.md` as single source of truth for citation field names (#379)
+- **Analysis module** — extracted `src/analysis/` with citation grouping, statistics, and export utilities (#376)
+- **`prepareCitations()` rendering utility** — new helper in `src/rendering/` for pre-processing citations before rendering (#375)
+
+### Changed
+
+- **CDN runtime consolidation** — merged `content.ts`, `popover.ts`, and `index.ts` into a single `cdn.ts` with two-div popover architecture, scroll passthrough, blink animations, and `ResizeObserver` position tracking (#378)
+- **Evidence module deepened** — reorganized evidence-related code into cohesive submodules with cleaner exports (#375)
+- **Hooks extraction** — moved reusable hooks into dedicated files for better tree-shaking (#376)
+- **`escapeMd` regex cached at module scope** for improved rendering performance (#373)
+
+### Fixed
+
+- **AG-UI chat SSE hang** — resolved cold-start hang and streaming parse issues in the agui-chat example (#374)
+- **Release notes extraction** — changelog entry is now correctly extracted for GitHub release notes instead of raw PR list (#065b602)
+
 ## [0.3.0] - 2026-03-25
 
 ## [0.2.3] - 2026-03-24
@@ -487,7 +512,8 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/deepcitation/deepcitation/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/deepcitation/deepcitation/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/deepcitation/deepcitation/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/deepcitation/deepcitation/compare/v0.2.0...v0.2.1
