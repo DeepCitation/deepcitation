@@ -1,2 +1,2 @@
-export { renderCitationReport } from "./renderReport.js";
-export type { VanillaReportOptions } from "./types.js";
+// Vanilla utilities are imported directly by the CLI (cli.ts).
+// The public entry point is "./cdn" (deepcitation-popover.cdn.js).

@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **Branded HTML report** — removed `renderBrandedReport()`, `BrandedReportOptions`, and `deepcitation report` CLI command; use `deepcitation inject` instead
+- **Vanilla report renderers** — removed `renderBrandedReport()`, `renderCitationReport()`, `BrandedReportOptions`, `VanillaReportOptions`, the `deepcitation/vanilla` export, and `deepcitation report` CLI command; use `deepcitation inject` instead
 
 ## [0.3.0] - 2026-03-25
 

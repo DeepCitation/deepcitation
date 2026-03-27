@@ -157,10 +157,6 @@
       "limit": "70 KB"
     },
     {
-      "path": "lib/vanilla/index.js",
-      "limit": "70 KB"
-    },
-    {
       "path": "lib/vanilla/deepcitation-popover.cdn.js",
       "limit": "80 KB"
     }
@@ -225,12 +221,6 @@
       "import": "./lib/rendering/terminal/terminalRenderer.js",
       "require": "./lib/rendering/terminal/terminalRenderer.cjs",
       "default": "./lib/rendering/terminal/terminalRenderer.js"
-    },
-    "./vanilla": {
-      "types": "./lib/vanilla/index.d.ts",
-      "import": "./lib/vanilla/index.js",
-      "require": "./lib/vanilla/index.cjs",
-      "default": "./lib/vanilla/index.js"
     },
     "./tailwind.css": "./src/tailwind.css",
     "./styles.css": "./lib/styles.css",
