@@ -207,14 +207,14 @@ npx -y deepcitation keygen \
 
 This prints the mapping (e.g. `cite-hba1c → bfd6ec10bd261161`) to stderr and writes the re-keyed citations to `citations-keyed.json`. Use `citations-keyed.json` for the verify request in Step 3.
 
-**2B-5. Annotate the HTML with `data-cite` attributes.** Use human-readable keys from `citations.json` (e.g., `cite-hba1c`), NOT hashed keys. The CDN runtime resolves these via the key map (see Step 4).
+**2B-5. Annotate the HTML with `data-citation-key` attributes.** Use human-readable keys from `citations.json` (e.g., `cite-hba1c`), NOT hashed keys. The CDN runtime resolves these via the key map (see Step 4).
 
 ```html
 <!-- Before -->
 <div class="stat-value">5.5%</div>
 
 <!-- After -->
-<div class="stat-value" data-cite="cite-hba1c">5.5%</div>
+<div class="stat-value" data-citation-key="cite-hba1c">5.5%</div>
 ```
 
 Write the annotated HTML to `.deepcitation/annotated.html`.
@@ -240,12 +240,12 @@ The verification API searches the source for these exact strings. If the HTML di
 
 Never:
 - Set `anchorText` to the HTML's displayed text to force a match — that's fabricating evidence
-- Add interpretive text or annotations near `data-cite` elements — the indicator is the sole visual signal
+- Add interpretive text or annotations near `data-citation-key` elements — the indicator is the sole visual signal
 - Assume a value in the HTML matches the source without checking the `deepTextPromptPortion`
 
 **Example:** The HTML displays "PHN 305005112". The source contains "Mã BN/ID: 260006301". These are different identifiers. Do NOT cite "305005112" using the source text for "260006301". Either find "305005112" in a source document, or leave it uncited.
 
-**2B-6. Choose where to place `data-cite`.** Place it on the most specific element containing the claim:
+**2B-6. Choose where to place `data-citation-key`.** Place it on the most specific element containing the claim:
 
 - **Single value** (e.g. `<span class="stat-value">5.5%</span>`) → directly on the value element
 - **Value + label pair** (e.g. `HbA1c: 5.5%`) → on the value element, not the label
@@ -395,7 +395,7 @@ npx -y deepcitation report \
 
 **Option B: Inject into an existing HTML file** (dashboard, report, etc.)
 
-Use this when you followed Path B in Step 2 — you annotated the HTML with `data-cite` attributes and built a key-map.
+Use this when you followed Path B in Step 2 — you annotated the HTML with `data-citation-key` attributes and built a key-map.
 
 ```bash
 npx -y deepcitation inject \
@@ -405,12 +405,12 @@ npx -y deepcitation inject \
   --out .deepcitation/dashboard-verified.html
 ```
 
-The `--key-map` flag embeds a `<script id="dc-key-map">` block that the CDN runtime uses to resolve `data-cite` to `data-citation-key` at runtime.
+The `--key-map` flag embeds a `<script id="dc-key-map">` block that the CDN runtime uses to resolve human-readable `data-citation-key` values to hashed keys at runtime.
 
 This injects before `</body>`:
 - Verification JSON (`<script id="dc-data">`)
 - The CDN runtime bundle (Preact + React popover components + Tailwind CSS)
-- Auto-init script that resolves `data-cite` → `data-citation-key` via the key map, then wires up click handlers
+- Auto-init script that resolves human-readable `data-citation-key` values to hashed keys via the key map, then wires up click handlers
 
 ### Step 5: Validate Before Declaring Done
 
@@ -425,9 +425,9 @@ class CiteCounter(HTMLParser):
     def __init__(self): super().__init__(); self.cites = []
     def handle_starttag(self, tag, attrs):
         d = dict(attrs)
-        if 'data-cite' in d: self.cites.append(d['data-cite'])
+        if 'data-citation-key' in d: self.cites.append(d['data-citation-key'])
 
-# 1. Count data-cite elements in annotated HTML
+# 1. Count data-citation-key elements in annotated HTML
 html = open('.deepcitation/annotated.html').read()
 p = CiteCounter(); p.feed(html)
 cite_count = len(set(p.cites))
@@ -448,12 +448,12 @@ found = sum(1 for v in vdata.values() if v.get('status') == 'found')
 partial = sum(1 for v in vdata.values() if v.get('status') in PARTIAL_STATUSES)
 nf = sum(1 for v in vdata.values() if v.get('status') == 'not_found')
 
-print(f'data-cite elements: {cite_count} unique')
+print(f'data-citation-key elements: {cite_count} unique')
 print(f'key-map entries:    {len(km)}')
 print(f'verifications:      {len(vdata)} (found={found}, partial={partial}, not_found={nf})')
-print(f'orphan data-cites:  {len(orphans)} {orphans[:5] if orphans else \"\"}')
+print(f'orphan data-citation-keys:  {len(orphans)} {orphans[:5] if orphans else \"\"}')
 print(f'missing verifies:   {len(missing_verify)} {missing_verify[:5] if missing_verify else \"\"}')
-if orphans: print('ERROR: data-cite elements with no key-map entry — popovers will not activate')
+if orphans: print('ERROR: data-citation-key elements with no key-map entry — popovers will not activate')
 if missing_verify: print('ERROR: key-map entries with no verification — indicators will show but popover will be empty')
 if cite_count < 30: print(f'WARNING: only {cite_count} citations — likely underciting. Expected 50+ for a multi-section document.')
 "
@@ -479,7 +479,7 @@ All artifacts are saved in `.deepcitation/` for auditability and re-runs:
 | `citations.json` | Extracted `CitationRecord` with human-readable keys |
 | `citations-keyed.json` | Re-keyed citations with hashed keys (from `keygen`) |
 | `key-map.json` | Human-readable key → hashed key mapping |
-| `annotated.html` | HTML with `data-cite` attributes (before injection) |
+| `annotated.html` | HTML with `data-citation-key` attributes (before injection) |
 | `verify-request.json` | Request body sent to `/verifyCitations` |
 | `verify-response.json` | Verification results with statuses and evidence |
 | `report-{topic}-{timestamp}.html` | Branded interactive HTML report |
