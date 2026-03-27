@@ -199,7 +199,7 @@ The skill should:
 
 **Expected**: Citations on the 5-4 split, Section 4(b), Section 5, Chief Justice Roberts, 15th Amendment. All `found`.
 
-**Playwright**: Click citation on "Section 4(b)" → screenshot popover showing ✓ with opinion text. Save to `scratch/legal-qa/9a-shelby-section4b.png`.
+**Playwright**: Click citation on "Section 4(b)" → screenshot popover showing ✓ with opinion text. Save to `scratch/screenshots/legal-qa/9a-shelby-section4b.png`.
 
 #### Test 9b — "Report with implied sources" (user expects the AI to find them)
 
@@ -215,7 +215,7 @@ The skill should:
 
 **Expected**: Citations on "No voting qualification or prerequisite to voting...", §2(a), §2(b), "totality of circumstances". Verbatim statutory text → `found`. Long multi-clause sentences → possible `partial_text_found`.
 
-**Playwright**: Click citation on "totality of circumstances" → screenshot popover showing context from §2(b). Save to `scratch/legal-qa/9b-vra-totality.png`.
+**Playwright**: Click citation on "totality of circumstances" → screenshot popover showing context from §2(b). Save to `scratch/screenshots/legal-qa/9b-vra-totality.png`.
 
 #### Test 9c — "Definitions lookup" (structured regulatory content)
 
@@ -234,7 +234,7 @@ The skill should:
 
 **Expected**: §1630.2(g), §1630.2(m), §1630.2(o) definitions all cited. Regulatory text is highly structured → all `found`.
 
-**Playwright**: Click citation on "disability" definition → screenshot popover showing §1630.2(g) text. Save to `scratch/legal-qa/9c-ada-disability.png`.
+**Playwright**: Click citation on "disability" definition → screenshot popover showing §1630.2(g) text. Save to `scratch/screenshots/legal-qa/9c-ada-disability.png`.
 
 #### Test 9d — Hallucination detection (fabricated case in user's prompt)
 
@@ -248,7 +248,7 @@ User's own prompt contains a hallucinated case. The system must flag it.
 
 **Expected**: Real Citizens United claims → `found`. Henderson claims → `not_found` or absent entirely. Zero false ✓ on fabricated content.
 
-**Playwright**: If any Henderson citation exists, click it → screenshot popover showing ✗. Save to `scratch/legal-qa/9d-hallucination-henderson.png`. This screenshot is the most important artifact — it proves the system surfaces fabricated citations rather than hiding them.
+**Playwright**: If any Henderson citation exists, click it → screenshot popover showing ✗. Save to `scratch/screenshots/legal-qa/9d-hallucination-henderson.png`. This screenshot is the most important artifact — it proves the system surfaces fabricated citations rather than hiding them.
 
 #### Test 9e — "Multi-source comparative analysis" (two real opinions)
 
@@ -263,7 +263,7 @@ The skill should:
 
 **Expected**: Due Process and Equal Protection citations from Obergefell → `found`. 15th Amendment / Section 5 citations from Shelby County → `found`. Cross-source attribution is correct (no mixing up which opinion a quote came from).
 
-**Playwright**: Click a citation from each source — one Obergefell, one Shelby County — screenshot both popovers to confirm different source URLs appear. Save to `scratch/legal-qa/9e-obergefell-dueprocess.png` and `scratch/legal-qa/9e-shelby-15th.png`.
+**Playwright**: Click a citation from each source — one Obergefell, one Shelby County — screenshot both popovers to confirm different source URLs appear. Save to `scratch/screenshots/legal-qa/9e-obergefell-dueprocess.png` and `scratch/screenshots/legal-qa/9e-shelby-15th.png`.
 
 ### Execution
 
@@ -275,7 +275,7 @@ For each test, an operator (or automated runner) starts a Claude Code conversati
    - Navigate to the output HTML
    - Click each `[data-verification]` element
    - Wait for popover to render
-   - Screenshot to `scratch/legal-qa/{test-id}-{description}.png`
+   - Screenshot to `scratch/screenshots/legal-qa/{test-id}-{description}.png`
 
 ### Success Criteria
 

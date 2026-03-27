@@ -35,7 +35,7 @@ Before calling any API, scan all available context:
 2. **Scan conversation history** (always, even when arguments are provided):
    - AI-generated content: reports, summaries, analyses, dashboards, HTML output
    - `[N]` citation markers and `<<<CITATION_DATA>>>` blocks
-   - Source file mentions (PDFs, DOCX, URLs)
+   - Source file mentions (PDFs, images, DOCX/XLSX/PPTX, URLs)
    - Links to generated artifacts (HTML reports, dashboards)
 3. **Scan the working directory**: `.deepcitation/` artifacts from prior runs, source documents
 4. **Scan for generated HTML files**: `glob .deepcitation/report-*.html` and any other HTML files mentioned in conversation
@@ -83,13 +83,15 @@ If multiple source files are uploaded, save each prepare response separately and
 
 Always read the `deepTextPromptPortion` before building citations. Line IDs are **sparse** (not every line is tagged) — see Step 2B-3.
 
-**URL sources**: If a source is a URL, download it first and upload the file:
+**URL sources**: Use the `prepareUrl` API — it handles conversion and text extraction in one call:
 ```bash
-curl -sL "https://example.com/report.pdf" -o .deepcitation/downloaded-report.pdf
-# Check it's actually a PDF/document (not an HTML redirect page)
-file .deepcitation/downloaded-report.pdf
+curl -s -X POST https://api.deepcitation.com/prepareAttachments \
+  -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/page"}' \
+  > .deepcitation/prepare-source.json
 ```
-If the download returns HTML instead of the expected document (common with auth walls), warn the user. Do not upload HTML disguised as PDF — the API will reject it with "File content does not match its declared type."
+URLs and Office files take ~30s to process vs <1s for images/PDFs. The API handles rendering, conversion, and text extraction server-side — do NOT download and re-upload.
 
 If a URL is inaccessible (DNS failure, 403, auth required), report it clearly and continue with available sources. Do not fabricate citations for sources you couldn't prepare.
 
@@ -108,17 +110,7 @@ Prepare ALL of them in Step 1 — not just one. Each produces a separate `attach
 
 **2B-2. Identify verifiable claims — exhaustive coverage.** Scan the **entire** HTML for factual assertions. Every uncited claim is something the user still has to verify manually.
 
-**What to cite:**
-
-- **Quantitative values**: lab results, measurements, scores, percentages, dosages, counts
-- **Dates and timelines**: diagnosis dates, medication start dates, "since" dates
-- **Diagnoses and conditions**: named conditions, severity, type (e.g. "inattentive type")
-- **Medications**: drug names, dosages, frequencies
-- **Imaging/procedure findings**: specific findings from MRIs, endoscopies, etc.
-- **Body composition**: weight, BMI, muscle mass, body fat percentages
-- **Historical facts**: "diagnosed ~1997", "confirmed 2001", prior values ("was 5.7%")
-- **Reference ranges**: "ref 4.0–6.0%", "ref <5.2" — these come from the source document
-- **Trend comparisons**: "was 5.7%", "improved from", "up from ~12%" — the prior value is a claim
+**What to cite:** Every claim, value, or fact from attachments. If a human would need to open a source document to verify it, cite it. This includes values, dates, names, measurements, findings, diagnoses, reference ranges, and any restated or summarized content.
 
 **Common blind spots:**
 
@@ -136,9 +128,7 @@ Prepare ALL of them in Step 1 — not just one. Each produces a separate `attach
 - It restates or summarizes source document content
 - A human would need to open a PDF to verify it
 
-Think like a lawyer: every claim, every entity, every date, every value. If it asserts a fact, it needs a source. When in doubt, cite it — overciting costs nothing, underciting defeats the purpose. After citation generation, spawn a subagent to audit coverage: walk every section and confirm all facts, sources, names, dates, and values have deepcitations.
-
-**Coverage target: 50-150 citations for a typical multi-section report.** Soft floor: 30 (below this the validation script warns). Target: 50+. Common failure: only citing the first section and skipping the rest. These are guidelines, not rigid thresholds — coverage depends on the document's content density.
+When in doubt, cite it — overciting costs nothing, underciting defeats the purpose. After citation generation, spawn a subagent to audit coverage: walk every section and confirm all facts, sources, names, dates, and values have deepcitations.
 
 **Walk every section explicitly.** After building your initial list, enumerate every `<h2>` section and count citations per section. Any section with zero citations means the user has to check it manually.
 
@@ -232,18 +222,17 @@ Build this by comparing `citations.json` keys with `citations-keyed.json` keys. 
 
 **anchorText and fullPhrase must be verbatim from the source document (`deepTextPromptPortion`).**
 
-The verification API searches the source for these exact strings. If the HTML displays a different value than the source, there are two correct approaches:
+The verification API searches the source for these exact strings. **Always cite using source text as anchorText** — even when the HTML displays a different value. The popover shows the user:
+- The verification status (✓/⚠/✗)
+- The context surrounding where the text was (or wasn't) found in the source
+- Variant matches the API attempted
 
-1. **Cite using source text.** The popover component detects the mismatch and shows a `displayLabel` annotation ("displayed as X") so the user understands the discrepancy. The indicator remains trustworthy.
-
-2. **Don't cite it.** If the displayed value can't be traced to any source document, leave it uncited. An unverified claim is honest; a checkmark verified against a *different* value is a lie.
+A ⚠ or ✗ next to a claim is more useful than no indicator at all — it flags exactly which claims need human review and shows what the source actually contains.
 
 Never:
 - Set `anchorText` to the HTML's displayed text to force a match — that's fabricating evidence
 - Add interpretive text or annotations near `data-citation-key` elements — the indicator is the sole visual signal
 - Assume a value in the HTML matches the source without checking the `deepTextPromptPortion`
-
-**Example:** The HTML displays "PHN 305005112". The source contains "Mã BN/ID: 260006301". These are different identifiers. Do NOT cite "305005112" using the source text for "260006301". Either find "305005112" in a source document, or leave it uncited.
 
 **2B-6. Choose where to place `data-citation-key`.** Place it on the most specific element containing the claim:
 
@@ -455,7 +444,7 @@ print(f'orphan data-citation-keys:  {len(orphans)} {orphans[:5] if orphans else 
 print(f'missing verifies:   {len(missing_verify)} {missing_verify[:5] if missing_verify else \"\"}')
 if orphans: print('ERROR: data-citation-key elements with no key-map entry — popovers will not activate')
 if missing_verify: print('ERROR: key-map entries with no verification — indicators will show but popover will be empty')
-if cite_count < 30: print(f'WARNING: only {cite_count} citations — likely underciting. Expected 50+ for a multi-section document.')
+if cite_count == 0: print('WARNING: no citations found — did you forget to annotate?')
 "
 ```
 
