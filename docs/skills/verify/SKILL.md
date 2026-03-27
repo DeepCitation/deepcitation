@@ -254,13 +254,15 @@ Use your judgement on placement:
 You ARE the LLM. Read the canonical citation format spec:
 
 ```bash
-cat docs/prompts/citation-format.md
+# Resolve the package root, then read the spec
+DC_ROOT="$(node -e "console.log(require('path').resolve(require('path').dirname(require.resolve('deepcitation')), '..'))")"
+cat "$DC_ROOT/docs/prompts/citation-format.md"
 ```
 
 This is the single source of truth for field rules, format, and examples.
 
 1. Read the `deepTextPromptPortion` from the saved prepare JSON
-2. Read `docs/prompts/citation-format.md` for the citation format specification
+2. Read the citation format spec from the deepcitation package (see above)
 3. Generate your response with:
    - `[N]` markers after each claim sourced from the documents — **every claim, value, or fact from attachments gets a sequential integer marker like [1], [2], [3] at the end of the claim. Each distinct piece of information needs its own unique marker number.**
    - A `<<<CITATION_DATA>>>` block at the end with structured citation metadata grouped by `attachmentId`
@@ -421,8 +423,8 @@ Use `{topic}-{timestamp}` naming for all artifacts so re-runs (different chats, 
 
 ## References
 
-- Citation format spec (read at runtime): `docs/prompts/citation-format.md`
-- SDK prompt implementation: `src/prompts/citationPrompts.ts`
+- Citation format spec: `$DC_ROOT/docs/prompts/citation-format.md` (resolve `DC_ROOT` with `node -e "..."` as shown in Path C)
+- SDK prompt: `$DC_ROOT/src/prompts/citationPrompts.ts`
 - Citation parser: https://github.com/DeepCitation/deepcitation/blob/main/src/parsing/parseCitation.ts
 - API docs: https://deepcitation.com/docs
 
