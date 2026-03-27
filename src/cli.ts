@@ -369,6 +369,7 @@ function saveApiKey(key: string, source: string): void {
 async function login(argv: string[]) {
   const keyIdx = argv.indexOf("--key");
   if (keyIdx !== -1) {
+    if (keyIdx + 1 >= argv.length) die("--key requires a value", HELP);
     saveApiKey(argv[keyIdx + 1], "--key flag");
     return;
   }
