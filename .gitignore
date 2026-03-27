@@ -41,7 +41,7 @@ ag-ui-client*
 .playwright-mcp/
 
 # Auto-generated vanilla runtime
-src/vanilla/_generated.ts
+src/vanilla/_generated*.ts
 **/bun.lock
 **/package-lock.json
 **/node_modules

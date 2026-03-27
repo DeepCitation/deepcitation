@@ -24,7 +24,7 @@ export default defineConfig({
       declarationMap: false,
     },
   },
-  clean: true,
+  clean: false,
   minify: true,
   treeshake: true,
   splitting: true,
