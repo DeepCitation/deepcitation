@@ -18,6 +18,11 @@ Verify claims against source documents using the DeepCitation 2-step API, saving
 - Source files (PDF, DOCX, images, etc.) must be accessible on disk or via URL
 - Accepted file types: PDF, images (JPG, PNG), Office files (DOCX, XLSX, PPTX), CSV, TSV, ODF
 
+## Key Rules
+
+- **`page_id` and `line_ids` MUST come from the `deepTextPromptPortion`** — use `<page_number_N_index_I>` tags for page_id and `<line id="N">` tags for line_ids. These are **sparse** (not every line is tagged). Always read the `deepTextPromptPortion` from Step 1 as context. See Step 2B-3 for details.
+- **Coverage audit**: After generating citations, spawn a subagent to audit the report/chat and confirm all facts, sources, names, dates, and values have deepcitations. The subagent should flag any uncited claims. Do not rely on absolute count thresholds — coverage depends on the document's content density.
+
 ## Workflow
 
 ### Step 0: Analyze Input & Determine What to Verify
@@ -131,7 +136,7 @@ Prepare ALL of them in Step 1 — not just one. Each produces a separate `attach
 - It restates or summarizes source document content
 - A human would need to open a PDF to verify it
 
-Think like a lawyer: every claim, every entity, every date, every value. If it asserts a fact, it needs a source. When in doubt, cite it — overciting costs nothing, underciting defeats the purpose.
+Think like a lawyer: every claim, every entity, every date, every value. If it asserts a fact, it needs a source. When in doubt, cite it — overciting costs nothing, underciting defeats the purpose. After citation generation, spawn a subagent to audit coverage: walk every section and confirm all facts, sources, names, dates, and values have deepcitations.
 
 **Coverage target: 50-150 citations for a typical multi-section report.** Hard floor: 30 (below this the validation script warns). Target: 50+. Common failure: only citing the first section and skipping the rest.
 
@@ -270,16 +275,19 @@ Use your judgement on placement:
 
 #### Path C: Generate new cited response from scratch
 
-You ARE the LLM. Use the `deepTextPromptPortion` from Step 1 as context and follow the citation prompt pattern from the open-source prompts:
-https://github.com/DeepCitation/deepcitation/blob/main/src/prompts/citationPrompts.ts
+You ARE the LLM. Read the canonical citation format spec:
+
+```bash
+cat docs/prompts/citation-format.md
+```
+
+This is the single source of truth for field rules, format, and examples.
 
 1. Read the `deepTextPromptPortion` from the saved prepare JSON
-2. Wrap your system and user prompts with DeepCitation's citation instructions:
-   - Add the citation format instructions to your system prompt
-   - Include the `deepTextPromptPortion` in the user prompt as source context
+2. Read `docs/prompts/citation-format.md` for the citation format specification
 3. Generate your response with:
-   - `[N]` markers after each claim sourced from the documents
-   - A `<<<CITATION_DATA>>>` block at the end with structured citation metadata
+   - `[N]` markers after each claim sourced from the documents — **every claim, value, or fact from attachments gets a sequential integer marker like [1], [2], [3] at the end of the claim. Each distinct piece of information needs its own unique marker number.**
+   - A `<<<CITATION_DATA>>>` block at the end with structured citation metadata grouped by `attachmentId`
 
 **Think out loud** for each citation — reason about which document, page, and line supports the claim before placing the marker.
 
@@ -496,7 +504,8 @@ Reports use `{topic}-{timestamp}` naming so re-runs don't clobber previous resul
 
 ## References
 
-- Open-source prompts: https://github.com/DeepCitation/deepcitation/blob/main/src/prompts/citationPrompts.ts
+- Citation format spec (read at runtime): `docs/prompts/citation-format.md`
+- SDK prompt implementation: `src/prompts/citationPrompts.ts`
 - Citation parser: https://github.com/DeepCitation/deepcitation/blob/main/src/parsing/parseCitation.ts
 - Branded report: https://github.com/DeepCitation/deepcitation/blob/main/src/vanilla/renderBrandedReport.ts
 - API docs: https://deepcitation.com/docs
