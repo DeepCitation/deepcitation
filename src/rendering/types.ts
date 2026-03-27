@@ -6,7 +6,6 @@ import type { Verification } from "../types/verification.js";
 export interface RenderOptions {
   verifications?: VerificationRecord;
   indicatorStyle?: IndicatorStyle;
-  proofBaseUrl?: string;
   includeSources?: boolean;
   sourceLabels?: Record<string, string>;
 }
@@ -26,5 +25,4 @@ export interface RenderedOutput {
   sources?: string;
   full: string;
   citations: RenderCitationWithStatus[];
-  proofUrls?: Record<string, string>;
 }

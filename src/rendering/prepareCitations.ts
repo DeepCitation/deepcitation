@@ -6,9 +6,9 @@
  * It parses input, resolves verifications, and produces a normalized IR
  * that rendering adapters consume. This allows:
  *
- * 1. Prepare once, render to multiple formats (GitHub + Slack + terminal)
+ * 1. Prepare once, render to multiple formats
  * 2. Test adapters in isolation against constructed IR literals
- * 3. Factor parse/resolve logic out of every renderer
+ * 3. Factor parse/resolve logic out of renderers
  *
  * @packageDocumentation
  */

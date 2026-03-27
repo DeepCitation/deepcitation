@@ -91,9 +91,4 @@ export const RENDER_STATUS_TYPES = [
 // VARIANT DEFINITIONS
 // =============================================================================
 
-export const SLACK_VARIANTS = ["brackets", "inline", "number"] as const;
-export const GITHUB_VARIANTS = ["brackets", "superscript", "inline", "footnote"] as const;
-export const HTML_VARIANTS = ["linter", "brackets", "chip", "superscript"] as const;
 export const TERMINAL_VARIANTS = ["brackets", "inline", "minimal"] as const;
-
-export const PROOF_BASE_URL = "https://proof.deepcitation.com";

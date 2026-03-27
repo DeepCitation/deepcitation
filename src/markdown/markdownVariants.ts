@@ -1,12 +1,6 @@
 import type { Citation, CitationStatus } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
-import type {
-  CitationWithStatus,
-  IndicatorStyle,
-  LinePosition,
-  MarkdownVariant,
-  RenderMarkdownOptions,
-} from "./types.js";
+import type { IndicatorStyle, LinePosition, RenderMarkdownOptions } from "./types.js";
 import { INDICATOR_SETS, SUPERSCRIPT_DIGITS } from "./types.js";
 
 /**
@@ -21,16 +15,6 @@ const LINE_POSITION_THRESHOLDS = {
   LATE: 0.8, // 66% to <80% of page
   // END: 80% to 100% of page (implicit)
 } as const;
-
-/** Maximum characters for truncated fullPhrase fallback in inline variant */
-const INLINE_TEXT_TRUNCATION_LIMIT = 50;
-
-const MD_ESCAPE_RE = /([\\*_`[\]<>~#|])/g;
-
-/** Escape characters that have special meaning in markdown. */
-export function escapeMd(text: string): string {
-  return text.replace(MD_ESCAPE_RE, "\\$1");
-}
 
 /**
  * Get the indicator string for a verification status.
@@ -83,38 +67,6 @@ export function humanizeLinePosition(lineId: number, totalLinesOnPage: number | 
 }
 
 /**
- * Get fallback text for inline/academic citations when anchorText is missing.
- * Fallback chain: anchorText -> truncated fullPhrase -> citation number bracket
- */
-function getInlineFallbackText(citation: Citation, citationNumber: number): string {
-  if (citation.anchorText) {
-    return citation.anchorText;
-  }
-  if (citation.fullPhrase) {
-    const truncated = citation.fullPhrase.slice(0, INLINE_TEXT_TRUNCATION_LIMIT);
-    return citation.fullPhrase.length > INLINE_TEXT_TRUNCATION_LIMIT ? `${truncated}...` : truncated;
-  }
-  return `[${citationNumber}]`;
-}
-
-/**
- * Get display text from a citation based on variant needs.
- * For inline/academic variants, uses the same fallback logic as renderCitationVariant
- * to ensure consistency between the returned displayText and the actual rendered output.
- */
-export function getCitationDisplayText(citation: Citation, variant: MarkdownVariant): string {
-  switch (variant) {
-    case "brackets":
-    case "superscript":
-    case "footnote":
-      return String(citation.citationNumber || 1);
-    default:
-      // Use getInlineFallbackText to match the behavior in renderCitationVariant
-      return getInlineFallbackText(citation, citation.citationNumber || 1);
-  }
-}
-
-/**
  * Format page location string with optional humanized line position.
  */
 export function formatPageLocation(
@@ -154,130 +106,4 @@ export function formatPageLocation(
   }
 
   return location;
-}
-
-/**
- * Render a citation in the specified markdown variant.
- */
-export function renderCitationVariant(citationWithStatus: CitationWithStatus, options: RenderMarkdownOptions): string {
-  const { variant = "inline", indicatorStyle = "check", linkStyle = "anchor" } = options;
-  const { citation, status, citationNumber } = citationWithStatus;
-
-  const indicator = getIndicator(status, indicatorStyle);
-  const n = citationNumber;
-
-  switch (variant) {
-    case "inline": {
-      const text = getInlineFallbackText(citation, n);
-      return linkStyle === "anchor" ? `[${text}${indicator}](#ref-${n})` : `${text}${indicator}`;
-    }
-
-    case "brackets":
-      return linkStyle === "anchor" ? `[${n}${indicator}](#ref-${n})` : `[${n}${indicator}]`;
-
-    case "superscript": {
-      const sup = toSuperscript(n);
-      return linkStyle === "anchor" ? `[${sup}${indicator}](#ref-${n})` : `${sup}${indicator}`;
-    }
-
-    case "footnote":
-      return `[^${n}]`;
-
-    case "academic": {
-      const sourceLabel =
-        options.sourceLabels?.[citation.type !== "url" ? citation.attachmentId || "" : ""] || "Source";
-      const page = citation.type !== "url" && citation.pageNumber ? `, p.${citation.pageNumber}` : "";
-      return linkStyle === "anchor"
-        ? `[(${sourceLabel}${page})${indicator}](#ref-${n})`
-        : `(${sourceLabel}${page})${indicator}`;
-    }
-
-    default: {
-      const _exhaustive: never = variant;
-      return indicator;
-    }
-  }
-}
-
-/**
- * Render a single reference entry for the references section.
- */
-export function renderReferenceEntry(citationWithStatus: CitationWithStatus, options: RenderMarkdownOptions): string {
-  const { variant = "inline", indicatorStyle = "check", showReasoning = false } = options;
-  const { citation, verification, status, citationNumber } = citationWithStatus;
-
-  const indicator = getIndicator(status, indicatorStyle);
-  const location = formatPageLocation(citation, verification, options);
-  const quote = citation.fullPhrase || citation.anchorText || "";
-
-  // Build the reference line
-  const lines: string[] = [];
-
-  if (variant === "footnote") {
-    // Footnote style: [^1]: "quote" - location ✓
-    let entry = `[^${citationNumber}]: `;
-    if (quote) entry += `"${escapeMd(quote)}"`;
-    if (location) entry += ` - ${location}`;
-    entry += ` ${indicator}`;
-    lines.push(entry);
-  } else {
-    // Standard reference style with anchor
-    let entry = `<a id="ref-${citationNumber}"></a>\n`;
-    entry += `**[${citationNumber}]** ${indicator}`;
-    if (citation.anchorText) {
-      entry += ` **${escapeMd(citation.anchorText)}**`;
-    }
-    if (location) entry += ` - ${location}`;
-    lines.push(entry);
-
-    // Add quote as blockquote
-    if (quote) {
-      lines.push(`> "${escapeMd(quote)}"`);
-    }
-
-    // Add reasoning if requested
-    if (showReasoning && citation.reasoning) {
-      lines.push(`> *${escapeMd(citation.reasoning)}*`);
-    }
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Render the full references section.
- */
-export function renderReferencesSection(citations: CitationWithStatus[], options: RenderMarkdownOptions): string {
-  const { referenceHeading = "## References", variant = "inline" } = options;
-
-  if (citations.length === 0) return "";
-
-  const lines: string[] = [referenceHeading, ""];
-
-  if (variant === "footnote") {
-    // Footnote style: all entries on their own lines
-    for (const citation of citations) {
-      lines.push(renderReferenceEntry(citation, options));
-    }
-  } else {
-    const STATUS_GROUPS: { heading: string; test: (s: CitationStatus) => boolean }[] = [
-      { heading: "### Verified", test: s => s.isVerified && !s.isPartialMatch },
-      { heading: "### Partial Match", test: s => s.isPartialMatch },
-      { heading: "### Not Found", test: s => s.isMiss },
-      { heading: "### Pending", test: s => s.isPending },
-      { heading: "### Unverified", test: s => !s.isVerified && !s.isPartialMatch && !s.isMiss && !s.isPending },
-    ];
-
-    for (const { heading, test } of STATUS_GROUPS) {
-      const group = citations.filter(c => test(c.status));
-      if (group.length > 0) {
-        lines.push(heading, "");
-        for (const citation of group) {
-          lines.push(renderReferenceEntry(citation, options), "");
-        }
-      }
-    }
-  }
-
-  return lines.join("\n").trim();
 }

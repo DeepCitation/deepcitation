@@ -46,7 +46,7 @@ export type {
   VerifyInput,
 } from "./client/index.js";
 
-// Markdown utilities (shared by renderers)
+// Markdown utilities
 export type {
   CitationWithStatus,
   IndicatorSet,
