@@ -22,6 +22,7 @@ export default defineConfig({
     compilerOptions: {
       composite: false,
       declarationMap: false,
+      types: ["node", "react", "react-dom"],
     },
   },
   clean: false,
