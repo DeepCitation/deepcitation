@@ -140,7 +140,7 @@ Verify citations directly from Claude Code with the `/verify` skill — no app c
 
 4. **Install the skill** — open [claude.ai/customize/skills](https://claude.ai/customize/skills), click **"Add Skill"**, and paste:
    ```
-   https://raw.githubusercontent.com/DeepCitation/deepcitation/main/docs/skills/verify/SKILL.md
+   https://raw.githubusercontent.com/DeepCitation/skills/main/skills/verify/SKILL.md
    ```
 
 5. **Use it** — in any Claude Code conversation:
