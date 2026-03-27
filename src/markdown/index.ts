@@ -25,20 +25,10 @@
 // Variant and indicator utilities
 export {
   formatPageLocation,
-  getCitationDisplayText,
   getIndicator,
   humanizeLinePosition,
-  renderCitationVariant,
-  renderReferenceEntry,
-  renderReferencesSection,
   toSuperscript,
 } from "./markdownVariants.js";
-// Main rendering functions
-export {
-  getVerificationIndicator,
-  renderCitationsAsMarkdown,
-  toMarkdown,
-} from "./renderMarkdown.js";
 
 // Types
 export type {
@@ -46,9 +36,7 @@ export type {
   IndicatorSet,
   IndicatorStyle,
   LinePosition,
-  MarkdownOutput,
   MarkdownVariant,
-  RenderMarkdownOptions,
 } from "./types.js";
 
 // Constants

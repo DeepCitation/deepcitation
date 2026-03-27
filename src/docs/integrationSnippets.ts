@@ -20,14 +20,11 @@ export const RECIPE_STRIP = `import { stripCitations } from "deepcitation";
 // Strips [N] markers and the <<<CITATION_DATA>>> block, returns clean text
 const cleanText = stripCitations(llmResponse);`;
 
-/** Recipe 2 — Keep [N] numbers, add references section */
-export const RECIPE_KEEP_MARKERS = `import { extractVisibleText, renderCitationsAsMarkdown } from "deepcitation";
+/** Recipe 2 — Keep [N] numbers, show clean text */
+export const RECIPE_KEEP_MARKERS = `import { extractVisibleText } from "deepcitation";
 
 // Numeric format: text already has [N] markers after stripping the data block
-const text = extractVisibleText(llmResponse);
-
-// Render as markdown with bracket-style references
-const { markdown, references } = renderCitationsAsMarkdown(llmResponse, { variant: "brackets" });`;
+const text = extractVisibleText(llmResponse);`;
 
 /** Recipe 3 — Render React <CitationComponent> inline with markdown support */
 export const RECIPE_REACT_INLINE = `import { CitationComponent } from "deepcitation/react";

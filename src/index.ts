@@ -46,25 +46,19 @@ export type {
   VerifyInput,
 } from "./client/index.js";
 
-// Markdown rendering (display helpers)
+// Markdown utilities (shared by renderers)
 export type {
   CitationWithStatus,
   IndicatorSet,
   IndicatorStyle,
   LinePosition,
-  MarkdownOutput,
   MarkdownVariant,
-  RenderMarkdownOptions,
 } from "./markdown/index.js";
 export {
   getIndicator,
-  getVerificationIndicator,
   humanizeLinePosition,
   INDICATOR_SETS,
-  renderCitationsAsMarkdown,
-  renderReferencesSection,
   SUPERSCRIPT_DIGITS,
-  toMarkdown,
   toSuperscript,
 } from "./markdown/index.js";
 
