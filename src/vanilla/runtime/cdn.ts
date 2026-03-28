@@ -191,7 +191,7 @@ function CdnPopoverWrapper(props: {
 /** For multi-line inline triggers, return the last line rect (where the indicator sits). */
 function getTriggerRect(trigger: HTMLElement): DOMRect {
   const rects = trigger.getClientRects();
-  return rects.length > 1 ? rects[rects.length - 1] : rects[0] ?? trigger.getBoundingClientRect();
+  return rects.length > 1 ? rects[rects.length - 1] : (rects[0] ?? trigger.getBoundingClientRect());
 }
 
 function reposition(): void {

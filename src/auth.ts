@@ -104,6 +104,8 @@ function corsHeaders(origin: string | undefined): Record<string, string> {
     "Access-Control-Allow-Origin": allowed,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
+    // Required for Chrome Private Network Access: the dashboard (public network)
+    // fetches to the localhost callback server (private network).
     "Access-Control-Allow-Private-Network": "true",
     "Access-Control-Max-Age": "86400",
   };

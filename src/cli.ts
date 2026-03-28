@@ -136,19 +136,20 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
     tlsSocket.write(head);
     if (bodyBuffer) tlsSocket.write(bodyBuffer);
 
-    // Parse response
+    // Parse response — keep body as Buffer to avoid corrupting binary data
     return new Promise<Response>((res, rej) => {
       const chunks: Buffer[] = [];
       tlsSocket.on("data", (chunk: Buffer) => chunks.push(chunk));
       tlsSocket.on("end", () => {
-        const raw = Buffer.concat(chunks).toString();
-        const headerEnd = raw.indexOf("\r\n\r\n");
+        const raw = Buffer.concat(chunks);
+        const separator = Buffer.from("\r\n\r\n");
+        const headerEnd = raw.indexOf(separator);
         if (headerEnd === -1) {
           rej(new Error("Invalid HTTP response from proxy tunnel"));
           return;
         }
-        const headerSection = raw.slice(0, headerEnd);
-        const body = raw.slice(headerEnd + 4);
+        const headerSection = raw.subarray(0, headerEnd).toString("ascii");
+        const bodyBuf = raw.subarray(headerEnd + 4);
         const [statusLine, ...headerLines] = headerSection.split("\r\n");
         const statusMatch = statusLine.match(/^HTTP\/[\d.]+ (\d+)/);
         const status = statusMatch ? Number(statusMatch[1]) : 0;
@@ -159,12 +160,16 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
         }
 
         // Handle chunked transfer encoding
-        let responseBody = body;
-        if (responseHeaders.get("transfer-encoding")?.includes("chunked")) {
-          responseBody = decodeChunked(body);
-        }
+        const responseBody = responseHeaders.get("transfer-encoding")?.includes("chunked")
+          ? decodeChunked(bodyBuf)
+          : bodyBuf;
 
-        res(new Response(responseBody, { status, headers: responseHeaders }));
+        // Pass ArrayBuffer (BodyInit-compatible) to avoid corrupting binary responses
+        const ab = responseBody.buffer.slice(
+          responseBody.byteOffset,
+          responseBody.byteOffset + responseBody.byteLength,
+        ) as ArrayBuffer;
+        res(new Response(ab, { status, headers: responseHeaders }));
         tlsSocket.destroy();
       });
       tlsSocket.on("error", err => {
@@ -175,20 +180,20 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
   };
 }
 
-/** Decode HTTP chunked transfer encoding */
-function decodeChunked(raw: string): string {
-  let result = "";
+/** Decode HTTP chunked transfer encoding (binary-safe) */
+function decodeChunked(raw: Buffer): Buffer {
+  const crlf = Buffer.from("\r\n");
+  const parts: Buffer[] = [];
   let pos = 0;
   while (pos < raw.length) {
-    const lineEnd = raw.indexOf("\r\n", pos);
+    const lineEnd = raw.indexOf(crlf, pos);
     if (lineEnd === -1) break;
-    const size = parseInt(raw.slice(pos, lineEnd), 16);
-    if (size === 0) break;
-    if (isNaN(size)) break;
-    result += raw.slice(lineEnd + 2, lineEnd + 2 + size);
+    const size = parseInt(raw.subarray(pos, lineEnd).toString("ascii"), 16);
+    if (size === 0 || Number.isNaN(size)) break;
+    parts.push(raw.subarray(lineEnd + 2, lineEnd + 2 + size));
     pos = lineEnd + 2 + size + 2; // skip chunk data + trailing \r\n
   }
-  return result;
+  return Buffer.concat(parts);
 }
 
 /**

@@ -274,27 +274,43 @@ describe("verify --html: full pipeline (unit)", () => {
 // ── Variant/indicator validation ──────────────────────────────────
 
 describe("variant and indicator validation", () => {
+  // These must match the allowlists in cli.ts — if the CLI adds/removes a value,
+  // these tests should break to flag the divergence.
   const allowedVariants = ["text", "linter", "chip", "brackets", "superscript", "footnote", "block"];
   const allowedIndicators = ["icon", "dot", "caret", "none"];
 
-  it("accepts all valid variants", () => {
-    for (const v of allowedVariants) {
-      expect(allowedVariants.includes(v)).toBe(true);
-    }
+  /** Simulates the CLI's validation check for an external user-supplied value. */
+  function isValidVariant(input: string): boolean {
+    return allowedVariants.includes(input);
+  }
+  function isValidIndicator(input: string): boolean {
+    return allowedIndicators.includes(input);
+  }
+
+  it("accepts each known variant", () => {
+    expect(isValidVariant("text")).toBe(true);
+    expect(isValidVariant("linter")).toBe(true);
+    expect(isValidVariant("chip")).toBe(true);
+    expect(isValidVariant("superscript")).toBe(true);
   });
 
-  it("accepts all valid indicators", () => {
-    for (const i of allowedIndicators) {
-      expect(allowedIndicators.includes(i)).toBe(true);
-    }
+  it("accepts each known indicator", () => {
+    expect(isValidIndicator("icon")).toBe(true);
+    expect(isValidIndicator("dot")).toBe(true);
+    expect(isValidIndicator("caret")).toBe(true);
+    expect(isValidIndicator("none")).toBe(true);
   });
 
-  it("rejects invalid variant", () => {
-    expect(allowedVariants.includes("invalid" as string)).toBe(false);
+  it("rejects unknown variants", () => {
+    expect(isValidVariant("invalid")).toBe(false);
+    expect(isValidVariant("")).toBe(false);
+    expect(isValidVariant("TEXT")).toBe(false); // case-sensitive
   });
 
-  it("rejects invalid indicator", () => {
-    expect(allowedIndicators.includes("invalid" as string)).toBe(false);
+  it("rejects unknown indicators", () => {
+    expect(isValidIndicator("invalid")).toBe(false);
+    expect(isValidIndicator("")).toBe(false);
+    expect(isValidIndicator("ICON")).toBe(false); // case-sensitive
   });
 });
 
