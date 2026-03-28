@@ -552,7 +552,13 @@ function normalizeCitationsFile(raw: Record<string, unknown>): Record<string, Re
   for (const [attachmentId, citationArray] of entries) {
     const arr = citationArray as Record<string, unknown>[];
     for (const citation of arr) {
-      const key = (citation.id as string) ?? `${attachmentId}-${Object.keys(flat).length}`;
+      const hasId = citation.id != null && String(citation.id) !== "";
+      const key = hasId ? String(citation.id) : `${attachmentId}-${Object.keys(flat).length}`;
+      if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+      if (key in flat) {
+        console.error(`Warning: duplicate citation id "${sanitizeForLog(key)}" — skipping`);
+        continue;
+      }
       flat[key] = { ...citation, attachmentId };
     }
   }
