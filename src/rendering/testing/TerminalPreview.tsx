@@ -1,5 +1,5 @@
 import type React from "react";
-import { getIndicator } from "../../markdown/markdownVariants.js";
+import { getIndicator } from "../../formatting/indicators.js";
 import { getCitationStatus } from "../../parsing/parseCitation.js";
 import type { CitationStatus } from "../../types/citation.js";
 import {

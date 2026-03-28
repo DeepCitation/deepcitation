@@ -10,7 +10,7 @@ export {
   getIndicator,
   humanizeLinePosition,
   toSuperscript,
-} from "./markdownVariants.js";
+} from "./indicators.js";
 
 // Types
 export type {
