@@ -93,7 +93,7 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
     });
 
     // Build raw HTTP request over TLS tunnel
-    const method = init?.method ?? "GET";
+    const method = (init?.method ?? "GET").replace(/[\r\n]/g, "");
     const headers = new Headers(init?.headers);
     if (!headers.has("host")) headers.set("host", targetHost);
 
@@ -128,7 +128,9 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
 
     // Serialize request
     let head = `${method} ${url.pathname}${url.search} HTTP/1.1\r\n`;
-    headers.forEach((v, k) => { head += `${k}: ${v}\r\n`; });
+    headers.forEach((v, k) => {
+      head += `${k}: ${v}\r\n`;
+    });
     head += "\r\n";
 
     tlsSocket.write(head);
@@ -163,8 +165,12 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
         }
 
         res(new Response(responseBody, { status, headers: responseHeaders }));
+        tlsSocket.destroy();
       });
-      tlsSocket.on("error", rej);
+      tlsSocket.on("error", err => {
+        tlsSocket.destroy();
+        rej(err);
+      });
     });
   };
 }
@@ -178,6 +184,7 @@ function decodeChunked(raw: string): string {
     if (lineEnd === -1) break;
     const size = parseInt(raw.slice(pos, lineEnd), 16);
     if (size === 0) break;
+    if (isNaN(size)) break;
     result += raw.slice(lineEnd + 2, lineEnd + 2 + size);
     pos = lineEnd + 2 + size + 2; // skip chunk data + trailing \r\n
   }
@@ -188,11 +195,7 @@ function decodeChunked(raw: string): string {
  * FormData proxy fallback: try undici ProxyAgent (available in Node 22+),
  * or fall back to global fetch if undici isn't importable.
  */
-async function sendViaUndiciProxy(
-  proxyUrl: string,
-  input: RequestInfo | URL,
-  init?: RequestInit,
-): Promise<Response> {
+async function sendViaUndiciProxy(proxyUrl: string, input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const undici = await import(/* webpackIgnore: true */ "undici" as string);
@@ -285,9 +288,10 @@ function createClient(apiKey: string): DeepCitation {
 function formatNetworkError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
   if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("EAI_AGAIN")) {
-    const proxyHint = process.env.HTTPS_PROXY || process.env.HTTP_PROXY
-      ? " Proxy is set but may not be working — check HTTPS_PROXY."
-      : " If behind a proxy, set HTTPS_PROXY=http://your-proxy:port";
+    const proxyHint =
+      process.env.HTTPS_PROXY || process.env.HTTP_PROXY
+        ? " Proxy is set but may not be working — check HTTPS_PROXY."
+        : " If behind a proxy, set HTTPS_PROXY=http://your-proxy:port";
     return `Network error: ${msg}.${proxyHint}`;
   }
   return msg;
@@ -668,8 +672,10 @@ async function verifyHtml(argv: string[]) {
     keyMap[`cite-${id}`] = hash;
   }
 
-  // Strip [N] text markers (with optional leading whitespace)
-  html = html.replace(/\s*\[(\d+)\]/g, "");
+  // Strip [N] text markers only for known citation IDs (avoid removing legitimate [42] etc.)
+  for (const id of idToHash.keys()) {
+    html = html.replace(new RegExp(`\\s*\\[${id}\\]`, "g"), "");
+  }
 
   // Save intermediate artifacts
   const ts = Date.now();
@@ -694,14 +700,10 @@ async function verifyHtml(argv: string[]) {
   // 4. Verify all citations against the API
   const missing = Object.entries(citationsForVerify).filter(([, c]) => !(c.attachmentId as string));
   if (missing.length > 0) {
-    console.error(
-      `Warning: ${missing.length} citation(s) missing attachmentId — these will not be verified.`,
-    );
+    console.error(`Warning: ${missing.length} citation(s) missing attachmentId — these will not be verified.`);
   }
 
-  const verifiable = Object.fromEntries(
-    Object.entries(citationsForVerify).filter(([, c]) => c.attachmentId as string),
-  );
+  const verifiable = Object.fromEntries(Object.entries(citationsForVerify).filter(([, c]) => c.attachmentId as string));
 
   const groups = new Map<string, Record<string, Record<string, unknown>>>();
   for (const [key, citation] of Object.entries(verifiable)) {

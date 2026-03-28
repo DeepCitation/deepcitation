@@ -11,12 +11,12 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `parseCitationResponse()` | `src/parsing/parseCitationResponse.ts` | Unified numeric citation parser ([N] + JSON block) |
 | `ParsedCitationResult` | `src/parsing/parseCitationResponse.ts` | Return type of `parseCitationResponse()` |
 | `citationDataToCitation()` | `src/parsing/citationParser.ts` | Converts `CitationData` → `Citation` |
-| `getIndicator()` | `src/markdown/markdownVariants.ts` | Status → indicator char |
-| `INDICATOR_SETS` | `src/markdown/types.ts` | Indicator character sets |
-| `SUPERSCRIPT_DIGITS` | `src/markdown/types.ts` | Unicode superscript chars |
-| `toSuperscript()` | `src/markdown/markdownVariants.ts` | Number → superscript |
-| `humanizeLinePosition()` | `src/markdown/markdownVariants.ts` | LineId → position label |
-| `formatPageLocation()` | `src/markdown/markdownVariants.ts` | Page location string |
+| `getIndicator()` | `src/formatting/indicators.ts` | Status → indicator char |
+| `INDICATOR_SETS` | `src/formatting/types.ts` | Indicator character sets |
+| `SUPERSCRIPT_DIGITS` | `src/formatting/types.ts` | Unicode superscript chars |
+| `toSuperscript()` | `src/formatting/indicators.ts` | Number → superscript |
+| `humanizeLinePosition()` | `src/formatting/indicators.ts` | LineId → position label |
+| `formatPageLocation()` | `src/formatting/indicators.ts` | Page location string |
 | `buildProofUrl()` | `src/rendering/proofUrl.ts` | Proof URL construction |
 | `MISS_WAVY_UNDERLINE_STYLE` | `src/react/constants.ts` | Wavy underline CSS |
 | `DOT_INDICATOR_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (inline, em-based) |
@@ -123,5 +123,5 @@ export const BROKEN_WAVY_UNDERLINE_STYLE = MISS_WAVY_UNDERLINE_STYLE; // ❌ DO 
 // CORRECT — import directly from canonical location
 import { getCitationStatus } from "../../parsing/parseCitation.js"; // ✓
 import { getCitationKey } from "../../utils/citationKey.js";          // ✓
-import { getIndicator } from "../../markdown/markdownVariants.js";   // ✓
+import { getIndicator } from "../../formatting/indicators.js";       // ✓
 ```

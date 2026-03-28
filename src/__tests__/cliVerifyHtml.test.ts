@@ -121,12 +121,15 @@ describe("verify --html: annotate stage", () => {
     }
   });
 
-  it("strips [N] markers from visible text", () => {
+  it("strips [N] markers only for known citation IDs", () => {
     const parsed = parseCitationData(MARKED_HTML);
     let html = parsed.visibleText;
+    const knownIds = parsed.citations.map(c => c.id);
 
-    // Strip markers
-    html = html.replace(/\s*\[(\d+)\]/g, "");
+    // Strip only known citation ID markers
+    for (const id of knownIds) {
+      html = html.replace(new RegExp(`\\s*\\[${id}\\]`, "g"), "");
+    }
 
     expect(html).not.toContain("[1]");
     expect(html).not.toContain("[2]");
@@ -216,7 +219,9 @@ describe("verify --html: full pipeline (unit)", () => {
     for (const [id, hash] of idToHash) {
       html = html.replace(new RegExp(`data-cite="${id}"`, "g"), `data-citation-key="${hash}"`);
     }
-    html = html.replace(/\s*\[(\d+)\]/g, "");
+    for (const id of idToHash.keys()) {
+      html = html.replace(new RegExp(`\\s*\\[${id}\\]`, "g"), "");
+    }
 
     // 4. Verify output
     expect(html).not.toContain("data-cite=");
@@ -319,19 +324,32 @@ describe("verify --html: edge cases", () => {
 
   it("preserves HTML structure when stripping markers", () => {
     const html = '<td data-cite="1">$2.3B [1]</td>';
-    const stripped = html.replace(/\s*\[(\d+)\]/g, "");
+    const knownIds = [1];
+    let stripped = html;
+    for (const id of knownIds) {
+      stripped = stripped.replace(new RegExp(`\\s*\\[${id}\\]`, "g"), "");
+    }
     expect(stripped).toBe('<td data-cite="1">$2.3B</td>');
   });
 
   it("handles markers at end of line without trailing space", () => {
     const html = "Revenue: $2.3B[1]";
-    const stripped = html.replace(/\s*\[(\d+)\]/g, "");
+    const knownIds = [1];
+    let stripped = html;
+    for (const id of knownIds) {
+      stripped = stripped.replace(new RegExp(`\\s*\\[${id}\\]`, "g"), "");
+    }
     expect(stripped).toBe("Revenue: $2.3B");
   });
 
   it("does not strip bracket content that is not a citation marker", () => {
-    const html = "See section [Introduction] for details [1]";
-    const stripped = html.replace(/\s*\[(\d+)\]/g, "");
-    expect(stripped).toBe("See section [Introduction] for details");
+    const html = "See section [Introduction] for details [1] and table [42]";
+    const knownIds = [1]; // Only ID 1 is a known citation
+    let stripped = html;
+    for (const id of knownIds) {
+      stripped = stripped.replace(new RegExp(`\\s*\\[${id}\\]`, "g"), "");
+    }
+    // [Introduction] preserved (non-numeric), [42] preserved (not a known citation ID)
+    expect(stripped).toBe("See section [Introduction] for details and table [42]");
   });
 });
