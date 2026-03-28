@@ -138,36 +138,30 @@ describe("verify --html: annotate stage", () => {
 // ── Inject stage ───────────────────────────────────────────────────
 
 describe("verify --html: inject stage", () => {
-  it("injects with default variant and indicator", () => {
+  it("injects with default theme and indicator", () => {
     const theme = "auto";
-    const variant = "text";
     const indicator = "icon";
 
+    // CDN init only takes theme + indicatorVariant (no variant — CDN is text-only)
     const initParts = [`theme:${JSON.stringify(theme)}`];
-    if (variant !== "text") initParts.push(`variant:${JSON.stringify(variant)}`);
     if (indicator !== "icon") initParts.push(`indicatorVariant:${JSON.stringify(indicator)}`);
 
     const initScript = `window.DeepCitationPopover&&window.DeepCitationPopover.init({${initParts.join(",")}});`;
 
-    // Default: only theme, no variant or indicatorVariant
     expect(initScript).toContain('theme:"auto"');
-    expect(initScript).not.toContain("variant:");
     expect(initScript).not.toContain("indicatorVariant:");
   });
 
-  it("injects with custom variant and indicator", () => {
+  it("injects with custom theme and indicator", () => {
     const theme = "dark";
-    const variant = "linter";
     const indicator = "dot";
 
     const initParts = [`theme:${JSON.stringify(theme)}`];
-    if (variant !== "text") initParts.push(`variant:${JSON.stringify(variant)}`);
     if (indicator !== "icon") initParts.push(`indicatorVariant:${JSON.stringify(indicator)}`);
 
     const initScript = `window.DeepCitationPopover&&window.DeepCitationPopover.init({${initParts.join(",")}});`;
 
     expect(initScript).toContain('theme:"dark"');
-    expect(initScript).toContain('variant:"linter"');
     expect(initScript).toContain('indicatorVariant:"dot"');
   });
 
@@ -269,38 +263,23 @@ describe("verify --html: full pipeline (unit)", () => {
 
 // ── Variant/indicator validation ──────────────────────────────────
 
-describe("variant and indicator validation", () => {
-  // These must match the allowlists in cli.ts — if the CLI adds/removes a value,
-  // these tests should break to flag the divergence.
-  const allowedVariants = ["text", "linter", "chip", "brackets", "superscript", "footnote", "block"];
-  const allowedIndicators = ["icon", "dot", "caret", "none"];
+describe("indicator validation", () => {
+  // Must match the CDN-supported indicator allowlist in cli.ts.
+  // "caret" is React-only — not accepted by the CLI.
+  const allowedIndicators = ["icon", "dot", "none"];
 
-  /** Simulates the CLI's validation check for an external user-supplied value. */
-  function isValidVariant(input: string): boolean {
-    return allowedVariants.includes(input);
-  }
   function isValidIndicator(input: string): boolean {
     return allowedIndicators.includes(input);
   }
 
-  it("accepts each known variant", () => {
-    expect(isValidVariant("text")).toBe(true);
-    expect(isValidVariant("linter")).toBe(true);
-    expect(isValidVariant("chip")).toBe(true);
-    expect(isValidVariant("superscript")).toBe(true);
-  });
-
-  it("accepts each known indicator", () => {
+  it("accepts each CDN-supported indicator", () => {
     expect(isValidIndicator("icon")).toBe(true);
     expect(isValidIndicator("dot")).toBe(true);
-    expect(isValidIndicator("caret")).toBe(true);
     expect(isValidIndicator("none")).toBe(true);
   });
 
-  it("rejects unknown variants", () => {
-    expect(isValidVariant("invalid")).toBe(false);
-    expect(isValidVariant("")).toBe(false);
-    expect(isValidVariant("TEXT")).toBe(false); // case-sensitive
+  it("rejects React-only indicator (caret)", () => {
+    expect(isValidIndicator("caret")).toBe(false);
   });
 
   it("rejects unknown indicators", () => {

@@ -89,7 +89,10 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
     const tlsSocket = tlsConnect({ socket, servername: targetHost });
     await new Promise<void>((res, rej) => {
       tlsSocket.on("secureConnect", res);
-      tlsSocket.on("error", rej);
+      tlsSocket.on("error", err => {
+        socket.destroy();
+        rej(err);
+      });
     });
 
     // Build raw HTTP request over TLS tunnel
@@ -106,8 +109,9 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
       } else if (typeof init.body === "string") {
         bodyBuffer = Buffer.from(init.body);
       } else if (init.body instanceof FormData) {
-        // For FormData, fall back to undici or global fetch with dispatcher
-        // This path handles multipart uploads through the proxy
+        // For FormData, fall back to undici or global fetch with dispatcher.
+        // Clean up the TLS socket we already opened — sendViaUndiciProxy creates its own connection.
+        tlsSocket.destroy();
         return sendViaUndiciProxy(proxyUrl, input, init);
       } else {
         // ReadableStream or other — collect into buffer
@@ -282,7 +286,9 @@ function createClient(apiKey: string): DeepCitation {
   const proxyUrl = detectProxyUrl(DEFAULT_API_URL);
 
   if (proxyUrl) {
-    console.error(`Using proxy: ${sanitizeForLog(proxyUrl)}`);
+    // Redact user:password@ from proxy URL before logging
+    const safeProxy = sanitizeForLog(proxyUrl.replace(/\/\/[^@]+@/, "//***@"));
+    console.error(`Using proxy: ${safeProxy}`);
     return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl) });
   }
 
@@ -396,10 +402,7 @@ Options:
   --citations <file>        Path to citations JSON (citations-only mode)
   --out <file>              Output path (default depends on mode)
   --theme <auto|light|dark> Popover color theme (default: "auto", --html only)
-  --variant <variant>       Popover display variant: text, linter, chip, brackets,
-                            superscript, footnote, block (default: "text", --html only)
-  --indicator <indicator>   Indicator icon variant: icon, dot, caret, none
-                            (default: "icon", --html only)
+  --indicator <indicator>   Indicator variant: icon, dot, none (default: "icon", --html only)
   --image-format <format>   Evidence image format: avif, png, jpeg, webp (default: avif)
   --prompt                  Print the citation format spec to stdout and exit
   -h, --help                Show this help message
@@ -407,7 +410,7 @@ Options:
 Examples:
   deepcitation verify --html .deepcitation/marked-report.html
   deepcitation verify --html marked.html --out report.html --theme light
-  deepcitation verify --html marked.html --variant chip --indicator dot
+  deepcitation verify --html marked.html --indicator dot
   deepcitation verify --prompt
   deepcitation verify --citations .deepcitation/citations-keyed.json
 `;
@@ -641,16 +644,22 @@ async function verifyHtml(argv: string[]) {
   const theme = args.theme ?? "auto";
   if (!["auto", "light", "dark"].includes(theme)) die("--theme must be auto, light, or dark", VERIFY_HELP);
 
-  const allowedVariants = ["text", "linter", "chip", "brackets", "superscript", "footnote", "block"] as const;
-  const variant = (args.variant ?? "text") as (typeof allowedVariants)[number];
-  if (!allowedVariants.includes(variant)) {
-    die(`Invalid --variant "${sanitizeForLog(variant)}". Allowed: ${allowedVariants.join(", ")}`, VERIFY_HELP);
+  // CDN runtime only supports "text" variant — other variants are React-only.
+  // Accept but warn if a non-text variant is requested.
+  if (args.variant && args.variant !== "text") {
+    console.error(
+      `Warning: --variant "${sanitizeForLog(args.variant)}" is only supported in React. CDN output uses "text".`,
+    );
   }
 
-  const allowedIndicators = ["icon", "dot", "caret", "none"] as const;
+  // CDN runtime supports icon, dot, none — "caret" is React-only.
+  const allowedIndicators = ["icon", "dot", "none"] as const;
   const indicator = (args.indicator ?? "icon") as (typeof allowedIndicators)[number];
-  if (!allowedIndicators.includes(indicator)) {
-    die(`Invalid --indicator "${sanitizeForLog(indicator)}". Allowed: ${allowedIndicators.join(", ")}`, VERIFY_HELP);
+  if (args.indicator && !allowedIndicators.includes(indicator)) {
+    die(
+      `Invalid --indicator "${sanitizeForLog(args.indicator)}". Allowed: ${allowedIndicators.join(", ")}`,
+      VERIFY_HELP,
+    );
   }
 
   // 2. Convert CitationData[] → keyed CitationRecord + build id→hash map
@@ -746,7 +755,7 @@ async function verifyHtml(argv: string[]) {
     `<script type="application/json" id="dc-data">${jsonData}</script>`,
     keyMapSnippet,
     `<script>${escapeJsForScript(CDN_JS)}</script>`,
-    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:${JSON.stringify(theme)}${variant !== "text" ? `,variant:${JSON.stringify(variant)}` : ""}${indicator !== "icon" ? `,indicatorVariant:${JSON.stringify(indicator)}` : ""}});</script>`,
+    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:${JSON.stringify(theme)}${indicator !== "icon" ? `,indicatorVariant:${JSON.stringify(indicator)}` : ""}});</script>`,
   ].join("\n");
 
   let output = html;
