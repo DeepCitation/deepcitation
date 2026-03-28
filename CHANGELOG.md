@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-03-28
+
+### Added
+
+- **CLI `verify` HTML mode** — `deepcitation verify --html` parses citation markers from HTML input, with full test coverage (#384)
+- **CLI `normalize` command** — new `deepcitation normalize` command for normalizing citation text, with proxy support (#384)
+- **CLI proxy support** — `--proxy` flag for routing API requests through a proxy server (#384)
+- **Auth login/keygen flows** — `deepcitation login` and `deepcitation keygen` now handle interactive authentication with token persistence (#384)
+- **`formatting` module** — new `deepcitation/formatting` export with `indicators.ts` for citation status indicators, replacing the removed markdown module (#383, #384)
+
+### Changed
+
+- **Renamed `markdown` → `formatting`** — the `deepcitation/markdown` entry point is now `deepcitation/formatting`; types moved accordingly (#383, #384)
+- **CDN trigger styling** — updated CDN runtime trigger element styling (#384)
+
+### Fixed
+
+- **Build order** — CDN bundle now builds after tsup to prevent `clean: true` from deleting it (#383)
+- **DTS generation** — fixed TypeScript declaration file generation for new entry points (#383)
+
+### Removed
+
+- **Text renderers** — removed GitHub, Slack, HTML, and markdown renderers (`renderMarkdown`, `githubRenderer`, `htmlRenderer`, `slackRenderer`) along with their test suites and Playwright showcase specs; use the `formatting` module or `terminalRenderer` instead (#383)
+- **Proof URL utilities** — removed `buildProofUrl`, `buildProofUrls`, `buildSnippetImageUrl` and associated types from `rendering/proofUrl` (#383)
+- **Brand iteration docs** — removed internal `brand-iteration-considerations.html` (#383)
+- **Universal renderers plan** — removed `plans/plan-universal-renderers.md` (#383)
+
 ## [0.3.1] - 2026-03-27
 
 ### Added
@@ -518,7 +545,9 @@ This release marks the first comprehensive public release of DeepCitation, conso
 - TypeScript support
 - Verification image display with popover
 
-[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/deepcitation/deepcitation/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/deepcitation/deepcitation/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/deepcitation/deepcitation/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/deepcitation/deepcitation/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/deepcitation/deepcitation/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/deepcitation/deepcitation/compare/v0.2.1...v0.2.2
