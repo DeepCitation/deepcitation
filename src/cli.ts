@@ -380,7 +380,7 @@ async function verify(argv: string[]) {
   // Handle --prompt before parseArgs (it's a boolean flag, not a key-value pair)
   if (argv.includes("--prompt")) {
     const require = createRequire(import.meta.url);
-    const dcRoot = resolve(dirname(require.resolve("deepcitation")), "..");
+    const dcRoot = dirname(require.resolve("deepcitation/package.json"));
     const specPath = resolve(dcRoot, "docs/prompts/citation-format.md");
     if (!existsSync(specPath)) {
       console.error(
@@ -875,7 +875,7 @@ switch (command) {
     break;
   case "cite":
     // "cite" is an alias for "verify --html" for backwards compatibility
-    verify(rest).catch(err => {
+    verify(["--html", ...rest]).catch(err => {
       console.error(`Error: ${formatNetworkError(err)}`);
       process.exit(1);
     });
