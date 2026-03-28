@@ -414,10 +414,8 @@ async function verify(argv: string[]) {
     die(`Invalid --image-format "${sanitizeForLog(imageFormat)}". Allowed: ${allowedFormats.join(", ")}`, VERIFY_HELP);
   }
 
-  const citations = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<
-    string,
-    Record<string, unknown>
-  >;
+  const raw = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<string, unknown>;
+  const citations = normalizeCitationsFile(raw);
 
   // Validate all citations have attachmentId
   const missing = Object.entries(citations).filter(([, c]) => !(c.attachmentId as string));
@@ -525,6 +523,43 @@ function inject(argv: string[]) {
   console.log(outPath);
 }
 
+// ── citation format normalizer ────────────────────────────────────
+
+/**
+ * Normalize citation JSON into the flat-map format expected by keygen/verify.
+ *
+ * Accepts two formats:
+ *   1. Flat map (CLI format):   { "cite-key": { attachmentId, fullPhrase, ... } }
+ *   2. Grouped array (LLM format): { "ATTACHMENT_ID": [ { id, fullPhrase, ... }, ... ] }
+ *
+ * Format 2 is produced by the LLM citation prompt (<<<CITATION_DATA>>> blocks).
+ * This function detects format 2 and converts it to format 1, using the outer
+ * key as attachmentId and each citation's `id` field as the flat-map key.
+ */
+function normalizeCitationsFile(raw: Record<string, unknown>): Record<string, Record<string, unknown>> {
+  const entries = Object.entries(raw);
+  if (entries.length === 0) return {};
+
+  // Detect format 2: every value is an array of objects
+  const isGroupedFormat = entries.every(([, v]) => Array.isArray(v));
+  if (!isGroupedFormat) {
+    // Already flat-map format
+    return raw as Record<string, Record<string, unknown>>;
+  }
+
+  // Convert grouped → flat
+  const flat: Record<string, Record<string, unknown>> = {};
+  for (const [attachmentId, citationArray] of entries) {
+    const arr = citationArray as Record<string, unknown>[];
+    for (const citation of arr) {
+      const key = (citation.id as string) ?? `${attachmentId}-${Object.keys(flat).length}`;
+      flat[key] = { ...citation, attachmentId };
+    }
+  }
+
+  return flat;
+}
+
 // ── keygen ─────────────────────────────────────────────────────────
 
 const KEYGEN_HELP = `Usage: deepcitation keygen [options]
@@ -552,10 +587,8 @@ function keygen(argv: string[]) {
   const citationsPath = args.citations;
   if (!citationsPath) die("--citations is required", KEYGEN_HELP);
 
-  const citations = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<
-    string,
-    Record<string, unknown>
-  >;
+  const raw = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<string, unknown>;
+  const citations = normalizeCitationsFile(raw);
 
   const mapping: Record<string, string> = {};
   const rekeyed: Record<string, Record<string, unknown>> = {};
