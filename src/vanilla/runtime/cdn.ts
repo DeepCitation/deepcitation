@@ -114,7 +114,20 @@ function injectStyles(): void {
   if (document.getElementById("dc-popover-styles")) return;
   const style = document.createElement("style");
   style.id = "dc-popover-styles";
-  style.textContent = typeof __CDN_CSS__ === "string" ? __CDN_CSS__ : "";
+  // Trigger styles — mirrors React Citation.tsx triggerProps (text variant default).
+  // :where() keeps zero specificity so host-page styles can override.
+  const triggerStyles = [
+    // Base: matches cn("relative inline-flex items-baseline", "px-0.5 -mx-0.5 rounded-sm",
+    //   "transition-colors duration-[80ms] active:scale-[0.98]", "cursor-pointer")
+    `:where([data-citation-key]) { position: relative; display: inline; padding: 0 0.125rem; margin: 0 -0.125rem; border-radius: 2px; transition: background-color 80ms ease; cursor: pointer; }`,
+    // Hover: matches getInteractionClasses(false, "text") → "hover:bg-black/[0.06]"
+    `:where([data-citation-key]:hover) { background: rgba(0,0,0,0.06); }`,
+    // Active: matches "active:scale-[0.98]"
+    `:where([data-citation-key]:active) { transform: scale(0.98); }`,
+    // Dark mode: matches "dark:hover:bg-white/[0.06]"
+    `@media (prefers-color-scheme: dark) { :where([data-citation-key]:hover) { background: rgba(255,255,255,0.06); } }`,
+  ].join("\n");
+  style.textContent = (typeof __CDN_CSS__ === "string" ? __CDN_CSS__ : "") + "\n" + triggerStyles;
   document.head.appendChild(style);
 }
 
@@ -173,9 +186,16 @@ function CdnPopoverWrapper(props: {
 
 // ── Positioning ───────────────────────────────────────────────────────────
 
+/** For multi-line inline triggers, return the last line rect (where the indicator sits). */
+function getTriggerRect(trigger: HTMLElement): DOMRect {
+  const rects = trigger.getClientRects();
+  if (rects.length > 1) return rects[rects.length - 1];
+  return trigger.getBoundingClientRect();
+}
+
 function reposition(): void {
   if (!wrapperEl || !contentEl || !activeTrigger || !isOpen) return;
-  const triggerRect = activeTrigger.getBoundingClientRect();
+  const triggerRect = getTriggerRect(activeTrigger);
   const contentRect = contentEl.getBoundingClientRect();
   const pos = computePosition(triggerRect, contentRect.width, contentRect.height, SIDE_OFFSET);
   // Skip if coords haven't changed (< 0.5px delta) — avoids unnecessary style writes
@@ -474,7 +494,7 @@ function createStatusIndicator(data: VerificationData, variant: CdnIndicatorVari
   }
   // Icon variant: checkmark (verified/partial) or X (miss), matches React's StatusIndicatorWrapper (0.85em, 10px min)
   const svg = state === "miss" ? X_SVG : CHECK_SVG;
-  span.style.cssText = `display:inline-flex;align-items:center;justify-content:center;width:0.85em;height:0.85em;min-width:10px;min-height:10px;color:${color};vertical-align:middle;margin-left:0.125rem;border:none;outline:none;background:none;padding:0;`;
+  span.style.cssText = `display:inline-flex;align-items:center;justify-content:center;width:0.85em;height:0.85em;min-width:10px;min-height:10px;color:${color};vertical-align:text-bottom;margin-left:0.125rem;border:none;outline:none;background:none;padding:0;`;
   span.innerHTML = svg;
   // Reset SVG styles to prevent host page CSS bleed
   const svgEl = span.querySelector("svg");
@@ -489,7 +509,6 @@ function bindTriggers(selector: string): void {
     const key = trigger.getAttribute("data-citation-key");
     if (!key || !verifications[key]) continue;
     boundTriggers.add(trigger);
-    trigger.style.cursor = "pointer";
     const indicator = createStatusIndicator(verifications[key], activeIndicatorVariant);
     if (indicator && !trigger.querySelector(".dc-status-indicator")) {
       trigger.appendChild(indicator);
