@@ -1,11 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 
 import { citationDataToCitation, parseCitationData } from "../parsing/citationParser.js";
 import { getCitationKey } from "../utils/citationKey.js";
-import { escapeJsForScript, escapeJsonForScript } from "../vanilla/reportUtils.js";
+import { escapeJsonForScript } from "../vanilla/reportUtils.js";
 
 // ── Test fixtures ──────────────────────────────────────────────────
 
@@ -245,7 +242,6 @@ describe("verify --html: full pipeline (unit)", () => {
   });
 
   it("handles HTML without </body> tag", () => {
-    const parsed = parseCitationData(MARKED_HTML);
     const snippet = '<script id="dc-data">{}</script>';
 
     // Test with bare HTML (no body close)
