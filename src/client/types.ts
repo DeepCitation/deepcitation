@@ -113,6 +113,26 @@ export interface DeepCitationConfig {
    * @default 3
    */
   maxRetries?: number;
+  /**
+   * Custom `fetch` implementation. Use this to route requests through a proxy,
+   * add custom TLS settings, or swap in a different HTTP library.
+   *
+   * When not provided, the global `fetch` is used. Node.js's built-in fetch
+   * does NOT respect HTTP_PROXY / HTTPS_PROXY environment variables — pass a
+   * proxy-aware fetch here if you need proxy support.
+   *
+   * @example
+   * ```typescript
+   * import { ProxyAgent } from 'undici';
+   *
+   * const agent = new ProxyAgent('http://my-proxy:3128');
+   * const dc = new DeepCitation({
+   *   apiKey: 'sk-dc-...',
+   *   fetch: (url, init) => fetch(url, { ...init, dispatcher: agent }),
+   * });
+   * ```
+   */
+  fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
 
 // ==========================================================================

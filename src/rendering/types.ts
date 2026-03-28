@@ -1,4 +1,4 @@
-import type { IndicatorStyle } from "../markdown/types.js";
+import type { IndicatorStyle } from "../formatting/types.js";
 import type { Citation, CitationStatus, VerificationRecord } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
 

@@ -1,5 +1,5 @@
-import { formatPageLocation, getIndicator } from "../../markdown/markdownVariants.js";
-import type { IndicatorStyle } from "../../markdown/types.js";
+import { formatPageLocation, getIndicator } from "../../formatting/indicators.js";
+import type { IndicatorStyle } from "../../formatting/types.js";
 import type { ParsedCitationResult } from "../../parsing/parseCitationResponse.js";
 import type { CitationStatus } from "../../types/citation.js";
 import { getStatusKey, resolveSourceLabel, walkCitationSegments } from "../shared.js";

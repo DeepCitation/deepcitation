@@ -33,8 +33,7 @@ src/  # Source files
   client/  # DeepCitation API client
   docs/  # Centralized code snippets for INTEGRATION.md
   drawing/  # Drawing/canvas utilities
-  markdown/  # Markdown rendering (renderMarkdown, markdownVariants)
-    testing/  # Markdown test helpers
+  formatting/  # Citation indicators and formatting utilities (getIndicator, toSuperscript)
   parsing/  # Citation extraction: parseCitation, normalizeCitation, parseWorkAround
   prompts/  # LLM prompt templates (citationPrompts, promptCompression)
   react/  # React components and hooks (CitationComponent, SourcesList, i18n, popovers)

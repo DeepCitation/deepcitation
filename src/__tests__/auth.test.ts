@@ -229,6 +229,64 @@ describe("startCallbackServer", () => {
     await cleanup(port, nonce);
   });
 
+  it("accepts form-encoded POST and returns success HTML page", async () => {
+    const nonce = generateNonce();
+    const { port, result } = await startCallbackServer(nonce);
+
+    const formBody = new URLSearchParams({
+      apiKey: "sk-dc-test1234567890abcdef",
+      nonce,
+      email: "test@example.com",
+      displayName: "Test User",
+    }).toString();
+
+    const res = await req(port, "POST", "/callback", formBody, {
+      "Content-Type": "application/x-www-form-urlencoded",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toBe("text/html");
+    expect(res.body).toContain("Authenticated");
+    expect(res.body).toContain("close this tab");
+
+    const received = await result;
+    expect(received.apiKey).toBe("sk-dc-test1234567890abcdef");
+    expect(received.email).toBe("test@example.com");
+  });
+
+  it("rejects form-encoded POST with wrong nonce", async () => {
+    const nonce = generateNonce();
+    const { port } = await startCallbackServer(nonce);
+
+    const formBody = new URLSearchParams({
+      apiKey: "sk-dc-test1234567890abcdef",
+      nonce: "wrong-nonce",
+    }).toString();
+
+    const res = await req(port, "POST", "/callback", formBody, {
+      "Content-Type": "application/x-www-form-urlencoded",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toContain("Authentication Failed");
+
+    await cleanup(port, nonce);
+  });
+
+  it("rejects oversized payloads with 413", async () => {
+    const nonce = generateNonce();
+    const { port } = await startCallbackServer(nonce);
+
+    // Send a payload larger than the 10KB limit
+    const oversized = JSON.stringify({ apiKey: "sk-dc-test1234567890abcdef", nonce, pad: "x".repeat(11_000) });
+    const res = await req(port, "POST", "/callback", oversized, {
+      "Content-Type": "application/json",
+    });
+    expect(res.status).toBe(413);
+
+    await cleanup(port, nonce);
+  });
+
   it("rejects invalid JSON", async () => {
     const nonce = generateNonce();
     const { port } = await startCallbackServer(nonce);

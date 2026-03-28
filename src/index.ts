@@ -46,21 +46,21 @@ export type {
   VerifyInput,
 } from "./client/index.js";
 
-// Markdown utilities
+// Formatting utilities
 export type {
   CitationWithStatus,
   IndicatorSet,
   IndicatorStyle,
   LinePosition,
   MarkdownVariant,
-} from "./markdown/index.js";
+} from "./formatting/index.js";
 export {
   getIndicator,
   humanizeLinePosition,
   INDICATOR_SETS,
   SUPERSCRIPT_DIGITS,
   toSuperscript,
-} from "./markdown/index.js";
+} from "./formatting/index.js";
 
 // Citation parsing — core API + display helpers
 export {

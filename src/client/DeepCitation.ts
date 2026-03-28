@@ -54,7 +54,9 @@ export async function fetchWithRetry(
   options: RequestInit,
   maxRetries: number,
   logger?: { warn?: (msg: string, meta?: Record<string, unknown>) => void },
+  fetchFn?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
 ): Promise<Response> {
+  const doFetch = fetchFn ?? globalThis.fetch;
   const signal = options.signal instanceof AbortSignal ? options.signal : null;
   let lastError: unknown;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -77,7 +79,7 @@ export async function fetchWithRetry(
       });
     }
     try {
-      return await fetch(url, options);
+      return await doFetch(url, options);
     } catch (err) {
       lastError = err;
     }
@@ -216,6 +218,7 @@ export class DeepCitation {
   private readonly onLatestVersion?: (latestVersion: string) => void;
   private readonly requestSource?: string;
   private readonly maxRetries: number;
+  private readonly fetchFn?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
   /**
    * Request deduplication cache for verify calls.
@@ -278,6 +281,7 @@ export class DeepCitation {
     }
     this.requestSource = config.requestSource;
     this.maxRetries = Math.max(0, Math.floor(config.maxRetries ?? DEFAULT_MAX_RETRIES));
+    this.fetchFn = config.fetch;
   }
 
   /** Resolve endUserId: per-request override wins over instance default. */
@@ -307,9 +311,9 @@ export class DeepCitation {
     return headers;
   }
 
-  /** Fetch with retry, forwarding instance-level maxRetries and logger. */
+  /** Fetch with retry, forwarding instance-level maxRetries, logger, and custom fetch. */
   private _fetch(url: string, options: RequestInit): Promise<Response> {
-    return fetchWithRetry(url, options, this.maxRetries, this.logger);
+    return fetchWithRetry(url, options, this.maxRetries, this.logger, this.fetchFn);
   }
 
   /** If the response contains a latest SDK version header, notify the callback. */

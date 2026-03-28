@@ -270,6 +270,19 @@ Having issues? Error objects include a `docUrl` property linking to relevant doc
 
 ---
 
+## Claude Code Skill
+
+Use DeepCitation as an agent skill in [Claude Code](https://claude.ai/code):
+
+```bash
+curl -L https://github.com/DeepCitation/skills/releases/download/verify-latest/verify.zip -o verify.zip
+unzip verify.zip -d .claude/skills/
+```
+
+This adds the `/verify` skill, letting Claude verify AI claims against source documents inline.
+
+---
+
 ## Next Steps
 
 - [API Reference]({{ site.baseurl }}/api-reference/) - Learn about the REST API endpoints

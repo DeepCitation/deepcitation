@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "@jest/globals";
 import { cleanup, render } from "@testing-library/react";
 import type React from "react";
-import { INDICATOR_SETS } from "../markdown/types";
+import { INDICATOR_SETS } from "../formatting/types";
 import { CitationComponent } from "../react/Citation";
 import { getStatusInfo } from "../react/CitationDrawer.utils";
 import { DOT_INDICATOR_SIZE_STYLE, INDICATOR_SIZE_STYLE } from "../react/constants";

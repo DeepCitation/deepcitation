@@ -1,32 +1,193 @@
 #!/usr/bin/env node
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { request as httpRequest } from "node:http";
+import { createRequire } from "node:module";
+import { basename, dirname, resolve } from "node:path";
+import { connect as tlsConnect } from "node:tls";
 import {
   CREDENTIALS_PATH,
   deleteCredentials,
   generateNonce,
-  maskKey,
   openBrowser,
   readCredentials,
   startCallbackServer,
   writeCredentials,
 } from "./auth.js";
 import { DeepCitation } from "./client/DeepCitation.js";
+import { citationDataToCitation, parseCitationData } from "./parsing/citationParser.js";
 import { getCitationKey } from "./utils/citationKey.js";
 import { sanitizeForLog } from "./utils/logSafety.js";
+import { normalizeCitationsFile } from "./utils/normalizeCitations.js";
+import { decodeChunked, detectProxyUrl } from "./utils/proxy.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript } from "./vanilla/reportUtils.js";
+
+// ── proxy support ──────────────────────────────────────────────────
+
+/**
+ * Create a proxy-aware fetch that tunnels HTTPS through an HTTP CONNECT proxy.
+ * Uses only Node.js built-in modules (no external dependencies).
+ */
+function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
+  const proxy = new URL(proxyUrl);
+
+  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = typeof input === "string" ? new URL(input) : input instanceof URL ? input : new URL(input.url);
+    const targetHost = url.hostname;
+    const targetPort = url.port || (url.protocol === "https:" ? "443" : "80");
+
+    if (url.protocol !== "https:") {
+      // For non-HTTPS, just use global fetch (proxy env var may work for plain HTTP)
+      return globalThis.fetch(input, init);
+    }
+
+    // Establish CONNECT tunnel through the proxy
+    const socket = await new Promise<import("node:net").Socket>((res, rej) => {
+      const req = httpRequest({
+        host: proxy.hostname,
+        port: Number(proxy.port) || 3128,
+        method: "CONNECT",
+        path: `${targetHost}:${targetPort}`,
+      });
+      req.on("connect", (_res, socket) => {
+        if (_res.statusCode === 200) {
+          res(socket);
+        } else {
+          socket.destroy();
+          rej(new Error(`Proxy CONNECT failed with status ${_res.statusCode}`));
+        }
+      });
+      req.on("error", rej);
+      req.end();
+    });
+
+    // Upgrade to TLS over the tunnel
+    const tlsSocket = tlsConnect({ socket, servername: targetHost });
+    await new Promise<void>((res, rej) => {
+      tlsSocket.on("secureConnect", res);
+      tlsSocket.on("error", err => {
+        socket.destroy();
+        rej(err);
+      });
+    });
+
+    // Build raw HTTP request over TLS tunnel
+    const method = (init?.method ?? "GET").replace(/[\r\n]/g, "");
+    const headers = new Headers(init?.headers);
+    if (!headers.has("host")) headers.set("host", targetHost);
+
+    let bodyBuffer: Buffer | undefined;
+    if (init?.body) {
+      if (init.body instanceof ArrayBuffer) {
+        bodyBuffer = Buffer.from(init.body);
+      } else if (Buffer.isBuffer(init.body)) {
+        bodyBuffer = init.body;
+      } else if (typeof init.body === "string") {
+        bodyBuffer = Buffer.from(init.body);
+      } else if (init.body instanceof FormData) {
+        // For FormData, fall back to undici or global fetch with dispatcher.
+        // Clean up the TLS socket we already opened — sendViaUndiciProxy creates its own connection.
+        tlsSocket.destroy();
+        return sendViaUndiciProxy(proxyUrl, input, init);
+      } else {
+        // ReadableStream or other — collect into buffer
+        const chunks: Uint8Array[] = [];
+        const reader = (init.body as ReadableStream<Uint8Array>).getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) chunks.push(value);
+        }
+        bodyBuffer = Buffer.concat(chunks);
+      }
+    }
+
+    if (bodyBuffer && !headers.has("content-length")) {
+      headers.set("content-length", String(bodyBuffer.byteLength));
+    }
+
+    // Serialize request
+    let head = `${method} ${url.pathname}${url.search} HTTP/1.1\r\n`;
+    headers.forEach((v, k) => {
+      head += `${k}: ${v}\r\n`;
+    });
+    head += "\r\n";
+
+    tlsSocket.write(head);
+    if (bodyBuffer) tlsSocket.write(bodyBuffer);
+
+    // Parse response — keep body as Buffer to avoid corrupting binary data
+    return new Promise<Response>((res, rej) => {
+      const chunks: Buffer[] = [];
+      tlsSocket.on("data", (chunk: Buffer) => chunks.push(chunk));
+      tlsSocket.on("end", () => {
+        const raw = Buffer.concat(chunks);
+        const separator = Buffer.from("\r\n\r\n");
+        const headerEnd = raw.indexOf(separator);
+        if (headerEnd === -1) {
+          rej(new Error("Invalid HTTP response from proxy tunnel"));
+          return;
+        }
+        const headerSection = raw.subarray(0, headerEnd).toString("ascii");
+        const bodyBuf = raw.subarray(headerEnd + 4);
+        const [statusLine, ...headerLines] = headerSection.split("\r\n");
+        const statusMatch = statusLine.match(/^HTTP\/[\d.]+ (\d+)/);
+        const status = statusMatch ? Number(statusMatch[1]) : 0;
+        const responseHeaders = new Headers();
+        for (const line of headerLines) {
+          const sep = line.indexOf(":");
+          if (sep > 0) responseHeaders.append(line.slice(0, sep).trim(), line.slice(sep + 1).trim());
+        }
+
+        // Handle chunked transfer encoding
+        const responseBody = responseHeaders.get("transfer-encoding")?.includes("chunked")
+          ? decodeChunked(bodyBuf)
+          : bodyBuf;
+
+        // Pass ArrayBuffer (BodyInit-compatible) to avoid corrupting binary responses
+        const ab = responseBody.buffer.slice(
+          responseBody.byteOffset,
+          responseBody.byteOffset + responseBody.byteLength,
+        ) as ArrayBuffer;
+        res(new Response(ab, { status, headers: responseHeaders }));
+        tlsSocket.destroy();
+      });
+      tlsSocket.on("error", err => {
+        tlsSocket.destroy();
+        rej(err);
+      });
+    });
+  };
+}
+
+/**
+ * FormData proxy fallback: try undici ProxyAgent (available in Node 22+),
+ * or fall back to global fetch if undici isn't importable.
+ */
+async function sendViaUndiciProxy(proxyUrl: string, input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const undici = await import(/* webpackIgnore: true */ "undici" as string);
+    const agent = new undici.ProxyAgent(proxyUrl);
+    return await globalThis.fetch(input, { ...init, dispatcher: agent } as RequestInit);
+  } catch {
+    // undici not available — warn and try direct
+    console.error("Warning: FormData upload through proxy requires the 'undici' package. Trying direct connection...");
+    return globalThis.fetch(input, init);
+  }
+}
 
 const HELP = `deepcitation CLI
 
 Commands:
-  login     Log in to DeepCitation (browser flow, --key <key>, or DEEPCITATION_API_KEY)
+  login     Log in to DeepCitation (browser flow, --key <key>, --stdin, or DEEPCITATION_API_KEY)
   logout    Remove saved credentials
   whoami    Show the currently logged-in user
+  status    Check auth status (exit 0 if logged in, exit 1 if not — no output)
   env       Print export DEEPCITATION_API_KEY=... for shell eval
   prepare   Prepare a file or URL for citation verification
-  verify    Verify citations against prepared attachments
+  verify    Verify citations (--html for one-shot, --citations for verify-only)
   inject    Inject DeepCitation verification into an existing HTML file
   keygen    Compute deterministic citation keys from a citations JSON file
 
@@ -79,6 +240,35 @@ function parseArgs(argv: string[], help: string): Record<string, string> {
   return args;
 }
 
+const DEFAULT_API_URL = "https://api.deepcitation.com";
+
+/** Create a DeepCitation client with automatic proxy detection. */
+function createClient(apiKey: string): DeepCitation {
+  const proxyUrl = detectProxyUrl(DEFAULT_API_URL);
+
+  if (proxyUrl) {
+    // Redact user:password@ from proxy URL before logging
+    const safeProxy = sanitizeForLog(proxyUrl.replace(/\/\/[^@]+@/, "//***@"));
+    console.error(`Using proxy: ${safeProxy}`);
+    return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl) });
+  }
+
+  return new DeepCitation({ apiKey });
+}
+
+/** Wrap a network error with actionable hints for the CLI user. */
+function formatNetworkError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("EAI_AGAIN")) {
+    const proxyHint =
+      process.env.HTTPS_PROXY || process.env.HTTP_PROXY
+        ? " Proxy is set but may not be working — check HTTPS_PROXY."
+        : " If behind a proxy, set HTTPS_PROXY=http://your-proxy:port";
+    return `Network error: ${msg}.${proxyHint}`;
+  }
+  return msg;
+}
+
 // ── prepare ─────────────────────────────────────────────────────────
 
 const PREPARE_HELP = `Usage: deepcitation prepare <file-or-url> [options]
@@ -114,7 +304,7 @@ async function prepare(argv: string[]) {
   const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
   if (!apiKey) die('DEEPCITATION_API_KEY not set. Run "deepcitation login" or set the env var.', PREPARE_HELP);
 
-  const dc = new DeepCitation({ apiKey });
+  const dc = createClient(apiKey);
 
   const isUrl = positional.startsWith("http://") || positional.startsWith("https://");
 
@@ -157,30 +347,67 @@ async function prepare(argv: string[]) {
 
 const VERIFY_HELP = `Usage: deepcitation verify [options]
 
-Verify citations against prepared attachments. Groups citations by attachmentId,
-sends one request per group, and merges all responses into a single output file.
+Verify citations against prepared attachments.
+
+Mode 1 — One-shot (--html):
+  Parse marked HTML with [N] markers and <<<CITATION_DATA>>> block, generate
+  keys, annotate HTML, verify against sources, and inject popover runtime.
+  Elements with data-cite="N" are mapped to hashed data-citation-key values.
+
+Mode 2 — Citations only (--citations):
+  Verify a pre-built citations JSON file. Groups by attachmentId and merges
+  responses into a single output file.
 
 Options:
-  --citations <file>        Path to citations JSON (keyed or raw)
-  --out <file>              Output path (default: .deepcitation/verify-response.json)
+  --html <file>             Path to marked HTML file (one-shot mode)
+  --citations <file>        Path to citations JSON (citations-only mode)
+  --out <file>              Output path (default depends on mode)
+  --theme <auto|light|dark> Popover color theme (default: "auto", --html only)
+  --indicator <indicator>   Indicator variant: icon, dot, none (default: "icon", --html only)
   --image-format <format>   Evidence image format: avif, png, jpeg, webp (default: avif)
+  --prompt                  Print the citation format spec to stdout and exit
   -h, --help                Show this help message
 
 Examples:
+  deepcitation verify --html .deepcitation/marked-report.html
+  deepcitation verify --html marked.html --out report.html --theme light
+  deepcitation verify --html marked.html --indicator dot
+  deepcitation verify --prompt
   deepcitation verify --citations .deepcitation/citations-keyed.json
-  deepcitation verify --citations .deepcitation/citations-keyed.json --out .deepcitation/verify-response.json
 `;
 
 async function verify(argv: string[]) {
+  // Handle --prompt before parseArgs (it's a boolean flag, not a key-value pair)
+  if (argv.includes("--prompt")) {
+    const require = createRequire(import.meta.url);
+    const dcRoot = dirname(require.resolve("deepcitation/package.json"));
+    const specPath = resolve(dcRoot, "docs/prompts/citation-format.md");
+    if (!existsSync(specPath)) {
+      console.error(
+        `Error: Citation format spec not found at ${specPath}\n` +
+          `Expected location: <deepcitation-package>/docs/prompts/citation-format.md\n` +
+          `Make sure the deepcitation package is installed with its docs directory.`,
+      );
+      process.exit(1);
+    }
+    process.stdout.write(readFileSync(specPath, "utf-8"));
+    return;
+  }
+
   const args = parseArgs(argv, VERIFY_HELP);
 
+  // Dispatch to one-shot HTML mode if --html is provided
+  if (args.html) {
+    return verifyHtml(argv);
+  }
+
   const citationsPath = args.citations;
-  if (!citationsPath) die("--citations is required", VERIFY_HELP);
+  if (!citationsPath) die("--html or --citations is required", VERIFY_HELP);
 
   const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
   if (!apiKey) die('DEEPCITATION_API_KEY not set. Run "deepcitation login" or set the env var.', VERIFY_HELP);
 
-  const dc = new DeepCitation({ apiKey });
+  const dc = createClient(apiKey);
 
   const allowedFormats = ["avif", "png", "jpeg", "webp"] as const;
   const imageFormat = (args["image-format"] ?? "avif") as (typeof allowedFormats)[number];
@@ -188,10 +415,8 @@ async function verify(argv: string[]) {
     die(`Invalid --image-format "${sanitizeForLog(imageFormat)}". Allowed: ${allowedFormats.join(", ")}`, VERIFY_HELP);
   }
 
-  const citations = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<
-    string,
-    Record<string, unknown>
-  >;
+  const raw = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<string, unknown>;
+  const citations = normalizeCitationsFile(raw);
 
   // Validate all citations have attachmentId
   const missing = Object.entries(citations).filter(([, c]) => !(c.attachmentId as string));
@@ -222,6 +447,8 @@ async function verify(argv: string[]) {
     console.error(`  ${sanitizeForLog(attachmentId)}: ${Object.keys(groupCitations).length} citations...`);
     const result = await dc.verifyAttachment(
       attachmentId,
+      // Cast: CLI reads citations from JSON files as Record<string, Record<string, unknown>>,
+      // but verifyAttachment expects its own typed CitationMap. The shapes match at runtime.
       groupCitations as unknown as Parameters<typeof dc.verifyAttachment>[1],
       { outputImageFormat: imageFormat },
     );
@@ -324,15 +551,14 @@ function keygen(argv: string[]) {
   const citationsPath = args.citations;
   if (!citationsPath) die("--citations is required", KEYGEN_HELP);
 
-  const citations = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<
-    string,
-    Record<string, unknown>
-  >;
+  const raw = JSON.parse(readFileSync(resolve(citationsPath), "utf-8")) as Record<string, unknown>;
+  const citations = normalizeCitationsFile(raw);
 
   const mapping: Record<string, string> = {};
   const rekeyed: Record<string, Record<string, unknown>> = {};
 
   for (const [label, citation] of Object.entries(citations)) {
+    // Cast: JSON-parsed citation record → typed Citation for hashing. Shapes match at runtime.
     const key = getCitationKey(citation as unknown as Parameters<typeof getCitationKey>[0]);
     mapping[label] = key;
     rekeyed[key] = citation;
@@ -350,9 +576,167 @@ function keygen(argv: string[]) {
   }
 }
 
+// ── verify --html (one-shot) ──────────────────────────────────────
+
+async function verifyHtml(argv: string[]) {
+  const args = parseArgs(argv, VERIFY_HELP);
+  const htmlPath = args.html;
+  if (!htmlPath) die("--html is required", VERIFY_HELP);
+
+  const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
+  if (!apiKey) die('Not authenticated. Run "deepcitation login" first.', VERIFY_HELP);
+
+  const dc = createClient(apiKey);
+  const raw = readFileSync(resolve(htmlPath), "utf-8");
+
+  // 1. Parse: split HTML from <<<CITATION_DATA>>> block
+  const parsed = parseCitationData(raw);
+  if (!parsed.success || parsed.citations.length === 0) {
+    die("No valid <<<CITATION_DATA>>> block found in the HTML file.", VERIFY_HELP);
+  }
+
+  const allowedFormats = ["avif", "png", "jpeg", "webp"] as const;
+  const imageFormat = (args["image-format"] ?? "avif") as (typeof allowedFormats)[number];
+  if (!allowedFormats.includes(imageFormat)) {
+    die(`Invalid --image-format "${sanitizeForLog(imageFormat)}". Allowed: ${allowedFormats.join(", ")}`, VERIFY_HELP);
+  }
+
+  const theme = args.theme ?? "auto";
+  if (!["auto", "light", "dark"].includes(theme)) die("--theme must be auto, light, or dark", VERIFY_HELP);
+
+  // CDN runtime only supports "text" variant — other variants are React-only.
+  // Accept but warn if a non-text variant is requested.
+  if (args.variant && args.variant !== "text") {
+    console.error(
+      `Warning: --variant "${sanitizeForLog(args.variant)}" is only supported in React. CDN output uses "text".`,
+    );
+  }
+
+  // CDN runtime supports icon, dot, none — "caret" is React-only.
+  const allowedIndicators = ["icon", "dot", "none"] as const;
+  const indicator = (args.indicator ?? "icon") as (typeof allowedIndicators)[number];
+  if (args.indicator && !allowedIndicators.includes(indicator)) {
+    die(
+      `Invalid --indicator "${sanitizeForLog(args.indicator)}". Allowed: ${allowedIndicators.join(", ")}`,
+      VERIFY_HELP,
+    );
+  }
+
+  // 2. Convert CitationData[] → keyed CitationRecord + build id→hash map
+  type CitationType = Parameters<typeof getCitationKey>[0];
+  const citationRecord: Record<string, CitationType> = {};
+  const idToHash = new Map<number, string>();
+
+  for (const cd of parsed.citations) {
+    const citation = citationDataToCitation(cd, cd.id);
+    const hash = getCitationKey(citation);
+    citationRecord[hash] = citation;
+    idToHash.set(cd.id, hash);
+  }
+
+  console.error(`Parsed ${parsed.citations.length} citation(s).`);
+
+  // 3. Annotate HTML: map data-cite="N" → data-citation-key="hash", strip [N] markers
+  let html = parsed.visibleText;
+  const keyMap: Record<string, string> = {};
+
+  for (const [id, hash] of idToHash) {
+    const dataCitePattern = new RegExp(`data-cite="${id}"`, "g");
+    html = html.replace(dataCitePattern, `data-citation-key="${hash}"`);
+    keyMap[`cite-${id}`] = hash;
+  }
+
+  // Strip [N] text markers only for known citation IDs (avoid removing legitimate [42] etc.)
+  for (const id of idToHash.keys()) {
+    html = html.replace(new RegExp(`\\s*\\[${id}\\]`, "g"), "");
+  }
+
+  // Save intermediate artifacts
+  const ts = Date.now();
+  const outDir = resolve(".deepcitation");
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+
+  const citationsPath = resolve(`.deepcitation/citations-keyed-${ts}.json`);
+  const keyMapPath = resolve(`.deepcitation/key-map-${ts}.json`);
+  const annotatedPath = resolve(`.deepcitation/annotated-${ts}.html`);
+  const verifyResponsePath = resolve(`.deepcitation/verify-response-${ts}.json`);
+
+  // Build citations JSON in the format verify expects (keyed by hash, with attachmentId)
+  const citationsForVerify: Record<string, Record<string, unknown>> = {};
+  for (const [hash, citation] of Object.entries(citationRecord)) {
+    // Cast: citationRecord values are typed but verify expects Record<string, unknown>
+    citationsForVerify[hash] = citation as unknown as Record<string, unknown>;
+  }
+
+  writeFileSync(citationsPath, JSON.stringify(citationsForVerify, null, 2));
+  writeFileSync(keyMapPath, JSON.stringify(keyMap, null, 2));
+  writeFileSync(annotatedPath, html);
+
+  // 4. Verify all citations against the API
+  const missing = Object.entries(citationsForVerify).filter(([, c]) => !(c.attachmentId as string));
+  if (missing.length > 0) {
+    console.error(`Warning: ${missing.length} citation(s) missing attachmentId — these will not be verified.`);
+  }
+
+  const verifiable = Object.fromEntries(Object.entries(citationsForVerify).filter(([, c]) => c.attachmentId as string));
+
+  const groups = new Map<string, Record<string, Record<string, unknown>>>();
+  for (const [key, citation] of Object.entries(verifiable)) {
+    const aid = citation.attachmentId as string;
+    if (!groups.has(aid)) groups.set(aid, {});
+    const group = groups.get(aid);
+    if (group) group[key] = citation;
+  }
+
+  console.error(`Verifying ${Object.keys(verifiable).length} citation(s) across ${groups.size} attachment(s)...`);
+
+  const merged: Record<string, unknown> = {};
+  for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
+    const result = await dc.verifyAttachment(
+      attachmentId,
+      // Cast: same as verify command — JSON-parsed citations → typed CitationMap
+      groupCitations as unknown as Parameters<typeof dc.verifyAttachment>[1],
+      { outputImageFormat: imageFormat },
+    );
+    Object.assign(merged, result.verifications);
+  }
+
+  const verifyOutput = { verifications: merged };
+  writeFileSync(verifyResponsePath, JSON.stringify(verifyOutput, null, 2));
+
+  const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
+  const total = Object.keys(merged).length;
+  console.error(`  Verified: ${found}/${total} found`);
+
+  // 5. Inject CDN runtime (same logic as inject command)
+  const verifications = verifyOutput.verifications;
+  const jsonData = escapeJsonForScript(JSON.stringify(verifications));
+  const keyMapSnippet = `<script type="application/json" id="dc-key-map">${escapeJsonForScript(JSON.stringify(keyMap))}</script>`;
+
+  const snippet = [
+    `<script type="application/json" id="dc-data">${jsonData}</script>`,
+    keyMapSnippet,
+    `<script>${escapeJsForScript(CDN_JS)}</script>`,
+    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:${JSON.stringify(theme)}${indicator !== "icon" ? `,indicatorVariant:${JSON.stringify(indicator)}` : ""}});</script>`,
+  ].join("\n");
+
+  let output = html;
+  if (output.includes("</body>")) {
+    output = output.replace("</body>", () => `${snippet}\n</body>`);
+  } else if (output.includes("</html>")) {
+    output = output.replace("</html>", () => `${snippet}\n</html>`);
+  } else {
+    output = `${output}\n${snippet}`;
+  }
+
+  const outPath = resolve(args.out ?? `.deepcitation/cited-${ts}.html`);
+  writeFileSync(outPath, output);
+  console.log(outPath);
+}
+
 // ── login ─────────────────────────────────────────────────────────
 
-const BASE_URL = "https://deepcitation.com";
+const BASE_URL = process.env.DC_LOGIN_URL || "https://deepcitation.com";
 
 function saveApiKey(key: string, source: string): void {
   if (!key || !key.startsWith("sk-dc-") || key.length < 20) {
@@ -362,11 +746,19 @@ function saveApiKey(key: string, source: string): void {
     );
   }
   writeCredentials({ version: 1, apiKey: key, createdAt: new Date().toISOString() });
-  console.log(`API key: ${maskKey(key)}`);
-  console.log(`Saved to ${CREDENTIALS_PATH}`);
+  console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
 }
 
 async function login(argv: string[]) {
+  // --stdin: read key from stdin (avoids key appearing in shell history)
+  if (argv.includes("--stdin")) {
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+    const key = Buffer.concat(chunks).toString().trim();
+    saveApiKey(key, "stdin");
+    return;
+  }
+
   const keyIdx = argv.indexOf("--key");
   if (keyIdx !== -1) {
     if (keyIdx + 1 >= argv.length) die("--key requires a value", HELP);
@@ -382,7 +774,7 @@ async function login(argv: string[]) {
 
   const existing = readCredentials();
   if (existing) {
-    console.log(`Already logged in as ${sanitizeForLog(existing.email ?? "unknown")} (${maskKey(existing.apiKey)})`);
+    console.log(`Already logged in as ${sanitizeForLog(existing.email ?? "unknown")}.`);
     console.log('Run "deepcitation logout" first to switch accounts.');
     return;
   }
@@ -408,9 +800,8 @@ async function login(argv: string[]) {
       createdAt: new Date().toISOString(),
     });
 
-    console.log(`\nLogged in as ${sanitizeForLog(payload.displayName ?? payload.email ?? "unknown")}`);
-    console.log(`API key: ${maskKey(payload.apiKey)}`);
-    console.log(`Saved to ${CREDENTIALS_PATH}`);
+    console.log(`\nLogged in as ${sanitizeForLog(payload.displayName ?? payload.email ?? "unknown")}.`);
+    console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
     console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
   } catch (err) {
     console.error(`\nLogin failed: ${err instanceof Error ? err.message : err}`);
@@ -433,12 +824,19 @@ function whoami() {
     console.log('Not logged in. Run "deepcitation login" to get started.');
     process.exit(1);
   }
-  if (creds.displayName) console.log(`Name:    ${sanitizeForLog(creds.displayName)}`);
-  if (creds.email) console.log(`Email:   ${sanitizeForLog(creds.email)}`);
-  console.log(`API key: ${maskKey(creds.apiKey)}`);
+  if (creds.displayName) console.log(`Name:   ${sanitizeForLog(creds.displayName)}`);
+  if (creds.email) console.log(`Email:  ${sanitizeForLog(creds.email)}`);
+  console.log(`Status: Authenticated`);
 }
 
 function env() {
+  // If already set in the environment, pass it through (no-op for eval)
+  const existing = process.env.DEEPCITATION_API_KEY;
+  if (existing && /^sk-dc-[A-Za-z0-9]+$/.test(existing)) {
+    process.stdout.write(`export DEEPCITATION_API_KEY="${existing}"\n`);
+    return;
+  }
+
   const creds = readCredentials();
   if (!creds) {
     process.stderr.write('Not logged in. Run "npx deepcitation login" first.\n');
@@ -465,13 +863,20 @@ if (!command || command === "-h" || command === "--help") {
 switch (command) {
   case "prepare":
     prepare(rest).catch(err => {
-      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      console.error(`Error: ${formatNetworkError(err)}`);
       process.exit(1);
     });
     break;
   case "verify":
     verify(rest).catch(err => {
-      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      console.error(`Error: ${formatNetworkError(err)}`);
+      process.exit(1);
+    });
+    break;
+  case "cite":
+    // "cite" is an alias for "verify --html" for backwards compatibility
+    verify(["--html", ...rest]).catch(err => {
+      console.error(`Error: ${formatNetworkError(err)}`);
       process.exit(1);
     });
     break;
@@ -489,6 +894,9 @@ switch (command) {
     break;
   case "whoami":
     whoami();
+    break;
+  case "status":
+    process.exit(readCredentials() ? 0 : 1);
     break;
   case "env":
     env();
