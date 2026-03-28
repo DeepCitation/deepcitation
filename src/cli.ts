@@ -18,6 +18,7 @@ import { DeepCitation } from "./client/DeepCitation.js";
 import { citationDataToCitation, parseCitationData } from "./parsing/citationParser.js";
 import { getCitationKey } from "./utils/citationKey.js";
 import { sanitizeForLog } from "./utils/logSafety.js";
+import { normalizeCitationsFile } from "./utils/normalizeCitations.js";
 import { decodeChunked, detectProxyUrl } from "./utils/proxy.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript } from "./vanilla/reportUtils.js";
@@ -521,49 +522,6 @@ function inject(argv: string[]) {
   const outPath = resolve(args.out ?? htmlPath);
   writeFileSync(outPath, output);
   console.log(outPath);
-}
-
-// ── citation format normalizer ────────────────────────────────────
-
-/**
- * Normalize citation JSON into the flat-map format expected by keygen/verify.
- *
- * Accepts two formats:
- *   1. Flat map (CLI format):   { "cite-key": { attachmentId, fullPhrase, ... } }
- *   2. Grouped array (LLM format): { "ATTACHMENT_ID": [ { id, fullPhrase, ... }, ... ] }
- *
- * Format 2 is produced by the LLM citation prompt (<<<CITATION_DATA>>> blocks).
- * This function detects format 2 and converts it to format 1, using the outer
- * key as attachmentId and each citation's `id` field as the flat-map key.
- */
-function normalizeCitationsFile(raw: Record<string, unknown>): Record<string, Record<string, unknown>> {
-  const entries = Object.entries(raw);
-  if (entries.length === 0) return {};
-
-  // Detect format 2: every value is an array of objects
-  const isGroupedFormat = entries.every(([, v]) => Array.isArray(v));
-  if (!isGroupedFormat) {
-    // Already flat-map format
-    return raw as Record<string, Record<string, unknown>>;
-  }
-
-  // Convert grouped → flat
-  const flat: Record<string, Record<string, unknown>> = {};
-  for (const [attachmentId, citationArray] of entries) {
-    const arr = citationArray as Record<string, unknown>[];
-    for (const citation of arr) {
-      const hasId = citation.id != null && String(citation.id) !== "";
-      const key = hasId ? String(citation.id) : `${attachmentId}-${Object.keys(flat).length}`;
-      if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
-      if (key in flat) {
-        console.error(`Warning: duplicate citation id "${sanitizeForLog(key)}" — skipping`);
-        continue;
-      }
-      flat[key] = { ...citation, attachmentId };
-    }
-  }
-
-  return flat;
 }
 
 // ── keygen ─────────────────────────────────────────────────────────
