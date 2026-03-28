@@ -14,7 +14,7 @@
  */
 
 // Utilities - For type guards and display text
-export { isDocumentCitation, isUrlCitation } from "../types/citation.js";
+export { isAudioVideoCitation, isDocumentCitation, isUrlCitation } from "../types/citation.js";
 // URL Display utilities
 export { extractDomain } from "../utils/urlSafety.js";
 // Components
@@ -129,6 +129,7 @@ export {
 } from "./i18n.js";
 // Icons
 export {
+  AudioIcon,
   CheckIcon,
   CloseIcon,
   DeepCitationIcon,
@@ -139,6 +140,7 @@ export {
   LinkIcon,
   LockIcon,
   SpinnerIcon,
+  VideoIcon,
   WarningIcon,
   XCircleIcon,
   XIcon,
@@ -207,6 +209,8 @@ export {
 } from "./searchSummaryUtils.js";
 // Status Message Utilities
 export { getContextualStatusMessage } from "./statusMessage.js";
+// Timestamp formatting utilities
+export { formatTimestamp, formatTimestampRange } from "./timestampUtils.js";
 // Time to Certainty (TtC) — timing utilities and hooks
 export {
   type CitationTimingResult,

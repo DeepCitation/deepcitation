@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo, useState } from "react";
 import type { Citation } from "../types/citation.js";
-import { isUrlCitation } from "../types/citation.js";
+import { isAudioVideoCitation, isUrlCitation } from "../types/citation.js";
 import type { SearchAttempt, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
 import { isDomainMatch } from "../utils/urlSafety.js";
@@ -17,6 +17,7 @@ import {
 import { formatCaptureDate } from "./dateUtils.js";
 import { type TranslateFunction, tPlural, useLocale, useTranslation } from "./i18n.js";
 import {
+  AudioIcon,
   CheckIcon,
   ChevronRightIcon,
   DocumentIcon,
@@ -24,6 +25,7 @@ import {
   GlobeIcon,
   MissIcon,
   SpinnerIcon,
+  VideoIcon,
   XCircleIcon,
   XIcon,
 } from "./icons.js";
@@ -34,6 +36,7 @@ import {
   type NarrativeRow,
   type SearchNarrative,
 } from "./searchNarrative.js";
+import { formatTimestamp } from "./timestampUtils.js";
 import type { IndicatorVariant, UrlFetchStatus } from "./types.js";
 import { sanitizeUrl } from "./urlUtils.js";
 import { cn, isImageSource } from "./utils.js";
@@ -458,8 +461,28 @@ export function SourceContextHeader({
 
   const shouldShowSourceDownloadButton = !!downloadUrl;
 
-  // Display name for document citations (never show attachmentId to users)
-  const displayName = isUrl ? undefined : sourceLabel || verification?.label || t("drawer.document");
+  const isAV = !isUrl && isAudioVideoCitation(citation);
+
+  // Display name for non-URL citations (never show attachmentId to users)
+  const displayName = isUrl
+    ? undefined
+    : sourceLabel ||
+      verification?.label ||
+      (isAV ? t(citation.type === "audio" ? "drawer.audio" : "drawer.video") : t("drawer.document"));
+
+  // Timestamp text for AV citations (shown in place of page/line location)
+  const avTimestampText = (() => {
+    if (!isAV || !citation.timestamps) return undefined;
+    const { startTime, endTime } = citation.timestamps;
+    if (startTime && endTime) {
+      return t("location.timestamp", {
+        startTime: formatTimestamp(startTime),
+        endTime: formatTimestamp(endTime),
+      });
+    }
+    if (startTime) return t("location.timestampFrom", { startTime: formatTimestamp(startTime) });
+    return undefined;
+  })();
 
   return (
     <div
@@ -491,6 +514,15 @@ export function SourceContextHeader({
             showTitle={!!sourceLabel}
             className="!bg-transparent !px-0 !py-0 !opacity-100 hover:!bg-transparent"
           />
+        ) : isAV ? (
+          <>
+            <span className="w-4 h-4 shrink-0 text-dc-pending">
+              {citation.type === "audio" ? <AudioIcon /> : <VideoIcon />}
+            </span>
+            {displayName && (
+              <span className="text-xs font-medium text-dc-foreground truncate max-w-[360px]">{displayName}</span>
+            )}
+          </>
         ) : (
           <>
             <span className="w-4 h-4 shrink-0 text-dc-pending">
@@ -532,8 +564,10 @@ export function SourceContextHeader({
             isImage={isImage}
           />
         )}
-        {!showPagePill && pageLineText && (
-          <span className="text-[10px] text-dc-subtle-foreground shrink-0 uppercase tracking-wide">{pageLineText}</span>
+        {!showPagePill && (avTimestampText || pageLineText) && (
+          <span className="text-[10px] text-dc-subtle-foreground shrink-0 uppercase tracking-wide">
+            {avTimestampText || pageLineText}
+          </span>
         )}
       </div>
     </div>

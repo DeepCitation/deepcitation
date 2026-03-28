@@ -384,3 +384,50 @@ export const DownloadIcon = ({ className }: { className?: string }) => (
     <line x1="12" y1="15" x2="12" y2="3" />
   </svg>
 );
+
+/**
+ * Audio icon (speaker with sound waves) for audio citations.
+ * Default size is 1em (inherits font size). Use className to override.
+ */
+export const AudioIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    width="1em"
+    height="1em"
+  >
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+  </svg>
+);
+
+/**
+ * Video icon (play triangle inside rectangle) for video citations.
+ * Default size is 1em (inherits font size). Use className to override.
+ */
+export const VideoIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    width="1em"
+    height="1em"
+  >
+    <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+    <polygon points="10 8 16 12 10 16 10 8" />
+  </svg>
+);

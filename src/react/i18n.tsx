@@ -117,6 +117,7 @@ export const defaultMessages = {
   "popover.searching": "Searching\u2026",
   "popover.lookingOnPage": "Looking on p.\u202f{pageNumber}",
   "popover.searchingImage": "Searching image\u2026",
+  "popover.lookingAtTimestamp": "Checking {startTime}\u2026",
   "popover.displayedAs": "(displayed as \u201c{label}\u201d)",
 
   // ── Tab labels ─────────────────────────────────────────────────
@@ -142,6 +143,8 @@ export const defaultMessages = {
   "drawer.sources": "Sources",
   "drawer.source": "Source",
   "drawer.document": "Document",
+  "drawer.audio": "Audio",
+  "drawer.video": "Video",
   "drawer.unknownSource": "Unknown Source",
   "drawer.noCitationsToDisplay": "No citations to display",
   "drawer.close": "Close",
@@ -168,6 +171,7 @@ export const defaultMessages = {
   "action.openInNewTab": "Open in new tab",
   "action.closeSources": "Close sources",
   "action.tapToViewDetails": "Tap to view details",
+  "action.playFromHere": "Play from here",
   "action.clickToViewDetails": "Click to view details",
 
   // ── Accessibility labels (aria) ───────────────────────────────
@@ -215,6 +219,7 @@ export const defaultMessages = {
   "aria.announcement.verifiedExact": "Citation verified - exact match found",
   "aria.announcement.notFound": "Verification complete - citation not found in source",
   "aria.announcement.partial": "Verification complete - partial match found",
+  "aria.playFromTimestamp": "Play from {startTime}",
 
   // ── Search method display names ────────────────────────────────
   "search.method.exactLineMatch": "Exact location",
@@ -310,6 +315,8 @@ export const defaultMessages = {
   "location.pageRange": "p.\u202f{startPage}\u2013{endPage}",
   "location.matchingLocations_one": "{count} matching location",
   "location.matchingLocations_other": "{count} matching locations",
+  "location.timestamp": "{startTime} \u2013 {endTime}",
+  "location.timestampFrom": "From {startTime}",
 
   // ── Evidence / popover inline labels ────────────────────────────
   "evidence.textNotFound": "Text not found in document",

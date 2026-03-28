@@ -10,7 +10,7 @@
 
 import { type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CitationStatus } from "../types/citation.js";
-import { isUrlCitation } from "../types/citation.js";
+import { isAudioVideoCitation, isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
 import { getStatusLabel } from "./citationStatus.js";
 import {
@@ -36,6 +36,7 @@ import { useTranslation } from "./i18n.js";
 import { SpinnerIcon } from "./icons.js";
 import { getBlinkContainerMotionStyle } from "./motion/blinkAnimation.js";
 import { buildIntentSummary, type MatchSnippet } from "./searchSummaryUtils.js";
+import { formatTimestamp } from "./timestampUtils.js";
 import type { BaseCitationProps, IndicatorVariant } from "./types.js";
 import {
   getUrlAccessExplanation,
@@ -618,13 +619,21 @@ function PopoverLoadingView({
             &ldquo;{searchingPhrase.length > 80 ? `${searchingPhrase.slice(0, 80)}…` : searchingPhrase}&rdquo;
           </p>
         )}
-        {!isUrlCitation(citation) && citation.pageNumber && citation.pageNumber > 0 && (
+        {isAudioVideoCitation(citation) && citation.timestamps?.startTime && (
           <span className="text-xs text-dc-subtle-foreground">
-            {isImageSource(verification)
-              ? t("popover.searchingImage")
-              : t("popover.lookingOnPage", { pageNumber: citation.pageNumber })}
+            {t("popover.lookingAtTimestamp", { startTime: formatTimestamp(citation.timestamps.startTime) })}
           </span>
         )}
+        {!isUrlCitation(citation) &&
+          !isAudioVideoCitation(citation) &&
+          citation.pageNumber &&
+          citation.pageNumber > 0 && (
+            <span className="text-xs text-dc-subtle-foreground">
+              {isImageSource(verification)
+                ? t("popover.searchingImage")
+                : t("popover.lookingOnPage", { pageNumber: citation.pageNumber })}
+            </span>
+          )}
       </div>
     </div>
   );
@@ -698,10 +707,22 @@ function PopoverFallbackView({
             {t("popover.displayedAs", { label: displayLabel })}
           </span>
         )}
-        {pageNumber && pageNumber > 0 && (
+        {pageNumber && pageNumber > 0 && !isAudioVideoCitation(citation) && (
           <span className="text-xs text-dc-subtle-foreground">
             {isImageSource(verification) ? t("location.image") : t("location.page", { pageNumber })}
           </span>
+        )}
+        {isAudioVideoCitation(citation) && verification?.verifiedTimestamps?.startTime && (
+          <button
+            type="button"
+            className="text-xs text-dc-primary cursor-default opacity-50"
+            aria-label={t("aria.playFromTimestamp", {
+              startTime: formatTimestamp(verification.verifiedTimestamps.startTime),
+            })}
+            disabled
+          >
+            {t("action.playFromHere")}
+          </button>
         )}
       </div>
     </div>

@@ -99,6 +99,8 @@ export interface AudioVideoCitation extends CitationBase {
     startTime?: string;
     endTime?: string;
   };
+  /** Whether the cited content was spoken or shown on screen (video only). */
+  mediaSource?: "spoken" | "onscreen" | "both";
 }
 
 /** URL citation — web page or online resource. */

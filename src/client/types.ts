@@ -164,6 +164,10 @@ export interface UploadFileResponse {
    * Use this to populate Citation.url and Citation.domain when creating citations.
    */
   urlSource?: UrlSource;
+  /** WebVTT transcript for audio/video files. Absent for non-AV uploads. */
+  vtt?: string;
+  /** Total media duration in milliseconds. Absent for non-AV uploads. */
+  mediaDurationMs?: number;
 }
 
 // ==========================================================================
