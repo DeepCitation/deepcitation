@@ -119,13 +119,15 @@ function injectStyles(): void {
   const triggerStyles = [
     // Base: matches cn("relative inline-flex items-baseline", "px-0.5 -mx-0.5 rounded-sm",
     //   "transition-colors duration-[80ms] active:scale-[0.98]", "cursor-pointer")
-    `:where([data-citation-key]) { position: relative; display: inline; padding: 0 0.125rem; margin: 0 -0.125rem; border-radius: 2px; transition: background-color 80ms ease; cursor: pointer; }`,
+    `:where([data-citation-key]) { position: relative; display: inline-flex; align-items: baseline; padding: 0 0.125rem; margin: 0 -0.125rem; border-radius: 2px; transition: background-color 80ms ease; cursor: pointer; }`,
     // Hover: matches getInteractionClasses(false, "text") → "hover:bg-black/[0.06]"
     `:where([data-citation-key]:hover) { background: rgba(0,0,0,0.06); }`,
     // Active: matches "active:scale-[0.98]"
     `:where([data-citation-key]:active) { transform: scale(0.98); }`,
-    // Dark mode: matches "dark:hover:bg-white/[0.06]"
-    `@media (prefers-color-scheme: dark) { :where([data-citation-key]:hover) { background: rgba(255,255,255,0.06); } }`,
+    // Reduced motion: suppress active scale
+    `@media (prefers-reduced-motion: reduce) { :where([data-citation-key]:active) { transform: none; } }`,
+    // Dark mode: matches "dark:hover:bg-white/[0.06]" — uses data-dc-theme to match CDN theme attribute
+    `:where([data-dc-theme="dark"]) :where([data-citation-key]:hover) { background: rgba(255,255,255,0.06); }`,
   ].join("\n");
   style.textContent = (typeof __CDN_CSS__ === "string" ? __CDN_CSS__ : "") + "\n" + triggerStyles;
   document.head.appendChild(style);
@@ -189,8 +191,7 @@ function CdnPopoverWrapper(props: {
 /** For multi-line inline triggers, return the last line rect (where the indicator sits). */
 function getTriggerRect(trigger: HTMLElement): DOMRect {
   const rects = trigger.getClientRects();
-  if (rects.length > 1) return rects[rects.length - 1];
-  return trigger.getBoundingClientRect();
+  return rects.length > 1 ? rects[rects.length - 1] : rects[0] ?? trigger.getBoundingClientRect();
 }
 
 function reposition(): void {
