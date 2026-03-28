@@ -18,35 +18,11 @@ import { DeepCitation } from "./client/DeepCitation.js";
 import { citationDataToCitation, parseCitationData } from "./parsing/citationParser.js";
 import { getCitationKey } from "./utils/citationKey.js";
 import { sanitizeForLog } from "./utils/logSafety.js";
+import { decodeChunked, detectProxyUrl } from "./utils/proxy.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript } from "./vanilla/reportUtils.js";
 
 // ── proxy support ──────────────────────────────────────────────────
-
-/**
- * Detect proxy URL from standard environment variables.
- * Checks HTTPS_PROXY, HTTP_PROXY (and lowercase variants), plus NO_PROXY exclusions.
- */
-function detectProxyUrl(targetUrl: string): string | undefined {
-  const noProxy = process.env.NO_PROXY || process.env.no_proxy || "";
-  if (noProxy === "*") return undefined;
-
-  const target = new URL(targetUrl);
-  if (noProxy) {
-    const exclusions = noProxy.split(",").map(s => s.trim().toLowerCase());
-    const hostname = target.hostname.toLowerCase();
-    for (const exc of exclusions) {
-      if (!exc) continue;
-      if (hostname === exc || hostname.endsWith(`.${exc}`)) return undefined;
-    }
-  }
-
-  // Prefer HTTPS_PROXY for https targets, fall back to HTTP_PROXY
-  if (target.protocol === "https:") {
-    return process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
-  }
-  return process.env.HTTP_PROXY || process.env.http_proxy;
-}
 
 /**
  * Create a proxy-aware fetch that tunnels HTTPS through an HTTP CONNECT proxy.
@@ -182,22 +158,6 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
       });
     });
   };
-}
-
-/** Decode HTTP chunked transfer encoding (binary-safe) */
-function decodeChunked(raw: Buffer): Buffer {
-  const crlf = Buffer.from("\r\n");
-  const parts: Buffer[] = [];
-  let pos = 0;
-  while (pos < raw.length) {
-    const lineEnd = raw.indexOf(crlf, pos);
-    if (lineEnd === -1) break;
-    const size = parseInt(raw.subarray(pos, lineEnd).toString("ascii"), 16);
-    if (size === 0 || Number.isNaN(size)) break;
-    parts.push(raw.subarray(lineEnd + 2, lineEnd + 2 + size));
-    pos = lineEnd + 2 + size + 2; // skip chunk data + trailing \r\n
-  }
-  return Buffer.concat(parts);
 }
 
 /**
@@ -488,6 +448,8 @@ async function verify(argv: string[]) {
     console.error(`  ${sanitizeForLog(attachmentId)}: ${Object.keys(groupCitations).length} citations...`);
     const result = await dc.verifyAttachment(
       attachmentId,
+      // Cast: CLI reads citations from JSON files as Record<string, Record<string, unknown>>,
+      // but verifyAttachment expects its own typed CitationMap. The shapes match at runtime.
       groupCitations as unknown as Parameters<typeof dc.verifyAttachment>[1],
       { outputImageFormat: imageFormat },
     );
@@ -599,6 +561,7 @@ function keygen(argv: string[]) {
   const rekeyed: Record<string, Record<string, unknown>> = {};
 
   for (const [label, citation] of Object.entries(citations)) {
+    // Cast: JSON-parsed citation record → typed Citation for hashing. Shapes match at runtime.
     const key = getCitationKey(citation as unknown as Parameters<typeof getCitationKey>[0]);
     mapping[label] = key;
     rekeyed[key] = citation;
@@ -704,6 +667,7 @@ async function verifyHtml(argv: string[]) {
   // Build citations JSON in the format verify expects (keyed by hash, with attachmentId)
   const citationsForVerify: Record<string, Record<string, unknown>> = {};
   for (const [hash, citation] of Object.entries(citationRecord)) {
+    // Cast: citationRecord values are typed but verify expects Record<string, unknown>
     citationsForVerify[hash] = citation as unknown as Record<string, unknown>;
   }
 
@@ -733,6 +697,7 @@ async function verifyHtml(argv: string[]) {
   for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
     const result = await dc.verifyAttachment(
       attachmentId,
+      // Cast: same as verify command — JSON-parsed citations → typed CitationMap
       groupCitations as unknown as Parameters<typeof dc.verifyAttachment>[1],
       { outputImageFormat: imageFormat },
     );

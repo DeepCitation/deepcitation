@@ -147,6 +147,7 @@ export function startCallbackServer(
   return new Promise((resolveServer, rejectServer) => {
     let resolveResult: (payload: CallbackPayload) => void;
     let rejectResult: (err: Error) => void;
+    let loginTimeout: ReturnType<typeof setTimeout> | undefined;
 
     const result = new Promise<CallbackPayload>((res, rej) => {
       resolveResult = res;
@@ -225,6 +226,7 @@ export function startCallbackServer(
               sendJson(res, 200, { success: true }, origin);
             }
             res.on("finish", () => {
+              if (loginTimeout) clearTimeout(loginTimeout);
               resolveResult(payload);
               setTimeout(() => server.close(), 100);
             });
@@ -245,14 +247,14 @@ export function startCallbackServer(
         return;
       }
 
-      const timeout = setTimeout(() => {
+      loginTimeout = setTimeout(() => {
         server.close();
         rejectResult(new Error("Login timed out after 5 minutes"));
       }, TIMEOUT_MS);
 
       // Don't keep the process alive just for the timeout timer,
       // but DO keep it alive for the server (it must stay up to receive the callback).
-      timeout.unref();
+      loginTimeout.unref();
 
       resolveServer({ port: addr.port, result });
     });

@@ -273,6 +273,20 @@ describe("startCallbackServer", () => {
     await cleanup(port, nonce);
   });
 
+  it("rejects oversized payloads with 413", async () => {
+    const nonce = generateNonce();
+    const { port } = await startCallbackServer(nonce);
+
+    // Send a payload larger than the 10KB limit
+    const oversized = JSON.stringify({ apiKey: "sk-dc-test1234567890abcdef", nonce, pad: "x".repeat(11_000) });
+    const res = await req(port, "POST", "/callback", oversized, {
+      "Content-Type": "application/json",
+    });
+    expect(res.status).toBe(413);
+
+    await cleanup(port, nonce);
+  });
+
   it("rejects invalid JSON", async () => {
     const nonce = generateNonce();
     const { port } = await startCallbackServer(nonce);
