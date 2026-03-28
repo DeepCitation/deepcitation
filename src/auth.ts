@@ -10,6 +10,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { isDomainMatch } from "./utils/urlSafety.js";
 
+/** Escape user-controlled strings for safe HTML interpolation. */
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 // ── Credentials ────────────────────────────────────────────────────
 
 export interface Credentials {
@@ -84,6 +89,7 @@ export interface CallbackPayload {
   nonce: string;
   email?: string;
   displayName?: string;
+  keyName?: string;
 }
 
 const ALLOWED_ORIGIN = "https://deepcitation.com";
@@ -96,10 +102,35 @@ function corsHeaders(origin: string | undefined): Record<string, string> {
   const allowed = origin && isDomainMatch(origin, "deepcitation.com") ? origin : ALLOWED_ORIGIN;
   return {
     "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Private-Network": "true",
     "Access-Control-Max-Age": "86400",
   };
+}
+
+/** Respond with a full-page HTML result (shown after form POST redirect). */
+function sendFormResult(res: ServerResponse, status: "success" | "error", keyName?: string): void {
+  res.writeHead(200, { "Content-Type": "text/html" });
+  const title = status === "success" ? "Authenticated" : "Authentication Failed";
+  const message =
+    status === "success"
+      ? "You can close this tab and return to your terminal."
+      : "Authentication failed. Please try again from the CLI.";
+  const icon = status === "success" ? "&#10003;" : "&#10007;";
+  const color = status === "success" ? "#10b981" : "#ef4444";
+  const keyHint =
+    status === "success" && keyName
+      ? `<p style="margin-top:12px;font-size:13px;color:#a1a1aa">API key: <strong style="color:#3f3f46">${escapeHtml(keyName)}</strong></p>`
+      : "";
+  res.end(
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><title>DeepCitation – ${title}</title>` +
+      `<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;` +
+      `display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fafafa;color:#18181b}` +
+      `.card{text-align:center;max-width:360px;padding:48px 32px}.icon{font-size:48px;color:${color};margin-bottom:16px}` +
+      `h1{font-size:20px;font-weight:600;margin-bottom:8px}p{font-size:14px;color:#71717a}</style></head>` +
+      `<body><div class="card"><div class="icon">${icon}</div><h1>${title}</h1><p>${message}</p>${keyHint}</div></body></html>`,
+  );
 }
 
 function sendJson(res: ServerResponse, status: number, body: Record<string, unknown>, origin?: string): void {
@@ -151,19 +182,46 @@ export function startCallbackServer(
         req.on("end", () => {
           if (destroyed) return;
           try {
-            const payload = JSON.parse(body) as CallbackPayload;
+            const ct = req.headers["content-type"] || "";
+            const isForm = ct.includes("application/x-www-form-urlencoded");
+
+            let payload: CallbackPayload;
+            if (isForm) {
+              const params = new URLSearchParams(body);
+              payload = {
+                apiKey: params.get("apiKey") || "",
+                nonce: params.get("nonce") || "",
+                email: params.get("email") || undefined,
+                displayName: params.get("displayName") || undefined,
+                keyName: params.get("keyName") || undefined,
+              };
+            } else {
+              payload = JSON.parse(body) as CallbackPayload;
+            }
 
             if (payload.nonce !== expectedNonce) {
-              sendJson(res, 403, { error: "Invalid nonce" }, origin);
+              if (isForm) {
+                sendFormResult(res, "error");
+              } else {
+                sendJson(res, 403, { error: "Invalid nonce" }, origin);
+              }
               return;
             }
 
             if (!payload.apiKey || !payload.apiKey.startsWith("sk-dc-") || payload.apiKey.length < 20) {
-              sendJson(res, 400, { error: "Invalid API key format" }, origin);
+              if (isForm) {
+                sendFormResult(res, "error");
+              } else {
+                sendJson(res, 400, { error: "Invalid API key format" }, origin);
+              }
               return;
             }
 
-            sendJson(res, 200, { success: true }, origin);
+            if (isForm) {
+              sendFormResult(res, "success", payload.keyName);
+            } else {
+              sendJson(res, 200, { success: true }, origin);
+            }
             res.on("finish", () => {
               resolveResult(payload);
               setTimeout(() => server.close(), 100);
@@ -190,9 +248,9 @@ export function startCallbackServer(
         rejectResult(new Error("Login timed out after 5 minutes"));
       }, TIMEOUT_MS);
 
-      // Don't keep the process alive just for the timeout
+      // Don't keep the process alive just for the timeout timer,
+      // but DO keep it alive for the server (it must stay up to receive the callback).
       timeout.unref();
-      server.unref();
 
       resolveServer({ port: addr.port, result });
     });
