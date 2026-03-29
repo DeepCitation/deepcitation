@@ -8,6 +8,16 @@
  *
  * Runs once per init() call (not on update()).
  */
+function resolveEls(selector: string, readAttr: string, keyMap: Record<string, unknown>): void {
+  for (const el of document.querySelectorAll<HTMLElement>(selector)) {
+    const humanKey = el.getAttribute(readAttr);
+    if (!humanKey) continue;
+    const hashedKey = keyMap[humanKey];
+    if (typeof hashedKey !== "string") continue;
+    el.setAttribute("data-citation-key", hashedKey);
+  }
+}
+
 export function resolveKeyMap(): void {
   const keyMapEl = document.getElementById("dc-key-map");
   if (!keyMapEl?.textContent) return;
@@ -17,27 +27,9 @@ export function resolveKeyMap(): void {
     const keyMap = raw as Record<string, unknown>;
 
     // Legacy path: data-cite → data-citation-key
-    const citeEls = document.querySelectorAll<HTMLElement>("[data-cite]");
-    for (const el of citeEls) {
-      const humanKey = el.getAttribute("data-cite");
-      if (!humanKey) continue;
-      if (!Object.hasOwn(keyMap, humanKey)) continue;
-      const hashedKey = keyMap[humanKey];
-      if (typeof hashedKey !== "string") continue;
-      el.setAttribute("data-citation-key", hashedKey);
-    }
-
-    // Current path: data-citation-key with human-readable value → replace with hashed key
-    // Use :not([data-cite]) to exclude legacy elements already resolved above.
-    const citationKeyEls = document.querySelectorAll<HTMLElement>("[data-citation-key]:not([data-cite])");
-    for (const el of citationKeyEls) {
-      const currentKey = el.getAttribute("data-citation-key");
-      if (!currentKey) continue;
-      if (!Object.hasOwn(keyMap, currentKey)) continue;
-      const hashedKey = keyMap[currentKey];
-      if (typeof hashedKey !== "string") continue;
-      el.setAttribute("data-citation-key", hashedKey);
-    }
+    resolveEls("[data-cite]", "data-cite", keyMap);
+    // Current path: :not([data-cite]) excludes legacy elements already resolved above
+    resolveEls("[data-citation-key]:not([data-cite])", "data-citation-key", keyMap);
   } catch {
     console.error("[deepcitation] Failed to parse key map");
   }
