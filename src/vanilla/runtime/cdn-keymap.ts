@@ -28,7 +28,8 @@ export function resolveKeyMap(): void {
     }
 
     // Current path: data-citation-key with human-readable value → replace with hashed key
-    const citationKeyEls = document.querySelectorAll<HTMLElement>("[data-citation-key]");
+    // Use :not([data-cite]) to exclude legacy elements already resolved above.
+    const citationKeyEls = document.querySelectorAll<HTMLElement>("[data-citation-key]:not([data-cite])");
     for (const el of citationKeyEls) {
       const currentKey = el.getAttribute("data-citation-key");
       if (!currentKey) continue;

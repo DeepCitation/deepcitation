@@ -335,4 +335,12 @@ describe("resolveKeyMap DOM behavior", () => {
     expect(legacyEl.getAttribute("data-citation-key")).toBe("hash-a");
     expect(currentEl.getAttribute("data-citation-key")).toBe("hash-b");
   });
+
+  it("does not double-process legacy elements when hashed value is also a key", () => {
+    // "hash-a" appears as both a value AND a key — legacy elements must not be re-resolved
+    injectKeyMap({ "claim-a": "hash-a", "hash-a": "double-hashed" });
+    const legacyEl = addCiteEl("claim-a");
+    resolveKeyMap();
+    expect(legacyEl.getAttribute("data-citation-key")).toBe("hash-a");
+  });
 });
