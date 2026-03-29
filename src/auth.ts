@@ -240,7 +240,9 @@ export function startCallbackServer(
       sendJson(res, 404, { error: "Not found" }, origin);
     });
 
-    server.listen(0, "127.0.0.1", () => {
+    // Bind to 0.0.0.0 so Windows browsers can reach this server in WSL2.
+    // Security: the nonce (64-char random hex) prevents unauthorized callers.
+    server.listen(0, "0.0.0.0", () => {
       const addr = server.address();
       if (!addr || typeof addr === "string") {
         rejectServer(new Error("Failed to start callback server"));
