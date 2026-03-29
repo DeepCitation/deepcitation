@@ -236,7 +236,7 @@ export const esOverrides = {
   "search.method.thirdQuarterFallback": "Tercer cuarto",
   "search.method.fourthQuarterFallback": "Cuarto cuarto",
   "search.method.longestWordFallback": "Palabra más larga",
-  "search.method.contentWordMatch": "Coincidencia de palabras clave",
+  "search.method.contentWordMatch": "Coincidencia de palabras de contenido",
   "search.method.customPhraseFallback": "Búsqueda personalizada",
   "search.method.keyspanFallback": "Texto ancla",
   "search.empty": "(vacío)",

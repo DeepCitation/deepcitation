@@ -344,6 +344,17 @@ describe("resolveKeyMap DOM behavior", () => {
     expect(legacyEl.getAttribute("data-citation-key")).toBe("hash-a");
   });
 
+  it("legacy path overwrites pre-existing data-citation-key and current path skips it", () => {
+    injectKeyMap({ "claim-a": "hash-a", "hash-a": "double-hashed" });
+    const el = document.createElement("span");
+    el.setAttribute("data-cite", "claim-a");
+    el.setAttribute("data-citation-key", "pre-existing");
+    document.body.appendChild(el);
+    resolveKeyMap();
+    // Legacy path overwrites data-citation-key; current path skips due to :not([data-cite])
+    expect(el.getAttribute("data-citation-key")).toBe("hash-a");
+  });
+
   it("resolves data-citation-key even when value looks like a hash", () => {
     injectKeyMap({ "hash-a": "double-hashed" });
     const el = addCitationKeyEl("hash-a");
