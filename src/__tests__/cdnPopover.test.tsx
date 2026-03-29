@@ -343,4 +343,12 @@ describe("resolveKeyMap DOM behavior", () => {
     resolveKeyMap();
     expect(legacyEl.getAttribute("data-citation-key")).toBe("hash-a");
   });
+
+  it("resolves data-citation-key even when value looks like a hash", () => {
+    injectKeyMap({ "hash-a": "double-hashed" });
+    const el = addCitationKeyEl("hash-a");
+    resolveKeyMap();
+    // current-path elements are always resolved if the key exists
+    expect(el.getAttribute("data-citation-key")).toBe("double-hashed");
+  });
 });

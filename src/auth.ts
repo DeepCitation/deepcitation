@@ -97,7 +97,7 @@ const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 function corsHeaders(origin: string | undefined): Record<string, string> {
   // Intentionally trusts all *.deepcitation.com subdomains — the callback server
-  // runs on 0.0.0.0 (all interfaces) for WSL2 compatibility; the nonce prevents abuse.
+  // binds to 0.0.0.0 in WSL2, 127.0.0.1 elsewhere; the nonce prevents abuse.
   // isDomainMatch prevents suffix-spoofing (e.g. evil.deepcitation.com.attacker.com).
   const allowed = origin && isDomainMatch(origin, "deepcitation.com") ? origin : ALLOWED_ORIGIN;
   return {
@@ -240,9 +240,11 @@ export function startCallbackServer(
       sendJson(res, 404, { error: "Not found" }, origin);
     });
 
-    // Bind to 0.0.0.0 so Windows browsers can reach this server in WSL2.
-    // Security: the nonce (64-char random hex) prevents unauthorized callers.
-    server.listen(0, "0.0.0.0", () => {
+    // WSL2: Windows browsers can't reach 127.0.0.1 inside the VM, so bind
+    // to 0.0.0.0 there. Everywhere else, keep loopback-only for defense-in-depth.
+    // The 64-char random nonce prevents unauthorized callers in either case.
+    const host = process.env.WSL_DISTRO_NAME ? "0.0.0.0" : "127.0.0.1";
+    server.listen(0, host, () => {
       const addr = server.address();
       if (!addr || typeof addr === "string") {
         rejectServer(new Error("Failed to start callback server"));

@@ -12,7 +12,7 @@ function resolveEls(selector: string, readAttr: string, keyMap: Record<string, u
   for (const el of document.querySelectorAll<HTMLElement>(selector)) {
     const humanKey = el.getAttribute(readAttr);
     if (!humanKey) continue;
-    const hashedKey = keyMap[humanKey];
+    const hashedKey = Object.hasOwn(keyMap, humanKey) ? keyMap[humanKey] : undefined;
     if (typeof hashedKey !== "string") continue;
     el.setAttribute("data-citation-key", hashedKey);
   }
