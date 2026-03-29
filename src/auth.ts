@@ -97,7 +97,7 @@ const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 function corsHeaders(origin: string | undefined): Record<string, string> {
   // Intentionally trusts all *.deepcitation.com subdomains — the callback server
-  // only runs on 127.0.0.1 during interactive login so the blast radius is limited.
+  // runs on 0.0.0.0 (all interfaces) for WSL2 compatibility; the nonce prevents abuse.
   // isDomainMatch prevents suffix-spoofing (e.g. evil.deepcitation.com.attacker.com).
   const allowed = origin && isDomainMatch(origin, "deepcitation.com") ? origin : ALLOWED_ORIGIN;
   return {
