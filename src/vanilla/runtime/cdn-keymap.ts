@@ -1,9 +1,23 @@
 /**
- * Resolves human-readable `data-cite` attributes to hashed `data-citation-key`
+ * Resolves human-readable citation keys to hashed `data-citation-key` values
  * using the key map embedded as `<script id="dc-key-map">{...}</script>`.
+ *
+ * Handles two attribute formats:
+ *  1. `data-cite="cite-revenue"` (legacy) → sets `data-citation-key` to hashed value
+ *  2. `data-citation-key="cite-revenue"` (current /verify workflow) → replaces value with hashed key
  *
  * Runs once per init() call (not on update()).
  */
+function resolveEls(selector: string, readAttr: string, keyMap: Record<string, unknown>): void {
+  for (const el of document.querySelectorAll<HTMLElement>(selector)) {
+    const humanKey = el.getAttribute(readAttr);
+    if (!humanKey) continue;
+    const hashedKey = Object.hasOwn(keyMap, humanKey) ? keyMap[humanKey] : undefined;
+    if (typeof hashedKey !== "string") continue;
+    el.setAttribute("data-citation-key", hashedKey);
+  }
+}
+
 export function resolveKeyMap(): void {
   const keyMapEl = document.getElementById("dc-key-map");
   if (!keyMapEl?.textContent) return;
@@ -11,15 +25,11 @@ export function resolveKeyMap(): void {
     const raw: unknown = JSON.parse(keyMapEl.textContent);
     if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return;
     const keyMap = raw as Record<string, unknown>;
-    const citeEls = document.querySelectorAll<HTMLElement>("[data-cite]");
-    for (const el of citeEls) {
-      const humanKey = el.getAttribute("data-cite");
-      if (!humanKey) continue;
-      if (!Object.hasOwn(keyMap, humanKey)) continue;
-      const hashedKey = keyMap[humanKey];
-      if (typeof hashedKey !== "string") continue;
-      el.setAttribute("data-citation-key", hashedKey);
-    }
+
+    // Legacy path: data-cite → data-citation-key
+    resolveEls("[data-cite]", "data-cite", keyMap);
+    // Current path: :not([data-cite]) excludes legacy elements already resolved above
+    resolveEls("[data-citation-key]:not([data-cite])", "data-citation-key", keyMap);
   } catch {
     console.error("[deepcitation] Failed to parse key map");
   }

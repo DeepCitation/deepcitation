@@ -97,7 +97,7 @@ const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 function corsHeaders(origin: string | undefined): Record<string, string> {
   // Intentionally trusts all *.deepcitation.com subdomains — the callback server
-  // only runs on 127.0.0.1 during interactive login so the blast radius is limited.
+  // binds to 0.0.0.0 in WSL2, 127.0.0.1 elsewhere; the nonce prevents abuse.
   // isDomainMatch prevents suffix-spoofing (e.g. evil.deepcitation.com.attacker.com).
   const allowed = origin && isDomainMatch(origin, "deepcitation.com") ? origin : ALLOWED_ORIGIN;
   return {
@@ -240,7 +240,15 @@ export function startCallbackServer(
       sendJson(res, 404, { error: "Not found" }, origin);
     });
 
-    server.listen(0, "127.0.0.1", () => {
+    // WSL: Windows browsers can't reach 127.0.0.1 inside the VM (WSL2), so
+    // bind to 0.0.0.0 when running under WSL. WSL_DISTRO_NAME is set in both
+    // WSL1 and WSL2; binding 0.0.0.0 in WSL1 is unnecessary but harmless.
+    // Everywhere else, keep loopback-only for defense-in-depth.
+    // Note: 0.0.0.0 exposes the server on LAN for the ~5-min login window.
+    // The /health endpoint is reachable without a nonce, but only reveals that
+    // the server is listening. Auth completion requires the 64-char random nonce.
+    const host = process.env.WSL_DISTRO_NAME ? "0.0.0.0" : "127.0.0.1";
+    server.listen(0, host, () => {
       const addr = server.address();
       if (!addr || typeof addr === "string") {
         rejectServer(new Error("Failed to start callback server"));

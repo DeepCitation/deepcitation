@@ -233,6 +233,7 @@ export const defaultMessages = {
   "search.method.thirdQuarterFallback": "Third quarter",
   "search.method.fourthQuarterFallback": "Fourth quarter",
   "search.method.longestWordFallback": "Longest word",
+  "search.method.contentWordMatch": "Content word match",
   "search.method.customPhraseFallback": "Custom search",
   "search.method.keyspanFallback": "Anchor text",
   "search.empty": "(empty)",

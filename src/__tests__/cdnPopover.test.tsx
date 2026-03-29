@@ -236,6 +236,7 @@ describe("resolveKeyMap DOM behavior", () => {
   afterEach(() => {
     document.getElementById("dc-key-map")?.remove();
     document.querySelectorAll("[data-cite]").forEach(el => el.remove());
+    document.querySelectorAll("[data-citation-key]").forEach(el => el.remove());
   });
 
   function injectKeyMap(map: Record<string, unknown>) {
@@ -302,5 +303,63 @@ describe("resolveKeyMap DOM behavior", () => {
       document.getElementById("dc-key-map")?.remove();
       el.remove();
     }
+  });
+
+  // Tests for the current /verify workflow: data-citation-key with human-readable values
+  function addCitationKeyEl(humanKey: string): HTMLElement {
+    const el = document.createElement("span");
+    el.setAttribute("data-citation-key", humanKey);
+    document.body.appendChild(el);
+    return el;
+  }
+
+  it("resolves data-citation-key human-readable values to hashed keys", () => {
+    injectKeyMap({ "cite-revenue": "bfd6ec10bd261161" });
+    const el = addCitationKeyEl("cite-revenue");
+    resolveKeyMap();
+    expect(el.getAttribute("data-citation-key")).toBe("bfd6ec10bd261161");
+  });
+
+  it("leaves data-citation-key unchanged if value is not in the key map", () => {
+    injectKeyMap({ "cite-revenue": "bfd6ec10bd261161" });
+    const el = addCitationKeyEl("already-hashed-key");
+    resolveKeyMap();
+    expect(el.getAttribute("data-citation-key")).toBe("already-hashed-key");
+  });
+
+  it("handles mixed data-cite and data-citation-key elements", () => {
+    injectKeyMap({ "claim-a": "hash-a", "claim-b": "hash-b" });
+    const legacyEl = addCiteEl("claim-a");
+    const currentEl = addCitationKeyEl("claim-b");
+    resolveKeyMap();
+    expect(legacyEl.getAttribute("data-citation-key")).toBe("hash-a");
+    expect(currentEl.getAttribute("data-citation-key")).toBe("hash-b");
+  });
+
+  it("does not double-process legacy elements when hashed value is also a key", () => {
+    // "hash-a" appears as both a value AND a key — legacy elements must not be re-resolved
+    injectKeyMap({ "claim-a": "hash-a", "hash-a": "double-hashed" });
+    const legacyEl = addCiteEl("claim-a");
+    resolveKeyMap();
+    expect(legacyEl.getAttribute("data-citation-key")).toBe("hash-a");
+  });
+
+  it("legacy path overwrites pre-existing data-citation-key and current path skips it", () => {
+    injectKeyMap({ "claim-a": "hash-a", "hash-a": "double-hashed" });
+    const el = document.createElement("span");
+    el.setAttribute("data-cite", "claim-a");
+    el.setAttribute("data-citation-key", "pre-existing");
+    document.body.appendChild(el);
+    resolveKeyMap();
+    // Legacy path overwrites data-citation-key; current path skips due to :not([data-cite])
+    expect(el.getAttribute("data-citation-key")).toBe("hash-a");
+  });
+
+  it("resolves data-citation-key even when value looks like a hash", () => {
+    injectKeyMap({ "hash-a": "double-hashed" });
+    const el = addCitationKeyEl("hash-a");
+    resolveKeyMap();
+    // current-path elements are always resolved if the key exists
+    expect(el.getAttribute("data-citation-key")).toBe("double-hashed");
   });
 });
