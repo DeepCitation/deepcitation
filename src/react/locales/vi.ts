@@ -235,6 +235,7 @@ export const viOverrides = {
   "search.method.thirdQuarterFallback": "Phần tư thứ ba",
   "search.method.fourthQuarterFallback": "Phần tư thứ tư",
   "search.method.longestWordFallback": "Từ dài nhất",
+  "search.method.contentWordMatch": "Khớp từ nội dung",
   "search.method.customPhraseFallback": "Tìm kiếm tùy chỉnh",
   "search.method.keyspanFallback": "Văn bản neo",
   "search.empty": "(trống)",
