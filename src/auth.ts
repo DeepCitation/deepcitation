@@ -240,9 +240,13 @@ export function startCallbackServer(
       sendJson(res, 404, { error: "Not found" }, origin);
     });
 
-    // WSL2: Windows browsers can't reach 127.0.0.1 inside the VM, so bind
-    // to 0.0.0.0 there. Everywhere else, keep loopback-only for defense-in-depth.
-    // The 64-char random nonce prevents unauthorized callers in either case.
+    // WSL: Windows browsers can't reach 127.0.0.1 inside the VM (WSL2), so
+    // bind to 0.0.0.0 when running under WSL. WSL_DISTRO_NAME is set in both
+    // WSL1 and WSL2; binding 0.0.0.0 in WSL1 is unnecessary but harmless.
+    // Everywhere else, keep loopback-only for defense-in-depth.
+    // Note: 0.0.0.0 exposes the server on LAN for the ~5-min login window.
+    // The /health endpoint is reachable without a nonce, but only reveals that
+    // the server is listening. Auth completion requires the 64-char random nonce.
     const host = process.env.WSL_DISTRO_NAME ? "0.0.0.0" : "127.0.0.1";
     server.listen(0, host, () => {
       const addr = server.address();
