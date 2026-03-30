@@ -1,4 +1,5 @@
 import type { CitationData } from "../prompts/citationPrompts.js";
+import { validateRegexInput } from "./regexSafety.js";
 
 export interface CitationWarning {
   citationId: number;
@@ -43,6 +44,8 @@ const MAX_ANCHOR_WORDS = 4;
  * - RC3:  Table fragments — "yAge 60 years" from table cell concatenation (CDC)
  */
 export function detectExtractionArtifacts(text: string): ExtractionArtifact[] {
+  if (!text) return [];
+  validateRegexInput(text);
   const artifacts: ExtractionArtifact[] = [];
 
   // RC1a: Collapsed spaces — two lowercase words joined without a space.
@@ -72,17 +75,32 @@ export function detectExtractionArtifacts(text: string): ExtractionArtifact[] {
   // and the right side is 1-8 chars, and neither side is a standalone word > 3 chars.
   // Pattern also catches standalone "-ve", "-ly" etc. at word boundary (space before hyphen)
   const brokenHyphenPattern = /(?:\b([a-zA-Z]{1,6})-([a-zA-Z]{1,8})\b|(?:^|\s)-([a-zA-Z]{1,8})\b)/g;
-  // Common legitimate hyphenated terms to exclude
+  // Common legitimate hyphenated terms to exclude.
+  // For multi-segment words like "year-over-year", each regex match is a pair
+  // (e.g. "year-over" then "over-year"), so both segments must be listed.
   const legitimateHyphens = new Set([
-    "year-over", "over-year", "year-old", "well-known", "high-value",
-    "non-critical", "re-injected", "pre-commit", "self-contained",
-    "first-line", "long-term", "short-term", "full-phrase", "anchor-text",
-    "sub-item", "fact-finding", "co-authored",
+    "year-over",
+    "over-year",
+    "year-old",
+    "well-known",
+    "high-value",
+    "non-critical",
+    "re-injected",
+    "pre-commit",
+    "self-contained",
+    "first-line",
+    "long-term",
+    "short-term",
+    "full-phrase",
+    "anchor-text",
+    "sub-item",
+    "fact-finding",
+    "co-authored",
   ]);
   while ((m = brokenHyphenPattern.exec(text)) !== null) {
     const full = m[0].trim().toLowerCase();
     if (legitimateHyphens.has(full)) continue;
-    const left = m[1] ?? "";  // empty for standalone "-word" pattern
+    const left = m[1] ?? ""; // empty for standalone "-word" pattern
     const right = m[2] ?? m[3] ?? "";
     // Suspicious if either fragment is very short (0-2 chars) — likely a line-break artifact
     if (left.length <= 2 || right.length <= 2) {
@@ -94,7 +112,8 @@ export function detectExtractionArtifacts(text: string): ExtractionArtifact[] {
   // Detectable patterns: dash followed by common fi-word suffixes.
   // Examples: "-eld" (field), "-le" (file), "-rst" (first), "-nd" (find),
   // "-nancial" (financial), "-ling" (filing), "-elds" (fields)
-  const fiLigaturePattern = /\b\w*-(?:eld|elds|le|les|led|ling|lings|rst|nd|nds|nancial|nancially|re|res|red|ring|ner|ners|x|xed|xes|xing|ght|ghts|ghter|gure|gures|nal|nally|nish|nished|rm|rms|rmed|lter|lters|ltered)\b/gi;
+  const fiLigaturePattern =
+    /\b\w*-(?:eld|elds|le|les|led|ling|lings|rst|nd|nds|nancial|nancially|re|res|red|ring|ner|ners|x|xed|xes|xing|ght|ghts|ghter|gure|gures|nal|nally|nish|nished|rm|rms|rmed|lter|lters|ltered)\b/gi;
   while ((m = fiLigaturePattern.exec(text)) !== null) {
     artifacts.push({ type: "fi_ligature", match: m[0], position: m.index });
   }
@@ -105,9 +124,10 @@ export function detectExtractionArtifacts(text: string): ExtractionArtifact[] {
   // Excludes common abbreviations (U.S., e.g., i.e., v.) and legal citations (§).
   const missingSpaceAfterPunct = /[.;:][A-Z][a-z]+/g;
   while ((m = missingSpaceAfterPunct.exec(text)) !== null) {
-    // Exclude common patterns: "U.S." followed by capital, or abbreviations
+    // Exclude common patterns: "U.S." followed by capital, legal "v." citations
     const before = text.slice(Math.max(0, m.index - 2), m.index);
     if (/[A-Z]\.$/.test(before)) continue; // e.g. "U.S.Supreme" — the "U." before "S." is fine
+    if (before.endsWith("v")) continue; // e.g. "Miranda v.Arizona" — legal case citation style
     artifacts.push({ type: "missing_space_after_punctuation", match: m[0], position: m.index });
   }
 

@@ -22,7 +22,7 @@ import { normalizeCitationsFile } from "./utils/normalizeCitations.js";
 import { decodeChunked, detectProxyUrl } from "./utils/proxy.js";
 import { validateCitationData } from "./utils/validateCitationData.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
-import { escapeJsForScript, escapeJsonForScript } from "./vanilla/reportUtils.js";
+import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "./vanilla/reportUtils.js";
 
 // ── proxy support ──────────────────────────────────────────────────
 
@@ -467,45 +467,6 @@ async function verify(argv: string[]) {
   console.log(outPath);
 }
 
-// ── injection helpers ────────────────────────────────────────────────
-
-/**
- * Strip existing DeepCitation injection scripts from HTML to prevent duplicates.
- * The old CDN wins due to `if (!window.DeepCitationPopover)` guard, so
- * re-injecting without stripping silently uses stale verification data.
- */
-function stripExistingInjection(html: string): { html: string; hadExisting: boolean } {
-  let result = html;
-  let hadExisting = false;
-
-  const patterns = [
-    // dc-data and dc-key-map JSON blocks
-    /<script[^>]*id="dc-data"[^>]*>[\s\S]*?<\/script>\s*/g,
-    /<script[^>]*id="dc-key-map"[^>]*>[\s\S]*?<\/script>\s*/g,
-    // Init call
-    /<script>\s*window\.DeepCitationPopover\s*&&[\s\S]*?<\/script>\s*/g,
-  ];
-
-  for (const pattern of patterns) {
-    if (pattern.test(result)) {
-      hadExisting = true;
-      // Reset lastIndex since we tested before replacing
-      pattern.lastIndex = 0;
-      result = result.replace(pattern, "");
-    }
-  }
-
-  // CDN bundle: large script without id that defines DeepCitationPopover
-  const cdnBundlePattern = /<script>(?:(?!<\/script>)[\s\S])*?DeepCitationPopover[\s\S]*?<\/script>\s*/g;
-  if (cdnBundlePattern.test(result)) {
-    hadExisting = true;
-    cdnBundlePattern.lastIndex = 0;
-    result = result.replace(cdnBundlePattern, "");
-  }
-
-  return { html: result, hadExisting };
-}
-
 // ── inject ──────────────────────────────────────────────────────────
 
 function inject(argv: string[]) {
@@ -786,7 +747,7 @@ async function verifyHtml(argv: string[]) {
     `<script type="application/json" id="dc-data">${jsonData}</script>`,
     keyMapSnippet,
     `<script>${escapeJsForScript(CDN_JS)}</script>`,
-    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:${JSON.stringify(theme)}${indicator !== "icon" ? `,indicatorVariant:${JSON.stringify(indicator)}` : ""}});</script>`,
+    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({${[`theme:${JSON.stringify(theme)}`, ...(indicator !== "icon" ? [`indicatorVariant:${JSON.stringify(indicator)}`] : [])].join(",")}});</script>`,
   ].join("\n");
 
   // Strip existing injection to prevent duplicate CDN bundles

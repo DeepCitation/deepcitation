@@ -93,24 +93,36 @@ describe("getCitationKey URL citations", () => {
 });
 
 describe("getCitationKey regression fixtures", () => {
-  // These fixtures lock known hash outputs. If the algorithm changes, these break.
-  const fixtures: Array<{ name: string; citation: Citation; expectedKey: string }> = [];
+  // Frozen hash outputs. If these break, the hash algorithm changed —
+  // which breaks all existing injected HTML files referencing these keys.
+  const fixtures: Array<{ name: string; citation: Citation; expectedKey: string }> = [
+    { name: "base document citation", citation: baseCitation, expectedKey: "b916df9b013fb932" },
+    {
+      name: "empty document citation",
+      citation: { type: "document" } as DocumentCitation,
+      expectedKey: "98c4b7d37a4c63c3",
+    },
+    {
+      name: "URL citation",
+      citation: {
+        type: "url",
+        fullPhrase: "The company reported $2.3B in revenue",
+        anchorText: "$2.3B",
+        url: "https://example.com/report",
+        domain: "example.com",
+        title: "Annual Report",
+        pageNumber: 1,
+        lineIds: [5],
+      } as UrlCitation,
+      expectedKey: "67c409eedb04fc65",
+    },
+  ];
 
-  // Generate fixtures from the base citation — compute once, then freeze
-  const baseKey = getCitationKey(baseCitation);
-
-  it("base citation key is stable across test runs", () => {
-    // This test ensures the key doesn't change between versions.
-    // If it fails, the hash algorithm changed — which breaks all existing injected HTML files.
-    expect(getCitationKey(baseCitation)).toBe(baseKey);
-    expect(baseKey).toMatch(/^[a-f0-9]{16}$/);
-  });
-
-  it("empty citation produces a valid key", () => {
-    const empty: DocumentCitation = { type: "document" };
-    const key = getCitationKey(empty);
-    expect(key).toMatch(/^[a-f0-9]{16}$/);
-  });
+  for (const { name, citation, expectedKey } of fixtures) {
+    it(`produces stable key for ${name}`, () => {
+      expect(getCitationKey(citation)).toBe(expectedKey);
+    });
+  }
 
   it("citations with different lineIds order produce same key when sorted", () => {
     const a: DocumentCitation = { ...baseCitation, lineIds: [10, 20, 30] };

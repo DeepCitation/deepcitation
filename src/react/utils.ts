@@ -99,6 +99,9 @@ export function normalizeSnippetText(text: string, referenceText?: string | null
  * text is a substring of the stripped reference (case-insensitive), rebuild
  * the garbled text using the reference's spacing. Otherwise return the garbled
  * text unchanged (regex heuristics in the caller handle the rest).
+ *
+ * Note: preserves the garbled text's original casing; the reference is used
+ * only for spacing, not case correction.
  */
 function applyReferenceSpacing(garbled: string, reference: string): string {
   const garbledStripped = garbled.replace(/\s+/g, "");

@@ -1,6 +1,9 @@
-import { describe, expect, it } from "@jest/globals";
-import { detectColumns } from "@filelasso/shared";
 import type { PdfTextItem } from "@filelasso/shared";
+// Workspace-only import — @filelasso/shared depends on deepcitation,
+// so a formal devDependency would create a cycle. This test relies on
+// the npm workspace symlink being present (always true in CI).
+import { detectColumns } from "@filelasso/shared";
+import { describe, expect, it } from "@jest/globals";
 
 /** Helper: create a mock PdfTextItem at position (x, y) with given width. */
 function mockItem(x: number, y: number, width: number, text: string = "word"): PdfTextItem {
@@ -65,10 +68,7 @@ describe("detectColumns", () => {
   });
 
   it("returns null for too few items", () => {
-    const items: PdfTextItem[] = [
-      mockItem(50, 700, 200),
-      mockItem(350, 700, 200),
-    ];
+    const items: PdfTextItem[] = [mockItem(50, 700, 200), mockItem(350, 700, 200)];
     expect(detectColumns(items)).toBeNull();
   });
 
@@ -76,13 +76,19 @@ describe("detectColumns", () => {
     // Three columns with clear gaps
     const items: PdfTextItem[] = [
       // Col 1: x ∈ [30, 170]
-      mockItem(30, 700, 140), mockItem(30, 685, 130), mockItem(30, 670, 140),
+      mockItem(30, 700, 140),
+      mockItem(30, 685, 130),
+      mockItem(30, 670, 140),
       mockItem(30, 655, 135),
       // Col 2: x ∈ [220, 360]
-      mockItem(220, 700, 140), mockItem(220, 685, 130), mockItem(220, 670, 140),
+      mockItem(220, 700, 140),
+      mockItem(220, 685, 130),
+      mockItem(220, 670, 140),
       mockItem(220, 655, 135),
       // Col 3: x ∈ [410, 550]
-      mockItem(410, 700, 140), mockItem(410, 685, 130), mockItem(410, 670, 140),
+      mockItem(410, 700, 140),
+      mockItem(410, 685, 130),
+      mockItem(410, 670, 140),
       mockItem(410, 655, 135),
     ];
     const columns = detectColumns(items);
