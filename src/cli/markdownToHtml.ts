@@ -42,7 +42,7 @@ function inlineFormat(text: string): string {
       .replace(/\*(.+?)\*/g, "<em>$1</em>")
       // links (scheme allowlist: only http/https)
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
-        const safeHref = /^https?:\/\//i.test(href) ? href : "#";
+        const safeHref = /^https?:\/\//i.test(href) ? escHtml(href) : "#";
         return `<a href="${safeHref}">${label}</a>`;
       })
   );
@@ -262,7 +262,7 @@ function renderBlock(block: Block): string {
     case "table":
       return renderTable(block);
     case "code":
-      return `<pre><code${block.language ? ` class="language-${block.language}"` : ""}>${block.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
+      return `<pre><code${block.language ? ` class="language-${escHtml(block.language)}"` : ""}>${block.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
     case "list":
       return renderList(block);
     case "hr":

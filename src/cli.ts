@@ -634,7 +634,7 @@ async function verifyMarkdown(argv: string[]) {
   if (!mdPath) die("--markdown is required", VERIFY_HELP);
 
   const resolved = resolve(mdPath);
-  if (!existsSync(resolved)) die(`File not found: ${mdPath}`, VERIFY_HELP);
+  if (!existsSync(resolved)) die(`File not found: ${sanitizeForLog(mdPath)}`, VERIFY_HELP);
 
   const raw = readFileSync(resolved, "utf-8");
   const style = (args.style ?? "report") as ReportStyle;
