@@ -1,6 +1,10 @@
-import { createElement, useState } from "react";
+import { createElement, useCallback, useState } from "react";
 import { render } from "react-dom";
 import { getStatusFromVerification } from "../../react/citationStatus.js";
+import { CitationDrawer } from "../../react/CitationDrawer.js";
+import type { CitationDrawerItem, SourceCitationGroup } from "../../react/CitationDrawer.types.js";
+import { groupCitationsBySource } from "../../react/CitationDrawer.utils.js";
+import { CitationDrawerTrigger } from "../../react/CitationDrawerTrigger.js";
 import type { PopoverViewState } from "../../react/DefaultPopoverContent.js";
 import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
 import type { Citation } from "../../types/citation.js";
@@ -78,6 +82,8 @@ interface DeepCitationPopoverAPI {
   update(verifications: Record<string, VerificationData>): void;
   show(citationKey: string): void;
   hide(): void;
+  showDrawer(): void;
+  hideDrawer(): void;
   destroy(): void;
   version: string;
   _destroyed?: boolean;
@@ -106,6 +112,10 @@ let scrollPassthroughController: AbortController | null = null;
 let pageScrollEl: Element | null = null;
 let coastRafId: number | null = null;
 const boundTriggers = new WeakSet<HTMLElement>();
+
+// ── Drawer state ─────────────────────────────────────────────────────
+let drawerContainerEl: HTMLDivElement | null = null;
+const drawerTriggerEls = new Map<HTMLElement, true>();
 
 const prefersReducedMotion =
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -524,6 +534,123 @@ function bindTriggers(selector: string): void {
     });
   }
 }
+// ── Drawer ───────────────────────────────────────────────────────────
+
+/** Build CitationDrawerItem[] from the current verifications record. */
+function buildDrawerItems(): CitationDrawerItem[] {
+  return Object.entries(verifications).map(([key, data]) => ({
+    citationKey: key,
+    citation: mapToCitation(data),
+    verification: mapToVerification(data),
+  }));
+}
+
+/** Build SourceCitationGroup[] from current verifications for the drawer. */
+function buildDrawerGroups(): SourceCitationGroup[] {
+  return groupCitationsBySource(buildDrawerItems());
+}
+
+/**
+ * Stateful wrapper that holds drawer open/close state.
+ * Renders CitationDrawerTrigger + CitationDrawer together.
+ */
+function CdnDrawerWrapper({
+  groups,
+  indicatorVariant: variant,
+  initialOpen,
+}: {
+  groups: SourceCitationGroup[];
+  indicatorVariant: CdnIndicatorVariant;
+  initialOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(initialOpen ?? false);
+  const openDrawer = useCallback(() => setIsOpen(true), []);
+  const closeDrawer = useCallback(() => setIsOpen(false), []);
+  // Map CDN indicator variant to the React IndicatorVariant type
+  const reactVariant = variant === "none" ? "none" : variant === "dot" ? "dot" : "icon";
+  return createElement(
+    "div",
+    { "data-dc-drawer-root": "" },
+    createElement(CitationDrawerTrigger, {
+      citationGroups: groups,
+      onClick: openDrawer,
+      isOpen,
+      indicatorVariant: reactVariant,
+    }),
+    createElement(CitationDrawer, {
+      isOpen,
+      onClose: closeDrawer,
+      citationGroups: groups,
+      indicatorVariant: reactVariant,
+    }),
+  );
+}
+
+/** Render drawer trigger + drawer into all [data-dc-drawer-trigger] containers. */
+function bindDrawerTriggers(): void {
+  const containers = document.querySelectorAll<HTMLElement>("[data-dc-drawer-trigger]");
+  if (containers.length === 0) return;
+  const groups = buildDrawerGroups();
+  if (groups.length === 0) return;
+  for (const container of containers) {
+    if (drawerTriggerEls.has(container)) continue;
+    drawerTriggerEls.set(container, true);
+    render(
+      createElement(CdnDrawerWrapper, {
+        groups,
+        indicatorVariant: activeIndicatorVariant,
+      }),
+      container,
+    );
+  }
+}
+
+/** Re-render all bound drawer triggers with fresh verification data. */
+function refreshDrawerTriggers(): void {
+  const groups = buildDrawerGroups();
+  for (const [container] of drawerTriggerEls) {
+    render(
+      createElement(CdnDrawerWrapper, {
+        groups,
+        indicatorVariant: activeIndicatorVariant,
+      }),
+      container,
+    );
+  }
+}
+
+/** Ensure the drawer portal container exists (for programmatic showDrawer). */
+function ensureDrawerContainer(): HTMLDivElement {
+  if (!drawerContainerEl) {
+    drawerContainerEl = document.createElement("div");
+    drawerContainerEl.setAttribute("data-dc-drawer-portal", "");
+    document.body.appendChild(drawerContainerEl);
+  }
+  return drawerContainerEl;
+}
+
+/** Programmatically show the citation drawer. */
+function showDrawer(): void {
+  const groups = buildDrawerGroups();
+  if (groups.length === 0) return;
+  const container = ensureDrawerContainer();
+  render(
+    createElement(CdnDrawerWrapper, {
+      groups,
+      indicatorVariant: activeIndicatorVariant,
+      initialOpen: true,
+    }),
+    container,
+  );
+}
+
+/** Programmatically hide the citation drawer. */
+function hideDrawer(): void {
+  if (drawerContainerEl) {
+    render(null as unknown as ReturnType<typeof createElement>, drawerContainerEl);
+  }
+}
+
 function parseScriptTagJson<T>(id: string, errorMsg: string): T | null {
   const el = document.getElementById(id);
   if (!el?.textContent) return null;
@@ -577,10 +704,14 @@ function init(options: CdnOptions = {}): void {
     { signal },
   );
   bindTriggers(selector);
+  bindDrawerTriggers();
 }
 function update(newVerifications: Record<string, VerificationData>): void {
   Object.assign(verifications, newVerifications);
   bindTriggers(activeSelector);
+  // Re-render existing drawer triggers with fresh data + bind any new ones
+  refreshDrawerTriggers();
+  bindDrawerTriggers();
 }
 function show(citationKey: string): void {
   if (!verifications[citationKey]) return;
@@ -610,8 +741,18 @@ function destroy(): void {
   activeTrigger = null;
   verifications = {};
   lastCoords = { x: NaN, y: NaN };
+  // Clean up drawer
+  for (const [container] of drawerTriggerEls) {
+    render(null as unknown as ReturnType<typeof createElement>, container);
+  }
+  drawerTriggerEls.clear();
+  if (drawerContainerEl) {
+    render(null as unknown as ReturnType<typeof createElement>, drawerContainerEl);
+    drawerContainerEl.remove();
+    drawerContainerEl = null;
+  }
 }
 
 if (!window.DeepCitationPopover) {
-  window.DeepCitationPopover = { init, update, show, hide, destroy, version: "__VERSION__" };
+  window.DeepCitationPopover = { init, update, show, hide, destroy, showDrawer, hideDrawer, version: "__VERSION__" };
 }
