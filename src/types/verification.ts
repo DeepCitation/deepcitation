@@ -249,6 +249,11 @@ export interface Verification {
   /** Converted artifact download (PDF rendition, transcript, …). Present for URL/Office inputs. */
   convertedDownload?: FileDownload;
 
+  // ========== Location Precision ==========
+  /** True when the citation text was found but the input citation lacked precise
+   *  location data (no page number or no line IDs). Set by the verification engine. */
+  isImpreciseLocation?: boolean;
+
   // ========== Ambiguity Detection ==========
   /** Ambiguity information when multiple occurrences of the text exist */
   ambiguity?: {
