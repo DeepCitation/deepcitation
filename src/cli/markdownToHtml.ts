@@ -14,7 +14,8 @@
 
 export type ReportStyle = "plain" | "report";
 
-export type AudiencePreset = "general" | "executive" | "technical" | "legal" | "medical";
+export const AUDIENCE_PRESETS = ["general", "executive", "technical", "legal", "medical"] as const;
+export type AudiencePreset = (typeof AUDIENCE_PRESETS)[number];
 
 export interface MarkdownToHtmlOptions {
   /** Output style: "plain" (simple HTML) or "report" (progressive disclosure) */
@@ -262,7 +263,7 @@ function renderBlock(block: Block): string {
     case "table":
       return renderTable(block);
     case "code":
-      return `<pre><code${block.language ? ` class="language-${escHtml(block.language)}"` : ""}>${block.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
+      return `<pre><code${block.language ? ` class="language-${escHtml(block.language)}"` : ""}>${escHtml(block.content)}</code></pre>`;
     case "list":
       return renderList(block);
     case "hr":

@@ -14,7 +14,7 @@ import {
   startCallbackServer,
   writeCredentials,
 } from "./auth.js";
-import { type AudiencePreset, markdownToHtml, type ReportStyle } from "./cli/markdownToHtml.js";
+import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./cli/markdownToHtml.js";
 import { DeepCitation } from "./client/DeepCitation.js";
 import { citationDataToCitation, parseCitationData } from "./parsing/citationParser.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "./prompts/citationPrompts.js";
@@ -641,10 +641,9 @@ async function verifyMarkdown(argv: string[]) {
   if (!["plain", "report"].includes(style)) die('--style must be "plain" or "report"', VERIFY_HELP);
 
   const audience = (args.audience ?? "general") as AudiencePreset;
-  const validAudiences = ["general", "executive", "technical", "legal", "medical"];
-  if (!validAudiences.includes(audience)) die(`--audience must be one of: ${validAudiences.join(", ")}`, VERIFY_HELP);
+  if (!AUDIENCE_PRESETS.includes(audience))
+    die(`--audience must be one of: ${AUDIENCE_PRESETS.join(", ")}`, VERIFY_HELP);
 
-  // Split markdown content from <<<CITATION_DATA>>> block
   const parsed = parseCitationData(raw);
   if (!parsed.success || parsed.citations.length === 0) {
     die("No valid <<<CITATION_DATA>>> block found in the markdown file.", VERIFY_HELP);
@@ -652,14 +651,12 @@ async function verifyMarkdown(argv: string[]) {
 
   console.error(`Parsed ${parsed.citations.length} citation(s) from markdown.`);
 
-  // Convert markdown → HTML (the converter wraps [N] markers in data-cite spans)
   const html = markdownToHtml(parsed.visibleText, { style, audience });
 
-  // Re-attach the citation data block so verifyHtml pipeline can process it
-  const citationJson = extractCitationJson(raw);
+  // Re-attach citation data so verifyHtml pipeline can process it
+  const citationJson = JSON.stringify(parsed.citations);
   const htmlWithCitations = `${html}\n\n${CITATION_DATA_START_DELIMITER}\n${citationJson}\n${CITATION_DATA_END_DELIMITER}`;
 
-  // Write to temp file and run through verifyHtml pipeline
   const ts = Date.now();
   const outDir = resolve(".deepcitation");
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
@@ -691,14 +688,6 @@ async function verifyMarkdown(argv: string[]) {
       unlinkSync(tempHtmlPath);
     } catch {}
   }
-}
-
-/** Extract the raw JSON string between <<<CITATION_DATA>>> delimiters */
-function extractCitationJson(text: string): string {
-  const startIdx = text.indexOf(CITATION_DATA_START_DELIMITER);
-  const endIdx = text.indexOf(CITATION_DATA_END_DELIMITER);
-  if (startIdx === -1 || endIdx === -1) return "{}";
-  return text.substring(startIdx + CITATION_DATA_START_DELIMITER.length, endIdx).trim();
 }
 
 // ── verify --html (one-shot) ──────────────────────────────────────
