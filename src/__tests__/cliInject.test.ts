@@ -4,6 +4,33 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "@jest/globals";
 import { escapeJsForScript, escapeJsonForScript } from "../vanilla/reportUtils.js";
 
+// Import the stripExistingInjection helper — it's not exported from cli.ts,
+// so we replicate the logic here for unit testing. The production code uses
+// the same patterns inline.
+function stripExistingInjection(html: string): { html: string; hadExisting: boolean } {
+  let result = html;
+  let hadExisting = false;
+  const patterns = [
+    /<script[^>]*id="dc-data"[^>]*>[\s\S]*?<\/script>\s*/g,
+    /<script[^>]*id="dc-key-map"[^>]*>[\s\S]*?<\/script>\s*/g,
+    /<script>\s*window\.DeepCitationPopover\s*&&[\s\S]*?<\/script>\s*/g,
+  ];
+  for (const pattern of patterns) {
+    if (pattern.test(result)) {
+      hadExisting = true;
+      pattern.lastIndex = 0;
+      result = result.replace(pattern, "");
+    }
+  }
+  const cdnBundlePattern = /<script>(?:(?!<\/script>)[\s\S])*?DeepCitationPopover[\s\S]*?<\/script>\s*/g;
+  if (cdnBundlePattern.test(result)) {
+    hadExisting = true;
+    cdnBundlePattern.lastIndex = 0;
+    result = result.replace(cdnBundlePattern, "");
+  }
+  return { html: result, hadExisting };
+}
+
 // ── escapeJsForScript ───────────────────────────────────────────────
 
 describe("escapeJsForScript", () => {
@@ -121,5 +148,64 @@ describe("inject snippet assembly", () => {
     expect(output).toContain("content");
     expect(output).toContain("dc-data");
     expect(output.indexOf("content")).toBeLessThan(output.indexOf("dc-data"));
+  });
+});
+
+// ── stripExistingInjection ─────────────────────────────────────────
+
+describe("stripExistingInjection", () => {
+  it("passes clean HTML through unchanged", () => {
+    const html = "<html><body><p>Hello</p></body></html>";
+    const result = stripExistingInjection(html);
+    expect(result.hadExisting).toBe(false);
+    expect(result.html).toBe(html);
+  });
+
+  it("strips dc-data script", () => {
+    const html = '<html><body><script type="application/json" id="dc-data">{"key":{"status":"found"}}</script></body></html>';
+    const result = stripExistingInjection(html);
+    expect(result.hadExisting).toBe(true);
+    expect(result.html).not.toContain("dc-data");
+    expect(result.html).toContain("<body>");
+  });
+
+  it("strips dc-key-map script", () => {
+    const html = '<html><body><script type="application/json" id="dc-key-map">{"cite-1":"abc123"}</script></body></html>';
+    const result = stripExistingInjection(html);
+    expect(result.hadExisting).toBe(true);
+    expect(result.html).not.toContain("dc-key-map");
+  });
+
+  it("strips init script", () => {
+    const html = '<html><body><script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"auto"});</script></body></html>';
+    const result = stripExistingInjection(html);
+    expect(result.hadExisting).toBe(true);
+    expect(result.html).not.toContain("DeepCitationPopover");
+  });
+
+  it("strips all injection components together", () => {
+    const html = [
+      "<html><body><p>Content</p>",
+      '<script type="application/json" id="dc-data">{"k":{}}</script>',
+      '<script type="application/json" id="dc-key-map">{"a":"b"}</script>',
+      "<script>/* CDN bundle */ window.DeepCitationPopover = {init:function(){}};</script>",
+      '<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"auto"});</script>',
+      "</body></html>",
+    ].join("\n");
+    const result = stripExistingInjection(html);
+    expect(result.hadExisting).toBe(true);
+    expect(result.html).not.toContain("dc-data");
+    expect(result.html).not.toContain("dc-key-map");
+    expect(result.html).not.toContain("DeepCitationPopover");
+    expect(result.html).toContain("Content");
+    expect(result.html).toContain("</body>");
+  });
+
+  it("preserves non-DC scripts", () => {
+    const html = '<html><body><script>console.log("hello")</script><script type="application/json" id="dc-data">{}</script></body></html>';
+    const result = stripExistingInjection(html);
+    expect(result.hadExisting).toBe(true);
+    expect(result.html).toContain('console.log("hello")');
+    expect(result.html).not.toContain("dc-data");
   });
 });
