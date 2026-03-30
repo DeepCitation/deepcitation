@@ -1,5 +1,9 @@
-import { createElement, useState } from "react";
-import { render } from "react-dom";
+import { createElement, useCallback, useState } from "react";
+import { render, unmountComponentAtNode } from "react-dom";
+import { CitationDrawer } from "../../react/CitationDrawer.js";
+import type { CitationDrawerItem, SourceCitationGroup } from "../../react/CitationDrawer.types.js";
+import { groupCitationsBySource } from "../../react/CitationDrawer.utils.js";
+import { CitationDrawerTrigger } from "../../react/CitationDrawerTrigger.js";
 import { getStatusFromVerification } from "../../react/citationStatus.js";
 import type { PopoverViewState } from "../../react/DefaultPopoverContent.js";
 import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
@@ -78,6 +82,8 @@ interface DeepCitationPopoverAPI {
   update(verifications: Record<string, VerificationData>): void;
   show(citationKey: string): void;
   hide(): void;
+  showDrawer(): void;
+  hideDrawer(): void;
   destroy(): void;
   version: string;
   _destroyed?: boolean;
@@ -106,6 +112,10 @@ let scrollPassthroughController: AbortController | null = null;
 let pageScrollEl: Element | null = null;
 let coastRafId: number | null = null;
 const boundTriggers = new WeakSet<HTMLElement>();
+
+// ── Drawer state ─────────────────────────────────────────────────────
+let drawerContainerEl: HTMLDivElement | null = null;
+const drawerTriggerEls = new Set<HTMLElement>();
 
 const prefersReducedMotion =
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -181,6 +191,7 @@ function CdnPopoverWrapper(props: {
   pageImages: PageImage[] | undefined;
   status: ReturnType<typeof getStatusFromVerification>;
   sourceLabel: string | undefined;
+  downloadUrl: string | undefined;
 }) {
   const [viewState, setViewState] = useState<PopoverViewState>("summary");
   return createElement(DefaultPopoverContent, { ...props, viewState, onViewStateChange: setViewState });
@@ -425,6 +436,7 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
       pageImages: verification.pageImages,
       status,
       sourceLabel: data.label,
+      downloadUrl: data.downloadUrl,
     }),
     content,
   );
@@ -450,7 +462,7 @@ function hidePopoverCleanup(): void {
     wrapperEl.style.display = "none";
   }
   if (contentEl) {
-    render(null as unknown as ReturnType<typeof createElement>, contentEl);
+    unmountComponentAtNode(contentEl);
     contentEl.style.transition = "none";
     contentEl.style.opacity = "";
     contentEl.style.transform = "";
@@ -522,6 +534,107 @@ function bindTriggers(selector: string): void {
     });
   }
 }
+// ── Drawer ───────────────────────────────────────────────────────────
+
+function renderDrawer(container: Element, groups: SourceCitationGroup[], initialOpen?: true): void {
+  render(
+    createElement(CdnDrawerWrapper, {
+      groups,
+      indicatorVariant: activeIndicatorVariant,
+      ...(initialOpen && { initialOpen }),
+    }),
+    container,
+  );
+}
+
+function buildDrawerItems(): CitationDrawerItem[] {
+  return Object.entries(verifications).map(([key, data]) => ({
+    citationKey: key,
+    citation: mapToCitation(data),
+    verification: mapToVerification(data),
+  }));
+}
+
+function buildDrawerGroups(): SourceCitationGroup[] {
+  return groupCitationsBySource(buildDrawerItems());
+}
+
+/**
+ * Stateful wrapper that holds drawer open/close state.
+ * Renders CitationDrawerTrigger + CitationDrawer together.
+ */
+function CdnDrawerWrapper({
+  groups,
+  indicatorVariant: variant,
+  initialOpen,
+}: {
+  groups: SourceCitationGroup[];
+  indicatorVariant: CdnIndicatorVariant;
+  initialOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(initialOpen ?? false);
+  const openDrawer = useCallback(() => setIsOpen(true), []);
+  const closeDrawer = useCallback(() => setIsOpen(false), []);
+  return createElement(
+    "div",
+    { "data-dc-drawer-root": "" },
+    createElement(CitationDrawerTrigger, {
+      citationGroups: groups,
+      onClick: openDrawer,
+      isOpen,
+      indicatorVariant: variant,
+    }),
+    createElement(CitationDrawer, {
+      isOpen,
+      onClose: closeDrawer,
+      citationGroups: groups,
+      indicatorVariant: variant,
+    }),
+  );
+}
+
+function bindDrawerTriggers(prebuiltGroups?: SourceCitationGroup[]): void {
+  const containers = document.querySelectorAll<HTMLElement>("[data-dc-drawer-trigger]");
+  if (containers.length === 0) return;
+  const groups = prebuiltGroups ?? buildDrawerGroups();
+  if (groups.length === 0) return;
+  for (const container of containers) {
+    if (drawerTriggerEls.has(container)) continue;
+    drawerTriggerEls.add(container);
+    renderDrawer(container, groups);
+  }
+}
+
+function refreshDrawerTriggers(groups: SourceCitationGroup[]): void {
+  for (const container of drawerTriggerEls) {
+    renderDrawer(container, groups);
+  }
+}
+
+/** Ensure the drawer portal container exists (for programmatic showDrawer). */
+function ensureDrawerContainer(): HTMLDivElement {
+  if (!drawerContainerEl) {
+    drawerContainerEl = document.createElement("div");
+    drawerContainerEl.setAttribute("data-dc-drawer-portal", "");
+    document.body.appendChild(drawerContainerEl);
+  }
+  return drawerContainerEl;
+}
+
+function showDrawer(): void {
+  const groups = buildDrawerGroups();
+  if (groups.length === 0) return;
+  renderDrawer(ensureDrawerContainer(), groups, true);
+}
+
+function hideDrawer(): void {
+  if (drawerContainerEl) {
+    unmountComponentAtNode(drawerContainerEl);
+    drawerContainerEl.remove();
+    drawerContainerEl = null;
+  }
+}
+
 function parseScriptTagJson<T>(id: string, errorMsg: string): T | null {
   const el = document.getElementById(id);
   if (!el?.textContent) return null;
@@ -575,10 +688,15 @@ function init(options: CdnOptions = {}): void {
     { signal },
   );
   bindTriggers(selector);
+  bindDrawerTriggers();
 }
 function update(newVerifications: Record<string, VerificationData>): void {
   Object.assign(verifications, newVerifications);
   bindTriggers(activeSelector);
+  const groups = buildDrawerGroups();
+  refreshDrawerTriggers(groups);
+  bindDrawerTriggers(groups);
+  if (drawerContainerEl) renderDrawer(drawerContainerEl, groups);
 }
 function show(citationKey: string): void {
   if (!verifications[citationKey]) return;
@@ -593,7 +711,7 @@ function destroy(): void {
   stopPositionTracking();
   teardownScrollPassthrough();
   if (contentEl) {
-    render(null as unknown as ReturnType<typeof createElement>, contentEl);
+    unmountComponentAtNode(contentEl);
   }
   if (wrapperEl) {
     wrapperEl.remove();
@@ -608,8 +726,18 @@ function destroy(): void {
   activeTrigger = null;
   verifications = {};
   lastCoords = { x: NaN, y: NaN };
+  // Clean up drawer
+  for (const container of drawerTriggerEls) {
+    unmountComponentAtNode(container);
+  }
+  drawerTriggerEls.clear();
+  if (drawerContainerEl) {
+    unmountComponentAtNode(drawerContainerEl);
+    drawerContainerEl.remove();
+    drawerContainerEl = null;
+  }
 }
 
 if (!window.DeepCitationPopover) {
-  window.DeepCitationPopover = { init, update, show, hide, destroy, version: "__VERSION__" };
+  window.DeepCitationPopover = { init, update, show, hide, destroy, showDrawer, hideDrawer, version: "__VERSION__" };
 }

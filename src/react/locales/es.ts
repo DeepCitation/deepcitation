@@ -220,6 +220,7 @@ export const esOverrides = {
   "evidence.alreadyFullSize": "Ya es tamaño completo",
   "evidence.searchAttempts_one": "{count} intento",
   "evidence.searchAttempts_other": "{count} intentos",
+  "evidence.impreciseLocation": "Ubicación exacta no especificada en la cita",
   "search.method.exactLineMatch": "Ubicación exacta",
   "search.method.lineWithBuffer": "Líneas cercanas",
   "search.method.expandedLineBuffer": "Líneas cercanas extendidas",

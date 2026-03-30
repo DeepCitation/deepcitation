@@ -320,6 +320,7 @@ export const defaultMessages = {
   "evidence.alreadyFullSize": "Already full size",
   "evidence.searchAttempts_one": "{count} attempt",
   "evidence.searchAttempts_other": "{count} attempts",
+  "evidence.impreciseLocation": "Exact location not specified in citation",
 
   // ── Misc ───────────────────────────────────────────────────────
   "misc.noTextFound": "No text found",

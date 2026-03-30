@@ -198,6 +198,7 @@ export const viOverrides = {
   "evidence.alreadyFullSize": "Đã ở kích thước đầy đủ",
   "evidence.searchAttempts_one": "{count} lần thử",
   "evidence.searchAttempts_other": "{count} lần thử",
+  "evidence.impreciseLocation": "Vị trí chính xác không được chỉ định trong trích dẫn",
   "misc.noTextFound": "Không tìm thấy văn bản",
   "misc.warning": "Cảnh báo",
   "misc.error": "Lỗi",

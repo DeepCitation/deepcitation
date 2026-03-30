@@ -39,6 +39,7 @@ firebase-debug.log
 
 ag-ui-client*
 .playwright-mcp/
+.deepcitation/
 
 # Auto-generated vanilla runtime
 src/vanilla/_generated*.ts

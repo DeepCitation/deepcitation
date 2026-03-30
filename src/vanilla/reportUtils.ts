@@ -41,3 +41,42 @@ export function escapeJsForScript(js: string): string {
 export function stripStyleTags(css: string): string {
   return css.replace(/^<style>\n?/, "").replace(/\n?<\/style>$/, "");
 }
+
+/**
+ * Strip existing DeepCitation injection scripts from HTML to prevent duplicates.
+ * The old CDN wins due to `if (!window.DeepCitationPopover)` guard, so
+ * re-injecting without stripping silently uses stale verification data.
+ */
+export function stripExistingInjection(html: string): { html: string; hadExisting: boolean } {
+  let result = html;
+  let hadExisting = false;
+
+  const patterns = [
+    // dc-data and dc-key-map JSON blocks
+    /<script[^>]*id="dc-data"[^>]*>[\s\S]*?<\/script>\s*/g,
+    /<script[^>]*id="dc-key-map"[^>]*>[\s\S]*?<\/script>\s*/g,
+    // Init call
+    /<script>\s*window\.DeepCitationPopover\s*&&[\s\S]*?<\/script>\s*/g,
+  ];
+
+  for (const pattern of patterns) {
+    if (pattern.test(result)) {
+      hadExisting = true;
+      // Reset lastIndex since we tested before replacing
+      pattern.lastIndex = 0;
+      result = result.replace(pattern, "");
+    }
+  }
+
+  // CDN bundle: large script without id that *defines* DeepCitationPopover.
+  // Requires assignment (`window.DeepCitationPopover=` or `window.DeepCitationPopover =`)
+  // to avoid stripping user scripts that merely reference the API.
+  const cdnBundlePattern = /<script>(?:(?!<\/script>)[\s\S])*?window\.DeepCitationPopover\s*=[\s\S]*?<\/script>\s*/g;
+  if (cdnBundlePattern.test(result)) {
+    hadExisting = true;
+    cdnBundlePattern.lastIndex = 0;
+    result = result.replace(cdnBundlePattern, "");
+  }
+
+  return { html: result, hadExisting };
+}

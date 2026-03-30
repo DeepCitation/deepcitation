@@ -38,12 +38,16 @@ export interface VerificationData {
     verifiedUrl?: string;
     verifiedDomain?: string;
     verifiedFaviconUrl?: string;
+    urlAccessStatus?: string;
+    urlVerificationError?: string;
   };
   citation?: {
     fullPhrase?: string;
     anchorText?: string;
     type?: string;
   };
+  /** Pre-resolved download URL for the source file (PDF, DOCX, etc.). */
+  downloadUrl?: string;
   /** Ordered list of search attempts made during verification. */
   searchAttempts?: Array<{
     method?: string;

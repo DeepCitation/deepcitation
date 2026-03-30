@@ -221,6 +221,7 @@ export const frOverrides = {
   "evidence.alreadyFullSize": "Déjà en taille complete",
   "evidence.searchAttempts_one": "{count} tentative",
   "evidence.searchAttempts_other": "{count} tentatives",
+  "evidence.impreciseLocation": "Emplacement exact non spécifié dans la citation",
   "search.method.exactLineMatch": "Emplacement exact",
   "search.method.lineWithBuffer": "Lignes proches",
   "search.method.expandedLineBuffer": "Lignes proches étendues",

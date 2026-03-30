@@ -3,6 +3,7 @@ import type { SearchAttempt } from "../../types/search.js";
 import type { Verification } from "../../types/verification.js";
 import { type MessageKey, useTranslation } from "../i18n.js";
 import { buildIntentSummary, type MatchSnippet } from "../searchSummaryUtils.js";
+import { normalizeSnippetText } from "../utils.js";
 
 function getSearchSummaryPrimaryMessage(
   outcome: string | null | undefined,
@@ -19,9 +20,9 @@ function getSearchSummaryPrimaryMessage(
  */
 function MatchSnippetDisplay({ snippet }: { snippet: MatchSnippet }) {
   const t = useTranslation();
-  const before = snippet.contextText.slice(0, snippet.matchStart);
-  const match = snippet.contextText.slice(snippet.matchStart, snippet.matchEnd);
-  const after = snippet.contextText.slice(snippet.matchEnd);
+  const before = normalizeSnippetText(snippet.contextText.slice(0, snippet.matchStart));
+  const match = normalizeSnippetText(snippet.contextText.slice(snippet.matchStart, snippet.matchEnd));
+  const after = normalizeSnippetText(snippet.contextText.slice(snippet.matchEnd));
 
   return (
     <div className="text-xs text-dc-muted-foreground font-mono leading-relaxed">
