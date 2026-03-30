@@ -69,9 +69,9 @@ export function useLocale(): string | undefined {
  */
 export const defaultMessages = {
   // ── Status labels ──────────────────────────────────────────────
-  "status.verified": "Verified",
-  "status.partialMatch": "Partial Match",
-  "status.notFound": "Not Found",
+  "status.verified": "DeepCitation Verified",
+  "status.partialMatch": "DeepCitation Partial Match",
+  "status.notFound": "DeepCitation Not Found",
   "status.verifying": "Verifying\u2026",
 
   // ── Outcome labels ─────────────────────────────────────────────
