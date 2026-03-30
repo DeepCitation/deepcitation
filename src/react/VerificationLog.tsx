@@ -482,7 +482,7 @@ export function SourceContextHeader({
               fetchStatus: mapSearchStatusToUrlFetchStatus(status),
             }}
             variant="chip"
-            maxDisplayLength={Infinity}
+            maxDisplayLength={45}
             preventTooltips={true}
             showStatusIndicator={false}
             showTitle={!!sourceLabel}

@@ -17,7 +17,7 @@ import { handleImageError } from "./imageUtils.js";
 import type { IndicatorVariant, UrlCitationProps, UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";
-import { cn, generateCitationInstanceId } from "./utils.js";
+import { cn, generateCitationInstanceId, truncateMiddle } from "./utils.js";
 
 function getUrlStatusLabel(fetchStatus: UrlFetchStatus, t: TranslateFunction): string {
   const KEY_MAP: Record<UrlFetchStatus, MessageKey> = {
@@ -358,7 +358,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
 
     const displayText = useMemo(() => {
       if (showTitle && title) {
-        return truncateString(title, maxDisplayLength);
+        return truncateMiddle(title, maxDisplayLength);
       }
       // Show domain + truncated path
       const pathPart = path ? truncateString(path, maxDisplayLength - domain.length - 1) : "";
