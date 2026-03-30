@@ -11,9 +11,9 @@ import { type DeepCitationMessages, defaultMessages } from "../i18n.js";
  * It is used by the i18n parity test to verify all keys are covered.
  */
 export const viOverrides = {
-  "status.verified": "Đã xác minh",
-  "status.partialMatch": "Khớp một phần",
-  "status.notFound": "Không tìm thấy",
+  "status.verified": "DeepCitation Đã xác minh",
+  "status.partialMatch": "DeepCitation Khớp một phần",
+  "status.notFound": "DeepCitation Không tìm thấy",
   "status.verifying": "Đang xác minh…",
   "outcome.exactMatch": "Khớp chính xác",
   "outcome.normalizedMatch": "Khớp đã chuẩn hóa",
@@ -97,9 +97,9 @@ export const viOverrides = {
   "aria.citationWithStatus": "Trích dẫn: {displayText} ({status})",
   "aria.citationNumber": "Trích dẫn {number}",
   "aria.footnoteSymbol": "Chú thích {symbol}",
-  "aria.statusSuffix.notFound": "không tìm thấy",
-  "aria.statusSuffix.partialMatch": "khớp một phần",
-  "aria.statusSuffix.verified": "đã xác minh",
+  "aria.statusSuffix.notFound": "DeepCitation không tìm thấy",
+  "aria.statusSuffix.partialMatch": "DeepCitation khớp một phần",
+  "aria.statusSuffix.verified": "DeepCitation đã xác minh",
   "aria.statusSuffix.pendingVerification": "đang chờ xác minh",
   "aria.linkToDomainStatus": "Liên kết đến {domain}: {status}",
   "aria.viewProofForSource": "Xem bằng chứng cho {sourceName}",
