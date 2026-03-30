@@ -31,7 +31,7 @@ export interface MarkdownToHtmlOptions {
 
 function inlineFormat(text: string): string {
   return (
-    text
+    escHtml(text)
       // inline code (before bold/italic to avoid conflicts)
       .replace(/`([^`]+)`/g, "<code>$1</code>")
       // bold+italic
@@ -40,8 +40,11 @@ function inlineFormat(text: string): string {
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       // italic
       .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      // links
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+      // links (scheme allowlist: only http/https)
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
+        const safeHref = /^https?:\/\//i.test(href) ? href : "#";
+        return `<a href="${safeHref}">${label}</a>`;
+      })
   );
 }
 
@@ -58,21 +61,21 @@ function inlineFormat(text: string): string {
 export function wrapCitationMarkers(html: string): string {
   // Match patterns like "some text [1]" — capture the text before and the number
   // We work outside of HTML tags to avoid corrupting attributes
-  return html.replace(
-    /(?<=>|^)([^<]*?)\s*\[(\d+)\]/g,
-    (_match, textBefore: string, num: string) => {
-      const trimmed = textBefore.trimEnd();
-      if (!trimmed) return `<span data-cite="${num}"></span>`;
+  return html.replace(/(?<=>|^)([^<]*?)\s*\[(\d+)\]/g, (_match, textBefore: string, num: string) => {
+    const trimmed = textBefore.trimEnd();
+    if (!trimmed) return `<span data-cite="${num}"></span>`;
 
-      // Find a reasonable anchor: last clause (after comma, semicolon, or dash)
-      // or the whole text if it's short
-      const clauseMatch = trimmed.match(/(?:[,;–—]\s*)([^,;–—]+)$/);
-      const anchor = clauseMatch ? clauseMatch[1].trim() : trimmed;
-      const prefix = clauseMatch ? trimmed.slice(0, trimmed.length - clauseMatch[0].length) + clauseMatch[0].slice(0, clauseMatch[0].length - anchor.length) : "";
+    // Find a reasonable anchor: last clause (after comma, semicolon, or dash)
+    // or the whole text if it's short
+    const clauseMatch = trimmed.match(/(?:[,;–—]\s*)([^,;–—]+)$/);
+    const anchor = clauseMatch ? clauseMatch[1].trim() : trimmed;
+    const prefix = clauseMatch
+      ? trimmed.slice(0, trimmed.length - clauseMatch[0].length) +
+        clauseMatch[0].slice(0, clauseMatch[0].length - anchor.length)
+      : "";
 
-      return `${prefix}<span data-cite="${num}">${anchor}</span>`;
-    },
-  );
+    return `${prefix}<span data-cite="${num}">${anchor}</span>`;
+  });
 }
 
 // ── Block-level parsing ────────────────────────────────────────────
@@ -202,7 +205,7 @@ function parseBlocks(markdown: string): Block[] {
 // ── Table rendering ────────────────────────────────────────────────
 
 function renderTable(block: Block): string {
-  const rows = block.content.split("\n").filter((r) => r.trim());
+  const rows = block.content.split("\n").filter(r => r.trim());
   if (rows.length < 2) return `<p>${inlineFormat(block.content)}</p>`;
 
   const parseRow = (row: string) =>
@@ -210,7 +213,7 @@ function renderTable(block: Block): string {
       .replace(/^\|/, "")
       .replace(/\|$/, "")
       .split("|")
-      .map((cell) => cell.trim());
+      .map(cell => cell.trim());
 
   const headerCells = parseRow(rows[0]);
   // rows[1] is the separator, skip it
@@ -237,7 +240,7 @@ function renderTable(block: Block): string {
 function renderList(block: Block): string {
   const tag = block.ordered ? "ol" : "ul";
   const pattern = block.ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*+]\s+/;
-  const items = block.content.split("\n").filter((l) => pattern.test(l));
+  const items = block.content.split("\n").filter(l => pattern.test(l));
 
   let html = `<${tag}>\n`;
   for (const item of items) {
@@ -273,12 +276,12 @@ function renderBlock(block: Block): string {
 
 // ── Style shells ───────────────────────────────────────────────────
 
-const AUDIENCE_CONFIG: Record<AudiencePreset, { width: string; tier2Open: boolean; tier3Open: boolean }> = {
-  general: { width: "960px", tier2Open: true, tier3Open: false },
-  executive: { width: "720px", tier2Open: false, tier3Open: false },
-  technical: { width: "960px", tier2Open: true, tier3Open: true },
-  legal: { width: "840px", tier2Open: true, tier3Open: true },
-  medical: { width: "840px", tier2Open: true, tier3Open: false },
+const AUDIENCE_CONFIG: Record<AudiencePreset, { width: string; tier2Open: boolean }> = {
+  general: { width: "960px", tier2Open: true },
+  executive: { width: "720px", tier2Open: false },
+  technical: { width: "960px", tier2Open: true },
+  legal: { width: "840px", tier2Open: true },
+  medical: { width: "840px", tier2Open: true },
 };
 
 function plainShell(title: string, bodyHtml: string): string {
@@ -302,7 +305,7 @@ function plainShell(title: string, bodyHtml: string): string {
   ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; }
   li { margin: 0.25rem 0; }
   pre { background: #18181B; color: #E4E4E7; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; font-size: 13px; }
-  code { font-family: "Source Code Pro", monospace; font-size: 0.9em; background: #F4F4F5; padding: 1px 4px; }
+  code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; background: #F4F4F5; padding: 1px 4px; }
   pre code { background: none; padding: 0; }
   hr { border: none; border-top: 1px solid #E4E4E7; margin: 1.5rem 0; }
   .meta { color: #52525B; font-size: 14px; margin-bottom: 1.5rem; }
@@ -326,10 +329,9 @@ function reportShell(title: string, bodyHtml: string, audience: AudiencePreset, 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escHtml(title)}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     max-width: ${cfg.width};
     margin: 0 auto;
     padding: 2rem 1.5rem 4rem;
@@ -350,7 +352,7 @@ function reportShell(title: string, bodyHtml: string, audience: AudiencePreset, 
   .dc-verdict {
     display: flex; gap: 1.5rem; padding: 1rem 0;
     border-top: 1px solid #E4E4E7; border-bottom: 1px solid #E4E4E7;
-    font-family: "Source Code Pro", monospace; font-size: 14px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 14px;
     margin-bottom: 1.5rem;
   }
   .dc-verdict .v-found  { color: #10B981; }
@@ -368,7 +370,7 @@ function reportShell(title: string, bodyHtml: string, audience: AudiencePreset, 
 
   /* Code */
   pre { background: #18181B; color: #E4E4E7; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; font-size: 13px; line-height: 1.7; }
-  code { font-family: "Source Code Pro", monospace; font-size: 0.9em; background: #F4F4F5; padding: 1px 5px; }
+  code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; background: #F4F4F5; padding: 1px 5px; }
   pre code { background: none; padding: 0; }
   hr { border: none; border-top: 1px solid #E4E4E7; margin: 1.5rem 0; }
 
@@ -384,7 +386,7 @@ function reportShell(title: string, bodyHtml: string, audience: AudiencePreset, 
   .dc-section { background: #fff; border: 1px solid #E4E4E7; padding: 1.25rem; margin: 1rem 0; }
 
   /* Mono metrics */
-  .mono { font-family: "Source Code Pro", monospace; font-size: 14px; font-weight: 500; }
+  .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 14px; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -418,7 +420,7 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
 
   // Extract title from first H1 (or use provided)
   let title = options.title ?? "Verification Report";
-  const firstH1 = blocks.find((b) => b.type === "heading" && b.level === 1);
+  const firstH1 = blocks.find(b => b.type === "heading" && b.level === 1);
   if (firstH1) {
     title = firstH1.content;
   }
@@ -478,9 +480,7 @@ function buildReportBody(blocks: Block[], audience: AudiencePreset): string[] {
   }
 
   // Find "key findings" section (first section, or one with "finding" / "summary" in title)
-  const findingsIdx = sections.findIndex(
-    (s) => s.heading && /finding|summary|overview|key\s/i.test(s.heading.content),
-  );
+  const findingsIdx = sections.findIndex(s => s.heading && /finding|summary|overview|key\s/i.test(s.heading.content));
 
   if (findingsIdx >= 0) {
     const findings = sections.splice(findingsIdx, 1)[0];

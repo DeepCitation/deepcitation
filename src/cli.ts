@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { createRequire } from "node:module";
 import { basename, dirname, resolve } from "node:path";
@@ -14,6 +14,7 @@ import {
   startCallbackServer,
   writeCredentials,
 } from "./auth.js";
+import { type AudiencePreset, markdownToHtml, type ReportStyle } from "./cli/markdownToHtml.js";
 import { DeepCitation } from "./client/DeepCitation.js";
 import { citationDataToCitation, parseCitationData } from "./parsing/citationParser.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "./prompts/citationPrompts.js";
@@ -22,7 +23,6 @@ import { sanitizeForLog } from "./utils/logSafety.js";
 import { normalizeCitationsFile } from "./utils/normalizeCitations.js";
 import { decodeChunked, detectProxyUrl } from "./utils/proxy.js";
 import { validateCitationData } from "./utils/validateCitationData.js";
-import { type AudiencePreset, type ReportStyle, markdownToHtml } from "./cli/markdownToHtml.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "./vanilla/reportUtils.js";
 
@@ -656,7 +656,8 @@ async function verifyMarkdown(argv: string[]) {
   const html = markdownToHtml(parsed.visibleText, { style, audience });
 
   // Re-attach the citation data block so verifyHtml pipeline can process it
-  const htmlWithCitations = `${html}\n\n${CITATION_DATA_START_DELIMITER}\n${extractCitationJson(raw)}\n${CITATION_DATA_END_DELIMITER}`;
+  const citationJson = extractCitationJson(raw);
+  const htmlWithCitations = `${html}\n\n${CITATION_DATA_START_DELIMITER}\n${citationJson}\n${CITATION_DATA_END_DELIMITER}`;
 
   // Write to temp file and run through verifyHtml pipeline
   const ts = Date.now();
@@ -683,17 +684,21 @@ async function verifyMarkdown(argv: string[]) {
     forwardArgs.push("--out", `.deepcitation/verified-${ts}.html`);
   }
 
-  return verifyHtml(forwardArgs);
+  try {
+    return await verifyHtml(forwardArgs);
+  } finally {
+    try {
+      unlinkSync(tempHtmlPath);
+    } catch {}
+  }
 }
 
 /** Extract the raw JSON string between <<<CITATION_DATA>>> delimiters */
 function extractCitationJson(text: string): string {
-  const startDelim = "<<<CITATION_DATA>>>";
-  const endDelim = "<<<END_CITATION_DATA>>>";
-  const startIdx = text.indexOf(startDelim);
-  const endIdx = text.indexOf(endDelim);
+  const startIdx = text.indexOf(CITATION_DATA_START_DELIMITER);
+  const endIdx = text.indexOf(CITATION_DATA_END_DELIMITER);
   if (startIdx === -1 || endIdx === -1) return "{}";
-  return text.substring(startIdx + startDelim.length, endIdx).trim();
+  return text.substring(startIdx + CITATION_DATA_START_DELIMITER.length, endIdx).trim();
 }
 
 // ── verify --html (one-shot) ──────────────────────────────────────
