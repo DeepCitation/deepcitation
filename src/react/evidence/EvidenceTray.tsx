@@ -179,7 +179,6 @@ export function EvidenceTray({
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  // Read the precision flag stamped by the verification engine (verifyCitationsCore).
   const isImpreciseLocation = verification?.isImpreciseLocation === true;
 
   // Tray-level click: keyhole click if available, else page expansion
