@@ -1,10 +1,10 @@
 import { createElement, useCallback, useState } from "react";
-import { render } from "react-dom";
-import { getStatusFromVerification } from "../../react/citationStatus.js";
+import { render, unmountComponentAtNode } from "react-dom";
 import { CitationDrawer } from "../../react/CitationDrawer.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "../../react/CitationDrawer.types.js";
 import { groupCitationsBySource } from "../../react/CitationDrawer.utils.js";
 import { CitationDrawerTrigger } from "../../react/CitationDrawerTrigger.js";
+import { getStatusFromVerification } from "../../react/citationStatus.js";
 import type { PopoverViewState } from "../../react/DefaultPopoverContent.js";
 import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
 import type { Citation } from "../../types/citation.js";
@@ -566,8 +566,6 @@ function CdnDrawerWrapper({
   const [isOpen, setIsOpen] = useState(initialOpen ?? false);
   const openDrawer = useCallback(() => setIsOpen(true), []);
   const closeDrawer = useCallback(() => setIsOpen(false), []);
-  // Map CDN indicator variant to the React IndicatorVariant type
-  const reactVariant = variant === "none" ? "none" : variant === "dot" ? "dot" : "icon";
   return createElement(
     "div",
     { "data-dc-drawer-root": "" },
@@ -575,13 +573,13 @@ function CdnDrawerWrapper({
       citationGroups: groups,
       onClick: openDrawer,
       isOpen,
-      indicatorVariant: reactVariant,
+      indicatorVariant: variant,
     }),
     createElement(CitationDrawer, {
       isOpen,
       onClose: closeDrawer,
       citationGroups: groups,
-      indicatorVariant: reactVariant,
+      indicatorVariant: variant,
     }),
   );
 }
@@ -647,7 +645,9 @@ function showDrawer(): void {
 /** Programmatically hide the citation drawer. */
 function hideDrawer(): void {
   if (drawerContainerEl) {
-    render(null as unknown as ReturnType<typeof createElement>, drawerContainerEl);
+    unmountComponentAtNode(drawerContainerEl);
+    drawerContainerEl.remove();
+    drawerContainerEl = null;
   }
 }
 
@@ -712,6 +712,16 @@ function update(newVerifications: Record<string, VerificationData>): void {
   // Re-render existing drawer triggers with fresh data + bind any new ones
   refreshDrawerTriggers();
   bindDrawerTriggers();
+  // Refresh the programmatic drawer portal if open
+  if (drawerContainerEl) {
+    render(
+      createElement(CdnDrawerWrapper, {
+        groups: buildDrawerGroups(),
+        indicatorVariant: activeIndicatorVariant,
+      }),
+      drawerContainerEl,
+    );
+  }
 }
 function show(citationKey: string): void {
   if (!verifications[citationKey]) return;
@@ -726,7 +736,7 @@ function destroy(): void {
   stopPositionTracking();
   teardownScrollPassthrough();
   if (contentEl) {
-    render(null as unknown as ReturnType<typeof createElement>, contentEl);
+    unmountComponentAtNode(contentEl);
   }
   if (wrapperEl) {
     wrapperEl.remove();
@@ -743,11 +753,11 @@ function destroy(): void {
   lastCoords = { x: NaN, y: NaN };
   // Clean up drawer
   for (const [container] of drawerTriggerEls) {
-    render(null as unknown as ReturnType<typeof createElement>, container);
+    unmountComponentAtNode(container);
   }
   drawerTriggerEls.clear();
   if (drawerContainerEl) {
-    render(null as unknown as ReturnType<typeof createElement>, drawerContainerEl);
+    unmountComponentAtNode(drawerContainerEl);
     drawerContainerEl.remove();
     drawerContainerEl = null;
   }
