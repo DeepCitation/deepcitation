@@ -16,11 +16,13 @@ import {
 } from "./auth.js";
 import { DeepCitation } from "./client/DeepCitation.js";
 import { citationDataToCitation, parseCitationData } from "./parsing/citationParser.js";
+import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "./prompts/citationPrompts.js";
 import { getCitationKey } from "./utils/citationKey.js";
 import { sanitizeForLog } from "./utils/logSafety.js";
 import { normalizeCitationsFile } from "./utils/normalizeCitations.js";
 import { decodeChunked, detectProxyUrl } from "./utils/proxy.js";
 import { validateCitationData } from "./utils/validateCitationData.js";
+import { type AudiencePreset, type ReportStyle, markdownToHtml } from "./cli/markdownToHtml.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "./vanilla/reportUtils.js";
 
@@ -188,7 +190,7 @@ Commands:
   status    Check auth status (exit 0 if logged in, exit 1 if not — no output)
   env       Print export DEEPCITATION_API_KEY=... for shell eval
   prepare   Prepare a file or URL for citation verification
-  verify    Verify citations (--html for one-shot, --citations for verify-only)
+  verify    Verify citations (--markdown, --html, or --citations)
   inject    Inject DeepCitation verification into an existing HTML file
   keygen    Compute deterministic citation keys from a citations JSON file
 
@@ -283,11 +285,13 @@ Arguments:
 
 Options:
   --out <file>              Output JSON path (default: .deepcitation/prepare-{name}.json)
+  --summary                 Print attachmentId and deepTextPromptPortion to stdout
   --unsafe-fast             Use fast mode for URLs (skips rendering, vulnerable to hidden text)
   -h, --help                Show this help message
 
 Examples:
   deepcitation prepare report.pdf
+  deepcitation prepare report.pdf --summary
   deepcitation prepare https://example.com/article --out .deepcitation/prepare-article.json
   deepcitation prepare scan.jpg
 `;
@@ -295,7 +299,8 @@ Examples:
 async function prepare(argv: string[]) {
   // Extract boolean flags before parseArgs (which only handles --key value pairs)
   const unsafeFast = argv.includes("--unsafe-fast");
-  const filteredArgv = argv.filter(a => a !== "--unsafe-fast");
+  const summary = argv.includes("--summary");
+  const filteredArgv = argv.filter(a => a !== "--unsafe-fast" && a !== "--summary");
 
   const args = parseArgs(filteredArgv, PREPARE_HELP);
 
@@ -342,7 +347,18 @@ async function prepare(argv: string[]) {
   if (result.processingTimeMs) {
     console.error(`  Time: ${(result.processingTimeMs / 1000).toFixed(1)}s`);
   }
-  console.log(outPath);
+  console.error(`  Saved: ${outPath}`);
+
+  if (summary) {
+    // Print attachmentId and deepTextPromptPortion to stdout so agents
+    // can consume them directly from bash output (no extra Read call)
+    console.log(`ATTACHMENT_ID=${result.attachmentId}`);
+    console.log("--- DEEP_TEXT_PROMPT_PORTION ---");
+    console.log(result.deepTextPromptPortion);
+    console.log("--- END_DEEP_TEXT_PROMPT_PORTION ---");
+  } else {
+    console.log(outPath);
+  }
 }
 
 // ── verify ──────────────────────────────────────────────────────────
@@ -351,29 +367,37 @@ const VERIFY_HELP = `Usage: deepcitation verify [options]
 
 Verify citations against prepared attachments.
 
-Mode 1 — One-shot (--html):
-  Parse marked HTML with [N] markers and <<<CITATION_DATA>>> block, generate
-  keys, annotate HTML, verify against sources, and inject popover runtime.
-  Elements with data-cite="N" are mapped to hashed data-citation-key values.
+Mode 1 — Markdown (--markdown):
+  Convert markdown with [N] markers and <<<CITATION_DATA>>> block to a styled
+  verification report. Handles markdown→HTML, data-cite wrapping, keygen,
+  annotation, API verification, and CDN runtime injection in one shot.
 
-Mode 2 — Citations only (--citations):
+Mode 2 — HTML (--html):
+  Parse HTML with [N] markers and <<<CITATION_DATA>>> block, generate keys,
+  annotate HTML, verify against sources, and inject popover runtime.
+
+Mode 3 — Citations only (--citations):
   Verify a pre-built citations JSON file. Groups by attachmentId and merges
   responses into a single output file.
 
 Options:
-  --html <file>             Path to marked HTML file (one-shot mode)
+  --markdown <file>         Path to markdown file with citations (recommended)
+  --html <file>             Path to HTML file with citations
   --citations <file>        Path to citations JSON (citations-only mode)
+  --style <plain|report>    HTML output style (default: "report", --markdown only)
+  --audience <preset>       Audience preset: general, executive, technical, legal, medical (default: "general")
   --out <file>              Output path (default depends on mode)
-  --theme <auto|light|dark> Popover color theme (default: "auto", --html only)
-  --indicator <indicator>   Indicator variant: icon, dot, none (default: "icon", --html only)
+  --theme <auto|light|dark> Popover color theme (default: "auto")
+  --indicator <indicator>   Indicator variant: icon, dot, none (default: "icon")
   --image-format <format>   Evidence image format: avif, png, jpeg, webp (default: avif)
   --prompt                  Print the citation format spec to stdout and exit
   -h, --help                Show this help message
 
 Examples:
-  deepcitation verify --html .deepcitation/marked-report.html
-  deepcitation verify --html marked.html --out report.html --theme light
-  deepcitation verify --html marked.html --indicator dot
+  deepcitation verify --markdown .deepcitation/draft-report.md
+  deepcitation verify --markdown report.md --style plain
+  deepcitation verify --markdown report.md --audience executive --theme dark
+  deepcitation verify --html report.html --out verified.html
   deepcitation verify --prompt
   deepcitation verify --citations .deepcitation/citations-keyed.json
 `;
@@ -397,6 +421,11 @@ async function verify(argv: string[]) {
   }
 
   const args = parseArgs(argv, VERIFY_HELP);
+
+  // Dispatch to markdown mode if --markdown is provided
+  if (args.markdown) {
+    return verifyMarkdown(argv);
+  }
 
   // Dispatch to one-shot HTML mode if --html is provided
   if (args.html) {
@@ -597,6 +626,76 @@ function keygen(argv: string[]) {
   }
 }
 
+// ── verify --markdown (one-shot from markdown) ───────────────────
+
+async function verifyMarkdown(argv: string[]) {
+  const args = parseArgs(argv, VERIFY_HELP);
+  const mdPath = args.markdown;
+  if (!mdPath) die("--markdown is required", VERIFY_HELP);
+
+  const resolved = resolve(mdPath);
+  if (!existsSync(resolved)) die(`File not found: ${mdPath}`, VERIFY_HELP);
+
+  const raw = readFileSync(resolved, "utf-8");
+  const style = (args.style ?? "report") as ReportStyle;
+  if (!["plain", "report"].includes(style)) die('--style must be "plain" or "report"', VERIFY_HELP);
+
+  const audience = (args.audience ?? "general") as AudiencePreset;
+  const validAudiences = ["general", "executive", "technical", "legal", "medical"];
+  if (!validAudiences.includes(audience)) die(`--audience must be one of: ${validAudiences.join(", ")}`, VERIFY_HELP);
+
+  // Split markdown content from <<<CITATION_DATA>>> block
+  const parsed = parseCitationData(raw);
+  if (!parsed.success || parsed.citations.length === 0) {
+    die("No valid <<<CITATION_DATA>>> block found in the markdown file.", VERIFY_HELP);
+  }
+
+  console.error(`Parsed ${parsed.citations.length} citation(s) from markdown.`);
+
+  // Convert markdown → HTML (the converter wraps [N] markers in data-cite spans)
+  const html = markdownToHtml(parsed.visibleText, { style, audience });
+
+  // Re-attach the citation data block so verifyHtml pipeline can process it
+  const htmlWithCitations = `${html}\n\n${CITATION_DATA_START_DELIMITER}\n${extractCitationJson(raw)}\n${CITATION_DATA_END_DELIMITER}`;
+
+  // Write to temp file and run through verifyHtml pipeline
+  const ts = Date.now();
+  const outDir = resolve(".deepcitation");
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+
+  const tempHtmlPath = resolve(`.deepcitation/draft-${ts}.html`);
+  writeFileSync(tempHtmlPath, htmlWithCitations);
+
+  // Forward to verifyHtml with the converted HTML — strip markdown-only flags
+  const stripFlags = new Set(["--markdown", "--style", "--audience"]);
+  const forwardArgs: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    if (stripFlags.has(argv[i])) {
+      i++; // skip the flag's value too
+      continue;
+    }
+    forwardArgs.push(argv[i]);
+  }
+  forwardArgs.push("--html", tempHtmlPath);
+
+  // Set default output name if not specified
+  if (!args.out) {
+    forwardArgs.push("--out", `.deepcitation/verified-${ts}.html`);
+  }
+
+  return verifyHtml(forwardArgs);
+}
+
+/** Extract the raw JSON string between <<<CITATION_DATA>>> delimiters */
+function extractCitationJson(text: string): string {
+  const startDelim = "<<<CITATION_DATA>>>";
+  const endDelim = "<<<END_CITATION_DATA>>>";
+  const startIdx = text.indexOf(startDelim);
+  const endIdx = text.indexOf(endDelim);
+  if (startIdx === -1 || endIdx === -1) return "{}";
+  return text.substring(startIdx + startDelim.length, endIdx).trim();
+}
+
 // ── verify --html (one-shot) ──────────────────────────────────────
 
 async function verifyHtml(argv: string[]) {
@@ -765,7 +864,7 @@ async function verifyHtml(argv: string[]) {
     output = `${output}\n${snippet}`;
   }
 
-  const outPath = resolve(args.out ?? `.deepcitation/cited-${ts}.html`);
+  const outPath = resolve(args.out ?? `.deepcitation/verified-${ts}.html`);
   writeFileSync(outPath, output);
   console.log(outPath);
 }
