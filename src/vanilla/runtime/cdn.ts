@@ -181,6 +181,7 @@ function CdnPopoverWrapper(props: {
   pageImages: PageImage[] | undefined;
   status: ReturnType<typeof getStatusFromVerification>;
   sourceLabel: string | undefined;
+  downloadUrl: string | undefined;
 }) {
   const [viewState, setViewState] = useState<PopoverViewState>("summary");
   return createElement(DefaultPopoverContent, { ...props, viewState, onViewStateChange: setViewState });
@@ -425,6 +426,7 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
       pageImages: verification.pageImages,
       status,
       sourceLabel: data.label,
+      downloadUrl: data.downloadUrl,
     }),
     content,
   );
