@@ -43,7 +43,7 @@ import {
   mapUrlAccessStatusToFetchStatus,
   type UrlAccessExplanation,
 } from "./urlAccessExplanation.js";
-import { cn, isImageSource } from "./utils.js";
+import { cn, isImageSource, normalizeSnippetText } from "./utils.js";
 import { SourceContextHeader, StatusHeader } from "./VerificationLog.js";
 import { DC_EVIDENCE_VT_NAME } from "./viewTransition.js";
 
@@ -161,9 +161,9 @@ function PopoverSnippetZone({ snippets }: { snippets: MatchSnippet[] }) {
   return (
     <div className="px-4 py-2 space-y-1.5 border-b border-dc-border">
       {snippets.slice(0, 3).map((snippet, idx) => {
-        const before = snippet.contextText.slice(0, snippet.matchStart);
-        const match = snippet.contextText.slice(snippet.matchStart, snippet.matchEnd);
-        const after = snippet.contextText.slice(snippet.matchEnd);
+        const before = normalizeSnippetText(snippet.contextText.slice(0, snippet.matchStart));
+        const match = normalizeSnippetText(snippet.contextText.slice(snippet.matchStart, snippet.matchEnd));
+        const after = normalizeSnippetText(snippet.contextText.slice(snippet.matchEnd));
         return (
           <div
             key={`snippet-${snippet.matchStart}-${snippet.matchEnd}-${snippet.page ?? idx}`}
@@ -690,7 +690,7 @@ function PopoverFallbackView({
         )}
         {hasSnippet && (
           <q className="border-l border-dc-border pl-1.5 ml-0.5 text-sm text-dc-foreground" style={{ quotes: "none" }}>
-            {hasSnippet}
+            {normalizeSnippetText(hasSnippet, citation.fullPhrase ?? verification?.verifiedFullPhrase)}
           </q>
         )}
         {displayLabel && displayLabel !== citation.anchorText?.toString() && (
