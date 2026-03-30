@@ -141,6 +141,7 @@ function applyReferenceSpacing(garbled: string, reference: string): string {
  */
 export function truncateMiddle(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str;
+  if (maxLength <= 1) return maxLength === 1 ? "…" : "";
   const half = Math.floor((maxLength - 1) / 2);
   const endLength = maxLength - 1 - half;
   return `${str.slice(0, half)}…${str.slice(-endLength)}`;

@@ -393,7 +393,7 @@ export type TranslateFunction = (key: MessageKey, values?: MessageValues) => str
  * ```ts
  * const t = createTranslator({ "status.verified": "Vérifié" });
  * t("status.verified"); // "Vérifié"
- * t("status.notFound"); // "Not Found" (English fallback)
+ * t("status.notFound"); // "DeepCitation Not Found" (English fallback)
  * ```
  */
 export function createTranslator(messages: Partial<DeepCitationMessages> = {}): TranslateFunction {
