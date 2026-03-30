@@ -35,14 +35,15 @@ gh workflow run release.yml -f version=patch   # or minor / major
 1. Checks out `main` and runs lint, test, and build
 2. Bumps `package.json` version and updates `CHANGELOG.md`
 3. Commits, tags, and pushes `chore: release vX.Y.Z`
-4. Creates a GitHub Release with auto-generated notes
-5. Publishes to npm with provenance
-6. Appends "Published to npm registry" to the release notes
+4. Extracts the release notes from `CHANGELOG.md` (the changelog is the single source of truth — no auto-generated PR lists)
+5. Creates a GitHub Release with the extracted changelog section as the body
+6. Publishes to npm with provenance
+7. Appends "Published to npm registry" to the release notes
 
 ### After the workflow completes
 
 - [ ] **Verify on npm** — `npm view deepcitation version` returns the new version
-- [ ] **Review release notes** — edit the GitHub Release body if the auto-generated notes need cleanup (see [v0.2.2](https://github.com/DeepCitation/deepcitation/releases/tag/v0.2.2) for style reference)
+- [ ] **Spot-check release notes** — the body should already be clean (pulled from CHANGELOG.md), but verify it rendered correctly
 
 ---
 

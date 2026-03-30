@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-03-30
+
+### Added
+
+- **CDN drawer integration** — citation drawer support in CDN popover API with `[data-dc-drawer-trigger]` binding, `showDrawer`/`hideDrawer` methods, and auto-refresh on `update()` (#387)
+- **Citation data validation** — `validateCitationData` and `detectExtractionArtifacts` utilities catch common PDF/HTML text-extraction issues (collapsed spaces, broken hyphens, ligature loss, table fragments) before they reach the API (#387)
+- **`content_word_match` search method** — new `SearchMethod` variant with i18n support for all locales (#386)
+- **`truncateMiddle` utility** — exported middle-truncation function for long strings (API keys, hashes, URLs) (#388)
+- **DeepCitation branding on status labels** — verified/partial-match/not-found UI labels now prefixed with "DeepCitation" for product attribution (#388)
+- **CDN `data-citation-key` resolution** — human-readable `data-citation-key` attributes resolved to hashed keys at runtime via key-map (#386)
+- **CLI `--indicator` flag** — choose icon, dot, or none for `inject` and `verify-html` commands (#387)
+- **Snippet text normalization** — `normalizeSnippetText` fixes collapsed spaces and quote boundaries in verification API snippets (#387)
+- **Imprecise location note** — EvidenceTray shows "Exact location not specified" when a verified citation lacks page/line IDs (#387)
+
+### Changed
+
+- **`isImpreciseLocation` moved to Verification type** — pre-computed by the verification engine instead of re-derived in UI (#388)
+- **Citation chip text** — removed hardcoded max-width truncation; chips now flow naturally with `min-w-0` flex overflow (#388)
+
+### Fixed
+
+- **WSL2 auth callback** — login callback server conditionally binds to `0.0.0.0` when `WSL_DISTRO_NAME` is set, so Windows browsers can reach it (#386)
+- **CDN double-processing guard** — `data-citation-key` resolution skips elements already processed by legacy `data-cite` loop (#386)
+- **CDN `stripExistingInjection`** — extracted to `reportUtils.ts`; tightened regex to require `window.DeepCitationPopover=` assignment (#387)
+- **ReDoS guard** — `validateRegexInput` added to `detectExtractionArtifacts` (#387)
+
 ## [0.3.2] - 2026-03-28
 
 ### Added
