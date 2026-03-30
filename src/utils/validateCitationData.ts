@@ -160,20 +160,6 @@ export function detectExtractionArtifacts(text: string): ExtractionArtifact[] {
 }
 
 /**
- * Checks a verified snippet for display-quality issues.
- *
- * Unlike `detectExtractionArtifacts` (which checks LLM input), this checks
- * the text the API *returns* — the verifiedMatchSnippet shown in popovers.
- * A "found" citation with garbled display text damages user trust more than
- * a partial, because it looks verified but reads as nonsense.
- *
- * Returns artifacts found in the snippet text. Empty array = clean display.
- */
-export function detectSnippetDisplayArtifacts(snippet: string): ExtractionArtifact[] {
-  return detectExtractionArtifacts(snippet);
-}
-
-/**
  * Validates an array of CitationData for common quality issues.
  *
  * Errors = likely to cause verification failure (e.g. missing pageNumber).

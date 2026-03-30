@@ -462,7 +462,7 @@ function hidePopoverCleanup(): void {
     wrapperEl.style.display = "none";
   }
   if (contentEl) {
-    render(null as unknown as ReturnType<typeof createElement>, contentEl);
+    unmountComponentAtNode(contentEl);
     contentEl.style.transition = "none";
     contentEl.style.opacity = "";
     contentEl.style.transform = "";

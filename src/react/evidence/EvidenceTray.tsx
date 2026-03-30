@@ -387,7 +387,9 @@ export function EvidenceTray({
       ) : null}
       {/* Imprecise location note: verified citation but input lacked page/line precision */}
       {isImpreciseLocation && (
-        <div className="px-3 py-1.5 text-[11px] text-dc-subtle-foreground italic">{t("evidence.impreciseLocation")}</div>
+        <div className="px-3 py-1.5 text-[11px] text-dc-subtle-foreground italic">
+          {t("evidence.impreciseLocation")}
+        </div>
       )}
       {/* Miss/partial: search analysis and collapsible search log (only when there are search attempts) */}
       {(isMiss || isPartialMatch) && searchAttempts.length > 0 ? (

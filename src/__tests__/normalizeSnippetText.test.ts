@@ -5,9 +5,12 @@ describe("normalizeSnippetText", () => {
   describe("with reference text (fullPhrase-guided)", () => {
     it("fixes the full garbled Brown v. Board snippet", () => {
       const garbled = 'doctrineof"separatebutequal" hasnoplace.Separateeducationalfacilitiesareinherentlyunequal.';
-      const ref = 'the doctrine of "separate but equal" has no place. Separate educational facilities are inherently unequal.';
+      const ref =
+        'the doctrine of "separate but equal" has no place. Separate educational facilities are inherently unequal.';
       const result = normalizeSnippetText(garbled, ref);
-      expect(result).toBe('doctrine of "separate but equal" has no place. Separate educational facilities are inherently unequal.');
+      expect(result).toBe(
+        'doctrine of "separate but equal" has no place. Separate educational facilities are inherently unequal.',
+      );
     });
 
     it("fixes punctuation-capital joins with reference", () => {
@@ -47,7 +50,9 @@ describe("normalizeSnippetText", () => {
     });
 
     it("does not modify clean text", () => {
-      expect(normalizeSnippetText("Revenue grew 45% year-over-year to $2.3B")).toBe("Revenue grew 45% year-over-year to $2.3B");
+      expect(normalizeSnippetText("Revenue grew 45% year-over-year to $2.3B")).toBe(
+        "Revenue grew 45% year-over-year to $2.3B",
+      );
     });
 
     it("does not modify normal sentences with proper spacing", () => {

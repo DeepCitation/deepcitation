@@ -32,25 +32,19 @@ describe("validateCitationData", () => {
   });
 
   it("warns on long anchor_text (chars)", () => {
-    const r = validateCitationData([
-      { ...good, full_phrase: "A".repeat(50), anchor_text: "A".repeat(50) },
-    ]);
+    const r = validateCitationData([{ ...good, full_phrase: "A".repeat(50), anchor_text: "A".repeat(50) }]);
     expect(r.valid).toBe(true);
     expect(r.warnings.some(w => w.field === "anchor_text" && w.message.includes("chars"))).toBe(true);
   });
 
   it("warns on long anchor_text (words)", () => {
     const longAnchor = "one two three four five";
-    const r = validateCitationData([
-      { ...good, full_phrase: `prefix ${longAnchor} suffix`, anchor_text: longAnchor },
-    ]);
+    const r = validateCitationData([{ ...good, full_phrase: `prefix ${longAnchor} suffix`, anchor_text: longAnchor }]);
     expect(r.warnings.some(w => w.field === "anchor_text" && w.message.includes("words"))).toBe(true);
   });
 
   it("warns when anchor_text is not substring of full_phrase", () => {
-    const r = validateCitationData([
-      { ...good, anchor_text: "paraphrased version" },
-    ]);
+    const r = validateCitationData([{ ...good, anchor_text: "paraphrased version" }]);
     expect(r.warnings.some(w => w.message.includes("not a substring"))).toBe(true);
   });
 
@@ -271,7 +265,8 @@ describe("detectExtractionArtifacts", () => {
 
     it("detects display artifacts in a real 'found' snippet from Citizens United", () => {
       // Real verifiedMatchSnippet from a "found" citation that displays garbled text
-      const snippet = "tolimitcorporateindependentexpendi overruled.We return to the principle established inBuckleyandBellottithat";
+      const snippet =
+        "tolimitcorporateindependentexpendi overruled.We return to the principle established inBuckleyandBellottithat";
       const artifacts = detectExtractionArtifacts(snippet);
       expect(artifacts.length).toBeGreaterThanOrEqual(2);
     });
