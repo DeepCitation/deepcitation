@@ -298,6 +298,7 @@ export {
   getCitationAnchorText,
   getCitationDisplayText,
   getCitationNumber,
+  truncateMiddle,
 } from "./utils.js";
 // Verification Log Components (Search attempt timeline display)
 export {

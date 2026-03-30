@@ -135,6 +135,17 @@ function applyReferenceSpacing(garbled: string, reference: string): string {
   return result;
 }
 
+/**
+ * Truncates a string in the middle, preserving the start and end.
+ * Useful for API keys, IDs, and hashes where both prefix and suffix matter.
+ */
+export function truncateMiddle(str: string, maxLength: number): string {
+  if (str.length <= maxLength) return str;
+  const half = Math.floor((maxLength - 1) / 2);
+  const endLength = maxLength - 1 - half;
+  return `${str.slice(0, half)}…${str.slice(-endLength)}`;
+}
+
 /** Returns true when the verification source is a raster image (not a PDF). */
 export function isImageSource(verification: Verification | null | undefined): boolean {
   const mt = verification?.document?.mimeType;
