@@ -48,9 +48,6 @@ const MAX_QUOTE_BOX_LENGTH = 150;
 /** Maximum length for anchor text preview in headers */
 const MAX_ANCHOR_TEXT_PREVIEW_LENGTH = 50;
 
-/** Maximum length for URL display in popover header */
-const MAX_URL_DISPLAY_LENGTH = 45;
-
 /** Icon color classes by status - defined outside component to avoid recreation on every render */
 const ICON_COLOR_CLASSES = {
   green: "text-dc-verified",
@@ -485,7 +482,7 @@ export function SourceContextHeader({
               fetchStatus: mapSearchStatusToUrlFetchStatus(status),
             }}
             variant="chip"
-            maxDisplayLength={MAX_URL_DISPLAY_LENGTH}
+            maxDisplayLength={45}
             preventTooltips={true}
             showStatusIndicator={false}
             showTitle={!!sourceLabel}

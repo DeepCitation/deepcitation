@@ -17,7 +17,7 @@ import { handleImageError } from "./imageUtils.js";
 import type { IndicatorVariant, UrlCitationProps, UrlFetchStatus } from "./types.js";
 import { isBlockedStatus, isErrorStatus } from "./urlStatus.js";
 import { getUrlPath, safeWindowOpen, truncateString } from "./urlUtils.js";
-import { cn, generateCitationInstanceId } from "./utils.js";
+import { cn, generateCitationInstanceId, truncateMiddle } from "./utils.js";
 
 function getUrlStatusLabel(fetchStatus: UrlFetchStatus, t: TranslateFunction): string {
   const KEY_MAP: Record<UrlFetchStatus, MessageKey> = {
@@ -358,7 +358,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
 
     const displayText = useMemo(() => {
       if (showTitle && title) {
-        return truncateString(title, maxDisplayLength);
+        return truncateMiddle(title, maxDisplayLength);
       }
       // Show domain + truncated path
       const pathPart = path ? truncateString(path, maxDisplayLength - domain.length - 1) : "";
@@ -521,7 +521,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             data-fetch-status={fetchStatus}
             data-variant="chip"
             className={cn(
-              "group inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm cursor-pointer transition-colors no-underline mr-0.5",
+              "group inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sm cursor-pointer transition-colors no-underline mr-0.5 min-w-0",
               "bg-dc-muted text-dc-foreground",
               "hover:bg-dc-muted",
               isBroken && "opacity-60",
@@ -537,9 +537,7 @@ export const UrlCitationComponent = forwardRef<HTMLSpanElement, UrlCitationProps
             aria-label={t("aria.linkToDomainStatus", { domain: displayText || domain, status: statusLabel })}
           >
             {showFavicon && <DefaultFavicon url={url} faviconUrl={faviconUrl} />}
-            <span className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap text-dc-foreground">
-              {displayText}
-            </span>
+            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-dc-foreground">{displayText}</span>
             {showStatusIndicator && statusIndicatorElement}
             {externalLinkButtonElement}
           </span>

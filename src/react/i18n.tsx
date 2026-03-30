@@ -69,9 +69,9 @@ export function useLocale(): string | undefined {
  */
 export const defaultMessages = {
   // ── Status labels ──────────────────────────────────────────────
-  "status.verified": "Verified",
-  "status.partialMatch": "Partial Match",
-  "status.notFound": "Not Found",
+  "status.verified": "DeepCitation Verified",
+  "status.partialMatch": "DeepCitation Partial Match",
+  "status.notFound": "DeepCitation Not Found",
   "status.verifying": "Verifying\u2026",
 
   // ── Outcome labels ─────────────────────────────────────────────
@@ -177,9 +177,9 @@ export const defaultMessages = {
   "aria.citationWithStatus": "Citation: {displayText} ({status})",
   "aria.citationNumber": "Citation {number}",
   "aria.footnoteSymbol": "Footnote {symbol}",
-  "aria.statusSuffix.notFound": "not found",
-  "aria.statusSuffix.partialMatch": "partial match",
-  "aria.statusSuffix.verified": "verified",
+  "aria.statusSuffix.notFound": "DeepCitation not found",
+  "aria.statusSuffix.partialMatch": "DeepCitation partial match",
+  "aria.statusSuffix.verified": "DeepCitation verified",
   "aria.statusSuffix.pendingVerification": "pending verification",
   "aria.linkToDomainStatus": "Link to {domain}: {status}",
   "aria.viewProofForSource": "View proof for {sourceName}",
@@ -393,7 +393,7 @@ export type TranslateFunction = (key: MessageKey, values?: MessageValues) => str
  * ```ts
  * const t = createTranslator({ "status.verified": "Vérifié" });
  * t("status.verified"); // "Vérifié"
- * t("status.notFound"); // "Not Found" (English fallback)
+ * t("status.notFound"); // "DeepCitation Not Found" (English fallback)
  * ```
  */
 export function createTranslator(messages: Partial<DeepCitationMessages> = {}): TranslateFunction {

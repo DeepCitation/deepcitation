@@ -11,9 +11,9 @@ import { type DeepCitationMessages, defaultMessages } from "../i18n.js";
  * It is used by the i18n parity test to verify all keys are covered.
  */
 export const frOverrides = {
-  "status.verified": "Vérifié",
-  "status.partialMatch": "Correspondance partielle",
-  "status.notFound": "Introuvable",
+  "status.verified": "DeepCitation Vérifié",
+  "status.partialMatch": "DeepCitation Correspondance partielle",
+  "status.notFound": "DeepCitation Introuvable",
   "status.verifying": "Vérification…",
   "outcome.exactMatch": "Correspondance exacte",
   "outcome.normalizedMatch": "Correspondance normalisée",
@@ -95,9 +95,9 @@ export const frOverrides = {
   "aria.citationWithStatus": "Citation : {displayText} ({status})",
   "aria.citationNumber": "Citation {number}",
   "aria.footnoteSymbol": "Note {symbol}",
-  "aria.statusSuffix.notFound": "introuvable",
-  "aria.statusSuffix.partialMatch": "correspondance partielle",
-  "aria.statusSuffix.verified": "vérifiée",
+  "aria.statusSuffix.notFound": "DeepCitation introuvable",
+  "aria.statusSuffix.partialMatch": "DeepCitation correspondance partielle",
+  "aria.statusSuffix.verified": "DeepCitation vérifiée",
   "aria.statusSuffix.pendingVerification": "vérification en attente",
   "aria.linkToDomainStatus": "Lien vers {domain} : {status}",
   "aria.viewProofForSource": "Voir la preuve pour {sourceName}",

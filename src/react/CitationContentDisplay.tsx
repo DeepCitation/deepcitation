@@ -26,7 +26,7 @@ import {
 import { CheckIcon, ChevronDownIcon, XIcon } from "./icons.js";
 import { handleImageError } from "./imageUtils.js";
 import type { CitationContent, CitationRenderProps, CitationVariant } from "./types.js";
-import { cn } from "./utils.js";
+import { cn, truncateMiddle } from "./utils.js";
 
 // =============================================================================
 // CITATION CONTENT DISPLAY COMPONENT
@@ -107,7 +107,7 @@ export const CitationContentDisplay = ({
             isMiss && !shouldShowSpinner && "opacity-70",
           )}
         >
-          {displayText}
+          {truncateMiddle(displayText, 30)}
         </span>
         {/* aria-hidden: the button's aria-label already describes status; the live region
             (statusDescId) announces changes. Including role="img" aria-labels here as
@@ -221,7 +221,7 @@ export const CitationContentDisplay = ({
           )}
           style={isMiss && !shouldShowSpinner ? MISS_WAVY_UNDERLINE_STYLE : undefined}
         >
-          {displayText}
+          {truncateMiddle(displayText, 30)}
         </span>
         {additionalCount !== undefined && additionalCount > 0 && (
           <span className="text-dc-subtle-foreground">+{additionalCount}</span>

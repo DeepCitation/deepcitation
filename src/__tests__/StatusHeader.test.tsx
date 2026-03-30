@@ -102,7 +102,7 @@ describe("StatusHeader", () => {
       // Status text "Verified" is now shown instead of echoing anchor text
       const { container } = render(<StatusHeader status="found" foundPage={5} anchorText="increased by 15%" />);
 
-      expect(container.textContent).toContain("Verified");
+      expect(container.textContent).toContain("DeepCitation Verified");
       expect(container.textContent).toContain("p.\u202f5");
     });
 
@@ -110,7 +110,7 @@ describe("StatusHeader", () => {
       // Status text "Not found" is now shown
       const { container } = render(<StatusHeader status="not_found" expectedPage={5} anchorText="increased by 15%" />);
 
-      expect(container.textContent).toContain("Not Found");
+      expect(container.textContent).toContain("DeepCitation Not Found");
       expect(container.textContent).toContain("p.\u202f5");
     });
 

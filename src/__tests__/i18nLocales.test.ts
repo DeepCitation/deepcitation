@@ -35,8 +35,8 @@ describe("locale message dictionaries", () => {
   });
 
   it("overrides a core status label for each locale", () => {
-    expect(frMessages["status.verified"]).toBe("Vérifié");
-    expect(esMessages["status.verified"]).toBe("Verificado");
-    expect(viMessages["status.verified"]).toBe("Đã xác minh");
+    expect(frMessages["status.verified"]).toBe("DeepCitation Vérifié");
+    expect(esMessages["status.verified"]).toBe("DeepCitation Verificado");
+    expect(viMessages["status.verified"]).toBe("DeepCitation Đã xác minh");
   });
 });

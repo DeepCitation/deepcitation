@@ -7,6 +7,7 @@ import {
   getCitationAnchorText,
   getCitationDisplayText,
   getCitationNumber,
+  truncateMiddle,
 } from "../react/utils.js";
 import type { Citation } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
@@ -130,6 +131,38 @@ describe("react utils", () => {
       };
 
       expect(getCitationKey(urlCitation)).toBe(getCitationKey(urlCitation));
+    });
+  });
+
+  describe("truncateMiddle", () => {
+    it("returns the original string when within maxLength", () => {
+      expect(truncateMiddle("abcde", 5)).toBe("abcde");
+      expect(truncateMiddle("abcde", 10)).toBe("abcde");
+    });
+
+    it("truncates in the middle with ellipsis", () => {
+      expect(truncateMiddle("abcdefgh", 5)).toBe("ab…gh");
+      expect(truncateMiddle("abcdefgh", 4)).toBe("a…gh");
+    });
+
+    it("handles maxLength=2", () => {
+      expect(truncateMiddle("abcde", 2)).toBe("…e");
+    });
+
+    it("handles maxLength=1", () => {
+      expect(truncateMiddle("abcde", 1)).toBe("…");
+    });
+
+    it("handles maxLength=0", () => {
+      expect(truncateMiddle("abcde", 0)).toBe("");
+    });
+
+    it("handles negative maxLength", () => {
+      expect(truncateMiddle("abcde", -1)).toBe("");
+    });
+
+    it("handles empty string", () => {
+      expect(truncateMiddle("", 5)).toBe("");
     });
   });
 });

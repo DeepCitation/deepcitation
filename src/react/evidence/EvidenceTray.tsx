@@ -179,13 +179,7 @@ export function EvidenceTray({
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  // Detect verified citations where the input citation lacked precise location data
-  // (no page number or no line IDs). The text was found, but we can't point the user
-  // to the exact expected location the way a fully-specified citation can.
-  const citation = verification?.citation;
-  const hasPageNumber = citation?.pageNumber != null && citation.pageNumber > 0;
-  const hasLineIds = citation?.lineIds != null && citation.lineIds.length > 0;
-  const isImpreciseLocation = status.isVerified && !isMiss && !isPartialMatch && (!hasPageNumber || !hasLineIds);
+  const isImpreciseLocation = verification?.isImpreciseLocation === true;
 
   // Tray-level click: keyhole click if available, else page expansion
   const trayAction = onImageClick ?? onExpand;

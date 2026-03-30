@@ -17,14 +17,14 @@ import {
 describe("createTranslator", () => {
   it("returns default English messages when no overrides provided", () => {
     const t = createTranslator();
-    expect(t("status.verified")).toBe("Verified");
-    expect(t("status.notFound")).toBe("Not Found");
+    expect(t("status.verified")).toBe("DeepCitation Verified");
+    expect(t("status.notFound")).toBe("DeepCitation Not Found");
   });
 
   it("overrides specific messages while falling back to defaults", () => {
     const t = createTranslator({ "status.verified": "Vérifié" });
     expect(t("status.verified")).toBe("Vérifié");
-    expect(t("status.notFound")).toBe("Not Found"); // fallback
+    expect(t("status.notFound")).toBe("DeepCitation Not Found"); // fallback
   });
 
   it("interpolates {placeholder} values", () => {
@@ -60,7 +60,7 @@ describe("createTranslator", () => {
 
   it("is a no-op when values are passed but template has no placeholders", () => {
     const t = createTranslator();
-    expect(t("status.verified", { foo: "bar" })).toBe("Verified");
+    expect(t("status.verified", { foo: "bar" })).toBe("DeepCitation Verified");
   });
 });
 
@@ -70,7 +70,7 @@ describe("createTranslator", () => {
 
 describe("defaultTranslator", () => {
   it("is a pre-built translator using default messages", () => {
-    expect(defaultTranslator("status.verified")).toBe("Verified");
+    expect(defaultTranslator("status.verified")).toBe("DeepCitation Verified");
     expect(defaultTranslator("status.verifying")).toBe("Verifying\u2026");
   });
 });
@@ -144,7 +144,7 @@ describe("DeepCitationI18nProvider", () => {
 
   it("provides default translations when no provider is present", () => {
     render(<TestConsumer msgKey="status.verified" />);
-    expect(screen.getByTestId("output").textContent).toBe("Verified");
+    expect(screen.getByTestId("output").textContent).toBe("DeepCitation Verified");
   });
 
   it("provides custom translations via provider", () => {
@@ -163,7 +163,7 @@ describe("DeepCitationI18nProvider", () => {
         <TestConsumer msgKey="status.notFound" />
       </DeepCitationI18nProvider>,
     );
-    expect(screen.getByTestId("output").textContent).toBe("Not Found");
+    expect(screen.getByTestId("output").textContent).toBe("DeepCitation Not Found");
   });
 
   it("supports interpolation through the provider", () => {
