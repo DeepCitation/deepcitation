@@ -115,7 +115,7 @@ const boundTriggers = new WeakSet<HTMLElement>();
 
 // ── Drawer state ─────────────────────────────────────────────────────
 let drawerContainerEl: HTMLDivElement | null = null;
-const drawerTriggerEls = new Map<HTMLElement, true>();
+const drawerTriggerEls = new Set<HTMLElement>();
 
 const prefersReducedMotion =
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -536,7 +536,17 @@ function bindTriggers(selector: string): void {
 }
 // ── Drawer ───────────────────────────────────────────────────────────
 
-/** Build CitationDrawerItem[] from the current verifications record. */
+function renderDrawer(container: Element, groups: SourceCitationGroup[], initialOpen?: true): void {
+  render(
+    createElement(CdnDrawerWrapper, {
+      groups,
+      indicatorVariant: activeIndicatorVariant,
+      ...(initialOpen && { initialOpen }),
+    }),
+    container,
+  );
+}
+
 function buildDrawerItems(): CitationDrawerItem[] {
   return Object.entries(verifications).map(([key, data]) => ({
     citationKey: key,
@@ -545,7 +555,6 @@ function buildDrawerItems(): CitationDrawerItem[] {
   }));
 }
 
-/** Build SourceCitationGroup[] from current verifications for the drawer. */
 function buildDrawerGroups(): SourceCitationGroup[] {
   return groupCitationsBySource(buildDrawerItems());
 }
@@ -584,36 +593,21 @@ function CdnDrawerWrapper({
   );
 }
 
-/** Render drawer trigger + drawer into all [data-dc-drawer-trigger] containers. */
-function bindDrawerTriggers(): void {
+function bindDrawerTriggers(prebuiltGroups?: SourceCitationGroup[]): void {
   const containers = document.querySelectorAll<HTMLElement>("[data-dc-drawer-trigger]");
   if (containers.length === 0) return;
-  const groups = buildDrawerGroups();
+  const groups = prebuiltGroups ?? buildDrawerGroups();
   if (groups.length === 0) return;
   for (const container of containers) {
     if (drawerTriggerEls.has(container)) continue;
-    drawerTriggerEls.set(container, true);
-    render(
-      createElement(CdnDrawerWrapper, {
-        groups,
-        indicatorVariant: activeIndicatorVariant,
-      }),
-      container,
-    );
+    drawerTriggerEls.add(container);
+    renderDrawer(container, groups);
   }
 }
 
-/** Re-render all bound drawer triggers with fresh verification data. */
-function refreshDrawerTriggers(): void {
-  const groups = buildDrawerGroups();
-  for (const [container] of drawerTriggerEls) {
-    render(
-      createElement(CdnDrawerWrapper, {
-        groups,
-        indicatorVariant: activeIndicatorVariant,
-      }),
-      container,
-    );
+function refreshDrawerTriggers(groups: SourceCitationGroup[]): void {
+  for (const container of drawerTriggerEls) {
+    renderDrawer(container, groups);
   }
 }
 
@@ -627,22 +621,12 @@ function ensureDrawerContainer(): HTMLDivElement {
   return drawerContainerEl;
 }
 
-/** Programmatically show the citation drawer. */
 function showDrawer(): void {
   const groups = buildDrawerGroups();
   if (groups.length === 0) return;
-  const container = ensureDrawerContainer();
-  render(
-    createElement(CdnDrawerWrapper, {
-      groups,
-      indicatorVariant: activeIndicatorVariant,
-      initialOpen: true,
-    }),
-    container,
-  );
+  renderDrawer(ensureDrawerContainer(), groups, true);
 }
 
-/** Programmatically hide the citation drawer. */
 function hideDrawer(): void {
   if (drawerContainerEl) {
     unmountComponentAtNode(drawerContainerEl);
@@ -709,19 +693,10 @@ function init(options: CdnOptions = {}): void {
 function update(newVerifications: Record<string, VerificationData>): void {
   Object.assign(verifications, newVerifications);
   bindTriggers(activeSelector);
-  // Re-render existing drawer triggers with fresh data + bind any new ones
-  refreshDrawerTriggers();
-  bindDrawerTriggers();
-  // Refresh the programmatic drawer portal if open
-  if (drawerContainerEl) {
-    render(
-      createElement(CdnDrawerWrapper, {
-        groups: buildDrawerGroups(),
-        indicatorVariant: activeIndicatorVariant,
-      }),
-      drawerContainerEl,
-    );
-  }
+  const groups = buildDrawerGroups();
+  refreshDrawerTriggers(groups);
+  bindDrawerTriggers(groups);
+  if (drawerContainerEl) renderDrawer(drawerContainerEl, groups);
 }
 function show(citationKey: string): void {
   if (!verifications[citationKey]) return;
@@ -752,7 +727,7 @@ function destroy(): void {
   verifications = {};
   lastCoords = { x: NaN, y: NaN };
   // Clean up drawer
-  for (const [container] of drawerTriggerEls) {
+  for (const container of drawerTriggerEls) {
     unmountComponentAtNode(container);
   }
   drawerTriggerEls.clear();
