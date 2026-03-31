@@ -110,6 +110,7 @@ let resizeObserver: ResizeObserver | null = null;
 let lastCoords = { x: NaN, y: NaN };
 let scrollPassthroughController: AbortController | null = null;
 let pageScrollEl: Element | null = null;
+let radixVPPositionCleanup: (() => void) | null = null;
 let coastRafId: number | null = null;
 const boundTriggers = new WeakSet<HTMLElement>();
 
@@ -455,8 +456,16 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
   lastCoords = { x: NaN, y: NaN };
   // Move the wrapper into the trigger's scroll-root ancestor so it scrolls
   // with the page content instead of staying fixed on the viewport.
+  radixVPPositionCleanup?.();
+  radixVPPositionCleanup = null;
   const radixVP = trigger.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
-  if (radixVP && window.getComputedStyle(radixVP).position === "static") radixVP.style.position = "relative";
+  if (radixVP && window.getComputedStyle(radixVP).position === "static") {
+    const prev = radixVP.style.position;
+    radixVP.style.position = "relative";
+    radixVPPositionCleanup = () => {
+      radixVP.style.position = prev;
+    };
+  }
   let portalTarget: HTMLElement = radixVP ?? document.body;
   if (!radixVP) {
     let scrollParent: HTMLElement | null = trigger.parentElement;
@@ -496,6 +505,8 @@ function hidePopoverCleanup(): void {
     contentEl.style.opacity = "";
     contentEl.style.transform = "";
   }
+  radixVPPositionCleanup?.();
+  radixVPPositionCleanup = null;
   isOpen = false;
   activeTrigger = null;
   lastCoords = { x: NaN, y: NaN };
