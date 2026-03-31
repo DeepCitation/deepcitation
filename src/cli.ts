@@ -28,6 +28,9 @@ import { validateCitationData } from "./utils/validateCitationData.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "./vanilla/reportUtils.js";
 
+// ── version ─────────────────────────────────────────────────────────
+const { version: CLI_VERSION } = createRequire(import.meta.url)("../package.json") as { version: string };
+
 // ── proxy support ──────────────────────────────────────────────────
 
 /**
@@ -587,7 +590,46 @@ function inject(argv: string[]) {
   if (stripped.hadExisting) {
     console.error("Warning: stripped existing DeepCitation injection before re-injecting.");
   }
-  let output = stripped.html;
+
+  // ── Auto-fix display-label mismatches ────────────────────────────
+  // When an annotated element's visible text differs from its anchorText
+  // and no data-dc-display-label is set, automatically add the attribute.
+  // The CDN reads data-dc-display-label at click time so the popover
+  // trigger shows the visible text rather than the full anchorText.
+  const autoFixLog: string[] = [];
+  const elementRe =
+    /<([a-zA-Z][a-zA-Z0-9]*)[^>]*\sdata-citation-key="([^"]+)"([^>]*)>([\s\S]*?)<\/\1>/g;
+  const fixedHtml = stripped.html.replace(elementRe, (fullMatch, _tag, hashedKey, rest, content) => {
+    // Skip if data-dc-display-label is already set
+    if (/data-dc-display-label=/.test(rest) || /data-dc-display-label=/.test(fullMatch)) return fullMatch;
+    const anchorText: string | undefined = (verifications[hashedKey] as { citation?: { anchorText?: string } } | undefined)
+      ?.citation?.anchorText;
+    if (!anchorText) return fullMatch;
+    // Strip inner HTML tags to get approximate visible text
+    const visibleText = (content as string).replace(/<[^>]+>/g, "").trim();
+    if (!visibleText || visibleText.length > 80) return fullMatch;
+    // Auto-fix if visible text does not appear inside anchorText (case-insensitive)
+    if (!anchorText.toLowerCase().includes(visibleText.toLowerCase())) {
+      const escaped = visibleText.replace(/"/g, "&quot;");
+      autoFixLog.push(
+        `  [${hashedKey.slice(0, 8)}…] displayLabel="${visibleText}" anchorText="${anchorText.slice(0, 60)}${anchorText.length > 60 ? "…" : ""}"`,
+      );
+      // Insert data-dc-display-label right after the opening tag name
+      return fullMatch.replace(
+        `data-citation-key="${hashedKey}"`,
+        `data-citation-key="${hashedKey}" data-dc-display-label="${escaped}"`,
+      );
+    }
+    return fullMatch;
+  });
+  if (autoFixLog.length > 0) {
+    console.error(
+      `Auto-set display label on ${autoFixLog.length} element(s) where visible text differs from anchorText:\n` +
+        autoFixLog.join("\n"),
+    );
+  }
+
+  let output = fixedHtml;
 
   if (output.includes("</body>")) {
     output = output.replace("</body>", () => `${snippet}\n</body>`);
@@ -1109,6 +1151,11 @@ const [command, ...rest] = process.argv.slice(2);
 
 if (!command || command === "-h" || command === "--help") {
   console.log(HELP);
+  process.exit(0);
+}
+
+if (command === "-v" || command === "--version") {
+  console.log(CLI_VERSION);
   process.exit(0);
 }
 
