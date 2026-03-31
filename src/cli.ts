@@ -894,6 +894,12 @@ const BASE_URL = (() => {
 
 const BILLING_URL = BILLING_URL;
 
+function printFreeTierWelcome(): void {
+  console.log(`\nYou're on the free tier — $20/month of usage included at no charge.`);
+  console.log(`  Once you exceed it, add a payment method to continue:`);
+  console.log(`  ${BILLING_URL}`);
+}
+
 function saveApiKey(key: string, source: string): void {
   if (!key || !key.startsWith("sk-dc-") || key.length < 20) {
     die(
@@ -903,6 +909,7 @@ function saveApiKey(key: string, source: string): void {
   }
   writeCredentials({ version: 1, apiKey: key, createdAt: new Date().toISOString() });
   console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
+  printFreeTierWelcome();
 }
 
 async function login(argv: string[]) {
@@ -959,6 +966,7 @@ async function login(argv: string[]) {
     console.log(`\nLogged in as ${sanitizeForLog(payload.displayName ?? payload.email ?? "unknown")}.`);
     console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
     console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
+    printFreeTierWelcome();
   } catch (err) {
     console.error(`\nLogin failed: ${err instanceof Error ? err.message : err}`);
     console.error(`\nYou can also log in manually at: ${BASE_URL}/cli-auth?manual=true`);
