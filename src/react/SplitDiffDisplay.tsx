@@ -75,17 +75,68 @@ function calculateSimilarity(a: string, b: string): number {
 }
 
 /**
- * Highlight a substring within text
+ * Find start/end indices covering `anchor` in `text` using word matching.
+ * Mirrors the fuzzyAnchorRange logic in HighlightedPhrase.tsx.
+ * Returns null if fewer than 60% of anchor words are found.
  */
-function highlightSubstring(text: string, substring: string | undefined, highlightClass: string): React.ReactNode {
-  if (!substring || !text.includes(substring)) {
-    return text;
+function fuzzySubstringRange(text: string, anchor: string): { start: number; end: number } | null {
+  const anchorWords = anchor
+    .toLowerCase()
+    .split(/\s+/)
+    .map(w => w.replace(/[^a-z0-9]/g, ""))
+    .filter(w => w.length >= 2);
+  if (anchorWords.length === 0) return null;
+
+  const textLower = text.toLowerCase();
+  let searchFrom = 0;
+  let firstIdx = -1;
+  let lastIdx = -1;
+  let matched = 0;
+
+  for (const word of anchorWords) {
+    const idx = textLower.indexOf(word, searchFrom);
+    if (idx !== -1) {
+      if (firstIdx === -1) firstIdx = idx;
+      lastIdx = idx + word.length;
+      searchFrom = idx;
+      matched++;
+    }
   }
 
-  const index = text.indexOf(substring);
+  if (matched / anchorWords.length < 0.6 || firstIdx === -1) return null;
+  return { start: firstIdx, end: lastIdx };
+}
+
+/**
+ * Highlight a substring within text.
+ * Falls back to case-insensitive then fuzzy word-span matching when exact match fails.
+ */
+function highlightSubstring(text: string, substring: string | undefined, highlightClass: string): React.ReactNode {
+  if (!substring) return text;
+
+  // Exact match
+  let index = text.indexOf(substring);
+  let matchLength = substring.length;
+
+  // Case-insensitive fallback
+  if (index === -1) {
+    index = text.toLowerCase().indexOf(substring.toLowerCase());
+  }
+
+  // Fuzzy word-span fallback
+  if (index === -1) {
+    const range = fuzzySubstringRange(text, substring);
+    if (range) {
+      index = range.start;
+      matchLength = range.end - range.start;
+    }
+  }
+
+  if (index === -1) return text;
+
   const before = text.slice(0, index);
-  const match = text.slice(index, index + substring.length);
-  const after = text.slice(index + substring.length);
+  const match = text.slice(index, index + matchLength);
+  const after = text.slice(index + matchLength);
 
   return (
     <>
