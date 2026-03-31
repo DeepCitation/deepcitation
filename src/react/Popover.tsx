@@ -134,28 +134,36 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     // nearest overflow:scroll/auto ancestor, then document.body.
     const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
     React.useLayoutEffect(() => {
+      if (typeof window === "undefined") return;
       const trigger = triggerRef.current;
       if (!trigger) return;
+      let cleanupPosition: (() => void) | undefined;
       // Prefer the Radix ScrollArea viewport
       const radixVP = trigger.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
       if (radixVP) {
         // Ensure the viewport is a containing block for position:absolute children
-        if (window.getComputedStyle(radixVP).position === "static") radixVP.style.position = "relative";
+        const prev = radixVP.style.position;
+        if (window.getComputedStyle(radixVP).position === "static") {
+          radixVP.style.position = "relative";
+          cleanupPosition = () => {
+            radixVP.style.position = prev;
+          };
+        }
         setPortalContainer(radixVP);
-        return;
+        return cleanupPosition;
       }
       // Fallback: nearest scrollable ancestor
       let el: HTMLElement | null = trigger.parentElement;
       while (el) {
         const { overflowY } = window.getComputedStyle(el);
-        if (overflowY === "auto" || overflowY === "scroll") {
+        if ((overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight) {
           setPortalContainer(el);
           return;
         }
         el = el.parentElement;
       }
       setPortalContainer(document.body);
-    }, [triggerRef]);
+    }, [open, triggerRef]);
 
     const recomputePosition = React.useCallback(() => {
       if (!open) return;

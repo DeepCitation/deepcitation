@@ -252,31 +252,30 @@ function useKeyboardOpenTracking(isHovering: boolean, popoverContentRef: React.R
   // background content. Mouse-opened popovers don't need this because users
   // can click outside to dismiss.
   //
-  // When <main> exists, we set inert on it (the popover portal is a sibling
-  // of <main> inside document.body, so it stays interactive).
-  // When no <main> exists, we cannot set inert on document.body because the
-  // popover portal renders inside body — that would make the popover
-  // itself inert. Instead, we inert each direct child of body except the
-  // one containing the popover.
+  // The popover may portal into a scroll container inside <main> (not just
+  // document.body), so we walk from the popover up to body, inerting siblings
+  // at each level. This keeps the popover's ancestor chain interactive while
+  // making everything else inert.
   useEffect(() => {
     if (!isHovering || !openedViaKeyboardRef.current) return;
-    const main = document.querySelector("main");
-    if (main) {
-      main.setAttribute("inert", "");
-      return () => main.removeAttribute("inert");
-    }
-    // Fallback: inert all body children except the popover portal.
-    // Defer with rAF so the portal is in the DOM before we scan.
     const inerted: Element[] = [];
+    // Defer with rAF so the portal is in the DOM before we scan.
     const rafId = requestAnimationFrame(() => {
       const popoverEl = popoverContentRef.current;
       if (!popoverEl) return; // portal not mounted — nothing to trap
-      for (const child of Array.from(document.body.children)) {
-        if (child.contains(popoverEl)) continue;
-        if (!child.hasAttribute("inert")) {
-          child.setAttribute("inert", "");
-          inerted.push(child);
+      // Walk from popover up to body, inerting siblings at each level.
+      let current: Element | null = popoverEl;
+      while (current && current !== document.body) {
+        const parent = current.parentElement;
+        if (!parent) break;
+        for (const sibling of Array.from(parent.children)) {
+          if (sibling === current) continue;
+          if (!sibling.hasAttribute("inert")) {
+            sibling.setAttribute("inert", "");
+            inerted.push(sibling);
+          }
         }
+        current = parent;
       }
     });
     return () => {

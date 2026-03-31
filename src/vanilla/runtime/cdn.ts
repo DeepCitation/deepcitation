@@ -178,8 +178,8 @@ function ensurePopoverEls(): { wrapper: HTMLDivElement; content: HTMLDivElement 
     ].join("\n");
     wrapper.appendChild(scrollbarStyle);
     wrapper.appendChild(content);
-    // Appended to a scroll container (not body) in showPopoverFor;
-    // initially detached until we know the trigger's scroll ancestor.
+    // Initially appended to body; moved to the trigger's scroll ancestor
+    // on each showPopoverFor call so the popover scrolls with content.
     document.body.appendChild(wrapper);
     wrapperEl = wrapper;
     contentEl = content;
@@ -462,10 +462,15 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
     let scrollParent: HTMLElement | null = trigger.parentElement;
     while (scrollParent) {
       const ov = window.getComputedStyle(scrollParent).overflowY;
-      if (ov === "auto" || ov === "scroll") { portalTarget = scrollParent; break; }
+      if ((ov === "auto" || ov === "scroll") && scrollParent.scrollHeight > scrollParent.clientHeight) {
+        portalTarget = scrollParent;
+        break;
+      }
       scrollParent = scrollParent.parentElement;
     }
   }
+  // Guard against detached scroll containers (SPA navigation edge case)
+  if (!portalTarget.isConnected) portalTarget = document.body;
   if (wrapper.parentElement !== portalTarget) portalTarget.appendChild(wrapper);
   requestAnimationFrame(() => {
     reposition();
