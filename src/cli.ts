@@ -14,8 +14,10 @@ import {
   startCallbackServer,
   writeCredentials,
 } from "./auth.js";
+import { USAGE_CRITICAL_PCT, USAGE_WARN_PCT } from "./billing.js";
 import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./cli/markdownToHtml.js";
 import { DeepCitation } from "./client/DeepCitation.js";
+import { PaymentRequiredError } from "./client/errors.js";
 import { citationDataToCitation, parseCitationData } from "./parsing/citationParser.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "./prompts/citationPrompts.js";
 import { getCitationKey } from "./utils/citationKey.js";
@@ -194,6 +196,7 @@ Commands:
   inject    Inject DeepCitation verification into an existing HTML file
   keygen    Compute deterministic citation keys from a citations JSON file
   get       Fetch full attachment metadata by ID
+  billing   Open the billing dashboard to add a payment method or manage spend cap
 
 Run "deepcitation <command> --help" for command-specific options.
 `;
@@ -255,14 +258,39 @@ function createClient(apiKey: string): DeepCitation {
     // Redact user:password@ from proxy URL before logging
     const safeProxy = sanitizeForLog(proxyUrl.replace(/\/\/[^@]+@/, "//***@"));
     console.error(`Using proxy: ${safeProxy}`);
-    return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl) });
+    return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl), onUsageWarning: warnUsage });
   }
 
-  return new DeepCitation({ apiKey });
+  return new DeepCitation({ apiKey, onUsageWarning: warnUsage });
+}
+
+/** Warn the user as their monthly budget runs low. */
+function warnUsage(remaining: number, limit: number): void {
+  const pctUsed = limit > 0 ? ((limit - remaining) / limit) * 100 : 0;
+  if (pctUsed >= USAGE_CRITICAL_PCT) {
+    console.error(`\nWarning: Only $${remaining.toFixed(2)} of your $${limit.toFixed(2)}/month budget remains.`);
+    console.error(`  Add a payment method to avoid interruption: ${BASE_URL}/api#billing\n`);
+  } else if (pctUsed >= USAGE_WARN_PCT) {
+    console.error(`\nNote: $${remaining.toFixed(2)} of your $${limit.toFixed(2)}/month budget remaining.\n`);
+  }
 }
 
 /** Wrap a network error with actionable hints for the CLI user. */
 function formatNetworkError(err: unknown): string {
+  if (err instanceof PaymentRequiredError) {
+    return [
+      `\nPayment required: ${err.message}`,
+      ``,
+      `  To add a credit card and unlock usage beyond the free tier:`,
+      `    npx deepcitation billing`,
+      `  Or visit: ${BASE_URL}/api#billing`,
+      ``,
+      `  Benefits of adding a card:`,
+      `    • Continue using DeepCitation without interruption`,
+      `    • Pay-as-you-go: $0.05/doc, $0.01/verification`,
+      `    • Set a custom monthly spend cap for cost control`,
+    ].join("\n");
+  }
   const msg = err instanceof Error ? err.message : String(err);
   if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("EAI_AGAIN")) {
     const proxyHint =
@@ -977,6 +1005,18 @@ function env() {
   process.stdout.write(`export DEEPCITATION_API_KEY="${creds.apiKey}"\n`);
 }
 
+// ── billing ────────────────────────────────────────────────────────
+
+async function openBillingDashboard() {
+  const url = `${BASE_URL}/api#billing`;
+  console.error(`Opening billing dashboard: ${url}`);
+  console.error(`\nHere you can:`);
+  console.error(`  • Add a credit card to unlock usage beyond the free $20/month tier`);
+  console.error(`  • Set a custom monthly spend cap for cost control`);
+  console.error(`  • View your usage breakdown and billing history`);
+  await openBrowser(url);
+}
+
 // ── get-attachment ────────────────────────────────────────────────────
 
 const GET_HELP = `Usage: deepcitation get <attachmentId> [options]
@@ -1108,6 +1148,12 @@ switch (command) {
     break;
   case "env":
     env();
+    break;
+  case "billing":
+    openBillingDashboard().catch(err => {
+      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      process.exit(1);
+    });
     break;
   default:
     die(`Unknown command: ${command}`, HELP);
