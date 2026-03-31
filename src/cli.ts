@@ -936,7 +936,7 @@ const BASE_URL = (() => {
   }
 })();
 
-const BILLING_URL = `${BASE_URL}/api#billing`;
+const BILLING_URL: string = `${BASE_URL}/api#billing`;
 
 function printFreeTierWelcome(): void {
   console.log(`\nYou're on the free tier — $20/month of usage included at no charge.`);
