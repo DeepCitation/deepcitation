@@ -180,7 +180,10 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
 
       const ro = new ResizeObserver(scheduleRecompute);
       if (localContentRef.current) ro.observe(localContentRef.current);
-      if (triggerRef.current) ro.observe(triggerRef.current);
+      // Do NOT observe the trigger — Chrome fires ResizeObserver when a
+      // scrolled element's visible rect changes, which would reposition the
+      // popover to follow the trigger on scroll.  Window resize already
+      // handles the legitimate trigger-resize case via the "resize" listener.
 
       window.addEventListener("resize", scheduleRecompute);
       window.addEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, scheduleRecompute as EventListener);

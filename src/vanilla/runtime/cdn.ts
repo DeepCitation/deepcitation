@@ -226,7 +226,9 @@ function startPositionTracking(): void {
   window.addEventListener("resize", scheduleReposition);
   resizeObserver = new ResizeObserver(scheduleReposition);
   if (contentEl) resizeObserver.observe(contentEl);
-  if (activeTrigger) resizeObserver.observe(activeTrigger);
+  // Do NOT observe the trigger — Chrome fires ResizeObserver when a
+  // scrolled element's visible rect changes, which would reposition the
+  // popover to follow the trigger on scroll.
 }
 function stopPositionTracking(): void {
   cancelAnimationFrame(positionRafId);
