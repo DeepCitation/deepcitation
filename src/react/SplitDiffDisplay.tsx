@@ -1,6 +1,7 @@
 import type React from "react";
 import { memo, useMemo, useState } from "react";
 import type { SearchStatus } from "../types/search.js";
+import { fuzzyAnchorRange } from "../utils/fuzzyAnchor.js";
 import { useTranslation } from "./i18n.js";
 import { CheckIcon } from "./icons.js";
 import { cn } from "./utils.js";
@@ -75,39 +76,6 @@ function calculateSimilarity(a: string, b: string): number {
 }
 
 /**
- * Find start/end indices covering `anchor` in `text` using word matching.
- * Mirrors the fuzzyAnchorRange logic in HighlightedPhrase.tsx.
- * Returns null if fewer than 60% of anchor words are found.
- */
-function fuzzySubstringRange(text: string, anchor: string): { start: number; end: number } | null {
-  const anchorWords = anchor
-    .toLowerCase()
-    .split(/\s+/)
-    .map(w => w.replace(/[^a-z0-9]/g, ""))
-    .filter(w => w.length >= 2);
-  if (anchorWords.length === 0) return null;
-
-  const textLower = text.toLowerCase();
-  let searchFrom = 0;
-  let firstIdx = -1;
-  let lastIdx = -1;
-  let matched = 0;
-
-  for (const word of anchorWords) {
-    const idx = textLower.indexOf(word, searchFrom);
-    if (idx !== -1) {
-      if (firstIdx === -1) firstIdx = idx;
-      lastIdx = idx + word.length;
-      searchFrom = idx;
-      matched++;
-    }
-  }
-
-  if (matched / anchorWords.length < 0.6 || firstIdx === -1) return null;
-  return { start: firstIdx, end: lastIdx };
-}
-
-/**
  * Highlight a substring within text.
  * Falls back to case-insensitive then fuzzy word-span matching when exact match fails.
  */
@@ -125,7 +93,7 @@ function highlightSubstring(text: string, substring: string | undefined, highlig
 
   // Fuzzy word-span fallback
   if (index === -1) {
-    const range = fuzzySubstringRange(text, substring);
+    const range = fuzzyAnchorRange(text, substring);
     if (range) {
       index = range.start;
       matchLength = range.end - range.start;

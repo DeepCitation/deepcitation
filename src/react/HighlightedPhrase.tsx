@@ -1,41 +1,6 @@
 import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
+import { fuzzyAnchorRange } from "../utils/fuzzyAnchor.js";
 import { ANCHOR_HIGHLIGHT_STYLE } from "./constants.js";
-
-/**
- * Find start/end indices in `phrase` that best cover `anchor` using word matching.
- * Returns null if fewer than 60% of anchor words are found.
- *
- * Handles cases like anchor="retrieval failure and generation bottleneck" inside
- * phrase="retrieval failure (§6.1) and generation bottleneck (§6.2)" where the
- * PDF has inserted inline section references that break exact substring matching.
- */
-function fuzzyAnchorRange(phrase: string, anchor: string): { start: number; end: number } | null {
-  const anchorWords = anchor
-    .toLowerCase()
-    .split(/\s+/)
-    .map(w => w.replace(/[^a-z0-9]/g, ""))
-    .filter(w => w.length >= 2);
-  if (anchorWords.length === 0) return null;
-
-  const phraseLower = phrase.toLowerCase();
-  let searchFrom = 0;
-  let firstIdx = -1;
-  let lastIdx = -1;
-  let matched = 0;
-
-  for (const word of anchorWords) {
-    const idx = phraseLower.indexOf(word, searchFrom);
-    if (idx !== -1) {
-      if (firstIdx === -1) firstIdx = idx;
-      lastIdx = idx + word.length;
-      searchFrom = idx; // allow overlap; advance from match start
-      matched++;
-    }
-  }
-
-  if (matched / anchorWords.length < 0.6 || firstIdx === -1) return null;
-  return { start: firstIdx, end: lastIdx };
-}
 
 /**
  * Renders fullPhrase with optional anchorText highlighted using the same

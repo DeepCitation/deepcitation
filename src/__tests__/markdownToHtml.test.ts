@@ -18,6 +18,13 @@ describe("wrapCitationMarkers", () => {
     expect(result).toContain('data-cite="2"');
   });
 
+  it("handles multiple markers within the same paragraph", () => {
+    const html = "<p>Revenue grew 45% [1] and margin improved [2]</p>";
+    const result = wrapCitationMarkers(html);
+    expect(result).toContain('data-cite="1"');
+    expect(result).toContain('data-cite="2"');
+  });
+
   it("produces an empty span when no text precedes the marker", () => {
     const html = "[1]";
     const result = wrapCitationMarkers(html);

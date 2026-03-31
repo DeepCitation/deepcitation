@@ -239,25 +239,28 @@ export function CitationAnnotationOverlay({
 
   const anchorRects = (() => {
     if (!showKeySpanHighlight || !anchorTextDeepItems?.length) return [];
+    // Sort left-to-right so gap-fill always sees adjacent pairs in order.
+    // (DeepTextItems from different extraction passes may not be in reading order.)
+    const SAME_LINE_THRESHOLD_PCT = 0.5; // % top difference below which two rects share a line
+    const MAX_GAP_PCT = 3; // % width below which the space between words is filled
     const rects = anchorTextDeepItems
       .map(item =>
         toPercentRect(item, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin, viewBoxOriginY),
       )
-      .filter((r): r is NonNullable<typeof r> => r != null);
+      .filter((r): r is NonNullable<typeof r> => r != null)
+      .sort((a, b) => parseFloat(a.left) - parseFloat(b.left));
     // Fill gaps between adjacent word rects on the same line so spaces are highlighted.
-    // Adjacent rects are on the same line if their top values are close (within 0.5%).
     const filled = [...rects];
     for (let i = 0; i < rects.length - 1; i++) {
       const a = rects[i];
       const b = rects[i + 1];
       const aTop = parseFloat(a.top);
       const bTop = parseFloat(b.top);
-      if (Math.abs(aTop - bTop) < 0.5) {
+      if (Math.abs(aTop - bTop) < SAME_LINE_THRESHOLD_PCT) {
         const aRight = parseFloat(a.left) + parseFloat(a.width);
         const bLeft = parseFloat(b.left);
         const gap = bLeft - aRight;
-        if (gap > 0 && gap < 3) {
-          // Small gap between words — fill it
+        if (gap > 0 && gap < MAX_GAP_PCT) {
           filled.push({
             left: `${aRight}%`,
             top: a.top,

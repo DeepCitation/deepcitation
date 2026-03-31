@@ -351,12 +351,11 @@ async function prepare(argv: string[]) {
   console.error(`  Saved: ${outPath}`);
 
   if (summary) {
-    // Print attachmentId and deepTextPromptPortion to stdout so agents
-    // can consume them directly from bash output (no extra Read call)
-    console.log(`ATTACHMENT_ID=${result.attachmentId}`);
-    console.log("--- DEEP_TEXT_PROMPT_PORTION ---");
-    console.log(result.deepTextPromptPortion);
-    console.log("--- END_DEEP_TEXT_PROMPT_PORTION ---");
+    // Print attachmentId and deepTextPromptPortion as JSON to stdout so agents
+    // can consume them with jq or JSON.parse (no extra Read call).
+    console.log(
+      JSON.stringify({ attachmentId: result.attachmentId, deepTextPromptPortion: result.deepTextPromptPortion }),
+    );
   } else {
     console.log(outPath);
   }
@@ -669,8 +668,6 @@ async function verifyMarkdown(argv: string[]) {
     }
     forwardArgs.push(argv[i]);
   }
-  forwardArgs.push("--html", "markdown-convert");
-
   // Set default output name: derive from input filename, e.g. report.md → report-verified.html
   if (!args.out) {
     const stem = basename(resolved, extname(resolved));
@@ -685,13 +682,14 @@ async function verifyMarkdown(argv: string[]) {
 async function verifyHtml(argv: string[], preloadedContent?: string) {
   const args = parseArgs(argv, VERIFY_HELP);
   const htmlPath = args.html;
-  if (!htmlPath) die("--html is required", VERIFY_HELP);
+  if (!htmlPath && !preloadedContent) die("--html is required", VERIFY_HELP);
 
   const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
   if (!apiKey) die('Not authenticated. Run "deepcitation login" first.', VERIFY_HELP);
 
   const dc = createClient(apiKey);
-  const raw = preloadedContent ?? readFileSync(resolve(htmlPath), "utf-8");
+  // htmlPath is guaranteed set when preloadedContent is absent (die() above exits otherwise)
+  const raw = preloadedContent ?? readFileSync(resolve(htmlPath ?? ""), "utf-8");
 
   // 1. Parse: split HTML from <<<CITATION_DATA>>> block
   const parsed = parseCitationData(raw);
@@ -1000,11 +998,13 @@ async function getAttachment(argv: string[]) {
 
   const args = parseArgs(filteredArgv, GET_HELP);
 
-  // Find the first positional arg (not a flag, not the value of a preceding flag).
+  // Find the first positional arg (not a flag, not the value of a key-value flag).
+  // Only flags that take a value are listed here — boolean flags were stripped above.
+  const KEY_VALUE_FLAGS = new Set(["--out"]);
   let positional: string | undefined;
   for (let i = 0; i < filteredArgv.length; i++) {
     if (filteredArgv[i].startsWith("--")) {
-      i++; // skip flag value
+      if (KEY_VALUE_FLAGS.has(filteredArgv[i])) i++; // skip this flag's value
       continue;
     }
     positional = filteredArgv[i];

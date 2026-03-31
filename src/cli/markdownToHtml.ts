@@ -62,9 +62,10 @@ function inlineFormat(text: string): string {
  * nearest meaningful phrase fragment in a span.
  */
 export function wrapCitationMarkers(html: string): string {
-  // Match patterns like "some text [1]" — capture the text before and the number
-  // We work outside of HTML tags to avoid corrupting attributes
-  return html.replace(/(?<=>|^)([^<]*?)\s*\[(\d+)\]/g, (_match, textBefore: string, num: string) => {
+  // Match [N] markers anywhere in text nodes. Excluding `<` keeps us out of HTML tags;
+  // excluding `"` keeps us out of quoted attribute values. Without the old (?<=>|^) anchor,
+  // multiple markers in the same paragraph are all matched.
+  return html.replace(/([^<"]*?)\s*\[(\d+)\]/g, (_match, textBefore: string, num: string) => {
     const trimmed = textBefore.trimEnd();
     if (!trimmed) return `<span data-cite="${num}"></span>`;
 
@@ -288,6 +289,7 @@ const AUDIENCE_CONFIG: Record<AudiencePreset, { width: string; tier2Open: boolea
 };
 
 const MONO_FONT = `"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace`;
+const SANS_FONT = `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
 
 const BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
   h1 { font-size: 24px; font-weight: 600; }
@@ -315,7 +317,7 @@ function plainShell(title: string, bodyHtml: string): string {
 <title>${escHtml(title)}</title>
 <style>
 ${BASE_CSS}
-  body { font-family: system-ui, sans-serif; max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; line-height: 1.6; color: #18181B; background: #fff; }
+  body { font-family: ${SANS_FONT}; max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; line-height: 1.6; color: #18181B; background: #fff; }
   h1 { margin-bottom: 0.5rem; }
 </style>
 </head>
@@ -339,7 +341,7 @@ function reportShell(title: string, bodyHtml: string, audience: AudiencePreset, 
 <style>
 ${BASE_CSS}
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: ${SANS_FONT};
     max-width: ${cfg.width};
     margin: 0 auto;
     padding: 2rem 1.5rem 4rem;
