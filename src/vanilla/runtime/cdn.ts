@@ -148,7 +148,7 @@ function ensurePopoverEls(): { wrapper: HTMLDivElement; content: HTMLDivElement 
     // Outer wrapper: position + transform only (matches React's wrapper div)
     const wrapper = document.createElement("div");
     wrapper.setAttribute("data-dc-popover-wrapper", "");
-    wrapper.style.position = "fixed";
+    wrapper.style.position = "absolute";
     wrapper.style.left = "0";
     wrapper.style.top = "0";
     wrapper.style.width = "max-content";
@@ -178,6 +178,8 @@ function ensurePopoverEls(): { wrapper: HTMLDivElement; content: HTMLDivElement 
     ].join("\n");
     wrapper.appendChild(scrollbarStyle);
     wrapper.appendChild(content);
+    // Appended to a scroll container (not body) in showPopoverFor;
+    // initially detached until we know the trigger's scroll ancestor.
     document.body.appendChild(wrapper);
     wrapperEl = wrapper;
     contentEl = content;
@@ -211,10 +213,15 @@ function reposition(): void {
   const triggerRect = getTriggerRect(activeTrigger);
   const contentRect = contentEl.getBoundingClientRect();
   const pos = computePosition(triggerRect, contentRect.width, contentRect.height, SIDE_OFFSET);
-  // Skip if coords haven't changed (< 0.5px delta) — avoids unnecessary style writes
-  if (Math.abs(lastCoords.x - pos.x) < 0.5 && Math.abs(lastCoords.y - pos.y) < 0.5) return;
-  lastCoords = { x: pos.x, y: pos.y };
-  wrapperEl.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+  // Convert viewport-relative coords to scroll-container-relative so the
+  // position:absolute wrapper is placed in document space and scrolls naturally.
+  const container = wrapperEl.parentElement ?? document.body;
+  const cRect = container.getBoundingClientRect();
+  const x = pos.x - cRect.left + container.scrollLeft;
+  const y = pos.y - cRect.top + container.scrollTop;
+  if (Math.abs(lastCoords.x - x) < 0.5 && Math.abs(lastCoords.y - y) < 0.5) return;
+  lastCoords = { x, y };
+  wrapperEl.style.transform = `translate3d(${x}px, ${y}px, 0)`;
   wrapperEl.setAttribute("data-side", pos.side);
 }
 function scheduleReposition(): void {
@@ -446,6 +453,20 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
   isOpen = true;
   activeTrigger = trigger;
   lastCoords = { x: NaN, y: NaN };
+  // Move the wrapper into the trigger's scroll-root ancestor so it scrolls
+  // with the page content instead of staying fixed on the viewport.
+  const radixVP = trigger.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
+  if (radixVP && window.getComputedStyle(radixVP).position === "static") radixVP.style.position = "relative";
+  let portalTarget: HTMLElement = radixVP ?? document.body;
+  if (!radixVP) {
+    let scrollParent: HTMLElement | null = trigger.parentElement;
+    while (scrollParent) {
+      const ov = window.getComputedStyle(scrollParent).overflowY;
+      if (ov === "auto" || ov === "scroll") { portalTarget = scrollParent; break; }
+      scrollParent = scrollParent.parentElement;
+    }
+  }
+  if (wrapper.parentElement !== portalTarget) portalTarget.appendChild(wrapper);
   requestAnimationFrame(() => {
     reposition();
     // Now reveal — position is correct, content has been laid out
