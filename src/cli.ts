@@ -892,6 +892,8 @@ const BASE_URL = (() => {
   }
 })();
 
+const BILLING_URL = BILLING_URL;
+
 function saveApiKey(key: string, source: string): void {
   if (!key || !key.startsWith("sk-dc-") || key.length < 20) {
     die(
@@ -1008,10 +1010,10 @@ function env() {
 // ── billing ────────────────────────────────────────────────────────
 
 async function openBillingDashboard() {
-  const url = `${BASE_URL}/api#billing`;
+  const url = BILLING_URL;
   console.error(`Opening billing dashboard: ${url}`);
   console.error(`\nHere you can:`);
-  console.error(`  • Add a credit card to unlock usage beyond the free $20/month tier`);
+  console.error(`  • Add a credit card to unlock usage beyond the free tier`);
   console.error(`  • Set a custom monthly spend cap for cost control`);
   console.error(`  • View your usage breakdown and billing history`);
   await openBrowser(url);
@@ -1151,7 +1153,7 @@ switch (command) {
     break;
   case "billing":
     openBillingDashboard().catch(err => {
-      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      console.error(`Error: ${formatNetworkError(err)}`);
       process.exit(1);
     });
     break;
