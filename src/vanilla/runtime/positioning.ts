@@ -8,7 +8,7 @@ export function computePosition(
   popoverHeight: number,
   sideOffset: number,
 ): { x: number; y: number; side: "top" | "bottom" } {
-  // Horizontal: center-align to trigger, clamp to viewport
+  // Horizontal: center-align to trigger, clamp to viewport-relative range
   let x = triggerRect.left + triggerRect.width / 2 - popoverWidth / 2;
   x = Math.max(8, Math.min(x, window.innerWidth - popoverWidth - 8));
 
@@ -27,8 +27,7 @@ export function computePosition(
     side = "top";
   }
 
-  // Clamp y to viewport edges (defensive for tall popovers)
-  y = Math.max(8, Math.min(y, window.innerHeight - popoverHeight - 8));
-
-  return { x: Math.round(x), y: Math.round(y), side };
+  // Convert viewport-relative coords to document-relative so the popover
+  // is positioned in document space and scrolls off screen naturally.
+  return { x: Math.round(x + window.scrollX), y: Math.round(y + window.scrollY), side };
 }

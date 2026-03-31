@@ -854,7 +854,15 @@ async function verifyHtml(argv: string[], preloadedContent?: string) {
 
 // ── login ─────────────────────────────────────────────────────────
 
-const BASE_URL = process.env.DC_LOGIN_URL || "https://deepcitation.com";
+const BASE_URL = (() => {
+  const raw = process.env.DC_LOGIN_URL || "https://deepcitation.com";
+  try {
+    if (!["http:", "https:"].includes(new URL(raw).protocol)) throw new Error("non-http");
+    return raw;
+  } catch {
+    die(`DC_LOGIN_URL is not a valid HTTP/HTTPS URL: ${sanitizeForLog(raw)}`, HELP);
+  }
+})();
 
 function saveApiKey(key: string, source: string): void {
   if (!key || !key.startsWith("sk-dc-") || key.length < 20) {

@@ -7,8 +7,6 @@
  * (CitationAnnotationOverlay.tsx).
  */
 
-import { safeSplit } from "../utils/regexSafety.js";
-
 // =============================================================================
 // Types
 // =============================================================================
@@ -113,37 +111,6 @@ export function getBracketColor(highlightColor: HighlightColor = "green"): strin
 // Highlight Decision Logic
 // =============================================================================
 
-/** Minimum extra words fullPhrase must have over anchorText to trigger highlight. */
-const MIN_WORD_DIFFERENCE = 2;
-
-/**
- * Count whitespace-delimited words in a string.
- * Uses safeSplit for input-length validation.
- * @throws Error if text exceeds MAX_REGEX_INPUT_LENGTH (~100KB)
- */
-function countWords(text: string): number {
-  const trimmed = text.trim();
-  if (trimmed.length === 0) return 0;
-  return safeSplit(trimmed, /\s+/).length;
-}
-
-/**
- * Determines if anchorText should be highlighted within fullPhrase.
- *
- * Word-based rules:
- * - Highlight when anchorText has fewer words than fullPhrase
- * - fullPhrase must have at least 2 more words than anchorText
- * - Exception: 1-word anchorText highlights even with 1-word difference
- *
- * Examples:
- * - 1 word in 3 words  -> highlight
- * - 1 word in 2 words  -> highlight (single-word exception)
- * - 2 words in 4 words -> highlight
- * - 1 word in 1 word   -> no highlight (same count)
- * - 2 words in 3 words -> no highlight (only 1 word difference)
- *
- * @throws Error if either input exceeds MAX_REGEX_INPUT_LENGTH (~100KB)
- */
 /**
  * True when the API returned verifiedFullPhrase identical to verifiedAnchorText —
  * a "strategy override" where the model collapsed the full phrase to just the anchor.
@@ -159,24 +126,17 @@ export function isStrategyOverride(
   );
 }
 
+/**
+ * Returns true when both anchorText and fullPhrase are non-null, non-undefined,
+ * and non-empty. The rendering layer decides whether to visually show the highlight
+ * by checking that the anchor and phrase boxes are actually distinct (hasDistinctKeySpanBox
+ * in computeKeySpanHighlight).
+ */
 export function shouldHighlightAnchorText(
   anchorText: string | null | undefined,
   fullPhrase: string | null | undefined,
 ): boolean {
-  if (!anchorText || !fullPhrase) return false;
-
-  const anchorTextWords = countWords(anchorText);
-  const fullPhraseWords = countWords(fullPhrase);
-
-  if (anchorTextWords === 0 || fullPhraseWords === 0) return false;
-  if (anchorTextWords >= fullPhraseWords) return false;
-
-  const wordDifference = fullPhraseWords - anchorTextWords;
-
-  // Single-word anchorText: allow even with 1-word difference
-  if (anchorTextWords === 1 && wordDifference >= 1) return true;
-
-  return wordDifference >= MIN_WORD_DIFFERENCE;
+  return Boolean(anchorText?.trim()) && Boolean(fullPhrase?.trim());
 }
 
 /**
@@ -184,8 +144,8 @@ export function shouldHighlightAnchorText(
  * the anchorText bounding box item to use for drawing.
  *
  * Checks that the anchorTextMatchDeepItems[0] text is distinct from the
- * phraseMatchDeepItem text (case-insensitive) and that the word-difference
- * threshold is met via shouldHighlightAnchorText.
+ * phraseMatchDeepItem text (case-insensitive) via shouldHighlightAnchorText,
+ * and that the rendered boxes are geometrically distinct (hasDistinctKeySpanBox).
  *
  * @throws Error if either text input exceeds MAX_REGEX_INPUT_LENGTH (~100KB)
  */
@@ -203,11 +163,19 @@ export function computeKeySpanHighlight<T extends { text?: string }>(
     anchorTextText && phraseText && anchorTextText.toLowerCase() !== phraseText.toLowerCase(),
   );
 
+  // Word-context gate: anchor must have meaningfully fewer words than the phrase.
+  // For 1-word anchors a single extra word is enough; for longer anchors require ≥2 extra.
+  const vAnchorWords = verifiedAnchorText?.trim().split(/\s+/).length ?? 0;
+  const vPhraseWords = verifiedFullPhrase?.trim().split(/\s+/).length ?? 0;
+  const hasWordContext =
+    vAnchorWords > 0 && vPhraseWords > vAnchorWords && (vAnchorWords === 1 || vPhraseWords - vAnchorWords >= 2);
+
   // Primary check: anchorText vs verifiedFullPhrase.
   // Fallback: anchorText vs phraseMatchDeepItem.text — ONLY when isStrategyOverride()
   // (API collapsed full phrase to just the anchor text, but the matched text box spans more).
   const showKeySpanHighlight =
     hasDistinctKeySpanBox &&
+    hasWordContext &&
     (shouldHighlightAnchorText(verifiedAnchorText, verifiedFullPhrase) ||
       (isStrategyOverride(verifiedAnchorText, verifiedFullPhrase) &&
         shouldHighlightAnchorText(verifiedAnchorText, phraseText)));

@@ -136,18 +136,18 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       const triggerRect = triggerEl.getBoundingClientRect();
       const contentRect = contentEl.getBoundingClientRect();
       const next = computePosition(triggerRect, contentRect, side, align, sideOffset, alignOffset);
+      // Convert viewport-relative coords to document-relative so the popover
+      // is anchored in document space and scrolls off screen naturally.
+      const docX = next.x + window.scrollX;
+      const docY = next.y + window.scrollY;
       // Skip if coords haven't changed — BUT only when the wrapper already has a transform.
       // On remount the wrapper is a fresh DOM node with no transform; coordsRef still holds
       // the previous open's coords, so the diff check would fire and leave the wrapper at (0,0).
       const alreadyPositioned = wrapper.style.transform !== "";
-      if (
-        alreadyPositioned &&
-        Math.abs(coordsRef.current.x - next.x) < 0.5 &&
-        Math.abs(coordsRef.current.y - next.y) < 0.5
-      )
+      if (alreadyPositioned && Math.abs(coordsRef.current.x - docX) < 0.5 && Math.abs(coordsRef.current.y - docY) < 0.5)
         return;
-      coordsRef.current = next;
-      wrapper.style.transform = `translate3d(${next.x}px, ${next.y}px, 0)`;
+      coordsRef.current = { x: docX, y: docY };
+      wrapper.style.transform = `translate3d(${docX}px, ${docY}px, 0)`;
 
       // Max-height is managed solely by useViewportBoundaryGuard (Layer 3).
       // It sets --dc-guard-max-height on initial open and resize — NOT on scroll.
@@ -184,14 +184,12 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       if (triggerRef.current) ro.observe(triggerRef.current);
 
       window.addEventListener("resize", scheduleRecompute);
-      window.addEventListener("scroll", scheduleRecompute, { capture: true, passive: true });
       window.addEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, scheduleRecompute as EventListener);
 
       return () => {
         cancelAnimationFrame(rafId);
         ro.disconnect();
         window.removeEventListener("resize", scheduleRecompute);
-        window.removeEventListener("scroll", scheduleRecompute, { capture: true });
         window.removeEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, scheduleRecompute as EventListener);
       };
     }, [isMounted, open, recomputePosition, triggerRef]);
@@ -443,7 +441,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
           ref={wrapperRef}
           data-dc-popover-wrapper=""
           style={{
-            position: "fixed",
+            position: "absolute",
             left: 0,
             top: 0,
             width: "max-content",
