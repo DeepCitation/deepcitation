@@ -108,7 +108,7 @@ export interface DeepCitationConfig {
    * @param remaining - Remaining spend budget in dollars for the current billing period
    * @param limit - Total monthly spend limit in dollars
    */
-  onUsageWarning?: (remaining: number, limit: number) => void;
+  onUsageUpdate?: (remaining: number, limit: number) => void;
   /** Tag identifying request origin (e.g. "playground"). Sent as X-Request-Source header. */
   requestSource?: string;
   /**

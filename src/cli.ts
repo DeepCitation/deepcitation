@@ -263,10 +263,10 @@ function createClient(apiKey: string): DeepCitation {
     // Redact user:password@ from proxy URL before logging
     const safeProxy = sanitizeForLog(proxyUrl.replace(/\/\/[^@]+@/, "//***@"));
     console.error(`Using proxy: ${safeProxy}`);
-    return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl), onUsageWarning: warnUsage });
+    return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl), onUsageUpdate: warnUsage });
   }
 
-  return new DeepCitation({ apiKey, onUsageWarning: warnUsage });
+  return new DeepCitation({ apiKey, onUsageUpdate: warnUsage });
 }
 
 /** Warn the user as their monthly budget runs low. */
@@ -607,8 +607,15 @@ function inject(argv: string[]) {
       verifications[hashedKey] as { citation?: { anchorText?: string } } | undefined
     )?.citation?.anchorText;
     if (!anchorText) return fullMatch;
-    // Strip inner HTML tags to get approximate visible text
-    const visibleText = (content as string).replace(/<[^>]+>/g, "").trim();
+    // Strip inner HTML tags to get approximate visible text.
+    // Loop until stable to handle nested fragments like <scr<script>ipt>.
+    let visibleText = content as string;
+    let prev: string;
+    do {
+      prev = visibleText;
+      visibleText = visibleText.replace(/<[^>]+>/g, "");
+    } while (visibleText !== prev);
+    visibleText = visibleText.trim();
     if (!visibleText || visibleText.length > 80) return fullMatch;
     // Auto-fix if visible text does not appear inside anchorText (case-insensitive)
     if (!anchorText.toLowerCase().includes(visibleText.toLowerCase())) {

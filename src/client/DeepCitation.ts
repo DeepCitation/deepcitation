@@ -229,7 +229,7 @@ export class DeepCitation {
   private readonly endFileId?: string;
   private readonly convertedPdfDownloadPolicy: ConvertedPdfDownloadPolicy;
   private readonly onLatestVersion?: (latestVersion: string) => void;
-  private readonly onUsageWarning?: (remaining: number, limit: number) => void;
+  private readonly onUsageUpdate?: (remaining: number, limit: number) => void;
   private readonly requestSource?: string;
   private readonly maxRetries: number;
   private readonly fetchFn?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -290,7 +290,7 @@ export class DeepCitation {
     this.endFileId = config.endFileId;
     this.convertedPdfDownloadPolicy = config.convertedPdfDownloadPolicy ?? "url_only";
     this.onLatestVersion = config.onLatestVersion;
-    this.onUsageWarning = config.onUsageWarning;
+    this.onUsageUpdate = config.onUsageUpdate;
     if (config.requestSource && /[\r\n]/.test(config.requestSource)) {
       throw new ValidationError("requestSource must not contain newline characters");
     }
@@ -338,12 +338,12 @@ export class DeepCitation {
     if (latest) this.onLatestVersion(latest);
   }
 
-  /** If the response is successful and contains usage-limit headers, fire the onUsageWarning callback. */
+  /** If the response is successful and contains usage-limit headers, fire the onUsageUpdate callback. */
   private checkUsageWarning(response: Response): void {
-    if (!this.onUsageWarning || !response.ok) return;
+    if (!this.onUsageUpdate || !response.ok) return;
     const remaining = parseFloat(response.headers.get("X-DeepCitation-Remaining") ?? "");
     const limit = parseFloat(response.headers.get("X-DeepCitation-Limit") ?? "");
-    if (!Number.isNaN(remaining) && !Number.isNaN(limit)) this.onUsageWarning(remaining, limit);
+    if (!Number.isNaN(remaining) && !Number.isNaN(limit)) this.onUsageUpdate(remaining, limit);
   }
 
   /**
