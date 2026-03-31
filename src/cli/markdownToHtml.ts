@@ -42,8 +42,10 @@ function inlineFormat(text: string): string {
       // italic
       .replace(/\*(.+?)\*/g, "<em>$1</em>")
       // links (scheme allowlist: only http/https)
+      // href is already HTML-escaped from the escHtml() call above; validate
+      // the scheme but do not re-escape (that would double-encode & in URLs).
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
-        const safeHref = /^https?:\/\//i.test(href) ? escHtml(href) : "#";
+        const safeHref = /^https?:\/\//i.test(href) ? href : "#";
         return `<a href="${safeHref}">${label}</a>`;
       })
   );
@@ -412,12 +414,9 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
 
   const blocks = parseBlocks(markdown);
 
-  // Extract title from first H1 (or use provided)
-  let title = options.title ?? "Verification Report";
+  // Caller-provided title takes precedence; fall back to first H1, then default.
   const firstH1 = blocks.find(b => b.type === "heading" && b.level === 1);
-  if (firstH1) {
-    title = firstH1.content;
-  }
+  const title = options.title ?? firstH1?.content ?? "Verification Report";
 
   // Render blocks to HTML body
   let bodyParts: string[];

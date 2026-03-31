@@ -66,6 +66,13 @@ describe("markdownToHtml inline formatting", () => {
     expect(result).toContain('<a href="https://example.com">Example</a>');
   });
 
+  it("does not double-encode & in URLs with query params", () => {
+    const result = markdownToHtml("[Search](https://example.com/q?a=1&b=2)", { style: "plain" });
+    // & must appear as &amp; exactly once — not &amp;amp;
+    expect(result).toContain('href="https://example.com/q?a=1&amp;b=2"');
+    expect(result).not.toContain("&amp;amp;");
+  });
+
   it("blocks javascript: links", () => {
     const result = markdownToHtml("[xss](javascript:alert(1))", { style: "plain" });
     expect(result).toContain('href="#"');
@@ -156,6 +163,17 @@ describe("markdownToHtml style shells", () => {
     expect(result).toContain("<!DOCTYPE html>");
     expect(result).toContain("<title>Report Title</title>");
     expect(result).toContain("data-dc-drawer-trigger");
+  });
+
+  it("options.title overrides first H1 when both are present", () => {
+    const result = markdownToHtml(md, { style: "plain", title: "Override Title" });
+    expect(result).toContain("<title>Override Title</title>");
+    expect(result).not.toContain("<title>Report Title</title>");
+  });
+
+  it("falls back to first H1 when options.title is not provided", () => {
+    const result = markdownToHtml(md, { style: "plain" });
+    expect(result).toContain("<title>Report Title</title>");
   });
 
   it("produces a report shell with progressive disclosure", () => {

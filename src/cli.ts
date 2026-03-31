@@ -3,7 +3,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { createRequire } from "node:module";
-import { basename, dirname, resolve } from "node:path";
+import { basename, dirname, extname, resolve } from "node:path";
 import { connect as tlsConnect } from "node:tls";
 import {
   CREDENTIALS_PATH,
@@ -671,9 +671,10 @@ async function verifyMarkdown(argv: string[]) {
   }
   forwardArgs.push("--html", "markdown-convert");
 
-  // Set default output name if not specified
+  // Set default output name: derive from input filename, e.g. report.md → report-verified.html
   if (!args.out) {
-    forwardArgs.push("--out", `.deepcitation/verified-${Date.now()}.html`);
+    const stem = basename(resolved, extname(resolved));
+    forwardArgs.push("--out", resolve(dirname(resolved), `${stem}-verified.html`));
   }
 
   return verifyHtml(forwardArgs, htmlWithCitations);
