@@ -90,6 +90,7 @@ export function useImageDarkness(
   phraseItem: DeepTextItem | null,
   renderScale: { x: number; y: number } | null,
   coordinateOrigin: CoordinateOrigin = "pdf",
+  viewBoxOriginY = 0,
 ): boolean {
   const [isDark, setIsDark] = useState(false);
 
@@ -109,7 +110,9 @@ export function useImageDarkness(
     const nh = img.naturalHeight || 1;
     const spotX = phraseItem.x * sx - pad;
     // For PDF coords (bottom-up Y), flip to image top-down; for image coords, use directly.
-    const spotY = coordinateOrigin === "image" ? phraseItem.y * sy - pad : nh - phraseItem.y * sy - pad;
+    // Subtract viewBoxOriginY to normalize coordinates from absolute PDF space.
+    const spotY =
+      coordinateOrigin === "image" ? phraseItem.y * sy - pad : nh - (phraseItem.y - viewBoxOriginY) * sy - pad;
     const spotW = phraseItem.width * sx + 2 * pad;
     const spotH = phraseItem.height * sy + 2 * pad;
 
@@ -128,7 +131,7 @@ export function useImageDarkness(
       setIsDark(false);
     };
     probe.src = img.src;
-  }, [img, imageLoaded, phraseItem, scaleX, scaleY, coordinateOrigin]);
+  }, [img, imageLoaded, phraseItem, scaleX, scaleY, coordinateOrigin, viewBoxOriginY]);
 
   return isDark;
 }

@@ -120,6 +120,13 @@ export interface DocumentVerificationResult {
   highlightBox?: ScreenBox;
   /** Scale factors from PDF coordinate units to page image pixels */
   renderScale?: RenderScale;
+  /**
+   * PDF page viewBox minimum Y coordinate. When non-zero, text coordinates
+   * from PDF.js are offset by this amount from the image origin.
+   * Used by overlay geometry to correct highlight positioning on pages
+   * where the CropBox/MediaBox doesn't start at y=0.
+   */
+  viewBoxOriginY?: number;
 }
 
 /**

@@ -1,6 +1,7 @@
 import type React from "react";
 import { memo, useMemo, useState } from "react";
 import type { SearchStatus } from "../types/search.js";
+import { fuzzyAnchorRange } from "../utils/fuzzyAnchor.js";
 import { useTranslation } from "./i18n.js";
 import { CheckIcon } from "./icons.js";
 import { cn } from "./utils.js";
@@ -75,17 +76,35 @@ function calculateSimilarity(a: string, b: string): number {
 }
 
 /**
- * Highlight a substring within text
+ * Highlight a substring within text.
+ * Falls back to case-insensitive then fuzzy word-span matching when exact match fails.
  */
 function highlightSubstring(text: string, substring: string | undefined, highlightClass: string): React.ReactNode {
-  if (!substring || !text.includes(substring)) {
-    return text;
+  if (!substring) return text;
+
+  // Exact match
+  let index = text.indexOf(substring);
+  let matchLength = substring.length;
+
+  // Case-insensitive fallback
+  if (index === -1) {
+    index = text.toLowerCase().indexOf(substring.toLowerCase());
   }
 
-  const index = text.indexOf(substring);
+  // Fuzzy word-span fallback
+  if (index === -1) {
+    const range = fuzzyAnchorRange(text, substring);
+    if (range) {
+      index = range.start;
+      matchLength = range.end - range.start;
+    }
+  }
+
+  if (index === -1) return text;
+
   const before = text.slice(0, index);
-  const match = text.slice(index, index + substring.length);
-  const after = text.slice(index + substring.length);
+  const match = text.slice(index, index + matchLength);
+  const after = text.slice(index + matchLength);
 
   return (
     <>

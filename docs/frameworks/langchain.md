@@ -4,7 +4,7 @@ title: LangChain
 parent: Frameworks
 nav_order: 1
 description: "DeepCitation + LangChain: citation verification in your RAG pipeline"
-commit_sha: "cc9c7aa"
+commit_sha: "4a2c083"
 stale_after_commits: 20
 watch_paths:
   - src/index.ts

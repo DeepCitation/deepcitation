@@ -1,7 +1,7 @@
 ---
-generated_at: "2026-03-26T03:39:42Z"
-commit_sha: "80dfecd"
-commit_sha_full: "80dfecdc2584149d536c341ab2fad685b55b3a55"
+generated_at: "2026-03-31T01:31:51Z"
+commit_sha: "4a2c083"
+commit_sha_full: "4a2c08350a89e0f52651c45d31151a54289ed4ac"
 stale_after_commits: 30
 ---
 
@@ -30,6 +30,7 @@ Source
 src/  # Source files
   __tests__/  # Unit test files
   analysis/  # Search analysis: grouping, intent, narrative, and variation labels (pure functions, no React)
+  cli/  # CLI pipeline utilities: markdown-to-HTML converter for --markdown verify reports
   client/  # DeepCitation API client
   docs/  # Centralized code snippets for INTEGRATION.md
   drawing/  # Drawing/canvas utilities
@@ -43,9 +44,6 @@ src/  # Source files
     motion/  # Animation/motion utilities
     testing/  # React testing helpers
   rendering/  # Output renderers: Slack, GitHub, HTML, terminal, proofUrl
-    github/  # GitHub-flavored renderer
-    html/  # HTML renderer
-    slack/  # Slack renderer
     terminal/  # Terminal/ANSI renderer
     testing/  # Renderer test helpers
   types/  # Core TypeScript types (citation, verification, boxes, search, timing, diff)
