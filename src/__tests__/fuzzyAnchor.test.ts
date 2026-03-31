@@ -13,10 +13,7 @@ describe("fuzzyAnchorRange", () => {
     });
 
     it("finds anchor in the middle of a phrase", () => {
-      const result = fuzzyAnchorRange(
-        "The quick brown fox jumps over the lazy dog",
-        "brown fox",
-      );
+      const result = fuzzyAnchorRange("The quick brown fox jumps over the lazy dog", "brown fox");
       expect(result).toEqual({ start: 10, end: 19 });
     });
 
@@ -26,10 +23,7 @@ describe("fuzzyAnchorRange", () => {
     });
 
     it("is case-insensitive", () => {
-      const result = fuzzyAnchorRange(
-        "Includes Business Associate Agreement and more",
-        "business associate agreement",
-      );
+      const result = fuzzyAnchorRange("Includes Business Associate Agreement and more", "business associate agreement");
       expect(result).not.toBeNull();
       expect(result!.start).toBe(9); // "Business" starts at 9
     });
@@ -68,8 +62,7 @@ describe("fuzzyAnchorRange", () => {
   describe("OCR word-split artifacts (DPA / landing demo fixture)", () => {
     // Source: deepcitation.com/legal/dpa OCR extraction.
     // The word "Associate" is rendered as "Asso ciate" in the OCR output.
-    const OCR_SNIPPET =
-      "Includes Business Asso ciate Agreement BAA) and Information Manager Agreement IMA";
+    const OCR_SNIPPET = "Includes Business Asso ciate Agreement BAA) and Information Manager Agreement IMA";
 
     it("finds 3-word anchor when 1 word is OCR-split — 2/3 ≥ 60% threshold", () => {
       // "business" ✓, "associate" ✗ (text has "asso ciate"), "agreement" ✓ → 2/3 = 66.7%

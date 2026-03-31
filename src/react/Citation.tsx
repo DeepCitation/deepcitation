@@ -266,16 +266,16 @@ function useKeyboardOpenTracking(isHovering: boolean, popoverContentRef: React.R
       // Walk from popover up to body, inerting siblings at each level.
       let current: Element | null = popoverEl;
       while (current && current !== document.body) {
-        const parent = current.parentElement;
-        if (!parent) break;
-        for (const sibling of Array.from(parent.children)) {
+        const parentEl: Element | null = current.parentElement;
+        if (!parentEl) break;
+        for (const sibling of Array.from(parentEl.children) as Element[]) {
           if (sibling === current) continue;
           if (!sibling.hasAttribute("inert")) {
             sibling.setAttribute("inert", "");
             inerted.push(sibling);
           }
         }
-        current = parent;
+        current = parentEl;
       }
     });
     return () => {

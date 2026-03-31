@@ -599,13 +599,13 @@ function inject(argv: string[]) {
   // The CDN reads data-dc-display-label at click time so the popover
   // trigger shows the visible text rather than the full anchorText.
   const autoFixLog: string[] = [];
-  const elementRe =
-    /<([a-zA-Z][a-zA-Z0-9]*)[^>]*\sdata-citation-key="([^"]+)"([^>]*)>([\s\S]*?)<\/\1>/g;
+  const elementRe = /<([a-zA-Z][a-zA-Z0-9]*)[^>]*\sdata-citation-key="([^"]+)"([^>]*)>([\s\S]*?)<\/\1>/g;
   const fixedHtml = stripped.html.replace(elementRe, (fullMatch, _tag, hashedKey, rest, content) => {
     // Skip if data-dc-display-label is already set
     if (/data-dc-display-label=/.test(rest) || /data-dc-display-label=/.test(fullMatch)) return fullMatch;
-    const anchorText: string | undefined = (verifications[hashedKey] as { citation?: { anchorText?: string } } | undefined)
-      ?.citation?.anchorText;
+    const anchorText: string | undefined = (
+      verifications[hashedKey] as { citation?: { anchorText?: string } } | undefined
+    )?.citation?.anchorText;
     if (!anchorText) return fullMatch;
     // Strip inner HTML tags to get approximate visible text
     const visibleText = (content as string).replace(/<[^>]+>/g, "").trim();

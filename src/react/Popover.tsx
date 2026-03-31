@@ -163,7 +163,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         el = el.parentElement;
       }
       setPortalContainer(document.body);
-    }, [open, triggerRef]);
+    }, [open]); // triggerRef is a stable ref; open re-runs detection on each popover open
 
     const recomputePosition = React.useCallback(() => {
       if (!open) return;
@@ -236,7 +236,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         window.removeEventListener("resize", scheduleRecompute);
         window.removeEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, scheduleRecompute as EventListener);
       };
-    }, [isMounted, open, recomputePosition, triggerRef]);
+    }, [isMounted, open, recomputePosition]);
 
     // Refs keep document-level listeners stable — only added/removed when the
     // popover opens/closes, not on every render. Without refs, inline callback
