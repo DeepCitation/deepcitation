@@ -27,8 +27,9 @@ export interface ValidationReport {
   errors: CitationWarning[];
 }
 
-const MAX_ANCHOR_CHARS = 40;
-const MAX_ANCHOR_WORDS = 4;
+// Soft limits — longer anchors work but shorter ones look better in reports
+const ANCHOR_CHARS_THRESHOLD = 60;
+const ANCHOR_WORDS_THRESHOLD = 6;
 
 /**
  * Detects common PDF/HTML text extraction artifacts in a string.
@@ -209,22 +210,22 @@ export function validateCitationData(citations: CitationData[]): ValidationRepor
       continue; // skip further anchor checks
     }
 
-    // Warning: anchor_text too long (characters)
-    if (anchor.length > MAX_ANCHOR_CHARS) {
+    // Warning: anchor_text long — shorter anchors improve report readability
+    if (anchor.length > ANCHOR_CHARS_THRESHOLD) {
       warnings.push({
         citationId: id,
         field: "anchor_text",
-        message: `${anchor.length} chars (max ${MAX_ANCHOR_CHARS}) — shorten to most distinctive substring`,
+        message: `${anchor.length} chars — shorter anchors (under ~40 chars) improve report readability`,
       });
     }
 
-    // Warning: anchor_text too many words
+    // Warning: anchor_text has many words — fewer words improve scannability
     const wordCount = anchor.split(/\s+/).length;
-    if (wordCount > MAX_ANCHOR_WORDS) {
+    if (wordCount > ANCHOR_WORDS_THRESHOLD) {
       warnings.push({
         citationId: id,
         field: "anchor_text",
-        message: `${wordCount} words (max ${MAX_ANCHOR_WORDS}) — shorten to most distinctive substring`,
+        message: `${wordCount} words — fewer words (under ~4) improve report scannability`,
       });
     }
 

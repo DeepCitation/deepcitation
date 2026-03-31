@@ -4,7 +4,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "@jest/globals";
 
-import { type CallbackPayload, type Credentials, generateNonce, maskKey, startCallbackServer } from "../auth.js";
+import {
+  type CallbackPayload,
+  type Credentials,
+  generateNonce,
+  maskKey,
+  resolveAuth,
+  sourceLabel,
+  startCallbackServer,
+} from "../auth.js";
 
 /** Make an HTTP request using node:http (bypasses happy-dom's same-origin policy) */
 function req(
@@ -299,5 +307,66 @@ describe("startCallbackServer", () => {
     expect(body.error).toBe("Invalid JSON");
 
     await cleanup(port, nonce);
+  });
+});
+
+// ── resolveAuth ────────────────────────────────────────────────────
+
+describe("resolveAuth", () => {
+  const savedEnv = process.env.DEEPCITATION_API_KEY;
+
+  afterEach(() => {
+    // Restore env
+    if (savedEnv === undefined) {
+      delete process.env.DEEPCITATION_API_KEY;
+    } else {
+      process.env.DEEPCITATION_API_KEY = savedEnv;
+    }
+  });
+
+  it("returns env-var source when DEEPCITATION_API_KEY is set", () => {
+    process.env.DEEPCITATION_API_KEY = "sk-dc-test1234567890abcdef";
+    const auth = resolveAuth();
+    expect(auth).not.toBeNull();
+    expect(auth!.apiKey).toBe("sk-dc-test1234567890abcdef");
+    expect(auth!.source.kind).toBe("env-var");
+  });
+
+  it("returns null when nothing is set", () => {
+    delete process.env.DEEPCITATION_API_KEY;
+    // Note: this may still find credentials.json if the test runner has one.
+    // We just verify it doesn't crash and returns a valid shape or null.
+    const auth = resolveAuth();
+    if (auth) {
+      expect(auth.apiKey).toMatch(/^sk-dc-/);
+      expect(auth.source.kind).toBeDefined();
+    }
+  });
+
+  it("ignores env var without sk-dc- prefix", () => {
+    process.env.DEEPCITATION_API_KEY = "invalid-key";
+    const auth = resolveAuth();
+    // Should not return env-var source for invalid key
+    if (auth) {
+      expect(auth.source.kind).not.toBe("env-var");
+    }
+  });
+});
+
+// ── sourceLabel ────────────────────────────────────────────────────
+
+describe("sourceLabel", () => {
+  it("returns label for env-var source", () => {
+    expect(sourceLabel({ kind: "env-var" })).toBe("DEEPCITATION_API_KEY environment variable");
+  });
+
+  it("returns path for dotenv source", () => {
+    expect(sourceLabel({ kind: "dotenv", path: "/app/.env" })).toBe("/app/.env");
+  });
+
+  it("returns path for credentials source", () => {
+    expect(sourceLabel({ kind: "credentials", path: "/home/user/.deepcitation/credentials.json" })).toBe(
+      "/home/user/.deepcitation/credentials.json",
+    );
   });
 });
