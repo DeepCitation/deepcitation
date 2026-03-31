@@ -143,7 +143,7 @@ function sendJson(res: ServerResponse, status: number, body: Record<string, unkn
 
 export function startCallbackServer(
   expectedNonce: string,
-): Promise<{ port: number; result: Promise<CallbackPayload> }> {
+): Promise<{ port: number; result: Promise<CallbackPayload>; cancel: () => void }> {
   return new Promise((resolveServer, rejectServer) => {
     let resolveResult: (payload: CallbackPayload) => void;
     let rejectResult: (err: Error) => void;
@@ -264,7 +264,12 @@ export function startCallbackServer(
       // but DO keep it alive for the server (it must stay up to receive the callback).
       loginTimeout.unref();
 
-      resolveServer({ port: addr.port, result });
+      const cancel = () => {
+        if (loginTimeout) clearTimeout(loginTimeout);
+        server.close();
+        rejectResult(new Error("Login cancelled"));
+      };
+      resolveServer({ port: addr.port, result, cancel });
     });
 
     server.on("error", err => {

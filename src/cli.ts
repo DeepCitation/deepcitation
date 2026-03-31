@@ -4,8 +4,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { createRequire } from "node:module";
 import { basename, dirname, extname, resolve } from "node:path";
+import { createInterface } from "node:readline";
 import { connect as tlsConnect } from "node:tls";
 import {
+  type CallbackPayload,
   CREDENTIALS_PATH,
   deleteCredentials,
   generateNonce,
@@ -934,7 +936,7 @@ const BASE_URL = (() => {
   }
 })();
 
-const BILLING_URL = BILLING_URL;
+const BILLING_URL = `${BASE_URL}/api#billing`;
 
 function printFreeTierWelcome(): void {
   console.log(`\nYou're on the free tier — $20/month of usage included at no charge.`);
@@ -952,6 +954,51 @@ function saveApiKey(key: string, source: string): void {
   writeCredentials({ version: 1, apiKey: key, createdAt: new Date().toISOString() });
   console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
   printFreeTierWelcome();
+}
+
+/**
+ * While the browser OAuth flow is pending, also accept a key pasted
+ * directly into the terminal. Putting stdin into flowing mode also
+ * prevents typed characters from leaking into the shell after exit.
+ */
+function readKeyFromStdin(): { promise: Promise<string | null>; close: () => void } {
+  if (!process.stdin.isTTY) {
+    return { promise: Promise.resolve(null), close: () => {} };
+  }
+  let resolveKey: (v: string | null) => void;
+  const promise = new Promise<string | null>(res => {
+    resolveKey = res;
+  });
+  let done = false;
+  // No `output` → terminal defaults to false → kernel handles echo/editing.
+  const rl = createInterface({ input: process.stdin });
+  rl.on("line", (line: string) => {
+    if (done) return;
+    const key = line.trim();
+    if (key.startsWith("sk-dc-") && key.length >= 20) {
+      done = true;
+      rl.close();
+      resolveKey(key);
+    } else if (key) {
+      process.stderr.write("Invalid key format (expected sk-dc-...). Try again: ");
+    }
+  });
+  rl.on("close", () => {
+    if (!done) {
+      done = true;
+      resolveKey(null);
+    }
+  });
+  return {
+    promise,
+    close: () => {
+      if (!done) {
+        done = true;
+        rl.close();
+        resolveKey(null);
+      }
+    },
+  };
 }
 
 async function login(argv: string[]) {
@@ -985,7 +1032,7 @@ async function login(argv: string[]) {
   }
 
   const nonce = generateNonce();
-  const { port, result } = await startCallbackServer(nonce);
+  const { port, result, cancel } = await startCallbackServer(nonce);
 
   const url = `${BASE_URL}/cli-auth?port=${port}&nonce=${nonce}`;
 
@@ -993,23 +1040,57 @@ async function login(argv: string[]) {
   console.log(`If the browser doesn't open, visit:\n  ${url}\n`);
   openBrowser(url);
 
-  console.log("Waiting for authentication...");
+  console.log("Waiting for browser authentication...");
+  if (process.stdin.isTTY) {
+    console.log("If the browser shows a key to copy, paste it here and press Enter:");
+  }
+
+  // Race browser callback vs key pasted directly into the terminal.
+  // Creating the readline interface also puts stdin into flowing mode,
+  // which prevents any typed characters from leaking into the shell
+  // after this process exits (Error 3 fix).
+  const { promise: stdinKey, close: closeStdin } = readKeyFromStdin();
 
   try {
-    const payload = await result;
-    writeCredentials({
-      version: 1,
-      apiKey: payload.apiKey,
-      email: payload.email,
-      displayName: payload.displayName,
-      createdAt: new Date().toISOString(),
-    });
+    const winner = await new Promise<{ from: "browser"; payload: CallbackPayload } | { from: "stdin"; key: string }>(
+      (resolve, reject) => {
+        result.then(
+          payload => {
+            closeStdin();
+            resolve({ from: "browser", payload });
+          },
+          err => {
+            closeStdin();
+            reject(err);
+          },
+        );
+        stdinKey.then(key => {
+          if (key) {
+            cancel();
+            resolve({ from: "stdin", key });
+          }
+          // null means stdin closed without a valid key — keep waiting for browser
+        });
+      },
+    );
 
-    console.log(`\nLogged in as ${sanitizeForLog(payload.displayName ?? payload.email ?? "unknown")}.`);
-    console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
-    console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
+    if (winner.from === "browser") {
+      writeCredentials({
+        version: 1,
+        apiKey: winner.payload.apiKey,
+        email: winner.payload.email,
+        displayName: winner.payload.displayName,
+        createdAt: new Date().toISOString(),
+      });
+      console.log(`\nLogged in as ${sanitizeForLog(winner.payload.displayName ?? winner.payload.email ?? "unknown")}.`);
+      console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
+      console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
+    } else {
+      saveApiKey(winner.key, "terminal paste");
+    }
     printFreeTierWelcome();
   } catch (err) {
+    if ((err as Error).message === "Login cancelled") return;
     console.error(`\nLogin failed: ${err instanceof Error ? err.message : err}`);
     console.error(`\nYou can also log in manually at: ${BASE_URL}/cli-auth?manual=true`);
     process.exit(1);
