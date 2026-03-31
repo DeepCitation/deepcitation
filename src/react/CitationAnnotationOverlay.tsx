@@ -239,38 +239,35 @@ export function CitationAnnotationOverlay({
 
   const anchorRects = (() => {
     if (!showKeySpanHighlight || !anchorTextDeepItems?.length) return [];
-    // Sort left-to-right so gap-fill always sees adjacent pairs in order.
+    // Sort left-to-right so hull-merge always sees items in reading order.
     // (DeepTextItems from different extraction passes may not be in reading order.)
     const SAME_LINE_THRESHOLD_PCT = 0.5; // % top difference below which two rects share a line
-    const MAX_GAP_PCT = 3; // % width below which the space between words is filled
     const rects = anchorTextDeepItems
       .map(item =>
         toPercentRect(item, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin, viewBoxOriginY),
       )
       .filter((r): r is NonNullable<typeof r> => r != null)
       .sort((a, b) => parseFloat(a.left) - parseFloat(b.left));
-    // Fill gaps between adjacent word rects on the same line so spaces are highlighted.
-    const filled = [...rects];
-    for (let i = 0; i < rects.length - 1; i++) {
-      const a = rects[i];
-      const b = rects[i + 1];
-      const aTop = parseFloat(a.top);
-      const bTop = parseFloat(b.top);
-      if (Math.abs(aTop - bTop) < SAME_LINE_THRESHOLD_PCT) {
-        const aRight = parseFloat(a.left) + parseFloat(a.width);
-        const bLeft = parseFloat(b.left);
-        const gap = bLeft - aRight;
-        if (gap > 0 && gap < MAX_GAP_PCT) {
-          filled.push({
-            left: `${aRight}%`,
-            top: a.top,
-            width: `${gap}%`,
-            height: a.height,
-          });
-        }
+    // Hull-merge all items on the same line into a single spanning rect.
+    // This handles OCR-fragmented anchorTextMatchDeepItems where the backend
+    // returns character-level fragments (e.g. "ss", "sso", "ee" for "Business
+    // Associate Agreement") rather than word-level bounding boxes. Gaps between
+    // fragments — whether 1% or 20% of image width — are absorbed into the hull.
+    const merged: (typeof rects)[0][] = [];
+    for (const rect of rects) {
+      const last = merged[merged.length - 1];
+      if (last && Math.abs(parseFloat(rect.top) - parseFloat(last.top)) < SAME_LINE_THRESHOLD_PCT) {
+        const lastRight = parseFloat(last.left) + parseFloat(last.width);
+        const rectRight = parseFloat(rect.left) + parseFloat(rect.width);
+        merged[merged.length - 1] = {
+          ...last,
+          width: `${Math.max(lastRight, rectRight) - parseFloat(last.left)}%`,
+        };
+      } else {
+        merged.push({ ...rect });
       }
     }
-    return filled;
+    return merged;
   })();
   return (
     <div
