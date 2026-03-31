@@ -163,11 +163,19 @@ export function computeKeySpanHighlight<T extends { text?: string }>(
     anchorTextText && phraseText && anchorTextText.toLowerCase() !== phraseText.toLowerCase(),
   );
 
+  // Word-context gate: anchor must have meaningfully fewer words than the phrase.
+  // For 1-word anchors a single extra word is enough; for longer anchors require ≥2 extra.
+  const vAnchorWords = verifiedAnchorText?.trim().split(/\s+/).length ?? 0;
+  const vPhraseWords = verifiedFullPhrase?.trim().split(/\s+/).length ?? 0;
+  const hasWordContext =
+    vAnchorWords > 0 && vPhraseWords > vAnchorWords && (vAnchorWords === 1 || vPhraseWords - vAnchorWords >= 2);
+
   // Primary check: anchorText vs verifiedFullPhrase.
   // Fallback: anchorText vs phraseMatchDeepItem.text — ONLY when isStrategyOverride()
   // (API collapsed full phrase to just the anchor text, but the matched text box spans more).
   const showKeySpanHighlight =
     hasDistinctKeySpanBox &&
+    hasWordContext &&
     (shouldHighlightAnchorText(verifiedAnchorText, verifiedFullPhrase) ||
       (isStrategyOverride(verifiedAnchorText, verifiedFullPhrase) &&
         shouldHighlightAnchorText(verifiedAnchorText, phraseText)));
