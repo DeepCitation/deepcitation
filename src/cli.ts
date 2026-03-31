@@ -11,6 +11,7 @@ import {
   CREDENTIALS_PATH,
   deleteCredentials,
   generateNonce,
+  IS_COWORK,
   maskKey,
   openBrowser,
   type ResolvedAuth,
@@ -37,9 +38,6 @@ import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "
 const { version: CLI_VERSION } = createRequire(import.meta.url)("../package.json") as { version: string };
 
 // ── environment detection ─────────────────────────────────────────
-// CLAUDE_CODE_REMOTE=true is set in Claude Cowork (web-based cloud sessions).
-// Cowork has ephemeral filesystems and network domain restrictions.
-const IS_CLAUDE_COWORK = process.env.CLAUDE_CODE_REMOTE === "true";
 
 const CLAUDE_COWORK_DOMAIN_HINT =
   "This appears to be a Claude Cowork (cloud) session.\n" +
@@ -292,7 +290,7 @@ function createClient(apiKey: string): DeepCitation {
 
     // In Cowork, globalThis.fetch already routes through the proxy transparently.
     // Our custom CONNECT tunnel hangs on long-lived requests — skip it.
-    if (IS_CLAUDE_COWORK) {
+    if (IS_COWORK) {
       console.error("Cowork session — using built-in fetch (proxy is transparent).");
       return new DeepCitation({ apiKey, onUsageUpdate: warnUsage });
     }
@@ -332,7 +330,7 @@ function formatNetworkError(err: unknown): string {
   }
   const msg = err instanceof Error ? err.message : String(err);
   if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("EAI_AGAIN")) {
-    if (IS_CLAUDE_COWORK) {
+    if (IS_COWORK) {
       return `Network error: ${msg}.\n\n${CLAUDE_COWORK_DOMAIN_HINT}`;
     }
     const proxyHint =
@@ -1071,7 +1069,7 @@ async function login(argv: string[]) {
   // Give clear instructions for non-interactive login instead of hanging.
   if (!process.stdin.isTTY) {
     const manualUrl = `${BASE_URL}/cli-auth?manual=true`;
-    if (IS_CLAUDE_COWORK) {
+    if (IS_COWORK) {
       console.log("Claude Cowork (cloud session) detected. To set up DeepCitation:\n");
       console.log("1. Add *.deepcitation.com to allowed domains:");
       console.log("   https://claude.ai/settings/capabilities");

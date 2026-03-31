@@ -25,10 +25,13 @@ export interface Credentials {
   createdAt: string;
 }
 
-// In Cowork (cloud sessions), the homedir may not be writable — the project
-// directory is the guaranteed writable area. .deepcitation/ is already gitignored.
-const CREDENTIALS_DIR =
-  process.env.CLAUDE_CODE_REMOTE === "true" ? join(process.cwd(), ".deepcitation") : join(homedir(), ".deepcitation");
+// CLAUDE_CODE_REMOTE=true is set in Claude Cowork (web-based cloud sessions).
+export const IS_COWORK = process.env.CLAUDE_CODE_REMOTE === "true";
+
+// In Cowork, the homedir may not be writable — the project directory is the
+// guaranteed writable area. .deepcitation/ is already gitignored.
+// Note: process.cwd() is evaluated at module load, before any command runs.
+const CREDENTIALS_DIR = IS_COWORK ? join(process.cwd(), ".deepcitation") : join(homedir(), ".deepcitation");
 export const CREDENTIALS_PATH = join(CREDENTIALS_DIR, "credentials.json");
 
 export function readCredentials(): Credentials | null {
