@@ -285,6 +285,25 @@ const AUDIENCE_CONFIG: Record<AudiencePreset, { width: string; tier2Open: boolea
   medical: { width: "840px", tier2Open: true },
 };
 
+const MONO_FONT = `"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace`;
+
+const BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
+  h1 { font-size: 24px; font-weight: 600; }
+  h2 { font-size: 18px; font-weight: 600; margin: 2rem 0 0.75rem; border-bottom: 1px solid #E4E4E7; padding-bottom: 0.4rem; }
+  h3 { font-size: 16px; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+  p { margin: 0.5rem 0; }
+  a { color: #3B82F6; }
+  table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 14px; }
+  th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #E4E4E7; }
+  th { font-weight: 600; background: #F4F4F5; }
+  ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+  li { margin: 0.25rem 0; }
+  pre { background: #18181B; color: #E4E4E7; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; font-size: 13px; }
+  code { font-family: ${MONO_FONT}; font-size: 0.9em; background: #F4F4F5; padding: 1px 4px; }
+  pre code { background: none; padding: 0; }
+  hr { border: none; border-top: 1px solid #E4E4E7; margin: 1.5rem 0; }
+  .meta { color: #52525B; font-size: 14px; margin-bottom: 1.5rem; }`;
+
 function plainShell(title: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -293,23 +312,9 @@ function plainShell(title: string, bodyHtml: string): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escHtml(title)}</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+${BASE_CSS}
   body { font-family: system-ui, sans-serif; max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; line-height: 1.6; color: #18181B; background: #fff; }
-  h1 { font-size: 24px; font-weight: 600; margin: 0 0 0.5rem; }
-  h2 { font-size: 18px; font-weight: 600; margin: 2rem 0 0.75rem; border-bottom: 1px solid #E4E4E7; padding-bottom: 0.4rem; }
-  h3 { font-size: 16px; font-weight: 600; margin: 1.5rem 0 0.5rem; }
-  p { margin: 0.5rem 0; }
-  a { color: #3B82F6; }
-  table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 14px; }
-  th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #E4E4E7; }
-  th { font-weight: 600; background: #F4F4F5; }
-  ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; }
-  li { margin: 0.25rem 0; }
-  pre { background: #18181B; color: #E4E4E7; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; font-size: 13px; }
-  code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; background: #F4F4F5; padding: 1px 4px; }
-  pre code { background: none; padding: 0; }
-  hr { border: none; border-top: 1px solid #E4E4E7; margin: 1.5rem 0; }
-  .meta { color: #52525B; font-size: 14px; margin-bottom: 1.5rem; }
+  h1 { margin-bottom: 0.5rem; }
 </style>
 </head>
 <body>
@@ -330,7 +335,7 @@ function reportShell(title: string, bodyHtml: string, audience: AudiencePreset, 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escHtml(title)}</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+${BASE_CSS}
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     max-width: ${cfg.width};
@@ -341,39 +346,27 @@ function reportShell(title: string, bodyHtml: string, audience: AudiencePreset, 
     background: #FDFBF7;
     font-size: 16px;
   }
-  h1 { font-size: 24px; font-weight: 600; margin: 0 0 0.25rem; }
-  h2 { font-size: 18px; font-weight: 600; margin: 2rem 0 0.75rem; border-bottom: 1px solid #E4E4E7; padding-bottom: 0.4rem; }
-  h3 { font-size: 16px; font-weight: 600; margin: 1.5rem 0 0.5rem; }
-  p { margin: 0.5rem 0; }
-  a { color: #3B82F6; text-decoration: none; }
+  h1 { margin-bottom: 0.25rem; }
+  a { text-decoration: none; }
   a:hover { text-decoration: underline; }
-  .meta { color: #52525B; font-size: 14px; margin-bottom: 1.5rem; }
 
   /* Verdict banner */
   .dc-verdict {
     display: flex; gap: 1.5rem; padding: 1rem 0;
     border-top: 1px solid #E4E4E7; border-bottom: 1px solid #E4E4E7;
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 14px;
+    font-family: ${MONO_FONT}; font-size: 14px;
     margin-bottom: 1.5rem;
   }
   .dc-verdict .v-found  { color: #10B981; }
   .dc-verdict .v-partial { color: #D97706; }
   .dc-verdict .v-miss   { color: #EF4444; }
 
-  /* Tables */
-  table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 14px; }
-  th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #E4E4E7; }
-  th { font-weight: 600; font-size: 13px; color: #52525B; background: #F4F4F5; text-transform: uppercase; letter-spacing: 0.04em; }
+  /* Table overrides */
+  th { font-size: 13px; color: #52525B; text-transform: uppercase; letter-spacing: 0.04em; }
 
-  /* Lists */
-  ul, ol { margin: 0.5rem 0 0.5rem 1.5rem; }
-  li { margin: 0.25rem 0; }
-
-  /* Code */
-  pre { background: #18181B; color: #E4E4E7; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; font-size: 13px; line-height: 1.7; }
-  code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; background: #F4F4F5; padding: 1px 5px; }
-  pre code { background: none; padding: 0; }
-  hr { border: none; border-top: 1px solid #E4E4E7; margin: 1.5rem 0; }
+  /* Code overrides */
+  pre { line-height: 1.7; }
+  code { padding: 1px 5px; }
 
   /* Progressive disclosure */
   details { margin: 0.75rem 0; }
@@ -387,7 +380,7 @@ function reportShell(title: string, bodyHtml: string, audience: AudiencePreset, 
   .dc-section { background: #fff; border: 1px solid #E4E4E7; padding: 1.25rem; margin: 1rem 0; }
 
   /* Mono metrics */
-  .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 14px; font-weight: 500; }
+  .mono { font-family: ${MONO_FONT}; font-size: 14px; font-weight: 500; }
 </style>
 </head>
 <body>

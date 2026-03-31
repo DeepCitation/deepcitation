@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { createRequire } from "node:module";
 import { basename, dirname, resolve } from "node:path";
@@ -193,6 +193,7 @@ Commands:
   verify    Verify citations (--markdown, --html, or --citations)
   inject    Inject DeepCitation verification into an existing HTML file
   keygen    Compute deterministic citation keys from a citations JSON file
+  get       Fetch full attachment metadata by ID
 
 Run "deepcitation <command> --help" for command-specific options.
 `;
@@ -657,42 +658,30 @@ async function verifyMarkdown(argv: string[]) {
   const citationJson = JSON.stringify(parsed.citations);
   const htmlWithCitations = `${html}\n\n${CITATION_DATA_START_DELIMITER}\n${citationJson}\n${CITATION_DATA_END_DELIMITER}`;
 
-  const ts = Date.now();
-  const outDir = resolve(".deepcitation");
-  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-
-  const tempHtmlPath = resolve(`.deepcitation/draft-${ts}.html`);
-  writeFileSync(tempHtmlPath, htmlWithCitations);
-
-  // Forward to verifyHtml with the converted HTML — strip markdown-only flags
+  // Forward to verifyHtml with pre-loaded content — no temp file needed
   const stripFlags = new Set(["--markdown", "--style", "--audience"]);
   const forwardArgs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (stripFlags.has(argv[i])) {
-      i++; // skip the flag's value too
+      // Skip the flag's value too (only if the next token is a value, not another flag).
+      if (i + 1 < argv.length && !argv[i + 1].startsWith("--")) i++;
       continue;
     }
     forwardArgs.push(argv[i]);
   }
-  forwardArgs.push("--html", tempHtmlPath);
+  forwardArgs.push("--html", "markdown-convert");
 
   // Set default output name if not specified
   if (!args.out) {
-    forwardArgs.push("--out", `.deepcitation/verified-${ts}.html`);
+    forwardArgs.push("--out", `.deepcitation/verified-${Date.now()}.html`);
   }
 
-  try {
-    return await verifyHtml(forwardArgs);
-  } finally {
-    try {
-      unlinkSync(tempHtmlPath);
-    } catch {}
-  }
+  return verifyHtml(forwardArgs, htmlWithCitations);
 }
 
 // ── verify --html (one-shot) ──────────────────────────────────────
 
-async function verifyHtml(argv: string[]) {
+async function verifyHtml(argv: string[], preloadedContent?: string) {
   const args = parseArgs(argv, VERIFY_HELP);
   const htmlPath = args.html;
   if (!htmlPath) die("--html is required", VERIFY_HELP);
@@ -701,7 +690,7 @@ async function verifyHtml(argv: string[]) {
   if (!apiKey) die('Not authenticated. Run "deepcitation login" first.', VERIFY_HELP);
 
   const dc = createClient(apiKey);
-  const raw = readFileSync(resolve(htmlPath), "utf-8");
+  const raw = preloadedContent ?? readFileSync(resolve(htmlPath), "utf-8");
 
   // 1. Parse: split HTML from <<<CITATION_DATA>>> block
   const parsed = parseCitationData(raw);
@@ -980,6 +969,80 @@ function env() {
   process.stdout.write(`export DEEPCITATION_API_KEY="${creds.apiKey}"\n`);
 }
 
+// ── get-attachment ────────────────────────────────────────────────────
+
+const GET_HELP = `Usage: deepcitation get <attachmentId> [options]
+
+Fetch full attachment metadata by ID. Returns pages, verifications,
+deep text items, and optional page texts.
+
+Arguments:
+  <attachmentId>            The attachment ID to query
+
+Options:
+  --out <file>              Output JSON path (default: stdout)
+  --deep-text               Include deepTextPromptPortion in output
+  --page-texts              Include raw per-page text arrays
+  -h, --help                Show this help message
+
+Examples:
+  deepcitation get abc123
+  deepcitation get abc123 --out .deepcitation/attachment.json
+  deepcitation get abc123 --deep-text --page-texts --out attachment-full.json
+`;
+
+async function getAttachment(argv: string[]) {
+  const deepText = argv.includes("--deep-text");
+  const pageTexts = argv.includes("--page-texts");
+  const filteredArgv = argv.filter(a => a !== "--deep-text" && a !== "--page-texts");
+
+  const args = parseArgs(filteredArgv, GET_HELP);
+
+  // Find the first positional arg (not a flag, not the value of a preceding flag).
+  let positional: string | undefined;
+  for (let i = 0; i < filteredArgv.length; i++) {
+    if (filteredArgv[i].startsWith("--")) {
+      i++; // skip flag value
+      continue;
+    }
+    positional = filteredArgv[i];
+    break;
+  }
+  if (!positional) die("An attachment ID is required", GET_HELP);
+
+  const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
+  if (!apiKey) die('DEEPCITATION_API_KEY not set. Run "deepcitation login" or set the env var.', GET_HELP);
+
+  const dc = createClient(apiKey);
+
+  console.error(`Fetching attachment ${sanitizeForLog(positional)}...`);
+  const result = await dc.getAttachment(positional);
+
+  // Strip large fields unless requested
+  const output: Record<string, unknown> = { ...result };
+  if (!deepText) delete output.deepTextPromptPortion;
+  if (!pageTexts) delete output.pageTexts;
+
+  const json = JSON.stringify(output, null, 2);
+
+  if (args.out) {
+    const outPath = resolve(args.out);
+    const outDir = dirname(outPath);
+    if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+    writeFileSync(outPath, json);
+    console.error(`  Status: ${result.status}`);
+    console.error(`  Pages: ${result.pageCount}`);
+    console.error(`  Verifications: ${Object.keys(result.verifications).length}`);
+    if (result.deepTextItems) {
+      console.error(`  DeepTextItems pages: ${Object.keys(result.deepTextItems).length}`);
+    }
+    console.error(`  Saved: ${outPath}`);
+    console.log(outPath);
+  } else {
+    process.stdout.write(json + "\n");
+  }
+}
+
 // ── main ────────────────────────────────────────────────────────────
 
 const [command, ...rest] = process.argv.slice(2);
@@ -1014,6 +1077,12 @@ switch (command) {
     break;
   case "keygen":
     keygen(rest);
+    break;
+  case "get":
+    getAttachment(rest).catch(err => {
+      console.error(`Error: ${formatNetworkError(err)}`);
+      process.exit(1);
+    });
     break;
   case "login":
     login(rest);
