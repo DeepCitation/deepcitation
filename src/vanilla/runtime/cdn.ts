@@ -148,7 +148,7 @@ function ensurePopoverEls(): { wrapper: HTMLDivElement; content: HTMLDivElement 
     // Outer wrapper: position + transform only (matches React's wrapper div)
     const wrapper = document.createElement("div");
     wrapper.setAttribute("data-dc-popover-wrapper", "");
-    wrapper.style.position = "fixed";
+    wrapper.style.position = "absolute";
     wrapper.style.left = "0";
     wrapper.style.top = "0";
     wrapper.style.width = "max-content";
@@ -222,7 +222,6 @@ function scheduleReposition(): void {
 }
 function startPositionTracking(): void {
   stopPositionTracking();
-  window.addEventListener("scroll", scheduleReposition, { capture: true, passive: true });
   window.addEventListener("resize", scheduleReposition);
   resizeObserver = new ResizeObserver(scheduleReposition);
   if (contentEl) resizeObserver.observe(contentEl);
@@ -230,7 +229,6 @@ function startPositionTracking(): void {
 }
 function stopPositionTracking(): void {
   cancelAnimationFrame(positionRafId);
-  window.removeEventListener("scroll", scheduleReposition, { capture: true });
   window.removeEventListener("resize", scheduleReposition);
   resizeObserver?.disconnect();
   resizeObserver = null;
