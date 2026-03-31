@@ -198,12 +198,17 @@ export function InlineExpandedImage({
   // Default to identity when the source is an image and renderScale is missing.
   const effectiveRenderScale = renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
 
+  // viewBoxOriginY corrects highlight Y-offset on PDF pages where CropBox doesn't start at y=0.
+  const viewBoxOriginY = verification?.document?.viewBoxOriginY;
+
   // Detect dark page content so the overlay can flip to a light color.
   const isDarkContent = useImageDarkness(
     expandedImgRef.current,
     imageLoaded,
     effectivePhraseItem,
     effectiveRenderScale,
+    "pdf",
+    viewBoxOriginY,
   );
 
   // Anchor-aware scroll/zoom target: when anchor text is highlighted, center on it
@@ -365,6 +370,8 @@ export function InlineExpandedImage({
         effectiveZoom,
         container.clientWidth,
         container.clientHeight,
+        undefined,
+        viewBoxOriginY,
       );
       if (target) {
         const sl = target.scrollLeft + CANVAS_PADDING_PX;
@@ -394,6 +401,7 @@ export function InlineExpandedImage({
     effectivePhraseItem,
     effectiveRenderScale,
     containerRef,
+    viewBoxOriginY,
   ]);
 
   useEffect(() => {
@@ -464,6 +472,8 @@ export function InlineExpandedImage({
       zoomRef.current,
       container.clientWidth,
       container.clientHeight,
+      undefined,
+      viewBoxOriginY,
     );
     if (target) {
       // Offset by canvas padding — image starts at CANVAS_PADDING_PX inside the shell.
@@ -480,7 +490,15 @@ export function InlineExpandedImage({
         isAnimatingScroll.current = false;
       });
     }
-  }, [scrollTarget, effectivePhraseItem, containerRef, effectiveRenderScale, naturalWidth, naturalHeight]);
+  }, [
+    scrollTarget,
+    effectivePhraseItem,
+    containerRef,
+    effectiveRenderScale,
+    naturalWidth,
+    naturalHeight,
+    viewBoxOriginY,
+  ]);
 
   // Scroll listener for locate dirty-bit detection.
   // Compares current scroll position against the stored annotation target.
@@ -715,7 +733,14 @@ export function InlineExpandedImage({
     fill && effectiveRenderScale && naturalWidth && naturalHeight ? (scrollTarget ?? effectivePhraseItem) : null;
   const annotationOrigin =
     annotationOriginItem && effectiveRenderScale && naturalWidth && naturalHeight
-      ? computeAnnotationOriginPercent(annotationOriginItem, effectiveRenderScale, naturalWidth, naturalHeight)
+      ? computeAnnotationOriginPercent(
+          annotationOriginItem,
+          effectiveRenderScale,
+          naturalWidth,
+          naturalHeight,
+          undefined,
+          viewBoxOriginY,
+        )
       : null;
   // VT geometry target: always use the full phrase rect so the View Transition
   // morph envelope matches the visible overlay size on both expand and collapse.
@@ -743,6 +768,8 @@ export function InlineExpandedImage({
           effectiveRenderScale,
           annotationBaseDimensions.width,
           annotationBaseDimensions.height,
+          undefined,
+          viewBoxOriginY,
         )
       : null;
   const pageExpandTargetReady = !!fill && !!annotationVtRect && !!imageLoaded && pageExpandReady;
@@ -969,6 +996,7 @@ export function InlineExpandedImage({
                     fullPhrase={verification?.verifiedFullPhrase}
                     onDismiss={fill ? handleOverlayDismiss : undefined}
                     isDark={isDarkContent}
+                    viewBoxOriginY={viewBoxOriginY}
                   />
                 )}
               {/* View Transition anchor: positioned at the annotation rect so the

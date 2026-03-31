@@ -62,6 +62,7 @@ export function toPercentRect(
   imageNaturalWidth: number,
   imageNaturalHeight: number,
   origin: CoordinateOrigin = "pdf",
+  viewBoxOriginY = 0,
 ): { left: string; top: string; width: string; height: string } | null {
   if (!isValidOverlayGeometry(renderScale, imageNaturalWidth, imageNaturalHeight)) {
     return null;
@@ -69,8 +70,12 @@ export function toPercentRect(
 
   // Clamp edges independently so negative coords don't shift the origin
   // while leaving the far edge unbounded.
+  // For PDF coordinates, subtract viewBoxOriginY to normalize from absolute
+  // PDF page space to viewport-relative space. When the page's CropBox/MediaBox
+  // starts at y > 0, text coordinates are offset from the image origin.
   const rawX = item.x * renderScale.x;
-  const rawY = origin === "image" ? item.y * renderScale.y : imageNaturalHeight - item.y * renderScale.y;
+  const rawY =
+    origin === "image" ? item.y * renderScale.y : imageNaturalHeight - (item.y - viewBoxOriginY) * renderScale.y;
   const rawW = item.width * renderScale.x;
   const rawH = item.height * renderScale.y;
 
@@ -108,6 +113,7 @@ export function computeAnnotationScrollTarget(
   containerWidth: number,
   containerHeight: number,
   origin: CoordinateOrigin = "pdf",
+  viewBoxOriginY = 0,
 ): { scrollLeft: number; scrollTop: number } | null {
   if (!isValidOverlayGeometry(renderScale, imageNaturalWidth, imageNaturalHeight)) {
     return null;
@@ -118,7 +124,8 @@ export function computeAnnotationScrollTarget(
 
   // Convert item coords to image pixel coords (same math as toPercentRect)
   const pixelX = item.x * renderScale.x;
-  const pixelY = origin === "image" ? item.y * renderScale.y : imageNaturalHeight - item.y * renderScale.y;
+  const pixelY =
+    origin === "image" ? item.y * renderScale.y : imageNaturalHeight - (item.y - viewBoxOriginY) * renderScale.y;
   const pixelW = item.width * renderScale.x;
   const pixelH = item.height * renderScale.y;
 
@@ -153,6 +160,7 @@ export function computeAnnotationOriginPercent(
   imageNaturalWidth: number,
   imageNaturalHeight: number,
   origin: CoordinateOrigin = "pdf",
+  viewBoxOriginY = 0,
 ): { xPercent: number; yPercent: number } | null {
   if (!isValidOverlayGeometry(renderScale, imageNaturalWidth, imageNaturalHeight)) {
     return null;
@@ -160,7 +168,8 @@ export function computeAnnotationOriginPercent(
 
   // Convert item coords to image pixel coords (same math as toPercentRect)
   const pixelX = item.x * renderScale.x;
-  const pixelY = origin === "image" ? item.y * renderScale.y : imageNaturalHeight - item.y * renderScale.y;
+  const pixelY =
+    origin === "image" ? item.y * renderScale.y : imageNaturalHeight - (item.y - viewBoxOriginY) * renderScale.y;
   const pixelW = item.width * renderScale.x;
   const pixelH = item.height * renderScale.y;
 

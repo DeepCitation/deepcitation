@@ -55,6 +55,7 @@ function SecondaryBrackets({
   imageNaturalHeight,
   color = "amber",
   coordinateOrigin,
+  viewBoxOriginY,
 }: {
   deepItem: DeepTextItem;
   renderScale: { x: number; y: number };
@@ -62,8 +63,16 @@ function SecondaryBrackets({
   imageNaturalHeight: number;
   color?: "amber" | "muted";
   coordinateOrigin?: CoordinateOrigin;
+  viewBoxOriginY?: number;
 }) {
-  const rect = toPercentRect(deepItem, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin);
+  const rect = toPercentRect(
+    deepItem,
+    renderScale,
+    imageNaturalWidth,
+    imageNaturalHeight,
+    coordinateOrigin,
+    viewBoxOriginY,
+  );
   if (!rect) return null;
 
   // amber → partial-match color; muted → verified color at lower opacity (distal supporting evidence)
@@ -143,6 +152,7 @@ export function CitationAnnotationOverlay({
   onDismiss,
   isDark,
   coordinateOrigin,
+  viewBoxOriginY,
 }: {
   phraseMatchDeepItem: DeepTextItem;
   renderScale: { x: number; y: number };
@@ -160,10 +170,19 @@ export function CitationAnnotationOverlay({
   isDark?: boolean;
   /** Coordinate origin convention for DeepTextItem positions. Defaults to "pdf". */
   coordinateOrigin?: CoordinateOrigin;
+  /** PDF viewBox Y-origin offset for pages where CropBox doesn't start at y=0. */
+  viewBoxOriginY?: number;
 }) {
   const t = useTranslation();
 
-  const rect = toPercentRect(phraseMatchDeepItem, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin);
+  const rect = toPercentRect(
+    phraseMatchDeepItem,
+    renderScale,
+    imageNaturalWidth,
+    imageNaturalHeight,
+    coordinateOrigin,
+    viewBoxOriginY,
+  );
   // Bail out if geometry is invalid (zero dimensions, NaN, Infinity, etc.)
   if (!rect) return null;
 
@@ -218,12 +237,41 @@ export function CitationAnnotationOverlay({
     borderRadius: `${SPOTLIGHT_BORDER_RADIUS}px`,
   };
 
-  const anchorRects =
-    showKeySpanHighlight && anchorTextDeepItems?.length
-      ? anchorTextDeepItems
-          .map(item => toPercentRect(item, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin))
-          .filter((r): r is NonNullable<typeof r> => r != null)
-      : [];
+  const anchorRects = (() => {
+    if (!showKeySpanHighlight || !anchorTextDeepItems?.length) return [];
+    // Sort left-to-right so gap-fill always sees adjacent pairs in order.
+    // (DeepTextItems from different extraction passes may not be in reading order.)
+    const SAME_LINE_THRESHOLD_PCT = 0.5; // % top difference below which two rects share a line
+    const MAX_GAP_PCT = 3; // % width below which the space between words is filled
+    const rects = anchorTextDeepItems
+      .map(item =>
+        toPercentRect(item, renderScale, imageNaturalWidth, imageNaturalHeight, coordinateOrigin, viewBoxOriginY),
+      )
+      .filter((r): r is NonNullable<typeof r> => r != null)
+      .sort((a, b) => parseFloat(a.left) - parseFloat(b.left));
+    // Fill gaps between adjacent word rects on the same line so spaces are highlighted.
+    const filled = [...rects];
+    for (let i = 0; i < rects.length - 1; i++) {
+      const a = rects[i];
+      const b = rects[i + 1];
+      const aTop = parseFloat(a.top);
+      const bTop = parseFloat(b.top);
+      if (Math.abs(aTop - bTop) < SAME_LINE_THRESHOLD_PCT) {
+        const aRight = parseFloat(a.left) + parseFloat(a.width);
+        const bLeft = parseFloat(b.left);
+        const gap = bLeft - aRight;
+        if (gap > 0 && gap < MAX_GAP_PCT) {
+          filled.push({
+            left: `${aRight}%`,
+            top: a.top,
+            width: `${gap}%`,
+            height: a.height,
+          });
+        }
+      }
+    }
+    return filled;
+  })();
   return (
     <div
       data-dc-annotation-overlay=""
@@ -299,6 +347,7 @@ export function CitationAnnotationOverlay({
           imageNaturalHeight={imageNaturalHeight}
           color={h.color}
           coordinateOrigin={coordinateOrigin}
+          viewBoxOriginY={viewBoxOriginY}
         />
       ))}
 
