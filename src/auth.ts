@@ -78,7 +78,6 @@ export function sourceLabel(source: AuthSource): string {
     case "env-var":
       return "DEEPCITATION_API_KEY environment variable";
     case "dotenv":
-      return source.path;
     case "credentials":
       return source.path;
   }

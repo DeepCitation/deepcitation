@@ -1144,10 +1144,11 @@ async function login(argv: string[]) {
       console.log(`\nLogged in as ${sanitizeForLog(winner.payload.displayName ?? winner.payload.email ?? "unknown")}.`);
       console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
       console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
+      printFreeTierWelcome();
     } else {
       saveApiKey(winner.key, "terminal paste");
+      // saveApiKey() calls printFreeTierWelcome() internally
     }
-    printFreeTierWelcome();
   } catch (err) {
     if ((err as Error).message === "Login cancelled") return;
     console.error(`\nLogin failed: ${err instanceof Error ? err.message : err}`);
@@ -1340,7 +1341,10 @@ switch (command) {
     });
     break;
   case "login":
-    login(rest);
+    login(rest).catch(err => {
+      console.error(`Error: ${err instanceof Error ? err.message : err}`);
+      process.exit(1);
+    });
     break;
   case "logout":
     logout();
