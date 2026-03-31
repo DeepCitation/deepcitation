@@ -70,7 +70,8 @@ export function AnchorTextFocusedImage({
     const renderScale =
       verification.document?.renderScale ?? (isImageSource(verification) ? IDENTITY_RENDER_SCALE : null);
     if (!renderScale) return null;
-    return { anchorItem, renderScale };
+    const viewBoxOriginY = verification.document?.viewBoxOriginY;
+    return { anchorItem, renderScale, viewBoxOriginY };
   }, [verification]);
   // Drag-to-pan hook for mouse interaction (xy enables vertical pan for width-fit tall images;
   // when no vertical overflow exists, scrollTop stays 0 — no visible effect on normal crops).
@@ -139,6 +140,8 @@ export function AnchorTextFocusedImage({
           readableScale,
           containerWidth,
           stripHeight,
+          undefined,
+          anchorScrollData.viewBoxOriginY,
         );
       if (widthFitTarget) {
         container.scrollLeft = widthFitTarget.scrollLeft;
@@ -175,6 +178,8 @@ export function AnchorTextFocusedImage({
           displayScale,
           containerWidth,
           stripHeight,
+          undefined,
+          anchorScrollData.viewBoxOriginY,
         );
       if (heightFitTarget) {
         container.scrollLeft = heightFitTarget.scrollLeft;

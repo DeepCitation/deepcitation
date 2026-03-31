@@ -220,3 +220,64 @@ describe("image coordinate origin (top-down Y)", () => {
     expect(withDefault).toEqual(withPdf);
   });
 });
+
+// =========================================================================
+// viewBoxOriginY correction — pages where CropBox doesn't start at y=0
+// =========================================================================
+
+describe("viewBoxOriginY correction", () => {
+  // Simulates Brown v. Board PDF: viewBox [0, 3.84, 431.04, 652.8]
+  // Page height = 648.96 points, rendered at 150 DPI (renderScale ≈ 2.083)
+  const VB_ORIGIN_Y = 3.84;
+  const PAGE_HEIGHT = 648.96;
+  const SCALE = { x: 2.083, y: 2.083 };
+  const IMG_W = Math.round(431.04 * 2.083); // ≈ 898
+  const IMG_H = Math.round(PAGE_HEIGHT * 2.083); // ≈ 1352
+
+  test("toPercentRect shifts highlight down when viewBoxOriginY > 0", () => {
+    // Text at y=613 in absolute PDF space (near top of page)
+    const item = { x: 50, y: 613, width: 200, height: 11 };
+
+    const withoutFix = toPercentRect(item, SCALE, IMG_W, IMG_H, "pdf", 0);
+    const withFix = toPercentRect(item, SCALE, IMG_W, IMG_H, "pdf", VB_ORIGIN_Y);
+
+    expect(withoutFix).not.toBeNull();
+    expect(withFix).not.toBeNull();
+    if (!withoutFix || !withFix) return;
+
+    // The fix should shift the highlight DOWN (larger top%) by viewBoxOriginY * scale pixels
+    const topWithout = parseFloat(withoutFix.top);
+    const topWith = parseFloat(withFix.top);
+    expect(topWith).toBeGreaterThan(topWithout);
+
+    // The shift should be approximately viewBoxOriginY * scale / imageHeight * 100
+    const expectedShift = ((VB_ORIGIN_Y * SCALE.y) / IMG_H) * 100;
+    expect(topWith - topWithout).toBeCloseTo(expectedShift, 1);
+  });
+
+  test("viewBoxOriginY=0 produces same result as default", () => {
+    const item = { x: 50, y: 613, width: 200, height: 11 };
+    const defaultResult = toPercentRect(item, SCALE, IMG_W, IMG_H, "pdf");
+    const zeroResult = toPercentRect(item, SCALE, IMG_W, IMG_H, "pdf", 0);
+    expect(defaultResult).toEqual(zeroResult);
+  });
+
+  test("viewBoxOriginY does not affect image-origin coordinates", () => {
+    const item = { x: 50, y: 100, width: 200, height: 11 };
+    const without = toPercentRect(item, SCALE, IMG_W, IMG_H, "image", 0);
+    const with_ = toPercentRect(item, SCALE, IMG_W, IMG_H, "image", VB_ORIGIN_Y);
+    // Image coordinates don't use viewBoxOriginY
+    expect(without).toEqual(with_);
+  });
+
+  test("computeAnnotationScrollTarget applies viewBoxOriginY correction", () => {
+    const item = { x: 50, y: 613, width: 200, height: 11 };
+    const without = computeAnnotationScrollTarget(item, SCALE, IMG_W, IMG_H, 1, 400, 300, "pdf", 0);
+    const with_ = computeAnnotationScrollTarget(item, SCALE, IMG_W, IMG_H, 1, 400, 300, "pdf", VB_ORIGIN_Y);
+    expect(without).not.toBeNull();
+    expect(with_).not.toBeNull();
+    if (!without || !with_) return;
+    // With correction, scrollTop should be larger (highlight is lower on page)
+    expect(with_.scrollTop).toBeGreaterThanOrEqual(without.scrollTop);
+  });
+});
