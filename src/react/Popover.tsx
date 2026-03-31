@@ -144,11 +144,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       // On remount the wrapper is a fresh DOM node with no transform; coordsRef still holds
       // the previous open's coords, so the diff check would fire and leave the wrapper at (0,0).
       const alreadyPositioned = wrapper.style.transform !== "";
-      if (
-        alreadyPositioned &&
-        Math.abs(coordsRef.current.x - docX) < 0.5 &&
-        Math.abs(coordsRef.current.y - docY) < 0.5
-      )
+      if (alreadyPositioned && Math.abs(coordsRef.current.x - docX) < 0.5 && Math.abs(coordsRef.current.y - docY) < 0.5)
         return;
       coordsRef.current = { x: docX, y: docY };
       wrapper.style.transform = `translate3d(${docX}px, ${docY}px, 0)`;
