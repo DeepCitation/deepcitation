@@ -32,13 +32,13 @@ describe("validateCitationData", () => {
   });
 
   it("warns on long anchor_text (chars)", () => {
-    const r = validateCitationData([{ ...good, full_phrase: "A".repeat(50), anchor_text: "A".repeat(50) }]);
+    const r = validateCitationData([{ ...good, full_phrase: "A".repeat(70), anchor_text: "A".repeat(70) }]);
     expect(r.valid).toBe(true);
     expect(r.warnings.some(w => w.field === "anchor_text" && w.message.includes("chars"))).toBe(true);
   });
 
   it("warns on long anchor_text (words)", () => {
-    const longAnchor = "one two three four five";
+    const longAnchor = "one two three four five six seven";
     const r = validateCitationData([{ ...good, full_phrase: `prefix ${longAnchor} suffix`, anchor_text: longAnchor }]);
     expect(r.warnings.some(w => w.field === "anchor_text" && w.message.includes("words"))).toBe(true);
   });
@@ -57,7 +57,7 @@ describe("validateCitationData", () => {
     const r = validateCitationData([
       good,
       { ...good, id: 2, page_id: undefined },
-      { ...good, id: 3, anchor_text: "A".repeat(50), full_phrase: "A".repeat(50) },
+      { ...good, id: 3, anchor_text: "A".repeat(70), full_phrase: "A".repeat(70) },
     ]);
     expect(r.valid).toBe(false); // citation 2 missing page_id
     expect(r.errors).toHaveLength(1);
