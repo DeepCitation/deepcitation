@@ -127,6 +127,44 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       [contentRef, forwardedRef],
     );
 
+    // Find the scroll-root ancestor of the trigger so we can portal into it.
+    // This lets the popover scroll with the page content instead of staying
+    // fixed on the viewport.  We look for [data-radix-scroll-area-viewport]
+    // first (deepcitation-web uses Radix ScrollArea), then fall back to the
+    // nearest overflow:scroll/auto ancestor, then document.body.
+    const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
+    React.useLayoutEffect(() => {
+      if (typeof window === "undefined") return;
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      let cleanupPosition: (() => void) | undefined;
+      // Prefer the Radix ScrollArea viewport
+      const radixVP = trigger.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
+      if (radixVP) {
+        // Ensure the viewport is a containing block for position:absolute children
+        const prev = radixVP.style.position;
+        if (window.getComputedStyle(radixVP).position === "static") {
+          radixVP.style.position = "relative";
+          cleanupPosition = () => {
+            radixVP.style.position = prev;
+          };
+        }
+        setPortalContainer(radixVP);
+        return cleanupPosition;
+      }
+      // Fallback: nearest scrollable ancestor
+      let el: HTMLElement | null = trigger.parentElement;
+      while (el) {
+        const { overflowY } = window.getComputedStyle(el);
+        if ((overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight) {
+          setPortalContainer(el);
+          return;
+        }
+        el = el.parentElement;
+      }
+      setPortalContainer(document.body);
+    }, [open]); // triggerRef is a stable ref; open re-runs detection on each popover open
+
     const recomputePosition = React.useCallback(() => {
       if (!open) return;
       const triggerEl = triggerRef.current;
@@ -136,25 +174,28 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
       const triggerRect = triggerEl.getBoundingClientRect();
       const contentRect = contentEl.getBoundingClientRect();
       const next = computePosition(triggerRect, contentRect, side, align, sideOffset, alignOffset);
-      // Convert viewport-relative coords to document-relative so the popover
-      // is anchored in document space and scrolls off screen naturally.
-      const docX = next.x + window.scrollX;
-      const docY = next.y + window.scrollY;
+      // computePosition returns viewport-relative coords. Convert to
+      // scroll-container-relative so position:absolute inside the scroll
+      // container places the popover at the right document position.
+      const container = portalContainer ?? document.body;
+      const containerRect = container.getBoundingClientRect();
+      const x = next.x - containerRect.left + container.scrollLeft;
+      const y = next.y - containerRect.top + container.scrollTop;
       // Skip if coords haven't changed — BUT only when the wrapper already has a transform.
       // On remount the wrapper is a fresh DOM node with no transform; coordsRef still holds
       // the previous open's coords, so the diff check would fire and leave the wrapper at (0,0).
       const alreadyPositioned = wrapper.style.transform !== "";
-      if (alreadyPositioned && Math.abs(coordsRef.current.x - docX) < 0.5 && Math.abs(coordsRef.current.y - docY) < 0.5)
+      if (alreadyPositioned && Math.abs(coordsRef.current.x - x) < 0.5 && Math.abs(coordsRef.current.y - y) < 0.5)
         return;
-      coordsRef.current = { x: docX, y: docY };
-      wrapper.style.transform = `translate3d(${docX}px, ${docY}px, 0)`;
+      coordsRef.current = { x, y };
+      wrapper.style.transform = `translate3d(${x}px, ${y}px, 0)`;
 
       // Max-height is managed solely by useViewportBoundaryGuard (Layer 3).
       // It sets --dc-guard-max-height on initial open and resize — NOT on scroll.
       // Previously this callback also updated max-height on every scroll event,
       // which caused the popover to shrink ("squish") as the trigger scrolled
       // toward the viewport edge.
-    }, [align, alignOffset, isMounted, open, side, sideOffset, triggerRef]);
+    }, [align, alignOffset, isMounted, open, portalContainer, side, sideOffset, triggerRef]);
 
     React.useLayoutEffect(() => {
       if (!isMounted || !open) return;
@@ -181,7 +222,10 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
 
       const ro = new ResizeObserver(scheduleRecompute);
       if (localContentRef.current) ro.observe(localContentRef.current);
-      if (triggerRef.current) ro.observe(triggerRef.current);
+      // Do NOT observe the trigger — Chrome fires ResizeObserver when a
+      // scrolled element's visible rect changes, which would reposition the
+      // popover to follow the trigger on scroll.  Window resize already
+      // handles the legitimate trigger-resize case via the "resize" listener.
 
       window.addEventListener("resize", scheduleRecompute);
       window.addEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, scheduleRecompute as EventListener);
@@ -192,7 +236,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         window.removeEventListener("resize", scheduleRecompute);
         window.removeEventListener(SCROLL_LOCK_LAYOUT_SHIFT_EVENT, scheduleRecompute as EventListener);
       };
-    }, [isMounted, open, recomputePosition, triggerRef]);
+    }, [isMounted, open, recomputePosition]);
 
     // Refs keep document-level listeners stable — only added/removed when the
     // popover opens/closes, not on every render. Without refs, inline callback
@@ -436,7 +480,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     const { overflow: incomingOverflow, ...styleWithoutOverflow } = style ?? {};
 
     return (
-      <PopoverPortal>
+      <PopoverPortal container={portalContainer}>
         <div
           ref={wrapperRef}
           data-dc-popover-wrapper=""

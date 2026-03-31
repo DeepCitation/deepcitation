@@ -4,8 +4,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { createRequire } from "node:module";
 import { basename, dirname, extname, resolve } from "node:path";
+import { createInterface } from "node:readline";
 import { connect as tlsConnect } from "node:tls";
 import {
+  type CallbackPayload,
   CREDENTIALS_PATH,
   deleteCredentials,
   generateNonce,
@@ -14,8 +16,10 @@ import {
   startCallbackServer,
   writeCredentials,
 } from "./auth.js";
+import { USAGE_CRITICAL_PCT, USAGE_WARN_PCT } from "./billing.js";
 import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./cli/markdownToHtml.js";
 import { DeepCitation } from "./client/DeepCitation.js";
+import { PaymentRequiredError } from "./client/errors.js";
 import { citationDataToCitation, parseCitationData } from "./parsing/citationParser.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "./prompts/citationPrompts.js";
 import { getCitationKey } from "./utils/citationKey.js";
@@ -25,6 +29,9 @@ import { decodeChunked, detectProxyUrl } from "./utils/proxy.js";
 import { validateCitationData } from "./utils/validateCitationData.js";
 import { CDN_JS } from "./vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "./vanilla/reportUtils.js";
+
+// ── version ─────────────────────────────────────────────────────────
+const { version: CLI_VERSION } = createRequire(import.meta.url)("../package.json") as { version: string };
 
 // ── proxy support ──────────────────────────────────────────────────
 
@@ -194,6 +201,7 @@ Commands:
   inject    Inject DeepCitation verification into an existing HTML file
   keygen    Compute deterministic citation keys from a citations JSON file
   get       Fetch full attachment metadata by ID
+  billing   Open the billing dashboard to add a payment method or manage spend cap
 
 Run "deepcitation <command> --help" for command-specific options.
 `;
@@ -255,14 +263,39 @@ function createClient(apiKey: string): DeepCitation {
     // Redact user:password@ from proxy URL before logging
     const safeProxy = sanitizeForLog(proxyUrl.replace(/\/\/[^@]+@/, "//***@"));
     console.error(`Using proxy: ${safeProxy}`);
-    return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl) });
+    return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl), onUsageUpdate: warnUsage });
   }
 
-  return new DeepCitation({ apiKey });
+  return new DeepCitation({ apiKey, onUsageUpdate: warnUsage });
+}
+
+/** Warn the user as their monthly budget runs low. */
+function warnUsage(remaining: number, limit: number): void {
+  const pctUsed = limit > 0 ? ((limit - remaining) / limit) * 100 : 0;
+  if (pctUsed >= USAGE_CRITICAL_PCT) {
+    console.error(`\nWarning: Only $${remaining.toFixed(2)} of your $${limit.toFixed(2)}/month budget remains.`);
+    console.error(`  Add a payment method to avoid interruption: ${BASE_URL}/api#billing\n`);
+  } else if (pctUsed >= USAGE_WARN_PCT) {
+    console.error(`\nNote: $${remaining.toFixed(2)} of your $${limit.toFixed(2)}/month budget remaining.\n`);
+  }
 }
 
 /** Wrap a network error with actionable hints for the CLI user. */
 function formatNetworkError(err: unknown): string {
+  if (err instanceof PaymentRequiredError) {
+    return [
+      `\nPayment required: ${sanitizeForLog(err.message)}`,
+      ``,
+      `  To add a credit card and unlock usage beyond the free tier:`,
+      `    npx deepcitation billing`,
+      `  Or visit: ${BASE_URL}/api#billing`,
+      ``,
+      `  Benefits of adding a card:`,
+      `    • Continue using DeepCitation without interruption`,
+      `    • Pay-as-you-go: $0.05/doc, $0.01/verification`,
+      `    • Set a custom monthly spend cap for cost control`,
+    ].join("\n");
+  }
   const msg = err instanceof Error ? err.message : String(err);
   if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("EAI_AGAIN")) {
     const proxyHint =
@@ -559,7 +592,53 @@ function inject(argv: string[]) {
   if (stripped.hadExisting) {
     console.error("Warning: stripped existing DeepCitation injection before re-injecting.");
   }
-  let output = stripped.html;
+
+  // ── Auto-fix display-label mismatches ────────────────────────────
+  // When an annotated element's visible text differs from its anchorText
+  // and no data-dc-display-label is set, automatically add the attribute.
+  // The CDN reads data-dc-display-label at click time so the popover
+  // trigger shows the visible text rather than the full anchorText.
+  const autoFixLog: string[] = [];
+  const elementRe = /<([a-zA-Z][a-zA-Z0-9]*)[^>]*\sdata-citation-key="([^"]+)"([^>]*)>([\s\S]*?)<\/\1>/g;
+  const fixedHtml = stripped.html.replace(elementRe, (fullMatch, _tag, hashedKey, rest, content) => {
+    // Skip if data-dc-display-label is already set
+    if (/data-dc-display-label=/.test(rest) || /data-dc-display-label=/.test(fullMatch)) return fullMatch;
+    const anchorText: string | undefined = (
+      verifications[hashedKey] as { citation?: { anchorText?: string } } | undefined
+    )?.citation?.anchorText;
+    if (!anchorText) return fullMatch;
+    // Strip inner HTML tags to get approximate visible text.
+    // Loop until stable to handle nested fragments like <scr<script>ipt>.
+    let visibleText = content as string;
+    let prev: string;
+    do {
+      prev = visibleText;
+      visibleText = visibleText.replace(/<[^>]+>/g, "");
+    } while (visibleText !== prev);
+    visibleText = visibleText.trim();
+    if (!visibleText || visibleText.length > 80) return fullMatch;
+    // Auto-fix if visible text does not appear inside anchorText (case-insensitive)
+    if (!anchorText.toLowerCase().includes(visibleText.toLowerCase())) {
+      const escaped = visibleText.replace(/"/g, "&quot;");
+      autoFixLog.push(
+        `  [${hashedKey.slice(0, 8)}…] displayLabel="${visibleText}" anchorText="${anchorText.slice(0, 60)}${anchorText.length > 60 ? "…" : ""}"`,
+      );
+      // Insert data-dc-display-label right after the opening tag name
+      return fullMatch.replace(
+        `data-citation-key="${hashedKey}"`,
+        `data-citation-key="${hashedKey}" data-dc-display-label="${escaped}"`,
+      );
+    }
+    return fullMatch;
+  });
+  if (autoFixLog.length > 0) {
+    console.error(
+      `Auto-set display label on ${autoFixLog.length} element(s) where visible text differs from anchorText:\n` +
+        autoFixLog.join("\n"),
+    );
+  }
+
+  let output = fixedHtml;
 
   if (output.includes("</body>")) {
     output = output.replace("</body>", () => `${snippet}\n</body>`);
@@ -864,6 +943,14 @@ const BASE_URL = (() => {
   }
 })();
 
+const BILLING_URL: string = `${BASE_URL}/api#billing`;
+
+function printFreeTierWelcome(): void {
+  console.log(`\nYou're on the free tier — $20/month of usage included at no charge.`);
+  console.log(`  Once you exceed it, add a payment method to continue:`);
+  console.log(`  ${BILLING_URL}`);
+}
+
 function saveApiKey(key: string, source: string): void {
   if (!key || !key.startsWith("sk-dc-") || key.length < 20) {
     die(
@@ -873,6 +960,52 @@ function saveApiKey(key: string, source: string): void {
   }
   writeCredentials({ version: 1, apiKey: key, createdAt: new Date().toISOString() });
   console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
+  printFreeTierWelcome();
+}
+
+/**
+ * While the browser OAuth flow is pending, also accept a key pasted
+ * directly into the terminal. Putting stdin into flowing mode also
+ * prevents typed characters from leaking into the shell after exit.
+ */
+function readKeyFromStdin(): { promise: Promise<string | null>; close: () => void } {
+  if (!process.stdin.isTTY) {
+    return { promise: Promise.resolve(null), close: () => {} };
+  }
+  let resolveKey: (v: string | null) => void;
+  const promise = new Promise<string | null>(res => {
+    resolveKey = res;
+  });
+  let done = false;
+  // No `output` → terminal defaults to false → kernel handles echo/editing.
+  const rl = createInterface({ input: process.stdin });
+  rl.on("line", (line: string) => {
+    if (done) return;
+    const key = line.trim();
+    if (key.startsWith("sk-dc-") && key.length >= 20) {
+      done = true;
+      rl.close();
+      resolveKey(key);
+    } else if (key) {
+      process.stderr.write("Invalid key format (expected sk-dc-...). Try again: ");
+    }
+  });
+  rl.on("close", () => {
+    if (!done) {
+      done = true;
+      resolveKey(null);
+    }
+  });
+  return {
+    promise,
+    close: () => {
+      if (!done) {
+        done = true;
+        rl.close();
+        resolveKey(null);
+      }
+    },
+  };
 }
 
 async function login(argv: string[]) {
@@ -906,7 +1039,7 @@ async function login(argv: string[]) {
   }
 
   const nonce = generateNonce();
-  const { port, result } = await startCallbackServer(nonce);
+  const { port, result, cancel } = await startCallbackServer(nonce);
 
   const url = `${BASE_URL}/cli-auth?port=${port}&nonce=${nonce}`;
 
@@ -914,22 +1047,57 @@ async function login(argv: string[]) {
   console.log(`If the browser doesn't open, visit:\n  ${url}\n`);
   openBrowser(url);
 
-  console.log("Waiting for authentication...");
+  console.log("Waiting for browser authentication...");
+  if (process.stdin.isTTY) {
+    console.log("If the browser shows a key to copy, paste it here and press Enter:");
+  }
+
+  // Race browser callback vs key pasted directly into the terminal.
+  // Creating the readline interface also puts stdin into flowing mode,
+  // which prevents any typed characters from leaking into the shell
+  // after this process exits (Error 3 fix).
+  const { promise: stdinKey, close: closeStdin } = readKeyFromStdin();
 
   try {
-    const payload = await result;
-    writeCredentials({
-      version: 1,
-      apiKey: payload.apiKey,
-      email: payload.email,
-      displayName: payload.displayName,
-      createdAt: new Date().toISOString(),
-    });
+    const winner = await new Promise<{ from: "browser"; payload: CallbackPayload } | { from: "stdin"; key: string }>(
+      (resolve, reject) => {
+        result.then(
+          payload => {
+            closeStdin();
+            resolve({ from: "browser", payload });
+          },
+          err => {
+            closeStdin();
+            reject(err);
+          },
+        );
+        stdinKey.then(key => {
+          if (key) {
+            cancel();
+            resolve({ from: "stdin", key });
+          }
+          // null means stdin closed without a valid key — keep waiting for browser
+        });
+      },
+    );
 
-    console.log(`\nLogged in as ${sanitizeForLog(payload.displayName ?? payload.email ?? "unknown")}.`);
-    console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
-    console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
+    if (winner.from === "browser") {
+      writeCredentials({
+        version: 1,
+        apiKey: winner.payload.apiKey,
+        email: winner.payload.email,
+        displayName: winner.payload.displayName,
+        createdAt: new Date().toISOString(),
+      });
+      console.log(`\nLogged in as ${sanitizeForLog(winner.payload.displayName ?? winner.payload.email ?? "unknown")}.`);
+      console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
+      console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
+    } else {
+      saveApiKey(winner.key, "terminal paste");
+    }
+    printFreeTierWelcome();
   } catch (err) {
+    if ((err as Error).message === "Login cancelled") return;
     console.error(`\nLogin failed: ${err instanceof Error ? err.message : err}`);
     console.error(`\nYou can also log in manually at: ${BASE_URL}/cli-auth?manual=true`);
     process.exit(1);
@@ -975,6 +1143,18 @@ function env() {
   }
   // stdout only — safe for eval "$(deepcitation env)"
   process.stdout.write(`export DEEPCITATION_API_KEY="${creds.apiKey}"\n`);
+}
+
+// ── billing ────────────────────────────────────────────────────────
+
+async function openBillingDashboard() {
+  const url = BILLING_URL;
+  console.error(`Opening billing dashboard: ${url}`);
+  console.error(`\nHere you can:`);
+  console.error(`  • Add a credit card to unlock usage beyond the free tier`);
+  console.error(`  • Set a custom monthly spend cap for cost control`);
+  console.error(`  • View your usage breakdown and billing history`);
+  await openBrowser(url);
 }
 
 // ── get-attachment ────────────────────────────────────────────────────
@@ -1062,6 +1242,11 @@ if (!command || command === "-h" || command === "--help") {
   process.exit(0);
 }
 
+if (command === "-v" || command === "--version") {
+  console.log(CLI_VERSION);
+  process.exit(0);
+}
+
 switch (command) {
   case "prepare":
     prepare(rest).catch(err => {
@@ -1108,6 +1293,12 @@ switch (command) {
     break;
   case "env":
     env();
+    break;
+  case "billing":
+    openBillingDashboard().catch(err => {
+      console.error(`Error: ${formatNetworkError(err)}`);
+      process.exit(1);
+    });
     break;
   default:
     die(`Unknown command: ${command}`, HELP);

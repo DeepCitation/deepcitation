@@ -89,3 +89,19 @@ export class ServerError extends DeepCitationError {
     this.name = "ServerError";
   }
 }
+
+/**
+ * Thrown when the API returns 402 Payment Required.
+ * Indicates the free tier is exhausted, a spend cap was hit, or payment failed.
+ * Not retryable — the user must add or update a payment method.
+ */
+export class PaymentRequiredError extends DeepCitationError {
+  /** The server-side billing error code (e.g. "payment-required", "billing_quota_exceeded") */
+  readonly billingCode: string;
+
+  constructor(message: string, billingCode: string) {
+    super(message, "DC_PAYMENT_REQUIRED", false, 402);
+    this.name = "PaymentRequiredError";
+    this.billingCode = billingCode;
+  }
+}

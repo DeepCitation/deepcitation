@@ -110,6 +110,7 @@ let resizeObserver: ResizeObserver | null = null;
 let lastCoords = { x: NaN, y: NaN };
 let scrollPassthroughController: AbortController | null = null;
 let pageScrollEl: Element | null = null;
+let radixVPPositionCleanup: (() => void) | null = null;
 let coastRafId: number | null = null;
 const boundTriggers = new WeakSet<HTMLElement>();
 
@@ -178,6 +179,8 @@ function ensurePopoverEls(): { wrapper: HTMLDivElement; content: HTMLDivElement 
     ].join("\n");
     wrapper.appendChild(scrollbarStyle);
     wrapper.appendChild(content);
+    // Initially appended to body; moved to the trigger's scroll ancestor
+    // on each showPopoverFor call so the popover scrolls with content.
     document.body.appendChild(wrapper);
     wrapperEl = wrapper;
     contentEl = content;
@@ -192,6 +195,7 @@ function CdnPopoverWrapper(props: {
   status: ReturnType<typeof getStatusFromVerification>;
   sourceLabel: string | undefined;
   downloadUrl: string | undefined;
+  displayLabel?: string;
 }) {
   const [viewState, setViewState] = useState<PopoverViewState>("summary");
   return createElement(DefaultPopoverContent, { ...props, viewState, onViewStateChange: setViewState });
@@ -210,10 +214,15 @@ function reposition(): void {
   const triggerRect = getTriggerRect(activeTrigger);
   const contentRect = contentEl.getBoundingClientRect();
   const pos = computePosition(triggerRect, contentRect.width, contentRect.height, SIDE_OFFSET);
-  // Skip if coords haven't changed (< 0.5px delta) — avoids unnecessary style writes
-  if (Math.abs(lastCoords.x - pos.x) < 0.5 && Math.abs(lastCoords.y - pos.y) < 0.5) return;
-  lastCoords = { x: pos.x, y: pos.y };
-  wrapperEl.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+  // Convert viewport-relative coords to scroll-container-relative so the
+  // position:absolute wrapper is placed in document space and scrolls naturally.
+  const container = wrapperEl.parentElement ?? document.body;
+  const cRect = container.getBoundingClientRect();
+  const x = pos.x - cRect.left + container.scrollLeft;
+  const y = pos.y - cRect.top + container.scrollTop;
+  if (Math.abs(lastCoords.x - x) < 0.5 && Math.abs(lastCoords.y - y) < 0.5) return;
+  lastCoords = { x, y };
+  wrapperEl.style.transform = `translate3d(${x}px, ${y}px, 0)`;
   wrapperEl.setAttribute("data-side", pos.side);
 }
 function scheduleReposition(): void {
@@ -225,7 +234,9 @@ function startPositionTracking(): void {
   window.addEventListener("resize", scheduleReposition);
   resizeObserver = new ResizeObserver(scheduleReposition);
   if (contentEl) resizeObserver.observe(contentEl);
-  if (activeTrigger) resizeObserver.observe(activeTrigger);
+  // Do NOT observe the trigger — Chrome fires ResizeObserver when a
+  // scrolled element's visible rect changes, which would reposition the
+  // popover to follow the trigger on scroll.
 }
 function stopPositionTracking(): void {
   cancelAnimationFrame(positionRafId);
@@ -427,6 +438,7 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
   wrapper.style.display = "";
   wrapper.style.visibility = "hidden";
   wrapper.style.pointerEvents = "none";
+  const displayLabel = trigger.getAttribute("data-dc-display-label") ?? undefined;
   render(
     createElement(CdnPopoverWrapper, {
       citation,
@@ -435,12 +447,40 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
       status,
       sourceLabel: data.label,
       downloadUrl: data.downloadUrl,
+      displayLabel,
     }),
     content,
   );
   isOpen = true;
   activeTrigger = trigger;
   lastCoords = { x: NaN, y: NaN };
+  // Move the wrapper into the trigger's scroll-root ancestor so it scrolls
+  // with the page content instead of staying fixed on the viewport.
+  radixVPPositionCleanup?.();
+  radixVPPositionCleanup = null;
+  const radixVP = trigger.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
+  if (radixVP && window.getComputedStyle(radixVP).position === "static") {
+    const prev = radixVP.style.position;
+    radixVP.style.position = "relative";
+    radixVPPositionCleanup = () => {
+      radixVP.style.position = prev;
+    };
+  }
+  let portalTarget: HTMLElement = radixVP ?? document.body;
+  if (!radixVP) {
+    let scrollParent: HTMLElement | null = trigger.parentElement;
+    while (scrollParent) {
+      const ov = window.getComputedStyle(scrollParent).overflowY;
+      if ((ov === "auto" || ov === "scroll") && scrollParent.scrollHeight > scrollParent.clientHeight) {
+        portalTarget = scrollParent;
+        break;
+      }
+      scrollParent = scrollParent.parentElement;
+    }
+  }
+  // Guard against detached scroll containers (SPA navigation edge case)
+  if (!portalTarget.isConnected) portalTarget = document.body;
+  if (wrapper.parentElement !== portalTarget) portalTarget.appendChild(wrapper);
   requestAnimationFrame(() => {
     reposition();
     // Now reveal — position is correct, content has been laid out
@@ -465,6 +505,8 @@ function hidePopoverCleanup(): void {
     contentEl.style.opacity = "";
     contentEl.style.transform = "";
   }
+  radixVPPositionCleanup?.();
+  radixVPPositionCleanup = null;
   isOpen = false;
   activeTrigger = null;
   lastCoords = { x: NaN, y: NaN };

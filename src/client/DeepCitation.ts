@@ -2,7 +2,14 @@ import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import type { Citation } from "../types/index.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sha1Hash } from "../utils/sha.js";
-import { AuthenticationError, type DeepCitationError, RateLimitError, ServerError, ValidationError } from "./errors.js";
+import {
+  AuthenticationError,
+  type DeepCitationError,
+  PaymentRequiredError,
+  RateLimitError,
+  ServerError,
+  ValidationError,
+} from "./errors.js";
 import type {
   AttachmentResponse,
   CitationInput,
@@ -175,8 +182,14 @@ async function extractErrorMessage(response: Response, fallbackAction: string): 
 
 /** Map HTTP response to a structured DeepCitation error */
 async function createApiError(response: Response, fallbackAction: string): Promise<DeepCitationError> {
-  const message = await extractErrorMessage(response, fallbackAction);
   const status = response.status;
+  if (status === 402) {
+    const body = (await response.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+    const billingCode = body?.error?.code ?? "payment-required";
+    const msg = body?.error?.message ?? "Payment required. Please add a payment method to continue.";
+    return new PaymentRequiredError(msg, billingCode);
+  }
+  const message = await extractErrorMessage(response, fallbackAction);
   if (status === 401 || status === 403) return new AuthenticationError(message);
   if (status === 429) return new RateLimitError(message);
   if (status >= 400 && status < 500) return new ValidationError(message, status);
@@ -216,6 +229,7 @@ export class DeepCitation {
   private readonly endFileId?: string;
   private readonly convertedPdfDownloadPolicy: ConvertedPdfDownloadPolicy;
   private readonly onLatestVersion?: (latestVersion: string) => void;
+  private readonly onUsageUpdate?: (remaining: number, limit: number) => void;
   private readonly requestSource?: string;
   private readonly maxRetries: number;
   private readonly fetchFn?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -276,6 +290,7 @@ export class DeepCitation {
     this.endFileId = config.endFileId;
     this.convertedPdfDownloadPolicy = config.convertedPdfDownloadPolicy ?? "url_only";
     this.onLatestVersion = config.onLatestVersion;
+    this.onUsageUpdate = config.onUsageUpdate;
     if (config.requestSource && /[\r\n]/.test(config.requestSource)) {
       throw new ValidationError("requestSource must not contain newline characters");
     }
@@ -321,6 +336,14 @@ export class DeepCitation {
     if (!this.onLatestVersion) return;
     const latest = response.headers.get("X-Latest-SDK-Version");
     if (latest) this.onLatestVersion(latest);
+  }
+
+  /** If the response is successful and contains usage-limit headers, fire the onUsageUpdate callback. */
+  private checkUsageWarning(response: Response): void {
+    if (!this.onUsageUpdate || !response.ok) return;
+    const remaining = parseFloat(response.headers.get("X-DeepCitation-Remaining") ?? "");
+    const limit = parseFloat(response.headers.get("X-DeepCitation-Limit") ?? "");
+    if (!Number.isNaN(remaining) && !Number.isNaN(limit)) this.onUsageUpdate(remaining, limit);
   }
 
   /**
@@ -407,6 +430,7 @@ export class DeepCitation {
       body: formData,
     });
     this.checkLatestVersion(response);
+    this.checkUsageWarning(response);
 
     if (!response.ok) {
       this.logger.error?.("Upload failed", { filename: name, status: response.status });
@@ -496,6 +520,7 @@ export class DeepCitation {
     }
 
     this.checkLatestVersion(response);
+    this.checkUsageWarning(response);
 
     if (!response.ok) {
       this.logger.error?.("Conversion failed", { url, filename, status: response.status });
@@ -544,6 +569,7 @@ export class DeepCitation {
       }),
     });
     this.checkLatestVersion(response);
+    this.checkUsageWarning(response);
 
     if (!response.ok) {
       this.logger.error?.("Prepare converted file failed", {
@@ -613,6 +639,7 @@ export class DeepCitation {
       }),
     });
     this.checkLatestVersion(response);
+    this.checkUsageWarning(response);
 
     if (!response.ok) {
       this.logger.error?.("Prepare URL failed", { url: options.url, status: response.status });
@@ -813,6 +840,7 @@ export class DeepCitation {
         }),
       });
       this.checkLatestVersion(response);
+      this.checkUsageWarning(response);
 
       if (!response.ok) {
         // Remove from cache on error so retry is possible
@@ -950,6 +978,7 @@ export class DeepCitation {
       }),
     });
     this.checkLatestVersion(response);
+    this.checkUsageWarning(response);
 
     if (!response.ok) {
       this.logger.error?.("Batch verification failed", { status: response.status });
@@ -1042,6 +1071,7 @@ export class DeepCitation {
       body: JSON.stringify({ duration: options.duration }),
     });
     this.checkLatestVersion(response);
+    this.checkUsageWarning(response);
 
     if (!response.ok) {
       this.logger.error?.("Extend expiration failed", { attachmentId: options.attachmentId, status: response.status });
@@ -1078,6 +1108,7 @@ export class DeepCitation {
       headers: { ...this.baseHeaders() },
     });
     this.checkLatestVersion(response);
+    this.checkUsageWarning(response);
 
     if (!response.ok) {
       this.logger.error?.("Delete attachment failed", { attachmentId, status: response.status });
@@ -1131,6 +1162,7 @@ export class DeepCitation {
       body: JSON.stringify({ attachmentId, endUserId: resolvedEndUserId }),
     });
     this.checkLatestVersion(response);
+    this.checkUsageWarning(response);
 
     if (!response.ok) {
       this.logger.error?.("Get attachment failed", { attachmentId, status: response.status });

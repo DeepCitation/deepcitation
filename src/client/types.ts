@@ -102,6 +102,13 @@ export interface DeepCitationConfig {
    * Useful for detecting when a newer SDK version is available.
    */
   onLatestVersion?: (latestVersion: string) => void;
+  /**
+   * Optional callback invoked after each successful API response when usage-limit headers are present.
+   * Use this to warn users as they approach their monthly spend limit.
+   * @param remaining - Remaining spend budget in dollars for the current billing period
+   * @param limit - Total monthly spend limit in dollars
+   */
+  onUsageUpdate?: (remaining: number, limit: number) => void;
   /** Tag identifying request origin (e.g. "playground"). Sent as X-Request-Source header. */
   requestSource?: string;
   /**
