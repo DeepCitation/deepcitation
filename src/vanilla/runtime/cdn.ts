@@ -148,7 +148,7 @@ function ensurePopoverEls(): { wrapper: HTMLDivElement; content: HTMLDivElement 
     // Outer wrapper: position + transform only (matches React's wrapper div)
     const wrapper = document.createElement("div");
     wrapper.setAttribute("data-dc-popover-wrapper", "");
-    wrapper.style.position = "absolute";
+    wrapper.style.position = "fixed";
     wrapper.style.left = "0";
     wrapper.style.top = "0";
     wrapper.style.width = "max-content";
@@ -192,6 +192,7 @@ function CdnPopoverWrapper(props: {
   status: ReturnType<typeof getStatusFromVerification>;
   sourceLabel: string | undefined;
   downloadUrl: string | undefined;
+  displayLabel?: string;
 }) {
   const [viewState, setViewState] = useState<PopoverViewState>("summary");
   return createElement(DefaultPopoverContent, { ...props, viewState, onViewStateChange: setViewState });
@@ -427,6 +428,7 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
   wrapper.style.display = "";
   wrapper.style.visibility = "hidden";
   wrapper.style.pointerEvents = "none";
+  const displayLabel = trigger.getAttribute("data-dc-display-label") ?? undefined;
   render(
     createElement(CdnPopoverWrapper, {
       citation,
@@ -435,6 +437,7 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
       status,
       sourceLabel: data.label,
       downloadUrl: data.downloadUrl,
+      displayLabel,
     }),
     content,
   );

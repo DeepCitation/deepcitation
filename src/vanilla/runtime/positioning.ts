@@ -27,7 +27,7 @@ export function computePosition(
     side = "top";
   }
 
-  // Convert viewport-relative coords to document-relative so the popover
-  // is positioned in document space and scrolls off screen naturally.
-  return { x: Math.round(x + window.scrollX), y: Math.round(y + window.scrollY), side };
+  // Coords are viewport-relative — no scroll offset needed because the
+  // wrapper uses position:fixed, which is always relative to the viewport.
+  return { x: Math.round(x), y: Math.round(y), side };
 }
