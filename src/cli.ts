@@ -279,7 +279,7 @@ function warnUsage(remaining: number, limit: number): void {
 function formatNetworkError(err: unknown): string {
   if (err instanceof PaymentRequiredError) {
     return [
-      `\nPayment required: ${err.message}`,
+      `\nPayment required: ${sanitizeForLog(err.message)}`,
       ``,
       `  To add a credit card and unlock usage beyond the free tier:`,
       `    npx deepcitation billing`,

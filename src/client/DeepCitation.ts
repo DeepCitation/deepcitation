@@ -338,9 +338,9 @@ export class DeepCitation {
     if (latest) this.onLatestVersion(latest);
   }
 
-  /** If the response contains usage-limit headers, fire the onUsageWarning callback. */
+  /** If the response is successful and contains usage-limit headers, fire the onUsageWarning callback. */
   private checkUsageWarning(response: Response): void {
-    if (!this.onUsageWarning) return;
+    if (!this.onUsageWarning || !response.ok) return;
     const remaining = parseFloat(response.headers.get("X-DeepCitation-Remaining") ?? "");
     const limit = parseFloat(response.headers.get("X-DeepCitation-Limit") ?? "");
     if (!Number.isNaN(remaining) && !Number.isNaN(limit)) this.onUsageWarning(remaining, limit);
