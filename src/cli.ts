@@ -11,8 +11,11 @@ import {
   CREDENTIALS_PATH,
   deleteCredentials,
   generateNonce,
+  maskKey,
   openBrowser,
-  readCredentials,
+  type ResolvedAuth,
+  resolveAuth,
+  sourceLabel,
   startCallbackServer,
   writeCredentials,
 } from "./auth.js";
@@ -32,6 +35,17 @@ import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "
 
 // ── version ─────────────────────────────────────────────────────────
 const { version: CLI_VERSION } = createRequire(import.meta.url)("../package.json") as { version: string };
+
+// ── environment detection ─────────────────────────────────────────
+// CLAUDE_CODE_REMOTE=true is set in Claude Cowork (web-based cloud sessions).
+// Cowork has ephemeral filesystems and network domain restrictions.
+const IS_CLAUDE_COWORK = process.env.CLAUDE_CODE_REMOTE === "true";
+
+const CLAUDE_COWORK_DOMAIN_HINT =
+  "This appears to be a Claude Cowork (cloud) session.\n" +
+  "  The user must add *.deepcitation.com to allowed domains:\n" +
+  "  https://claude.ai/settings/capabilities\n" +
+  '  → Under "Additional allowed domains", add *.deepcitation.com and press Add.';
 
 // ── proxy support ──────────────────────────────────────────────────
 
@@ -65,7 +79,12 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
           res(socket);
         } else {
           socket.destroy();
-          rej(new Error(`Proxy CONNECT failed with status ${_res.statusCode}`));
+          rej(
+            new Error(
+              `Proxy CONNECT failed with status ${_res.statusCode}. ` +
+                `Try bypassing the proxy with: NO_PROXY=api.deepcitation.com deepcitation <command>`,
+            ),
+          );
         }
       });
       req.on("error", rej);
@@ -194,7 +213,7 @@ Commands:
   login     Log in to DeepCitation (browser flow, --key <key>, --stdin, or DEEPCITATION_API_KEY)
   logout    Remove saved credentials
   whoami    Show the currently logged-in user
-  status    Check auth status (exit 0 if logged in, exit 1 if not — no output)
+  status    Check auth status (exit 0 if logged in, exit 1 if not)
   env       Print export DEEPCITATION_API_KEY=... for shell eval
   prepare   Prepare a file or URL for citation verification
   verify    Verify citations (--markdown, --html, or --citations)
@@ -238,6 +257,13 @@ function die(msg: string, help: string): never {
   process.exit(1);
 }
 
+/** Resolve auth or die with a helpful message. */
+function requireAuth(helpText: string): ResolvedAuth {
+  const auth = resolveAuth();
+  if (!auth) die('Not authenticated. Run "deepcitation login" or set DEEPCITATION_API_KEY.', helpText);
+  return auth;
+}
+
 function parseArgs(argv: string[], help: string): Record<string, string> {
   const args: Record<string, string> = {};
   for (let i = 0; i < argv.length; i++) {
@@ -263,6 +289,14 @@ function createClient(apiKey: string): DeepCitation {
     // Redact user:password@ from proxy URL before logging
     const safeProxy = sanitizeForLog(proxyUrl.replace(/\/\/[^@]+@/, "//***@"));
     console.error(`Using proxy: ${safeProxy}`);
+
+    // In Cowork, globalThis.fetch already routes through the proxy transparently.
+    // Our custom CONNECT tunnel hangs on long-lived requests — skip it.
+    if (IS_CLAUDE_COWORK) {
+      console.error("Cowork session — using built-in fetch (proxy is transparent).");
+      return new DeepCitation({ apiKey, onUsageUpdate: warnUsage });
+    }
+
     return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl), onUsageUpdate: warnUsage });
   }
 
@@ -298,9 +332,12 @@ function formatNetworkError(err: unknown): string {
   }
   const msg = err instanceof Error ? err.message : String(err);
   if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("EAI_AGAIN")) {
+    if (IS_CLAUDE_COWORK) {
+      return `Network error: ${msg}.\n\n${CLAUDE_COWORK_DOMAIN_HINT}`;
+    }
     const proxyHint =
       process.env.HTTPS_PROXY || process.env.HTTP_PROXY
-        ? " Proxy is set but may not be working — check HTTPS_PROXY."
+        ? " Proxy is set but may not be working. Try: NO_PROXY=api.deepcitation.com deepcitation <command>"
         : " If behind a proxy, set HTTPS_PROXY=http://your-proxy:port";
     return `Network error: ${msg}.${proxyHint}`;
   }
@@ -342,8 +379,7 @@ async function prepare(argv: string[]) {
   const positional = filteredArgv.find(a => !a.startsWith("--"));
   if (!positional) die("A file path or URL is required", PREPARE_HELP);
 
-  const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
-  if (!apiKey) die('DEEPCITATION_API_KEY not set. Run "deepcitation login" or set the env var.', PREPARE_HELP);
+  const { apiKey } = requireAuth(PREPARE_HELP);
 
   const dc = createClient(apiKey);
 
@@ -468,8 +504,7 @@ async function verify(argv: string[]) {
   const citationsPath = args.citations;
   if (!citationsPath) die("--html or --citations is required", VERIFY_HELP);
 
-  const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
-  if (!apiKey) die('DEEPCITATION_API_KEY not set. Run "deepcitation login" or set the env var.', VERIFY_HELP);
+  const { apiKey } = requireAuth(VERIFY_HELP);
 
   const dc = createClient(apiKey);
 
@@ -763,8 +798,7 @@ async function verifyHtml(argv: string[], preloadedContent?: string) {
   const htmlPath = args.html;
   if (!htmlPath && !preloadedContent) die("--html is required", VERIFY_HELP);
 
-  const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
-  if (!apiKey) die('Not authenticated. Run "deepcitation login" first.', VERIFY_HELP);
+  const { apiKey } = requireAuth(VERIFY_HELP);
 
   const dc = createClient(apiKey);
   // htmlPath is guaranteed set when preloadedContent is absent (die() above exits otherwise)
@@ -1025,17 +1059,37 @@ async function login(argv: string[]) {
     return;
   }
 
-  const envKey = process.env.DEEPCITATION_API_KEY;
-  if (envKey) {
-    saveApiKey(envKey, "DEEPCITATION_API_KEY");
+  const existing = resolveAuth();
+  if (existing) {
+    console.log(`Already authenticated (${maskKey(existing.apiKey)}).`);
+    console.log(`Source: ${sourceLabel(existing.source)}`);
+    console.log('Run "deepcitation logout" first to switch accounts.');
     return;
   }
 
-  const existing = readCredentials();
-  if (existing) {
-    console.log(`Already logged in as ${sanitizeForLog(existing.email ?? "unknown")}.`);
-    console.log('Run "deepcitation logout" first to switch accounts.');
-    return;
+  // Non-interactive (piped stdin, AI agent, CI) — browser OAuth won't work.
+  // Give clear instructions for non-interactive login instead of hanging.
+  if (!process.stdin.isTTY) {
+    const manualUrl = `${BASE_URL}/cli-auth?manual=true`;
+    if (IS_CLAUDE_COWORK) {
+      console.log("Claude Cowork (cloud session) detected. To set up DeepCitation:\n");
+      console.log("1. Add *.deepcitation.com to allowed domains:");
+      console.log("   https://claude.ai/settings/capabilities");
+      console.log('   → Under "Additional allowed domains", add *.deepcitation.com and press Add.\n');
+      console.log("2. Get an API key:");
+      console.log(`   ${manualUrl}\n`);
+      console.log("3. Save the key — set DEEPCITATION_API_KEY in your Cowork environment settings.");
+      console.log("   This persists across sessions automatically.");
+      console.log("   Or for this session only: deepcitation login --key <your-key>");
+    } else {
+      console.log("Non-interactive environment detected (no TTY).");
+      console.log(`\nTo log in, get an API key from:\n  ${manualUrl}\n`);
+      console.log("Then run one of:");
+      console.log("  deepcitation login --key <your-key>");
+      console.log("  echo <your-key> | deepcitation login --stdin");
+      console.log("  export DEEPCITATION_API_KEY=<your-key>");
+    }
+    process.exit(1);
   }
 
   const nonce = generateNonce();
@@ -1048,9 +1102,7 @@ async function login(argv: string[]) {
   openBrowser(url);
 
   console.log("Waiting for browser authentication...");
-  if (process.stdin.isTTY) {
-    console.log("If the browser shows a key to copy, paste it here and press Enter:");
-  }
+  console.log("If the browser shows a key to copy, paste it here and press Enter:");
 
   // Race browser callback vs key pasted directly into the terminal.
   // Creating the readline interface also puts stdin into flowing mode,
@@ -1105,44 +1157,53 @@ async function login(argv: string[]) {
 }
 
 function logout() {
-  if (deleteCredentials()) {
-    console.log(`Logged out. Credentials removed from ${CREDENTIALS_PATH}`);
-  } else {
+  const auth = resolveAuth();
+  if (!auth) {
     console.log("No saved credentials found.");
+    return;
+  }
+  switch (auth.source.kind) {
+    case "credentials":
+      if (deleteCredentials()) console.log(`Logged out. Credentials removed from ${CREDENTIALS_PATH}`);
+      break;
+    case "dotenv":
+      console.log(`API key is stored in ${auth.source.path}.`);
+      console.log("Remove the DEEPCITATION_API_KEY line from that file to log out.");
+      // Also clean up credentials.json if it exists
+      deleteCredentials();
+      break;
+    case "env-var":
+      console.log("API key is set via the DEEPCITATION_API_KEY environment variable.");
+      console.log("Unset it to log out: unset DEEPCITATION_API_KEY");
+      deleteCredentials();
+      break;
   }
 }
 
 function whoami() {
-  const creds = readCredentials();
-  if (!creds) {
+  const auth = resolveAuth();
+  if (!auth) {
     console.log('Not logged in. Run "deepcitation login" to get started.');
     process.exit(1);
   }
-  if (creds.displayName) console.log(`Name:   ${sanitizeForLog(creds.displayName)}`);
-  if (creds.email) console.log(`Email:  ${sanitizeForLog(creds.email)}`);
-  console.log(`Status: Authenticated`);
+  if (auth.credentials?.displayName) console.log(`Name:   ${sanitizeForLog(auth.credentials.displayName)}`);
+  if (auth.credentials?.email) console.log(`Email:  ${sanitizeForLog(auth.credentials.email)}`);
+  console.log(`Key:    ${maskKey(auth.apiKey)}`);
+  console.log(`Source: ${sourceLabel(auth.source)}`);
 }
 
 function env() {
-  // If already set in the environment, pass it through (no-op for eval)
-  const existing = process.env.DEEPCITATION_API_KEY;
-  if (existing && /^sk-dc-[A-Za-z0-9]+$/.test(existing)) {
-    process.stdout.write(`export DEEPCITATION_API_KEY="${existing}"\n`);
-    return;
-  }
-
-  const creds = readCredentials();
-  if (!creds) {
+  const auth = resolveAuth();
+  if (!auth) {
     process.stderr.write('Not logged in. Run "npx deepcitation login" first.\n');
     process.exit(1);
   }
-  // Validate key format before writing into a shell eval context
-  if (!/^sk-dc-[A-Za-z0-9]+$/.test(creds.apiKey)) {
+  if (!/^sk-dc-[A-Za-z0-9]+$/.test(auth.apiKey)) {
     process.stderr.write('Saved API key has an unexpected format. Run "npx deepcitation login" again.\n');
     process.exit(1);
   }
   // stdout only — safe for eval "$(deepcitation env)"
-  process.stdout.write(`export DEEPCITATION_API_KEY="${creds.apiKey}"\n`);
+  process.stdout.write(`export DEEPCITATION_API_KEY="${auth.apiKey}"\n`);
 }
 
 // ── billing ────────────────────────────────────────────────────────
@@ -1200,8 +1261,7 @@ async function getAttachment(argv: string[]) {
   }
   if (!positional) die("An attachment ID is required", GET_HELP);
 
-  const apiKey = process.env.DEEPCITATION_API_KEY ?? readCredentials()?.apiKey;
-  if (!apiKey) die('DEEPCITATION_API_KEY not set. Run "deepcitation login" or set the env var.', GET_HELP);
+  const { apiKey } = requireAuth(GET_HELP);
 
   const dc = createClient(apiKey);
 
@@ -1288,9 +1348,20 @@ switch (command) {
   case "whoami":
     whoami();
     break;
-  case "status":
-    process.exit(readCredentials() ? 0 : 1);
+  case "status": {
+    const auth = resolveAuth();
+    if (auth) {
+      const parts = [`Authenticated (${maskKey(auth.apiKey)})`];
+      parts.push(`Source: ${sourceLabel(auth.source)}`);
+      if (auth.credentials?.email) parts.push(`Email: ${sanitizeForLog(auth.credentials.email)}`);
+      console.log(parts.join("\n"));
+      process.exit(0);
+    } else {
+      console.log('Not logged in. Run "deepcitation login --key <key>" or set DEEPCITATION_API_KEY.');
+      process.exit(1);
+    }
     break;
+  }
   case "env":
     env();
     break;

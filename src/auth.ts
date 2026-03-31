@@ -7,7 +7,7 @@ import { randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { isDomainMatch } from "./utils/urlSafety.js";
 
 /** Escape user-controlled strings for safe HTML interpolation. */
@@ -25,7 +25,10 @@ export interface Credentials {
   createdAt: string;
 }
 
-const CREDENTIALS_DIR = join(homedir(), ".deepcitation");
+// In Cowork (cloud sessions), the homedir may not be writable — the project
+// directory is the guaranteed writable area. .deepcitation/ is already gitignored.
+const CREDENTIALS_DIR =
+  process.env.CLAUDE_CODE_REMOTE === "true" ? join(process.cwd(), ".deepcitation") : join(homedir(), ".deepcitation");
 export const CREDENTIALS_PATH = join(CREDENTIALS_DIR, "credentials.json");
 
 export function readCredentials(): Credentials | null {
@@ -56,6 +59,59 @@ export function deleteCredentials(): boolean {
 export function maskKey(key: string): string {
   if (key.length <= 10) return `${key.slice(0, 6)}...`;
   return `${key.slice(0, 10)}...${key.slice(-4)}`;
+}
+
+// ── Auth resolution ───────────────────────────────────────────────
+
+export type AuthSource = { kind: "env-var" } | { kind: "dotenv"; path: string } | { kind: "credentials"; path: string };
+
+export interface ResolvedAuth {
+  apiKey: string;
+  source: AuthSource;
+  /** Credentials metadata (email, displayName) — only from credentials.json */
+  credentials?: Credentials;
+}
+
+/** Human-readable label for where a key was loaded from. */
+export function sourceLabel(source: AuthSource): string {
+  switch (source.kind) {
+    case "env-var":
+      return "DEEPCITATION_API_KEY environment variable";
+    case "dotenv":
+      return source.path;
+    case "credentials":
+      return source.path;
+  }
+}
+
+/**
+ * Resolve an API key from all known sources, in priority order:
+ *   1. DEEPCITATION_API_KEY env var (Cowork env settings, shell export)
+ *   2. .env / .deepcitation/.env files in project dir
+ *   3. credentials.json (homedir or project dir depending on environment)
+ */
+export function resolveAuth(): ResolvedAuth | null {
+  const envKey = process.env.DEEPCITATION_API_KEY;
+  if (envKey && envKey.startsWith("sk-dc-")) {
+    return { apiKey: envKey, source: { kind: "env-var" } };
+  }
+
+  for (const p of [resolve(".env"), resolve(".deepcitation", ".env")]) {
+    try {
+      const content = readFileSync(p, "utf-8");
+      const match = content.match(/^DEEPCITATION_API_KEY\s*=\s*["']?(sk-dc-[A-Za-z0-9]+)["']?/m);
+      if (match) return { apiKey: match[1], source: { kind: "dotenv", path: p } };
+    } catch {
+      /* file not found */
+    }
+  }
+
+  const creds = readCredentials();
+  if (creds) {
+    return { apiKey: creds.apiKey, source: { kind: "credentials", path: CREDENTIALS_PATH }, credentials: creds };
+  }
+
+  return null;
 }
 
 // ── Browser ────────────────────────────────────────────────────────
