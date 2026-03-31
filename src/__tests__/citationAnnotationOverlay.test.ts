@@ -136,33 +136,32 @@ describe("CitationAnnotationOverlay utilities", () => {
       expect(shouldHighlightAnchorText(undefined, undefined)).toBe(false);
     });
 
-    it("returns false when anchorText equals fullPhrase", () => {
-      expect(shouldHighlightAnchorText("hello world", "hello world")).toBe(false);
+    it("returns true when anchorText equals fullPhrase (visual gate is in computeKeySpanHighlight)", () => {
+      expect(shouldHighlightAnchorText("hello world", "hello world")).toBe(true);
     });
 
-    it("returns false when anchorText has more words than fullPhrase", () => {
-      expect(shouldHighlightAnchorText("the quick brown fox", "quick brown")).toBe(false);
+    it("returns true when anchorText has more words than fullPhrase", () => {
+      expect(shouldHighlightAnchorText("the quick brown fox", "quick brown")).toBe(true);
     });
 
-    it("returns false for 2 words in 3 words (only 1 word difference)", () => {
-      expect(shouldHighlightAnchorText("quick brown", "the quick brown")).toBe(false);
+    it("returns true for 2 words in 3 words", () => {
+      expect(shouldHighlightAnchorText("quick brown", "the quick brown")).toBe(true);
     });
 
-    it("highlights 2 words in 4 words (2 word difference)", () => {
+    it("returns true for 2 words in 4 words", () => {
       expect(shouldHighlightAnchorText("quick brown", "the quick brown fox")).toBe(true);
     });
 
-    it("highlights 1 word in 3 words", () => {
+    it("returns true for 1 word in 3 words", () => {
       expect(shouldHighlightAnchorText("brown", "the quick brown")).toBe(true);
     });
 
-    // Single-word exception: 1 word in 2 words highlights (1-word diff allowed)
-    it("highlights 1 word in 2 words (single-word exception)", () => {
+    it("returns true for 1 word in 2 words", () => {
       expect(shouldHighlightAnchorText("hello", "hello world")).toBe(true);
     });
 
-    it("returns false for 1 word in 1 word (same count)", () => {
-      expect(shouldHighlightAnchorText("hello", "world")).toBe(false);
+    it("returns true for 1 word in 1 word (visual distinctness decided downstream)", () => {
+      expect(shouldHighlightAnchorText("hello", "world")).toBe(true);
     });
 
     it("returns false for empty strings", () => {

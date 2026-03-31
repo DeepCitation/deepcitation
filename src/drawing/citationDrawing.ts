@@ -113,37 +113,6 @@ export function getBracketColor(highlightColor: HighlightColor = "green"): strin
 // Highlight Decision Logic
 // =============================================================================
 
-/** Minimum extra words fullPhrase must have over anchorText to trigger highlight. */
-const MIN_WORD_DIFFERENCE = 2;
-
-/**
- * Count whitespace-delimited words in a string.
- * Uses safeSplit for input-length validation.
- * @throws Error if text exceeds MAX_REGEX_INPUT_LENGTH (~100KB)
- */
-function countWords(text: string): number {
-  const trimmed = text.trim();
-  if (trimmed.length === 0) return 0;
-  return safeSplit(trimmed, /\s+/).length;
-}
-
-/**
- * Determines if anchorText should be highlighted within fullPhrase.
- *
- * Word-based rules:
- * - Highlight when anchorText has fewer words than fullPhrase
- * - fullPhrase must have at least 2 more words than anchorText
- * - Exception: 1-word anchorText highlights even with 1-word difference
- *
- * Examples:
- * - 1 word in 3 words  -> highlight
- * - 1 word in 2 words  -> highlight (single-word exception)
- * - 2 words in 4 words -> highlight
- * - 1 word in 1 word   -> no highlight (same count)
- * - 2 words in 3 words -> no highlight (only 1 word difference)
- *
- * @throws Error if either input exceeds MAX_REGEX_INPUT_LENGTH (~100KB)
- */
 /**
  * True when the API returned verifiedFullPhrase identical to verifiedAnchorText —
  * a "strategy override" where the model collapsed the full phrase to just the anchor.
@@ -159,24 +128,17 @@ export function isStrategyOverride(
   );
 }
 
+/**
+ * Returns true when both anchorText and fullPhrase are non-null, non-undefined,
+ * and non-empty. The rendering layer decides whether to visually show the highlight
+ * by checking that the anchor and phrase boxes are actually distinct (hasDistinctKeySpanBox
+ * in computeKeySpanHighlight).
+ */
 export function shouldHighlightAnchorText(
   anchorText: string | null | undefined,
   fullPhrase: string | null | undefined,
 ): boolean {
-  if (!anchorText || !fullPhrase) return false;
-
-  const anchorTextWords = countWords(anchorText);
-  const fullPhraseWords = countWords(fullPhrase);
-
-  if (anchorTextWords === 0 || fullPhraseWords === 0) return false;
-  if (anchorTextWords >= fullPhraseWords) return false;
-
-  const wordDifference = fullPhraseWords - anchorTextWords;
-
-  // Single-word anchorText: allow even with 1-word difference
-  if (anchorTextWords === 1 && wordDifference >= 1) return true;
-
-  return wordDifference >= MIN_WORD_DIFFERENCE;
+  return Boolean(anchorText?.trim()) && Boolean(fullPhrase?.trim());
 }
 
 /**
