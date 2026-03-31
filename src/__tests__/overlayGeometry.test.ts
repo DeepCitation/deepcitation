@@ -280,4 +280,17 @@ describe("viewBoxOriginY correction", () => {
     // With correction, scrollTop should be larger (highlight is lower on page)
     expect(with_.scrollTop).toBeGreaterThanOrEqual(without.scrollTop);
   });
+
+  test("computeAnnotationOriginPercent applies viewBoxOriginY correction", () => {
+    const item = { x: 50, y: 613, width: 200, height: 11 };
+    const without = computeAnnotationOriginPercent(item, SCALE, IMG_W, IMG_H, "pdf", 0);
+    const with_ = computeAnnotationOriginPercent(item, SCALE, IMG_W, IMG_H, "pdf", VB_ORIGIN_Y);
+    expect(without).not.toBeNull();
+    expect(with_).not.toBeNull();
+    if (!without || !with_) return;
+    // With correction, the Y origin percent should be larger (annotation is lower on page)
+    expect(with_.yPercent).toBeGreaterThan(without.yPercent);
+    // X is unaffected
+    expect(with_.xPercent).toBeCloseTo(without.xPercent, 5);
+  });
 });

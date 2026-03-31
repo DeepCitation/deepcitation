@@ -695,7 +695,8 @@ async function verifyHtml(argv: string[], preloadedContent?: string) {
   // 1. Parse: split HTML from <<<CITATION_DATA>>> block
   const parsed = parseCitationData(raw);
   if (!parsed.success || parsed.citations.length === 0) {
-    die("No valid <<<CITATION_DATA>>> block found in the HTML file.", VERIFY_HELP);
+    const src = preloadedContent ? "markdown" : "HTML";
+    die(`No valid <<<CITATION_DATA>>> block found in the ${src} file.`, VERIFY_HELP);
   }
 
   const allowedFormats = ["avif", "png", "jpeg", "webp"] as const;
