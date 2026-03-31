@@ -7,8 +7,6 @@
  * (CitationAnnotationOverlay.tsx).
  */
 
-import { safeSplit } from "../utils/regexSafety.js";
-
 // =============================================================================
 // Types
 // =============================================================================
@@ -146,8 +144,8 @@ export function shouldHighlightAnchorText(
  * the anchorText bounding box item to use for drawing.
  *
  * Checks that the anchorTextMatchDeepItems[0] text is distinct from the
- * phraseMatchDeepItem text (case-insensitive) and that the word-difference
- * threshold is met via shouldHighlightAnchorText.
+ * phraseMatchDeepItem text (case-insensitive) via shouldHighlightAnchorText,
+ * and that the rendered boxes are geometrically distinct (hasDistinctKeySpanBox).
  *
  * @throws Error if either text input exceeds MAX_REGEX_INPUT_LENGTH (~100KB)
  */

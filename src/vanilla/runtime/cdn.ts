@@ -95,7 +95,7 @@ declare global {
 }
 
 // Two-div architecture (matches React Popover.tsx):
-//   wrapperEl  — position:fixed, transform positioning, pointerEvents
+//   wrapperEl  — position:absolute, transform positioning, pointerEvents
 //   contentEl  — overflow:clip, max-size, border, bg, shadow, renders React tree
 let wrapperEl: HTMLDivElement | null = null;
 let contentEl: HTMLDivElement | null = null;

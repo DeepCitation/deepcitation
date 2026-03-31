@@ -54,6 +54,11 @@ export function HighlightedPhrase({
     return <span className="text-dc-muted-foreground">{fullPhrase}</span>;
   }
 
+  // Entire phrase would be highlighted — no surrounding context, so skip the highlight.
+  if (start === 0 && end === fullPhrase.length) {
+    return <span className="text-dc-muted-foreground">{fullPhrase}</span>;
+  }
+
   return (
     <span className="text-dc-muted-foreground">
       {fullPhrase.slice(0, start)}
