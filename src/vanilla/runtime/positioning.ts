@@ -27,9 +27,8 @@ export function computePosition(
     side = "top";
   }
 
-  // Clamp y to viewport — mirrors the horizontal clamp above. Without this,
-  // a tall expanded popover near the bottom (or top) of the viewport overflows
-  // and becomes inaccessible to the user.
+  // Clamp y: guards top-side placement from going above viewport (y < 8)
+  // and bottom-side placement from overflowing below (y > innerHeight - height - 8).
   y = Math.max(8, Math.min(y, window.innerHeight - popoverHeight - 8));
 
   // Coords are viewport-relative; reposition() converts to container-relative.

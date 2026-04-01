@@ -30,6 +30,7 @@ import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
+import { safeReplace } from "../utils/regexSafety.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
@@ -193,7 +194,7 @@ const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
 const DEFAULT_API_URL = "https://api.deepcitation.com";
 
 /** Resolve auth or exit with the standard DeepCitation auth prompt. */
-export function requireAuth(_helpText: string): ResolvedAuth {
+export function requireAuth(): ResolvedAuth {
   const auth = resolveAuth();
   if (!auth) {
     const keyUrl = `${resolveBaseUrl()}/cli-auth?manual=true`;
@@ -312,7 +313,7 @@ export async function prepare(argv: string[], fmtNetErr: (err: unknown) => strin
   const positional = filteredArgv.find(a => !a.startsWith("--"));
   if (!positional) die("A file path or URL is required", PREPARE_HELP);
 
-  const { apiKey } = requireAuth(PREPARE_HELP);
+  const { apiKey } = requireAuth();
 
   const dc = createClient(apiKey);
 
@@ -404,7 +405,7 @@ export async function verify(
   const citationsPath = args.citations;
   if (!citationsPath) die("--html or --citations is required", VERIFY_HELP);
 
-  const { apiKey } = requireAuth(VERIFY_HELP);
+  const { apiKey } = requireAuth();
 
   const dc = createClient(apiKey);
 
@@ -464,12 +465,12 @@ export async function verify(
   if (found === 0 && total > 0) {
     console.error(
       `\nAll citations returned not_found. This is almost always a citation format problem, not a content problem.\n` +
-      `Common causes:\n` +
-      `  1. anchor_text is not a verbatim substring of full_phrase (paraphrased or too long)\n` +
-      `  2. page_id format is wrong — must be page_number_N_index_I (taken from the tag name in deepTextPromptPortion)\n` +
-      `  3. The attachment was re-prepared — attachmentId has changed\n` +
-      `\nRecommended: use "deepcitation verify --markdown <draft.md>" instead of --citations.\n` +
-      `The --markdown path handles keygen and format normalization automatically.`,
+        `Common causes:\n` +
+        `  1. anchor_text is not a verbatim substring of full_phrase (paraphrased or too long)\n` +
+        `  2. page_id format is wrong — must be page_number_N_index_I (taken from the tag name in deepTextPromptPortion)\n` +
+        `  3. The attachment was re-prepared — attachmentId has changed\n` +
+        `\nRecommended: use "deepcitation verify --markdown <draft.md>" instead of --citations.\n` +
+        `The --markdown path handles keygen and format normalization automatically.`,
     );
   }
   console.log(outPath);
@@ -598,8 +599,10 @@ export function inject(argv: string[]) {
   if (args.out) {
     outPath = resolve(args.out);
   } else {
-    const stem = basename(htmlPath, extname(htmlPath)).replace(/-annotated$/, "").replace(/-draft$/, "");
-    outPath = resolve(`${stem}-verified.html`);
+    const stem = basename(htmlPath, extname(htmlPath))
+      .replace(/-annotated$/, "")
+      .replace(/-draft$/, "");
+    outPath = resolve(dirname(htmlPath), `${stem}-verified.html`);
   }
   writeFileSync(outPath, output);
   console.error(`\nVerified report saved to: ${outPath}`);
@@ -681,7 +684,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   // Set default output name: derive from input filename, e.g. report.md → report-verified.html
   if (!args.out) {
     const stem = basename(resolved, extname(resolved));
-    forwardArgs.push("--out", resolve(`${stem}-verified.html`));
+    forwardArgs.push("--out", resolve(dirname(resolved), `${stem}-verified.html`));
   }
 
   return verifyHtml(forwardArgs, fmtNetErr, htmlWithCitations);
@@ -692,7 +695,7 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
   const htmlPath = args.html;
   if (!htmlPath && !preloadedContent) die("--html is required", VERIFY_HELP);
 
-  const { apiKey } = requireAuth(VERIFY_HELP);
+  const { apiKey } = requireAuth();
 
   const dc = createClient(apiKey);
   // htmlPath is guaranteed set when preloadedContent is absent (die() above exits otherwise)
@@ -771,13 +774,13 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
       ? `data-citation-key="${hash}" data-dc-display-label="${label.replace(/"/g, "&quot;")}"`
       : `data-citation-key="${hash}"`;
     const dataCitePattern = new RegExp(`data-cite="${id}"`, "g");
-    html = html.replace(dataCitePattern, replacement);
+    html = safeReplace(html, dataCitePattern, replacement);
     keyMap[`cite-${id}`] = hash;
   }
 
   // Strip [N] text markers only for known citation IDs (avoid removing legitimate [42] etc.)
   for (const id of idToHash.keys()) {
-    html = html.replace(new RegExp(`\\s*\\[${id}\\]`, "g"), "");
+    html = safeReplace(html, new RegExp(`\\s*\\[${id}\\]`, "g"), "");
   }
 
   // Save intermediate artifacts
@@ -839,10 +842,10 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
   if (found === 0 && total > 0) {
     console.error(
       `\nAll citations returned not_found. Common causes:\n` +
-      `  1. anchor_text is not verbatim from deepTextPromptPortion (paraphrased or > 4 words / 40 chars)\n` +
-      `  2. page_id format is wrong — must be page_number_N_index_I from the tag name, not the printed page number\n` +
-      `  3. The attachment was re-prepared — update attachmentId in the draft and re-run\n` +
-      `\nFix the citation data in the draft .md and re-run "deepcitation verify --markdown <draft.md>".`,
+        `  1. anchor_text is not verbatim from deepTextPromptPortion (paraphrased or > 4 words / 40 chars)\n` +
+        `  2. page_id format is wrong — must be page_number_N_index_I from the tag name, not the printed page number\n` +
+        `  3. The attachment was re-prepared — update attachmentId in the draft and re-run\n` +
+        `\nFix the citation data in the draft .md and re-run "deepcitation verify --markdown <draft.md>".`,
     );
   }
 
@@ -1049,7 +1052,7 @@ export function status() {
     console.log(parts.join("\n"));
     process.exit(0);
   } else {
-    console.log("Not logged in.");
+    console.log('Not logged in. Run "npx deepcitation login" or set DEEPCITATION_API_KEY.');
     process.exit(1);
   }
 }
@@ -1084,7 +1087,7 @@ export async function getAttachment(argv: string[]) {
   }
   if (!positional) die("An attachment ID is required", GET_HELP);
 
-  const { apiKey } = requireAuth(GET_HELP);
+  const { apiKey } = requireAuth();
 
   const dc = createClient(apiKey);
 
