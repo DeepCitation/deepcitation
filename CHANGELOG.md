@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-04-01
+
 ### Added
 
 - **`display_label` field on `CitationData`** — compact key `d`, alias `displayLabel`; overrides `anchor_text` as the clickable trigger text. CLI injects `data-dc-display-label` attribute into verified HTML output. (#398)
