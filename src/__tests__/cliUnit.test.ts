@@ -1,7 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
-
-import { PaymentRequiredError } from "../client/errors.js";
 import { CLAUDE_COWORK_DOMAIN_HINT, formatNetworkError, isValidApiKeyFormat, parseArgs } from "../cli/cliUtils.js";
+import { PaymentRequiredError } from "../client/errors.js";
 
 // ── parseArgs ─────────────────────────────────────────────────────
 

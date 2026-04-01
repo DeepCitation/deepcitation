@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, it, beforeAll, afterAll } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 
 const CLI = resolve(__dirname, "../../lib/cli.js");
 
@@ -176,7 +176,9 @@ describe("auth commands", () => {
   it("login --key saves valid credentials", () => {
     const loginHome = join(TEST_DIR, "login-home");
     mkdirSync(loginHome, { recursive: true });
-    const r = run(["login", "--key", "sk-dc-test12345678901234"], { env: { HOME: loginHome, DEEPCITATION_API_KEY: "" } });
+    const r = run(["login", "--key", "sk-dc-test12345678901234"], {
+      env: { HOME: loginHome, DEEPCITATION_API_KEY: "" },
+    });
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain("Credentials saved");
   });
@@ -286,7 +288,9 @@ describe("verify command", () => {
   });
 
   it("verify --markdown errors on nonexistent file", () => {
-    const r = run(["verify", "--markdown", "/nonexistent.md"], { env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" } });
+    const r = run(["verify", "--markdown", "/nonexistent.md"], {
+      env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" },
+    });
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toContain("File not found");
   });
@@ -302,7 +306,9 @@ describe("verify command", () => {
   it("verify --markdown errors with invalid --style", () => {
     const mdFile = join(TEST_DIR, "style-test.md");
     writeFileSync(mdFile, "test\n<<<CITATION_DATA>>>\n[]\n<<<END_CITATION_DATA>>>");
-    const r = run(["verify", "--markdown", mdFile, "--style", "fancy"], { env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" } });
+    const r = run(["verify", "--markdown", mdFile, "--style", "fancy"], {
+      env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" },
+    });
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toContain("--style");
   });
@@ -310,13 +316,17 @@ describe("verify command", () => {
   it("verify --markdown errors with invalid --audience", () => {
     const mdFile = join(TEST_DIR, "audience-test.md");
     writeFileSync(mdFile, "test\n<<<CITATION_DATA>>>\n[]\n<<<END_CITATION_DATA>>>");
-    const r = run(["verify", "--markdown", mdFile, "--audience", "casual"], { env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" } });
+    const r = run(["verify", "--markdown", mdFile, "--audience", "casual"], {
+      env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" },
+    });
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toContain("--audience");
   });
 
   it("verify --html errors on nonexistent file", () => {
-    const r = run(["verify", "--html", "/nonexistent.html"], { env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" } });
+    const r = run(["verify", "--html", "/nonexistent.html"], {
+      env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" },
+    });
     expect(r.exitCode).toBe(1);
   });
 
@@ -380,7 +390,7 @@ describe("inject command", () => {
     const verifyFile = join(TEST_DIR, "inject-basic-verify.json");
     const outFile = join(TEST_DIR, "inject-basic-out.html");
     writeFileSync(htmlFile, "<html><body><p>Test content</p></body></html>");
-    writeFileSync(verifyFile, JSON.stringify({ verifications: { "abc123": { status: "found" } } }));
+    writeFileSync(verifyFile, JSON.stringify({ verifications: { abc123: { status: "found" } } }));
 
     const r = run(["inject", "--html", htmlFile, "--verify-response", verifyFile, "--out", outFile]);
     expect(r.exitCode).toBe(0);
@@ -412,7 +422,17 @@ describe("inject command", () => {
     writeFileSync(htmlFile, "<html><body>test</body></html>");
     writeFileSync(verifyFile, JSON.stringify({ verifications: {} }));
 
-    const r = run(["inject", "--html", htmlFile, "--verify-response", verifyFile, "--out", outFile, "--indicator", "dot"]);
+    const r = run([
+      "inject",
+      "--html",
+      htmlFile,
+      "--verify-response",
+      verifyFile,
+      "--out",
+      outFile,
+      "--indicator",
+      "dot",
+    ]);
     expect(r.exitCode).toBe(0);
     const output = readFileSync(outFile, "utf-8");
     expect(output).toContain("indicatorVariant");
@@ -450,7 +470,17 @@ describe("inject edge cases", () => {
     writeFileSync(verifyFile, JSON.stringify({ verifications: {} }));
     writeFileSync(keyMapFile, JSON.stringify({ "cite-1": "abc123" }));
 
-    const r = run(["inject", "--html", htmlFile, "--verify-response", verifyFile, "--key-map", keyMapFile, "--out", outFile]);
+    const r = run([
+      "inject",
+      "--html",
+      htmlFile,
+      "--verify-response",
+      verifyFile,
+      "--key-map",
+      keyMapFile,
+      "--out",
+      outFile,
+    ]);
     expect(r.exitCode).toBe(0);
     const output = readFileSync(outFile, "utf-8");
     expect(output).toContain('id="dc-key-map"');
@@ -474,10 +504,7 @@ describe("inject edge cases", () => {
     const htmlFile = join(TEST_DIR, "inject-dl.html");
     const verifyFile = join(TEST_DIR, "inject-dl-verify.json");
     const outFile = join(TEST_DIR, "inject-dl-out.html");
-    writeFileSync(
-      htmlFile,
-      '<html><body><span data-citation-key="abc123">visible label</span></body></html>',
-    );
+    writeFileSync(htmlFile, '<html><body><span data-citation-key="abc123">visible label</span></body></html>');
     writeFileSync(
       verifyFile,
       JSON.stringify({
@@ -498,10 +525,7 @@ describe("inject edge cases", () => {
     const htmlFile = join(TEST_DIR, "inject-dl-match.html");
     const verifyFile = join(TEST_DIR, "inject-dl-match-verify.json");
     const outFile = join(TEST_DIR, "inject-dl-match-out.html");
-    writeFileSync(
-      htmlFile,
-      '<html><body><span data-citation-key="abc123">$2.3B</span></body></html>',
-    );
+    writeFileSync(htmlFile, '<html><body><span data-citation-key="abc123">$2.3B</span></body></html>');
     writeFileSync(
       verifyFile,
       JSON.stringify({
@@ -538,7 +562,9 @@ describe("verify edge cases", () => {
     const citFile = join(TEST_DIR, "verify-fmt.json");
     writeFileSync(
       citFile,
-      JSON.stringify({ c1: { fullPhrase: "test", anchorText: "test", pageNumber: 1, lineIds: [1], attachmentId: "att-1" } }),
+      JSON.stringify({
+        c1: { fullPhrase: "test", anchorText: "test", pageNumber: 1, lineIds: [1], attachmentId: "att-1" },
+      }),
     );
     const r = run(["verify", "--citations", citFile, "--image-format", "gif"], {
       env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" },
@@ -602,7 +628,7 @@ describe("prepare edge cases", () => {
 
 describe("billing command", () => {
   it("billing exits 0 and mentions billing URL", () => {
-    const r = run(["billing"], { env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" } });
+    const r = run(["billing"], { env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234", DC_NO_BROWSER: "1" } });
     expect(r.exitCode).toBe(0);
     expect(r.stderr + r.stdout).toContain("deepcitation.com");
   });

@@ -9,6 +9,20 @@ if (typeof globalThis.TextEncoder === "undefined") {
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+// Polyfill ResizeObserver for jsdom (used by usePopoverAlignOffset, InlineExpandedImage)
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as any;
+}
+
+// Polyfill fetch for jsdom
+if (typeof globalThis.fetch === "undefined") {
+  (globalThis as any).fetch = () => Promise.reject(new Error("fetch not available in test"));
+}
+
 // Suppress false-positive act() warnings from Radix UI components
 // These warnings occur because Radix UI components (PopperContent, FocusScope, DismissableLayer, Presence)
 // trigger state updates through internal event handlers that React Testing Library doesn't automatically wrap.

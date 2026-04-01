@@ -11,7 +11,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, it, beforeAll, afterAll } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
 
 import { DeepCitation } from "../client/DeepCitation.js";
 import { cachedFixture, canRunE2e, hasApiKey } from "./fixtures/fixtureCache.js";
@@ -141,11 +141,7 @@ describe("E2E: verify citations", () => {
         },
       };
 
-      const res = await dc.verifyAttachment(
-        prepare.attachmentId,
-        citations as any,
-        { outputImageFormat: "avif" },
-      );
+      const res = await dc.verifyAttachment(prepare.attachmentId, citations as any, { outputImageFormat: "avif" });
 
       return {
         verifications: Object.fromEntries(

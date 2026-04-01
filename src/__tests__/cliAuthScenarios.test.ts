@@ -143,7 +143,7 @@ describe("auth resolution priority", () => {
     );
 
     // Write .env
-    writeFileSync(join(cwd, ".env"), 'DEEPCITATION_API_KEY=sk-dc-from-dotenv-file1');
+    writeFileSync(join(cwd, ".env"), "DEEPCITATION_API_KEY=sk-dc-from-dotenv-file1");
 
     const r = run(["whoami"], { env: noAuthEnv(home), cwd });
     expect(r.exitCode).toBe(0);
@@ -390,7 +390,10 @@ describe("unauthenticated command errors", () => {
   it("verify --citations says 'Not authenticated'", () => {
     const cwd = join(BASE_DIR, `unauth-verify-${Date.now()}`);
     mkdirSync(cwd, { recursive: true });
-    writeFileSync(join(cwd, "cit.json"), JSON.stringify({ "c1": { attachmentId: "a", fullPhrase: "t", anchorText: "t", pageNumber: 1 } }));
+    writeFileSync(
+      join(cwd, "cit.json"),
+      JSON.stringify({ c1: { attachmentId: "a", fullPhrase: "t", anchorText: "t", pageNumber: 1 } }),
+    );
     const r = run(["verify", "--citations", join(cwd, "cit.json")], { env });
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toContain("Not authenticated");

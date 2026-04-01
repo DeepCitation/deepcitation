@@ -14,7 +14,7 @@
  * the validator itself works correctly.
  */
 
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "@jest/globals";
 
@@ -180,9 +180,7 @@ function validateVerbatimAgainstPrepare(
     }
 
     if (c.anchor_text && !deepText.includes(c.anchor_text)) {
-      errors.push(
-        `[${c.id}] anchor_text NOT found verbatim in source deepTextPromptPortion: "${c.anchor_text}"`,
-      );
+      errors.push(`[${c.id}] anchor_text NOT found verbatim in source deepTextPromptPortion: "${c.anchor_text}"`);
     }
 
     // Check page_id tag exists
