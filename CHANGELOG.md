@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`display_label` field on `CitationData`** — compact key `d`, alias `displayLabel`; overrides `anchor_text` as the clickable trigger text. CLI injects `data-dc-display-label` attribute into verified HTML output. (#398)
+- **Per-group drawer page badges** — multi-source drawers now show page badge strips inline with each source group header instead of one merged strip in the drawer header. (#398)
+- **CLI all-not-found diagnostics** — when all citations are not-found, prints actionable hints (common format issues, `page_id` format, stale `attachmentId`). (#398)
+- **`customPopoverActions` prop** — new `PopoverAction` interface threaded from `CitationComponent` → `DefaultPopoverContent` → `SourceContextHeader` / `PopoverFallbackView`. Each action renders as an icon-only button with reveal-on-hover. `label` doubles as `aria-label` and React key. (#397)
+- **Phrase trimming** — `trimPhraseToAnchorWindow()` in `textCleanup.ts`: trims `fullPhrase` to a ±150-char context window when significantly longer than `anchorText`. Applied in `HighlightedPhrase`, `LookingForSection`, and `PopoverFallbackView`. (#397)
+- **Jest test suites** — ~1980 tests across four new CLI suites (`cliUnit`, `cliCommands`, `cliAuthScenarios`, `cliIntegration`). `npm test` now uses Jest with `forceExit`. (#397)
+- **`resolveAuth()` helper** — single source of truth for API key resolution (env var → `.env` files → `credentials.json`) used by all CLI commands via `requireAuth()`. (#395)
+- **Cowork (cloud) support** — credentials stored in project-relative `.deepcitation/`; non-TTY `login` provides Cowork-specific setup instructions; proxy CONNECT errors suggest `NO_PROXY` workaround. (#395)
+- **Auth key source reporting** — `status` and `whoami` show where the key was loaded from; `logout` gives source-aware removal instructions. (#395)
+
+### Changed
+
+- **CLI output co-location** — verified HTML outputs now default to the same directory as the input file instead of CWD. `inject` strips `-annotated`/`-draft` suffixes from the output filename. (#398)
+- **CLI refactor** — `cli.ts` shrunk from ~1260 → 127 lines by extracting command logic to `src/cli/commands.ts`, proxy utilities to `src/cli/proxy.ts`, and pure helpers to `src/cli/cliUtils.ts`. (#397)
+- **Anchor text validation thresholds** — loosened from hard limits (40 chars / 4 words) to soft readability suggestions (60 chars / 6 words). (#395)
+- **`IS_COWORK` centralised** — extracted to `auth.ts` as single source of truth (was duplicated). (#395)
+
+### Fixed
+
+- **CDN popover positioning** — `position:static` portal targets no longer cause offset miscalculation (e.g. centred `body` with `margin:auto`). Added viewport Y-axis clamping for tall expanded popovers. (#398)
+- **Punctuation-only anchor handling** — `wrapCitationMarkers` emits an empty `data-cite` span instead of wrapping garbage text; validation warnings added for punctuation-only and sub-3-char anchors. (#398)
+- **Login process hang** — `process.stdin.destroy()` called after browser OAuth completes so the process exits cleanly. (#397)
+- **Billing URL** — corrected from `/api#billing` to `/billing` in CLI help text. (#397)
+- **Double `printFreeTierWelcome()`** — no longer called twice on terminal-paste login. (#395)
+- **Unhandled rejection on `login()`** — properly handled. (#395)
+
+### Removed
+
+- **`USAGE_WARN_PCT` / `USAGE_CRITICAL_PCT` exports** — these constants were inadvertent public exports; canonical definitions remain in `packages/shared`. `warnUsage` callback and its `onUsageUpdate` wiring removed from `createClient()`. `src/billing.ts` deleted. (#396)
+
 ## [0.3.5] - 2026-03-31
 
 ## [0.3.4] - 2026-03-30
