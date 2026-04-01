@@ -183,6 +183,11 @@ Examples:
   deepcitation get abc123 --deep-text --page-texts --out attachment-full.json
 `;
 
+// ── constants ──────────────────────────────────────────────────────
+
+const ALLOWED_THEMES = ["auto", "light", "dark"] as const;
+const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
+
 // ── helpers ───────────────────────────────────────────────────────
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
@@ -260,7 +265,7 @@ export function readKeyFromStdin(): { promise: Promise<string | null>; close: ()
   rl.on("line", (line: string) => {
     if (done) return;
     const key = line.trim();
-    if (key.startsWith("sk-dc-") && key.length >= 20) {
+    if (isValidApiKeyFormat(key)) {
       done = true;
       rl.close();
       resolveKey(key);
@@ -466,14 +471,14 @@ export function inject(argv: string[]) {
   const verifications = verifyResponse.verifications ?? verifyResponse;
   const jsonData = escapeJsonForScript(JSON.stringify(verifications));
   const theme = args.theme ?? "auto";
-  if (!["auto", "light", "dark"].includes(theme)) die("--theme must be auto, light, or dark", INJECT_HELP);
+  if (!ALLOWED_THEMES.includes(theme as (typeof ALLOWED_THEMES)[number])) {
+    die(`--theme must be ${ALLOWED_THEMES.join(", ")}`, INJECT_HELP);
+  }
 
-  // Indicator variant: icon (default), dot, or none
-  const allowedIndicators = ["icon", "dot", "none"] as const;
-  const indicator = (args.indicator ?? "icon") as (typeof allowedIndicators)[number];
-  if (args.indicator && !allowedIndicators.includes(indicator)) {
+  const indicator = (args.indicator ?? "icon") as (typeof ALLOWED_INDICATORS)[number];
+  if (args.indicator && !ALLOWED_INDICATORS.includes(indicator)) {
     die(
-      `Invalid --indicator "${sanitizeForLog(args.indicator)}". Allowed: ${allowedIndicators.join(", ")}`,
+      `Invalid --indicator "${sanitizeForLog(args.indicator)}". Allowed: ${ALLOWED_INDICATORS.join(", ")}`,
       INJECT_HELP,
     );
   }
@@ -679,7 +684,9 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
   }
 
   const theme = args.theme ?? "auto";
-  if (!["auto", "light", "dark"].includes(theme)) die("--theme must be auto, light, or dark", VERIFY_HELP);
+  if (!ALLOWED_THEMES.includes(theme as (typeof ALLOWED_THEMES)[number])) {
+    die(`--theme must be ${ALLOWED_THEMES.join(", ")}`, VERIFY_HELP);
+  }
 
   // CDN runtime only supports "text" variant — other variants are React-only.
   // Accept but warn if a non-text variant is requested.
@@ -690,11 +697,10 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
   }
 
   // CDN runtime supports icon, dot, none — "caret" is React-only.
-  const allowedIndicators = ["icon", "dot", "none"] as const;
-  const indicator = (args.indicator ?? "icon") as (typeof allowedIndicators)[number];
-  if (args.indicator && !allowedIndicators.includes(indicator)) {
+  const indicator = (args.indicator ?? "icon") as (typeof ALLOWED_INDICATORS)[number];
+  if (args.indicator && !ALLOWED_INDICATORS.includes(indicator)) {
     die(
-      `Invalid --indicator "${sanitizeForLog(args.indicator)}". Allowed: ${allowedIndicators.join(", ")}`,
+      `Invalid --indicator "${sanitizeForLog(args.indicator)}". Allowed: ${ALLOWED_INDICATORS.join(", ")}`,
       VERIFY_HELP,
     );
   }

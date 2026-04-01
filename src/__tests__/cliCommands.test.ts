@@ -826,9 +826,7 @@ describe("login command", () => {
   });
 
   it("exits when --key has no value", async () => {
-    await expect(captureOutput(() => login(["--key"], TEST_BASE_URL))).rejects.toThrow(
-      "process.exit(1)",
-    );
+    await expect(captureOutput(() => login(["--key"], TEST_BASE_URL))).rejects.toThrow("process.exit(1)");
   });
 
   it("reports already authenticated if auth exists", async () => {

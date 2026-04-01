@@ -974,6 +974,14 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
 
   if (!hasAnchorText && !hasFullPhrase) return null;
 
+  const {
+    text: phraseText,
+    prefixTrimmed: phrasePre,
+    suffixTrimmed: phraseSuf,
+  } = hasFullPhrase
+    ? trimPhraseToAnchorWindow(fullPhrase!, anchorText)
+    : { text: "", prefixTrimmed: false, suffixTrimmed: false };
+
   return (
     <div>
       <div className="text-[11px] text-dc-subtle-foreground uppercase tracking-wide mb-1.5">
@@ -982,17 +990,13 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
       {hasAnchorText && (
         <div className="text-sm font-medium text-dc-foreground mb-1 border-l border-dc-border pl-2">{anchorText}</div>
       )}
-      {hasFullPhrase &&
-        (() => {
-          const { text: fp, prefixTrimmed: fpp, suffixTrimmed: fps } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
-          return (
-            <div className="text-xs text-dc-muted-foreground font-mono break-all bg-dc-muted p-2 rounded border-l border-dc-border">
-              {fpp && "..."}
-              {fp}
-              {fps && "..."}
-            </div>
-          );
-        })()}
+      {hasFullPhrase && (
+        <div className="text-xs text-dc-muted-foreground font-mono break-all bg-dc-muted p-2 rounded border-l border-dc-border">
+          {phrasePre && "..."}
+          {phraseText}
+          {phraseSuf && "..."}
+        </div>
+      )}
     </div>
   );
 }

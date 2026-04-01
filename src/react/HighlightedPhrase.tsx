@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
 import { fuzzyAnchorRange } from "../utils/fuzzyAnchor.js";
 import { trimPhraseToAnchorWindow } from "../utils/textCleanup.js";
@@ -21,39 +22,34 @@ export function HighlightedPhrase({
   anchorText?: string;
   isMiss?: boolean;
 }) {
+  // Compute once per (fullPhrase, anchorText) pair — trimming does two toLowerCase scans on
+  // potentially large strings (full page dumps), so avoid repeating it on every render.
+  const {
+    text: displayPhrase,
+    prefixTrimmed,
+    suffixTrimmed,
+  } = useMemo(() => trimPhraseToAnchorWindow(fullPhrase, anchorText), [fullPhrase, anchorText]);
+
   // Don't highlight when citation is "not found" - misleading to highlight text that wasn't found
   if (isMiss) {
-    const {
-      text: missDisplay,
-      prefixTrimmed: mp,
-      suffixTrimmed: ms,
-    } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
     return (
       <span className="text-dc-destructive">
-        {mp && "..."}
-        {missDisplay}
-        {ms && "..."}
+        {prefixTrimmed && "..."}
+        {displayPhrase}
+        {suffixTrimmed && "..."}
       </span>
     );
   }
 
   if (!anchorText || !shouldHighlightAnchorText(anchorText, fullPhrase)) {
-    const {
-      text: plainDisplay,
-      prefixTrimmed: pp,
-      suffixTrimmed: ps,
-    } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
     return (
       <span className="text-dc-muted-foreground">
-        {pp && "..."}
-        {plainDisplay}
-        {ps && "..."}
+        {prefixTrimmed && "..."}
+        {displayPhrase}
+        {suffixTrimmed && "..."}
       </span>
     );
   }
-
-  // Trim fullPhrase to a context window around anchorText to avoid rendering giant page dumps.
-  const { text: displayPhrase, prefixTrimmed, suffixTrimmed } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
 
   // Prefer exact match; fall back to case-insensitive; then fuzzy word-span.
   let start = displayPhrase.indexOf(anchorText);
