@@ -1,4 +1,5 @@
 import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
+import { trimPhraseToAnchorWindow } from "../utils/textCleanup.js";
 import { fuzzyAnchorRange } from "../utils/fuzzyAnchor.js";
 import { ANCHOR_HIGHLIGHT_STYLE } from "./constants.js";
 
@@ -22,19 +23,36 @@ export function HighlightedPhrase({
 }) {
   // Don't highlight when citation is "not found" - misleading to highlight text that wasn't found
   if (isMiss) {
-    return <span className="text-dc-destructive">{fullPhrase}</span>;
+    const { text: missDisplay, prefixTrimmed: mp, suffixTrimmed: ms } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
+    return (
+      <span className="text-dc-destructive">
+        {mp && "..."}
+        {missDisplay}
+        {ms && "..."}
+      </span>
+    );
   }
 
   if (!anchorText || !shouldHighlightAnchorText(anchorText, fullPhrase)) {
-    return <span className="text-dc-muted-foreground">{fullPhrase}</span>;
+    const { text: plainDisplay, prefixTrimmed: pp, suffixTrimmed: ps } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
+    return (
+      <span className="text-dc-muted-foreground">
+        {pp && "..."}
+        {plainDisplay}
+        {ps && "..."}
+      </span>
+    );
   }
 
+  // Trim fullPhrase to a context window around anchorText to avoid rendering giant page dumps.
+  const { text: displayPhrase, prefixTrimmed, suffixTrimmed } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
+
   // Prefer exact match; fall back to case-insensitive; then fuzzy word-span.
-  let start = fullPhrase.indexOf(anchorText);
+  let start = displayPhrase.indexOf(anchorText);
   let end = start !== -1 ? start + anchorText.length : -1;
 
   if (start === -1) {
-    const phraseLower = fullPhrase.toLowerCase();
+    const phraseLower = displayPhrase.toLowerCase();
     const anchorLower = anchorText.toLowerCase();
     start = phraseLower.indexOf(anchorLower);
     end = start !== -1 ? start + anchorLower.length : -1;
@@ -43,7 +61,7 @@ export function HighlightedPhrase({
   if (start === -1) {
     // Fuzzy: find the word-span within the phrase that covers the anchor text.
     // This handles PDF text with inserted citations like "(§6.1)" breaking exact match.
-    const range = fuzzyAnchorRange(fullPhrase, anchorText);
+    const range = fuzzyAnchorRange(displayPhrase, anchorText);
     if (range) {
       start = range.start;
       end = range.end;
@@ -51,21 +69,23 @@ export function HighlightedPhrase({
   }
 
   if (start === -1) {
-    return <span className="text-dc-muted-foreground">{fullPhrase}</span>;
+    return <span className="text-dc-muted-foreground">{displayPhrase}</span>;
   }
 
   // No surrounding context to anchor the highlight — rendering it would be misleading.
-  if (start === 0 && end === fullPhrase.length) {
-    return <span className="text-dc-muted-foreground">{fullPhrase}</span>;
+  if (start === 0 && end === displayPhrase.length) {
+    return <span className="text-dc-muted-foreground">{displayPhrase}</span>;
   }
 
   return (
     <span className="text-dc-muted-foreground">
-      {fullPhrase.slice(0, start)}
+      {prefixTrimmed && "..."}
+      {displayPhrase.slice(0, start)}
       <span style={ANCHOR_HIGHLIGHT_STYLE} className="text-dc-foreground">
-        {fullPhrase.slice(start, end)}
+        {displayPhrase.slice(start, end)}
       </span>
-      {fullPhrase.slice(end)}
+      {displayPhrase.slice(end)}
+      {suffixTrimmed && "..."}
     </span>
   );
 }
