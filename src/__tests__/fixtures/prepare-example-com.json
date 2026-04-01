@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-04-01T12:00:00.000Z",
+  "data": {
+    "attachmentId": "fixture-example-com-001",
+    "metadata": {
+      "pageCount": 1,
+      "textByteSize": 1256
+    },
+    "deepTextPromptPortion": "<page_number_1_index_0>\n<line id=\"1\">Example Domain</line>\nThis domain is for use in illustrative examples in documents.\n<line id=\"3\">You may use this domain in literature without prior coordination or asking for permission.</line>\n<line id=\"4\">More information...</line>\n</page_number_1_index_0>"
+  }
+}

@@ -1,19 +1,17 @@
-import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import type React from "react";
+
+// Mock createPortal to render content in place instead of portal.
+jest.mock("react-dom", () => {
+  const actual = jest.requireActual("react-dom") as typeof import("react-dom");
+  return { ...actual, createPortal: (node: React.ReactNode) => node };
+});
+
 import { UrlCitationComponent } from "../react/Citation";
 import type { UrlCitationMeta } from "../react/types";
 import { isBlockedStatus, isErrorStatus, isVerifiedStatus } from "../react/urlStatus";
 import { extractDomain } from "../utils/urlSafety";
-
-// Mock createPortal to render content in place instead of portal.
-// Spread the real module AND synthesize a `default` export — bun's ESM wrapper
-// for react-dom expects one, and mock.module replaces the entire namespace.
-// Without `default`, the mock leaks across files and crashes with
-// "Missing 'default' export in module react-dom".
-const _realReactDom = require("react-dom");
-const _mockedReactDom = { ..._realReactDom, createPortal: (node: React.ReactNode) => node };
-mock.module("react-dom", () => ({ ..._mockedReactDom, default: _mockedReactDom }));
 
 // UrlCitationComponent is defined in Citation.tsx (co-located with CitationComponent).
 // Import path: import { UrlCitationComponent } from "../react/Citation"

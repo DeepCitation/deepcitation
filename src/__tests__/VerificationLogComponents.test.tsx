@@ -1,4 +1,9 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
+
+// Polyfill fetch for jsdom
+if (typeof globalThis.fetch === "undefined") {
+  (globalThis as any).fetch = jest.fn().mockRejectedValue(new Error("fetch not available in test"));
+}
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { buildSearchNarrative } from "../react/searchNarrative";
 import {

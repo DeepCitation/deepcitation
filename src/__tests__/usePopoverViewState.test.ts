@@ -1,27 +1,28 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { act, cleanup, renderHook } from "@testing-library/react";
-import { type UsePopoverViewStateConfig, usePopoverViewState } from "../react/hooks/usePopoverViewState";
 
 // Mock external dependencies that touch the DOM
-const mockAcquireScrollLock = mock(() => {});
-const mockReleaseScrollLock = mock(() => {});
-const mockStartEvidenceViewTransition = mock((cb: () => void) => cb());
-const mockStartEvidencePageExpandTransition = mock((cb: () => void) => cb());
-const mockTriggerHaptic = mock(() => {});
+const mockAcquireScrollLock = jest.fn();
+const mockReleaseScrollLock = jest.fn();
+const mockStartEvidenceViewTransition = jest.fn((cb: () => void) => cb());
+const mockStartEvidencePageExpandTransition = jest.fn((cb: () => void) => cb());
+const mockTriggerHaptic = jest.fn();
 
-mock.module("../react/scrollLock", () => ({
+jest.mock("../react/scrollLock", () => ({
   acquireScrollLock: mockAcquireScrollLock,
   releaseScrollLock: mockReleaseScrollLock,
 }));
 
-mock.module("../react/viewTransition", () => ({
+jest.mock("../react/viewTransition", () => ({
   startEvidenceViewTransition: mockStartEvidenceViewTransition,
   startEvidencePageExpandTransition: mockStartEvidencePageExpandTransition,
 }));
 
-mock.module("../react/haptics", () => ({
+jest.mock("../react/haptics", () => ({
   triggerHaptic: mockTriggerHaptic,
 }));
+
+import { type UsePopoverViewStateConfig, usePopoverViewState } from "../react/hooks/usePopoverViewState";
 
 function createConfig(overrides: Partial<UsePopoverViewStateConfig> = {}): UsePopoverViewStateConfig {
   return {
@@ -72,7 +73,7 @@ describe("usePopoverViewState", () => {
     });
 
     it("calls onCollapseToSummary when transitioning to summary", () => {
-      const onCollapse = mock(() => {});
+      const onCollapse = jest.fn();
       const { result } = renderHook(() => usePopoverViewState(createConfig({ onCollapseToSummary: onCollapse })));
       act(() => result.current.transition("expanded-keyhole"));
       act(() => result.current.transition("summary"));
@@ -92,7 +93,7 @@ describe("usePopoverViewState", () => {
 
   describe("escape key handling", () => {
     it("calls onDismiss from summary state", () => {
-      const onDismiss = mock(() => {});
+      const onDismiss = jest.fn();
       const { result } = renderHook(() => usePopoverViewState(createConfig({ onDismiss })));
       const event = new KeyboardEvent("keydown", { key: "Escape" });
       act(() => result.current.onEscapeKeyDown(event));
@@ -120,8 +121,8 @@ describe("usePopoverViewState", () => {
     });
 
     it("delegates to escapeInterceptRef when set", () => {
-      const interceptor = mock(() => {});
-      const onDismiss = mock(() => {});
+      const interceptor = jest.fn();
+      const onDismiss = jest.fn();
       const { result } = renderHook(() => usePopoverViewState(createConfig({ onDismiss })));
       result.current.escapeInterceptRef.current = interceptor;
       const event = new KeyboardEvent("keydown", { key: "Escape" });
@@ -162,7 +163,7 @@ describe("usePopoverViewState", () => {
     });
 
     it("does not fire onCollapseToSummary", () => {
-      const onCollapse = mock(() => {});
+      const onCollapse = jest.fn();
       const { result } = renderHook(() => usePopoverViewState(createConfig({ onCollapseToSummary: onCollapse })));
       act(() => result.current.transition("expanded-keyhole"));
       act(() => result.current.resetToSummary());

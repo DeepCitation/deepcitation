@@ -1,18 +1,16 @@
-import { afterEach, describe, expect, it, mock } from "@jest/globals";
+import { afterEach, describe, expect, it } from "@jest/globals";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type React from "react";
+
+// Mock createPortal to render content in place instead of portal.
+jest.mock("react-dom", () => {
+  const actual = jest.requireActual("react-dom") as typeof import("react-dom");
+  return { ...actual, createPortal: (node: React.ReactNode) => node };
+});
+
 import { CitationComponent } from "../react/Citation";
 import type { Citation } from "../types/citation";
 import type { UrlAccessStatus, Verification } from "../types/verification";
-
-// Mock createPortal to render content in place instead of portal.
-// Spread the real module AND synthesize a `default` export — bun's ESM wrapper
-// for react-dom expects one, and mock.module replaces the entire namespace.
-// Without `default`, the mock leaks across files and crashes with
-// "Missing 'default' export in module react-dom".
-const _realReactDom = require("react-dom");
-const _mockedReactDom = { ..._realReactDom, createPortal: (node: React.ReactNode) => node };
-mock.module("react-dom", () => ({ ..._mockedReactDom, default: _mockedReactDom }));
 
 // Helper to wait for popover to become visible
 const waitForPopoverVisible = async (container: HTMLElement) => {

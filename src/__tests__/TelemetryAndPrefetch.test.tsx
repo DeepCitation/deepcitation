@@ -1,12 +1,15 @@
-import { afterEach, describe, expect, it, jest, mock } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { act, cleanup, render } from "@testing-library/react";
 import type React from "react";
+
+// Mock createPortal to render content in place instead of portal.
+jest.mock("react-dom", () => {
+  const actual = jest.requireActual("react-dom") as typeof import("react-dom");
+  return { ...actual, createPortal: (node: React.ReactNode) => node };
+});
+
 import { CitationComponent } from "../react/Citation";
 import type { Citation } from "../types/citation";
-
-const _realReactDom = require("react-dom");
-const _mockedReactDom = { ..._realReactDom, createPortal: (node: React.ReactNode) => node };
-mock.module("react-dom", () => ({ ..._mockedReactDom, default: _mockedReactDom }));
 
 const baseCitation: Citation = {
   citationNumber: 1,
