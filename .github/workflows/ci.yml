@@ -97,7 +97,7 @@ jobs:
 
   test:
     runs-on: blacksmith-4vcpu-ubuntu-2404
-    needs: check-skip
+    needs: [check-skip, build]
     if: needs.check-skip.outputs.should-skip == 'false'
 
     steps:
@@ -116,6 +116,9 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Build
+        run: npm run build
 
       - name: Run tests
         run: bun run test
