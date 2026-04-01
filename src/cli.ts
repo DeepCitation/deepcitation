@@ -20,9 +20,9 @@ import {
   startCallbackServer,
   writeCredentials,
 } from "./auth.js";
+import { CLAUDE_COWORK_DOMAIN_HINT, die, formatNetworkError, isValidApiKeyFormat, parseArgs } from "./cli/cliUtils.js";
 import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./cli/markdownToHtml.js";
 import { DeepCitation } from "./client/DeepCitation.js";
-import { PaymentRequiredError } from "./client/errors.js";
 import { citationDataToCitation, parseCitationData } from "./parsing/citationParser.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "./prompts/citationPrompts.js";
 import { getCitationKey } from "./utils/citationKey.js";
@@ -36,13 +36,8 @@ import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "
 // ── version ─────────────────────────────────────────────────────────
 const { version: CLI_VERSION } = createRequire(import.meta.url)("../package.json") as { version: string };
 
-// ── environment detection ─────────────────────────────────────────
-
-const CLAUDE_COWORK_DOMAIN_HINT =
-  "This appears to be a Claude Cowork (cloud) session.\n" +
-  "  The user must add *.deepcitation.com to allowed domains:\n" +
-  "  https://claude.ai/settings/capabilities\n" +
-  '  → Under "Additional allowed domains", add *.deepcitation.com and press Add.';
+// CLAUDE_COWORK_DOMAIN_HINT, die, parseArgs, formatNetworkError, isValidApiKeyFormat
+// are imported from ./cli/cliUtils.js
 
 // ── proxy support ──────────────────────────────────────────────────
 
@@ -79,7 +74,7 @@ function createProxyFetch(proxyUrl: string): (input: RequestInfo | URL, init?: R
           rej(
             new Error(
               `Proxy CONNECT failed with status ${_res.statusCode}. ` +
-                `Try bypassing the proxy with: NO_PROXY=api.deepcitation.com deepcitation <command>`,
+                `Try bypassing the proxy with: NO_PROXY=api.deepcitation.com npx deepcitation <command>`,
             ),
           );
         }
@@ -249,31 +244,11 @@ Examples:
   deepcitation inject --html report.html --verify-response verify.json --out report-verified.html
 `;
 
-function die(msg: string, help: string): never {
-  console.error(`Error: ${msg}\n\n${help}`);
-  process.exit(1);
-}
-
 /** Resolve auth or die with a helpful message. */
 function requireAuth(helpText: string): ResolvedAuth {
   const auth = resolveAuth();
-  if (!auth) die('Not authenticated. Run "deepcitation login" or set DEEPCITATION_API_KEY.', helpText);
+  if (!auth) die('Not authenticated. Run "npx deepcitation login" or set DEEPCITATION_API_KEY.', helpText);
   return auth;
-}
-
-function parseArgs(argv: string[], help: string): Record<string, string> {
-  const args: Record<string, string> = {};
-  for (let i = 0; i < argv.length; i++) {
-    const key = argv[i];
-    if (key === "-h" || key === "--help") {
-      console.log(help);
-      process.exit(0);
-    }
-    if (key?.startsWith("--") && i + 1 < argv.length) {
-      args[key.slice(2)] = argv[++i] as string;
-    }
-  }
-  return args;
 }
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
@@ -300,35 +275,8 @@ function createClient(apiKey: string): DeepCitation {
   return new DeepCitation({ apiKey });
 }
 
-/** Wrap a network error with actionable hints for the CLI user. */
-function formatNetworkError(err: unknown): string {
-  if (err instanceof PaymentRequiredError) {
-    return [
-      `\nPayment required: ${sanitizeForLog(err.message)}`,
-      ``,
-      `  To add a credit card and unlock usage beyond the free tier:`,
-      `    npx deepcitation billing`,
-      `  Or visit: ${BASE_URL}/api#billing`,
-      ``,
-      `  Benefits of adding a card:`,
-      `    • Continue using DeepCitation without interruption`,
-      `    • Pay-as-you-go: $0.05/doc, $0.01/verification`,
-      `    • Set a custom monthly spend cap for cost control`,
-    ].join("\n");
-  }
-  const msg = err instanceof Error ? err.message : String(err);
-  if (msg.includes("fetch failed") || msg.includes("ENOTFOUND") || msg.includes("EAI_AGAIN")) {
-    if (IS_COWORK) {
-      return `Network error: ${msg}.\n\n${CLAUDE_COWORK_DOMAIN_HINT}`;
-    }
-    const proxyHint =
-      process.env.HTTPS_PROXY || process.env.HTTP_PROXY
-        ? " Proxy is set but may not be working. Try: NO_PROXY=api.deepcitation.com deepcitation <command>"
-        : " If behind a proxy, set HTTPS_PROXY=http://your-proxy:port";
-    return `Network error: ${msg}.${proxyHint}`;
-  }
-  return msg;
-}
+/** formatNetworkError is imported from ./cli/cliUtils.js — bind BASE_URL for use in catch handlers */
+const fmtNetErr = (err: unknown) => formatNetworkError(err, BASE_URL);
 
 // ── prepare ─────────────────────────────────────────────────────────
 
@@ -963,16 +911,15 @@ const BASE_URL = (() => {
   }
 })();
 
-const BILLING_URL: string = `${BASE_URL}/api#billing`;
+const BILLING_URL: string = `${BASE_URL}/billing`;
 
-function printFreeTierWelcome(): void {
-  console.log(`\nYou're on the free tier — $20/month of usage included at no charge.`);
-  console.log(`  Once you exceed it, add a payment method to continue:`);
+function printPostLoginInfo(): void {
+  console.log(`\nManage billing and usage at:`);
   console.log(`  ${BILLING_URL}`);
 }
 
 function saveApiKey(key: string, source: string): void {
-  if (!key || !key.startsWith("sk-dc-") || key.length < 20) {
+  if (!isValidApiKeyFormat(key)) {
     die(
       `Invalid API key format${source ? ` (${source})` : ""}. Keys start with 'sk-dc-' and are at least 20 characters.`,
       HELP,
@@ -980,7 +927,7 @@ function saveApiKey(key: string, source: string): void {
   }
   writeCredentials({ version: 1, apiKey: key, createdAt: new Date().toISOString() });
   console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
-  printFreeTierWelcome();
+  printPostLoginInfo();
 }
 
 /**
@@ -1049,7 +996,7 @@ async function login(argv: string[]) {
   if (existing) {
     console.log(`Already authenticated (${maskKey(existing.apiKey)}).`);
     console.log(`Source: ${sourceLabel(existing.source)}`);
-    console.log('Run "deepcitation logout" first to switch accounts.');
+    console.log('Run "npx deepcitation logout" first to switch accounts.');
     return;
   }
 
@@ -1066,13 +1013,13 @@ async function login(argv: string[]) {
       console.log(`   ${manualUrl}\n`);
       console.log("3. Save the key — set DEEPCITATION_API_KEY in your Cowork environment settings.");
       console.log("   This persists across sessions automatically.");
-      console.log("   Or for this session only: deepcitation login --key <your-key>");
+      console.log("   Or for this session only: npx deepcitation login --key <your-key>");
     } else {
       console.log("Non-interactive environment detected (no TTY).");
       console.log(`\nTo log in, get an API key from:\n  ${manualUrl}\n`);
       console.log("Then run one of:");
-      console.log("  deepcitation login --key <your-key>");
-      console.log("  echo <your-key> | deepcitation login --stdin");
+      console.log("  npx deepcitation login --key <your-key>");
+      console.log("  echo <your-key> | npx deepcitation login --stdin");
       console.log("  export DEEPCITATION_API_KEY=<your-key>");
     }
     process.exit(1);
@@ -1130,10 +1077,10 @@ async function login(argv: string[]) {
       console.log(`\nLogged in as ${sanitizeForLog(winner.payload.displayName ?? winner.payload.email ?? "unknown")}.`);
       console.log(`Credentials saved to ${CREDENTIALS_PATH}`);
       console.log(`\nYou're all set! The DeepCitation CLI will use this key automatically.`);
-      printFreeTierWelcome();
+      printPostLoginInfo();
     } else {
       saveApiKey(winner.key, "terminal paste");
-      // saveApiKey() calls printFreeTierWelcome() internally
+      // saveApiKey() calls printPostLoginInfo() internally
     }
   } catch (err) {
     if ((err as Error).message === "Login cancelled") return;
@@ -1170,7 +1117,7 @@ function logout() {
 function whoami() {
   const auth = resolveAuth();
   if (!auth) {
-    console.log('Not logged in. Run "deepcitation login" to get started.');
+    console.log('Not logged in. Run "npx deepcitation login" to get started.');
     process.exit(1);
   }
   if (auth.credentials?.displayName) console.log(`Name:   ${sanitizeForLog(auth.credentials.displayName)}`);
@@ -1297,20 +1244,20 @@ if (command === "-v" || command === "--version") {
 switch (command) {
   case "prepare":
     prepare(rest).catch(err => {
-      console.error(`Error: ${formatNetworkError(err)}`);
+      console.error(`Error: ${fmtNetErr(err)}`);
       process.exit(1);
     });
     break;
   case "verify":
     verify(rest).catch(err => {
-      console.error(`Error: ${formatNetworkError(err)}`);
+      console.error(`Error: ${fmtNetErr(err)}`);
       process.exit(1);
     });
     break;
   case "cite":
     // "cite" is an alias for "verify --html" for backwards compatibility
     verify(["--html", ...rest]).catch(err => {
-      console.error(`Error: ${formatNetworkError(err)}`);
+      console.error(`Error: ${fmtNetErr(err)}`);
       process.exit(1);
     });
     break;
@@ -1322,7 +1269,7 @@ switch (command) {
     break;
   case "get":
     getAttachment(rest).catch(err => {
-      console.error(`Error: ${formatNetworkError(err)}`);
+      console.error(`Error: ${fmtNetErr(err)}`);
       process.exit(1);
     });
     break;
@@ -1347,7 +1294,7 @@ switch (command) {
       console.log(parts.join("\n"));
       process.exit(0);
     } else {
-      console.log('Not logged in. Run "deepcitation login --key <key>" or set DEEPCITATION_API_KEY.');
+      console.log('Not logged in. Run "npx deepcitation login --key <key>" or set DEEPCITATION_API_KEY.');
       process.exit(1);
     }
     break;
@@ -1357,7 +1304,7 @@ switch (command) {
     break;
   case "billing":
     openBillingDashboard().catch(err => {
-      console.error(`Error: ${formatNetworkError(err)}`);
+      console.error(`Error: ${fmtNetErr(err)}`);
       process.exit(1);
     });
     break;
