@@ -264,7 +264,7 @@ describe("credential file edge cases", () => {
     const credDir = join(home, ".deepcitation");
 
     expect(existsSync(credDir)).toBe(false);
-    run(["login", "--key", "sk-dc-fresh-directory-key1"], { env: noAuthEnv(home) });
+    run(["login", "--key", "sk-dc-freshdirkey12345678"], { env: noAuthEnv(home) });
     expect(existsSync(join(credDir, "credentials.json"))).toBe(true);
   });
 
@@ -277,10 +277,10 @@ describe("credential file edge cases", () => {
       JSON.stringify({ version: 1, apiKey: "sk-dc-old-key-that-existed", createdAt: "2025-01-01" }),
     );
 
-    run(["login", "--key", "sk-dc-new-key-replacing-old1"], { env: noAuthEnv(home) });
+    run(["login", "--key", "sk-dc-newkeyreplace012345"], { env: noAuthEnv(home) });
 
     const creds = JSON.parse(readFileSync(join(credDir, "credentials.json"), "utf-8"));
-    expect(creds.apiKey).toBe("sk-dc-new-key-replacing-old1");
+    expect(creds.apiKey).toBe("sk-dc-newkeyreplace012345");
   });
 });
 
@@ -320,14 +320,14 @@ describe("login --key validation", () => {
 describe("login --stdin validation", () => {
   it("accepts valid key from stdin", () => {
     const home = freshHome();
-    const r = run(["login", "--stdin"], { env: noAuthEnv(home), stdin: "sk-dc-valid-stdin-key-12345\n" });
+    const r = run(["login", "--stdin"], { env: noAuthEnv(home), stdin: "sk-dc-validstdinkey012345\n" });
     expect(r.exitCode).toBe(0);
     expect(r.stdout).toContain("Credentials saved");
   });
 
   it("trims whitespace from stdin key", () => {
     const home = freshHome();
-    const r = run(["login", "--stdin"], { env: noAuthEnv(home), stdin: "  sk-dc-whitespace-padded-key  \n" });
+    const r = run(["login", "--stdin"], { env: noAuthEnv(home), stdin: "  sk-dc-whitespacepaddedkey1  \n" });
     expect(r.exitCode).toBe(0);
   });
 
@@ -449,7 +449,7 @@ describe("logout scenarios", () => {
     const env = noAuthEnv(home);
 
     // Login
-    run(["login", "--key", "sk-dc-logout-test-key-12345"], { env });
+    run(["login", "--key", "sk-dc-logouttestkey012345"], { env });
     expect(run(["status"], { env }).exitCode).toBe(0);
 
     // Logout
@@ -480,7 +480,7 @@ describe("logout scenarios", () => {
     const home = freshHome();
     const env = noAuthEnv(home);
 
-    run(["login", "--key", "sk-dc-double-logout-key-123"], { env });
+    run(["login", "--key", "sk-dc-doublelogoutkey01234"], { env });
     run(["logout"], { env });
     const r = run(["logout"], { env });
     expect(r.exitCode).toBe(0);
@@ -571,7 +571,7 @@ describe("skill/agent auth lifecycle", () => {
     expect(s1.exitCode).toBe(1);
 
     // 2. Agent logs in with --key
-    const login = run(["login", "--key", "sk-dc-agent-lifecycle-key-1"], { env, cwd });
+    const login = run(["login", "--key", "sk-dc-agentlifecycle012345"], { env, cwd });
     expect(login.exitCode).toBe(0);
     expect(login.stdout).toContain("Credentials saved");
 
