@@ -247,6 +247,8 @@ export type {
   GroupCitationsBySource,
   // Indicator variant type
   IndicatorVariant,
+  // Custom popover action type
+  PopoverAction,
   SourceChipProps,
   SourceCitationGroup,
   SourcesListHeaderConfig,

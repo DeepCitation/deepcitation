@@ -320,7 +320,9 @@ export function startCallbackServer(
 
       // Don't keep the process alive just for the timeout timer,
       // but DO keep it alive for the server (it must stay up to receive the callback).
-      loginTimeout.unref();
+      if (typeof loginTimeout === "object" && "unref" in loginTimeout) {
+        loginTimeout.unref();
+      }
 
       const cancel = () => {
         if (loginTimeout) clearTimeout(loginTimeout);

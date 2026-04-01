@@ -1,6 +1,13 @@
-import { afterEach, describe, expect, it, mock } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { cleanup, render } from "@testing-library/react";
 import type React from "react";
+
+// Mock createPortal to render content in place instead of portal.
+jest.mock("react-dom", () => {
+  const actual = jest.requireActual("react-dom") as typeof import("react-dom");
+  return { ...actual, createPortal: (node: React.ReactNode) => node };
+});
+
 import { INDICATOR_SETS } from "../formatting/types";
 import { CitationComponent } from "../react/Citation";
 import { getStatusInfo } from "../react/CitationDrawer.utils";
@@ -8,15 +15,6 @@ import { DOT_INDICATOR_SIZE_STYLE, INDICATOR_SIZE_STYLE } from "../react/constan
 import { StatusHeader } from "../react/VerificationLog";
 import type { Citation } from "../types/citation";
 import type { Verification } from "../types/verification";
-
-// Mock createPortal to render content in place instead of portal.
-// Spread the real module AND synthesize a `default` export — bun's ESM wrapper
-// for react-dom expects one, and mock.module replaces the entire namespace.
-// Without `default`, the mock leaks across files and crashes with
-// "Missing 'default' export in module react-dom".
-const _realReactDom = require("react-dom");
-const _mockedReactDom = { ..._realReactDom, createPortal: (node: React.ReactNode) => node };
-mock.module("react-dom", () => ({ ..._mockedReactDom, default: _mockedReactDom }));
 
 // =============================================================================
 // TEST FIXTURES

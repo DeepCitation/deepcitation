@@ -191,6 +191,11 @@ export interface CitationComponentProps extends BaseCitationProps {
    * @default false
    */
   experimentalHaptics?: boolean;
+  /**
+   * Custom action buttons rendered in the popover header alongside the download button.
+   * Each action appears as an icon-only button following the same reveal-on-hover pattern.
+   */
+  customPopoverActions?: import("./types.js").PopoverAction[];
 }
 
 // =============================================================================
@@ -324,6 +329,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   prevBeforeExpandedPageRef,
   downloadUrl,
   escapeInterceptRef,
+  customPopoverActions,
 }: {
   renderPopoverContent?: CitationComponentProps["renderPopoverContent"];
   citation: BaseCitationProps["citation"];
@@ -342,6 +348,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
   prevBeforeExpandedPageRef: React.RefObject<"summary" | "expanded-keyhole">;
   downloadUrl?: string;
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
+  customPopoverActions?: import("./types.js").PopoverAction[];
 }) {
   if (renderPopoverContent) {
     const CustomContent = renderPopoverContent;
@@ -370,6 +377,7 @@ const PopoverContentRenderer = memo(function PopoverContentRenderer({
         prevBeforeExpandedPageRef={prevBeforeExpandedPageRef}
         downloadUrl={downloadUrl}
         escapeInterceptRef={escapeInterceptRef}
+        customPopoverActions={customPopoverActions}
       />
     </CitationErrorBoundary>
   );
@@ -425,6 +433,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       experimentalHaptics = false,
       disableTelemetry = false,
       prefetch: prefetchMode = "eager",
+      customPopoverActions,
     },
     ref,
   ) => {
@@ -1300,6 +1309,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           prevBeforeExpandedPageRef={viewState.prevBeforeExpandedPageRef}
           downloadUrl={downloadUrl ?? undefined}
           escapeInterceptRef={viewState.escapeInterceptRef}
+          customPopoverActions={customPopoverActions}
         />
       );
 

@@ -108,6 +108,10 @@ export interface PopoverContentProps {
    * popover closes. The parent's onEscapeKeyDown checks this ref first.
    */
   escapeInterceptRef?: React.MutableRefObject<(() => void) | null>;
+  /**
+   * Custom action buttons rendered in the popover header alongside the download button.
+   */
+  customPopoverActions?: import("./types.js").PopoverAction[];
 }
 
 // =============================================================================
@@ -643,6 +647,7 @@ function PopoverFallbackView({
   urlAccessExplanation,
   indicatorVariant = "icon",
   downloadUrl,
+  customActions,
 }: {
   citation: BaseCitationProps["citation"];
   verification: Verification | null;
@@ -652,6 +657,7 @@ function PopoverFallbackView({
   urlAccessExplanation: UrlAccessExplanation | null;
   indicatorVariant?: IndicatorVariant;
   downloadUrl?: string;
+  customActions?: import("./types.js").PopoverAction[];
 }) {
   const t = useTranslation();
   const searchStatus = verification?.status;
@@ -672,6 +678,7 @@ function PopoverFallbackView({
         status={searchStatus}
         sourceLabel={sourceLabel}
         downloadUrl={downloadUrl}
+        customActions={customActions}
       />
       {urlAccessExplanation && <UrlAccessExplanationSection explanation={urlAccessExplanation} />}
       <div className="p-3 flex flex-col gap-2">
@@ -729,6 +736,7 @@ export function DefaultPopoverContent({
   prevBeforeExpandedPageRef: propPrevBeforeExpandedPageRef,
   downloadUrl,
   escapeInterceptRef,
+  customPopoverActions,
 }: PopoverContentProps) {
   const t = useTranslation();
   // Resolve evidence src up-front so hasImage reflects only actually-renderable images.
@@ -1068,6 +1076,7 @@ export function DefaultPopoverContent({
               onExpand={isFullPage ? undefined : canExpandToPage ? handleExpand : undefined}
               onClose={isFullPage ? handleCollapseFromExpandedPage : undefined}
               downloadUrl={downloadUrl}
+              customActions={customPopoverActions}
             />
             {/* Zone 2: Claim Body — Status + highlighted phrase */}
             <StatusHeader
@@ -1141,6 +1150,7 @@ export function DefaultPopoverContent({
         urlAccessExplanation={urlAccessExplanation}
         indicatorVariant={indicatorVariant}
         downloadUrl={downloadUrl}
+        customActions={customPopoverActions}
       />
     </>
   );

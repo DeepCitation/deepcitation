@@ -951,10 +951,10 @@ describe("download domain-trust gate", () => {
     jest.restoreAllMocks();
   });
 
-  it("always uses anchor path in HappyDOM for any download URL", () => {
-    // HappyDOM's userAgent contains "HappyDOM", so triggerBackgroundDownload
-    // always takes the anchorDownload() fast-path. This verifies the button
-    // wires up to the download function and that click does not throw.
+  it("always uses anchor path in HappyDOM for any download URL", async () => {
+    // In HappyDOM the isHappyDom fast-path always runs synchronously.
+    // In jsdom the trusted-host fetch path runs, fetch rejects, and anchorDownload()
+    // fires asynchronously. waitFor handles both environments.
     const appendChildSpy = jest.spyOn(document.body, "appendChild");
 
     const citation: Citation = {
@@ -970,13 +970,15 @@ describe("download domain-trust gate", () => {
     fireEvent.click(getByRole("button", { name: /download source/i }));
 
     // An anchor element with the download URL must have been appended to body
-    const anchor = appendChildSpy.mock.calls.find(
-      ([el]) => el instanceof HTMLAnchorElement && (el as HTMLAnchorElement).href.includes("api.deepcitation.com"),
-    );
-    expect(anchor).toBeDefined();
+    await waitFor(() => {
+      const anchor = appendChildSpy.mock.calls.find(
+        ([el]) => el instanceof HTMLAnchorElement && (el as HTMLAnchorElement).href.includes("api.deepcitation.com"),
+      );
+      expect(anchor).toBeDefined();
+    });
   });
 
-  it("passes filename to anchor download element", () => {
+  it("passes filename to anchor download element", async () => {
     const appendChildSpy = jest.spyOn(document.body, "appendChild");
 
     const citation: Citation = {
@@ -995,10 +997,12 @@ describe("download domain-trust gate", () => {
     );
     fireEvent.click(getByRole("button", { name: /download source/i }));
 
-    const anchor = appendChildSpy.mock.calls.find(([el]) => el instanceof HTMLAnchorElement)?.[0] as
-      | HTMLAnchorElement
-      | undefined;
-    // sourceLabel becomes the filename (with .pdf suffix added for non-pdf URL citations)
-    expect(anchor?.download).toBeTruthy();
+    await waitFor(() => {
+      const anchor = appendChildSpy.mock.calls.find(([el]) => el instanceof HTMLAnchorElement)?.[0] as
+        | HTMLAnchorElement
+        | undefined;
+      // sourceLabel becomes the filename (with .pdf suffix added for non-pdf URL citations)
+      expect(anchor?.download).toBeTruthy();
+    });
   });
 });
