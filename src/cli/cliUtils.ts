@@ -80,10 +80,13 @@ export function formatNetworkError(err: unknown, baseUrl: string): string {
 
 // ── validateApiKeyFormat ──────────────────────────────────────────
 
+/** Matches `sk-dc-` followed by at least 14 alphanumeric chars (total >= 20). */
+const VALID_API_KEY_RE = /^sk-dc-[a-zA-Z0-9]{14,}$/;
+
 /**
  * Check whether a string looks like a valid DeepCitation API key.
- * Returns `true` if the key starts with `sk-dc-` and is at least 20 chars.
+ * Requires `sk-dc-` prefix followed by alphanumeric characters only (no hyphens).
  */
 export function isValidApiKeyFormat(key: string): boolean {
-  return Boolean(key && key.startsWith("sk-dc-") && key.length >= 20);
+  return VALID_API_KEY_RE.test(key);
 }
