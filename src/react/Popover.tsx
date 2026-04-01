@@ -163,7 +163,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
         el = el.parentElement;
       }
       setPortalContainer(document.body);
-    }, [open]); // triggerRef is a stable ref; open re-runs detection on each popover open
+    }, [triggerRef.current]); // triggerRef is a stable ref; open re-runs detection on each popover open
 
     const recomputePosition = React.useCallback(() => {
       if (!open) return;

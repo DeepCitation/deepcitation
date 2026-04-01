@@ -353,8 +353,7 @@ describe("non-TTY / agent environment login", () => {
     const r = run(["login"], { env: noAuthEnv() });
     expect(r.exitCode).toBe(1);
     expect(r.stdout).toContain("Non-interactive");
-    expect(r.stdout).toContain("npx deepcitation login --key");
-    expect(r.stdout).toContain("echo <your-key> | npx deepcitation login --stdin");
+    expect(r.stdout).toContain("Get your API key");
     expect(r.stdout).toContain("export DEEPCITATION_API_KEY");
   });
 
@@ -379,15 +378,14 @@ describe("non-TTY / agent environment login", () => {
 describe("unauthenticated command errors", () => {
   const env = noAuthEnv();
 
-  it("prepare says 'Not authenticated' with login instructions", () => {
+  it("prepare says 'action needed' with login instructions", () => {
     const r = run(["prepare", "test.pdf"], { env });
     expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("Not authenticated");
-    expect(r.stderr).toContain("deepcitation login");
+    expect(r.stderr).toContain("action needed");
     expect(r.stderr).toContain("DEEPCITATION_API_KEY");
   });
 
-  it("verify --citations says 'Not authenticated'", () => {
+  it("verify --citations says 'action needed'", () => {
     const cwd = join(BASE_DIR, `unauth-verify-${Date.now()}`);
     mkdirSync(cwd, { recursive: true });
     writeFileSync(
@@ -396,13 +394,13 @@ describe("unauthenticated command errors", () => {
     );
     const r = run(["verify", "--citations", join(cwd, "cit.json")], { env });
     expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("Not authenticated");
+    expect(r.stderr).toContain("action needed");
   });
 
-  it("get says 'Not authenticated'", () => {
+  it("get says 'action needed'", () => {
     const r = run(["get", "some-id"], { env });
     expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("Not authenticated");
+    expect(r.stderr).toContain("action needed");
   });
 });
 
@@ -583,8 +581,8 @@ describe("skill/agent auth lifecycle", () => {
     // 4. Agent tries prepare (will fail at API, but auth should pass)
     const prep = run(["prepare", "https://example.com/doc"], { env, cwd });
     expect(prep.exitCode).toBe(1);
-    // Should NOT say "Not authenticated" — auth passed, it's a network/API error
-    expect(prep.stderr).not.toContain("Not authenticated");
+    // Should NOT say "action needed" — auth passed, it's a network/API error
+    expect(prep.stderr).not.toContain("action needed");
 
     // 5. Agent logs out
     const logout = run(["logout"], { env, cwd });
@@ -609,7 +607,7 @@ describe("skill/agent auth lifecycle", () => {
       cwd,
     });
     expect(prep.exitCode).toBe(1);
-    expect(prep.stderr).not.toContain("Not authenticated");
+    expect(prep.stderr).not.toContain("action needed");
   });
 });
 

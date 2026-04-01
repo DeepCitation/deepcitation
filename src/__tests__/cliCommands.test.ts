@@ -394,7 +394,7 @@ describe("inject command", () => {
     expect(output).toContain('"dot"');
   });
 
-  it("overwrites input by default when --out is omitted", async () => {
+  it("writes to -verified.html by default when --out is omitted", async () => {
     const htmlPath = join(tmpDir, "test.html");
     const verifyPath = join(tmpDir, "verify.json");
 
@@ -403,7 +403,8 @@ describe("inject command", () => {
 
     await captureOutput(() => inject(["--html", htmlPath, "--verify-response", verifyPath]));
 
-    const output = readFileSync(htmlPath, "utf-8");
+    const verifiedPath = join(tmpDir, "test-verified.html");
+    const output = readFileSync(verifiedPath, "utf-8");
     expect(output).toContain("dc-data");
   });
 
@@ -831,8 +832,8 @@ describe("login command", () => {
 
   it("reports already authenticated if auth exists", async () => {
     mockResolveAuth.mockReturnValue(makeAuth());
-    const { stdout } = await captureOutput(() => login([], TEST_BASE_URL));
-    expect(stdout).toContain("Already authenticated");
+    // login() calls status() which calls process.exit(0) — mocked to throw
+    await expect(captureOutput(() => login([], TEST_BASE_URL))).rejects.toThrow("process.exit(0)");
     expect(mockWriteCredentials).not.toHaveBeenCalled();
   });
 });

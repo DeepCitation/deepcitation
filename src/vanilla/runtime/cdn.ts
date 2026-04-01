@@ -162,7 +162,7 @@ function ensurePopoverEls(): { wrapper: HTMLDivElement; content: HTMLDivElement 
     content.className =
       "dc-cdn-popover rounded-dc-lg border border-dc-border bg-dc-background shadow-xl font-dc text-dc-foreground";
     content.setAttribute("data-dc-popover-content", "");
-    content.style.maxWidth = "calc(100vw - 2rem)";
+    content.style.maxWidth = `${document.documentElement.clientWidth - 32}px`;
     content.style.maxHeight = "calc(100dvh - 2rem)";
     content.style.overflowX = "clip";
     content.style.overflowY = "clip";
@@ -211,6 +211,11 @@ function getTriggerRect(trigger: HTMLElement): DOMRect {
 
 function reposition(): void {
   if (!wrapperEl || !contentEl || !activeTrigger || !isOpen) return;
+  // Sync max-width to visible viewport (excludes scrollbar — unlike CSS 100vw).
+  // Must run BEFORE measuring contentRect so the content reflows to the correct width.
+  const vw = document.documentElement.clientWidth;
+  contentEl.style.maxWidth = `${vw - 32}px`;
+
   const triggerRect = getTriggerRect(activeTrigger);
   const contentRect = contentEl.getBoundingClientRect();
   const pos = computePosition(triggerRect, contentRect.width, contentRect.height, SIDE_OFFSET);
@@ -220,10 +225,26 @@ function reposition(): void {
   const cRect = container.getBoundingClientRect();
   const x = pos.x - cRect.left + container.scrollLeft;
   const y = pos.y - cRect.top + container.scrollTop;
-  if (Math.abs(lastCoords.x - x) < 0.5 && Math.abs(lastCoords.y - y) < 0.5) return;
-  lastCoords = { x, y };
-  wrapperEl.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-  wrapperEl.setAttribute("data-side", pos.side);
+  if (!(Math.abs(lastCoords.x - x) < 0.5 && Math.abs(lastCoords.y - y) < 0.5)) {
+    lastCoords = { x, y };
+    wrapperEl.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    wrapperEl.setAttribute("data-side", pos.side);
+  }
+
+  // Post-position viewport guard: if the content overflows the visible viewport
+  // after positioning, apply a corrective translate (mirrors useViewportBoundaryGuard).
+  // Runs unconditionally — content may have resized even when position didn't change.
+  contentEl.style.translate = "";
+  const finalRect = contentEl.getBoundingClientRect();
+  let dx = 0;
+  if (finalRect.left < 16) {
+    dx = 16 - finalRect.left;
+  } else if (finalRect.right > vw - 16) {
+    dx = vw - 16 - finalRect.right;
+  }
+  if (dx !== 0) {
+    contentEl.style.translate = `${dx}px 0px`;
+  }
 }
 function scheduleReposition(): void {
   cancelAnimationFrame(positionRafId);

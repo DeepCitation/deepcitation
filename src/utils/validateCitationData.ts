@@ -210,11 +210,19 @@ export function validateCitationData(citations: CitationData[]): ValidationRepor
       continue; // skip further anchor checks
     }
     if (!/[a-zA-Z0-9]/.test(anchor)) {
-      warnings.push({ citationId: id, field: "anchor_text", message: `punctuation-only ("${anchor}") — must contain substantive words from the evidence` });
+      warnings.push({
+        citationId: id,
+        field: "anchor_text",
+        message: `punctuation-only ("${anchor}") — must contain substantive words from the evidence`,
+      });
       continue;
     }
     if (anchor.trim().length < 3) {
-      warnings.push({ citationId: id, field: "anchor_text", message: `too short ("${anchor}") — use 1–4 specific words from full_phrase` });
+      warnings.push({
+        citationId: id,
+        field: "anchor_text",
+        message: `too short ("${anchor}") — use 1–4 specific words from full_phrase`,
+      });
     }
 
     // Warning: anchor_text long — shorter anchors improve report readability

@@ -206,8 +206,8 @@ describe("cdn.ts source invariants", () => {
   it("passes pageImages", () => {
     expect(cdnSource).toContain("pageImages: verification.pageImages");
   });
-  it("sets max-width on content container", () => {
-    expect(cdnSource).toContain('maxWidth = "calc(100vw - 2rem)"');
+  it("sets max-width on content container from clientWidth", () => {
+    expect(cdnSource).toContain("document.documentElement.clientWidth - 32");
   });
   it("sets width max-content on wrapper", () => {
     expect(cdnSource).toContain('width = "max-content"');

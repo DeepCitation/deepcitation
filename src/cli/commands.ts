@@ -320,7 +320,7 @@ export function readKeyFromStdin(): { promise: Promise<string | null>; close: ()
 
 // ── command handlers ──────────────────────────────────────────────
 
-export async function prepare(argv: string[], fmtNetErr: (err: unknown) => string) {
+export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => string) {
   // Extract boolean flags before parseArgs (which only handles --key value pairs)
   const unsafeFast = argv.includes("--unsafe-fast");
   const summary = argv.includes("--summary");
@@ -695,7 +695,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   return verifyHtml(forwardArgs, fmtNetErr, htmlWithCitations);
 }
 
-export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => string, preloadedContent?: string) {
+export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => string, preloadedContent?: string) {
   const args = parseArgs(argv, VERIFY_HELP);
   const htmlPath = args.html;
   if (!htmlPath && !preloadedContent) die("--html is required", VERIFY_HELP);
