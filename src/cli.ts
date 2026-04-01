@@ -20,7 +20,6 @@ import {
   startCallbackServer,
   writeCredentials,
 } from "./auth.js";
-import { USAGE_CRITICAL_PCT, USAGE_WARN_PCT } from "./billing.js";
 import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./cli/markdownToHtml.js";
 import { DeepCitation } from "./client/DeepCitation.js";
 import { PaymentRequiredError } from "./client/errors.js";
@@ -292,24 +291,13 @@ function createClient(apiKey: string): DeepCitation {
     // Our custom CONNECT tunnel hangs on long-lived requests — skip it.
     if (IS_COWORK) {
       console.error("Cowork session — using built-in fetch (proxy is transparent).");
-      return new DeepCitation({ apiKey, onUsageUpdate: warnUsage });
+      return new DeepCitation({ apiKey });
     }
 
-    return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl), onUsageUpdate: warnUsage });
+    return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl) });
   }
 
-  return new DeepCitation({ apiKey, onUsageUpdate: warnUsage });
-}
-
-/** Warn the user as their monthly budget runs low. */
-function warnUsage(remaining: number, limit: number): void {
-  const pctUsed = limit > 0 ? ((limit - remaining) / limit) * 100 : 0;
-  if (pctUsed >= USAGE_CRITICAL_PCT) {
-    console.error(`\nWarning: Only $${remaining.toFixed(2)} of your $${limit.toFixed(2)}/month budget remains.`);
-    console.error(`  Add a payment method to avoid interruption: ${BASE_URL}/api#billing\n`);
-  } else if (pctUsed >= USAGE_WARN_PCT) {
-    console.error(`\nNote: $${remaining.toFixed(2)} of your $${limit.toFixed(2)}/month budget remaining.\n`);
-  }
+  return new DeepCitation({ apiKey });
 }
 
 /** Wrap a network error with actionable hints for the CLI user. */

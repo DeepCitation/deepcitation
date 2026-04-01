@@ -12,8 +12,6 @@
  * @packageDocumentation
  */
 
-// Billing thresholds
-export { USAGE_CRITICAL_PCT, USAGE_WARN_PCT } from "./billing.js";
 // Client & Errors
 export { DeepCitation, SDK_VERSION } from "./client/DeepCitation.js";
 export {
