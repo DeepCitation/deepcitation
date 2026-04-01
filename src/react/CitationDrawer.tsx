@@ -133,14 +133,6 @@ function computeUniquePageNumbers(
   return Array.from(pages).sort((a, b) => a - b);
 }
 
-/** Compute unique page numbers for a single source group. */
-function computeGroupPageNumbers(
-  group: SourceCitationGroup,
-  pageImagesByAttachmentId?: Record<string, PageImage[]>,
-): number[] {
-  return computeUniquePageNumbers([group], pageImagesByAttachmentId);
-}
-
 /** Single page pill — extracted for proper React reconciliation (avoids inline render functions). */
 function DrawerPagePill({
   page,
@@ -1024,11 +1016,11 @@ function OpenCitationDrawer({
     [sortedGroups, pageImagesByAttachmentId],
   );
 
-  // Per-group page numbers — used in multi-group drawers to show pages inline with each file header
   const groupPageNumbers = useMemo(() => {
+    if (sortedGroups.length <= 1) return new Map<number, number[]>();
     const map = new Map<number, number[]>();
     for (let i = 0; i < sortedGroups.length; i++) {
-      map.set(i, computeGroupPageNumbers(sortedGroups[i], pageImagesByAttachmentId));
+      map.set(i, computeUniquePageNumbers([sortedGroups[i]], pageImagesByAttachmentId));
     }
     return map;
   }, [sortedGroups, pageImagesByAttachmentId]);

@@ -193,6 +193,25 @@ const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
 
+/** Print diagnostic when all citations return not_found. */
+function printAllNotFoundHint(): void {
+  console.error(
+    `\nAll citations returned not_found. Common causes:\n` +
+      `  1. anchor_text is not verbatim from the source (paraphrased or too long)\n` +
+      `  2. page_id format is wrong — must be page_number_N_index_I from the tag name\n` +
+      `  3. The attachment was re-prepared — attachmentId has changed\n` +
+      `\nFix the citation data and re-run "deepcitation verify --markdown <draft.md>".`,
+  );
+}
+
+/** Write verified HTML output and print summary to stderr. */
+function writeVerifiedOutput(outPath: string, content: string): void {
+  writeFileSync(outPath, content);
+  console.error(`\nVerified report saved to: ${outPath}`);
+  console.error(`(The .deepcitation/ folder contains intermediate artifacts and can be safely deleted.)`);
+  console.log(outPath);
+}
+
 /** Resolve auth or exit with the standard DeepCitation auth prompt. */
 export function requireAuth(): ResolvedAuth {
   const auth = resolveAuth();
@@ -462,17 +481,7 @@ export async function verify(
   const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
   const total = Object.keys(merged).length;
   console.error(`  Done: ${found}/${total} found`);
-  if (found === 0 && total > 0) {
-    console.error(
-      `\nAll citations returned not_found. This is almost always a citation format problem, not a content problem.\n` +
-        `Common causes:\n` +
-        `  1. anchor_text is not a verbatim substring of full_phrase (paraphrased or too long)\n` +
-        `  2. page_id format is wrong — must be page_number_N_index_I (taken from the tag name in deepTextPromptPortion)\n` +
-        `  3. The attachment was re-prepared — attachmentId has changed\n` +
-        `\nRecommended: use "deepcitation verify --markdown <draft.md>" instead of --citations.\n` +
-        `The --markdown path handles keygen and format normalization automatically.`,
-    );
-  }
+  if (found === 0 && total > 0) printAllNotFoundHint();
   console.log(outPath);
 }
 
@@ -485,7 +494,6 @@ export function inject(argv: string[]) {
   if (!verifyResponsePath) die("--verify-response is required", INJECT_HELP);
 
   const raw = readFileSync(resolve(htmlPath), "utf-8");
-  // Strip <<<CITATION_DATA>>> block if present — it must not appear in final HTML output
   const html = extractVisibleText(raw);
   const verifyResponse = JSON.parse(readFileSync(resolve(verifyResponsePath), "utf-8"));
 
@@ -604,10 +612,7 @@ export function inject(argv: string[]) {
       .replace(/-draft$/, "");
     outPath = resolve(dirname(htmlPath), `${stem}-verified.html`);
   }
-  writeFileSync(outPath, output);
-  console.error(`\nVerified report saved to: ${outPath}`);
-  console.error(`(The .deepcitation/ folder contains intermediate artifacts and can be safely deleted.)`);
-  console.log(outPath);
+  writeVerifiedOutput(outPath, output);
 }
 
 export function keygen(argv: string[]) {
@@ -763,13 +768,9 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
   //    Also inject data-dc-display-label when display_label is provided in citation data.
   let html = parsed.visibleText;
   const keyMap: Record<string, string> = {};
-  const displayLabelById = new Map<number, string>();
-  for (const cd of parsed.citations) {
-    if (cd.display_label) displayLabelById.set(cd.id, cd.display_label);
-  }
-
   for (const [id, hash] of idToHash) {
-    const label = displayLabelById.get(id);
+    const cd = parsed.citations.find(c => c.id === id);
+    const label = cd?.display_label;
     const replacement = label
       ? `data-citation-key="${hash}" data-dc-display-label="${label.replace(/"/g, "&quot;")}"`
       : `data-citation-key="${hash}"`;
@@ -839,15 +840,7 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
   const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
   const total = Object.keys(merged).length;
   console.error(`  Verified: ${found}/${total} found`);
-  if (found === 0 && total > 0) {
-    console.error(
-      `\nAll citations returned not_found. Common causes:\n` +
-        `  1. anchor_text is not verbatim from deepTextPromptPortion (paraphrased or > 4 words / 40 chars)\n` +
-        `  2. page_id format is wrong — must be page_number_N_index_I from the tag name, not the printed page number\n` +
-        `  3. The attachment was re-prepared — update attachmentId in the draft and re-run\n` +
-        `\nFix the citation data in the draft .md and re-run "deepcitation verify --markdown <draft.md>".`,
-    );
-  }
+  if (found === 0 && total > 0) printAllNotFoundHint();
 
   // 5. Inject CDN runtime (same logic as inject command)
   const verifications = verifyOutput.verifications;
@@ -877,10 +870,7 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
   }
 
   const outPath = resolve(args.out ?? `verified-${ts}.html`);
-  writeFileSync(outPath, output);
-  console.error(`\nVerified report saved to: ${outPath}`);
-  console.error(`(The .deepcitation/ folder contains intermediate artifacts and can be safely deleted.)`);
-  console.log(outPath);
+  writeVerifiedOutput(outPath, output);
 }
 
 export async function login(argv: string[], baseUrl: string) {

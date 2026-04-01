@@ -142,15 +142,11 @@ describe("verify --html: annotate stage", () => {
 
     const parsed = parseCitationData(htmlWithLabel);
     let html = parsed.visibleText;
-    const displayLabelById = new Map<number, string>();
-    for (const cd of parsed.citations) {
-      if (cd.display_label) displayLabelById.set(cd.id, cd.display_label);
-    }
 
     for (const cd of parsed.citations) {
       const citation = citationDataToCitation(cd, cd.id);
       const hash = getCitationKey(citation);
-      const label = displayLabelById.get(cd.id);
+      const label = cd.display_label;
       const replacement = label
         ? `data-citation-key="${hash}" data-dc-display-label="${label.replace(/"/g, "&quot;")}"`
         : `data-citation-key="${hash}"`;
