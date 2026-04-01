@@ -33,7 +33,7 @@ import { detectProxyUrl } from "../utils/proxy.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
-import { die, formatNetworkError, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
+import { die, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
 import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./markdownToHtml.js";
 import { createProxyFetch } from "./proxy.js";
 

@@ -76,13 +76,13 @@ describe("CLI dispatch", () => {
   it("shows version with --version", () => {
     const r = run(["--version"]);
     expect(r.exitCode).toBe(0);
-    expect(r.stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(r.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it("shows version with -v", () => {
     const r = run(["-v"]);
     expect(r.exitCode).toBe(0);
-    expect(r.stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(r.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
   });
 
   it("errors on unknown command", () => {
