@@ -748,7 +748,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           }
         }
       },
-      [closePopover, viewState.transition],
+      [closePopover, viewState.transition, viewState],
     );
 
     // Shared tap/click action handler - used by both click and touch handlers.
@@ -818,6 +818,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         closePopover,
         viewState.transition,
         viewState.resetToSummary,
+        viewState,
       ],
     );
 

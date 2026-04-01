@@ -215,7 +215,7 @@ describe("auth commands", () => {
   it("login when already authenticated shows message", () => {
     const r = run(["login"], { env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" } });
     expect(r.exitCode).toBe(0);
-    expect(r.stdout).toContain("Already authenticated");
+    expect(r.stdout).toContain("Authenticated");
   });
 
   it("logout without credentials says no saved credentials", () => {
@@ -274,7 +274,7 @@ describe("prepare command", () => {
     mkdirSync(noAuthHome, { recursive: true });
     const r = run(["prepare", "test.pdf"], { env: { HOME: noAuthHome, DEEPCITATION_API_KEY: "" } });
     expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("Not authenticated");
+    expect(r.stderr).toContain("action needed");
   });
 });
 
@@ -541,7 +541,7 @@ describe("inject edge cases", () => {
     expect(r.stderr).not.toContain("Auto-set display label");
   });
 
-  it("inject default overwrites input file when no --out", () => {
+  it("inject default writes to -verified.html when no --out", () => {
     const htmlFile = join(TEST_DIR, "inject-overwrite.html");
     const verifyFile = join(TEST_DIR, "inject-overwrite-verify.json");
     writeFileSync(htmlFile, "<html><body><p>original</p></body></html>");
@@ -549,7 +549,9 @@ describe("inject edge cases", () => {
 
     const r = run(["inject", "--html", htmlFile, "--verify-response", verifyFile]);
     expect(r.exitCode).toBe(0);
-    const output = readFileSync(htmlFile, "utf-8");
+    // stdout contains the output path printed by writeVerifiedOutput
+    const outPath = r.stdout.trim();
+    const output = readFileSync(outPath, "utf-8");
     expect(output).toContain("dc-data");
     expect(output).toContain("original");
   });
@@ -601,7 +603,7 @@ describe("verify edge cases", () => {
     // Parses citations successfully, then fails at auth step
     expect(r.exitCode).toBe(1);
     expect(r.stderr).toContain("1 citation");
-    expect(r.stderr).toContain("Not authenticated");
+    expect(r.stderr).toContain("action needed");
   });
 });
 
@@ -722,7 +724,7 @@ describe("get command", () => {
     mkdirSync(noAuthHome, { recursive: true });
     const r = run(["get", "some-id"], { env: { HOME: noAuthHome, DEEPCITATION_API_KEY: "" } });
     expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("Not authenticated");
+    expect(r.stderr).toContain("action needed");
   });
 });
 

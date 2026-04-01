@@ -428,6 +428,8 @@ export interface CitationData {
   full_phrase?: string;
   /** Anchor text (1-3 words). Compact key: k */
   anchor_text?: string;
+  /** Display label override — shown as the clickable trigger instead of anchor_text. Compact key: d */
+  display_label?: string;
   /** Page ID in format "page_number_N_index_I". Compact key: p */
   page_id?: string;
   /** Line IDs array. Compact key: l */

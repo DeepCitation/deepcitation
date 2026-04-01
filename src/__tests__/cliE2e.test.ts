@@ -199,18 +199,18 @@ describe("E2E: full pipeline", () => {
     // Find a real phrase in the deep text
     const lineMatch = deepText.match(/<line id="\d+">([^<]+)<\/line>/);
     expect(lineMatch).toBeTruthy();
-    const phrase = lineMatch![1].trim();
+    const phrase = lineMatch?.[1].trim();
     expect(phrase.length).toBeGreaterThan(0);
 
     // Find the page tag
     const pageMatch = deepText.match(/<(page_number_\d+_index_\d+)>/);
     expect(pageMatch).toBeTruthy();
-    const pageId = pageMatch![1];
+    const pageId = pageMatch?.[1];
 
     // Find the line ID
     const lineIdMatch = deepText.match(/<line id="(\d+)">/);
     expect(lineIdMatch).toBeTruthy();
-    const lineId = Number(lineIdMatch![1]);
+    const lineId = Number(lineIdMatch?.[1]);
 
     // This is exactly the structure the /verify skill produces
     const citationData = {

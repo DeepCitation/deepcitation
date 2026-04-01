@@ -118,6 +118,45 @@ describe("verify --html: annotate stage", () => {
     }
   });
 
+  it("injects data-dc-display-label when display_label is present", () => {
+    const htmlWithLabel = `<!DOCTYPE html>
+<html><body>
+  <p data-cite="1">Revenue grew [1]</p>
+</body>
+</html>
+<<<CITATION_DATA>>>
+{
+  "attach-abc123": [
+    {
+      "id": 1,
+      "reasoning": "Revenue",
+      "full_phrase": "Revenue grew 45%",
+      "anchor_text": "grew",
+      "display_label": "99%",
+      "page_id": "page_number_1_index_0",
+      "line_ids": [1]
+    }
+  ]
+}
+<<<END_CITATION_DATA>>>`;
+
+    const parsed = parseCitationData(htmlWithLabel);
+    let html = parsed.visibleText;
+
+    for (const cd of parsed.citations) {
+      const citation = citationDataToCitation(cd, cd.id);
+      const hash = getCitationKey(citation);
+      const label = cd.display_label;
+      const replacement = label
+        ? `data-citation-key="${hash}" data-dc-display-label="${label.replace(/"/g, "&quot;")}"`
+        : `data-citation-key="${hash}"`;
+      html = html.replace(new RegExp(`data-cite="${cd.id}"`, "g"), replacement);
+    }
+
+    expect(html).toContain('data-dc-display-label="99%"');
+    expect(html).not.toContain('data-cite="1"');
+  });
+
   it("strips [N] markers only for known citation IDs", () => {
     const parsed = parseCitationData(MARKED_HTML);
     let html = parsed.visibleText;

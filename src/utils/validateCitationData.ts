@@ -203,11 +203,26 @@ export function validateCitationData(citations: CitationData[]): ValidationRepor
       }
     }
 
-    // Warning: missing anchor_text
+    // Warning: missing or garbage anchor_text
     const anchor = cd.anchor_text ?? "";
     if (!anchor.trim()) {
       warnings.push({ citationId: id, field: "anchor_text", message: "empty — degrades verification accuracy" });
       continue; // skip further anchor checks
+    }
+    if (!/[a-zA-Z0-9]/.test(anchor)) {
+      warnings.push({
+        citationId: id,
+        field: "anchor_text",
+        message: `punctuation-only ("${anchor}") — must contain substantive words from the evidence`,
+      });
+      continue;
+    }
+    if (anchor.trim().length < 3) {
+      warnings.push({
+        citationId: id,
+        field: "anchor_text",
+        message: `too short ("${anchor}") — use 1–4 specific words from full_phrase`,
+      });
     }
 
     // Warning: anchor_text long — shorter anchors improve report readability

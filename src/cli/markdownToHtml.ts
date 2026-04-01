@@ -73,6 +73,14 @@ export function wrapCitationMarkers(html: string): string {
     // or the whole text if it's short
     const clauseMatch = trimmed.match(/(?:[,;–—]\s*)([^,;–—]+)$/);
     const anchor = clauseMatch ? clauseMatch[1].trim() : trimmed;
+
+    // If the anchor is only punctuation (e.g. the [^<"] regex cut off at a
+    // literal quote in text content like Schedule "C".), emit an empty span
+    // so the CDN shows a superscript indicator instead of wrapping garbage.
+    if (!/[a-zA-Z0-9]/.test(anchor)) {
+      return `${trimmed}<span data-cite="${num}"></span>`;
+    }
+
     const prefix = clauseMatch
       ? trimmed.slice(0, trimmed.length - clauseMatch[0].length) +
         clauseMatch[0].slice(0, clauseMatch[0].length - anchor.length)

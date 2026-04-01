@@ -228,7 +228,19 @@ function buildSourceGroupAriaLabel(
  * Shows favicon (or letter avatar for documents), source name,
  * external link for URL sources, and citation count.
  */
-function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
+function SourceGroupHeader({
+  group,
+  pages,
+  activePage,
+  onPageClick,
+  onPageDeactivate,
+}: {
+  group: SourceCitationGroup;
+  pages?: number[];
+  activePage?: number | null;
+  onPageClick?: (page: number) => void;
+  onPageDeactivate?: () => void;
+}) {
   const t = useTranslation();
   const sourceName = group.sourceName || t("drawer.source");
   const citationCount = group.citations.length;
@@ -262,6 +274,23 @@ function SourceGroupHeader({ group }: { group: SourceCitationGroup }) {
         <span className="text-xs text-dc-subtle-foreground shrink-0">
           {tPlural(t, "drawer.citationCount", citationCount, { count: citationCount })}
         </span>
+      )}
+
+      {/* Per-group page badges — shown inline with the file header */}
+      {pages && pages.length > 0 && onPageClick && onPageDeactivate && (
+        <div
+          className="dc-drawer-page-strip max-w-[min(40vw,14rem)] overflow-x-auto overflow-y-hidden shrink-0"
+          style={HIDE_SCROLLBAR_STYLE}
+        >
+          <div className="flex items-center gap-1 min-w-max">
+            <DrawerPageBadges
+              pages={pages}
+              activePage={activePage ?? null}
+              onPageClick={onPageClick}
+              onPageDeactivate={onPageDeactivate}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
@@ -646,6 +675,11 @@ interface DrawerSourceGroupProps {
   pageImagesByAttachmentId?: Record<string, PageImage[]>;
   /** When true, the drawer header already identifies the source — omit group headers and source names */
   isSingleGroup?: boolean;
+  /** Per-group page numbers (multi-group only) */
+  groupPages?: number[];
+  activePage?: number | null;
+  onPageClick?: (page: number) => void;
+  onPageDeactivate?: () => void;
 }
 
 function RenderCitationDrawerItem({
@@ -668,6 +702,10 @@ function DrawerSourceGroup({
   renderCitationItem,
   pageImagesByAttachmentId,
   isSingleGroup = false,
+  groupPages,
+  activePage,
+  onPageClick,
+  onPageDeactivate,
 }: DrawerSourceGroupProps) {
   const key = `${group.sourceDomain ?? group.sourceName}-${groupIndex}`;
   const getPageImages = useCallback(
@@ -736,7 +774,13 @@ function DrawerSourceGroup({
   // Multi-citation groups: header + items
   return (
     <div key={key}>
-      <SourceGroupHeader group={group} />
+      <SourceGroupHeader
+        group={group}
+        pages={groupPages}
+        activePage={activePage}
+        onPageClick={onPageClick}
+        onPageDeactivate={onPageDeactivate}
+      />
       <div>
         {group.citations.map((item, index) => {
           if (renderCitationItem) {
@@ -971,6 +1015,15 @@ function OpenCitationDrawer({
     () => computeUniquePageNumbers(sortedGroups, pageImagesByAttachmentId),
     [sortedGroups, pageImagesByAttachmentId],
   );
+
+  const groupPageNumbers = useMemo(() => {
+    if (sortedGroups.length <= 1) return new Map<number, number[]>();
+    const map = new Map<number, number[]>();
+    for (let i = 0; i < sortedGroups.length; i++) {
+      map.set(i, computeUniquePageNumbers([sortedGroups[i]], pageImagesByAttachmentId));
+    }
+    return map;
+  }, [sortedGroups, pageImagesByAttachmentId]);
 
   // Bidirectional page↔key lookup maps — O(1) instead of linear scans per interaction
   // pageToItems groups all citations by page for the header panel indicator row.
@@ -1275,7 +1328,8 @@ function OpenCitationDrawer({
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {drawerPages.length > 0 && (
+              {/* Page badges in header only for single-group drawers; multi-group shows them per file header */}
+              {isSingleGroup && drawerPages.length > 0 && (
                 <div
                   className="dc-drawer-page-strip max-w-[min(52vw,18rem)] overflow-x-auto overflow-y-hidden"
                   style={HIDE_SCROLLBAR_STYLE}
@@ -1369,6 +1423,10 @@ function OpenCitationDrawer({
                   renderCitationItem={renderCitationItem}
                   pageImagesByAttachmentId={pageImagesByAttachmentId}
                   isSingleGroup={isSingleGroup}
+                  groupPages={!isSingleGroup ? groupPageNumbers.get(groupIndex) : undefined}
+                  activePage={activePage}
+                  onPageClick={handlePageBadgeClick}
+                  onPageDeactivate={handlePageDeactivate}
                 />
               ))
             )}

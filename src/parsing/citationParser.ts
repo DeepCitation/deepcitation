@@ -36,6 +36,7 @@ const COMPACT_KEY_MAP: Record<string, keyof CitationData> = {
   r: "reasoning",
   f: "full_phrase",
   k: "anchor_text",
+  d: "display_label",
   p: "page_id",
   l: "line_ids",
   t: "timestamps",
@@ -48,6 +49,7 @@ const KEY_ALIAS_MAP: Record<string, keyof CitationData> = {
   attachmentId: "attachment_id",
   fullPhrase: "full_phrase",
   anchorText: "anchor_text",
+  displayLabel: "display_label",
   pageId: "page_id",
   lineIds: "line_ids",
   // "fileId" was an early API field name before "attachmentId" was standardized.

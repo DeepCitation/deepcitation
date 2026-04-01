@@ -25,7 +25,7 @@ describe("fuzzyAnchorRange", () => {
     it("is case-insensitive", () => {
       const result = fuzzyAnchorRange("Includes Business Associate Agreement and more", "business associate agreement");
       expect(result).not.toBeNull();
-      expect(result!.start).toBe(9); // "Business" starts at 9
+      expect(result?.start).toBe(9); // "Business" starts at 9
     });
   });
 
@@ -43,8 +43,8 @@ describe("fuzzyAnchorRange", () => {
         "retrieval failure and generation bottleneck",
       );
       expect(result).not.toBeNull();
-      expect(result!.start).toBe(0);
-      expect(result!.end).toBeGreaterThan(40);
+      expect(result?.start).toBe(0);
+      expect(result?.end).toBeGreaterThan(40);
     });
   });
 
@@ -69,14 +69,14 @@ describe("fuzzyAnchorRange", () => {
       const result = fuzzyAnchorRange(OCR_SNIPPET, "Business Associate Agreement");
       expect(result).not.toBeNull();
       // Range should start at "Business" (position 9) and end at "Agreement" end (position 38)
-      expect(result!.start).toBe(9);
-      expect(result!.end).toBe(38);
+      expect(result?.start).toBe(9);
+      expect(result?.end).toBe(38);
     });
 
     it("highlighted slice from 3-word anchor spans the OCR-garbled form", () => {
       const result = fuzzyAnchorRange(OCR_SNIPPET, "Business Associate Agreement");
       expect(result).not.toBeNull();
-      const highlighted = OCR_SNIPPET.slice(result!.start, result!.end);
+      const highlighted = OCR_SNIPPET.slice(result?.start, result?.end);
       // The garbled form "Business Asso ciate Agreement" is the expected highlighted text
       expect(highlighted).toBe("Business Asso ciate Agreement");
     });

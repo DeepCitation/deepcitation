@@ -328,8 +328,8 @@ describe("resolveAuth", () => {
     process.env.DEEPCITATION_API_KEY = "sk-dc-test1234567890abcdef";
     const auth = resolveAuth();
     expect(auth).not.toBeNull();
-    expect(auth!.apiKey).toBe("sk-dc-test1234567890abcdef");
-    expect(auth!.source.kind).toBe("env-var");
+    expect(auth?.apiKey).toBe("sk-dc-test1234567890abcdef");
+    expect(auth?.source.kind).toBe("env-var");
   });
 
   it("returns null when nothing is set", () => {
