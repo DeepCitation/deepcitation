@@ -24,7 +24,7 @@ import {
   writeCredentials,
 } from "../auth.js";
 import { DeepCitation } from "../client/DeepCitation.js";
-import { citationDataToCitation, parseCitationData } from "../parsing/citationParser.js";
+import { citationDataToCitation, extractVisibleText, parseCitationData } from "../parsing/citationParser.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
@@ -192,10 +192,17 @@ const ALLOWED_INDICATORS = ["icon", "dot", "none"] as const;
 
 const DEFAULT_API_URL = "https://api.deepcitation.com";
 
-/** Resolve auth or die with a helpful message. */
-export function requireAuth(helpText: string): ResolvedAuth {
+/** Resolve auth or exit with the standard DeepCitation auth prompt. */
+export function requireAuth(_helpText: string): ResolvedAuth {
   const auth = resolveAuth();
-  if (!auth) die('Not authenticated. Run "npx deepcitation login" or set DEEPCITATION_API_KEY.', helpText);
+  if (!auth) {
+    const keyUrl = `${resolveBaseUrl()}/cli-auth?manual=true`;
+    console.error("DeepCitation — action needed\n");
+    console.error(`1. Get your API key: ${keyUrl}`);
+    console.error("2. Run: export DEEPCITATION_API_KEY=<your-key>");
+    console.error("3. Re-run your command");
+    process.exit(1);
+  }
   return auth;
 }
 
@@ -454,6 +461,17 @@ export async function verify(
   const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
   const total = Object.keys(merged).length;
   console.error(`  Done: ${found}/${total} found`);
+  if (found === 0 && total > 0) {
+    console.error(
+      `\nAll citations returned not_found. This is almost always a citation format problem, not a content problem.\n` +
+      `Common causes:\n` +
+      `  1. anchor_text is not a verbatim substring of full_phrase (paraphrased or too long)\n` +
+      `  2. page_id format is wrong — must be page_number_N_index_I (taken from the tag name in deepTextPromptPortion)\n` +
+      `  3. The attachment was re-prepared — attachmentId has changed\n` +
+      `\nRecommended: use "deepcitation verify --markdown <draft.md>" instead of --citations.\n` +
+      `The --markdown path handles keygen and format normalization automatically.`,
+    );
+  }
   console.log(outPath);
 }
 
@@ -465,7 +483,9 @@ export function inject(argv: string[]) {
   if (!htmlPath) die("--html is required", INJECT_HELP);
   if (!verifyResponsePath) die("--verify-response is required", INJECT_HELP);
 
-  const html = readFileSync(resolve(htmlPath), "utf-8");
+  const raw = readFileSync(resolve(htmlPath), "utf-8");
+  // Strip <<<CITATION_DATA>>> block if present — it must not appear in final HTML output
+  const html = extractVisibleText(raw);
   const verifyResponse = JSON.parse(readFileSync(resolve(verifyResponsePath), "utf-8"));
 
   const verifications = verifyResponse.verifications ?? verifyResponse;
@@ -574,8 +594,16 @@ export function inject(argv: string[]) {
     output = `${output}\n${snippet}`;
   }
 
-  const outPath = resolve(args.out ?? htmlPath);
+  let outPath: string;
+  if (args.out) {
+    outPath = resolve(args.out);
+  } else {
+    const stem = basename(htmlPath, extname(htmlPath)).replace(/-annotated$/, "").replace(/-draft$/, "");
+    outPath = resolve(`${stem}-verified.html`);
+  }
   writeFileSync(outPath, output);
+  console.error(`\nVerified report saved to: ${outPath}`);
+  console.error(`(The .deepcitation/ folder contains intermediate artifacts and can be safely deleted.)`);
   console.log(outPath);
 }
 
@@ -653,7 +681,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   // Set default output name: derive from input filename, e.g. report.md → report-verified.html
   if (!args.out) {
     const stem = basename(resolved, extname(resolved));
-    forwardArgs.push("--out", resolve(dirname(resolved), `${stem}-verified.html`));
+    forwardArgs.push("--out", resolve(`${stem}-verified.html`));
   }
 
   return verifyHtml(forwardArgs, fmtNetErr, htmlWithCitations);
@@ -729,12 +757,21 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
   }
 
   // 3. Annotate HTML: map data-cite="N" → data-citation-key="hash", strip [N] markers
+  //    Also inject data-dc-display-label when display_label is provided in citation data.
   let html = parsed.visibleText;
   const keyMap: Record<string, string> = {};
+  const displayLabelById = new Map<number, string>();
+  for (const cd of parsed.citations) {
+    if (cd.display_label) displayLabelById.set(cd.id, cd.display_label);
+  }
 
   for (const [id, hash] of idToHash) {
+    const label = displayLabelById.get(id);
+    const replacement = label
+      ? `data-citation-key="${hash}" data-dc-display-label="${label.replace(/"/g, "&quot;")}"`
+      : `data-citation-key="${hash}"`;
     const dataCitePattern = new RegExp(`data-cite="${id}"`, "g");
-    html = html.replace(dataCitePattern, `data-citation-key="${hash}"`);
+    html = html.replace(dataCitePattern, replacement);
     keyMap[`cite-${id}`] = hash;
   }
 
@@ -799,6 +836,15 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
   const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
   const total = Object.keys(merged).length;
   console.error(`  Verified: ${found}/${total} found`);
+  if (found === 0 && total > 0) {
+    console.error(
+      `\nAll citations returned not_found. Common causes:\n` +
+      `  1. anchor_text is not verbatim from deepTextPromptPortion (paraphrased or > 4 words / 40 chars)\n` +
+      `  2. page_id format is wrong — must be page_number_N_index_I from the tag name, not the printed page number\n` +
+      `  3. The attachment was re-prepared — update attachmentId in the draft and re-run\n` +
+      `\nFix the citation data in the draft .md and re-run "deepcitation verify --markdown <draft.md>".`,
+    );
+  }
 
   // 5. Inject CDN runtime (same logic as inject command)
   const verifications = verifyOutput.verifications;
@@ -827,8 +873,10 @@ export async function verifyHtml(argv: string[], fmtNetErr: (err: unknown) => st
     output = `${output}\n${snippet}`;
   }
 
-  const outPath = resolve(args.out ?? `.deepcitation/verified-${ts}.html`);
+  const outPath = resolve(args.out ?? `verified-${ts}.html`);
   writeFileSync(outPath, output);
+  console.error(`\nVerified report saved to: ${outPath}`);
+  console.error(`(The .deepcitation/ folder contains intermediate artifacts and can be safely deleted.)`);
   console.log(outPath);
 }
 
@@ -851,9 +899,7 @@ export async function login(argv: string[], baseUrl: string) {
 
   const existing = resolveAuth();
   if (existing) {
-    console.log(`Already authenticated (${maskKey(existing.apiKey)}).`);
-    console.log(`Source: ${sourceLabel(existing.source)}`);
-    console.log('Run "npx deepcitation logout" first to switch accounts.');
+    status();
     return;
   }
 
@@ -872,12 +918,10 @@ export async function login(argv: string[], baseUrl: string) {
       console.log("   This persists across sessions automatically.");
       console.log("   Or for this session only: npx deepcitation login --key <your-key>");
     } else {
-      console.log("Non-interactive environment detected (no TTY).");
-      console.log(`\nTo log in, get an API key from:\n  ${manualUrl}\n`);
-      console.log("Then run one of:");
-      console.log("  npx deepcitation login --key <your-key>");
-      console.log("  echo <your-key> | npx deepcitation login --stdin");
-      console.log("  export DEEPCITATION_API_KEY=<your-key>");
+      console.log("Non-interactive environment detected (no TTY).\n");
+      console.log(`1. Get your API key: ${manualUrl}`);
+      console.log("2. Run: export DEEPCITATION_API_KEY=<your-key>");
+      console.log("3. Re-run your command");
     }
     process.exit(1);
   }
@@ -1005,7 +1049,7 @@ export function status() {
     console.log(parts.join("\n"));
     process.exit(0);
   } else {
-    console.log('Not logged in. Run "npx deepcitation login --key <key>" or set DEEPCITATION_API_KEY.');
+    console.log("Not logged in.");
     process.exit(1);
   }
 }
