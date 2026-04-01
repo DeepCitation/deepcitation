@@ -523,10 +523,10 @@ export function SourceContextHeader({
             </span>
           </button>
         )}
-        {customActions?.map((action, i) =>
+        {customActions?.map(action =>
           action.hidden ? null : (
             <button
-              key={i}
+              key={action.label}
               type="button"
               aria-label={action.label}
               title={action.title ?? action.label}
@@ -982,16 +982,17 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
       {hasAnchorText && (
         <div className="text-sm font-medium text-dc-foreground mb-1 border-l border-dc-border pl-2">{anchorText}</div>
       )}
-      {hasFullPhrase && (() => {
-        const { text: fp, prefixTrimmed: fpp, suffixTrimmed: fps } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
-        return (
-          <div className="text-xs text-dc-muted-foreground font-mono break-all bg-dc-muted p-2 rounded border-l border-dc-border">
-            {fpp && "..."}
-            {fp}
-            {fps && "..."}
-          </div>
-        );
-      })()}
+      {hasFullPhrase &&
+        (() => {
+          const { text: fp, prefixTrimmed: fpp, suffixTrimmed: fps } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
+          return (
+            <div className="text-xs text-dc-muted-foreground font-mono break-all bg-dc-muted p-2 rounded border-l border-dc-border">
+              {fpp && "..."}
+              {fp}
+              {fps && "..."}
+            </div>
+          );
+        })()}
     </div>
   );
 }

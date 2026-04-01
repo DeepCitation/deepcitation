@@ -1,6 +1,6 @@
 import { shouldHighlightAnchorText } from "../drawing/citationDrawing.js";
-import { trimPhraseToAnchorWindow } from "../utils/textCleanup.js";
 import { fuzzyAnchorRange } from "../utils/fuzzyAnchor.js";
+import { trimPhraseToAnchorWindow } from "../utils/textCleanup.js";
 import { ANCHOR_HIGHLIGHT_STYLE } from "./constants.js";
 
 /**
@@ -23,7 +23,11 @@ export function HighlightedPhrase({
 }) {
   // Don't highlight when citation is "not found" - misleading to highlight text that wasn't found
   if (isMiss) {
-    const { text: missDisplay, prefixTrimmed: mp, suffixTrimmed: ms } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
+    const {
+      text: missDisplay,
+      prefixTrimmed: mp,
+      suffixTrimmed: ms,
+    } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
     return (
       <span className="text-dc-destructive">
         {mp && "..."}
@@ -34,7 +38,11 @@ export function HighlightedPhrase({
   }
 
   if (!anchorText || !shouldHighlightAnchorText(anchorText, fullPhrase)) {
-    const { text: plainDisplay, prefixTrimmed: pp, suffixTrimmed: ps } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
+    const {
+      text: plainDisplay,
+      prefixTrimmed: pp,
+      suffixTrimmed: ps,
+    } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
     return (
       <span className="text-dc-muted-foreground">
         {pp && "..."}

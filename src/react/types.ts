@@ -160,7 +160,15 @@ export interface CitationCursorClasses {
 export interface PopoverAction {
   /** Icon element (rendered at size-3.5) */
   icon: React.ReactNode;
-  /** Accessible label for screen readers */
+  /**
+   * Accessible label for screen readers. Used as `aria-label` and as the
+   * React list key — must be unique among sibling actions in the same popover.
+   *
+   * @remarks
+   * `label` and `title` are rendered directly as `aria-label` / `title` attributes
+   * without going through the DeepCitation i18n translator. Callers are responsible
+   * for providing translated strings when the application is multilingual.
+   */
   label: string;
   /** Tooltip text (defaults to label) */
   title?: string;
