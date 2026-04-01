@@ -190,21 +190,21 @@ describe("resolveBaseUrl", () => {
 describe("saveApiKey", () => {
   it("saves valid key", async () => {
     mockWriteCredentials.mockReturnValue(undefined);
-    const { stdout } = await captureOutput(() => saveApiKey(TEST_KEY, "--key flag", TEST_BILLING_URL));
+    const { stdout } = await captureOutput(() => saveApiKey(TEST_KEY, "--key flag"));
     expect(mockWriteCredentials).toHaveBeenCalledWith(expect.objectContaining({ version: 1, apiKey: TEST_KEY }));
     expect(stdout).toContain("Credentials saved");
   });
 
   it("rejects key without sk-dc- prefix", () => {
-    expect(() => saveApiKey("pk-test-1234567890123456", "test", TEST_BILLING_URL)).toThrow("process.exit(1)");
+    expect(() => saveApiKey("pk-test-1234567890123456", "test")).toThrow("process.exit(1)");
   });
 
   it("rejects too-short key", () => {
-    expect(() => saveApiKey("sk-dc-short", "test", TEST_BILLING_URL)).toThrow("process.exit(1)");
+    expect(() => saveApiKey("sk-dc-short", "test")).toThrow("process.exit(1)");
   });
 
   it("rejects empty string", () => {
-    expect(() => saveApiKey("", "test", TEST_BILLING_URL)).toThrow("process.exit(1)");
+    expect(() => saveApiKey("", "test")).toThrow("process.exit(1)");
   });
 });
 
@@ -820,20 +820,20 @@ describe("openBillingDashboard", () => {
 
 describe("login command", () => {
   it("saves key from --key flag", async () => {
-    const { stdout } = await captureOutput(() => login(["--key", TEST_KEY], TEST_BASE_URL, TEST_BILLING_URL));
+    const { stdout } = await captureOutput(() => login(["--key", TEST_KEY], TEST_BASE_URL));
     expect(mockWriteCredentials).toHaveBeenCalledWith(expect.objectContaining({ apiKey: TEST_KEY }));
     expect(stdout).toContain("Credentials saved");
   });
 
   it("exits when --key has no value", async () => {
-    await expect(captureOutput(() => login(["--key"], TEST_BASE_URL, TEST_BILLING_URL))).rejects.toThrow(
+    await expect(captureOutput(() => login(["--key"], TEST_BASE_URL))).rejects.toThrow(
       "process.exit(1)",
     );
   });
 
   it("reports already authenticated if auth exists", async () => {
     mockResolveAuth.mockReturnValue(makeAuth());
-    const { stdout } = await captureOutput(() => login([], TEST_BASE_URL, TEST_BILLING_URL));
+    const { stdout } = await captureOutput(() => login([], TEST_BASE_URL));
     expect(stdout).toContain("Already authenticated");
     expect(mockWriteCredentials).not.toHaveBeenCalled();
   });

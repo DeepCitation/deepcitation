@@ -982,7 +982,7 @@ export function env() {
     process.stderr.write('Not logged in. Run "npx deepcitation login" first.\n');
     process.exit(1);
   }
-  if (!/^sk-dc-[A-Za-z0-9]+$/.test(auth.apiKey)) {
+  if (!isValidApiKeyFormat(auth.apiKey)) {
     process.stderr.write('Saved API key has an unexpected format. Run "npx deepcitation login" again.\n');
     process.exit(1);
   }
