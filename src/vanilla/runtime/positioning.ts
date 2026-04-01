@@ -27,7 +27,11 @@ export function computePosition(
     side = "top";
   }
 
-  // Coords are viewport-relative — no scroll offset needed because the
-  // wrapper uses position:fixed, which is always relative to the viewport.
+  // Clamp y to viewport — mirrors the horizontal clamp above. Without this,
+  // a tall expanded popover near the bottom (or top) of the viewport overflows
+  // and becomes inaccessible to the user.
+  y = Math.max(8, Math.min(y, window.innerHeight - popoverHeight - 8));
+
+  // Coords are viewport-relative; reposition() converts to container-relative.
   return { x: Math.round(x), y: Math.round(y), side };
 }

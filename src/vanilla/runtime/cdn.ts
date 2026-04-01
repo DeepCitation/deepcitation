@@ -477,6 +477,18 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
       }
       scrollParent = scrollParent.parentElement;
     }
+    // Ensure the portal target is the CSS containing block for position:absolute.
+    // If it's position:static, the wrapper's actual containing block is some higher
+    // ancestor (or the ICB). reposition() would then use the wrong cRect — e.g.
+    // a centered body with margin:auto has cRect.left > 0, causing the popover to
+    // be shifted left by that margin and appear off-screen.
+    if (window.getComputedStyle(portalTarget).position === "static") {
+      const prev = portalTarget.style.position;
+      portalTarget.style.position = "relative";
+      radixVPPositionCleanup = () => {
+        portalTarget.style.position = prev;
+      };
+    }
   }
   // Guard against detached scroll containers (SPA navigation edge case)
   if (!portalTarget.isConnected) portalTarget = document.body;
