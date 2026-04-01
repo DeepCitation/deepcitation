@@ -3,6 +3,7 @@ import type { Citation } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { SearchAttempt, SearchStatus } from "../types/search.js";
 import type { Verification } from "../types/verification.js";
+import { trimPhraseToAnchorWindow } from "../utils/textCleanup.js";
 import { isDomainMatch } from "../utils/urlSafety.js";
 import { UrlCitationComponent } from "./Citation.js";
 import {
@@ -94,6 +95,10 @@ export interface SourceContextHeaderProps {
    * Download URL for the source file. When provided, renders a download button in the popover header.
    */
   downloadUrl?: string;
+  /**
+   * Custom action buttons rendered in the header alongside the download button.
+   */
+  customActions?: import("./types.js").PopoverAction[];
 }
 
 /**
@@ -436,6 +441,7 @@ export function SourceContextHeader({
   onExpand,
   onClose,
   downloadUrl,
+  customActions,
 }: SourceContextHeaderProps) {
   const t = useTranslation();
   const isUrl = isUrlCitation(citation);
@@ -516,6 +522,23 @@ export function SourceContextHeader({
               <DownloadIcon />
             </span>
           </button>
+        )}
+        {customActions?.map((action, i) =>
+          action.hidden ? null : (
+            <button
+              key={i}
+              type="button"
+              aria-label={action.label}
+              title={action.title ?? action.label}
+              className={cn(HEADER_DOWNLOAD_BUTTON_BASE_CLASSES, HEADER_DOWNLOAD_BUTTON_REVEAL_CLASSES)}
+              onClick={e => {
+                e.stopPropagation();
+                action.onClick({ citation, verification: verification ?? null });
+              }}
+            >
+              <span className="size-3.5 block">{action.icon}</span>
+            </button>
+          ),
         )}
       </div>
       {/* Right: Proof link (expanded view) + Page pill */}
@@ -959,11 +982,16 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
       {hasAnchorText && (
         <div className="text-sm font-medium text-dc-foreground mb-1 border-l border-dc-border pl-2">{anchorText}</div>
       )}
-      {hasFullPhrase && (
-        <div className="text-xs text-dc-muted-foreground font-mono break-all bg-dc-muted p-2 rounded border-l border-dc-border">
-          {fullPhrase}
-        </div>
-      )}
+      {hasFullPhrase && (() => {
+        const { text: fp, prefixTrimmed: fpp, suffixTrimmed: fps } = trimPhraseToAnchorWindow(fullPhrase, anchorText);
+        return (
+          <div className="text-xs text-dc-muted-foreground font-mono break-all bg-dc-muted p-2 rounded border-l border-dc-border">
+            {fpp && "..."}
+            {fp}
+            {fps && "..."}
+          </div>
+        );
+      })()}
     </div>
   );
 }
