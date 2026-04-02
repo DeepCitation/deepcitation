@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.10] - 2026-04-02
 
+### Added
+
+- **Rich report header meta strip** — report HTML shell now renders a `SOURCE · ANALYZED · AUDIENCE · CITATIONS · PAGES` meta strip using BEM `dc-meta` classes, replacing the single `.meta` paragraph. (#402)
+- **Brand logo SVG in report footer** — square caps, `crispEdges` rendering per branding guidelines. (#402)
+- **Cowork notice banner** — informational banner injected into both plain and report HTML shells when running in Cowork mode. (#402)
+
+### Changed
+
+- **`undici` for Cowork proxy** — Cowork fetch now uses `undici` `EnvHttpProxyAgent` instead of `globalThis.fetch`, resolving proxy CONNECT failures in corporate network environments. `createClient` is now async; `undici` is externalized in the tsup bundle. (#402)
+- **Report table style** — no fill, heavier separators, blue hover row highlight. (#402)
+- **Report link color** — `#3B82F6` → `#0284C7`; background `#FDFBF7` → `#F8FAFC`. (#402)
+
+### Fixed
+
+- **Proxy error propagation** — `sendViaUndiciProxy` outer catch narrowed to import-only errors; real network errors (DNS, TLS, proxy-auth) now propagate instead of silently retrying with `globalThis.fetch`. Falls back to `EnvHttpProxyAgent` with a console warning when `ProxyAgent` construction fails. (#402)
+
 ## [0.3.9] - 2026-04-02
 
 ## [0.3.8] - 2026-04-02
