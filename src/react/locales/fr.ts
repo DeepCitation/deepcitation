@@ -103,6 +103,8 @@ export const frOverrides = {
   "aria.viewProofForSource": "Voir la preuve pour {sourceName}",
   "aria.citationVerificationStatus": "Statut de vérification des citations",
   "aria.citationsSummary": "Citations : {displayLabel}",
+  "aria.citationIconTitle": "{sourceName} — {statusLabel}",
+  "aria.citationIconTitleWithPreview": "{sourceName} : {preview} — {statusLabel}",
   "aria.sourceFromPlatform": "{title} de {platformName}",
   "aria.sourceGroup": "Source : {sourceName}",
   "aria.sourceGroupWithDomain": "Source : {sourceName} ({sourceDomain})",

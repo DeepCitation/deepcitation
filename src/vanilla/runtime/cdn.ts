@@ -242,6 +242,8 @@ function reposition(): void {
   } else if (finalRect.right > vw - 16) {
     dx = vw - 16 - finalRect.right;
   }
+  // Vertical clamp is flush (0 margin) unlike horizontal (16px) — see
+  // useViewportBoundaryGuard.ts for the rationale.
   const vh = window.innerHeight;
   let dy = 0;
   if (finalRect.top < 0) {

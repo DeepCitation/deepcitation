@@ -105,6 +105,8 @@ export const viOverrides = {
   "aria.viewProofForSource": "Xem bằng chứng cho {sourceName}",
   "aria.citationVerificationStatus": "Trạng thái xác minh trích dẫn",
   "aria.citationsSummary": "Trích dẫn: {displayLabel}",
+  "aria.citationIconTitle": "{sourceName} — {statusLabel}",
+  "aria.citationIconTitleWithPreview": "{sourceName}: {preview} — {statusLabel}",
   "aria.sourceFromPlatform": "{title} từ {platformName}",
   "aria.sourceGroup": "Nguồn: {sourceName}",
   "aria.sourceGroupWithDomain": "Nguồn: {sourceName} ({sourceDomain})",

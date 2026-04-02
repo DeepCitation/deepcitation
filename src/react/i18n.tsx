@@ -185,6 +185,8 @@ export const defaultMessages = {
   "aria.viewProofForSource": "View proof for {sourceName}",
   "aria.citationVerificationStatus": "Citation verification status",
   "aria.citationsSummary": "Citations: {displayLabel}",
+  "aria.citationIconTitle": "{sourceName} — {statusLabel}",
+  "aria.citationIconTitleWithPreview": "{sourceName}: {preview} — {statusLabel}",
   "aria.sourceFromPlatform": "{title} from {platformName}",
   "aria.sourceGroup": "Source: {sourceName}",
   "aria.sourceGroupWithDomain": "Source: {sourceName} ({sourceDomain})",
