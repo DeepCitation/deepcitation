@@ -55,7 +55,10 @@ export function useViewportBoundaryGuard(
     prevViewStateRef.current = popoverViewState;
 
     if (isViewStateChange) {
-      clamp(el);
+      // Skip vertical on view-state transitions: vertical correction during the
+      // FLIP animation causes oscillation. The safety timer applies full clamping
+      // (including vertical) after SETTLE_MS once the animation has finished.
+      clamp(el, true);
       return;
     }
 
@@ -78,11 +81,13 @@ export function useViewportBoundaryGuard(
 
     transitionEndsAtRef.current = Date.now() + SETTLE_MS;
 
+    // Immediate rAF: horizontal-only to avoid vertical oscillation during animation.
     rafIdRef.current = requestAnimationFrame(() => {
       const current = popoverContentRef.current;
-      if (current) clamp(current);
+      if (current) clamp(current, true);
     });
 
+    // Safety timer: full clamp (including vertical) after animation has settled.
     const safetyTimer = setTimeout(() => {
       const current = popoverContentRef.current;
       if (current) clamp(current);
@@ -133,7 +138,18 @@ export function useViewportBoundaryGuard(
   }, [isOpen]);
 }
 
-function clamp(el: HTMLElement): void {
+/**
+ * Clamp the popover to viewport edges using CSS `translate`.
+ *
+ * @param skipVertical  When true, only horizontal (dx) is corrected.
+ *   Pass true during live animation frames to prevent oscillation — the
+ *   safety timer calls with skipVertical=false after animation settles.
+ *
+ * Horizontal uses VIEWPORT_MARGIN_PX (16px) to avoid page-chrome clipping.
+ * Vertical uses 0px margin (flush): vertical overflow is far less common and
+ * the popover's own max-height already keeps it within the viewport.
+ */
+function clamp(el: HTMLElement, skipVertical = false): void {
   const vw = getVisibleViewportWidth();
   applyGuardMaxWidth(el, vw);
 
@@ -148,7 +164,18 @@ function clamp(el: HTMLElement): void {
     dx = vw - VIEWPORT_MARGIN_PX - rect.right;
   }
 
-  if (dx !== 0) {
-    el.style.translate = `${dx}px`;
+  let dy = 0;
+
+  if (!skipVertical) {
+    const vh = window.innerHeight;
+    if (rect.top < 0) {
+      dy = -rect.top;
+    } else if (rect.bottom > vh) {
+      dy = vh - rect.bottom;
+    }
+  }
+
+  if (dx !== 0 || dy !== 0) {
+    el.style.translate = dy !== 0 ? `${dx}px ${dy}px` : `${dx}px`;
   }
 }
