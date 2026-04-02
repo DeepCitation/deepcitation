@@ -830,7 +830,7 @@ function DrawerSourceHeading({
   const t = useTranslation();
 
   if (citationGroups.length === 0) {
-    return <h2 className="text-base font-semibold text-dc-foreground truncate min-w-0">{fallbackTitle}</h2>;
+    return <h2 className="text-base font-semibold text-dc-foreground">{fallbackTitle}</h2>;
   }
   const firstGroup = citationGroups[0];
   // Use the exact same label as CitationDrawerTrigger — generateDefaultLabel handles
@@ -852,58 +852,7 @@ function DrawerSourceHeading({
       )}
 
       {/* Source label — identical text to CitationDrawerTrigger */}
-      <h2 className="text-base font-semibold text-dc-foreground truncate min-w-0 flex-1">{displayLabel}</h2>
-    </div>
-  );
-}
-
-// =========
-// IndicatorRow — clickable status chips for citations visible in the header panel
-// =========
-
-/**
- * Row of clickable indicator buttons for citations visible on the active page.
- * Active indicator = overlay shown for that citation; clicking toggles overlay on/off.
- */
-function IndicatorRow({
-  citations,
-  activeKey,
-  onToggle,
-  indicatorVariant,
-}: {
-  citations: CitationDrawerItem[];
-  activeKey: string | null;
-  onToggle: (key: string) => void;
-  indicatorVariant: IndicatorVariant;
-}) {
-  const t = useTranslation();
-  return (
-    <div className="flex items-center gap-2 px-4 py-1.5 border-t border-dc-border">
-      {citations.map(item => {
-        const isActive = item.citationKey === activeKey;
-        const statusInfo = getStatusInfo(item.verification, indicatorVariant, t);
-        const label = item.citation.anchorText?.toString() ?? item.citation.fullPhrase ?? t("aria.citation");
-        return (
-          <button
-            key={item.citationKey}
-            type="button"
-            title={label}
-            onClick={() => onToggle(item.citationKey)}
-            className={cn(
-              "inline-flex items-center justify-center rounded-full transition-all w-6 h-6",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-              statusInfo.color,
-              isActive ? "opacity-100 ring-2 ring-current ring-offset-1" : "opacity-40 hover:opacity-70",
-            )}
-            aria-pressed={isActive}
-            aria-label={
-              isActive ? t("aria.toggleAnnotation.hide", { label }) : t("aria.toggleAnnotation.show", { label })
-            }
-          >
-            {statusInfo.icon}
-          </button>
-        );
-      })}
+      <h2 className="text-base font-semibold text-dc-foreground">{displayLabel}</h2>
     </div>
   );
 }
@@ -1325,10 +1274,42 @@ function OpenCitationDrawer({
 
         {/* Header with summary, progress bar, and view toggle */}
         <div className="px-4 py-2 border-b border-dc-border shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="shrink-0 min-w-0 max-w-[50%]">
               <DrawerSourceHeading citationGroups={resolvedGroups} label={label} fallbackTitle={resolvedTitle} />
             </div>
+            {indicatorVariant !== "none" && citationsOnActivePage.length > 0 && headerInline && (
+              <div className="flex items-center gap-1.5 shrink-0" data-testid="drawer-header-indicators">
+                {citationsOnActivePage.map(item => {
+                  const isActive = item.citationKey === activeIndicatorKey;
+                  const statusInfo = getStatusInfo(item.verification, indicatorVariant, t);
+                  const label = item.citation.anchorText?.toString() ?? item.citation.fullPhrase ?? t("aria.citation");
+                  return (
+                    <button
+                      key={item.citationKey}
+                      type="button"
+                      title={label}
+                      onClick={() => setActiveIndicatorKey(k => (k === item.citationKey ? null : item.citationKey))}
+                      className={cn(
+                        "inline-flex items-center justify-center rounded-full transition-all w-6 h-6",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+                        statusInfo.color,
+                        isActive ? "opacity-100 ring-2 ring-current ring-offset-1" : "opacity-40 hover:opacity-70",
+                      )}
+                      aria-pressed={isActive}
+                      aria-label={
+                        isActive
+                          ? t("aria.toggleAnnotation.hide", { label })
+                          : t("aria.toggleAnnotation.show", { label })
+                      }
+                    >
+                      {statusInfo.icon}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex-1" />
             {totalCitations > 0 && indicatorVariant !== "none" && (
               <div className="shrink-0">
                 <StackedStatusIcons
@@ -1409,14 +1390,6 @@ function OpenCitationDrawer({
                 fill={isFullPage}
               />
             </CitationErrorBoundary>
-            {indicatorVariant !== "none" && citationsOnActivePage.length > 0 && (
-              <IndicatorRow
-                citations={citationsOnActivePage}
-                activeKey={activeIndicatorKey}
-                onToggle={key => setActiveIndicatorKey(k => (k === key ? null : key))}
-                indicatorVariant={indicatorVariant}
-              />
-            )}
           </div>
         )}
 
