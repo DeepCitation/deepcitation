@@ -148,24 +148,7 @@ function clamp(el: HTMLElement): void {
     dx = vw - VIEWPORT_MARGIN_PX - rect.right;
   }
 
-  // Vertical position clamping — nudge the popover back into the viewport
-  // if it overflows top or bottom. This is POSITION clamping (translate),
-  // not HEIGHT clamping (max-height) — it won't cause squish on scroll.
-  //
-  // Intentionally flush (0 margin) unlike horizontal (VIEWPORT_MARGIN_PX = 16px):
-  // horizontal margin prevents clipping by page chrome on narrow screens;
-  // vertical overflow is far less common and the popover's own max-height
-  // already keeps it within the viewport — this is a last-resort safety net.
-  const vh = window.innerHeight;
-  let dy = 0;
-
-  if (rect.top < 0) {
-    dy = -rect.top;
-  } else if (rect.bottom > vh) {
-    dy = vh - rect.bottom;
-  }
-
-  if (dx !== 0 || dy !== 0) {
-    el.style.translate = `${dx}px ${dy}px`;
+  if (dx !== 0) {
+    el.style.translate = `${dx}px`;
   }
 }

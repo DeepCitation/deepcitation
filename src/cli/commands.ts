@@ -222,6 +222,7 @@ export function requireAuth(): ResolvedAuth {
     console.error(`1. Get your API key: ${keyUrl}`);
     console.error(`2. Run: npx deepcitation login --key '<your-key>'`);
     console.error("   (This saves the key so all future commands just work.)");
+    console.error("   Or set: DEEPCITATION_API_KEY=<your-key>  (env var — no file written)");
     process.exit(1);
   }
   return auth;
@@ -956,6 +957,7 @@ export async function login(argv: string[], baseUrl: string) {
       console.log(`1. Get your API key: ${manualUrl}`);
       console.log("2. Run: npx deepcitation login --key '<your-key>'");
       console.log("   (This saves the key so all future commands just work.)");
+      console.log('   Or: export DEEPCITATION_API_KEY="<your-key>"  (env var for this session)');
       console.log("   Or: npx deepcitation login --browser  (opens browser for OAuth)");
     }
     process.exit(1);

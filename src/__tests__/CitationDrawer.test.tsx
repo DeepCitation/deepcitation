@@ -564,8 +564,8 @@ describe("CitationDrawer", () => {
       <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} onCitationClick={onCitationClick} />,
     );
 
-    // Click on the CompactSingleCitationRow (role="button")
-    const button = container.querySelector('[role="button"]');
+    // Click on the citation row button (data-citation-key distinguishes it from header icon buttons)
+    const button = container.querySelector('[role="button"][data-citation-key]');
     expect(button).toBeInTheDocument();
     if (button) {
       fireEvent.click(button);
