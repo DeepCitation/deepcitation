@@ -219,7 +219,68 @@ describe("markdownToHtml style shells", () => {
   it("includes source label in report mode", () => {
     const result = markdownToHtml(md, { style: "report", sourceLabel: "Source: GPT-4" });
     expect(result).toContain("Source: GPT-4");
-    expect(result).toContain('class="meta"');
+    expect(result).toContain('class="dc-meta"');
+  });
+
+  it("renders sourceUrl as a clickable link with scheme stripped", () => {
+    const result = markdownToHtml(md, { style: "report", sourceUrl: "https://example.com/docs/report" });
+    expect(result).toContain('href="https://example.com/docs/report"');
+    expect(result).toContain("example.com/docs/report");
+    expect(result).not.toContain("https://example.com/docs/report</span>"); // rendered as <a>, not plain text
+  });
+
+  it("falls back to sourceLabel when sourceUrl has an unsupported scheme", () => {
+    const result = markdownToHtml(md, { style: "report", sourceUrl: "ftp://bad.com", sourceLabel: "Fallback Label" });
+    expect(result).toContain("Fallback Label");
+    expect(result).not.toContain("ftp://");
+  });
+
+  it("falls back to sourceLabel when sourceUrl is http (not https)", () => {
+    const result = markdownToHtml(md, {
+      style: "report",
+      sourceUrl: "http://insecure.com/doc",
+      sourceLabel: "Fallback",
+    });
+    expect(result).toContain("Fallback");
+    expect(result).not.toContain('href="http://');
+  });
+
+  it("sourceUrl takes precedence over sourceLabel when https", () => {
+    const result = markdownToHtml(md, {
+      style: "report",
+      sourceUrl: "https://example.com/doc",
+      sourceLabel: "Should Not Appear",
+    });
+    expect(result).toContain('href="https://example.com/doc"');
+    expect(result).not.toContain("Should Not Appear");
+  });
+
+  it("renders pageCount in the meta strip", () => {
+    const result = markdownToHtml(md, { style: "report", pageCount: 42 });
+    expect(result).toContain("PAGES");
+    expect(result).toContain(">42<");
+  });
+
+  it("renders custom reportDate in the meta strip", () => {
+    const result = markdownToHtml(md, { style: "report", reportDate: "1 Jan 2025" });
+    expect(result).toContain("1 Jan 2025");
+  });
+
+  it("renders citationCount in the meta strip", () => {
+    const result = markdownToHtml(md, { style: "report", citationCount: 12 });
+    expect(result).toContain("CITATIONS");
+    expect(result).toContain(">12<");
+  });
+
+  it("renders cowork notice banner when cowork is true", () => {
+    const result = markdownToHtml(md, { style: "report", cowork: true });
+    expect(result).toContain("dc-cowork-notice");
+    expect(result).toContain("Cowork session");
+  });
+
+  it("does not render cowork notice div when cowork is false", () => {
+    const result = markdownToHtml(md, { style: "report", cowork: false });
+    expect(result).not.toContain('<div class="dc-cowork-notice">');
   });
 });
 

@@ -24,11 +24,22 @@ export interface MarkdownToHtmlOptions {
   audience?: AudiencePreset;
   /** Optional title override (extracted from first H1 if not provided) */
   title?: string;
-  /** Optional source label shown in the meta line */
+  /** Human-readable source label (document name, filename, etc.) */
   sourceLabel?: string;
+  /** Source URL — rendered as a clickable link in the report header */
+  sourceUrl?: string;
+  /** Date the report was generated. Defaults to today (ISO string or locale string). */
+  reportDate?: string;
+  /** Number of citations analyzed — shown in the header meta strip */
+  citationCount?: number;
+  /** Number of pages in the source document — shown in the header meta strip */
+  pageCount?: number;
   /** Citation anchor map: citation ID → anchorText. When provided, [N] markers
    *  wrap only the anchorText phrase instead of the entire preceding clause. */
   anchorMap?: CitationAnchorMap;
+  /** When true, adds an info banner noting that interactive features require
+   *  opening the file in a local browser (CDN blocked in Cowork sandbox). */
+  cowork?: boolean;
 }
 
 // ── Inline formatting ──────────────────────────────────────────────
@@ -322,6 +333,10 @@ function renderBlock(block: Block): string {
 
 // ── Style shells ───────────────────────────────────────────────────
 
+// DeepCitation mark: brackets (zinc-900, light surface) contain the spark (blue-700).
+// Per BRANDING.md: crispEdges mandatory, square caps, no softness.
+const BRAND_LOGO_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" shape-rendering="crispEdges" aria-hidden="true"><path d="M4 1 L1 1 L1 23 L4 23" stroke="#18181B"/><path d="M20 1 L23 1 L23 23 L20 23" stroke="#18181B"/><path d="M12 6 L12 18 M6 12 L18 12 M7.5 7.5 L16.5 16.5 M16.5 7.5 L7.5 16.5" stroke="#1D4ED8" stroke-width="1.5"/></svg>`;
+
 const AUDIENCE_CONFIG: Record<AudiencePreset, { width: string; tier2Open: boolean }> = {
   general: { width: "960px", tier2Open: true },
   executive: { width: "720px", tier2Open: false },
@@ -338,7 +353,7 @@ const BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
   h2 { font-size: 18px; font-weight: 600; margin: 2rem 0 0.75rem; border-bottom: 1px solid #E4E4E7; padding-bottom: 0.4rem; }
   h3 { font-size: 16px; font-weight: 600; margin: 1.5rem 0 0.5rem; }
   p { margin: 0.5rem 0; }
-  a { color: #3B82F6; }
+  a { color: #0284C7; }
   table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 14px; }
   th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #E4E4E7; }
   th { font-weight: 600; background: #F4F4F5; }
@@ -348,9 +363,22 @@ const BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
   code { font-family: ${MONO_FONT}; font-size: 0.9em; background: #F4F4F5; padding: 1px 4px; }
   pre code { background: none; padding: 0; }
   hr { border: none; border-top: 1px solid #E4E4E7; margin: 1.5rem 0; }
-  .meta { color: #52525B; font-size: 14px; margin-bottom: 1.5rem; }`;
+  .meta { color: #52525B; font-size: 14px; margin-bottom: 1.5rem; }
+  .dc-cowork-notice {
+    display: flex; align-items: flex-start; gap: 0.6rem;
+    padding: 0.65rem 0.9rem; margin-bottom: 1rem;
+    background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px;
+    font-size: 13px; line-height: 1.5; color: #1E40AF;
+  }
+  .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }`;
 
-function plainShell(title: string, bodyHtml: string): string {
+function plainShell(title: string, bodyHtml: string, options?: { cowork?: boolean }): string {
+  const coworkNotice = options?.cowork
+    ? `<div class="dc-cowork-notice">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#3B82F6" stroke-width="1.5"/><path d="M8 7v4M8 5h.01" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/></svg>
+  <span>Generated in a Claude Cowork session. Citation popovers work normally, but full page views within popovers require opening this file in Chrome or another browser on your local machine.</span>
+</div>`
+    : "";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -364,15 +392,92 @@ ${BASE_CSS}
 </style>
 </head>
 <body>
+${coworkNotice}
 ${bodyHtml}
 <div data-dc-drawer-trigger></div>
 </body>
 </html>`;
 }
 
-function reportShell(title: string, bodyHtml: string, audience: AudiencePreset, sourceLabel?: string): string {
+/**
+ * Strip scheme from a URL for display: "https://example.com/doc" → "example.com/doc".
+ * Port and query/fragment are intentionally omitted for scannability.
+ */
+function formatSourceUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.hostname + (u.pathname !== "/" ? u.pathname : "");
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Build the header meta strip: SOURCE · ANALYZED · AUDIENCE · CITATIONS · PAGES.
+ * Only renders items that have data. Date always renders (defaults to today).
+ */
+function buildMetaStrip(opts: {
+  sourceLabel?: string;
+  sourceUrl?: string;
+  reportDate?: string;
+  citationCount?: number;
+  pageCount?: number;
+  audience: AudiencePreset;
+}): string {
+  const items: string[] = [];
+
+  // SOURCE — https URLs only (http would trigger mixed-content warnings in browsers)
+  const url = opts.sourceUrl && /^https:\/\//i.test(opts.sourceUrl) ? opts.sourceUrl : null;
+  const sourceDisplay = url ? formatSourceUrl(url) : opts.sourceLabel;
+  if (sourceDisplay) {
+    const inner = url
+      ? `<a class="dc-meta-link" href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(sourceDisplay)}</a>`
+      : `<span class="dc-meta-val">${escHtml(sourceDisplay)}</span>`;
+    items.push(`<span class="dc-meta-item"><span class="dc-meta-key">SOURCE</span>${inner}</span>`);
+  }
+
+  // ANALYZED — always shown; caller may pass a pre-formatted string
+  const date = opts.reportDate
+    ? opts.reportDate
+    : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  items.push(
+    `<span class="dc-meta-item"><span class="dc-meta-key">ANALYZED</span><span class="dc-meta-val">${escHtml(date)}</span></span>`,
+  );
+
+  // AUDIENCE — only shown when non-default
+  if (opts.audience !== "general") {
+    const label = opts.audience.charAt(0).toUpperCase() + opts.audience.slice(1);
+    items.push(
+      `<span class="dc-meta-item"><span class="dc-meta-key">AUDIENCE</span><span class="dc-meta-val">${escHtml(label)}</span></span>`,
+    );
+  }
+
+  // CITATIONS
+  if (opts.citationCount !== undefined) {
+    items.push(
+      `<span class="dc-meta-item"><span class="dc-meta-key">CITATIONS</span><span class="dc-meta-val">${opts.citationCount}</span></span>`,
+    );
+  }
+
+  // PAGES
+  if (opts.pageCount !== undefined) {
+    items.push(
+      `<span class="dc-meta-item"><span class="dc-meta-key">PAGES</span><span class="dc-meta-val">${opts.pageCount}</span></span>`,
+    );
+  }
+
+  const sep = `<span class="dc-meta-sep"> · </span>`;
+  return `<div class="dc-meta">${items.join(sep)}</div>`;
+}
+
+function reportShell(
+  title: string,
+  bodyHtml: string,
+  audience: AudiencePreset,
+  options: MarkdownToHtmlOptions,
+): string {
   const cfg = AUDIENCE_CONFIG[audience];
-  const meta = sourceLabel ? `<p class="meta">${escHtml(sourceLabel)}</p>` : "";
+  const metaStrip = buildMetaStrip({ ...options, audience });
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -389,12 +494,25 @@ ${BASE_CSS}
     padding: 2rem 1.5rem 4rem;
     line-height: 1.6;
     color: #18181B;
-    background: #FDFBF7;
+    background: #F8FAFC;
     font-size: 16px;
   }
   h1 { margin-bottom: 0.25rem; }
   a { text-decoration: none; }
   a:hover { text-decoration: underline; }
+
+  /* Header meta strip */
+  .dc-meta {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.1rem 0;
+    margin: 0.5rem 0 1.5rem;
+    font-family: ${MONO_FONT}; font-size: 12px; color: #52525B;
+  }
+  .dc-meta-item { display: inline-flex; align-items: center; gap: 0.5rem; }
+  .dc-meta-key { text-transform: uppercase; letter-spacing: 0.06em; color: #94A3B8; font-size: 11px; }
+  .dc-meta-val { color: #334155; }
+  .dc-meta-link { color: #0284C7; text-decoration: none; }
+  .dc-meta-link:hover { text-decoration: underline; }
+  .dc-meta-sep { color: #CBD5E1; margin: 0 0.4rem; }
 
   /* Verdict banner */
   .dc-verdict {
@@ -407,8 +525,10 @@ ${BASE_CSS}
   .dc-verdict .v-partial { color: #D97706; }
   .dc-verdict .v-miss   { color: #EF4444; }
 
-  /* Table overrides */
-  th { font-size: 13px; color: #52525B; text-transform: uppercase; letter-spacing: 0.04em; }
+  /* Table overrides — §6.1 Anti-Grid: no header fill, heavier separators, blue row hover */
+  th, td { border-bottom: 1px solid #94A3B8; }
+  th { font-size: 12px; font-weight: 500; background: none; color: #52525B; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #94A3B8; }
+  tbody tr:hover { background: #EFF6FF; }
 
   /* Code overrides */
   pre { line-height: 1.7; }
@@ -438,17 +558,35 @@ ${BASE_CSS}
   .dc-footer a { color: #A1A1AA; text-decoration: none; }
   .dc-footer a:hover { color: #52525B; text-decoration: underline; }
   .dc-footer svg { flex-shrink: 0; }
+
+  /* Cowork environment notice */
+  .dc-cowork-notice {
+    display: flex; align-items: flex-start; gap: 0.6rem;
+    padding: 0.65rem 0.9rem;
+    margin-bottom: 1rem;
+    background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px;
+    font-size: 13px; line-height: 1.5; color: #1E40AF;
+  }
+  .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }
 </style>
 </head>
 <body>
 <header>
   <h1>${escHtml(title)}</h1>
-  ${meta}
+  ${metaStrip}
 </header>
+${
+  options.cowork
+    ? `<div class="dc-cowork-notice">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#3B82F6" stroke-width="1.5"/><path d="M8 7v4M8 5h.01" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/></svg>
+  <span>Generated in a Claude Cowork session. Citation popovers work normally, but full page views within popovers require opening this file in Chrome or another browser on your local machine.</span>
+</div>`
+    : ""
+}
 <div class="dc-verdict" id="dc-verdict"></div>
 ${bodyHtml}
 <footer class="dc-footer">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+  ${BRAND_LOGO_SVG}
   <span>Verified by <a href="https://deepcitation.com" target="_blank" rel="noopener">DeepCitation</a></span>
 </footer>
 <div data-dc-drawer-trigger></div>
@@ -469,7 +607,7 @@ function escHtml(s: string): string {
  * Returns a full HTML document with the chosen style shell.
  */
 export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions = {}): string {
-  const { style = "report", audience = "general", sourceLabel } = options;
+  const { style = "report", audience = "general" } = options;
 
   const blocks = parseBlocks(markdown);
 
@@ -494,9 +632,9 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
   bodyHtml = wrapCitationMarkers(bodyHtml, options.anchorMap);
 
   if (style === "report") {
-    return reportShell(title, bodyHtml, audience, sourceLabel);
+    return reportShell(title, bodyHtml, audience, options);
   }
-  return plainShell(title, bodyHtml);
+  return plainShell(title, bodyHtml, { cowork: options.cowork });
 }
 
 // ── Report body builder (progressive disclosure) ───────────────────
