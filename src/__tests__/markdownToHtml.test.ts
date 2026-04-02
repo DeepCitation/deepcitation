@@ -296,3 +296,56 @@ describe("markdownToHtml citation markers", () => {
     expect(result).toContain('data-cite="2"');
   });
 });
+
+// ── markdownToHtml — cite: link format ──────────────────────────
+
+describe("markdownToHtml — cite: link format", () => {
+  it("converts [anchor](cite:N) to data-cite span", () => {
+    const result = markdownToHtml("The [Discount Rate](cite:2) is applied.", { style: "plain" });
+    expect(result).toContain('<span data-cite="2">Discount Rate</span>');
+    expect(result).not.toContain("href=");
+  });
+
+  it("handles multiple cite: links in the same paragraph", () => {
+    const result = markdownToHtml("The [Discount Rate](cite:2) is multiplied by the [Conversion Price](cite:3).", {
+      style: "plain",
+    });
+    expect(result).toContain('<span data-cite="2">Discount Rate</span>');
+    expect(result).toContain('<span data-cite="3">Conversion Price</span>');
+  });
+
+  it("works in a list item", () => {
+    const result = markdownToHtml("- [Junior to](cite:9) payment of indebtedness", { style: "plain" });
+    expect(result).toContain('<span data-cite="9">Junior to</span>');
+  });
+
+  it("preserves bold inside cite: anchor", () => {
+    const result = markdownToHtml("[**bold anchor**](cite:1)", { style: "plain" });
+    expect(result).toContain('data-cite="1"');
+    expect(result).toContain("<strong>bold anchor</strong>");
+  });
+
+  it("does not break regular https links", () => {
+    const result = markdownToHtml("[Docs](https://example.com)", { style: "plain" });
+    expect(result).toContain('<a href="https://example.com">Docs</a>');
+    expect(result).not.toContain("data-cite");
+  });
+
+  it("rejects cite: with non-numeric ID", () => {
+    const result = markdownToHtml("[text](cite:evil)", { style: "plain" });
+    expect(result).toContain('href="#"');
+    expect(result).not.toContain("data-cite");
+  });
+
+  it("old [N] format still produces data-cite span in mixed document", () => {
+    const result = markdownToHtml("Old [1] and [New Rate](cite:2)", { style: "plain" });
+    expect(result).toContain('data-cite="1"');
+    expect(result).toContain('data-cite="2"');
+  });
+
+  it("does not emit raw [anchor](cite:N) text", () => {
+    const result = markdownToHtml("The [Discount Rate](cite:2) is applied.", { style: "plain" });
+    expect(result).not.toContain("(cite:2)");
+    expect(result).not.toContain("[Discount Rate](cite:2)");
+  });
+});

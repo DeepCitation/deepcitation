@@ -251,3 +251,81 @@ describe("parseCitationResponse — integration patterns", () => {
     expect(verifications[result.markerMap[2]]?.status).toBe("not_found");
   });
 });
+
+// ─── Cite Link Format ────────────────────────────────────────────
+
+describe("parseCitationResponse — cite link format", () => {
+  const CITE_LINK_RESPONSE = makeNumericResponse(
+    "The [Discount Rate](cite:1) is applied to the [Conversion Price](cite:2).",
+    [
+      {
+        id: 1,
+        attachment_id: "abc12345678901234567",
+        full_phrase: "The discount rate of 80%",
+        anchor_text: "Discount Rate",
+        page_id: "page_number_2_index_1",
+        line_ids: [12, 13],
+      },
+      {
+        id: 2,
+        attachment_id: "abc12345678901234567",
+        full_phrase: "Conversion price equals the VWAP",
+        anchor_text: "Conversion Price",
+        page_id: "page_number_3_index_2",
+        line_ids: [5, 6],
+      },
+    ],
+  );
+
+  it("detects cite-link format (or numeric — same JSON block)", () => {
+    const result = parseCitationResponse(CITE_LINK_RESPONSE);
+    expect(result.format).toBe("numeric");
+  });
+
+  it("preserves cite-link markers in visibleText for downstream splitting", () => {
+    const result = parseCitationResponse(CITE_LINK_RESPONSE);
+    expect(result.visibleText).toContain("[Discount Rate](cite:1)");
+    expect(result.visibleText).toContain("[Conversion Price](cite:2)");
+    expect(result.visibleText).not.toContain(CITATION_DATA_START_DELIMITER);
+  });
+
+  it("populates markerMap for cite-link IDs", () => {
+    const result = parseCitationResponse(CITE_LINK_RESPONSE);
+    expect(result.markerMap[1]).toBeDefined();
+    expect(result.markerMap[2]).toBeDefined();
+  });
+
+  it("splitPattern captures cite-link segments", () => {
+    const result = parseCitationResponse(CITE_LINK_RESPONSE);
+    const segments = result.visibleText.split(result.splitPattern);
+    expect(segments).toContain("[Discount Rate](cite:1)");
+    expect(segments).toContain("[Conversion Price](cite:2)");
+    expect(segments[0]).toBe("The ");
+  });
+
+  it("resolves citation data via markerMap", () => {
+    const result = parseCitationResponse(CITE_LINK_RESPONSE);
+    const key1 = result.markerMap[1];
+    expect(result.citations[key1].fullPhrase).toBe("The discount rate of 80%");
+    expect(result.citations[key1].anchorText).toBe("Discount Rate");
+  });
+
+  it("handles mixed [N] and cite-link in same visibleText", () => {
+    const mixed = makeNumericResponse("Old [1] and [New Rate](cite:2).", [
+      { id: 1, attachment_id: "a", full_phrase: "old thing", anchor_text: "Old" },
+      { id: 2, attachment_id: "a", full_phrase: "new rate value", anchor_text: "New Rate" },
+    ]);
+    const result = parseCitationResponse(mixed);
+    const segments = result.visibleText.split(result.splitPattern);
+    expect(segments).toContain("[1]");
+    expect(segments).toContain("[New Rate](cite:2)");
+    expect(result.markerMap[1]).toBeDefined();
+    expect(result.markerMap[2]).toBeDefined();
+  });
+
+  it("splitPattern does not produce cite-link as a single unsplit text block", () => {
+    const result = parseCitationResponse(CITE_LINK_RESPONSE);
+    const segments = result.visibleText.split(result.splitPattern);
+    expect(segments[0]).not.toContain("(cite:");
+  });
+});

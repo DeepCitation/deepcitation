@@ -44,10 +44,14 @@ function inlineFormat(text: string): string {
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       // italic
       .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      // links (scheme allowlist: only http/https)
+      // links — cite:N scheme produces a citation span; http(s) produces a link
       // href is already HTML-escaped from the escHtml() call above; validate
       // the scheme but do not re-escape (that would double-encode & in URLs).
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
+        const citeMatch = href.match(/^cite:(\d+)$/);
+        if (citeMatch) {
+          return `<span data-cite="${citeMatch[1]}">${label}</span>`;
+        }
         const safeHref = /^https?:\/\//i.test(href) ? href : "#";
         return `<a href="${safeHref}">${label}</a>`;
       })

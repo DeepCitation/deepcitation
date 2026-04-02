@@ -14,6 +14,7 @@ import type { RenderCitationWithStatus } from "./types.js";
 export type StatusKey = "verified" | "partial" | "notFound" | "pending";
 
 const CITATION_MARKER_RE = /^\[(\d+)\]$/;
+const CITATION_LINK_RE = /^\[([^\][]+)\]\(cite:(\d+)\)$/;
 
 /**
  * Map a CitationStatus to a status key used across renderers for
@@ -69,14 +70,18 @@ export function walkCitationSegments(
   let citationIndex = 0;
 
   for (const segment of rawSegments) {
-    const match = segment.match(CITATION_MARKER_RE);
+    const oldMatch = segment.match(CITATION_MARKER_RE);
+    const linkMatch = !oldMatch ? segment.match(CITATION_LINK_RE) : null;
+    const match = oldMatch || linkMatch;
     if (!match) {
       segments.push({ type: "text", value: segment });
       continue;
     }
 
     citationIndex++;
-    const citationKey = parsed.markerMap[Number(match[1])];
+    // Old format: ID in group 1; link format: ID in group 2
+    const citationId = linkMatch ? Number(match[2]) : Number(match[1]);
+    const citationKey = parsed.markerMap[citationId];
     const citation = citationKey ? parsed.citations[citationKey] : undefined;
     if (!citation) {
       segments.push({ type: "text", value: segment });

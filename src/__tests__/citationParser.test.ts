@@ -10,7 +10,11 @@ import {
   replaceCitationMarkers,
   stripCitations,
 } from "../parsing/citationParser.js";
-import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
+import {
+  CITATION_DATA_END_DELIMITER,
+  CITATION_DATA_START_DELIMITER,
+  type CitationData,
+} from "../prompts/citationPrompts.js";
 import { getCitationKey } from "../utils/citationKey.js";
 
 describe("parseCitationData", () => {
@@ -1348,5 +1352,128 @@ describe("extractCitationsFromMarkers", () => {
     // Should have exactly 2 unique IDs, not 3
     expect(ids.length).toBe(2);
     expect(new Set(ids).size).toBe(2);
+  });
+});
+
+// ── cite: link format ─────────────────────────────────────────────
+
+describe("replaceCitationMarkers — cite: link format", () => {
+  it("strips cite-link markers preserving anchor text", () => {
+    expect(replaceCitationMarkers("The [Discount Rate](cite:2) is applied.")).toBe("The Discount Rate is applied.");
+  });
+
+  it("applies replacer function to cite-link ID", () => {
+    const result = replaceCitationMarkers("See [Rate](cite:5) here.", {
+      replacer: id => `(ref${id})`,
+    });
+    expect(result).toBe("See (ref5) here.");
+  });
+
+  it("uses citationMap anchor_text when showAnchorText is true", () => {
+    const citationMap = new Map([[2, { id: 2, anchor_text: "Resolved Rate" } as CitationData]]);
+    const result = replaceCitationMarkers("The [Discount Rate](cite:2) applies.", {
+      citationMap,
+      showAnchorText: true,
+    });
+    expect(result).toBe("The Resolved Rate applies.");
+  });
+
+  it("handles mixed [N] and cite-link in same string", () => {
+    expect(replaceCitationMarkers("Old [1] and [New Rate](cite:2).")).toBe("Old  and New Rate.");
+  });
+
+  it("does not leave (cite:N) tokens in stripped output", () => {
+    const result = replaceCitationMarkers("The [Discount Rate](cite:2) is applied.");
+    expect(result).not.toContain("(cite:");
+    expect(result).not.toContain("[Discount Rate]");
+  });
+});
+
+describe("getCitationMarkerIds — cite: link format", () => {
+  it("extracts IDs from cite-link markers", () => {
+    expect(getCitationMarkerIds("The [Discount Rate](cite:2) and [Price](cite:3).")).toEqual([2, 3]);
+  });
+
+  it("extracts IDs from mixed [N] and cite-link", () => {
+    expect(getCitationMarkerIds("Old [1] and [Rate](cite:5).")).toEqual([1, 5]);
+  });
+
+  it("preserves document order for cite-link IDs", () => {
+    expect(getCitationMarkerIds("[B](cite:3) then [A](cite:1)")).toEqual([3, 1]);
+  });
+
+  it("does not return empty array for cite-link-only text", () => {
+    expect(getCitationMarkerIds("[Discount Rate](cite:2)").length).toBeGreaterThan(0);
+  });
+});
+
+describe("extractCitationsFromMarkers — cite: link format", () => {
+  it("uses inline anchor text from cite-link markers", () => {
+    const text = "The [Discount Rate](cite:2) is applied to the [Conversion Price](cite:3).";
+    const citations = extractCitationsFromMarkers(text);
+    const values = Object.values(citations).sort((a, b) => (a.citationNumber ?? 0) - (b.citationNumber ?? 0));
+
+    expect(values.length).toBe(2);
+    expect(values[0].citationNumber).toBe(2);
+    expect(values[0].anchorText).toBe("Discount Rate");
+    expect(values[1].citationNumber).toBe(3);
+    expect(values[1].anchorText).toBe("Conversion Price");
+  });
+
+  it("sets fullPhrase to the surrounding sentence", () => {
+    const text = "The [Discount Rate](cite:2) is applied to the conversion price.";
+    const citations = extractCitationsFromMarkers(text);
+    const c = Object.values(citations)[0];
+    expect(c.fullPhrase).toContain("Discount Rate");
+    expect(c.fullPhrase).toContain("conversion price");
+    expect(c.fullPhrase).not.toContain("(cite:");
+  });
+
+  it("extracts citation from list item cite-link", () => {
+    const text = "- [Junior to](cite:9) payment of outstanding indebtedness";
+    const citations = extractCitationsFromMarkers(text);
+    const c = Object.values(citations)[0];
+    expect(c.anchorText).toBe("Junior to");
+    expect(c.citationNumber).toBe(9);
+  });
+
+  it("extracts citations from mixed [N] and cite-link text", () => {
+    const text = "Old style [1] and [New Rate](cite:2).";
+    const citations = extractCitationsFromMarkers(text);
+    const ids = Object.values(citations)
+      .map(c => c.citationNumber)
+      .sort((a, b) => (a ?? 0) - (b ?? 0));
+    expect(ids).toEqual([1, 2]);
+  });
+
+  it("truncates anchor text exceeding 50 characters at word boundary", () => {
+    const longAnchor = "A very long anchor text phrase that exceeds the fifty character limit easily";
+    const text = `The [${longAnchor}](cite:1) applies.`;
+    const citations = extractCitationsFromMarkers(text);
+    const c = Object.values(citations)[0];
+    expect(c?.anchorText?.length).toBeLessThanOrEqual(50);
+  });
+
+  it("never includes cite-link syntax in anchorText or fullPhrase", () => {
+    const text = "The [Discount Rate](cite:2) matters.";
+    const citations = extractCitationsFromMarkers(text);
+    for (const c of Object.values(citations)) {
+      expect(c.anchorText ?? "").not.toContain("(cite:");
+      expect(c.fullPhrase ?? "").not.toContain("(cite:");
+    }
+  });
+});
+
+describe("stripCitations — cite: link format", () => {
+  it("strips cite-link syntax preserving anchor text", () => {
+    expect(stripCitations("The [Discount Rate](cite:2) is applied.")).toBe("The Discount Rate is applied.");
+  });
+
+  it("still strips old [N] markers", () => {
+    expect(stripCitations("Revenue grew [1].")).toBe("Revenue grew .");
+  });
+
+  it("does not leave (cite:N) tokens in output", () => {
+    expect(stripCitations("[Rate](cite:2)")).not.toContain("(cite:");
   });
 });

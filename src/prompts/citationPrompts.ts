@@ -34,7 +34,7 @@ export const CITATION_PROMPT = `
 ## REQUIRED: Citation Format
 
 ### In-Text Markers
-For every claim, value, or fact from attachments, place a sequential integer marker like [1], [2], [3] at the end of the claim. Each distinct piece of information needs its own unique marker number.
+For every claim, value, or fact from attachments, wrap the key phrase in citation link syntax: [anchor text](cite:N) where N is the sequential citation number. Each distinct piece of information needs its own unique marker number.
 
 ### Citation Data Block
 At the END of your response, append a citation block. Group citations by attachment_id to avoid repetition.
@@ -65,14 +65,14 @@ To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, p=page_id, l=li
 
 ### Placement Rules
 
-- Place [N] markers inline, typically at the end of a claim
+- Wrap the key phrase with [anchor text](cite:N), e.g. [Discount Rate](cite:2)
 - One marker per distinct idea, concept, or value
-- Use sequential numbering starting from [1] - each citation gets a unique number
+- Use sequential numbering starting from 1 - each citation gets a unique number
 - The JSON block MUST appear at the very end of your response
 
 ### Example Response
 
-The company reported strong growth [1]. Revenue increased significantly in Q4 [2]. The competitor also grew [3].
+The company reported [strong growth](cite:1). Revenue [increased significantly](cite:2) in Q4. The [competitor also grew](cite:3).
 
 <<<CITATION_DATA>>>
 {
@@ -103,7 +103,7 @@ export const AV_CITATION_PROMPT = `
 ## REQUIRED: Audio/Video Citation Format
 
 ### In-Text Markers
-For every claim, value, or fact from media content, place a sequential integer marker like [1], [2], [3] at the end of the claim.
+For every claim, value, or fact from media content, wrap the key phrase in citation link syntax: [anchor text](cite:N) where N is the sequential citation number.
 
 ### Citation Data Block
 At the END of your response, append a citation block. Group citations by attachment_id to avoid repetition.
@@ -133,14 +133,14 @@ To save tokens: n=id, r=reasoning, f=full_phrase, k=anchor_text, t=timestamps (w
 
 ### Placement Rules
 
-- Place [N] markers inline, typically at the end of a claim
+- Wrap the key phrase with [anchor text](cite:N), e.g. [exercise benefits](cite:1)
 - One marker per distinct idea, concept, or value
-- Use sequential numbering starting from [1]
+- Use sequential numbering starting from 1
 - The JSON block MUST appear at the very end of your response
 
 ### Example Response
 
-The speaker discussed exercise benefits [1]. They recommended specific techniques [2].
+The speaker discussed [exercise benefits](cite:1). They recommended [specific techniques](cite:2).
 
 <<<CITATION_DATA>>>
 {
@@ -158,12 +158,12 @@ The speaker discussed exercise benefits [1]. They recommended specific technique
  * A brief reminder to reinforce citation requirements in user messages.
  * Use this when you want to add emphasis without repeating full instructions.
  */
-export const CITATION_REMINDER = `<citation-reminder>STOP and CHECK: Did you use [N] markers for every claim and include the <<<CITATION_DATA>>> JSON block at the end?</citation-reminder>`;
+export const CITATION_REMINDER = `<citation-reminder>STOP and CHECK: Did you use [anchor text](cite:N) markers for every claim and include the <<<CITATION_DATA>>> JSON block at the end?</citation-reminder>`;
 
 /**
  * Audio/video version of the citation reminder.
  */
-export const CITATION_AV_REMINDER = `<citation-reminder>STOP and CHECK: Did you use [N] markers for every claim and include the <<<CITATION_DATA>>> JSON block with timestamps at the end?</citation-reminder>`;
+export const CITATION_AV_REMINDER = `<citation-reminder>STOP and CHECK: Did you use [anchor text](cite:N) markers for every claim and include the <<<CITATION_DATA>>> JSON block with timestamps at the end?</citation-reminder>`;
 
 export interface WrapSystemPromptOptions {
   /** The original system prompt to wrap with citation instructions */
@@ -309,7 +309,7 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
   properties: {
     id: {
       type: "integer",
-      description: "Citation marker number matching [N] in text",
+      description: "Citation marker number matching (cite:N) in text",
     },
     attachment_id: {
       type: "string",
@@ -325,7 +325,8 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     },
     anchor_text: {
       type: "string",
-      description: "1-3 key words from full_phrase",
+      description:
+        "1-3 key words from full_phrase; should match the anchor text used in [anchor](cite:N) inline markers",
     },
     page_id: {
       type: "string",
@@ -348,7 +349,7 @@ export const CITATION_AV_JSON_OUTPUT_FORMAT = {
   properties: {
     id: {
       type: "integer",
-      description: "Citation marker number matching [N] in text",
+      description: "Citation marker number matching (cite:N) in text",
     },
     attachment_id: {
       type: "string",

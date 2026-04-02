@@ -70,6 +70,15 @@ const LEGACY_PAGE_ID_RE = /page[_a-z]{0,30}(\d+)_index_(\d+)/i;
 const CITATION_MARKER_RE = /\[(\d+)\]/g;
 
 /**
+ * Matches [anchor text](cite:N) citation link markers.
+ * The anchor text is in capture group 1, the citation ID in capture group 2.
+ * Safe to reuse as a module-level constant: String.replace() and String.matchAll()
+ * do not mutate lastIndex, so there is no stateful cross-call contamination.
+ * Do NOT use with RegExp.exec() in a loop — exec() advances lastIndex.
+ */
+const CITATION_LINK_RE = /\[([^\][]+)\]\(cite:(\d+)\)/g;
+
+/**
  * Type guard to validate that an object has the required CitationData structure.
  * Ensures at minimum the id field is present and is a number.
  */
@@ -613,7 +622,7 @@ export function replaceCitationMarkers(
   const verificationIndex =
     showVerificationStatus && verifications ? buildVerificationIndex(citationMap, verifications) : undefined;
 
-  return text.replace(CITATION_MARKER_RE, (_match, idStr) => {
+  const replaceSingle = (_match: string, idStr: string, anchorText?: string) => {
     const id = parseInt(idStr, 10);
 
     // Custom replacer takes precedence
@@ -621,10 +630,10 @@ export function replaceCitationMarkers(
       return replacer(id, citationMap?.get(id));
     }
 
-    // Show verification status indicator
+    // Show verification status indicator (preserve anchor text from cite-link format)
     if (verificationIndex) {
       const indicator = getVerificationTextIndicator(verificationIndex.get(id));
-      return `[${id}${indicator}]`;
+      return anchorText ? `${anchorText} [${id}${indicator}]` : `[${id}${indicator}]`;
     }
 
     // Show anchor text if requested
@@ -633,9 +642,21 @@ export function replaceCitationMarkers(
       if (data?.anchor_text) return data.anchor_text;
     }
 
-    // Default: remove marker
-    return "";
+    // Default: remove marker, but keep anchor text from cite-link format
+    return anchorText ?? "";
+  };
+
+  // First pass: replace [anchor](cite:N) markers
+  let result = text.replace(CITATION_LINK_RE, (_match, anchor: string, idStr: string) => {
+    return replaceSingle(_match, idStr, anchor);
   });
+
+  // Second pass: replace [N] markers
+  result = result.replace(CITATION_MARKER_RE, (_match, idStr: string) => {
+    return replaceSingle(_match, idStr);
+  });
+
+  return result;
 }
 
 /**
@@ -644,8 +665,12 @@ export function replaceCitationMarkers(
  * @param text - The text to scan for [N] markers
  * @returns Array of citation IDs in order of appearance
  */
+/** Combined pattern matching both [anchor](cite:N) and [N] formats in one scan. */
+const COMBINED_MARKER_RE = /\[[^\][]+\]\(cite:(\d+)\)|\[(\d+)\]/g;
+
 export function getCitationMarkerIds(text: string): number[] {
-  return Array.from(text.matchAll(CITATION_MARKER_RE), m => parseInt(m[1], 10));
+  // Single scan preserves document order — no sort needed
+  return Array.from(text.matchAll(COMBINED_MARKER_RE), m => parseInt(m[1] ?? m[2], 10));
 }
 
 /**
@@ -727,8 +752,12 @@ function extractSurroundingSentence(text: string, markerStart: number, markerEnd
   // Remove leading list markers (-, *, numbers)
   sentence = sentence.replace(/^[-*•]\s+/, "").replace(/^\d+\.\s+/, "");
 
-  // Strip all [N] markers from the extracted sentence to get clean text
-  sentence = sentence.replace(CITATION_MARKER_RE, "").replace(MULTI_CITATION_MARKER_RE, "");
+  // Strip all citation markers from the extracted sentence to get clean text
+  // New format [anchor](cite:N) → keep anchor text; old format [N] → remove
+  sentence = sentence
+    .replace(CITATION_LINK_RE, (_m, anchor: string) => anchor)
+    .replace(CITATION_MARKER_RE, "")
+    .replace(MULTI_CITATION_MARKER_RE, "");
 
   // Remove markdown bold/italic markers for cleaner full_phrase
   sentence = sentence.replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1");
@@ -759,6 +788,26 @@ export function extractCitationsFromMarkers(text: string): { [key: string]: Cita
 
   const citations: { [key: string]: Citation } = {};
   const seenIds = new Set<number>();
+
+  // Pass 0: find all [anchor](cite:N) markers — anchor is explicit, no heuristic needed
+  for (const match of text.matchAll(CITATION_LINK_RE)) {
+    const anchor = match[1];
+    const id = parseInt(match[2], 10);
+    if (seenIds.has(id) || Number.isNaN(id)) continue;
+    seenIds.add(id);
+
+    const markerStart = match.index;
+    const markerEnd = markerStart + match[0].length;
+    const sentence = extractSurroundingSentence(text, markerStart, markerEnd);
+
+    const citation: Citation = {
+      type: "document" as const,
+      fullPhrase: sentence || anchor,
+      citationNumber: id,
+      anchorText: truncateAtWord(anchor, 50),
+    };
+    citations[String(id)] = citation;
+  }
 
   // First pass: find all multi-citation markers [N, N, N]
   for (const match of text.matchAll(MULTI_CITATION_MARKER_RE)) {

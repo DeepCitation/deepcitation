@@ -24,7 +24,12 @@ import {
   writeCredentials,
 } from "../auth.js";
 import { DeepCitation } from "../client/DeepCitation.js";
-import { citationDataToCitation, extractVisibleText, parseCitationData } from "../parsing/citationParser.js";
+import {
+  citationDataToCitation,
+  extractVisibleText,
+  getCitationMarkerIds,
+  parseCitationData,
+} from "../parsing/citationParser.js";
 import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
@@ -675,8 +680,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   // line numbers (e.g. [40]) as [N] markers instead of sequential citation IDs.
   // When this happens, remap markers in visibleText to the correct citation IDs.
   const citationIds = new Set(parsed.citations.map(c => c.id));
-  const markerIds = new Set<number>();
-  for (const m of parsed.visibleText.matchAll(/\[(\d+)\]/g)) markerIds.add(Number(m[1]));
+  const markerIds = new Set(getCitationMarkerIds(parsed.visibleText));
 
   const unmatchedMarkers = [...markerIds].filter(id => !citationIds.has(id));
   if (unmatchedMarkers.length > 0) {
@@ -695,7 +699,10 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
       // Replace markers largest-first to avoid [1] matching inside [10]
       const sorted = [...remap.entries()].sort((a, b) => b[0] - a[0]);
       for (const [from, to] of sorted) {
-        parsed.visibleText = parsed.visibleText.replace(new RegExp(`\\[${from}\\]`, "g"), `[${to}]`);
+        // Remap both old [N] and new (cite:N) formats in a single scan
+        parsed.visibleText = parsed.visibleText.replace(new RegExp(`\\[${from}\\]|\\(cite:${from}\\)`, "g"), m =>
+          m.startsWith("[") ? `[${to}]` : `(cite:${to})`,
+        );
       }
     }
     // Strip range markers like [20-21] that can't be remapped

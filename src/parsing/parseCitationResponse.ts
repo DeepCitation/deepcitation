@@ -16,8 +16,8 @@ export interface ParsedCitationResult {
   splitPattern: RegExp;
 }
 
-/** Split pattern for `[N]` markers — capture group preserves markers in split output */
-const NUMERIC_SPLIT_PATTERN = /(\[\d+\])/g;
+/** Split pattern for both `[anchor](cite:N)` and `[N]` markers — capture group preserves markers in split output */
+const NUMERIC_SPLIT_PATTERN = /(\[[^\][]+\]\(cite:\d+\)|\[\d+\])/g;
 
 /** Parse LLM output with `[N]` markers and `<<<CITATION_DATA>>>` JSON block. */
 export function parseCitationResponse(llmOutput: string): ParsedCitationResult {
