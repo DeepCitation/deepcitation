@@ -175,7 +175,7 @@ function sendFormResult(res: ServerResponse, status: "success" | "error", keyNam
   const title = status === "success" ? "Authenticated" : "Authentication Failed";
   const message =
     status === "success"
-      ? "You can close this tab and return to your terminal."
+      ? "This tab will close shortly, or you can close it manually."
       : "Authentication failed. Please try again from the CLI.";
   const icon = status === "success" ? "&#10003;" : "&#10007;";
   const color = status === "success" ? "#10b981" : "#ef4444";
@@ -189,7 +189,11 @@ function sendFormResult(res: ServerResponse, status: "success" | "error", keyNam
       `display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fafafa;color:#18181b}` +
       `.card{text-align:center;max-width:360px;padding:48px 32px}.icon{font-size:48px;color:${color};margin-bottom:16px}` +
       `h1{font-size:20px;font-weight:600;margin-bottom:8px}p{font-size:14px;color:#71717a}</style></head>` +
-      `<body><div class="card"><div class="icon">${icon}</div><h1>${title}</h1><p>${message}</p>${keyHint}</div></body></html>`,
+      `<body><div class="card"><div class="icon">${icon}</div><h1>${title}</h1><p>${message}</p>${keyHint}</div>` +
+      (status === "success"
+        ? `<script>document.addEventListener("DOMContentLoaded",function(){setTimeout(function(){window.close();},1500);});</script>`
+        : "") +
+      `</body></html>`,
   );
 }
 

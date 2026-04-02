@@ -255,7 +255,7 @@ describe("startCallbackServer", () => {
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toBe("text/html");
     expect(res.body).toContain("Authenticated");
-    expect(res.body).toContain("close this tab");
+    expect(res.body).toContain("close it manually");
 
     const received = await result;
     expect(received.apiKey).toBe("sk-dc-test1234567890abcdef");

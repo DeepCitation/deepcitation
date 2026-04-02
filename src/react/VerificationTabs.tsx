@@ -47,10 +47,12 @@ const TabButton = ({ isActive, onClick, label }: { isActive: boolean; onClick: (
       "px-3 py-1.5 text-sm font-medium rounded-dc-md transition-colors",
       "focus:outline-none focus:ring-2 focus:ring-dc-ring focus:ring-offset-1",
       isActive
-        ? "bg-dc-primary/10 text-dc-primary"
+        ? "bg-dc-background text-dc-foreground shadow-sm"
         : "text-dc-muted-foreground hover:text-dc-foreground hover:bg-dc-muted",
     )}
     type="button"
+    role="tab"
+    aria-selected={isActive}
     data-active={isActive}
   >
     {label}
@@ -250,7 +252,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
       )}
 
       <div data-testid="tabs-container">
-        <div data-testid="tabs-nav" className="flex gap-1 p-1 bg-dc-muted rounded-dc-lg items-center">
+        <div data-testid="tabs-nav" role="tablist" className="flex gap-1 p-1 bg-dc-muted rounded-dc-lg items-center">
           <TabButton
             label={t("tab.expected")}
             isActive={activeTab === "expected"}
