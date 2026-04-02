@@ -175,8 +175,7 @@ export function computeKeySpanHighlight<T extends { text?: string }>(
   // (API collapsed full phrase to just the anchor text, but the matched text box spans more).
   const showKeySpanHighlight =
     hasDistinctKeySpanBox &&
-    hasWordContext &&
-    (shouldHighlightAnchorText(verifiedAnchorText, verifiedFullPhrase) ||
+    ((hasWordContext && shouldHighlightAnchorText(verifiedAnchorText, verifiedFullPhrase)) ||
       (isStrategyOverride(verifiedAnchorText, verifiedFullPhrase) &&
         shouldHighlightAnchorText(verifiedAnchorText, phraseText)));
 
