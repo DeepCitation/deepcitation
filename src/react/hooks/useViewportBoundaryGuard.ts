@@ -148,12 +148,19 @@ function clamp(el: HTMLElement): void {
     dx = vw - VIEWPORT_MARGIN_PX - rect.right;
   }
 
-  if (dx !== 0) {
-    el.style.translate = `${dx}px 0px`;
+  // Vertical position clamping — nudge the popover back into the viewport
+  // if it overflows top or bottom. This is POSITION clamping (translate),
+  // not HEIGHT clamping (max-height) — it won't cause squish on scroll.
+  const vh = window.innerHeight;
+  let dy = 0;
+
+  if (rect.top < 0) {
+    dy = -rect.top;
+  } else if (rect.bottom > vh) {
+    dy = vh - rect.bottom;
   }
 
-  // Max-height is handled statically in Popover.tsx:
-  //   maxHeight: EXPANDED_POPOVER_HEIGHT  (= "calc(100dvh - 2rem)")
-  // Internal scrolling handles overflow. Dynamic height clamping was removed
-  // because it caused the popover to squish on scroll and viewState changes.
+  if (dx !== 0 || dy !== 0) {
+    el.style.translate = `${dx}px ${dy}px`;
+  }
 }

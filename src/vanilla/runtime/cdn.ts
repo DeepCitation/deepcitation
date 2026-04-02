@@ -242,8 +242,15 @@ function reposition(): void {
   } else if (finalRect.right > vw - 16) {
     dx = vw - 16 - finalRect.right;
   }
-  if (dx !== 0) {
-    contentEl.style.translate = `${dx}px 0px`;
+  const vh = window.innerHeight;
+  let dy = 0;
+  if (finalRect.top < 0) {
+    dy = -finalRect.top;
+  } else if (finalRect.bottom > vh) {
+    dy = vh - finalRect.bottom;
+  }
+  if (dx !== 0 || dy !== 0) {
+    contentEl.style.translate = `${dx}px ${dy}px`;
   }
 }
 function scheduleReposition(): void {
