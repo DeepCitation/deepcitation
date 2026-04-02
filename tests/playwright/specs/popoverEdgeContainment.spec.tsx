@@ -340,6 +340,65 @@ test.describe("Expanded-Evidence — Right Edge", () => {
 });
 
 // =============================================================================
+// EXPANDED-EVIDENCE — BOTTOM EDGE CONTAINMENT
+//
+// When the trigger is near the bottom of the viewport, expanding to evidence
+// can push the popover below the fold. The vertical clamp must correct this.
+// =============================================================================
+
+test.describe("Expanded-Evidence — Bottom Edge", () => {
+  test("trigger near bottom — expanded-evidence stays in bounds", async ({
+    mount,
+    page,
+  }) => {
+    await mount(
+      <div
+        style={{
+          paddingTop: "600px",
+          paddingLeft: "200px",
+        }}
+      >
+        <CitationComponent
+          citation={baseCitation}
+          verification={verifiedVerification}
+          pageImagesByAttachmentId={pageImages}
+        />
+      </div>,
+    );
+
+    const popover = await openPopover(page);
+    await expandToEvidence(page, popover);
+    await expectWithinViewport(page, popover);
+  });
+
+  test("trigger at bottom-right corner — expanded-evidence stays in bounds", async ({
+    mount,
+    page,
+  }) => {
+    await mount(
+      <div
+        style={{
+          paddingTop: "600px",
+          display: "flex",
+          justifyContent: "flex-end",
+          paddingRight: "4px",
+        }}
+      >
+        <CitationComponent
+          citation={baseCitation}
+          verification={verifiedVerification}
+          pageImagesByAttachmentId={pageImages}
+        />
+      </div>,
+    );
+
+    const popover = await openPopover(page);
+    await expandToEvidence(page, popover);
+    await expectWithinViewport(page, popover);
+  });
+});
+
+// =============================================================================
 // EXPANDED-PAGE — VIEWPORT EDGE CONTAINMENT
 //
 // The expanded-page view fills nearly the full viewport. When the trigger is
@@ -372,6 +431,34 @@ test.describe("Expanded-Page — Right Edge", () => {
     await expandToFullPage(page, popover);
 
     // For expanded-page, check the content element (receives boundary guard translate)
+    const popoverContent = page.locator("[data-dc-popover-content]");
+    await expectWithinViewport(page, popoverContent);
+  });
+});
+
+test.describe("Expanded-Page — Bottom Edge", () => {
+  test("trigger near bottom — expanded-page stays in bounds", async ({
+    mount,
+    page,
+  }) => {
+    await mount(
+      <div
+        style={{
+          paddingTop: "600px",
+          paddingLeft: "200px",
+        }}
+      >
+        <CitationComponent
+          citation={baseCitation}
+          verification={verifiedVerification}
+          pageImagesByAttachmentId={pageImages}
+        />
+      </div>,
+    );
+
+    const popover = await openPopover(page);
+    await expandToFullPage(page, popover);
+
     const popoverContent = page.locator("[data-dc-popover-content]");
     await expectWithinViewport(page, popoverContent);
   });

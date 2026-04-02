@@ -377,6 +377,7 @@ export function StackedStatusIcons({
           }
           tabIndex={onIconClick ? 0 : undefined}
           role={onIconClick ? "button" : undefined}
+          aria-label={onIconClick ? getTitleForCitation(flatItem) : undefined}
         >
           <StatusIconChip
             verification={flatItem.item.verification}
