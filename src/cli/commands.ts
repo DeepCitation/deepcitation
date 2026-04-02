@@ -219,8 +219,8 @@ export function requireAuth(): ResolvedAuth {
     const keyUrl = `${resolveBaseUrl()}/cli-auth?manual=true`;
     console.error("DeepCitation — action needed\n");
     console.error(`1. Get your API key: ${keyUrl}`);
-    console.error("2. Run: export DEEPCITATION_API_KEY=<your-key>");
-    console.error("3. Re-run your command");
+    console.error(`2. Run: npx deepcitation login --key '<your-key>'`);
+    console.error("   (This saves the key so all future commands just work.)");
     process.exit(1);
   }
   return auth;
