@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-04-02
+
+### Changed
+
+- **CLI auth hint** — unauthenticated users are now directed to `npx deepcitation login --key '<your-key>'` instead of manual `export DEEPCITATION_API_KEY`, with a note that the key is saved for future commands.
+
+### Fixed
+
+- **README on npm** — `README.md` explicitly added to `package.json` `files` array to guarantee it appears on the npm package page.
+- **Release workflow** — added `npm pack --dry-run` README verification step before publish to catch missing README early.
+
 ## [0.3.6] - 2026-04-01
 
 ### Added
