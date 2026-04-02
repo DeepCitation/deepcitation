@@ -41,7 +41,7 @@ import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
 import { die, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
 import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./markdownToHtml.js";
-import { createProxyFetch } from "./proxy.js";
+import { createCoworkFetch, createProxyFetch } from "./proxy.js";
 
 // ── help strings ──────────────────────────────────────────────────
 
@@ -234,7 +234,7 @@ export function requireAuth(): ResolvedAuth {
 }
 
 /** Create a DeepCitation client with automatic proxy detection. */
-export function createClient(apiKey: string): DeepCitation {
+export async function createClient(apiKey: string): Promise<DeepCitation> {
   const proxyUrl = detectProxyUrl(DEFAULT_API_URL);
 
   if (proxyUrl) {
@@ -242,11 +242,12 @@ export function createClient(apiKey: string): DeepCitation {
     const safeProxy = sanitizeForLog(proxyUrl.replace(/\/\/[^@]+@/, "//***@"));
     console.error(`Using proxy: ${safeProxy}`);
 
-    // In Cowork, globalThis.fetch already routes through the proxy transparently.
-    // Our custom CONNECT tunnel hangs on long-lived requests — skip it.
+    // In Cowork, globalThis.fetch does NOT transparently proxy — use undici's
+    // EnvHttpProxyAgent which reads HTTP_PROXY/HTTPS_PROXY from env vars.
     if (IS_COWORK) {
-      console.error("Cowork session — using built-in fetch (proxy is transparent).");
-      return new DeepCitation({ apiKey });
+      console.error("Cowork session — using undici EnvHttpProxyAgent.");
+      const coworkFetch = await createCoworkFetch();
+      return new DeepCitation({ apiKey, fetch: coworkFetch });
     }
 
     return new DeepCitation({ apiKey, fetch: createProxyFetch(proxyUrl) });
@@ -341,7 +342,7 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
 
   const { apiKey } = requireAuth();
 
-  const dc = createClient(apiKey);
+  const dc = await createClient(apiKey);
 
   const isUrl = positional.startsWith("http://") || positional.startsWith("https://");
 
@@ -433,7 +434,7 @@ export async function verify(
 
   const { apiKey } = requireAuth();
 
-  const dc = createClient(apiKey);
+  const dc = await createClient(apiKey);
 
   const allowedFormats = ["avif", "png", "jpeg", "webp"] as const;
   const imageFormat = (args["image-format"] ?? "avif") as (typeof allowedFormats)[number];
@@ -718,7 +719,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   }
 
   const title = args.title as string | undefined;
-  const html = markdownToHtml(parsed.visibleText, { style, audience, title, anchorMap });
+  const html = markdownToHtml(parsed.visibleText, { style, audience, title, anchorMap, citationCount: parsed.citations.length, cowork: IS_COWORK });
 
   // Re-attach citation data so verifyHtml pipeline can process it
   const citationJson = JSON.stringify(parsed.citations);
@@ -751,7 +752,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   const { apiKey } = requireAuth();
 
-  const dc = createClient(apiKey);
+  const dc = await createClient(apiKey);
   // htmlPath is guaranteed set when preloadedContent is absent (die() above exits otherwise)
   const raw = preloadedContent ?? readFileSync(resolve(htmlPath ?? ""), "utf-8");
 
@@ -1130,7 +1131,7 @@ export async function getAttachment(argv: string[]) {
 
   const { apiKey } = requireAuth();
 
-  const dc = createClient(apiKey);
+  const dc = await createClient(apiKey);
 
   console.error(`Fetching attachment ${sanitizeForLog(positional)}...`);
   const result = await dc.getAttachment(positional);

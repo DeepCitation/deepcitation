@@ -151,18 +151,76 @@ export function createProxyFetch(
 }
 
 /**
- * FormData proxy fallback: try undici ProxyAgent (available in Node 22+),
+ * Convert globalThis.FormData → undici.FormData.
+ * undici.fetch cannot serialize globalThis.FormData (the server receives no file).
+ */
+function convertFormData(
+  body: BodyInit | null | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  undici: any,
+): BodyInit | null | undefined {
+  if (body instanceof FormData) {
+    const ufd = new undici.FormData();
+    for (const [key, value] of (body as globalThis.FormData).entries()) {
+      if (value instanceof Blob) {
+        ufd.append(key, value, (value as File).name || key);
+      } else {
+        ufd.append(key, value);
+      }
+    }
+    return ufd as unknown as BodyInit;
+  }
+  return body;
+}
+
+/**
+ * FormData proxy fallback: try undici ProxyAgent, then EnvHttpProxyAgent,
  * or fall back to global fetch if undici isn't importable.
  */
 async function sendViaUndiciProxy(proxyUrl: string, input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const undici = await import(/* webpackIgnore: true */ "undici" as string);
-    const agent = new undici.ProxyAgent(proxyUrl);
-    return await globalThis.fetch(input, { ...init, dispatcher: agent } as RequestInit);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const undici: any = await import(/* webpackIgnore: true */ "undici" as string);
+    const body = convertFormData(init?.body, undici);
+
+    // Try explicit ProxyAgent first (works in non-cowork environments)
+    let agent;
+    try {
+      agent = new undici.ProxyAgent(proxyUrl);
+    } catch {
+      // ProxyAgent with explicit URL can fail in cowork — fall back to EnvHttpProxyAgent
+      agent = new undici.EnvHttpProxyAgent();
+    }
+
+    // Must use undici.fetch (not globalThis.fetch) — only undici.fetch respects `dispatcher`
+    return (await undici.fetch(input, { ...init, body, dispatcher: agent })) as Response;
   } catch {
     // undici not available — warn and try direct
     console.error("Warning: FormData upload through proxy requires the 'undici' package. Trying direct connection...");
     return globalThis.fetch(input, init);
+  }
+}
+
+/**
+ * Create a fetch function for Cowork (Claude Code Remote) environments.
+ * Uses undici.EnvHttpProxyAgent which reads HTTP_PROXY/HTTPS_PROXY from env vars,
+ * paired with undici.fetch (NOT globalThis.fetch) which supports the dispatcher option.
+ */
+export async function createCoworkFetch(): Promise<
+  (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const undici: any = await import(/* webpackIgnore: true */ "undici" as string);
+    const agent = new undici.EnvHttpProxyAgent();
+
+    return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const body = convertFormData(init?.body, undici);
+      return (await undici.fetch(input, { ...init, body, dispatcher: agent })) as Response;
+    };
+  } catch {
+    // undici not importable — fall back to globalThis.fetch (may not route through proxy)
+    console.error("Warning: undici not available. Falling back to built-in fetch (proxy may not work).");
+    return globalThis.fetch;
   }
 }

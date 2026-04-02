@@ -219,7 +219,7 @@ describe("markdownToHtml style shells", () => {
   it("includes source label in report mode", () => {
     const result = markdownToHtml(md, { style: "report", sourceLabel: "Source: GPT-4" });
     expect(result).toContain("Source: GPT-4");
-    expect(result).toContain('class="meta"');
+    expect(result).toContain('class="dc-meta"');
   });
 });
 

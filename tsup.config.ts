@@ -29,7 +29,7 @@ export default defineConfig({
   sourcemap: true,
   outDir: "lib",
   target: "es2020",
-  external: ["react", "react-dom"],
+  external: ["react", "react-dom", "undici"],
   esbuildOptions(options) {
     options.jsx = "automatic";
   },
