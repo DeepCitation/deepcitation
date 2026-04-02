@@ -229,10 +229,37 @@ describe("markdownToHtml style shells", () => {
     expect(result).not.toContain("https://example.com/docs/report</span>"); // rendered as <a>, not plain text
   });
 
-  it("falls back to sourceLabel when sourceUrl is not https", () => {
+  it("falls back to sourceLabel when sourceUrl has an unsupported scheme", () => {
     const result = markdownToHtml(md, { style: "report", sourceUrl: "ftp://bad.com", sourceLabel: "Fallback Label" });
     expect(result).toContain("Fallback Label");
     expect(result).not.toContain("ftp://");
+  });
+
+  it("falls back to sourceLabel when sourceUrl is http (not https)", () => {
+    const result = markdownToHtml(md, { style: "report", sourceUrl: "http://insecure.com/doc", sourceLabel: "Fallback" });
+    expect(result).toContain("Fallback");
+    expect(result).not.toContain('href="http://');
+  });
+
+  it("sourceUrl takes precedence over sourceLabel when https", () => {
+    const result = markdownToHtml(md, {
+      style: "report",
+      sourceUrl: "https://example.com/doc",
+      sourceLabel: "Should Not Appear",
+    });
+    expect(result).toContain('href="https://example.com/doc"');
+    expect(result).not.toContain("Should Not Appear");
+  });
+
+  it("renders pageCount in the meta strip", () => {
+    const result = markdownToHtml(md, { style: "report", pageCount: 42 });
+    expect(result).toContain("PAGES");
+    expect(result).toContain(">42<");
+  });
+
+  it("renders custom reportDate in the meta strip", () => {
+    const result = markdownToHtml(md, { style: "report", reportDate: "1 Jan 2025" });
+    expect(result).toContain("1 Jan 2025");
   });
 
   it("renders citationCount in the meta strip", () => {

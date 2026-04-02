@@ -363,12 +363,19 @@ const BASE_CSS = `  * { margin: 0; padding: 0; box-sizing: border-box; }
   code { font-family: ${MONO_FONT}; font-size: 0.9em; background: #F4F4F5; padding: 1px 4px; }
   pre code { background: none; padding: 0; }
   hr { border: none; border-top: 1px solid #E4E4E7; margin: 1.5rem 0; }
-  .meta { color: #52525B; font-size: 14px; margin-bottom: 1.5rem; }`;
+  .meta { color: #52525B; font-size: 14px; margin-bottom: 1.5rem; }
+  .dc-cowork-notice {
+    display: flex; align-items: flex-start; gap: 0.6rem;
+    padding: 0.65rem 0.9rem; margin-bottom: 1rem;
+    background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 6px;
+    font-size: 13px; line-height: 1.5; color: #1E40AF;
+  }
+  .dc-cowork-notice svg { flex-shrink: 0; margin-top: 2px; }`;
 
 function plainShell(title: string, bodyHtml: string, options?: { cowork?: boolean }): string {
   const coworkNotice = options?.cowork
-    ? `<div style="display:flex;align-items:flex-start;gap:0.6rem;padding:0.65rem 0.9rem;margin-bottom:1rem;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;font-size:13px;line-height:1.5;color:#1E40AF">
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-top:2px"><circle cx="8" cy="8" r="7" stroke="#3B82F6" stroke-width="1.5"/><path d="M8 7v4M8 5h.01" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/></svg>
+    ? `<div class="dc-cowork-notice">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#3B82F6" stroke-width="1.5"/><path d="M8 7v4M8 5h.01" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/></svg>
   <span>Generated in a Claude Cowork session. Citation popovers work normally, but full page views within popovers require opening this file in Chrome or another browser on your local machine.</span>
 </div>`
     : "";
@@ -393,10 +400,9 @@ ${bodyHtml}
 }
 
 /**
- * Build the header meta strip: SOURCE · ANALYZED · AUDIENCE · CITATIONS · PAGES.
- * Only renders items that have data. Date always renders (defaults to today).
+ * Strip scheme from a URL for display: "https://example.com/doc" → "example.com/doc".
+ * Port and query/fragment are intentionally omitted for scannability.
  */
-/** Strip scheme from a URL for display: "https://example.com/doc" → "example.com/doc". */
 function formatSourceUrl(url: string): string {
   try {
     const u = new URL(url);
@@ -406,6 +412,10 @@ function formatSourceUrl(url: string): string {
   }
 }
 
+/**
+ * Build the header meta strip: SOURCE · ANALYZED · AUDIENCE · CITATIONS · PAGES.
+ * Only renders items that have data. Date always renders (defaults to today).
+ */
 function buildMetaStrip(opts: {
   sourceLabel?: string;
   sourceUrl?: string;
@@ -416,8 +426,8 @@ function buildMetaStrip(opts: {
 }): string {
   const items: string[] = [];
 
-  // SOURCE — URL takes precedence; display label strips the scheme for scannability
-  const url = opts.sourceUrl && /^https?:\/\//i.test(opts.sourceUrl) ? opts.sourceUrl : null;
+  // SOURCE — https URLs only (http would trigger mixed-content warnings in browsers)
+  const url = opts.sourceUrl && /^https:\/\//i.test(opts.sourceUrl) ? opts.sourceUrl : null;
   const sourceDisplay = url ? formatSourceUrl(url) : opts.sourceLabel;
   if (sourceDisplay) {
     const inner = url

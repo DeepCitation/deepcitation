@@ -196,9 +196,10 @@ async function sendViaUndiciProxy(proxyUrl: string, input: RequestInfo | URL, in
   let agent;
   try {
     agent = new undici.ProxyAgent(proxyUrl);
-  } catch {
-    // ProxyAgent construction can fail in Cowork — fall back to EnvHttpProxyAgent
-    console.error("Warning: ProxyAgent construction failed, falling back to EnvHttpProxyAgent.");
+  } catch (err) {
+    // ProxyAgent construction can fail in Cowork (e.g. malformed URL from env). Log the
+    // real error so users can diagnose misconfigurations, then fall back to EnvHttpProxyAgent.
+    console.error(`Warning: ProxyAgent construction failed (${err}), falling back to EnvHttpProxyAgent.`);
     agent = new undici.EnvHttpProxyAgent();
   }
 
