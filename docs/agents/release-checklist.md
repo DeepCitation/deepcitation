@@ -43,7 +43,7 @@ gh workflow run release.yml -f version=patch   # or minor / major
 ### After the workflow completes
 
 - [ ] **Verify on npm** — `npm view deepcitation version` returns the new version
-- [ ] **Verify README on npm** — `npm view deepcitation readme | head -5` shows the README content (not empty). Check https://www.npmjs.com/package/deepcitation renders the README within a few minutes.
+- [ ] **Verify README on npm** — `npm view deepcitation readme | head -5` shows the README content (not empty). **If this returns nothing, the README was missing from `package.json` `files` — check that `README.md` is explicitly listed there.** Check https://www.npmjs.com/package/deepcitation renders the README within a few minutes.
 - [ ] **Spot-check release notes** — the body should already be clean (pulled from CHANGELOG.md), but verify it rendered correctly
 
 ---
@@ -65,7 +65,8 @@ Use this if you need more control over the changelog or release notes.
 - [ ] **Tests** — `bun test` passes.
 - [ ] **Build** — `bun run build` succeeds cleanly.
 - [ ] **Bundle size** — `bun run size` confirms size limits are not exceeded.
-- [ ] **Dry-run tarball** — `npm pack --dry-run 2>&1 | grep README` confirms README.md is included.
+- [ ] **README in `files`** — `cat package.json | grep -A20 '"files"' | grep README` confirms `README.md` is listed in the `package.json` `files` array. This is the root cause of the "README missing on npm" incident — when `files` is set, npm only ships what is explicitly listed.
+- [ ] **Dry-run tarball** — `npm pack --dry-run 2>&1 | grep README` confirms README.md appears in the packed output. **This must return a result — if it returns nothing, stop and fix `package.json` `files` before continuing.**
 
 ### Phase 3: Commit & Tag
 

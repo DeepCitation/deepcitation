@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-04-02
+
 ### Added
 
 - **`[anchor](cite:N)` citation syntax** — LLMs can now wrap the key phrase directly in markdown-link citation syntax, eliminating positional ambiguity of the legacy `[N]` suffix format. All parsing, rendering, and HTML conversion functions support both formats simultaneously. Old `[N]` format remains fully supported for backward compatibility.
