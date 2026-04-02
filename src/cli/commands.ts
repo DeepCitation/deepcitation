@@ -700,9 +700,8 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
       const sorted = [...remap.entries()].sort((a, b) => b[0] - a[0]);
       for (const [from, to] of sorted) {
         // Remap both old [N] and new (cite:N) formats in a single scan
-        parsed.visibleText = parsed.visibleText.replace(
-          new RegExp(`\\[${from}\\]|\\(cite:${from}\\)`, "g"),
-          m => (m.startsWith("[") ? `[${to}]` : `(cite:${to})`),
+        parsed.visibleText = parsed.visibleText.replace(new RegExp(`\\[${from}\\]|\\(cite:${from}\\)`, "g"), m =>
+          m.startsWith("[") ? `[${to}]` : `(cite:${to})`,
         );
       }
     }
