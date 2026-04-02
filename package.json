@@ -1,6 +1,6 @@
 {
   "name": "deepcitation",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "DeepCitation JavaScript SDK for deterministic AI citation verification",
   "type": "module",
   "bin": {
@@ -55,6 +55,7 @@
     "docs/prompts",
     "src/tailwind.css",
     "src/tokens.css",
+    "README.md",
     "!lib/**/*.map"
   ],
   "scripts": {

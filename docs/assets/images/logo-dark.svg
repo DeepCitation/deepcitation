@@ -10,8 +10,8 @@
     </style>
   </defs>
   <g transform="translate(0, 4)">
-    <path d="M4 1 L1 1 L1 23 L4 23" stroke="#F4F4F5" stroke-width="2" stroke-linecap="square" />
-    <path d="M20 1 L23 1 L23 23 L20 23" stroke="#F4F4F5" stroke-width="2" stroke-linecap="square" />
+    <path d="M4 1 L1 1 L1 23 L4 23" stroke="#71717A" stroke-width="1" stroke-linecap="square" />
+    <path d="M20 1 L23 1 L23 23 L20 23" stroke="#71717A" stroke-width="1" stroke-linecap="square" />
     <path d="M12 6 L12 18 M6 12 L18 12 M7.5 7.5 L16.5 16.5 M16.5 7.5 L7.5 16.5" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="square" />
   </g>
   <text

@@ -138,6 +138,10 @@ jobs:
             const release = await github.rest.repos.createRelease(opts);
             core.setOutput('release_id', release.data.id);
 
+      - name: Verify README in tarball
+        run: |
+          npm pack --dry-run 2>&1 | grep -q 'README.md' || { echo "ERROR: README.md missing from npm tarball"; exit 1; }
+
       - name: Publish to npm
         run: npm publish --access public
         env:

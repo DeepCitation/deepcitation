@@ -103,6 +103,8 @@ export const esOverrides = {
   "aria.viewProofForSource": "Ver prueba para {sourceName}",
   "aria.citationVerificationStatus": "Estado de verificación de citas",
   "aria.citationsSummary": "Citas: {displayLabel}",
+  "aria.citationIconTitle": "{sourceName} — {statusLabel}",
+  "aria.citationIconTitleWithPreview": "{sourceName}: {preview} — {statusLabel}",
   "aria.sourceFromPlatform": "{title} de {platformName}",
   "aria.sourceGroup": "Fuente: {sourceName}",
   "aria.sourceGroupWithDomain": "Fuente: {sourceName} ({sourceDomain})",

@@ -830,7 +830,7 @@ function DrawerSourceHeading({
   const t = useTranslation();
 
   if (citationGroups.length === 0) {
-    return <h2 className="text-base font-semibold text-dc-foreground truncate">{fallbackTitle}</h2>;
+    return <h2 className="text-base font-semibold text-dc-foreground truncate min-w-0">{fallbackTitle}</h2>;
   }
   const firstGroup = citationGroups[0];
   // Use the exact same label as CitationDrawerTrigger — generateDefaultLabel handles
@@ -852,7 +852,7 @@ function DrawerSourceHeading({
       )}
 
       {/* Source label — identical text to CitationDrawerTrigger */}
-      <h2 className="text-base font-semibold text-dc-foreground truncate">{displayLabel}</h2>
+      <h2 className="text-base font-semibold text-dc-foreground truncate min-w-0 flex-1">{displayLabel}</h2>
     </div>
   );
 }
@@ -1009,6 +1009,22 @@ function OpenCitationDrawer({
   // Flatten all citations for total count and header icons
   const totalCitations = summary.total;
   const flatCitations = useMemo(() => flattenCitations(resolvedGroups, t), [resolvedGroups, t]);
+
+  // Click handler for header indicator icons — expand the citation and scroll it into view
+  const handleIndicatorClick = useCallback(
+    (index: number) => {
+      const flat = flatCitations[index];
+      if (!flat) return;
+      const key = flat.item.citationKey;
+      setExpandedCitationKey(prev => (prev === key ? null : key));
+      // Scroll the item into view after React renders the expansion
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-dc-item="${CSS.escape(key)}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    },
+    [flatCitations],
+  );
 
   // Page numbers for header — computed from all groups, shown top-right as clickable badges
   const drawerPages = useMemo(
@@ -1309,58 +1325,57 @@ function OpenCitationDrawer({
 
         {/* Header with summary, progress bar, and view toggle */}
         <div className="px-4 py-2 border-b border-dc-border shrink-0">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <div className="flex-1 min-w-0">
               <DrawerSourceHeading citationGroups={resolvedGroups} label={label} fallbackTitle={resolvedTitle} />
-              {totalCitations > 0 && indicatorVariant !== "none" && (
-                <div className="mt-0.5">
-                  <StackedStatusIcons
-                    flatCitations={flatCitations}
-                    isHovered={false}
-                    maxIcons={5}
-                    hoveredIndex={null}
-                    onIconHover={() => {}}
-                    onIconLeave={() => {}}
-                    showProofThumbnails={false}
-                    indicatorVariant={indicatorVariant}
+            </div>
+            {totalCitations > 0 && indicatorVariant !== "none" && (
+              <div className="shrink-0">
+                <StackedStatusIcons
+                  flatCitations={flatCitations}
+                  isHovered={false}
+                  maxIcons={5}
+                  hoveredIndex={null}
+                  onIconHover={() => {}}
+                  onIconLeave={() => {}}
+                  onIconClick={handleIndicatorClick}
+                  showProofThumbnails={false}
+                  indicatorVariant={indicatorVariant}
+                />
+              </div>
+            )}
+            {/* Page badges in header only for single-group drawers; multi-group shows them per file header */}
+            {isSingleGroup && drawerPages.length > 0 && (
+              <div
+                className="dc-drawer-page-strip max-w-[min(52vw,18rem)] overflow-x-auto overflow-y-hidden shrink-0"
+                style={HIDE_SCROLLBAR_STYLE}
+              >
+                <div className="flex items-center gap-1 min-w-max">
+                  <DrawerPageBadges
+                    pages={drawerPages}
+                    activePage={activePage}
+                    onPageClick={handlePageBadgeClick}
+                    onPageDeactivate={handlePageDeactivate}
                   />
                 </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Page badges in header only for single-group drawers; multi-group shows them per file header */}
-              {isSingleGroup && drawerPages.length > 0 && (
-                <div
-                  className="dc-drawer-page-strip max-w-[min(52vw,18rem)] overflow-x-auto overflow-y-hidden"
-                  style={HIDE_SCROLLBAR_STYLE}
-                >
-                  <div className="flex items-center gap-1 min-w-max">
-                    <DrawerPageBadges
-                      pages={drawerPages}
-                      activePage={activePage}
-                      onPageClick={handlePageBadgeClick}
-                      onPageDeactivate={handlePageDeactivate}
-                    />
-                  </div>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1.5 rounded hover:bg-dc-muted transition-colors cursor-pointer"
-                aria-label={t("action.close")}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded hover:bg-dc-muted transition-colors cursor-pointer shrink-0"
+              aria-label={t("action.close")}
+            >
+              <svg
+                className="w-5 h-5 text-dc-subtle-foreground"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
               >
-                <svg
-                  className="w-5 h-5 text-dc-subtle-foreground"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
         <style>{`.dc-drawer-page-strip::-webkit-scrollbar { display: none; }`}</style>
@@ -1407,7 +1422,7 @@ function OpenCitationDrawer({
 
         {/* Citation list */}
         <DrawerEscapeContext.Provider value={escCtxValue}>
-          <div className="flex-1 overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ overscrollBehavior: "contain" }}>
             {totalCitations === 0 ? (
               <div className="px-4 py-8 text-center text-dc-subtle-foreground">{t("drawer.noCitationsToDisplay")}</div>
             ) : (

@@ -90,15 +90,15 @@ const ICON_MARGIN_EXPANDED = "-0.25rem";
  * Includes truncated anchor text to disambiguate icons from the same source.
  * Format: "SourceName: anchor text preview... — Verified"
  */
-function getTitleForCitation(flatItem: FlatCitationItem): string {
+function getTitleForCitation(flatItem: FlatCitationItem, t: ReturnType<typeof useTranslation>): string {
   const statusLabel = getStatusInfo(flatItem.item.verification).label;
   const anchorText = flatItem.item.citation.anchorText?.toString() || flatItem.item.citation.fullPhrase || null;
   const preview = anchorText ? (anchorText.length > 40 ? `${anchorText.slice(0, 40)}...` : anchorText) : null;
 
   if (preview) {
-    return `${flatItem.sourceName}: ${preview} — ${statusLabel}`;
+    return t("aria.citationIconTitleWithPreview", { sourceName: flatItem.sourceName, preview, statusLabel });
   }
-  return `${flatItem.sourceName} — ${statusLabel}`;
+  return t("aria.citationIconTitle", { sourceName: flatItem.sourceName, statusLabel });
 }
 
 // =========
@@ -294,6 +294,7 @@ export function StackedStatusIcons({
   hoveredIndex,
   onIconHover,
   onIconLeave,
+  onIconClick,
   showProofThumbnails,
   onSourceClick,
   indicatorVariant = "icon",
@@ -304,6 +305,7 @@ export function StackedStatusIcons({
   hoveredIndex: number | null;
   onIconHover: (index: number) => void;
   onIconLeave: () => void;
+  onIconClick?: (index: number) => void;
   showProofThumbnails: boolean;
   onSourceClick?: (group: SourceCitationGroup) => void;
   indicatorVariant?: IndicatorVariant;
@@ -352,17 +354,34 @@ export function StackedStatusIcons({
       {displayItems.map((flatItem, i) => (
         <div
           key={flatItem.item.citationKey}
-          className="relative transition-[margin-left] duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]"
+          className={cn(
+            "relative transition-[margin-left] duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]",
+            onIconClick && "cursor-pointer",
+          )}
           style={{
             marginLeft: ICON_MARGIN_EXPANDED,
             zIndex: Math.max(1, Math.min(20, displayItems.length - i)),
           }}
           onMouseEnter={() => onIconHover(i)}
           onMouseLeave={onIconLeave}
+          onClick={onIconClick ? () => onIconClick(i) : undefined}
+          onKeyDown={
+            onIconClick
+              ? e => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onIconClick(i);
+                  }
+                }
+              : undefined
+          }
+          tabIndex={onIconClick ? 0 : undefined}
+          role={onIconClick ? "button" : undefined}
+          aria-label={onIconClick ? getTitleForCitation(flatItem, t) : undefined}
         >
           <StatusIconChip
             verification={flatItem.item.verification}
-            title={getTitleForCitation(flatItem)}
+            title={getTitleForCitation(flatItem, t)}
             indicatorVariant={indicatorVariant}
           />
           {/* Tooltip when this specific icon is hovered and bar is expanded */}

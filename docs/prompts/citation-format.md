@@ -25,8 +25,8 @@ At the END of your response, append a citation block. Group citations by `attach
 1. **Group key**: The `attachmentId` (exact ID from source document)
 2. **id**: Each citation MUST have a unique ID matching its [N] marker. Do NOT reuse the same ID for different citations.
 3. **reasoning**: Brief explanation connecting the citation to your claim (think first!)
-4. **fullPhrase**: Copy text VERBATIM from source. Use proper JSON escaping for quotes.
-5. **anchorText**: The most distinctive words from `fullPhrase`. For structured/tabular data, 1-3 words suffice (e.g., a lab value). For narrative prose, use 5+ distinctive words to avoid ambiguous matches.
+4. **fullPhrase**: Copy 1–2 sentences VERBATIM from source. Must be significantly longer than anchorText — it provides context. Use proper JSON escaping for quotes.
+5. **anchorText**: The short, distinctive phrase from `fullPhrase` that gets highlighted in the evidence and shown as a clickable label. Usually 1–3 words (proper nouns, defined terms, verb phrases). Its job is to anchor WHERE to look — the popover shows WHAT it says. Must be a contiguous verbatim substring of `fullPhrase`.
 6. **pageId**: Format `page_number_N_index_I` where N=page number, I=index. Copy exactly from `<page_number_N_index_I>` tags in the source.
 7. **lineIds**: Array of line IDs from the source. Copy from `<line id="N">` tags in the text. Include IDs for all relevant lines. These are **sparse** — not every line is tagged. Use the nearest tagged line.
 
@@ -36,14 +36,17 @@ To save tokens: `n`=id, `r`=reasoning, `f`=fullPhrase, `k`=anchorText, `p`=pageI
 
 ## Placement Rules
 
-- Place [N] markers inline, typically at the end of a claim
+- Place [N] markers **inline, right after the anchor phrase** — not at the end of the sentence
+  - GOOD: `"The Discount Rate [2] is applied to the conversion price."`
+  - BAD: `"The Discount Rate is applied to the conversion price. [2]"`
+- Multiple facts in one sentence get separate inline markers
 - One marker per distinct idea, concept, or value
 - Use sequential numbering starting from [1] — each citation gets a unique number
 - The JSON block MUST appear at the very end of your response
 
 ## Example
 
-The company reported strong growth [1]. Revenue increased significantly in Q4 [2]. The competitor also grew [3].
+The company reported [45% year-over-year growth] [1]. Revenue [increased to $2.3 billion] [2] in Q4. The competitor reported [20% growth] [3].
 
 ```
 <<<CITATION_DATA>>>

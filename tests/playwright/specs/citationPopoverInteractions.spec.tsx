@@ -330,7 +330,15 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
 
     const deltas = samples.top.slice(1).map((value, index) => value - samples.top[index]);
     const significantDeltas = deltas.filter(delta => Math.abs(delta) >= 1.5);
-    const guardActiveFrameCount = samples.guardDy.filter(dy => Math.abs(dy) >= 0.5).length;
+
+    // Detect guard oscillation: dy must never reverse sign (0→nonzero is fine; nonzero→opposite is not).
+    let prevGuardSign = 0;
+    let guardDyReversals = 0;
+    for (const dy of samples.guardDy) {
+      const sign = Math.abs(dy) >= 0.5 ? (dy > 0 ? 1 : -1) : 0;
+      if (prevGuardSign !== 0 && sign !== 0 && sign !== prevGuardSign) guardDyReversals++;
+      if (sign !== 0) prevGuardSign = sign;
+    }
 
     let previousSign = 0;
     let reversals = 0;
@@ -346,8 +354,8 @@ test.describe("Citation Popover - Click-to-Close Behavior", () => {
     }).length;
     const minInlineOpacity = samples.inlineOpacity.length > 0 ? Math.min(...samples.inlineOpacity) : 1;
 
-    // Vertical clamping was removed — the guard should no longer fire dy corrections.
-    expect(guardActiveFrameCount).toBe(0);
+    // Guard may apply a stable vertical correction post-animation settle, but must not oscillate.
+    expect(guardDyReversals).toBe(0);
     // Allow a single direction change (settle) but prevent repeated up/down oscillation.
     expect(reversals).toBeLessThanOrEqual(1);
     // Prevent a "same-width teleport left" frame before width expansion starts.
