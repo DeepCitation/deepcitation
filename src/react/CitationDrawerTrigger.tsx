@@ -294,6 +294,7 @@ export function StackedStatusIcons({
   hoveredIndex,
   onIconHover,
   onIconLeave,
+  onIconClick,
   showProofThumbnails,
   onSourceClick,
   indicatorVariant = "icon",
@@ -304,6 +305,7 @@ export function StackedStatusIcons({
   hoveredIndex: number | null;
   onIconHover: (index: number) => void;
   onIconLeave: () => void;
+  onIconClick?: (index: number) => void;
   showProofThumbnails: boolean;
   onSourceClick?: (group: SourceCitationGroup) => void;
   indicatorVariant?: IndicatorVariant;
@@ -352,13 +354,29 @@ export function StackedStatusIcons({
       {displayItems.map((flatItem, i) => (
         <div
           key={flatItem.item.citationKey}
-          className="relative transition-[margin-left] duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]"
+          className={cn(
+            "relative transition-[margin-left] duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]",
+            onIconClick && "cursor-pointer",
+          )}
           style={{
             marginLeft: ICON_MARGIN_EXPANDED,
             zIndex: Math.max(1, Math.min(20, displayItems.length - i)),
           }}
           onMouseEnter={() => onIconHover(i)}
           onMouseLeave={onIconLeave}
+          onClick={onIconClick ? () => onIconClick(i) : undefined}
+          onKeyDown={
+            onIconClick
+              ? e => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onIconClick(i);
+                  }
+                }
+              : undefined
+          }
+          tabIndex={onIconClick ? 0 : undefined}
+          role={onIconClick ? "button" : undefined}
         >
           <StatusIconChip
             verification={flatItem.item.verification}

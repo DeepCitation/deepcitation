@@ -10,7 +10,6 @@ import {
   EVIDENCE_LIST_EXPAND_TOTAL_MS,
   EVIDENCE_TRAY_BORDER_DASHED,
   EVIDENCE_TRAY_BORDER_SOLID,
-  HITBOX_EXTEND_8x14,
   isValidProofImageSrc,
   TERTIARY_ACTION_BASE_CLASSES,
   TERTIARY_ACTION_HOVER_CLASSES,
@@ -81,11 +80,10 @@ export function EvidenceTrayFooter({
             <button
               type="button"
               className={cn(
-                "relative flex items-center gap-0.5 text-[11px] font-medium cursor-pointer",
+                "relative flex items-center gap-0.5 px-2 py-0.5 text-[11px] font-medium rounded-dc-md border border-dc-border cursor-pointer",
                 TERTIARY_ACTION_BASE_CLASSES,
                 TERTIARY_ACTION_IDLE_CLASSES,
                 TERTIARY_ACTION_HOVER_CLASSES,
-                HITBOX_EXTEND_8x14,
               )}
               onClick={e => {
                 e.stopPropagation();
@@ -113,7 +111,7 @@ export function EvidenceTrayFooter({
           <button
             type="button"
             className={cn(
-              "flex items-center gap-0.5 text-[11px] font-medium cursor-pointer ml-auto",
+              "flex items-center gap-0.5 px-2 py-0.5 text-[11px] font-medium rounded-dc-md border border-dc-border cursor-pointer ml-auto",
               TERTIARY_ACTION_BASE_CLASSES,
               TERTIARY_ACTION_IDLE_CLASSES,
               TERTIARY_ACTION_HOVER_CLASSES,
