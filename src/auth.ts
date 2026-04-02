@@ -175,7 +175,7 @@ function sendFormResult(res: ServerResponse, status: "success" | "error", keyNam
   const title = status === "success" ? "Authenticated" : "Authentication Failed";
   const message =
     status === "success"
-      ? "You can close this tab and return to your terminal."
+      ? "This tab will close shortly, or you can close it manually."
       : "Authentication failed. Please try again from the CLI.";
   const icon = status === "success" ? "&#10003;" : "&#10007;";
   const color = status === "success" ? "#10b981" : "#ef4444";

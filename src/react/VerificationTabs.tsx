@@ -51,6 +51,7 @@ const TabButton = ({ isActive, onClick, label }: { isActive: boolean; onClick: (
         : "text-dc-muted-foreground hover:text-dc-foreground hover:bg-dc-muted",
     )}
     type="button"
+    aria-pressed={isActive}
     data-active={isActive}
   >
     {label}
