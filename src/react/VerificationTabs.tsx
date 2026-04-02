@@ -51,7 +51,8 @@ const TabButton = ({ isActive, onClick, label }: { isActive: boolean; onClick: (
         : "text-dc-muted-foreground hover:text-dc-foreground hover:bg-dc-muted",
     )}
     type="button"
-    aria-pressed={isActive}
+    role="tab"
+    aria-selected={isActive}
     data-active={isActive}
   >
     {label}
@@ -251,7 +252,7 @@ export const VerificationTabs: React.FC<VerificationTabsProps> = ({
       )}
 
       <div data-testid="tabs-container">
-        <div data-testid="tabs-nav" className="flex gap-1 p-1 bg-dc-muted rounded-dc-lg items-center">
+        <div data-testid="tabs-nav" role="tablist" className="flex gap-1 p-1 bg-dc-muted rounded-dc-lg items-center">
           <TabButton
             label={t("tab.expected")}
             isActive={activeTab === "expected"}

@@ -830,7 +830,7 @@ function DrawerSourceHeading({
   const t = useTranslation();
 
   if (citationGroups.length === 0) {
-    return <h2 className="text-base font-semibold text-dc-foreground">{fallbackTitle}</h2>;
+    return <h2 className="text-base font-semibold text-dc-foreground break-words">{fallbackTitle}</h2>;
   }
   const firstGroup = citationGroups[0];
   // Use the exact same label as CitationDrawerTrigger — generateDefaultLabel handles
@@ -852,7 +852,7 @@ function DrawerSourceHeading({
       )}
 
       {/* Source label — identical text to CitationDrawerTrigger */}
-      <h2 className="text-base font-semibold text-dc-foreground">{displayLabel}</h2>
+      <h2 className="text-base font-semibold text-dc-foreground break-words">{displayLabel}</h2>
     </div>
   );
 }
@@ -1283,12 +1283,13 @@ function OpenCitationDrawer({
                 {citationsOnActivePage.map(item => {
                   const isActive = item.citationKey === activeIndicatorKey;
                   const statusInfo = getStatusInfo(item.verification, indicatorVariant, t);
-                  const label = item.citation.anchorText?.toString() ?? item.citation.fullPhrase ?? t("aria.citation");
+                  const chipLabel =
+                    item.citation.anchorText?.toString() ?? item.citation.fullPhrase ?? t("aria.citation");
                   return (
                     <button
                       key={item.citationKey}
                       type="button"
-                      title={label}
+                      title={chipLabel}
                       onClick={() => setActiveIndicatorKey(k => (k === item.citationKey ? null : item.citationKey))}
                       className={cn(
                         "inline-flex items-center justify-center rounded-full transition-all w-6 h-6",
@@ -1299,8 +1300,8 @@ function OpenCitationDrawer({
                       aria-pressed={isActive}
                       aria-label={
                         isActive
-                          ? t("aria.toggleAnnotation.hide", { label })
-                          : t("aria.toggleAnnotation.show", { label })
+                          ? t("aria.toggleAnnotation.hide", { label: chipLabel })
+                          : t("aria.toggleAnnotation.show", { label: chipLabel })
                       }
                     >
                       {statusInfo.icon}

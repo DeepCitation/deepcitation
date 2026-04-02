@@ -133,7 +133,7 @@ test.describe("Drawer - Inline Indicators in Header", () => {
     const dialog = page.locator("[role='dialog']");
     await expect(dialog).toBeVisible({ timeout: 5000 });
 
-    await expect(dialog.locator('[data-testid="drawer-header-indicators"]')).not.toBeVisible();
+    await expect(dialog.locator('[data-testid="drawer-header-indicators"]')).not.toBeAttached();
   });
 
   test("indicator buttons appear in header after opening page image", async ({ mount, page }) => {

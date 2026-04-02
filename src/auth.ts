@@ -190,7 +190,9 @@ function sendFormResult(res: ServerResponse, status: "success" | "error", keyNam
       `.card{text-align:center;max-width:360px;padding:48px 32px}.icon{font-size:48px;color:${color};margin-bottom:16px}` +
       `h1{font-size:20px;font-weight:600;margin-bottom:8px}p{font-size:14px;color:#71717a}</style></head>` +
       `<body><div class="card"><div class="icon">${icon}</div><h1>${title}</h1><p>${message}</p>${keyHint}</div>` +
-      (status === "success" ? `<script>setTimeout(function(){window.close();},500);</script>` : "") +
+      (status === "success"
+        ? `<script>document.addEventListener("DOMContentLoaded",function(){setTimeout(function(){window.close();},1500);});</script>`
+        : "") +
       `</body></html>`,
   );
 }
