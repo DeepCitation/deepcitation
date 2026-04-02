@@ -76,7 +76,7 @@ const CITATION_MARKER_RE = /\[(\d+)\]/g;
  * do not mutate lastIndex, so there is no stateful cross-call contamination.
  * Do NOT use with RegExp.exec() in a loop — exec() advances lastIndex.
  */
-const CITATION_LINK_RE = /\[([^\]]+)\]\(cite:(\d+)\)/g;
+const CITATION_LINK_RE = /\[([^\][]+)\]\(cite:(\d+)\)/g;
 
 /**
  * Type guard to validate that an object has the required CitationData structure.
@@ -666,7 +666,7 @@ export function replaceCitationMarkers(
  * @returns Array of citation IDs in order of appearance
  */
 /** Combined pattern matching both [anchor](cite:N) and [N] formats in one scan. */
-const COMBINED_MARKER_RE = /\[[^\]]+\]\(cite:(\d+)\)|\[(\d+)\]/g;
+const COMBINED_MARKER_RE = /\[[^\][]+\]\(cite:(\d+)\)|\[(\d+)\]/g;
 
 export function getCitationMarkerIds(text: string): number[] {
   // Single scan preserves document order — no sort needed

@@ -89,7 +89,7 @@ describe("resolveSourceLabel", () => {
 
 const PARSED_CITE_LINK: ParsedCitationResult = {
   visibleText: "Hello [Discount Rate](cite:1) world [Price](cite:2) end",
-  splitPattern: /(\[[^\]]+\]\(cite:\d+\)|\[\d+\])/,
+  splitPattern: /(\[[^\][]+\]\(cite:\d+\)|\[\d+\])/,
   format: "numeric",
   citations: {
     key1: {
@@ -143,7 +143,7 @@ describe("walkCitationSegments — cite link format", () => {
   it("handles mixed [N] and cite-link segments in same walk", () => {
     const mixed: ParsedCitationResult = {
       visibleText: "Old [1] and [Rate](cite:2) end",
-      splitPattern: /(\[[^\]]+\]\(cite:\d+\)|\[\d+\])/,
+      splitPattern: /(\[[^\][]+\]\(cite:\d+\)|\[\d+\])/,
       format: "numeric",
       citations: {
         key1: { type: "document", attachmentId: "a", pageNumber: 1, lineIds: [], fullPhrase: "old" },

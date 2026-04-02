@@ -14,7 +14,7 @@ import type { RenderCitationWithStatus } from "./types.js";
 export type StatusKey = "verified" | "partial" | "notFound" | "pending";
 
 const CITATION_MARKER_RE = /^\[(\d+)\]$/;
-const CITATION_LINK_RE = /^\[([^\]]+)\]\(cite:(\d+)\)$/;
+const CITATION_LINK_RE = /^\[([^\][]+)\]\(cite:(\d+)\)$/;
 
 /**
  * Map a CitationStatus to a status key used across renderers for
