@@ -236,7 +236,11 @@ describe("markdownToHtml style shells", () => {
   });
 
   it("falls back to sourceLabel when sourceUrl is http (not https)", () => {
-    const result = markdownToHtml(md, { style: "report", sourceUrl: "http://insecure.com/doc", sourceLabel: "Fallback" });
+    const result = markdownToHtml(md, {
+      style: "report",
+      sourceUrl: "http://insecure.com/doc",
+      sourceLabel: "Fallback",
+    });
     expect(result).toContain("Fallback");
     expect(result).not.toContain('href="http://');
   });
