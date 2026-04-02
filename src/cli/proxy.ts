@@ -168,6 +168,8 @@ function convertFormData(
         ufd.append(key, value);
       }
     }
+    // undici.FormData is not assignable to globalThis.BodyInit; safe because
+    // undici.fetch accepts its own FormData via the dispatcher path.
     return ufd as unknown as BodyInit;
   }
   return body;
@@ -178,27 +180,30 @@ function convertFormData(
  * or fall back to global fetch if undici isn't importable.
  */
 async function sendViaUndiciProxy(proxyUrl: string, input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let undici: any;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const undici: any = await import(/* webpackIgnore: true */ "undici" as string);
-    const body = convertFormData(init?.body, undici);
-
-    // Try explicit ProxyAgent first (works in non-cowork environments)
-    let agent;
-    try {
-      agent = new undici.ProxyAgent(proxyUrl);
-    } catch {
-      // ProxyAgent with explicit URL can fail in cowork — fall back to EnvHttpProxyAgent
-      agent = new undici.EnvHttpProxyAgent();
-    }
-
-    // Must use undici.fetch (not globalThis.fetch) — only undici.fetch respects `dispatcher`
-    return (await undici.fetch(input, { ...init, body, dispatcher: agent })) as Response;
+    undici = await import(/* webpackIgnore: true */ "undici" as string);
   } catch {
-    // undici not available — warn and try direct
+    // undici not installed — warn and try direct (import failure only, not network errors)
     console.error("Warning: FormData upload through proxy requires the 'undici' package. Trying direct connection...");
     return globalThis.fetch(input, init);
   }
+
+  const body = convertFormData(init?.body, undici);
+
+  // Try explicit ProxyAgent first (works in non-cowork environments)
+  let agent;
+  try {
+    agent = new undici.ProxyAgent(proxyUrl);
+  } catch {
+    // ProxyAgent construction can fail in Cowork — fall back to EnvHttpProxyAgent
+    console.error("Warning: ProxyAgent construction failed, falling back to EnvHttpProxyAgent.");
+    agent = new undici.EnvHttpProxyAgent();
+  }
+
+  // Must use undici.fetch (not globalThis.fetch) — only undici.fetch respects `dispatcher`
+  return (await undici.fetch(input, { ...init, body, dispatcher: agent })) as Response;
 }
 
 /**

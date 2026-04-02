@@ -221,6 +221,36 @@ describe("markdownToHtml style shells", () => {
     expect(result).toContain("Source: GPT-4");
     expect(result).toContain('class="dc-meta"');
   });
+
+  it("renders sourceUrl as a clickable link with scheme stripped", () => {
+    const result = markdownToHtml(md, { style: "report", sourceUrl: "https://example.com/docs/report" });
+    expect(result).toContain('href="https://example.com/docs/report"');
+    expect(result).toContain("example.com/docs/report");
+    expect(result).not.toContain("https://example.com/docs/report</span>"); // rendered as <a>, not plain text
+  });
+
+  it("falls back to sourceLabel when sourceUrl is not https", () => {
+    const result = markdownToHtml(md, { style: "report", sourceUrl: "ftp://bad.com", sourceLabel: "Fallback Label" });
+    expect(result).toContain("Fallback Label");
+    expect(result).not.toContain("ftp://");
+  });
+
+  it("renders citationCount in the meta strip", () => {
+    const result = markdownToHtml(md, { style: "report", citationCount: 12 });
+    expect(result).toContain("CITATIONS");
+    expect(result).toContain(">12<");
+  });
+
+  it("renders cowork notice banner when cowork is true", () => {
+    const result = markdownToHtml(md, { style: "report", cowork: true });
+    expect(result).toContain("dc-cowork-notice");
+    expect(result).toContain("Cowork session");
+  });
+
+  it("does not render cowork notice div when cowork is false", () => {
+    const result = markdownToHtml(md, { style: "report", cowork: false });
+    expect(result).not.toContain('<div class="dc-cowork-notice">');
+  });
 });
 
 // ── markdownToHtml — audience presets ─────────────────────────────

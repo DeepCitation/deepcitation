@@ -719,7 +719,14 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   }
 
   const title = args.title as string | undefined;
-  const html = markdownToHtml(parsed.visibleText, { style, audience, title, anchorMap, citationCount: parsed.citations.length, cowork: IS_COWORK });
+  const html = markdownToHtml(parsed.visibleText, {
+    style,
+    audience,
+    title,
+    anchorMap,
+    citationCount: parsed.citations.length,
+    cowork: IS_COWORK,
+  });
 
   // Re-attach citation data so verifyHtml pipeline can process it
   const citationJson = JSON.stringify(parsed.citations);

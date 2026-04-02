@@ -396,6 +396,16 @@ ${bodyHtml}
  * Build the header meta strip: SOURCE · ANALYZED · AUDIENCE · CITATIONS · PAGES.
  * Only renders items that have data. Date always renders (defaults to today).
  */
+/** Strip scheme from a URL for display: "https://example.com/doc" → "example.com/doc". */
+function formatSourceUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.hostname + (u.pathname !== "/" ? u.pathname : "");
+  } catch {
+    return url;
+  }
+}
+
 function buildMetaStrip(opts: {
   sourceLabel?: string;
   sourceUrl?: string;
@@ -408,16 +418,7 @@ function buildMetaStrip(opts: {
 
   // SOURCE — URL takes precedence; display label strips the scheme for scannability
   const url = opts.sourceUrl && /^https?:\/\//i.test(opts.sourceUrl) ? opts.sourceUrl : null;
-  const sourceDisplay = url
-    ? (() => {
-        try {
-          const u = new URL(url);
-          return u.hostname + (u.pathname !== "/" ? u.pathname : "");
-        } catch {
-          return url;
-        }
-      })()
-    : opts.sourceLabel;
+  const sourceDisplay = url ? formatSourceUrl(url) : opts.sourceLabel;
   if (sourceDisplay) {
     const inner = url
       ? `<a class="dc-meta-link" href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(sourceDisplay)}</a>`
@@ -459,7 +460,12 @@ function buildMetaStrip(opts: {
   return `<div class="dc-meta">${items.join(sep)}</div>`;
 }
 
-function reportShell(title: string, bodyHtml: string, audience: AudiencePreset, options: MarkdownToHtmlOptions): string {
+function reportShell(
+  title: string,
+  bodyHtml: string,
+  audience: AudiencePreset,
+  options: MarkdownToHtmlOptions,
+): string {
   const cfg = AUDIENCE_CONFIG[audience];
   const metaStrip = buildMetaStrip({ ...options, audience });
 
@@ -559,10 +565,14 @@ ${BASE_CSS}
   <h1>${escHtml(title)}</h1>
   ${metaStrip}
 </header>
-${options.cowork ? `<div class="dc-cowork-notice">
+${
+  options.cowork
+    ? `<div class="dc-cowork-notice">
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#3B82F6" stroke-width="1.5"/><path d="M8 7v4M8 5h.01" stroke="#3B82F6" stroke-width="1.5" stroke-linecap="round"/></svg>
   <span>Generated in a Claude Cowork session. Citation popovers work normally, but full page views within popovers require opening this file in Chrome or another browser on your local machine.</span>
-</div>` : ""}
+</div>`
+    : ""
+}
 <div class="dc-verdict" id="dc-verdict"></div>
 ${bodyHtml}
 <footer class="dc-footer">
