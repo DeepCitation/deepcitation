@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`[anchor](cite:N)` citation syntax** — LLMs can now wrap the key phrase directly in markdown-link citation syntax, eliminating positional ambiguity of the legacy `[N]` suffix format. All parsing, rendering, and HTML conversion functions support both formats simultaneously. Old `[N]` format remains fully supported for backward compatibility.
+
+### Fixed
+
+- **`verifiedFullPhrase` preservation** — strategy-result phrases are now kept intact so `computeKeySpanHighlight` draws the correct highlight span instead of falling back to a partial match.
+- **CLI auth copy** — em dash removed from `manual_done` message; now uses a plain hyphen for terminal compatibility.
+- **CLI auth i18n** — locale strings for the CLI authentication flow are now consistently applied across all copy variants.
+
 ## [0.3.7] - 2026-04-02
 
 ### Changed
