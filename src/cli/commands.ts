@@ -129,7 +129,8 @@ Options:
   --citations <file>        Path to citations JSON (citations-only mode)
   --style <plain|report>    HTML output style (default: "report", --markdown only)
   --audience <preset>       Audience preset: general, executive, technical, legal, medical (default: "general")
-  --out <file>              Output path (default depends on mode)
+  --title <text>            Report title (default: first H1 in markdown, or "Verification Report")
+  --out <file>              Output path (default: {stem}-verified.html in CWD)
   --theme <auto|light|dark> Popover color theme (default: "auto")
   --indicator <indicator>   Indicator variant: icon, dot, none (default: "icon")
   --image-format <format>   Evidence image format: avif, png, jpeg, webp (default: avif)
@@ -669,14 +670,57 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
 
   console.error(`Parsed ${parsed.citations.length} citation(s) from markdown.`);
 
-  const html = markdownToHtml(parsed.visibleText, { style, audience });
+  // Detect & fix line-ID-as-marker confusion: agents sometimes use evidence
+  // line numbers (e.g. [40]) as [N] markers instead of sequential citation IDs.
+  // When this happens, remap markers in visibleText to the correct citation IDs.
+  const citationIds = new Set(parsed.citations.map((c) => c.id));
+  const markerIds = new Set<number>();
+  for (const m of parsed.visibleText.matchAll(/\[(\d+)\]/g)) markerIds.add(Number(m[1]));
+
+  const unmatchedMarkers = [...markerIds].filter((id) => !citationIds.has(id));
+  if (unmatchedMarkers.length > 0) {
+    // Build lineId → citationId lookup
+    const lineToCtId = new Map<number, number>();
+    for (const cd of parsed.citations) {
+      for (const lid of cd.line_ids ?? []) lineToCtId.set(lid, cd.id);
+    }
+    const remap = new Map<number, number>();
+    for (const markerId of unmatchedMarkers) {
+      const ctId = lineToCtId.get(markerId);
+      if (ctId !== undefined) remap.set(markerId, ctId);
+    }
+    if (remap.size > 0) {
+      console.error(`Remapping ${remap.size} line-ID marker(s) to citation IDs.`);
+      // Replace markers largest-first to avoid [1] matching inside [10]
+      const sorted = [...remap.entries()].sort((a, b) => b[0] - a[0]);
+      for (const [from, to] of sorted) {
+        parsed.visibleText = parsed.visibleText.replace(
+          new RegExp(`\\[${from}\\]`, "g"),
+          `[${to}]`,
+        );
+      }
+    }
+    // Strip range markers like [20-21] that can't be remapped
+    parsed.visibleText = parsed.visibleText.replace(/\[\d+-\d+\]/g, "");
+  }
+
+  // Build anchor map: citation ID → anchorText, so markdownToHtml can wrap
+  // just the anchor phrase instead of the whole preceding clause.
+  const anchorMap: Record<string, string> = {};
+  for (const cd of parsed.citations) {
+    const anchor = cd.anchor_text;
+    if (anchor && cd.id) anchorMap[String(cd.id)] = anchor;
+  }
+
+  const title = args.title as string | undefined;
+  const html = markdownToHtml(parsed.visibleText, { style, audience, title, anchorMap });
 
   // Re-attach citation data so verifyHtml pipeline can process it
   const citationJson = JSON.stringify(parsed.citations);
   const htmlWithCitations = `${html}\n\n${CITATION_DATA_START_DELIMITER}\n${citationJson}\n${CITATION_DATA_END_DELIMITER}`;
 
   // Forward to verifyHtml with pre-loaded content — no temp file needed
-  const stripFlags = new Set(["--markdown", "--style", "--audience"]);
+  const stripFlags = new Set(["--markdown", "--style", "--audience", "--title"]);
   const forwardArgs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (stripFlags.has(argv[i])) {
@@ -686,10 +730,10 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     }
     forwardArgs.push(argv[i]);
   }
-  // Set default output name: derive from input filename, e.g. report.md → report-verified.html
+  // Default output: CWD with a clean name (not alongside the draft in .deepcitation/)
   if (!args.out) {
     const stem = basename(resolved, extname(resolved));
-    forwardArgs.push("--out", resolve(dirname(resolved), `${stem}-verified.html`));
+    forwardArgs.push("--out", resolve(process.cwd(), `${stem}-verified.html`));
   }
 
   return verifyHtml(forwardArgs, fmtNetErr, htmlWithCitations);
@@ -896,9 +940,9 @@ export async function login(argv: string[], baseUrl: string) {
     return;
   }
 
-  // Non-interactive (piped stdin, AI agent, CI) — browser OAuth won't work.
-  // Give clear instructions for non-interactive login instead of hanging.
-  if (!process.stdin.isTTY) {
+  // Non-interactive (piped stdin, AI agent, CI) — browser OAuth won't work
+  // unless --browser is explicitly passed to force the flow.
+  if (!process.stdin.isTTY && !argv.includes("--browser")) {
     const manualUrl = `${baseUrl}/cli-auth?manual=true`;
     if (IS_COWORK) {
       console.log("Claude Cowork (cloud session) detected. To set up DeepCitation:\n");
@@ -913,8 +957,9 @@ export async function login(argv: string[], baseUrl: string) {
     } else {
       console.log("Non-interactive environment detected (no TTY).\n");
       console.log(`1. Get your API key: ${manualUrl}`);
-      console.log("2. Run: export DEEPCITATION_API_KEY=<your-key>");
-      console.log("3. Re-run your command");
+      console.log("2. Run: npx deepcitation login --key '<your-key>'");
+      console.log("   (This saves the key so all future commands just work.)");
+      console.log("   Or: npx deepcitation login --browser  (opens browser for OAuth)");
     }
     process.exit(1);
   }

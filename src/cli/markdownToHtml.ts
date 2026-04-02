@@ -26,6 +26,9 @@ export interface MarkdownToHtmlOptions {
   title?: string;
   /** Optional source label shown in the meta line */
   sourceLabel?: string;
+  /** Citation anchor map: citation ID → anchorText. When provided, [N] markers
+   *  wrap only the anchorText phrase instead of the entire preceding clause. */
+  anchorMap?: CitationAnchorMap;
 }
 
 // ── Inline formatting ──────────────────────────────────────────────
@@ -54,23 +57,50 @@ function inlineFormat(text: string): string {
 // ── Citation marker wrapping ───────────────────────────────────────
 
 /**
- * Find [N] markers in HTML content and wrap the preceding text fragment
+ * Citation data lookup passed to wrapCitationMarkers so it can use the
+ * anchorText as the clickable display label instead of guessing from
+ * surrounding prose.
+ */
+export interface CitationAnchorMap {
+  /** Map from citation number (as string) to the anchorText for that citation */
+  [citationId: string]: string;
+}
+
+/**
+ * Find [N] markers in HTML content and wrap the appropriate text fragment
  * in a <span data-cite="N">. The CDN runtime needs data-cite on inline
  * elements for indicator placement.
  *
- * Strategy: for each [N], find the innermost text context and wrap the
- * nearest meaningful phrase fragment in a span.
+ * When `anchorMap` is provided, the anchorText for each citation is used as
+ * the clickable display label. The function searches backward in the text
+ * before [N] for the anchorText (case-insensitive) and wraps only that
+ * occurrence. This produces short, scannable inline citations that match
+ * the evidence highlight.
+ *
+ * Without `anchorMap`, falls back to wrapping the last clause before [N].
  */
-export function wrapCitationMarkers(html: string): string {
-  // Match [N] markers anywhere in text nodes. Excluding `<` keeps us out of HTML tags;
-  // excluding `"` keeps us out of quoted attribute values. Without the old (?<=>|^) anchor,
-  // multiple markers in the same paragraph are all matched.
-  return html.replace(/([^<"]*?)\s*\[(\d+)\]/g, (_match, textBefore: string, num: string) => {
+export function wrapCitationMarkers(html: string, anchorMap?: CitationAnchorMap): string {
+  // Match [N] markers anywhere in text nodes. Excluding `<` and `>` keeps us from
+  // consuming HTML tag boundaries; excluding `"` keeps us out of quoted attribute values.
+  return html.replace(/([^<>"]*?)\s*\[(\d+)\]/g, (_match, textBefore: string, num: string) => {
     const trimmed = textBefore.trimEnd();
     if (!trimmed) return `<span data-cite="${num}"></span>`;
 
-    // Find a reasonable anchor: last clause (after comma, semicolon, or dash)
-    // or the whole text if it's short
+    // ── Strategy 1: Use anchorText from citation data ─────────────
+    // Find the anchorText within the preceding text and wrap only that phrase.
+    const anchorText = anchorMap?.[num];
+    if (anchorText) {
+      const idx = trimmed.toLowerCase().lastIndexOf(anchorText.toLowerCase());
+      if (idx >= 0) {
+        const before = trimmed.slice(0, idx);
+        const matched = trimmed.slice(idx, idx + anchorText.length);
+        const after = trimmed.slice(idx + anchorText.length);
+        return `${before}<span data-cite="${num}">${matched}</span>${after}`;
+      }
+      // anchorText not found in text — fall through to heuristic
+    }
+
+    // ── Strategy 2: Heuristic — last clause before [N] ───────────
     const clauseMatch = trimmed.match(/(?:[,;–—]\s*)([^,;–—]+)$/);
     const anchor = clauseMatch ? clauseMatch[1].trim() : trimmed;
 
@@ -393,6 +423,17 @@ ${BASE_CSS}
 
   /* Mono metrics */
   .mono { font-family: ${MONO_FONT}; font-size: 14px; font-weight: 500; }
+
+  /* Branding footer */
+  .dc-footer {
+    margin-top: 3rem; padding-top: 1rem;
+    border-top: 1px solid #E4E4E7;
+    font-size: 12px; color: #A1A1AA;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .dc-footer a { color: #A1A1AA; text-decoration: none; }
+  .dc-footer a:hover { color: #52525B; text-decoration: underline; }
+  .dc-footer svg { flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -402,6 +443,10 @@ ${BASE_CSS}
 </header>
 <div class="dc-verdict" id="dc-verdict"></div>
 ${bodyHtml}
+<footer class="dc-footer">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+  <span>Verified by <a href="https://deepcitation.com" target="_blank" rel="noopener">DeepCitation</a></span>
+</footer>
 <div data-dc-drawer-trigger></div>
 </body>
 </html>`;
@@ -439,8 +484,10 @@ export function markdownToHtml(markdown: string, options: MarkdownToHtmlOptions 
 
   let bodyHtml = bodyParts.join("\n");
 
-  // Wrap [N] citation markers in <span data-cite="N">
-  bodyHtml = wrapCitationMarkers(bodyHtml);
+  // Wrap [N] citation markers in <span data-cite="N">.
+  // When anchorMap is available, the anchorText becomes the clickable display
+  // label — producing short inline citations that match the evidence highlight.
+  bodyHtml = wrapCitationMarkers(bodyHtml, options.anchorMap);
 
   if (style === "report") {
     return reportShell(title, bodyHtml, audience, sourceLabel);
