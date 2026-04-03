@@ -157,6 +157,7 @@ export function createProxyFetch(
 function convertFormData(
   body: BodyInit | null | undefined,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: undici types not available at runtime
   undici: any,
 ): BodyInit | null | undefined {
   if (body instanceof FormData) {
@@ -181,6 +182,7 @@ function convertFormData(
  */
 async function sendViaUndiciProxy(proxyUrl: string, input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: undici types not available at runtime
   let undici: any;
   try {
     undici = await import(/* webpackIgnore: true */ "undici" as string);
@@ -217,6 +219,7 @@ export async function createCoworkFetch(): Promise<
 > {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: undici types not available at runtime
     const undici: any = await import(/* webpackIgnore: true */ "undici" as string);
     const agent = new undici.EnvHttpProxyAgent();
 

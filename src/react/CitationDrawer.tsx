@@ -1336,9 +1336,7 @@ function OpenCitationDrawer({
                     key={item.citationKey}
                     type="button"
                     aria-pressed={activeIndicatorKey === item.citationKey}
-                    onClick={() =>
-                      setActiveIndicatorKey(prev => (prev === item.citationKey ? null : item.citationKey))
-                    }
+                    onClick={() => setActiveIndicatorKey(prev => (prev === item.citationKey ? null : item.citationKey))}
                     className="p-1 rounded transition-colors hover:bg-dc-muted"
                     aria-label={item.citation.anchorText ?? item.citationKey}
                   >

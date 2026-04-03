@@ -748,6 +748,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           }
         }
       },
+      // biome-ignore lint/correctness/useExhaustiveDependencies: both viewState and viewState.transition are intentionally listed for hook stability
       [closePopover, viewState.transition, viewState],
     );
 
@@ -818,6 +819,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         closePopover,
         viewState.transition,
         viewState.resetToSummary,
+        // biome-ignore lint/correctness/useExhaustiveDependencies: viewState methods and viewState itself are both intentionally listed for hook stability
         viewState,
       ],
     );

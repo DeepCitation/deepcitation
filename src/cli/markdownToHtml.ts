@@ -50,6 +50,7 @@ export interface MarkdownToHtmlOptions {
 
 function inlineFormat(text: string): string {
   // Strip NUL bytes — we use \x00 as placeholder delimiters below.
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — NUL is a collision-safe placeholder delimiter
   text = text.replace(/\x00/g, "");
   // Extract cite links BEFORE escHtml — title strings contain quotes and parens
   // that escHtml would encode, breaking the regex. We replace cite links with
@@ -85,6 +86,7 @@ function inlineFormat(text: string): string {
     });
 
   // Restore cite placeholders
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — NUL is a collision-safe placeholder delimiter
   result = result.replace(/\x00CITE(\d+)\x00/g, (_m, idx: string) => citePlaceholders[parseInt(idx, 10)]);
   return result;
 }
@@ -687,9 +689,9 @@ function buildReportBody(blocks: Block[], audience: AudiencePreset): string[] {
 
   // Tier 1: preamble (everything before first H2) — always visible
   if (sections.length > 0 && !sections[0].heading) {
-    const preamble = sections.shift()!;
+    const preamble = sections.shift();
     // Skip the H1 (already in shell header)
-    for (const b of preamble.blocks) {
+    for (const b of preamble?.blocks ?? []) {
       if (b.type === "heading" && b.level === 1) continue;
       parts.push(renderBlock(b));
     }
@@ -700,7 +702,7 @@ function buildReportBody(blocks: Block[], audience: AudiencePreset): string[] {
 
   if (findingsIdx >= 0) {
     const findings = sections.splice(findingsIdx, 1)[0];
-    parts.push(renderBlock(findings.heading!));
+    if (findings.heading) parts.push(renderBlock(findings.heading));
     for (const b of findings.blocks) {
       parts.push(renderBlock(b));
     }

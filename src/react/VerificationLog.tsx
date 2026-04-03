@@ -994,7 +994,7 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
     prefixTrimmed: phrasePre,
     suffixTrimmed: phraseSuf,
   } = hasFullPhrase
-    ? trimPhraseToAnchorWindow(fullPhrase!, anchorText)
+    ? trimPhraseToAnchorWindow(fullPhrase ?? "", anchorText)
     : { text: "", prefixTrimmed: false, suffixTrimmed: false };
 
   return (

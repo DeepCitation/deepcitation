@@ -129,6 +129,9 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
         extractLines(pageText, pageId, qualified, byId);
         // Advance globalLineId past any IDs that extractLines added to byId,
         // so synthetic IDs for subsequent raw pages don't collide.
+        // Iterates all accumulated byId keys (O(total lines so far)) — acceptable
+        // for the small page counts seen in practice. Synthetic IDs only need to
+        // be unique, not contiguous, so gaps from skipping high tagged IDs are fine.
         for (const k of byId.keys()) {
           if (k >= globalLineId) globalLineId = k + 1;
         }
@@ -159,7 +162,7 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
       extractLines(segmentText, currentPageId, qualified, byId);
     }
     currentPageId = `page_number_${pageMatch[1]}_index_${pageMatch[2]}`;
-    lastIndex = pageMatch.index! + pageMatch[0].length;
+    lastIndex = (pageMatch.index ?? 0) + pageMatch[0].length;
   }
 
   // Process remaining text after the last page tag

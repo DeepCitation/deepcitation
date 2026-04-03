@@ -120,8 +120,8 @@ describe("findAnchorWithFallback", () => {
     const lines = makeLines(["The Discount Rate is applied here"]);
     const result = findAnchorWithFallback("Discount Rate", lines);
     expect(result).not.toBeNull();
-    expect(result!.verbatimAnchor).toBe("Discount Rate");
-    expect(result!.lineId).toBe(1);
+    expect(result?.verbatimAnchor).toBe("Discount Rate");
+    expect(result?.lineId).toBe(1);
   });
 
   it("strategy 1: sliding window finds middle terms", () => {
@@ -129,7 +129,7 @@ describe("findAnchorWithFallback", () => {
     const result = findAnchorWithFallback("it ranks on par with other SAFEs", lines);
     expect(result).not.toBeNull();
     // Should find the full phrase or a long substring
-    expect(result!.verbatimAnchor.length).toBeGreaterThan(5);
+    expect(result?.verbatimAnchor.length).toBeGreaterThan(5);
   });
 
   it("strategy 2: word-bag scoring finds best matching line", () => {
@@ -140,14 +140,14 @@ describe("findAnchorWithFallback", () => {
     ]);
     const result = findAnchorWithFallback("outstanding indebtedness creditor claims", lines);
     expect(result).not.toBeNull();
-    expect(result!.lineId).toBe(2);
+    expect(result?.lineId).toBe(2);
   });
 
   it("strategy 3: single distinctive word fallback", () => {
     const lines = makeLines(["The Dissolution Event triggers payment"]);
     const result = findAnchorWithFallback("Dissolution", lines);
     expect(result).not.toBeNull();
-    expect(result!.verbatimAnchor).toBe("Dissolution");
+    expect(result?.verbatimAnchor).toBe("Dissolution");
   });
 
   it("returns null when no words match", () => {
