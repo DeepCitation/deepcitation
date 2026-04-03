@@ -30,7 +30,11 @@ import {
   getCitationMarkerIds,
   parseCitationData,
 } from "../parsing/citationParser.js";
-import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
+import {
+  CITATION_DATA_END_DELIMITER,
+  CITATION_DATA_START_DELIMITER,
+  type CitationData,
+} from "../prompts/citationPrompts.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
@@ -39,8 +43,9 @@ import { safeExec, safeReplace } from "../utils/regexSafety.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
+import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
 import { die, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
-import { findSummaryForMarkdown, hydrateCitations } from "./hydrate.js";
+import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
 
 // Re-export so cli.ts and tests can import from the single commands module
 export { HYDRATE_HELP, hydrate } from "./hydrate.js";
@@ -719,9 +724,73 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   if (!AUDIENCE_PRESETS.includes(audience))
     die(`--audience must be one of: ${AUDIENCE_PRESETS.join(", ")}`, VERIFY_HELP);
 
-  const parsed = parseCitationData(raw);
+  // --citations: load citation data from a separate JSON file.
+  // Assemble a combined string and parse through existing parseCitationData
+  // so all downstream logic (compact key expansion, hydration, validation) works unchanged.
+  const citationsFlag = args.citations as string | undefined;
+  let parsed: ReturnType<typeof parseCitationData>;
+  if (citationsFlag) {
+    const resolvedCitations = resolve(citationsFlag);
+    if (!existsSync(resolvedCitations)) die(`Citations file not found: ${sanitizeForLog(citationsFlag)}`, VERIFY_HELP);
+    const citationsJson = readFileSync(resolvedCitations, "utf-8");
+    const combined = `${raw}\n\n${CITATION_DATA_START_DELIMITER}\n${citationsJson}\n${CITATION_DATA_END_DELIMITER}\n`;
+    parsed = parseCitationData(combined);
+  } else {
+    parsed = parseCitationData(raw);
+  }
+
+  // Auto-generate citations: body has [label](cite:N) markers but no citation data.
+  // Search the prepared summary for each display label to determine lineIds.
   if (!parsed.success || parsed.citations.length === 0) {
-    die("No valid <<<CITATION_DATA>>> block found in the markdown file.", VERIFY_HELP);
+    const markers = extractMarkersFromBody(raw);
+    if (markers.length > 0) {
+      const summaryPath = args.summary
+        ? resolve(args.summary as string)
+        : findSummaryForMarkdown(resolved);
+      if (summaryPath && existsSync(summaryPath)) {
+        const summaryContent = readFileSync(summaryPath, "utf-8");
+        let attachmentId = "unknown";
+        try {
+          attachmentId = (JSON.parse(summaryContent) as { attachmentId?: string }).attachmentId ?? "unknown";
+        } catch { /* use "unknown" */ }
+
+        const lineMap = parseSummaryToLineMap(summaryContent);
+        const allLines = getAllLines(lineMap);
+        const citations: CitationData[] = [];
+
+        for (const { id, displayLabel } of markers) {
+          const found = findAnchorWithFallback(displayLabel, allLines);
+          if (!found) {
+            console.error(`  Citation ${id} ("${displayLabel}"): not found in evidence`);
+            continue;
+          }
+          const { lineId, pageId, verbatimAnchor } = found;
+          citations.push({
+            id,
+            anchor_text: verbatimAnchor,
+            page_id: toCompactPageId(pageId),
+            line_ids: [lineId],
+            attachment_id: attachmentId,
+            display_label:
+              displayLabel.toLowerCase() !== verbatimAnchor.toLowerCase() ? displayLabel : undefined,
+          });
+        }
+
+        if (citations.length > 0) {
+          parsed = {
+            visibleText: raw,
+            citations,
+            citationMap: new Map(citations.map(c => [c.id, c])),
+            success: true,
+          };
+          console.error(`Auto-generated ${citations.length} citation(s) from body markers + summary`);
+        }
+      }
+    }
+
+    if (!parsed.success || parsed.citations.length === 0) {
+      die("No citations found — ensure body has [label](cite:N) markers and a summary exists in .deepcitation/", VERIFY_HELP);
+    }
   }
 
   // Auto-hydrate: if compact citations are detected (missing full_phrase but have line_ids),
@@ -822,7 +891,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   const htmlWithCitations = `${html}\n\n${CITATION_DATA_START_DELIMITER}\n${citationJson}\n${CITATION_DATA_END_DELIMITER}`;
 
   // Forward to verifyHtml with pre-loaded content — no temp file needed
-  const stripFlags = new Set(["--markdown", "--style", "--audience", "--title"]);
+  const stripFlags = new Set(["--markdown", "--style", "--audience", "--title", "--citations", "--summary"]);
   const forwardArgs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (stripFlags.has(argv[i])) {

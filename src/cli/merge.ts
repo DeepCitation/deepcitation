@@ -17,7 +17,11 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseCitationData, parsePageId } from "../parsing/citationParser.js";
-import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER, type CitationData } from "../prompts/citationPrompts.js";
+import {
+  CITATION_DATA_END_DELIMITER,
+  CITATION_DATA_START_DELIMITER,
+  type CitationData,
+} from "../prompts/citationPrompts.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { die, parseArgs } from "./cliUtils.js";
 
@@ -52,6 +56,7 @@ export interface MergeResult {
   bRenumbered: number;
   bDeduped: number;
   bFinal: number;
+  mode: "json" | "body-only";
 }
 
 /**
@@ -88,7 +93,72 @@ function toCompact(c: CitationData): Record<string, unknown> {
  *      citation is dropped; its body cite links are rewritten to A's id.
  *   3. Concatenates bodies and emits one merged CITATION_DATA block.
  */
+/**
+ * Returns the highest cite:N id in a body string where N is below `limit`.
+ * Used to determine where to start renumbering B's ids in body-only mode.
+ */
+function findMaxCiteId(body: string, limit: number): number {
+  const re = /\(cite:(\d+)\)/g;
+  let max = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(body)) !== null) {
+    const n = parseInt(m[1], 10);
+    if (n < limit && n > max) max = n;
+  }
+  return max;
+}
+
+/**
+ * Renumbers (cite:N) markers in bodyB where N ≥ 100.
+ * New id = maxAId + (N − 99). Processes ids descending to avoid substring collision.
+ */
+function rewriteBCiteIds(bodyB: string, maxAId: number): string {
+  const ids = new Set<number>();
+  const re = /\(cite:(\d+)\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(bodyB)) !== null) {
+    const n = parseInt(m[1], 10);
+    if (n >= 100) ids.add(n);
+  }
+  // Sort descending so "(cite:102)" replacement does not accidentally match "(cite:1002)"
+  const sorted = [...ids].sort((a, b) => b - a);
+  let result = bodyB;
+  for (const oldId of sorted) {
+    result = result.replaceAll(`(cite:${oldId})`, `(cite:${maxAId + oldId - 99})`);
+  }
+  return result;
+}
+
+/**
+ * Body-only merge: concatenates two body-only section files (no <<<CITATION_DATA>>> blocks).
+ * Renumbers B's (cite:N) markers to continue from A's highest id.
+ * Citation JSON is generated separately by `npx deepcitation cite`.
+ */
+function mergeBodyOnly(bodyA: string, bodyB_raw: string): MergeResult {
+  const maxAId = findMaxCiteId(bodyA, 100);
+  const bodyB = rewriteBCiteIds(bodyB_raw, maxAId);
+  return {
+    mergedContent: `${bodyA.trim()}\n\n${bodyB.trim()}`,
+    aCount: 0,
+    bOrigCount: 0,
+    bRenumbered: 0,
+    bDeduped: 0,
+    bFinal: 0,
+    mode: "body-only",
+  };
+}
+
 export function mergeSections({ sectionAContent, sectionBContent }: MergeOptions): MergeResult {
+  // Body-only mode: neither file has a <<<CITATION_DATA>>> block.
+  // Just renumber B's cite markers and concatenate — citation JSON is generated
+  // by `npx deepcitation cite` in the next pipeline step.
+  if (
+    !sectionAContent.includes(CITATION_DATA_START_DELIMITER) &&
+    !sectionBContent.includes(CITATION_DATA_START_DELIMITER)
+  ) {
+    return mergeBodyOnly(sectionAContent, sectionBContent);
+  }
+
   const parsedA = parseCitationData(sectionAContent);
   const parsedB = parseCitationData(sectionBContent);
 
@@ -170,6 +240,7 @@ export function mergeSections({ sectionAContent, sectionBContent }: MergeOptions
     bRenumbered: citesB_renumbered.filter((c, i) => c.id !== citesB[i].id).length,
     bDeduped,
     bFinal: bFinal.length,
+    mode: "json",
   };
 }
 
@@ -198,10 +269,16 @@ export function merge(argv: string[]): void {
   const sectionBContent = readFileSync(resolvedB, "utf-8");
 
   const result = mergeSections({ sectionAContent, sectionBContent });
-  const { aCount, bOrigCount, bDeduped, bFinal } = result;
+  const { aCount, bOrigCount, bDeduped, bFinal, mode } = result;
 
   writeFileSync(resolvedOut, result.mergedContent, "utf-8");
 
-  console.error(`Merged: ${aCount} A citations + ${bOrigCount} B citations → ${aCount + bFinal} total (${bDeduped} deduped)`);
+  if (mode === "body-only") {
+    console.error(`Merged body-only sections → ${resolvedOut} (run "cite" next to generate citations JSON)`);
+  } else {
+    console.error(
+      `Merged: ${aCount} A citations + ${bOrigCount} B citations → ${aCount + bFinal} total (${bDeduped} deduped)`,
+    );
+  }
   console.log(resolvedOut);
 }
