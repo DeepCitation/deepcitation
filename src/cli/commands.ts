@@ -35,20 +35,21 @@ import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
-import { safeReplace } from "../utils/regexSafety.js";
+import { safeExec, safeReplace } from "../utils/regexSafety.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
 import { die, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
-import { findSummaryForMarkdown, hydrateCitations, HYDRATE_HELP } from "./hydrate.js";
+import { findSummaryForMarkdown, hydrateCitations } from "./hydrate.js";
 
 // Re-export so cli.ts and tests can import from the single commands module
-export { hydrate, HYDRATE_HELP } from "./hydrate.js";
-export { merge, MERGE_HELP } from "./merge.js";
+export { HYDRATE_HELP, hydrate } from "./hydrate.js";
+export { MERGE_HELP, merge } from "./merge.js";
+
 import {
   AUDIENCE_PRESETS,
-  buildCdnComparisonShowcaseHtml,
   type AudiencePreset,
+  buildCdnComparisonShowcaseHtml,
   markdownToHtml,
   type ReportStyle,
 } from "./markdownToHtml.js";
@@ -727,9 +728,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   // fill in full_phrase from the summary file before proceeding.
   const needsHydration = parsed.citations.some(c => !c.full_phrase && c.line_ids?.length);
   if (needsHydration) {
-    const summaryPath = args.summary
-      ? resolve(args.summary as string)
-      : findSummaryForMarkdown(resolved);
+    const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved);
     if (summaryPath && existsSync(summaryPath)) {
       console.error(`Auto-hydrating citations from summary: ${summaryPath}`);
       try {
@@ -738,13 +737,9 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
           citations: parsed.citations,
           warnOnMiss: true,
         });
-        console.error(
-          `  Hydrated ${hydrated} citation(s)` + (misses.length ? `; ${misses.length} miss(es)` : ""),
-        );
+        console.error(`  Hydrated ${hydrated} citation(s)` + (misses.length ? `; ${misses.length} miss(es)` : ""));
       } catch (err) {
-        console.error(
-          `  Warning: failed to parse summary file — ${err instanceof Error ? err.message : String(err)}`,
-        );
+        console.error(`  Warning: failed to parse summary file — ${err instanceof Error ? err.message : String(err)}`);
       }
     } else if (needsHydration) {
       console.error("Warning: citations missing full_phrase — pass --summary for auto-hydration");
@@ -794,7 +789,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   {
     const bodyRe = /\[([^\]]+)\]\(cite:(\d+)\)/g;
     let bm: RegExpExecArray | null;
-    while ((bm = bodyRe.exec(parsed.visibleText)) !== null) {
+    while ((bm = safeExec(bodyRe, parsed.visibleText)) !== null) {
       const label = bm[1].trim();
       const id = parseInt(bm[2], 10);
       const cd = parsed.citations.find(c => c.id === id);

@@ -182,8 +182,11 @@ More content.`;
       expect(result.enhancedUserPrompt).toContain("Summarize this document.");
     });
 
-    it("includes array of deepTextPages arrays in user prompt", () => {
-      const deepTextPages = [["Content from first file."], ["Content from second file."]];
+    it("includes Record<attachmentId, pages> deepTextPages in user prompt", () => {
+      const deepTextPages: Record<string, string[]> = {
+        "attachment-1": ["Content from first file."],
+        "attachment-2": ["Content from second file."],
+      };
       const result = wrapCitationPrompt({
         systemPrompt: "You are a helpful assistant.",
         userPrompt: "Compare these documents.",
@@ -196,7 +199,7 @@ More content.`;
     });
 
     it("places deepTextPages content before user prompt", () => {
-      const deepTextPages = [["FILE CONTENT HERE"]];
+      const deepTextPages = ["FILE CONTENT HERE"];
       const result = wrapCitationPrompt({
         systemPrompt: "System",
         userPrompt: "User question",
@@ -215,26 +218,6 @@ More content.`;
         deepTextPages: [],
       });
 
-      expect(result.enhancedUserPrompt).toBe("User");
-    });
-
-    it("falls back to legacy deepTextPromptPortion for compatibility", () => {
-      const result = wrapCitationPrompt({
-        systemPrompt: "System",
-        userPrompt: "User",
-        deepTextPromptPortion: "File content here",
-      });
-
-      expect(result.enhancedUserPrompt).toContain("File content here");
-      expect(result.enhancedUserPrompt).toContain("<<<CITATION_DATA>>>");
-    });
-
-    it("handles empty legacy deepTextPromptPortion", () => {
-      const result = wrapCitationPrompt({
-        systemPrompt: "System",
-        userPrompt: "User",
-        deepTextPromptPortion: "",
-      });
       expect(result.enhancedUserPrompt).toBe("User");
     });
   });
