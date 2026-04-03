@@ -20,6 +20,7 @@ import {
   env,
   getAttachment,
   HELP,
+  hydrate,
   inject,
   keygen,
   login,
@@ -28,6 +29,7 @@ import {
   prepare,
   resolveBaseUrl,
   status,
+  showcase,
   verify,
   whoami,
 } from "./cli/commands.js";
@@ -86,8 +88,14 @@ switch (command) {
       process.exit(1);
     });
     break;
+  case "hydrate":
+    hydrate(rest);
+    break;
   case "inject":
     inject(rest);
+    break;
+  case "showcase":
+    showcase(rest);
     break;
   case "keygen":
     keygen(rest);

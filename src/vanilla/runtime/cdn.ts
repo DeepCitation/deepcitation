@@ -1,14 +1,15 @@
-import { createElement, useCallback, useState } from "react";
+import { createElement, useCallback, useRef, useState } from "react";
 import { render, unmountComponentAtNode } from "react-dom";
 import { CitationDrawer } from "../../react/CitationDrawer.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "../../react/CitationDrawer.types.js";
 import { groupCitationsBySource } from "../../react/CitationDrawer.utils.js";
 import { CitationDrawerTrigger } from "../../react/CitationDrawerTrigger.js";
 import { getStatusFromVerification } from "../../react/citationStatus.js";
-import type { PopoverViewState } from "../../react/DefaultPopoverContent.js";
 import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
 import type { Citation } from "../../types/citation.js";
 import type { PageImage, Verification } from "../../types/verification.js";
+import { usePopoverViewState } from "../../react/hooks/usePopoverViewState.js";
+import { usePrefersReducedMotion } from "../../react/hooks/usePrefersReducedMotion.js";
 import { resolveKeyMap } from "./cdn-keymap.js";
 import { mapToCitation, mapToVerification } from "./cdn-mappers.js";
 import { computePosition } from "./positioning.js";
@@ -196,9 +197,29 @@ function CdnPopoverWrapper(props: {
   sourceLabel: string | undefined;
   downloadUrl: string | undefined;
   displayLabel?: string;
+  onDismiss: () => void;
 }) {
-  const [viewState, setViewState] = useState<PopoverViewState>("summary");
-  return createElement(DefaultPopoverContent, { ...props, viewState, onViewStateChange: setViewState });
+  const popoverContentRef = useRef<HTMLElement | null>(null);
+  const setPopoverContentRef = useCallback((node: HTMLDivElement | null) => {
+    popoverContentRef.current = node;
+  }, []);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const viewState = usePopoverViewState({
+    isOpen: true,
+    popoverContentRef,
+    prefersReducedMotion,
+    onDismiss: props.onDismiss,
+  });
+
+  return createElement(DefaultPopoverContent, {
+    ...props,
+    popoverContentRef: setPopoverContentRef,
+    viewState: viewState.current,
+    onViewStateChange: viewState.transition,
+    onExpandedWidthChange: viewState.onExpandedWidthChange,
+    prevBeforeExpandedPageRef: viewState.prevBeforeExpandedPageRef,
+    escapeInterceptRef: viewState.escapeInterceptRef,
+  });
 }
 
 // ── Positioning ───────────────────────────────────────────────────────────
@@ -478,6 +499,7 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
       sourceLabel: data.label,
       downloadUrl: data.downloadUrl,
       displayLabel,
+      onDismiss: hidePopoverInner,
     }),
     content,
   );

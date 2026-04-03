@@ -1,5 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
-import { AUDIENCE_PRESETS, markdownToHtml, wrapCitationMarkers } from "../cli/markdownToHtml.js";
+import {
+  AUDIENCE_PRESETS,
+  buildCdnComparisonShowcaseHtml,
+  markdownToHtml,
+  wrapCitationMarkers,
+} from "../cli/markdownToHtml.js";
 
 // ── wrapCitationMarkers ───────────────────────────────────────────
 
@@ -281,6 +286,18 @@ describe("markdownToHtml style shells", () => {
   it("does not render cowork notice div when cowork is false", () => {
     const result = markdownToHtml(md, { style: "report", cowork: false });
     expect(result).not.toContain('<div class="dc-cowork-notice">');
+  });
+});
+
+describe("buildCdnComparisonShowcaseHtml", () => {
+  it("builds a self-contained CDN demo with mock verifications", () => {
+    const html = buildCdnComparisonShowcaseHtml();
+    expect(html).toContain("data-dc-drawer-trigger");
+    expect(html).toContain("demo-citation-1");
+    expect(html).toContain("demo-citation-2");
+    expect(html).toContain("demo-citation-3");
+    expect(html).toContain("/src/vanilla/testing/demo-page.png");
+    expect(html).toContain("window.DeepCitationPopover&&window.DeepCitationPopover.init");
   });
 });
 

@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import { type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, type Ref, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CitationStatus } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
@@ -112,6 +112,8 @@ export interface PopoverContentProps {
    * Custom action buttons rendered in the popover header alongside the download button.
    */
   customPopoverActions?: import("./types.js").PopoverAction[];
+  /** Optional ref to the outer popover shell, used by the CDN wrapper for transition capture. */
+  popoverContentRef?: Ref<HTMLDivElement>;
 }
 
 // =============================================================================
@@ -222,12 +224,14 @@ function PopoverLayoutShell({
   isFullPage,
   expandedNaturalWidth,
   summaryWidth,
+  popoverContentRef,
   children,
 }: {
   isExpanded: boolean;
   isFullPage: boolean;
   expandedNaturalWidth: number | null;
   summaryWidth: string;
+  popoverContentRef?: Ref<HTMLDivElement>;
   children: ReactNode;
 }) {
   const { stage: blinkStage, prefersReducedMotion } = useBlinkMotionStage(isExpanded || isFullPage, "container");
@@ -256,6 +260,7 @@ function PopoverLayoutShell({
   return (
     <Activity>
       <div
+        ref={popoverContentRef}
         className={POPOVER_CONTAINER_BASE_CLASSES}
         style={{
           width: shellWidth,
@@ -737,6 +742,7 @@ export function DefaultPopoverContent({
   downloadUrl,
   escapeInterceptRef,
   customPopoverActions,
+  popoverContentRef,
 }: PopoverContentProps) {
   const t = useTranslation();
   // Resolve evidence src up-front so hasImage reflects only actually-renderable images.
@@ -1065,6 +1071,7 @@ export function DefaultPopoverContent({
           isFullPage={isFullPage}
           expandedNaturalWidth={expandedNaturalWidth}
           summaryWidth={summaryWidth}
+          popoverContentRef={popoverContentRef}
         >
           <div style={viewState === "summary" ? { maxWidth: summaryWidth } : undefined}>
             {/* Zone 1: Metadata Header */}

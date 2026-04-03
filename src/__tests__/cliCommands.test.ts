@@ -55,6 +55,7 @@ jest.mock("../utils/proxy.js", () => ({
 import {
   env,
   getAttachment,
+  hydrate,
   inject,
   keygen,
   login,
@@ -68,6 +69,7 @@ import {
   verify,
   whoami,
 } from "../cli/commands.js";
+import { hydrateCitations, parseSummaryToLineMap } from "../cli/hydrate.js";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -816,6 +818,174 @@ describe("openBillingDashboard", () => {
   it("opens the billing URL", async () => {
     await captureOutput(() => openBillingDashboard(TEST_BILLING_URL));
     expect(mockOpenBrowser).toHaveBeenCalledWith(TEST_BILLING_URL);
+  });
+});
+
+// ── Hydrate utilities ─────────────────────────────────────────────
+
+const SINGLE_PAGE_SUMMARY = JSON.stringify({
+  attachmentId: "att-123",
+  deepTextPromptPortion: `<page_number_1_index_0>
+<line id="1">The Discount Rate is 80% of the lowest price per share.</line>
+<line id="2">The Purchase Amount is the amount invested.</line>
+<line id="3">A Dissolution Event means a liquidation.</line>
+</page_number_1_index_0>`,
+});
+
+const MULTI_PAGE_SUMMARY = JSON.stringify({
+  attachmentId: "att-456",
+  deepTextPromptPortion: `<page_number_1_index_0>
+<line id="1">Page one line one.</line>
+<line id="2">Page one line two.</line>
+</page_number_1_index_0>
+<page_number_2_index_0>
+<line id="1">Page two line one.</line>
+<line id="3">Page two line three.</line>
+</page_number_2_index_0>`,
+});
+
+describe("parseSummaryToLineMap", () => {
+  it("builds correct maps from a single-page summary", () => {
+    const { qualified, byId } = parseSummaryToLineMap(SINGLE_PAGE_SUMMARY);
+
+    expect(byId.get(1)).toBe("The Discount Rate is 80% of the lowest price per share.");
+    expect(byId.get(2)).toBe("The Purchase Amount is the amount invested.");
+    expect(byId.get(3)).toBe("A Dissolution Event means a liquidation.");
+
+    expect(qualified.get("page_number_1_index_0:1")).toBe("The Discount Rate is 80% of the lowest price per share.");
+    expect(qualified.get("page_number_1_index_0:3")).toBe("A Dissolution Event means a liquidation.");
+  });
+
+  it("disambiguates repeated lineIds across pages in the qualified map", () => {
+    const { qualified, byId } = parseSummaryToLineMap(MULTI_PAGE_SUMMARY);
+
+    expect(qualified.get("page_number_1_index_0:1")).toBe("Page one line one.");
+    expect(qualified.get("page_number_2_index_0:1")).toBe("Page two line one.");
+
+    // byId fallback: last-write wins (page 2 is processed after page 1)
+    expect(byId.get(1)).toBe("Page two line one.");
+    expect(byId.get(2)).toBe("Page one line two.");
+    expect(byId.get(3)).toBe("Page two line three.");
+  });
+
+  it("handles line text containing special characters", () => {
+    const summary = JSON.stringify({
+      attachmentId: "att-789",
+      deepTextPromptPortion: `<page_number_1_index_0>
+<line id="1">Revenue: $1.2B (up 45% YoY) — "record quarter"</line>
+</page_number_1_index_0>`,
+    });
+    const { byId } = parseSummaryToLineMap(summary);
+    expect(byId.get(1)).toBe(`Revenue: $1.2B (up 45% YoY) — "record quarter"`);
+  });
+
+  it("returns empty maps for empty deepTextPromptPortion", () => {
+    const summary = JSON.stringify({ attachmentId: "att-empty", deepTextPromptPortion: "" });
+    const { qualified, byId } = parseSummaryToLineMap(summary);
+    expect(qualified.size).toBe(0);
+    expect(byId.size).toBe(0);
+  });
+
+  it("throws on non-JSON summary content", () => {
+    expect(() => parseSummaryToLineMap("not json at all")).toThrow("Summary file is not valid JSON");
+  });
+});
+
+describe("hydrateCitations", () => {
+  it("fills full_phrase from a single lineId", () => {
+    const citations = [{ id: 1, anchor_text: "Discount Rate", page_id: "page_number_1_index_0", line_ids: [1] }];
+    const { hydrated, misses } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
+    expect(hydrated).toBe(1);
+    expect(misses).toEqual([]);
+    expect(citations[0].full_phrase).toBe("The Discount Rate is 80% of the lowest price per share.");
+  });
+
+  it("concatenates text for multi-lineId citations", () => {
+    const citations = [{ id: 1, anchor_text: "Purchase Amount", page_id: "page_number_1_index_0", line_ids: [2, 3] }];
+    hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
+    expect(citations[0].full_phrase).toBe(
+      "The Purchase Amount is the amount invested. A Dissolution Event means a liquidation.",
+    );
+  });
+
+  it("skips citations that already have full_phrase", () => {
+    const citations = [{ id: 1, full_phrase: "existing phrase", line_ids: [1] }];
+    const { hydrated } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
+    expect(hydrated).toBe(0);
+    expect(citations[0].full_phrase).toBe("existing phrase");
+  });
+
+  it("adds to misses when lineId is not found in summary", () => {
+    const citations = [{ id: 1, anchor_text: "Something", line_ids: [999] }];
+    const { hydrated, misses } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
+    expect(hydrated).toBe(0);
+    expect(misses).toEqual([1]);
+    expect(citations[0].full_phrase).toBeUndefined();
+  });
+
+  it("adds to misses when line_ids is empty", () => {
+    const citations = [{ id: 2, anchor_text: "Something", line_ids: [] }];
+    const { hydrated, misses } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
+    expect(hydrated).toBe(0);
+    expect(misses).toEqual([2]);
+  });
+
+  it("adds to misses when line_ids is absent", () => {
+    const citations = [{ id: 3, anchor_text: "Something" }];
+    const { hydrated, misses } = hydrateCitations({ summaryContent: SINGLE_PAGE_SUMMARY, citations });
+    expect(hydrated).toBe(0);
+    expect(misses).toEqual([3]);
+  });
+
+  it("uses qualified map when page_id matches", () => {
+    const citations = [
+      { id: 1, anchor_text: "page one line one", page_id: "page_number_1_index_0", line_ids: [1] },
+      { id: 2, anchor_text: "page two line one", page_id: "page_number_2_index_0", line_ids: [1] },
+    ];
+    hydrateCitations({ summaryContent: MULTI_PAGE_SUMMARY, citations });
+    expect(citations[0].full_phrase).toBe("Page one line one.");
+    expect(citations[1].full_phrase).toBe("Page two line one.");
+  });
+});
+
+describe("hydrate CLI command", () => {
+  it("fills full_phrase in draft file and writes output", async () => {
+    const tmpDir = makeTmpDir();
+    const mdPath = join(tmpDir, "draft.md");
+    const summaryPath = join(tmpDir, "summary.txt");
+
+    writeFileSync(
+      mdPath,
+      `The [Discount Rate](cite:1) is 80%.
+
+<<<CITATION_DATA>>>
+[{"id":1,"attachment_id":"att-123","anchor_text":"Discount Rate","page_id":"page_number_1_index_0","line_ids":[1]}]
+<<<END_CITATION_DATA>>>
+`,
+    );
+    writeFileSync(summaryPath, SINGLE_PAGE_SUMMARY);
+
+    const { stderr } = await captureOutput(() => hydrate(["--markdown", mdPath, "--summary", summaryPath]));
+
+    const result = JSON.parse(
+      readFileSync(mdPath, "utf-8")
+        .split("<<<CITATION_DATA>>>")[1]
+        .split("<<<END_CITATION_DATA>>>")[0]
+        .trim(),
+    );
+    expect(result[0].full_phrase).toBe("The Discount Rate is 80% of the lowest price per share.");
+    expect(stderr).toContain("Hydrated 1 citation(s)");
+  });
+
+  it("exits when --markdown is missing", async () => {
+    await expect(captureOutput(() => hydrate(["--summary", "summary.txt"]))).rejects.toThrow("process.exit(1)");
+  });
+
+  it("exits when --summary is missing", async () => {
+    const tmpDir = makeTmpDir();
+    const mdPath = join(tmpDir, "draft.md");
+    writeFileSync(mdPath, "# Draft\n<<<CITATION_DATA>>>\n[]\n<<<END_CITATION_DATA>>>\n");
+    await expect(captureOutput(() => hydrate(["--markdown", mdPath]))).rejects.toThrow("process.exit(1)");
   });
 });
 

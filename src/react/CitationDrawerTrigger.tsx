@@ -4,6 +4,7 @@ import type { Verification } from "../types/verification.js";
 import type { SourceCitationGroup } from "./CitationDrawer.types.js";
 import type { FlatCitationItem } from "./CitationDrawer.utils.js";
 import {
+  dedupeGroupCitations,
   flattenCitations,
   generateDefaultLabel,
   getStatusInfo,
@@ -461,7 +462,7 @@ export const CitationDrawerTrigger = forwardRef<HTMLButtonElement, CitationDrawe
 
     // Resolve source labels once — all downstream reads of group.sourceName are pre-resolved
     const resolvedGroups = useMemo(
-      () => resolveGroupLabels(citationGroups, sourceLabelMap),
+      () => dedupeGroupCitations(resolveGroupLabels(citationGroups, sourceLabelMap)),
       [citationGroups, sourceLabelMap],
     );
 

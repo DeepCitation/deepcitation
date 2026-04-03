@@ -40,7 +40,17 @@ import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
 import { die, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
-import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./markdownToHtml.js";
+import { findSummaryForMarkdown, hydrateCitations, HYDRATE_HELP } from "./hydrate.js";
+
+// Re-export so cli.ts and tests can import from the single commands module
+export { hydrate, HYDRATE_HELP } from "./hydrate.js";
+import {
+  AUDIENCE_PRESETS,
+  buildCdnComparisonShowcaseHtml,
+  type AudiencePreset,
+  markdownToHtml,
+  type ReportStyle,
+} from "./markdownToHtml.js";
 import { createCoworkFetch, createProxyFetch } from "./proxy.js";
 
 // ── help strings ──────────────────────────────────────────────────
@@ -55,7 +65,9 @@ Commands:
   env       Print export DEEPCITATION_API_KEY=... for shell eval
   prepare   Prepare a file or URL for citation verification
   verify    Verify citations (--markdown, --html, or --citations)
+  hydrate   Fill in full_phrase from summary file (compact draft support)
   inject    Inject DeepCitation verification into an existing HTML file
+  showcase  Build a local CDN comparison demo from markdownToHtml fixtures
   keygen    Compute deterministic citation keys from a citations JSON file
   get       Fetch full attachment metadata by ID
   billing   Open the billing dashboard to add a payment method or manage spend cap
@@ -88,6 +100,20 @@ The injected assets are:
 Examples:
   deepcitation inject --html dashboard.html --verify-response verify.json
   deepcitation inject --html report.html --verify-response verify.json --out report-verified.html
+`;
+
+export const SHOWCASE_HELP = `Usage: deepcitation showcase [options]
+
+Build a local CDN comparison demo page from the markdownToHtml fixture used by
+the repo's smoke tests.
+
+Options:
+  --out <file>   Output HTML path (default: .deepcitation/cdn-comparison-showcase.html)
+  -h, --help     Show this help message
+
+Examples:
+  deepcitation showcase
+  deepcitation showcase --out /tmp/cdn-comparison-showcase.html
 `;
 
 export const PREPARE_HELP = `Usage: deepcitation prepare <file-or-url> [options]
@@ -135,6 +161,7 @@ Options:
   --style <plain|report>    HTML output style (default: "report", --markdown only)
   --audience <preset>       Audience preset: general, executive, technical, legal, medical (default: "general")
   --title <text>            Report title (default: first H1 in markdown, or "Verification Report")
+  --summary <file>          Summary file for auto-hydrating compact citations (--markdown only)
   --out <file>              Output path (default: {stem}-verified.html in CWD)
   --theme <auto|light|dark> Popover color theme (default: "auto")
   --indicator <indicator>   Indicator variant: icon, dot, none (default: "icon")
@@ -623,6 +650,22 @@ export function inject(argv: string[]) {
   writeVerifiedOutput(outPath, output);
 }
 
+export function showcase(argv: string[]) {
+  if (argv.includes("-h") || argv.includes("--help")) {
+    console.log(SHOWCASE_HELP);
+    return;
+  }
+
+  const args = parseArgs(argv, SHOWCASE_HELP);
+  const outPath = resolve(args.out ?? ".deepcitation/cdn-comparison-showcase.html");
+  const outputDir = dirname(outPath);
+  if (!existsSync(outputDir)) mkdirSync(outputDir, { recursive: true });
+
+  writeFileSync(outPath, buildCdnComparisonShowcaseHtml());
+  console.error(`Showcase saved to: ${outPath}`);
+  console.log(outPath);
+}
+
 export function keygen(argv: string[]) {
   const args = parseArgs(argv, KEYGEN_HELP);
 
@@ -673,6 +716,34 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   const parsed = parseCitationData(raw);
   if (!parsed.success || parsed.citations.length === 0) {
     die("No valid <<<CITATION_DATA>>> block found in the markdown file.", VERIFY_HELP);
+  }
+
+  // Auto-hydrate: if compact citations are detected (missing full_phrase but have line_ids),
+  // fill in full_phrase from the summary file before proceeding.
+  const needsHydration = parsed.citations.some(c => !c.full_phrase && c.line_ids?.length);
+  if (needsHydration) {
+    const summaryPath = args.summary
+      ? resolve(args.summary as string)
+      : findSummaryForMarkdown(resolved);
+    if (summaryPath && existsSync(summaryPath)) {
+      console.error(`Auto-hydrating citations from summary: ${summaryPath}`);
+      try {
+        const { hydrated, misses } = hydrateCitations({
+          summaryContent: readFileSync(summaryPath, "utf-8"),
+          citations: parsed.citations,
+          warnOnMiss: true,
+        });
+        console.error(
+          `  Hydrated ${hydrated} citation(s)` + (misses.length ? `; ${misses.length} miss(es)` : ""),
+        );
+      } catch (err) {
+        console.error(
+          `  Warning: failed to parse summary file — ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    } else if (needsHydration) {
+      console.error("Warning: citations missing full_phrase — pass --summary for auto-hydration");
+    }
   }
 
   console.error(`Parsed ${parsed.citations.length} citation(s) from markdown.`);

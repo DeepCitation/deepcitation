@@ -10,6 +10,7 @@ import type {
 } from "./CitationDrawer.types.js";
 import {
   computeStatusSummary,
+  dedupeGroupCitations,
   flattenCitations,
   generateDefaultLabel,
   getItemStatusCategory,
@@ -40,7 +41,6 @@ import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
 import { type TranslateFunction, tPlural, useTranslation } from "./i18n.js";
 import { getBlinkRowMotionStyle } from "./motion/blinkAnimation.js";
-import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
 import type { IndicatorVariant } from "./types.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
@@ -945,7 +945,7 @@ function OpenCitationDrawer({
 
   // Resolve source labels once at the top — all downstream components read group.sourceName directly
   const resolvedGroups = useMemo(
-    () => resolveGroupLabels(citationGroups, sourceLabelMap),
+    () => dedupeGroupCitations(resolveGroupLabels(citationGroups, sourceLabelMap)),
     [citationGroups, sourceLabelMap],
   );
 
@@ -1138,12 +1138,6 @@ function OpenCitationDrawer({
   useLayoutEffect(() => {
     headerInlineRef.current = headerInline;
   }, [headerInline]);
-
-  // Lock body scroll while drawer is mounted/open (prevents pull-to-refresh on mobile)
-  useEffect(() => {
-    acquireScrollLock();
-    return () => releaseScrollLock();
-  }, []);
 
   // Escape key: step back through navigation levels instead of always closing.
   // Uses refs for mutable state so the listener is registered once while open.

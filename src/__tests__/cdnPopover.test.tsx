@@ -194,11 +194,10 @@ describe("cdn.ts source invariants", () => {
     expect(cdnSource).toContain("createElement(CdnPopoverWrapper");
     expect(cdnSource).not.toMatch(/render\(\s*createElement\(\s*DefaultPopoverContent/);
   });
-  it("passes onViewStateChange", () => {
-    expect(cdnSource).toContain("onViewStateChange: setViewState");
-  });
-  it("uses useState for viewState", () => {
-    expect(cdnSource).toContain("useState<PopoverViewState>");
+  it("routes view state through the shared transition hook", () => {
+    expect(cdnSource).toContain("usePopoverViewState");
+    expect(cdnSource).toContain("viewState.current");
+    expect(cdnSource).toContain("viewState.transition");
   });
   it("imports from cdn-mappers", () => {
     expect(cdnSource).toContain('from "./cdn-mappers.js"');
@@ -225,6 +224,12 @@ describe("cdn.ts source invariants", () => {
   it("supports indicator variant option", () => {
     expect(cdnSource).toContain("indicatorVariant");
     expect(cdnSource).toContain("activeIndicatorVariant");
+  });
+  it("uses usePopoverViewState for evidence transitions", () => {
+    expect(cdnSource).toContain("usePopoverViewState");
+    expect(cdnSource).toContain("popoverContentRef");
+    expect(cdnSource).toContain("onDismiss: hidePopoverInner");
+    expect(cdnSource).not.toContain("useState<PopoverViewState>");
   });
   it("imports resolveKeyMap from cdn-keymap", () => {
     expect(cdnSource).toContain('from "./cdn-keymap.js"');

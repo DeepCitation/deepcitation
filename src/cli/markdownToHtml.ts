@@ -10,6 +10,10 @@
  * - "report": Progressive-disclosure structure with DeepCitation design tokens
  */
 
+import { CDN_JS } from "../vanilla/_generated_cdn.js";
+import { escapeJsonForScript, escapeJsForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
+import type { VerificationData } from "../vanilla/runtime/types.js";
+
 // ── Types ──────────────────────────────────────────────────────────
 
 export type ReportStyle = "plain" | "report";
@@ -58,7 +62,7 @@ function inlineFormat(text: string): string {
       // links — cite:N scheme produces a citation span; http(s) produces a link
       // href is already HTML-escaped from the escHtml() call above; validate
       // the scheme but do not re-escape (that would double-encode & in URLs).
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
+      .replace(/\[([^\]]*(?:\[[^\]]*\][^\]]*)*)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
         const citeMatch = href.match(/^cite:(\d+)$/);
         if (citeMatch) {
           return `<span data-cite="${citeMatch[1]}">${label}</span>`;
@@ -699,4 +703,143 @@ function buildReportBody(blocks: Block[], audience: AudiencePreset): string[] {
   }
 
   return parts;
+}
+
+// ── CDN showcase fixture ───────────────────────────────────────────
+
+const CDN_SHOWCASE_MARKDOWN = `# CDN Comparison Showcase
+
+This fixture is generated from \`markdownToHtml()\` plus a small mock verification map.
+
+## Inline citations
+
+The policy of separating the races is usually interpreted as denoting the [inferiority of the negro group](cite:1).
+Revenue reached [\$2.3 billion](cite:2), and the FDA noted [Phase III completion](cite:3).
+
+## Drawer trigger
+
+The drawer below is injected by the CDN runtime and uses the same mock data as the inline citations.
+`;
+
+const CDN_SHOWCASE_IMAGE_URL = "/src/vanilla/testing/demo-page.png";
+
+const CDN_SHOWCASE_VERIFICATIONS: Record<string, VerificationData> = {
+  "demo-citation-1": {
+    status: "verified",
+    label: "Brown v. Board of Education, 347 U.S. 483 (1954)",
+    verifiedFullPhrase:
+      "the policy of separating the races is usually interpreted as denoting the inferiority of the negro group",
+    verifiedAnchorText: "inferiority of the negro group",
+    citation: {
+      type: "document",
+      fullPhrase:
+        "the policy of separating the races is usually interpreted as denoting the inferiority of the negro group",
+      anchorText: "inferiority of the negro group",
+    },
+    document: {
+      verifiedPageNumber: 1,
+      mimeType: "application/pdf",
+    },
+    pageImages: [
+      {
+        pageNumber: 1,
+        dimensions: { width: 1200, height: 1600 },
+        imageUrl: CDN_SHOWCASE_IMAGE_URL,
+        isMatchPage: true,
+      },
+    ],
+  },
+  "demo-citation-2": {
+    status: "partial_match",
+    label: "Q4 Financial Report",
+    verifiedFullPhrase: "Total revenue reached $2.3 billion for the fiscal year, representing a 45% increase year-over-year",
+    verifiedAnchorText: "$2.3 billion",
+    verifiedMatchSnippet: "Total revenue reached $2.3 billion for the fiscal year",
+    citation: {
+      type: "document",
+      fullPhrase: "Total revenue reached $2.3 billion for the fiscal year",
+      anchorText: "$2.3 billion",
+    },
+    document: {
+      verifiedPageNumber: 1,
+      mimeType: "application/pdf",
+    },
+    pageImages: [
+      {
+        pageNumber: 1,
+        dimensions: { width: 1200, height: 1600 },
+        imageUrl: CDN_SHOWCASE_IMAGE_URL,
+        isMatchPage: true,
+      },
+    ],
+  },
+  "demo-citation-3": {
+    status: "verified",
+    label: "FDA Clinical Trial Guidance 2024",
+    verifiedFullPhrase: "Phase III clinical trial completed enrollment with 2,400 participants across 15 sites",
+    verifiedAnchorText: "Phase III completion",
+    citation: {
+      type: "document",
+      fullPhrase: "Phase III clinical trial completed enrollment",
+      anchorText: "Phase III completion",
+    },
+    document: {
+      verifiedPageNumber: 1,
+      mimeType: "application/pdf",
+    },
+    pageImages: [
+      {
+        pageNumber: 1,
+        dimensions: { width: 1200, height: 1600 },
+        imageUrl: CDN_SHOWCASE_IMAGE_URL,
+        isMatchPage: true,
+      },
+    ],
+  },
+};
+
+const CDN_SHOWCASE_KEY_MAP: Record<string, string> = {
+  "cite-1": "demo-citation-1",
+  "cite-2": "demo-citation-2",
+  "cite-3": "demo-citation-3",
+};
+
+const CDN_SHOWCASE_ANCHOR_MAP: CitationAnchorMap = {
+  1: "inferiority of the negro group",
+  2: "$2.3 billion",
+  3: "Phase III completion",
+};
+
+function injectCdnRuntime(html: string, verifications: Record<string, VerificationData>, keyMap: Record<string, string>) {
+  const jsonData = escapeJsonForScript(JSON.stringify(verifications));
+  const keyMapJson = escapeJsonForScript(JSON.stringify(keyMap));
+  const snippet = [
+    `<script type="application/json" id="dc-data">${jsonData}</script>`,
+    `<script type="application/json" id="dc-key-map">${keyMapJson}</script>`,
+    `<script>${escapeJsForScript(CDN_JS)}</script>`,
+    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"light",indicatorVariant:"icon"});</script>`,
+  ].join("\n");
+
+  const stripped = stripExistingInjection(html);
+  let output = stripped.html;
+  if (output.includes("</body>")) {
+    output = output.replace("</body>", () => `${snippet}\n</body>`);
+  } else if (output.includes("</html>")) {
+    output = output.replace("</html>", () => `${snippet}\n</html>`);
+  } else {
+    output = `${output}\n${snippet}`;
+  }
+  return output;
+}
+
+export function buildCdnComparisonShowcaseHtml(): string {
+  const html = markdownToHtml(CDN_SHOWCASE_MARKDOWN, {
+    style: "report",
+    title: "DeepCitation — CDN Comparison Showcase",
+    sourceLabel: "DeepCitation mock fixture",
+    citationCount: Object.keys(CDN_SHOWCASE_KEY_MAP).length,
+    pageCount: 1,
+    anchorMap: CDN_SHOWCASE_ANCHOR_MAP,
+  });
+  return injectCdnRuntime(html, CDN_SHOWCASE_VERIFICATIONS, CDN_SHOWCASE_KEY_MAP);
 }

@@ -342,6 +342,108 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
 } as const;
 
 /**
+ * Compact citation prompt — omits full_phrase and reasoning from LLM output.
+ *
+ * Use this variant for latency-sensitive pipelines where fullPhrase is
+ * reconstructed offline via `deepcitation hydrate` (or auto-hydrated by
+ * `deepcitation verify --markdown` when a summary file is present).
+ *
+ * Token savings vs CITATION_PROMPT: ~80–135 tokens per citation
+ * (eliminates ~50-75 tokens of verbatim copying + ~30-60 tokens of reasoning).
+ *
+ * Compact key mapping:
+ * - n: id, k: anchor_text, p: page_id (compact "N_I" form), l: line_ids
+ */
+export const COMPACT_CITATION_PROMPT = `
+<citation-instructions priority="critical">
+## REQUIRED: Citation Format (Compact)
+
+### In-Text Markers
+For every claim, value, or fact from attachments, wrap the key phrase in citation link syntax: [anchor text](cite:N) where N is the sequential citation number.
+
+### Citation Data Block
+At the END of your response, append a compact citation block grouped by attachment_id.
+Do NOT output fullPhrase or reasoning — these are reconstructed automatically from lineIds.
+
+### Format
+\`\`\`
+<<<CITATION_DATA>>>
+{
+  "attachment_id_here": [
+    {"n": 1, "k": "key phrase", "p": "N_I", "l": [lineId]}
+  ]
+}
+<<<END_CITATION_DATA>>>
+\`\`\`
+
+### Field Rules
+
+1. **n**: Citation id (integer, matches cite:N in text)
+2. **k** (anchorText): 1–3 contiguous verbatim words from the evidence line at the referenced lineId. Max 4 words. Pick the distinctive noun or term, not the surrounding verb phrase.
+3. **p** (page_id): Compact form "N_I" where N=page number and I=index (extract from \`<page_number_N_index_I>\` tag)
+4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags
+
+### anchorText Examples
+- "multiplied by the Discount Rate" → k: "Discount Rate" (not the verb phrase)
+- "Junior to payment of outstanding indebtedness" → k: "Junior to"
+- "a voluntary termination of operations" → k: "voluntary termination"
+- "this Safe will automatically convert" → k: "automatically convert"
+- "SAFE (Simple Agreement for Future Equity)" → k: "SAFE" (not the 5-word expansion)
+
+### Placement Rules
+- Wrap key phrase: [anchor text](cite:N), e.g. [Discount Rate](cite:2)
+- Sequential IDs starting from 1 — each citation gets a unique number
+- JSON block MUST appear at the very end of your response
+
+### Example Response
+
+The [Discount Rate](cite:1) is applied to the conversion price. Revenue grew [45%](cite:2).
+
+<<<CITATION_DATA>>>
+{
+  "abc123": [
+    {"n": 1, "k": "Discount Rate", "p": "2_0", "l": [47]},
+    {"n": 2, "k": "45%", "p": "3_1", "l": [12]}
+  ]
+}
+<<<END_CITATION_DATA>>>
+</citation-instructions>
+
+`;
+
+/**
+ * JSON schema for compact citation data (structured output LLMs, hydrate pipeline).
+ * Omits full_phrase and reasoning — these are reconstructed by deepcitation hydrate.
+ */
+export const COMPACT_CITATION_JSON_OUTPUT_FORMAT = {
+  type: "object",
+  properties: {
+    n: {
+      type: "integer",
+      description: "Citation marker number matching (cite:N) in text",
+    },
+    a: {
+      type: "string",
+      description: "Attachment ID (compact key for attachment_id)",
+    },
+    k: {
+      type: "string",
+      description: "anchorText: 1–3 contiguous verbatim words from the evidence line at the referenced lineId. Max 4 words.",
+    },
+    p: {
+      type: "string",
+      description: "Compact page id 'N_I' (e.g. '2_0' for page 2, index 0). Extract N and I from <page_number_N_index_I> tags.",
+    },
+    l: {
+      type: "array",
+      items: { type: "integer" },
+      description: "Array of line IDs from <line id='N'> tags",
+    },
+  },
+  required: ["n", "a", "k", "p", "l"],
+} as const;
+
+/**
  * JSON schema for AV citation data.
  */
 export const CITATION_AV_JSON_OUTPUT_FORMAT = {

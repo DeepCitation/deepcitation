@@ -2,6 +2,7 @@ import type React from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { isUrlCitation } from "../types/citation.js";
 import type { Verification } from "../types/verification.js";
+import { getCitationKey } from "../utils/citationKey.js";
 import { extractDomain } from "../utils/urlSafety.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "./CitationDrawer.types.js";
 import { isPartialSearchStatus } from "./citationStatus.js";
@@ -62,6 +63,28 @@ export function resolveGroupLabels(
 }
 
 /**
+ * Deduplicate repeated citation items within each source group.
+ * Preserves first occurrence order and updates additionalCount to match the
+ * unique items that remain.
+ */
+export function dedupeGroupCitations(groups: SourceCitationGroup[]): SourceCitationGroup[] {
+  return groups.map(group => {
+    const seen = new Set<string>();
+    const citations: CitationDrawerItem[] = [];
+
+    for (const item of group.citations) {
+      const dedupeKey = getCitationKey(item.citation);
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      citations.push(item);
+    }
+
+    if (citations.length === group.citations.length) return group;
+    return { ...group, citations, additionalCount: Math.max(0, citations.length - 1) };
+  });
+}
+
+/**
  * Get the primary source name from citation groups.
  * Uses the first group's sourceName, truncated to 25 chars.
  * Falls back to "Source" if empty.
@@ -111,6 +134,7 @@ export function groupCitationsBySource(
   sourceLabelMap?: Record<string, string>,
 ): SourceCitationGroup[] {
   const groups = new Map<string, CitationDrawerItem[]>();
+  const groupKeys = new Map<string, Set<string>>();
 
   for (const item of citations) {
     // Group by attachmentId for document citations, domain/siteName/url for URL citations
@@ -118,14 +142,19 @@ export function groupCitationsBySource(
     const groupKey = isUrlCitation(cit)
       ? cit.domain || cit.siteName || cit.url || "unknown"
       : cit.attachmentId || item.verification?.label || "unknown-doc";
+    const dedupeKey = item.citationKey || getCitationKey(cit);
 
     const existing = groups.get(groupKey);
     if (existing) {
+      const seenKeys = groupKeys.get(groupKey);
+      if (seenKeys?.has(dedupeKey)) continue;
+      seenKeys?.add(dedupeKey);
       existing.push(item);
       continue;
     }
 
     groups.set(groupKey, [item]);
+    groupKeys.set(groupKey, new Set([dedupeKey]));
   }
 
   // Convert map to array of SourceCitationGroup
@@ -147,7 +176,7 @@ export function groupCitationsBySource(
       additionalCount: items.length - 1,
     };
   });
-  return resolveGroupLabels(result, sourceLabelMap);
+  return resolveGroupLabels(dedupeGroupCitations(result), sourceLabelMap);
 }
 
 /**

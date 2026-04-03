@@ -252,6 +252,39 @@ describe("groupCitationsBySource", () => {
 
     expect(groups[0].sourceFavicon).toBe("https://test.com/favicon.ico");
   });
+
+  it("deduplicates repeated citations within the same source group", () => {
+    const citations: CitationDrawerItem[] = [
+      {
+        citationKey: "a",
+        citation: {
+          type: "document",
+          attachmentId: "yc-safe-verified.html",
+          pageNumber: 1,
+          anchorText: "Safe verified citation",
+          fullPhrase: "Safe verified citation",
+        },
+        verification: { status: "found", label: "yc-safe-verified.html" },
+      },
+      {
+        citationKey: "b",
+        citation: {
+          type: "document",
+          attachmentId: "yc-safe-verified.html",
+          pageNumber: 1,
+          anchorText: "Safe verified citation",
+          fullPhrase: "Safe verified citation",
+        },
+        verification: { status: "found", label: "yc-safe-verified.html" },
+      },
+    ];
+
+    const groups = groupCitationsBySource(citations);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].citations).toHaveLength(1);
+    expect(groups[0].additionalCount).toBe(0);
+  });
 });
 
 describe("CitationDrawerItemComponent", () => {
@@ -413,6 +446,8 @@ describe("CitationDrawerItemComponent", () => {
 describe("CitationDrawer", () => {
   afterEach(() => {
     cleanup();
+    document.body.style.overflow = "";
+    document.body.style.paddingRight = "";
   });
 
   const createGroup = (name: string, count: number): SourceCitationGroup => ({
@@ -438,6 +473,16 @@ describe("CitationDrawer", () => {
     );
 
     expect(getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("does not lock body scroll when open", () => {
+    document.body.style.overflow = "scroll";
+    document.body.style.paddingRight = "12px";
+
+    render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Test", 1)]} />);
+
+    expect(document.body.style.overflow).toBe("scroll");
+    expect(document.body.style.paddingRight).toBe("12px");
   });
 
   it("does not render when closed", () => {
@@ -524,6 +569,31 @@ describe("CitationDrawer", () => {
 
     // Single-citation group: CompactSingleCitationRow shows source name + anchorText.
     expect(getByText("Source B")).toBeInTheDocument();
+  });
+
+  it("deduplicates repeated items even when the drawer receives grouped props directly", () => {
+    const duplicatedItem = {
+      citationKey: "dup-1",
+      citation: {
+        type: "document" as const,
+        attachmentId: "yc-safe-verified.html",
+        pageNumber: 1,
+        anchorText: "Safe verified citation",
+        fullPhrase: "Safe verified citation",
+      },
+      verification: { status: "found" as const },
+    };
+    const groups: SourceCitationGroup[] = [
+      {
+        sourceName: "YC Safe",
+        citations: [duplicatedItem, { ...duplicatedItem, citationKey: "dup-2" }],
+        additionalCount: 1,
+      },
+    ];
+
+    const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
+
+    expect(container.querySelectorAll("[data-dc-item]").length).toBe(1);
   });
 
   it("shows all items without More section (always expanded)", () => {
@@ -784,7 +854,7 @@ describe("useCitationDrawer", () => {
     });
 
     expect(result.current.citationGroups).toHaveLength(2);
-    expect(result.current.citationGroups[0].citations).toHaveLength(2);
+    expect(result.current.citationGroups[0].citations).toHaveLength(1);
     expect(result.current.citationGroups[1].citations).toHaveLength(1);
   });
 });
