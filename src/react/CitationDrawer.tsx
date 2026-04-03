@@ -967,18 +967,27 @@ function OpenCitationDrawer({
   const totalCitations = summary.total;
   const flatCitations = useMemo(() => flattenCitations(resolvedGroups, t), [resolvedGroups, t]);
 
-  // Click handler for header indicator icons — expand the citation and scroll it into view
+  // Click handler for header indicator icons — expand the citation, scroll it into view,
+  // and toggle the overlay highlight when a page is shown in the header panel.
+  // Note: headerInlineRef2 is declared after headerInline useState below.
+
   const handleIndicatorClick = useCallback(
     (index: number) => {
       const flat = flatCitations[index];
       if (!flat) return;
       const key = flat.item.citationKey;
+
+      // Toggle accordion expansion + scroll into view
       setExpandedCitationKey(prev => (prev === key ? null : key));
-      // Scroll the item into view after React renders the expansion
       requestAnimationFrame(() => {
         const el = document.querySelector(`[data-dc-item="${CSS.escape(key)}"]`);
         el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
+
+      // When a page is expanded, toggle the overlay for this citation
+      if (headerInlineRef2.current) {
+        setActiveIndicatorKey(prev => (prev === key ? null : key));
+      }
     },
     [flatCitations],
   );
@@ -1051,6 +1060,10 @@ function OpenCitationDrawer({
     pageNumber?: number | null;
   };
   const [headerInline, setHeaderInline] = useState<HeaderInlineState | null>(null);
+  const headerInlineRef2 = useRef(headerInline);
+  useLayoutEffect(() => {
+    headerInlineRef2.current = headerInline;
+  }, [headerInline]);
   const [activeIndicatorKey, setActiveIndicatorKey] = useState<string | null>(null);
 
   // ARIA announcement for page badge navigation (screen readers)
@@ -1108,6 +1121,17 @@ function OpenCitationDrawer({
       ),
     [pageToItems, activePage],
   );
+
+  // Indices into flatCitations that are on the active page — used to grey out off-page icons
+  const onPageIndices = useMemo(() => {
+    if (activePage == null) return null;
+    const keysOnPage = new Set((pageToItems.get(activePage) ?? []).map(item => item.citationKey));
+    const indices = new Set<number>();
+    for (let i = 0; i < flatCitations.length; i++) {
+      if (keysOnPage.has(flatCitations[i].item.citationKey)) indices.add(i);
+    }
+    return indices;
+  }, [activePage, pageToItems, flatCitations]);
 
   const handlePageDeactivate = useCallback(() => {
     setHeaderInline(null);
@@ -1274,60 +1298,37 @@ function OpenCitationDrawer({
           </div>
         )}
 
-        {/* Header with summary, progress bar, and view toggle */}
-        <div className="px-4 py-2 border-b border-dc-border shrink-0">
+        {/* Header with summary and view toggle */}
+        <div className={cn("px-4 py-2 shrink-0", !headerInline && "border-b border-dc-border")}>
           <div className="flex items-center gap-2 min-w-0">
             <div className="shrink min-w-0 max-w-[80%]">
               <DrawerSourceHeading citationGroups={resolvedGroups} label={label} fallbackTitle={resolvedTitle} />
             </div>
-            {indicatorVariant !== "none" && citationsOnActivePage.length > 0 && headerInline && (
-              <div className="flex items-center gap-1.5 shrink-0" data-testid="drawer-header-indicators">
-                {citationsOnActivePage.map(item => {
-                  const isActive = item.citationKey === activeIndicatorKey;
-                  const statusInfo = getStatusInfo(item.verification, indicatorVariant, t);
-                  const chipLabel =
-                    item.citation.anchorText?.toString() ?? item.citation.fullPhrase ?? t("aria.citation");
-                  return (
-                    <button
-                      key={item.citationKey}
-                      type="button"
-                      title={chipLabel}
-                      onClick={() => setActiveIndicatorKey(k => (k === item.citationKey ? null : item.citationKey))}
-                      className={cn(
-                        "inline-flex items-center justify-center rounded-full transition-all w-6 h-6",
-                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-                        statusInfo.color,
-                        isActive ? "opacity-100 ring-2 ring-current ring-offset-1" : "opacity-40 hover:opacity-70",
-                      )}
-                      aria-pressed={isActive}
-                      aria-label={
-                        isActive
-                          ? t("aria.toggleAnnotation.hide", { label: chipLabel })
-                          : t("aria.toggleAnnotation.show", { label: chipLabel })
-                      }
-                    >
-                      {statusInfo.icon}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <div className="flex-1" />
+            {/* Single consolidated indicator row — icons are larger and spaced out for easy tapping */}
             {totalCitations > 0 && indicatorVariant !== "none" && (
-              <div className="shrink-0">
+              <div className="shrink-0" data-testid="drawer-header-indicators">
                 <StackedStatusIcons
                   flatCitations={flatCitations}
                   isHovered={false}
-                  maxIcons={5}
+                  maxIcons={8}
                   hoveredIndex={null}
                   onIconHover={() => {}}
                   onIconLeave={() => {}}
                   onIconClick={handleIndicatorClick}
                   showProofThumbnails={false}
                   indicatorVariant={indicatorVariant}
+                  activeIndex={
+                    activeIndicatorKey != null
+                      ? flatCitations.findIndex(f => f.item.citationKey === activeIndicatorKey)
+                      : null
+                  }
+                  iconSize={24}
+                  iconGap="0.125rem"
+                  onPageIndices={onPageIndices}
                 />
               </div>
             )}
+            <div className="flex-1" />
             {/* Page badges in header only for single-group drawers; multi-group shows them per file header */}
             {isSingleGroup && drawerPages.length > 0 && (
               <div
