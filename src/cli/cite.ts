@@ -64,18 +64,22 @@ export interface BodyMarker {
  * Deduplicates by id — first occurrence wins. Returns entries sorted by id.
  */
 export function extractMarkersFromBody(body: string): BodyMarker[] {
-  // Match [label](cite:N) and [label](cite:N "anchor") — the title part is optional
-  // Match [label](cite:N) and [label](cite:N "anchor") — title may contain \" and parens
-  const re = /\[([^\][]+)\]\(cite:(\d+)(?:\s+"((?:[^"\\]|\\.)*)")?\)/g;
+  // Match [label](cite:N), [label](cite:N "anchor"), and [label](cite:N 'anchor')
+  // Supports both single and double quoted anchors, with escaped quotes inside
+  const re =
+    /\[([^\][]+)\]\(cite:(\d+)(?:\s+"((?:[^"\\]|\\.)*)")?\s*\)|\[([^\][]+)\]\(cite:(\d+)\s+'((?:[^'\\]|\\.)*)'\s*\)/g;
   const seen = new Set<number>();
   const results: BodyMarker[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(body)) !== null) {
-    const id = parseInt(m[2], 10);
+    // Groups 1-3 match double-quote or no-quote form; groups 4-6 match single-quote form
+    const label = (m[1] ?? m[4]).trim();
+    const id = parseInt(m[2] ?? m[5], 10);
+    const anchor = m[3] ?? m[6];
     if (!seen.has(id)) {
       seen.add(id);
-      const marker: BodyMarker = { id, displayLabel: m[1].trim() };
-      if (m[3]) marker.anchorHint = m[3].trim();
+      const marker: BodyMarker = { id, displayLabel: label };
+      if (anchor) marker.anchorHint = anchor.trim();
       results.push(marker);
     }
   }
@@ -148,9 +152,19 @@ export function findAnchorWithFallback(
   }
 
   // Strategy 3: Single distinctive word — prefer longer, capitalized words
+  // Skip generic words that match random passages instead of the intended concept
+  const GENERIC_WORDS = new Set([
+    "the", "and", "for", "with", "from", "that", "this", "which", "will", "shall",
+    "not", "any", "all", "its", "such", "each", "other", "upon", "into", "than",
+    "may", "has", "are", "was", "were", "been", "have", "had", "but", "can",
+    "investment", "amount", "rate", "price", "stock", "shares", "company",
+    "investor", "rights", "payment", "event", "means", "pursuant", "under",
+    "prior", "subject", "including", "respect", "date", "time", "number",
+    "voting", "discount", "value", "equal", "outstanding", "applicable",
+  ]);
   const sorted = [...words]
     .map(w => w.replace(/[^a-zA-Z0-9'-]/g, ""))
-    .filter(w => w.length >= 3)
+    .filter(w => w.length >= 3 && !GENERIC_WORDS.has(w.toLowerCase()))
     .sort((a, b) => {
       // Prefer capitalized words (proper nouns/terms)
       const aUp = /^[A-Z]/.test(a) ? 1 : 0;
