@@ -182,11 +182,11 @@ More content.`;
       expect(result.enhancedUserPrompt).toContain("Summarize this document.");
     });
 
-    it("includes Record<attachmentId, pages> deepTextPages in user prompt", () => {
+    it("includes Record<attachmentId, pages> deepTextPagesByAttachmentId in user prompt", () => {
       const result = wrapCitationPrompt({
         systemPrompt: "You are a helpful assistant.",
         userPrompt: "Compare these documents.",
-        deepTextPages: {
+        deepTextPagesByAttachmentId: {
           "attachment-1": ["Content from first file."],
           "attachment-2": ["Content from second file."],
         },

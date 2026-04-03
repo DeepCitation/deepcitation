@@ -82,9 +82,7 @@ export function findAnchorWithFallback(
     const match = allLines.find(line => line.text.toLowerCase().includes(needle));
     if (match) {
       if (len === 1 && words.length > 1) {
-        console.error(
-          `  Warning: single-word fallback "${candidate}" matched for "${displayLabel}" — verify accuracy`,
-        );
+        console.error(`  Warning: single-word fallback "${candidate}" matched for "${displayLabel}" — verify accuracy`);
       }
       return { lineId: match.lineId, pageId: match.pageId, verbatimAnchor: candidate };
     }

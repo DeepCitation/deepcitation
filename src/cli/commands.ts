@@ -744,15 +744,15 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   if (!parsed.success || parsed.citations.length === 0) {
     const markers = extractMarkersFromBody(raw);
     if (markers.length > 0) {
-      const summaryPath = args.summary
-        ? resolve(args.summary as string)
-        : findSummaryForMarkdown(resolved);
+      const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved);
       if (summaryPath && existsSync(summaryPath)) {
         const summaryContent = readFileSync(summaryPath, "utf-8");
         let attachmentId = "unknown";
         try {
           attachmentId = (JSON.parse(summaryContent) as { attachmentId?: string }).attachmentId ?? "unknown";
-        } catch { /* use "unknown" */ }
+        } catch {
+          /* use "unknown" */
+        }
 
         const lineMap = parseSummaryToLineMap(summaryContent);
         const allLines = getAllLines(lineMap);
@@ -771,8 +771,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
             page_id: toCompactPageId(pageId),
             line_ids: [lineId],
             attachment_id: attachmentId,
-            display_label:
-              displayLabel.toLowerCase() !== verbatimAnchor.toLowerCase() ? displayLabel : undefined,
+            display_label: displayLabel.toLowerCase() !== verbatimAnchor.toLowerCase() ? displayLabel : undefined,
           });
         }
 
@@ -789,7 +788,10 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     }
 
     if (!parsed.success || parsed.citations.length === 0) {
-      die("No citations found — ensure body has [label](cite:N) markers and a summary exists in .deepcitation/", VERIFY_HELP);
+      die(
+        "No citations found — ensure body has [label](cite:N) markers and a summary exists in .deepcitation/",
+        VERIFY_HELP,
+      );
     }
   }
 

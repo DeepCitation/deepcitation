@@ -300,7 +300,7 @@ describe("verify command", () => {
     writeFileSync(mdFile, "# Just a header\n\nSome text without citations.\n");
     const r = run(["verify", "--markdown", mdFile], { env: { DEEPCITATION_API_KEY: "sk-dc-test12345678901234" } });
     expect(r.exitCode).toBe(1);
-    expect(r.stderr).toContain("No valid");
+    expect(r.stderr).toContain("No citations found");
   });
 
   it("verify --markdown errors with invalid --style", () => {
