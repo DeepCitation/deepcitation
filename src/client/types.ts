@@ -154,8 +154,6 @@ export interface UploadFileResponse {
   attachmentId: string;
   /** Raw per-page text content. Use this with wrapCitationPrompt() or your own deterministic formatter. */
   deepTextPages: string[];
-  /** Legacy prompt-formatted content with page markers and line IDs. Kept for compatibility during migration. */
-  deepTextPromptPortion?: string;
   /** Metadata about the processed file */
   metadata: {
     filename: string;
@@ -330,10 +328,8 @@ export interface PreparedAttachment {
 export interface PrepareAttachmentsResult {
   /** Array of file references for verification */
   fileDataParts: Array<{ attachmentId: string; filename?: string }>;
-  /** Raw per-page text for each file, in upload order. */
-  deepTextPages: string[][];
-  /** Legacy prompt-formatted content for all files. */
-  deepTextPromptPortion?: string;
+  /** Raw per-page text keyed by attachmentId. */
+  deepTextPagesByAttachmentId: Record<string, string[]>;
   /** Per-attachment assets for downloads and page images */
   attachments: PreparedAttachment[];
 }
@@ -505,8 +501,6 @@ export interface AttachmentResponse {
   convertedDownload?: FileDownload;
   /** Raw per-page text array extracted from the document. */
   deepTextPages?: string[];
-  /** Legacy prompt-formatted text with page markers and line IDs. */
-  deepTextPromptPortion?: string;
   /** Raw per-page text array extracted from the document. */
   pageTexts?: string[];
 }

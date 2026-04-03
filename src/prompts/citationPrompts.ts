@@ -180,15 +180,12 @@ export interface WrapCitationPromptOptions {
   /** The original user prompt */
   userPrompt: string;
   /**
-   * Raw page text from prepareAttachments / uploadFile.
-   * A single file can pass string[]; multiple files can pass string[][].
+   * Raw page text from prepareAttachments / uploadFile for a single attachment.
+   * Pass pre-rendered strings if you already formatted the content yourself.
    */
-  deepTextPages?: string[] | string[][];
-  /**
-   * Legacy prompt-formatted text (kept for compatibility during migration).
-   * Can be a single string or array of strings for multiple files.
-   */
-  deepTextPromptPortion?: string | string[];
+  deepTextPages?: string | string[];
+  /** Raw page text from prepareAttachments for multiple attachments, keyed by attachmentId. */
+  deepTextPagesByAttachmentId?: Record<string, string[]>;
   /** Whether to use audio/video citation format (with timestamps) instead of text-based (with line IDs) */
   isAudioVideo?: boolean;
 }
@@ -272,7 +269,10 @@ export function wrapSystemCitationPrompt(options: WrapSystemPromptOptions): stri
  * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
  *   systemPrompt: "You are a helpful assistant.",
  *   userPrompt: "Compare these documents.",
- *   deepTextPages: [deepTextPages1, deepTextPages2], // array of per-file page arrays
+ *   deepTextPagesByAttachmentId: {
+ *     attachment1: deepTextPages1,
+ *     attachment2: deepTextPages2,
+ *   },
  * });
  *
  * // Use enhanced prompts with your LLM
@@ -285,7 +285,7 @@ export function wrapSystemCitationPrompt(options: WrapSystemPromptOptions): stri
  * ```
  */
 export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCitationPromptResult {
-  const { systemPrompt, userPrompt, deepTextPages, deepTextPromptPortion, isAudioVideo = false } = options;
+  const { systemPrompt, userPrompt, deepTextPages, deepTextPagesByAttachmentId, isAudioVideo = false } = options;
 
   const enhancedSystemPrompt = wrapSystemCitationPrompt({
     systemPrompt,
@@ -297,10 +297,10 @@ export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCita
   // Build enhanced user prompt with file content if provided
   let enhancedUserPrompt = userPrompt;
 
-  const renderedFileContent = deepTextPages
-    ? renderDeepTextPages(deepTextPages)
-    : deepTextPromptPortion
-      ? renderLegacyDeepTextPromptPortion(deepTextPromptPortion)
+  const renderedFileContent = deepTextPagesByAttachmentId
+    ? renderDeepTextPagesByAttachmentId(deepTextPagesByAttachmentId)
+    : deepTextPages
+      ? renderDeepTextPages(deepTextPages)
       : "";
 
   if (renderedFileContent) {
@@ -313,21 +313,17 @@ export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCita
   };
 }
 
-function renderDeepTextPages(deepTextPages: string[] | string[][]): string {
-  const files = Array.isArray(deepTextPages[0]) ? (deepTextPages as string[][]) : [deepTextPages as string[]];
-  const renderedFiles = files
-    .map((pages, fileIndex) => {
-      const attachmentId = `attachment-${fileIndex + 1}`;
-      return renderDeepTextPromptString(attachmentId, pages);
-    })
-    .filter(Boolean);
-
-  return renderedFiles.join("\n\n");
+function renderDeepTextPages(deepTextPages: string | string[]): string {
+  if (typeof deepTextPages === "string") return deepTextPages;
+  return renderDeepTextPromptString("attachment-1", deepTextPages);
 }
 
-function renderLegacyDeepTextPromptPortion(deepTextPromptPortion: string | string[]): string {
-  const fileTexts = Array.isArray(deepTextPromptPortion) ? deepTextPromptPortion : [deepTextPromptPortion];
-  return fileTexts.map(text => `\n${text}`).join("\n\n");
+function renderDeepTextPagesByAttachmentId(deepTextPagesByAttachmentId: Record<string, string[]>): string {
+  return Object.entries(deepTextPagesByAttachmentId)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([attachmentId, pages]) => renderDeepTextPromptString(attachmentId, pages))
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function renderDeepTextPromptString(attachmentId: string, filePages: string[]): string {
@@ -494,11 +490,13 @@ export const COMPACT_CITATION_JSON_OUTPUT_FORMAT = {
     },
     k: {
       type: "string",
-      description: "anchorText: 1–3 contiguous verbatim words from the evidence line at the referenced lineId. Max 4 words.",
+      description:
+        "anchorText: 1–3 contiguous verbatim words from the evidence line at the referenced lineId. Max 4 words.",
     },
     p: {
       type: "string",
-      description: "Compact page id 'N_I' (e.g. '2_0' for page 2, index 0). Extract N and I from <page_number_N_index_I> tags.",
+      description:
+        "Compact page id 'N_I' (e.g. '2_0' for page 2, index 0). Extract N and I from <page_number_N_index_I> tags.",
     },
     l: {
       type: "array",

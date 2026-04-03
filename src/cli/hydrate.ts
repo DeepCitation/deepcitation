@@ -12,7 +12,11 @@
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseCitationData, parsePageId } from "../parsing/citationParser.js";
-import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER, type CitationData } from "../prompts/citationPrompts.js";
+import {
+  CITATION_DATA_END_DELIMITER,
+  CITATION_DATA_START_DELIMITER,
+  type CitationData,
+} from "../prompts/citationPrompts.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { die, parseArgs } from "./cliUtils.js";
 
@@ -47,9 +51,9 @@ const PAGE_TAG_RE = /<page_number_(\d+)_index_(\d+)>/g;
  * first </line>, handling line text that contains any characters.
  * Safe to reuse as a module-level constant with matchAll().
  */
-const LINE_TAG_RE = /<line id="(\d+)">([\s\S]*?)<\/line>/g;
+const _LINE_TAG_RE = /<line id="(\d+)">([\s\S]*?)<\/line>/g;
 
-interface LineMap {
+export interface LineMap {
   /** Qualified key: "page_number_N_index_I:lineId" → line text */
   qualified: Map<string, string>;
   /** Fallback: lineId → line text (last-write wins for multi-page docs) */
@@ -77,13 +81,6 @@ export interface HydrateResult {
  *
  * Summary file format (JSON):
  *   { "attachmentId": "...", "deepTextPages": ["..."] }
- *   or legacy { "attachmentId": "...", "deepTextPromptPortion": "..." }
- *
- * deepTextPromptPortion format:
- *   <page_number_1_index_0>
- *   <line id="1">Line text here</line>
- *   <line id="2">Another line</line>
- *   ...
  *
  * Multi-page documents: line IDs restart per page. The qualified map uses
  * "page_number_N_index_I:lineId" keys to avoid collisions. The byId fallback
@@ -99,12 +96,11 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
   try {
     const parsed = JSON.parse(summaryContent) as {
       deepTextPages?: unknown;
-      deepTextPromptPortion?: unknown;
     };
     if (Array.isArray(parsed.deepTextPages) && parsed.deepTextPages.every(page => typeof page === "string")) {
       deepText = parsed.deepTextPages.join("\n\n");
     } else {
-      deepText = typeof parsed.deepTextPromptPortion === "string" ? parsed.deepTextPromptPortion : "";
+      deepText = "";
     }
   } catch {
     throw new Error("Summary file is not valid JSON");
@@ -178,7 +174,10 @@ function extractLines(
     if (gap <= 0) continue;
 
     const betweenText = segment.slice(curr.endIdx, next.startIdx);
-    const rawLines = betweenText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+    const rawLines = betweenText
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
 
     // Only assign up to `gap` IDs to avoid colliding with the next tagged entry.
     const count = Math.min(rawLines.length, gap);
@@ -308,10 +307,7 @@ export function hydrate(argv: string[]): void {
       warnOnMiss: true,
     });
   } catch (err) {
-    die(
-      `Failed to parse summary file: ${err instanceof Error ? err.message : String(err)}`,
-      HYDRATE_HELP,
-    );
+    die(`Failed to parse summary file: ${err instanceof Error ? err.message : String(err)}`, HYDRATE_HELP);
   }
 
   const { hydrated, misses } = result;

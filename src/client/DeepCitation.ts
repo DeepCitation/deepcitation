@@ -660,20 +660,20 @@ export class DeepCitation {
    * This is the recommended way to prepare attachments for LLM prompts.
    *
    * @param files - Array of files to upload with optional filenames and attachmentIds
-   * @returns Object containing fileDataParts for verification plus per-file deepTextPages and an optional legacy deepTextPromptPortion
+   * @returns Object containing fileDataParts for verification plus per-file deepTextPages keyed by attachmentId
    *
    * @example
    * ```typescript
-   * const { fileDataParts, deepTextPages, attachments } = await deepcitation.prepareAttachments([
+   * const { fileDataParts, deepTextPagesByAttachmentId, attachments } = await deepcitation.prepareAttachments([
    *   { file: pdfBuffer, filename: "report.pdf" },
    *   { file: invoiceBuffer, filename: "invoice.pdf" },
    * ]);
    *
-   * // deepTextPages preserves file boundaries as an array of page arrays
+   * // deepTextPagesByAttachmentId preserves attachment identity without relying on order
    * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
    *   systemPrompt,
    *   userPrompt,
-   *   deepTextPages,
+   *   deepTextPagesByAttachmentId,
    * });
    *
    * // Use fileDataParts later for verification
@@ -682,7 +682,7 @@ export class DeepCitation {
    */
   async prepareAttachments(files: FileInput[]): Promise<PrepareAttachmentsResult> {
     if (files.length === 0) {
-      return { fileDataParts: [], deepTextPages: [], deepTextPromptPortion: "", attachments: [] };
+      return { fileDataParts: [], deepTextPagesByAttachmentId: {}, attachments: [] };
     }
 
     this.logger.info?.("Preparing files", { count: files.length });
@@ -720,12 +720,12 @@ export class DeepCitation {
       pageImagesStatus: result.pageImagesStatus,
     }));
 
-    // Combine all file texts into per-file raw pages and a legacy prompt string.
-    const deepTextPages = uploadResults.map(({ result }) => result.deepTextPages);
-    const deepTextPromptPortion = uploadResults.map(({ result }) => result.deepTextPromptPortion ?? "").join("\n\n");
+    const deepTextPagesByAttachmentId = Object.fromEntries(
+      uploadResults.map(({ result }) => [result.attachmentId, result.deepTextPages]),
+    );
 
     this.logger.info?.("Prepare files complete", { count: fileDataParts.length });
-    return { fileDataParts, deepTextPages, deepTextPromptPortion, attachments };
+    return { fileDataParts, deepTextPagesByAttachmentId, attachments };
   }
 
   /**
