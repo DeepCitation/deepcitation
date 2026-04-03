@@ -92,21 +92,37 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
   const qualified = new Map<string, string>();
   const byId = new Map<number, string>();
 
-  let deepText: string;
+  let pages: string[];
   try {
     const parsed = JSON.parse(summaryContent) as {
       deepTextPages?: unknown;
     };
     if (Array.isArray(parsed.deepTextPages) && parsed.deepTextPages.every(page => typeof page === "string")) {
-      deepText = parsed.deepTextPages.join("\n\n");
+      pages = parsed.deepTextPages as string[];
     } else {
-      deepText = "";
+      return { qualified, byId };
     }
   } catch {
     throw new Error("Summary file is not valid JSON");
   }
 
-  if (!deepText) return { qualified, byId };
+  if (pages.length === 0) return { qualified, byId };
+
+  const deepText = pages.join("\n\n");
+
+  // Check if the text contains <page_number_N_index_I> tags (from deepTextPromptPortion).
+  // If not, the pages are raw deepTextPages entries — assign synthetic page IDs per array entry.
+  const hasPageTags = PAGE_TAG_RE.test(deepText);
+  PAGE_TAG_RE.lastIndex = 0; // Reset after .test()
+
+  if (!hasPageTags) {
+    // Each array entry is a separate page — assign page_number_N_index_N as the page ID.
+    for (let i = 0; i < pages.length; i++) {
+      const pageId = `page_number_${i + 1}_index_${i}`;
+      extractLines(pages[i], pageId, qualified, byId);
+    }
+    return { qualified, byId };
+  }
 
   // Walk through deepText, tracking the current page tag context.
   // Each <page_number_N_index_I> tag opens a new page segment; lines within
