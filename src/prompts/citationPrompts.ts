@@ -1,3 +1,5 @@
+import { removeLineIdMetadata, removePageNumberMetadata } from "../utils/textCleanup.js";
+
 /**
  * Citation Prompts
  *
@@ -177,7 +179,15 @@ export interface WrapCitationPromptOptions {
   systemPrompt: string;
   /** The original user prompt */
   userPrompt: string;
-  /** The extracted file text with metadata (from uploadFile response). Can be a single string or array for multiple files. */
+  /**
+   * Raw page text from prepareAttachments / uploadFile.
+   * A single file can pass string[]; multiple files can pass string[][].
+   */
+  deepTextPages?: string[] | string[][];
+  /**
+   * Legacy prompt-formatted text (kept for compatibility during migration).
+   * Can be a single string or array of strings for multiple files.
+   */
   deepTextPromptPortion?: string | string[];
   /** Whether to use audio/video citation format (with timestamps) instead of text-based (with line IDs) */
   isAudioVideo?: boolean;
@@ -186,7 +196,7 @@ export interface WrapCitationPromptOptions {
 export interface WrapCitationPromptResult {
   /** Enhanced system prompt with citation instructions */
   enhancedSystemPrompt: string;
-  /** Enhanced user prompt (currently passed through unchanged) */
+  /** Enhanced user prompt with raw pages rendered into the citation format when provided */
   enhancedUserPrompt: string;
 }
 
@@ -255,14 +265,14 @@ export function wrapSystemCitationPrompt(options: WrapSystemPromptOptions): stri
  * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
  *   systemPrompt: "You are a helpful assistant.",
  *   userPrompt: "Analyze this document and summarize it.",
- *   deepTextPromptPortion, // from uploadFile response
+ *   deepTextPages, // from uploadFile response
  * });
  *
  * // Multiple files
  * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
  *   systemPrompt: "You are a helpful assistant.",
  *   userPrompt: "Compare these documents.",
- *   deepTextPromptPortion: [deepTextPromptPortion1, deepTextPromptPortion2], // array of file texts
+ *   deepTextPages: [deepTextPages1, deepTextPages2], // array of per-file page arrays
  * });
  *
  * // Use enhanced prompts with your LLM
@@ -275,7 +285,7 @@ export function wrapSystemCitationPrompt(options: WrapSystemPromptOptions): stri
  * ```
  */
 export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCitationPromptResult {
-  const { systemPrompt, userPrompt, deepTextPromptPortion, isAudioVideo = false } = options;
+  const { systemPrompt, userPrompt, deepTextPages, deepTextPromptPortion, isAudioVideo = false } = options;
 
   const enhancedSystemPrompt = wrapSystemCitationPrompt({
     systemPrompt,
@@ -287,17 +297,73 @@ export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCita
   // Build enhanced user prompt with file content if provided
   let enhancedUserPrompt = userPrompt;
 
-  if (deepTextPromptPortion) {
-    const fileTexts = Array.isArray(deepTextPromptPortion) ? deepTextPromptPortion : [deepTextPromptPortion];
-    const fileContent = fileTexts.map(text => `\n${text}`).join("\n\n");
+  const renderedFileContent = deepTextPages
+    ? renderDeepTextPages(deepTextPages)
+    : deepTextPromptPortion
+      ? renderLegacyDeepTextPromptPortion(deepTextPromptPortion)
+      : "";
 
-    enhancedUserPrompt = `${fileContent}\n\n${reminder}\n\n${userPrompt}`;
+  if (renderedFileContent) {
+    enhancedUserPrompt = `${renderedFileContent}\n\n${reminder}\n\n${userPrompt}`;
   }
 
   return {
     enhancedSystemPrompt,
     enhancedUserPrompt,
   };
+}
+
+function renderDeepTextPages(deepTextPages: string[] | string[][]): string {
+  const files = Array.isArray(deepTextPages[0]) ? (deepTextPages as string[][]) : [deepTextPages as string[]];
+  const renderedFiles = files
+    .map((pages, fileIndex) => {
+      const attachmentId = `attachment-${fileIndex + 1}`;
+      return renderDeepTextPromptString(attachmentId, pages);
+    })
+    .filter(Boolean);
+
+  return renderedFiles.join("\n\n");
+}
+
+function renderLegacyDeepTextPromptPortion(deepTextPromptPortion: string | string[]): string {
+  const fileTexts = Array.isArray(deepTextPromptPortion) ? deepTextPromptPortion : [deepTextPromptPortion];
+  return fileTexts.map(text => `\n${text}`).join("\n\n");
+}
+
+function renderDeepTextPromptString(attachmentId: string, filePages: string[]): string {
+  let isValid = false;
+  const parts: string[] = [];
+
+  for (let i = 0; i < filePages.length; i++) {
+    const page = filePages[i] ?? "";
+    if (page.trim()) isValid = true;
+
+    const pageText = page.includes("<line id=") ? page : pageToLineTaggedText(page);
+    parts.push(`<page_number_${i + 1}_index_${i}>\n${pageText}\n</page_number_${i + 1}_index_${i}>\n\n`);
+  }
+
+  if (!isValid) return "";
+  return `<attachment id="${attachmentId}">${parts.join("").trim()}</attachment>`;
+}
+
+function pageToLineTaggedText(page: string): string {
+  const cleanPage = removeLineIdMetadata(removePageNumberMetadata(page));
+  const lines = cleanPage
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+
+  if (lines.length === 0) return "";
+
+  const lastIndex = lines.length - 1;
+  return lines
+    .map((line, index) => {
+      if (index === 0 || index === lastIndex || (index + 1) % 5 === 0) {
+        return `<line id="${index + 1}">${line}</line>`;
+      }
+      return line;
+    })
+    .join("\n");
 }
 
 /**
