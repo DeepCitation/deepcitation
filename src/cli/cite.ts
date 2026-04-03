@@ -7,6 +7,8 @@
  * citation JSON with a deterministic local search.
  */
 
+import { sanitizeForLog } from "../utils/logSafety.js";
+import { safeExec } from "../utils/regexSafety.js";
 import type { LineMap } from "./hydrate.js";
 
 /** A single indexed evidence line from the summary. */
@@ -57,9 +59,9 @@ export interface BodyMarker {
  *   - `[display label](cite:N)` — auto-gen will search evidence for anchor
  *   - `[display label](cite:N "anchor text")` — agent provides verbatim anchor
  *
- * The anchorHint (when provided) is the 1–4 word verbatim evidence substring
- * that should be used for the evidence highlight. The displayLabel is what the
- * reader sees in the report body.
+ * The anchorHint (when provided) is the verbatim evidence substring that
+ * should be used for the evidence highlight (full length is preserved).
+ * The displayLabel is what the reader sees in the report body.
  *
  * Deduplicates by id — first occurrence wins. Returns entries sorted by id.
  */
@@ -71,7 +73,7 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
   const seen = new Set<number>();
   const results: BodyMarker[] = [];
   let m: RegExpExecArray | null;
-  while ((m = re.exec(body)) !== null) {
+  while ((m = safeExec(re, body)) !== null) {
     // Groups 1-3 match double-quote or no-quote form; groups 4-6 match single-quote form
     const label = (m[1] ?? m[4]).trim();
     const id = parseInt(m[2] ?? m[5], 10);
@@ -79,12 +81,74 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
     if (!seen.has(id)) {
       seen.add(id);
       const marker: BodyMarker = { id, displayLabel: label };
-      if (anchor) marker.anchorHint = anchor.trim();
+      const trimmedAnchor = anchor?.trim();
+      if (trimmedAnchor) marker.anchorHint = trimmedAnchor;
       results.push(marker);
     }
   }
   return results.sort((a, b) => a.id - b.id);
 }
+
+/** Generic words skipped by Strategy 3 to avoid wrong-context single-word matches. */
+const GENERIC_WORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "with",
+  "from",
+  "that",
+  "this",
+  "which",
+  "will",
+  "shall",
+  "not",
+  "any",
+  "all",
+  "its",
+  "such",
+  "each",
+  "other",
+  "upon",
+  "into",
+  "than",
+  "may",
+  "has",
+  "are",
+  "was",
+  "were",
+  "been",
+  "have",
+  "had",
+  "but",
+  "can",
+  "investment",
+  "amount",
+  "rate",
+  "price",
+  "stock",
+  "shares",
+  "company",
+  "investor",
+  "rights",
+  "payment",
+  "event",
+  "means",
+  "pursuant",
+  "under",
+  "prior",
+  "subject",
+  "including",
+  "respect",
+  "date",
+  "time",
+  "number",
+  "voting",
+  "discount",
+  "value",
+  "equal",
+  "outstanding",
+  "applicable",
+]);
 
 /**
  * Finds the best matching evidence line for a display label.
@@ -152,16 +216,6 @@ export function findAnchorWithFallback(
   }
 
   // Strategy 3: Single distinctive word — prefer longer, capitalized words
-  // Skip generic words that match random passages instead of the intended concept
-  const GENERIC_WORDS = new Set([
-    "the", "and", "for", "with", "from", "that", "this", "which", "will", "shall",
-    "not", "any", "all", "its", "such", "each", "other", "upon", "into", "than",
-    "may", "has", "are", "was", "were", "been", "have", "had", "but", "can",
-    "investment", "amount", "rate", "price", "stock", "shares", "company",
-    "investor", "rights", "payment", "event", "means", "pursuant", "under",
-    "prior", "subject", "including", "respect", "date", "time", "number",
-    "voting", "discount", "value", "equal", "outstanding", "applicable",
-  ]);
   const sorted = [...words]
     .map(w => w.replace(/[^a-zA-Z0-9'-]/g, ""))
     .filter(w => w.length >= 3 && !GENERIC_WORDS.has(w.toLowerCase()))
@@ -178,7 +232,7 @@ export function findAnchorWithFallback(
     const needle = word.toLowerCase();
     const match = allLines.find(line => line.text.toLowerCase().includes(needle));
     if (match) {
-      console.error(`  Warning: single-word fallback "${word}" for "${displayLabel}"`);
+      console.error(`  Warning: single-word fallback "${sanitizeForLog(word)}" for "${sanitizeForLog(displayLabel)}"`);
       return { lineId: match.lineId, pageId: match.pageId, verbatimAnchor: word };
     }
   }

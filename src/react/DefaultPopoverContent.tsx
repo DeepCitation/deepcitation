@@ -1109,7 +1109,7 @@ export function DefaultPopoverContent({
                   maxWidth={viewState === "summary" ? summaryWidth : undefined}
                 />
               )}
-              {showDisplayLabelAnnotation && (
+              {showDisplayLabelAnnotation && fullPhrase && (
                 <div className="ml-[1.34375rem] mr-3 -mt-2 mb-3 text-[11px] text-dc-subtle-foreground">
                   {t("popover.displayedAs", { label: displayLabel })}
                 </div>
