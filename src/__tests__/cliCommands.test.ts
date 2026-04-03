@@ -18,17 +18,20 @@ const mockResolveAuth = jest.fn();
 const mockWriteCredentials = jest.fn();
 const mockDeleteCredentials = jest.fn();
 const mockOpenBrowser = jest.fn();
+const mockStartCallbackServer = jest.fn();
 
-jest.mock("../auth.js", () => {
-  const actual = jest.requireActual("../auth.js");
-  return {
-    ...actual,
-    resolveAuth: (...args: unknown[]) => mockResolveAuth(...args),
-    writeCredentials: (...args: unknown[]) => mockWriteCredentials(...args),
-    deleteCredentials: (...args: unknown[]) => mockDeleteCredentials(...args),
-    openBrowser: (...args: unknown[]) => mockOpenBrowser(...args),
-  };
-});
+jest.mock("../auth.js", () => ({
+  CREDENTIALS_PATH: "/tmp/credentials.json",
+  IS_COWORK: false,
+  generateNonce: () => "nonce",
+  maskKey: (key: string) => key,
+  sourceLabel: (source: { kind: string; path?: string }) => source.path ?? source.kind,
+  resolveAuth: (...args: unknown[]) => mockResolveAuth(...args),
+  writeCredentials: (...args: unknown[]) => mockWriteCredentials(...args),
+  deleteCredentials: (...args: unknown[]) => mockDeleteCredentials(...args),
+  openBrowser: (...args: unknown[]) => mockOpenBrowser(...args),
+  startCallbackServer: (...args: unknown[]) => mockStartCallbackServer(...args),
+}));
 
 const mockPrepareUrl = jest.fn();
 const mockUploadFile = jest.fn();
@@ -568,7 +571,7 @@ describe("prepare command", () => {
     try {
       mockPrepareUrl.mockResolvedValue({
         attachmentId: "att-123",
-        deepTextPromptPortion: "some text",
+        deepTextPages: ["some text"],
         metadata: { pageCount: 1, textByteSize: 1024 },
       });
 
@@ -589,7 +592,7 @@ describe("prepare command", () => {
     try {
       mockPrepareUrl.mockResolvedValue({
         attachmentId: "att-123",
-        deepTextPromptPortion: "some text",
+        deepTextPages: ["some text"],
         metadata: { pageCount: 1, textByteSize: 1024 },
       });
 
@@ -609,7 +612,7 @@ describe("prepare command", () => {
     try {
       mockPrepareUrl.mockResolvedValue({
         attachmentId: "att-123",
-        deepTextPromptPortion: "deep text here",
+        deepTextPages: ["deep text here"],
         metadata: { pageCount: 2, textByteSize: 2048 },
       });
 
@@ -617,7 +620,7 @@ describe("prepare command", () => {
 
       const summary = JSON.parse(stdout);
       expect(summary.attachmentId).toBe("att-123");
-      expect(summary.deepTextPromptPortion).toBe("deep text here");
+      expect(summary.deepTextPages).toEqual(["deep text here"]);
     } finally {
       process.chdir(origCwd);
     }
@@ -631,7 +634,7 @@ describe("prepare command", () => {
     try {
       mockPrepareUrl.mockResolvedValue({
         attachmentId: "att-123",
-        deepTextPromptPortion: "text",
+        deepTextPages: ["text"],
         metadata: { pageCount: 1, textByteSize: 100 },
       });
 
@@ -651,7 +654,7 @@ describe("prepare command", () => {
     try {
       mockPrepareUrl.mockResolvedValue({
         attachmentId: "att-123",
-        deepTextPromptPortion: "text",
+        deepTextPages: ["text"],
         metadata: { pageCount: 1, textByteSize: 100 },
       });
 
@@ -673,7 +676,7 @@ describe("prepare command", () => {
     try {
       mockUploadFile.mockResolvedValue({
         attachmentId: "att-456",
-        deepTextPromptPortion: "text",
+        deepTextPages: ["text"],
         metadata: { pageCount: 3, textByteSize: 4096 },
       });
 
@@ -770,7 +773,7 @@ describe("getAttachment command", () => {
       status: "ready",
       pageCount: 5,
       verifications: { k: { status: "found" } },
-      deepTextPromptPortion: "big text",
+      deepTextPages: ["big text"],
       pageTexts: { "1": ["line1"] },
     });
 
@@ -778,7 +781,7 @@ describe("getAttachment command", () => {
     const parsed = JSON.parse(stdout);
     expect(parsed.status).toBe("ready");
     // Large fields should be stripped by default
-    expect(parsed.deepTextPromptPortion).toBeUndefined();
+    expect(parsed.deepTextPages).toBeUndefined();
     expect(parsed.pageTexts).toBeUndefined();
   });
 
@@ -787,13 +790,13 @@ describe("getAttachment command", () => {
       status: "ready",
       pageCount: 5,
       verifications: {},
-      deepTextPromptPortion: "big text",
+      deepTextPages: ["big text"],
       pageTexts: { "1": ["line1"] },
     });
 
     const { stdout } = await captureOutput(() => getAttachment(["abc123", "--deep-text", "--page-texts"]));
     const parsed = JSON.parse(stdout);
-    expect(parsed.deepTextPromptPortion).toBe("big text");
+    expect(parsed.deepTextPages).toEqual(["big text"]);
     expect(parsed.pageTexts).toBeDefined();
   });
 
@@ -825,16 +828,19 @@ describe("openBillingDashboard", () => {
 
 const SINGLE_PAGE_SUMMARY = JSON.stringify({
   attachmentId: "att-123",
-  deepTextPromptPortion: `<page_number_1_index_0>
+  deepTextPages: [
+    `<page_number_1_index_0>
 <line id="1">The Discount Rate is 80% of the lowest price per share.</line>
 <line id="2">The Purchase Amount is the amount invested.</line>
 <line id="3">A Dissolution Event means a liquidation.</line>
 </page_number_1_index_0>`,
+  ],
 });
 
 const MULTI_PAGE_SUMMARY = JSON.stringify({
   attachmentId: "att-456",
-  deepTextPromptPortion: `<page_number_1_index_0>
+  deepTextPages: [
+    `<page_number_1_index_0>
 <line id="1">Page one line one.</line>
 <line id="2">Page one line two.</line>
 </page_number_1_index_0>
@@ -842,6 +848,7 @@ const MULTI_PAGE_SUMMARY = JSON.stringify({
 <line id="1">Page two line one.</line>
 <line id="3">Page two line three.</line>
 </page_number_2_index_0>`,
+  ],
 });
 
 describe("parseSummaryToLineMap", () => {
@@ -871,16 +878,18 @@ describe("parseSummaryToLineMap", () => {
   it("handles line text containing special characters", () => {
     const summary = JSON.stringify({
       attachmentId: "att-789",
-      deepTextPromptPortion: `<page_number_1_index_0>
+      deepTextPages: [
+        `<page_number_1_index_0>
 <line id="1">Revenue: $1.2B (up 45% YoY) — "record quarter"</line>
 </page_number_1_index_0>`,
+      ],
     });
     const { byId } = parseSummaryToLineMap(summary);
     expect(byId.get(1)).toBe(`Revenue: $1.2B (up 45% YoY) — "record quarter"`);
   });
 
-  it("returns empty maps for empty deepTextPromptPortion", () => {
-    const summary = JSON.stringify({ attachmentId: "att-empty", deepTextPromptPortion: "" });
+  it("returns empty maps for empty deepTextPages", () => {
+    const summary = JSON.stringify({ attachmentId: "att-empty", deepTextPages: [] });
     const { qualified, byId } = parseSummaryToLineMap(summary);
     expect(qualified.size).toBe(0);
     expect(byId.size).toBe(0);

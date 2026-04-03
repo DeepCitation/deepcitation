@@ -166,30 +166,28 @@ More content.`;
     expect(result.enhancedUserPrompt).toContain("Page 2:");
   });
 
-  describe("deepTextPromptPortion handling", () => {
-    it("includes single string deepTextPromptPortion in user prompt", () => {
-      const deepTextPromptPortion =
-        "<attachment_text>\n[L1] This is the document content.\n[L2] Second line here.\n</attachment_text>";
+  describe("deepTextPages handling", () => {
+    it("includes single deepTextPages entry in user prompt", () => {
+      const deepTextPages = ["This is the document content.\nSecond line here."];
       const result = wrapCitationPrompt({
         systemPrompt: "You are a helpful assistant.",
         userPrompt: "Summarize this document.",
-        deepTextPromptPortion,
+        deepTextPages,
       });
 
       expect(result.enhancedUserPrompt).toContain("This is the document content.");
       expect(result.enhancedUserPrompt).toContain("Second line here.");
+      expect(result.enhancedUserPrompt).toContain("<page_number_1_index_0>");
+      expect(result.enhancedUserPrompt).toContain('<line id="1">This is the document content.</line>');
       expect(result.enhancedUserPrompt).toContain("Summarize this document.");
     });
 
-    it("includes array of deepTextPromptPortion strings in user prompt", () => {
-      const deepTextPromptPortion = [
-        "<attachment_text attachment_id='file1'>\n[L1] Content from first file.\n</attachment_text>",
-        "<attachment_text attachment_id='file2'>\n[L1] Content from second file.\n</attachment_text>",
-      ];
+    it("includes array of deepTextPages arrays in user prompt", () => {
+      const deepTextPages = [["Content from first file."], ["Content from second file."]];
       const result = wrapCitationPrompt({
         systemPrompt: "You are a helpful assistant.",
         userPrompt: "Compare these documents.",
-        deepTextPromptPortion,
+        deepTextPages,
       });
 
       expect(result.enhancedUserPrompt).toContain("Content from first file.");
@@ -197,60 +195,48 @@ More content.`;
       expect(result.enhancedUserPrompt).toContain("Compare these documents.");
     });
 
-    it("places deepTextPromptPortion before user prompt", () => {
-      const deepTextPromptPortion = "[FILE CONTENT HERE]";
+    it("places deepTextPages content before user prompt", () => {
+      const deepTextPages = [["FILE CONTENT HERE"]];
       const result = wrapCitationPrompt({
         systemPrompt: "System",
         userPrompt: "User question",
-        deepTextPromptPortion,
+        deepTextPages,
       });
 
-      const fileContentIndex = result.enhancedUserPrompt.indexOf("[FILE CONTENT HERE]");
+      const fileContentIndex = result.enhancedUserPrompt.indexOf("FILE CONTENT HERE");
       const userPromptIndex = result.enhancedUserPrompt.indexOf("User question");
       expect(fileContentIndex).toBeLessThan(userPromptIndex);
     });
 
-    it("handles empty string deepTextPromptPortion", () => {
+    it("handles empty array deepTextPages", () => {
+      const result = wrapCitationPrompt({
+        systemPrompt: "System",
+        userPrompt: "User",
+        deepTextPages: [],
+      });
+
+      expect(result.enhancedUserPrompt).toBe("User");
+    });
+
+    it("falls back to legacy deepTextPromptPortion for compatibility", () => {
+      const result = wrapCitationPrompt({
+        systemPrompt: "System",
+        userPrompt: "User",
+        deepTextPromptPortion: "File content here",
+      });
+
+      expect(result.enhancedUserPrompt).toContain("File content here");
+      expect(result.enhancedUserPrompt).toContain("<<<CITATION_DATA>>>");
+    });
+
+    it("handles empty legacy deepTextPromptPortion", () => {
       const result = wrapCitationPrompt({
         systemPrompt: "System",
         userPrompt: "User",
         deepTextPromptPortion: "",
       });
-
-      // Empty string is falsy, so user prompt should be unchanged
       expect(result.enhancedUserPrompt).toBe("User");
     });
-
-    it("handles empty array deepTextPromptPortion", () => {
-      const result = wrapCitationPrompt({
-        systemPrompt: "System",
-        userPrompt: "User",
-        deepTextPromptPortion: [],
-      });
-
-      // Empty array produces empty content, user prompt should have some separator
-      expect(result.enhancedUserPrompt).toContain("User");
-    });
-
-    it("handles undefined deepTextPromptPortion", () => {
-      const result = wrapCitationPrompt({
-        systemPrompt: "System",
-        userPrompt: "User",
-        deepTextPromptPortion: undefined,
-      });
-
-      expect(result.enhancedUserPrompt).toBe("User");
-    });
-  });
-
-  it("includes reminder in user prompt when deepTextPromptPortion is provided", () => {
-    const result = wrapCitationPrompt({
-      systemPrompt: "System",
-      userPrompt: "Question",
-      deepTextPromptPortion: "File content here",
-    });
-
-    expect(result.enhancedUserPrompt).toContain("<<<CITATION_DATA>>>");
   });
 });
 

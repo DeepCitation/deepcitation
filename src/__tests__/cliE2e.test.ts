@@ -34,7 +34,7 @@ function getClient(): DeepCitation {
 interface PrepareResult {
   attachmentId: string;
   metadata: { pageCount: number; textByteSize: number };
-  deepTextPromptPortion: string;
+  deepTextPages: string[];
 }
 
 interface VerifyResult {
@@ -60,7 +60,7 @@ describe("E2E: prepare", () => {
       return {
         attachmentId: res.attachmentId,
         metadata: { pageCount: res.metadata.pageCount, textByteSize: res.metadata.textByteSize },
-        deepTextPromptPortion: res.deepTextPromptPortion,
+        deepTextPages: res.deepTextPages,
       };
     });
 
@@ -68,23 +68,24 @@ describe("E2E: prepare", () => {
     expect(typeof result.attachmentId).toBe("string");
     expect(result.metadata.pageCount).toBeGreaterThan(0);
     expect(result.metadata.textByteSize).toBeGreaterThan(0);
-    expect(result.deepTextPromptPortion).toContain("Example Domain");
+    expect(result.deepTextPages.join("\n\n")).toContain("Example Domain");
   });
 
-  (canRun ? it : it.skip)("deepTextPromptPortion contains page and line tags", async () => {
+  (canRun ? it : it.skip)("deepTextPages contains page and line tags", async () => {
     const result = await cachedFixture<PrepareResult>("prepare-example-com", async () => {
       const dc = getClient();
       const res = await dc.prepareUrl({ url: "https://example.com", unsafeFastUrlOutput: true });
       return {
         attachmentId: res.attachmentId,
         metadata: { pageCount: res.metadata.pageCount, textByteSize: res.metadata.textByteSize },
-        deepTextPromptPortion: res.deepTextPromptPortion,
+        deepTextPages: res.deepTextPages,
       };
     });
 
     // Verify the structure that the /verify skill depends on
-    expect(result.deepTextPromptPortion).toMatch(/<page_number_\d+_index_\d+>/);
-    expect(result.deepTextPromptPortion).toMatch(/<line id="\d+">/);
+    const deepText = result.deepTextPages.join("\n\n");
+    expect(deepText).toMatch(/<page_number_\d+_index_\d+>/);
+    expect(deepText).toMatch(/<line id="\d+">/);
   });
 });
 
@@ -191,10 +192,10 @@ describe("E2E: full pipeline", () => {
 
     // Verify the prepare output has what the skill needs
     expect(prepare.attachmentId).toBeTruthy();
-    expect(prepare.deepTextPromptPortion.length).toBeGreaterThan(50);
+    expect(prepare.deepTextPages.join("\n\n").length).toBeGreaterThan(50);
 
     // Simulate what the skill does: extract text, build citation, verify
-    const deepText = prepare.deepTextPromptPortion;
+    const deepText = prepare.deepTextPages.join("\n\n");
 
     // Find a real phrase in the deep text
     const lineMatch = deepText.match(/<line id="\d+">([^<]+)<\/line>/);
