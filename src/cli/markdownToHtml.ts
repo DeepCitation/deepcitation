@@ -49,12 +49,14 @@ export interface MarkdownToHtmlOptions {
 // ── Inline formatting ──────────────────────────────────────────────
 
 function inlineFormat(text: string): string {
+  // Strip NUL bytes — we use \x00 as placeholder delimiters below.
+  text = text.replace(/\x00/g, "");
   // Extract cite links BEFORE escHtml — title strings contain quotes and parens
   // that escHtml would encode, breaking the regex. We replace cite links with
   // placeholder tokens, escHtml the rest, then restore them.
   const citePlaceholders: string[] = [];
   const withPlaceholders = text.replace(
-    /\[([^\][]+)\]\(cite:(\d+)(?:\s+"(?:[^"\\]|\\.)*")?\)/g,
+    /\[([^\][]+)\]\(cite:(\d+)(?:\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?\s*\)/g,
     (_m, label: string, id: string) => {
       const idx = citePlaceholders.length;
       citePlaceholders.push(`<span data-cite="${id}">${escHtml(label)}</span>`);

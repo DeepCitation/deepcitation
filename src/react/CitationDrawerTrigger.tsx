@@ -373,7 +373,7 @@ export function StackedStatusIcons({
           <div
             key={flatItem.item.citationKey}
             className={cn(
-              "relative transition-all duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]",
+              "relative transition-[margin-left,opacity,filter] duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]",
               onIconClick && "cursor-pointer",
               isActive && "ring-2 ring-current ring-offset-1 rounded-full",
               !isActive && isOffPage && "opacity-25 grayscale",
@@ -398,7 +398,12 @@ export function StackedStatusIcons({
             }
             tabIndex={onIconClick ? 0 : undefined}
             role={onIconClick ? "button" : undefined}
-            aria-label={onIconClick ? getTitleForCitation(flatItem, t) : undefined}
+            aria-pressed={onIconClick ? isActive : undefined}
+            aria-label={
+              onIconClick
+                ? `${getTitleForCitation(flatItem, t)}${isOffPage ? ` ${t("aria.citationOffPage")}` : ""}`
+                : undefined
+            }
           >
             <StatusIconChip
               verification={flatItem.item.verification}

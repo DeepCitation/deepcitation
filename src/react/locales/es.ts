@@ -114,6 +114,7 @@ export const esOverrides = {
   "aria.sourceGroupWithDomainAndCount_other": "Fuente: {sourceName} ({sourceDomain}), {count} citas",
   "aria.toggleAnnotation.show": "Mostrar anotación para: {label}",
   "aria.toggleAnnotation.hide": "Ocultar anotación para: {label}",
+  "aria.citationOffPage": "(otra página)",
   "aria.closeImageView": "Cerrar vista de imagen",
   "aria.closePageView": "Cerrar vista de página",
   "aria.closePageViewNum": "Cerrar vista de página {pageNumber}",

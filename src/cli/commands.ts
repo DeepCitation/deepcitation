@@ -769,8 +769,9 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
           const { lineId, pageId, verbatimAnchor } = found;
           // Anchor text for the evidence highlight: use a short anchor hint (≤4 words)
           // if provided; otherwise truncate the search result to ≤4 words.
-          const hintWords = anchorHint?.trim().split(/\s+/);
-          const shortHint = hintWords && hintWords.length <= 4 ? anchorHint!.trim() : undefined;
+          const trimmedHint = anchorHint?.trim();
+          const hintWords = trimmedHint?.split(/\s+/);
+          const shortHint = hintWords && hintWords.length <= 4 ? trimmedHint : undefined;
           const anchorWords = verbatimAnchor.split(/\s+/);
           const truncatedAnchor = anchorWords.length > 4 ? anchorWords.slice(0, 4).join(" ") : verbatimAnchor;
           const anchorText = shortHint ?? truncatedAnchor;

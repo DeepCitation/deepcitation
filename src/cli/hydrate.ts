@@ -116,7 +116,7 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
   PAGE_TAG_RE.lastIndex = 0; // Reset after .test()
 
   if (!hasPageTags) {
-    // Each array entry is a separate page — assign page_number_N_index_N as the page ID.
+    // Each array entry is a separate page — assign page_number_{i+1}_index_{i} (1-based page, 0-based index).
     for (let i = 0; i < pages.length; i++) {
       const pageId = `page_number_${i + 1}_index_${i}`;
       extractLines(pages[i], pageId, qualified, byId);

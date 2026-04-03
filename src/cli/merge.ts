@@ -99,7 +99,7 @@ function toCompact(c: CitationData): Record<string, unknown> {
  */
 function findMaxCiteId(body: string, limit: number): number {
   // Matches both (cite:N) and (cite:N "anchor") syntaxes
-  const re = /\(cite:(\d+)(?:\s+"[^"]*")?\)/g;
+  const re = /\(cite:(\d+)(?:\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?\s*\)/g;
   let max = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(body)) !== null) {
@@ -115,7 +115,7 @@ function findMaxCiteId(body: string, limit: number): number {
  */
 function rewriteBCiteIds(bodyB: string, maxAId: number): string {
   const ids = new Set<number>();
-  const re = /\(cite:(\d+)(?:\s+"[^"]*")?\)/g;
+  const re = /\(cite:(\d+)(?:\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?\s*\)/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(bodyB)) !== null) {
     const n = parseInt(m[1], 10);
@@ -126,7 +126,7 @@ function rewriteBCiteIds(bodyB: string, maxAId: number): string {
   let result = bodyB;
   for (const oldId of sorted) {
     // Use regex replacement to handle both (cite:N) and (cite:N "anchor") forms
-    const oldRe = new RegExp(`\\(cite:${oldId}(\\s+"[^"]*")?\\)`, "g");
+    const oldRe = new RegExp(`\\(cite:${oldId}(\\s+(?:"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'))?\\s*\\)`, "g");
     result = result.replace(oldRe, (_match, title) => `(cite:${maxAId + oldId - 99}${title ?? ""})`);
   }
   return result;
@@ -182,7 +182,7 @@ export function mergeSections({ sectionAContent, sectionBContent }: MergeOptions
   for (const [oldId, newId] of renumberMap) {
     if (oldId !== newId) {
       // Handle both (cite:N) and (cite:N "anchor") syntaxes
-      const oldRe = new RegExp(`\\(cite:${oldId}(\\s+"[^"]*")?\\)`, "g");
+      const oldRe = new RegExp(`\\(cite:${oldId}(\\s+(?:"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'))?\\s*\\)`, "g");
       bodyB = bodyB.replace(oldRe, (_match, title) => `(cite:${newId}${title ?? ""})`);
     }
   }
@@ -214,7 +214,7 @@ export function mergeSections({ sectionAContent, sectionBContent }: MergeOptions
 
     if (matchedAId !== undefined) {
       // Replace all occurrences of this B id in bodyB with A's id
-      const dedupRe = new RegExp(`\\(cite:${b.id}(\\s+"[^"]*")?\\)`, "g");
+      const dedupRe = new RegExp(`\\(cite:${b.id}(\\s+(?:"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*'))?\\s*\\)`, "g");
       bodyB = bodyB.replace(dedupRe, (_match, title) => `(cite:${matchedAId}${title ?? ""})`);
       // Drop from output (deduplicated)
     } else {
