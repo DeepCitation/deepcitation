@@ -381,7 +381,9 @@ describe("markdownToHtml — cite: link format", () => {
   it("converts [anchor](cite:N) to data-cite span", () => {
     const result = markdownToHtml("The [Discount Rate](cite:2) is applied.", { style: "plain" });
     expect(result).toContain('<span data-cite="2">Discount Rate</span>');
-    expect(result).not.toContain("href=");
+    // cite: links must NOT produce anchor elements (href="#" = fallback for unrecognized schemes)
+    expect(result).not.toContain('href="#"');
+    expect(result).not.toContain("href=\"cite:");
   });
 
   it("handles multiple cite: links in the same paragraph", () => {

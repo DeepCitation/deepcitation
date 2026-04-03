@@ -59,7 +59,12 @@ function inlineFormat(text: string): string {
     /\[([^\][]+)\]\(cite:(\d+)(?:\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?\s*\)/g,
     (_m, label: string, id: string) => {
       const idx = citePlaceholders.length;
-      citePlaceholders.push(`<span data-cite="${id}">${escHtml(label)}</span>`);
+      const labelHtml = escHtml(label)
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.+?)\*/g, "<em>$1</em>");
+      citePlaceholders.push(`<span data-cite="${id}">${labelHtml}</span>`);
       return `\x00CITE${idx}\x00`;
     },
   );

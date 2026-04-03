@@ -853,7 +853,7 @@ function DrawerSourceHeading({
       )}
 
       {/* Source label — identical text to CitationDrawerTrigger */}
-      <h2 className="text-base font-semibold text-dc-foreground truncate">{displayLabel}</h2>
+      <h2 className="text-base font-semibold text-dc-foreground">{displayLabel}</h2>
     </div>
   );
 }
@@ -1304,13 +1304,13 @@ function OpenCitationDrawer({
             <div className="shrink min-w-0 max-w-[80%]">
               <DrawerSourceHeading citationGroups={resolvedGroups} label={label} fallbackTitle={resolvedTitle} />
             </div>
-            {/* Single consolidated indicator row — icons are larger and spaced out for easy tapping */}
+            {/* Status overview icons — always shown when drawer has citations */}
             {totalCitations > 0 && indicatorVariant !== "none" && (
-              <div className="shrink-0" data-testid="drawer-header-indicators">
+              <div className="shrink-0">
                 <StackedStatusIcons
                   flatCitations={flatCitations}
                   isHovered={false}
-                  maxIcons={8}
+                  maxIcons={5}
                   hoveredIndex={null}
                   onIconHover={() => {}}
                   onIconLeave={() => {}}
@@ -1326,6 +1326,25 @@ function OpenCitationDrawer({
                   iconGap="0.125rem"
                   onPageIndices={onPageIndices}
                 />
+              </div>
+            )}
+            {/* Per-page citation buttons — only when inline page image is open */}
+            {headerInline && citationsOnActivePage.length > 0 && (
+              <div className="shrink-0 flex items-center gap-1" data-testid="drawer-header-indicators">
+                {citationsOnActivePage.map(item => (
+                  <button
+                    key={item.citationKey}
+                    type="button"
+                    aria-pressed={activeIndicatorKey === item.citationKey}
+                    onClick={() =>
+                      setActiveIndicatorKey(prev => (prev === item.citationKey ? null : item.citationKey))
+                    }
+                    className="p-1 rounded transition-colors hover:bg-dc-muted"
+                    aria-label={item.citation.anchorText ?? item.citationKey}
+                  >
+                    <span className="w-2 h-2 rounded-full block bg-current opacity-70" />
+                  </button>
+                ))}
               </div>
             )}
             <div className="flex-1" />
