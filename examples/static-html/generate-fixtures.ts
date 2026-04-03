@@ -41,7 +41,7 @@ async function main() {
 
   // ── Step 1: Prepare URL ───────────────────────────────────────────────
   console.log(`📄 Preparing URL: ${SOURCE_URL}`);
-  const { attachmentId, deepTextPromptPortion } = await deepcitation.prepareUrl({
+  const { attachmentId, deepTextPages } = await deepcitation.prepareUrl({
     url: SOURCE_URL,
   });
   console.log(`   Attachment ID: ${attachmentId}`);
@@ -50,7 +50,7 @@ async function main() {
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt: "You are a helpful assistant. Answer questions about the provided documents accurately and cite your sources.",
     userPrompt: "Summarize the key information shown in this document.",
-    deepTextPromptPortion,
+    deepTextPages,
   });
 
   console.log(`🤖 Calling ${MODEL}...`);

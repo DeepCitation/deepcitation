@@ -69,7 +69,7 @@ src/
 
 ### 1. Upload
 
-User uploads a PDF via `/api/upload`. The server calls `dc.prepareAttachments()` and returns a `FileDataPart` containing the `attachmentId` and `deepTextPromptPortion`.
+User uploads a PDF via `/api/upload`. The server calls `dc.prepareAttachments()` and returns a `FileDataPart` containing the `attachmentId` and `deepTextPages`.
 
 ### 2. Chat + Verify (Single Stream)
 

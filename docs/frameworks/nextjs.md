@@ -94,15 +94,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: uploadError }, { status: 400 });
   }
 
-  const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+  const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
     { file: buffer, filename: file.name },
   ]);
 
   // Return both — client stores fileDataPart for verification tracking,
-  // deepTextPromptPortion for injecting into subsequent LLM prompts.
+  // deepTextPages for injecting into subsequent LLM prompts.
   return NextResponse.json({
     fileDataPart: fileDataParts[0],
-    deepTextPromptPortion,
+    deepTextPages,
   });
 }
 ```
@@ -117,7 +117,7 @@ import { convertToModelMessages, streamText, type UIMessage } from "ai";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const { messages, deepTextPromptPortions = [] } = await req.json();
+  const { messages, deepTextPages = [] } = await req.json();
 
   const uiMessages = messages as UIMessage[];
   const lastUserMessage = uiMessages.findLast(m => m.role === "user");
@@ -127,13 +127,13 @@ export async function POST(req: Request) {
       .map(p => p.text)
       .join("") ?? "";
 
-  const hasDocuments = deepTextPromptPortions.length > 0;
+  const hasDocuments = deepTextPages.length > 0;
 
   const { enhancedSystemPrompt, enhancedUserPrompt } = hasDocuments
     ? wrapCitationPrompt({
         systemPrompt: "You are a helpful assistant that cites sources.",
         userPrompt: lastUserContent,
-        deepTextPromptPortion: deepTextPromptPortions,
+        deepTextPages,
       })
     : {
         enhancedSystemPrompt: "You are a helpful assistant.",
@@ -197,7 +197,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 export default function Home() {
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
-  const [deepTextPromptPortions, setDeepTextPromptPortions] = useState<string[]>([]);
+  const [deepTextPages, setDeepTextPages] = useState<string[][]>([]);
   const [messageVerifications, setMessageVerifications] = useState<
     Record<string, { citations: Record<string, Citation>; verifications: Record<string, Verification> }>
   >({});
@@ -205,7 +205,7 @@ export default function Home() {
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     streamProtocol: "text",
-    body: { deepTextPromptPortions },
+    body: { deepTextPages },
   });
 
   // Stable event handler — not affected by stale closure over isLoading/messages
@@ -252,7 +252,7 @@ export default function Home() {
     const data = await res.json();
     if (res.ok) {
       setFileDataParts(prev => [...prev, data.fileDataPart]);
-      setDeepTextPromptPortions(prev => [...prev, data.deepTextPromptPortion]);
+      setDeepTextPages(prev => [...prev, data.deepTextPages]);
     }
   };
 

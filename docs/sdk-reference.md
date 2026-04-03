@@ -52,7 +52,7 @@ const dc = new DeepCitation({
 Upload one or more files and extract text with line IDs for LLM prompts. This is the primary method for preparing source documents.
 
 ```typescript
-const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
   { file: pdfBuffer, filename: "report.pdf" },
   { file: imageBuffer, filename: "chart.png" },
 ]);
@@ -64,7 +64,7 @@ const attachmentId = fileDataParts[0].attachmentId;
 |:----------|:-----|:------------|
 | `files` | `FileInput[]` | Array of `{ file, filename }` objects. `file` can be `File`, `Blob`, or `Buffer`. |
 
-**Returns**: `PrepareAttachmentsResult` — `{ fileDataParts: PreparedAttachment[], deepTextPromptPortion: string }`
+**Returns**: `PrepareAttachmentsResult` — `{ fileDataParts: PreparedAttachment[], deepTextPages: string[][], deepTextPromptPortion?: string }`
 
 ---
 
@@ -87,7 +87,7 @@ const result = await dc.uploadFile(pdfBuffer, {
 | `options.attachmentId` | `string` | Custom attachment ID (auto-generated if omitted) |
 | `options.endUserId` | `string` | Your end-user identifier for usage attribution |
 
-**Returns**: `UploadFileResponse`
+**Returns**: `UploadFileResponse` — includes canonical `deepTextPages` plus optional compatibility `deepTextPromptPortion`
 
 ---
 
@@ -111,7 +111,7 @@ const result = await dc.prepareUrl({
 | `options.skipCache` | `boolean` | Force fresh conversion, bypass URL cache (default: `false`) |
 | `options.endUserId` | `string` | Your end-user identifier |
 
-**Returns**: `UploadFileResponse` (includes `urlSource` and `urlCache` fields)
+**Returns**: `UploadFileResponse` (includes `deepTextPages`, `urlSource`, and `urlCache` fields)
 
 ---
 
@@ -144,7 +144,7 @@ const result = await dc.prepareConvertedFile({
 });
 ```
 
-**Returns**: `UploadFileResponse`
+**Returns**: `UploadFileResponse` (includes `deepTextPages`)
 
 ---
 
@@ -208,7 +208,7 @@ Retrieve full attachment metadata including page renders, verifications, and ext
 const attachment = await dc.getAttachment("abc123");
 ```
 
-**Returns**: `AttachmentResponse`
+**Returns**: `AttachmentResponse` (includes canonical `deepTextPages` plus optional legacy `deepTextPromptPortion`)
 
 ---
 

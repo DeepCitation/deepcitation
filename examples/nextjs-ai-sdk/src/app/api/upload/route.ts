@@ -46,16 +46,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Upload to DeepCitation
-    const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([{ file: buffer, filename: file.name }]);
+    const { fileDataParts, deepTextPages } = await dc.prepareAttachments([{ file: buffer, filename: file.name }]);
 
     const fileDataPart = fileDataParts[0];
     console.log(`Uploaded: ${file.name} (${fileDataPart.attachmentId})`);
 
-    // Return fileDataPart for verification tracking + deepTextPromptPortion for LLM prompts
+    // Return fileDataPart for verification tracking + deepTextPages for LLM prompts
     return NextResponse.json({
       success: true,
       fileDataPart,
-      deepTextPromptPortion,
+      deepTextPages,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";

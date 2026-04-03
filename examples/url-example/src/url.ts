@@ -91,14 +91,14 @@ async function main() {
   }
 
   let attachmentId: string;
-  let deepTextPromptPortion: string;
+  let deepTextPages: string[];
 
   try {
     // Single call to prepare URL - handles conversion and text extraction
     const result = await deepcitation.prepareUrl({ url, unsafeFastUrlOutput });
 
     attachmentId = result.attachmentId;
-    deepTextPromptPortion = result.deepTextPromptPortion;
+    deepTextPages = result.deepTextPages;
 
     console.log(`  Filename: ${result.metadata.filename}`);
     console.log(`  Pages: ${result.metadata.pageCount}`);
@@ -136,7 +136,7 @@ async function main() {
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt,
     userPrompt: userQuestion,
-    deepTextPromptPortion,
+    deepTextPages,
   });
 
   console.log(`\nQuerying ${model}...\n`);

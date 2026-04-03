@@ -72,9 +72,9 @@ async function answerWithCitations(pdfPath: string, question: string) {
   const fileBuffer = readFileSync(pdfPath);
 
   // 2. Upload to DeepCitation
-  //    Returns deepTextPromptPortion: the document content formatted for
-  //    citation-aware prompting, and fileDataParts for verification.
-  const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+  //    Returns deepTextPages: the raw document pages for citation-aware
+  //    prompting, and fileDataParts for verification.
+  const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
     { file: fileBuffer, filename: pdfPath.split("/").pop()! },
   ]);
 
@@ -84,7 +84,7 @@ async function answerWithCitations(pdfPath: string, question: string) {
     systemPrompt:
       "You are a precise research assistant. Answer questions based only on the provided documents.",
     userPrompt: question,
-    deepTextPromptPortion,
+    deepTextPages,
   });
 
   // 4. Call your LangChain model — no special DC integration needed here
@@ -158,7 +158,7 @@ const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY! });
 interface PipelineInput {
   question: string;
   // Passed in from the pre-step (document preparation)
-  deepTextPromptPortion: string;
+  deepTextPages: string[];
   attachmentId: string;
 }
 
@@ -177,7 +177,7 @@ const citationChain = RunnableSequence.from([
         systemPrompt:
           "You are a precise research assistant. Cite sources for every factual claim.",
         userPrompt: input.question,
-        deepTextPromptPortion: input.deepTextPromptPortion,
+        deepTextPages: input.deepTextPages,
       });
       return {
         system: enhancedSystemPrompt,
@@ -202,7 +202,7 @@ async function runCitationPipeline(
   question: string,
 ): Promise<PipelineOutput> {
   // Pre-step: prepare DC attachment (runs before the chain)
-  const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+  const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
     { file: fileBuffer, filename },
   ]);
 
@@ -211,7 +211,7 @@ async function runCitationPipeline(
   // Run the inner chain
   const answer = await citationChain.invoke({
     question,
-    deepTextPromptPortion,
+    deepTextPages,
     attachmentId,
   });
 
@@ -248,12 +248,12 @@ async function runCitationPipeline(
 
 ## Multiple Documents
 
-Pass multiple files to `prepareAttachments` in a single call. DeepCitation combines them into one `deepTextPromptPortion` string:
+Pass multiple files to `prepareAttachments` in a single call. DeepCitation combines them into one `deepTextPages` array of raw page strings:
 
 ```typescript
 import { groupCitationsByAttachmentId } from "deepcitation";
 
-const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
   { file: contractBuffer, filename: "contract.pdf" },
   { file: invoiceBuffer, filename: "invoice.pdf" },
 ]);
@@ -261,7 +261,7 @@ const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a document analyst. Cite sources for every claim.",
   userPrompt: "What are the total costs and payment terms?",
-  deepTextPromptPortion, // Both documents combined
+  deepTextPages, // Both documents combined
 });
 
 const model = new ChatOpenAI({ model: "gpt-4o-mini" });

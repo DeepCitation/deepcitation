@@ -35,7 +35,7 @@ interface UseAgentChatOptions {
   /** Must be a stable reference (memoized at the call site) to avoid unnecessary re-renders. */
   fileDataParts: FileDataPart[];
   /** Must be a stable reference (memoized at the call site) to avoid unnecessary re-renders. */
-  deepTextPromptPortions: string[];
+  deepTextPages: string[][];
 }
 
 interface UseAgentChatReturn {
@@ -65,7 +65,7 @@ type AgUiEvent =
 export function useAgentChat({
   agentUrl,
   fileDataParts,
-  deepTextPromptPortions,
+  deepTextPages,
 }: UseAgentChatOptions): UseAgentChatReturn {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -172,7 +172,7 @@ export function useAgentChat({
           context: [],
           state: {
             fileDataParts,
-            deepTextPromptPortions,
+            deepTextPages,
           },
         }),
       });
@@ -234,7 +234,7 @@ export function useAgentChat({
         reader.releaseLock();
       }
     },
-    [agentUrl, deepTextPromptPortions, fileDataParts, processEvent],
+    [agentUrl, deepTextPages, fileDataParts, processEvent],
   );
 
   const sendMessage = useCallback(

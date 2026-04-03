@@ -59,7 +59,7 @@ Rate limit state is in-process (module-level), so it resets on cold starts — i
 1. On module load, the server fetches and uploads all four corpus PDFs to DeepCitation (or reads from cached attachment IDs in env).
 2. LangChain chunks each source's retrieval text and indexes it in an in-memory `MemoryVectorStore`.
 3. When you ask a question, the server retrieves the most relevant sources via vector similarity.
-4. The server calls `getAttachment()` (or re-uses the warm cache) to get the `deepTextPromptPortion` for each retrieved source.
+4. The server calls `getAttachment()` (or re-uses the warm cache) to get the `deepTextPages` for each retrieved source.
 5. `wrapCitationPrompt()` adds the citation-aware document payload to the LLM prompt.
 6. The model answers with numeric citation markers plus `<<<CITATION_DATA>>>`.
 7. DeepCitation verifies the citations and the UI renders them with `CitationComponent` and `CitationDrawer`.

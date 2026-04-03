@@ -10,26 +10,26 @@ const dc = apiKey ? new DeepCitation({ apiKey, endUserId: "nextjs-ai-sdk" }) : n
 
 const preparedAttachmentCache = new Map<
   string,
-  Promise<{ fileDataPart: FileDataPart; deepTextPromptPortion: string }>
+  Promise<{ fileDataPart: FileDataPart; deepTextPages: string[] }>
 >();
 
 async function resolveAttachment(
   client: DeepCitation,
   source: CorpusSource,
-): Promise<{ fileDataPart: FileDataPart; deepTextPromptPortion: string }> {
+): Promise<{ fileDataPart: FileDataPart; deepTextPages: string[] }> {
   const savedId = process.env[source.attachmentEnvVar];
 
   if (savedId) {
     try {
       const attachment = await client.getAttachment(savedId);
-      if (attachment.deepTextPromptPortion) {
+      if (attachment.deepTextPages?.length) {
         return {
           fileDataPart: { attachmentId: savedId, filename: source.filename },
-          deepTextPromptPortion: attachment.deepTextPromptPortion,
+          deepTextPages: attachment.deepTextPages,
         };
       }
       console.warn(
-        `[DeepCitation] ${source.attachmentEnvVar}=${sanitizeForLog(savedId)} did not return deepTextPromptPortion — re-uploading.`,
+        `[DeepCitation] ${source.attachmentEnvVar}=${sanitizeForLog(savedId)} did not return deepTextPages — re-uploading.`,
       );
     } catch (err) {
       console.warn(
@@ -52,7 +52,7 @@ async function resolveAttachment(
 
   return {
     fileDataPart: { attachmentId, filename: source.filename },
-    deepTextPromptPortion: prepared.deepTextPromptPortion,
+    deepTextPages: prepared.deepTextPages,
   };
 }
 
@@ -61,7 +61,7 @@ export type { FileDataPart };
 function cacheAttachment(
   client: DeepCitation,
   source: CorpusSource,
-): Promise<{ fileDataPart: FileDataPart; deepTextPromptPortion: string }> {
+): Promise<{ fileDataPart: FileDataPart; deepTextPages: string[] }> {
   const pending = resolveAttachment(client, source);
   preparedAttachmentCache.set(source.id, pending);
   pending.catch(() => preparedAttachmentCache.delete(source.id));
@@ -70,7 +70,7 @@ function cacheAttachment(
 
 export async function getCorpusAttachments(): Promise<{
   fileDataParts: FileDataPart[];
-  deepTextPromptPortions: string[];
+  deepTextPages: string[][];
 }> {
   if (!dc) {
     throw new Error("DEEPCITATION_API_KEY is not set");
@@ -86,7 +86,7 @@ export async function getCorpusAttachments(): Promise<{
 
   return {
     fileDataParts: results.map((r) => r.fileDataPart),
-    deepTextPromptPortions: results.map((r) => r.deepTextPromptPortion),
+    deepTextPages: results.map((r) => r.deepTextPages),
   };
 }
 

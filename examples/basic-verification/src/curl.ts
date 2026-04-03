@@ -59,7 +59,7 @@ async function prepareFileAttachment(
   filename: string,
 ): Promise<{
   attachmentId: string;
-  deepTextPromptPortion: string;
+  deepTextPages: string;
 }> {
   const formData = new FormData();
   formData.append("file", new Blob([file]), filename);
@@ -80,7 +80,7 @@ async function prepareFileAttachment(
   const result = await response.json();
   return {
     attachmentId: result.attachmentId,
-    deepTextPromptPortion: result.deepTextPromptPortion,
+    deepTextPages: result.deepTextPages,
   };
 }
 
@@ -90,7 +90,7 @@ async function prepareFileAttachment(
  */
 async function prepareUrlAttachment(url: string): Promise<{
   attachmentId: string;
-  deepTextPromptPortion: string;
+  deepTextPages: string;
 }> {
   const response = await fetch(`${DEEPCITATION_BASE_URL}/prepareAttachments`, {
     method: "POST",
@@ -109,7 +109,7 @@ async function prepareUrlAttachment(url: string): Promise<{
   const result = await response.json();
   return {
     attachmentId: result.attachmentId,
-    deepTextPromptPortion: result.deepTextPromptPortion,
+    deepTextPages: result.deepTextPages,
   };
 }
 
@@ -169,7 +169,7 @@ async function runSingleSource(source: Source) {
   console.log("📄 Step 1: Uploading document via raw API call...\n");
 
   let attachmentId: string;
-  let deepTextPromptPortion: string;
+  let deepTextPages: string;
   let imageBase64: string | undefined;
 
   if (source.type === "url") {
@@ -177,7 +177,7 @@ async function runSingleSource(source: Source) {
     console.log("   Headers: Authorization: Bearer dc_live_***");
     console.log(`   Body: JSON { url: "${source.url}" }\n`);
 
-    ({ attachmentId, deepTextPromptPortion } = await prepareUrlAttachment(source.url));
+    ({ attachmentId, deepTextPages } = await prepareUrlAttachment(source.url));
   } else {
     const fileBuffer = readFileSync(source.path);
 
@@ -185,7 +185,7 @@ async function runSingleSource(source: Source) {
     console.log("   Headers: Authorization: Bearer dc_live_***");
     console.log(`   Body: FormData with file (${source.filename})\n`);
 
-    ({ attachmentId, deepTextPromptPortion } = await prepareFileAttachment(fileBuffer, source.filename));
+    ({ attachmentId, deepTextPages } = await prepareFileAttachment(fileBuffer, source.filename));
 
     if (source.type === "image") {
       imageBase64 = fileBuffer.toString("base64");
@@ -216,7 +216,7 @@ provided documents accurately and cite your sources.`;
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt,
     userPrompt: userQuestion,
-    deepTextPromptPortion,
+    deepTextPages,
   });
 
   console.log("📋 System Prompt (AFTER):");

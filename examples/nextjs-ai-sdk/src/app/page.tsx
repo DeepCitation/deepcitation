@@ -25,7 +25,7 @@ interface MessageVerificationResult {
 
 export default function Home() {
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
-  const [deepTextPromptPortions, setDeepTextPromptPortions] = useState<string[]>([]);
+  const [deepTextPages, setDeepTextPages] = useState<string[][]>([]);
   const [isCorpusLoaded, setIsCorpusLoaded] = useState(false);
   const [corpusLoading, setCorpusLoading] = useState(true);
   const [corpusError, setCorpusError] = useState<string | null>(null);
@@ -43,9 +43,9 @@ export default function Home() {
     try {
       const res = await fetch("/api/corpus/init");
       if (!res.ok) throw new Error("Corpus init failed");
-      const data: { fileDataParts: FileDataPart[]; deepTextPromptPortions: string[] } = await res.json();
+      const data: { fileDataParts: FileDataPart[]; deepTextPages: string[][] } = await res.json();
       setFileDataParts(data.fileDataParts);
-      setDeepTextPromptPortions(data.deepTextPromptPortions);
+      setDeepTextPages(data.deepTextPages);
       setIsCorpusLoaded(true);
       return true;
     } catch (err) {
@@ -102,7 +102,7 @@ export default function Home() {
     streamProtocol: "text",
     body: {
       fileDataParts,
-      deepTextPromptPortions,
+      deepTextPages,
     },
     onFinish: message => {
       if (message.role === "assistant") {
@@ -138,9 +138,7 @@ export default function Home() {
       if (res.ok && data.fileDataPart) {
         // User upload replaces the corpus documents
         setFileDataParts([data.fileDataPart as FileDataPart]);
-        setDeepTextPromptPortions(
-          data.deepTextPromptPortion ? [data.deepTextPromptPortion as string] : [],
-        );
+        setDeepTextPages(data.deepTextPages ? [data.deepTextPages as string[]] : []);
         setIsCorpusLoaded(false);
       } else {
         const errorMsg = String(data.details ?? data.error ?? "Upload failed");

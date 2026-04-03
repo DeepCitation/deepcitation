@@ -67,13 +67,13 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
   const file = req.file;
   if (!file) return res.status(400).json({ error: "No file provided" });
 
-  const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+  const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
     { file: file.buffer, filename: file.originalname },
   ]);
 
   res.json({
     fileDataPart: fileDataParts[0],
-    deepTextPromptPortion,
+    deepTextPages,
   });
 });
 ```
@@ -87,12 +87,12 @@ import { wrapCitationPrompt } from "deepcitation";
 
 // POST /api/chat
 app.post("/api/chat", async (req, res) => {
-  const { userMessage, deepTextPromptPortion } = req.body;
+  const { userMessage, deepTextPages } = req.body;
 
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt: "You are a helpful assistant that provides cited responses.",
     userPrompt: userMessage,
-    deepTextPromptPortion,
+    deepTextPages,
   });
 
   // Replace with your LLM provider (e.g. gpt-5-mini, gemini-2.0-flash-lite)

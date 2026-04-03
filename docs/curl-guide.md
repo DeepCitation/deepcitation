@@ -106,7 +106,7 @@ UPLOAD_RESPONSE=$(curl -s -X POST "$BASE_URL/prepareAttachments" \
 
 # Extract IDs from response
 ATTACHMENT_ID=$(echo $UPLOAD_RESPONSE | jq -r '.attachmentId')
-PROMPT_CONTENT=$(echo $UPLOAD_RESPONSE | jq -r '.deepTextPromptPortion')
+PROMPT_CONTENT=$(echo $UPLOAD_RESPONSE | jq -r '.deepTextPages')
 
 echo "Attachment ID: $ATTACHMENT_ID"
 echo "Prompt content ready for LLM"

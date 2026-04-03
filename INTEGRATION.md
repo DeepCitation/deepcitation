@@ -198,7 +198,7 @@ async function analyzeDocument(filePath: string, question: string) {
 
   // Step 1: Prepare source
   const document = readFileSync(filePath);
-  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
+  const { fileDataParts, deepTextPages } = await deepcitation.prepareAttachments([
     { file: document, filename: filePath },
   ]);
   const attachmentId = fileDataParts[0].attachmentId; // 20-char alphanumeric ID
@@ -207,7 +207,7 @@ async function analyzeDocument(filePath: string, question: string) {
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt: "You are a helpful assistant. Cite your sources.",
     userPrompt: question,
-    deepTextPromptPortion,
+    deepTextPages,
   });
 
   const response = await openai.chat.completions.create({
@@ -455,7 +455,7 @@ Get your API key at [deepcitation.com/signup](https://deepcitation.com/signup). 
 
 ### 1.4 Prepare Sources
 
-Upload documents to get an `attachmentId` (a **20-character alphanumeric ID**) and `deepTextPromptPortion` (structured text content used to enhance LLM prompts). Save `attachmentId` — you'll need it for verification.
+Upload documents to get an `attachmentId` (a **20-character alphanumeric ID**) and `deepTextPages` (structured text content used to enhance LLM prompts). Save `attachmentId` — you'll need it for verification.
 
 **Files:**
 
@@ -463,7 +463,7 @@ Upload documents to get an `attachmentId` (a **20-character alphanumeric ID**) a
 import { readFileSync } from "fs";
 
 const document = readFileSync("./document.pdf");
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
+const { fileDataParts, deepTextPages } = await deepcitation.prepareAttachments([
   { file: document, filename: "document.pdf" },
   { file: imageBuffer, filename: "chart.png" }, // multiple files supported
 ]);
@@ -475,7 +475,7 @@ const attachmentId = fileDataParts[0].attachmentId; // e.g. "a1b2c3d4e5f6g7h8i9j
 **URLs:**
 
 ```typescript
-const { attachmentId, deepTextPromptPortion, metadata } = await deepcitation.prepareUrl({
+const { attachmentId, deepTextPages, metadata } = await deepcitation.prepareUrl({
   url: "https://example.com/article",
 });
 ```
@@ -527,7 +527,7 @@ import { wrapCitationPrompt } from "deepcitation";
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a helpful assistant...",
   userPrompt: "Summarize this document",
-  deepTextPromptPortion, // from Section 1 — prepareAttachments or prepareUrl
+  deepTextPages, // from Section 1 — prepareAttachments or prepareUrl
 });
 ```
 
@@ -807,7 +807,7 @@ const llmOutput = result.response.text();
 
 ### No citations in LLM output
 
-- Verify `deepTextPromptPortion` is passed to `wrapCitationPrompt()`
+- Verify `deepTextPages` is passed to `wrapCitationPrompt()`
 - Try a different LLM model (some follow citation instructions better)
 - Use `CITATION_REMINDER` for reinforcement in multi-turn conversations
 
