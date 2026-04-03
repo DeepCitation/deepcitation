@@ -183,14 +183,13 @@ More content.`;
     });
 
     it("includes Record<attachmentId, pages> deepTextPages in user prompt", () => {
-      const deepTextPages: Record<string, string[]> = {
-        "attachment-1": ["Content from first file."],
-        "attachment-2": ["Content from second file."],
-      };
       const result = wrapCitationPrompt({
         systemPrompt: "You are a helpful assistant.",
         userPrompt: "Compare these documents.",
-        deepTextPages,
+        deepTextPages: {
+          "attachment-1": ["Content from first file."],
+          "attachment-2": ["Content from second file."],
+        },
       });
 
       expect(result.enhancedUserPrompt).toContain("Content from first file.");

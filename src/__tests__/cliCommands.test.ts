@@ -977,10 +977,7 @@ describe("hydrate CLI command", () => {
     const { stderr } = await captureOutput(() => hydrate(["--markdown", mdPath, "--summary", summaryPath]));
 
     const result = JSON.parse(
-      readFileSync(mdPath, "utf-8")
-        .split("<<<CITATION_DATA>>>")[1]
-        .split("<<<END_CITATION_DATA>>>")[0]
-        .trim(),
+      readFileSync(mdPath, "utf-8").split("<<<CITATION_DATA>>>")[1].split("<<<END_CITATION_DATA>>>")[0].trim(),
     );
     expect(result[0].full_phrase).toBe("The Discount Rate is 80% of the lowest price per share.");
     expect(stderr).toContain("Hydrated 1 citation(s)");

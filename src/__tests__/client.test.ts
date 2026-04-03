@@ -240,11 +240,11 @@ describe("DeepCitation Client", () => {
       expect(result.attachments[0].attachmentId).toBe("file_1");
       expect(result.attachments[1].attachmentId).toBe("file_2");
 
-      // deepTextPages preserves file boundaries on the result
-      expect(result.deepTextPages).toEqual([
-        ["[Page 1]\n[L1] Content from file 1"],
-        ["[Page 1]\n[L1] Content from file 2"],
-      ]);
+      // deepTextPages are keyed by attachmentId so callers do not rely on ordering.
+      expect(result.deepTextPagesByAttachmentId).toEqual({
+        file_1: ["[Page 1]\n[L1] Content from file 1"],
+        file_2: ["[Page 1]\n[L1] Content from file 2"],
+      });
     });
 
     it("handles single file", async () => {
@@ -270,7 +270,9 @@ describe("DeepCitation Client", () => {
 
       expect(result.fileDataParts).toHaveLength(1);
       expect(result.attachments).toHaveLength(1);
-      expect(result.deepTextPages).toEqual([["[Page 1]\n[L1] Single content"]]);
+      expect(result.deepTextPagesByAttachmentId).toEqual({
+        single_file: ["[Page 1]\n[L1] Single content"],
+      });
     });
 
     it("handles empty files array", async () => {

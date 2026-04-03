@@ -206,10 +206,11 @@ function loadPrepareOutputs(dir: string): Map<string, string> {
     try {
       const data = JSON.parse(readFileSync(resolve(dir, file), "utf-8"));
       if (data.attachmentId) {
-        if (Array.isArray(data.deepTextPages) && data.deepTextPages.every((page: unknown) => typeof page === "string")) {
+        if (
+          Array.isArray(data.deepTextPages) &&
+          data.deepTextPages.every((page: unknown) => typeof page === "string")
+        ) {
           outputs.set(data.attachmentId, data.deepTextPages.join("\n\n"));
-        } else if (data.deepTextPromptPortion) {
-          outputs.set(data.attachmentId, data.deepTextPromptPortion);
         }
       }
     } catch {
