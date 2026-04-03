@@ -514,7 +514,23 @@ export function SourceContextHeader({
               e.stopPropagation();
               const safeUrl = downloadUrl ? sanitizeUrl(downloadUrl) : null;
               const name = sourceLabel || displayName || url;
-              const downloadName = isUrl && name && !name.endsWith(".pdf") ? `${name}.pdf` : name;
+              let downloadName: string;
+              if (isUrl) {
+                // Extract just the last path segment from the source URL as the filename.
+                // `name` is the full URL for URL citations — using it verbatim produces an
+                // unusable filename like "https://example.com/bill-60.pdf".
+                const sourceForName = url || name || "";
+                try {
+                  const slug =
+                    new URL(sourceForName).pathname.replace(/\/+$/, "").split("/").pop() ?? "document";
+                  downloadName = slug.endsWith(".pdf") ? slug : `${slug}.pdf`;
+                } catch {
+                  const slug = sourceForName.split("/").pop() ?? "document";
+                  downloadName = slug.endsWith(".pdf") ? slug : `${slug}.pdf`;
+                }
+              } else {
+                downloadName = name ?? "document";
+              }
               if (safeUrl) triggerBackgroundDownload(safeUrl, downloadName);
             }}
           >

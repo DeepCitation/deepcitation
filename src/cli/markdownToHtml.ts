@@ -352,6 +352,8 @@ function renderBlock(block: Block): string {
 // Per BRANDING.md: crispEdges mandatory, square caps, no softness.
 const BRAND_LOGO_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" shape-rendering="crispEdges" aria-hidden="true"><path d="M4 1 L1 1 L1 23 L4 23" stroke="#18181B"/><path d="M20 1 L23 1 L23 23 L20 23" stroke="#18181B"/><path d="M12 6 L12 18 M6 12 L18 12 M7.5 7.5 L16.5 16.5 M16.5 7.5 L7.5 16.5" stroke="#1D4ED8" stroke-width="1.5"/></svg>`;
 
+const FAVICON_DATA_URI = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-linecap="square" stroke-linejoin="miter" shape-rendering="crispEdges" width="24" height="24"><path d="M4 1 L1 1 L1 23 L4 23" stroke="#A1A1AA" stroke-width="1"/><path d="M20 1 L23 1 L23 23 L20 23" stroke="#A1A1AA" stroke-width="1"/><path d="M5.5 12 L18.5 12" stroke="#3B82F6" stroke-width="1.8"/><path d="M12 5.5 L12 18.5" stroke="#3B82F6" stroke-width="1.8"/><path d="M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5" stroke="#3B82F6" stroke-width="2.35"/></svg>')}`;
+
 const AUDIENCE_CONFIG: Record<AudiencePreset, { width: string; tier2Open: boolean }> = {
   general: { width: "960px", tier2Open: true },
   executive: { width: "720px", tier2Open: false },
@@ -399,6 +401,7 @@ function plainShell(title: string, bodyHtml: string, options?: { cowork?: boolea
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="${FAVICON_DATA_URI}">
 <title>${escHtml(title)}</title>
 <style>
 ${BASE_CSS}
@@ -499,6 +502,7 @@ function reportShell(
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="${FAVICON_DATA_URI}">
 <title>${escHtml(title)}</title>
 <style>
 ${BASE_CSS}
