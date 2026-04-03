@@ -34,6 +34,11 @@ const KNOWN_UNUSED = new Set([
   "drawer.showAnnotation",
   "drawer.hideAnnotation",
 
+  // Toggle annotation — previously used by circular indicator row in drawer header,
+  // now consolidated into StackedStatusIcons. Kept for external consumers.
+  "aria.toggleAnnotation.hide",
+  "aria.toggleAnnotation.show",
+
   // Citation error — key is in place for when CitationComponent
   // surfaces error states in the popover UI.
   "citation.fallback",
