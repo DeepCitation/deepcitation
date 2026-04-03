@@ -60,7 +60,7 @@
   ],
   "scripts": {
     "build:cdn": "bun scripts/build-vanilla-runtime.mjs",
-    "build": "rimraf lib && npm run build:cdn && tsup && npm run build:css",
+    "build": "rimraf lib && npm run build:cdn && tsup && node scripts/add-use-client.mjs && npm run build:css",
     "build:css": "tailwindcss -i ./src/styles.css -o ./lib/styles.css --minify",
     "build:watch": "tsup --watch",
     "build:tsc": "rimraf lib && bun ./node_modules/typescript/bin/tsc",
