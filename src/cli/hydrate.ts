@@ -76,7 +76,8 @@ export interface HydrateResult {
  * Parses a DeepCitation summary file and builds line-ID lookup maps.
  *
  * Summary file format (JSON):
- *   { "attachmentId": "...", "deepTextPromptPortion": "..." }
+ *   { "attachmentId": "...", "deepTextPages": ["..."] }
+ *   or legacy { "attachmentId": "...", "deepTextPromptPortion": "..." }
  *
  * deepTextPromptPortion format:
  *   <page_number_1_index_0>
@@ -96,8 +97,15 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
 
   let deepText: string;
   try {
-    const parsed = JSON.parse(summaryContent) as { deepTextPromptPortion?: unknown };
-    deepText = typeof parsed.deepTextPromptPortion === "string" ? parsed.deepTextPromptPortion : "";
+    const parsed = JSON.parse(summaryContent) as {
+      deepTextPages?: unknown;
+      deepTextPromptPortion?: unknown;
+    };
+    if (Array.isArray(parsed.deepTextPages) && parsed.deepTextPages.every(page => typeof page === "string")) {
+      deepText = parsed.deepTextPages.join("\n\n");
+    } else {
+      deepText = typeof parsed.deepTextPromptPortion === "string" ? parsed.deepTextPromptPortion : "";
+    }
   } catch {
     throw new Error("Summary file is not valid JSON");
   }
@@ -127,18 +135,59 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
   return { qualified, byId };
 }
 
-/** Extract <line id="N">text</line> entries from a page segment. */
+/**
+ * Extract <line id="N">text</line> entries from a page segment, plus infer
+ * intermediate line IDs from the raw text between consecutive tagged lines.
+ *
+ * Line IDs are sequential for every document line; <line id="N"> markers appear
+ * only every ~5 lines. The raw text between `</line>` and the next `<line id="N">`
+ * holds the content of intermediate lines (IDs curr+1 … next-1), recoverable by
+ * splitting on newlines and counting up from the preceding tagged ID.
+ */
 function extractLines(
   segment: string,
   pageId: string,
   qualified: Map<string, string>,
   byId: Map<number, string>,
 ): void {
-  for (const lineMatch of segment.matchAll(LINE_TAG_RE)) {
-    const lineId = parseInt(lineMatch[1], 10);
-    const lineText = lineMatch[2].trim();
-    qualified.set(`${pageId}:${lineId}`, lineText);
-    byId.set(lineId, lineText);
+  // Use a local regex instance — LINE_TAG_RE must not be used with exec() loops.
+  const re = /<line id="(\d+)">([\s\S]*?)<\/line>/g;
+
+  const tagged: Array<{ id: number; text: string; startIdx: number; endIdx: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(segment)) !== null) {
+    tagged.push({
+      id: parseInt(m[1], 10),
+      text: m[2].trim(),
+      startIdx: m.index,
+      endIdx: m.index + m[0].length,
+    });
+  }
+
+  // Store tagged lines.
+  for (const entry of tagged) {
+    qualified.set(`${pageId}:${entry.id}`, entry.text);
+    byId.set(entry.id, entry.text);
+  }
+
+  // Infer intermediate lines between consecutive tagged entries.
+  for (let i = 0; i < tagged.length - 1; i++) {
+    const curr = tagged[i];
+    const next = tagged[i + 1];
+    const gap = next.id - curr.id - 1;
+    if (gap <= 0) continue;
+
+    const betweenText = segment.slice(curr.endIdx, next.startIdx);
+    const rawLines = betweenText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+    // Only assign up to `gap` IDs to avoid colliding with the next tagged entry.
+    const count = Math.min(rawLines.length, gap);
+    for (let j = 0; j < count; j++) {
+      const inferredId = curr.id + j + 1;
+      const key = `${pageId}:${inferredId}`;
+      if (!qualified.has(key)) qualified.set(key, rawLines[j]);
+      if (!byId.has(inferredId)) byId.set(inferredId, rawLines[j]);
+    }
   }
 }
 
@@ -190,26 +239,37 @@ export function hydrateCitations({ summaryContent, citations, warnOnMiss }: Hydr
 
 /**
  * Locates a summary file alongside a markdown draft by convention.
- * Looks for `.deepcitation/summary-*.txt` in the current working directory.
- * Returns the path of the single summary file found, or the newest by mtime
- * if multiple exist. Returns null if none found.
+ *
+ * Search order (most reliable first):
+ *   1. `.deepcitation/prepare-*.json` — pure JSON output from `deepcitation prepare`
+ *   2. `.deepcitation/summary-*.txt`  — text+JSON output from `prepare --summary`
+ *
+ * `prepare-*.json` is preferred because it is valid JSON; `summary-*.txt` starts
+ * with human-readable text before the JSON object and will fail JSON.parse().
+ *
+ * Returns the newest file by mtime when multiple candidates exist, null if none found.
  */
 export function findSummaryForMarkdown(_mdPath: string): string | null {
   const dcDir = join(process.cwd(), ".deepcitation");
   if (!existsSync(dcDir)) return null;
 
-  let entries: string[];
+  let all: string[];
   try {
-    entries = readdirSync(dcDir).filter(f => f.startsWith("summary-") && f.endsWith(".txt"));
+    all = readdirSync(dcDir);
   } catch {
     return null;
   }
 
-  if (entries.length === 0) return null;
-  if (entries.length === 1) return join(dcDir, entries[0]);
+  // Prefer prepare-*.json (pure JSON) over summary-*.txt (text+JSON)
+  const jsonFiles = all.filter(f => f.startsWith("prepare-") && f.endsWith(".json"));
+  const txtFiles = all.filter(f => f.startsWith("summary-") && f.endsWith(".txt"));
+  const candidates = jsonFiles.length > 0 ? jsonFiles : txtFiles;
 
-  // Multiple summaries — return newest by mtime
-  return entries
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return join(dcDir, candidates[0]);
+
+  // Multiple candidates — return newest by mtime
+  return candidates
     .map(f => ({ path: join(dcDir, f), mtime: statSync(join(dcDir, f)).mtimeMs }))
     .sort((a, b) => b.mtime - a.mtime)[0].path;
 }
