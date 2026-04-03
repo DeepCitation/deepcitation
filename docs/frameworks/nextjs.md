@@ -117,7 +117,7 @@ import { convertToModelMessages, streamText, type UIMessage } from "ai";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-  const { messages, deepTextPages = [] } = await req.json();
+  const { messages, deepTextPagesByAttachmentId = {} } = await req.json();
 
   const uiMessages = messages as UIMessage[];
   const lastUserMessage = uiMessages.findLast(m => m.role === "user");
@@ -127,13 +127,13 @@ export async function POST(req: Request) {
       .map(p => p.text)
       .join("") ?? "";
 
-  const hasDocuments = deepTextPages.length > 0;
+  const hasDocuments = Object.keys(deepTextPagesByAttachmentId).length > 0;
 
   const { enhancedSystemPrompt, enhancedUserPrompt } = hasDocuments
     ? wrapCitationPrompt({
         systemPrompt: "You are a helpful assistant that cites sources.",
         userPrompt: lastUserContent,
-        deepTextPages,
+        deepTextPagesByAttachmentId,
       })
     : {
         enhancedSystemPrompt: "You are a helpful assistant.",
@@ -197,7 +197,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 export default function Home() {
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
-  const [deepTextPages, setDeepTextPages] = useState<string[][]>([]);
+  const [deepTextPagesByAttachmentId, setDeepTextPagesByAttachmentId] = useState<Record<string, string[]>>({});
   const [messageVerifications, setMessageVerifications] = useState<
     Record<string, { citations: Record<string, Citation>; verifications: Record<string, Verification> }>
   >({});
@@ -205,7 +205,7 @@ export default function Home() {
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     streamProtocol: "text",
-    body: { deepTextPages },
+    body: { deepTextPagesByAttachmentId },
   });
 
   // Stable event handler — not affected by stale closure over isLoading/messages
@@ -252,7 +252,10 @@ export default function Home() {
     const data = await res.json();
     if (res.ok) {
       setFileDataParts(prev => [...prev, data.fileDataPart]);
-      setDeepTextPages(prev => [...prev, data.deepTextPages]);
+      setDeepTextPagesByAttachmentId(prev => ({
+        ...prev,
+        [data.fileDataPart.attachmentId]: data.deepTextPages,
+      }));
     }
   };
 

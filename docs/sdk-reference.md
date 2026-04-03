@@ -64,7 +64,7 @@ const attachmentId = fileDataParts[0].attachmentId;
 |:----------|:-----|:------------|
 | `files` | `FileInput[]` | Array of `{ file, filename }` objects. `file` can be `File`, `Blob`, or `Buffer`. |
 
-**Returns**: `PrepareAttachmentsResult` — `{ fileDataParts: PreparedAttachment[], deepTextPages: string[][], deepTextPromptPortion?: string }`
+**Returns**: `PrepareAttachmentsResult` — `{ fileDataParts: PreparedAttachment[], deepTextPagesByAttachmentId: Record<string, string[]> }`
 
 ---
 
@@ -87,7 +87,7 @@ const result = await dc.uploadFile(pdfBuffer, {
 | `options.attachmentId` | `string` | Custom attachment ID (auto-generated if omitted) |
 | `options.endUserId` | `string` | Your end-user identifier for usage attribution |
 
-**Returns**: `UploadFileResponse` — includes canonical `deepTextPages` plus optional compatibility `deepTextPromptPortion`
+**Returns**: `UploadFileResponse` — includes canonical `deepTextPages`
 
 ---
 
@@ -208,7 +208,7 @@ Retrieve full attachment metadata including page renders, verifications, and ext
 const attachment = await dc.getAttachment("abc123");
 ```
 
-**Returns**: `AttachmentResponse` (includes canonical `deepTextPages` plus optional legacy `deepTextPromptPortion`)
+**Returns**: `AttachmentResponse` (includes canonical `deepTextPages`)
 
 ---
 

@@ -15,8 +15,8 @@ interface FileDataPart {
 
 export default function Home() {
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
-  // Accumulated text portions for LLM prompts (one string per uploaded file)
-  const [deepTextPages, setDeepTextPages] = useState<string[][]>([]);
+  // Accumulated text portions for LLM prompts, keyed by attachmentId.
+  const [deepTextPagesByAttachmentId, setDeepTextPagesByAttachmentId] = useState<Record<string, string[]>>({});
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -32,7 +32,7 @@ export default function Home() {
   } = useAgentChat({
     agentUrl: "/api/agent",
     fileDataParts,
-    deepTextPages,
+    deepTextPagesByAttachmentId,
   });
 
   const handleFileUpload = async (file: File) => {
@@ -67,7 +67,10 @@ export default function Home() {
       if (res.ok && part) {
         setFileDataParts(prev => [...prev, part]);
         if (pages?.length) {
-          setDeepTextPages(prev => [...prev, pages]);
+          setDeepTextPagesByAttachmentId(prev => ({
+            ...prev,
+            [part.attachmentId]: pages,
+          }));
         }
       } else {
         const errorMsg = data.details ?? data.error ?? "Upload failed";

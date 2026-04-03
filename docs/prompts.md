@@ -77,7 +77,6 @@ const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a helpful assistant.",
   userPrompt: "Summarize this document.",
   deepTextPages,           // from prepareAttachments() — raw page text (preferred)
-  // deepTextPromptPortion is still accepted for compatibility during migration
   isAudioVideo: false,     // set true for audio/video content with timestamps
 });
 ```
@@ -86,7 +85,7 @@ const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
 
 1. Prepends full citation format instructions to your system prompt (high priority position)
 2. Appends a brief citation reminder to the end of the system prompt (recency effect)
-3. If `deepTextPages` is provided, renders the raw pages into prompt text and prepends that content to the user prompt with a reminder. `deepTextPromptPortion` remains an optional compatibility alias.
+3. If `deepTextPages` is provided, renders the raw pages into prompt text and prepends that content to the user prompt with a reminder. For multi-file workflows, pass a map of `attachmentId -> page array` so each attachment stays explicit.
 
 ### Example output
 
@@ -125,7 +124,7 @@ Remember: use [N] markers for every claim and include the
 </citation-reminder>
 ```
 
-The `enhancedUserPrompt` will have the file text (from `deepTextPages`, or the optional legacy `deepTextPromptPortion`) prepended before your user message.
+The `enhancedUserPrompt` will have the file text from `deepTextPages` prepended before your user message.
 
 ### `wrapSystemCitationPrompt(options)`
 

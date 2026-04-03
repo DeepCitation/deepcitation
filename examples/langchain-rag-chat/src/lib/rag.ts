@@ -55,8 +55,12 @@ async function resolveAttachment(
   if (savedId) {
     try {
       const attachment = await dc.getAttachment(savedId);
-      if (attachment.deepTextPages) {
-        return { attachmentId: savedId, deepTextPages: attachment.deepTextPages };
+      const attachmentPages =
+        (attachment as { deepTextPages?: string[]; pageTexts?: string[] }).deepTextPages ??
+        attachment.pageTexts ??
+        [];
+      if (attachmentPages.length) {
+        return { attachmentId: savedId, deepTextPages: attachmentPages };
       }
       console.warn(
         `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPages — re-uploading.`,
@@ -75,12 +79,13 @@ async function resolveAttachment(
   const file = Buffer.from(await response.arrayBuffer());
   const prepared = await dc.prepareAttachments([{ file, filename: source.filename }]);
   const attachmentId = prepared.fileDataParts[0].attachmentId;
+  const deepTextPages = prepared.deepTextPagesByAttachmentId[attachmentId] ?? [];
 
   console.log(
     `[DeepCitation] Uploaded "${source.title}". Add to env to skip re-upload on cold starts:\n  ${source.attachmentEnvVar}=${attachmentId}`,
   );
 
-  return { attachmentId, deepTextPages: prepared.deepTextPages };
+  return { attachmentId, deepTextPages };
 }
 
 function cacheAttachment(
@@ -288,7 +293,9 @@ export async function answerQuestion(question: string): Promise<ChatResponse> {
       "",
       "If the answer is not supported by the retrieved sources, say so plainly.",
     ].join("\n"),
-    deepTextPages: preparedSources.map(item => item.deepTextPages),
+    deepTextPagesByAttachmentId: Object.fromEntries(
+      preparedSources.map(item => [item.attachmentId, item.deepTextPages]),
+    ),
   });
 
   const response = await openAiClient.responses.create({

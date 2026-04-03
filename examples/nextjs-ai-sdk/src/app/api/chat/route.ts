@@ -32,10 +32,9 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const { messages, fileDataParts: clientFileDataParts = [], deepTextPages = [] } = body;
+  const { messages, fileDataParts: clientFileDataParts = [], deepTextPagesByAttachmentId = {} } = body;
 
   const fileDataParts: Array<{ attachmentId: string; filename?: string }> = clientFileDataParts;
-  const deepTextPagesInput: string[][] = deepTextPages;
   const hasDocuments = fileDataParts.length > 0;
 
   console.log(`[Chat API] ${fileDataParts.length} files`);
@@ -61,7 +60,7 @@ export async function POST(req: Request) {
     ? wrapCitationPrompt({
         systemPrompt: baseSystemPrompt,
         userPrompt: lastUserContent,
-        deepTextPages: deepTextPagesInput,
+        deepTextPagesByAttachmentId,
       })
     : {
         enhancedSystemPrompt: baseSystemPrompt,

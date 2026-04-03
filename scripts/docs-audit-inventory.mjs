@@ -816,7 +816,7 @@ function checkExampleDirRefs(docContents) {
 }
 
 // ─── Check 12: Stale Text Format ─────────────────────────────────────────────
-// The deepTextPromptPortion format uses XML-style tags:
+// The deepTextPages output uses XML-style tags:
 //   <page_number_N_index_I> for pages, <line id="N"> for lines.
 // Old bracket format ([Page N], [LN]) is stale and misleading.
 

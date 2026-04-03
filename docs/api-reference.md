@@ -59,7 +59,6 @@ For Office files (DOCX, XLSX, PPTX, ODT, ODS, ODP) and web pages, use the [URL p
 |:------|:-----|:------------|
 | `attachmentId` | string | System-generated or custom ID for verification calls |
 | `deepTextPages` | string[] | Raw page text returned by `prepareAttachments()` and preferred input for `wrapCitationPrompt()` |
-| `deepTextPromptPortion` | string | Optional compatibility alias for the legacy preformatted prompt string |
 | `status` | `"ready"` \| `"error"` | Processing status |
 | `metadata` | object | File metadata (filename, mimeType, pageCount, textByteSize) |
 | `processingTimeMs` | number | Processing time in milliseconds |
@@ -86,7 +85,6 @@ curl -X POST "https://api.deepcitation.com/prepareAttachments" \
     "Revenue increased by 25% in Q4...",
     "Net profit margin improved..."
   ],
-  "deepTextPromptPortion": "<page_number_1_index_0>\n<line id=\"1\">Revenue increased by 25% in Q4...</line>\n<line id=\"2\">Net profit margin improved...</line>",
   "metadata": {
     "filename": "document.pdf",
     "mimeType": "application/pdf",
@@ -149,7 +147,6 @@ curl -X POST "https://api.deepcitation.com/prepareAttachments" \
     "Example Article Title...",
     "Published on March 15, 2026..."
   ],
-  "deepTextPromptPortion": "<page_number_1_index_0>\n<line id=\"1\">Example Article Title...</line>\n<line id=\"2\">Published on March 15, 2026...</line>",
   "metadata": {
     "filename": "article.pdf",
     "mimeType": "application/pdf",
@@ -297,7 +294,6 @@ Retrieve full attachment metadata by ID, including page renders, verifications, 
 | `pageImagesStatus` | string | Page image generation status |
 | `verifications` | `Record<string, Verification>` | All verification results for this attachment |
 | `deepTextPages` | string[] | Raw extracted page text |
-| `deepTextPromptPortion` | string | Optional legacy formatted prompt string, retained for compatibility |
 | `urlSource` | object | Source URL information (for URL-based attachments) |
 | `expiresAt` | string \| `"never"` | Expiration date |
 | `uploadedAt` | string | Upload timestamp (ISO 8601) |

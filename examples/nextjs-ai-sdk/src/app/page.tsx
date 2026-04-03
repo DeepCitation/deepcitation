@@ -25,7 +25,7 @@ interface MessageVerificationResult {
 
 export default function Home() {
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
-  const [deepTextPages, setDeepTextPages] = useState<string[][]>([]);
+  const [deepTextPagesByAttachmentId, setDeepTextPagesByAttachmentId] = useState<Record<string, string[]>>({});
   const [isCorpusLoaded, setIsCorpusLoaded] = useState(false);
   const [corpusLoading, setCorpusLoading] = useState(true);
   const [corpusError, setCorpusError] = useState<string | null>(null);
@@ -43,9 +43,9 @@ export default function Home() {
     try {
       const res = await fetch("/api/corpus/init");
       if (!res.ok) throw new Error("Corpus init failed");
-      const data: { fileDataParts: FileDataPart[]; deepTextPages: string[][] } = await res.json();
+      const data: { fileDataParts: FileDataPart[]; deepTextPagesByAttachmentId: Record<string, string[]> } = await res.json();
       setFileDataParts(data.fileDataParts);
-      setDeepTextPages(data.deepTextPages);
+      setDeepTextPagesByAttachmentId(data.deepTextPagesByAttachmentId);
       setIsCorpusLoaded(true);
       return true;
     } catch (err) {
@@ -102,7 +102,7 @@ export default function Home() {
     streamProtocol: "text",
     body: {
       fileDataParts,
-      deepTextPages,
+      deepTextPagesByAttachmentId,
     },
     onFinish: message => {
       if (message.role === "assistant") {
@@ -123,10 +123,17 @@ export default function Home() {
     formData.append("file", file);
     setUploadError(null);
 
-    let uploadResult: { res: Response; data: Record<string, unknown> } | null = null;
+    let uploadResult:
+      | { res: Response; data: { fileDataPart?: FileDataPart; deepTextPages?: string[]; error?: string; details?: string } }
+      | null = null;
     try {
       const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = (await res.json()) as Record<string, unknown>;
+      const data = (await res.json()) as {
+        fileDataPart?: FileDataPart;
+        deepTextPages?: string[];
+        error?: string;
+        details?: string;
+      };
       uploadResult = { res, data };
     } catch (error) {
       setUploadError("Network error - check if the server is running");
@@ -137,8 +144,10 @@ export default function Home() {
       const { res, data } = uploadResult;
       if (res.ok && data.fileDataPart) {
         // User upload replaces the corpus documents
-        setFileDataParts([data.fileDataPart as FileDataPart]);
-        setDeepTextPages(data.deepTextPages ? [data.deepTextPages as string[]] : []);
+        setFileDataParts([data.fileDataPart]);
+        setDeepTextPagesByAttachmentId({
+          [data.fileDataPart.attachmentId]: (data.deepTextPages as string[]) ?? [],
+        });
         setIsCorpusLoaded(false);
       } else {
         const errorMsg = String(data.details ?? data.error ?? "Upload failed");

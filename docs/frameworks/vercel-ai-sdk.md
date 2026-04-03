@@ -53,7 +53,7 @@ useChat → POST /api/chat → streamText (tokens stream to client)
 
 ## Step 1: Document Upload Endpoint
 
-Create `/api/upload/route.ts` to handle file uploads. This runs `prepareAttachments()` and returns both the `fileDataPart` (for tracking which attachment to verify against) and `deepTextPages` (raw page text to inject into your prompt).
+Create `/api/upload/route.ts` to handle file uploads. This runs `prepareAttachments()` and returns both the `fileDataPart` (for tracking which attachment to verify against) and `deepTextPagesByAttachmentId` (raw page text keyed by attachmentId).
 
 ```typescript
 // app/api/upload/route.ts
@@ -79,20 +79,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
-  const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
+  const { fileDataParts, deepTextPagesByAttachmentId } = await dc.prepareAttachments([
     { file: buffer, filename: file.name },
   ]);
 
   return NextResponse.json({
     fileDataPart: fileDataParts[0],    // Contains attachmentId for verification
-    deepTextPages,                     // Raw page text for prompt rendering
+    deepTextPagesByAttachmentId,       // Raw page text for prompt rendering
   });
 }
 ```
 
 ## Step 2: Enhanced Chat Handler
 
-In your existing `streamText` handler, intercept the last user message and wrap it with citation instructions when documents are present. The client passes `deepTextPages` in the request body.
+In your existing `streamText` handler, intercept the last user message and wrap it with citation instructions when documents are present. The client passes `deepTextPagesByAttachmentId` in the request body.
 
 ```typescript
 // app/api/chat/route.ts
@@ -105,11 +105,11 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   const {
     messages,
-    deepTextPages = [],  // Added: accumulated per-upload raw page arrays
+    deepTextPagesByAttachmentId = {},  // Added: accumulated per-upload raw page map
   } = await req.json();
 
   const uiMessages = messages as UIMessage[];
-  const hasDocuments = deepTextPages.length > 0;
+  const hasDocuments = Object.keys(deepTextPagesByAttachmentId).length > 0;
 
   // Extract the latest user message text
   const lastUserMessage = uiMessages.findLast(m => m.role === "user");
@@ -124,7 +124,7 @@ export async function POST(req: Request) {
     ? wrapCitationPrompt({
         systemPrompt: "You are a helpful assistant that answers questions based on provided documents.",
         userPrompt: lastUserContent,
-        deepTextPages,
+        deepTextPagesByAttachmentId,
       })
     : {
         enhancedSystemPrompt: "You are a helpful assistant.",
@@ -179,28 +179,28 @@ export async function POST(req: NextRequest) {
 
 ## Step 4: Client — useChat + Post-Stream Verification
 
-Wire the client so that: (1) uploads accumulate `deepTextPages` which get sent with each chat request, and (2) verification fires when `isLoading` transitions from `true` to `false`.
+Wire the client so that: (1) uploads accumulate `deepTextPagesByAttachmentId` which get sent with each chat request, and (2) verification fires when `isLoading` transitions from `true` to `false`.
 
 ```typescript
 "use client";
 
-import { useChat } from "@ai-sdk/react";
-import type { Citation, FileDataPart, Verification } from "deepcitation";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+  import { useChat } from "@ai-sdk/react";
+  import type { Citation, FileDataPart, Verification } from "deepcitation";
+  import { useEffect, useEffectEvent, useRef, useState } from "react";
 
-export default function Chat() {
-  const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
-  const [deepTextPages, setDeepTextPages] = useState<string[][]>([]);
+  export default function Chat() {
+    const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
+  const [deepTextPagesByAttachmentId, setDeepTextPagesByAttachmentId] = useState<Record<string, string[]>>({});
   const [verifications, setVerifications] = useState<
     Record<string, { citations: Record<string, Citation>; verifications: Record<string, Verification> }>
   >({});
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    streamProtocol: "text",
-    body: {
-      deepTextPages,  // Sent with every chat request
-    },
-  });
+    const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+      streamProtocol: "text",
+      body: {
+      deepTextPagesByAttachmentId,  // Sent with every chat request
+      },
+    });
 
   // useEffectEvent: stable reference, always reads latest state.
   // This avoids adding fileDataParts to the useEffect dependency array
@@ -249,7 +249,10 @@ export default function Chat() {
 
     const data = await res.json();
     setFileDataParts(prev => [...prev, data.fileDataPart]);
-    setDeepTextPages(prev => [...prev, data.deepTextPages]);
+    setDeepTextPagesByAttachmentId(prev => ({
+      ...prev,
+      [data.fileDataPart.attachmentId]: data.deepTextPages,
+    }));
   };
 
   return (
@@ -392,13 +395,13 @@ export async function POST(req: Request) {
 
 ## Multiple File Providers
 
-`wrapCitationPrompt` accepts `deepTextPages` as raw page arrays. Pass the accumulated arrays directly:
+`wrapCitationPrompt` accepts `deepTextPagesByAttachmentId` as a raw page map. Pass the accumulated map directly:
 
 ```typescript
 wrapCitationPrompt({
   systemPrompt: "...",
   userPrompt: question,
-  deepTextPages, // string[][] from multiple uploads
+  deepTextPagesByAttachmentId, // Record<attachmentId, string[]>
 });
 ```
 

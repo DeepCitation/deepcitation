@@ -248,12 +248,12 @@ async function runCitationPipeline(
 
 ## Multiple Documents
 
-Pass multiple files to `prepareAttachments` in a single call. DeepCitation combines them into one `deepTextPages` array of raw page strings:
+Pass multiple files to `prepareAttachments` in a single call. DeepCitation returns a `deepTextPagesByAttachmentId` map so each attachment stays explicit and order-independent:
 
 ```typescript
 import { groupCitationsByAttachmentId } from "deepcitation";
 
-const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
+const { fileDataParts, deepTextPagesByAttachmentId } = await dc.prepareAttachments([
   { file: contractBuffer, filename: "contract.pdf" },
   { file: invoiceBuffer, filename: "invoice.pdf" },
 ]);
@@ -261,7 +261,7 @@ const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a document analyst. Cite sources for every claim.",
   userPrompt: "What are the total costs and payment terms?",
-  deepTextPages, // Both documents combined
+  deepTextPagesByAttachmentId,
 });
 
 const model = new ChatOpenAI({ model: "gpt-4o-mini" });

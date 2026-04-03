@@ -75,6 +75,7 @@ const preparedAttachmentCache = new Map<
   string,
   Promise<{ attachmentId: string; deepTextPages: string[] }>
 >();
+type DeepTextPagesByAttachmentId = Record<string, string[]>;
 
 async function resolveAttachment(
   dcClient: DeepCitation,
@@ -85,8 +86,12 @@ async function resolveAttachment(
   if (savedId) {
     try {
       const attachment = await dcClient.getAttachment(savedId);
-      if (attachment.deepTextPages?.length) {
-        return { attachmentId: savedId, deepTextPages: attachment.deepTextPages };
+      const attachmentPages =
+        (attachment as { deepTextPages?: string[]; pageTexts?: string[] }).deepTextPages ??
+        attachment.pageTexts ??
+        [];
+      if (attachmentPages.length) {
+        return { attachmentId: savedId, deepTextPages: attachmentPages };
       }
       console.warn(
         `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPages — re-uploading.`,
@@ -105,12 +110,13 @@ async function resolveAttachment(
   const file = Buffer.from(await response.arrayBuffer());
   const prepared = await dcClient.prepareAttachments([{ file, filename: source.filename }]);
   const attachmentId = prepared.fileDataParts[0].attachmentId;
+  const deepTextPages = prepared.deepTextPagesByAttachmentId[attachmentId] ?? [];
 
   console.log(
     `[DeepCitation] Uploaded "${source.title}". Add to env to skip re-upload on cold starts:\n  ${source.attachmentEnvVar}=${attachmentId}`,
   );
 
-  return { attachmentId, deepTextPages: prepared.deepTextPages };
+  return { attachmentId, deepTextPages };
 }
 
 function cacheAttachment(
@@ -178,7 +184,7 @@ export async function POST(req: Request) {
 
   const { threadId, runId, messages, state } = body;
   const clientFileDataParts: FileDataPart[] = state?.fileDataParts ?? [];
-  const clientDeepTextPages: string[][] = state?.deepTextPages ?? [];
+  const clientDeepTextPagesByAttachmentId: DeepTextPagesByAttachmentId = state?.deepTextPagesByAttachmentId ?? {};
 
   if (!openai) {
     return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
@@ -204,7 +210,7 @@ export async function POST(req: Request) {
         // (SSE connection) opens immediately — avoids HTTP-level timeout on
         // cold start. First event is still delayed by corpus resolution.
         let fileDataParts = clientFileDataParts;
-        let deepTextPages = clientDeepTextPages;
+        let deepTextPagesByAttachmentId = clientDeepTextPagesByAttachmentId;
 
         if (fileDataParts.length === 0 && dc) {
           const corpusResults = await Promise.all(
@@ -214,7 +220,7 @@ export async function POST(req: Request) {
             attachmentId: r.attachmentId,
             filename: CORPUS_SOURCES[i].filename,
           }));
-          deepTextPages = corpusResults.map(r => r.deepTextPages);
+          deepTextPagesByAttachmentId = Object.fromEntries(corpusResults.map(r => [r.attachmentId, r.deepTextPages]));
         }
 
         const hasDocuments = fileDataParts.length > 0;
@@ -228,16 +234,13 @@ export async function POST(req: Request) {
         );
         const lastUserContent: string = lastUserMessage?.content ?? "";
 
-        // deepTextPages is passed from the client (accumulated per upload)
-        const deepTextPagesForPrompt = deepTextPages;
-
         const baseSystemPrompt = "You are a helpful assistant that answers questions accurately.";
 
         const { enhancedSystemPrompt, enhancedUserPrompt } = hasDocuments
           ? wrapCitationPrompt({
               systemPrompt: baseSystemPrompt,
               userPrompt: lastUserContent,
-              deepTextPages: deepTextPagesForPrompt,
+              deepTextPagesByAttachmentId,
             })
           : {
               enhancedSystemPrompt: baseSystemPrompt,

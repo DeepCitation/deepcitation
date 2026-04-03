@@ -104,7 +104,9 @@ const prepared = await dc.prepareAttachments(retrievedPdfBuffers);
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt,
   userPrompt: question,
-  deepTextPages: prepared.map(item => item.deepTextPages),
+  deepTextPagesByAttachmentId: Object.fromEntries(
+    prepared.map(item => [item.attachmentId, item.deepTextPages]),
+  ),
 });
 ```
 

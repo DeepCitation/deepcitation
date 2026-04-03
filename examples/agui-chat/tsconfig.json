@@ -18,7 +18,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "deepcitation": ["../../src/index.ts"],
+      "deepcitation/*": ["../../src/*"]
     },
     "target": "ES2018"
   },
