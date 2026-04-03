@@ -767,14 +767,11 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
             continue;
           }
           const { lineId, pageId, verbatimAnchor } = found;
-          // Anchor text for the evidence highlight: use a short anchor hint (≤4 words)
-          // if provided; otherwise truncate the search result to ≤4 words.
-          const trimmedHint = anchorHint?.trim();
-          const hintWords = trimmedHint?.split(/\s+/);
-          const shortHint = hintWords && hintWords.length <= 4 ? trimmedHint : undefined;
-          const anchorWords = verbatimAnchor.split(/\s+/);
-          const truncatedAnchor = anchorWords.length > 4 ? anchorWords.slice(0, 4).join(" ") : verbatimAnchor;
-          const anchorText = shortHint ?? truncatedAnchor;
+          // Anchor text = the verbatim evidence phrase for the highlight.
+          // Keep it full-length so the evidence viewer shows enough context.
+          // If the agent provided an explicit anchor hint, use that; otherwise
+          // use whatever findAnchorWithFallback returned.
+          const anchorText = anchorHint?.trim() || verbatimAnchor;
           citations.push({
             id,
             anchor_text: anchorText,
