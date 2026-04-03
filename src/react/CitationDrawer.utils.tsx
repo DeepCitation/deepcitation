@@ -100,12 +100,12 @@ export function getPrimarySourceName(
 ): string {
   if (citationGroups.length === 0) return t("drawer.sources");
   const firstName = citationGroups[0].sourceName?.trim() || t("drawer.source");
-  return firstName.length > 25 ? `${firstName.slice(0, 25)}...` : firstName;
+  return firstName.length > 50 ? `${firstName.slice(0, 50)}...` : firstName;
 }
 
 /**
  * Generate a smart default label from citation groups.
- * 1 group → show source name; 2+ groups → "firstName +N"; truncate names > 25 chars.
+ * 1 group → show source name; 2+ groups → "firstName +N"; truncate names > 50 chars.
  *
  * Used by CitationDrawerTrigger for the single-line label text.
  * The drawer heading uses getPrimarySourceName() directly since it renders

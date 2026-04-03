@@ -475,14 +475,23 @@ describe("CitationDrawer", () => {
     expect(getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("does not lock body scroll when open", () => {
+  it("locks body scroll when open", () => {
     document.body.style.overflow = "scroll";
-    document.body.style.paddingRight = "12px";
 
     render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Test", 1)]} />);
 
-    expect(document.body.style.overflow).toBe("scroll");
-    expect(document.body.style.paddingRight).toBe("12px");
+    expect(document.body.style.overflow).toBe("hidden");
+  });
+
+  it("restores body scroll on unmount", () => {
+    document.body.style.overflow = "auto";
+
+    const { unmount } = render(
+      <CitationDrawer isOpen={true} onClose={() => {}} citationGroups={[createGroup("Test", 1)]} />,
+    );
+    unmount();
+
+    expect(document.body.style.overflow).toBe("auto");
   });
 
   it("does not render when closed", () => {

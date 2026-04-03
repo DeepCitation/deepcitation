@@ -41,6 +41,7 @@ import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
 import { type TranslateFunction, tPlural, useTranslation } from "./i18n.js";
 import { getBlinkRowMotionStyle } from "./motion/blinkAnimation.js";
+import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
 import type { IndicatorVariant } from "./types.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
@@ -852,7 +853,7 @@ function DrawerSourceHeading({
       )}
 
       {/* Source label — identical text to CitationDrawerTrigger */}
-      <h2 className="text-base font-semibold text-dc-foreground break-words">{displayLabel}</h2>
+      <h2 className="text-base font-semibold text-dc-foreground truncate">{displayLabel}</h2>
     </div>
   );
 }
@@ -931,6 +932,13 @@ function OpenCitationDrawer({
     return () => cancelAnimationFrame(id);
   }, []);
   const isVisible = hasEntered && !isClosing;
+
+  // Lock body scroll while the drawer is mounted — removes the page scrollbar so the
+  // drawer spans the full viewport width and prevents double-scrollbar.
+  useEffect(() => {
+    acquireScrollLock();
+    return () => releaseScrollLock();
+  }, []);
 
   // Manual full-page state — set via drag-up gesture
   const [manualFullPage, setManualFullPage] = useState(false);
@@ -1269,7 +1277,7 @@ function OpenCitationDrawer({
         {/* Header with summary, progress bar, and view toggle */}
         <div className="px-4 py-2 border-b border-dc-border shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="shrink-0 min-w-0 max-w-[50%]">
+            <div className="shrink min-w-0 max-w-[80%]">
               <DrawerSourceHeading citationGroups={resolvedGroups} label={label} fallbackTitle={resolvedTitle} />
             </div>
             {indicatorVariant !== "none" && citationsOnActivePage.length > 0 && headerInline && (
