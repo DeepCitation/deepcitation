@@ -117,9 +117,27 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
 
   if (!hasPageTags) {
     // Each array entry is a separate page — assign page_number_{i+1}_index_{i} (1-based page, 0-based index).
+    // Use a global synthetic line counter so IDs are unique across all pages.
+    let globalLineId = 1;
     for (let i = 0; i < pages.length; i++) {
       const pageId = `page_number_${i + 1}_index_${i}`;
-      extractLines(pages[i], pageId, qualified, byId);
+      const pageText = pages[i];
+
+      // If the page has <line id="N"> tags, use extractLines as normal.
+      // Otherwise (raw OCR text with no tags), split on newlines and assign synthetic IDs.
+      if (pageText.includes('<line id="')) {
+        extractLines(pageText, pageId, qualified, byId);
+      } else {
+        const rawLines = pageText
+          .split("\n")
+          .map(l => l.trim())
+          .filter(l => l.length > 0);
+        for (const lineText of rawLines) {
+          qualified.set(`${pageId}:${globalLineId}`, lineText);
+          byId.set(globalLineId, lineText);
+          globalLineId++;
+        }
+      }
     }
     return { qualified, byId };
   }

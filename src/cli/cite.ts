@@ -70,7 +70,7 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
   // Supports both single and double quoted anchors, with escaped quotes inside
   const re =
     /\[([^\][]+)\]\(cite:(\d+)(?:\s+"((?:[^"\\]|\\.)*)")?\s*\)|\[([^\][]+)\]\(cite:(\d+)\s+'((?:[^'\\]|\\.)*)'\s*\)/g;
-  const seen = new Set<number>();
+  const seen = new Map<number, string>(); // id → first display label
   const results: BodyMarker[] = [];
   let m: RegExpExecArray | null;
   while ((m = safeExec(re, body)) !== null) {
@@ -79,11 +79,19 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
     const id = parseInt(m[2] ?? m[5], 10);
     const anchor = m[3] ?? m[6];
     if (!seen.has(id)) {
-      seen.add(id);
+      seen.set(id, label);
       const marker: BodyMarker = { id, displayLabel: label };
       const trimmedAnchor = anchor?.trim();
       if (trimmedAnchor) marker.anchorHint = trimmedAnchor;
       results.push(marker);
+    } else if (seen.get(id) !== label) {
+      // Same ID reused with a different label — the LLM is treating IDs as source references
+      // rather than per-claim identifiers. Warn so the user can see the error.
+      console.error(
+        `  Warning: cite:${id} reused with different label — ` +
+          `"${sanitizeForLog(seen.get(id)!)}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
+          `Each distinct claim must use a unique ID.`,
+      );
     }
   }
   return results.sort((a, b) => a.id - b.id);

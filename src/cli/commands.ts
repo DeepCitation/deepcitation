@@ -6,7 +6,7 @@
  * mocked dependencies (auth, client, fs) instead of requiring subprocess tests.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import {
@@ -708,6 +708,35 @@ export function keygen(argv: string[]) {
   }
 }
 
+/**
+ * Scan .deepcitation/prepare-*.json files and return a map of attachmentId → urlSource.url
+ * for any URL-sourced attachments. Used to populate sourceUrl in report headers and
+ * fix document labels in the popover.
+ */
+function loadUrlSourceMap(): Map<string, string> {
+  const map = new Map<string, string>();
+  const prepareDir = resolve(".deepcitation");
+  if (!existsSync(prepareDir)) return map;
+  try {
+    const files = readdirSync(prepareDir).filter(f => f.startsWith("prepare-") && f.endsWith(".json"));
+    for (const file of files) {
+      try {
+        const data = JSON.parse(readFileSync(resolve(prepareDir, file), "utf-8")) as Record<string, unknown>;
+        const attachmentId = data.attachmentId as string | undefined;
+        const urlSource = data.urlSource as { url?: string } | undefined;
+        if (attachmentId && urlSource?.url) {
+          map.set(attachmentId, urlSource.url);
+        }
+      } catch {
+        // skip unreadable/malformed prepare files
+      }
+    }
+  } catch {
+    // skip if .deepcitation is unreadable
+  }
+  return map;
+}
+
 export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) => string) {
   const args = parseArgs(argv, VERIFY_HELP);
   const mdPath = args.markdown;
@@ -739,67 +768,66 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     parsed = parseCitationData(raw);
   }
 
-  // Auto-generate citations: body has [label](cite:N) markers but no citation data.
-  // Search the prepared summary for each display label to determine lineIds.
-  if (!parsed.success || parsed.citations.length === 0) {
-    const markers = extractMarkersFromBody(raw);
-    if (markers.length > 0) {
-      const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved);
-      if (summaryPath && existsSync(summaryPath)) {
-        const summaryContent = readFileSync(summaryPath, "utf-8");
-        let attachmentId = "unknown";
-        try {
-          attachmentId = (JSON.parse(summaryContent) as { attachmentId?: string }).attachmentId ?? "unknown";
-        } catch {
-          /* use "unknown" */
-        }
+  // Auto-generate citations: prefer auto-gen over any <<<CITATION_DATA>>> block the
+  // agent may have emitted. Agents are instructed not to output citation JSON (the
+  // CLI generates it from the summary), but they sometimes do anyway — with wrong
+  // page IDs, verbose formats, or hallucinated values. Auto-gen always wins when
+  // [label](cite:N) markers exist and a summary is available.
+  const markers = extractMarkersFromBody(raw);
+  if (markers.length > 0) {
+    const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved);
+    if (summaryPath && existsSync(summaryPath)) {
+      const summaryContent = readFileSync(summaryPath, "utf-8");
+      let attachmentId = "unknown";
+      try {
+        attachmentId = (JSON.parse(summaryContent) as { attachmentId?: string }).attachmentId ?? "unknown";
+      } catch {
+        /* use "unknown" */
+      }
 
-        const lineMap = parseSummaryToLineMap(summaryContent);
-        const allLines = getAllLines(lineMap);
-        const citations: CitationData[] = [];
+      const lineMap = parseSummaryToLineMap(summaryContent);
+      const allLines = getAllLines(lineMap);
+      const citations: CitationData[] = [];
 
-        for (const { id, displayLabel, anchorHint } of markers) {
-          // Use anchor hint as search term when provided; fall back to display label
-          const searchTerm = anchorHint ?? displayLabel;
-          const found = findAnchorWithFallback(searchTerm, allLines);
-          if (!found) {
-            console.error(`  Citation ${id} ("${displayLabel}"): not found in evidence`);
-            continue;
-          }
-          const { lineId, pageId, verbatimAnchor } = found;
-          // Anchor text = the verbatim evidence phrase for the highlight.
-          // Keep it full-length so the evidence viewer shows enough context.
-          // If the agent provided an explicit anchor hint, use that; otherwise
-          // use whatever findAnchorWithFallback returned.
-          const anchorText = anchorHint?.trim() || verbatimAnchor;
-          citations.push({
-            id,
-            anchor_text: anchorText,
-            page_id: toCompactPageId(pageId),
-            line_ids: [lineId],
-            attachment_id: attachmentId,
-            display_label: displayLabel.toLowerCase() !== anchorText.toLowerCase() ? displayLabel : undefined,
-          });
+      for (const { id, displayLabel, anchorHint } of markers) {
+        const searchTerm = anchorHint ?? displayLabel;
+        const found = findAnchorWithFallback(searchTerm, allLines);
+        if (!found) {
+          console.error(`  Citation ${id} ("${displayLabel}"): not found in evidence`);
+          continue;
         }
+        const { lineId, pageId, verbatimAnchor } = found;
+        const anchorText = anchorHint?.trim() || verbatimAnchor;
+        citations.push({
+          id,
+          anchor_text: anchorText,
+          page_id: toCompactPageId(pageId),
+          line_ids: [lineId],
+          attachment_id: attachmentId,
+          display_label: displayLabel.toLowerCase() !== anchorText.toLowerCase() ? displayLabel : undefined,
+        });
+      }
 
-        if (citations.length > 0) {
-          parsed = {
-            visibleText: raw,
-            citations,
-            citationMap: new Map(citations.map(c => [c.id, c])),
-            success: true,
-          };
-          console.error(`Auto-generated ${citations.length} citation(s) from body markers + summary`);
+      if (citations.length > 0) {
+        if (parsed.success && parsed.citations.length > 0) {
+          console.error(`  Note: <<<CITATION_DATA>>> block found but ignored — auto-gen takes priority`);
         }
+        parsed = {
+          visibleText: raw,
+          citations,
+          citationMap: new Map(citations.map(c => [c.id, c])),
+          success: true,
+        };
+        console.error(`Auto-generated ${citations.length} citation(s) from body markers + summary`);
       }
     }
+  }
 
-    if (!parsed.success || parsed.citations.length === 0) {
-      die(
-        "No citations found — ensure body has [label](cite:N) markers and a summary exists in .deepcitation/",
-        VERIFY_HELP,
-      );
-    }
+  if (!parsed.success || parsed.citations.length === 0) {
+    die(
+      "No citations found — ensure body has [label](cite:N) markers and a summary exists in .deepcitation/",
+      VERIFY_HELP,
+    );
   }
 
   // Auto-hydrate: if compact citations are detected (missing full_phrase but have line_ids),
@@ -886,6 +914,14 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   }
 
   const title = args.title as string | undefined;
+
+  // Resolve source URL from prepare JSONs (URL-sourced documents only)
+  const urlSourceMap = loadUrlSourceMap();
+  const attachmentIds = [...new Set(
+    parsed.citations.map(cd => cd.attachment_id).filter((id): id is string => typeof id === "string")
+  )];
+  const sourceUrl = attachmentIds.map(id => urlSourceMap.get(id)).find(Boolean);
+
   const html = markdownToHtml(parsed.visibleText, {
     style,
     audience,
@@ -893,6 +929,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     anchorMap,
     citationCount: parsed.citations.length,
     cowork: IS_COWORK,
+    sourceUrl,
   });
 
   // Re-attach citation data so verifyHtml pipeline can process it
@@ -1057,6 +1094,26 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       { outputImageFormat: imageFormat },
     );
     Object.assign(merged, result.verifications);
+  }
+
+  // Post-process: for URL-sourced documents, populate missing downloadUrl from
+  // originalDownload.link.url, and replace the server-assigned "bill-xx.pdf" label
+  // with the original source URL (domain only for display, full URL for lookup).
+  const urlSourceMapForVerify = loadUrlSourceMap();
+  for (const v of Object.values(merged) as Record<string, unknown>[]) {
+    const aid = v.attachmentId as string | undefined;
+    // Fix download button: CDN runtime reads `downloadUrl`; server omits it for URL sources
+    // but includes `originalDownload` with the CDN-cached PDF link.
+    if (!v.downloadUrl) {
+      const od = v.originalDownload as { link?: { url?: string } } | undefined;
+      if (od?.link?.url) {
+        v.downloadUrl = od.link.url;
+      }
+    }
+    // Fix label: replace "bill-xx.pdf" with the original source URL for URL-sourced docs
+    if (aid && urlSourceMapForVerify.has(aid)) {
+      v.label = urlSourceMapForVerify.get(aid);
+    }
   }
 
   const verifyOutput = { verifications: merged };
