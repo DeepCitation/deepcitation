@@ -11,7 +11,7 @@
  */
 
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
-import { escapeJsonForScript, escapeJsForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
+import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
 import type { VerificationData } from "../vanilla/runtime/types.js";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -714,7 +714,7 @@ This fixture is generated from \`markdownToHtml()\` plus a small mock verificati
 ## Inline citations
 
 The policy of separating the races is usually interpreted as denoting the [inferiority of the negro group](cite:1).
-Revenue reached [\$2.3 billion](cite:2), and the FDA noted [Phase III completion](cite:3).
+Revenue reached [$2.3 billion](cite:2), and the FDA noted [Phase III completion](cite:3).
 
 ## Drawer trigger
 
@@ -752,7 +752,8 @@ const CDN_SHOWCASE_VERIFICATIONS: Record<string, VerificationData> = {
   "demo-citation-2": {
     status: "partial_match",
     label: "Q4 Financial Report",
-    verifiedFullPhrase: "Total revenue reached $2.3 billion for the fiscal year, representing a 45% increase year-over-year",
+    verifiedFullPhrase:
+      "Total revenue reached $2.3 billion for the fiscal year, representing a 45% increase year-over-year",
     verifiedAnchorText: "$2.3 billion",
     verifiedMatchSnippet: "Total revenue reached $2.3 billion for the fiscal year",
     citation: {
@@ -810,7 +811,11 @@ const CDN_SHOWCASE_ANCHOR_MAP: CitationAnchorMap = {
   3: "Phase III completion",
 };
 
-function injectCdnRuntime(html: string, verifications: Record<string, VerificationData>, keyMap: Record<string, string>) {
+function injectCdnRuntime(
+  html: string,
+  verifications: Record<string, VerificationData>,
+  keyMap: Record<string, string>,
+) {
   const jsonData = escapeJsonForScript(JSON.stringify(verifications));
   const keyMapJson = escapeJsonForScript(JSON.stringify(keyMap));
   const snippet = [
