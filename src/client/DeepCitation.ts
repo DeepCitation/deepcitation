@@ -469,7 +469,7 @@ export class DeepCitation {
    * });
    *
    * // Then prepare the file for verification
-   * const { deepTextPromptPortion, attachmentId } = await deepcitation.prepareConvertedFile({
+   * const { deepTextPages, attachmentId } = await deepcitation.prepareConvertedFile({
    *   attachmentId: result.attachmentId
    * });
    * ```
@@ -534,7 +534,7 @@ export class DeepCitation {
 
   /**
    * Prepare a previously converted file for citation verification.
-   * Use this after calling convertToPdf() to extract text and get deepTextPromptPortion.
+   * Use this after calling convertToPdf() to extract text and get deepTextPages.
    *
    * @param options - Options with attachmentId from convertFile
    * @returns Upload response with attachmentId and extracted text
@@ -545,11 +545,11 @@ export class DeepCitation {
    * const converted = await deepcitation.convertToPdf({ url: "https://example.com/article" });
    *
    * // Then prepare it for verification
-   * const { deepTextPromptPortion, attachmentId } = await deepcitation.prepareConvertedFile({
+   * const { deepTextPages, attachmentId } = await deepcitation.prepareConvertedFile({
    *   attachmentId: converted.attachmentId
    * });
    *
-   * // Use deepTextPromptPortion in your LLM prompt...
+   * // Use deepTextPages with wrapCitationPrompt() or your own deterministic renderer...
    * ```
    */
   async prepareConvertedFile(options: PrepareConvertedFileOptions): Promise<UploadFileResponse> {
@@ -599,15 +599,15 @@ export class DeepCitation {
    * @example
    * ```typescript
    * // Prepare a URL for citation verification
-   * const { attachmentId, deepTextPromptPortion } = await deepcitation.prepareUrl({
+   * const { attachmentId, deepTextPages } = await deepcitation.prepareUrl({
    *   url: "https://example.com/article"
    * });
    *
-   * // Use deepTextPromptPortion in your LLM prompt
+   * // Use deepTextPages in your LLM prompt
    * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
    *   systemPrompt,
    *   userPrompt: question,
-   *   deepTextPromptPortion,
+   *   deepTextPages,
    * });
    *
    * // Verify citations
@@ -660,20 +660,20 @@ export class DeepCitation {
    * This is the recommended way to prepare attachments for LLM prompts.
    *
    * @param files - Array of files to upload with optional filenames and attachmentIds
-   * @returns Object containing fileDataParts for verification and combined deepTextPromptPortion for LLM
+   * @returns Object containing fileDataParts for verification plus per-file deepTextPages and an optional legacy deepTextPromptPortion
    *
    * @example
    * ```typescript
-   * const { fileDataParts, deepTextPromptPortion, attachments } = await deepcitation.prepareAttachments([
+   * const { fileDataParts, deepTextPages, attachments } = await deepcitation.prepareAttachments([
    *   { file: pdfBuffer, filename: "report.pdf" },
    *   { file: invoiceBuffer, filename: "invoice.pdf" },
    * ]);
    *
-   * // deepTextPromptPortion is all files combined into one string
+   * // deepTextPages preserves file boundaries as an array of page arrays
    * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
    *   systemPrompt,
    *   userPrompt,
-   *   deepTextPromptPortion,
+   *   deepTextPages,
    * });
    *
    * // Use fileDataParts later for verification
@@ -682,7 +682,7 @@ export class DeepCitation {
    */
   async prepareAttachments(files: FileInput[]): Promise<PrepareAttachmentsResult> {
     if (files.length === 0) {
-      return { fileDataParts: [], deepTextPromptPortion: "", attachments: [] };
+      return { fileDataParts: [], deepTextPages: [], deepTextPromptPortion: "", attachments: [] };
     }
 
     this.logger.info?.("Preparing files", { count: files.length });
@@ -712,6 +712,7 @@ export class DeepCitation {
 
     const attachments = uploadResults.map(({ result }) => ({
       attachmentId: result.attachmentId,
+      deepTextPages: result.deepTextPages,
       urlSource: result.urlSource,
       originalDownload: result.originalDownload,
       convertedDownload: result.convertedDownload,
@@ -719,11 +720,12 @@ export class DeepCitation {
       pageImagesStatus: result.pageImagesStatus,
     }));
 
-    // Combine all file texts into a single deepTextPromptPortion string
-    const deepTextPromptPortion = uploadResults.map(({ result }) => result.deepTextPromptPortion).join("\n\n");
+    // Combine all file texts into per-file raw pages and a legacy prompt string.
+    const deepTextPages = uploadResults.map(({ result }) => result.deepTextPages);
+    const deepTextPromptPortion = uploadResults.map(({ result }) => result.deepTextPromptPortion ?? "").join("\n\n");
 
     this.logger.info?.("Prepare files complete", { count: fileDataParts.length });
-    return { fileDataParts, deepTextPromptPortion, attachments };
+    return { fileDataParts, deepTextPages, deepTextPromptPortion, attachments };
   }
 
   /**
