@@ -299,6 +299,10 @@ export function StackedStatusIcons({
   showProofThumbnails,
   onSourceClick,
   indicatorVariant = "icon",
+  activeIndex,
+  iconSize,
+  iconGap,
+  onPageIndices,
 }: {
   flatCitations: FlatCitationItem[];
   isHovered: boolean;
@@ -310,6 +314,14 @@ export function StackedStatusIcons({
   showProofThumbnails: boolean;
   onSourceClick?: (group: SourceCitationGroup) => void;
   indicatorVariant?: IndicatorVariant;
+  /** Index of the currently active/selected icon (shows ring highlight). */
+  activeIndex?: number | null;
+  /** Override icon chip size in px (default 20). */
+  iconSize?: number;
+  /** Override margin-left between icons (default "-0.25rem"). Use positive values for gaps. */
+  iconGap?: string;
+  /** Set of indices that are "on the current page". When provided, off-page icons are greyed out. */
+  onPageIndices?: ReadonlySet<number> | null;
 }) {
   const t = useTranslation();
   // None variant: no indicators at all
@@ -349,58 +361,68 @@ export function StackedStatusIcons({
   const displayItems = flatCitations.slice(0, maxIcons);
   const hasOverflow = flatCitations.length > maxIcons;
   const overflowCount = flatCitations.length - maxIcons;
+  const effectiveGap = iconGap ?? ICON_MARGIN_EXPANDED;
+  const effectiveSize = iconSize ?? 20;
 
   return (
     <div className="flex items-center" role="group" aria-label={t("aria.citationVerificationStatus")}>
-      {displayItems.map((flatItem, i) => (
-        <div
-          key={flatItem.item.citationKey}
-          className={cn(
-            "relative transition-[margin-left] duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]",
-            onIconClick && "cursor-pointer",
-          )}
-          style={{
-            marginLeft: ICON_MARGIN_EXPANDED,
-            zIndex: Math.max(1, Math.min(20, displayItems.length - i)),
-          }}
-          onMouseEnter={() => onIconHover(i)}
-          onMouseLeave={onIconLeave}
-          onClick={onIconClick ? () => onIconClick(i) : undefined}
-          onKeyDown={
-            onIconClick
-              ? e => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onIconClick(i);
+      {displayItems.map((flatItem, i) => {
+        const isActive = activeIndex != null && activeIndex === i;
+        const isOffPage = onPageIndices != null && !onPageIndices.has(i);
+        return (
+          <div
+            key={flatItem.item.citationKey}
+            className={cn(
+              "relative transition-all duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]",
+              onIconClick && "cursor-pointer",
+              isActive && "ring-2 ring-current ring-offset-1 rounded-full",
+              !isActive && isOffPage && "opacity-25 grayscale",
+              !isActive && !isOffPage && activeIndex != null && "opacity-50 hover:opacity-80",
+            )}
+            style={{
+              marginLeft: effectiveGap,
+              zIndex: isActive ? 30 : Math.max(1, Math.min(20, displayItems.length - i)),
+            }}
+            onMouseEnter={() => onIconHover(i)}
+            onMouseLeave={onIconLeave}
+            onClick={onIconClick ? () => onIconClick(i) : undefined}
+            onKeyDown={
+              onIconClick
+                ? e => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onIconClick(i);
+                    }
                   }
-                }
-              : undefined
-          }
-          tabIndex={onIconClick ? 0 : undefined}
-          role={onIconClick ? "button" : undefined}
-          aria-label={onIconClick ? getTitleForCitation(flatItem, t) : undefined}
-        >
-          <StatusIconChip
-            verification={flatItem.item.verification}
-            title={getTitleForCitation(flatItem, t)}
-            indicatorVariant={indicatorVariant}
-          />
-          {/* Tooltip when this specific icon is hovered and bar is expanded */}
-          {isHovered && hoveredIndex === i && (
-            <CitationTooltip
-              flatItem={flatItem}
-              showProofThumbnail={showProofThumbnails}
-              onSourceClick={onSourceClick}
+                : undefined
+            }
+            tabIndex={onIconClick ? 0 : undefined}
+            role={onIconClick ? "button" : undefined}
+            aria-label={onIconClick ? getTitleForCitation(flatItem, t) : undefined}
+          >
+            <StatusIconChip
+              verification={flatItem.item.verification}
+              title={getTitleForCitation(flatItem, t)}
+              size={effectiveSize}
               indicatorVariant={indicatorVariant}
             />
-          )}
-        </div>
-      ))}
+            {/* Tooltip when this specific icon is hovered and bar is expanded */}
+            {isHovered && hoveredIndex === i && (
+              <CitationTooltip
+                flatItem={flatItem}
+                showProofThumbnail={showProofThumbnails}
+                onSourceClick={onSourceClick}
+                indicatorVariant={indicatorVariant}
+              />
+            )}
+          </div>
+        );
+      })}
       {hasOverflow && (
         <div
           className="transition-[margin-left] duration-[80ms] ease-[cubic-bezier(0.2,0,0,1)]"
           style={{
-            marginLeft: ICON_MARGIN_EXPANDED,
+            marginLeft: effectiveGap,
             zIndex: 0,
           }}
         >
