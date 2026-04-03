@@ -44,6 +44,7 @@ import { findSummaryForMarkdown, hydrateCitations, HYDRATE_HELP } from "./hydrat
 
 // Re-export so cli.ts and tests can import from the single commands module
 export { hydrate, HYDRATE_HELP } from "./hydrate.js";
+export { merge, MERGE_HELP } from "./merge.js";
 import {
   AUDIENCE_PRESETS,
   buildCdnComparisonShowcaseHtml,
@@ -119,14 +120,15 @@ Examples:
 export const PREPARE_HELP = `Usage: deepcitation prepare <file-or-url> [options]
 
 Prepare a file or URL for citation verification. Uploads the source to the
-DeepCitation API and saves the response JSON (attachmentId + deepTextPromptPortion).
+DeepCitation API and saves the response JSON (attachmentId + deepTextPages).
+The response now also includes deepTextPages as the canonical raw page array.
 
 Arguments:
   <file-or-url>             Local file path or URL to prepare
 
 Options:
   --out <file>              Output JSON path (default: .deepcitation/prepare-{name}.json)
-  --summary                 Print attachmentId and deepTextPromptPortion to stdout
+  --summary                 Print attachmentId and deepTextPages to stdout
   --unsafe-fast             Use fast mode for URLs (skips rendering, vulnerable to hidden text)
   -h, --help                Show this help message
 
@@ -207,7 +209,7 @@ Arguments:
 
 Options:
   --out <file>              Output JSON path (default: stdout)
-  --deep-text               Include deepTextPromptPortion in output
+  --deep-text               Include deepTextPages in output
   --page-texts              Include raw per-page text arrays
   -h, --help                Show this help message
 
@@ -408,10 +410,13 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   console.error(`  Saved: ${outPath}`);
 
   if (summary) {
-    // Print attachmentId and deepTextPromptPortion as JSON to stdout so agents
+    // Print attachmentId and deepTextPages as JSON to stdout so agents
     // can consume them with jq or JSON.parse (no extra Read call).
     console.log(
-      JSON.stringify({ attachmentId: result.attachmentId, deepTextPromptPortion: result.deepTextPromptPortion }),
+      JSON.stringify({
+        attachmentId: result.attachmentId,
+        deepTextPages: result.deepTextPages,
+      }),
     );
   } else {
     console.log(outPath);
@@ -781,6 +786,24 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     parsed.visibleText = parsed.visibleText.replace(/\[\d+-\d+\]/g, "");
   }
 
+  // Extract display labels from body: [label](cite:N) where label differs from anchorText.
+  // The compact JSON only carries k (anchorText); the body label is for readers and may
+  // deliberately differ (e.g. "pro rata distribution" body, "pro rata" k). Populating
+  // display_label here causes verifyHtml to inject data-dc-display-label so the popover
+  // can show the "Displayed as" disclaimer.
+  {
+    const bodyRe = /\[([^\]]+)\]\(cite:(\d+)\)/g;
+    let bm: RegExpExecArray | null;
+    while ((bm = bodyRe.exec(parsed.visibleText)) !== null) {
+      const label = bm[1].trim();
+      const id = parseInt(bm[2], 10);
+      const cd = parsed.citations.find(c => c.id === id);
+      if (cd && !cd.display_label && label.toLowerCase() !== (cd.anchor_text ?? "").toLowerCase()) {
+        cd.display_label = label;
+      }
+    }
+  }
+
   // Build anchor map: citation ID → anchorText, so markdownToHtml can wrap
   // just the anchor phrase instead of the whole preceding clause.
   const anchorMap: Record<string, string> = {};
@@ -951,6 +974,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   console.error(`Verifying ${Object.keys(verifiable).length} citation(s) across ${groups.size} attachment(s)...`);
 
+  const verifyStart = Date.now();
   const merged: Record<string, unknown> = {};
   for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
     const result = await dc.verifyAttachment(
@@ -967,6 +991,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
   const total = Object.keys(merged).length;
+  const verifyDurationMs = Date.now() - verifyStart;
   console.error(`  Verified: ${found}/${total} found`);
   if (found === 0 && total > 0) printAllNotFoundHint();
 
@@ -999,6 +1024,26 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   const outPath = resolve(args.out ?? `verified-${ts}.html`);
   writeVerifiedOutput(outPath, output);
+
+  // Write run-metadata for iteration tracking (duration, counts, output path).
+  // Token counts and tool-call counts are agent-level metrics captured by the
+  // orchestrating session; this file captures what the CLI can measure itself.
+  const metaPath = resolve(".deepcitation/run-metadata.json");
+  writeFileSync(
+    metaPath,
+    JSON.stringify(
+      {
+        timestamp: new Date().toISOString(),
+        verify_api_duration_ms: verifyDurationMs,
+        citations_total: total,
+        citations_found: found,
+        out_path: outPath,
+      },
+      null,
+      2,
+    ),
+  );
+  console.error(`Run metadata → ${metaPath}`);
 }
 
 export async function login(argv: string[], baseUrl: string) {
@@ -1216,7 +1261,9 @@ export async function getAttachment(argv: string[]) {
 
   // Strip large fields unless requested
   const output: Record<string, unknown> = { ...result };
-  if (!deepText) delete output.deepTextPromptPortion;
+  if (!deepText) {
+    delete output.deepTextPages;
+  }
   if (!pageTexts) delete output.pageTexts;
 
   const json = JSON.stringify(output, null, 2);

@@ -21,6 +21,7 @@ import {
   getAttachment,
   HELP,
   hydrate,
+  merge,
   inject,
   keygen,
   login,
@@ -90,6 +91,9 @@ switch (command) {
     break;
   case "hydrate":
     hydrate(rest);
+    break;
+  case "merge":
+    merge(rest);
     break;
   case "inject":
     inject(rest);
