@@ -42,50 +42,171 @@ export function getAllLines(lineMap: LineMap): LineEntry[] {
   return entries.sort((a, b) => a.lineId - b.lineId);
 }
 
+export interface BodyMarker {
+  id: number;
+  displayLabel: string;
+  /** Verbatim anchor text from the evidence, if provided via title syntax. */
+  anchorHint?: string;
+}
+
 /**
- * Extracts all [display label](cite:N) markers from a body string.
+ * Extracts all [display label](cite:N) and [display label](cite:N "anchor")
+ * markers from a body string.
+ *
+ * Supports two syntaxes (mirroring markdown's [text](url "title")):
+ *   - `[display label](cite:N)` — auto-gen will search evidence for anchor
+ *   - `[display label](cite:N "anchor text")` — agent provides verbatim anchor
+ *
+ * The anchorHint (when provided) is the 1–4 word verbatim evidence substring
+ * that should be used for the evidence highlight. The displayLabel is what the
+ * reader sees in the report body.
+ *
  * Deduplicates by id — first occurrence wins. Returns entries sorted by id.
  */
-export function extractMarkersFromBody(body: string): { id: number; displayLabel: string }[] {
-  const re = /\[([^\][]+)\]\(cite:(\d+)\)/g;
+export function extractMarkersFromBody(body: string): BodyMarker[] {
+  // Match [label](cite:N) and [label](cite:N "anchor") — the title part is optional
+  // Match [label](cite:N) and [label](cite:N "anchor") — title may contain \" and parens
+  const re = /\[([^\][]+)\]\(cite:(\d+)(?:\s+"((?:[^"\\]|\\.)*)")?\)/g;
   const seen = new Set<number>();
-  const results: { id: number; displayLabel: string }[] = [];
+  const results: BodyMarker[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(body)) !== null) {
     const id = parseInt(m[2], 10);
     if (!seen.has(id)) {
       seen.add(id);
-      results.push({ id, displayLabel: m[1].trim() });
+      const marker: BodyMarker = { id, displayLabel: m[1].trim() };
+      if (m[3]) marker.anchorHint = m[3].trim();
+      results.push(marker);
     }
   }
   return results.sort((a, b) => a.id - b.id);
 }
 
 /**
- * Finds the best matching evidence line for a display label using progressive
- * word truncation. Tries the full display label first; drops the last word and
- * retries until a match is found or only one word remains (which is also tried).
+ * Finds the best matching evidence line for a display label.
  *
- * Returns the first line containing the candidate as a case-insensitive
- * substring. The `verbatimAnchor` is the longest matched prefix.
+ * Strategy 1 — Sliding window: tries all contiguous N-grams from longest to
+ * shortest (≥2 words). Unlike simple prefix truncation, this finds key terms
+ * that appear in the middle or end of the label (e.g., "on par" inside
+ * "it ranks on par with other SAFEs").
  *
- * Returns null if no match is found even at the single-word level.
+ * Strategy 2 — Word-bag scoring: if no multi-word match, finds the evidence
+ * line with the most overlapping words (≥3 chars) from the display label. The
+ * anchor is the best contiguous substring of that line that overlaps the label.
+ *
+ * Strategy 3 — Single distinctive word: if word-bag fails, tries individual
+ * words sorted by distinctiveness (longer, capitalized words first).
+ *
+ * Returns null only if no word from the label appears in any evidence line.
  */
 export function findAnchorWithFallback(
   displayLabel: string,
   allLines: LineEntry[],
 ): { lineId: number; pageId: string; verbatimAnchor: string } | null {
   const words = displayLabel.trim().split(/\s+/);
-  for (let len = words.length; len >= 1; len--) {
-    const candidate = words.slice(0, len).join(" ");
-    const needle = candidate.toLowerCase();
-    const match = allLines.find(line => line.text.toLowerCase().includes(needle));
-    if (match) {
-      if (len === 1 && words.length > 1) {
-        console.error(`  Warning: single-word fallback "${candidate}" matched for "${displayLabel}" — verify accuracy`);
+  if (allLines.length === 0) return null;
+
+  // Strategy 1: Sliding window — all contiguous N-grams, longest first
+  for (let len = words.length; len >= 2; len--) {
+    for (let start = 0; start <= words.length - len; start++) {
+      const candidate = words.slice(start, start + len).join(" ");
+      const needle = candidate.toLowerCase();
+      const match = allLines.find(line => line.text.toLowerCase().includes(needle));
+      if (match) {
+        return { lineId: match.lineId, pageId: match.pageId, verbatimAnchor: candidate };
       }
-      return { lineId: match.lineId, pageId: match.pageId, verbatimAnchor: candidate };
     }
   }
+
+  // Strategy 2: Word-bag scoring — find the line with the most word overlap,
+  // then extract the best contiguous anchor from it
+  const significantWords = words
+    .map(w => w.replace(/[^a-zA-Z0-9'-]/g, "")) // strip punctuation
+    .filter(w => w.length >= 3);
+
+  if (significantWords.length >= 2) {
+    let bestLine: LineEntry | null = null;
+    let bestScore = 0;
+
+    for (const line of allLines) {
+      const lineLower = line.text.toLowerCase();
+      let score = 0;
+      for (const w of significantWords) {
+        if (lineLower.includes(w.toLowerCase())) score++;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestLine = line;
+      }
+    }
+
+    // Accept if at least 2 words match (avoids spurious single-word hits)
+    if (bestLine && bestScore >= 2) {
+      const anchor = extractBestAnchor(significantWords, bestLine.text);
+      return { lineId: bestLine.lineId, pageId: bestLine.pageId, verbatimAnchor: anchor };
+    }
+  }
+
+  // Strategy 3: Single distinctive word — prefer longer, capitalized words
+  const sorted = [...words]
+    .map(w => w.replace(/[^a-zA-Z0-9'-]/g, ""))
+    .filter(w => w.length >= 3)
+    .sort((a, b) => {
+      // Prefer capitalized words (proper nouns/terms)
+      const aUp = /^[A-Z]/.test(a) ? 1 : 0;
+      const bUp = /^[A-Z]/.test(b) ? 1 : 0;
+      if (aUp !== bUp) return bUp - aUp;
+      // Then prefer longer words
+      return b.length - a.length;
+    });
+
+  for (const word of sorted) {
+    const needle = word.toLowerCase();
+    const match = allLines.find(line => line.text.toLowerCase().includes(needle));
+    if (match) {
+      console.error(`  Warning: single-word fallback "${word}" for "${displayLabel}"`);
+      return { lineId: match.lineId, pageId: match.pageId, verbatimAnchor: word };
+    }
+  }
+
   return null;
+}
+
+/**
+ * Given a set of words from the display label and a matching evidence line,
+ * extracts the best contiguous anchor substring (2–4 words from the line that
+ * overlap with the label words). Prefers longer overlapping spans.
+ */
+function extractBestAnchor(labelWords: string[], lineText: string): string {
+  const lineWords = lineText.split(/\s+/);
+  const labelSet = new Set(labelWords.map(w => w.toLowerCase()));
+
+  // Find the best contiguous span of 2–4 words where all words are in the label
+  let bestSpan = "";
+  let bestLen = 0;
+
+  for (let start = 0; start < lineWords.length; start++) {
+    for (let len = Math.min(4, lineWords.length - start); len >= 2; len--) {
+      const span = lineWords.slice(start, start + len);
+      const stripped = span.map(w => w.replace(/[^a-zA-Z0-9'-]/g, "").toLowerCase());
+      const overlapCount = stripped.filter(w => w.length >= 3 && labelSet.has(w)).length;
+      if (overlapCount >= 2 && overlapCount > bestLen) {
+        bestLen = overlapCount;
+        bestSpan = span.join(" ");
+      }
+    }
+  }
+
+  if (bestSpan) return bestSpan;
+
+  // Fallback: return the first label word found in the line (verbatim from line)
+  for (const lw of lineWords) {
+    const stripped = lw.replace(/[^a-zA-Z0-9'-]/g, "").toLowerCase();
+    if (stripped.length >= 3 && labelSet.has(stripped)) {
+      return lw;
+    }
+  }
+
+  // Last resort: first significant word from line
+  return lineWords.find(w => w.replace(/[^a-zA-Z0-9'-]/g, "").length >= 3) ?? lineWords[0];
 }

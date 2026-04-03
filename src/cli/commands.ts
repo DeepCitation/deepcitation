@@ -758,20 +758,29 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
         const allLines = getAllLines(lineMap);
         const citations: CitationData[] = [];
 
-        for (const { id, displayLabel } of markers) {
-          const found = findAnchorWithFallback(displayLabel, allLines);
+        for (const { id, displayLabel, anchorHint } of markers) {
+          // Use anchor hint as search term when provided; fall back to display label
+          const searchTerm = anchorHint ?? displayLabel;
+          const found = findAnchorWithFallback(searchTerm, allLines);
           if (!found) {
             console.error(`  Citation ${id} ("${displayLabel}"): not found in evidence`);
             continue;
           }
           const { lineId, pageId, verbatimAnchor } = found;
+          // Anchor text for the evidence highlight: use a short anchor hint (≤4 words)
+          // if provided; otherwise truncate the search result to ≤4 words.
+          const hintWords = anchorHint?.trim().split(/\s+/);
+          const shortHint = hintWords && hintWords.length <= 4 ? anchorHint!.trim() : undefined;
+          const anchorWords = verbatimAnchor.split(/\s+/);
+          const truncatedAnchor = anchorWords.length > 4 ? anchorWords.slice(0, 4).join(" ") : verbatimAnchor;
+          const anchorText = shortHint ?? truncatedAnchor;
           citations.push({
             id,
-            anchor_text: verbatimAnchor,
+            anchor_text: anchorText,
             page_id: toCompactPageId(pageId),
             line_ids: [lineId],
             attachment_id: attachmentId,
-            display_label: displayLabel.toLowerCase() !== verbatimAnchor.toLowerCase() ? displayLabel : undefined,
+            display_label: displayLabel.toLowerCase() !== anchorText.toLowerCase() ? displayLabel : undefined,
           });
         }
 

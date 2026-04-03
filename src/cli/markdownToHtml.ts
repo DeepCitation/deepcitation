@@ -49,28 +49,37 @@ export interface MarkdownToHtmlOptions {
 // ── Inline formatting ──────────────────────────────────────────────
 
 function inlineFormat(text: string): string {
-  return (
-    escHtml(text)
-      // inline code (before bold/italic to avoid conflicts)
-      .replace(/`([^`]+)`/g, "<code>$1</code>")
-      // bold+italic
-      .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
-      // bold
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      // italic
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      // links — cite:N scheme produces a citation span; http(s) produces a link
-      // href is already HTML-escaped from the escHtml() call above; validate
-      // the scheme but do not re-escape (that would double-encode & in URLs).
-      .replace(/\[([^\]]*(?:\[[^\]]*\][^\]]*)*)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
-        const citeMatch = href.match(/^cite:(\d+)$/);
-        if (citeMatch) {
-          return `<span data-cite="${citeMatch[1]}">${label}</span>`;
-        }
-        const safeHref = /^https?:\/\//i.test(href) ? href : "#";
-        return `<a href="${safeHref}">${label}</a>`;
-      })
+  // Extract cite links BEFORE escHtml — title strings contain quotes and parens
+  // that escHtml would encode, breaking the regex. We replace cite links with
+  // placeholder tokens, escHtml the rest, then restore them.
+  const citePlaceholders: string[] = [];
+  const withPlaceholders = text.replace(
+    /\[([^\][]+)\]\(cite:(\d+)(?:\s+"(?:[^"\\]|\\.)*")?\)/g,
+    (_m, label: string, id: string) => {
+      const idx = citePlaceholders.length;
+      citePlaceholders.push(`<span data-cite="${id}">${escHtml(label)}</span>`);
+      return `\x00CITE${idx}\x00`;
+    },
   );
+
+  let result = escHtml(withPlaceholders)
+    // inline code (before bold/italic to avoid conflicts)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    // bold+italic
+    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+    // bold
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    // italic
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    // general links — http(s) produces a link; anything else gets "#"
+    .replace(/\[([^\]]*(?:\[[^\]]*\][^\]]*)*)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
+      const safeHref = /^https?:\/\//i.test(href) ? href : "#";
+      return `<a href="${safeHref}">${label}</a>`;
+    });
+
+  // Restore cite placeholders
+  result = result.replace(/\x00CITE(\d+)\x00/g, (_m, idx: string) => citePlaceholders[parseInt(idx, 10)]);
+  return result;
 }
 
 // ── Citation marker wrapping ───────────────────────────────────────
