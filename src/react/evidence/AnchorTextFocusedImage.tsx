@@ -372,9 +372,7 @@ export function AnchorTextFocusedImage({
                 cancelPanRef.current = animateScrollLeft(el, el.scrollLeft - Math.max(el.clientWidth * 0.5, 80));
               }}
             >
-              <span className="text-sm font-bold text-white bg-black/50 w-7 h-7 flex items-center justify-center rounded-full leading-none">
-                ←
-              </span>
+           
             </div>
           )}
 
@@ -391,9 +389,6 @@ export function AnchorTextFocusedImage({
                 cancelPanRef.current = animateScrollLeft(el, el.scrollLeft + Math.max(el.clientWidth * 0.5, 80));
               }}
             >
-              <span className="text-sm font-bold text-white bg-black/50 w-7 h-7 flex items-center justify-center rounded-full leading-none">
-                →
-              </span>
             </div>
           )}
 
