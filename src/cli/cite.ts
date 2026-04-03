@@ -89,7 +89,7 @@ export function extractMarkersFromBody(body: string): BodyMarker[] {
       // rather than per-claim identifiers. Warn so the user can see the error.
       console.error(
         `  Warning: cite:${id} reused with different label — ` +
-          `"${sanitizeForLog(seen.get(id)!)}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
+          `"${sanitizeForLog(seen.get(id) ?? "")}" (used) vs "${sanitizeForLog(label)}" (ignored). ` +
           `Each distinct claim must use a unique ID.`,
       );
     }

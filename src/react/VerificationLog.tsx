@@ -521,11 +521,10 @@ export function SourceContextHeader({
                 // unusable filename like "https://example.com/bill-60.pdf".
                 const sourceForName = url || name || "";
                 try {
-                  const slug =
-                    new URL(sourceForName).pathname.replace(/\/+$/, "").split("/").pop() ?? "document";
+                  const slug = new URL(sourceForName).pathname.replace(/\/+$/, "").split("/").pop() || "document";
                   downloadName = slug.endsWith(".pdf") ? slug : `${slug}.pdf`;
                 } catch {
-                  const slug = sourceForName.split("/").pop() ?? "document";
+                  const slug = sourceForName.split("/").pop() || "document";
                   downloadName = slug.endsWith(".pdf") ? slug : `${slug}.pdf`;
                 }
               } else {

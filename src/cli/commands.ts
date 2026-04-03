@@ -917,9 +917,9 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
 
   // Resolve source URL from prepare JSONs (URL-sourced documents only)
   const urlSourceMap = loadUrlSourceMap();
-  const attachmentIds = [...new Set(
-    parsed.citations.map(cd => cd.attachment_id).filter((id): id is string => typeof id === "string")
-  )];
+  const attachmentIds = [
+    ...new Set(parsed.citations.map(cd => cd.attachment_id).filter((id): id is string => typeof id === "string")),
+  ];
   const sourceUrl = attachmentIds.map(id => urlSourceMap.get(id)).find(Boolean);
 
   const html = markdownToHtml(parsed.visibleText, {
@@ -1106,13 +1106,17 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     // but includes `originalDownload` with the CDN-cached PDF link.
     if (!v.downloadUrl) {
       const od = v.originalDownload as { link?: { url?: string } } | undefined;
-      if (od?.link?.url) {
+      if (od?.link?.url && /^https?:\/\//i.test(od.link.url)) {
         v.downloadUrl = od.link.url;
       }
     }
     // Fix label: replace "bill-xx.pdf" with the original source URL for URL-sourced docs
     if (aid && urlSourceMapForVerify.has(aid)) {
-      v.label = urlSourceMapForVerify.get(aid);
+      const rawUrl = urlSourceMapForVerify.get(aid) ?? "";
+      // Only use the URL as a label if it's a valid http(s) URL
+      if (/^https?:\/\//i.test(rawUrl)) {
+        v.label = rawUrl;
+      }
     }
   }
 

@@ -127,6 +127,11 @@ export function parseSummaryToLineMap(summaryContent: string): LineMap {
       // Otherwise (raw OCR text with no tags), split on newlines and assign synthetic IDs.
       if (pageText.includes('<line id="')) {
         extractLines(pageText, pageId, qualified, byId);
+        // Advance globalLineId past any IDs that extractLines added to byId,
+        // so synthetic IDs for subsequent raw pages don't collide.
+        for (const k of byId.keys()) {
+          if (k >= globalLineId) globalLineId = k + 1;
+        }
       } else {
         const rawLines = pageText
           .split("\n")
