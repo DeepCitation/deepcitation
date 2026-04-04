@@ -898,6 +898,37 @@ describe("parseSummaryToLineMap", () => {
   it("throws on non-JSON summary content", () => {
     expect(() => parseSummaryToLineMap("not json at all")).toThrow("Summary file is not valid JSON");
   });
+
+  it("synthetic IDs from raw pages do not collide with IDs from a preceding tagged page", () => {
+    // When deepTextPages lacks <page_number_N> wrapper tags, parseSummaryToLineMap
+    // processes each array entry as its own page in the raw-OCR branch.
+    // Page 1: has <line id="N"> tags with non-contiguous IDs (1, 2, 5)
+    // Page 2: raw OCR text — synthetic IDs must not reuse 1, 2, or 5
+    const summary = JSON.stringify({
+      attachmentId: "att-mixed",
+      deepTextPages: [
+        `<line id="1">Tagged line one.</line>
+<line id="2">Tagged line two.</line>
+<line id="5">Tagged line five.</line>`,
+        `Raw OCR line A
+Raw OCR line B`,
+      ],
+    });
+    const { byId } = parseSummaryToLineMap(summary);
+
+    // Tagged content must be present
+    expect(byId.get(1)).toBe("Tagged line one.");
+    expect(byId.get(2)).toBe("Tagged line two.");
+    expect(byId.get(5)).toBe("Tagged line five.");
+
+    // Raw lines must get unique IDs that don't overwrite the tagged lines
+    const rawEntries = [...byId.entries()].filter(([, v]) => v.startsWith("Raw OCR"));
+    expect(rawEntries).toHaveLength(2);
+    const rawIds = rawEntries.map(([k]) => k);
+    expect(rawIds).not.toContain(1);
+    expect(rawIds).not.toContain(2);
+    expect(rawIds).not.toContain(5);
+  });
 });
 
 describe("hydrateCitations", () => {

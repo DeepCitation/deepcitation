@@ -330,12 +330,21 @@ export function hydrate(argv: string[]): void {
   if (!summaryPath) die("--summary is required", HYDRATE_HELP);
 
   const resolved = resolve(mdPath);
-  if (!existsSync(resolved)) die(`File not found: ${sanitizeForLog(mdPath)}`, HYDRATE_HELP);
-
   const resolvedSummary = resolve(summaryPath);
-  if (!existsSync(resolvedSummary)) die(`Summary file not found: ${sanitizeForLog(summaryPath)}`, HYDRATE_HELP);
 
-  const raw = readFileSync(resolved, "utf-8");
+  let raw: string;
+  try {
+    raw = readFileSync(resolved, "utf-8");
+  } catch {
+    die(`File not found: ${sanitizeForLog(mdPath)}`, HYDRATE_HELP);
+  }
+
+  let summaryRaw: string;
+  try {
+    summaryRaw = readFileSync(resolvedSummary, "utf-8");
+  } catch {
+    die(`Summary file not found: ${sanitizeForLog(summaryPath)}`, HYDRATE_HELP);
+  }
   const parsed = parseCitationData(raw);
   if (!parsed.success || parsed.citations.length === 0) {
     die("No valid <<<CITATION_DATA>>> block found in the markdown file.", HYDRATE_HELP);
@@ -344,7 +353,7 @@ export function hydrate(argv: string[]): void {
   let result: HydrateResult = { hydrated: 0, misses: [] };
   try {
     result = hydrateCitations({
-      summaryContent: readFileSync(resolvedSummary, "utf-8"),
+      summaryContent: summaryRaw,
       citations: parsed.citations,
       warnOnMiss: true,
     });

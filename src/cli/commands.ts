@@ -39,7 +39,7 @@ import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
-import { safeExec, safeReplace } from "../utils/regexSafety.js";
+import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
@@ -1106,7 +1106,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     // but includes `originalDownload` with the CDN-cached PDF link.
     if (!v.downloadUrl) {
       const od = v.originalDownload as { link?: { url?: string } } | undefined;
-      if (od?.link?.url && /^https?:\/\//i.test(od.link.url)) {
+      if (od?.link?.url && safeTest(/^https?:\/\//i, od.link.url)) {
         v.downloadUrl = od.link.url;
       }
     }
@@ -1114,7 +1114,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     if (aid && urlSourceMapForVerify.has(aid)) {
       const rawUrl = urlSourceMapForVerify.get(aid) ?? "";
       // Only use the URL as a label if it's a valid http(s) URL
-      if (/^https?:\/\//i.test(rawUrl)) {
+      if (safeTest(/^https?:\/\//i, rawUrl)) {
         v.label = rawUrl;
       }
     }

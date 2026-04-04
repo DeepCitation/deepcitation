@@ -80,7 +80,7 @@ function inlineFormat(text: string): string {
     // italic
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     // general links — http(s) produces a link; anything else gets "#"
-    .replace(/\[([^\]]*(?:\[[^\]]*\][^\]]*)*)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
+    .replace(/\[([^[\]]*)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
       const safeHref = /^https?:\/\//i.test(href) ? href : "#";
       return `<a href="${safeHref}">${label}</a>`;
     });
