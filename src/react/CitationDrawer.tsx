@@ -1041,8 +1041,9 @@ function OpenCitationDrawer({
     [],
   );
 
-  // Handler for clicking a page badge — opens the header panel for the first citation on that page
-  // and expands + scrolls to the matching citation in the list.
+  // Handler for clicking a page badge — opens the header panel (Level 3) for the
+  // first citation on that page WITHOUT expanding the accordion (Level 2).
+  // This keeps the Escape cascade clean: Escape closes header → closes drawer.
   const handlePageBadgeClick = useCallback(
     (page: number) => {
       const first = pageToItems.get(page)?.[0] ?? pageToAnyItem.get(page);
@@ -1052,7 +1053,6 @@ function OpenCitationDrawer({
         if (expanded) {
           handleInlineExpand(first.citationKey, expanded.src, first.verification, expanded.renderScale, page);
         }
-        setExpandedCitationKey(first.citationKey);
         scrollToCitationItem(first.citationKey);
       }
       setPageAnnouncement(`Navigated to page ${page}`);
