@@ -797,7 +797,7 @@ export class DeepCitation {
     // If no citations to verify, return empty result
     const citationCount = Object.keys(citationMap).length;
     if (citationCount === 0) {
-      return { verifications: {} };
+      return { verifications: {}, attachments: undefined };
     }
 
     // Performance fix: request deduplication
@@ -967,7 +967,10 @@ export class DeepCitation {
       }
     }
 
-    return { verifications: finalVerifications, attachments: mergedAttachments };
+    return {
+      verifications: finalVerifications,
+      attachments: Object.keys(mergedAttachments).length ? mergedAttachments : undefined,
+    };
   }
 
   /**
@@ -1003,7 +1006,7 @@ export class DeepCitation {
     const citationEntries = Object.entries(citations);
 
     if (citationEntries.length === 0) {
-      return { verifications: {} };
+      return { verifications: {}, attachments: undefined };
     }
 
     // Separate citations into sendable (have attachmentId) and skipped.
@@ -1125,7 +1128,7 @@ export class DeepCitation {
     // If no citations found, return empty result
     if (totalCount === 0) {
       this.logger.debug?.("No citations found in LLM output");
-      return { verifications: {} };
+      return { verifications: {}, attachments: undefined };
     }
 
     this.logger.info?.("Verifying LLM output", { citationCount: totalCount });

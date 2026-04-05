@@ -394,8 +394,21 @@ provided documents accurately and cite your sources.`;
   const stripped = stripExistingInjection(html);
   html = stripped.html;
 
+  // Re-attach pageImages from the hoisted attachments map so the CDN popover
+  // can render the full-page image viewer. (Same pattern as commands.ts:1139-1145)
+  const cdnVerifications = { ...verificationResult.verifications };
+  if (verificationResult.attachments) {
+    for (const [key, v] of Object.entries(cdnVerifications)) {
+      const aid = (v as Record<string, unknown>).attachmentId as string | undefined;
+      if (aid && verificationResult.attachments[aid]?.pageImages) {
+        (cdnVerifications[key] as Record<string, unknown>).pageImages =
+          verificationResult.attachments[aid].pageImages;
+      }
+    }
+  }
+
   const cdnSnippet = [
-    `<script type="application/json" id="dc-data">${escapeJsonForScript(JSON.stringify(verificationResult.verifications))}</script>`,
+    `<script type="application/json" id="dc-data">${escapeJsonForScript(JSON.stringify(cdnVerifications))}</script>`,
     `<script type="application/json" id="dc-key-map">${escapeJsonForScript(JSON.stringify(keyMap))}</script>`,
     `<script>${escapeJsForScript(CDN_JS)}</script>`,
     `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"auto"});</script>`,
