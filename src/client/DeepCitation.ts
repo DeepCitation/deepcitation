@@ -1,5 +1,5 @@
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
-import type { Citation } from "../types/index.js";
+import type { Citation, Verification } from "../types/index.js";
 import type { LlmSearchAttempt } from "../types/llmAttempt.js";
 import { computeAmendments } from "../utils/amendments.js";
 import { getCitationKey } from "../utils/citationKey.js";
@@ -886,6 +886,10 @@ export class DeepCitation {
    * When a citation comes back as "found" or "found_anchor_text_only" it is
    * accepted immediately without calling onAttemptComplete.
    *
+   * Note: citations are verified serially (one at a time) so the callback can
+   * use results from earlier citations to inform amendments. For parallel
+   * first-pass verification, use `verifyAttachment` directly.
+   *
    * @param attachmentId - The attachment to verify against
    * @param citations - Citation(s) to verify (same input formats as verifyAttachment)
    * @param options - Iterative verification options including the amendment callback
@@ -898,7 +902,7 @@ export class DeepCitation {
   ): Promise<VerifyCitationsResponse> {
     const maxAttempts = options.maxAttempts ?? 3;
     const citationMap = this.normalizeCitationInput(citations);
-    const finalVerifications: Record<string, import("../types/index.js").Verification> = {};
+    const finalVerifications: Record<string, Verification> = {};
 
     for (const [citationKey, initialCitation] of Object.entries(citationMap)) {
       const history: LlmSearchAttempt[] = [];
@@ -910,8 +914,13 @@ export class DeepCitation {
         const verification = result.verifications[citationKey];
         const durationMs = Date.now() - start;
 
-        // API may not return a verification for this key — bail out
-        if (!verification) break;
+        // API may not return a verification for this key — the citation key
+        // was not recognised or the API filtered it out.  Bail rather than
+        // silently dropping the citation from the results.
+        if (!verification) {
+          this.logger.warn?.("verifyIterative: no verification returned for key", { citationKey });
+          break;
+        }
 
         const attempt: LlmSearchAttempt = {
           submittedCitation: currentCitation,
@@ -924,9 +933,18 @@ export class DeepCitation {
         if (TERMINAL_VERIFY_STATUSES.has(verification.status)) break;
         if (i >= maxAttempts - 1) break;
 
-        const amended = await options.onAttemptComplete(attempt, history, citationKey);
-        if (!amended) break;
-        currentCitation = amended;
+        const callbackResult = await options.onAttemptComplete(attempt, history, citationKey);
+        if (!callbackResult) break;
+
+        // Normalise callback return — plain Citation or { citation, isFalsePositiveRejection }
+        if ("fullPhrase" in callbackResult || "value" in callbackResult) {
+          currentCitation = callbackResult as Citation;
+        } else {
+          currentCitation = (callbackResult as { citation: Citation; isFalsePositiveRejection?: boolean }).citation;
+          if ((callbackResult as { isFalsePositiveRejection?: boolean }).isFalsePositiveRejection) {
+            attempt.partialRejectedAsFalsePositive = true;
+          }
+        }
       }
 
       if (history.length > 0) {

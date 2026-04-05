@@ -294,12 +294,16 @@ export type VerifyBatchOptions = VerifyCitationsOptions;
 export interface IterativeVerifyOptions extends VerifyCitationsOptions {
   /** Maximum verification passes per citation. @default 3 */
   maxAttempts?: number;
-  /** Called after each non-terminal attempt. Return an amended citation to retry, or null to stop. */
+  /**
+   * Called after each non-terminal attempt. Return an amended citation to
+   * retry, or null/undefined to stop.  To flag the previous attempt as a
+   * false-positive rejection, return an object with `isFalsePositiveRejection`.
+   */
   onAttemptComplete: (
     attempt: LlmSearchAttempt,
     history: LlmSearchAttempt[],
     citationKey: string,
-  ) => Promise<Citation | null | undefined>;
+  ) => Promise<Citation | { citation: Citation; isFalsePositiveRejection?: boolean } | null | undefined>;
 }
 
 /**

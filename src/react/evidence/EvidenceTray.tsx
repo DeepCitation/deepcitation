@@ -208,7 +208,7 @@ export function EvidenceTray({
   const isPartialMatch = status.isPartialMatch;
   const searchAttempts = verification?.searchAttempts ?? EMPTY_SEARCH_ATTEMPTS;
   const llmAttempts = verification?.llmAttempts;
-  const hasLlmHistory = llmAttempts != null && llmAttempts.length > 1;
+  const hasLlmHistory = llmAttempts != null && llmAttempts.length > 0;
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
   const prefersReducedMotion = usePrefersReducedMotion();
 
@@ -380,7 +380,7 @@ export function EvidenceTray({
           if (marker) merged.push(marker);
           if (i < narrative.rows.length) merged.push(narrative.rows[i]);
         }
-        narrative.rows = merged;
+        return { ...narrative, rows: merged };
       }
 
       return narrative;

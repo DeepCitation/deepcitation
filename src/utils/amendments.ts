@@ -5,6 +5,10 @@ type AmendmentField = LlmAmendment["field"];
 
 const TRACKED_FIELDS: AmendmentField[] = ["fullPhrase", "anchorText", "pageNumber", "lineIds", "reasoning"];
 
+/**
+ * Shallow equality check — order-sensitive for arrays.
+ * For `lineIds` order is meaningful (line ranges), so this is intentional.
+ */
 function valuesEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (a == null && b == null) return true;
