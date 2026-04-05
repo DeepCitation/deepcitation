@@ -8,6 +8,7 @@ import type {
   Verification,
   VerifyCitationResponse,
 } from "../types/index.js";
+import type { LlmSearchAttempt } from "../types/llmAttempt.js";
 
 /**
  * Policy for exposing a download URL to the converted verification PDF.
@@ -284,6 +285,22 @@ export interface VerifyCitationsOptions {
  * Structurally identical to VerifyCitationsOptions — aliased to prevent silent drift.
  */
 export type VerifyBatchOptions = VerifyCitationsOptions;
+
+/**
+ * Options for iterative citation verification with LLM retry loop.
+ * The SDK calls verifyAttachment, then invokes onAttemptComplete so the
+ * consumer can amend the citation and retry.
+ */
+export interface IterativeVerifyOptions extends VerifyCitationsOptions {
+  /** Maximum verification passes per citation. @default 3 */
+  maxAttempts?: number;
+  /** Called after each non-terminal attempt. Return an amended citation to retry, or null to stop. */
+  onAttemptComplete: (
+    attempt: LlmSearchAttempt,
+    history: LlmSearchAttempt[],
+    citationKey: string,
+  ) => Promise<Citation | null | undefined>;
+}
 
 /**
  * Simplified citation input for verification

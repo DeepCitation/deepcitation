@@ -1,5 +1,7 @@
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
 import type { Citation } from "../types/index.js";
+import type { LlmSearchAttempt } from "../types/llmAttempt.js";
+import { computeAmendments } from "../utils/amendments.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sha1Hash } from "../utils/sha.js";
 import {
@@ -23,6 +25,7 @@ import type {
   ExtendExpirationResponse,
   FileInput,
   GetAttachmentOptions,
+  IterativeVerifyOptions,
   PrepareAttachmentsResult,
   PrepareConvertedFileOptions,
   PrepareUrlOptions,
@@ -871,6 +874,83 @@ export class DeepCitation {
     });
 
     return fetchPromise;
+  }
+
+  /**
+   * Iteratively verify citations with an LLM retry loop.
+   *
+   * For each citation: calls verifyAttachment, then invokes onAttemptComplete
+   * so the consumer can amend the citation and retry (up to maxAttempts).
+   * The callback is where the consumer plugs in their LLM — the SDK is LLM-agnostic.
+   *
+   * When a citation comes back as "found" or "found_anchor_text_only" it is
+   * accepted immediately without calling onAttemptComplete.
+   *
+   * @param attachmentId - The attachment to verify against
+   * @param citations - Citation(s) to verify (same input formats as verifyAttachment)
+   * @param options - Iterative verification options including the amendment callback
+   * @returns Verification results with llmAttempts populated when retries occurred
+   */
+  async verifyIterative(
+    attachmentId: string,
+    citations: CitationInput,
+    options: IterativeVerifyOptions,
+  ): Promise<VerifyCitationsResponse> {
+    const maxAttempts = options.maxAttempts ?? 3;
+
+    // Normalize to a citation map (same pattern as verifyAttachment)
+    const citationMap: Record<string, Citation> = {};
+
+    if (Array.isArray(citations)) {
+      for (const c of citations) citationMap[getCitationKey(c)] = c;
+    } else if (typeof citations === "object" && citations !== null) {
+      if ("fullPhrase" in citations || "value" in citations) {
+        const key = getCitationKey(citations as Citation);
+        citationMap[key] = citations as Citation;
+      } else {
+        Object.assign(citationMap, citations);
+      }
+    } else {
+      throw new ValidationError("Invalid citations format");
+    }
+
+    const TERMINAL_STATUSES = new Set(["found", "found_anchor_text_only"]);
+    const finalVerifications: Record<string, import("../types/index.js").Verification> = {};
+
+    for (const [citationKey, initialCitation] of Object.entries(citationMap)) {
+      const history: LlmSearchAttempt[] = [];
+      let currentCitation = initialCitation;
+
+      for (let i = 0; i < maxAttempts; i++) {
+        const start = Date.now();
+        const result = await this.verifyAttachment(attachmentId, { [citationKey]: currentCitation }, options);
+        const verification = result.verifications[citationKey];
+        const durationMs = Date.now() - start;
+
+        const attempt: LlmSearchAttempt = {
+          submittedCitation: currentCitation,
+          verification,
+          durationMs,
+          ...(i > 0 ? { amendments: computeAmendments(history[i - 1].submittedCitation, currentCitation) } : {}),
+        };
+        history.push(attempt);
+
+        if (verification?.status && TERMINAL_STATUSES.has(verification.status)) break;
+        if (i >= maxAttempts - 1) break;
+
+        const amended = await options.onAttemptComplete(attempt, history, citationKey);
+        if (!amended) break;
+        currentCitation = amended;
+      }
+
+      const finalVerification = history[history.length - 1].verification;
+      if (history.length > 1) {
+        finalVerification.llmAttempts = history;
+      }
+      finalVerifications[citationKey] = finalVerification;
+    }
+
+    return { verifications: finalVerifications };
   }
 
   /**
