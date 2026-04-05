@@ -121,11 +121,6 @@ interface Verification {
   // Timing
   timeToCertaintyMs?: number;
 
-  // Attachment assets (also present on Verification for convenience)
-  pageImages?: PageImage[];
-  originalDownload?: FileDownload;
-  convertedDownload?: FileDownload;
-
   // Ambiguity detection
   ambiguity?: {
     totalOccurrences: number;
@@ -230,7 +225,7 @@ interface PageImage {
 
 ## Source Downloads
 
-Source downloads are flat fields on each `PreparedAttachment`:
+Attachment-level assets (page images, downloads) are grouped in `AttachmentAssets`:
 
 ```typescript
 interface DownloadLink {
@@ -244,13 +239,17 @@ interface FileDownload {
   link: DownloadLink;
 }
 
-interface PreparedAttachment {
-  attachmentId: string;
-  urlSource?: UrlSource;           // present for URL inputs only
-  originalDownload?: FileDownload; // file as received (PDF, DOCX, MP4, …)
-  convertedDownload?: FileDownload;// PDF rendition / transcript / URL PDF capture
+interface AttachmentAssets {
   pageImages?: PageImage[];
   pageImagesStatus?: PageImagesStatus;
+  originalDownload?: FileDownload; // file as received (PDF, DOCX, MP4, …)
+  convertedDownload?: FileDownload;// PDF rendition / transcript / URL PDF capture
+}
+
+interface PreparedAttachment extends AttachmentAssets {
+  attachmentId: string;
+  deepTextPages?: string[];
+  urlSource?: UrlSource;           // present for URL inputs only
 }
 ```
 
@@ -266,11 +265,12 @@ interface PreparedAttachment {
 ## Verify Response
 
 `verifyAttachment()` / `verify()` responses contain verification results.
-Download artifacts are available on both the attachment and each verification.
+Attachment-level assets are in a separate `attachments` map keyed by `attachmentId`, avoiding per-citation duplication.
 
 ```typescript
 interface VerifyCitationResponse {
   verifications: { [citationKey: string]: Verification };
+  attachments?: { [attachmentId: string]: AttachmentAssets };
 }
 ```
 

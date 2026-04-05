@@ -603,6 +603,34 @@ Response:
 
 ---
 
+## Attachment-Level Asset Hoisting
+
+**What changed (SDK v0.3.11+):** `pageImages`, `originalDownload`, and `convertedDownload` are removed from individual `Verification` objects. They now live in a top-level `attachments` map keyed by `attachmentId` on `VerifyCitationResponse`.
+
+**Why:** These fields are per-attachment, not per-citation. A 100-page doc with 10 citations was duplicating the full `pageImages` array 10x in the response.
+
+**New response shape:**
+```json
+{
+  "verifications": {
+    "c1": { "status": "found", "attachmentId": "att_abc", ... },
+    "c2": { "status": "found", "attachmentId": "att_abc", ... }
+  },
+  "attachments": {
+    "att_abc": {
+      "pageImages": [...],
+      "originalDownload": { "filename": "report.pdf", "mimeType": "application/pdf", "link": { "url": "..." } }
+    }
+  }
+}
+```
+
+**SDK bridge:** The SDK's `normalizeVerifyResponse()` handles backward compatibility — if the server still sends assets per-verification, the SDK extracts them into the `attachments` map. Once the server migrates, this bridge becomes a no-op passthrough.
+
+**Server migration:** When ready, move `pageImages`, `originalDownload`, `convertedDownload` from each verification object to a top-level `attachments: Record<string, AttachmentAssets>` map. The SDK already expects both formats.
+
+---
+
 ## Rollout Checklist (Server Team)
 
 1. Update response serializers to emit `verification.assets.*`.
@@ -629,3 +657,4 @@ Response:
     - source download button behavior
     - proof image/page display
     - page drawer rendering from `assets.pageRenders`.
+22. Hoist `pageImages`, `originalDownload`, `convertedDownload` from per-verification to top-level `attachments` map keyed by `attachmentId`.
