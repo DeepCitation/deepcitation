@@ -40,6 +40,7 @@ import { HighlightedPhrase } from "./HighlightedPhrase.js";
 import { useBlinkMotionStage } from "./hooks/useBlinkMotionStage.js";
 import { useDrawerDragToClose } from "./hooks/useDrawerDragToClose.js";
 import { type TranslateFunction, tPlural, useTranslation } from "./i18n.js";
+import { DocumentIcon } from "./icons.js";
 import { getBlinkRowMotionStyle } from "./motion/blinkAnimation.js";
 import { acquireScrollLock, releaseScrollLock } from "./scrollLock.js";
 import type { IndicatorVariant } from "./types.js";
@@ -255,11 +256,15 @@ function SourceGroupHeader({
       aria-level={3}
       aria-label={sourceAriaLabel}
     >
-      {/* Favicon for URL sources, letter avatar for documents */}
+      {/* Favicon for URL sources, document icon for documents */}
       <div className="shrink-0">
         {isUrlSource ? (
           <FaviconImage faviconUrl={group.sourceFavicon || null} domain={group.sourceDomain || null} alt={sourceName} />
-        ) : null}
+        ) : (
+          <span className="w-4 h-4 shrink-0 text-dc-pending">
+            <DocumentIcon />
+          </span>
+        )}
       </div>
 
       {/* Source name and domain (for URL sources, show domain in muted text) */}
@@ -426,6 +431,13 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       setLocalExpanded(prev => !prev);
     }
     onClick?.(item);
+    // Auto-scroll the newly expanded item into view
+    if (!isExpanded) {
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-dc-item="${CSS.escape(citationKey)}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    }
   }, [item, onClick, escCtx, isExpanded, citationKey]);
 
   // Keyhole click expands inline inside the citation row.
@@ -445,15 +457,15 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     <div
       data-dc-item={citationKey}
       className={cn(
-        "cursor-pointer transition-colors border-l-[3px]",
+        "cursor-pointer transition-colors",
         !isLast && "border-b border-dc-border",
-        isExpanded ? statusBorderColor : "border-l-transparent hover:bg-dc-muted/60",
+        !isExpanded && "hover:bg-dc-muted/60",
         className,
       )}
     >
       {/* Clickable summary row */}
       <div
-        className={cn("group px-4 py-3", isExpanded && "bg-dc-primary/10")}
+        className={cn("group px-4 py-3", isExpanded && "bg-zinc-100 dark:bg-zinc-800/40")}
         onClick={handleClick}
         role="button"
         tabIndex={0}
@@ -467,23 +479,49 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
         }}
       >
         <div className="flex items-center gap-3">
-          {/* Status indicator */}
+          {/* Status indicator — shows status icon; on hover converts to collapse caret */}
           {indicatorVariant !== "none" && (
             <div className="shrink-0" data-testid="status-indicator">
-              <span
-                className={cn(
-                  "inline-flex w-5 h-5 items-center justify-center",
-                  statusInfo.color,
-                  isPending && indicatorVariant !== "dot" && "animate-spin",
-                )}
-                title={statusInfo.label}
-              >
-                {statusInfo.icon}
-              </span>
+              {isExpanded ? (
+                <>
+                  {/* Caret shown on hover */}
+                  <svg
+                    aria-hidden="true"
+                    className="w-5 h-5 text-dc-subtle-foreground hidden group-hover:block"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                  </svg>
+                  {/* Status icon shown by default */}
+                  <span
+                    className={cn(
+                      "inline-flex w-5 h-5 items-center justify-center group-hover:hidden",
+                      statusInfo.color,
+                    )}
+                    title={statusInfo.label}
+                  >
+                    {statusInfo.icon}
+                  </span>
+                </>
+              ) : (
+                <span
+                  className={cn(
+                    "inline-flex w-5 h-5 items-center justify-center",
+                    statusInfo.color,
+                    isPending && indicatorVariant !== "dot" && "animate-spin",
+                  )}
+                  title={statusInfo.label}
+                >
+                  {statusInfo.icon}
+                </span>
+              )}
             </div>
           )}
 
-          {/* Header: fullPhrase with anchorText highlighted */}
+          {/* Header: fullPhrase with anchorText highlighted — always visible */}
           <div className="flex-1 min-w-0">
             <div className="text-sm text-dc-foreground line-clamp-2" title={fullPhrase || anchorText}>
               <HighlightedPhrase
@@ -493,21 +531,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
               />
             </div>
           </div>
-
-          {/* Expand/collapse chevron */}
-          <svg
-            aria-hidden="true"
-            className={cn(
-              "w-4 h-4 shrink-0 transition-transform duration-120 ease-[cubic-bezier(0.2,0,0,1)]",
-              isExpanded ? "rotate-180 text-dc-subtle-foreground" : "text-dc-pending",
-            )}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
         </div>
       </div>
 
@@ -523,7 +546,8 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
           <div className="overflow-hidden" style={{ minHeight: 0 }}>
             <div
               className={cn(
-                "border-t border-dc-border",
+                "ml-[25px] border-l-2 border-t border-dc-border",
+                statusBorderColor,
                 wasAutoExpanded && isNotFound && "animate-[dc-pulse-once_800ms_ease-out]",
               )}
               onAnimationEnd={() => setWasAutoExpanded(false)}
@@ -573,93 +597,6 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
     </div>
   );
 });
-
-// =========
-// CompactSingleCitationRow — merged header+item for single-citation groups
-// =========
-
-/**
- * Compact row for groups with exactly 1 citation (multi-source drawers only).
- * Merges group header and citation item into one line:
- * [favicon/letter] Source Name · status-icon · "anchor text"
- */
-function CompactSingleCitationRow({
-  group,
-  isLast = false,
-  onClick,
-  indicatorVariant = "icon",
-}: {
-  group: SourceCitationGroup;
-  isLast?: boolean;
-  onClick?: (item: CitationDrawerItem) => void;
-  indicatorVariant?: IndicatorVariant;
-}) {
-  const t = useTranslation();
-  const item = group.citations[0];
-  const { citation, verification } = item;
-  const statusInfo = getStatusInfo(verification, indicatorVariant, t);
-  const isPending = !verification?.status || verification.status === "pending" || verification.status === "loading";
-
-  const sourceName = group.sourceName || t("drawer.source");
-  const isUrlSource = !!group.sourceDomain;
-
-  const anchorText = citation.anchorText?.toString() || citation.fullPhrase;
-  const displayText = anchorText || null;
-
-  const handleClick = useCallback(() => onClick?.(item), [item, onClick]);
-
-  return (
-    <div
-      className={cn(
-        "px-4 py-2.5 flex items-center gap-2.5 cursor-pointer transition-colors",
-        "hover:bg-dc-muted/60",
-        !isLast && "border-b border-dc-border",
-      )}
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          handleClick();
-        }
-      }}
-    >
-      {/* Favicon for URL sources only — document sources show just the name */}
-      {isUrlSource && (
-        <div className="shrink-0">
-          <FaviconImage faviconUrl={group.sourceFavicon || null} domain={group.sourceDomain || null} alt={sourceName} />
-        </div>
-      )}
-
-      {/* Source name */}
-      <span className="text-sm text-dc-muted-foreground truncate flex-1 min-w-0" title={sourceName}>
-        {sourceName}
-      </span>
-
-      {/* Status indicator */}
-      {indicatorVariant !== "none" && (
-        <span
-          className={cn(
-            "inline-flex w-4 h-4 items-center justify-center shrink-0",
-            statusInfo.color,
-            isPending && indicatorVariant !== "dot" && "animate-spin",
-          )}
-          title={statusInfo.label}
-        >
-          {statusInfo.icon}
-        </span>
-      )}
-
-      {/* Anchor text */}
-      {displayText && (
-        <span className="text-sm text-dc-foreground truncate flex-1 min-w-0" title={displayText}>
-          {displayText}
-        </span>
-      )}
-    </div>
-  );
-}
 
 // =============================================================================
 // DrawerSourceGroup — extracted from inline renderGroup()
@@ -759,16 +696,27 @@ function DrawerSourceGroup({
     );
   }
 
-  // Multi-source drawer: single-citation groups as compact merged row (no header+item split)
+  // Multi-source drawer: single-citation groups use header + expandable item (same as multi-citation)
+  // so users can always access evidence and verification proof.
   if (group.citations.length === 1 && !renderCitationItem) {
+    const item = group.citations[0];
     return (
-      <CompactSingleCitationRow
-        key={key}
-        group={group}
-        isLast={isLastGroup}
-        onClick={onCitationClick}
-        indicatorVariant={indicatorVariant}
-      />
+      <div key={key}>
+        <SourceGroupHeader
+          group={group}
+          pages={groupPages}
+          activePage={activePage}
+          onPageClick={onPageClick}
+          onPageDeactivate={onPageDeactivate}
+        />
+        <CitationDrawerItemComponent
+          item={item}
+          pageImages={getPageImages(item)}
+          isLast={isLastGroup}
+          onClick={onCitationClick}
+          indicatorVariant={indicatorVariant}
+        />
+      </div>
     );
   }
 
@@ -841,16 +789,20 @@ function DrawerSourceHeading({
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      {/* Favicon for URL sources only — document sources show just the label text */}
-      {isUrlSource && (
-        <div className="shrink-0">
+      {/* Favicon for URL sources, document icon for documents */}
+      <div className="shrink-0">
+        {isUrlSource ? (
           <FaviconImage
             faviconUrl={firstGroup.sourceFavicon || null}
             domain={firstGroup.sourceDomain || null}
             alt={displayLabel}
           />
-        </div>
-      )}
+        ) : (
+          <span className="w-4 h-4 shrink-0 text-dc-pending">
+            <DocumentIcon />
+          </span>
+        )}
+      </div>
 
       {/* Source label — identical text to CitationDrawerTrigger */}
       <h2 className="text-base font-semibold text-dc-foreground">{displayLabel}</h2>
@@ -1092,6 +1044,7 @@ function OpenCitationDrawer({
   );
 
   // Handler for clicking a page badge — opens the header panel for the first citation on that page
+  // and expands + scrolls to the matching citation in the list.
   const handlePageBadgeClick = useCallback(
     (page: number) => {
       const first = pageToItems.get(page)?.[0] ?? pageToAnyItem.get(page);
@@ -1101,6 +1054,12 @@ function OpenCitationDrawer({
         if (expanded) {
           handleInlineExpand(first.citationKey, expanded.src, first.verification, expanded.renderScale, page);
         }
+        // Expand the matching citation and scroll it into view
+        setExpandedCitationKey(first.citationKey);
+        requestAnimationFrame(() => {
+          const el = document.querySelector(`[data-dc-item="${CSS.escape(first.citationKey)}"]`);
+          el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
       }
       setPageAnnouncement(`Navigated to page ${page}`);
     },
