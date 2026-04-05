@@ -936,7 +936,7 @@ export class DeepCitation {
     const maxAttempts = options.maxAttempts ?? 3;
     const citationMap = this.normalizeCitationInput(citations);
     const finalVerifications: Record<string, Verification> = {};
-    let mergedAttachments: Record<string, AttachmentAssets> = {};
+    const mergedAttachments: Record<string, AttachmentAssets> = {};
 
     for (const [citationKey, initialCitation] of Object.entries(citationMap)) {
       const history: LlmSearchAttempt[] = [];
@@ -945,7 +945,7 @@ export class DeepCitation {
       for (let i = 0; i < maxAttempts; i++) {
         const start = Date.now();
         const result = await this.verifyAttachment(attachmentId, { [citationKey]: currentCitation }, options);
-        if (result.attachments) mergedAttachments = { ...mergedAttachments, ...result.attachments };
+        if (result.attachments) Object.assign(mergedAttachments, result.attachments);
         const verification = result.verifications[citationKey];
         const durationMs = Date.now() - start;
 
@@ -1091,7 +1091,7 @@ export class DeepCitation {
 
     // If all were skipped, return early
     if (Object.keys(batchCitations).length === 0) {
-      return { verifications: allVerifications };
+      return { verifications: allVerifications, attachments: undefined };
     }
 
     const response = await this._fetch(`${this.apiUrl}/verifyCitations`, {
