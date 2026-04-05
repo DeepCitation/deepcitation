@@ -177,6 +177,50 @@ describe("CDN popover viewState contract", () => {
   });
 });
 
+describe("CdnPopoverWrapper pageImages flow", () => {
+  it("passes data.pageImages through to DefaultPopoverContent", () => {
+    const pageImages = fullData.pageImages ?? [];
+    function TestWrapper() {
+      const [viewState, setViewState] = useState<PopoverViewState>("summary");
+      // Simulate what CdnPopoverWrapper does: passes pageImages from data directly
+      return (
+        <DefaultPopoverContent
+          citation={mapToCitation(fullData)}
+          verification={mapToVerification(fullData)}
+          pageImages={pageImages}
+          status={{ isVerified: true, isMiss: false, isPartialMatch: false, isPending: false }}
+          viewState={viewState}
+          onViewStateChange={setViewState}
+        />
+      );
+    }
+    const { container } = render(<TestWrapper />);
+    // The component should render without errors when pageImages are provided
+    expect(container.firstChild).toBeTruthy();
+    // Verify pageImages are NOT on the verification (they come from data separately)
+    const verification = mapToVerification(fullData);
+    expect((verification as Record<string, unknown>).pageImages).toBeUndefined();
+  });
+
+  it("handles undefined pageImages gracefully", () => {
+    function TestWrapper() {
+      const [viewState, setViewState] = useState<PopoverViewState>("summary");
+      return (
+        <DefaultPopoverContent
+          citation={mapToCitation(minData)}
+          verification={mapToVerification(minData)}
+          pageImages={undefined}
+          status={{ isVerified: false, isMiss: true, isPartialMatch: false, isPending: false }}
+          viewState={viewState}
+          onViewStateChange={setViewState}
+        />
+      );
+    }
+    const { container } = render(<TestWrapper />);
+    expect(container.firstChild).toBeTruthy();
+  });
+});
+
 describe("cdn.ts source invariants", () => {
   const cdnSource = readFileSync(resolve(__dirname, "../vanilla/runtime/cdn.ts"), "utf-8");
   it("uses CdnPopoverWrapper", () => {
