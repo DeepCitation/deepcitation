@@ -43,6 +43,10 @@ const PROVIDERS = ["openai", "anthropic", "gemini"] as const;
  * wrapCitationMarkers expects `anchor text [N]` — this function normalizes
  * all styles to that format before markdownToHtml processes them.
  */
+// Max prefix length for fuzzy anchor matching — long enough to be unique,
+// short enough to tolerate LLM paraphrasing at the tail end.
+const ANCHOR_MATCH_PREFIX = 40;
+
 export function normalizeNumericMarkers(
   text: string,
   anchorMap: Record<string, string>,
@@ -68,7 +72,7 @@ export function normalizeNumericMarkers(
     if (!markerMatch) continue;
 
     const markerPos = markerMatch.index;
-    const anchorIdx = text.toLowerCase().indexOf(anchor.slice(0, 40).toLowerCase());
+    const anchorIdx = text.toLowerCase().indexOf(anchor.slice(0, ANCHOR_MATCH_PREFIX).toLowerCase());
     if (anchorIdx < 0) continue;
 
     const anchorEnd = anchorIdx + anchor.length;
@@ -82,7 +86,7 @@ export function normalizeNumericMarkers(
       text.slice(markerMatch.index + markerMatch[0].length);
 
     // Recalculate anchor position after removal (may have shifted)
-    const newAnchorIdx = text.toLowerCase().indexOf(anchor.slice(0, 40).toLowerCase());
+    const newAnchorIdx = text.toLowerCase().indexOf(anchor.slice(0, ANCHOR_MATCH_PREFIX).toLowerCase());
     if (newAnchorIdx < 0) continue;
     const insertPos = newAnchorIdx + anchor.length;
     text = text.slice(0, insertPos) + ` [${num}]` + text.slice(insertPos);

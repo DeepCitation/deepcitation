@@ -11,6 +11,7 @@ import { chromium } from "playwright-core";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
+import { PROVIDERS } from "./fixture-to-html.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(__dirname, "../output");
@@ -83,12 +84,13 @@ async function verifyProvider(provider: string): Promise<TestResult> {
       result.pass = false;
     }
 
-    // 2. Check non-empty spans
-    const spans = page.locator("[data-citation-key]");
-    for (let i = 0; i < result.citationSpans; i++) {
-      const text = await spans.nth(i).textContent();
-      if (text && text.trim().length > 0) result.nonEmptySpans++;
-    }
+    // 2. Check non-empty spans (single evaluate call instead of N round-trips)
+    result.nonEmptySpans = await page.evaluate(() => {
+      const spans = document.querySelectorAll("[data-citation-key]");
+      let count = 0;
+      spans.forEach((el) => { if (el.textContent?.trim()) count++; });
+      return count;
+    });
     if (result.nonEmptySpans < result.citationSpans * 0.5) {
       result.errors.push(
         `Only ${result.nonEmptySpans}/${result.citationSpans} spans have text (need >50%)`,
@@ -164,18 +166,16 @@ async function verifyProvider(provider: string): Promise<TestResult> {
 async function main() {
   console.log("🔍 Verifying fixture HTML reports with Playwright\n");
 
-  const providers = ["openai", "anthropic", "gemini"];
-  const results: TestResult[] = [];
+  const providers = [...PROVIDERS];
+  const results = await Promise.all(providers.map(verifyProvider));
   let allPass = true;
 
-  for (const provider of providers) {
-    const result = await verifyProvider(provider);
-    results.push(result);
+  for (const result of results) {
     if (!result.pass) allPass = false;
 
     const status = result.pass ? "✅" : "❌";
-    console.log(`${status} ${provider}:`);
-    console.log(`   citation spans:  ${result.citationSpans} (min: ${expectedMinCitations[provider]})`);
+    console.log(`${status} ${result.provider}:`);
+    console.log(`   citation spans:  ${result.citationSpans} (min: ${expectedMinCitations[result.provider]})`);
     console.log(`   with text:       ${result.nonEmptySpans}/${result.citationSpans}`);
     console.log(`   dc-data entries: ${result.dcDataEntries}`);
     console.log(`   dc-key-map:      ${result.keyMapEntries}`);
