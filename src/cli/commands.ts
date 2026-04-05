@@ -1117,7 +1117,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       v.url = {
         ...((v.url as Record<string, unknown>) ?? {}),
         verifiedUrl: urlEntry.url,
-        verifiedDomain: urlEntry.domain,
+        verifiedDomain: urlEntry.domain || undefined,
       };
       v.citation = { ...((v.citation ?? {}) as Record<string, unknown>), type: "url" };
     }

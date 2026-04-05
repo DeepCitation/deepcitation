@@ -949,7 +949,18 @@ export class DeepCitation {
 
       if (history.length > 0) {
         const last = history[history.length - 1].verification;
+        // Single-attempt results (terminal on first try, or consumer stopped early)
+        // omit llmAttempts — consumers should check the status field to distinguish
+        // terminal from early-stop.  Multi-attempt results always include the full history.
         finalVerifications[citationKey] = history.length > 1 ? { ...last, llmAttempts: history } : last;
+      } else {
+        // API returned no verification for this key — include a synthetic entry
+        // so consumers always see every requested key in the response.
+        finalVerifications[citationKey] = {
+          status: "not_found",
+          citation: currentCitation,
+          searchAttempts: [],
+        } as Verification;
       }
     }
 

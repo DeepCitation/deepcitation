@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const RETRY_INTERVAL_MS = 3000;
 const MAX_RETRIES = 20;
+/** Pixel tolerance for placeholder vs real image detection. */
+const DIMENSION_TOLERANCE_PX = 4;
 
 /**
  * Detects placeholder page images (renders still pending on the server) and
@@ -28,11 +30,12 @@ export function useRetryPendingRender(
   const [isRetrying, setIsRetrying] = useState(false);
   const retryCountRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Track the original src so we can reset when it changes externally.
+  const probeRef = useRef<HTMLImageElement | null>(null);
   const baseSrcRef = useRef(src);
 
   // Reset when src changes externally (different citation clicked).
-  if (baseSrcRef.current !== src) {
+  useLayoutEffect(() => {
+    if (baseSrcRef.current === src) return;
     baseSrcRef.current = src;
     retryCountRef.current = 0;
     setEffectiveSrc(src);
@@ -41,22 +44,34 @@ export function useRetryPendingRender(
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  }
+    // Cancel any in-flight probe so stale callbacks don't fire.
+    if (probeRef.current) {
+      probeRef.current.onload = null;
+      probeRef.current.onerror = null;
+      probeRef.current = null;
+    }
+  }, [src]);
 
   // Cleanup on unmount.
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (probeRef.current) {
+        probeRef.current.onload = null;
+        probeRef.current.onerror = null;
+      }
     };
   }, []);
 
   const isPlaceholder = useCallback(
     (w: number, h: number): boolean => {
       if (!expectedDimensions) return false;
-      // Placeholder is always 800×600. Real renders match expectedDimensions.
-      // Allow small tolerance for rounding but a placeholder will never be close
-      // to a real page dimension (e.g. 1238×1650).
-      return w !== expectedDimensions.width || h !== expectedDimensions.height;
+      // Placeholder is always 800×600. Real renders match expectedDimensions
+      // within a small tolerance (retina scaling, JPEG rounding).
+      return (
+        Math.abs(w - expectedDimensions.width) > DIMENSION_TOLERANCE_PX ||
+        Math.abs(h - expectedDimensions.height) > DIMENSION_TOLERANCE_PX
+      );
     },
     [expectedDimensions],
   );
@@ -71,8 +86,10 @@ export function useRetryPendingRender(
       timerRef.current = null;
       retryCountRef.current += 1;
       const probe = new Image();
+      probeRef.current = probe;
       const cacheBusted = `${baseSrcRef.current}${baseSrcRef.current.includes("?") ? "&" : "?"}_t=${Date.now()}`;
       probe.onload = () => {
+        probeRef.current = null;
         if (!isPlaceholder(probe.naturalWidth, probe.naturalHeight)) {
           // Real image is ready — swap it in.
           setEffectiveSrc(cacheBusted);
@@ -83,6 +100,7 @@ export function useRetryPendingRender(
         }
       };
       probe.onerror = () => {
+        probeRef.current = null;
         // Network error — try again.
         scheduleRetry();
       };
