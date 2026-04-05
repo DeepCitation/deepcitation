@@ -1,5 +1,6 @@
 import { defineConfig } from "tsup";
 
+// Skip declaration generation during iterative development to halve build time.
 const skipDts = process.env.SKIP_DTS === "true";
 
 // Combined single config to avoid race conditions between parallel builds

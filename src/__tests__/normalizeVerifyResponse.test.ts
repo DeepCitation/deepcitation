@@ -12,12 +12,10 @@ const PAGE_IMAGES: AttachmentAssets["pageImages"] = [
   },
 ];
 const ORIGINAL_DL: AttachmentAssets["originalDownload"] = {
-  url: "https://example.com/orig.pdf",
-  expiresAt: "2099-01-01",
+  link: { url: "https://example.com/orig.pdf", expiresAt: "2099-01-01" },
 };
 const CONVERTED_DL: AttachmentAssets["convertedDownload"] = {
-  url: "https://example.com/conv.pdf",
-  expiresAt: "2099-01-01",
+  link: { url: "https://example.com/conv.pdf", expiresAt: "2099-01-01" },
 };
 
 function makeLegacyResponse(overrides?: Partial<VerifyCitationsResponse>): VerifyCitationsResponse {
@@ -72,6 +70,11 @@ describe("normalizeVerifyResponse", () => {
   });
 
   it("uses first-writer-wins for duplicate attachmentIds", () => {
+    // In the real API, all verifications for the same attachmentId carry
+    // identical assets. First-writer-wins is a simplification; if a server
+    // bug ever sends mismatched assets, the second writer's data is silently
+    // dropped. Acceptable because the only alternative (deep-merge) risks
+    // combining stale/partial assets into an inconsistent snapshot.
     const response: VerifyCitationsResponse = {
       verifications: {
         k1: { status: "found", attachmentId: "att-1", pageImages: PAGE_IMAGES } as any,
@@ -114,5 +117,22 @@ describe("normalizeVerifyResponse", () => {
     };
     const result = normalizeVerifyResponse(response);
     expect(result.attachments).toEqual({ "att-1": {} });
+  });
+
+  it("hoists pageImagesStatus alongside pageImages", () => {
+    const response: VerifyCitationsResponse = {
+      verifications: {
+        k1: {
+          status: "found",
+          attachmentId: "att-1",
+          pageImages: PAGE_IMAGES,
+          pageImagesStatus: "completed",
+        } as any,
+      },
+    };
+    const result = normalizeVerifyResponse(response);
+    expect(result.attachments?.["att-1"]?.pageImagesStatus).toBe("completed");
+    // Stripped from verification
+    expect((result.verifications.k1 as any).pageImagesStatus).toBeUndefined();
   });
 });

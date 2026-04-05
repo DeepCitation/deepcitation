@@ -27,15 +27,7 @@ import { createInterface } from "readline";
 import { fileURLToPath } from "url";
 import { execFileSync } from "child_process";
 
-// CLI internals — direct source imports (monorepo-only, not public API)
-import { markdownToHtml } from "../../../src/cli/markdownToHtml.js";
-import {
-  buildCitationMaps,
-  injectCdnRuntime,
-  normalizeNumericMarkers,
-  reattachPageImages,
-  replaceCitationMarkers,
-} from "../../../src/vanilla/reportUtils.js";
+import { generateHtmlReport } from "./html-report.js";
 
 // Get current directory for loading sample files
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -347,30 +339,14 @@ provided documents accurately and cite your sources.`;
 
   console.log("\n📄 Step 6: Generating HTML report...\n");
 
-  const { anchorMap, keyMap } = buildCitationMaps(parsedCitations);
-
-  // Normalize [N] markers: expand grouped markers [1, 5] → [1][5] and
-  // reposition markers that appear before their anchor text to after it.
-  const normalizedText = normalizeNumericMarkers(visibleText, anchorMap);
-
-  // markdownToHtml converts [N] markers → <span data-cite="N"> using the anchorMap,
-  // wrapping just the anchor phrase rather than the whole preceding clause.
   const sourceLabel = source.type === "url" ? source.url : "filename" in source ? source.filename : source.label;
-  let html = markdownToHtml(normalizedText, {
-    style: "report",
+  const html = generateHtmlReport({
+    visibleText,
+    parsedCitations,
+    verifications: verificationResult.verifications,
     title: sourceLabel,
-    citationCount,
-    anchorMap,
+    attachments: verificationResult.attachments,
   });
-
-  html = replaceCitationMarkers(html, parsedCitations);
-
-  // Re-attach pageImages from hoisted attachments so CDN popover renders them
-  const cdnVerifications = { ...verificationResult.verifications };
-  reattachPageImages(cdnVerifications, verificationResult.attachments);
-
-  const injected = injectCdnRuntime(html, cdnVerifications, keyMap);
-  html = injected.html;
 
   // Write HTML to output directory and open in browser
   const outDir = resolve(__dirname, "../../output");
@@ -380,8 +356,7 @@ provided documents accurately and cite your sources.`;
   writeFileSync(outPath, html);
 
   console.log(`   Written: ${outPath}`);
-  console.log(`   Citations in HTML: ${Object.keys(anchorMap).length} anchors, ${Object.keys(keyMap).length} keys`);
-  console.log(`   Verifications in dc-data: ${Object.keys(verificationResult.verifications).length} entries`);
+  console.log(`   Citations: ${citationCount}, Verifications: ${Object.keys(verificationResult.verifications).length}`);
 
   // Open in browser (WSL → Linux → macOS — silent on failure)
   try {

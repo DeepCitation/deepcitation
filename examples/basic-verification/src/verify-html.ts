@@ -72,8 +72,11 @@ async function verifyProvider(provider: string): Promise<TestResult> {
   try {
     await page.goto(`file://${htmlPath}`, { waitUntil: "networkidle" });
 
-    // Give CDN JS time to initialize
-    await page.waitForTimeout(1000);
+    // Wait for CDN popover to initialize (polling, not a fixed delay)
+    await page.waitForFunction(
+      () => typeof (window as any).DeepCitationPopover !== "undefined",
+      { timeout: 5000 },
+    ).catch(() => {});
 
     // 1. Count citation spans
     result.citationSpans = await page.locator("[data-citation-key]").count();

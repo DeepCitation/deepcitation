@@ -17,14 +17,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 
-// CLI internals — direct source imports (monorepo-only, not public API)
-import { markdownToHtml } from "../../../src/cli/markdownToHtml.js";
-import {
-  buildCitationMaps,
-  injectCdnRuntime,
-  normalizeNumericMarkers,
-  replaceCitationMarkers,
-} from "../../../src/vanilla/reportUtils.js";
+import { generateHtmlReport } from "./html-report.js";
 
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -56,26 +49,8 @@ function convertFixture(provider: string) {
     );
   }
 
-  // ── Step 2: Build anchorMap + keyMap ────────────────────────────────
-  const { anchorMap, keyMap } = buildCitationMaps(parsedCitations);
-
-  console.log(`   anchorMap keys: [${Object.keys(anchorMap).join(", ")}]`);
-  console.log(`   keyMap keys: [${Object.keys(keyMap).join(", ")}]`);
-
-  // ── Step 3: Normalize markers + convert markdown → HTML ─────────────
-  const normalizedText = normalizeNumericMarkers(visibleText, anchorMap);
-  let html = markdownToHtml(normalizedText, {
-    style: "report",
-    title: `${provider} fixture`,
-    citationCount,
-    anchorMap,
-  });
-
-  // ── Step 4: Replace data-cite="N" → data-citation-key="hash" ──────
-  html = replaceCitationMarkers(html, parsedCitations);
-
-  // ── Step 5: Inject CDN runtime with stub verification data ─────────
-  // Build stub verifications so the CDN popover has something to display.
+  // ── Step 2: Build stub verifications and generate HTML ──────────────
+  // Stub verifications so the CDN popover has something to display.
   // In the real flow, verificationResult comes from the API.
   const stubVerifications: Record<string, unknown> = {};
   for (const [hash, citation] of Object.entries(parsedCitations)) {
@@ -99,10 +74,14 @@ function convertFixture(provider: string) {
     };
   }
 
-  const injected = injectCdnRuntime(html, stubVerifications, keyMap);
-  html = injected.html;
+  const html = generateHtmlReport({
+    visibleText,
+    parsedCitations,
+    verifications: stubVerifications,
+    title: `${provider} fixture`,
+  });
 
-  // ── Step 6: Write output ───────────────────────────────────────────
+  // ── Step 3: Write output ───────────────────────────────────────────
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
   const outPath = resolve(outDir, `${provider}-fixture-verified.html`);
   writeFileSync(outPath, html);

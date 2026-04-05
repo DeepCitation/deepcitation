@@ -18,6 +18,7 @@ export function normalizeVerifyResponse(response: VerifyCitationsResponse): Veri
     const aid = v.attachmentId;
     if (!aid || attachments[aid]) {
       delete (v as Record<string, unknown>).pageImages;
+      delete (v as Record<string, unknown>).pageImagesStatus;
       delete (v as Record<string, unknown>).originalDownload;
       delete (v as Record<string, unknown>).convertedDownload;
       continue;
@@ -25,11 +26,13 @@ export function normalizeVerifyResponse(response: VerifyCitationsResponse): Veri
     const raw = v as Record<string, unknown>;
     const assets: AttachmentAssets = {};
     if (raw.pageImages) assets.pageImages = raw.pageImages as AttachmentAssets["pageImages"];
+    if (raw.pageImagesStatus) assets.pageImagesStatus = raw.pageImagesStatus as AttachmentAssets["pageImagesStatus"];
     if (raw.originalDownload) assets.originalDownload = raw.originalDownload as AttachmentAssets["originalDownload"];
     if (raw.convertedDownload)
       assets.convertedDownload = raw.convertedDownload as AttachmentAssets["convertedDownload"];
     attachments[aid] = assets;
     delete raw.pageImages;
+    delete raw.pageImagesStatus;
     delete raw.originalDownload;
     delete raw.convertedDownload;
   }
