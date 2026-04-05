@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import { type ReactNode, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, type Ref, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CitationStatus } from "../types/citation.js";
 import { isUrlCitation } from "../types/citation.js";
 import type { PageImage, Verification } from "../types/verification.js";
@@ -112,6 +112,8 @@ export interface PopoverContentProps {
    * Custom action buttons rendered in the popover header alongside the download button.
    */
   customPopoverActions?: import("./types.js").PopoverAction[];
+  /** Optional ref to the outer popover shell, used by the CDN wrapper for transition capture. */
+  popoverContentRef?: Ref<HTMLDivElement>;
 }
 
 // =============================================================================
@@ -222,12 +224,14 @@ function PopoverLayoutShell({
   isFullPage,
   expandedNaturalWidth,
   summaryWidth,
+  popoverContentRef,
   children,
 }: {
   isExpanded: boolean;
   isFullPage: boolean;
   expandedNaturalWidth: number | null;
   summaryWidth: string;
+  popoverContentRef?: Ref<HTMLDivElement>;
   children: ReactNode;
 }) {
   const { stage: blinkStage, prefersReducedMotion } = useBlinkMotionStage(isExpanded || isFullPage, "container");
@@ -256,6 +260,7 @@ function PopoverLayoutShell({
   return (
     <Activity>
       <div
+        ref={popoverContentRef}
         className={POPOVER_CONTAINER_BASE_CLASSES}
         style={{
           width: shellWidth,
@@ -286,15 +291,12 @@ function ClaimQuote({
   isMiss,
   borderColor,
   maxWidth,
-  displayLabelAnnotation,
 }: {
   fullPhrase: string;
   anchorText?: string;
   isMiss: boolean;
   borderColor: string;
   maxWidth?: string;
-  /** Pre-translated annotation via t("popover.displayedAs"). */
-  displayLabelAnnotation?: string;
 }) {
   return (
     <div
@@ -305,9 +307,6 @@ function ClaimQuote({
       style={maxWidth ? { maxWidth } : undefined}
     >
       <HighlightedPhrase fullPhrase={fullPhrase} anchorText={anchorText} isMiss={isMiss} />
-      {displayLabelAnnotation && (
-        <div className="mt-1 text-[11px] text-dc-subtle-foreground">{displayLabelAnnotation}</div>
-      )}
     </div>
   );
 }
@@ -737,6 +736,7 @@ export function DefaultPopoverContent({
   downloadUrl,
   escapeInterceptRef,
   customPopoverActions,
+  popoverContentRef,
 }: PopoverContentProps) {
   const t = useTranslation();
   // Resolve evidence src up-front so hasImage reflects only actually-renderable images.
@@ -1065,6 +1065,7 @@ export function DefaultPopoverContent({
           isFullPage={isFullPage}
           expandedNaturalWidth={expandedNaturalWidth}
           summaryWidth={summaryWidth}
+          popoverContentRef={popoverContentRef}
         >
           <div style={viewState === "summary" ? { maxWidth: summaryWidth } : undefined}>
             {/* Zone 1: Metadata Header */}
@@ -1106,10 +1107,12 @@ export function DefaultPopoverContent({
                   isMiss={isMiss}
                   borderColor={claimBorderColor}
                   maxWidth={viewState === "summary" ? summaryWidth : undefined}
-                  displayLabelAnnotation={
-                    showDisplayLabelAnnotation ? t("popover.displayedAs", { label: displayLabel }) : undefined
-                  }
                 />
+              )}
+              {showDisplayLabelAnnotation && fullPhrase && (
+                <div className="ml-[1.34375rem] mr-3 -mt-2 mb-3 text-[11px] text-dc-subtle-foreground">
+                  {t("popover.displayedAs", { label: displayLabel })}
+                </div>
               )}
             </AnimatedHeightWrapper>
           </div>

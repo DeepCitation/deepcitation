@@ -35,7 +35,7 @@ interface UseAgentChatOptions {
   /** Must be a stable reference (memoized at the call site) to avoid unnecessary re-renders. */
   fileDataParts: FileDataPart[];
   /** Must be a stable reference (memoized at the call site) to avoid unnecessary re-renders. */
-  deepTextPromptPortions: string[];
+  deepTextPagesByAttachmentId: Record<string, string[]>;
 }
 
 interface UseAgentChatReturn {
@@ -65,7 +65,7 @@ type AgUiEvent =
 export function useAgentChat({
   agentUrl,
   fileDataParts,
-  deepTextPromptPortions,
+  deepTextPagesByAttachmentId,
 }: UseAgentChatOptions): UseAgentChatReturn {
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -157,7 +157,7 @@ export function useAgentChat({
           Accept: "text/event-stream",
         },
         signal: controller.signal,
-        body: JSON.stringify({
+          body: JSON.stringify({
           threadId,
           runId,
           messages: [
@@ -170,11 +170,11 @@ export function useAgentChat({
           ],
           tools: [],
           context: [],
-          state: {
-            fileDataParts,
-            deepTextPromptPortions,
-          },
-        }),
+            state: {
+              fileDataParts,
+              deepTextPagesByAttachmentId,
+            },
+          }),
       });
 
       if (!response.ok || !response.body) {
@@ -234,7 +234,7 @@ export function useAgentChat({
         reader.releaseLock();
       }
     },
-    [agentUrl, deepTextPromptPortions, fileDataParts, processEvent],
+    [agentUrl, deepTextPagesByAttachmentId, fileDataParts, processEvent],
   );
 
   const sendMessage = useCallback(

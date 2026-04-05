@@ -57,7 +57,7 @@ const chunks = await doc.chunk({ strategy: "recursive", maxSize: 180, overlap: 3
 // ... embed and upsert into LibSQLVector ...
 
 // 2. Prepare source PDFs for DeepCitation
-const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
   { file: pdfBuffer, filename: "report.pdf" },
 ]);
 
@@ -67,7 +67,7 @@ const retrievedChunks = await vectorStore.query({ indexName: "corpus", queryVect
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a research assistant that cites sources.",
   userPrompt: userQuestion,
-  deepTextPromptPortion,
+  deepTextPages,
 });
 
 const response = await openai.chat.completions.create({
@@ -91,7 +91,7 @@ const { verifications } = await dc.verify({
 Uploading PDFs on every request is wasteful. Cache the `attachmentId` and reuse it:
 
 ```typescript
-const cache = new Map<string, Promise<{ attachmentId: string; deepTextPromptPortion: string }>>();
+const cache = new Map<string, Promise<{ attachmentId: string; deepTextPages: string[] }>>();
 
 async function getAttachment(source: { id: string; url: string; filename: string }) {
   const existing = cache.get(source.id);
@@ -102,8 +102,8 @@ async function getAttachment(source: { id: string; url: string; filename: string
     const savedId = process.env[`DEEPCITATION_ATTACHMENT_${source.id.toUpperCase()}`];
     if (savedId) {
       const attachment = await dc.getAttachment(savedId);
-      if (attachment.deepTextPromptPortion) {
-        return { attachmentId: savedId, deepTextPromptPortion: attachment.deepTextPromptPortion };
+      if (attachment.deepTextPages?.length) {
+        return { attachmentId: savedId, deepTextPages: attachment.deepTextPages };
       }
     }
 
@@ -112,7 +112,7 @@ async function getAttachment(source: { id: string; url: string; filename: string
     const prepared = await dc.prepareAttachments([{ file, filename: source.filename }]);
     return {
       attachmentId: prepared.fileDataParts[0].attachmentId,
-      deepTextPromptPortion: prepared.deepTextPromptPortion,
+      deepTextPages: prepared.deepTextPages,
     };
   })();
 

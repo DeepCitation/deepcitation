@@ -39,7 +39,7 @@ DeepCitation is framework-agnostic. It adds two server-side steps around your ex
 [your docs] → prepareAttachments() → [enhanced prompt] → [your LLM] → verifyAttachment() → [verified output]
 ```
 
-1. **Before the LLM call** — `prepareAttachments()` uploads source files and returns a `deepTextPromptPortion` string you inject into your prompt
+1. **Before the LLM call** — `prepareAttachments()` uploads source files and returns `deepTextPages` (raw page text) that `wrapCitationPrompt()` renders deterministically when you build the prompt
 2. **After the LLM call** — `verifyAttachment()` checks citations in the LLM's response against the source, returning visual proof
 
 The React components (`CitationComponent`, `CitationDrawer`) are client-only and optional — they render the verification results. You can use a plain text or Slack renderer instead.

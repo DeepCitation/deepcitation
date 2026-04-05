@@ -58,7 +58,7 @@ For Office files (DOCX, XLSX, PPTX, ODT, ODS, ODP) and web pages, use the [URL p
 | Field | Type | Description |
 |:------|:-----|:------------|
 | `attachmentId` | string | System-generated or custom ID for verification calls |
-| `deepTextPromptPortion` | string | Formatted text with page markers and line IDs for `wrapCitationPrompt()` |
+| `deepTextPages` | string[] | Raw page text returned by `prepareAttachments()` and preferred input for `wrapCitationPrompt()` |
 | `status` | `"ready"` \| `"error"` | Processing status |
 | `metadata` | object | File metadata (filename, mimeType, pageCount, textByteSize) |
 | `processingTimeMs` | number | Processing time in milliseconds |
@@ -81,7 +81,10 @@ curl -X POST "https://api.deepcitation.com/prepareAttachments" \
 ```json
 {
   "attachmentId": "abc123-def456-ghi789",
-  "deepTextPromptPortion": "<page_number_1_index_0>\n<line id=\"1\">Revenue increased by 25% in Q4...</line>\n<line id=\"2\">Net profit margin improved...</line>",
+  "deepTextPages": [
+    "Revenue increased by 25% in Q4...",
+    "Net profit margin improved..."
+  ],
   "metadata": {
     "filename": "document.pdf",
     "mimeType": "application/pdf",
@@ -140,7 +143,10 @@ curl -X POST "https://api.deepcitation.com/prepareAttachments" \
 ```json
 {
   "attachmentId": "url-abc123-def456",
-  "deepTextPromptPortion": "<page_number_1_index_0>\n<line id=\"1\">Example Article Title...</line>\n<line id=\"2\">Published on March 15, 2026...</line>",
+  "deepTextPages": [
+    "Example Article Title...",
+    "Published on March 15, 2026..."
+  ],
   "metadata": {
     "filename": "article.pdf",
     "mimeType": "application/pdf",
@@ -287,7 +293,7 @@ Retrieve full attachment metadata by ID, including page renders, verifications, 
 | `pageImages` | PageImage[] | Page renders with dimensions |
 | `pageImagesStatus` | string | Page image generation status |
 | `verifications` | `Record<string, Verification>` | All verification results for this attachment |
-| `deepTextPromptPortion` | string | Extracted text with line IDs (if available) |
+| `deepTextPages` | string[] | Raw extracted page text |
 | `urlSource` | object | Source URL information (for URL-based attachments) |
 | `expiresAt` | string \| `"never"` | Expiration date |
 | `uploadedAt` | string | Upload timestamp (ISO 8601) |

@@ -26,7 +26,7 @@ Short anchor text (1-2 words) within long narrative fullPhrases often returns `p
 ## 2. Multi-line fullPhrase Degradation
 
 ### Problem observed
-When fullPhrase spans multiple `<line>` tags in the deepTextPromptPortion, verification often degrades to `partial_text_found` even when each individual line matches perfectly.
+When fullPhrase spans multiple `<line>` tags in the `deepTextPages` summary content, verification often degrades to `partial_text_found` even when each individual line matches perfectly.
 
 ### Scenarios
 
@@ -90,7 +90,7 @@ The evidence image sometimes highlights the wrong region when there are duplicat
 | 5a | Claim on page 3, lineId points to page 3 | found |
 | 5b | Claim on page 3, lineId points to page 2 (wrong page, right text) | found_on_other_page |
 | 5c | Claim text spans page break (starts page 2, ends page 3) | ? |
-| 5d | lineId doesn't exist in deepTextPromptPortion | Falls back to page search → partial |
+| 5d | lineId doesn't exist in `deepTextPages` summary content | Falls back to page search → partial |
 | 5e | pageNumber is correct but lineId is for a different page | ? |
 
 ### Questions

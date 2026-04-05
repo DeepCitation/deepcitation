@@ -20,13 +20,16 @@ import {
   env,
   getAttachment,
   HELP,
+  hydrate,
   inject,
   keygen,
   login,
   logout,
+  merge,
   openBillingDashboard,
   prepare,
   resolveBaseUrl,
+  showcase,
   status,
   verify,
   whoami,
@@ -86,8 +89,17 @@ switch (command) {
       process.exit(1);
     });
     break;
+  case "hydrate":
+    hydrate(rest);
+    break;
+  case "merge":
+    merge(rest);
+    break;
   case "inject":
     inject(rest);
+    break;
+  case "showcase":
+    showcase(rest);
     break;
   case "keygen":
     keygen(rest);

@@ -27,7 +27,7 @@ const openai = openAiApiKey ? new OpenAI({ apiKey: openAiApiKey }) : null;
 let vectorStorePromise: Promise<MemoryVectorStore> | null = null;
 const preparedAttachmentCache = new Map<
   string,
-  Promise<{ attachmentId: string; deepTextPromptPortion: string }>
+  Promise<{ attachmentId: string; deepTextPages: string[] }>
 >();
 
 const MAX_RETRIEVED_SOURCES = 2;
@@ -38,7 +38,7 @@ const MAX_RETRIEVED_SOURCES = 2;
 // Each corpus source may have a cached attachmentId stored as an env var
 // (e.g. DEEPCITATION_ATTACHMENT_YC_SAFE). When the var is set we call the
 // lightweight getAttachment() instead of re-uploading the full PDF on every
-// cold start. If deepTextPromptPortion is absent from that response (it is
+// cold start. If deepTextPages is absent from that response (it is
 // optional) we fall back to uploading.
 //
 // All four sources are resolved eagerly at module load so the first request
@@ -49,17 +49,21 @@ const MAX_RETRIEVED_SOURCES = 2;
 async function resolveAttachment(
   dc: DeepCitation,
   source: CorpusSource,
-): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+): Promise<{ attachmentId: string; deepTextPages: string[] }> {
   const savedId = process.env[source.attachmentEnvVar];
 
   if (savedId) {
     try {
       const attachment = await dc.getAttachment(savedId);
-      if (attachment.deepTextPromptPortion) {
-        return { attachmentId: savedId, deepTextPromptPortion: attachment.deepTextPromptPortion };
+      const attachmentPages =
+        (attachment as { deepTextPages?: string[]; pageTexts?: string[] }).deepTextPages ??
+        attachment.pageTexts ??
+        [];
+      if (attachmentPages.length) {
+        return { attachmentId: savedId, deepTextPages: attachmentPages };
       }
       console.warn(
-        `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPromptPortion — re-uploading.`,
+        `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPages — re-uploading.`,
       );
     } catch (err) {
       console.warn(
@@ -75,18 +79,19 @@ async function resolveAttachment(
   const file = Buffer.from(await response.arrayBuffer());
   const prepared = await dc.prepareAttachments([{ file, filename: source.filename }]);
   const attachmentId = prepared.fileDataParts[0].attachmentId;
+  const deepTextPages = prepared.deepTextPagesByAttachmentId[attachmentId] ?? [];
 
   console.log(
     `[DeepCitation] Uploaded "${source.title}". Add to env to skip re-upload on cold starts:\n  ${source.attachmentEnvVar}=${attachmentId}`,
   );
 
-  return { attachmentId, deepTextPromptPortion: prepared.deepTextPromptPortion };
+  return { attachmentId, deepTextPages };
 }
 
 function cacheAttachment(
   dc: DeepCitation,
   source: CorpusSource,
-): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+): Promise<{ attachmentId: string; deepTextPages: string[] }> {
   const pending = resolveAttachment(dc, source);
   preparedAttachmentCache.set(source.id, pending);
   pending.catch(() => preparedAttachmentCache.delete(source.id));
@@ -96,7 +101,7 @@ function cacheAttachment(
 function getAttachmentPromise(
   dc: DeepCitation,
   source: CorpusSource,
-): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+): Promise<{ attachmentId: string; deepTextPages: string[] }> {
   const existing = preparedAttachmentCache.get(source.id);
   if (existing) return existing;
   return cacheAttachment(dc, source);
@@ -288,7 +293,9 @@ export async function answerQuestion(question: string): Promise<ChatResponse> {
       "",
       "If the answer is not supported by the retrieved sources, say so plainly.",
     ].join("\n"),
-    deepTextPromptPortion: preparedSources.map(item => item.deepTextPromptPortion),
+    deepTextPagesByAttachmentId: Object.fromEntries(
+      preparedSources.map(item => [item.attachmentId, item.deepTextPages]),
+    ),
   });
 
   const response = await openAiClient.responses.create({

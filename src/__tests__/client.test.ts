@@ -73,7 +73,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "file_abc",
-          deepTextPromptPortion: "",
+          deepTextPages: [],
           metadata: { filename: "t.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 0 },
           status: "ready",
         }),
@@ -92,7 +92,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "file_abc",
-          deepTextPromptPortion: "",
+          deepTextPages: [],
           metadata: { filename: "t.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 0 },
           status: "ready",
         }),
@@ -123,7 +123,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "file_abc123",
-          deepTextPromptPortion: "[Page 1]\n[L1] Test content",
+          deepTextPages: ["[Page 1]\n[L1] Test content"],
           metadata: {
             filename: "test.pdf",
             mimeType: "application/pdf",
@@ -138,7 +138,7 @@ describe("DeepCitation Client", () => {
       const result = await client.uploadFile(blob, { filename: "test.pdf" });
 
       expect(result.attachmentId).toBe("file_abc123");
-      expect(result.deepTextPromptPortion).toContain("[Page 1]");
+      expect(result.deepTextPages).toEqual(["[Page 1]\n[L1] Test content"]);
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -162,7 +162,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "custom_id",
-          deepTextPromptPortion: "content",
+          deepTextPages: ["content"],
           metadata: {
             filename: "test.pdf",
             mimeType: "application/pdf",
@@ -199,7 +199,7 @@ describe("DeepCitation Client", () => {
           ok: true,
           json: async () => ({
             attachmentId: "file_1",
-            deepTextPromptPortion: "[Page 1]\n[L1] Content from file 1",
+            deepTextPages: ["[Page 1]\n[L1] Content from file 1"],
             metadata: {
               filename: "doc1.pdf",
               mimeType: "application/pdf",
@@ -213,7 +213,7 @@ describe("DeepCitation Client", () => {
           ok: true,
           json: async () => ({
             attachmentId: "file_2",
-            deepTextPromptPortion: "[Page 1]\n[L1] Content from file 2",
+            deepTextPages: ["[Page 1]\n[L1] Content from file 2"],
             metadata: {
               filename: "doc2.pdf",
               mimeType: "application/pdf",
@@ -240,9 +240,11 @@ describe("DeepCitation Client", () => {
       expect(result.attachments[0].attachmentId).toBe("file_1");
       expect(result.attachments[1].attachmentId).toBe("file_2");
 
-      // deepTextPromptPortion is now a single combined string on the result
-      expect(result.deepTextPromptPortion).toContain("Content from file 1");
-      expect(result.deepTextPromptPortion).toContain("Content from file 2");
+      // deepTextPages are keyed by attachmentId so callers do not rely on ordering.
+      expect(result.deepTextPagesByAttachmentId).toEqual({
+        file_1: ["[Page 1]\n[L1] Content from file 1"],
+        file_2: ["[Page 1]\n[L1] Content from file 2"],
+      });
     });
 
     it("handles single file", async () => {
@@ -252,7 +254,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "single_file",
-          deepTextPromptPortion: "[Page 1]\n[L1] Single content",
+          deepTextPages: ["[Page 1]\n[L1] Single content"],
           metadata: {
             filename: "single.pdf",
             mimeType: "application/pdf",
@@ -268,7 +270,9 @@ describe("DeepCitation Client", () => {
 
       expect(result.fileDataParts).toHaveLength(1);
       expect(result.attachments).toHaveLength(1);
-      expect(result.deepTextPromptPortion).toContain("Single content");
+      expect(result.deepTextPagesByAttachmentId).toEqual({
+        single_file: ["[Page 1]\n[L1] Single content"],
+      });
     });
 
     it("handles empty files array", async () => {
@@ -300,7 +304,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "my_custom_id",
-          deepTextPromptPortion: "content",
+          deepTextPages: ["content"],
           metadata: {
             filename: "custom.pdf",
             mimeType: "application/pdf",
@@ -329,7 +333,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "file_123",
-          deepTextPromptPortion: "[Page 1]\n[L1] Revenue grew 15%",
+          deepTextPages: ["[Page 1]\n[L1] Revenue grew 15%"],
           metadata: {
             filename: "report.pdf",
             mimeType: "application/pdf",
@@ -780,7 +784,7 @@ describe("DeepCitation Client", () => {
           ok: true,
           json: async () => ({
             attachmentId: `file_${Math.random()}`,
-            deepTextPromptPortion: "content",
+            deepTextPages: ["content"],
             metadata: {
               filename: "test.pdf",
               mimeType: "application/pdf",
@@ -830,7 +834,7 @@ describe("DeepCitation Client", () => {
           ok: true,
           json: async () => ({
             attachmentId: `file_${Math.random()}`,
-            deepTextPromptPortion: "content",
+            deepTextPages: ["content"],
             metadata: {
               filename: "test.pdf",
               mimeType: "application/pdf",
@@ -1002,7 +1006,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "file_1",
-          deepTextPromptPortion: "content",
+          deepTextPages: ["content"],
           metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
           status: "ready",
         }),
@@ -1022,7 +1026,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "file_1",
-          deepTextPromptPortion: "content",
+          deepTextPages: ["content"],
           metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
           status: "ready",
         }),
@@ -1042,7 +1046,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "file_1",
-          deepTextPromptPortion: "content",
+          deepTextPages: ["content"],
           metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
           status: "ready",
         }),
@@ -1119,7 +1123,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "url_1",
-          deepTextPromptPortion: "content",
+          deepTextPages: ["content"],
           metadata: { filename: "page.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
           status: "ready",
         }),
@@ -1184,7 +1188,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "conv_1",
-          deepTextPromptPortion: "content",
+          deepTextPages: ["content"],
           metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
           status: "ready",
         }),
@@ -1205,7 +1209,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "file_1",
-          deepTextPromptPortion: "content",
+          deepTextPages: ["content"],
           metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
           status: "ready",
         }),
@@ -1224,7 +1228,7 @@ describe("DeepCitation Client", () => {
         ok: true,
         json: async () => ({
           attachmentId: "file_1",
-          deepTextPromptPortion: "content",
+          deepTextPages: ["content"],
           metadata: { filename: "test.pdf", mimeType: "application/pdf", pageCount: 1, textByteSize: 50 },
           status: "ready",
         }),

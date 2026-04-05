@@ -130,6 +130,8 @@ export const CitationContentDisplay = ({
     return (
       <>
         {anchorTextDisplay && <span className="font-normal">{anchorTextDisplay}</span>}
+        {/* U+2060 word joiner: prevents line break between anchor text and superscript */}
+        {anchorTextDisplay && "\u2060"}
         <sup
           className={cn(
             "font-medium transition-colors px-0.5 rounded",
@@ -164,6 +166,8 @@ export const CitationContentDisplay = ({
     return (
       <>
         {anchorTextDisplay && <span className="font-normal">{anchorTextDisplay}</span>}
+        {/* U+2060 word joiner: prevents line break between anchor text and superscript */}
+        {anchorTextDisplay && "\u2060"}
         <sup
           className={cn(
             "text-xs font-normal transition-colors",
@@ -188,6 +192,8 @@ export const CitationContentDisplay = ({
     return (
       <span className={cn("font-normal", statusClasses)}>
         {displayText}
+        {/* U+2060 word joiner: prevents line break between text and indicator */}
+        {"\u2060"}
         {indicator}
       </span>
     );
@@ -272,6 +278,8 @@ export const CitationContentDisplay = ({
     return (
       <span className={linterClasses} style={linterStyles}>
         {displayText}
+        {/* U+2060 word joiner: prevents line break between text and indicator */}
+        {"\u2060"}
         {indicator}
       </span>
     );

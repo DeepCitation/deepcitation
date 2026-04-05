@@ -73,23 +73,28 @@ interface FileDataPart {
 
 const preparedAttachmentCache = new Map<
   string,
-  Promise<{ attachmentId: string; deepTextPromptPortion: string }>
+  Promise<{ attachmentId: string; deepTextPages: string[] }>
 >();
+type DeepTextPagesByAttachmentId = Record<string, string[]>;
 
 async function resolveAttachment(
   dcClient: DeepCitation,
   source: CorpusSource,
-): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+): Promise<{ attachmentId: string; deepTextPages: string[] }> {
   const savedId = process.env[source.attachmentEnvVar];
 
   if (savedId) {
     try {
       const attachment = await dcClient.getAttachment(savedId);
-      if (attachment.deepTextPromptPortion) {
-        return { attachmentId: savedId, deepTextPromptPortion: attachment.deepTextPromptPortion };
+      const attachmentPages =
+        (attachment as { deepTextPages?: string[]; pageTexts?: string[] }).deepTextPages ??
+        attachment.pageTexts ??
+        [];
+      if (attachmentPages.length) {
+        return { attachmentId: savedId, deepTextPages: attachmentPages };
       }
       console.warn(
-        `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPromptPortion — re-uploading.`,
+        `[DeepCitation] ${source.attachmentEnvVar}=${savedId} did not return deepTextPages — re-uploading.`,
       );
     } catch (err) {
       console.warn(
@@ -105,18 +110,19 @@ async function resolveAttachment(
   const file = Buffer.from(await response.arrayBuffer());
   const prepared = await dcClient.prepareAttachments([{ file, filename: source.filename }]);
   const attachmentId = prepared.fileDataParts[0].attachmentId;
+  const deepTextPages = prepared.deepTextPagesByAttachmentId[attachmentId] ?? [];
 
   console.log(
     `[DeepCitation] Uploaded "${source.title}". Add to env to skip re-upload on cold starts:\n  ${source.attachmentEnvVar}=${attachmentId}`,
   );
 
-  return { attachmentId, deepTextPromptPortion: prepared.deepTextPromptPortion };
+  return { attachmentId, deepTextPages };
 }
 
 function cacheAttachment(
   dcClient: DeepCitation,
   source: CorpusSource,
-): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+): Promise<{ attachmentId: string; deepTextPages: string[] }> {
   const pending = resolveAttachment(dcClient, source);
   preparedAttachmentCache.set(source.id, pending);
   pending.catch(() => preparedAttachmentCache.delete(source.id));
@@ -126,7 +132,7 @@ function cacheAttachment(
 function getAttachmentPromise(
   dcClient: DeepCitation,
   source: CorpusSource,
-): Promise<{ attachmentId: string; deepTextPromptPortion: string }> {
+): Promise<{ attachmentId: string; deepTextPages: string[] }> {
   const existing = preparedAttachmentCache.get(source.id);
   if (existing) return existing;
   return cacheAttachment(dcClient, source);
@@ -178,7 +184,7 @@ export async function POST(req: Request) {
 
   const { threadId, runId, messages, state } = body;
   const clientFileDataParts: FileDataPart[] = state?.fileDataParts ?? [];
-  const clientDeepTextPromptPortions: string[] = state?.deepTextPromptPortions ?? [];
+  const clientDeepTextPagesByAttachmentId: DeepTextPagesByAttachmentId = state?.deepTextPagesByAttachmentId ?? {};
 
   if (!openai) {
     return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
@@ -204,7 +210,7 @@ export async function POST(req: Request) {
         // (SSE connection) opens immediately — avoids HTTP-level timeout on
         // cold start. First event is still delayed by corpus resolution.
         let fileDataParts = clientFileDataParts;
-        let deepTextPromptPortions = clientDeepTextPromptPortions;
+        let deepTextPagesByAttachmentId = clientDeepTextPagesByAttachmentId;
 
         if (fileDataParts.length === 0 && dc) {
           const corpusResults = await Promise.all(
@@ -214,7 +220,7 @@ export async function POST(req: Request) {
             attachmentId: r.attachmentId,
             filename: CORPUS_SOURCES[i].filename,
           }));
-          deepTextPromptPortions = corpusResults.map(r => r.deepTextPromptPortion);
+          deepTextPagesByAttachmentId = Object.fromEntries(corpusResults.map(r => [r.attachmentId, r.deepTextPages]));
         }
 
         const hasDocuments = fileDataParts.length > 0;
@@ -228,16 +234,13 @@ export async function POST(req: Request) {
         );
         const lastUserContent: string = lastUserMessage?.content ?? "";
 
-        // deepTextPromptPortions is passed from the client (accumulated per upload)
-        const deepTextPromptPortion = deepTextPromptPortions;
-
         const baseSystemPrompt = "You are a helpful assistant that answers questions accurately.";
 
         const { enhancedSystemPrompt, enhancedUserPrompt } = hasDocuments
           ? wrapCitationPrompt({
               systemPrompt: baseSystemPrompt,
               userPrompt: lastUserContent,
-              deepTextPromptPortion,
+              deepTextPagesByAttachmentId,
             })
           : {
               enhancedSystemPrompt: baseSystemPrompt,

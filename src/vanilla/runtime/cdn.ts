@@ -1,12 +1,13 @@
-import { createElement, useCallback, useState } from "react";
+import { createElement, useCallback, useRef, useState } from "react";
 import { render, unmountComponentAtNode } from "react-dom";
 import { CitationDrawer } from "../../react/CitationDrawer.js";
 import type { CitationDrawerItem, SourceCitationGroup } from "../../react/CitationDrawer.types.js";
 import { groupCitationsBySource } from "../../react/CitationDrawer.utils.js";
 import { CitationDrawerTrigger } from "../../react/CitationDrawerTrigger.js";
 import { getStatusFromVerification } from "../../react/citationStatus.js";
-import type { PopoverViewState } from "../../react/DefaultPopoverContent.js";
 import { DefaultPopoverContent } from "../../react/DefaultPopoverContent.js";
+import { usePopoverViewState } from "../../react/hooks/usePopoverViewState.js";
+import { usePrefersReducedMotion } from "../../react/hooks/usePrefersReducedMotion.js";
 import type { Citation } from "../../types/citation.js";
 import type { PageImage, Verification } from "../../types/verification.js";
 import { resolveKeyMap } from "./cdn-keymap.js";
@@ -128,9 +129,9 @@ function injectStyles(): void {
   // Trigger styles — mirrors React Citation.tsx triggerProps (text variant default).
   // :where() keeps zero specificity so host-page styles can override.
   const triggerStyles = [
-    // Base: matches cn("relative inline-flex items-baseline", "px-0.5 -mx-0.5 rounded-sm",
+    // Base: matches cn("relative inline [box-decoration-break:clone]", "px-0.5 -mx-0.5 rounded-sm",
     //   "transition-colors duration-[80ms] active:scale-[0.98]", "cursor-pointer")
-    `:where([data-citation-key]) { position: relative; display: inline-flex; align-items: baseline; padding: 0 0.125rem; margin: 0 -0.125rem; border-radius: 2px; transition: background-color 80ms ease; cursor: pointer; }`,
+    `:where([data-citation-key]) { position: relative; display: inline; padding: 0 0.125rem; margin: 0 -0.125rem; border-radius: 2px; transition: background-color 80ms ease; cursor: pointer; box-decoration-break: clone; -webkit-box-decoration-break: clone; }`,
     // Hover: matches getInteractionClasses(false, "text") → "hover:bg-black/[0.06]"
     `:where([data-citation-key]:hover) { background: rgba(0,0,0,0.06); }`,
     // Active: matches "active:scale-[0.98]"
@@ -196,9 +197,29 @@ function CdnPopoverWrapper(props: {
   sourceLabel: string | undefined;
   downloadUrl: string | undefined;
   displayLabel?: string;
+  onDismiss: () => void;
 }) {
-  const [viewState, setViewState] = useState<PopoverViewState>("summary");
-  return createElement(DefaultPopoverContent, { ...props, viewState, onViewStateChange: setViewState });
+  const popoverContentRef = useRef<HTMLElement | null>(null);
+  const setPopoverContentRef = useCallback((node: HTMLDivElement | null) => {
+    popoverContentRef.current = node;
+  }, []);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const viewState = usePopoverViewState({
+    isOpen: true,
+    popoverContentRef,
+    prefersReducedMotion,
+    onDismiss: props.onDismiss,
+  });
+
+  return createElement(DefaultPopoverContent, {
+    ...props,
+    popoverContentRef: setPopoverContentRef,
+    viewState: viewState.current,
+    onViewStateChange: viewState.transition,
+    onExpandedWidthChange: viewState.onExpandedWidthChange,
+    prevBeforeExpandedPageRef: viewState.prevBeforeExpandedPageRef,
+    escapeInterceptRef: viewState.escapeInterceptRef,
+  });
 }
 
 // ── Positioning ───────────────────────────────────────────────────────────
@@ -478,6 +499,7 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
       sourceLabel: data.label,
       downloadUrl: data.downloadUrl,
       displayLabel,
+      onDismiss: hidePopoverInner,
     }),
     content,
   );

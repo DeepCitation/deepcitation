@@ -89,7 +89,7 @@ import { readFileSync } from "fs";
 
 const myDocument = readFileSync("./path/to/your/document.pdf");
 
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
+const { fileDataParts, deepTextPages } = await deepcitation.prepareAttachments([
   { file: myDocument, filename: "my-document.pdf" },
 ]);
 ```
@@ -120,7 +120,7 @@ curl -X POST "https://api.deepcitation.com/prepareAttachments" \
   -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
   -F "file=@document.pdf"
 
-# Returns: { "attachmentId": "...", "deepTextPromptPortion": "..." }
+# Returns: { "attachmentId": "...", "deepTextPages": "..." }
 
 # Step 3: Verify citations
 curl -X POST "https://api.deepcitation.com/verifyCitations" \

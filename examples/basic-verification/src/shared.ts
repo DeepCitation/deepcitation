@@ -135,7 +135,7 @@ async function runSingleSource(
   console.log("📄 Step 1: Uploading document and preparing prompts...\n");
 
   let attachmentId: string;
-  let deepTextPromptPortion: string;
+  let deepTextPages: string[];
   let imageBase64: string | undefined;
 
   if (source.type === "url") {
@@ -144,17 +144,17 @@ async function runSingleSource(
 
     const result = await deepcitation.prepareUrl({ url: source.url });
     attachmentId = result.attachmentId;
-    deepTextPromptPortion = result.deepTextPromptPortion;
+    deepTextPages = result.deepTextPages;
   } else {
     // File source (image or pdf) — use prepareAttachments
     const fileBuffer = readFileSync(source.path);
 
-    const { fileDataParts, deepTextPromptPortion: dtp } = await deepcitation.prepareAttachments([
+    const { fileDataParts, deepTextPages: dtp } = await deepcitation.prepareAttachments([
       { file: fileBuffer, filename: source.filename },
     ]);
 
     attachmentId = fileDataParts[0].attachmentId;
-    deepTextPromptPortion = dtp;
+    deepTextPages = dtp;
 
     // Only pass base64 image data for image sources (vision APIs)
     if (source.type === "image") {
@@ -187,7 +187,7 @@ provided documents accurately and cite your sources.`;
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt,
     userPrompt: userQuestion,
-    deepTextPromptPortion,
+    deepTextPages,
   });
 
   // Show after prompts

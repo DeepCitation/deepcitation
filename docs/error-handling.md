@@ -170,7 +170,7 @@ If `getAllCitationsFromLlmOutput()` returns an empty object `{}`, check:
 
 1. **Did you wrap the prompt?** Use `wrapCitationPrompt()` to add citation instructions to your LLM call
 2. **Is the LLM following the format?** Check the raw LLM output for `<cite ... />` tags or `<<<CITATION_DATA>>>` blocks
-3. **Did you pass the `deepTextPromptPortion`?** The LLM needs the source text with line IDs to cite
+3. **Did you pass the `deepTextPages`?** The LLM needs the source text that `wrapCitationPrompt()` renders into citation-ready prompt text
 
 ```typescript
 const citations = getAllCitationsFromLlmOutput(llmOutput);

@@ -10,6 +10,10 @@
  * - "report": Progressive-disclosure structure with DeepCitation design tokens
  */
 
+import { CDN_JS } from "../vanilla/_generated_cdn.js";
+import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
+import type { VerificationData } from "../vanilla/runtime/types.js";
+
 // ── Types ──────────────────────────────────────────────────────────
 
 export type ReportStyle = "plain" | "report";
@@ -45,28 +49,46 @@ export interface MarkdownToHtmlOptions {
 // ── Inline formatting ──────────────────────────────────────────────
 
 function inlineFormat(text: string): string {
-  return (
-    escHtml(text)
-      // inline code (before bold/italic to avoid conflicts)
-      .replace(/`([^`]+)`/g, "<code>$1</code>")
-      // bold+italic
-      .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
-      // bold
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      // italic
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      // links — cite:N scheme produces a citation span; http(s) produces a link
-      // href is already HTML-escaped from the escHtml() call above; validate
-      // the scheme but do not re-escape (that would double-encode & in URLs).
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
-        const citeMatch = href.match(/^cite:(\d+)$/);
-        if (citeMatch) {
-          return `<span data-cite="${citeMatch[1]}">${label}</span>`;
-        }
-        const safeHref = /^https?:\/\//i.test(href) ? href : "#";
-        return `<a href="${safeHref}">${label}</a>`;
-      })
+  // Strip NUL bytes — we use \x00 as placeholder delimiters below.
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — NUL is a collision-safe placeholder delimiter
+  text = text.replace(/\x00/g, "");
+  // Extract cite links BEFORE escHtml — title strings contain quotes and parens
+  // that escHtml would encode, breaking the regex. We replace cite links with
+  // placeholder tokens, escHtml the rest, then restore them.
+  const citePlaceholders: string[] = [];
+  const withPlaceholders = text.replace(
+    /\[([^\][]+)\]\(cite:(\d+)(?:\s+(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))?\s*\)/g,
+    (_m, label: string, id: string) => {
+      const idx = citePlaceholders.length;
+      const labelHtml = escHtml(label)
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.+?)\*/g, "<em>$1</em>");
+      citePlaceholders.push(`<span data-cite="${id}">${labelHtml}</span>`);
+      return `\x00CITE${idx}\x00`;
+    },
   );
+
+  let result = escHtml(withPlaceholders)
+    // inline code (before bold/italic to avoid conflicts)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    // bold+italic
+    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+    // bold
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    // italic
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    // general links — http(s) produces a link; anything else gets "#"
+    .replace(/\[([^[\]]*)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
+      const safeHref = /^https?:\/\//i.test(href) ? href : "#";
+      return `<a href="${safeHref}">${label}</a>`;
+    });
+
+  // Restore cite placeholders
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional — NUL is a collision-safe placeholder delimiter
+  result = result.replace(/\x00CITE(\d+)\x00/g, (_m, idx: string) => citePlaceholders[parseInt(idx, 10)]);
+  return result;
 }
 
 // ── Citation marker wrapping ───────────────────────────────────────
@@ -337,6 +359,8 @@ function renderBlock(block: Block): string {
 // Per BRANDING.md: crispEdges mandatory, square caps, no softness.
 const BRAND_LOGO_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" shape-rendering="crispEdges" aria-hidden="true"><path d="M4 1 L1 1 L1 23 L4 23" stroke="#18181B"/><path d="M20 1 L23 1 L23 23 L20 23" stroke="#18181B"/><path d="M12 6 L12 18 M6 12 L18 12 M7.5 7.5 L16.5 16.5 M16.5 7.5 L7.5 16.5" stroke="#1D4ED8" stroke-width="1.5"/></svg>`;
 
+const FAVICON_DATA_URI = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-linecap="square" stroke-linejoin="miter" shape-rendering="crispEdges" width="24" height="24"><path d="M4 1 L1 1 L1 23 L4 23" stroke="#A1A1AA" stroke-width="1"/><path d="M20 1 L23 1 L23 23 L20 23" stroke="#A1A1AA" stroke-width="1"/><path d="M5.5 12 L18.5 12" stroke="#3B82F6" stroke-width="1.8"/><path d="M12 5.5 L12 18.5" stroke="#3B82F6" stroke-width="1.8"/><path d="M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5" stroke="#3B82F6" stroke-width="2.35"/></svg>')}`;
+
 const AUDIENCE_CONFIG: Record<AudiencePreset, { width: string; tier2Open: boolean }> = {
   general: { width: "960px", tier2Open: true },
   executive: { width: "720px", tier2Open: false },
@@ -384,6 +408,7 @@ function plainShell(title: string, bodyHtml: string, options?: { cowork?: boolea
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="${FAVICON_DATA_URI}">
 <title>${escHtml(title)}</title>
 <style>
 ${BASE_CSS}
@@ -484,6 +509,7 @@ function reportShell(
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="${FAVICON_DATA_URI}">
 <title>${escHtml(title)}</title>
 <style>
 ${BASE_CSS}
@@ -663,9 +689,9 @@ function buildReportBody(blocks: Block[], audience: AudiencePreset): string[] {
 
   // Tier 1: preamble (everything before first H2) — always visible
   if (sections.length > 0 && !sections[0].heading) {
-    const preamble = sections.shift()!;
+    const preamble = sections.shift();
     // Skip the H1 (already in shell header)
-    for (const b of preamble.blocks) {
+    for (const b of preamble?.blocks ?? []) {
       if (b.type === "heading" && b.level === 1) continue;
       parts.push(renderBlock(b));
     }
@@ -676,7 +702,7 @@ function buildReportBody(blocks: Block[], audience: AudiencePreset): string[] {
 
   if (findingsIdx >= 0) {
     const findings = sections.splice(findingsIdx, 1)[0];
-    parts.push(renderBlock(findings.heading!));
+    if (findings.heading) parts.push(renderBlock(findings.heading));
     for (const b of findings.blocks) {
       parts.push(renderBlock(b));
     }
@@ -699,4 +725,148 @@ function buildReportBody(blocks: Block[], audience: AudiencePreset): string[] {
   }
 
   return parts;
+}
+
+// ── CDN showcase fixture ───────────────────────────────────────────
+
+const CDN_SHOWCASE_MARKDOWN = `# CDN Comparison Showcase
+
+This fixture is generated from \`markdownToHtml()\` plus a small mock verification map.
+
+## Inline citations
+
+The policy of separating the races is usually interpreted as denoting the [inferiority of the negro group](cite:1).
+Revenue reached [$2.3 billion](cite:2), and the FDA noted [Phase III completion](cite:3).
+
+## Drawer trigger
+
+The drawer below is injected by the CDN runtime and uses the same mock data as the inline citations.
+`;
+
+const CDN_SHOWCASE_IMAGE_URL = "/src/vanilla/testing/demo-page.png";
+
+const CDN_SHOWCASE_VERIFICATIONS: Record<string, VerificationData> = {
+  "demo-citation-1": {
+    status: "verified",
+    label: "Brown v. Board of Education, 347 U.S. 483 (1954)",
+    verifiedFullPhrase:
+      "the policy of separating the races is usually interpreted as denoting the inferiority of the negro group",
+    verifiedAnchorText: "inferiority of the negro group",
+    citation: {
+      type: "document",
+      fullPhrase:
+        "the policy of separating the races is usually interpreted as denoting the inferiority of the negro group",
+      anchorText: "inferiority of the negro group",
+    },
+    document: {
+      verifiedPageNumber: 1,
+      mimeType: "application/pdf",
+    },
+    pageImages: [
+      {
+        pageNumber: 1,
+        dimensions: { width: 1200, height: 1600 },
+        imageUrl: CDN_SHOWCASE_IMAGE_URL,
+        isMatchPage: true,
+      },
+    ],
+  },
+  "demo-citation-2": {
+    status: "partial_match",
+    label: "Q4 Financial Report",
+    verifiedFullPhrase:
+      "Total revenue reached $2.3 billion for the fiscal year, representing a 45% increase year-over-year",
+    verifiedAnchorText: "$2.3 billion",
+    verifiedMatchSnippet: "Total revenue reached $2.3 billion for the fiscal year",
+    citation: {
+      type: "document",
+      fullPhrase: "Total revenue reached $2.3 billion for the fiscal year",
+      anchorText: "$2.3 billion",
+    },
+    document: {
+      verifiedPageNumber: 1,
+      mimeType: "application/pdf",
+    },
+    pageImages: [
+      {
+        pageNumber: 1,
+        dimensions: { width: 1200, height: 1600 },
+        imageUrl: CDN_SHOWCASE_IMAGE_URL,
+        isMatchPage: true,
+      },
+    ],
+  },
+  "demo-citation-3": {
+    status: "verified",
+    label: "FDA Clinical Trial Guidance 2024",
+    verifiedFullPhrase: "Phase III clinical trial completed enrollment with 2,400 participants across 15 sites",
+    verifiedAnchorText: "Phase III completion",
+    citation: {
+      type: "document",
+      fullPhrase: "Phase III clinical trial completed enrollment",
+      anchorText: "Phase III completion",
+    },
+    document: {
+      verifiedPageNumber: 1,
+      mimeType: "application/pdf",
+    },
+    pageImages: [
+      {
+        pageNumber: 1,
+        dimensions: { width: 1200, height: 1600 },
+        imageUrl: CDN_SHOWCASE_IMAGE_URL,
+        isMatchPage: true,
+      },
+    ],
+  },
+};
+
+const CDN_SHOWCASE_KEY_MAP: Record<string, string> = {
+  "cite-1": "demo-citation-1",
+  "cite-2": "demo-citation-2",
+  "cite-3": "demo-citation-3",
+};
+
+const CDN_SHOWCASE_ANCHOR_MAP: CitationAnchorMap = {
+  1: "inferiority of the negro group",
+  2: "$2.3 billion",
+  3: "Phase III completion",
+};
+
+function injectCdnRuntime(
+  html: string,
+  verifications: Record<string, VerificationData>,
+  keyMap: Record<string, string>,
+) {
+  const jsonData = escapeJsonForScript(JSON.stringify(verifications));
+  const keyMapJson = escapeJsonForScript(JSON.stringify(keyMap));
+  const snippet = [
+    `<script type="application/json" id="dc-data">${jsonData}</script>`,
+    `<script type="application/json" id="dc-key-map">${keyMapJson}</script>`,
+    `<script>${escapeJsForScript(CDN_JS)}</script>`,
+    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"light",indicatorVariant:"icon"});</script>`,
+  ].join("\n");
+
+  const stripped = stripExistingInjection(html);
+  let output = stripped.html;
+  if (output.includes("</body>")) {
+    output = output.replace("</body>", () => `${snippet}\n</body>`);
+  } else if (output.includes("</html>")) {
+    output = output.replace("</html>", () => `${snippet}\n</html>`);
+  } else {
+    output = `${output}\n${snippet}`;
+  }
+  return output;
+}
+
+export function buildCdnComparisonShowcaseHtml(): string {
+  const html = markdownToHtml(CDN_SHOWCASE_MARKDOWN, {
+    style: "report",
+    title: "DeepCitation — CDN Comparison Showcase",
+    sourceLabel: "DeepCitation mock fixture",
+    citationCount: Object.keys(CDN_SHOWCASE_KEY_MAP).length,
+    pageCount: 1,
+    anchorMap: CDN_SHOWCASE_ANCHOR_MAP,
+  });
+  return injectCdnRuntime(html, CDN_SHOWCASE_VERIFICATIONS, CDN_SHOWCASE_KEY_MAP);
 }

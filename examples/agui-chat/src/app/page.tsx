@@ -15,8 +15,8 @@ interface FileDataPart {
 
 export default function Home() {
   const [fileDataParts, setFileDataParts] = useState<FileDataPart[]>([]);
-  // Accumulated text portions for LLM prompts (one string per uploaded file)
-  const [deepTextPromptPortions, setDeepTextPromptPortions] = useState<string[]>([]);
+  // Accumulated text portions for LLM prompts, keyed by attachmentId.
+  const [deepTextPagesByAttachmentId, setDeepTextPagesByAttachmentId] = useState<Record<string, string[]>>({});
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -32,7 +32,7 @@ export default function Home() {
   } = useAgentChat({
     agentUrl: "/api/agent",
     fileDataParts,
-    deepTextPromptPortions,
+    deepTextPagesByAttachmentId,
   });
 
   const handleFileUpload = async (file: File) => {
@@ -44,13 +44,13 @@ export default function Home() {
     // (React Compiler limitation: can't handle value blocks inside try/catch.)
     let uploadResult: {
       res: Response;
-      data: { fileDataPart?: FileDataPart; deepTextPromptPortion?: string; error?: string; details?: string };
+      data: { fileDataPart?: FileDataPart; deepTextPages?: string[]; error?: string; details?: string };
     } | null = null;
     try {
       const res = await fetch("/api/upload", { method: "POST", body: formData });
       const data = (await res.json()) as {
         fileDataPart?: FileDataPart;
-        deepTextPromptPortion?: string;
+        deepTextPages?: string[];
         error?: string;
         details?: string;
       };
@@ -63,11 +63,14 @@ export default function Home() {
     if (uploadResult) {
       const { res, data } = uploadResult;
       const part = data.fileDataPart;
-      const portion = data.deepTextPromptPortion;
+      const pages = data.deepTextPages;
       if (res.ok && part) {
         setFileDataParts(prev => [...prev, part]);
-        if (portion) {
-          setDeepTextPromptPortions(prev => [...prev, portion]);
+        if (pages?.length) {
+          setDeepTextPagesByAttachmentId(prev => ({
+            ...prev,
+            [part.attachmentId]: pages,
+          }));
         }
       } else {
         const errorMsg = data.details ?? data.error ?? "Upload failed";

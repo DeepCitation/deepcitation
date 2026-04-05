@@ -1,3 +1,5 @@
+import { removeLineIdMetadata, removePageNumberMetadata } from "../utils/textCleanup.js";
+
 /**
  * Citation Prompts
  *
@@ -177,8 +179,13 @@ export interface WrapCitationPromptOptions {
   systemPrompt: string;
   /** The original user prompt */
   userPrompt: string;
-  /** The extracted file text with metadata (from uploadFile response). Can be a single string or array for multiple files. */
-  deepTextPromptPortion?: string | string[];
+  /**
+   * Raw page text from prepareAttachments / uploadFile for a single attachment.
+   * Pass pre-rendered strings if you already formatted the content yourself.
+   */
+  deepTextPages?: string | string[];
+  /** Raw page text from prepareAttachments for multiple attachments, keyed by attachmentId. */
+  deepTextPagesByAttachmentId?: Record<string, string[]>;
   /** Whether to use audio/video citation format (with timestamps) instead of text-based (with line IDs) */
   isAudioVideo?: boolean;
 }
@@ -186,7 +193,7 @@ export interface WrapCitationPromptOptions {
 export interface WrapCitationPromptResult {
   /** Enhanced system prompt with citation instructions */
   enhancedSystemPrompt: string;
-  /** Enhanced user prompt (currently passed through unchanged) */
+  /** Enhanced user prompt with raw pages rendered into the citation format when provided */
   enhancedUserPrompt: string;
 }
 
@@ -255,14 +262,17 @@ export function wrapSystemCitationPrompt(options: WrapSystemPromptOptions): stri
  * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
  *   systemPrompt: "You are a helpful assistant.",
  *   userPrompt: "Analyze this document and summarize it.",
- *   deepTextPromptPortion, // from uploadFile response
+ *   deepTextPages, // from uploadFile response
  * });
  *
  * // Multiple files
  * const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
  *   systemPrompt: "You are a helpful assistant.",
  *   userPrompt: "Compare these documents.",
- *   deepTextPromptPortion: [deepTextPromptPortion1, deepTextPromptPortion2], // array of file texts
+ *   deepTextPagesByAttachmentId: {
+ *     attachment1: deepTextPages1,
+ *     attachment2: deepTextPages2,
+ *   },
  * });
  *
  * // Use enhanced prompts with your LLM
@@ -275,7 +285,7 @@ export function wrapSystemCitationPrompt(options: WrapSystemPromptOptions): stri
  * ```
  */
 export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCitationPromptResult {
-  const { systemPrompt, userPrompt, deepTextPromptPortion, isAudioVideo = false } = options;
+  const { systemPrompt, userPrompt, deepTextPages, deepTextPagesByAttachmentId, isAudioVideo = false } = options;
 
   const enhancedSystemPrompt = wrapSystemCitationPrompt({
     systemPrompt,
@@ -287,17 +297,69 @@ export function wrapCitationPrompt(options: WrapCitationPromptOptions): WrapCita
   // Build enhanced user prompt with file content if provided
   let enhancedUserPrompt = userPrompt;
 
-  if (deepTextPromptPortion) {
-    const fileTexts = Array.isArray(deepTextPromptPortion) ? deepTextPromptPortion : [deepTextPromptPortion];
-    const fileContent = fileTexts.map(text => `\n${text}`).join("\n\n");
+  const renderedFileContent = deepTextPagesByAttachmentId
+    ? renderDeepTextPagesByAttachmentId(deepTextPagesByAttachmentId)
+    : deepTextPages
+      ? renderDeepTextPages(deepTextPages)
+      : "";
 
-    enhancedUserPrompt = `${fileContent}\n\n${reminder}\n\n${userPrompt}`;
+  if (renderedFileContent) {
+    enhancedUserPrompt = `${renderedFileContent}\n\n${reminder}\n\n${userPrompt}`;
   }
 
   return {
     enhancedSystemPrompt,
     enhancedUserPrompt,
   };
+}
+
+function renderDeepTextPages(deepTextPages: string | string[]): string {
+  if (typeof deepTextPages === "string") return deepTextPages;
+  return renderDeepTextPromptString("attachment-1", deepTextPages);
+}
+
+function renderDeepTextPagesByAttachmentId(deepTextPagesByAttachmentId: Record<string, string[]>): string {
+  return Object.entries(deepTextPagesByAttachmentId)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([attachmentId, pages]) => renderDeepTextPromptString(attachmentId, pages))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function renderDeepTextPromptString(attachmentId: string, filePages: string[]): string {
+  let isValid = false;
+  const parts: string[] = [];
+
+  for (let i = 0; i < filePages.length; i++) {
+    const page = filePages[i] ?? "";
+    if (page.trim()) isValid = true;
+
+    const pageText = page.includes("<line id=") ? page : pageToLineTaggedText(page);
+    parts.push(`<page_number_${i + 1}_index_${i}>\n${pageText}\n</page_number_${i + 1}_index_${i}>\n\n`);
+  }
+
+  if (!isValid) return "";
+  return `<attachment id="${attachmentId}">${parts.join("").trim()}</attachment>`;
+}
+
+function pageToLineTaggedText(page: string): string {
+  const cleanPage = removeLineIdMetadata(removePageNumberMetadata(page));
+  const lines = cleanPage
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+
+  if (lines.length === 0) return "";
+
+  const lastIndex = lines.length - 1;
+  return lines
+    .map((line, index) => {
+      if (index === 0 || index === lastIndex || (index + 1) % 5 === 0) {
+        return `<line id="${index + 1}">${line}</line>`;
+      }
+      return line;
+    })
+    .join("\n");
 }
 
 /**
@@ -339,6 +401,110 @@ export const CITATION_JSON_OUTPUT_FORMAT = {
     },
   },
   required: ["id", "attachment_id", "full_phrase", "anchor_text", "page_id", "line_ids"],
+} as const;
+
+/**
+ * Compact citation prompt — omits full_phrase and reasoning from LLM output.
+ *
+ * Use this variant for latency-sensitive pipelines where fullPhrase is
+ * reconstructed offline via `deepcitation hydrate` (or auto-hydrated by
+ * `deepcitation verify --markdown` when a summary file is present).
+ *
+ * Token savings vs CITATION_PROMPT: ~80–135 tokens per citation
+ * (eliminates ~50-75 tokens of verbatim copying + ~30-60 tokens of reasoning).
+ *
+ * Compact key mapping:
+ * - n: id, k: anchor_text, p: page_id (compact "N_I" form), l: line_ids
+ */
+export const COMPACT_CITATION_PROMPT = `
+<citation-instructions priority="critical">
+## REQUIRED: Citation Format (Compact)
+
+### In-Text Markers
+For every claim, value, or fact from attachments, wrap the key phrase in citation link syntax: [anchor text](cite:N) where N is the sequential citation number.
+
+### Citation Data Block
+At the END of your response, append a compact citation block grouped by attachment_id.
+Do NOT output fullPhrase or reasoning — these are reconstructed automatically from lineIds.
+
+### Format
+\`\`\`
+<<<CITATION_DATA>>>
+{
+  "attachment_id_here": [
+    {"n": 1, "k": "key phrase", "p": "N_I", "l": [lineId]}
+  ]
+}
+<<<END_CITATION_DATA>>>
+\`\`\`
+
+### Field Rules
+
+1. **n**: Citation id (integer, matches cite:N in text)
+2. **k** (anchorText): 1–3 contiguous verbatim words from the evidence line at the referenced lineId. Max 4 words. Pick the distinctive noun or term, not the surrounding verb phrase.
+3. **p** (page_id): Compact form "N_I" where N=page number and I=index (extract from \`<page_number_N_index_I>\` tag)
+4. **l** (line_ids): Array of line IDs from \`<line id="N">\` tags
+
+### anchorText Examples
+- "multiplied by the Discount Rate" → k: "Discount Rate" (not the verb phrase)
+- "Junior to payment of outstanding indebtedness" → k: "Junior to"
+- "a voluntary termination of operations" → k: "voluntary termination"
+- "this Safe will automatically convert" → k: "automatically convert"
+- "SAFE (Simple Agreement for Future Equity)" → k: "SAFE" (not the 5-word expansion)
+
+### Placement Rules
+- Wrap key phrase: [anchor text](cite:N), e.g. [Discount Rate](cite:2)
+- Sequential IDs starting from 1 — each citation gets a unique number
+- JSON block MUST appear at the very end of your response
+
+### Example Response
+
+The [Discount Rate](cite:1) is applied to the conversion price. Revenue grew [45%](cite:2).
+
+<<<CITATION_DATA>>>
+{
+  "abc123": [
+    {"n": 1, "k": "Discount Rate", "p": "2_0", "l": [47]},
+    {"n": 2, "k": "45%", "p": "3_1", "l": [12]}
+  ]
+}
+<<<END_CITATION_DATA>>>
+</citation-instructions>
+
+`;
+
+/**
+ * JSON schema for compact citation data (structured output LLMs, hydrate pipeline).
+ * Omits full_phrase and reasoning — these are reconstructed by deepcitation hydrate.
+ */
+export const COMPACT_CITATION_JSON_OUTPUT_FORMAT = {
+  type: "object",
+  properties: {
+    n: {
+      type: "integer",
+      description: "Citation marker number matching (cite:N) in text",
+    },
+    a: {
+      type: "string",
+      description: "Attachment ID (compact key for attachment_id)",
+    },
+    k: {
+      type: "string",
+      description:
+        "anchorText: 1–3 contiguous verbatim words from the evidence line at the referenced lineId. Max 4 words.",
+    },
+    p: {
+      type: "string",
+      description:
+        "Compact page id 'N_I' (e.g. '2_0' for page 2, index 0). Extract N and I from <page_number_N_index_I> tags.",
+    },
+    l: {
+      type: "array",
+      items: { type: "integer" },
+      description: "Array of line IDs from <line id='N'> tags",
+    },
+  },
+  required: ["n", "a", "k", "p", "l"],
 } as const;
 
 /**

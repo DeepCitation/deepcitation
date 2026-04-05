@@ -371,11 +371,7 @@ export function AnchorTextFocusedImage({
                 cancelPanRef.current?.();
                 cancelPanRef.current = animateScrollLeft(el, el.scrollLeft - Math.max(el.clientWidth * 0.5, 80));
               }}
-            >
-              <span className="text-sm font-bold text-white bg-black/50 w-7 h-7 flex items-center justify-center rounded-full leading-none">
-                ←
-              </span>
-            </div>
+            ></div>
           )}
 
           {/* Right pan hint — clicking pans the image right */}
@@ -390,11 +386,7 @@ export function AnchorTextFocusedImage({
                 cancelPanRef.current?.();
                 cancelPanRef.current = animateScrollLeft(el, el.scrollLeft + Math.max(el.clientWidth * 0.5, 80));
               }}
-            >
-              <span className="text-sm font-bold text-white bg-black/50 w-7 h-7 flex items-center justify-center rounded-full leading-none">
-                →
-              </span>
-            </div>
+            ></div>
           )}
 
           {/* Top vertical fade — indicates scrollable content above */}

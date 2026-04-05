@@ -64,13 +64,13 @@ export async function POST(req: Request) {
       }
 
       // 1. Prepare attachment (cached across requests)
-      const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+      const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
         { file: pdfBuffer, filename: "report.pdf" },
       ]);
 
       // 2. Wrap prompts
       const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
-        systemPrompt, userPrompt, deepTextPromptPortion,
+        systemPrompt, userPrompt, deepTextPages,
       });
 
       // 3. Stream LLM response via AG-UI events

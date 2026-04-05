@@ -456,7 +456,7 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
     expect(styles.height).toBe("1.25%");
   });
 
-  test("anchor highlight hidden when anchorText and fullPhrase are identical text", async ({
+  test("anchor highlight shown when anchorText and fullPhrase are identical text", async ({
     mount,
     page,
   }) => {
@@ -474,15 +474,16 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           imageNaturalHeight={IMAGE_H}
           anchorTextDeepItems={[sameTextAnchor]}
           anchorText="Functional status"
-          fullPhrase="Functional status" // same as anchorText → word diff < 2
+          fullPhrase="Functional status" // same as anchorText — still shown
         />
       </div>,
     );
 
-    await expect(page.locator("[data-dc-anchor-highlight]")).toHaveCount(0);
+    // Always show anchor highlight when both anchorText and fullPhrase are non-empty
+    await expect(page.locator("[data-dc-anchor-highlight]")).toHaveCount(1);
   });
 
-  test("anchor highlight hidden when word difference < 2 (3 words vs 2 words)", async ({
+  test("anchor highlight shown when word difference < 2 (3 words vs 2 words)", async ({
     mount,
     page,
   }) => {
@@ -497,12 +498,13 @@ test.describe("Annotation Overlay Drawing — anchor highlight", () => {
           imageNaturalHeight={IMAGE_H}
           anchorTextDeepItems={[shortAnchor]}
           anchorText="Functional status"
-          fullPhrase="Functional status is" // 3 words vs 2 → diff=1, below threshold for 2-word anchor
+          fullPhrase="Functional status is" // 3 words vs 2 — still shown
         />
       </div>,
     );
 
-    await expect(page.locator("[data-dc-anchor-highlight]")).toHaveCount(0);
+    // Always show anchor highlight when both anchorText and fullPhrase are non-empty
+    await expect(page.locator("[data-dc-anchor-highlight]")).toHaveCount(1);
   });
 
   test("anchor highlight hidden when no anchorTextDeepItems is provided", async ({

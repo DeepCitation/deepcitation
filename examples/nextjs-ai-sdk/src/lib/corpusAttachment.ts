@@ -2,6 +2,7 @@ import { DeepCitation, sanitizeForLog } from "deepcitation";
 import { CORPUS_SOURCES, type CorpusSource } from "./corpus";
 
 type FileDataPart = { attachmentId: string; filename?: string };
+type DeepTextPagesByAttachmentId = Record<string, string[]>;
 
 const apiKey = process.env.DEEPCITATION_API_KEY;
 // All demo users intentionally share a single endUserId. In production,
@@ -10,26 +11,30 @@ const dc = apiKey ? new DeepCitation({ apiKey, endUserId: "nextjs-ai-sdk" }) : n
 
 const preparedAttachmentCache = new Map<
   string,
-  Promise<{ fileDataPart: FileDataPart; deepTextPromptPortion: string }>
+  Promise<{ fileDataPart: FileDataPart; deepTextPages: string[] }>
 >();
 
 async function resolveAttachment(
   client: DeepCitation,
   source: CorpusSource,
-): Promise<{ fileDataPart: FileDataPart; deepTextPromptPortion: string }> {
+): Promise<{ fileDataPart: FileDataPart; deepTextPages: string[] }> {
   const savedId = process.env[source.attachmentEnvVar];
 
   if (savedId) {
     try {
       const attachment = await client.getAttachment(savedId);
-      if (attachment.deepTextPromptPortion) {
+      const attachmentPages =
+        (attachment as { deepTextPages?: string[]; pageTexts?: string[] }).deepTextPages ??
+        attachment.pageTexts ??
+        [];
+      if (attachmentPages.length) {
         return {
           fileDataPart: { attachmentId: savedId, filename: source.filename },
-          deepTextPromptPortion: attachment.deepTextPromptPortion,
+          deepTextPages: attachmentPages,
         };
       }
       console.warn(
-        `[DeepCitation] ${source.attachmentEnvVar}=${sanitizeForLog(savedId)} did not return deepTextPromptPortion — re-uploading.`,
+        `[DeepCitation] ${source.attachmentEnvVar}=${sanitizeForLog(savedId)} did not return deepTextPages — re-uploading.`,
       );
     } catch (err) {
       console.warn(
@@ -45,6 +50,7 @@ async function resolveAttachment(
   const file = Buffer.from(await response.arrayBuffer());
   const prepared = await client.prepareAttachments([{ file, filename: source.filename }]);
   const attachmentId = prepared.fileDataParts[0].attachmentId;
+  const deepTextPages = prepared.deepTextPagesByAttachmentId[attachmentId] ?? [];
 
   console.log(
     `[DeepCitation] Uploaded "${source.title}". Add to env to skip re-upload on cold starts:\n  ${source.attachmentEnvVar}=${sanitizeForLog(attachmentId)}`,
@@ -52,7 +58,7 @@ async function resolveAttachment(
 
   return {
     fileDataPart: { attachmentId, filename: source.filename },
-    deepTextPromptPortion: prepared.deepTextPromptPortion,
+    deepTextPages,
   };
 }
 
@@ -61,7 +67,7 @@ export type { FileDataPart };
 function cacheAttachment(
   client: DeepCitation,
   source: CorpusSource,
-): Promise<{ fileDataPart: FileDataPart; deepTextPromptPortion: string }> {
+): Promise<{ fileDataPart: FileDataPart; deepTextPages: string[] }> {
   const pending = resolveAttachment(client, source);
   preparedAttachmentCache.set(source.id, pending);
   pending.catch(() => preparedAttachmentCache.delete(source.id));
@@ -70,7 +76,7 @@ function cacheAttachment(
 
 export async function getCorpusAttachments(): Promise<{
   fileDataParts: FileDataPart[];
-  deepTextPromptPortions: string[];
+  deepTextPagesByAttachmentId: DeepTextPagesByAttachmentId;
 }> {
   if (!dc) {
     throw new Error("DEEPCITATION_API_KEY is not set");
@@ -86,7 +92,7 @@ export async function getCorpusAttachments(): Promise<{
 
   return {
     fileDataParts: results.map((r) => r.fileDataPart),
-    deepTextPromptPortions: results.map((r) => r.deepTextPromptPortion),
+    deepTextPagesByAttachmentId: Object.fromEntries(results.map((r) => [r.fileDataPart.attachmentId, r.deepTextPages])),
   };
 }
 

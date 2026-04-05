@@ -94,15 +94,15 @@ The example uses DeepCitation's unified `prepareUrl` method:
 
 ```typescript
 // Single call to prepare URL - handles conversion and text extraction
-const { attachmentId, deepTextPromptPortion } = await deepcitation.prepareUrl({
+const { attachmentId, deepTextPages } = await deepcitation.prepareUrl({
   url: "https://example.com/article"
 });
 
-// Use deepTextPromptPortion in LLM prompts
+// Use deepTextPages in LLM prompts
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt,
   userPrompt: question,
-  deepTextPromptPortion,
+  deepTextPages,
 });
 
 // Call LLM and verify citations

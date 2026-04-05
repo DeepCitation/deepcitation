@@ -88,7 +88,7 @@ curl -X POST "https://api.deepcitation.com/prepareAttachments" \
   -H "Authorization: Bearer $DEEPCITATION_API_KEY" \
   -F "file=@your-document.pdf"
 
-# Response includes attachmentId and deepTextPromptPortion
+# Response includes attachmentId and deepTextPages
 # Copy the attachmentId from the response
 
 # 2. Verify a citation against it
@@ -127,7 +127,7 @@ const dc = new DeepCitation({
 });
 
 // 1. Prepare your source document
-const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
   { file: pdfBuffer, filename: "report.pdf" },
 ]);
 const attachmentId = fileDataParts[0].attachmentId;
@@ -138,7 +138,7 @@ const systemPrompt = "You are a helpful assistant that cites sources.";
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt,
   userPrompt,
-  deepTextPromptPortion,
+  deepTextPages,
 });
 
 // 3. Call your LLM

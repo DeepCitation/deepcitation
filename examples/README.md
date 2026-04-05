@@ -42,13 +42,13 @@ The simplest integration showing the complete workflow:
 
 ```typescript
 // 1. Upload documents
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([...]);
+const { fileDataParts, deepTextPages } = await deepcitation.prepareAttachments([...]);
 
 // 2. Wrap prompts with citation instructions
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt,
   userPrompt: question,
-  deepTextPromptPortion, 
+  deepTextPages,
 });
 
 // 3. Call LLM with enhanced prompts
@@ -104,7 +104,9 @@ const prepared = await dc.prepareAttachments(retrievedPdfBuffers);
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt,
   userPrompt: question,
-  deepTextPromptPortion: prepared.map(item => item.deepTextPromptPortion),
+  deepTextPagesByAttachmentId: Object.fromEntries(
+    prepared.map(item => [item.attachmentId, item.deepTextPages]),
+  ),
 });
 ```
 

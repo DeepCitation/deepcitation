@@ -166,14 +166,14 @@ describe("Setup snippets", () => {
   it("SETUP_PREPARE_FILES uses prepareAttachments", () => {
     expect(SETUP_PREPARE_FILES).toContain("prepareAttachments");
     expect(SETUP_PREPARE_FILES).toContain("fileDataParts");
-    expect(SETUP_PREPARE_FILES).toContain("deepTextPromptPortion");
+    expect(SETUP_PREPARE_FILES).toContain("deepTextPages");
     expect(SETUP_PREPARE_FILES).toContain("attachmentId");
   });
 
   it("SETUP_PREPARE_URL uses prepareUrl", () => {
     expect(SETUP_PREPARE_URL).toContain("prepareUrl");
     expect(SETUP_PREPARE_URL).toContain("attachmentId");
-    expect(SETUP_PREPARE_URL).toContain("deepTextPromptPortion");
+    expect(SETUP_PREPARE_URL).toContain("deepTextPages");
   });
 
   it("SETUP_PROOF_IMAGES uses verifyAttachment with proofConfig", () => {
@@ -193,7 +193,7 @@ describe("Server Side snippets", () => {
     expect(SERVER_WRAP_PROMPTS).toContain("wrapCitationPrompt");
     expect(SERVER_WRAP_PROMPTS).toContain("enhancedSystemPrompt");
     expect(SERVER_WRAP_PROMPTS).toContain("enhancedUserPrompt");
-    expect(SERVER_WRAP_PROMPTS).toContain("deepTextPromptPortion");
+    expect(SERVER_WRAP_PROMPTS).toContain("deepTextPages");
   });
 
   it("SERVER_VERIFY_SIMPLE uses verify() simple API", () => {

@@ -152,8 +152,8 @@ export interface DeepCitationConfig {
 export interface UploadFileResponse {
   /** The attachment ID assigned by DeepCitation (custom or auto-generated) */
   attachmentId: string;
-  /** The full text content formatted for LLM prompts with page markers and line IDs. Use this in your user prompts. */
-  deepTextPromptPortion: string;
+  /** Raw per-page text content. Use this with wrapCitationPrompt() or your own deterministic formatter. */
+  deepTextPages: string[];
   /** Metadata about the processed file */
   metadata: {
     filename: string;
@@ -308,6 +308,8 @@ export interface FileInput extends FileRequestOptions {
 export interface PreparedAttachment {
   /** The attachment ID assigned by DeepCitation */
   attachmentId: string;
+  /** Raw per-page text for this attachment. */
+  deepTextPages?: string[];
   /** Source URL information when the attachment originated from a URL. Absent for document inputs. */
   urlSource?: UrlSource;
   /** Original file as received (PDF, DOCX, MP4, …). Absent for URL inputs. */
@@ -326,8 +328,8 @@ export interface PreparedAttachment {
 export interface PrepareAttachmentsResult {
   /** Array of file references for verification */
   fileDataParts: Array<{ attachmentId: string; filename?: string }>;
-  /** The combined formatted text content for LLM prompts (with page markers and line IDs) for all files */
-  deepTextPromptPortion: string;
+  /** Raw per-page text keyed by attachmentId. */
+  deepTextPagesByAttachmentId: Record<string, string[]>;
   /** Per-attachment assets for downloads and page images */
   attachments: PreparedAttachment[];
 }
@@ -497,8 +499,8 @@ export interface AttachmentResponse {
   originalDownload?: FileDownload;
   /** Converted artifact: PDF rendition for docs/URLs, transcript for audio/video. */
   convertedDownload?: FileDownload;
-  /** The full text content formatted for LLM prompts with page markers and line IDs. */
-  deepTextPromptPortion?: string;
+  /** Raw per-page text array extracted from the document. */
+  deepTextPages?: string[];
   /** Raw per-page text array extracted from the document. */
   pageTexts?: string[];
 }

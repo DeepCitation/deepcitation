@@ -99,7 +99,7 @@ async function analyzeDocument(filePath: string, question: string) {
 
   // Step 1: Prepare source
   const document = readFileSync(filePath);
-  const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
+  const { fileDataParts, deepTextPages } = await deepcitation.prepareAttachments([
     { file: document, filename: filePath },
   ]);
   const attachmentId = fileDataParts[0].attachmentId; // 20-char alphanumeric ID
@@ -108,7 +108,7 @@ async function analyzeDocument(filePath: string, question: string) {
   const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
     systemPrompt: "You are a helpful assistant. Cite your sources.",
     userPrompt: question,
-    deepTextPromptPortion,
+    deepTextPages,
   });
 
   const response = await openai.chat.completions.create({
@@ -233,7 +233,7 @@ const deepcitation = new DeepCitation({
 export const SETUP_PREPARE_FILES = `import { readFileSync } from "fs";
 
 const document = readFileSync("./document.pdf");
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
+const { fileDataParts, deepTextPages } = await deepcitation.prepareAttachments([
   { file: document, filename: "document.pdf" },
   { file: imageBuffer, filename: "chart.png" }, // multiple files supported
 ]);
@@ -242,7 +242,7 @@ const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttac
 const attachmentId = fileDataParts[0].attachmentId; // e.g. "a1b2c3d4e5f6g7h8i9j0"`;
 
 /** Section 1.4 — Prepare URLs */
-export const SETUP_PREPARE_URL = `const { attachmentId, deepTextPromptPortion, metadata } = await deepcitation.prepareUrl({
+export const SETUP_PREPARE_URL = `const { attachmentId, deepTextPages, metadata } = await deepcitation.prepareUrl({
   url: "https://example.com/article",
 });`;
 
@@ -267,7 +267,7 @@ export const SERVER_WRAP_PROMPTS = `import { wrapCitationPrompt } from "deepcita
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a helpful assistant...",
   userPrompt: "Summarize this document",
-  deepTextPromptPortion, // from Section 1 — prepareAttachments or prepareUrl
+  deepTextPages, // from Section 1 — prepareAttachments or prepareUrl
 });`;
 
 /** Section 2.2 — Call your LLM (OpenAI example) */

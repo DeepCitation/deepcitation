@@ -67,16 +67,16 @@ import {
 const deepcitation = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
 // 1. Upload multiple documents
-const { fileDataParts, deepTextPromptPortion } = await deepcitation.prepareAttachments([
+const { fileDataParts, deepTextPagesByAttachmentId } = await deepcitation.prepareAttachments([
   { file: contractPdf, filename: "contract.pdf" },
   { file: invoicePdf, filename: "invoice.pdf" },
 ]);
 
-// 2. Wrap prompts with combined file content
+// 2. Wrap prompts with the per-attachment raw page map
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a document analyst that cites sources.",
   userPrompt: "Compare the contract terms with the invoice amounts.",
-  deepTextPromptPortion, // All files combined into one string
+  deepTextPagesByAttachmentId,
 });
 
 // 3. Call your LLM

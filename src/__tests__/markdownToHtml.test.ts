@@ -1,5 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
-import { AUDIENCE_PRESETS, markdownToHtml, wrapCitationMarkers } from "../cli/markdownToHtml.js";
+import {
+  AUDIENCE_PRESETS,
+  buildCdnComparisonShowcaseHtml,
+  markdownToHtml,
+  wrapCitationMarkers,
+} from "../cli/markdownToHtml.js";
 
 // ── wrapCitationMarkers ───────────────────────────────────────────
 
@@ -284,6 +289,18 @@ describe("markdownToHtml style shells", () => {
   });
 });
 
+describe("buildCdnComparisonShowcaseHtml", () => {
+  it("builds a self-contained CDN demo with mock verifications", () => {
+    const html = buildCdnComparisonShowcaseHtml();
+    expect(html).toContain("data-dc-drawer-trigger");
+    expect(html).toContain("demo-citation-1");
+    expect(html).toContain("demo-citation-2");
+    expect(html).toContain("demo-citation-3");
+    expect(html).toContain("/src/vanilla/testing/demo-page.png");
+    expect(html).toContain("window.DeepCitationPopover&&window.DeepCitationPopover.init");
+  });
+});
+
 // ── markdownToHtml — audience presets ─────────────────────────────
 
 describe("markdownToHtml audience presets", () => {
@@ -364,7 +381,9 @@ describe("markdownToHtml — cite: link format", () => {
   it("converts [anchor](cite:N) to data-cite span", () => {
     const result = markdownToHtml("The [Discount Rate](cite:2) is applied.", { style: "plain" });
     expect(result).toContain('<span data-cite="2">Discount Rate</span>');
-    expect(result).not.toContain("href=");
+    // cite: links must NOT produce anchor elements (href="#" = fallback for unrecognized schemes)
+    expect(result).not.toContain('href="#"');
+    expect(result).not.toContain('href="cite:');
   });
 
   it("handles multiple cite: links in the same paragraph", () => {

@@ -748,6 +748,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
           }
         }
       },
+      // biome-ignore lint/correctness/useExhaustiveDependencies: both viewState and viewState.transition are intentionally listed for hook stability
       [closePopover, viewState.transition, viewState],
     );
 
@@ -818,6 +819,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
         closePopover,
         viewState.transition,
         viewState.resetToSummary,
+        // biome-ignore lint/correctness/useExhaustiveDependencies: viewState methods and viewState itself are both intentionally listed for hook stability
         viewState,
       ],
     );
@@ -1260,7 +1262,7 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
       "data-citation-id": citationKey,
       "data-citation-instance": citationInstanceId,
       className: cn(
-        "relative inline-flex items-baseline",
+        "relative inline [box-decoration-break:clone] [-webkit-box-decoration-break:clone]",
         "px-0.5 -mx-0.5 rounded-sm",
         "transition-colors duration-[80ms] active:scale-[0.98]",
         cursorClass,

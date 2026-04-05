@@ -174,13 +174,13 @@ function validateVerbatimAgainstPrepare(
 
     if (!deepText.includes(c.full_phrase)) {
       errors.push(
-        `[${c.id}] full_phrase NOT found verbatim in source deepTextPromptPortion: ` +
+        `[${c.id}] full_phrase NOT found verbatim in source deepTextPages: ` +
           `"${c.full_phrase.slice(0, 60)}${c.full_phrase.length > 60 ? "…" : ""}"`,
       );
     }
 
     if (c.anchor_text && !deepText.includes(c.anchor_text)) {
-      errors.push(`[${c.id}] anchor_text NOT found verbatim in source deepTextPromptPortion: "${c.anchor_text}"`);
+      errors.push(`[${c.id}] anchor_text NOT found verbatim in source deepTextPages: "${c.anchor_text}"`);
     }
 
     // Check page_id tag exists
@@ -205,8 +205,13 @@ function loadPrepareOutputs(dir: string): Map<string, string> {
     if (!file.startsWith("prepare-") || !file.endsWith(".json")) continue;
     try {
       const data = JSON.parse(readFileSync(resolve(dir, file), "utf-8"));
-      if (data.attachmentId && data.deepTextPromptPortion) {
-        outputs.set(data.attachmentId, data.deepTextPromptPortion);
+      if (data.attachmentId) {
+        if (
+          Array.isArray(data.deepTextPages) &&
+          data.deepTextPages.every((page: unknown) => typeof page === "string")
+        ) {
+          outputs.set(data.attachmentId, data.deepTextPages.join("\n\n"));
+        }
       }
     } catch {
       // skip malformed files

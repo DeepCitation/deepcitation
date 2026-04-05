@@ -73,8 +73,8 @@ import { DeepCitation, wrapCitationPrompt, getAllCitationsFromLlmOutput } from "
 const dc = new DeepCitation({ apiKey: process.env.DEEPCITATION_API_KEY });
 
 // Prepare, wrap, verify in 3 steps
-const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([{ file: pdfBuffer, filename: "report.pdf" }]);
-const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({ systemPrompt, userPrompt, deepTextPromptPortion });
+const { fileDataParts, deepTextPages } = await dc.prepareAttachments([{ file: pdfBuffer, filename: "report.pdf" }]);
+const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({ systemPrompt, userPrompt, deepTextPages });
 // ... call your LLM ...
 const citations = getAllCitationsFromLlmOutput(response.content);
 const { verifications } = await dc.verifyAttachment(fileDataParts[0].attachmentId, citations);

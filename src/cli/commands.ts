@@ -6,7 +6,7 @@
  * mocked dependencies (auth, client, fs) instead of requiring subprocess tests.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import {
@@ -30,17 +30,34 @@ import {
   getCitationMarkerIds,
   parseCitationData,
 } from "../parsing/citationParser.js";
-import { CITATION_DATA_END_DELIMITER, CITATION_DATA_START_DELIMITER } from "../prompts/citationPrompts.js";
+import {
+  CITATION_DATA_END_DELIMITER,
+  CITATION_DATA_START_DELIMITER,
+  type CitationData,
+} from "../prompts/citationPrompts.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
 import { detectProxyUrl } from "../utils/proxy.js";
-import { safeReplace } from "../utils/regexSafety.js";
+import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
 import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
+import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
 import { die, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
-import { AUDIENCE_PRESETS, type AudiencePreset, markdownToHtml, type ReportStyle } from "./markdownToHtml.js";
+import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
+
+// Re-export so cli.ts and tests can import from the single commands module
+export { HYDRATE_HELP, hydrate } from "./hydrate.js";
+export { MERGE_HELP, merge } from "./merge.js";
+
+import {
+  AUDIENCE_PRESETS,
+  type AudiencePreset,
+  buildCdnComparisonShowcaseHtml,
+  markdownToHtml,
+  type ReportStyle,
+} from "./markdownToHtml.js";
 import { createCoworkFetch, createProxyFetch } from "./proxy.js";
 
 // ── help strings ──────────────────────────────────────────────────
@@ -55,7 +72,9 @@ Commands:
   env       Print export DEEPCITATION_API_KEY=... for shell eval
   prepare   Prepare a file or URL for citation verification
   verify    Verify citations (--markdown, --html, or --citations)
+  hydrate   Fill in full_phrase from summary file (compact draft support)
   inject    Inject DeepCitation verification into an existing HTML file
+  showcase  Build a local CDN comparison demo from markdownToHtml fixtures
   keygen    Compute deterministic citation keys from a citations JSON file
   get       Fetch full attachment metadata by ID
   billing   Open the billing dashboard to add a payment method or manage spend cap
@@ -90,17 +109,32 @@ Examples:
   deepcitation inject --html report.html --verify-response verify.json --out report-verified.html
 `;
 
+export const SHOWCASE_HELP = `Usage: deepcitation showcase [options]
+
+Build a local CDN comparison demo page from the markdownToHtml fixture used by
+the repo's smoke tests.
+
+Options:
+  --out <file>   Output HTML path (default: .deepcitation/cdn-comparison-showcase.html)
+  -h, --help     Show this help message
+
+Examples:
+  deepcitation showcase
+  deepcitation showcase --out /tmp/cdn-comparison-showcase.html
+`;
+
 export const PREPARE_HELP = `Usage: deepcitation prepare <file-or-url> [options]
 
 Prepare a file or URL for citation verification. Uploads the source to the
-DeepCitation API and saves the response JSON (attachmentId + deepTextPromptPortion).
+DeepCitation API and saves the response JSON (attachmentId + deepTextPages).
+The response now also includes deepTextPages as the canonical raw page array.
 
 Arguments:
   <file-or-url>             Local file path or URL to prepare
 
 Options:
   --out <file>              Output JSON path (default: .deepcitation/prepare-{name}.json)
-  --summary                 Print attachmentId and deepTextPromptPortion to stdout
+  --summary                 Print attachmentId and deepTextPages to stdout
   --unsafe-fast             Use fast mode for URLs (skips rendering, vulnerable to hidden text)
   -h, --help                Show this help message
 
@@ -135,6 +169,7 @@ Options:
   --style <plain|report>    HTML output style (default: "report", --markdown only)
   --audience <preset>       Audience preset: general, executive, technical, legal, medical (default: "general")
   --title <text>            Report title (default: first H1 in markdown, or "Verification Report")
+  --summary <file>          Summary file for auto-hydrating compact citations (--markdown only)
   --out <file>              Output path (default: {stem}-verified.html in CWD)
   --theme <auto|light|dark> Popover color theme (default: "auto")
   --indicator <indicator>   Indicator variant: icon, dot, none (default: "icon")
@@ -180,7 +215,7 @@ Arguments:
 
 Options:
   --out <file>              Output JSON path (default: stdout)
-  --deep-text               Include deepTextPromptPortion in output
+  --deep-text               Include deepTextPages in output
   --page-texts              Include raw per-page text arrays
   -h, --help                Show this help message
 
@@ -381,10 +416,13 @@ export async function prepare(argv: string[], _fmtNetErr: (err: unknown) => stri
   console.error(`  Saved: ${outPath}`);
 
   if (summary) {
-    // Print attachmentId and deepTextPromptPortion as JSON to stdout so agents
+    // Print attachmentId and deepTextPages as JSON to stdout so agents
     // can consume them with jq or JSON.parse (no extra Read call).
     console.log(
-      JSON.stringify({ attachmentId: result.attachmentId, deepTextPromptPortion: result.deepTextPromptPortion }),
+      JSON.stringify({
+        attachmentId: result.attachmentId,
+        deepTextPages: result.deepTextPages,
+      }),
     );
   } else {
     console.log(outPath);
@@ -623,6 +661,22 @@ export function inject(argv: string[]) {
   writeVerifiedOutput(outPath, output);
 }
 
+export function showcase(argv: string[]) {
+  if (argv.includes("-h") || argv.includes("--help")) {
+    console.log(SHOWCASE_HELP);
+    return;
+  }
+
+  const args = parseArgs(argv, SHOWCASE_HELP);
+  const outPath = resolve(args.out ?? ".deepcitation/cdn-comparison-showcase.html");
+  const outputDir = dirname(outPath);
+  if (!existsSync(outputDir)) mkdirSync(outputDir, { recursive: true });
+
+  writeFileSync(outPath, buildCdnComparisonShowcaseHtml());
+  console.error(`Showcase saved to: ${outPath}`);
+  console.log(outPath);
+}
+
 export function keygen(argv: string[]) {
   const args = parseArgs(argv, KEYGEN_HELP);
 
@@ -654,6 +708,35 @@ export function keygen(argv: string[]) {
   }
 }
 
+/**
+ * Scan .deepcitation/prepare-*.json files and return a map of attachmentId → urlSource.url
+ * for any URL-sourced attachments. Used to populate sourceUrl in report headers and
+ * fix document labels in the popover.
+ */
+function loadUrlSourceMap(): Map<string, string> {
+  const map = new Map<string, string>();
+  const prepareDir = resolve(".deepcitation");
+  if (!existsSync(prepareDir)) return map;
+  try {
+    const files = readdirSync(prepareDir).filter(f => f.startsWith("prepare-") && f.endsWith(".json"));
+    for (const file of files) {
+      try {
+        const data = JSON.parse(readFileSync(resolve(prepareDir, file), "utf-8")) as Record<string, unknown>;
+        const attachmentId = data.attachmentId as string | undefined;
+        const urlSource = data.urlSource as { url?: string } | undefined;
+        if (attachmentId && urlSource?.url) {
+          map.set(attachmentId, urlSource.url);
+        }
+      } catch {
+        // skip unreadable/malformed prepare files
+      }
+    }
+  } catch {
+    // skip if .deepcitation is unreadable
+  }
+  return map;
+}
+
 export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) => string) {
   const args = parseArgs(argv, VERIFY_HELP);
   const mdPath = args.markdown;
@@ -670,9 +753,103 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   if (!AUDIENCE_PRESETS.includes(audience))
     die(`--audience must be one of: ${AUDIENCE_PRESETS.join(", ")}`, VERIFY_HELP);
 
-  const parsed = parseCitationData(raw);
+  // --citations: load citation data from a separate JSON file.
+  // Assemble a combined string and parse through existing parseCitationData
+  // so all downstream logic (compact key expansion, hydration, validation) works unchanged.
+  const citationsFlag = args.citations as string | undefined;
+  let parsed: ReturnType<typeof parseCitationData>;
+  if (citationsFlag) {
+    const resolvedCitations = resolve(citationsFlag);
+    if (!existsSync(resolvedCitations)) die(`Citations file not found: ${sanitizeForLog(citationsFlag)}`, VERIFY_HELP);
+    const citationsJson = readFileSync(resolvedCitations, "utf-8");
+    const combined = `${raw}\n\n${CITATION_DATA_START_DELIMITER}\n${citationsJson}\n${CITATION_DATA_END_DELIMITER}\n`;
+    parsed = parseCitationData(combined);
+  } else {
+    parsed = parseCitationData(raw);
+  }
+
+  // Auto-generate citations: prefer auto-gen over any <<<CITATION_DATA>>> block the
+  // agent may have emitted. Agents are instructed not to output citation JSON (the
+  // CLI generates it from the summary), but they sometimes do anyway — with wrong
+  // page IDs, verbose formats, or hallucinated values. Auto-gen always wins when
+  // [label](cite:N) markers exist and a summary is available.
+  const markers = extractMarkersFromBody(raw);
+  if (markers.length > 0) {
+    const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved);
+    if (summaryPath && existsSync(summaryPath)) {
+      const summaryContent = readFileSync(summaryPath, "utf-8");
+      let attachmentId = "unknown";
+      try {
+        attachmentId = (JSON.parse(summaryContent) as { attachmentId?: string }).attachmentId ?? "unknown";
+      } catch {
+        /* use "unknown" */
+      }
+
+      const lineMap = parseSummaryToLineMap(summaryContent);
+      const allLines = getAllLines(lineMap);
+      const citations: CitationData[] = [];
+
+      for (const { id, displayLabel, anchorHint } of markers) {
+        const searchTerm = anchorHint ?? displayLabel;
+        const found = findAnchorWithFallback(searchTerm, allLines);
+        if (!found) {
+          console.error(`  Citation ${id} ("${displayLabel}"): not found in evidence`);
+          continue;
+        }
+        const { lineId, pageId, verbatimAnchor } = found;
+        const anchorText = anchorHint?.trim() || verbatimAnchor;
+        citations.push({
+          id,
+          anchor_text: anchorText,
+          page_id: toCompactPageId(pageId),
+          line_ids: [lineId],
+          attachment_id: attachmentId,
+          display_label: displayLabel.toLowerCase() !== anchorText.toLowerCase() ? displayLabel : undefined,
+        });
+      }
+
+      if (citations.length > 0) {
+        if (parsed.success && parsed.citations.length > 0) {
+          console.error(`  Note: <<<CITATION_DATA>>> block found but ignored — auto-gen takes priority`);
+        }
+        parsed = {
+          visibleText: raw,
+          citations,
+          citationMap: new Map(citations.map(c => [c.id, c])),
+          success: true,
+        };
+        console.error(`Auto-generated ${citations.length} citation(s) from body markers + summary`);
+      }
+    }
+  }
+
   if (!parsed.success || parsed.citations.length === 0) {
-    die("No valid <<<CITATION_DATA>>> block found in the markdown file.", VERIFY_HELP);
+    die(
+      "No citations found — ensure body has [label](cite:N) markers and a summary exists in .deepcitation/",
+      VERIFY_HELP,
+    );
+  }
+
+  // Auto-hydrate: if compact citations are detected (missing full_phrase but have line_ids),
+  // fill in full_phrase from the summary file before proceeding.
+  const needsHydration = parsed.citations.some(c => !c.full_phrase && c.line_ids?.length);
+  if (needsHydration) {
+    const summaryPath = args.summary ? resolve(args.summary as string) : findSummaryForMarkdown(resolved);
+    if (summaryPath && existsSync(summaryPath)) {
+      console.error(`Auto-hydrating citations from summary: ${summaryPath}`);
+      try {
+        const { hydrated, misses } = hydrateCitations({
+          summaryContent: readFileSync(summaryPath, "utf-8"),
+          citations: parsed.citations,
+          warnOnMiss: true,
+        });
+        console.error(`  Hydrated ${hydrated} citation(s)` + (misses.length ? `; ${misses.length} miss(es)` : ""));
+      } catch (err) {
+        console.error(`  Warning: failed to parse summary file — ${err instanceof Error ? err.message : String(err)}`);
+      }
+    } else if (needsHydration) {
+      console.error("Warning: citations missing full_phrase — pass --summary for auto-hydration");
+    }
   }
 
   console.error(`Parsed ${parsed.citations.length} citation(s) from markdown.`);
@@ -710,6 +887,24 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     parsed.visibleText = parsed.visibleText.replace(/\[\d+-\d+\]/g, "");
   }
 
+  // Extract display labels from body: [label](cite:N) where label differs from anchorText.
+  // The compact JSON only carries k (anchorText); the body label is for readers and may
+  // deliberately differ (e.g. "pro rata distribution" body, "pro rata" k). Populating
+  // display_label here causes verifyHtml to inject data-dc-display-label so the popover
+  // can show the "Displayed as" disclaimer.
+  {
+    const bodyRe = /\[([^\]]+)\]\(cite:(\d+)\)/g;
+    let bm: RegExpExecArray | null;
+    while ((bm = safeExec(bodyRe, parsed.visibleText)) !== null) {
+      const label = bm[1].trim();
+      const id = parseInt(bm[2], 10);
+      const cd = parsed.citations.find(c => c.id === id);
+      if (cd && !cd.display_label && label.toLowerCase() !== (cd.anchor_text ?? "").toLowerCase()) {
+        cd.display_label = label;
+      }
+    }
+  }
+
   // Build anchor map: citation ID → anchorText, so markdownToHtml can wrap
   // just the anchor phrase instead of the whole preceding clause.
   const anchorMap: Record<string, string> = {};
@@ -719,6 +914,14 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   }
 
   const title = args.title as string | undefined;
+
+  // Resolve source URL from prepare JSONs (URL-sourced documents only)
+  const urlSourceMap = loadUrlSourceMap();
+  const attachmentIds = [
+    ...new Set(parsed.citations.map(cd => cd.attachment_id).filter((id): id is string => typeof id === "string")),
+  ];
+  const sourceUrl = attachmentIds.map(id => urlSourceMap.get(id)).find(Boolean);
+
   const html = markdownToHtml(parsed.visibleText, {
     style,
     audience,
@@ -726,6 +929,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
     anchorMap,
     citationCount: parsed.citations.length,
     cowork: IS_COWORK,
+    sourceUrl,
   });
 
   // Re-attach citation data so verifyHtml pipeline can process it
@@ -733,7 +937,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   const htmlWithCitations = `${html}\n\n${CITATION_DATA_START_DELIMITER}\n${citationJson}\n${CITATION_DATA_END_DELIMITER}`;
 
   // Forward to verifyHtml with pre-loaded content — no temp file needed
-  const stripFlags = new Set(["--markdown", "--style", "--audience", "--title"]);
+  const stripFlags = new Set(["--markdown", "--style", "--audience", "--title", "--citations", "--summary"]);
   const forwardArgs: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     if (stripFlags.has(argv[i])) {
@@ -880,6 +1084,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   console.error(`Verifying ${Object.keys(verifiable).length} citation(s) across ${groups.size} attachment(s)...`);
 
+  const verifyStart = Date.now();
   const merged: Record<string, unknown> = {};
   for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
     const result = await dc.verifyAttachment(
@@ -891,11 +1096,36 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     Object.assign(merged, result.verifications);
   }
 
+  // Post-process: for URL-sourced documents, populate missing downloadUrl from
+  // originalDownload.link.url, and replace the server-assigned "bill-xx.pdf" label
+  // with the original source URL (domain only for display, full URL for lookup).
+  const urlSourceMapForVerify = loadUrlSourceMap();
+  for (const v of Object.values(merged) as Record<string, unknown>[]) {
+    const aid = v.attachmentId as string | undefined;
+    // Fix download button: CDN runtime reads `downloadUrl`; server omits it for URL sources
+    // but includes `originalDownload` with the CDN-cached PDF link.
+    if (!v.downloadUrl) {
+      const od = v.originalDownload as { link?: { url?: string } } | undefined;
+      if (od?.link?.url && safeTest(/^https?:\/\//i, od.link.url)) {
+        v.downloadUrl = od.link.url;
+      }
+    }
+    // Fix label: replace "bill-xx.pdf" with the original source URL for URL-sourced docs
+    if (aid && urlSourceMapForVerify.has(aid)) {
+      const rawUrl = urlSourceMapForVerify.get(aid) ?? "";
+      // Only use the URL as a label if it's a valid http(s) URL
+      if (safeTest(/^https?:\/\//i, rawUrl)) {
+        v.label = rawUrl;
+      }
+    }
+  }
+
   const verifyOutput = { verifications: merged };
   writeFileSync(verifyResponsePath, JSON.stringify(verifyOutput, null, 2));
 
   const found = Object.values(merged).filter((v: unknown) => (v as Record<string, string>).status === "found").length;
   const total = Object.keys(merged).length;
+  const verifyDurationMs = Date.now() - verifyStart;
   console.error(`  Verified: ${found}/${total} found`);
   if (found === 0 && total > 0) printAllNotFoundHint();
 
@@ -928,6 +1158,26 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   const outPath = resolve(args.out ?? `verified-${ts}.html`);
   writeVerifiedOutput(outPath, output);
+
+  // Write run-metadata for iteration tracking (duration, counts, output path).
+  // Token counts and tool-call counts are agent-level metrics captured by the
+  // orchestrating session; this file captures what the CLI can measure itself.
+  const metaPath = resolve(".deepcitation/run-metadata.json");
+  writeFileSync(
+    metaPath,
+    JSON.stringify(
+      {
+        timestamp: new Date().toISOString(),
+        verify_api_duration_ms: verifyDurationMs,
+        citations_total: total,
+        citations_found: found,
+        out_path: outPath,
+      },
+      null,
+      2,
+    ),
+  );
+  console.error(`Run metadata → ${metaPath}`);
 }
 
 export async function login(argv: string[], baseUrl: string) {
@@ -1145,7 +1395,9 @@ export async function getAttachment(argv: string[]) {
 
   // Strip large fields unless requested
   const output: Record<string, unknown> = { ...result };
-  if (!deepText) delete output.deepTextPromptPortion;
+  if (!deepText) {
+    delete output.deepTextPages;
+  }
   if (!pageTexts) delete output.pageTexts;
 
   const json = JSON.stringify(output, null, 2);

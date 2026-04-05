@@ -80,7 +80,7 @@ src/
 
 ### 1. Bundled Corpus
 
-On page load, the client calls `GET /api/corpus/init` which resolves the sample PDF attachment server-side (with env-var caching for fast cold starts). The `fileDataPart` and `deepTextPromptPortion` are sent to the client so it can pass them through `useChat`'s body — same flow as a user-uploaded file.
+On page load, the client calls `GET /api/corpus/init` which resolves the sample PDF attachment server-side (with env-var caching for fast cold starts). The `fileDataParts` and `deepTextPagesByAttachmentId` map are sent to the client so it can pass them through `useChat`'s body — same flow as a user-uploaded file, without relying on array ordering.
 
 ### 2. Document Upload
 
@@ -88,7 +88,7 @@ When a user uploads a document, it replaces the sample. The file is sent to Deep
 
 ```typescript
 // src/app/api/upload/route.ts
-const { fileDataParts, deepTextPromptPortion } = await dc.prepareAttachments([
+const { fileDataParts, deepTextPages } = await dc.prepareAttachments([
   { file: buffer, filename: file.name },
 ]);
 ```

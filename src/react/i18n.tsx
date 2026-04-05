@@ -196,6 +196,7 @@ export const defaultMessages = {
   "aria.sourceGroupWithDomainAndCount_other": "Source: {sourceName} ({sourceDomain}), {count} citations",
   "aria.toggleAnnotation.show": "Show annotation for: {label}",
   "aria.toggleAnnotation.hide": "Hide annotation for: {label}",
+  "aria.citationOffPage": "(other page)",
   "aria.closeImageView": "Close image view",
   "aria.closePageView": "Close page view",
   "aria.closePageViewNum": "Close page {pageNumber} view",

@@ -47,7 +47,7 @@ const deepCitation = new DeepCitation({
 });
 
 // 1) Process documents 
-const { deepTextPromptPortion } = await deepCitation.prepareAttachments([
+const { deepTextPages } = await deepCitation.prepareAttachments([
   { file: pdfBuffer, filename: "report.pdf" },
 ]);
 
@@ -55,7 +55,7 @@ const { deepTextPromptPortion } = await deepCitation.prepareAttachments([
 const { enhancedSystemPrompt, enhancedUserPrompt } = wrapCitationPrompt({
   systemPrompt: "You are a helpful assistant...",
   userPrompt: "Summarize the key findings",
-  deepTextPromptPortion,
+  deepTextPages,
 });
 
 const response = await yourLLM.chat({

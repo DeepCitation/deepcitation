@@ -72,9 +72,9 @@ def verify_citations(attachment_id: str, citations: dict) -> dict:
 # Usage
 result = prepare_attachment("report.pdf")
 attachment_id = result["attachmentId"]
-deep_text = result["deepTextPromptPortion"]
+deep_text_pages = result["deepTextPages"]
 
-# ... call your LLM with deep_text injected into the prompt ...
+# ... call your LLM with deep_text_pages injected into the prompt ...
 # ... parse the <<<CITATION_DATA>>> block from the LLM response ...
 
 verifications = verify_citations(attachment_id, parsed_citations)

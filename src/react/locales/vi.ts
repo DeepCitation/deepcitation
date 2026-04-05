@@ -116,6 +116,7 @@ export const viOverrides = {
   "aria.sourceGroupWithDomainAndCount_other": "Nguồn: {sourceName} ({sourceDomain}), {count} trích dẫn",
   "aria.toggleAnnotation.show": "Hiện chú thích cho: {label}",
   "aria.toggleAnnotation.hide": "Ẩn chú thích cho: {label}",
+  "aria.citationOffPage": "(trang khác)",
   "aria.closeImageView": "Đóng chế độ xem hình",
   "aria.closePageView": "Đóng chế độ xem trang",
   "aria.closePageViewNum": "Đóng chế độ xem trang {pageNumber}",
