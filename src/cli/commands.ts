@@ -1135,7 +1135,8 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   if (found === 0 && total > 0) printAllNotFoundHint();
 
   // 5. Inject CDN runtime (same logic as inject command)
-  // Re-attach pageImages from attachment assets so CDN runtime can read them per-verification.
+  // NOTE: writeFileSync above stores the clean normalized response (no per-verification pageImages).
+  // Re-attach pageImages in-memory only for CDN script injection below.
   const verifications = verifyOutput.verifications;
   for (const v of Object.values(verifications) as Record<string, unknown>[]) {
     const aid = v.attachmentId as string | undefined;

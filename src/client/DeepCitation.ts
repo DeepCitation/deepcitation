@@ -377,12 +377,13 @@ export class DeepCitation {
    * the first verification per attachmentId and strip them from each verification.
    */
   private normalizeVerifyResponse(response: VerifyCitationsResponse): VerifyCitationsResponse {
-    if (response.attachments && Object.keys(response.attachments).length > 0) return response;
+    if (response.attachments) return response;
     const attachments: Record<string, AttachmentAssets> = {};
     for (const v of Object.values(response.verifications)) {
       const aid = v.attachmentId;
       if (!aid || attachments[aid]) {
-        // Still strip fields even if we already captured assets for this attachment
+        // All verifications for the same attachmentId carry identical asset copies
+        // in the legacy format; first-writer-wins is safe. Still strip duplicates.
         delete (v as Record<string, unknown>).pageImages;
         delete (v as Record<string, unknown>).originalDownload;
         delete (v as Record<string, unknown>).convertedDownload;
@@ -935,6 +936,7 @@ export class DeepCitation {
     const maxAttempts = options.maxAttempts ?? 3;
     const citationMap = this.normalizeCitationInput(citations);
     const finalVerifications: Record<string, Verification> = {};
+    let mergedAttachments: Record<string, AttachmentAssets> = {};
 
     for (const [citationKey, initialCitation] of Object.entries(citationMap)) {
       const history: LlmSearchAttempt[] = [];
@@ -943,6 +945,7 @@ export class DeepCitation {
       for (let i = 0; i < maxAttempts; i++) {
         const start = Date.now();
         const result = await this.verifyAttachment(attachmentId, { [citationKey]: currentCitation }, options);
+        if (result.attachments) mergedAttachments = { ...mergedAttachments, ...result.attachments };
         const verification = result.verifications[citationKey];
         const durationMs = Date.now() - start;
 
@@ -996,7 +999,7 @@ export class DeepCitation {
       }
     }
 
-    return { verifications: finalVerifications };
+    return { verifications: finalVerifications, attachments: mergedAttachments };
   }
 
   /**
