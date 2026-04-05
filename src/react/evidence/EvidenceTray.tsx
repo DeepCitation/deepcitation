@@ -39,6 +39,8 @@ import {
   searchLogAnimReducer,
 } from "./searchLogAnimation.js";
 
+const EMPTY_SEARCH_ATTEMPTS: SearchAttempt[] = [];
+
 /**
  * Flatten LLM-level search attempts into a single SearchAttempt[] array,
  * inserting AmendmentRow markers at the boundaries between passes.
@@ -204,7 +206,7 @@ export function EvidenceTray({
   const resolvedEvidenceSrc = useMemo(() => resolveEvidenceSrc(verification), [verification]);
   const isMiss = status.isMiss;
   const isPartialMatch = status.isPartialMatch;
-  const searchAttempts = verification?.searchAttempts ?? [];
+  const searchAttempts = verification?.searchAttempts ?? EMPTY_SEARCH_ATTEMPTS;
   const llmAttempts = verification?.llmAttempts;
   const hasLlmHistory = llmAttempts != null && llmAttempts.length > 1;
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
@@ -371,14 +373,14 @@ export function EvidenceTray({
         t,
       );
 
-      // Interleave amendment markers at their correct positions in the timeline.
-      // Iterate in reverse so earlier insertions don't shift later indices.
       if (amendmentMarkers.size > 0) {
-        const sorted = Array.from(amendmentMarkers.entries()).sort((a, b) => b[0] - a[0]);
-        for (const [idx, marker] of sorted) {
-          const insertAt = Math.min(idx, narrative.rows.length);
-          narrative.rows.splice(insertAt, 0, marker);
+        const merged: typeof narrative.rows = [];
+        for (let i = 0; i <= narrative.rows.length; i++) {
+          const marker = amendmentMarkers.get(i);
+          if (marker) merged.push(marker);
+          if (i < narrative.rows.length) merged.push(narrative.rows[i]);
         }
+        narrative.rows = merged;
       }
 
       return narrative;

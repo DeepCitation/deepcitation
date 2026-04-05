@@ -47,6 +47,14 @@ import type { IndicatorVariant } from "./types.js";
 import { cn } from "./utils.js";
 import { FaviconImage, PagePill } from "./VerificationLog.js";
 
+/** Scroll a citation item into view on the next frame. */
+function scrollToCitationItem(citationKey: string) {
+  requestAnimationFrame(() => {
+    const el = document.querySelector(`[data-dc-item="${CSS.escape(citationKey)}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+}
+
 /**
  * Exponential-approach stagger delay: starts at ~DELAY gap, decelerates toward MAX (always monotonic).
  * Preferred over linear (index * DELAY capped at MAX) because the exponential curve avoids
@@ -431,13 +439,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
       setLocalExpanded(prev => !prev);
     }
     onClick?.(item);
-    // Auto-scroll the newly expanded item into view
-    if (!isExpanded) {
-      requestAnimationFrame(() => {
-        const el = document.querySelector(`[data-dc-item="${CSS.escape(citationKey)}"]`);
-        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      });
-    }
+    if (!isExpanded) scrollToCitationItem(citationKey);
   }, [item, onClick, escCtx, isExpanded, citationKey]);
 
   // Keyhole click expands inline inside the citation row.
@@ -929,12 +931,8 @@ function OpenCitationDrawer({
       if (!flat) return;
       const key = flat.item.citationKey;
 
-      // Toggle accordion expansion + scroll into view
       setExpandedCitationKey(prev => (prev === key ? null : key));
-      requestAnimationFrame(() => {
-        const el = document.querySelector(`[data-dc-item="${CSS.escape(key)}"]`);
-        el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      });
+      scrollToCitationItem(key);
 
       // When a page is expanded, toggle the overlay for this citation
       if (headerInlineRef2.current) {
@@ -1054,12 +1052,8 @@ function OpenCitationDrawer({
         if (expanded) {
           handleInlineExpand(first.citationKey, expanded.src, first.verification, expanded.renderScale, page);
         }
-        // Expand the matching citation and scroll it into view
         setExpandedCitationKey(first.citationKey);
-        requestAnimationFrame(() => {
-          const el = document.querySelector(`[data-dc-item="${CSS.escape(first.citationKey)}"]`);
-          el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        });
+        scrollToCitationItem(first.citationKey);
       }
       setPageAnnouncement(`Navigated to page ${page}`);
     },

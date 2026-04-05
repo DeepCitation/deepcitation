@@ -44,6 +44,9 @@ export const SDK_VERSION = "0.2.3";
 
 const DEFAULT_MAX_RETRIES = 3;
 
+/** Statuses that indicate a successful verification — no further retries needed. */
+const TERMINAL_VERIFY_STATUSES: ReadonlySet<string> = new Set(["found", "found_anchor_text_only"]);
+
 /**
  * Fetch with exponential backoff retry for transient network failures.
  *
@@ -300,6 +303,24 @@ export class DeepCitation {
     this.requestSource = config.requestSource;
     this.maxRetries = Math.max(0, Math.floor(config.maxRetries ?? DEFAULT_MAX_RETRIES));
     this.fetchFn = config.fetch;
+  }
+
+  /** Normalize any supported citation input shape into a keyed map. */
+  private normalizeCitationInput(citations: CitationInput): Record<string, Citation> {
+    const citationMap: Record<string, Citation> = {};
+    if (Array.isArray(citations)) {
+      for (const c of citations) citationMap[getCitationKey(c)] = c;
+    } else if (typeof citations === "object" && citations !== null) {
+      if ("fullPhrase" in citations || "value" in citations) {
+        const key = getCitationKey(citations as Citation);
+        citationMap[key] = citations as Citation;
+      } else {
+        Object.assign(citationMap, citations);
+      }
+    } else {
+      throw new ValidationError("Invalid citations format");
+    }
+    return citationMap;
   }
 
   /** Resolve endUserId: per-request override wins over instance default. */
@@ -770,28 +791,7 @@ export class DeepCitation {
     citations: CitationInput,
     options?: VerifyCitationsOptions,
   ): Promise<VerifyCitationsResponse> {
-    // Normalize citations to a map with citation keys
-    const citationMap: Record<string, Citation> = {};
-
-    if (Array.isArray(citations)) {
-      // Array of citations - generate keys
-      for (const citation of citations) {
-        const key = getCitationKey(citation);
-        citationMap[key] = citation;
-      }
-    } else if (typeof citations === "object" && citations !== null) {
-      // Check if it's a single citation or a map
-      if ("fullPhrase" in citations || "value" in citations) {
-        // Single citation
-        const key = getCitationKey(citations as Citation);
-        citationMap[key] = citations as Citation;
-      } else {
-        // Already a map
-        Object.assign(citationMap, citations);
-      }
-    } else {
-      throw new ValidationError("Invalid citations format");
-    }
+    const citationMap = this.normalizeCitationInput(citations);
 
     // If no citations to verify, return empty result
     const citationCount = Object.keys(citationMap).length;
@@ -897,24 +897,7 @@ export class DeepCitation {
     options: IterativeVerifyOptions,
   ): Promise<VerifyCitationsResponse> {
     const maxAttempts = options.maxAttempts ?? 3;
-
-    // Normalize to a citation map (same pattern as verifyAttachment)
-    const citationMap: Record<string, Citation> = {};
-
-    if (Array.isArray(citations)) {
-      for (const c of citations) citationMap[getCitationKey(c)] = c;
-    } else if (typeof citations === "object" && citations !== null) {
-      if ("fullPhrase" in citations || "value" in citations) {
-        const key = getCitationKey(citations as Citation);
-        citationMap[key] = citations as Citation;
-      } else {
-        Object.assign(citationMap, citations);
-      }
-    } else {
-      throw new ValidationError("Invalid citations format");
-    }
-
-    const TERMINAL_STATUSES = new Set(["found", "found_anchor_text_only"]);
+    const citationMap = this.normalizeCitationInput(citations);
     const finalVerifications: Record<string, import("../types/index.js").Verification> = {};
 
     for (const [citationKey, initialCitation] of Object.entries(citationMap)) {
@@ -938,7 +921,7 @@ export class DeepCitation {
         };
         history.push(attempt);
 
-        if (TERMINAL_STATUSES.has(verification.status)) break;
+        if (TERMINAL_VERIFY_STATUSES.has(verification.status)) break;
         if (i >= maxAttempts - 1) break;
 
         const amended = await options.onAttemptComplete(attempt, history, citationKey);
