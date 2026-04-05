@@ -12,6 +12,7 @@ import {
   ServerError,
   ValidationError,
 } from "./errors.js";
+import { normalizeVerifyResponse } from "./normalizeVerifyResponse.js";
 import type {
   AttachmentResponse,
   CitationInput,
@@ -368,39 +369,6 @@ export class DeepCitation {
     const remaining = parseFloat(response.headers.get("X-DeepCitation-Remaining") ?? "");
     const limit = parseFloat(response.headers.get("X-DeepCitation-Limit") ?? "");
     if (!Number.isNaN(remaining) && !Number.isNaN(limit)) this.onUsageUpdate(remaining, limit);
-  }
-
-  /**
-   * Hoist per-verification attachment assets into a top-level `attachments` map.
-   * Bridge: if the server already returns `attachments`, pass through as-is.
-   * Otherwise extract `pageImages`/`originalDownload`/`convertedDownload` from
-   * the first verification per attachmentId and strip them from each verification.
-   */
-  private normalizeVerifyResponse(response: VerifyCitationsResponse): VerifyCitationsResponse {
-    if (response.attachments) return response;
-    const attachments: Record<string, AttachmentAssets> = {};
-    for (const v of Object.values(response.verifications)) {
-      const aid = v.attachmentId;
-      if (!aid || attachments[aid]) {
-        // All verifications for the same attachmentId carry identical asset copies
-        // in the legacy format; first-writer-wins is safe. Still strip duplicates.
-        delete (v as Record<string, unknown>).pageImages;
-        delete (v as Record<string, unknown>).originalDownload;
-        delete (v as Record<string, unknown>).convertedDownload;
-        continue;
-      }
-      const raw = v as Record<string, unknown>;
-      const assets: AttachmentAssets = {};
-      if (raw.pageImages) assets.pageImages = raw.pageImages as AttachmentAssets["pageImages"];
-      if (raw.originalDownload) assets.originalDownload = raw.originalDownload as AttachmentAssets["originalDownload"];
-      if (raw.convertedDownload)
-        assets.convertedDownload = raw.convertedDownload as AttachmentAssets["convertedDownload"];
-      attachments[aid] = assets;
-      delete raw.pageImages;
-      delete raw.originalDownload;
-      delete raw.convertedDownload;
-    }
-    return { ...response, attachments };
   }
 
   /**
@@ -885,7 +853,7 @@ export class DeepCitation {
         throw await createApiError(response, "Verification");
       }
 
-      return this.normalizeVerifyResponse((await response.json()) as VerifyCitationsResponse);
+      return normalizeVerifyResponse((await response.json()) as VerifyCitationsResponse);
     })();
 
     // Force cleanup if cache is at or approaching the limit to prevent memory leaks
@@ -1114,7 +1082,7 @@ export class DeepCitation {
       throw await createApiError(response, "Batch verification");
     }
 
-    const result = this.normalizeVerifyResponse((await response.json()) as VerifyCitationsResponse);
+    const result = normalizeVerifyResponse((await response.json()) as VerifyCitationsResponse);
     Object.assign(allVerifications, result.verifications);
 
     return { verifications: allVerifications, attachments: result.attachments };
