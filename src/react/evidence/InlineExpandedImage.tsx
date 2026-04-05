@@ -29,6 +29,7 @@ import { DC_EVIDENCE_VT_NAME, primeEvidencePageExpandSource } from "../viewTrans
 import { ZoomToolbar } from "../ZoomToolbar.js";
 import { EvidenceTrayFooter } from "./EvidenceTray.js";
 import { IDENTITY_RENDER_SCALE, resolveEvidenceSourceAnchorRatio } from "./resolvers.js";
+import { useRetryPendingRender } from "./useRetryPendingRender.js";
 
 /** Scroll drift threshold for locate dirty-bit detection (px). */
 const DRIFT_THRESHOLD_PX = 15;
@@ -103,6 +104,11 @@ export function InlineExpandedImage({
 }) {
   const t = useTranslation();
   const { containerRef, isDragging, handlers: panHandlers, wasDraggingRef } = useDragToPan({ direction: "xy" });
+  const {
+    effectiveSrc: retrySrc,
+    isRetrying,
+    onImageLoaded: onRetryImageLoaded,
+  } = useRetryPendingRender(src, expectedDimensions);
   const expandedImgRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [naturalWidth, setNaturalWidth] = useState<number | null>(null);
@@ -287,6 +293,7 @@ export function InlineExpandedImage({
     // roundtrip so the View Transition captures the real image, not a spinner.
     const img = expandedImgRef.current;
     if (img && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+      if (onRetryImageLoaded(img.naturalWidth, img.naturalHeight)) return; // Placeholder cached — poll
       setImageLoaded(true);
       setNaturalWidth(img.naturalWidth);
       setNaturalHeight(img.naturalHeight);
@@ -957,7 +964,7 @@ export function InlineExpandedImage({
             >
               <img
                 ref={expandedImgRef}
-                src={isValidProofImageSrc(src) ? src : undefined}
+                src={isValidProofImageSrc(retrySrc) ? retrySrc : undefined}
                 alt={t("aria.verificationEvidence")}
                 className={cn("block", DOCUMENT_IMAGE_EDGE_CLASSES, !imageLoaded && "hidden")}
                 style={zoomedWidth !== undefined ? { width: zoomedWidth, maxWidth: "none" } : { maxWidth: "none" }}
@@ -965,6 +972,7 @@ export function InlineExpandedImage({
                   if (imageLoaded) return; // Already sync-detected from cache
                   const w = e.currentTarget.naturalWidth;
                   const h = e.currentTarget.naturalHeight;
+                  if (onRetryImageLoaded(w, h)) return; // Placeholder detected — hook is polling
                   setImageLoaded(true);
                   setNaturalWidth(w);
                   setNaturalHeight(h);

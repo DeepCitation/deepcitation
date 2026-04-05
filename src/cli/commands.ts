@@ -1114,7 +1114,11 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     const urlEntry = aid ? urlSourceMapForVerify.get(aid) : undefined;
     if (urlEntry && safeTest(/^https?:\/\//i, urlEntry.url)) {
       v.label = urlEntry.url;
-      v.url = { ...(v.url as Record<string, unknown> ?? {}), verifiedUrl: urlEntry.url, verifiedDomain: urlEntry.domain };
+      v.url = {
+        ...((v.url as Record<string, unknown>) ?? {}),
+        verifiedUrl: urlEntry.url,
+        verifiedDomain: urlEntry.domain,
+      };
       v.citation = { ...((v.citation ?? {}) as Record<string, unknown>), type: "url" };
     }
   }
