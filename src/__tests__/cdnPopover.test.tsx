@@ -70,19 +70,9 @@ describe("mapToVerification", () => {
   it("sets evidence undefined when absent", () => {
     expect(mapToVerification(minData).evidence).toBeUndefined();
   });
-  it("preserves pageImages array", () => {
+  it("does not include pageImages (now attachment-level)", () => {
     const r = mapToVerification(fullData);
-    expect(r.pageImages).toHaveLength(2);
-    expect(r.pageImages?.[0]).toEqual({
-      pageNumber: 3,
-      dimensions: { width: 1200, height: 1600 },
-      imageUrl: PAGE_IMAGE_URL,
-      isMatchPage: true,
-    });
-    expect(r.pageImages?.[1].pageNumber).toBe(4);
-  });
-  it("sets pageImages undefined when absent", () => {
-    expect(mapToVerification(minData).pageImages).toBeUndefined();
+    expect((r as Record<string, unknown>).pageImages).toBeUndefined();
   });
   it("preserves searchAttempts array", () => {
     const r = mapToVerification(fullData);
@@ -111,7 +101,6 @@ describe("mapToVerification", () => {
     const r = mapToVerification(minData);
     expect(r.status).toBe("not_found");
     expect(r.evidence).toBeUndefined();
-    expect(r.pageImages).toBeUndefined();
     expect(r.document).toBeUndefined();
     expect(r.url).toBeUndefined();
   });
@@ -202,8 +191,8 @@ describe("cdn.ts source invariants", () => {
   it("imports from cdn-mappers", () => {
     expect(cdnSource).toContain('from "./cdn-mappers.js"');
   });
-  it("passes pageImages", () => {
-    expect(cdnSource).toContain("pageImages: verification.pageImages");
+  it("passes pageImages from data", () => {
+    expect(cdnSource).toContain("pageImages: data.pageImages");
   });
   it("sets max-width on content container from clientWidth", () => {
     expect(cdnSource).toContain("document.documentElement.clientWidth - 32");

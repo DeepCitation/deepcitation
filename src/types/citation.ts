@@ -1,4 +1,4 @@
-import type { Verification } from "./verification.js";
+import type { AttachmentAssets, Verification } from "./verification.js";
 
 /**
  * Image format for proof images, verification screenshots, and output.
@@ -15,6 +15,8 @@ export const DEFAULT_OUTPUT_IMAGE_FORMAT = "avif" as const;
 
 export interface VerifyCitationResponse {
   verifications: VerificationRecord;
+  /** Attachment-level assets keyed by attachmentId. Hoisted from individual verifications to avoid duplication. */
+  attachments?: Record<string, AttachmentAssets>;
 }
 
 export interface VerifyCitationRequest {

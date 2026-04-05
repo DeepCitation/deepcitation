@@ -1,6 +1,6 @@
 import type { Citation } from "../../types/citation.js";
 import type { SearchAttempt, SearchStatus } from "../../types/search.js";
-import type { PageImage, UrlAccessStatus, Verification } from "../../types/verification.js";
+import type { UrlAccessStatus, Verification } from "../../types/verification.js";
 import type { VerificationData } from "./types.js";
 
 export function mapToVerification(data: VerificationData): Verification {
@@ -31,7 +31,6 @@ export function mapToVerification(data: VerificationData): Verification {
         }
       : undefined,
     searchAttempts: data.searchAttempts as SearchAttempt[] | undefined,
-    pageImages: data.pageImages as PageImage[] | undefined,
   };
 }
 

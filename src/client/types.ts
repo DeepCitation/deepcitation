@@ -1,4 +1,5 @@
 import type {
+  AttachmentAssets,
   Citation,
   DeepTextItem,
   FileDownload,
@@ -326,21 +327,13 @@ export interface FileInput extends FileRequestOptions {
 /**
  * Per-attachment assets returned from prepareAttachments
  */
-export interface PreparedAttachment {
+export interface PreparedAttachment extends AttachmentAssets {
   /** The attachment ID assigned by DeepCitation */
   attachmentId: string;
   /** Raw per-page text for this attachment. */
   deepTextPages?: string[];
   /** Source URL information when the attachment originated from a URL. Absent for document inputs. */
   urlSource?: UrlSource;
-  /** Original file as received (PDF, DOCX, MP4, …). Absent for URL inputs. */
-  originalDownload?: FileDownload;
-  /** Converted artifact: PDF rendition for docs/URLs, transcript for audio/video. */
-  convertedDownload?: FileDownload;
-  /** Renderable page images for inspection and viewer views */
-  pageImages?: PageImage[];
-  /** Status of page image generation. */
-  pageImagesStatus?: PageImagesStatus;
 }
 
 /**

@@ -1573,9 +1573,16 @@ describe("CitationDrawer page badges", () => {
     expect(inlineImage?.getAttribute("src")).toBe(page1Src);
   });
 
-  it("clicking page pill works when page images are inline on verification (no attachmentId)", () => {
+  it("clicking page pill works when page images are provided via pageImagesByAttachmentId", () => {
     const page3Src = "https://proof.deepcitation.com/page3.png";
     const page7Src = "https://proof.deepcitation.com/page7.png";
+    const attachmentId = "att_page_pill_inline";
+    const pageImagesByAttachmentId = {
+      [attachmentId]: [
+        { pageNumber: 3, imageUrl: page3Src, dimensions: { width: 1000, height: 1400 } },
+        { pageNumber: 7, imageUrl: page7Src, dimensions: { width: 1000, height: 1400 } },
+      ],
+    };
     const groups: SourceCitationGroup[] = [
       {
         sourceName: "Doc",
@@ -1590,10 +1597,7 @@ describe("CitationDrawer page badges", () => {
             },
             verification: {
               status: "found" as const,
-              pageImages: [
-                { pageNumber: 3, imageUrl: page3Src, dimensions: { width: 1000, height: 1400 } },
-                { pageNumber: 7, imageUrl: page7Src, dimensions: { width: 1000, height: 1400 } },
-              ],
+              attachmentId,
             },
           },
         ],
@@ -1601,7 +1605,14 @@ describe("CitationDrawer page badges", () => {
       },
     ];
 
-    const { container } = render(<CitationDrawer isOpen={true} onClose={() => {}} citationGroups={groups} />);
+    const { container } = render(
+      <CitationDrawer
+        isOpen={true}
+        onClose={() => {}}
+        citationGroups={groups}
+        pageImagesByAttachmentId={pageImagesByAttachmentId}
+      />,
+    );
 
     // Both page pills should render
     const page3Button = container.querySelector("button[aria-label*='Expand to full page 3']");

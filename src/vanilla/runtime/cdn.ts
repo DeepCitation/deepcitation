@@ -494,7 +494,7 @@ function showPopoverFor(trigger: HTMLElement, data: VerificationData): void {
     createElement(CdnPopoverWrapper, {
       citation,
       verification,
-      pageImages: verification.pageImages,
+      pageImages: data.pageImages as PageImage[] | undefined,
       status,
       sourceLabel: data.label,
       downloadUrl: data.downloadUrl,

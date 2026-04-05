@@ -452,20 +452,14 @@ export const CitationComponent = forwardRef<HTMLSpanElement, CitationComponentPr
     }, [eventHandlers?.onClick, behaviorConfig?.onClick]);
 
     const pageImages = useMemo(() => {
-      if (verification?.pageImages) return verification.pageImages;
       const attachmentId = verification?.attachmentId;
       if (!attachmentId || !pageImagesByAttachmentId) return undefined;
       return pageImagesByAttachmentId[attachmentId];
     }, [pageImagesByAttachmentId, verification]);
 
     const downloadUrl = useMemo(
-      () =>
-        verification?.originalDownload?.link.url ??
-        originalDownload?.link.url ??
-        verification?.convertedDownload?.link.url ??
-        convertedDownload?.link.url ??
-        null,
-      [verification, originalDownload, convertedDownload],
+      () => originalDownload?.link.url ?? convertedDownload?.link.url ?? null,
+      [originalDownload, convertedDownload],
     );
 
     const t = useTranslation();

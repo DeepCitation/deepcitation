@@ -36,6 +36,7 @@ import {
   CITATION_DATA_START_DELIMITER,
   type CitationData,
 } from "../prompts/citationPrompts.js";
+import type { AttachmentAssets } from "../types/index.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
@@ -1087,6 +1088,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   const verifyStart = Date.now();
   const merged: Record<string, unknown> = {};
+  const mergedAttachments: Record<string, AttachmentAssets> = {};
   for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
     const result = await dc.verifyAttachment(
       attachmentId,
@@ -1095,6 +1097,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       { outputImageFormat: imageFormat },
     );
     Object.assign(merged, result.verifications);
+    if (result.attachments) Object.assign(mergedAttachments, result.attachments);
   }
 
   // Post-process: for URL-sourced documents, populate missing downloadUrl,
@@ -1103,10 +1106,9 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   const urlSourceMapForVerify = loadUrlSourceMap();
   for (const v of Object.values(merged) as Record<string, unknown>[]) {
     const aid = v.attachmentId as string | undefined;
-    // Fix download button: CDN runtime reads `downloadUrl`; server omits it for URL sources
-    // but includes `originalDownload` with the CDN-cached PDF link.
-    if (!v.downloadUrl) {
-      const od = v.originalDownload as { link?: { url?: string } } | undefined;
+    // Fix download button: CDN runtime reads `downloadUrl`; look up from attachment-level assets.
+    if (!v.downloadUrl && aid) {
+      const od = mergedAttachments[aid]?.originalDownload;
       if (od?.link?.url && safeTest(/^https?:\/\//i, od.link.url)) {
         v.downloadUrl = od.link.url;
       }
@@ -1133,7 +1135,14 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   if (found === 0 && total > 0) printAllNotFoundHint();
 
   // 5. Inject CDN runtime (same logic as inject command)
+  // Re-attach pageImages from attachment assets so CDN runtime can read them per-verification.
   const verifications = verifyOutput.verifications;
+  for (const v of Object.values(verifications) as Record<string, unknown>[]) {
+    const aid = v.attachmentId as string | undefined;
+    if (aid && mergedAttachments[aid]?.pageImages) {
+      v.pageImages = mergedAttachments[aid].pageImages;
+    }
+  }
   const jsonData = escapeJsonForScript(JSON.stringify(verifications));
   const keyMapSnippet = `<script type="application/json" id="dc-key-map">${escapeJsonForScript(JSON.stringify(keyMap))}</script>`;
 
