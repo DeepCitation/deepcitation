@@ -96,10 +96,22 @@ export function toPercentRect(
 }
 
 /**
- * Computes the scroll position needed to center an annotation in a
+ * Horizontal alignment strategy for scroll positioning.
+ * - `"center"`: Centers the annotation midpoint in the viewport (default, best for expanded views).
+ * - `"start"`: Aligns the left edge of the annotation near the left edge of the viewport
+ *    with a small inset, so the beginning of the anchor text is immediately visible
+ *    (best for keyhole strips where viewport space is limited).
+ */
+export type ScrollAlignment = "center" | "start";
+
+/** Left-edge padding (px) when using "start" alignment — enough context without wasting space. */
+const START_ALIGNMENT_INSET_PX = 24;
+
+/**
+ * Computes the scroll position needed to position an annotation in a
  * scrollable container. Uses the same coordinate transform as `toPercentRect()`
- * (Y-axis flip for PDF, direct for image), then applies zoom and centers in
- * the container viewport.
+ * (Y-axis flip for PDF, direct for image), then applies zoom and positions
+ * according to the chosen alignment.
  *
  * Returns `null` for invalid inputs (zero dimensions, non-finite values, or
  * zero/negative zoom).
@@ -114,6 +126,7 @@ export function computeAnnotationScrollTarget(
   containerHeight: number,
   origin: CoordinateOrigin = "pdf",
   viewBoxOriginY = 0,
+  alignX: ScrollAlignment = "center",
 ): { scrollLeft: number; scrollTop: number } | null {
   if (!isValidOverlayGeometry(renderScale, imageNaturalWidth, imageNaturalHeight)) {
     return null;
@@ -129,12 +142,20 @@ export function computeAnnotationScrollTarget(
   const pixelW = item.width * renderScale.x;
   const pixelH = item.height * renderScale.y;
 
-  // Center of the annotation in zoomed pixel space
-  const zoomedCenterX = (pixelX + pixelW / 2) * zoom;
-  const zoomedCenterY = (pixelY + pixelH / 2) * zoom;
+  // Horizontal scroll: align start or center
+  let rawScrollLeft: number;
+  if (alignX === "start") {
+    // Position the left edge of the annotation near the left edge of the viewport
+    const zoomedStartX = pixelX * zoom;
+    rawScrollLeft = zoomedStartX - START_ALIGNMENT_INSET_PX;
+  } else {
+    // Center of the annotation in zoomed pixel space
+    const zoomedCenterX = (pixelX + pixelW / 2) * zoom;
+    rawScrollLeft = zoomedCenterX - containerWidth / 2;
+  }
 
-  // Scroll to center the annotation in the container viewport
-  const rawScrollLeft = zoomedCenterX - containerWidth / 2;
+  // Vertical scroll: always center
+  const zoomedCenterY = (pixelY + pixelH / 2) * zoom;
   const rawScrollTop = zoomedCenterY - containerHeight / 2;
 
   // Clamp to valid scroll range

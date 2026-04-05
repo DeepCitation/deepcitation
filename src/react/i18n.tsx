@@ -325,6 +325,11 @@ export const defaultMessages = {
   "evidence.searchAttempts_other": "{count} attempts",
   "evidence.impreciseLocation": "Exact location not specified in citation",
 
+  // ── LLM search history ────────────────────────────────────────
+  "llmAttempt.amended": "Amended citation",
+  "llmAttempt.changedField": "Changed {field}",
+  "llmAttempt.falsePositive": "Rejected as false positive",
+
   // ── Misc ───────────────────────────────────────────────────────
   "misc.noTextFound": "No text found",
   "misc.warning": "Warning",

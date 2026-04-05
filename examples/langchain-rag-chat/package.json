@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -13,7 +13,7 @@
   "dependencies": {
     "@langchain/core": "^0.3.79",
     "@langchain/openai": "^0.6.16",
-    "deepcitation": "^0.2.4",
+    "deepcitation": "^0.3.10",
     "langchain": "^0.3.36",
     "next": "^16.1.1",
     "openai": "^6.16.0",

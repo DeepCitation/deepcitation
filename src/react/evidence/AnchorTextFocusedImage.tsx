@@ -1,7 +1,6 @@
 import type React from "react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Verification } from "../../types/verification.js";
-import { computeKeyholeOffset } from "../computeKeyholeOffset.js";
 import {
   buildKeyholeMaskImage,
   DOCUMENT_CANVAS_BG_CLASSES,
@@ -142,6 +141,7 @@ export function AnchorTextFocusedImage({
           stripHeight,
           undefined,
           anchorScrollData.viewBoxOriginY,
+          "start",
         );
       if (widthFitTarget) {
         container.scrollLeft = widthFitTarget.scrollLeft;
@@ -165,27 +165,22 @@ export function AnchorTextFocusedImage({
         onKeyholeWidth?.(displayedWidth);
       }
 
-      // Set initial scroll position using the same coord transform as the overlay.
-      // Falls back to centering the image when renderScale is unavailable.
+      // Scroll just enough to keep the anchor's right edge visible while
+      // maximizing left reading context. If the anchor fits on-screen from
+      // scrollLeft=0, the user sees the full left margin. If the anchor is
+      // further right (mid-line, end-of-line, or multi-line starting at end
+      // of a line), we scroll the minimum amount so its right edge clears
+      // the right fade gradient.
       const displayScale = img.naturalWidth > 0 ? displayedWidth / img.naturalWidth : 1;
-      const heightFitTarget =
-        anchorScrollData &&
-        computeAnnotationScrollTarget(
-          anchorScrollData.anchorItem,
-          anchorScrollData.renderScale,
-          img.naturalWidth,
-          img.naturalHeight,
-          displayScale,
-          containerWidth,
-          stripHeight,
-          undefined,
-          anchorScrollData.viewBoxOriginY,
-        );
-      if (heightFitTarget) {
-        container.scrollLeft = heightFitTarget.scrollLeft;
+      if (anchorScrollData) {
+        const anchorRightPx =
+          (anchorScrollData.anchorItem.x * anchorScrollData.renderScale.x +
+            anchorScrollData.anchorItem.width * anchorScrollData.renderScale.x) *
+          displayScale;
+        const maxScroll = Math.max(0, displayedWidth - containerWidth);
+        container.scrollLeft = Math.min(maxScroll, Math.max(0, anchorRightPx - containerWidth + KEYHOLE_FADE_WIDTH));
       } else {
-        const { scrollLeft } = computeKeyholeOffset(displayedWidth, containerWidth, null);
-        container.scrollLeft = scrollLeft;
+        container.scrollLeft = 0;
       }
     }
 

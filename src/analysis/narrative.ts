@@ -16,7 +16,7 @@ export type NarrativeOutcome = "exact_match" | "partial_match" | "not_found" | "
  * A single rendered row in the timeline.
  * All interpretation has already happened — the renderer just maps this to DOM.
  */
-export type NarrativeRow = SuccessRow | FailureRow | CollapsedFailureRow;
+export type NarrativeRow = SuccessRow | FailureRow | CollapsedFailureRow | AmendmentRow;
 
 export interface SuccessRow {
   kind: "success";
@@ -54,6 +54,18 @@ export interface CollapsedFailureRow {
   phraseFull: string;
   locationLabel: string | null;
   duplicateCount: number;
+}
+
+/** Marker row inserted between LLM search passes showing what the LLM changed */
+export interface AmendmentRow {
+  kind: "amendment";
+  key: string;
+  /** Pre-formatted descriptions of what changed, e.g. ["Changed fullPhrase"] */
+  descriptions: string[];
+  /** LLM's reason for amending, if provided */
+  reason?: string;
+  /** Whether the LLM rejected a partial match as a false positive */
+  isFalsePositiveRejection: boolean;
 }
 
 /**

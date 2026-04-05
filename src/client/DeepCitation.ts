@@ -1,5 +1,7 @@
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
-import type { Citation } from "../types/index.js";
+import type { Citation, Verification } from "../types/index.js";
+import type { LlmSearchAttempt } from "../types/llmAttempt.js";
+import { computeAmendments } from "../utils/amendments.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sha1Hash } from "../utils/sha.js";
 import {
@@ -23,6 +25,7 @@ import type {
   ExtendExpirationResponse,
   FileInput,
   GetAttachmentOptions,
+  IterativeVerifyOptions,
   PrepareAttachmentsResult,
   PrepareConvertedFileOptions,
   PrepareUrlOptions,
@@ -40,6 +43,9 @@ const DEFAULT_API_URL = "https://api.deepcitation.com";
 export const SDK_VERSION = "0.2.3";
 
 const DEFAULT_MAX_RETRIES = 3;
+
+/** Statuses that indicate a successful verification — no further retries needed. */
+const TERMINAL_VERIFY_STATUSES: ReadonlySet<string> = new Set(["found", "found_anchor_text_only"]);
 
 /**
  * Fetch with exponential backoff retry for transient network failures.
@@ -297,6 +303,24 @@ export class DeepCitation {
     this.requestSource = config.requestSource;
     this.maxRetries = Math.max(0, Math.floor(config.maxRetries ?? DEFAULT_MAX_RETRIES));
     this.fetchFn = config.fetch;
+  }
+
+  /** Normalize any supported citation input shape into a keyed map. */
+  private normalizeCitationInput(citations: CitationInput): Record<string, Citation> {
+    const citationMap: Record<string, Citation> = {};
+    if (Array.isArray(citations)) {
+      for (const c of citations) citationMap[getCitationKey(c)] = c;
+    } else if (typeof citations === "object" && citations !== null) {
+      if ("fullPhrase" in citations || "value" in citations) {
+        const key = getCitationKey(citations as Citation);
+        citationMap[key] = citations as Citation;
+      } else {
+        Object.assign(citationMap, citations);
+      }
+    } else {
+      throw new ValidationError("Invalid citations format");
+    }
+    return citationMap;
   }
 
   /** Resolve endUserId: per-request override wins over instance default. */
@@ -767,28 +791,7 @@ export class DeepCitation {
     citations: CitationInput,
     options?: VerifyCitationsOptions,
   ): Promise<VerifyCitationsResponse> {
-    // Normalize citations to a map with citation keys
-    const citationMap: Record<string, Citation> = {};
-
-    if (Array.isArray(citations)) {
-      // Array of citations - generate keys
-      for (const citation of citations) {
-        const key = getCitationKey(citation);
-        citationMap[key] = citation;
-      }
-    } else if (typeof citations === "object" && citations !== null) {
-      // Check if it's a single citation or a map
-      if ("fullPhrase" in citations || "value" in citations) {
-        // Single citation
-        const key = getCitationKey(citations as Citation);
-        citationMap[key] = citations as Citation;
-      } else {
-        // Already a map
-        Object.assign(citationMap, citations);
-      }
-    } else {
-      throw new ValidationError("Invalid citations format");
-    }
+    const citationMap = this.normalizeCitationInput(citations);
 
     // If no citations to verify, return empty result
     const citationCount = Object.keys(citationMap).length;
@@ -871,6 +874,97 @@ export class DeepCitation {
     });
 
     return fetchPromise;
+  }
+
+  /**
+   * Iteratively verify citations with an LLM retry loop.
+   *
+   * For each citation: calls verifyAttachment, then invokes onAttemptComplete
+   * so the consumer can amend the citation and retry (up to maxAttempts).
+   * The callback is where the consumer plugs in their LLM — the SDK is LLM-agnostic.
+   *
+   * When a citation comes back as "found" or "found_anchor_text_only" it is
+   * accepted immediately without calling onAttemptComplete.
+   *
+   * Note: citations are verified serially (one at a time) so the callback can
+   * use results from earlier citations to inform amendments. For parallel
+   * first-pass verification, use `verifyAttachment` directly.
+   *
+   * @param attachmentId - The attachment to verify against
+   * @param citations - Citation(s) to verify (same input formats as verifyAttachment)
+   * @param options - Iterative verification options including the amendment callback
+   * @returns Verification results with llmAttempts populated when retries occurred
+   */
+  async verifyIterative(
+    attachmentId: string,
+    citations: CitationInput,
+    options: IterativeVerifyOptions,
+  ): Promise<VerifyCitationsResponse> {
+    const maxAttempts = options.maxAttempts ?? 3;
+    const citationMap = this.normalizeCitationInput(citations);
+    const finalVerifications: Record<string, Verification> = {};
+
+    for (const [citationKey, initialCitation] of Object.entries(citationMap)) {
+      const history: LlmSearchAttempt[] = [];
+      let currentCitation = initialCitation;
+
+      for (let i = 0; i < maxAttempts; i++) {
+        const start = Date.now();
+        const result = await this.verifyAttachment(attachmentId, { [citationKey]: currentCitation }, options);
+        const verification = result.verifications[citationKey];
+        const durationMs = Date.now() - start;
+
+        // API may not return a verification for this key — the citation key
+        // was not recognised or the API filtered it out.  Bail rather than
+        // silently dropping the citation from the results.
+        if (!verification) {
+          this.logger.warn?.("verifyIterative: no verification returned for key", { citationKey });
+          break;
+        }
+
+        const attempt: LlmSearchAttempt = {
+          submittedCitation: currentCitation,
+          verification,
+          durationMs,
+          ...(i > 0 ? { amendments: computeAmendments(history[i - 1].submittedCitation, currentCitation) } : {}),
+        };
+        history.push(attempt);
+
+        if (verification.status && TERMINAL_VERIFY_STATUSES.has(verification.status)) break;
+        if (i >= maxAttempts - 1) break;
+
+        const callbackResult = await options.onAttemptComplete(attempt, history, citationKey);
+        if (!callbackResult) break;
+
+        // Normalise callback return — plain Citation or { citation, isFalsePositiveRejection }
+        if ("fullPhrase" in callbackResult || "value" in callbackResult) {
+          currentCitation = callbackResult as Citation;
+        } else {
+          currentCitation = (callbackResult as { citation: Citation; isFalsePositiveRejection?: boolean }).citation;
+          if ((callbackResult as { isFalsePositiveRejection?: boolean }).isFalsePositiveRejection) {
+            attempt.partialRejectedAsFalsePositive = true;
+          }
+        }
+      }
+
+      if (history.length > 0) {
+        const last = history[history.length - 1].verification;
+        // Single-attempt results (terminal on first try, or consumer stopped early)
+        // omit llmAttempts — consumers should check the status field to distinguish
+        // terminal from early-stop.  Multi-attempt results always include the full history.
+        finalVerifications[citationKey] = history.length > 1 ? { ...last, llmAttempts: history } : last;
+      } else {
+        // API returned no verification for this key — include a synthetic entry
+        // so consumers always see every requested key in the response.
+        finalVerifications[citationKey] = {
+          status: "not_found",
+          citation: currentCitation,
+          searchAttempts: [],
+        } as Verification;
+      }
+    }
+
+    return { verifications: finalVerifications };
   }
 
   /**

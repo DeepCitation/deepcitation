@@ -1,5 +1,6 @@
 import type { DeepTextItem, ScreenBox } from "./boxes.js";
 import type { Citation } from "./citation.js";
+import type { LlmSearchAttempt } from "./llmAttempt.js";
 import type { SearchAttempt, SearchStatus } from "./search.js";
 
 // ==========================================================================
@@ -273,4 +274,8 @@ export interface Verification {
     /** Human-readable note about the ambiguity */
     note: string;
   };
+
+  // ========== LLM Search History ==========
+  /** History of LLM-level search attempts when iterative verification was used */
+  llmAttempts?: LlmSearchAttempt[];
 }

@@ -111,6 +111,78 @@ describe("computeAnnotationScrollTarget", () => {
     // scrollTop = 10 - 300 = -290, clamped to 0
     expect(result?.scrollTop).toBe(0);
   });
+
+  test("start alignment positions left edge of annotation near viewport left", () => {
+    const containerW = 400;
+    const containerH = 300;
+    const zoom = 1;
+
+    // ITEM: x=200, renderScale.x=2 → pixelX=400
+    // Start alignment: scrollLeft = 400 - 24 (inset) = 376
+    // Max scroll: 2000 - 400 = 1600
+    const result = computeAnnotationScrollTarget(
+      ITEM,
+      RENDER_SCALE,
+      IMAGE_W,
+      IMAGE_H,
+      zoom,
+      containerW,
+      containerH,
+      "pdf",
+      0,
+      "start",
+    );
+    expect(result).not.toBeNull();
+    expect(result?.scrollLeft).toBe(376);
+  });
+
+  test("start alignment clamps to 0 when annotation is near left edge", () => {
+    const leftItem = { x: 5, y: 1000, width: 300, height: 20 };
+    // pixelX = 5 * 2 = 10, scrollLeft = 10 - 24 = -14, clamped to 0
+    const result = computeAnnotationScrollTarget(
+      leftItem,
+      RENDER_SCALE,
+      IMAGE_W,
+      IMAGE_H,
+      1,
+      400,
+      300,
+      "pdf",
+      0,
+      "start",
+    );
+    expect(result).not.toBeNull();
+    expect(result?.scrollLeft).toBe(0);
+  });
+
+  test("center alignment is default when alignX omitted", () => {
+    const containerW = 800;
+    const containerH = 600;
+    const zoom = 0.5;
+
+    const withDefault = computeAnnotationScrollTarget(
+      ITEM,
+      RENDER_SCALE,
+      IMAGE_W,
+      IMAGE_H,
+      zoom,
+      containerW,
+      containerH,
+    );
+    const withCenter = computeAnnotationScrollTarget(
+      ITEM,
+      RENDER_SCALE,
+      IMAGE_W,
+      IMAGE_H,
+      zoom,
+      containerW,
+      containerH,
+      "pdf",
+      0,
+      "center",
+    );
+    expect(withDefault).toEqual(withCenter);
+  });
 });
 
 // =========================================================================

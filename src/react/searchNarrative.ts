@@ -3,6 +3,7 @@
  * This file is a backward-compatibility re-export.
  */
 export {
+  type AmendmentRow,
   buildSearchNarrative,
   type CollapsedFailureRow,
   deriveOutcome,

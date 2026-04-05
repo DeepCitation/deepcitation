@@ -24,6 +24,7 @@ import {
   writeCredentials,
 } from "../auth.js";
 import { DeepCitation } from "../client/DeepCitation.js";
+import type { UrlSource } from "../client/types.js";
 import {
   citationDataToCitation,
   extractVisibleText,
@@ -709,12 +710,12 @@ export function keygen(argv: string[]) {
 }
 
 /**
- * Scan .deepcitation/prepare-*.json files and return a map of attachmentId → urlSource.url
- * for any URL-sourced attachments. Used to populate sourceUrl in report headers and
- * fix document labels in the popover.
+ * Scan .deepcitation/prepare-*.json files and return a map of attachmentId → { url, domain }
+ * for any URL-sourced attachments. Used to populate sourceUrl in report headers,
+ * set citation type to "url", and provide domain/favicon metadata for the popover.
  */
-function loadUrlSourceMap(): Map<string, string> {
-  const map = new Map<string, string>();
+function loadUrlSourceMap(): Map<string, UrlSource> {
+  const map = new Map<string, UrlSource>();
   const prepareDir = resolve(".deepcitation");
   if (!existsSync(prepareDir)) return map;
   try {
@@ -723,9 +724,9 @@ function loadUrlSourceMap(): Map<string, string> {
       try {
         const data = JSON.parse(readFileSync(resolve(prepareDir, file), "utf-8")) as Record<string, unknown>;
         const attachmentId = data.attachmentId as string | undefined;
-        const urlSource = data.urlSource as { url?: string } | undefined;
+        const urlSource = data.urlSource as { url?: string; domain?: string } | undefined;
         if (attachmentId && urlSource?.url) {
-          map.set(attachmentId, urlSource.url);
+          map.set(attachmentId, { url: urlSource.url, domain: urlSource.domain ?? "" });
         }
       } catch {
         // skip unreadable/malformed prepare files
@@ -920,7 +921,7 @@ export async function verifyMarkdown(argv: string[], fmtNetErr: (err: unknown) =
   const attachmentIds = [
     ...new Set(parsed.citations.map(cd => cd.attachment_id).filter((id): id is string => typeof id === "string")),
   ];
-  const sourceUrl = attachmentIds.map(id => urlSourceMap.get(id)).find(Boolean);
+  const sourceUrl = attachmentIds.map(id => urlSourceMap.get(id)?.url).find(Boolean);
 
   const html = markdownToHtml(parsed.visibleText, {
     style,
@@ -1096,9 +1097,9 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
     Object.assign(merged, result.verifications);
   }
 
-  // Post-process: for URL-sourced documents, populate missing downloadUrl from
-  // originalDownload.link.url, and replace the server-assigned "bill-xx.pdf" label
-  // with the original source URL (domain only for display, full URL for lookup).
+  // Post-process: for URL-sourced documents, populate missing downloadUrl,
+  // set the correct citation type ("url"), and add URL metadata so the CDN
+  // renders popover headers with UrlCitationComponent (favicon + domain).
   const urlSourceMapForVerify = loadUrlSourceMap();
   for (const v of Object.values(merged) as Record<string, unknown>[]) {
     const aid = v.attachmentId as string | undefined;
@@ -1110,13 +1111,15 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
         v.downloadUrl = od.link.url;
       }
     }
-    // Fix label: replace "bill-xx.pdf" with the original source URL for URL-sourced docs
-    if (aid && urlSourceMapForVerify.has(aid)) {
-      const rawUrl = urlSourceMapForVerify.get(aid) ?? "";
-      // Only use the URL as a label if it's a valid http(s) URL
-      if (safeTest(/^https?:\/\//i, rawUrl)) {
-        v.label = rawUrl;
-      }
+    const urlEntry = aid ? urlSourceMapForVerify.get(aid) : undefined;
+    if (urlEntry && safeTest(/^https?:\/\//i, urlEntry.url)) {
+      v.label = urlEntry.url;
+      v.url = {
+        ...((v.url as Record<string, unknown>) ?? {}),
+        verifiedUrl: urlEntry.url,
+        verifiedDomain: urlEntry.domain || undefined,
+      };
+      v.citation = { ...((v.citation ?? {}) as Record<string, unknown>), type: "url" };
     }
   }
 

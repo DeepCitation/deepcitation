@@ -26,6 +26,7 @@ export {
 } from "./intent.js";
 // Narrative types & builder
 export {
+  type AmendmentRow,
   buildSearchNarrative,
   type CollapsedFailureRow,
   deriveOutcome,

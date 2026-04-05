@@ -23,6 +23,8 @@ export type {
   VerifyCitationResponse,
 } from "./citation.js";
 export { DEFAULT_OUTPUT_IMAGE_FORMAT, isAudioVideoCitation, isDocumentCitation, isUrlCitation } from "./citation.js";
+// LLM search attempt types
+export type { LlmAmendment, LlmSearchAttempt } from "./llmAttempt.js";
 // Search status types
 export type {
   MatchedVariation,
