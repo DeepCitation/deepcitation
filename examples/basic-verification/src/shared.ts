@@ -21,10 +21,13 @@ import {
   replaceDeferredMarkers,
   wrapCitationPrompt,
 } from "deepcitation";
-import { readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { createInterface } from "readline";
 import { fileURLToPath } from "url";
+import { execFileSync } from "child_process";
+
+import { generateHtmlReport } from "./html-report.js";
 
 // Get current directory for loading sample files
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -318,6 +321,54 @@ provided documents accurately and cite your sources.`;
     console.log(`   Partial: ${partial} (${((partial / verifications.length) * 100).toFixed(0)}%)`);
     console.log(`   Not found: ${missed}`);
   }
+
+  // ============================================
+  // STEP 6: GENERATE HTML REPORT
+  // The LLM response embeds citation claims in a <<<CITATION_DATA>>> JSON footer.
+  // Steps 3-4 already parsed those claims (parsedCitations) and verified them against
+  // the source document (verificationResult). Now we stitch both into an interactive
+  // HTML report:
+  //
+  //   parsedCitations   → anchorMap + keyMap  (what the LLM claimed)
+  //   verificationResult → dc-data JSON       (what the API verified)
+  //
+  // The CDN popover runtime reads dc-data and dc-key-map at init time, finds HTML
+  // elements with data-citation-key="<hash>", and attaches interactive popovers
+  // showing verification status, proof images, and matched snippets.
+  // ============================================
+
+  console.log("\n📄 Step 6: Generating HTML report...\n");
+
+  const sourceLabel = source.type === "url" ? source.url : "filename" in source ? source.filename : source.label;
+  const html = generateHtmlReport({
+    visibleText,
+    parsedCitations,
+    verifications: verificationResult.verifications,
+    title: sourceLabel,
+    attachments: verificationResult.attachments,
+  });
+
+  // Write HTML to output directory and open in browser
+  const outDir = resolve(__dirname, "../../output");
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+  const safeName = sourceLabel.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 50);
+  const outPath = resolve(outDir, `${safeName}-verified.html`);
+  writeFileSync(outPath, html);
+
+  console.log(`   Written: ${outPath}`);
+  console.log(`   Citations: ${citationCount}, Verifications: ${Object.keys(verificationResult.verifications).length}`);
+
+  // Open in browser (WSL → Linux → macOS — silent on failure)
+  try {
+    // WSL: convert to Windows path for explorer.exe
+    const winPath = execFileSync("wslpath", ["-w", outPath], { encoding: "utf-8" }).trim();
+    execFileSync("explorer.exe", [winPath], { stdio: "ignore", timeout: 5000 });
+  } catch {
+    try { execFileSync("xdg-open", [outPath], { stdio: "ignore", timeout: 5000 }); }
+    catch { try { execFileSync("open", [outPath], { stdio: "ignore", timeout: 5000 }); } catch { /* manual open */ } }
+  }
+
+  console.log(`   Open: ${outPath}\n`);
 }
 
 /**

@@ -18,6 +18,7 @@ Open this file when importing symbols from deepcitation to find the correct cano
 | `humanizeLinePosition()` | `src/formatting/indicators.ts` | LineId → position label |
 | `formatPageLocation()` | `src/formatting/indicators.ts` | Page location string |
 | `buildProofUrl()` | `src/rendering/proofUrl.ts` | Proof URL construction |
+| `AttachmentAssets` | `src/types/verification.ts` | Attachment-level assets (pageImages, downloads) — hoisted from Verification |
 | `MISS_WAVY_UNDERLINE_STYLE` | `src/react/constants.ts` | Wavy underline CSS |
 | `DOT_INDICATOR_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (inline, em-based) |
 | `DOT_INDICATOR_FIXED_SIZE_STYLE` | `src/react/constants.ts` | Dot indicator sizing (drawers/wrappers, fixed px) |

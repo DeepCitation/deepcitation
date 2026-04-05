@@ -20,7 +20,6 @@ import {
 import { useDragToPan } from "../hooks/useDragToPan.js";
 import { applyGestureTransform, useWheelZoom, type WheelZoomAnchor } from "../hooks/useWheelZoom.js";
 import { useTranslation } from "../i18n.js";
-import { SpinnerIcon } from "../icons.js";
 import { handleImageError } from "../imageUtils.js";
 import { computeAnnotationOriginPercent, computeAnnotationScrollTarget, toPercentRect } from "../overlayGeometry.js";
 import { useImageDarkness } from "../useImageDarkness.js";
@@ -931,22 +930,17 @@ export function InlineExpandedImage({
               ...(fill ? { display: "block" } : undefined),
             }}
           >
-            {!imageLoaded &&
-              (expectedDimensions && expectedDimensions.width > 0 && expectedDimensions.height > 0 ? (
-                <div
-                  className="animate-pulse rounded bg-dc-muted"
-                  style={{
-                    width: "100%",
-                    aspectRatio: `${expectedDimensions.width} / ${expectedDimensions.height}`,
-                  }}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-24">
-                  <span className="size-5 animate-spin text-dc-subtle-foreground">
-                    <SpinnerIcon />
-                  </span>
-                </div>
-              ))}
+            {!imageLoaded && (
+              <div
+                className="animate-pulse rounded bg-dc-muted"
+                style={{
+                  width: "100%",
+                  ...(expectedDimensions && expectedDimensions.width > 0 && expectedDimensions.height > 0
+                    ? { aspectRatio: `${expectedDimensions.width} / ${expectedDimensions.height}` }
+                    : { height: "6rem" }),
+                }}
+              />
+            )}
             {/* Relative wrapper: positions annotation overlay exactly over the image.
                 During pinch/wheel gestures, CSS transform: scale() is applied to this div
                 (via imageWrapperRef) so both the image and overlay scale together on the GPU. */}

@@ -36,6 +36,7 @@ import {
   CITATION_DATA_START_DELIMITER,
   type CitationData,
 } from "../prompts/citationPrompts.js";
+import type { AttachmentAssets } from "../types/index.js";
 import { getCitationKey } from "../utils/citationKey.js";
 import { sanitizeForLog } from "../utils/logSafety.js";
 import { normalizeCitationsFile } from "../utils/normalizeCitations.js";
@@ -43,7 +44,13 @@ import { detectProxyUrl } from "../utils/proxy.js";
 import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
-import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
+import {
+  escapeJsForScript,
+  escapeJsonForScript,
+  injectCdnRuntime,
+  reattachPageImages,
+  stripExistingInjection,
+} from "../vanilla/reportUtils.js";
 import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
 import { die, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
 import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
@@ -1087,6 +1094,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
 
   const verifyStart = Date.now();
   const merged: Record<string, unknown> = {};
+  const mergedAttachments: Record<string, AttachmentAssets> = {};
   for (const [attachmentId, groupCitations] of Array.from(groups.entries())) {
     const result = await dc.verifyAttachment(
       attachmentId,
@@ -1095,6 +1103,7 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
       { outputImageFormat: imageFormat },
     );
     Object.assign(merged, result.verifications);
+    if (result.attachments) Object.assign(mergedAttachments, result.attachments);
   }
 
   // Post-process: for URL-sourced documents, populate missing downloadUrl,
@@ -1103,10 +1112,9 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   const urlSourceMapForVerify = loadUrlSourceMap();
   for (const v of Object.values(merged) as Record<string, unknown>[]) {
     const aid = v.attachmentId as string | undefined;
-    // Fix download button: CDN runtime reads `downloadUrl`; server omits it for URL sources
-    // but includes `originalDownload` with the CDN-cached PDF link.
-    if (!v.downloadUrl) {
-      const od = v.originalDownload as { link?: { url?: string } } | undefined;
+    // Fix download button: CDN runtime reads `downloadUrl`; look up from attachment-level assets.
+    if (!v.downloadUrl && aid) {
+      const od = mergedAttachments[aid]?.originalDownload;
       if (od?.link?.url && safeTest(/^https?:\/\//i, od.link.url)) {
         v.downloadUrl = od.link.url;
       }
@@ -1133,31 +1141,15 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   if (found === 0 && total > 0) printAllNotFoundHint();
 
   // 5. Inject CDN runtime (same logic as inject command)
+  // Re-attach pageImages in-memory only for CDN script injection below.
   const verifications = verifyOutput.verifications;
-  const jsonData = escapeJsonForScript(JSON.stringify(verifications));
-  const keyMapSnippet = `<script type="application/json" id="dc-key-map">${escapeJsonForScript(JSON.stringify(keyMap))}</script>`;
+  reattachPageImages(verifications, mergedAttachments);
 
-  const snippet = [
-    `<script type="application/json" id="dc-data">${jsonData}</script>`,
-    keyMapSnippet,
-    `<script>${escapeJsForScript(CDN_JS)}</script>`,
-    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({${[`theme:${JSON.stringify(theme)}`, ...(indicator !== "icon" ? [`indicatorVariant:${JSON.stringify(indicator)}`] : [])].join(",")}});</script>`,
-  ].join("\n");
-
-  // Strip existing injection to prevent duplicate CDN bundles
-  const stripped = stripExistingInjection(html);
-  if (stripped.hadExisting) {
+  const injected = injectCdnRuntime(html, verifications, keyMap, { theme, indicatorVariant: indicator });
+  if (injected.hadExisting) {
     console.error("Warning: stripped existing DeepCitation injection before re-injecting.");
   }
-  let output = stripped.html;
-
-  if (output.includes("</body>")) {
-    output = output.replace("</body>", () => `${snippet}\n</body>`);
-  } else if (output.includes("</html>")) {
-    output = output.replace("</html>", () => `${snippet}\n</html>`);
-  } else {
-    output = `${output}\n${snippet}`;
-  }
+  const output = injected.html;
 
   const outPath = resolve(args.out ?? `verified-${ts}.html`);
   writeVerifiedOutput(outPath, output);

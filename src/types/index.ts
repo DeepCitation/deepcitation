@@ -40,6 +40,7 @@ export type {
 } from "./timing.js";
 // Verification types
 export type {
+  AttachmentAssets,
   ContentMatchStatus,
   DocumentVerificationResult,
   DownloadLink,

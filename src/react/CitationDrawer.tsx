@@ -101,12 +101,11 @@ function normalizePageNumber(raw: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** Resolve page images from verification (inline) or fallback to attachment-level lookup. */
+/** Resolve page images from the attachment-level lookup. */
 function resolvePageImages(
   verification: Verification | null | undefined,
   pageImagesByAttachmentId: Record<string, PageImage[]> | undefined,
 ): PageImage[] | undefined {
-  if (verification?.pageImages) return verification.pageImages;
   const attachmentId = verification?.attachmentId;
   return attachmentId ? pageImagesByAttachmentId?.[attachmentId] : undefined;
 }

@@ -1,5 +1,5 @@
 import { getAllCitationsFromLlmOutput } from "../parsing/parseCitation.js";
-import type { Citation, Verification } from "../types/index.js";
+import type { AttachmentAssets, Citation, Verification } from "../types/index.js";
 import type { LlmSearchAttempt } from "../types/llmAttempt.js";
 import { computeAmendments } from "../utils/amendments.js";
 import { getCitationKey } from "../utils/citationKey.js";
@@ -12,6 +12,7 @@ import {
   ServerError,
   ValidationError,
 } from "./errors.js";
+import { normalizeVerifyResponse } from "./normalizeVerifyResponse.js";
 import type {
   AttachmentResponse,
   CitationInput,
@@ -796,7 +797,7 @@ export class DeepCitation {
     // If no citations to verify, return empty result
     const citationCount = Object.keys(citationMap).length;
     if (citationCount === 0) {
-      return { verifications: {} };
+      return { verifications: {}, attachments: undefined };
     }
 
     // Performance fix: request deduplication
@@ -852,7 +853,7 @@ export class DeepCitation {
         throw await createApiError(response, "Verification");
       }
 
-      return (await response.json()) as VerifyCitationsResponse;
+      return normalizeVerifyResponse((await response.json()) as VerifyCitationsResponse);
     })();
 
     // Force cleanup if cache is at or approaching the limit to prevent memory leaks
@@ -903,6 +904,7 @@ export class DeepCitation {
     const maxAttempts = options.maxAttempts ?? 3;
     const citationMap = this.normalizeCitationInput(citations);
     const finalVerifications: Record<string, Verification> = {};
+    const mergedAttachments: Record<string, AttachmentAssets> = {};
 
     for (const [citationKey, initialCitation] of Object.entries(citationMap)) {
       const history: LlmSearchAttempt[] = [];
@@ -911,6 +913,7 @@ export class DeepCitation {
       for (let i = 0; i < maxAttempts; i++) {
         const start = Date.now();
         const result = await this.verifyAttachment(attachmentId, { [citationKey]: currentCitation }, options);
+        if (result.attachments) Object.assign(mergedAttachments, result.attachments);
         const verification = result.verifications[citationKey];
         const durationMs = Date.now() - start;
 
@@ -964,7 +967,10 @@ export class DeepCitation {
       }
     }
 
-    return { verifications: finalVerifications };
+    return {
+      verifications: finalVerifications,
+      attachments: Object.keys(mergedAttachments).length ? mergedAttachments : undefined,
+    };
   }
 
   /**
@@ -1000,7 +1006,7 @@ export class DeepCitation {
     const citationEntries = Object.entries(citations);
 
     if (citationEntries.length === 0) {
-      return { verifications: {} };
+      return { verifications: {}, attachments: undefined };
     }
 
     // Separate citations into sendable (have attachmentId) and skipped.
@@ -1056,7 +1062,7 @@ export class DeepCitation {
 
     // If all were skipped, return early
     if (Object.keys(batchCitations).length === 0) {
-      return { verifications: allVerifications };
+      return { verifications: allVerifications, attachments: undefined };
     }
 
     const response = await this._fetch(`${this.apiUrl}/verifyCitations`, {
@@ -1079,10 +1085,10 @@ export class DeepCitation {
       throw await createApiError(response, "Batch verification");
     }
 
-    const result = (await response.json()) as VerifyCitationsResponse;
+    const result = normalizeVerifyResponse((await response.json()) as VerifyCitationsResponse);
     Object.assign(allVerifications, result.verifications);
 
-    return { verifications: allVerifications };
+    return { verifications: allVerifications, attachments: result.attachments };
   }
 
   /**
@@ -1122,7 +1128,7 @@ export class DeepCitation {
     // If no citations found, return empty result
     if (totalCount === 0) {
       this.logger.debug?.("No citations found in LLM output");
-      return { verifications: {} };
+      return { verifications: {}, attachments: undefined };
     }
 
     this.logger.info?.("Verifying LLM output", { citationCount: totalCount });

@@ -195,6 +195,25 @@ export interface PageImage {
 }
 
 // ==========================================================================
+// Attachment-level assets (hoisted from Verification to response envelope)
+// ==========================================================================
+
+/**
+ * Attachment-level assets shared across all citations for the same attachment.
+ * Lives on `VerifyCitationResponse.attachments` keyed by `attachmentId`.
+ */
+export interface AttachmentAssets {
+  /** Page renders for full-page viewer */
+  pageImages?: PageImage[];
+  /** Status of page image generation */
+  pageImagesStatus?: PageImagesStatus;
+  /** Original file download (PDF, DOCX, MP4, …). Absent for URL inputs. */
+  originalDownload?: FileDownload;
+  /** Converted artifact download (PDF rendition, transcript, …). Absent for plain PDF uploads. */
+  convertedDownload?: FileDownload;
+}
+
+// ==========================================================================
 // Main Verification interface
 // ==========================================================================
 
@@ -248,14 +267,6 @@ export interface Verification {
   /** Wall-clock ms the system took to verify this citation.
    *  Computed client-side: (evidence ready timestamp) − (citation first rendered timestamp). */
   timeToCertaintyMs?: number;
-
-  // ========== Standalone attachment assets ==========
-  /** Page renders for full-page viewer (mirrors UploadFileResponse.pageImages). */
-  pageImages?: PageImage[];
-  /** Original file download. Present when the verification attachment was a file upload. */
-  originalDownload?: FileDownload;
-  /** Converted artifact download (PDF rendition, transcript, …). Present for URL/Office inputs. */
-  convertedDownload?: FileDownload;
 
   // ========== Location Precision ==========
   /** True when the citation text was found but the input citation lacked precise

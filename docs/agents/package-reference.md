@@ -39,9 +39,11 @@ Types:
 
 ```ts
 import type {
+  AttachmentAssets,
   Citation,
   CitationType,
   Verification,
+  VerifyCitationResponse,
   SourceType,
   CitationRecord,
   VerificationRecord,

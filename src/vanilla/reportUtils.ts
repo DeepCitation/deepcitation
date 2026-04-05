@@ -4,6 +4,11 @@
  * Extracted from renderReport.ts and renderBrandedReport.ts to avoid duplication.
  */
 
+import type { CitationRecord } from "../types/citation.js";
+import type { AttachmentAssets, Verification } from "../types/verification.js";
+import { safeReplace } from "../utils/regexSafety.js";
+import { CDN_JS } from "./_generated_cdn.js";
+
 /**
  * Escape a string for safe embedding in a JSON `<script>` block.
  * Prevents `</script>` injection and problematic Unicode line terminators.
@@ -79,4 +84,167 @@ export function stripExistingInjection(html: string): { html: string; hadExistin
   }
 
   return { html: result, hadExisting };
+}
+
+// ── Marker normalization ──────────────────────────────────────────────
+
+// Max prefix length for fuzzy anchor matching — long enough to be unique,
+// short enough to tolerate LLM paraphrasing at the tail end.
+const ANCHOR_MATCH_PREFIX = 40;
+
+/**
+ * Normalize `[N]` markers so they always appear AFTER their anchor text.
+ *
+ * LLMs produce three styles:
+ *   - OpenAI:    `anchor text [N]`          → already correct
+ *   - Anthropic: `[N] anchor text`          → needs reordering
+ *   - Gemini:    `text [N, M] more text`    → needs expansion + reordering
+ *
+ * wrapCitationMarkers expects `anchor text [N]` — this function normalizes
+ * all styles to that format before markdownToHtml processes them.
+ */
+export function normalizeNumericMarkers(text: string, anchorMap: Record<string, string>): string {
+  // Expand grouped markers  [1, 5] → [1][5]
+  let result = safeReplace(text, /\[(\d+(?:\s*,\s*\d+)+)\]/g, (_, group: string) =>
+    group
+      .split(",")
+      .map(n => `[${n.trim()}]`)
+      .join(""),
+  );
+
+  // For each citation, ensure [N] follows its anchor text.
+  // Process in descending order so index shifts from earlier edits
+  // don't affect later ones.
+  const entries = Object.entries(anchorMap).sort(([a], [b]) => Number(b) - Number(a));
+
+  for (const [num, anchor] of entries) {
+    const markerRe = new RegExp(`\\[${num}\\]`);
+    const markerMatch = markerRe.exec(result);
+    if (!markerMatch) continue;
+
+    const markerPos = markerMatch.index;
+    const anchorIdx = result.toLowerCase().indexOf(anchor.slice(0, ANCHOR_MATCH_PREFIX).toLowerCase());
+    if (anchorIdx < 0) continue;
+
+    const anchorEnd = anchorIdx + anchor.length;
+
+    // If marker already follows the anchor (within a small gap), leave it
+    if (markerPos >= anchorEnd && markerPos <= anchorEnd + 5) continue;
+
+    // Remove marker from current position
+    result = result.slice(0, markerMatch.index) + result.slice(markerMatch.index + markerMatch[0].length);
+
+    // Recalculate anchor position after removal (may have shifted)
+    const newAnchorIdx = result.toLowerCase().indexOf(anchor.slice(0, ANCHOR_MATCH_PREFIX).toLowerCase());
+    if (newAnchorIdx < 0) continue;
+    const insertPos = newAnchorIdx + anchor.length;
+    result = `${result.slice(0, insertPos)} [${num}]${result.slice(insertPos)}`;
+  }
+
+  return result;
+}
+
+// ── Shared report helpers ─────────────────────────────────────────────
+
+/**
+ * Build anchorMap (citationNumber → anchorText) and keyMap ("cite-N" → hash)
+ * from a CitationRecord. Used by markdownToHtml and CDN runtime respectively.
+ */
+export function buildCitationMaps(citations: CitationRecord): {
+  anchorMap: Record<string, string>;
+  keyMap: Record<string, string>;
+} {
+  const anchorMap: Record<string, string> = {};
+  const keyMap: Record<string, string> = {};
+  for (const [hash, citation] of Object.entries(citations)) {
+    const num = citation.citationNumber;
+    if (num != null && citation.anchorText) {
+      anchorMap[String(num)] = citation.anchorText;
+      keyMap[`cite-${num}`] = hash;
+    }
+  }
+  return { anchorMap, keyMap };
+}
+
+/**
+ * Replace `data-cite="N"` attributes with `data-citation-key="<hash>"` and
+ * strip leftover `[N]` text markers for all citations in the record.
+ */
+export function replaceCitationMarkers(html: string, citations: CitationRecord): string {
+  let result = html;
+  for (const [hash, citation] of Object.entries(citations)) {
+    const num = citation.citationNumber;
+    if (num == null) continue;
+    result = safeReplace(result, new RegExp(`data-cite="${num}"`, "g"), `data-citation-key="${hash}"`);
+  }
+  for (const citation of Object.values(citations)) {
+    const num = citation.citationNumber;
+    if (num == null) continue;
+    result = safeReplace(result, new RegExp(`\\s*\\[${num}\\]`, "g"), "");
+  }
+  return result;
+}
+
+/**
+ * Re-attach pageImages from the hoisted `attachments` map onto each
+ * verification entry (in-place). The CDN runtime expects `pageImages`
+ * on each verification object, but the SDK normalizes them to a
+ * per-attachment map to avoid duplication in the API response.
+ */
+export function reattachPageImages(
+  verifications: Record<string, Verification>,
+  attachments?: Record<string, AttachmentAssets>,
+): void {
+  if (!attachments) return;
+  for (const v of Object.values(verifications) as Record<string, unknown>[]) {
+    const aid = v.attachmentId as string | undefined;
+    if (aid && attachments[aid]?.pageImages) {
+      v.pageImages = attachments[aid].pageImages;
+    }
+  }
+}
+
+/** Options for {@link injectCdnRuntime}. */
+export interface InjectCdnOptions {
+  theme?: string;
+  indicatorVariant?: string;
+}
+
+/**
+ * Inject the CDN popover runtime into an HTML string.
+ *
+ * Strips any existing injection first, then appends dc-data, dc-key-map,
+ * the CDN JS bundle, and the init call before `</body>`.
+ */
+export function injectCdnRuntime(
+  html: string,
+  verifications: Record<string, unknown>,
+  keyMap: Record<string, string>,
+  opts: InjectCdnOptions = {},
+): { html: string; hadExisting: boolean } {
+  const { theme = "auto", indicatorVariant } = opts;
+  const stripped = stripExistingInjection(html);
+
+  const initParts = [`theme:${JSON.stringify(theme)}`];
+  if (indicatorVariant && indicatorVariant !== "icon") {
+    initParts.push(`indicatorVariant:${JSON.stringify(indicatorVariant)}`);
+  }
+
+  const snippet = [
+    `<script type="application/json" id="dc-data">${escapeJsonForScript(JSON.stringify(verifications))}</script>`,
+    `<script type="application/json" id="dc-key-map">${escapeJsonForScript(JSON.stringify(keyMap))}</script>`,
+    `<script>${escapeJsForScript(CDN_JS)}</script>`,
+    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({${initParts.join(",")}});</script>`,
+  ].join("\n");
+
+  let result = stripped.html;
+  if (result.includes("</body>")) {
+    result = result.replace("</body>", () => `${snippet}\n</body>`);
+  } else if (result.includes("</html>")) {
+    result = result.replace("</html>", () => `${snippet}\n</html>`);
+  } else {
+    result = `${result}\n${snippet}`;
+  }
+
+  return { html: result, hadExisting: stripped.hadExisting };
 }

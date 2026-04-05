@@ -166,6 +166,7 @@ export type {
   TimingMetrics,
 } from "./types/timing.js";
 export type {
+  AttachmentAssets,
   ContentMatchStatus,
   DocumentVerificationResult,
   DownloadLink,

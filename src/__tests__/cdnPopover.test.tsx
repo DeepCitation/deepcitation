@@ -70,19 +70,9 @@ describe("mapToVerification", () => {
   it("sets evidence undefined when absent", () => {
     expect(mapToVerification(minData).evidence).toBeUndefined();
   });
-  it("preserves pageImages array", () => {
+  it("does not include pageImages (now attachment-level)", () => {
     const r = mapToVerification(fullData);
-    expect(r.pageImages).toHaveLength(2);
-    expect(r.pageImages?.[0]).toEqual({
-      pageNumber: 3,
-      dimensions: { width: 1200, height: 1600 },
-      imageUrl: PAGE_IMAGE_URL,
-      isMatchPage: true,
-    });
-    expect(r.pageImages?.[1].pageNumber).toBe(4);
-  });
-  it("sets pageImages undefined when absent", () => {
-    expect(mapToVerification(minData).pageImages).toBeUndefined();
+    expect((r as Record<string, unknown>).pageImages).toBeUndefined();
   });
   it("preserves searchAttempts array", () => {
     const r = mapToVerification(fullData);
@@ -111,7 +101,6 @@ describe("mapToVerification", () => {
     const r = mapToVerification(minData);
     expect(r.status).toBe("not_found");
     expect(r.evidence).toBeUndefined();
-    expect(r.pageImages).toBeUndefined();
     expect(r.document).toBeUndefined();
     expect(r.url).toBeUndefined();
   });
@@ -188,6 +177,50 @@ describe("CDN popover viewState contract", () => {
   });
 });
 
+describe("CdnPopoverWrapper pageImages flow", () => {
+  it("passes data.pageImages through to DefaultPopoverContent", () => {
+    const pageImages = fullData.pageImages ?? [];
+    function TestWrapper() {
+      const [viewState, setViewState] = useState<PopoverViewState>("summary");
+      // Simulate what CdnPopoverWrapper does: passes pageImages from data directly
+      return (
+        <DefaultPopoverContent
+          citation={mapToCitation(fullData)}
+          verification={mapToVerification(fullData)}
+          pageImages={pageImages}
+          status={{ isVerified: true, isMiss: false, isPartialMatch: false, isPending: false }}
+          viewState={viewState}
+          onViewStateChange={setViewState}
+        />
+      );
+    }
+    const { container } = render(<TestWrapper />);
+    // The component should render without errors when pageImages are provided
+    expect(container.firstChild).toBeTruthy();
+    // Verify pageImages are NOT on the verification (they come from data separately)
+    const verification = mapToVerification(fullData);
+    expect((verification as Record<string, unknown>).pageImages).toBeUndefined();
+  });
+
+  it("handles undefined pageImages gracefully", () => {
+    function TestWrapper() {
+      const [viewState, setViewState] = useState<PopoverViewState>("summary");
+      return (
+        <DefaultPopoverContent
+          citation={mapToCitation(minData)}
+          verification={mapToVerification(minData)}
+          pageImages={undefined}
+          status={{ isVerified: false, isMiss: true, isPartialMatch: false, isPending: false }}
+          viewState={viewState}
+          onViewStateChange={setViewState}
+        />
+      );
+    }
+    const { container } = render(<TestWrapper />);
+    expect(container.firstChild).toBeTruthy();
+  });
+});
+
 describe("cdn.ts source invariants", () => {
   const cdnSource = readFileSync(resolve(__dirname, "../vanilla/runtime/cdn.ts"), "utf-8");
   it("uses CdnPopoverWrapper", () => {
@@ -202,8 +235,8 @@ describe("cdn.ts source invariants", () => {
   it("imports from cdn-mappers", () => {
     expect(cdnSource).toContain('from "./cdn-mappers.js"');
   });
-  it("passes pageImages", () => {
-    expect(cdnSource).toContain("pageImages: verification.pageImages");
+  it("passes pageImages from data", () => {
+    expect(cdnSource).toContain("pageImages: data.pageImages");
   });
   it("sets max-width on content container from clientWidth", () => {
     expect(cdnSource).toContain("document.documentElement.clientWidth - 32");
