@@ -44,7 +44,13 @@ import { detectProxyUrl } from "../utils/proxy.js";
 import { safeExec, safeReplace, safeTest } from "../utils/regexSafety.js";
 import { validateCitationData } from "../utils/validateCitationData.js";
 import { CDN_JS } from "../vanilla/_generated_cdn.js";
-import { escapeJsForScript, escapeJsonForScript, stripExistingInjection } from "../vanilla/reportUtils.js";
+import {
+  escapeJsForScript,
+  escapeJsonForScript,
+  injectCdnRuntime,
+  reattachPageImages,
+  stripExistingInjection,
+} from "../vanilla/reportUtils.js";
 import { extractMarkersFromBody, findAnchorWithFallback, getAllLines, toCompactPageId } from "./cite.js";
 import { die, isValidApiKeyFormat, parseArgs } from "./cliUtils.js";
 import { findSummaryForMarkdown, hydrateCitations, parseSummaryToLineMap } from "./hydrate.js";
@@ -1135,39 +1141,15 @@ export async function verifyHtml(argv: string[], _fmtNetErr: (err: unknown) => s
   if (found === 0 && total > 0) printAllNotFoundHint();
 
   // 5. Inject CDN runtime (same logic as inject command)
-  // NOTE: writeFileSync above stores the clean normalized response (no per-verification pageImages).
   // Re-attach pageImages in-memory only for CDN script injection below.
   const verifications = verifyOutput.verifications;
-  for (const v of Object.values(verifications) as Record<string, unknown>[]) {
-    const aid = v.attachmentId as string | undefined;
-    if (aid && mergedAttachments[aid]?.pageImages) {
-      v.pageImages = mergedAttachments[aid].pageImages;
-    }
-  }
-  const jsonData = escapeJsonForScript(JSON.stringify(verifications));
-  const keyMapSnippet = `<script type="application/json" id="dc-key-map">${escapeJsonForScript(JSON.stringify(keyMap))}</script>`;
+  reattachPageImages(verifications, mergedAttachments);
 
-  const snippet = [
-    `<script type="application/json" id="dc-data">${jsonData}</script>`,
-    keyMapSnippet,
-    `<script>${escapeJsForScript(CDN_JS)}</script>`,
-    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({${[`theme:${JSON.stringify(theme)}`, ...(indicator !== "icon" ? [`indicatorVariant:${JSON.stringify(indicator)}`] : [])].join(",")}});</script>`,
-  ].join("\n");
-
-  // Strip existing injection to prevent duplicate CDN bundles
-  const stripped = stripExistingInjection(html);
-  if (stripped.hadExisting) {
+  const injected = injectCdnRuntime(html, verifications, keyMap, { theme, indicatorVariant: indicator });
+  if (injected.hadExisting) {
     console.error("Warning: stripped existing DeepCitation injection before re-injecting.");
   }
-  let output = stripped.html;
-
-  if (output.includes("</body>")) {
-    output = output.replace("</body>", () => `${snippet}\n</body>`);
-  } else if (output.includes("</html>")) {
-    output = output.replace("</html>", () => `${snippet}\n</html>`);
-  } else {
-    output = `${output}\n${snippet}`;
-  }
+  const output = injected.html;
 
   const outPath = resolve(args.out ?? `verified-${ts}.html`);
   writeVerifiedOutput(outPath, output);

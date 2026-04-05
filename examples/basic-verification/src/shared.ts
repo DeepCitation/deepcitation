@@ -29,10 +29,13 @@ import { execFileSync } from "child_process";
 
 // CLI internals — direct source imports (monorepo-only, not public API)
 import { markdownToHtml } from "../../../src/cli/markdownToHtml.js";
-import { escapeJsonForScript, escapeJsForScript, stripExistingInjection } from "../../../src/vanilla/reportUtils.js";
-import { CDN_JS } from "../../../src/vanilla/_generated_cdn.js";
-
-import { normalizeNumericMarkers } from "./fixture-to-html.js";
+import {
+  buildCitationMaps,
+  injectCdnRuntime,
+  normalizeNumericMarkers,
+  reattachPageImages,
+  replaceCitationMarkers,
+} from "../../../src/vanilla/reportUtils.js";
 
 // Get current directory for loading sample files
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -344,19 +347,7 @@ provided documents accurately and cite your sources.`;
 
   console.log("\n📄 Step 6: Generating HTML report...\n");
 
-  // anchorMap: tells markdownToHtml which phrase to wrap for each [N] marker.
-  //   Built from the <<<CITATION_DATA>>> block: citationNumber → anchorText.
-  // keyMap: tells the CDN runtime which verification hash corresponds to each
-  //   cite-N reference. Built from the same data: "cite-N" → content hash.
-  const anchorMap: Record<string, string> = {};
-  const keyMap: Record<string, string> = {};
-  for (const [hash, citation] of Object.entries(parsedCitations)) {
-    const num = citation.citationNumber;
-    if (num != null && citation.anchorText) {
-      anchorMap[String(num)] = citation.anchorText;
-      keyMap[`cite-${num}`] = hash;
-    }
-  }
+  const { anchorMap, keyMap } = buildCitationMaps(parsedCitations);
 
   // Normalize [N] markers: expand grouped markers [1, 5] → [1][5] and
   // reposition markers that appear before their anchor text to after it.
@@ -372,56 +363,14 @@ provided documents accurately and cite your sources.`;
     anchorMap,
   });
 
-  // Replace data-cite="N" with data-citation-key="<hash>" so the CDN runtime can
-  // look up each element's verification result in dc-data by hash.
-  // (Same pattern as commands.ts:1029-1047)
-  for (const [hash, citation] of Object.entries(parsedCitations)) {
-    const num = citation.citationNumber;
-    if (num == null) continue;
-    html = html.replace(new RegExp(`data-cite="${num}"`, "g"), `data-citation-key="${hash}"`);
-  }
+  html = replaceCitationMarkers(html, parsedCitations);
 
-  // Strip leftover [N] text markers for known citation IDs (already wrapped as spans)
-  for (const citation of Object.values(parsedCitations)) {
-    const num = citation.citationNumber;
-    if (num == null) continue;
-    html = html.replace(new RegExp(`\\s*\\[${num}\\]`, "g"), "");
-  }
-
-  // Inject CDN runtime: embed the verification API results (dc-data) and the
-  // cite-N → hash lookup table (dc-key-map), then load the popover JS bundle.
-  // (Same pattern as commands.ts:1135-1160)
-  const stripped = stripExistingInjection(html);
-  html = stripped.html;
-
-  // Re-attach pageImages from the hoisted attachments map so the CDN popover
-  // can render the full-page image viewer. (Same pattern as commands.ts:1139-1145)
+  // Re-attach pageImages from hoisted attachments so CDN popover renders them
   const cdnVerifications = { ...verificationResult.verifications };
-  if (verificationResult.attachments) {
-    for (const [key, v] of Object.entries(cdnVerifications)) {
-      const aid = (v as Record<string, unknown>).attachmentId as string | undefined;
-      if (aid && verificationResult.attachments[aid]?.pageImages) {
-        (cdnVerifications[key] as Record<string, unknown>).pageImages =
-          verificationResult.attachments[aid].pageImages;
-      }
-    }
-  }
+  reattachPageImages(cdnVerifications, verificationResult.attachments);
 
-  const cdnSnippet = [
-    `<script type="application/json" id="dc-data">${escapeJsonForScript(JSON.stringify(cdnVerifications))}</script>`,
-    `<script type="application/json" id="dc-key-map">${escapeJsonForScript(JSON.stringify(keyMap))}</script>`,
-    `<script>${escapeJsForScript(CDN_JS)}</script>`,
-    `<script>window.DeepCitationPopover&&window.DeepCitationPopover.init({theme:"auto"});</script>`,
-  ].join("\n");
-
-  // Use function callback to avoid $& expansion in cdnSnippet
-  if (html.includes("</body>")) {
-    html = html.replace("</body>", () => `${cdnSnippet}\n</body>`);
-  } else if (html.includes("</html>")) {
-    html = html.replace("</html>", () => `${cdnSnippet}\n</html>`);
-  } else {
-    html += `\n${cdnSnippet}`;
-  }
+  const injected = injectCdnRuntime(html, cdnVerifications, keyMap);
+  html = injected.html;
 
   // Write HTML to output directory and open in browser
   const outDir = resolve(__dirname, "../../output");
