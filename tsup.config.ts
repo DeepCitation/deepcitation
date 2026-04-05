@@ -1,5 +1,7 @@
 import { defineConfig } from "tsup";
 
+const skipDts = process.env.SKIP_DTS === "true";
+
 // Combined single config to avoid race conditions between parallel builds
 // This ensures DTS files are not cleaned up by competing processes
 export default defineConfig({
@@ -15,13 +17,15 @@ export default defineConfig({
     cli: "src/cli.ts",
   },
   format: ["esm", "cjs"],
-  dts: {
-    compilerOptions: {
-      composite: false,
-      declarationMap: false,
-      types: ["node"],
-    },
-  },
+  dts: skipDts
+    ? false
+    : {
+        compilerOptions: {
+          composite: false,
+          declarationMap: false,
+          types: ["node"],
+        },
+      },
   clean: false,
   minify: true,
   treeshake: true,

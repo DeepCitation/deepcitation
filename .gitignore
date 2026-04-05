@@ -35,6 +35,8 @@ examples/**/package-lock.json
 examples/**/local.tgz
 examples/**/.next
 examples/**/next-env.d.ts
+examples/**/output/
+examples/**/test-results/
 
 firebase-debug.log
 
