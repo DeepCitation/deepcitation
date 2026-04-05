@@ -1,6 +1,9 @@
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import type { AmendmentRow } from "../../analysis/narrative.js";
 import type { CitationStatus } from "../../types/citation.js";
+import type { LlmSearchAttempt } from "../../types/llmAttempt.js";
+import type { SearchAttempt } from "../../types/search.js";
 import type { Verification } from "../../types/verification.js";
 import {
   BLINK_ENTER_EASING,
@@ -17,7 +20,7 @@ import {
 } from "../constants.js";
 import { formatCaptureDate } from "../dateUtils.js";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion.js";
-import { tPlural, useLocale, useTranslation } from "../i18n.js";
+import { type TranslateFunction, tPlural, useLocale, useTranslation } from "../i18n.js";
 import { ChevronRightIcon } from "../icons.js";
 import { buildSearchNarrative } from "../searchNarrative.js";
 import { cn } from "../utils.js";
@@ -35,6 +38,34 @@ import {
   resolveEvidenceListTransition,
   searchLogAnimReducer,
 } from "./searchLogAnimation.js";
+
+/**
+ * Flatten LLM-level search attempts into a single SearchAttempt[] array,
+ * inserting AmendmentRow markers at the boundaries between passes.
+ */
+function flattenLlmAttempts(
+  llmAttempts: LlmSearchAttempt[],
+  t: TranslateFunction,
+): { flatAttempts: SearchAttempt[]; amendmentMarkers: Map<number, AmendmentRow> } {
+  const flatAttempts: SearchAttempt[] = [];
+  const amendmentMarkers = new Map<number, AmendmentRow>();
+
+  for (let i = 0; i < llmAttempts.length; i++) {
+    const attempt = llmAttempts[i];
+    if (i > 0 && attempt.amendments && attempt.amendments.length > 0) {
+      amendmentMarkers.set(flatAttempts.length, {
+        kind: "amendment",
+        key: `amendment-${i}`,
+        descriptions: attempt.amendments.map(a => t("llmAttempt.changedField", { field: a.field })),
+        reason: attempt.amendmentReason,
+        isFalsePositiveRejection: llmAttempts[i - 1]?.partialRejectedAsFalsePositive === true,
+      });
+    }
+    flatAttempts.push(...(attempt.verification?.searchAttempts ?? []));
+  }
+
+  return { flatAttempts, amendmentMarkers };
+}
 
 /**
  * Minimal footer for the evidence tray: date on the left, CTA on the right.
@@ -174,6 +205,8 @@ export function EvidenceTray({
   const isMiss = status.isMiss;
   const isPartialMatch = status.isPartialMatch;
   const searchAttempts = verification?.searchAttempts ?? [];
+  const llmAttempts = verification?.llmAttempts;
+  const hasLlmHistory = llmAttempts != null && llmAttempts.length > 1;
   const borderClass = isMiss ? EVIDENCE_TRAY_BORDER_DASHED : EVIDENCE_TRAY_BORDER_SOLID;
   const prefersReducedMotion = usePrefersReducedMotion();
 
@@ -323,19 +356,48 @@ export function EvidenceTray({
       willChange: searchLogStage === "steady" ? undefined : "transform, padding-top, max-height, opacity",
     };
   }, [searchLogContentHeight, searchLogStage, prefersReducedMotion, showSearchLog]);
-  const searchNarrative = useMemo(
-    () =>
-      (isMiss || isPartialMatch) && searchAttempts.length > 0
-        ? buildSearchNarrative(
-            searchAttempts,
-            verification?.status ?? "not_found",
-            verification?.citation?.type === "document" ? verification.citation.pageNumber : undefined,
-            verification?.citation?.type === "document" ? verification.citation.lineIds?.[0] : undefined,
-            t,
-          )
-        : null,
-    [isMiss, isPartialMatch, searchAttempts, verification?.status, verification?.citation, t],
-  );
+  const searchNarrative = useMemo(() => {
+    if (!(isMiss || isPartialMatch)) return null;
+
+    if (hasLlmHistory && llmAttempts) {
+      const { flatAttempts, amendmentMarkers } = flattenLlmAttempts(llmAttempts, t);
+      if (flatAttempts.length === 0) return null;
+
+      const narrative = buildSearchNarrative(
+        flatAttempts,
+        verification?.status ?? "not_found",
+        verification?.citation?.type === "document" ? verification.citation.pageNumber : undefined,
+        verification?.citation?.type === "document" ? verification.citation.lineIds?.[0] : undefined,
+        t,
+      );
+
+      if (amendmentMarkers.size > 0) {
+        const markers = Array.from(amendmentMarkers.values());
+        narrative.rows = [...markers, ...narrative.rows];
+      }
+
+      return narrative;
+    }
+
+    if (searchAttempts.length === 0) return null;
+
+    return buildSearchNarrative(
+      searchAttempts,
+      verification?.status ?? "not_found",
+      verification?.citation?.type === "document" ? verification.citation.pageNumber : undefined,
+      verification?.citation?.type === "document" ? verification.citation.lineIds?.[0] : undefined,
+      t,
+    );
+  }, [
+    isMiss,
+    isPartialMatch,
+    hasLlmHistory,
+    llmAttempts,
+    searchAttempts,
+    verification?.status,
+    verification?.citation,
+    t,
+  ]);
 
   // Footer element — shared across top/bottom placement
   const footerEl = (

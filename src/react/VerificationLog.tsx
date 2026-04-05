@@ -1019,6 +1019,25 @@ export function LookingForSection({ anchorText, fullPhrase }: { anchorText?: str
 /** Renders a single NarrativeRow as a compact timeline entry. */
 function NarrativeRowRenderer({ row }: { row: NarrativeRow }) {
   const t = useTranslation();
+
+  // AmendmentRow must be handled before accessing phraseFull (which it lacks)
+  if (row.kind === "amendment") {
+    return (
+      <div className="py-1.5 px-2 text-[11px] border-l-2 border-dc-border border-dashed bg-dc-muted/50 text-dc-subtle-foreground space-y-0.5">
+        <div className="font-medium">{t("llmAttempt.amended")}</div>
+        {row.descriptions.map((desc, i) => (
+          <div key={i} className="text-[10px]">
+            {desc}
+          </div>
+        ))}
+        {row.reason && <div className="text-[10px] italic">{row.reason}</div>}
+        {row.isFalsePositiveRejection && (
+          <div className="text-[10px] font-medium text-dc-partial">{t("llmAttempt.falsePositive")}</div>
+        )}
+      </div>
+    );
+  }
+
   const isTruncated = row.phraseFull.length > MAX_PHRASE_DISPLAY_LENGTH;
 
   switch (row.kind) {
