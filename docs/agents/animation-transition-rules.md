@@ -396,3 +396,4 @@ Two coordinated `Element.animate()` calls run in parallel:
 - **No haptics on hover or scroll.** Only on committed user actions.
 - **No `document.body.setAttribute("inert", "")`** for focus trapping. It makes the popover portal inert. Target `<main>` or individual body children instead.
 - **No `animation-duration: 0s` as a reduced-motion workaround.** Pass `0` to the hook params instead — `transitionend` does not fire at 0ms, leaving stale inline styles.
+- **No spinner fallbacks for content placeholders.** Use skeleton blocks (`animate-pulse rounded bg-dc-muted`) instead of `animate-spin` spinners when holding space for content that will load (images, text blocks, cards). Skeletons communicate the shape of incoming content and avoid drawing the eye to a single pulsing point. Reserve spinners for action-initiated waits (e.g., form submission, search status) where no content shape is known.
