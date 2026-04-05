@@ -104,11 +104,7 @@ export function InlineExpandedImage({
 }) {
   const t = useTranslation();
   const { containerRef, isDragging, handlers: panHandlers, wasDraggingRef } = useDragToPan({ direction: "xy" });
-  const {
-    effectiveSrc: retrySrc,
-    isRetrying,
-    onImageLoaded: onRetryImageLoaded,
-  } = useRetryPendingRender(src, expectedDimensions);
+  const { effectiveSrc: retrySrc, onImageLoaded: onRetryImageLoaded } = useRetryPendingRender(src, expectedDimensions);
   const expandedImgRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [naturalWidth, setNaturalWidth] = useState<number | null>(null);

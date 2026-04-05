@@ -930,7 +930,7 @@ export class DeepCitation {
         };
         history.push(attempt);
 
-        if (TERMINAL_VERIFY_STATUSES.has(verification.status)) break;
+        if (verification.status && TERMINAL_VERIFY_STATUSES.has(verification.status)) break;
         if (i >= maxAttempts - 1) break;
 
         const callbackResult = await options.onAttemptComplete(attempt, history, citationKey);
