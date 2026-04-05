@@ -371,9 +371,14 @@ export function EvidenceTray({
         t,
       );
 
+      // Interleave amendment markers at their correct positions in the timeline.
+      // Iterate in reverse so earlier insertions don't shift later indices.
       if (amendmentMarkers.size > 0) {
-        const markers = Array.from(amendmentMarkers.values());
-        narrative.rows = [...markers, ...narrative.rows];
+        const sorted = Array.from(amendmentMarkers.entries()).sort((a, b) => b[0] - a[0]);
+        for (const [idx, marker] of sorted) {
+          const insertAt = Math.min(idx, narrative.rows.length);
+          narrative.rows.splice(insertAt, 0, marker);
+        }
       }
 
       return narrative;

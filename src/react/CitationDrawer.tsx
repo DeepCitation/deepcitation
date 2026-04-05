@@ -487,7 +487,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                   {/* Caret shown on hover */}
                   <svg
                     aria-hidden="true"
-                    className="w-5 h-5 text-dc-subtle-foreground hidden group-hover:block"
+                    className="w-5 h-5 text-dc-subtle-foreground hidden group-hover:block group-focus-within:block"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -498,7 +498,7 @@ export const CitationDrawerItemComponent = React.memo(function CitationDrawerIte
                   {/* Status icon shown by default */}
                   <span
                     className={cn(
-                      "inline-flex w-5 h-5 items-center justify-center group-hover:hidden",
+                      "inline-flex w-5 h-5 items-center justify-center group-hover:hidden group-focus-within:hidden",
                       statusInfo.color,
                     )}
                     title={statusInfo.label}

@@ -927,6 +927,9 @@ export class DeepCitation {
         const verification = result.verifications[citationKey];
         const durationMs = Date.now() - start;
 
+        // API may not return a verification for this key — bail out
+        if (!verification) break;
+
         const attempt: LlmSearchAttempt = {
           submittedCitation: currentCitation,
           verification,
@@ -935,7 +938,7 @@ export class DeepCitation {
         };
         history.push(attempt);
 
-        if (verification?.status && TERMINAL_STATUSES.has(verification.status)) break;
+        if (TERMINAL_STATUSES.has(verification.status)) break;
         if (i >= maxAttempts - 1) break;
 
         const amended = await options.onAttemptComplete(attempt, history, citationKey);
@@ -943,11 +946,10 @@ export class DeepCitation {
         currentCitation = amended;
       }
 
-      const finalVerification = history[history.length - 1].verification;
-      if (history.length > 1) {
-        finalVerification.llmAttempts = history;
+      if (history.length > 0) {
+        const last = history[history.length - 1].verification;
+        finalVerifications[citationKey] = history.length > 1 ? { ...last, llmAttempts: history } : last;
       }
-      finalVerifications[citationKey] = finalVerification;
     }
 
     return { verifications: finalVerifications };
